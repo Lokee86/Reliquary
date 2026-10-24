@@ -1,108 +1,96 @@
 use crate::lexical_contract::{LexicalHit, lexical_terms, term_counts};
-use crate::lexical_index::MemoryLexicalHit;
-#[cfg(test)]
-use crate::{Archive, Container};
-use crate::{Cva, FileSearchHit, Fragment, MemoryError, Phylactery, SearchError};
+use crate::lexical_index::{LexicalIndex, MemoryLexicalHit};
+use crate::memory_store::MemoryStore;
+use crate::{Archive, Container, FileSearchHit, Fragment, MemoryError, SearchError};
 
-impl Cva {
-    pub(crate) fn complete_memory_lexical_matches(
-        &mut self,
-        query: &str,
-    ) -> Result<Vec<MemoryLexicalHit>, MemoryError> {
-        let terms = lexical_terms(query);
-        self.lexical_index
-            .ensure_memories_current(&self.memories, &mut self.container)?;
-        Ok(self.lexical_index.complete_memory_matches(&terms))
-    }
-
-    pub(crate) fn memory_lexical_candidates(
-        &mut self,
-        query: &str,
-        limit: usize,
-    ) -> Result<Vec<MemoryLexicalHit>, MemoryError> {
-        let terms = lexical_terms(query);
-        self.lexical_index
-            .ensure_memories_current(&self.memories, &mut self.container)?;
-        Ok(self.lexical_index.search_memories(&terms, limit))
-    }
-
-    pub(crate) fn lexical_candidates(
-        &mut self,
-        query: &str,
-        limit: usize,
-    ) -> Result<Vec<LexicalHit>, SearchError> {
-        let terms = lexical_terms(query);
-        self.lexical_index
-            .ensure_current(&self.archive, &mut self.container)?;
-        Ok(self.lexical_index.search(&terms, limit))
-    }
-
-    pub(crate) fn raw_archive_candidates(
-        &mut self,
-        query: &str,
-        limit: usize,
-    ) -> Result<Vec<LexicalHit>, SearchError> {
-        let terms = lexical_terms(query);
-        self.lexical_index
-            .ensure_raw_current(&self.archive, &mut self.container)?;
-        Ok(self.lexical_index.search_raw(&terms, limit))
-    }
-
-    pub(crate) fn lexical_candidates_from_fragments(
-        &mut self,
-        query: &str,
-        fragments: &[Fragment],
-        limit: usize,
-    ) -> Result<Vec<LexicalHit>, SearchError> {
-        let terms = lexical_terms(query);
-        if terms.is_empty() || limit == 0 {
-            return Ok(Vec::new());
-        }
-        let mut hits = Vec::new();
-        for (position, fragment) in fragments.iter().cloned().enumerate() {
-            let text = self
-                .archive
-                .fragment_text_for(&mut self.container, &fragment)?;
-            let score = lexical_score(&text, &terms);
-            if score > 0.0 {
-                hits.push((LexicalHit { fragment, score }, position));
-            }
-        }
-        hits.sort_by(|left, right| {
-            right
-                .0
-                .score
-                .total_cmp(&left.0.score)
-                .then_with(|| right.1.cmp(&left.1))
-                .then_with(|| left.0.fragment.id.0.cmp(&right.0.fragment.id.0))
-        });
-        hits.truncate(limit);
-        Ok(hits.into_iter().map(|(hit, _)| hit).collect())
-    }
-
-    pub fn search_files(
-        &mut self,
-        query: &str,
-        limit: usize,
-    ) -> Result<Vec<FileSearchHit>, SearchError> {
-        let terms = lexical_terms(query);
-        self.lexical_index
-            .ensure_current(&self.archive, &mut self.container)?;
-        Ok(self.lexical_index.search_files(&terms, limit))
-    }
+pub(crate) fn complete_memory_lexical_matches(
+    index: &mut LexicalIndex,
+    memories: &MemoryStore,
+    container: &mut Container,
+    query: &str,
+) -> Result<Vec<MemoryLexicalHit>, MemoryError> {
+    let terms = lexical_terms(query);
+    index.ensure_memories_current(memories, container)?;
+    Ok(index.complete_memory_matches(&terms))
 }
 
-impl Phylactery {
-    pub(crate) fn memory_lexical_candidates(
-        &mut self,
-        query: &str,
-        limit: usize,
-    ) -> Result<Vec<MemoryLexicalHit>, MemoryError> {
-        let terms = lexical_terms(query);
-        self.lexical_index
-            .ensure_memories_current(&self.memories, &mut self.container)?;
-        Ok(self.lexical_index.search_memories(&terms, limit))
+pub(crate) fn memory_lexical_candidates(
+    index: &mut LexicalIndex,
+    memories: &MemoryStore,
+    container: &mut Container,
+    query: &str,
+    limit: usize,
+) -> Result<Vec<MemoryLexicalHit>, MemoryError> {
+    let terms = lexical_terms(query);
+    index.ensure_memories_current(memories, container)?;
+    Ok(index.search_memories(&terms, limit))
+}
+
+pub(crate) fn lexical_candidates(
+    index: &mut LexicalIndex,
+    archive: &Archive,
+    container: &mut Container,
+    query: &str,
+    limit: usize,
+) -> Result<Vec<LexicalHit>, SearchError> {
+    let terms = lexical_terms(query);
+    index.ensure_current(archive, container)?;
+    Ok(index.search(&terms, limit))
+}
+
+pub(crate) fn raw_archive_candidates(
+    index: &mut LexicalIndex,
+    archive: &Archive,
+    container: &mut Container,
+    query: &str,
+    limit: usize,
+) -> Result<Vec<LexicalHit>, SearchError> {
+    let terms = lexical_terms(query);
+    index.ensure_raw_current(archive, container)?;
+    Ok(index.search_raw(&terms, limit))
+}
+
+pub(crate) fn lexical_candidates_from_fragments(
+    archive: &Archive,
+    container: &mut Container,
+    query: &str,
+    fragments: &[Fragment],
+    limit: usize,
+) -> Result<Vec<LexicalHit>, SearchError> {
+    let terms = lexical_terms(query);
+    if terms.is_empty() || limit == 0 {
+        return Ok(Vec::new());
     }
+    let mut hits = Vec::new();
+    for (position, fragment) in fragments.iter().cloned().enumerate() {
+        let text = archive.fragment_text_for(container, &fragment)?;
+        let score = lexical_score(&text, &terms);
+        if score > 0.0 {
+            hits.push((LexicalHit { fragment, score }, position));
+        }
+    }
+    hits.sort_by(|left, right| {
+        right
+            .0
+            .score
+            .total_cmp(&left.0.score)
+            .then_with(|| right.1.cmp(&left.1))
+            .then_with(|| left.0.fragment.id.0.cmp(&right.0.fragment.id.0))
+    });
+    hits.truncate(limit);
+    Ok(hits.into_iter().map(|(hit, _)| hit).collect())
+}
+
+pub(crate) fn search_files(
+    index: &mut LexicalIndex,
+    archive: &Archive,
+    container: &mut Container,
+    query: &str,
+    limit: usize,
+) -> Result<Vec<FileSearchHit>, SearchError> {
+    let terms = lexical_terms(query);
+    index.ensure_current(archive, container)?;
+    Ok(index.search_files(&terms, limit))
 }
 
 #[cfg(test)]

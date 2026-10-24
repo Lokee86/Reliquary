@@ -2,6 +2,10 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Public facade implementation ownership
+
+The supported `Cva` and `Phylactery` signatures remain the standalone/offline API. Their Perception, Archive and Retrieval adapters compose accepted lower owner contracts from `src/facade/`; source placement does not add a new public API or change REL/PHY bytes, privacy, errors or query effects. Gateway/Instance mounted execution continues through its existing canonical owner route. See the [Phase 6 execution evidence](dependency-convergence-phase6-execution-2026-10-23.md) for acceptance status.
+
 ## Physical access and explicit maintenance
 
 `Container::open`, `Cva::open` and `Phylactery::open` acquire an exclusive OS

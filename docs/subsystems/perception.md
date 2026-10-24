@@ -12,6 +12,10 @@ Perception turns semantic evidence into longer-lived derived semantic state. Its
 
 Observation synthesis and broader propositional reasoning remain active future work in the Perception plan.
 
+## Public composition boundary
+
+Public `Cva`/`Phylactery` audit, candidate, resolution and reconciliation adapters belong to `src/facade/`. Perception retains audit calculation, candidate/evidence policy and concrete store-based preparation/commit contracts. Public adapters gather the existing owner borrows; lower services do not receive a product facade. [Phase 6 evidence](../dependency-convergence-phase6-execution-2026-10-23.md) records the migration and its verification limits.
+
 ## Memory mention input
 
 Insomnia persists exact Entity mentions against the authoritative Memory body. Mention records retain field/span/verbatim evidence and are validated against the exact body.

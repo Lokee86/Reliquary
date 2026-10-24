@@ -1,5 +1,5 @@
 //! Deterministic planning and execution for intentional fresh-history rewrites.
-#[path = "rewrite/lineage.rs"]
+#[path = "facade/rewrite_lineage_extensions.rs"]
 mod lineage;
 
 #[cfg(test)]

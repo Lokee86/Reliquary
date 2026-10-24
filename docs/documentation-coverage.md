@@ -239,3 +239,7 @@ The dependency-convergence campaign's target and Phase 0 limits are owned by [Ar
 `src/owner_lifecycle/{publication_births,reclamation_source,relocation}.rs` and `reclamation_source_tests.rs` map to the current lifecycle/Maintenance boundaries in [Architecture](architecture.md), [Maintainer map](maintainer-map.md), [Semantic maintenance](subsystems/semantic-maintenance.md) and the [execution ledger](dependency-convergence-phase3-execution-2026-10-22.md). Source-fence tests cover growth before policy and copy; existing reclaim, birth and population suites exercise canonical lower implementations.
 
 `src/owner_lifecycle/{reliquary,dream_replay,freshness_replay,external_index_backing,import_receipts}.rs` map to the same current architecture and ownership documents, preserving durable initialization/reopen order, Dream prefix/digest authority, Freshness birth/activation checks, derivative index invalidation and epoch/Archive receipt consistency. Existing library/CLI regressions cover their facade dispatch; source guards retain the frozen component DAG.
+
+## Phase 6 facade boundaries
+
+The [Phase 6 execution receipt](dependency-convergence-phase6-execution-2026-10-23.md) maps public adapter source, lower owner policy, API preservation and source-guard evidence. Public extensions belong to `src/facade/`; the concrete Perception contexts and Retrieval policy remain lower. No new persistent schema or user-facing feature is introduced.

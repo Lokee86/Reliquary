@@ -166,3 +166,7 @@ Internal runtime convergence retains the implemented Gateway/Instance and mounte
 ## Notes
 
 This plan is intentionally release-oriented. Implemented Gateway/Instance contracts belong in current subsystem/API/architecture documentation.
+
+## Public offline source ownership
+
+The [Phase 6 execution receipt](dependency-convergence-phase6-execution-2026-10-23.md) tracks facade placement of supported offline adapters. Mounted Gateway execution continues through canonical owner execution; the migration introduces no additional runtime or facade middleman.

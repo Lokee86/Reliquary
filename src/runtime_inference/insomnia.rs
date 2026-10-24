@@ -18,7 +18,7 @@ pub(crate) mod codec;
 pub(crate) mod completion;
 #[path = "insomnia/contract.rs"]
 mod contract;
-#[path = "insomnia/cva.rs"]
+#[path = "../facade/insomnia_cva.rs"]
 mod cva;
 #[path = "insomnia/enrichment.rs"]
 mod enrichment;
@@ -38,13 +38,13 @@ mod metadata;
 mod model;
 #[path = "insomnia/ownership.rs"]
 mod ownership;
-#[path = "insomnia/processor.rs"]
+#[path = "../facade/insomnia_processor.rs"]
 mod processor;
 #[path = "insomnia/progress.rs"]
 mod progress;
 #[path = "insomnia/rebuild.rs"]
 pub(crate) mod rebuild;
-#[path = "insomnia/runtime_step.rs"]
+#[path = "../facade/insomnia_runtime_step.rs"]
 pub(crate) mod runtime_step;
 #[path = "insomnia/store.rs"]
 pub(crate) mod store;
@@ -52,7 +52,7 @@ pub(crate) mod store;
 mod synthesis;
 #[path = "insomnia/temporal.rs"]
 pub(crate) mod temporal;
-#[path = "insomnia/worker.rs"]
+#[path = "../facade/insomnia_worker.rs"]
 mod worker;
 
 pub use backpressure::DEFAULT_INSOMNIA_BACKPRESSURE_DELAY_NS;

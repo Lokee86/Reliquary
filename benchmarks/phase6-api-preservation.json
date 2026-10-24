@@ -1,0 +1,271 @@
+{
+  "scope": "explicit pub fn declarations in changed facade method families, normalized whitespace and parameter mut bindings; macro owner expansion is validated by Rust/CLI compilation",
+  "rows": [
+    {
+      "source": "archive/archive_search.rs",
+      "signature": "pubfnsearch_archive(&self,query:&str,limit:usize)->Result<Vec<ArchiveSearchHit>,SearchError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "retrieval/conversation_search.rs",
+      "signature": "pubfnsearch_conversation_branch(&self,conversation_id:&str,leaf_node_id:&str,query:&str,limit:usize)->Result<Vec<ConversationSearchHit>,SearchError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "retrieval/lexical_search.rs",
+      "signature": "pubfnsearch_files(&self,query:&str,limit:usize)->Result<Vec<FileSearchHit>,SearchError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "retrieval/memory_search.rs",
+      "signature": "pubfnsearch_memories(&self,query:&str,limit:usize)->Result<Vec<MemoryLexicalSearchHit>,SearchError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "retrieval/memory_search.rs",
+      "signature": "pubfnsearch_memories(&self,query:&str,limit:usize)->Result<Vec<MemoryLexicalSearchHit>,SearchError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "retrieval/semantic_search.rs",
+      "signature": "pubfnsemantic_search(&self,compatibility_profile_id:CompatibilityProfileId,endpoint:&implEmbeddingEndpoint,query:&str,limit:usize)->Result<Vec<SemanticSearchHit>,SemanticSearchError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "retrieval/search.rs",
+      "signature": "pubfnsearch(&self,compatibility_profile_id:CompatibilityProfileId,endpoint:&implEmbeddingEndpoint,query:&str)->Result<Vec<SearchCandidate>,SearchError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "retrieval/search.rs",
+      "signature": "pubfnsearch_with_result_limit(&self,compatibility_profile_id:CompatibilityProfileId,endpoint:&implEmbeddingEndpoint,query:&str,result_limit:usize)->Result<Vec<SearchCandidate>,SearchError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "retrieval/search.rs",
+      "signature": "pubfnsearch_with_config(&self,compatibility_profile_id:CompatibilityProfileId,endpoint:&implEmbeddingEndpoint,query:&str,config:RetrievalConfig)->Result<Vec<SearchCandidate>,SearchError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_audit.rs",
+      "signature": "pubfnaudit_entities(&self)->EntityAuditReport",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_candidates.rs",
+      "signature": "pubfnentity_candidates_for_mention(&self,key:MemoryEntityMentionKey,config:EntityCandidateConfig)->Result<EntityCandidateSet,EntityCandidateError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_reconciliation.rs",
+      "signature": "pubfnreconcile_entities<E:GeneralEndpoint>(&self,endpoint:&E,now_ns:i64)->Result<EntityReconciliationReport,EntityReconciliationError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_resolution_batch.rs",
+      "signature": "pubfnresolve_entity_mentions_with_engine_parallel<E:GeneralEndpoint>(&self,engine:&EntityResolutionEngine<E>,keys:&[MemoryEntityMentionKey],config:EntityCandidateConfig,now_ns:i64,workers:usize)->Result<EntityResolutionBatchOutcome,EntityResolverError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_resolution_processor.rs",
+      "signature": "pubfnresolve_entity_mention<E:GeneralEndpoint>(&self,resolver:&EntityResolver<E>,key:MemoryEntityMentionKey,config:EntityCandidateConfig,now_ns:i64)->Result<EntityResolutionOutcome,EntityResolverError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_resolution_processor.rs",
+      "signature": "pubfnresolve_entity_mention_with_engine<E:GeneralEndpoint>(&self,engine:&EntityResolutionEngine<E>,key:MemoryEntityMentionKey,config:EntityCandidateConfig,now_ns:i64)->Result<EntityResolutionOutcome,EntityResolverError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_resolution_owner.rs",
+      "signature": "pubfnentity_resolution(&self,key:MemoryEntityMentionKey)->Option<&MemoryEntityResolution>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_resolution_owner.rs",
+      "signature": "pubfnentity_resolutions_for_memory(&self,memory_id:MemoryId)->Vec<MemoryEntityResolution>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_resolution_owner.rs",
+      "signature": "pubfnentity_resolution_retry_needed(&self,key:MemoryEntityMentionKey,candidate_set_fingerprint:[u8",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_resolution_owner.rs",
+      "signature": "pubfnput_entity_resolved(&self,key:MemoryEntityMentionKey,expected_revision:u32,entity_id:EntityId,reason:EntityResolutionReason,now_ns:i64)->Result<bool,MemoryError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_resolution_owner.rs",
+      "signature": "pubfnput_entity_rejected(&self,key:MemoryEntityMentionKey,expected_revision:u32,reason:EntityResolutionReason,now_ns:i64)->Result<bool,MemoryError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_resolution_owner.rs",
+      "signature": "pubfnput_entity_unresolved(&self,key:MemoryEntityMentionKey,expected_revision:u32,candidate_entity_ids:Vec<EntityId>,reason:EntityResolutionReason,candidate_set_fingerprint:[u8",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_resolution_owner.rs",
+      "signature": "pubfnreset_entity_resolution(&self,key:MemoryEntityMentionKey,now_ns:i64)->Result<bool,MemoryError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_resolution_owner.rs",
+      "signature": "pubfncompact_entity_resolutions(&self,now_ns:i64)->Result<EntityResolutionCompaction,MemoryError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_resolution_owner.rs",
+      "signature": "pubfnentity_resolutions(&self)->Vec<MemoryEntityResolution>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_resolution_owner.rs",
+      "signature": "pubfnimport_entity_resolution(&self,value:MemoryEntityResolution)->Result<(),MemoryError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_owner.rs",
+      "signature": "pubfnpublish_entity(&self,id:Option<EntityId>,expected_revision:u64,draft:EntityDraft)->Result<(Entity,bool),EntityError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_owner.rs",
+      "signature": "pubfnbackfill_entity_global_ids(&self)->Result<usize,EntityError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_owner.rs",
+      "signature": "pubfnentity(&self,id:EntityId)->Result<Entity,EntityError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_owner.rs",
+      "signature": "pubfntombstone_entity(&self,id:EntityId,expected_revision:u64)->Result<crate::owner_lifecycle::TombstoneOutcome,EntityError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_owner.rs",
+      "signature": "pubfnentity_retention_descriptor(&self,id:EntityId)->Result<crate::EntityRetentionDescriptor,EntityError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_owner.rs",
+      "signature": "pubfnhistorical_entity_revision(&self,id:EntityId,revision:u64)->Result<crate::owner_lifecycle::HistoricalPayload<Entity,crate::EntityRetainedRevision>,EntityError,>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_owner.rs",
+      "signature": "pubfnentity_lifecycle_state(&self,id:EntityId)->Result<crate::owner_lifecycle::LifecycleState,EntityError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_owner.rs",
+      "signature": "pubfnentity_revision(&self,id:EntityId,revision:u64)->Result<Entity,EntityError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_owner.rs",
+      "signature": "pubfnentities(&self)->Vec<Entity>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_owner.rs",
+      "signature": "pubfnentity_candidates_for_surface(&self,surface:&str,limit:usize)->Vec<Entity>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_owner.rs",
+      "signature": "pubfnentity_candidates_for_normalized_surface(&self,surface:&str,limit:usize)->Vec<Entity>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_owner.rs",
+      "signature": "pubfnentity_candidates_for_alias_surface(&self,surface:&str,limit:usize)->Vec<Entity>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_owner.rs",
+      "signature": "pubfnretired_entity_replacement(&self,id:EntityId)->Option<EntityId>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_owner.rs",
+      "signature": "pubfnentity_version(&self)->u64",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_owner.rs",
+      "signature": "pubfnentity_stats(&self)->EntityStats",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_merge.rs",
+      "signature": "pubfnmerge_entities(&self,survivor_id:EntityId,retired_id:EntityId,now_ns:i64)->Result<EntityMergeOutcome,$error>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/entity_merge.rs",
+      "signature": "pubfnretarget_entity_resolution(&self,key:MemoryEntityMentionKey,from:EntityId,to:EntityId,now_ns:i64)->Result<bool,$error>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/relationship_owner.rs",
+      "signature": "pubfnpublish_relationship(&self,id:Option<RelationshipId>,expected_revision:u64,draft:RelationshipDraft)->Result<(Relationship,bool),RelationshipError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/relationship_owner.rs",
+      "signature": "pubfnrelationship(&self,id:RelationshipId)->Result<Relationship,RelationshipError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/relationship_owner.rs",
+      "signature": "pubfntombstone_relationship(&self,id:RelationshipId,expected_revision:u64)->Result<crate::owner_lifecycle::TombstoneOutcome,RelationshipError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/relationship_owner.rs",
+      "signature": "pubfnrelationship_retention_descriptor(&self,id:RelationshipId)->Result<crate::RelationshipRetentionDescriptor,RelationshipError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/relationship_owner.rs",
+      "signature": "pubfnhistorical_relationship_revision(&self,id:RelationshipId,revision:u64)->Result<crate::owner_lifecycle::HistoricalPayload<Relationship,crate::RelationshipRetainedRevision,>,RelationshipError,>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/relationship_owner.rs",
+      "signature": "pubfnrelationship_lifecycle_state(&self,id:RelationshipId)->Result<crate::owner_lifecycle::LifecycleState,RelationshipError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/relationship_owner.rs",
+      "signature": "pubfnrelationship_revision(&self,id:RelationshipId,revision:u64)->Result<Relationship,RelationshipError>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/relationship_owner.rs",
+      "signature": "pubfnrelationships(&self)->Vec<Relationship>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/relationship_owner.rs",
+      "signature": "pubfnrelationships_for_entity(&self,entity:&EntityRef)->Vec<Relationship>",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/relationship_owner.rs",
+      "signature": "pubfnrelationship_version(&self)->u64",
+      "preserved_in_facade": true
+    },
+    {
+      "source": "perception/relationship_owner.rs",
+      "signature": "pubfnrelationship_stats(&self)->RelationshipStats",
+      "preserved_in_facade": true
+    }
+  ],
+  "missing": []
+}

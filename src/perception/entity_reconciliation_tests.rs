@@ -69,3 +69,41 @@ fn lexical_identity_pair_can_be_merged_by_model() {
     assert_eq!(report.model_merges, 1);
     assert_eq!(rel.entities().len(), 1);
 }
+
+#[test]
+fn failed_reconsideration_restores_rejected_mention_after_reopen() {
+    use crate::entity_candidate_test_support::install_rel_mention;
+    use crate::{EntityResolutionReason, MemoryEntityResolutionStatus};
+    let path = temp_path("reconsider-failure.rel");
+    let mut rel = Cva::create_project(&path).unwrap();
+    let memory = publish_rel_memory(
+        &mut rel,
+        "late-school",
+        "School",
+        "Eastwood is the durable school attended by the family.",
+    );
+    let key = install_rel_mention(&mut rel, memory, "Eastwood");
+    rel.put_entity_rejected(key, 0, EntityResolutionReason::GenericRole, 10)
+        .unwrap();
+    let mut draft = entity_draft("Eastwood", &[], "late-school-entity", 20);
+    draft.created_at_ns = 20;
+    rel.publish_entity(None, 0, draft).unwrap();
+    let endpoint =
+        SimulatedGeneralEndpoint::new("invalid-resolver", vec![json!({"unexpected":true})]);
+    assert!(rel.reconcile_entities(&endpoint, 100).is_err());
+    assert!(matches!(
+        rel.entity_resolution(key).unwrap().status,
+        MemoryEntityResolutionStatus::Rejected {
+            reason: EntityResolutionReason::GenericRole
+        }
+    ));
+    rel.sync().unwrap();
+    drop(rel);
+    let rel = Cva::open(path).unwrap();
+    assert!(matches!(
+        rel.entity_resolution(key).unwrap().status,
+        MemoryEntityResolutionStatus::Rejected {
+            reason: EntityResolutionReason::GenericRole
+        }
+    ));
+}

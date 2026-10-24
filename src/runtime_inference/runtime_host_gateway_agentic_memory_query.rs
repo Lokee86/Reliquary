@@ -1,5 +1,6 @@
 use super::*;
-use crate::agentic_memory_retrieval::{grade_agentic_memories, order_agentic_memories};
+use crate::agentic_memory_grading::grade_agentic_memories;
+use crate::agentic_memory_retrieval::order_agentic_memories;
 use crate::agentic_memory_retrieval_decision::select_memories;
 use crate::{
     AgenticMemoryContent, AgenticMemoryController, AgenticMemoryError, AgenticMemoryOperation,

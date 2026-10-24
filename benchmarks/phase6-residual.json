@@ -1,0 +1,139 @@
+{
+  "schema": "dependency-convergence-phase6-residual.v1",
+  "base_head": "17514f007e48e81d5ea1ec7f41088564de9e7411",
+  "additional_children": [
+    {
+      "id": "P6.1.16-FRESHNESS-ACCESS",
+      "files": [
+        "src/runtime_inference/freshness_access.rs"
+      ],
+      "cut": "Move public Cva extension glue to facade; keep Freshness scoring/settlement policy and typed owner contracts in Freshness.",
+      "evidence": "New cfg-aware facade guard identifies production public Cva impl.",
+      "status": "recorded-before-execution"
+    },
+    {
+      "id": "P6.1.16-INSOMNIA-ADAPTERS",
+      "files": [
+        "src/runtime_inference/insomnia/cva.rs",
+        "src/runtime_inference/insomnia/processor.rs",
+        "src/runtime_inference/insomnia/runtime_step.rs",
+        "src/runtime_inference/insomnia/worker.rs"
+      ],
+      "cut": "Move only public Cva/Phylactery extension glue to facade; retain Insomnia stages, admission and publication policy below; preserve offline processor APIs.",
+      "evidence": "New cfg-aware facade guard identifies production public Cva impl in this coupled lifecycle/processor family.",
+      "status": "recorded-before-execution"
+    },
+    {
+      "id": "P6.1.16-VECTOR-STEP",
+      "files": [
+        "src/runtime_inference/runtime_vector_step.rs"
+      ],
+      "cut": "Move public owner extension glue to facade; preserve VectorNormalization and vector-owned prepare/embed/commit policy below.",
+      "evidence": "New cfg-aware facade guard identifies production public Cva/Phylactery extension.",
+      "status": "recorded-before-execution"
+    }
+  ],
+  "note": "Child scope recorded before execution as required; these do not expand into subsystem rewrites.",
+  "completed_cuts": [
+    {
+      "ticket": "P6.1.16-DREAM",
+      "moved_to": [
+        "src/facade/dream_product_extensions.rs",
+        "src/facade/dream_freshness.rs",
+        "src/facade/dream_lifecycle.rs"
+      ],
+      "lower_files": [
+        "src/runtime_inference/dream_cooldown.rs",
+        "src/runtime_inference/dream_owner_candidates.rs",
+        "src/runtime_inference/dream_owner_publisher.rs",
+        "src/runtime_inference/dream_temporal_policy.rs"
+      ],
+      "cut": "Public extensions and Cva/Phylactery store assembly moved to facade; Dream policy helpers retained below.",
+      "status": "source cut complete; no compilation verification"
+    },
+    {
+      "ticket": "P6.1.16-EXTERNAL-SOURCE",
+      "moved_to": [
+        "src/facade/external_source_extensions.rs"
+      ],
+      "lower_files": [
+        "src/external_source/mod.rs",
+        "src/external_source/provenance.rs",
+        "src/external_source/processing.rs",
+        "src/external_source/index.rs",
+        "src/external_source/publication.rs"
+      ],
+      "cut": "Removed Cva/Phylactery extension impls below; index query validation/scoring remains in External Sources, public owner assembly moved up.",
+      "status": "source cut complete; no compilation verification"
+    },
+    {
+      "ticket": "P6.1.16-REWRITE-LINEAGE",
+      "moved_to": [
+        "src/facade/rewrite_lineage_extensions.rs"
+      ],
+      "lower_files": [
+        "src/rewrite/lineage.rs",
+        "src/rewrite_lineage.rs"
+      ],
+      "cut": "Public Cva/Phylactery getters moved to facade; canonical lineage state/model remains owner module.",
+      "status": "source cut complete; rewrite.rs path updated"
+    },
+    {
+      "ticket": "P6.1.16-FRESHNESS-ACCESS",
+      "moved_to": [
+        "src/facade/freshness_access.rs"
+      ],
+      "cut": "Facade extension owns public accepted-use/context adapters; Freshness policy/store remains lower.",
+      "status": "source copy complete; requires lib repath"
+    },
+    {
+      "ticket": "P6.1.16-INSOMNIA-ADAPTERS",
+      "moved_to": [
+        "src/facade/insomnia_cva.rs",
+        "src/facade/insomnia_processor.rs",
+        "src/facade/insomnia_runtime_step.rs",
+        "src/facade/insomnia_worker.rs",
+        "src/facade/insomnia_worker_runtime.rs"
+      ],
+      "cut": "Whole owner extension modules copied under façade source while retaining insomnia logical module context and helper module paths.",
+      "status": "source cut complete; root repaths confirmed; no compile by census agent"
+    },
+    {
+      "ticket": "P6.1.16-VECTOR-STEP",
+      "moved_to": [
+        "src/facade/runtime_vector_step.rs"
+      ],
+      "cut": "Cva/Phylactery extension methods in facade delegate to lower runtime_vector_step_owner contract; batch preparation, validation and commit mechanics stay below.",
+      "status": "source copy complete; requires lib repath"
+    },
+    {
+      "ticket": "P6.1.16-DREAM-PROCESSOR-FRONTIER",
+      "moved_to": [
+        "src/facade/dream_processor_frontier.rs"
+      ],
+      "cut": "Supported DreamProcessor offline composition moved to upper facade; Dream owner policy remains lower.",
+      "owner": "root",
+      "status": "integrated source move"
+    }
+  ],
+  "integration": {
+    "required_registration_changes": [],
+    "completed_by_root": [
+      "lib.rs registers dream_product_extensions, external_source_extensions, rewrite_lineage_extensions",
+      "lib.rs repaths dream_freshness, dream_lifecycle, freshness_access, runtime_vector_step",
+      "runtime_inference/insomnia.rs repaths cva, processor, runtime_step, worker",
+      "lib.rs registers runtime_vector_step_owner as lower helper module"
+    ]
+  },
+  "verification": {
+    "public_api": "preserved by moved method source; no API deletion",
+    "limitations": [
+      "No Rust compilation or cfg guard execution by this agent; root owns integrated verification.",
+      "Phase 5 full architecture refresh remains an explicit Phase 7 graph-proof obligation."
+    ],
+    "builds": "not run per task",
+    "architecture_guard": "not run, root owns integrated gate",
+    "construction": "Production constructor scan found Cva/Phylactery opens in runtime-gateway configured/offline and Gateway/reconciliation modules only; no lower owner constructor callback witnessed.",
+    "callback_review": "lower Dream canonical/policy helpers remain independent; moved Freshness adapter internals were presentation/composition routines taking &mut Cva. Runtime host callback-looking usage occurs in runtime-gateway upper modules. History/Import owner-qualified DTO/error references remain value contracts."
+  }
+}

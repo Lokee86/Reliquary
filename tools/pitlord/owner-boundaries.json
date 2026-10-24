@@ -3480,6 +3480,96 @@
       "owner": "insomnia",
       "symbol": "INSOMNIA_EXTRACTOR_CONTRACT_VERSION",
       "reason": "Fixed completion-contract version value only, copied unchanged into the lifecycle-owned completion codec."
+    },
+    {
+      "consumer": "public-consumers",
+      "owner": "perception",
+      "symbol": "DEFAULT_ENTITY_RECONCILIATION_ROUNDS",
+      "reason": "Phase 6 source-reviewed immutable public result/input/error or bounded constant; preserved API or concrete prepare/commit value only, no Perception implementation callback. Exact witnesses: benchmarks/phase6-perception-dispositions.json."
+    },
+    {
+      "consumer": "public-consumers",
+      "owner": "perception",
+      "symbol": "EntityAuditReport",
+      "reason": "Phase 6 source-reviewed immutable public result/input/error or bounded constant; preserved API or concrete prepare/commit value only, no Perception implementation callback. Exact witnesses: benchmarks/phase6-perception-dispositions.json."
+    },
+    {
+      "consumer": "public-consumers",
+      "owner": "perception",
+      "symbol": "EntityCandidateConfig",
+      "reason": "Phase 6 source-reviewed immutable public result/input/error or bounded constant; preserved API or concrete prepare/commit value only, no Perception implementation callback. Exact witnesses: benchmarks/phase6-perception-dispositions.json."
+    },
+    {
+      "consumer": "public-consumers",
+      "owner": "perception",
+      "symbol": "EntityCandidateError",
+      "reason": "Phase 6 source-reviewed immutable public result/input/error or bounded constant; preserved API or concrete prepare/commit value only, no Perception implementation callback. Exact witnesses: benchmarks/phase6-perception-dispositions.json."
+    },
+    {
+      "consumer": "public-consumers",
+      "owner": "perception",
+      "symbol": "EntityCandidateSet",
+      "reason": "Phase 6 source-reviewed immutable public result/input/error or bounded constant; preserved API or concrete prepare/commit value only, no Perception implementation callback. Exact witnesses: benchmarks/phase6-perception-dispositions.json."
+    },
+    {
+      "consumer": "public-consumers",
+      "owner": "perception",
+      "symbol": "EntityReconciliationCommit",
+      "reason": "Phase 6 source-reviewed immutable public result/input/error or bounded constant; preserved API or concrete prepare/commit value only, no Perception implementation callback. Exact witnesses: benchmarks/phase6-perception-dispositions.json."
+    },
+    {
+      "consumer": "public-consumers",
+      "owner": "perception",
+      "symbol": "EntityReconciliationError",
+      "reason": "Phase 6 source-reviewed immutable public result/input/error or bounded constant; preserved API or concrete prepare/commit value only, no Perception implementation callback. Exact witnesses: benchmarks/phase6-perception-dispositions.json."
+    },
+    {
+      "consumer": "public-consumers",
+      "owner": "perception",
+      "symbol": "EntityReconciliationEvaluation",
+      "reason": "Phase 6 source-reviewed immutable public result/input/error or bounded constant; preserved API or concrete prepare/commit value only, no Perception implementation callback. Exact witnesses: benchmarks/phase6-perception-dispositions.json."
+    },
+    {
+      "consumer": "public-consumers",
+      "owner": "perception",
+      "symbol": "EntityReconciliationPrepared",
+      "reason": "Phase 6 source-reviewed immutable public result/input/error or bounded constant; preserved API or concrete prepare/commit value only, no Perception implementation callback. Exact witnesses: benchmarks/phase6-perception-dispositions.json."
+    },
+    {
+      "consumer": "public-consumers",
+      "owner": "perception",
+      "symbol": "EntityReconciliationReport",
+      "reason": "Phase 6 source-reviewed immutable public result/input/error or bounded constant; preserved API or concrete prepare/commit value only, no Perception implementation callback. Exact witnesses: benchmarks/phase6-perception-dispositions.json."
+    },
+    {
+      "consumer": "public-consumers",
+      "owner": "perception",
+      "symbol": "EntityResolutionEvaluation",
+      "reason": "Phase 6 source-reviewed immutable public result/input/error or bounded constant; preserved API or concrete prepare/commit value only, no Perception implementation callback. Exact witnesses: benchmarks/phase6-perception-dispositions.json."
+    },
+    {
+      "consumer": "public-consumers",
+      "owner": "perception",
+      "symbol": "EntityResolutionOutcome",
+      "reason": "Phase 6 source-reviewed immutable public result/input/error or bounded constant; preserved API or concrete prepare/commit value only, no Perception implementation callback. Exact witnesses: benchmarks/phase6-perception-dispositions.json."
+    },
+    {
+      "consumer": "public-consumers",
+      "owner": "perception",
+      "symbol": "EntityResolutionPreparation",
+      "reason": "Phase 6 source-reviewed immutable public result/input/error or bounded constant; preserved API or concrete prepare/commit value only, no Perception implementation callback. Exact witnesses: benchmarks/phase6-perception-dispositions.json."
+    },
+    {
+      "consumer": "public-consumers",
+      "owner": "perception",
+      "symbol": "EntityResolutionPrepared",
+      "reason": "Phase 6 source-reviewed immutable public result/input/error or bounded constant; preserved API or concrete prepare/commit value only, no Perception implementation callback. Exact witnesses: benchmarks/phase6-perception-dispositions.json."
+    },
+    {
+      "consumer": "public-consumers",
+      "owner": "perception",
+      "symbol": "EntityResolverError",
+      "reason": "Phase 6 source-reviewed immutable public result/input/error or bounded constant; preserved API or concrete prepare/commit value only, no Perception implementation callback. Exact witnesses: benchmarks/phase6-perception-dispositions.json."
     }
   ],
   "forbidden_symbols": [

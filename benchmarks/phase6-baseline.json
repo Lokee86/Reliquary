@@ -1,0 +1,243 @@
+{
+  "schema": "dependency-convergence-phase6-baseline.v1",
+  "captured_at": "2026-10-23",
+  "head": "17514f007e48e81d5ea1ec7f41088564de9e7411",
+  "phase5_implementation": "9a3678f",
+  "phase5_rust_source": "fe9948e",
+  "phase5_acceptance": "17514f0",
+  "phase5_architecture_refresh": "incomplete-no-snapshot",
+  "source_file_count": 1281,
+  "impl_locations": [
+    "src\\external_source\\provenance.rs:32:impl crate::Cva {",
+    "src\\external_source\\provenance.rs:44:impl crate::Phylactery {",
+    "src\\external_source\\processing.rs:285:impl crate::Cva {",
+    "src\\external_source\\mod.rs:25:impl Cva {",
+    "src\\facade\\cva_archive_vectors.rs:8:impl Cva {",
+    "src\\facade\\cva_activity.rs:3:impl Cva {",
+    "src\\facade\\cva.rs:69:impl Cva {",
+    "src\\facade\\cva_compatibility_profiles.rs:7:impl Cva {",
+    "src\\facade\\cva_conversation_tombstone.rs:5:impl crate::Cva {",
+    "src\\facade\\cva_communities.rs:7:impl Cva {",
+    "src\\facade\\cva_conversation.rs:3:impl Cva {",
+    "src\\facade\\cva_dream_begin_transport.rs:3:impl Cva {",
+    "src\\facade\\cva_dream_population.rs:20:impl Cva {",
+    "src\\facade\\cva_description_prune.rs:6:impl Cva {",
+    "src\\facade\\cva_ego.rs:4:impl Cva {",
+    "src\\facade\\cva_ego.rs:69:impl Cva {",
+    "src\\facade\\cva_episode_policy.rs:6:impl Cva {",
+    "src\\facade\\cva_file_memory.rs:3:impl Cva {",
+    "src\\facade\\cva_freshness.rs:12:impl Cva {",
+    "src\\facade\\cva_freshness_due.rs:29:impl Cva {",
+    "src\\facade\\cva_graph.rs:8:impl Cva {",
+    "src\\facade\\cva_historical_dream.rs:3:impl Cva {",
+    "src\\facade\\cva_historical_freshness.rs:3:impl Cva {",
+    "src\\facade\\cva_historical_import.rs:50:impl Cva {",
+    "src\\facade\\cva_historical_import.rs:170:impl Cva {",
+    "src\\facade\\cva_historical_import.rs:192:impl Cva {",
+    "src\\facade\\cva_history_prune.rs:5:impl Cva {",
+    "src\\facade\\cva_import_completion.rs:5:impl Cva {",
+    "src\\facade\\cva_import_readiness.rs:4:impl Cva {",
+    "src\\facade\\cva_import_scope.rs:5:impl Cva {",
+    "src\\archive\\archive_search.rs:13:impl Cva {",
+    "src\\facade\\cva_lifecycle.rs:6:impl Cva {",
+    "src\\facade\\cva_memory_retrieval.rs:8:impl Cva {",
+    "src\\facade\\cva_memory_vectors.rs:9:impl Cva {",
+    "src\\facade\\cva_native_import.rs:4:impl Cva {",
+    "src\\facade\\cva_packed_vectors.rs:8:impl Cva {",
+    "src\\facade\\cva_principal_repack.rs:18:impl Cva {",
+    "src\\facade\\cva_reconcile.rs:9:impl Cva {",
+    "src\\rewrite\\lineage.rs:3:impl Cva {",
+    "src\\rewrite\\lineage.rs:12:impl Phylactery {",
+    "src\\runtime_inference\\dream_candidates.rs:11:impl Cva {",
+    "src\\runtime_inference\\dream_lifecycle.rs:46:impl Cva {",
+    "src\\runtime_inference\\dream_freshness.rs:160:impl Cva {",
+    "src\\retrieval\\semantic_search.rs:8:impl Cva {",
+    "src\\retrieval\\search_rank.rs:5:impl Cva {",
+    "src\\runtime_inference\\dream_cooldown.rs:68:impl Cva {",
+    "src\\runtime_inference\\dream_cooldown.rs:108:impl Phylactery {",
+    "src\\retrieval\\search.rs:10:impl Cva {",
+    "src\\retrieval\\memory_search.rs:13:impl Cva {",
+    "src\\retrieval\\memory_search.rs:34:impl Phylactery {",
+    "src\\runtime_inference\\dream_temporal.rs:5:impl Cva {",
+    "src\\retrieval\\memory_candidate_pool.rs:27:impl crate::Cva {",
+    "src\\retrieval\\lexical_search.rs:7:impl Cva {",
+    "src\\retrieval\\lexical_search.rs:95:impl Phylactery {",
+    "src\\runtime_inference\\dream_publisher.rs:8:impl Cva {",
+    "src\\facade\\storage_reclamation.rs:7:impl Cva {",
+    "src\\facade\\storage_reclamation.rs:29:impl Phylactery {",
+    "src\\facade\\semantic_maintenance.rs:6:impl Cva {",
+    "src\\facade\\semantic_maintenance.rs:47:impl Phylactery {",
+    "src\\facade\\rewrite_plan.rs:5:impl Cva {",
+    "src\\facade\\rewrite_plan.rs:23:impl Phylactery {",
+    "src\\perception\\entity_principal.rs:10:impl Cva {",
+    "src\\perception\\entity_principal.rs:132:impl Phylactery {",
+    "src\\facade\\review_clocks.rs:8:impl Cva {",
+    "src\\facade\\review_clocks.rs:27:impl Phylactery {",
+    "src\\facade\\phylactery_packed_vectors.rs:4:impl Phylactery {",
+    "src\\facade\\phylactery_memory_vectors.rs:9:impl Phylactery {",
+    "src\\facade\\phylactery_memory_source.rs:3:impl Phylactery {",
+    "src\\facade\\phylactery_memory_retrieval.rs:8:impl Phylactery {",
+    "src\\facade\\phylactery_lifecycle.rs:4:impl Phylactery {",
+    "src\\facade\\phylactery_history_prune.rs:5:impl Phylactery {",
+    "src\\retrieval\\conversation_search.rs:7:impl Cva {",
+    "src\\facade\\phylactery_graph.rs:7:impl Phylactery {",
+    "src\\facade\\phylactery_ego.rs:7:impl Phylactery {",
+    "src\\facade\\phylactery_ego.rs:152:impl Phylactery {",
+    "src\\facade\\phylactery_ego.rs:164:impl Phylactery {",
+    "src\\facade\\phylactery_dream_publisher.rs:8:impl Phylactery {",
+    "src\\facade\\phylactery_dream_lifecycle.rs:10:impl Phylactery {",
+    "src\\runtime_inference\\freshness_access.rs:33:impl Cva {",
+    "src\\facade\\phylactery_dream_candidates.rs:12:impl Phylactery {",
+    "src\\facade\\cva_vector_generations.rs:9:impl Cva {",
+    "src\\facade\\cva_semantic_live.rs:16:impl Cva {",
+    "src\\facade\\cva_semantic_live.rs:123:impl Cva {",
+    "src\\facade\\phylactery_compatibility_profiles.rs:7:impl Phylactery {",
+    "src\\facade\\cva_turn_ingest.rs:3:impl Cva {",
+    "src\\facade\\cva_repack.rs:15:impl Cva {",
+    "src\\facade\\cva_semantic_fragment.rs:10:impl Cva {",
+    "src\\facade\\dream_pair_admission.rs:4:impl Cva {",
+    "src\\facade\\dream_pair_admission.rs:21:impl Phylactery {",
+    "src\\facade\\phylactery_communities.rs:8:impl Phylactery {",
+    "src\\facade\\cva_semantic_source.rs:10:impl Cva {",
+    "src\\facade\\cva_semantic_source.rs:189:impl Cva {",
+    "src\\facade\\cva_reconcile_promote.rs:6:impl Cva {",
+    "src\\facade\\cva_vector_recovery.rs:13:impl Cva {",
+    "src\\facade\\phylactery.rs:42:impl Phylactery {",
+    "src\\facade\\historical_import_transform.rs:4:impl Cva {",
+    "src\\facade\\historical_reconstruction.rs:8:impl Cva {",
+    "src\\facade\\historical_reconstruction.rs:51:impl Cva {",
+    "src\\facade\\historical_import_base.rs:8:impl Cva {",
+    "src\\runtime_inference\\insomnia\\cva.rs:8:impl Cva {",
+    "src\\runtime_inference\\insomnia\\runtime_step.rs:14:impl Cva {",
+    "src\\runtime_inference\\insomnia\\processor.rs:22:impl Cva {",
+    "src\\runtime_inference\\insomnia\\processor.rs:180:impl Cva {",
+    "src\\runtime_inference\\insomnia\\worker.rs:16:impl Cva {",
+    "src\\runtime_inference\\runtime_vector_step.rs:13:impl Cva {",
+    "src\\runtime_inference\\runtime_vector_step.rs:55:impl Phylactery {"
+  ],
+  "root_api_exports": [
+    "1110:pub use configured_runtime::{",
+    "1125:pub use cva::Cva;",
+    "1367:pub use phylactery::Phylactery;",
+    "1384:pub use runtime_host::memory_search::{",
+    "1389:pub use runtime_host::status::RuntimeBackgroundStatus;",
+    "1390:pub use runtime_host::{",
+    "1404:pub use runtime_host::{",
+    "1415:pub use runtime_host::{"
+  ],
+  "public_contracts": [
+    "Cva/Phylactery construction/open/read-only/repair",
+    "ConfiguredRuntime offline methods",
+    "Gateway/Instance mounted API",
+    "CLI consumes public Rust API"
+  ],
+  "api_evidence": [
+    "docs/api.md",
+    "src/lib.rs",
+    "cli/Cargo.toml",
+    "docs/dependency-convergence-phase5-execution-2026-10-23.md"
+  ],
+  "perception_register": {
+    "path": "tools/pitlord/convergence-phase6-perception-facade-import-closure.json",
+    "row_count": 82,
+    "status": "exact-bounded-phase6-deferred-ownership",
+    "rows_reconciled": 0,
+    "rows_eliminated": 0,
+    "interpretation": "Starting cut register only; each needs symbol witness and absent-or-owner-qualified disposition."
+  },
+  "additional_candidate_tickets": [
+    {
+      "id": "P6.1.16-DREAM",
+      "files": [
+        "src/runtime_inference/dream_candidates.rs",
+        "src/runtime_inference/dream_cooldown.rs",
+        "src/runtime_inference/dream_lifecycle.rs",
+        "src/runtime_inference/dream_freshness.rs",
+        "src/runtime_inference/dream_publisher.rs",
+        "src/runtime_inference/dream_temporal.rs"
+      ],
+      "evidence": "impl Cva and public methods; split adapter from domain owner logic (dream_owner_candidates / dream_canonical)",
+      "bounded_cut": "Move public extension glue to facade; leave Dream policy below; verify callbacks and existing behavior."
+    },
+    {
+      "id": "P6.1.16-EXTERNAL-SOURCE",
+      "files": [
+        "src/external_source/provenance.rs",
+        "src/external_source/processing.rs",
+        "src/external_source/mod.rs"
+      ],
+      "evidence": "Cva/Phylactery extension blocks; processing publishes prepared windows",
+      "bounded_cut": "Move public evidence accessors/composition up; isolate lifecycle composition from external-source policy."
+    },
+    {
+      "id": "P6.1.16-REWRITE-LINEAGE",
+      "files": [
+        "src/rewrite/lineage.rs"
+      ],
+      "evidence": "impl Cva and Phylactery; public rewrite module exports",
+      "bounded_cut": "Review API owner and place public adapters in facade; retain lineage policy in Maintenance."
+    },
+    {
+      "id": "P6.1.16-RETRIEVAL-PRIVATE-HELPER",
+      "files": [
+        "src/retrieval/memory_candidate_pool.rs"
+      ],
+      "evidence": "pub(crate) impl Cva collector combines stores/vectors/lexical evidence",
+      "bounded_cut": "Decide whether composition helper belongs upper tier or expose narrow accepted owner read contract; no API expansion."
+    }
+  ],
+  "named_sources": [
+    {
+      "ticket": "P6.1.11",
+      "file": "src/archive/archive_search.rs",
+      "evidence": "impl Cva line 13; public search_archive line 14",
+      "status": "named cut"
+    },
+    {
+      "ticket": "P6.1.12-15",
+      "files": [
+        "src/retrieval/conversation_search.rs",
+        "src/retrieval/lexical_search.rs",
+        "src/retrieval/memory_search.rs",
+        "src/retrieval/search.rs",
+        "src/retrieval/search_rank.rs",
+        "src/retrieval/semantic_search.rs"
+      ],
+      "status": "named cuts"
+    }
+  ],
+  "p62_review": [
+    {
+      "area": "Gateway",
+      "evidence": "runtime_host_gateway_mount.rs:187 Cva::open; runtime_host_gateway.rs:1445 unmount returns Cva; runtime_host_rel_execution.rs:276 into_cva",
+      "classification": "upper composition to public owner type, expected direction"
+    },
+    {
+      "area": "DTO/error",
+      "evidence": "History/Import use owner-qualified IDs, profile/error/replay types",
+      "classification": "value-type reference alone is not callback/backedge"
+    },
+    {
+      "area": "runtime callback candidates",
+      "evidence": "runtime_inference/dream_freshness.rs private commit(self, &mut Cva); runtime host passes owners to sessions/workers",
+      "classification": "review call direction per helper; do not classify from type alone"
+    },
+    {
+      "area": "construction",
+      "evidence": "src/lib.rs reexports Cva and Phylactery; API docs preserve open/read-only/repair",
+      "classification": "supported public API; no lower constructor callback witnessed in this census"
+    },
+    {
+      "area": "offline methods",
+      "evidence": "Phase 5 receipt names ConfiguredRuntime and DreamProcessor/DreamCommunityNamer methods",
+      "classification": "supported contract retained"
+    }
+  ],
+  "source_proof_limits": [
+    "Raw source census is not symbol-call graph.",
+    "Test-named files excluded, inline cfg(test) may remain.",
+    "No builds or analyzer run.",
+    "Phase 5 full architecture refresh remains incomplete and is carried to Phase 7.",
+    "Classification does not count as edge elimination."
+  ]
+}

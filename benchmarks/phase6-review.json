@@ -1,0 +1,94 @@
+{
+  "review": {
+    "kind": "independent_phase6_review",
+    "date": "2026-10-23",
+    "scope": [
+      "residual moved lifecycle, Insomnia, and freshness source",
+      "External Sources lower-to-facade callback boundary",
+      "Perception entity audit boundary",
+      "PrincipalContext and ResolutionRead/WriteContext extraction"
+    ],
+    "verification": {
+      "builds_run_by_reviewer": false,
+      "analyzers_run_by_reviewer": false,
+      "source_review": "current working tree compared with Phase 6 spec and original HEAD behavior"
+    }
+  },
+  "standards_axis": {
+    "result": "reviewed_with_one_boundary_correction_now_present",
+    "findings": [
+      {
+        "id": "external-source-reader-callback",
+        "severity": "P1",
+        "status": "fixed_in_current_source",
+        "evidence": [
+          "src/external_source/mod.rs::search now accepts Container and PackedVectorStore references and directly fetches packed vectors",
+          "src/facade/external_source_extensions.rs passes owner fields directly; no callback captures Cva"
+        ],
+        "boundary_reason": "External Sources may depend on Vectors under the target DAG; lower code no longer calls an upper owner capability."
+      },
+      {
+        "id": "entity-audit-owner-callbacks",
+        "severity": "P1",
+        "status": "fixed_in_current_source",
+        "evidence": [
+          "src/perception/entity_audit.rs::EntityAuditContext contains references to EntityStore, MemoryStore, GraphStore, and EntityResolutionStore",
+          "audit_owner reads those stores directly and accepts no closures",
+          "src/facade/cva_entity_audit.rs constructs the context and delegates the report calculation"
+        ],
+        "boundary_reason": "Perception calculation is lower-level and has no callback into a public owner facade."
+      },
+      {
+        "id": "dream-source-time-adapter",
+        "severity": "accepted_narrow_adapter",
+        "status": "reviewed",
+        "evidence": "Dream closure borrows the lower Archive and invokes the owner_lifecycle source-time reader; it captures no Cva method or capability.",
+        "boundary_reason": "This is a source-proven lower owner read adapter, not an upward product callback."
+      }
+    ],
+    "remaining_reviewed_areas": [
+      "moved lifecycle, Insomnia, and freshness glue leaves domain policy in lower owner/domain modules and retains public offline APIs",
+      "no additional lower-to-public-owner callback was found in the reviewed source"
+    ]
+  },
+  "spec_axis": {
+    "result": "reviewed",
+    "findings": [
+      {
+        "id": "principal-context-extraction",
+        "status": "no_behavior_regression_found",
+        "evidence": [
+          "REL principal resolution continues to receive the Archive; PHY rejects principal resolution",
+          "sync_principal_profile remains REL-only",
+          "entity and graph store operations, semantic graph admission, and create/get -> association -> resolution ordering match the former owner methods"
+        ]
+      },
+      {
+        "id": "resolution-context-extraction",
+        "status": "no_behavior_regression_found",
+        "evidence": [
+          "ResolutionReadContext preserves the former store getter behavior",
+          "ResolutionWriteContext preserves key validation, expected revision validation, normalization and candidate Entity reference checks, then writes",
+          "EntityResolutionCommitContext preserves owner ID and Memory/Entity/Graph version fences, expected resolution revision, graph admission, and explicit PHY principal-entity prohibition before alias publishing"
+        ]
+      },
+      {
+        "id": "terminal-resolution-preparation-order",
+        "severity": "P2",
+        "status": "fixed_in_current_source",
+        "evidence": "src/perception/entity_resolution_prepare.rs checks terminal_outcome before requiring owner_id, matching original HEAD behavior; src/facade/cva_entity_resolution_prepare.rs passes the optional owner ID through without pre-validating it.",
+        "regression_prevented": "A terminal resolution on an owner without an ID must return its terminal outcome instead of InvalidField(\"Entity resolution owner ID\")."
+      }
+    ]
+  },
+  "known_graph_limits": [
+    "This is a bounded source review of the named residual and context-extraction areas, not a complete repository-wide dependency-graph proof.",
+    "No build, test, or analyzer result is claimed by this review; root is running the integration checks separately."
+  ],
+  "final_reconsideration_review": {
+    "finding": "The new lower reconsideration expression initially let ? propagate before rejection restoration, and recomputed the entity snapshot per record.",
+    "correction": "Native resolution is evaluated inside an operation-local Result-returning closure; every resolver-stage error reaches the original restoration branch. Entity selection uses one pre-loop snapshot.",
+    "protecting_test": "entity_reconciliation_tests::failed_reconsideration_restores_rejected_mention_after_reopen",
+    "test_state": "pending final library run"
+  }
+}

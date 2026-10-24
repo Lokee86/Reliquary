@@ -183,6 +183,8 @@
 - [dependency-convergence-phase4-project-environment-spec-2026-10-23.md](dependency-convergence-phase4-project-environment-spec-2026-10-23.md) - Dependency Convergence Phase4 Project Environment Spec 2026 10 23 documentation.
 - [dependency-convergence-phase5-execution-2026-10-23.md](dependency-convergence-phase5-execution-2026-10-23.md) - Dependency Convergence Phase5 Execution 2026 10 23 documentation.
 - [dependency-convergence-phase5-runtime-orchestration-spec-2026-10-23.md](dependency-convergence-phase5-runtime-orchestration-spec-2026-10-23.md) - Dependency Convergence Phase5 Runtime Orchestration Spec 2026 10 23 documentation.
+- [dependency-convergence-phase6-execution-2026-10-23.md](dependency-convergence-phase6-execution-2026-10-23.md) - Phase 6 execution and verification evidence.
+- [dependency-convergence-phase6-facade-boundaries-spec-2026-10-23.md](dependency-convergence-phase6-facade-boundaries-spec-2026-10-23.md) - Phase 6 public facade boundary specification.
 - [dependency-convergence-target-dag-2026-10-21.md](dependency-convergence-target-dag-2026-10-21.md) - Dependency Convergence Target Dag 2026 10 21 documentation.
 - [derived-semantic-nodes-exploration.md](derived-semantic-nodes-exploration.md) - Derived Semantic Nodes Exploration documentation.
 - [development-format-compatibility-retirement-audit-2026-10-19.md](development-format-compatibility-retirement-audit-2026-10-19.md) - Development Format Compatibility Retirement Audit 2026 10 19 documentation.

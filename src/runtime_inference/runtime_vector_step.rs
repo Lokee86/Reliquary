@@ -1,7 +1,7 @@
 use crate::compatibility_profile_probe::validate_embedding_batch;
 use crate::{
-    CompatibilityProfile, CompatibilityProfileError, CompatibilityProfileId, Cva, MemoryBodyId,
-    MemoryVectorError, PackedVectors, Phylactery, ScalarType, VectorSchema,
+    CompatibilityProfile, CompatibilityProfileError, CompatibilityProfileId, MemoryBodyId,
+    MemoryVectorError, PackedVectors, ScalarType, VectorSchema,
 };
 
 pub(crate) struct RuntimeMemoryVectorBatch {
@@ -9,92 +9,7 @@ pub(crate) struct RuntimeMemoryVectorBatch {
     pub(crate) body_ids: Vec<MemoryBodyId>,
     pub(crate) texts: Vec<String>,
 }
-
-impl Cva {
-    pub(crate) fn accept_runtime_compatibility_profile(
-        &mut self,
-        candidate: CompatibilityProfile,
-    ) -> Result<CompatibilityProfile, CompatibilityProfileError> {
-        accept_profile(
-            &mut self.container,
-            &mut self.compatibility_profiles,
-            candidate,
-        )
-    }
-
-    pub(crate) fn prepare_runtime_memory_vector_batch(
-        &mut self,
-        profile_id: CompatibilityProfileId,
-    ) -> Result<Option<RuntimeMemoryVectorBatch>, MemoryVectorError> {
-        prepare_batch(
-            &mut self.container,
-            &self.memories,
-            &self.compatibility_profiles,
-            &self.memory_vectors,
-            profile_id,
-        )
-    }
-
-    pub(crate) fn commit_runtime_memory_vector_batch(
-        &mut self,
-        batch: RuntimeMemoryVectorBatch,
-        vectors: Vec<Vec<f32>>,
-    ) -> Result<usize, MemoryVectorError> {
-        commit_batch(
-            &mut self.container,
-            &self.memories,
-            &self.compatibility_profiles,
-            &mut self.packed_vectors,
-            &mut self.memory_vectors,
-            batch,
-            vectors,
-        )
-    }
-}
-
-impl Phylactery {
-    pub(crate) fn accept_runtime_compatibility_profile(
-        &mut self,
-        candidate: CompatibilityProfile,
-    ) -> Result<CompatibilityProfile, CompatibilityProfileError> {
-        accept_profile(
-            &mut self.container,
-            &mut self.compatibility_profiles,
-            candidate,
-        )
-    }
-
-    pub(crate) fn prepare_runtime_memory_vector_batch(
-        &mut self,
-        profile_id: CompatibilityProfileId,
-    ) -> Result<Option<RuntimeMemoryVectorBatch>, MemoryVectorError> {
-        prepare_batch(
-            &mut self.container,
-            &self.memories,
-            &self.compatibility_profiles,
-            &self.memory_vectors,
-            profile_id,
-        )
-    }
-
-    pub(crate) fn commit_runtime_memory_vector_batch(
-        &mut self,
-        batch: RuntimeMemoryVectorBatch,
-        vectors: Vec<Vec<f32>>,
-    ) -> Result<usize, MemoryVectorError> {
-        commit_batch(
-            &mut self.container,
-            &self.memories,
-            &self.compatibility_profiles,
-            &mut self.packed_vectors,
-            &mut self.memory_vectors,
-            batch,
-            vectors,
-        )
-    }
-}
-
-fn accept_profile(
+pub(crate) fn accept_profile(
     container: &mut crate::Container,
     profiles: &mut crate::compatibility_profile_store::CompatibilityProfileStore,
     candidate: CompatibilityProfile,
@@ -106,7 +21,7 @@ fn accept_profile(
     Ok(candidate)
 }
 
-fn prepare_batch(
+pub(crate) fn prepare_batch(
     container: &mut crate::Container,
     memories: &crate::memory_store::MemoryStore,
     profiles: &crate::compatibility_profile_store::CompatibilityProfileStore,
@@ -136,7 +51,7 @@ fn prepare_batch(
     }))
 }
 
-fn commit_batch(
+pub(crate) fn commit_batch(
     container: &mut crate::Container,
     memories: &crate::memory_store::MemoryStore,
     profiles: &crate::compatibility_profile_store::CompatibilityProfileStore,

@@ -154,6 +154,7 @@
         "src/archive/archive_publication_codec.rs",
         "src/archive/archive_rebuild.rs",
         "src/archive/archive_record_index.rs",
+        "src/archive/archive_search.rs",
         "src/archive/archive_store.rs",
         "src/archive/conversation_compaction_allocator.rs",
         "src/archive/conversation_compaction_codec.rs",
@@ -225,9 +226,9 @@
         "src/memory/memory_routing_codec.rs",
         "src/memory/memory_routing_model.rs",
         "src/memory/memory_source_time.rs",
+        "src/memory/memory_store.rs",
         "src/memory/memory_store/grouped_publish.rs",
         "src/memory/memory_store/history_prune.rs",
-        "src/memory/memory_store.rs",
         "src/memory/memory_temporal_codec.rs",
         "src/memory/memory_temporal_codec_kind.rs",
         "src/memory/processing_epoch_model.rs",
@@ -452,10 +453,10 @@
         "src/runtime_inference/insomnia/error.rs",
         "src/runtime_inference/insomnia/model.rs",
         "src/runtime_inference/insomnia/rebuild.rs",
+        "src/runtime_inference/insomnia/store.rs",
         "src/runtime_inference/insomnia/store/rebuild.rs",
         "src/runtime_inference/insomnia/store/scheduler.rs",
-        "src/runtime_inference/insomnia/store/transitions.rs",
-        "src/runtime_inference/insomnia/store.rs"
+        "src/runtime_inference/insomnia/store/transitions.rs"
       ],
       "source_status": "mapped"
     },
@@ -541,6 +542,7 @@
         "maintenance-store"
       ],
       "current_production_source_files": [
+        "src/owner_lifecycle.rs",
         "src/owner_lifecycle/archive_ordered_replay.rs",
         "src/owner_lifecycle/archive_replay_error.rs",
         "src/owner_lifecycle/atomic_publication.rs",
@@ -594,7 +596,6 @@
         "src/owner_lifecycle/reliquary_vectors.rs",
         "src/owner_lifecycle/relocation.rs",
         "src/owner_lifecycle/semantic_source.rs",
-        "src/owner_lifecycle.rs",
         "src/runtime_inference/insomnia/completion.rs",
         "src/runtime_inference/insomnia/completion_compact_retained.rs"
       ],
@@ -740,6 +741,7 @@
         "owner-lifecycle"
       ],
       "current_production_source_files": [
+        "src/project_environment.rs",
         "src/project_environment/attachment.rs",
         "src/project_environment/file.rs",
         "src/project_environment/git.rs",
@@ -754,12 +756,11 @@
         "src/project_environment/lore_runtime.rs",
         "src/project_environment/lore_upload.rs",
         "src/project_environment/repository.rs",
-        "src/project_environment/upload_paths.rs",
-        "src/project_environment.rs",
         "src/project_environment/scope.rs",
+        "src/project_environment/upload_paths.rs",
         "src/project_environment/write_guard.rs",
-        "src/project_environment/write_guard_windows.rs",
-        "src/project_environment/write_guard_unix.rs"
+        "src/project_environment/write_guard_unix.rs",
+        "src/project_environment/write_guard_windows.rs"
       ],
       "source_status": "mapped"
     },
@@ -774,7 +775,8 @@
         "memory-store"
       ],
       "current_production_source_files": [
-        "src/retrieval/compatibility_profile_probe.rs"
+        "src/retrieval/compatibility_profile_probe.rs",
+        "src/runtime_inference/runtime_vector_step.rs"
       ],
       "source_status": "mapped"
     },
@@ -814,10 +816,13 @@
         "switchboard"
       ],
       "current_production_source_files": [
+        "src/retrieval/conversation_search.rs",
         "src/retrieval/conversation_search_model.rs",
+        "src/retrieval/lexical_index.rs",
         "src/retrieval/lexical_index/memory.rs",
         "src/retrieval/lexical_index/raw.rs",
-        "src/retrieval/lexical_index.rs",
+        "src/retrieval/lexical_search.rs",
+        "src/retrieval/memory_candidate_pool.rs",
         "src/retrieval/memory_retrieval.rs",
         "src/retrieval/memory_retrieval_build.rs",
         "src/retrieval/memory_retrieval_error.rs",
@@ -825,8 +830,12 @@
         "src/retrieval/memory_retrieval_model.rs",
         "src/retrieval/memory_retrieval_traversal.rs",
         "src/retrieval/memory_retrieval_vectors.rs",
+        "src/retrieval/memory_search.rs",
+        "src/retrieval/search.rs",
         "src/retrieval/search_error.rs",
         "src/retrieval/search_model.rs",
+        "src/retrieval/search_rank.rs",
+        "src/retrieval/semantic_search.rs",
         "src/retrieval/semantic_search_error.rs",
         "src/retrieval/semantic_search_model.rs",
         "src/runtime_inference/agentic_memory_retrieval.rs",
@@ -862,6 +871,7 @@
         "src/perception/entity_candidates.rs",
         "src/perception/entity_merge.rs",
         "src/perception/entity_owner.rs",
+        "src/perception/entity_principal.rs",
         "src/perception/entity_reconciliation.rs",
         "src/perception/entity_reconciliation_candidates.rs",
         "src/perception/entity_reconciliation_commit.rs",
@@ -908,6 +918,7 @@
         "freshness"
       ],
       "current_production_source_files": [
+        "src/runtime_inference/insomnia.rs",
         "src/runtime_inference/insomnia/backpressure.rs",
         "src/runtime_inference/insomnia/candidate.rs",
         "src/runtime_inference/insomnia/candidate_policy.rs",
@@ -930,10 +941,9 @@
         "src/runtime_inference/insomnia/progress.rs",
         "src/runtime_inference/insomnia/synthesis.rs",
         "src/runtime_inference/insomnia/temporal.rs",
-        "src/runtime_inference/insomnia/worker/runtime/outcome.rs",
-        "src/runtime_inference/insomnia/worker/runtime/progress.rs",
         "src/runtime_inference/insomnia/worker/runtime.rs",
-        "src/runtime_inference/insomnia.rs"
+        "src/runtime_inference/insomnia/worker/runtime/outcome.rs",
+        "src/runtime_inference/insomnia/worker/runtime/progress.rs"
       ],
       "source_status": "mapped"
     },
@@ -1135,11 +1145,11 @@
         "switchboard"
       ],
       "current_production_source_files": [
+        "src/context_engine.rs",
         "src/context_engine/compaction.rs",
         "src/context_engine/compaction_budget.rs",
         "src/context_engine/evidence.rs",
-        "src/context_engine/model.rs",
-        "src/context_engine.rs"
+        "src/context_engine/model.rs"
       ],
       "source_status": "mapped"
     },
@@ -1273,12 +1283,13 @@
         "project-environment"
       ],
       "current_production_source_files": [
-        "src/archive/archive_search.rs",
         "src/external_source/mod.rs",
         "src/external_source/processing.rs",
         "src/external_source/provenance.rs",
+        "src/facade/agentic_memory_grading.rs",
         "src/facade/cva.rs",
         "src/facade/cva_activity.rs",
+        "src/facade/cva_archive_search.rs",
         "src/facade/cva_archive_vectors.rs",
         "src/facade/cva_communities.rs",
         "src/facade/cva_compatibility_profiles.rs",
@@ -1288,6 +1299,17 @@
         "src/facade/cva_dream_begin_transport.rs",
         "src/facade/cva_dream_population.rs",
         "src/facade/cva_ego.rs",
+        "src/facade/cva_entity_audit.rs",
+        "src/facade/cva_entity_candidates.rs",
+        "src/facade/cva_entity_merge.rs",
+        "src/facade/cva_entity_owner.rs",
+        "src/facade/cva_entity_principal.rs",
+        "src/facade/cva_entity_reconciliation.rs",
+        "src/facade/cva_entity_resolution_batch.rs",
+        "src/facade/cva_entity_resolution_commit.rs",
+        "src/facade/cva_entity_resolution_owner.rs",
+        "src/facade/cva_entity_resolution_prepare.rs",
+        "src/facade/cva_entity_resolution_processor.rs",
         "src/facade/cva_episode_policy.rs",
         "src/facade/cva_file_memory.rs",
         "src/facade/cva_freshness.rs",
@@ -1301,22 +1323,36 @@
         "src/facade/cva_import_readiness.rs",
         "src/facade/cva_import_scope.rs",
         "src/facade/cva_lifecycle.rs",
+        "src/facade/cva_memory_candidate_pool.rs",
         "src/facade/cva_memory_retrieval.rs",
         "src/facade/cva_memory_vectors.rs",
         "src/facade/cva_native_import.rs",
         "src/facade/cva_packed_vectors.rs",
         "src/facade/cva_principal_repack.rs",
+        "src/facade/cva_project_environment.rs",
         "src/facade/cva_reconcile.rs",
         "src/facade/cva_reconcile_promote.rs",
         "src/facade/cva_reconcile_repack.rs",
+        "src/facade/cva_relationship_owner.rs",
         "src/facade/cva_repack.rs",
+        "src/facade/cva_retrieval_conversation_search.rs",
+        "src/facade/cva_retrieval_lexical_search.rs",
+        "src/facade/cva_retrieval_memory_search.rs",
+        "src/facade/cva_retrieval_search.rs",
+        "src/facade/cva_retrieval_semantic_search.rs",
         "src/facade/cva_semantic_fragment.rs",
         "src/facade/cva_semantic_live.rs",
         "src/facade/cva_semantic_source.rs",
         "src/facade/cva_turn_ingest.rs",
         "src/facade/cva_vector_generations.rs",
         "src/facade/cva_vector_recovery.rs",
+        "src/facade/dream_freshness.rs",
+        "src/facade/dream_lifecycle.rs",
         "src/facade/dream_pair_admission.rs",
+        "src/facade/dream_processor_frontier.rs",
+        "src/facade/dream_product_extensions.rs",
+        "src/facade/external_source_extensions.rs",
+        "src/facade/freshness_access.rs",
         "src/facade/historical_embedding.rs",
         "src/facade/historical_embedding_model.rs",
         "src/facade/historical_embedding_plan.rs",
@@ -1324,6 +1360,11 @@
         "src/facade/historical_import_input.rs",
         "src/facade/historical_import_transform.rs",
         "src/facade/historical_reconstruction.rs",
+        "src/facade/insomnia_cva.rs",
+        "src/facade/insomnia_processor.rs",
+        "src/facade/insomnia_runtime_step.rs",
+        "src/facade/insomnia_worker.rs",
+        "src/facade/insomnia_worker_runtime.rs",
         "src/facade/phylactery.rs",
         "src/facade/phylactery_communities.rs",
         "src/facade/phylactery_compatibility_profiles.rs",
@@ -1340,46 +1381,14 @@
         "src/facade/phylactery_memory_vectors.rs",
         "src/facade/phylactery_packed_vectors.rs",
         "src/facade/review_clocks.rs",
+        "src/facade/rewrite_lineage_extensions.rs",
         "src/facade/rewrite_plan.rs",
+        "src/facade/runtime_vector_step.rs",
         "src/facade/semantic_maintenance.rs",
         "src/facade/storage_reclamation.rs",
         "src/lib.rs",
         "src/memory/memory_provenance_model.rs",
-        "src/perception/entity_audit.rs",
-        "src/perception/entity_candidates.rs",
-        "src/perception/entity_merge.rs",
-        "src/perception/entity_owner.rs",
-        "src/perception/entity_principal.rs",
-        "src/perception/entity_reconciliation.rs",
-        "src/perception/entity_reconciliation_commit.rs",
-        "src/perception/entity_reconciliation_owner.rs",
-        "src/perception/entity_reconciliation_prepare.rs",
-        "src/perception/entity_resolution_batch.rs",
-        "src/perception/entity_resolution_commit.rs",
-        "src/perception/entity_resolution_owner.rs",
-        "src/perception/entity_resolution_prepare.rs",
-        "src/perception/entity_resolution_processor.rs",
-        "src/perception/relationship_owner.rs",
-        "src/retrieval/conversation_search.rs",
-        "src/retrieval/lexical_search.rs",
-        "src/retrieval/memory_candidate_pool.rs",
-        "src/retrieval/memory_search.rs",
-        "src/retrieval/search.rs",
-        "src/retrieval/search_rank.rs",
-        "src/retrieval/semantic_search.rs",
-        "src/rewrite/lineage.rs",
-        "src/runtime_inference/dream_candidates.rs",
-        "src/runtime_inference/dream_cooldown.rs",
-        "src/runtime_inference/dream_lifecycle.rs",
-        "src/runtime_inference/dream_publisher.rs",
-        "src/runtime_inference/dream_temporal.rs",
-        "src/runtime_inference/freshness_access.rs",
-        "src/runtime_inference/insomnia/cva.rs",
-        "src/runtime_inference/insomnia/processor.rs",
-        "src/runtime_inference/insomnia/runtime_step.rs",
-        "src/runtime_inference/insomnia/worker.rs",
-        "src/runtime_inference/runtime_vector_step.rs",
-        "src/facade/cva_project_environment.rs"
+        "src/runtime_inference/dream_cooldown.rs"
       ],
       "source_status": "mapped"
     }
@@ -1727,16 +1736,16 @@
     },
     {
       "path": "src/archive/archive_search.rs",
-      "component": "public-consumers",
+      "component": "archive-store",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation",
-      "certainty": "source-confirmed-public-composition",
+      "evidence": "Archive owns search result/value DTOs and search policy; public Cva adapter resides in facade.",
+      "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation",
-      "source_sha256": "a0e8c767279e74e3716307a6b209caa10f185b3e921f3afa8521989cdd0ba824",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 16,
-      "symbol_spans_sha256": "f3ed2c158a43691e232090f83f7dc3d0e3ea8022a6c424f2b4bb7930cb81e8fa"
+      "source_sha256": "c0866d2d3927ab50f4064ccbdfa3197cf2241fd5c17f6f48a760b15cc1575c52",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/archive/archive_search_tests.rs",
@@ -3794,12 +3803,12 @@
       "classification": "production",
       "reachability": "reachable-profile-module",
       "evidence": "direct source-role evidence: Cva extension implementation",
-      "certainty": "source-confirmed-public-composition",
+      "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation",
-      "source_sha256": "42f8361564213ddbb5a1661ab1a22c5a4839f33e0005004b354ff0039ed6a4a3",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 30,
-      "symbol_spans_sha256": "ff6bdd5d2a8a8973a821a1a67c96bb9037017142288715dbfee3815585aa955c"
+      "source_sha256": "1f787d8f3f924e15249c896d82d7fbe21c6069552a87274e26524ca0e71cddd6",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/external_source/processing.rs",
@@ -3807,12 +3816,12 @@
       "classification": "production",
       "reachability": "reachable-profile-module",
       "evidence": "direct source-role evidence: Cva extension implementation",
-      "certainty": "source-confirmed-public-composition",
+      "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation",
-      "source_sha256": "86c916e27418bf39fa43cb0bfe3d7b4d4031996a4eca49a1e6b0d3942baa05fa",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 33,
-      "symbol_spans_sha256": "0b3ed8ac915427e9987c625464880e11787d7c03e09fd5c89b3b9e33e45005c8"
+      "source_sha256": "745ea74240905d23953da0a649a53ef45af28dbeff6936a55de7dded411fbd4f",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/external_source/provenance.rs",
@@ -3820,12 +3829,12 @@
       "classification": "production",
       "reachability": "reachable-profile-module",
       "evidence": "direct source-role evidence: Cva extension implementation, Phylactery extension implementation",
-      "certainty": "source-confirmed-public-composition",
+      "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation; Phylactery extension implementation",
-      "source_sha256": "82f4eb38abf1b3d4619a720e91001afd569c1eff470e913f4ea27f5e4b09fbfe",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 21,
-      "symbol_spans_sha256": "9132a3cc3a87f7259c27c6816c00165c6efab54534f8b5343568a248df907a92"
+      "source_sha256": "be5745946dcdfc308fd75042fa8ccbefbc644e72195cf097485cefeaa6160ac3",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/external_source/provider.rs",
@@ -8952,16 +8961,16 @@
     },
     {
       "path": "src/perception/entity_audit.rs",
-      "component": "public-consumers",
+      "component": "perception",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "Source defines a macro that generates Cva/Phylactery facade methods and invokes it here: impl_owner_audit!(Cva);, impl_owner_audit!(Phylactery);",
-      "certainty": "source-confirmed-public-composition",
-      "source_sha256": "e146b8d95af4183b1eb2448799eec6db5baf41e0595f73a83bfac9d1c2471e05",
-      "compiler_inventory_match": true,
+      "evidence": "Perception-owned candidate, audit, reconciliation, or resolution calculation; public owner adapters reside in facade.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "99f5201f4238af63775abadc04f8c73b598cd981d04ad9d7af42b21e41d83f57",
+      "compiler_inventory_match": false,
       "notes": "Macro-generated public Cva/Phylactery extension methods; deferred public composition (C06).",
-      "compiler_item_count": 8,
-      "symbol_spans_sha256": "69b988bcebc4ed9b8f840e2b8bea3f6b0b9b3b2e604e964d4874153c67beec86"
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/perception/entity_audit_collisions.rs",
@@ -9026,12 +9035,12 @@
       "component": "perception",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "source path group `perception` reviewed against target component responsibility; module reachable=True",
-      "certainty": "reviewed-area-role",
-      "source_sha256": "39dd747a6b52bcd9846d07c105a13d87540b712371c1fe438a83c9f8c9c3da05",
+      "evidence": "Perception-owned candidate, audit, reconciliation, or resolution calculation; public owner adapters reside in facade.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "ce7731b5755f28d96eed3b33930599f38820488a809d2085ba45e8de7f68fcd3",
       "compiler_inventory_match": false,
-      "compiler_item_count": 12,
-      "symbol_spans_sha256": "77d9a4034a3ea71eb18d705cb52ab8eeb82089f7b58d7992ccea4027e7985a63"
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/perception/entity_candidate_test_support.rs",
@@ -9055,16 +9064,16 @@
     },
     {
       "path": "src/perception/entity_candidates.rs",
-      "component": "public-consumers",
+      "component": "perception",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "Source defines a macro that generates Cva/Phylactery facade methods and invokes it here: impl_owner!(Cva);, impl_owner!(Phylactery);",
-      "certainty": "source-confirmed-public-composition",
-      "source_sha256": "7653777bf0afe658c88aefbee64292c2e365285bef642d74e20f219d02f214b9",
-      "compiler_inventory_match": true,
+      "evidence": "Perception-owned candidate, audit, reconciliation, or resolution calculation; public owner adapters reside in facade.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "29e374602205942430b8b3c1844a6f34cf415ffbadbe28c48e9dfa94bac03bbd",
+      "compiler_inventory_match": false,
       "notes": "Macro-generated public Cva/Phylactery extension methods; deferred public composition (C06).",
-      "compiler_item_count": 8,
-      "symbol_spans_sha256": "3f0b594de244852411fc483dd146025de79567f6a32e121c0d6fa997af3449e7"
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/perception/entity_codec.rs",
@@ -9268,16 +9277,16 @@
     },
     {
       "path": "src/perception/entity_merge.rs",
-      "component": "public-consumers",
+      "component": "perception",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "Source defines a macro that generates Cva/Phylactery facade methods and invokes it here: impl_entity_merge!(Cva, CvaError);, impl_entity_merge!(Phylactery, PhylacteryError);",
-      "certainty": "source-confirmed-public-composition",
-      "source_sha256": "e56a57bc41eb321ef8b3f286079861ae8e15b58d3304facfb1ef22e025304c02",
-      "compiler_inventory_match": true,
+      "evidence": "Perception-owned candidate, audit, reconciliation, or resolution calculation; public owner adapters reside in facade.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "c6b04e0d2c38746e87176ff73ed27e271e79a81d4f49216a8c5df1d9ef4e4a12",
+      "compiler_inventory_match": false,
       "notes": "Macro-generated public Cva/Phylactery extension methods; deferred public composition (C06).",
-      "compiler_item_count": 12,
-      "symbol_spans_sha256": "1f2fcb5e26161663ba1574071a2a63059c693237340ef0fe0a0dfadb24616cb7"
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/perception/entity_model.rs",
@@ -9305,29 +9314,29 @@
     },
     {
       "path": "src/perception/entity_owner.rs",
-      "component": "public-consumers",
+      "component": "perception",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "Source defines a macro that generates Cva/Phylactery facade methods and invokes it here: impl_owner!(Cva, false);, impl_owner!(Phylactery, true);",
-      "certainty": "source-confirmed-public-composition",
-      "source_sha256": "0ae91b238649e64adb522b05415119769e87a488249d5fc5c1702d2437a38d11",
-      "compiler_inventory_match": true,
+      "evidence": "Perception-owned candidate, audit, reconciliation, or resolution calculation; public owner adapters reside in facade.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "295dbc5d481a860cd91ce154ea3a81a1d9de0afa72aa6454132faacead03d8ac",
+      "compiler_inventory_match": false,
       "notes": "Macro-generated public Cva/Phylactery extension methods; deferred public composition (C06).",
-      "compiler_item_count": 38,
-      "symbol_spans_sha256": "e8de7edc5c6917842dde8b76149b81c7aef1c7c78ec52bca42d52fc343d3b627"
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/perception/entity_principal.rs",
-      "component": "public-consumers",
+      "component": "perception",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation, Phylactery extension implementation",
-      "certainty": "source-confirmed-public-composition",
+      "evidence": "Perception-owned candidate, audit, reconciliation, or resolution calculation; public owner adapters reside in facade.",
+      "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation; Phylactery extension implementation",
-      "source_sha256": "acba331f8e204a61a7fbe6d96e5978f70a0e8e0b6f03619e26c6630df7b8d018",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 12,
-      "symbol_spans_sha256": "850422718997a38d1d45b7f9505f7e100e758bfdd59dd642c6bb73f378a4b560"
+      "source_sha256": "13725eda8e59e9b587a7a1720b387319e84c85f4ab1ed2c0fb83bcae763bd638",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/perception/entity_principal_identity.rs",
@@ -9426,19 +9435,6 @@
       "compiler_inventory_match": false
     },
     {
-      "path": "src/perception/entity_reconciliation.rs",
-      "component": "public-consumers",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "Source defines a macro that generates Cva/Phylactery facade methods and invokes it here: impl_reconciliation!(Cva);, impl_reconciliation!(Phylactery);",
-      "certainty": "source-confirmed-public-composition",
-      "source_sha256": "a4aa2905cbb9a86eb481ef0751f1282c90b8a6839513cfd54fdab996cb89147c",
-      "compiler_inventory_match": true,
-      "notes": "Macro-generated public Cva/Phylactery extension methods; deferred public composition (C06).",
-      "compiler_item_count": 11,
-      "symbol_spans_sha256": "c2d0d1e8ebb1481df50d3a8868f1cfac9c1d1cbe085888461256a913be78863f"
-    },
-    {
       "path": "src/perception/entity_reconciliation_candidate_tests.rs",
       "component": null,
       "classification": "test",
@@ -9462,16 +9458,16 @@
     },
     {
       "path": "src/perception/entity_reconciliation_commit.rs",
-      "component": "public-consumers",
+      "component": "perception",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "Source defines a macro that generates Cva/Phylactery facade methods and invokes it here: impl_owner!(Cva);, impl_owner!(Phylactery);",
-      "certainty": "source-confirmed-public-composition",
-      "source_sha256": "ccae7f1495d05bf9125205850b471a91ca30475ec993352577cc54cea2316cf7",
-      "compiler_inventory_match": true,
+      "evidence": "Perception-owned candidate, audit, reconciliation, or resolution calculation; public owner adapters reside in facade.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "361dcf0de96bbeeff62392336525211b9b449efa6b7db81d41b18a114b8070b4",
+      "compiler_inventory_match": false,
       "notes": "Macro-generated public Cva/Phylactery extension methods; deferred public composition (C06).",
-      "compiler_item_count": 6,
-      "symbol_spans_sha256": "07417f04476122e963d484796f06d003ef856412b329f792f5fcb09e63025235"
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/perception/entity_reconciliation_error.rs",
@@ -9510,30 +9506,17 @@
       "symbol_spans_sha256": "82247448621a3b7ffba688434b61b051ae94263ded14fe5f56624086a05d7fc0"
     },
     {
-      "path": "src/perception/entity_reconciliation_owner.rs",
-      "component": "public-consumers",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "Source defines a macro that generates Cva/Phylactery facade methods and invokes it here: impl_owner!(Cva);, impl_owner!(Phylactery);",
-      "certainty": "source-confirmed-public-composition",
-      "source_sha256": "eac2a8aef886791f4c85da12239239e1577d9e9b3dc271ed51b1a6472ad4f4c7",
-      "compiler_inventory_match": true,
-      "notes": "Macro-generated public Cva/Phylactery extension methods; deferred public composition (C06).",
-      "compiler_item_count": 8,
-      "symbol_spans_sha256": "00139fa90d6c678e19eb2dc7c4a4f6ddc1d5e1d0b160ea74dda2d7494c2c090f"
-    },
-    {
       "path": "src/perception/entity_reconciliation_prepare.rs",
-      "component": "public-consumers",
+      "component": "perception",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "Source defines a macro that generates Cva/Phylactery facade methods and invokes it here: impl_owner!(Cva);, impl_owner!(Phylactery);",
-      "certainty": "source-confirmed-public-composition",
-      "source_sha256": "41c732ca42cbb1be80e1d695a030f1887181a66e1d902f19e6e1ebaa85b1d077",
-      "compiler_inventory_match": true,
+      "evidence": "Perception-owned candidate, audit, reconciliation, or resolution calculation; public owner adapters reside in facade.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "a5f9428416734bcbd3631d894e3253b293329f0aadd6cb2f173f9d0bc11f9a1c",
+      "compiler_inventory_match": false,
       "notes": "Macro-generated public Cva/Phylactery extension methods; deferred public composition (C06).",
-      "compiler_item_count": 6,
-      "symbol_spans_sha256": "3850648745e106a6fa9c14d5e81437bdc6cf2204cdf5e097a9d7754840cc17a5"
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/perception/entity_reconciliation_schema.rs",
@@ -9615,16 +9598,16 @@
     },
     {
       "path": "src/perception/entity_resolution_batch.rs",
-      "component": "public-consumers",
+      "component": "perception",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "Source defines a macro that generates Cva/Phylactery facade methods and invokes it here: impl_owner!(Cva);, impl_owner!(Phylactery);",
-      "certainty": "source-confirmed-public-composition",
-      "source_sha256": "65f6483503567d23b1f2453157d08ec1534366fde48e2d244e6ff42d49833683",
-      "compiler_inventory_match": true,
+      "evidence": "Perception-owned candidate, audit, reconciliation, or resolution calculation; public owner adapters reside in facade.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "15dbc03cf895834bbe14565fd1c819513ed654603e07126ec131d48f5f530834",
+      "compiler_inventory_match": false,
       "notes": "Macro-generated public Cva/Phylactery extension methods; deferred public composition (C06).",
-      "compiler_item_count": 25,
-      "symbol_spans_sha256": "3c9bd7e3c3f3fcee805d1430ca8bb467dc35f855fdb3837f642a16ec6fff9fb9"
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/perception/entity_resolution_batch_equivalence_tests.rs",
@@ -9680,16 +9663,16 @@
     },
     {
       "path": "src/perception/entity_resolution_commit.rs",
-      "component": "public-consumers",
+      "component": "perception",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "Source defines a macro that generates Cva/Phylactery facade methods and invokes it here: impl_owner!(Cva);, impl_owner!(Phylactery);",
-      "certainty": "source-confirmed-public-composition",
-      "source_sha256": "e7b612c5f9d2adf8114fe488fbdb54b5237eb39513daa774c67c87c4bf48671a",
-      "compiler_inventory_match": true,
+      "evidence": "Perception-owned candidate, audit, reconciliation, or resolution calculation; public owner adapters reside in facade.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "8e311f6a1bef45c569f029cdf1a18b284d39849c88a5aa3cca05b469bae0653a",
+      "compiler_inventory_match": false,
       "notes": "Macro-generated public Cva/Phylactery extension methods; deferred public composition (C06).",
-      "compiler_item_count": 7,
-      "symbol_spans_sha256": "0c294fc1f6d40dee1f0e12fbac32750826015c312765b43aac3c1623b8474989"
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/perception/entity_resolution_decision.rs",
@@ -9754,12 +9737,12 @@
       "component": "perception",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "source path group `perception` reviewed against target component responsibility; module reachable=True",
-      "certainty": "reviewed-area-role",
-      "source_sha256": "d6f12a3beb1757959119eae005760731cac06bf307783b12b6a826e2fbbab457",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 12,
-      "symbol_spans_sha256": "0b33143481793f925a3725a0304552bb6351a4b874b3b0c637bdfa90d7b19939"
+      "evidence": "Perception-owned candidate, audit, reconciliation, or resolution calculation; public owner adapters reside in facade.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "75c9aa7cd5fedcb51ec94a8bcbd192adf43957dedf3a585c9c9469258e63ae60",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/perception/entity_resolution_lifecycle_tests.rs",
@@ -9785,29 +9768,29 @@
     },
     {
       "path": "src/perception/entity_resolution_owner.rs",
-      "component": "public-consumers",
+      "component": "perception",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "Source defines a macro that generates Cva/Phylactery facade methods and invokes it here: impl_owner!(Cva);, impl_owner!(Phylactery);",
-      "certainty": "source-confirmed-public-composition",
-      "source_sha256": "18bce9f42f737a4213dc8d67e823ed3a6bfdc282cebe7d86bffeb55d387f359b",
-      "compiler_inventory_match": true,
+      "evidence": "Cross-owner Entity/Memory admission remains visibly Perception service policy; it is not relabeled owner-lifecycle because its current imports expose those dependencies.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "aa4fd4add2bf182d046887f8fb81ba2421e3191b5b69d8caba296b436cb65c6e",
+      "compiler_inventory_match": false,
       "notes": "Macro-generated public Cva/Phylactery extension methods; deferred public composition (C06).",
-      "compiler_item_count": 36,
-      "symbol_spans_sha256": "f45430f639532efc8816af9e265383924b5bd02cba4463b9aa00cc189e45a2f5"
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/perception/entity_resolution_prepare.rs",
-      "component": "public-consumers",
+      "component": "perception",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "Source defines a macro that generates Cva/Phylactery facade methods and invokes it here: impl_owner!(Cva);, impl_owner!(Phylactery);",
-      "certainty": "source-confirmed-public-composition",
-      "source_sha256": "b8226f891e86873aa57a162311d16b3c6f7b72860e7fa6cbf00b0607edfa6aec",
-      "compiler_inventory_match": true,
+      "evidence": "Perception-owned candidate, audit, reconciliation, or resolution calculation; public owner adapters reside in facade.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "dca2ed0591759ee797a7d15b7f73485526b852fe1612220d17214a694af2b57e",
+      "compiler_inventory_match": false,
       "notes": "Macro-generated public Cva/Phylactery extension methods; deferred public composition (C06).",
-      "compiler_item_count": 6,
-      "symbol_spans_sha256": "2886fd17119ba981f408d7234ea05b3f2029d045287554e382705c7d285280a0"
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/perception/entity_resolution_prepared.rs",
@@ -9823,16 +9806,16 @@
     },
     {
       "path": "src/perception/entity_resolution_processor.rs",
-      "component": "public-consumers",
+      "component": "perception",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "Source defines a macro that generates Cva/Phylactery facade methods and invokes it here: impl_owner!(Cva);, impl_owner!(Phylactery);",
-      "certainty": "source-confirmed-public-composition",
-      "source_sha256": "6d7b39d46f8cfa866ed567b4c53ecb68266ac82ae26fed5128802883ba53d65c",
-      "compiler_inventory_match": true,
+      "evidence": "Perception-owned candidate, audit, reconciliation, or resolution calculation; public owner adapters reside in facade.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "e1fbec740838662ad06f88edf320c5f48d199e3d9aa68bea94e9cf0aa196e3ff",
+      "compiler_inventory_match": false,
       "notes": "Macro-generated public Cva/Phylactery extension methods; deferred public composition (C06).",
-      "compiler_item_count": 9,
-      "symbol_spans_sha256": "6007f42bab6c0d72ab61e02f2786b9266661c14475bcc8aa60fee4c749122e94"
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/perception/entity_resolution_processor_support.rs",
@@ -10360,16 +10343,16 @@
     },
     {
       "path": "src/perception/relationship_owner.rs",
-      "component": "public-consumers",
+      "component": "perception",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "Source defines a macro that generates Cva/Phylactery facade methods and invokes it here: impl_owner!(Cva);, impl_owner!(Phylactery);",
-      "certainty": "source-confirmed-public-composition",
-      "source_sha256": "facb0f5c365ec9577a22f65eb9128ba8fa9d64ad3b3145408f01cd0ccee21585",
-      "compiler_inventory_match": true,
+      "evidence": "Perception-owned candidate, audit, reconciliation, or resolution calculation; public owner adapters reside in facade.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "ea12a47a5416f38711ac60e9f62863c019a9b3c9f0513200788f2f885da7a18c",
+      "compiler_inventory_match": false,
       "notes": "Macro-generated public Cva/Phylactery extension methods; deferred public composition (C06).",
-      "compiler_item_count": 29,
-      "symbol_spans_sha256": "918e0f3d3b9d3cd3d37260434e2e6dbf6bd7b69a6cd064c9f2fdf9ff2e7cbf63"
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/perception/relationship_publication_codec.rs",
@@ -10955,16 +10938,16 @@
     },
     {
       "path": "src/retrieval/conversation_search.rs",
-      "component": "public-consumers",
+      "component": "retrieval",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation",
-      "certainty": "source-confirmed-public-composition",
+      "evidence": "Retrieval policy/implementation remains Retrieval-owned; public Cva/Phylactery adapters reside in facade.",
+      "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation",
-      "source_sha256": "f42b7c14dccccbf13182bc9deb6d9eeac333c2e59e1870594176c307c92714b1",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 5,
-      "symbol_spans_sha256": "b87f3d0bf0e37b784047f72e4ac89f512535678ac17c42e9882e22381c79dfda"
+      "source_sha256": "ea2212888fc09b08a10a29f6e08e3c5c71320f45e6087a5dfd96ab382448c217",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/retrieval/conversation_search_model.rs",
@@ -11036,29 +11019,29 @@
     },
     {
       "path": "src/retrieval/lexical_search.rs",
-      "component": "public-consumers",
+      "component": "retrieval",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation, Phylactery extension implementation",
-      "certainty": "source-confirmed-public-composition",
+      "evidence": "Retrieval policy/implementation remains Retrieval-owned; public Cva/Phylactery adapters reside in facade.",
+      "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation; Phylactery extension implementation",
-      "source_sha256": "a222b9bf3baad611cf7ef28f67b0b9483654f9163c50bc7e7b60c088d52a5e8b",
+      "source_sha256": "0a6f8478382fec53b8d469fbcf10e23c11fdb4eb6b46de89e922206ab5701512",
       "compiler_inventory_match": false,
-      "compiler_item_count": 16,
-      "symbol_spans_sha256": "737c0a663921a90dc258866ae853be4e7436de1f128b442c9c0ee82db37c3cb9"
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/retrieval/memory_candidate_pool.rs",
-      "component": "public-consumers",
+      "component": "retrieval",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation",
-      "certainty": "source-confirmed-public-composition",
+      "evidence": "Retrieval policy/implementation remains Retrieval-owned; public Cva/Phylactery adapters reside in facade.",
+      "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation",
-      "source_sha256": "8917027c3a4d2f4606be80f5393f0931b0a4f9b5a4e275ef6ec11e98c129a007",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 39,
-      "symbol_spans_sha256": "26305dd8b1df736eeccd5af1561b217f25d8c39cd9cf5d52e55ac58a74da062c"
+      "source_sha256": "312434683c9c96ce4fe799c3b133b362dfa9f5104f124668acc5da8303f0eed1",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/retrieval/memory_candidate_pool_tests.rs",
@@ -11176,16 +11159,16 @@
     },
     {
       "path": "src/retrieval/memory_search.rs",
-      "component": "public-consumers",
+      "component": "retrieval",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation, Phylactery extension implementation",
-      "certainty": "source-confirmed-public-composition",
+      "evidence": "Retrieval policy/implementation remains Retrieval-owned; public Cva/Phylactery adapters reside in facade.",
+      "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation; Phylactery extension implementation",
-      "source_sha256": "e08bb9d09f45a672fbacb3174bb0a323c65279da41d8a04f28b3215310f137aa",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 19,
-      "symbol_spans_sha256": "f99937560bd3f6eb370a7e6c85acc3340d3a063d11506410dcb3e4997c7cb06e"
+      "source_sha256": "9e68fb6d9587657cb8e03d97a975aaca38dd98687a0924d7f931d15c5742c644",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/retrieval/memory_vector_codec.rs",
@@ -11329,16 +11312,16 @@
     },
     {
       "path": "src/retrieval/search.rs",
-      "component": "public-consumers",
+      "component": "retrieval",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation",
-      "certainty": "source-confirmed-public-composition",
+      "evidence": "Retrieval policy/implementation remains Retrieval-owned; public Cva/Phylactery adapters reside in facade.",
+      "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation",
-      "source_sha256": "82bdf483a1d37772e1e65d42b8e82d8b603a17a47cde8399b6d54965a6fb9e2f",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 7,
-      "symbol_spans_sha256": "2c2d8f454f9c680336d0d6cabf6bc8bcbb4e57cf2777c51a616ded74745565be"
+      "source_sha256": "470a3b283f5e73ac7599d56992c09da6b8c460e3a784973b6a68d8aef44ab71f",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/retrieval/search_error.rs",
@@ -11376,16 +11359,16 @@
     },
     {
       "path": "src/retrieval/search_rank.rs",
-      "component": "public-consumers",
+      "component": "retrieval",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation",
-      "certainty": "source-confirmed-public-composition",
+      "evidence": "Retrieval policy/implementation remains Retrieval-owned; public Cva/Phylactery adapters reside in facade.",
+      "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation",
-      "source_sha256": "ef7f77b331d5386f1673b54d7741dcc9dee8750b4a700f02f2ca01647d44c40b",
+      "source_sha256": "a2990d34833aed752757cd43785797b9c673d10322d21da95e967b4bffc96bb3",
       "compiler_inventory_match": false,
-      "compiler_item_count": 9,
-      "symbol_spans_sha256": "7e9786ad6e5334440a0b4b14ac113406c6bd50a21e1c256e15f8e5b9fb92e85c"
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/retrieval/search_tests.rs",
@@ -11399,16 +11382,16 @@
     },
     {
       "path": "src/retrieval/semantic_search.rs",
-      "component": "public-consumers",
+      "component": "retrieval",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation",
-      "certainty": "source-confirmed-public-composition",
+      "evidence": "Retrieval policy/implementation remains Retrieval-owned; public Cva/Phylactery adapters reside in facade.",
+      "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation",
-      "source_sha256": "f209541e6d813837efb0a5335dbfeba471cf0b3dfe9979f63f8734a97e26b9b1",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 7,
-      "symbol_spans_sha256": "21a6283fe80afb987c5064ae563bac30dd248ee1c57d3d339ef7ff330abe762b"
+      "source_sha256": "01cc8dd697176930f4fc98eebbae016a8420e451423c98cf0eec3fc4fa9e4258",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/retrieval/semantic_search_error.rs",
@@ -11547,19 +11530,6 @@
       "compiler_inventory_match": false
     },
     {
-      "path": "src/rewrite/lineage.rs",
-      "component": "public-consumers",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation, Phylactery extension implementation",
-      "certainty": "source-confirmed-public-composition",
-      "notes": "Cva extension implementation; Phylactery extension implementation",
-      "source_sha256": "26e6688e1a6b0b4b9eaa5646bfd8211c23aac04139f4ca319d19c2603365b950",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 7,
-      "symbol_spans_sha256": "ec356aa8f9a5ef6d421b4c87965766b4efcd0261dd8825d0e582c53a153ef078"
-    },
-    {
       "path": "src/rewrite/semantic_state.rs",
       "component": "maintenance",
       "classification": "excluded-or-uncertain",
@@ -11585,11 +11555,11 @@
       "classification": "production",
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `rewrite`; responsibility assigned to `maintenance` in target DAG",
-      "certainty": "reviewed-source-role",
-      "source_sha256": "e045dfb0793cfb5cfbffeb44863180551f7819b01a80ca834d8895e4265738d2",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 17,
-      "symbol_spans_sha256": "ab619b6cee74b93175073c4f8d57f8848213bf0a798b13ee9f54fc0d2c384391"
+      "certainty": "reviewed-explicit",
+      "source_sha256": "1156de592b74ae817e4d4808db322dfeddd279fca01ccdb091b983deac00dcdb",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/rewrite_lineage.rs",
@@ -11649,11 +11619,11 @@
       "classification": "production",
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `agentic_memory_retrieval`; responsibility assigned to `retrieval` in target DAG",
-      "certainty": "reviewed-source-role",
-      "source_sha256": "5c44323cb16c1b6584363a326ede8777cdcdf9998ff9de30c97ce81d06c7fa5a",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 48,
-      "symbol_spans_sha256": "d4d86b2ee4cadb4b61479f70d2a40eb3476fa3eb46486b491e8e95cb9bd900cc"
+      "certainty": "reviewed-explicit",
+      "source_sha256": "5a75e74be6c14064b35a1ba3d4f8274c34b4109e9f3e390f64beff9dca8dc5fe",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/runtime_inference/agentic_memory_retrieval_decision.rs",
@@ -11906,19 +11876,6 @@
       "compiler_inventory_match": false
     },
     {
-      "path": "src/runtime_inference/dream_candidates.rs",
-      "component": "public-consumers",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation",
-      "certainty": "source-confirmed-public-composition",
-      "notes": "Cva extension implementation",
-      "source_sha256": "4e73b9b712bc0fd194f7952381c4d17657c363b31af5c88e6da07c0dfdd88038",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 4,
-      "symbol_spans_sha256": "4e7612ea5431fa4832c7bfba004be20c0e9288c1d0b2b08b2392db9f35d65ae7"
-    },
-    {
       "path": "src/runtime_inference/dream_canonical.rs",
       "component": "dream",
       "classification": "production",
@@ -12072,12 +12029,12 @@
       "classification": "production",
       "reachability": "reachable-profile-module",
       "evidence": "direct source-role evidence: Cva extension implementation, Phylactery extension implementation",
-      "certainty": "source-confirmed-public-composition",
+      "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation; Phylactery extension implementation",
-      "source_sha256": "10bded297bf8f568a3f5815d57cf7147ec50173e16dcca249f31c96e2f5017a3",
+      "source_sha256": "34b7aecae2c4c8f865f1521c3762b8d73ac4e0ec97afa35f11ab81b63e18c717",
       "compiler_inventory_match": false,
-      "compiler_item_count": 16,
-      "symbol_spans_sha256": "eeca5f5fa6524c58862155472fd4a27b159e406df8f81ca6c329a176132eb7a8"
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/runtime_inference/dream_cooldown_tests.rs",
@@ -12110,31 +12067,6 @@
       "certainty": "unresolved",
       "source_sha256": "1ddf7011428e8dc08d840fe0c7eae1a55d6b039db81d2b59e0e02437548daea1",
       "compiler_inventory_match": false
-    },
-    {
-      "path": "src/runtime_inference/dream_freshness.rs",
-      "component": "public-consumers",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "Phase5 pure settlement evaluation extracted to dream_settlement; remaining helpers coordinate Cva owner reads/publication for supported APIs and mounted runtime.",
-      "certainty": "explicit-module-root",
-      "source_sha256": "93cec913ea3d96e4d65bb576acf1ca47b1fbcd46a1b1ead2c4d8bbfa36f8baed",
-      "compiler_inventory_match": false,
-      "compiler_item_count": 25,
-      "symbol_spans_sha256": "86613f923cbe6fac637b0c57fec31f1d010f8cf13e69653f89b6a0a655177678"
-    },
-    {
-      "path": "src/runtime_inference/dream_lifecycle.rs",
-      "component": "public-consumers",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation",
-      "certainty": "source-confirmed-public-composition",
-      "notes": "Cva extension implementation",
-      "source_sha256": "db3bc30583bef743a219ad7bf82194ffa7e2175a0dd9c3ee66c65512871197bb",
-      "compiler_inventory_match": false,
-      "compiler_item_count": 8,
-      "symbol_spans_sha256": "cbf4ec3bda4d961c0f7a260d40d6d519bd33bbb06a68ba8a7511e5aadf0c42ae"
     },
     {
       "path": "src/runtime_inference/dream_lifecycle_error.rs",
@@ -12289,18 +12221,6 @@
       "symbol_spans_sha256": "b439f1644c281412c3775ff52797fc4705c3fda5917532473ccd9e32913e4d57"
     },
     {
-      "path": "src/runtime_inference/dream_processor_frontier.rs",
-      "component": "public-consumers",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "Public DreamProcessor Cva/Phylactery offline frontier methods; provider evaluator is separately owned in dream_processor.",
-      "certainty": "reviewed-source-role",
-      "source_sha256": "d01dad38ee675978e4c738ffef72f1b3f38edfa17855c226e67a9cf9510f97a7",
-      "compiler_inventory_match": false,
-      "compiler_item_count": 14,
-      "symbol_spans_sha256": "a1aed38593d47986793bb89b011e50acaced14959181c741b46dea2420c884e7"
-    },
-    {
       "path": "src/runtime_inference/dream_processor_model.rs",
       "component": "dream",
       "classification": "production",
@@ -12321,19 +12241,6 @@
       "certainty": "unresolved",
       "source_sha256": "056306060d17314ef932dd42da2917045687f2745470a2f5e487937229ae00a7",
       "compiler_inventory_match": false
-    },
-    {
-      "path": "src/runtime_inference/dream_publisher.rs",
-      "component": "public-consumers",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation",
-      "certainty": "source-confirmed-public-composition",
-      "notes": "Cva extension implementation",
-      "source_sha256": "91069df724ffac37a1734b7514aa36bb7821e0312ab88aefeb38e11045ba7098",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 3,
-      "symbol_spans_sha256": "6eb1a8b28d2bdb5596439f95ce387cbf90bede911cb8adea6678b4089889908f"
     },
     {
       "path": "src/runtime_inference/dream_publisher_error.rs",
@@ -12392,19 +12299,6 @@
       "compiler_inventory_match": true,
       "compiler_item_count": 2,
       "symbol_spans_sha256": "06ee6aa842a07c9c5a2400a1eaca893d738d77fd9332b48aad44de6bccc9790a"
-    },
-    {
-      "path": "src/runtime_inference/dream_temporal.rs",
-      "component": "public-consumers",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation",
-      "certainty": "source-confirmed-public-composition",
-      "notes": "Cva extension implementation",
-      "source_sha256": "2da73df872d27f7b9f2bd4f57efced9cd05c2e8365ff75af16292657c7ee7f18",
-      "compiler_inventory_match": false,
-      "compiler_item_count": 4,
-      "symbol_spans_sha256": "95d2990282e6517b27da91bfc4c9bb61f65325186e6649ca48cb0a596695db5d"
     },
     {
       "path": "src/runtime_inference/dream_temporal_tests.rs",
@@ -12485,19 +12379,6 @@
       "compiler_inventory_match": false,
       "compiler_item_count": 68,
       "symbol_spans_sha256": "13f1ac1ca7734b0e7b8039c857a69456a488ee9fe4ff97271274ab1a4d089049"
-    },
-    {
-      "path": "src/runtime_inference/freshness_access.rs",
-      "component": "public-consumers",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation",
-      "certainty": "source-confirmed-public-composition",
-      "notes": "Cva extension implementation",
-      "source_sha256": "dcabf00951e25f20f38878a00e5192780f7966d133357a80d5e03669d843460d",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 43,
-      "symbol_spans_sha256": "8370297b18ca6a130d6cdf572a8b4e87493df55789ff150a5df1cc0ab5b58cf0"
     },
     {
       "path": "src/runtime_inference/general_decision.rs",
@@ -12714,19 +12595,6 @@
       "compiler_inventory_match": true,
       "compiler_item_count": 5,
       "symbol_spans_sha256": "e1d8bfeaa6947fd77bae1632b9988112924469566270dd210251a5c0a69fe324"
-    },
-    {
-      "path": "src/runtime_inference/insomnia/cva.rs",
-      "component": "public-consumers",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation",
-      "certainty": "source-confirmed-public-composition",
-      "notes": "Cva extension implementation",
-      "source_sha256": "c82aff1cf325d950f898c4f4e5b3770450f89130257cd6ce3859c1e752258788",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 19,
-      "symbol_spans_sha256": "446d7c86f199aae1e386bd9ffb879fb7b07a7ca22f21a6135ac41569fd318178"
     },
     {
       "path": "src/runtime_inference/insomnia/enrichment.rs",
@@ -12955,19 +12823,6 @@
       "symbol_spans_sha256": "efa681d037924585b98cb9a6f6f8aecafeaf0ef8389206fba4f4726d85f0cc20"
     },
     {
-      "path": "src/runtime_inference/insomnia/processor.rs",
-      "component": "public-consumers",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation",
-      "certainty": "source-confirmed-public-composition",
-      "notes": "Cva extension implementation",
-      "source_sha256": "e960410d3a3c9c9011087430674414c4bd93ea66b20bd1440ae5a46ed2468e2c",
-      "compiler_inventory_match": false,
-      "compiler_item_count": 50,
-      "symbol_spans_sha256": "56c9d9bd987ef49b5f4f24866ccc7d161850f91c9a817af9ff3616dd297b4221"
-    },
-    {
       "path": "src/runtime_inference/insomnia/progress.rs",
       "component": "insomnia",
       "classification": "production",
@@ -13010,19 +12865,6 @@
       "compiler_inventory_match": true,
       "compiler_item_count": 9,
       "symbol_spans_sha256": "cebcb19b3cc6ed679c4ef267be3781aa63ab46757450eb0379ec614dff52d3cc"
-    },
-    {
-      "path": "src/runtime_inference/insomnia/runtime_step.rs",
-      "component": "public-consumers",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation",
-      "certainty": "source-confirmed-public-composition",
-      "notes": "Cva extension implementation",
-      "source_sha256": "b247f0d95bca17463d0af270e11c63f99b737d23b0b42b5e38e2506836b3a816",
-      "compiler_inventory_match": false,
-      "compiler_item_count": 16,
-      "symbol_spans_sha256": "8fbf118122a4d0e487fac90489324c7b1ce475a84a2727626dcdb752c05fdd39"
     },
     {
       "path": "src/runtime_inference/insomnia/scheduler_tests.rs",
@@ -13161,31 +13003,6 @@
       "symbol_spans_sha256": "e19a12637ee01a0e6b5b7d63ad1b1c23d13b09d8aba34dacf2a200c66f86f146"
     },
     {
-      "path": "src/runtime_inference/insomnia/worker/runtime.rs",
-      "component": "public-consumers",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "Supported Cva offline drain adapter composition; mounted REL worker uses runtime_host_rel_insomnia and never this dispatcher. Worker config/results split into Insomnia-owned model.",
-      "certainty": "reviewed-source-role",
-      "source_sha256": "73342912c1242f638be4c9cf6d02ef43816563d04596ea5ae9af33e7cd123c63",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 45,
-      "symbol_spans_sha256": "1bde7d057a312ae1dba7841fba544264085b9657be95d200be4314f7c82d024e"
-    },
-    {
-      "path": "src/runtime_inference/insomnia/worker.rs",
-      "component": "public-consumers",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation",
-      "certainty": "source-confirmed-public-composition",
-      "notes": "Cva extension implementation",
-      "source_sha256": "31998d0ede95c965ad117d97123457f5833a69c01845948639120ebdc22ecbf8",
-      "compiler_inventory_match": false,
-      "compiler_item_count": 99,
-      "symbol_spans_sha256": "7c3129e28e1142f6b49d58e795e97b531ba1e70c856f3517768c95a7571125ba"
-    },
-    {
       "path": "src/runtime_inference/insomnia/worker_backpressure_tests.rs",
       "component": null,
       "classification": "test",
@@ -13221,11 +13038,11 @@
       "classification": "production",
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `insomnia`; responsibility assigned to `insomnia` in target DAG",
-      "certainty": "reviewed-source-role",
-      "source_sha256": "3638b6577eecf505c6e788a08d012924e3b347a5c7f165791d225ae69c47c548",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "fc7c11d7a71990eb3485c09b98063eaa6b6deaf503a3f04f6f438c892f208d8e",
       "compiler_inventory_match": false,
-      "compiler_item_count": 43,
-      "symbol_spans_sha256": "6b5156b1130844cd9a9cd5aebe5140581860741085627f23798065a6631252a5"
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/runtime_inference/interaction_background.rs",
@@ -13324,12 +13141,12 @@
       "classification": "production",
       "reachability": "reachable-profile-module",
       "evidence": "direct source-role evidence: InteractionRuntime extension implementation",
-      "certainty": "source-confirmed-runtime-gateway",
+      "certainty": "reviewed-explicit",
       "notes": "InteractionRuntime extension implementation",
-      "source_sha256": "6cf26ced5e177b68945986410da0b310529565a1cb00f8507af1fac1921b4865",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 42,
-      "symbol_spans_sha256": "0b068c16c5c4af58c4d74691055a512ef7b50affed112c16439f8a98b2b5cdf1"
+      "source_sha256": "ff719c7253271a5305f7aea38b2928f2f793fc50f31488f259e432a7ccb0173e",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/runtime_inference/interaction_runtime_tests.rs",
@@ -13690,11 +13507,11 @@
       "classification": "production",
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_gateway_agentic_memory_graph`; responsibility assigned to `runtime-gateway` in target DAG",
-      "certainty": "reviewed-source-role",
-      "source_sha256": "c795ca8048868fab942a24064033acb3d9d7715cd0534ebb4f7931501269fac4",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 9,
-      "symbol_spans_sha256": "78dccb81bd5cfb91357ec7413ff9b07d6520048c63aa2ba3a01986f0733f7f18"
+      "certainty": "reviewed-explicit",
+      "source_sha256": "c5f62bf16ae98b938b024520c23a85f01caad6655c0c792ae8fe36c4f37c04b4",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/runtime_inference/runtime_host_gateway_agentic_memory_graph_concurrency_tests.rs",
@@ -13732,11 +13549,11 @@
       "classification": "production",
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_gateway_agentic_memory_query`; responsibility assigned to `runtime-gateway` in target DAG",
-      "certainty": "reviewed-source-role",
-      "source_sha256": "58ec7e1f477cbb4d543e03552fc156c06dc10b0865e839a0db4089eb1860a6cf",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 7,
-      "symbol_spans_sha256": "109303e3c43383a68f1f22f03a0422d109fc203b2e77c4d12be7a77a22b75536"
+      "certainty": "reviewed-explicit",
+      "source_sha256": "f42b3d17b0d559c07baa819b57256974bc9632f17f103d593cf95e985d0a3220",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/runtime_inference/runtime_host_gateway_agentic_memory_query_authorization_tests.rs",
@@ -14978,16 +14795,16 @@
     },
     {
       "path": "src/runtime_inference/runtime_vector_step.rs",
-      "component": "public-consumers",
+      "component": "vectors",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation, Phylactery extension implementation",
-      "certainty": "source-confirmed-public-composition",
+      "evidence": "Owner-qualified vector batch and prepare/validate/commit mechanics; façade owner adapters live under src/facade.",
+      "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation; Phylactery extension implementation",
-      "source_sha256": "fb15563a27bfa7508ceadd4ed94aed91a9e2ef4bce3c38fe5250e9e00b1b1296",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 16,
-      "symbol_spans_sha256": "b1d430d2a04bbd9159a12d777b1c482e9fe4ca639ddde4b6e8ad304160d640e0"
+      "source_sha256": "f415c16a77993239649fade3d2acc639fd913553ab858bf12aa9a6ff51608975",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/runtime_inference/workspace_management.rs",
@@ -15938,6 +15755,426 @@
       "evidence": "Canonical grouped Insomnia/Memory/Freshness append/sync moved unchanged out of Insomnia service; callers use one owner-lifecycle publisher.",
       "source_sha256": "138a3e4ccef95a56aa41d5b4790d2ff44d64b64cc4ad93e4b4d1bbffe1f8e6d0",
       "compiler_inventory_match": false
+    },
+    {
+      "path": "src/facade/agentic_memory_grading.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "e7883fe5df8b01d070a3f978c0a27e3f22ca929d63c8653e70f5422f6eb1c0b5",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/cva_archive_search.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "da9a16f36592cb1cfae39e8b47f58c646dfebb8b5c0729418fed1dcd0137c733",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/cva_entity_audit.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "701a06a1839c7c804ab7b4b09ea8504f11b392875617649034c51cd99021f022",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/cva_entity_candidates.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "23582b439272d24b9733b00ceea5aa3ec1dadf61c8f5505d2e44589db8cd5e60",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/cva_entity_merge.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "32758b160ed8d7ec76076cde781f6d6e074e827e6cb45444441bdd2014da8bc4",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/cva_entity_owner.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "79e44e85a5f2f2ded0a07fa7d980aac144c5261b952ec9d22e4fc491b0a13f16",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/cva_entity_principal.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "e6c904270b4ddd2bf2a0076c7fd94e7caec2851d90d86a12258a304918cefa78",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/cva_entity_reconciliation.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "51c5889eecd202eaaf546cea10f79b37f97aab0e6cdd241d0efb35f25675ccf6",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/cva_entity_resolution_batch.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "f4ea458510142d15e5e0d6bb065ef7e7331dc42315525d77f28c91fc3c9f527a",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/cva_entity_resolution_commit.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "f0e50c5a6cdb841114a7753e8cab51029af22adb00e2a6730f219fc4985ddef1",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/cva_entity_resolution_owner.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "75f11902cb0bd5a705e41f9c2b42866213cf19340e72d7e19fd2cf56be770766",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/cva_entity_resolution_prepare.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "e7d9a099d75bcf51c85e13f7d5500b51476416e364b6619b3a686ab3ada3c813",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/cva_entity_resolution_processor.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "9974aead1cb478e1c59795c87d78f3fac9af5fdd60193896bf003a9104811716",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/cva_memory_candidate_pool.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "ea7e0b2d04a53c4d9850b9c51a2a2837071638a218dbdb82f9cc5dd760e27fa9",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/cva_relationship_owner.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "7a23ab8ae66b33dd650971804df098a36099f079e0e9b9e4911f792f05c79df0",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/cva_retrieval_conversation_search.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "7304c93140c5c0265fc70b732d342c5fa3f391f17c1fb55628ae68b9d8d69c9c",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/cva_retrieval_lexical_search.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "c3ab1b240930abfb3f0ec2ae2d83637c51241d23e11d6b5f4c780cdf99b1f032",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/cva_retrieval_memory_search.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "adf97066d0e5b5ade8b77a816bda17986ce212a701f50be540c6ae96f6179cf4",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/cva_retrieval_search.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "260f277be439bb0b869ab4ebf73cdbd3d0613a0a78e38b57a1b5b770548f9b13",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/cva_retrieval_semantic_search.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "cf15ba7968f61f4d5f8d193bd6f81ed13302507758e3be3614811ec2bd58e43d",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/dream_freshness.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "93cec913ea3d96e4d65bb576acf1ca47b1fbcd46a1b1ead2c4d8bbfa36f8baed",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/dream_lifecycle.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "953fa5e076d387147611c30841a1fc4b4f9eddcb18ff5b769fa6961da6aa3f8d",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/dream_processor_frontier.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "a4508f5052ec2b8a098d45d825450a752a7de037ef5faa966499efc806cff75a",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/dream_product_extensions.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "4ca7e3978e3392a52cd83106fd600bebeefee606ceccaf00b05454ab3bd6afbe",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/external_source_extensions.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "b1bd4ade2971de699914043a839b7e9394517355202f3a72e2b395fd543e9529",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/freshness_access.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "dcabf00951e25f20f38878a00e5192780f7966d133357a80d5e03669d843460d",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/insomnia_cva.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "c82aff1cf325d950f898c4f4e5b3770450f89130257cd6ce3859c1e752258788",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/insomnia_processor.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "4cb3805f854314fb6efa5c0fa2a573ad8d9bf2c84e35af340fe30cb796cbd76f",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/insomnia_runtime_step.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "7e0abcc85e6ffbdb0517a23060c36cd689d9d6b761ebdef1413a09dc5c37cc52",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/insomnia_worker.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "f0a9d4924cb5894bb31e8da2f15ff71586d78a5a9a6b7918791eb925aa4dec7a",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/insomnia_worker_runtime.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "6e99249d5b73407d8fd3a88ecb40808e763aaf8af5a153339064933601e6f2b4",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/rewrite_lineage_extensions.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "26e6688e1a6b0b4b9eaa5646bfd8211c23aac04139f4ca319d19c2603365b950",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/facade/runtime_vector_step.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "9111d03ca9d01cbcc77b5756f1e670c764ab3644b4c3f3ee819cda0053137db2",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/perception/entity_reconciliation.rs",
+      "component": "perception",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Perception-owned candidate, audit, reconciliation, or resolution calculation; public owner adapters reside in facade.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "1432354213acc96da04b517a1d0cced0c0d521f00cb74611bb97af5e83a4235c",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/perception/entity_reconciliation_owner.rs",
+      "component": "perception",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Perception-owned candidate, audit, reconciliation, or resolution calculation; public owner adapters reside in facade.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "3cbe111eea128f736817021a33f74960ef6edf14ef27da37d03b27a1d336d874",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     }
   ],
   "historical_files": [
@@ -25877,53 +26114,6 @@
   "unresolved_production_paths": [],
   "facade_extensions": [
     {
-      "path": "src/archive/archive_search.rs",
-      "component": "public-consumers",
-      "role": "Cva extension implementation",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_imports": [
-        "use crate::{Cva, Fragment, SearchError};"
-      ],
-      "evidence": "direct impl Cva/Phylactery declaration in this source file"
-    },
-    {
-      "path": "src/external_source/mod.rs",
-      "component": "public-consumers",
-      "role": "Cva extension implementation",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_imports": [
-        "pub use crate::external_index::model::{\n    EXTERNAL_SOURCE_CONTRACT, ExternalChangeBatch, ExternalChangeKind, ExternalChunkRef,\n    ExternalConversationChange, ExternalIndexStatus, ExternalMessageDescriptor, ExternalMessageRef,\n    ExternalSearchHit, ExternalSnapshotManifest, ExternalSourceError, HydratedExternalChunk,\n    HydratedExternalMessage, MAX_EXTERNAL_BATCH, MAX_EXTERNAL_INDEX_BYTES, MAX_EXTERNAL_MANIFEST,\n    MAX_EXTERNAL_MESSAGE_BYTES, MAX_EXTERNAL_RESULTS, external_content_hash,\n};",
-        "use crate::external_index::{model, store};",
-        "\nuse crate::{CompatibilityProfileId, Cva, PackedVectorId};"
-      ],
-      "evidence": "direct impl Cva/Phylactery declaration in this source file"
-    },
-    {
-      "path": "src/external_source/processing.rs",
-      "component": "public-consumers",
-      "role": "Cva extension implementation",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_imports": [
-        "use super::ExternalConversationSource;",
-        "use super::provenance::ExternalMemoryEvidence;",
-        "use crate::external_index::model::*;",
-        "use crate::external_index::store::SourceState;",
-        "use crate::{GeneralEndpoint, InsomniaExtractor, MemoryDraft, MemoryRef, MemoryRoutingMetadata};"
-      ],
-      "evidence": "direct impl Cva/Phylactery declaration in this source file"
-    },
-    {
-      "path": "src/external_source/provenance.rs",
-      "component": "public-consumers",
-      "role": "Cva extension implementation; Phylactery extension implementation",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_imports": [
-        "use crate::external_index::model::*;",
-        "\npub use crate::memory_model::ExternalMemoryEvidence;"
-      ],
-      "evidence": "direct impl Cva/Phylactery declaration in this source file"
-    },
-    {
       "path": "src/facade/cva.rs",
       "component": "public-consumers",
       "role": "Cva extension implementation",
@@ -26643,249 +26833,6 @@
       "evidence": "direct impl Cva/Phylactery declaration in this source file"
     },
     {
-      "path": "src/perception/entity_audit.rs",
-      "component": "public-consumers",
-      "role": "Macro-generated Cva and Phylactery public facade extension",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_invocations": [
-        "impl_owner_audit!(Cva);",
-        "impl_owner_audit!(Phylactery);"
-      ],
-      "evidence": "The local macro definition generates owner methods for Cva/Phylactery; exact invocations above expand public facade APIs."
-    },
-    {
-      "path": "src/perception/entity_candidates.rs",
-      "component": "public-consumers",
-      "role": "Macro-generated Cva and Phylactery public facade extension",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_invocations": [
-        "impl_owner!(Cva);",
-        "impl_owner!(Phylactery);"
-      ],
-      "evidence": "The local macro definition generates owner methods for Cva/Phylactery; exact invocations above expand public facade APIs."
-    },
-    {
-      "path": "src/perception/entity_merge.rs",
-      "component": "public-consumers",
-      "role": "Macro-generated Cva and Phylactery public facade extension",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_invocations": [
-        "impl_entity_merge!(Cva, CvaError);",
-        "impl_entity_merge!(Phylactery, PhylacteryError);"
-      ],
-      "evidence": "The local macro definition generates owner methods for Cva/Phylactery; exact invocations above expand public facade APIs."
-    },
-    {
-      "path": "src/perception/entity_owner.rs",
-      "component": "public-consumers",
-      "role": "Macro-generated Cva and Phylactery public facade extension",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_invocations": [
-        "impl_owner!(Cva, false);",
-        "impl_owner!(Phylactery, true);"
-      ],
-      "evidence": "The local macro definition generates owner methods for Cva/Phylactery; exact invocations above expand public facade APIs."
-    },
-    {
-      "path": "src/perception/entity_principal.rs",
-      "component": "public-consumers",
-      "role": "Cva extension implementation; Phylactery extension implementation",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_imports": [
-        "use crate::entity_principal_identity::{\n    PRINCIPAL_ENTITY_KIND, is_owner_relative_principal_surface, is_phy_principal_id,\n    principal_entity_global_id, principal_entity_id,\n};",
-        "use crate::{\n    Cva, EntityDraft, EntityResolutionDecision, EntityResolutionOutcome, EntityResolutionReason,\n    EntityResolverError, Memory, MemoryEntityMentionKey, MemoryEntityResolutionStatus, Phylactery,\n};"
-      ],
-      "evidence": "direct impl Cva/Phylactery declaration in this source file"
-    },
-    {
-      "path": "src/perception/entity_reconciliation.rs",
-      "component": "public-consumers",
-      "role": "Macro-generated Cva and Phylactery public facade extension",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_invocations": [
-        "impl_reconciliation!(Cva);",
-        "impl_reconciliation!(Phylactery);"
-      ],
-      "evidence": "The local macro definition generates owner methods for Cva/Phylactery; exact invocations above expand public facade APIs."
-    },
-    {
-      "path": "src/perception/entity_reconciliation_commit.rs",
-      "component": "public-consumers",
-      "role": "Macro-generated Cva and Phylactery public facade extension",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_invocations": [
-        "impl_owner!(Cva);",
-        "impl_owner!(Phylactery);"
-      ],
-      "evidence": "The local macro definition generates owner methods for Cva/Phylactery; exact invocations above expand public facade APIs."
-    },
-    {
-      "path": "src/perception/entity_reconciliation_owner.rs",
-      "component": "public-consumers",
-      "role": "Macro-generated Cva and Phylactery public facade extension",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_invocations": [
-        "impl_owner!(Cva);",
-        "impl_owner!(Phylactery);"
-      ],
-      "evidence": "The local macro definition generates owner methods for Cva/Phylactery; exact invocations above expand public facade APIs."
-    },
-    {
-      "path": "src/perception/entity_reconciliation_prepare.rs",
-      "component": "public-consumers",
-      "role": "Macro-generated Cva and Phylactery public facade extension",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_invocations": [
-        "impl_owner!(Cva);",
-        "impl_owner!(Phylactery);"
-      ],
-      "evidence": "The local macro definition generates owner methods for Cva/Phylactery; exact invocations above expand public facade APIs."
-    },
-    {
-      "path": "src/perception/entity_resolution_batch.rs",
-      "component": "public-consumers",
-      "role": "Macro-generated Cva and Phylactery public facade extension",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_invocations": [
-        "impl_owner!(Cva);",
-        "impl_owner!(Phylactery);"
-      ],
-      "evidence": "The local macro definition generates owner methods for Cva/Phylactery; exact invocations above expand public facade APIs."
-    },
-    {
-      "path": "src/perception/entity_resolution_commit.rs",
-      "component": "public-consumers",
-      "role": "Macro-generated Cva and Phylactery public facade extension",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_invocations": [
-        "impl_owner!(Cva);",
-        "impl_owner!(Phylactery);"
-      ],
-      "evidence": "The local macro definition generates owner methods for Cva/Phylactery; exact invocations above expand public facade APIs."
-    },
-    {
-      "path": "src/perception/entity_resolution_owner.rs",
-      "component": "public-consumers",
-      "role": "Macro-generated Cva and Phylactery public facade extension",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_invocations": [
-        "impl_owner!(Cva);",
-        "impl_owner!(Phylactery);"
-      ],
-      "evidence": "The local macro definition generates owner methods for Cva/Phylactery; exact invocations above expand public facade APIs."
-    },
-    {
-      "path": "src/perception/entity_resolution_prepare.rs",
-      "component": "public-consumers",
-      "role": "Macro-generated Cva and Phylactery public facade extension",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_invocations": [
-        "impl_owner!(Cva);",
-        "impl_owner!(Phylactery);"
-      ],
-      "evidence": "The local macro definition generates owner methods for Cva/Phylactery; exact invocations above expand public facade APIs."
-    },
-    {
-      "path": "src/perception/entity_resolution_processor.rs",
-      "component": "public-consumers",
-      "role": "Macro-generated Cva and Phylactery public facade extension",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_invocations": [
-        "impl_owner!(Cva);",
-        "impl_owner!(Phylactery);"
-      ],
-      "evidence": "The local macro definition generates owner methods for Cva/Phylactery; exact invocations above expand public facade APIs."
-    },
-    {
-      "path": "src/perception/relationship_owner.rs",
-      "component": "public-consumers",
-      "role": "Macro-generated Cva and Phylactery public facade extension",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_invocations": [
-        "impl_owner!(Cva);",
-        "impl_owner!(Phylactery);"
-      ],
-      "evidence": "The local macro definition generates owner methods for Cva/Phylactery; exact invocations above expand public facade APIs."
-    },
-    {
-      "path": "src/retrieval/conversation_search.rs",
-      "component": "public-consumers",
-      "role": "Cva extension implementation",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_imports": [
-        "use crate::fragmenter::path_fragment_windows;",
-        "use crate::{\n    CompatibilityProfileId, ConversationSearchHit, Cva, FragmentConfig, RetrievalConfig,\n    SearchError,\n};"
-      ],
-      "evidence": "direct impl Cva/Phylactery declaration in this source file"
-    },
-    {
-      "path": "src/retrieval/lexical_search.rs",
-      "component": "public-consumers",
-      "role": "Cva extension implementation; Phylactery extension implementation",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_imports": [
-        "use crate::lexical_index::MemoryLexicalHit;",
-        "use crate::{Archive, Container};",
-        "use crate::{Cva, FileSearchHit, Fragment, MemoryError, Phylactery, SearchError};"
-      ],
-      "evidence": "direct impl Cva/Phylactery declaration in this source file"
-    },
-    {
-      "path": "src/retrieval/memory_candidate_pool.rs",
-      "component": "public-consumers",
-      "role": "Cva extension implementation",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_imports": [
-        "use crate::{CompatibilityProfileId, MemoryId};",
-        "        use crate::memory_retrieval_vectors::{\n            exact_memory_scores, load_searchable_memory_vectors, validate_query,\n        };"
-      ],
-      "evidence": "direct impl Cva/Phylactery declaration in this source file"
-    },
-    {
-      "path": "src/retrieval/memory_search.rs",
-      "component": "public-consumers",
-      "role": "Cva extension implementation; Phylactery extension implementation",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_imports": [
-        "use crate::archive_search::{MAX_ARCHIVE_SEARCH_QUERY_BYTES, MAX_ARCHIVE_SEARCH_RESULTS};",
-        "use crate::{Cva, Memory, Phylactery, SearchError};"
-      ],
-      "evidence": "direct impl Cva/Phylactery declaration in this source file"
-    },
-    {
-      "path": "src/retrieval/search.rs",
-      "component": "public-consumers",
-      "role": "Cva extension implementation",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_imports": [
-        "use crate::{\n    CompatibilityProfileId, Cva, EmbeddingEndpoint, Fragment, FragmentId, RetrievalConfig,\n    SearchCandidate, SearchError,\n};",
-        "pub(crate) use crate::search_rank::{combine_scores, deduplicate_candidates};"
-      ],
-      "evidence": "direct impl Cva/Phylactery declaration in this source file"
-    },
-    {
-      "path": "src/retrieval/search_rank.rs",
-      "component": "public-consumers",
-      "role": "Cva extension implementation",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_imports": [
-        "use crate::lexical_search::LexicalHit;",
-        "use crate::{Cva, RetrievalConfig, SearchCandidate, SearchError, SemanticSearchHit};"
-      ],
-      "evidence": "direct impl Cva/Phylactery declaration in this source file"
-    },
-    {
-      "path": "src/retrieval/semantic_search.rs",
-      "component": "public-consumers",
-      "role": "Cva extension implementation",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_imports": [
-        "use crate::compatibility_profile_probe::{validate_embedding_batch, verify_endpoint};",
-        "use crate::{\n    CompatibilityProfileId, Cva, EmbeddingEndpoint, EmbeddingMode, FragmentId,\n    MAX_SEMANTIC_SEARCH_LIMIT, ScalarType, SemanticSearchError, SemanticSearchHit,\n};"
-      ],
-      "evidence": "direct impl Cva/Phylactery declaration in this source file"
-    },
-    {
       "path": "src/rewrite/lineage.rs",
       "component": "public-consumers",
       "role": "Cva extension implementation; Phylactery extension implementation",
@@ -26904,21 +26851,6 @@
         "use crate::dream_owner_candidates::{\n    dream_candidates as dream_candidates_from_parts,\n    dream_memory_context as dream_memory_context_from_parts,\n};",
         "use crate::memory_source_time_admission::reliquary_memory_source_timestamp_ns;",
         "use crate::{\n    CompatibilityProfileId, Cva, DreamCandidateConfig, DreamCandidateError, DreamCandidateSet,\n    DreamMemoryContext, Memory, MemoryId,\n};"
-      ],
-      "evidence": "direct impl Cva/Phylactery declaration in this source file"
-    },
-    {
-      "path": "src/runtime_inference/dream_cooldown.rs",
-      "component": "public-consumers",
-      "role": "Cva extension implementation; Phylactery extension implementation",
-      "disposition": "phase-6-deferred-public-composition",
-      "source_imports": [
-        "use crate::chronos_processing_epoch::{\n    ProcessingCadence, cadence_elapsed, epoch_has_advanced, processing_epoch,\n};",
-        "use crate::memory_source_time::memory_source_timestamp_ns;",
-        "use crate::memory_source_time_admission::reliquary_memory_source_timestamp_ns;",
-        "use crate::processing_epoch_model::{ProcessingEpochState, ProcessingLaneId};",
-        "use crate::{Cva, Memory, MemoryError, MemoryId, Phylactery};",
-        "\npub(crate) use crate::processing_epoch_model::DREAM_PROCESSING_LANE;"
       ],
       "evidence": "direct impl Cva/Phylactery declaration in this source file"
     },
@@ -27013,15 +26945,194 @@
       "evidence": "direct impl Cva/Phylactery declaration in this source file"
     },
     {
-      "path": "src/runtime_inference/runtime_vector_step.rs",
+      "path": "src/facade/cva_archive_search.rs",
       "component": "public-consumers",
-      "role": "Cva extension implementation; Phylactery extension implementation",
-      "disposition": "phase-6-deferred-public-composition",
+      "role": "Cva/Phylactery extension implementation",
+      "disposition": "phase-6-facade-placement",
       "source_imports": [
-        "use crate::compatibility_profile_probe::validate_embedding_batch;",
-        "use crate::{\n    CompatibilityProfile, CompatibilityProfileError, CompatibilityProfileId, Cva, MemoryBodyId,\n    MemoryVectorError, PackedVectors, Phylactery, ScalarType, VectorSchema,\n};"
+        "use crate::{Cva, SearchError};"
       ],
-      "evidence": "direct impl Cva/Phylactery declaration in this source file"
+      "evidence": "direct impl Cva/Phylactery declaration in facade source; lower implementation remains owner-qualified"
+    },
+    {
+      "path": "src/facade/cva_entity_principal.rs",
+      "component": "public-consumers",
+      "role": "Cva/Phylactery extension implementation",
+      "disposition": "phase-6-facade-placement",
+      "source_imports": [
+        "use crate::{\n    Cva, EntityResolutionOutcome, EntityResolverError, MemoryEntityMentionKey, Phylactery,\n};"
+      ],
+      "evidence": "direct impl Cva/Phylactery declaration in facade source; lower implementation remains owner-qualified"
+    },
+    {
+      "path": "src/facade/cva_memory_candidate_pool.rs",
+      "component": "public-consumers",
+      "role": "Cva/Phylactery extension implementation",
+      "disposition": "phase-6-facade-placement",
+      "source_imports": [
+        "use crate::{CompatibilityProfileId, Cva, MemoryRetrievalError};"
+      ],
+      "evidence": "direct impl Cva/Phylactery declaration in facade source; lower implementation remains owner-qualified"
+    },
+    {
+      "path": "src/facade/cva_retrieval_conversation_search.rs",
+      "component": "public-consumers",
+      "role": "Cva/Phylactery extension implementation",
+      "disposition": "phase-6-facade-placement",
+      "source_imports": [
+        "use crate::{CompatibilityProfileId, ConversationSearchHit, Cva, SearchError};"
+      ],
+      "evidence": "direct impl Cva/Phylactery declaration in facade source; lower implementation remains owner-qualified"
+    },
+    {
+      "path": "src/facade/cva_retrieval_lexical_search.rs",
+      "component": "public-consumers",
+      "role": "Cva/Phylactery extension implementation",
+      "disposition": "phase-6-facade-placement",
+      "source_imports": [
+        "use crate::{Cva, FileSearchHit, Fragment, MemoryError, Phylactery, SearchError};"
+      ],
+      "evidence": "direct impl Cva/Phylactery declaration in facade source; lower implementation remains owner-qualified"
+    },
+    {
+      "path": "src/facade/cva_retrieval_memory_search.rs",
+      "component": "public-consumers",
+      "role": "Cva/Phylactery extension implementation",
+      "disposition": "phase-6-facade-placement",
+      "source_imports": [
+        "use crate::{Cva, Phylactery, SearchError};"
+      ],
+      "evidence": "direct impl Cva/Phylactery declaration in facade source; lower implementation remains owner-qualified"
+    },
+    {
+      "path": "src/facade/cva_retrieval_search.rs",
+      "component": "public-consumers",
+      "role": "Cva/Phylactery extension implementation",
+      "disposition": "phase-6-facade-placement",
+      "source_imports": [
+        "use crate::{\n    CompatibilityProfileId, Cva, EmbeddingEndpoint, Fragment, FragmentId, RetrievalConfig,\n    SearchCandidate, SearchError,\n};"
+      ],
+      "evidence": "direct impl Cva/Phylactery declaration in facade source; lower implementation remains owner-qualified"
+    },
+    {
+      "path": "src/facade/cva_retrieval_semantic_search.rs",
+      "component": "public-consumers",
+      "role": "Cva/Phylactery extension implementation",
+      "disposition": "phase-6-facade-placement",
+      "source_imports": [
+        "use crate::{\n    CompatibilityProfileId, Cva, EmbeddingEndpoint, EmbeddingMode, FragmentId,\n    MAX_SEMANTIC_SEARCH_LIMIT, SemanticSearchError, SemanticSearchHit,\n};"
+      ],
+      "evidence": "direct impl Cva/Phylactery declaration in facade source; lower implementation remains owner-qualified"
+    },
+    {
+      "path": "src/facade/dream_freshness.rs",
+      "component": "public-consumers",
+      "role": "Cva/Phylactery extension implementation",
+      "disposition": "phase-6-facade-placement",
+      "source_imports": [
+        "use crate::{Cva, DreamPublicationOutcome, GraphRelationOrigin, MemoryId, PropagationEvent};"
+      ],
+      "evidence": "direct impl Cva/Phylactery declaration in facade source; lower implementation remains owner-qualified"
+    },
+    {
+      "path": "src/facade/dream_lifecycle.rs",
+      "component": "public-consumers",
+      "role": "Cva/Phylactery extension implementation",
+      "disposition": "phase-6-facade-placement",
+      "source_imports": [
+        "use crate::{\n    Cva, DreamLifecycleError, DreamLifecycleResult, GraphRelation, GraphRelationKind, Memory,\n    MemoryDraft, MemoryId,\n};"
+      ],
+      "evidence": "direct impl Cva/Phylactery declaration in facade source; lower implementation remains owner-qualified"
+    },
+    {
+      "path": "src/facade/dream_product_extensions.rs",
+      "component": "public-consumers",
+      "role": "Cva/Phylactery extension implementation",
+      "disposition": "phase-6-facade-placement",
+      "source_imports": [
+        "use crate::{\n    CompatibilityProfileId, Cva, DreamCandidateConfig, DreamCandidateError, DreamCandidateSet,\n    DreamMemoryContext, DreamPairClassification, DreamPairVerification, DreamPublicationError,\n    DreamPublicationOutcome, DreamTemporalAnalysis, DreamVerificationPolicy, Memory, MemoryError,\n    MemoryId, Phylactery,\n};"
+      ],
+      "evidence": "direct impl Cva/Phylactery declaration in facade source; lower implementation remains owner-qualified"
+    },
+    {
+      "path": "src/facade/external_source_extensions.rs",
+      "component": "public-consumers",
+      "role": "Cva/Phylactery extension implementation",
+      "disposition": "phase-6-facade-placement",
+      "source_imports": [
+        "use crate::{\n    CompatibilityProfile, CompatibilityProfileId, Cva, Memory, MemoryError, MemoryId, Phylactery,\n};"
+      ],
+      "evidence": "direct impl Cva/Phylactery declaration in facade source; lower implementation remains owner-qualified"
+    },
+    {
+      "path": "src/facade/freshness_access.rs",
+      "component": "public-consumers",
+      "role": "Cva/Phylactery extension implementation",
+      "disposition": "phase-6-facade-placement",
+      "source_imports": [
+        "use crate::{Cva, FreshnessState, MemoryId, PropagationEvent};"
+      ],
+      "evidence": "direct impl Cva/Phylactery declaration in facade source; lower implementation remains owner-qualified"
+    },
+    {
+      "path": "src/facade/insomnia_cva.rs",
+      "component": "public-consumers",
+      "role": "Cva/Phylactery extension implementation",
+      "disposition": "phase-6-facade-placement",
+      "source_imports": [
+        "use crate::{\n    Cva, EpisodeBoundary, EpisodeConfig, EpisodeId, EpisodeOrigin, EpisodePolicy,\n    EpisodeSchedulingResult, InsomniaAttempt, InsomniaError, InsomniaLeaseToken, InsomniaPriority,\n    InsomniaStats, InsomniaWork, MemoryId,\n};"
+      ],
+      "evidence": "direct impl Cva/Phylactery declaration in facade source; lower implementation remains owner-qualified"
+    },
+    {
+      "path": "src/facade/insomnia_processor.rs",
+      "component": "public-consumers",
+      "role": "Cva/Phylactery extension implementation",
+      "disposition": "phase-6-facade-placement",
+      "source_imports": [
+        "use crate::{\n    Archive, Container, Cva, GeneralEndpoint, InsomniaExtractionError, InsomniaExtractor,\n    InsomniaWork, InsomniaWorkState,\n};"
+      ],
+      "evidence": "direct impl Cva/Phylactery declaration in facade source; lower implementation remains owner-qualified"
+    },
+    {
+      "path": "src/facade/insomnia_runtime_step.rs",
+      "component": "public-consumers",
+      "role": "Cva/Phylactery extension implementation",
+      "disposition": "phase-6-facade-placement",
+      "source_imports": [
+        "use crate::{\n    Cva, InsomniaExtraction, InsomniaProcessResult, InsomniaWork, InsomniaWorkerConfig,\n    InsomniaWorkerError, Phylactery,\n};"
+      ],
+      "evidence": "direct impl Cva/Phylactery declaration in facade source; lower implementation remains owner-qualified"
+    },
+    {
+      "path": "src/facade/insomnia_worker.rs",
+      "component": "public-consumers",
+      "role": "Cva/Phylactery extension implementation",
+      "disposition": "phase-6-facade-placement",
+      "source_imports": [
+        "use crate::{\n    Cva, EmbeddingEndpoint, GeneralEndpoint, InsomniaExtractor, InsomniaProgressEvent,\n    InsomniaProgressReporter, Phylactery,\n};"
+      ],
+      "evidence": "direct impl Cva/Phylactery declaration in facade source; lower implementation remains owner-qualified"
+    },
+    {
+      "path": "src/facade/rewrite_lineage_extensions.rs",
+      "component": "public-consumers",
+      "role": "Cva/Phylactery extension implementation",
+      "disposition": "phase-6-facade-placement",
+      "source_imports": [
+        "use crate::{Cva, HistoryGenerationId, Phylactery, RewriteGenesis};"
+      ],
+      "evidence": "direct impl Cva/Phylactery declaration in facade source; lower implementation remains owner-qualified"
+    },
+    {
+      "path": "src/facade/runtime_vector_step.rs",
+      "component": "public-consumers",
+      "role": "Cva/Phylactery extension implementation",
+      "disposition": "phase-6-facade-placement",
+      "source_imports": [
+        "use crate::{\n    CompatibilityProfile, CompatibilityProfileError, CompatibilityProfileId, Cva,\n    MemoryVectorError, Phylactery,\n};"
+      ],
+      "evidence": "direct impl Cva/Phylactery declaration in facade source; lower implementation remains owner-qualified"
     }
   ],
   "root_reexports": [
@@ -35166,5 +35277,98 @@
       "dream_processor_frontier public offline methods",
       "insomnia/worker/runtime supported Cva offline drain adapter after model split"
     ]
+  },
+  "phase6_map_delta": {
+    "base_checkpoint": "17514f007e48e81d5ea1ec7f41088564de9e7411",
+    "updated_paths": [
+      "src/archive/archive_search.rs",
+      "src/external_source/mod.rs",
+      "src/external_source/processing.rs",
+      "src/external_source/provenance.rs",
+      "src/facade/agentic_memory_grading.rs",
+      "src/facade/cva_archive_search.rs",
+      "src/facade/cva_entity_audit.rs",
+      "src/facade/cva_entity_candidates.rs",
+      "src/facade/cva_entity_merge.rs",
+      "src/facade/cva_entity_owner.rs",
+      "src/facade/cva_entity_principal.rs",
+      "src/facade/cva_entity_reconciliation.rs",
+      "src/facade/cva_entity_resolution_batch.rs",
+      "src/facade/cva_entity_resolution_commit.rs",
+      "src/facade/cva_entity_resolution_owner.rs",
+      "src/facade/cva_entity_resolution_prepare.rs",
+      "src/facade/cva_entity_resolution_processor.rs",
+      "src/facade/cva_memory_candidate_pool.rs",
+      "src/facade/cva_relationship_owner.rs",
+      "src/facade/cva_retrieval_conversation_search.rs",
+      "src/facade/cva_retrieval_lexical_search.rs",
+      "src/facade/cva_retrieval_memory_search.rs",
+      "src/facade/cva_retrieval_search.rs",
+      "src/facade/cva_retrieval_semantic_search.rs",
+      "src/facade/dream_freshness.rs",
+      "src/facade/dream_lifecycle.rs",
+      "src/facade/dream_processor_frontier.rs",
+      "src/facade/dream_product_extensions.rs",
+      "src/facade/external_source_extensions.rs",
+      "src/facade/freshness_access.rs",
+      "src/facade/insomnia_cva.rs",
+      "src/facade/insomnia_processor.rs",
+      "src/facade/insomnia_runtime_step.rs",
+      "src/facade/insomnia_worker.rs",
+      "src/facade/insomnia_worker_runtime.rs",
+      "src/facade/rewrite_lineage_extensions.rs",
+      "src/facade/runtime_vector_step.rs",
+      "src/perception/entity_audit.rs",
+      "src/perception/entity_candidate_routing.rs",
+      "src/perception/entity_candidates.rs",
+      "src/perception/entity_merge.rs",
+      "src/perception/entity_owner.rs",
+      "src/perception/entity_principal.rs",
+      "src/perception/entity_reconciliation.rs",
+      "src/perception/entity_reconciliation_commit.rs",
+      "src/perception/entity_reconciliation_owner.rs",
+      "src/perception/entity_reconciliation_prepare.rs",
+      "src/perception/entity_resolution_batch.rs",
+      "src/perception/entity_resolution_commit.rs",
+      "src/perception/entity_resolution_evidence.rs",
+      "src/perception/entity_resolution_owner.rs",
+      "src/perception/entity_resolution_prepare.rs",
+      "src/perception/entity_resolution_processor.rs",
+      "src/perception/relationship_owner.rs",
+      "src/retrieval/conversation_search.rs",
+      "src/retrieval/lexical_search.rs",
+      "src/retrieval/memory_candidate_pool.rs",
+      "src/retrieval/memory_search.rs",
+      "src/retrieval/search.rs",
+      "src/retrieval/search_rank.rs",
+      "src/retrieval/semantic_search.rs",
+      "src/rewrite.rs",
+      "src/runtime_inference/agentic_memory_retrieval.rs",
+      "src/runtime_inference/dream_cooldown.rs",
+      "src/runtime_inference/insomnia.rs",
+      "src/runtime_inference/interaction_runtime.rs",
+      "src/runtime_inference/runtime_host_gateway_agentic_memory_graph.rs",
+      "src/runtime_inference/runtime_host_gateway_agentic_memory_query.rs",
+      "src/runtime_inference/runtime_vector_step.rs"
+    ],
+    "deleted_or_relocated_paths": [
+      "src/perception/entity_reconciliation_owner.rs",
+      "src/rewrite/lineage.rs",
+      "src/runtime_inference/dream_candidates.rs",
+      "src/runtime_inference/dream_freshness.rs",
+      "src/runtime_inference/dream_lifecycle.rs",
+      "src/runtime_inference/dream_processor_frontier.rs",
+      "src/runtime_inference/dream_publisher.rs",
+      "src/runtime_inference/dream_temporal.rs",
+      "src/runtime_inference/freshness_access.rs",
+      "src/runtime_inference/insomnia/cva.rs",
+      "src/runtime_inference/insomnia/processor.rs",
+      "src/runtime_inference/insomnia/runtime_step.rs",
+      "src/runtime_inference/insomnia/worker.rs",
+      "src/runtime_inference/insomnia/worker/runtime.rs"
+    ],
+    "added_reachable_paths": [],
+    "compiler_inventory_refreshed": false,
+    "note": "Source hashes and explicit ownership rows only; compiler and symbol inventories require their separate acceptance refresh."
   }
 }

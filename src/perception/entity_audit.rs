@@ -2,57 +2,31 @@ use crate::entity_audit_collisions::{
     alias_collisions, cross_kind_alias_shadows, exact_surface_collisions,
     normalized_surface_collisions,
 };
+use crate::entity_resolution_store::EntityResolutionStore;
+use crate::entity_store::EntityStore;
+use crate::graph_store::GraphStore;
+use crate::memory_store::MemoryStore;
 use crate::{
-    Cva, EntityAuditEntity, EntityAuditReport, EntityAuditResolutionViolation, EntityId,
-    EntityResolutionReason, MemoryEntityResolutionStatus, Phylactery,
+    EntityAuditEntity, EntityAuditReport, EntityAuditResolutionViolation, EntityId,
+    EntityResolutionReason, MemoryEntityResolutionStatus,
 };
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-macro_rules! impl_owner_audit {
-    ($owner:ty) => {
-        impl $owner {
-            pub fn audit_entities(&self) -> EntityAuditReport {
-                audit_owner(
-                    self.entities(),
-                    self.memory_ids(),
-                    |memory_id| self.entity_associations_for_memory(memory_id),
-                    self.entity_resolutions(),
-                    |key| {
-                        self.memory_routing_metadata(key.memory_id)
-                            .and_then(|metadata| {
-                                metadata.entity_mentions.iter().find(|mention| {
-                                    mention.field == key.field
-                                        && mention.start_byte == key.start_byte
-                                        && mention.end_byte == key.end_byte
-                                })
-                            })
-                            .map(|mention| mention.text.clone())
-                            .unwrap_or_else(|| "<missing mention>".into())
-                    },
-                )
-            }
-        }
-    };
+pub(crate) struct EntityAuditContext<'a> {
+    pub(crate) entities: &'a EntityStore,
+    pub(crate) memories: &'a MemoryStore,
+    pub(crate) graph: &'a GraphStore,
+    pub(crate) resolutions: &'a EntityResolutionStore,
 }
 
-impl_owner_audit!(Cva);
-impl_owner_audit!(Phylactery);
-
-fn audit_owner<FAssociations, FMention>(
-    entities: Vec<crate::Entity>,
-    memory_ids: Vec<crate::MemoryId>,
-    mut associations_for_memory: FAssociations,
-    resolutions: Vec<crate::MemoryEntityResolution>,
-    mention_text: FMention,
-) -> EntityAuditReport
-where
-    FAssociations: FnMut(crate::MemoryId) -> Vec<EntityId>,
-    FMention: Fn(crate::MemoryEntityMentionKey) -> String,
-{
+pub(crate) fn audit_owner(context: &EntityAuditContext<'_>) -> EntityAuditReport {
+    let entities = context.entities.current();
+    let memory_ids = context.memories.current_ids();
+    let resolutions = context.resolutions.records();
     let mut degrees = HashMap::<EntityId, usize>::new();
     let mut association_count = 0usize;
     for memory_id in memory_ids {
-        for entity_id in associations_for_memory(memory_id) {
+        for entity_id in context.graph.entity_associations_for_memory(memory_id) {
             association_count += 1;
             *degrees.entry(entity_id).or_default() += 1;
         }
@@ -105,7 +79,18 @@ where
     };
 
     for resolution in resolutions {
-        let mention = mention_text(resolution.key);
+        let mention = context
+            .memories
+            .routing_metadata(resolution.key.memory_id)
+            .and_then(|metadata| {
+                metadata.entity_mentions.iter().find(|mention| {
+                    mention.field == resolution.key.field
+                        && mention.start_byte == resolution.key.start_byte
+                        && mention.end_byte == resolution.key.end_byte
+                })
+            })
+            .map(|mention| mention.text.clone())
+            .unwrap_or_else(|| "<missing mention>".into());
         match &resolution.status {
             MemoryEntityResolutionStatus::Resolved { entity_id, reason } => {
                 report.resolved_count += 1;

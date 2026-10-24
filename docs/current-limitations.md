@@ -6,6 +6,10 @@ Historical import settlement uses exact event identity and digest evidence selec
 
 Completed native import reconciliation may retain the left physical prefix as an output-construction optimization and replays the right divergent intervals in physical order through the Archive, grouped Insomnia/Memory, Entity, Relationship, Graph, Community, Dream, Perception and Freshness owners; the retained prefix is not semantic import authority. Grouped completions retain complete record/body/routing/birth evidence; only destination version and activity coordinates are rebased. Scoped settlements and completion markers are rebuilt through native reconstruction/completion. Exact normalized accepted source evidence deduplicates; conflicting import identity fails closed. Open epochs, external PHY publications, unsupported owner payloads and outstanding source Insomnia work remain refused. Transform validation compares exact epoch markers/statuses and settlement authority.
 
+## Phase 6 verification boundary
+
+Phase 6 source implementation and its production import comparison are recorded in the [execution receipt](dependency-convergence-phase6-execution-2026-10-23.md). Import resolution is cfg-aware lexical evidence, not a complete compiler symbol/call graph. The inherited A5 full-architecture snapshot gap remains a named Phase 7 A7 obligation. Preserved public domain-service signature contracts require an explicit disposition under the Phase 6 82-edge gate; they are not silently counted as eliminated.
+
 ## Physical reader and writer admission
 
 A read-only source session requires a coherent shared OS lease. A held writable

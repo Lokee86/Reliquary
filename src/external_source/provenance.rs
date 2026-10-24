@@ -29,27 +29,3 @@ pub enum SourceEvidenceRef {
     Reliquary(crate::MemorySourceRef),
     External(ExternalMemoryEvidence),
 }
-impl crate::Cva {
-    pub fn external_memory_evidence(
-        &self,
-        id: crate::MemoryId,
-    ) -> Result<Option<ExternalMemoryEvidence>, ExternalSourceError> {
-        let body = self
-            .memories
-            .current_body_id(id)
-            .map_err(|_| ExternalSourceError::Unavailable)?;
-        Ok(self.memories.external_evidence.get(&(id, body)).cloned())
-    }
-}
-impl crate::Phylactery {
-    pub fn external_memory_evidence(
-        &self,
-        id: crate::MemoryId,
-    ) -> Result<Option<ExternalMemoryEvidence>, ExternalSourceError> {
-        let body = self
-            .memories
-            .current_body_id(id)
-            .map_err(|_| ExternalSourceError::Unavailable)?;
-        Ok(self.memories.external_evidence.get(&(id, body)).cloned())
-    }
-}

@@ -120,7 +120,8 @@ impl GatewayRuntime {
         controller: &crate::AgenticMemoryController,
         anchor: &MemoryRef,
     ) -> Result<PreparedAnchor, AgenticMemoryError> {
-        use crate::agentic_memory_retrieval::{grade_agentic_memories, order_agentic_memories};
+        use crate::agentic_memory_grading::grade_agentic_memories;
+        use crate::agentic_memory_retrieval::order_agentic_memories;
         let relations = self.agentic_anchor_evidence(envelope, anchor)?;
         let neighbors = relations
             .iter()

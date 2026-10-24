@@ -2,6 +2,10 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Public adapter source boundary
+
+Public product extension implementations belong to `src/facade/`; lower Perception, Retrieval and owner code must not import or call back through `Cva`/`Phylactery`. Concrete store borrows and immutable owner facts preserve validation and mutation authority below composition. The cfg-aware facade source guard is part of the architecture entrypoint; [Phase 6 evidence](dependency-convergence-phase6-execution-2026-10-23.md) separately records source proof and acceptance limits.
+
 ## Permanent dependency architecture invariants
 
 Reliquary's production component dependencies **MUST** satisfy the [accepted target DAG](dependency-convergence-target-dag-2026-10-21.md) and its [machine-readable allowlist](../tools/pitlord/convergence-component-dag.json). This is a foundational project constraint, not just a refactor-phase target:

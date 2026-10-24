@@ -2,6 +2,10 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Public facade preservation
+
+The Phase 6 source migration preserves standalone Cva/Phylactery construction, privacy and identity admission, search ranking, resolution retries/stale snapshots, error ordering, and supported offline methods. Public adapters gather concrete owner borrows; owner stores retain mutation and validation. Existing Entity/audit/reconciliation/search tests, current-format admission and CLI tests protect these seams. See the [source and verification receipt](dependency-convergence-phase6-execution-2026-10-23.md).
+
 ## Phase 2 owner boundaries
 
 Durable owner rebuilds receive accepted values and frame spans from the REL/PHY

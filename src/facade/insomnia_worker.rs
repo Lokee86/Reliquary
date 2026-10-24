@@ -3,9 +3,9 @@ use crate::{
     InsomniaProgressReporter, Phylactery,
 };
 
-#[path = "worker/model.rs"]
+#[path = "../runtime_inference/insomnia/worker/model.rs"]
 pub(crate) mod model;
-#[path = "worker/runtime.rs"]
+#[path = "insomnia_worker_runtime.rs"]
 mod runtime;
 pub use model::{
     DEFAULT_INSOMNIA_LEASE_NS, DEFAULT_INSOMNIA_MAX_ATTEMPTS, DEFAULT_INSOMNIA_POLL_NS,

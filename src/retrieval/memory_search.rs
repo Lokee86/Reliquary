@@ -1,5 +1,5 @@
 use crate::archive_search::{MAX_ARCHIVE_SEARCH_QUERY_BYTES, MAX_ARCHIVE_SEARCH_RESULTS};
-use crate::{Cva, Memory, Phylactery, SearchError};
+use crate::{Memory, SearchError};
 
 pub const MAX_MEMORY_LEXICAL_SEARCH_QUERY_BYTES: usize = MAX_ARCHIVE_SEARCH_QUERY_BYTES;
 pub const MAX_MEMORY_LEXICAL_SEARCH_RESULTS: usize = MAX_ARCHIVE_SEARCH_RESULTS;
@@ -10,47 +10,6 @@ pub struct MemoryLexicalSearchHit {
     pub score: f64,
 }
 
-impl Cva {
-    /// Return lexical candidates without access reinforcement. Even hydrated hits
-    /// are not proof that their content was accepted into an external context.
-    pub fn search_memories(
-        &mut self,
-        query: &str,
-        limit: usize,
-    ) -> Result<Vec<MemoryLexicalSearchHit>, SearchError> {
-        validate(query, limit)?;
-        let hits = self.memory_lexical_candidates(query.trim(), limit)?;
-        hits.into_iter()
-            .map(|hit| {
-                Ok(MemoryLexicalSearchHit {
-                    memory: self.memory(hit.memory_id)?,
-                    score: hit.score,
-                })
-            })
-            .collect()
-    }
-}
-
-impl Phylactery {
-    /// Return lexical candidates without access reinforcement.
-    pub fn search_memories(
-        &mut self,
-        query: &str,
-        limit: usize,
-    ) -> Result<Vec<MemoryLexicalSearchHit>, SearchError> {
-        validate(query, limit)?;
-        let hits = self.memory_lexical_candidates(query.trim(), limit)?;
-        hits.into_iter()
-            .map(|hit| {
-                Ok(MemoryLexicalSearchHit {
-                    memory: self.memory(hit.memory_id)?,
-                    score: hit.score,
-                })
-            })
-            .collect()
-    }
-}
-
 pub(crate) fn validate_memory_lexical_query(query: &str) -> Result<&str, SearchError> {
     let query = query.trim();
     if query.is_empty() || query.len() > MAX_MEMORY_LEXICAL_SEARCH_QUERY_BYTES {
@@ -59,7 +18,7 @@ pub(crate) fn validate_memory_lexical_query(query: &str) -> Result<&str, SearchE
     Ok(query)
 }
 
-fn validate(query: &str, limit: usize) -> Result<(), SearchError> {
+pub(crate) fn validate(query: &str, limit: usize) -> Result<(), SearchError> {
     validate_memory_lexical_query(query)?;
     if !(1..=MAX_MEMORY_LEXICAL_SEARCH_RESULTS).contains(&limit) {
         return Err(SearchError::InvalidConfig);

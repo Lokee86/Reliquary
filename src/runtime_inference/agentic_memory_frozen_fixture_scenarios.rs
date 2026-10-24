@@ -32,7 +32,7 @@ pub(super) fn run(f: &Fixture) -> Value {
                     .then(a.memory_id.cmp(&b.memory_id))
             });
             let ids = pool.matched_memory_ids().collect::<Vec<_>>();
-            let mut ranked = crate::agentic_memory_retrieval::grade_agentic_memories(
+            let mut ranked = crate::agentic_memory_grading::grade_agentic_memories(
                 &runtime.cva,
                 &ids,
                 envelope.owners[0].cut,

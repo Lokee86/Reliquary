@@ -3,6 +3,10 @@
 Parent index: [Documentation index](INDEX.md)
 
 
+## Phase 6 source boundary
+
+The public facade migration changes source ownership only. REL/PHY V2 bytes, serialized identities, owner validation and replay/snapshot order remain unchanged. Public methods delegate to the same concrete stores through operation-specific owner contexts. Verification is recorded in the [Phase 6 execution receipt](dependency-convergence-phase6-execution-2026-10-23.md).
+
 ## Phase 2 replay implementation
 
 Owner-local replay changes no persistent V2 representation. Grouped Memory bodies

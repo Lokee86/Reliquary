@@ -206,7 +206,8 @@ fn controller_state_has_exactly_the_three_explicit_fields() {
 
 #[test]
 fn freshness_order_is_complete_passive_neutral_and_owner_qualified() {
-    use super::{grade_agentic_memories, order_agentic_memories};
+    use super::order_agentic_memories;
+    use crate::agentic_memory_grading::grade_agentic_memories;
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/test-tmp")
         .join(format!("agentic-grade-{}", uuid::Uuid::new_v4()));

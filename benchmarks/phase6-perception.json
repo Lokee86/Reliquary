@@ -1,0 +1,1431 @@
+{
+  "baseline_head": "17514f007e48e81d5ea1ec7f41088564de9e7411",
+  "baseline_mapping_sha256": "fd66ab6c9be54a87c9483477232ea005bdb9ea9de41c0c6904023c3ca3cbf5a1",
+  "ticket_scope": "P6.1.01-.10,.17 plus bounded children discovered from reverse-edge guard",
+  "original_deferred_source_import_rows": 82,
+  "baseline_edge_witnesses": [
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_audit.rs",
+        "name": "crate::entity_audit_collisions::alias_collisions",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_audit_collisions.rs",
+        "name": "alias_collisions"
+      },
+      "canonical": "entity_audit_collisions::alias_collisions",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_audit.rs",
+        "name": "crate::entity_audit_collisions::cross_kind_alias_shadows",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_audit_collisions.rs",
+        "name": "cross_kind_alias_shadows"
+      },
+      "canonical": "entity_audit_collisions::cross_kind_alias_shadows",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_audit.rs",
+        "name": "crate::entity_audit_collisions::exact_surface_collisions",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_audit_collisions.rs",
+        "name": "exact_surface_collisions"
+      },
+      "canonical": "entity_audit_collisions::exact_surface_collisions",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_audit.rs",
+        "name": "crate::entity_audit_collisions::normalized_surface_collisions",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_audit_collisions.rs",
+        "name": "normalized_surface_collisions"
+      },
+      "canonical": "entity_audit_collisions::normalized_surface_collisions",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_audit.rs",
+        "name": "crate::EntityAuditEntity",
+        "line": 5
+      },
+      "target": {
+        "path": "src/perception/entity_audit_model.rs",
+        "name": "EntityAuditEntity"
+      },
+      "canonical": "entity_audit_model::EntityAuditEntity",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_audit.rs",
+        "name": "crate::EntityAuditReport",
+        "line": 5
+      },
+      "target": {
+        "path": "src/perception/entity_audit_model.rs",
+        "name": "EntityAuditReport"
+      },
+      "canonical": "entity_audit_model::EntityAuditReport",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_audit.rs",
+        "name": "crate::EntityAuditResolutionViolation",
+        "line": 5
+      },
+      "target": {
+        "path": "src/perception/entity_audit_model.rs",
+        "name": "EntityAuditResolutionViolation"
+      },
+      "canonical": "entity_audit_model::EntityAuditResolutionViolation",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_candidates.rs",
+        "name": "crate::entity_candidate_model::EntityCandidateConfig",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_candidate_model.rs",
+        "name": "EntityCandidateConfig"
+      },
+      "canonical": "entity_candidate_model::EntityCandidateConfig",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_candidates.rs",
+        "name": "crate::entity_candidate_model::EntityCandidateError",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_candidate_model.rs",
+        "name": "EntityCandidateError"
+      },
+      "canonical": "entity_candidate_model::EntityCandidateError",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_candidates.rs",
+        "name": "crate::entity_candidate_model::EntityCandidateSet",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_candidate_model.rs",
+        "name": "EntityCandidateSet"
+      },
+      "canonical": "entity_candidate_model::EntityCandidateSet",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_candidates.rs",
+        "name": "crate::entity_candidate_model::MAX_ENTITY_ADMISSION_SURFACE_MEMORIES",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_candidate_model.rs",
+        "name": "MAX_ENTITY_ADMISSION_SURFACE_MEMORIES"
+      },
+      "canonical": "entity_candidate_model::MAX_ENTITY_ADMISSION_SURFACE_MEMORIES",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_candidates.rs",
+        "name": "crate::entity_candidate_model::MAX_ENTITY_CANDIDATE_GRAPH_NEIGHBORS",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_candidate_model.rs",
+        "name": "MAX_ENTITY_CANDIDATE_GRAPH_NEIGHBORS"
+      },
+      "canonical": "entity_candidate_model::MAX_ENTITY_CANDIDATE_GRAPH_NEIGHBORS",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_candidates.rs",
+        "name": "crate::entity_candidate_model::MAX_ENTITY_CANDIDATE_LEXICAL_MEMORIES",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_candidate_model.rs",
+        "name": "MAX_ENTITY_CANDIDATE_LEXICAL_MEMORIES"
+      },
+      "canonical": "entity_candidate_model::MAX_ENTITY_CANDIDATE_LEXICAL_MEMORIES",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_candidates.rs",
+        "name": "crate::entity_candidate_model::MAX_ENTITY_CANDIDATE_SUPPORT_MEMORIES",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_candidate_model.rs",
+        "name": "MAX_ENTITY_CANDIDATE_SUPPORT_MEMORIES"
+      },
+      "canonical": "entity_candidate_model::MAX_ENTITY_CANDIDATE_SUPPORT_MEMORIES",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_candidates.rs",
+        "name": "crate::entity_candidate_model::MAX_ENTITY_CANDIDATE_SURFACE_MATCHES",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_candidate_model.rs",
+        "name": "MAX_ENTITY_CANDIDATE_SURFACE_MATCHES"
+      },
+      "canonical": "entity_candidate_model::MAX_ENTITY_CANDIDATE_SURFACE_MATCHES",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_candidates.rs",
+        "name": "crate::entity_candidate_rank::CandidateEvidence",
+        "line": 7
+      },
+      "target": {
+        "path": "src/perception/entity_candidate_rank.rs",
+        "name": "CandidateEvidence"
+      },
+      "canonical": "entity_candidate_rank::CandidateEvidence",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_candidates.rs",
+        "name": "crate::entity_candidate_rank::candidate_order",
+        "line": 7
+      },
+      "target": {
+        "path": "src/perception/entity_candidate_rank.rs",
+        "name": "candidate_order"
+      },
+      "canonical": "entity_candidate_rank::candidate_order",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_candidates.rs",
+        "name": "crate::entity_candidate_rank::finalize_candidate",
+        "line": 7
+      },
+      "target": {
+        "path": "src/perception/entity_candidate_rank.rs",
+        "name": "finalize_candidate"
+      },
+      "canonical": "entity_candidate_rank::finalize_candidate",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_candidates.rs",
+        "name": "crate::entity_candidate_rank::push_unique",
+        "line": 7
+      },
+      "target": {
+        "path": "src/perception/entity_candidate_rank.rs",
+        "name": "push_unique"
+      },
+      "canonical": "entity_candidate_rank::push_unique",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_candidates.rs",
+        "name": "crate::entity_candidate_routing::context_query",
+        "line": 10
+      },
+      "target": {
+        "path": "src/perception/entity_candidate_routing.rs",
+        "name": "context_query"
+      },
+      "canonical": "entity_candidate_routing::context_query",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_candidates.rs",
+        "name": "crate::entity_candidate_routing::graph_neighbor_ids",
+        "line": 10
+      },
+      "target": {
+        "path": "src/perception/entity_candidate_routing.rs",
+        "name": "graph_neighbor_ids"
+      },
+      "canonical": "entity_candidate_routing::graph_neighbor_ids",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_candidates.rs",
+        "name": "crate::entity_candidate_routing::memory_contains_surface",
+        "line": 10
+      },
+      "target": {
+        "path": "src/perception/entity_candidate_routing.rs",
+        "name": "memory_contains_surface"
+      },
+      "canonical": "entity_candidate_routing::memory_contains_surface",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation.rs",
+        "name": "crate::entity_reconciliation_candidates::reconciliation_candidates",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_candidates.rs",
+        "name": "reconciliation_candidates"
+      },
+      "canonical": "entity_reconciliation_candidates::reconciliation_candidates",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation.rs",
+        "name": "crate::entity_reconciliation_inference::classify_pair",
+        "line": 2
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_inference.rs",
+        "name": "classify_pair"
+      },
+      "canonical": "entity_reconciliation_inference::classify_pair",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation.rs",
+        "name": "crate::entity_reconciliation_support::choose_survivor",
+        "line": 3
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_support.rs",
+        "name": "choose_survivor"
+      },
+      "canonical": "entity_reconciliation_support::choose_survivor",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation.rs",
+        "name": "crate::entity_reconciliation_support::merge_alias_budget_fits",
+        "line": 3
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_support.rs",
+        "name": "merge_alias_budget_fits"
+      },
+      "canonical": "entity_reconciliation_support::merge_alias_budget_fits",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation.rs",
+        "name": "crate::DEFAULT_ENTITY_RECONCILIATION_PAIR_LIMIT",
+        "line": 4
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_model.rs",
+        "name": "DEFAULT_ENTITY_RECONCILIATION_PAIR_LIMIT"
+      },
+      "canonical": "entity_reconciliation_model::DEFAULT_ENTITY_RECONCILIATION_PAIR_LIMIT",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation.rs",
+        "name": "crate::DEFAULT_ENTITY_RECONCILIATION_ROUNDS",
+        "line": 4
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_model.rs",
+        "name": "DEFAULT_ENTITY_RECONCILIATION_ROUNDS"
+      },
+      "canonical": "entity_reconciliation_model::DEFAULT_ENTITY_RECONCILIATION_ROUNDS",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation.rs",
+        "name": "crate::EntityAuditReport",
+        "line": 4
+      },
+      "target": {
+        "path": "src/perception/entity_audit_model.rs",
+        "name": "EntityAuditReport"
+      },
+      "canonical": "entity_audit_model::EntityAuditReport",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation.rs",
+        "name": "crate::EntityReconciliationError",
+        "line": 4
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_error.rs",
+        "name": "EntityReconciliationError"
+      },
+      "canonical": "entity_reconciliation_error::EntityReconciliationError",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation.rs",
+        "name": "crate::EntityReconciliationRelation",
+        "line": 4
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_model.rs",
+        "name": "EntityReconciliationRelation"
+      },
+      "canonical": "entity_reconciliation_model::EntityReconciliationRelation",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation.rs",
+        "name": "crate::EntityReconciliationReport",
+        "line": 4
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_model.rs",
+        "name": "EntityReconciliationReport"
+      },
+      "canonical": "entity_reconciliation_model::EntityReconciliationReport",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation_commit.rs",
+        "name": "crate::entity_reconciliation_model::EntityReconciliationCommit",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_model.rs",
+        "name": "EntityReconciliationCommit"
+      },
+      "canonical": "entity_reconciliation_model::EntityReconciliationCommit",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation_commit.rs",
+        "name": "crate::entity_reconciliation_model::EntityReconciliationEvaluation",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_model.rs",
+        "name": "EntityReconciliationEvaluation"
+      },
+      "canonical": "entity_reconciliation_model::EntityReconciliationEvaluation",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation_commit.rs",
+        "name": "crate::entity_reconciliation_model::EntityReconciliationPrepared",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_model.rs",
+        "name": "EntityReconciliationPrepared"
+      },
+      "canonical": "entity_reconciliation_model::EntityReconciliationPrepared",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation_commit.rs",
+        "name": "crate::entity_reconciliation_support::choose_survivor",
+        "line": 4
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_support.rs",
+        "name": "choose_survivor"
+      },
+      "canonical": "entity_reconciliation_support::choose_survivor",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation_commit.rs",
+        "name": "crate::entity_reconciliation_support::exact_entity_for_surface",
+        "line": 4
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_support.rs",
+        "name": "exact_entity_for_surface"
+      },
+      "canonical": "entity_reconciliation_support::exact_entity_for_surface",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation_commit.rs",
+        "name": "crate::entity_reconciliation_support::merge_alias_budget_fits",
+        "line": 4
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_support.rs",
+        "name": "merge_alias_budget_fits"
+      },
+      "canonical": "entity_reconciliation_support::merge_alias_budget_fits",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation_commit.rs",
+        "name": "crate::EntityReconciliationError",
+        "line": 7
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_error.rs",
+        "name": "EntityReconciliationError"
+      },
+      "canonical": "entity_reconciliation_error::EntityReconciliationError",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation_commit.rs",
+        "name": "crate::EntityReconciliationRelation",
+        "line": 7
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_model.rs",
+        "name": "EntityReconciliationRelation"
+      },
+      "canonical": "entity_reconciliation_model::EntityReconciliationRelation",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation_commit.rs",
+        "name": "crate::EntityReconciliationReport",
+        "line": 7
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_model.rs",
+        "name": "EntityReconciliationReport"
+      },
+      "canonical": "entity_reconciliation_model::EntityReconciliationReport",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation_owner.rs",
+        "name": "crate::entity_reconciliation_support::exact_entity_for_surface",
+        "line": 2
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_support.rs",
+        "name": "exact_entity_for_surface"
+      },
+      "canonical": "entity_reconciliation_support::exact_entity_for_surface",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation_owner.rs",
+        "name": "crate::EntityCandidateConfig",
+        "line": 3
+      },
+      "target": {
+        "path": "src/perception/entity_candidate_model.rs",
+        "name": "EntityCandidateConfig"
+      },
+      "canonical": "entity_candidate_model::EntityCandidateConfig",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation_owner.rs",
+        "name": "crate::EntityReconciliationError",
+        "line": 3
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_error.rs",
+        "name": "EntityReconciliationError"
+      },
+      "canonical": "entity_reconciliation_error::EntityReconciliationError",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation_owner.rs",
+        "name": "crate::EntityResolutionEngine",
+        "line": 3
+      },
+      "target": {
+        "path": "src/perception/entity_resolution_engine.rs",
+        "name": "EntityResolutionEngine"
+      },
+      "canonical": "entity_resolution_engine::EntityResolutionEngine",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation_prepare.rs",
+        "name": "crate::entity_reconciliation_candidates::reconciliation_candidates",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_candidates.rs",
+        "name": "reconciliation_candidates"
+      },
+      "canonical": "entity_reconciliation_candidates::reconciliation_candidates",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation_prepare.rs",
+        "name": "crate::entity_reconciliation_model::EntityReconciliationPrepared",
+        "line": 2
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_model.rs",
+        "name": "EntityReconciliationPrepared"
+      },
+      "canonical": "entity_reconciliation_model::EntityReconciliationPrepared",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation_prepare.rs",
+        "name": "crate::entity_reconciliation_model::EntityReconciliationPreparedPair",
+        "line": 2
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_model.rs",
+        "name": "EntityReconciliationPreparedPair"
+      },
+      "canonical": "entity_reconciliation_model::EntityReconciliationPreparedPair",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation_prepare.rs",
+        "name": "crate::entity_reconciliation_support::exact_entity_for_surface",
+        "line": 5
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_support.rs",
+        "name": "exact_entity_for_surface"
+      },
+      "canonical": "entity_reconciliation_support::exact_entity_for_surface",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation_prepare.rs",
+        "name": "crate::DEFAULT_ENTITY_RECONCILIATION_PAIR_LIMIT",
+        "line": 6
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_model.rs",
+        "name": "DEFAULT_ENTITY_RECONCILIATION_PAIR_LIMIT"
+      },
+      "canonical": "entity_reconciliation_model::DEFAULT_ENTITY_RECONCILIATION_PAIR_LIMIT",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_reconciliation_prepare.rs",
+        "name": "crate::EntityReconciliationError",
+        "line": 6
+      },
+      "target": {
+        "path": "src/perception/entity_reconciliation_error.rs",
+        "name": "EntityReconciliationError"
+      },
+      "canonical": "entity_reconciliation_error::EntityReconciliationError",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_batch.rs",
+        "name": "crate::EntityCandidateConfig",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_candidate_model.rs",
+        "name": "EntityCandidateConfig"
+      },
+      "canonical": "entity_candidate_model::EntityCandidateConfig",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_batch.rs",
+        "name": "crate::EntityResolutionEngine",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_resolution_engine.rs",
+        "name": "EntityResolutionEngine"
+      },
+      "canonical": "entity_resolution_engine::EntityResolutionEngine",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_batch.rs",
+        "name": "crate::EntityResolutionEvaluation",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_resolution_prepared.rs",
+        "name": "EntityResolutionEvaluation"
+      },
+      "canonical": "entity_resolution_prepared::EntityResolutionEvaluation",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_batch.rs",
+        "name": "crate::EntityResolutionOutcome",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_resolver_model.rs",
+        "name": "EntityResolutionOutcome"
+      },
+      "canonical": "entity_resolver_model::EntityResolutionOutcome",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_batch.rs",
+        "name": "crate::EntityResolutionPreparation",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_resolution_prepared.rs",
+        "name": "EntityResolutionPreparation"
+      },
+      "canonical": "entity_resolution_prepared::EntityResolutionPreparation",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_batch.rs",
+        "name": "crate::EntityResolutionPrepared",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_resolution_prepared.rs",
+        "name": "EntityResolutionPrepared"
+      },
+      "canonical": "entity_resolution_prepared::EntityResolutionPrepared",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_batch.rs",
+        "name": "crate::EntityResolverError",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_resolver_error.rs",
+        "name": "EntityResolverError"
+      },
+      "canonical": "entity_resolver_error::EntityResolverError",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_commit.rs",
+        "name": "crate::entity_resolution_processor_support::bootstrap_entity_draft",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_resolution_processor_support.rs",
+        "name": "bootstrap_entity_draft"
+      },
+      "canonical": "entity_resolution_processor_support::bootstrap_entity_draft",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_commit.rs",
+        "name": "crate::EntityResolutionDecision",
+        "line": 2
+      },
+      "target": {
+        "path": "src/perception/entity_resolver_model.rs",
+        "name": "EntityResolutionDecision"
+      },
+      "canonical": "entity_resolver_model::EntityResolutionDecision",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_commit.rs",
+        "name": "crate::EntityResolutionEvaluation",
+        "line": 2
+      },
+      "target": {
+        "path": "src/perception/entity_resolution_prepared.rs",
+        "name": "EntityResolutionEvaluation"
+      },
+      "canonical": "entity_resolution_prepared::EntityResolutionEvaluation",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_commit.rs",
+        "name": "crate::EntityResolutionOutcome",
+        "line": 2
+      },
+      "target": {
+        "path": "src/perception/entity_resolver_model.rs",
+        "name": "EntityResolutionOutcome"
+      },
+      "canonical": "entity_resolver_model::EntityResolutionOutcome",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_commit.rs",
+        "name": "crate::EntityResolutionPrepared",
+        "line": 2
+      },
+      "target": {
+        "path": "src/perception/entity_resolution_prepared.rs",
+        "name": "EntityResolutionPrepared"
+      },
+      "canonical": "entity_resolution_prepared::EntityResolutionPrepared",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_commit.rs",
+        "name": "crate::EntityResolverError",
+        "line": 2
+      },
+      "target": {
+        "path": "src/perception/entity_resolver_error.rs",
+        "name": "EntityResolverError"
+      },
+      "canonical": "entity_resolver_error::EntityResolverError",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_prepare.rs",
+        "name": "crate::entity_resolution_evidence::hydrate_admission_context",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_resolution_evidence.rs",
+        "name": "hydrate_admission_context"
+      },
+      "canonical": "entity_resolution_evidence::hydrate_admission_context",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_prepare.rs",
+        "name": "crate::entity_resolution_evidence::hydrate_evidence",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_resolution_evidence.rs",
+        "name": "hydrate_evidence"
+      },
+      "canonical": "entity_resolution_evidence::hydrate_evidence",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_prepare.rs",
+        "name": "crate::entity_resolution_processor_support::candidate_fingerprint",
+        "line": 2
+      },
+      "target": {
+        "path": "src/perception/entity_resolution_processor_support.rs",
+        "name": "candidate_fingerprint"
+      },
+      "canonical": "entity_resolution_processor_support::candidate_fingerprint",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_prepare.rs",
+        "name": "crate::entity_resolution_processor_support::context_fingerprint",
+        "line": 2
+      },
+      "target": {
+        "path": "src/perception/entity_resolution_processor_support.rs",
+        "name": "context_fingerprint"
+      },
+      "canonical": "entity_resolution_processor_support::context_fingerprint",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_prepare.rs",
+        "name": "crate::entity_resolution_processor_support::status_reason",
+        "line": 2
+      },
+      "target": {
+        "path": "src/perception/entity_resolution_processor_support.rs",
+        "name": "status_reason"
+      },
+      "canonical": "entity_resolution_processor_support::status_reason",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_prepare.rs",
+        "name": "crate::entity_resolution_processor_support::terminal_outcome",
+        "line": 2
+      },
+      "target": {
+        "path": "src/perception/entity_resolution_processor_support.rs",
+        "name": "terminal_outcome"
+      },
+      "canonical": "entity_resolution_processor_support::terminal_outcome",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_prepare.rs",
+        "name": "crate::EntityCandidateConfig",
+        "line": 5
+      },
+      "target": {
+        "path": "src/perception/entity_candidate_model.rs",
+        "name": "EntityCandidateConfig"
+      },
+      "canonical": "entity_candidate_model::EntityCandidateConfig",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_prepare.rs",
+        "name": "crate::EntityResolutionDecision",
+        "line": 5
+      },
+      "target": {
+        "path": "src/perception/entity_resolver_model.rs",
+        "name": "EntityResolutionDecision"
+      },
+      "canonical": "entity_resolver_model::EntityResolutionDecision",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_prepare.rs",
+        "name": "crate::EntityResolutionOutcome",
+        "line": 5
+      },
+      "target": {
+        "path": "src/perception/entity_resolver_model.rs",
+        "name": "EntityResolutionOutcome"
+      },
+      "canonical": "entity_resolver_model::EntityResolutionOutcome",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_prepare.rs",
+        "name": "crate::EntityResolutionPreparation",
+        "line": 5
+      },
+      "target": {
+        "path": "src/perception/entity_resolution_prepared.rs",
+        "name": "EntityResolutionPreparation"
+      },
+      "canonical": "entity_resolution_prepared::EntityResolutionPreparation",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_prepare.rs",
+        "name": "crate::EntityResolutionPrepared",
+        "line": 5
+      },
+      "target": {
+        "path": "src/perception/entity_resolution_prepared.rs",
+        "name": "EntityResolutionPrepared"
+      },
+      "canonical": "entity_resolution_prepared::EntityResolutionPrepared",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_prepare.rs",
+        "name": "crate::EntityResolverError",
+        "line": 5
+      },
+      "target": {
+        "path": "src/perception/entity_resolver_error.rs",
+        "name": "EntityResolverError"
+      },
+      "canonical": "entity_resolver_error::EntityResolverError",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_processor.rs",
+        "name": "crate::EntityCandidateConfig",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_candidate_model.rs",
+        "name": "EntityCandidateConfig"
+      },
+      "canonical": "entity_candidate_model::EntityCandidateConfig",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_processor.rs",
+        "name": "crate::EntityResolutionEngine",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_resolution_engine.rs",
+        "name": "EntityResolutionEngine"
+      },
+      "canonical": "entity_resolution_engine::EntityResolutionEngine",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_processor.rs",
+        "name": "crate::EntityResolutionOutcome",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_resolver_model.rs",
+        "name": "EntityResolutionOutcome"
+      },
+      "canonical": "entity_resolver_model::EntityResolutionOutcome",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_processor.rs",
+        "name": "crate::EntityResolutionPreparation",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_resolution_prepared.rs",
+        "name": "EntityResolutionPreparation"
+      },
+      "canonical": "entity_resolution_prepared::EntityResolutionPreparation",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_processor.rs",
+        "name": "crate::EntityResolver",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_resolver.rs",
+        "name": "EntityResolver"
+      },
+      "canonical": "entity_resolver::EntityResolver",
+      "alias": null
+    },
+    {
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "category": "strict-import",
+      "relation": "source-import",
+      "source": {
+        "path": "src/perception/entity_resolution_processor.rs",
+        "name": "crate::EntityResolverError",
+        "line": 1
+      },
+      "target": {
+        "path": "src/perception/entity_resolver_error.rs",
+        "name": "EntityResolverError"
+      },
+      "canonical": "entity_resolver_error::EntityResolverError",
+      "alias": null
+    }
+  ],
+  "status": "in-progress; after evidence not yet captured; source changes unverified",
+  "notes": [
+    "Rows are retained as frozen original witnesses and not counted as eliminated by source-path relocation.",
+    "Relocated fa\u00e7ade imports may preserve the logical public-consumer-to-perception dependency; root reconciliation must distinguish authorized owner contract from inherited allowlist.",
+    "No Cargo builds were run by this worker.",
+    "The original 82 frozen rows were selected from benchmarks/phase6-before-imports.json by strict-import relation, source_component=public-consumers, target_component=perception, and the eleven P6.1 source paths. Their full records remain under baseline_edge_witnesses."
+  ],
+  "implementation_status": {
+    "P6.1.01": "audit calculation remains in Perception and uses concrete EntityAuditContext; public adapters in facade; source cut complete, integrated test pending",
+    "P6.1.02": "public reconcile entrypoint in facade; candidate/inference/merge policy and rejected-mention reconsideration use concrete lower services; integrated test pending",
+    "P6.1.03": "root-owned principal cut; see root integration evidence",
+    "P6.1.04": "source-cut complete; compile pending",
+    "P6.1.05": "concrete preparation service and fa\u00e7ade adapter; terminal fast path preserved before owner ID validation; integrated test pending",
+    "P6.1.06": "resolution commit service uses concrete store context; resolution owner public adapters root-owned; integrated test pending",
+    "P6.1.07": "source-cut complete; compile pending",
+    "P6.1.08": "reconciliation preparation uses concrete store context; integrated test pending",
+    "P6.1.09": "reconciliation commit uses concrete stores and Entity merge service; rejected mention handling is concrete lower Perception; integrated test pending",
+    "P6.1.10": "candidate policy concrete-store service and facade adapter added; compile pending",
+    "P6.1.16": "root/census owns residual cross-domain census",
+    "P6.1.17": "original witness register frozen; after-source reconciliation not yet captured"
+  },
+  "after_source_evidence": {
+    "status": "source inventory reports original-witness rows retained; final 82-row disposition awaiting audit review",
+    "eliminated_original_rows": 0,
+    "retained_owner_contract_rows": null,
+    "still_violating_rows": null,
+    "uncertain_rows": null,
+    "note": "No import row is claimed eliminated based on relocation. The root/census audit reports 82 original rows retained and 81 current same-path target-symbol witnesses; exact row-by-row disposition remains pending review and target/allowlist reconciliation."
+  }
+}

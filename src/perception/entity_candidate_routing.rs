@@ -1,40 +1,13 @@
+use crate::graph_store::GraphStore;
 use crate::lexical_contract::lexical_terms;
 use crate::{
-    Cva, EntityCandidateError, GraphDirection, GraphError, Memory, MemoryEntityMention, MemoryId,
-    MemoryTextField, Phylactery,
+    EntityCandidateError, GraphDirection, GraphError, Memory, MemoryEntityMention, MemoryId,
+    MemoryTextField,
 };
 use std::collections::HashSet;
 
-pub(super) trait CandidateOwner {
-    fn graph_neighbors_for_candidate(
-        &self,
-        memory_id: MemoryId,
-        direction: GraphDirection,
-    ) -> Result<Vec<crate::GraphNeighbor>, GraphError>;
-}
-
-impl CandidateOwner for Cva {
-    fn graph_neighbors_for_candidate(
-        &self,
-        memory_id: MemoryId,
-        direction: GraphDirection,
-    ) -> Result<Vec<crate::GraphNeighbor>, GraphError> {
-        self.graph_neighbors(memory_id, direction)
-    }
-}
-
-impl CandidateOwner for Phylactery {
-    fn graph_neighbors_for_candidate(
-        &self,
-        memory_id: MemoryId,
-        direction: GraphDirection,
-    ) -> Result<Vec<crate::GraphNeighbor>, GraphError> {
-        self.graph_neighbors(memory_id, direction)
-    }
-}
-
 pub(super) fn graph_neighbor_ids(
-    owner: &impl CandidateOwner,
+    graph: &GraphStore,
     memory_id: MemoryId,
     limit: usize,
 ) -> Result<Vec<MemoryId>, EntityCandidateError> {
@@ -43,7 +16,7 @@ pub(super) fn graph_neighbor_ids(
     }
     let mut ids = Vec::new();
     for direction in [GraphDirection::Outgoing, GraphDirection::Incoming] {
-        match owner.graph_neighbors_for_candidate(memory_id, direction) {
+        match graph.neighbors(memory_id, direction) {
             Ok(neighbors) => ids.extend(neighbors.into_iter().map(|neighbor| neighbor.memory_id)),
             Err(GraphError::MissingNode(id)) if id == memory_id => {}
             Err(error) => return Err(error.into()),

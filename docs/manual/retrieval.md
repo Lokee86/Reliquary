@@ -10,6 +10,10 @@ Choose the correct retrieval surface without confusing source history, semantic 
 
 Reliquary has several retrieval lanes because they answer different questions.
 
+## Public composition boundary
+
+The existing standalone `Cva`/`Phylactery` search methods remain supported. Public adapters live under `src/facade/`; Retrieval retains lexical policy, semantic selection and scoring/ranking over concrete owner reads. See [Phase 6 evidence](../dependency-convergence-phase6-execution-2026-10-23.md) for the source/API preservation record.
+
 ## Archive search
 
 Use:

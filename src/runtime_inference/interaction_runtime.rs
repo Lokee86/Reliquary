@@ -125,9 +125,15 @@ impl InteractionRuntime {
         query: &str,
         limit: usize,
     ) -> Result<Vec<crate::ConversationSearchHit>, crate::SearchError> {
-        self.cva.search_conversation_branch_with_vector(
-            compatibility_profile_id,
-            query_vector,
+        crate::conversation_search::search_conversation_branch_parts(
+            &self.cva.archive,
+            &mut self.cva.container,
+            &mut self.cva.lexical_index,
+            &mut self.cva.vector_generations,
+            &mut self.cva.archive_vectors,
+            &mut self.cva.packed_vectors,
+            Some(compatibility_profile_id),
+            Some(query_vector),
             conversation_id,
             leaf_node_id,
             query,

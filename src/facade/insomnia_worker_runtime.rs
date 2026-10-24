@@ -14,9 +14,9 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-#[path = "runtime/outcome.rs"]
+#[path = "../runtime_inference/insomnia/worker/runtime/outcome.rs"]
 mod outcome;
-#[path = "runtime/progress.rs"]
+#[path = "../runtime_inference/insomnia/worker/runtime/progress.rs"]
 mod progress;
 
 use outcome::{apply_success, record_failure, terminal_claim};

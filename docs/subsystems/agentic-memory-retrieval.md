@@ -18,6 +18,10 @@ The controller exposes three operations:
 
 The model-facing controller owns only selection/refinement state. Memory bodies remain owner data, Graph remains relationship authority, Freshness remains relevance authority, and accepted use is recorded only after confirmed content handoff.
 
+## Public composition boundary
+
+Agentic freshness grading gathers the public owner read in `facade/agentic_memory_grading.rs`; controller state and deterministic ordering remain Retrieval-owned. The [Phase 6 evidence](../dependency-convergence-phase6-execution-2026-10-23.md) tracks that source boundary without changing query, authorization or accepted-use behavior.
+
 ## Current behavior
 
 Each requesting turn owns one controller state containing the current query, searched Memory IDs, selected Memory IDs, and bounded refinement/traversal bookkeeping. State never floats globally between turns or instances.

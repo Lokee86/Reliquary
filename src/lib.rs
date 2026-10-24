@@ -1,3 +1,5 @@
+#[path = "facade/agentic_memory_grading.rs"]
+mod agentic_memory_grading;
 #[path = "runtime_inference/agentic_memory_retrieval.rs"]
 mod agentic_memory_retrieval;
 #[path = "runtime_inference/agentic_memory_retrieval_decision.rs"]
@@ -6,6 +8,54 @@ mod agentic_memory_retrieval_decision;
 mod agentic_memory_retrieval_manifest;
 #[path = "runtime_inference/agentic_memory_retrieval_model.rs"]
 mod agentic_memory_retrieval_model;
+#[path = "facade/cva_archive_search.rs"]
+mod cva_archive_search;
+#[path = "facade/cva_entity_audit.rs"]
+mod cva_entity_audit;
+#[path = "facade/cva_entity_candidates.rs"]
+mod cva_entity_candidates;
+#[path = "facade/cva_entity_merge.rs"]
+mod cva_entity_merge;
+#[path = "facade/cva_entity_owner.rs"]
+mod cva_entity_owner;
+#[path = "facade/cva_entity_principal.rs"]
+mod cva_entity_principal;
+#[path = "facade/cva_entity_reconciliation.rs"]
+mod cva_entity_reconciliation;
+#[path = "facade/cva_entity_resolution_batch.rs"]
+mod cva_entity_resolution_batch;
+#[path = "facade/cva_entity_resolution_commit.rs"]
+mod cva_entity_resolution_commit;
+#[path = "facade/cva_entity_resolution_owner.rs"]
+mod cva_entity_resolution_owner;
+#[path = "facade/cva_entity_resolution_prepare.rs"]
+mod cva_entity_resolution_prepare;
+#[path = "facade/cva_entity_resolution_processor.rs"]
+mod cva_entity_resolution_processor;
+#[path = "facade/cva_memory_candidate_pool.rs"]
+mod cva_memory_candidate_pool;
+#[path = "facade/cva_relationship_owner.rs"]
+mod cva_relationship_owner;
+#[path = "facade/cva_retrieval_conversation_search.rs"]
+mod cva_retrieval_conversation_search;
+#[path = "facade/cva_retrieval_lexical_search.rs"]
+mod cva_retrieval_lexical_search;
+#[path = "facade/cva_retrieval_memory_search.rs"]
+mod cva_retrieval_memory_search;
+#[path = "facade/cva_retrieval_search.rs"]
+mod cva_retrieval_search;
+#[path = "facade/cva_retrieval_semantic_search.rs"]
+mod cva_retrieval_semantic_search;
+#[path = "facade/dream_product_extensions.rs"]
+mod dream_product_extensions;
+#[path = "perception/entity_reconciliation.rs"]
+mod entity_reconciliation;
+#[path = "perception/entity_reconciliation_owner.rs"]
+mod entity_reconciliation_owner;
+#[path = "facade/external_source_extensions.rs"]
+mod external_source_extensions;
+#[path = "runtime_inference/runtime_vector_step.rs"]
+mod runtime_vector_step_owner;
 pub use agentic_memory_retrieval::AgenticMemoryController;
 pub use agentic_memory_retrieval_model::{
     AgenticMemoryAnchorReport, AgenticMemoryContent, AgenticMemoryError,
@@ -433,8 +483,6 @@ mod dream_candidate_error;
 mod dream_candidate_model;
 #[path = "runtime_inference/dream_candidate_ranking.rs"]
 mod dream_candidate_ranking;
-#[path = "runtime_inference/dream_candidates.rs"]
-mod dream_candidates;
 #[path = "runtime_inference/dream_canonical.rs"]
 mod dream_canonical;
 #[path = "runtime_inference/dream_classifier.rs"]
@@ -459,9 +507,9 @@ mod dream_community_naming_schema;
 mod dream_cooldown;
 #[path = "runtime_inference/dream_duplicate_index.rs"]
 mod dream_duplicate_index;
-#[path = "runtime_inference/dream_freshness.rs"]
+#[path = "facade/dream_freshness.rs"]
 mod dream_freshness;
-#[path = "runtime_inference/dream_lifecycle.rs"]
+#[path = "facade/dream_lifecycle.rs"]
 mod dream_lifecycle;
 #[path = "runtime_inference/dream_lifecycle_error.rs"]
 mod dream_lifecycle_error;
@@ -481,7 +529,7 @@ mod dream_pair_context;
 mod dream_pair_history;
 #[path = "runtime_inference/dream_settlement.rs"]
 mod dream_settlement;
-#[path = "runtime_inference/freshness_access.rs"]
+#[path = "facade/freshness_access.rs"]
 mod freshness_access;
 pub use freshness_access::{AcceptedMemoryUseReceipt, EgoFreshnessCandidate, EgoMemoryFreshness};
 #[cfg(test)]
@@ -493,18 +541,14 @@ mod dream_processing;
 mod dream_processor;
 #[path = "runtime_inference/dream_processor_error.rs"]
 mod dream_processor_error;
-#[path = "runtime_inference/dream_processor_frontier.rs"]
+#[path = "facade/dream_processor_frontier.rs"]
 mod dream_processor_frontier;
 #[path = "runtime_inference/dream_processor_model.rs"]
 mod dream_processor_model;
-#[path = "runtime_inference/dream_publisher.rs"]
-mod dream_publisher;
 #[path = "runtime_inference/dream_publisher_error.rs"]
 mod dream_publisher_error;
 #[path = "runtime_inference/dream_publisher_model.rs"]
 mod dream_publisher_model;
-#[path = "runtime_inference/dream_temporal.rs"]
-mod dream_temporal;
 #[path = "runtime_inference/dream_temporal_policy.rs"]
 mod dream_temporal_policy;
 #[path = "runtime_inference/dream_verifier.rs"]
@@ -618,8 +662,6 @@ mod entity_principal;
 mod entity_principal_tests;
 #[path = "perception/entity_rebuild.rs"]
 mod entity_rebuild;
-#[path = "perception/entity_reconciliation.rs"]
-mod entity_reconciliation;
 #[cfg(test)]
 #[path = "perception/entity_reconciliation_candidate_tests.rs"]
 mod entity_reconciliation_candidate_tests;
@@ -633,8 +675,6 @@ mod entity_reconciliation_error;
 mod entity_reconciliation_inference;
 #[path = "perception/entity_reconciliation_model.rs"]
 mod entity_reconciliation_model;
-#[path = "perception/entity_reconciliation_owner.rs"]
-mod entity_reconciliation_owner;
 #[path = "perception/entity_reconciliation_prepare.rs"]
 mod entity_reconciliation_prepare;
 #[path = "perception/entity_reconciliation_schema.rs"]
@@ -1029,7 +1069,7 @@ mod runtime_config;
 mod runtime_host;
 #[path = "runtime_inference/runtime_shared.rs"]
 mod runtime_shared;
-#[path = "runtime_inference/runtime_vector_step.rs"]
+#[path = "facade/runtime_vector_step.rs"]
 mod runtime_vector_step;
 #[path = "retrieval/search.rs"]
 mod search;

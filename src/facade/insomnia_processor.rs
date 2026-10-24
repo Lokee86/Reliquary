@@ -3,13 +3,13 @@ use crate::{
     InsomniaWork, InsomniaWorkState,
 };
 
-#[path = "processor/application.rs"]
+#[path = "../runtime_inference/insomnia/processor/application.rs"]
 mod application;
-#[path = "processor/prepared.rs"]
+#[path = "../runtime_inference/insomnia/processor/prepared.rs"]
 mod prepared;
-#[path = "processor/result.rs"]
+#[path = "../runtime_inference/insomnia/processor/result.rs"]
 mod result;
-#[path = "processor/source_validation.rs"]
+#[path = "../runtime_inference/insomnia/processor/source_validation.rs"]
 mod source_validation;
 
 pub(crate) use crate::owner_lifecycle::insomnia_application::commit_application;

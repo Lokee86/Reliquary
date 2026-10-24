@@ -9,6 +9,10 @@ The current migration ledger maps 22 coarse areas, including explicit History, M
 
 Current runtime settlement, normalization, owner maintenance and rewrite behavior is summarized in [Semantic maintenance and history rewrite](#semantic-maintenance-and-history-rewrite). Historical framing references below describe stable comparison schemas or frozen development evidence; runtime admission is current-only.
 
+## Phase 6 public facade boundary
+
+Public Cva/Phylactery entrypoints are upper composition. The Phase 6 migration places their extensions under `src/facade/` and keeps candidate selection, audit calculation, retrieval ranking and owner mutation below that boundary. Lower domain services consume narrow owner capabilities rather than a public product facade. `scripts/check_facade_boundaries.py` enforces cfg-aware extension placement and reverse imports alongside the owner/runtime guards. [Phase 6 execution evidence](dependency-convergence-phase6-execution-2026-10-23.md) records the source cuts and verification disposition; the inherited A5 full-graph proof remains an open Phase 7 obligation.
+
 ## Physical access and replay
 
 Container owns physical framing, file identity, OS writer/shared-reader leases,

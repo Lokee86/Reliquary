@@ -1,13 +1,62 @@
+use crate::entity_resolution_store::EntityResolutionStore;
+use crate::entity_store::EntityStore;
+use crate::graph_store::GraphStore;
+use crate::memory_store::MemoryStore;
+use crate::{
+    Container, EntityId, GraphError, GraphRelationOrigin, MemoryId, SemanticGraphRelation,
+    SemanticGraphRelationChange,
+};
+pub(crate) struct PrincipalContext<'a> {
+    pub(crate) container: &'a mut Container,
+    pub(crate) memories: &'a MemoryStore,
+    pub(crate) entities: &'a mut EntityStore,
+    pub(crate) entity_resolutions: &'a mut EntityResolutionStore,
+    pub(crate) graph: &'a mut GraphStore,
+    pub(crate) archive: Option<&'a crate::Archive>,
+}
+impl PrincipalContext<'_> {
+    fn resolution_writer(&mut self) -> crate::entity_resolution_owner::ResolutionWriteContext<'_> {
+        crate::entity_resolution_owner::ResolutionWriteContext {
+            container: self.container,
+            memories: self.memories,
+            entities: self.entities,
+            entity_resolutions: self.entity_resolutions,
+        }
+    }
+    fn set_principal_association(
+        &mut self,
+        memory_id: MemoryId,
+        entity_id: EntityId,
+        active: bool,
+        expected_graph_version: u64,
+    ) -> Result<Option<SemanticGraphRelation>, GraphError> {
+        let change =
+            SemanticGraphRelationChange::principal_association(memory_id, entity_id, active);
+        crate::graph_endpoint_admission::validate_semantic_changes(
+            self.memories,
+            self.entities,
+            &[change],
+            GraphRelationOrigin::Perception,
+        )?;
+        self.graph.set_principal_association(
+            self.container,
+            memory_id,
+            entity_id,
+            active,
+            expected_graph_version,
+        )
+    }
+}
 use crate::entity_principal_identity::{
     PRINCIPAL_ENTITY_KIND, is_owner_relative_principal_surface, is_phy_principal_id,
     principal_entity_global_id, principal_entity_id,
 };
 use crate::{
-    Cva, EntityDraft, EntityResolutionDecision, EntityResolutionOutcome, EntityResolutionReason,
-    EntityResolverError, Memory, MemoryEntityMentionKey, MemoryEntityResolutionStatus, Phylactery,
+    EntityDraft, EntityResolutionDecision, EntityResolutionOutcome, EntityResolutionReason,
+    EntityResolverError, Memory, MemoryEntityMentionKey, MemoryEntityResolutionStatus,
 };
 
-impl Cva {
+impl PrincipalContext<'_> {
     pub(crate) fn resolve_principal_entity_mention(
         &mut self,
         key: MemoryEntityMentionKey,
@@ -16,12 +65,15 @@ impl Cva {
         if !self.principal_mention_matches(key) {
             return Ok(None);
         }
-        if let Some(outcome) = terminal_outcome(key, self.entity_resolution(key)) {
+        if let Some(outcome) = terminal_outcome(key, self.entity_resolutions.get(key)) {
             return Ok(Some(outcome));
         }
 
-        let memory = self.memory(key.memory_id)?;
-        let Some(principal_id) = rel_source_principal(self, &memory) else {
+        let memory = self.memories.memory(self.container, key.memory_id)?;
+        let Some(principal_id) = self
+            .archive
+            .and_then(|archive| rel_source_principal(archive, &memory))
+        else {
             return Ok(None);
         };
         if !is_phy_principal_id(&principal_id) {
@@ -30,13 +82,14 @@ impl Cva {
 
         let entity_id = principal_entity_id(&principal_id);
         let entity_created = if self.entities.contains(entity_id) {
-            let entity = self.entity(entity_id)?;
+            let entity = self.entities.entity(entity_id)?;
             if entity.kind != PRINCIPAL_ENTITY_KIND || entity.canonical_name != principal_id {
                 return Err(crate::EntityError::InvalidField("principal Entity identity").into());
             }
             false
         } else {
-            self.publish_entity(
+            self.entities.publish(
+                &mut self.container,
                 Some(entity_id),
                 0,
                 EntityDraft {
@@ -53,12 +106,13 @@ impl Cva {
         };
 
         let association_changed = self
-            .set_principal_association(key.memory_id, entity_id, true, self.graph_version())?
+            .set_principal_association(key.memory_id, entity_id, true, self.graph.graph_version())?
             .is_some();
         let expected_revision = self
-            .entity_resolution(key)
+            .entity_resolutions
+            .get(key)
             .map_or(0, |value| value.revision);
-        let resolution_changed = self.put_entity_resolved(
+        let resolution_changed = self.resolution_writer().put_entity_resolved(
             key,
             expected_revision,
             entity_id,
@@ -93,7 +147,7 @@ impl Cva {
             ));
         }
         let entity_id = principal_entity_id(principal_id);
-        let Ok(entity) = self.entity(entity_id) else {
+        let Ok(entity) = self.entities.entity(entity_id) else {
             return Ok(false);
         };
         if entity.kind != PRINCIPAL_ENTITY_KIND || entity.canonical_name != principal_id {
@@ -107,40 +161,45 @@ impl Cva {
         if entity.aliases == aliases && entity.summary == summary {
             return Ok(false);
         }
-        self.publish_entity(
-            Some(entity_id),
-            entity.revision,
-            EntityDraft {
-                canonical_name: entity.canonical_name,
-                aliases,
-                kind: entity.kind,
-                summary,
-                mutation_id: format!("principal-profile:{principal_id}:{}", entity.revision + 1),
-                created_at_ns: entity.created_at_ns,
-                updated_at_ns: now_ns.max(entity.updated_at_ns),
-            },
-        )
-        .map(|(_, changed)| changed)
+        self.entities
+            .publish(
+                &mut self.container,
+                Some(entity_id),
+                entity.revision,
+                EntityDraft {
+                    canonical_name: entity.canonical_name,
+                    aliases,
+                    kind: entity.kind,
+                    summary,
+                    mutation_id: format!(
+                        "principal-profile:{principal_id}:{}",
+                        entity.revision + 1
+                    ),
+                    created_at_ns: entity.created_at_ns,
+                    updated_at_ns: now_ns.max(entity.updated_at_ns),
+                },
+            )
+            .map(|(_, changed)| changed)
     }
 
     fn principal_mention_matches(&self, key: MemoryEntityMentionKey) -> bool {
-        mention_text(self.memory_routing_metadata(key.memory_id), key)
+        mention_text(self.memories.routing_metadata(key.memory_id), key)
             .is_some_and(is_owner_relative_principal_surface)
     }
 }
 
-impl Phylactery {
-    pub(crate) fn resolve_principal_entity_mention(
+impl PrincipalContext<'_> {
+    pub(crate) fn reject_phy_principal_entity_mention(
         &mut self,
         key: MemoryEntityMentionKey,
         now_ns: i64,
     ) -> Result<Option<EntityResolutionOutcome>, EntityResolverError> {
-        if !mention_text(self.memory_routing_metadata(key.memory_id), key)
+        if !mention_text(self.memories.routing_metadata(key.memory_id), key)
             .is_some_and(is_owner_relative_principal_surface)
         {
             return Ok(None);
         }
-        if let Some(outcome) = terminal_outcome(key, self.entity_resolution(key)) {
+        if let Some(outcome) = terminal_outcome(key, self.entity_resolutions.get(key)) {
             return Ok(Some(outcome));
         }
 
@@ -148,9 +207,10 @@ impl Phylactery {
         // surfaces must never materialize a self-Entity inside that same PHY, regardless of
         // whether the Memory was routed from a REL or authored directly in the PHY.
         let expected_revision = self
-            .entity_resolution(key)
+            .entity_resolutions
+            .get(key)
             .map_or(0, |value| value.revision);
-        let resolution_changed = self.put_entity_rejected(
+        let resolution_changed = self.resolution_writer().put_entity_rejected(
             key,
             expected_revision,
             EntityResolutionReason::PrincipalIdentity,
@@ -168,10 +228,10 @@ impl Phylactery {
     }
 }
 
-fn rel_source_principal(cva: &Cva, memory: &Memory) -> Option<String> {
-    let episode = cva.episode(memory.source_episode_id?)?;
+fn rel_source_principal(archive: &crate::Archive, memory: &Memory) -> Option<String> {
+    let episode = archive.episode(memory.source_episode_id?)?;
     let node_id = memory.source_node_id.as_deref()?;
-    cva.archive
+    archive
         .nodes
         .get(&episode.conversation_id, node_id)
         .and_then(|node| node.principal_id.clone())

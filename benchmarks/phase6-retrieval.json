@@ -1,0 +1,100 @@
+{
+  "schema": "dependency-convergence-phase6-retrieval-source-cut.v1",
+  "captured_at": "2026-10-23",
+  "baseline": "benchmarks/phase6-baseline.json",
+  "ticket_scope": ["P6.1.11", "P6.1.12", "P6.1.13", "P6.1.14", "P6.1.15", "P6.1.16-RETRIEVAL-PRIVATE-HELPER", "P6.1.16-RETRIEVAL-RUNTIME-CALLERS", "P6.1.16-ENTITY-RELATIONSHIP-ADAPTER"],
+  "claim": "source-edge evidence only; no performance benchmark was run",
+  "before": {
+    "lower_files_with_cva_or_phylactery_extension": 7,
+    "files": [
+      "src/archive/archive_search.rs",
+      "src/retrieval/conversation_search.rs",
+      "src/retrieval/lexical_search.rs",
+      "src/retrieval/memory_search.rs",
+      "src/retrieval/semantic_search.rs",
+      "src/retrieval/search.rs",
+      "src/retrieval/search_rank.rs"
+    ],
+    "lower_to_public_extension_edges": [
+      "archive_search.rs: impl Cva::search_archive",
+      "conversation_search.rs: impl Cva::search_conversation_branch and search_conversation_branch_with_vector",
+      "lexical_search.rs: Cva/Phylactery candidate helpers and Cva::search_files",
+      "memory_search.rs: Cva/Phylactery::search_memories",
+      "semantic_search.rs: Cva::semantic_search and vector-search adapters",
+      "search.rs: Cva search entrypoints and candidate orchestration",
+      "search_rank.rs: Cva ranking/diversification adapters"
+    ]
+  },
+  "after_source_edits": {
+    "lower_files_with_cva_or_phylactery_extension": 0,
+    "named_lower_files_checked": [
+      "src/archive/archive_search.rs",
+      "src/retrieval/conversation_search.rs",
+      "src/retrieval/lexical_search.rs",
+      "src/retrieval/memory_search.rs",
+      "src/retrieval/semantic_search.rs",
+      "src/retrieval/search.rs",
+      "src/retrieval/search_rank.rs",
+      "src/retrieval/memory_candidate_pool.rs"
+    ],
+    "lower_policy_remaining": [
+      "lexical scoring/index search functions take concrete LexicalIndex, Archive, MemoryStore and Container borrows",
+      "semantic vector ranking takes concrete generation/vector stores, Archive and Container borrows",
+      "combined ranking and diversification operate on SearchCandidate values and Archive",
+      "branch candidate limit remains a Retrieval policy function",
+      "memory candidate evidence merge operates on IDs and scores"
+    ],
+    "new_facade_files": [
+      "src/facade/cva_archive_search.rs",
+      "src/facade/cva_retrieval_conversation_search.rs",
+      "src/facade/cva_retrieval_lexical_search.rs",
+      "src/facade/cva_retrieval_memory_search.rs",
+      "src/facade/cva_retrieval_semantic_search.rs",
+      "src/facade/cva_retrieval_search.rs",
+      "src/facade/cva_memory_candidate_pool.rs"
+    ],
+    "public_method_signatures_preserved": [
+      "Cva::search_archive(&mut self, query: &str, limit: usize) -> Result<Vec<ArchiveSearchHit>, SearchError>",
+      "Cva::search_conversation_branch(&mut self, conversation_id: &str, leaf_node_id: &str, query: &str, limit: usize) -> Result<Vec<ConversationSearchHit>, SearchError>",
+      "Cva::search_files(&mut self, query: &str, limit: usize) -> Result<Vec<FileSearchHit>, SearchError>",
+      "Cva::search_memories(&mut self, query: &str, limit: usize) -> Result<Vec<MemoryLexicalSearchHit>, SearchError>",
+      "Phylactery::search_memories(&mut self, query: &str, limit: usize) -> Result<Vec<MemoryLexicalSearchHit>, SearchError>",
+      "Cva::semantic_search(&mut self, compatibility_profile_id: CompatibilityProfileId, endpoint: &impl EmbeddingEndpoint, query: &str, limit: usize) -> Result<Vec<SemanticSearchHit>, SemanticSearchError>",
+      "Cva::search(&mut self, compatibility_profile_id: CompatibilityProfileId, endpoint: &impl EmbeddingEndpoint, query: &str) -> Result<Vec<SearchCandidate>, SearchError>",
+      "Cva::search_with_result_limit(&mut self, compatibility_profile_id: CompatibilityProfileId, endpoint: &impl EmbeddingEndpoint, query: &str, result_limit: usize) -> Result<Vec<SearchCandidate>, SearchError>",
+      "Cva::search_with_config(&mut self, compatibility_profile_id: CompatibilityProfileId, endpoint: &impl EmbeddingEndpoint, query: &str, config: RetrievalConfig) -> Result<Vec<SearchCandidate>, SearchError>"
+    ],
+    "existing_behavior_evidence": [
+      "src/archive/archive_search_tests.rs",
+      "src/retrieval/conversation_search_tests.rs",
+      "src/retrieval/lexical_index_tests.rs",
+      "src/retrieval/search_tests.rs",
+      "src/retrieval/search_policy_tests.rs",
+      "src/retrieval/semantic_search_tests.rs",
+      "src/retrieval/memory_candidate_pool_tests.rs"
+    ],
+    "verification": "not run; root coordinates Rust checks and no cargo builds were run in this cut"
+  },
+  "integration_required": [
+    "Register the seven new facade module paths in src/lib.rs.",
+    "Perception entity candidate callers must call the concrete-borrow lexical Retrieval function; coordinated with P6.1.03 owner."
+  ],
+  "bounded_child_P6.1.16_RETRIEVAL_RUNTIME_CALLERS": {
+    "source": "src/runtime_inference/interaction_runtime.rs and concrete Retrieval implementation in src/retrieval/conversation_search.rs",
+    "cut": "Remove Runtime's call through Cva::search_conversation_branch_with_vector; invoke Retrieval with explicit Archive, Container, LexicalIndex, vector generation and vector stores. Gateway's public composition call to Cva::collect_memory_candidate_pool remains upper-layer behavior.",
+    "evidence": "Source callsite and target function witness; no broad behavior suite added.",
+    "status": "registered-before-execution"
+  },
+  "bounded_child_P6.1.16_ENTITY_RELATIONSHIP_ADAPTER": {
+    "source": ["src/perception/entity_owner.rs", "src/perception/entity_merge.rs", "src/perception/relationship_owner.rs"],
+    "cut": "Move Cva/Phylactery public extension registrations into facade; keep relationship reference validation and Entity merge/retarget coordination below as explicit concrete-store operations.",
+    "evidence": "Before edit census confirmed macro-generated Cva/Phylactery methods in all three lower files; retain method signature and test callers.",
+    "lower_contracts": [
+      "entity_merge::merge_entities_parts(container, MemoryStore, EntityStore, EntityResolutionStore, GraphStore, RelationshipStore, survivor, retired, now) -> EntityMergeOutcome",
+      "entity_merge::retarget_entity_resolution_parts(container, MemoryStore, EntityStore, EntityResolutionStore, GraphStore, mention_key, from, to, now) -> bool",
+      "relationship_owner::validate_live_relationship_refs(owner_id, MemoryStore, EntityStore, &mut RelationshipDraft)",
+      "entity_owner::validate_entity_publication(&EntityDraft, reject_principal)"
+    ],
+    "status": "implemented; compile verification not run by this slice"
+  }
+}
