@@ -101,7 +101,7 @@ fn compact_external_index_reclaim_keeps_latest_lookup_and_memory_proof() {
     let window = [31; 32];
     let mut prepared = prepared_memory(window, "An independent semantic decision.");
     prepared.evidence.authority.message = host.refs()[0].clone();
-    let memory = publish_window(&mut rel, window, &[prepared]).remove(0);
+    let memory = publish_window(&mut rel, window, &[prepared]).unwrap().remove(0);
     let evidence = rel.external_memory_evidence(memory.id).unwrap();
     let expected_hits = hits(&mut rel);
     let latest = rel.external_index.sources["host:test"].clone();

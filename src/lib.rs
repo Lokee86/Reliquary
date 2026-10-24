@@ -1018,7 +1018,7 @@ mod phylactery_packed_vectors;
 
 #[path = "facade/cva_project_environment.rs"]
 mod cva_project_environment;
-#[path = "runtime_inference/external_owner_access.rs"]
+#[path = "owner_lifecycle/external_owner_access.rs"]
 mod external_owner_access;
 #[path = "memory/processing_epoch_model.rs"]
 mod processing_epoch_model;

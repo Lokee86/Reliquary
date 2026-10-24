@@ -21,10 +21,12 @@ impl GatewayRuntime {
             .map_err(|_| ExternalSourceError::Unauthorized)?;
         let (state, profile) = self
             .with_rel(&token, |r| {
-                let state =
-                    crate::external_owner_access::read_state(&r.cva.external_index, namespace)
-                        .map_err(operation)?
-                        .ok_or_else(|| operation(ExternalSourceError::RebuildRequired))?;
+                let state = r
+                    .cva
+                    .external_index
+                    .read_state(namespace)
+                    .map_err(operation)?
+                    .ok_or_else(|| operation(ExternalSourceError::RebuildRequired))?;
                 let profile =
                     crate::external_owner_access::profile(&r.cva.compatibility_profiles, &state)
                         .map_err(operation)?;
@@ -143,9 +145,13 @@ impl GatewayRuntime {
                 if r.cva.external_index.sources.get(&state.namespace) != Some(&state) {
                     return Err(operation(ExternalSourceError::Conflict));
                 }
-                crate::external_owner_access::search(
-                    &r.cva.container,
-                    &r.cva.packed_vectors,
+                external::search(
+                    &mut crate::external_vector_reader::ExternalVectorReader::new(
+                        crate::external_owner_access::packed_vector_read(
+                            &r.cva.container,
+                            &r.cva.packed_vectors,
+                        ),
+                    ),
                     &state,
                     Some(&vector),
                     query,
@@ -187,9 +193,13 @@ impl GatewayRuntime {
                 if r.cva.external_index.sources.get(&state.namespace) != Some(&state) {
                     return Err(operation(ExternalSourceError::Conflict));
                 }
-                crate::external_owner_access::search(
-                    &r.cva.container,
-                    &r.cva.packed_vectors,
+                external::search(
+                    &mut crate::external_vector_reader::ExternalVectorReader::new(
+                        crate::external_owner_access::packed_vector_read(
+                            &r.cva.container,
+                            &r.cva.packed_vectors,
+                        ),
+                    ),
                     &state,
                     None,
                     query,

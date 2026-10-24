@@ -1,5 +1,6 @@
 //! Framework-neutral external canonical transcript integration.
 //! Host text is transient. This lane owns rebuildable index state, not history.
+#[path = "../owner_lifecycle/external_publication.rs"]
 pub(crate) mod publication;
 pub use crate::external_index::model::{
     EXTERNAL_SOURCE_CONTRACT, ExternalChangeBatch, ExternalChangeKind, ExternalChunkRef,
@@ -19,23 +20,8 @@ pub use processing::{ExternalProcessingResult, PreparedExternalProcessing};
 #[cfg(test)]
 pub(crate) mod tests;
 
-use crate::external_index::store::ExternalIndexStore;
 use crate::external_vector_reader::ExternalVectorReader;
 use store::SourceState;
-
-pub(crate) fn read_state(
-    index: &ExternalIndexStore,
-    namespace: &str,
-) -> Result<Option<SourceState>, ExternalSourceError> {
-    model::identifier(namespace)?;
-    if let Some(state) = index.sources.get(namespace) {
-        return Ok(Some(state.clone()));
-    }
-    if index.damaged {
-        return Err(ExternalSourceError::RebuildRequired);
-    }
-    Ok(None)
-}
 
 pub(crate) fn search(
     vectors: &mut ExternalVectorReader<'_>,

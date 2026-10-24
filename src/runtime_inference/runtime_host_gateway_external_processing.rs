@@ -78,7 +78,9 @@ impl GatewayRuntime {
         crate::external_index::model::identifier(&namespace)?;
         let state = self
             .with_rel(&token, |r| {
-                crate::external_owner_access::read_state(&r.cva.external_index, &namespace)
+                r.cva
+                    .external_index
+                    .read_state(&namespace)
                     .map_err(operation)?
                     .ok_or_else(|| operation(ExternalSourceError::RebuildRequired))
             })

@@ -2,19 +2,12 @@ use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::external_index::store::{ExternalIndexStore, SourceState};
 use crate::external_source::index::PreparedIndex;
 use crate::external_source::processing::PreparedExternalMemory;
-use crate::external_source::{self, ExternalIndexStatus, ExternalSearchHit, ExternalSourceError};
+use crate::external_source::{self, ExternalIndexStatus, ExternalSourceError};
 use crate::freshness_dream_journal::DreamFreshnessJournal;
 use crate::freshness_storage::FreshnessStore;
 use crate::memory_store::MemoryStore;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::{CompatibilityProfile, CompatibilityProfileId, Container, Memory, MemoryError};
-
-pub(crate) fn read_state(
-    index: &ExternalIndexStore,
-    namespace: &str,
-) -> Result<Option<SourceState>, ExternalSourceError> {
-    external_source::read_state(index, namespace)
-}
 
 pub(crate) fn profile(
     profiles: &CompatibilityProfileStore,
@@ -57,18 +50,11 @@ pub(crate) fn install(
     Ok(status)
 }
 
-pub(crate) fn search(
-    container: &Container,
-    packed_vectors: &PackedVectorStore,
-    state: &SourceState,
-    vector: Option<&[f32]>,
-    query: &str,
-    limit: usize,
-) -> Result<Vec<ExternalSearchHit>, ExternalSourceError> {
-    let mut reader = crate::external_vector_reader::ExternalVectorReader::new(
-        crate::packed_vector_store::PackedVectorReadView::new(packed_vectors, container),
-    );
-    external_source::search(&mut reader, state, vector, query, limit)
+pub(crate) fn packed_vector_read<'a>(
+    container: &'a Container,
+    packed_vectors: &'a PackedVectorStore,
+) -> crate::packed_vector_store::PackedVectorReadView<'a> {
+    crate::packed_vector_store::PackedVectorReadView::new(packed_vectors, container)
 }
 
 pub(crate) fn publish_window(

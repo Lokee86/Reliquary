@@ -52,6 +52,8 @@ def source_changes(base: str) -> tuple[set[str], set[str], set[str]]:
 
 
 def role(path: str, previous: str | None) -> tuple[str | None, str | None]:
+    if path.startswith(("src/owner_lifecycle/perception_publication", "src/owner_lifecycle/entity_resolution_admission", "src/owner_lifecycle/external_owner_access", "src/owner_lifecycle/external_publication", "src/owner_lifecycle/vector_publication")):
+        return "owner-lifecycle", "Concrete cross-owner admission, physical owner reads and ordered native publication over existing stores; semantic planning stays above and enters only as passive producer values."
     if path in {"src/external_source/mod.rs", "src/external_source/processing.rs", "src/external_source/provenance.rs"}:
         return "external-sources", "External Sources provider, search, preparation and evidence policy; public owner extensions were physically extracted to facade."
     if path.startswith("src/runtime_inference/external_owner_access") or path == "src/runtime_inference/agentic_memory_grading.rs":

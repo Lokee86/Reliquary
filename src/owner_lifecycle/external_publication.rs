@@ -7,7 +7,7 @@ pub(crate) fn publish(
     container: &mut Container,
     memories: &mut crate::memory_store::MemoryStore,
     window: [u8; 32],
-    prepared: &[super::processing::PreparedExternalMemory],
+    prepared: &[crate::external_source::processing::PreparedExternalMemory],
     birth_turn: Option<u64>,
 ) -> Result<Vec<Memory>, MemoryError> {
     if let Some(existing) = memories.external_window(container, window)? {

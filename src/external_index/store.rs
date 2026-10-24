@@ -94,6 +94,20 @@ pub(crate) struct ExternalIndexStore {
     pub damaged: bool,
 }
 impl ExternalIndexStore {
+    pub(crate) fn read_state(
+        &self,
+        namespace: &str,
+    ) -> Result<Option<SourceState>, ExternalSourceError> {
+        identifier(namespace)?;
+        if let Some(state) = self.sources.get(namespace) {
+            return Ok(Some(state.clone()));
+        }
+        if self.damaged {
+            return Err(ExternalSourceError::RebuildRequired);
+        }
+        Ok(None)
+    }
+
     pub(crate) fn ingest(&mut self, bytes: &[u8]) {
         if bytes.starts_with(super::codec::MAGIC) {
             match super::codec::decode(bytes) {

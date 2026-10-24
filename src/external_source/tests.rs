@@ -8,7 +8,7 @@ pub(crate) mod test_support {
         cva: &Cva,
         namespace: &str,
     ) -> Result<Option<crate::external_index::store::SourceState>, ExternalSourceError> {
-        crate::external_source::read_state(&cva.external_index, namespace)
+        cva.external_index.read_state(namespace)
     }
 
     pub(crate) fn external_profile(
@@ -38,9 +38,13 @@ pub(crate) mod test_support {
         query: &str,
         limit: usize,
     ) -> Result<Vec<ExternalSearchHit>, ExternalSourceError> {
-        crate::external_owner_access::search(
-            &cva.container,
-            &cva.packed_vectors,
+        crate::external_source::search(
+            &mut crate::external_vector_reader::ExternalVectorReader::new(
+                crate::external_owner_access::packed_vector_read(
+                    &cva.container,
+                    &cva.packed_vectors,
+                ),
+            ),
             state,
             vector,
             query,
@@ -636,6 +640,7 @@ fn corrupt_logical_index_reopens_without_losing_semantics_and_rebuild_persists()
     let mut prepared = prepared_memory(window, "An independent semantic decision.");
     prepared.evidence.authority.message = host.refs()[0].clone();
     let memory = publish_window(&mut cva, window, &[prepared])
+        .unwrap()
         .into_iter()
         .next()
         .unwrap();
@@ -665,6 +670,7 @@ fn corrupt_logical_index_reopens_without_losing_semantics_and_rebuild_persists()
     let mut reopened = Cva::open(&path).unwrap();
     assert_eq!(
         external_index_state(&reopened, "host:test")
+            .unwrap()
             .unwrap()
             .status(),
         rebuilt
