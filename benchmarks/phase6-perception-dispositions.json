@@ -5307,5 +5307,29 @@
       "symbol": "EntityResolverError"
     }
   ],
-  "value_contract_authority": "tools/pitlord/owner-boundaries.json producer_value_contracts: explicit public-consumers -> perception entries"
+  "value_contract_authority": "tools/pitlord/owner-boundaries.json producer_value_contracts: explicit public-consumers -> perception entries",
+  "accepted_public_service_contracts": {
+    "direction": "public-consumers -> perception (downward)",
+    "count": 3,
+    "symbols": [
+      "EntityResolutionEngine",
+      "EntityResolver"
+    ],
+    "rule": "Preserve existing public method service parameters with exact source signatures; these are not lower-to-public implementation callbacks and do not require additional DAG allowlist edges.",
+    "limitation": "Does not establish absence of unrelated service callback or whole-graph cycle."
+  },
+  "public_service_signature_decision": {
+    "status": "approved_exact_downward_public_contract",
+    "count": 3,
+    "symbols": [
+      "EntityResolutionEngine",
+      "EntityResolver"
+    ],
+    "rule": "Supported facade method parameters referencing Perception-owned service types are permitted public-to-domain dependencies only; no Perception-to-facade callback or new dependency direction is waived.",
+    "source_witnesses": [
+      "src/facade/cva_entity_resolution_batch.rs",
+      "src/facade/cva_entity_resolution_processor.rs"
+    ],
+    "acceptance": "All 82 original rows classified; 46 removed implementation imports, 33 immutable owner values, 3 preserved downward public service parameters; final behavior and graph checks remain independently required."
+  }
 }

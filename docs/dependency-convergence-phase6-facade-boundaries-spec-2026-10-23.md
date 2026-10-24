@@ -92,7 +92,7 @@ Each ticket owns one public-method family or tightly coupled macro family, its c
 - **P6.1.16 — Residual named-domain extensions.** **Source:** B6 exact census of other areas (Dream/Freshness/Ego/Graph/Import/History). **Cut:** inspect each source-confirmed candidate, and **if multiple independent cuts remain, create explicit child tickets before execution**; if none, record zero and the evidence. Not permission for an unbounded cross-domain rewrite. **Evidence:** complete census with signed-off nonviolations.
 - **P6.1.17 — Retire 82-edge Perception deferral register.** **Source:** `convergence-phase6-perception-facade-import-closure.json`, production component map and moved macro registrations. **Cut:** reconcile each original edge to absent, or to a genuinely nonviolating owner-qualified value. **Evidence:** exact before/after import witnesses; zero deferred implementation backedges.
 
-**F6 exit:** All independently named Perception/Archive/Retrieval public cuts are finished; every original Perception deferral row has an evidence-backed disposition, and no discovered extra domain is hidden in the residual ticket.
+**F6 exit:** All independently named Perception/Archive/Retrieval public cuts are finished; every original Perception deferral row has an evidence-backed disposition including exact preserved public downward service parameter contracts, and no discovered extra domain is hidden in the residual ticket.
 
 ### P6.2 — Public composition and supported consumers (C6; 6 tasks)
 
@@ -124,6 +124,10 @@ Each ticket owns one public-method family or tightly coupled macro family, its c
 **A6 exit:** Accepted, integrated source+test+API receipt on main; no Phase 6 ownership debt silently reclassified to Phase 7.
 
 **Denominator:** P6.0 4 + P6.1 17 + P6.2 6 + P6.3 5 + P6.4 3 = **35 named tickets**, with **5 gates** (B6, F6, C6, D6, A6). The original specification began with none implemented or accepted; current task/gate disposition and added bounded children are recorded in the execution receipt. B6 verifies that the integrated Phase 5 source still matches the named cuts; genuine newly discovered independent work requires an explicit child ticket before implementation, not an open-ended task. `lib.rs`, macro registries and public exports have one integration owner.
+
+## Exact preserved public service contracts
+
+The original 82-row Perception register has 46 eliminated implementation imports, 33 owner-qualified immutable value references and **three preserved public method-parameter references** (two `EntityResolutionEngine`, one `EntityResolver`). These three are permitted **facade → Perception** public API dependencies, not exemptions from the forbidden **Perception → facade** direction. Preserve the existing method signatures at `src/facade/cva_entity_resolution_batch.rs` and `src/facade/cva_entity_resolution_processor.rs`. The exact source witnesses are recorded in `benchmarks/phase6-perception-dispositions.json`. No blanket domain-service exemption or source-edge elimination claim is authorized.
 
 ## Verification budget and stop conditions
 

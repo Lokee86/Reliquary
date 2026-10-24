@@ -107,7 +107,7 @@
     {
       "id": "P6.1.17",
       "source_status": "implemented",
-      "acceptance_status": "pending-exact-three-public-service-contract-decision"
+      "acceptance_status": "public-downward-service-contracts-classified-source-witnessed"
     },
     {
       "id": "P6.2.1",
@@ -269,10 +269,18 @@
   },
   "gates": {
     "B6": "source-census-passed",
-    "F6": "pending-exact-public-contract-exceptions",
-    "C6": "consumer-verification-pending",
-    "D6": "final-source-and-behavior-verification-pending",
-    "A6": "not-accepted"
+    "F6": "source-cuts-and-all-82-rows-dispositioned; source-guard-passed; regression-acceptance-incomplete",
+    "C6": "public-contracts-preserved-and-reviewed; final-consumer-test-acceptance-incomplete",
+    "D6": "842-file-facade-guard-passed; full Rust regression attempt incomplete",
+    "A6": "NOT ACCEPTED: full Rust suite cancelled after output stalled; final CLI/corpus/doc and integration acceptance not completed"
   },
-  "spec_procedure_deviation": "Agentic grading child was recorded immediately after its edit; all other discovered children have pre-execution source registers."
+  "spec_procedure_deviation": "Agentic grading child was recorded immediately after its edit; all other discovered children have pre-execution source registers.",
+  "final_attempt_2026_10_23": {
+    "facade_guard": "passed, 842 reachable production files, 0 violations",
+    "git_diff_check": "passed",
+    "cargo_fmt_check": "passed",
+    "perception_dispositions_json": "valid",
+    "cargo_full_test": "cancelled, not passed; output stalled after two previously long tests reported success; no final summary, seven-minute run",
+    "documented_limit": "No claim of A6 completion or full architecture refresh"
+  }
 }
