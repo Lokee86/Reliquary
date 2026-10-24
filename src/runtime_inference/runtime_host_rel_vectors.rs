@@ -88,10 +88,12 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
                 super::super::mutation_events::RelMutationFamily::Retrieval,
                 |runtime| {
                     let count = runtime.cva.active_memory_compatibility_profiles().len();
-                    let value = runtime
-                        .cva
-                        .accept_runtime_compatibility_profile(candidate.clone())
-                        .map_err(operation)?;
+                    let value = crate::vector_publication::accept_profile(
+                        &mut runtime.cva.container,
+                        &mut runtime.cva.compatibility_profiles,
+                        candidate.clone(),
+                    )
+                    .map_err(operation)?;
                     let changed = runtime.cva.active_memory_compatibility_profiles().len() != count;
                     Ok((
                         value,
@@ -116,10 +118,14 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
                 .runtime
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-            runtime
-                .cva
-                .prepare_runtime_memory_vector_batch(profile.id)
-                .map_err(operation)?
+            crate::vector_publication::prepare_batch(
+                &mut runtime.cva.container,
+                &runtime.cva.memories,
+                &runtime.cva.compatibility_profiles,
+                &runtime.cva.memory_vectors,
+                profile.id,
+            )
+            .map_err(operation)?
         };
         if let Some(batch) = batch {
             let vectors = match endpoint.embed(EmbeddingMode::Document, &batch.texts) {
@@ -136,10 +142,16 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
             shared.mutate(
                 super::super::mutation_events::RelMutationFamily::Retrieval,
                 |runtime| {
-                    let count = runtime
-                        .cva
-                        .commit_runtime_memory_vector_batch(batch, vectors)
-                        .map_err(operation)?;
+                    let count = crate::vector_publication::commit_batch(
+                        &mut runtime.cva.container,
+                        &runtime.cva.memories,
+                        &runtime.cva.compatibility_profiles,
+                        &mut runtime.cva.packed_vectors,
+                        &mut runtime.cva.memory_vectors,
+                        batch,
+                        vectors,
+                    )
+                    .map_err(operation)?;
                     Ok((
                         (),
                         count > 0,

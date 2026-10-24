@@ -77,11 +77,12 @@ pub(super) fn worker_loop(
                     .owner
                     .lock()
                     .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
-                let accepted = owner
-                    .accept_runtime_compatibility_profile(
-                        candidate.as_ref().expect("profile candidate").clone(),
-                    )
-                    .map_err(operation)?;
+                let accepted = crate::vector_publication::accept_profile(
+                    &mut owner.container,
+                    &mut owner.compatibility_profiles,
+                    candidate.as_ref().expect("profile candidate").clone(),
+                )
+                .map_err(operation)?;
                 owner.sync().map_err(operation)?;
                 accepted
             };
@@ -96,12 +97,20 @@ pub(super) fn worker_loop(
                 .clone();
         }
         if let Some(p) = profile.as_ref() {
-            let batch = shared
-                .owner
-                .lock()
-                .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?
-                .prepare_runtime_memory_vector_batch(p.id)
-                .map_err(operation)?;
+            let batch = {
+                let mut owner = shared
+                    .owner
+                    .lock()
+                    .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
+                crate::vector_publication::prepare_batch(
+                    &mut owner.container,
+                    &owner.memories,
+                    &owner.compatibility_profiles,
+                    &owner.memory_vectors,
+                    p.id,
+                )
+                .map_err(operation)?
+            };
             if let Some(batch) = batch {
                 let vectors = match endpoint.embed(EmbeddingMode::Document, &batch.texts) {
                     Ok(value) => value,
@@ -124,9 +133,16 @@ pub(super) fn worker_loop(
                         .owner
                         .lock()
                         .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
-                    owner
-                        .commit_runtime_memory_vector_batch(batch, vectors)
-                        .map_err(operation)?;
+                    crate::vector_publication::commit_batch(
+                        &mut owner.container,
+                        &owner.memories,
+                        &owner.compatibility_profiles,
+                        &mut owner.packed_vectors,
+                        &mut owner.memory_vectors,
+                        batch,
+                        vectors,
+                    )
+                    .map_err(operation)?;
                     owner.sync().map_err(operation)?;
                 }
                 let active = shared

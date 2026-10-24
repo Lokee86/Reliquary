@@ -16,14 +16,33 @@ impl Cva {
         endpoint: &impl EmbeddingEndpoint,
     ) -> Result<DerivedVectorRecovery, CvaError> {
         let candidate = profile_from_endpoint(endpoint)?;
-        let profile = self.accept_runtime_compatibility_profile(candidate)?;
+        let profile = crate::vector_publication::accept_profile(
+            &mut self.container,
+            &mut self.compatibility_profiles,
+            candidate,
+        )?;
 
-        let memory_vectors_embedded = match self.prepare_runtime_memory_vector_batch(profile.id)? {
+        let batch = crate::vector_publication::prepare_batch(
+            &mut self.container,
+            &self.memories,
+            &self.compatibility_profiles,
+            &self.memory_vectors,
+            profile.id,
+        )?;
+        let memory_vectors_embedded = match batch {
             Some(batch) => {
                 let vectors = endpoint
                     .embed(EmbeddingMode::Document, &batch.texts)
                     .map_err(MemoryVectorError::from)?;
-                self.commit_runtime_memory_vector_batch(batch, vectors)?
+                crate::vector_publication::commit_batch(
+                    &mut self.container,
+                    &self.memories,
+                    &self.compatibility_profiles,
+                    &mut self.packed_vectors,
+                    &mut self.memory_vectors,
+                    batch,
+                    vectors,
+                )?
             }
             None => 0,
         };

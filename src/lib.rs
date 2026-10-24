@@ -59,7 +59,9 @@ mod entity_reconciliation_owner;
 #[path = "facade/external_source_extensions.rs"]
 mod external_source_extensions;
 #[path = "runtime_inference/runtime_vector_step.rs"]
-mod runtime_vector_step_owner;
+mod runtime_vector_step_policy;
+#[path = "runtime_inference/vector_publication.rs"]
+mod vector_publication;
 pub use agentic_memory_retrieval::AgenticMemoryController;
 pub use agentic_memory_retrieval_model::{
     AgenticMemoryAnchorReport, AgenticMemoryContent, AgenticMemoryError,
@@ -1077,8 +1079,6 @@ mod runtime_config;
 mod runtime_host;
 #[path = "runtime_inference/runtime_shared.rs"]
 mod runtime_shared;
-#[path = "facade/runtime_vector_step.rs"]
-mod runtime_vector_step;
 #[path = "retrieval/search.rs"]
 mod search;
 #[path = "retrieval/search_error.rs"]
