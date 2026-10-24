@@ -1,6 +1,6 @@
 # Phase 6 — Public façade and API dependency convergence
 
-**Status:** Source implemented; acceptance pending the [execution receipt](dependency-convergence-phase6-execution-2026-10-23.md).
+**Status:** Bounded Phase 6 source/API/behavior gates accepted on main; see the [execution receipt](dependency-convergence-phase6-execution-2026-10-23.md).
 **Date:** 2026-10-23.
 **Campaign:** [Dependency Convergence](dependency-convergence-architecture-refactor-2026-10-21.md).
 **Execution prerequisite (satisfied for B6):** Phase 5 implementation integrated into `main` at `9a3678f`, final evidence recorded at `17514f0`, with source/consumer handoff and passing Rust/CLI/corpus/documentation checks. Phase 5 **A5 is explicitly not fully accepted** because the full architecture refresh produced no snapshot. That evidence gap is **not an implementation blocker for Phase 6 B6–A6**; carry it as an open, named graph-proof obligation into Phase 7 A7. Do not claim A5 acceptance, invent an architecture snapshot, waive the final DAG requirement, or repeatedly run the stalled analyzer. Phase 6 must establish its own actual source-edge evidence and gates.

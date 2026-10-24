@@ -3716,6 +3716,12 @@
       "owner": "pure-codec",
       "symbol": "PhylacteryProfile",
       "reason": "Phase 6 exact value contract: Immutable principal profile input preserved by native publication planning; no store or facade capability."
+    },
+    {
+      "consumer": "perception",
+      "owner": "pure-codec",
+      "symbol": "PhylacteryProfile",
+      "reason": "Exact immutable profile input for pure principal synchronization planning; no owner store, product binding or executable provider."
     }
   ],
   "forbidden_symbols": [

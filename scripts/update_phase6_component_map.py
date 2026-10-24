@@ -52,6 +52,10 @@ def source_changes(base: str) -> tuple[set[str], set[str], set[str]]:
 
 
 def role(path: str, previous: str | None) -> tuple[str | None, str | None]:
+    if path == "src/runtime_inference/vector_publication.rs":
+        return "vectors", "Pure vector batch preparation over canonical owner readers; physical publication is in owner-lifecycle. This reviewed source-role correction is not counted as dependency elimination."
+    if path == "src/runtime_inference/perception_publication_resolution.rs":
+        return "perception", "Pure Perception preparation and principal planning over owner-qualified readers; physical admission/publication was extracted to owner-lifecycle. Role correction only, not an eliminated call edge."
     if path == "src/freshness/ego_grades.rs":
         return "freshness", "Canonical read-only Freshness grading policy over the existing Freshness store; both public Ego read and mounted agentic retrieval consume this concrete reader."
     if path in {"src/runtime_inference/insomnia_runtime_execution.rs", "src/runtime_inference/vector_publication.rs", "src/runtime_inference/semantic_archive_batch.rs"}:

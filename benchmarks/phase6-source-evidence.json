@@ -3,7 +3,7 @@
   "baseline_commit": "17514f007e48e81d5ea1ec7f41088564de9e7411",
   "baseline_source_root": "C:\\!bin\\workspace\\Reliquary\\.verification-tmp\\phase6-before-src\\src",
   "mapping_path": "tools\\pitlord\\production-components.json",
-  "mapping_sha256": "71121751c26f13aa0b014c82fe68c55484e44b704846ecdefb4bf8296f357eae",
+  "mapping_sha256": "d8a7065f1572a945287832c642509a2deb0ad5aea05ec6cc36e4a5fa4b2289e1",
   "cfg_profile": {
     "target": "Windows x86_64 MSVC",
     "features": [],
@@ -42,9 +42,9 @@
   "scope": "cfg-aware source imports between mapped production files, resolved by scripts/check_owner_boundaries.py; not compiler call graph",
   "counts": {
     "baseline_production_import_edges": 3305,
-    "current_production_import_edges": 3584,
+    "current_production_import_edges": 3578,
     "exact_source_import_edges_removed": 269,
-    "exact_source_import_edges_added": 548,
+    "exact_source_import_edges_added": 542,
     "baseline_uncertain_imports": 96,
     "current_uncertain_imports": 97
   },
@@ -5692,7 +5692,7 @@
     },
     {
       "source_component": "public-consumers",
-      "target_component": "runtime-gateway",
+      "target_component": "perception",
       "category": "strict-import",
       "relation": "imports",
       "source": {
@@ -5706,11 +5706,11 @@
       },
       "canonical": "perception_publication_resolution::plan_phy_principal_resolution",
       "alias": null,
-      "disposition": "accepted-target-dependency"
+      "disposition": "strict-import-requires-source-review"
     },
     {
       "source_component": "public-consumers",
-      "target_component": "runtime-gateway",
+      "target_component": "perception",
       "category": "strict-import",
       "relation": "imports",
       "source": {
@@ -5724,11 +5724,11 @@
       },
       "canonical": "perception_publication_resolution::plan_principal_profile_sync",
       "alias": null,
-      "disposition": "accepted-target-dependency"
+      "disposition": "strict-import-requires-source-review"
     },
     {
       "source_component": "public-consumers",
-      "target_component": "runtime-gateway",
+      "target_component": "perception",
       "category": "strict-import",
       "relation": "imports",
       "source": {
@@ -5742,7 +5742,7 @@
       },
       "canonical": "perception_publication_resolution::plan_rel_principal_resolution",
       "alias": null,
-      "disposition": "accepted-target-dependency"
+      "disposition": "strict-import-requires-source-review"
     },
     {
       "source_component": "public-consumers",
@@ -13899,7 +13899,7 @@
       "disposition": "strict-import-requires-source-review"
     },
     {
-      "source_component": "runtime-gateway",
+      "source_component": "perception",
       "target_component": "memory-store",
       "category": "strict-import",
       "relation": "imports",
@@ -13917,7 +13917,7 @@
       "disposition": "accepted-target-dependency"
     },
     {
-      "source_component": "runtime-gateway",
+      "source_component": "perception",
       "target_component": "pure-codec",
       "category": "approved-immutable-value",
       "relation": "imports",
@@ -13935,61 +13935,7 @@
       "disposition": "accepted-immutable-value"
     },
     {
-      "source_component": "runtime-gateway",
-      "target_component": "perception",
-      "category": "strict-import",
-      "relation": "imports",
-      "source": {
-        "path": "src/runtime_inference/perception_publication_resolution.rs",
-        "name": "crate::EntityCandidateConfig",
-        "line": 7
-      },
-      "target": {
-        "path": "src/perception/entity_candidate_model.rs",
-        "name": "EntityCandidateConfig"
-      },
-      "canonical": "entity_candidate_model::EntityCandidateConfig",
-      "alias": null,
-      "disposition": "accepted-target-dependency"
-    },
-    {
-      "source_component": "runtime-gateway",
-      "target_component": "perception",
-      "category": "strict-import",
-      "relation": "imports",
-      "source": {
-        "path": "src/runtime_inference/perception_publication_resolution.rs",
-        "name": "crate::entity_principal::PrincipalResolutionPlan",
-        "line": 1
-      },
-      "target": {
-        "path": "src/perception/entity_principal.rs",
-        "name": "PrincipalResolutionPlan"
-      },
-      "canonical": "entity_principal::PrincipalResolutionPlan",
-      "alias": null,
-      "disposition": "accepted-target-dependency"
-    },
-    {
-      "source_component": "runtime-gateway",
-      "target_component": "perception",
-      "category": "strict-import",
-      "relation": "imports",
-      "source": {
-        "path": "src/runtime_inference/perception_publication_resolution.rs",
-        "name": "crate::EntityResolutionPreparation",
-        "line": 7
-      },
-      "target": {
-        "path": "src/perception/entity_resolution_prepared.rs",
-        "name": "EntityResolutionPreparation"
-      },
-      "canonical": "entity_resolution_prepared::EntityResolutionPreparation",
-      "alias": null,
-      "disposition": "accepted-target-dependency"
-    },
-    {
-      "source_component": "runtime-gateway",
+      "source_component": "perception",
       "target_component": "perception-store",
       "category": "strict-import",
       "relation": "imports",
@@ -14004,28 +13950,10 @@
       },
       "canonical": "entity_resolution_store::EntityResolutionStore",
       "alias": null,
-      "disposition": "strict-import-requires-source-review"
-    },
-    {
-      "source_component": "runtime-gateway",
-      "target_component": "perception",
-      "category": "strict-import",
-      "relation": "imports",
-      "source": {
-        "path": "src/runtime_inference/perception_publication_resolution.rs",
-        "name": "crate::EntityResolverError",
-        "line": 7
-      },
-      "target": {
-        "path": "src/perception/entity_resolver_error.rs",
-        "name": "EntityResolverError"
-      },
-      "canonical": "entity_resolver_error::EntityResolverError",
-      "alias": null,
       "disposition": "accepted-target-dependency"
     },
     {
-      "source_component": "runtime-gateway",
+      "source_component": "perception",
       "target_component": "perception-store",
       "category": "strict-import",
       "relation": "imports",
@@ -14040,10 +13968,10 @@
       },
       "canonical": "entity_store::EntityStore",
       "alias": null,
-      "disposition": "strict-import-requires-source-review"
+      "disposition": "accepted-target-dependency"
     },
     {
-      "source_component": "runtime-gateway",
+      "source_component": "perception",
       "target_component": "retrieval",
       "category": "strict-import",
       "relation": "imports",
@@ -14061,7 +13989,7 @@
       "disposition": "accepted-target-dependency"
     },
     {
-      "source_component": "runtime-gateway",
+      "source_component": "perception",
       "target_component": "graph-store",
       "category": "strict-import",
       "relation": "imports",
@@ -14076,7 +14004,7 @@
       },
       "canonical": "graph_store::GraphStore",
       "alias": null,
-      "disposition": "strict-import-requires-source-review"
+      "disposition": "accepted-target-dependency"
     },
     {
       "source_component": "runtime-gateway",
@@ -14367,7 +14295,7 @@
       "disposition": "strict-import-requires-source-review"
     },
     {
-      "source_component": "runtime-gateway",
+      "source_component": "vectors",
       "target_component": "memory-store",
       "category": "strict-import",
       "relation": "imports",
@@ -14385,7 +14313,7 @@
       "disposition": "accepted-target-dependency"
     },
     {
-      "source_component": "runtime-gateway",
+      "source_component": "vectors",
       "target_component": "vector-store",
       "category": "strict-import",
       "relation": "imports",
@@ -14400,10 +14328,10 @@
       },
       "canonical": "compatibility_profile_model::CompatibilityProfileId",
       "alias": null,
-      "disposition": "strict-import-requires-source-review"
+      "disposition": "accepted-target-dependency"
     },
     {
-      "source_component": "runtime-gateway",
+      "source_component": "vectors",
       "target_component": "vector-store",
       "category": "strict-import",
       "relation": "imports",
@@ -14418,10 +14346,10 @@
       },
       "canonical": "compatibility_profile_store::CompatibilityProfileStore",
       "alias": null,
-      "disposition": "strict-import-requires-source-review"
+      "disposition": "accepted-target-dependency"
     },
     {
-      "source_component": "runtime-gateway",
+      "source_component": "vectors",
       "target_component": "vector-store",
       "category": "strict-import",
       "relation": "imports",
@@ -14436,10 +14364,10 @@
       },
       "canonical": "memory_vector_error::MemoryVectorError",
       "alias": null,
-      "disposition": "strict-import-requires-source-review"
+      "disposition": "accepted-target-dependency"
     },
     {
-      "source_component": "runtime-gateway",
+      "source_component": "vectors",
       "target_component": "vector-store",
       "category": "strict-import",
       "relation": "imports",
@@ -14453,42 +14381,6 @@
         "name": "MemoryVectorStore"
       },
       "canonical": "memory_vector_store::MemoryVectorStore",
-      "alias": null,
-      "disposition": "strict-import-requires-source-review"
-    },
-    {
-      "source_component": "runtime-gateway",
-      "target_component": "vectors",
-      "category": "strict-import",
-      "relation": "imports",
-      "source": {
-        "path": "src/runtime_inference/vector_publication.rs",
-        "name": "crate::runtime_vector_step_policy::RuntimeMemoryVectorBatch",
-        "line": 4
-      },
-      "target": {
-        "path": "src/runtime_inference/runtime_vector_step.rs",
-        "name": "RuntimeMemoryVectorBatch"
-      },
-      "canonical": "runtime_vector_step_policy::RuntimeMemoryVectorBatch",
-      "alias": null,
-      "disposition": "accepted-target-dependency"
-    },
-    {
-      "source_component": "runtime-gateway",
-      "target_component": "vectors",
-      "category": "strict-import",
-      "relation": "imports",
-      "source": {
-        "path": "src/runtime_inference/vector_publication.rs",
-        "name": "crate::runtime_vector_step_policy::self",
-        "line": 4
-      },
-      "target": {
-        "path": "src/runtime_inference/runtime_vector_step.rs",
-        "name": "self"
-      },
-      "canonical": "runtime_vector_step_policy::self",
       "alias": null,
       "disposition": "accepted-target-dependency"
     }
@@ -19374,7 +19266,7 @@
     },
     {
       "source_component": "public-consumers",
-      "target_component": "runtime-gateway",
+      "target_component": "perception",
       "category": "strict-import",
       "relation": "imports",
       "source": {
@@ -19388,11 +19280,11 @@
       },
       "canonical": "perception_publication_resolution::plan_phy_principal_resolution",
       "alias": null,
-      "disposition": "accepted-target-dependency"
+      "disposition": "strict-import-requires-source-review"
     },
     {
       "source_component": "public-consumers",
-      "target_component": "runtime-gateway",
+      "target_component": "perception",
       "category": "strict-import",
       "relation": "imports",
       "source": {
@@ -19406,11 +19298,11 @@
       },
       "canonical": "perception_publication_resolution::plan_principal_profile_sync",
       "alias": null,
-      "disposition": "accepted-target-dependency"
+      "disposition": "strict-import-requires-source-review"
     },
     {
       "source_component": "public-consumers",
-      "target_component": "runtime-gateway",
+      "target_component": "perception",
       "category": "strict-import",
       "relation": "imports",
       "source": {
@@ -19424,7 +19316,7 @@
       },
       "canonical": "perception_publication_resolution::plan_rel_principal_resolution",
       "alias": null,
-      "disposition": "accepted-target-dependency"
+      "disposition": "strict-import-requires-source-review"
     },
     {
       "source_component": "public-consumers",
@@ -74201,25 +74093,7 @@
       "disposition": "accepted-target-dependency"
     },
     {
-      "source_component": "runtime-gateway",
-      "target_component": "perception",
-      "category": "strict-import",
-      "relation": "imports",
-      "source": {
-        "path": "src/runtime_inference/perception_publication_resolution.rs",
-        "name": "crate::entity_principal::PrincipalResolutionPlan",
-        "line": 1
-      },
-      "target": {
-        "path": "src/perception/entity_principal.rs",
-        "name": "PrincipalResolutionPlan"
-      },
-      "canonical": "entity_principal::PrincipalResolutionPlan",
-      "alias": null,
-      "disposition": "accepted-target-dependency"
-    },
-    {
-      "source_component": "runtime-gateway",
+      "source_component": "perception",
       "target_component": "perception-store",
       "category": "strict-import",
       "relation": "imports",
@@ -74234,10 +74108,10 @@
       },
       "canonical": "entity_resolution_store::EntityResolutionStore",
       "alias": null,
-      "disposition": "strict-import-requires-source-review"
+      "disposition": "accepted-target-dependency"
     },
     {
-      "source_component": "runtime-gateway",
+      "source_component": "perception",
       "target_component": "perception-store",
       "category": "strict-import",
       "relation": "imports",
@@ -74252,10 +74126,10 @@
       },
       "canonical": "entity_store::EntityStore",
       "alias": null,
-      "disposition": "strict-import-requires-source-review"
+      "disposition": "accepted-target-dependency"
     },
     {
-      "source_component": "runtime-gateway",
+      "source_component": "perception",
       "target_component": "graph-store",
       "category": "strict-import",
       "relation": "imports",
@@ -74270,10 +74144,10 @@
       },
       "canonical": "graph_store::GraphStore",
       "alias": null,
-      "disposition": "strict-import-requires-source-review"
+      "disposition": "accepted-target-dependency"
     },
     {
-      "source_component": "runtime-gateway",
+      "source_component": "perception",
       "target_component": "retrieval",
       "category": "strict-import",
       "relation": "imports",
@@ -74291,7 +74165,7 @@
       "disposition": "accepted-target-dependency"
     },
     {
-      "source_component": "runtime-gateway",
+      "source_component": "perception",
       "target_component": "memory-store",
       "category": "strict-import",
       "relation": "imports",
@@ -74309,61 +74183,7 @@
       "disposition": "accepted-target-dependency"
     },
     {
-      "source_component": "runtime-gateway",
-      "target_component": "perception",
-      "category": "strict-import",
-      "relation": "imports",
-      "source": {
-        "path": "src/runtime_inference/perception_publication_resolution.rs",
-        "name": "crate::EntityCandidateConfig",
-        "line": 7
-      },
-      "target": {
-        "path": "src/perception/entity_candidate_model.rs",
-        "name": "EntityCandidateConfig"
-      },
-      "canonical": "entity_candidate_model::EntityCandidateConfig",
-      "alias": null,
-      "disposition": "accepted-target-dependency"
-    },
-    {
-      "source_component": "runtime-gateway",
-      "target_component": "perception",
-      "category": "strict-import",
-      "relation": "imports",
-      "source": {
-        "path": "src/runtime_inference/perception_publication_resolution.rs",
-        "name": "crate::EntityResolutionPreparation",
-        "line": 7
-      },
-      "target": {
-        "path": "src/perception/entity_resolution_prepared.rs",
-        "name": "EntityResolutionPreparation"
-      },
-      "canonical": "entity_resolution_prepared::EntityResolutionPreparation",
-      "alias": null,
-      "disposition": "accepted-target-dependency"
-    },
-    {
-      "source_component": "runtime-gateway",
-      "target_component": "perception",
-      "category": "strict-import",
-      "relation": "imports",
-      "source": {
-        "path": "src/runtime_inference/perception_publication_resolution.rs",
-        "name": "crate::EntityResolverError",
-        "line": 7
-      },
-      "target": {
-        "path": "src/perception/entity_resolver_error.rs",
-        "name": "EntityResolverError"
-      },
-      "canonical": "entity_resolver_error::EntityResolverError",
-      "alias": null,
-      "disposition": "accepted-target-dependency"
-    },
-    {
-      "source_component": "runtime-gateway",
+      "source_component": "perception",
       "target_component": "pure-codec",
       "category": "approved-immutable-value",
       "relation": "imports",
@@ -78035,7 +77855,7 @@
       "disposition": "strict-import-requires-source-review"
     },
     {
-      "source_component": "runtime-gateway",
+      "source_component": "vectors",
       "target_component": "vector-store",
       "category": "strict-import",
       "relation": "imports",
@@ -78050,10 +77870,10 @@
       },
       "canonical": "compatibility_profile_store::CompatibilityProfileStore",
       "alias": null,
-      "disposition": "strict-import-requires-source-review"
+      "disposition": "accepted-target-dependency"
     },
     {
-      "source_component": "runtime-gateway",
+      "source_component": "vectors",
       "target_component": "memory-store",
       "category": "strict-import",
       "relation": "imports",
@@ -78071,7 +77891,7 @@
       "disposition": "accepted-target-dependency"
     },
     {
-      "source_component": "runtime-gateway",
+      "source_component": "vectors",
       "target_component": "vector-store",
       "category": "strict-import",
       "relation": "imports",
@@ -78086,46 +77906,10 @@
       },
       "canonical": "memory_vector_store::MemoryVectorStore",
       "alias": null,
-      "disposition": "strict-import-requires-source-review"
-    },
-    {
-      "source_component": "runtime-gateway",
-      "target_component": "vectors",
-      "category": "strict-import",
-      "relation": "imports",
-      "source": {
-        "path": "src/runtime_inference/vector_publication.rs",
-        "name": "crate::runtime_vector_step_policy::self",
-        "line": 4
-      },
-      "target": {
-        "path": "src/runtime_inference/runtime_vector_step.rs",
-        "name": "self"
-      },
-      "canonical": "runtime_vector_step_policy::self",
-      "alias": null,
       "disposition": "accepted-target-dependency"
     },
     {
-      "source_component": "runtime-gateway",
-      "target_component": "vectors",
-      "category": "strict-import",
-      "relation": "imports",
-      "source": {
-        "path": "src/runtime_inference/vector_publication.rs",
-        "name": "crate::runtime_vector_step_policy::RuntimeMemoryVectorBatch",
-        "line": 4
-      },
-      "target": {
-        "path": "src/runtime_inference/runtime_vector_step.rs",
-        "name": "RuntimeMemoryVectorBatch"
-      },
-      "canonical": "runtime_vector_step_policy::RuntimeMemoryVectorBatch",
-      "alias": null,
-      "disposition": "accepted-target-dependency"
-    },
-    {
-      "source_component": "runtime-gateway",
+      "source_component": "vectors",
       "target_component": "vector-store",
       "category": "strict-import",
       "relation": "imports",
@@ -78140,10 +77924,10 @@
       },
       "canonical": "compatibility_profile_model::CompatibilityProfileId",
       "alias": null,
-      "disposition": "strict-import-requires-source-review"
+      "disposition": "accepted-target-dependency"
     },
     {
-      "source_component": "runtime-gateway",
+      "source_component": "vectors",
       "target_component": "vector-store",
       "category": "strict-import",
       "relation": "imports",
@@ -78158,7 +77942,7 @@
       },
       "canonical": "memory_vector_error::MemoryVectorError",
       "alias": null,
-      "disposition": "strict-import-requires-source-review"
+      "disposition": "accepted-target-dependency"
     },
     {
       "source_component": "runtime-gateway",

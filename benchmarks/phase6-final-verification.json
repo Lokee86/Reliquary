@@ -1,0 +1,239 @@
+{
+  "schema": "dependency-convergence-phase6-final-verification.v1",
+  "status": "Phase 6 bounded source/API/behavior gates accepted; inherited full graph proof remains A7",
+  "baseline": "17514f007e48e81d5ea1ec7f41088564de9e7411",
+  "behavior_checkpoint": "aa0700b",
+  "final_rust_checkpoint": "cfaebe1",
+  "final_source_digest": "d3549a92696fa9189534e845ed2d916ef612c1e5bf954382745be912055646b7",
+  "source_digest_algorithm": "sha256 sorted path+NUL+LF-normalized Rust source+NUL; all src/**/*.rs including tests",
+  "library": {
+    "passed": 2003,
+    "failed": 0,
+    "ignored": 5,
+    "seconds": 633.67
+  },
+  "library_log": ".verification-tmp/phase6-final-source-lib.log",
+  "library_behavior_digest": "536469fe56907763562c045cfd9808c86b403667e65ad50207589940347035e5",
+  "placement_only_receipt_reuse": {
+    "operation": "placement only; identical implementation text and logical module parent",
+    "from": "insomnia::native_processor",
+    "to": "insomnia::runtime_step",
+    "body_sha256": "1f2e7144c5ddf94ef66ea5ca7a8dbd77ff81042618d7b7e0900d5522c4739df7",
+    "body_identity_verified": true,
+    "final_placement_compile": {
+      "test_build": 0,
+      "evidence_tests": 0,
+      "fmt": 0,
+      "check": 0
+    },
+    "focused_tests": {
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 0.11
+    },
+    "reuse_authority": "P6.4.1 permits reuse of unchanged-input verified receipts; implementation text and logical module parent are identical, and the final placement is compiled and directly tested."
+  },
+  "integration": {
+    "groups": 25,
+    "passed": 163,
+    "failed": 0,
+    "ignored": 1,
+    "log": ".verification-tmp/phase6-accepted-integration.log"
+  },
+  "cli": {
+    "passed": 32,
+    "failed": 0,
+    "ignored": 0,
+    "seconds": 0.58
+  },
+  "cli_log": ".verification-tmp/phase6-final-placement-cli-tests.log",
+  "corpus": {
+    "command_exit": 0,
+    "explicit_ignored_test": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 27.2
+    },
+    "fixtures": 6,
+    "contract": "Promoted converted hashes, owner heads, bytes and file modification times remain unchanged."
+  },
+  "doctests": [
+    {
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 0.0
+    }
+  ],
+  "roundtrip": {
+    "exit": 0,
+    "result": "2 nodes, 1 branch, 1 fragment, 2 content objects, 2 expanded refs, 810 bytes",
+    "log": ".verification-tmp/phase6-accepted-roundtrip.log"
+  },
+  "final_compile_format": {
+    "test_build": 0,
+    "evidence_tests": 0,
+    "fmt": 0,
+    "check": 0
+  },
+  "documentation": {
+    "full_policy": 0,
+    "changed_from_origin_main": 0,
+    "indexes_and_links": 0,
+    "clean_tracked_checkout": "Unrelated supplied untracked Phase 7 draft excluded; not edited.",
+    "pitlord_docs": "UNAVAILABLE: installed command rejects docs (exit 2), not passed"
+  },
+  "source_rules": {
+    "facade": {
+      "files": 859,
+      "violations": 0,
+      "fixtures": 36
+    },
+    "runtime": {
+      "files": 657,
+      "violations": 0,
+      "fixtures": 11
+    },
+    "owner": "production imports passed",
+    "history": "read-only boundary passed",
+    "physical": "passed, 13 fixtures",
+    "external_sources": "passed, 11 fixtures",
+    "phase4_coverage": "passed, 96 fixtures; 166 APIs classified",
+    "target_dag": "passed, unchanged 34 components and 163 edges"
+  },
+  "original_perception_rows": {
+    "total": 82,
+    "implementation_and_binding_import_cuts": 49,
+    "retained_immutable_values": 33,
+    "unclassified": 0,
+    "service_signature_exceptions": 0
+  },
+  "public_api": {
+    "exact_named_family_signatures": 53,
+    "binding_methods": 7,
+    "missing": []
+  },
+  "source_import_counts": {
+    "baseline_production_import_edges": 3305,
+    "current_production_import_edges": 3578,
+    "exact_source_import_edges_removed": 269,
+    "exact_source_import_edges_added": 542,
+    "baseline_uncertain_imports": 96,
+    "current_uncertain_imports": 97
+  },
+  "new_unapproved_component_pairs": [],
+  "remaining_strict_sccs": [
+    [
+      "public-consumers",
+      "runtime-gateway"
+    ]
+  ],
+  "remaining_runtime_public_witnesses": [
+    {
+      "source_component": "runtime-gateway",
+      "target_component": "public-consumers",
+      "category": "strict-import",
+      "relation": "imports",
+      "source": {
+        "path": "src/runtime_inference/interaction_runtime.rs",
+        "name": "crate::Cva",
+        "line": 2
+      },
+      "target": {
+        "path": "src/facade/cva.rs",
+        "name": "Cva"
+      },
+      "canonical": "cva::Cva",
+      "alias": null,
+      "disposition": "strict-import-requires-source-review"
+    },
+    {
+      "source_component": "runtime-gateway",
+      "target_component": "public-consumers",
+      "category": "strict-import",
+      "relation": "imports",
+      "source": {
+        "path": "src/runtime_inference/runtime_host_gateway.rs",
+        "name": "crate::Phylactery",
+        "line": 5
+      },
+      "target": {
+        "path": "src/facade/phylactery.rs",
+        "name": "Phylactery"
+      },
+      "canonical": "phylactery::Phylactery",
+      "alias": null,
+      "disposition": "strict-import-requires-source-review"
+    },
+    {
+      "source_component": "runtime-gateway",
+      "target_component": "public-consumers",
+      "category": "strict-import",
+      "relation": "imports",
+      "source": {
+        "path": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs",
+        "name": "crate::Cva",
+        "line": 2
+      },
+      "target": {
+        "path": "src/facade/cva.rs",
+        "name": "Cva"
+      },
+      "canonical": "cva::Cva",
+      "alias": null,
+      "disposition": "strict-import-requires-source-review"
+    },
+    {
+      "source_component": "runtime-gateway",
+      "target_component": "public-consumers",
+      "category": "strict-import",
+      "relation": "imports",
+      "source": {
+        "path": "src/runtime_inference/runtime_host_phy_execution.rs",
+        "name": "crate::Phylactery",
+        "line": 2
+      },
+      "target": {
+        "path": "src/facade/phylactery.rs",
+        "name": "Phylactery"
+      },
+      "canonical": "phylactery::Phylactery",
+      "alias": null,
+      "disposition": "strict-import-requires-source-review"
+    },
+    {
+      "source_component": "runtime-gateway",
+      "target_component": "public-consumers",
+      "category": "strict-import",
+      "relation": "imports",
+      "source": {
+        "path": "src/runtime_inference/runtime_host_reconciliation.rs",
+        "name": "crate::Cva",
+        "line": 1
+      },
+      "target": {
+        "path": "src/facade/cva.rs",
+        "name": "Cva"
+      },
+      "canonical": "cva::Cva",
+      "alias": null,
+      "disposition": "strict-import-requires-source-review"
+    }
+  ],
+  "evidence_hashes": {
+    "tools/pitlord/production-components.json": "d8a7065f1572a945287832c642509a2deb0ad5aea05ec6cc36e4a5fa4b2289e1",
+    "tools/pitlord/owner-boundaries.json": "c33ab60ab9f3035f6d7244965ec90f1d690e49fc6b8a30b962e1a0b56aa08bf2",
+    "benchmarks/phase6-source-evidence.json": "385d95f9a0076ea559a69f5f19b1a01f8d35201efc0a7b7d290c80c7fd4d44d9"
+  },
+  "known_limits": [
+    "Source/import rules and original-row review are bounded lexical/source evidence, not complete compiler call-graph proof.",
+    "Inherited A5 analyzer snapshot freshness remains open for Phase 7 A7; no stalled refresh rerun.",
+    "Full architecture entrypoint passed source rules and retained-snapshot Pitlord 25 rules, then failed expected convergence freshness (exit 1).",
+    "Inherited broad deferred-edge register is not repinned to authorize current source debt.",
+    "Pitlord documentation ownership command is unsupported by installed binaries; no pass claimed."
+  ],
+  "subagents": "Luna native subagents used without connectors; root completed saved integration when Luna reached its usage limit.",
+  "acceptance_basis": "No registered Phase 6 private facade callback remains. Remaining C-05 public aggregate composition/offline API SCC and full symbol graph proof are explicitly A7; not unfinished Phase 6 implementation."
+}

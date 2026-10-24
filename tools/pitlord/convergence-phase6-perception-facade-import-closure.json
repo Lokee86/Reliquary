@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "status": "source-reconciled; all-82-rows-disposed; integrated-acceptance-pending",
+  "status": "source-reconciled; all-82-rows-disposed; phase6-bounded-acceptance-recorded",
   "scope": "Historical original 82-row Phase 6 denominator; source_paths and component labels below describe the frozen before-image, not current implementation debt.",
   "source_component": "public-consumers",
   "target_component": "perception",
@@ -31,7 +31,9 @@
     "immutable_value_rows": 33,
     "former_public_service_signature_rows_resolved_as_binding_cuts": 3,
     "unclassified_rows": 0,
-    "accepted_gate": false
+    "accepted_gate": true,
+    "accepted": true
   },
-  "baseline_head": "17514f007e48e81d5ea1ec7f41088564de9e7411"
+  "baseline_head": "17514f007e48e81d5ea1ec7f41088564de9e7411",
+  "acceptance_receipt": "benchmarks/phase6-final-verification.json"
 }

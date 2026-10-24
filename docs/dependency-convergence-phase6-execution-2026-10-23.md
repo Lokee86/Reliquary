@@ -26,7 +26,7 @@ The [API preservation manifest](../benchmarks/phase6-api-preservation.json) reco
 
 ## Mounted owner execution
 
-P6.2.4-NATIVE-PERCEPTION was recorded before implementation after independent review found REL/PHY workers invoking private facade principal, preparation, resolution-commit and reconciliation-commit helpers. Workers must construct owner-qualified preparation contexts directly and share concrete native publication functions with public adapters. Final native functions belong to owner-lifecycle, accept concrete stores and Container, and accept no Cva/Phylactery, callbacks or provider endpoints. Runtime coordination binds existing owner readers and invokes Perception planning above those native functions. Selection and reconciliation policy remain in Perception. No generic service, additional runtime or duplicate owner store is introduced.
+P6.2.4-NATIVE-PERCEPTION was recorded before implementation after independent review found REL/PHY workers invoking private facade principal, preparation, resolution-commit and reconciliation-commit helpers. Workers construct owner-qualified preparation contexts directly and share concrete native publication functions with public adapters. Final native functions belong to owner-lifecycle, accept concrete stores and Container, and accept no Cva/Phylactery, callbacks or provider endpoints. Runtime coordination binds existing owner readers and invokes Perception planning above those native functions. Selection and reconciliation policy remain in Perception. No generic service, additional runtime or duplicate owner store is introduced.
 
 ## Behavioral review
 
@@ -38,11 +38,15 @@ Four focused regressions cover failure-and-reopen restoration, reset-error order
 
 The earlier `a1e5fd8` checkpoint passed 2,000 library tests (five ignored), 163 integration tests (one separately exercised retained-corpus test ignored), 32 CLI tests, the six-fixture promoted corpus, doctests, archive roundtrip, formatting and all-target compilation. Its conservative Rust digest and logs are pinned in [pre-owner-contract verification](../benchmarks/phase6-pre-owner-contract-verification.json); those results do not accept later source.
 
-The subsequent owner-contract checkpoint `e2d1045` passed 2,003 library tests, zero failures and five intentional ignores in 541.62 seconds. Final mounted-execution integration and consumer gate results are recorded in the final verification artifact after that source is integrated. Restricted execution previously caused loopback/hard-link test failures; native Windows verification is the authoritative environment. A cancelled historical attempt is superseded only where a final passing result exists.
+The subsequent owner-contract checkpoint `e2d1045` passed 2,003 library tests, zero failures and five intentional ignores in 541.62 seconds. Final mounted-execution integration and consumer gate results are recorded in the final verification artifact; the final complete library run passed 2,003 tests. Restricted execution previously caused loopback/hard-link test failures; native Windows verification is the authoritative environment. A cancelled historical attempt is superseded only where a final passing result exists.
 
 ## Gate state
 
-The bounded mounted-execution corrections are integrated. Final acceptance is pending their integrated verification and documentation receipt. B6 source census is complete. F6, C6 and D6 require the final source guard, consumer checks and behavior runs. A6 is not implied by source relocation or an acyclic target DAG.
+All 35 named tickets and 28 bounded children are integrated on main: 63 tracked parent-plus-child obligations. The [final verification receipt](../benchmarks/phase6-final-verification.json) accepts B6, F6, C6, D6 and A6 for the bounded Phase 6 source/API/behavior scope. No acceptance is inferred solely from relocation, target-DAG acyclicity or import disappearance.
+
+The full shared-reader behavior checkpoint passed 2,003 library tests (zero failures, five intentional ignores) in 633.67 seconds. Integration passed 163 tests in 25 groups, with the one ignored promoted-corpus test then explicitly passed across six authoritative fixtures. The final CLI passed 32 tests. Doctests, formatter, locked all-target compilation and archive roundtrip passed. The placement-only read-adapter correction retains the identical implementation-body hash and logical parent; its final test build, two evidence tests, formatter and all-target build passed. Unchanged behavior/corpus receipts are reused explicitly under P6.4.1 rather than presented as a fresh full run of changed logic.
+
+Tracked-document policy, changed-from-origin/main policy and Archivist indexes/links passed in a clean checkout that excludes the untouched untracked Phase 7 draft. The installed Pitlord documentation command is unavailable and is not counted as passed.
 
 The architecture entrypoint passed its local source guards and retained-snapshot Pitlord policy check, then failed convergence freshness because changed Rust differs from the old indexed graph. The specification forbids repeating the stalled Phase 5 refresh and explicitly carries that full graph-proof obligation into Phase 7 A7. No refreshed compiler/symbol inventory or architecture snapshot is claimed. The inherited broad deferred-edge register is not repinned to authorize current debt; the reconciled historical 82-row register no longer defers live imports.
 
@@ -74,6 +78,10 @@ The architecture entrypoint passed its local source guards and retained-snapshot
 
 This dated receipt does not replace current API or architecture documentation. Final verification and the task ledger distinguish source facts, behavior acceptance and the inherited graph-proof gap.
 
+## Pre-execution child scope records
+
+These are the scopes recorded before execution, and all are now implemented. Final ownership and acceptance above supersede initial runtime-native placement proposals; these paragraphs do not describe pending work.
+
 P6.2.4-AGENTIC-FRESHNESS is recorded before the final runtime caller correction. The private grading helper still accepts Cva and calls its freshness facade. Replace that runtime path with concrete Freshness store reads and immutable owner/activity facts, preserve owner-ID-before-cut validation and grading/error behavior, and delete the facade helper/registration after its callers migrate. Public freshness APIs remain supported.
 
 P6.2.4-EXTERNAL-OWNER-ACCESS is recorded before execution. External Sources module/service registrations still retain their old public-consumer role after extension extraction, and mounted access calls private facade helpers. Correct the actual lower service registrations, remove mounted private facade access via shared concrete native owner operations, and replace the newly exposed Container-based search read with a real Vectors-owned read/scoring contract over packed-vector owner reads. Preserve validation/lazy read/error/publication order and public methods. Existing native External publication mechanics remain visible as inherited source debt unless genuinely cut; no DAG expansion or immutable-service exception is authorized.
@@ -100,7 +108,7 @@ The final behavior checkpoint has conservative normalized Rust digest `536469fe5
 
 ## Source graph handoff
 
-The final same-map/cfg comparison projects the baseline through the final explicit 34-component ownership map: 3,305 baseline and 3,584 current cross-component import rows, with 269 exact rows removed and 548 added. These differ from the frozen raw 3,376-row baseline because both sides now use the same reviewed final map. None of these relocation/import deltas alone is counted as proven semantic dependency elimination.
+The final same-map/cfg comparison projects the baseline through the final explicit 34-component ownership map: 3,305 baseline and 3,578 current cross-component import rows, with 269 exact rows removed and 542 added. These differ from the frozen raw 3,376-row baseline because both sides now use the same reviewed final map. None of these relocation/import deltas alone is counted as proven semantic dependency elimination.
 
 There are 96 baseline and 97 current uncertain import witnesses. The one added uncertainty is the known `lodestone_packed::PackedVectors` reexport in the Vectors row cache, covered by its exact external codec value contract. Unknown possible lower-to-public imports still fail closed. There are no new unapproved component dependency pairs after the exact passive value contracts.
 
@@ -111,3 +119,11 @@ The final P6.2.4-NATIVE-INSOMNIA adapter audit records one placement-only correc
 
 
 The final facade ratchet passes 36 negative/positive fixtures and 859 reachable production files with zero violations. The runtime ratchet passes 11 fixtures and reports 657 files with zero violations. Final ownership-map source hashes match all updated live production paths. All 53 original named-family public signature headers match the baseline after ignoring whitespace, optional trailing commas and local parameter variable mut bindings only; receiver mutability, full return types and generic bounds are preserved.
+
+
+Final source-role review classifies the remaining Container-free vector preparation helper as Vectors and the pure resolution/principal preparation helper as Perception. Their physical publication bodies were already extracted into owner-lifecycle. These two precise classifications reflect their actual pure domain responsibilities; their import reclassification is recorded separately and is not counted as an eliminated source/call edge.
+
+
+## Final acceptance receipt
+
+Final Rust source is committed at `cfaebe1` with normalized digest `d3549a92696fa9189534e845ed2d916ef612c1e5bf954382745be912055646b7`. The final source/API/behavior records, exact remaining SCC witnesses, ignored cases, reused adapter body, output logs and non-passing tool limits are pinned in [final verification](../benchmarks/phase6-final-verification.json). Local Luna subagent worktrees have been integrated and removed; the existing Phase 5 worktrees and supplied Phase 7 draft are preserved. No connector, new public contract, wire migration, generalized store manager or additional runtime was introduced.

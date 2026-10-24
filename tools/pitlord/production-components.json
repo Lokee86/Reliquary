@@ -787,7 +787,8 @@
       "current_production_source_files": [
         "src/retrieval/compatibility_profile_probe.rs",
         "src/retrieval/external_vector_reader.rs",
-        "src/runtime_inference/runtime_vector_step.rs"
+        "src/runtime_inference/runtime_vector_step.rs",
+        "src/runtime_inference/vector_publication.rs"
       ],
       "source_status": "mapped"
     },
@@ -912,7 +913,8 @@
         "src/perception/entity_resolver_schema.rs",
         "src/perception/import_readiness.rs",
         "src/perception/import_replay.rs",
-        "src/perception/relationship_owner.rs"
+        "src/perception/relationship_owner.rs",
+        "src/runtime_inference/perception_publication_resolution.rs"
       ],
       "source_status": "mapped"
     },
@@ -1212,7 +1214,6 @@
         "src/runtime_inference/multiplexing_journal.rs",
         "src/runtime_inference/openai_codex_device_auth/refresh.rs",
         "src/runtime_inference/perception_publication_reconciliation.rs",
-        "src/runtime_inference/perception_publication_resolution.rs",
         "src/runtime_inference/runtime_host.rs",
         "src/runtime_inference/runtime_host_archive_search.rs",
         "src/runtime_inference/runtime_host_gateway.rs",
@@ -1281,7 +1282,6 @@
         "src/runtime_inference/runtime_host_status.rs",
         "src/runtime_inference/runtime_shared.rs",
         "src/runtime_inference/semantic_archive_batch.rs",
-        "src/runtime_inference/vector_publication.rs",
         "src/runtime_inference/workspace_management.rs",
         "src/runtime_inference/workspace_management_conversations.rs",
         "src/runtime_inference/workspace_management_files.rs",
@@ -16246,10 +16246,10 @@
     },
     {
       "path": "src/runtime_inference/perception_publication_resolution.rs",
-      "component": "runtime-gateway",
+      "component": "perception",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "Concrete native Perception publication over existing owner stores; shared by mounted execution and public adapters without product handles or provider callbacks.",
+      "evidence": "Pure Perception preparation and principal planning over owner-qualified readers; physical admission/publication was extracted to owner-lifecycle. Role correction only, not an eliminated call edge.",
       "certainty": "reviewed-explicit",
       "source_sha256": "4312cc303a3442def2e60e463b296a5e79886a0d07eedb96508188d61c457387",
       "compiler_inventory_match": false,
@@ -16426,10 +16426,10 @@
     },
     {
       "path": "src/runtime_inference/vector_publication.rs",
-      "component": "runtime-gateway",
+      "component": "vectors",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "Mounted execution coordinates lower domain plans with concrete native owner publication; no product binding, physical handle parameter or provider callback.",
+      "evidence": "Pure vector batch preparation over canonical owner readers; physical publication is in owner-lifecycle. This reviewed source-role correction is not counted as dependency elimination.",
       "certainty": "reviewed-explicit",
       "source_sha256": "1b84c1b0bbc75f8eb8eb88fb7a9d5b95f965150d2b61de5e2180439fc06880dc",
       "compiler_inventory_match": false,

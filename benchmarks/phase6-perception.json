@@ -1432,10 +1432,11 @@
   },
   "historical_worker_checkpoint_note": "Earlier status and cut descriptions below are retained slice evidence, superseded by integrated_source_receipt; they do not describe final acceptance.",
   "integrated_source_receipt": {
-    "checkpoint": "aa0700b",
-    "status": "source-integrated; final behavior and documentation verification pending",
+    "checkpoint": "cfaebe1",
+    "status": "accepted under Phase 6 bounded gates",
     "receipt": "docs/dependency-convergence-phase6-execution-2026-10-23.md",
     "ownership": "Domain selection/read policy consumes concrete owner readers; native admission and publication live in owner-lifecycle. Mounted execution invokes canonical contracts without private Cva/Phylactery forwarding.",
-    "graph_limit": "Lexical imports and bounded source review only; inherited full analyzer proof belongs to Phase 7 A7."
+    "graph_limit": "Lexical imports and bounded source review only; inherited full analyzer proof belongs to Phase 7 A7.",
+    "verification": "benchmarks/phase6-final-verification.json"
   }
 }

@@ -8,7 +8,7 @@ Completed native import reconciliation may retain the left physical prefix as an
 
 ## Phase 6 verification boundary
 
-Phase 6 source implementation and its production import comparison are recorded in the [execution receipt](dependency-convergence-phase6-execution-2026-10-23.md). Import resolution is cfg-aware lexical evidence, not a complete compiler symbol/call graph. The inherited A5 full-architecture snapshot gap remains a named Phase 7 A7 obligation. The original 82 rows have exact dispositions: 49 implementation/binding import cuts and 33 immutable owner-qualified values. Public Resolver/Engine bindings remain supported above their private inference cores; no service-signature exception is required.
+Phase 6 bounded source/API/behavior gates are accepted and the production import comparison is recorded in the [execution receipt](dependency-convergence-phase6-execution-2026-10-23.md). Import resolution is cfg-aware lexical evidence, not a complete compiler symbol/call graph. The inherited A5 full-architecture snapshot gap remains a named Phase 7 A7 obligation. The original 82 rows have exact dispositions: 49 implementation/binding import cuts and 33 immutable owner-qualified values. Public Resolver/Engine bindings remain supported above their private inference cores; no service-signature exception is required.
 
 ## Physical reader and writer admission
 
