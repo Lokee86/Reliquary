@@ -52,6 +52,12 @@ def source_changes(base: str) -> tuple[set[str], set[str], set[str]]:
 
 
 def role(path: str, previous: str | None) -> tuple[str | None, str | None]:
+    if path in {"src/external_source/mod.rs", "src/external_source/processing.rs", "src/external_source/provenance.rs"}:
+        return "external-sources", "External Sources provider, search, preparation and evidence policy; public owner extensions were physically extracted to facade."
+    if path.startswith("src/runtime_inference/external_owner_access") or path == "src/runtime_inference/agentic_memory_grading.rs":
+        return "runtime-gateway", "Concrete mounted owner access over existing owner stores and immutable identity/activity facts; no public product dependency."
+    if path.startswith("src/retrieval/external_vector"):
+        return "vectors", "Vectors-owned packed-row validation/scoring over the packed-vector owner's concrete read view."
     if path.startswith("src/runtime_inference/perception_publication"):
         return "runtime-gateway", "Concrete native Perception publication over existing owner stores; shared by mounted execution and public adapters without product handles or provider callbacks."
     if path.startswith("src/facade/"):
@@ -103,6 +109,10 @@ def extension_imports(source: str) -> list[str]:
 
 
 def apply_delta(mapping: dict[str, Any], changed: set[str], deleted: set[str], base: str) -> dict[str, Any]:
+    # These sibling service/value files had inherited aggregate public roles.
+    # Review their real responsibilities after extension extraction even when
+    # their own text did not change. This is role correction, not edge removal.
+    changed.update({"src/external_source/mod.rs", "src/external_source/processing.rs", "src/external_source/provenance.rs"})
     result = copy.deepcopy(mapping)
     before_rows = {row["path"]: row for row in result["files"]}
     historical_paths = {row["path"] for row in result.get("historical_files", [])}

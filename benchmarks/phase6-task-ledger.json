@@ -1,7 +1,7 @@
 {
   "baseline_named_tickets": 35,
-  "added_bounded_children": 21,
-  "tracked_parent_and_child_obligations": 56,
+  "added_bounded_children": 23,
+  "tracked_parent_and_child_obligations": 58,
   "counting_note": "Original parents remain tracked; this counts named parent plus child obligations, not independent leaf migrations or tests.",
   "base_tickets": [
     {
@@ -283,6 +283,16 @@
     },
     {
       "id": "P6.2.4-NATIVE-PERCEPTION",
+      "source_status": "in-progress",
+      "acceptance_status": "final-integrated-verification-pending"
+    },
+    {
+      "id": "P6.2.4-AGENTIC-FRESHNESS",
+      "source_status": "implemented",
+      "acceptance_status": "final-integrated-verification-pending"
+    },
+    {
+      "id": "P6.2.4-EXTERNAL-OWNER-ACCESS",
       "source_status": "in-progress",
       "acceptance_status": "final-integrated-verification-pending"
     }

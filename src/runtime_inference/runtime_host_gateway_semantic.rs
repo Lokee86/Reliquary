@@ -284,14 +284,19 @@ impl GatewayRuntime {
                         phy.owner_grant_generation,
                     )
                     .map_err(operation)?;
-                let changed = runtime
-                    .cva
-                    .sync_principal_profile(
-                        &phy.owner_id,
-                        profile,
-                        crate::insomnia::runtime_step::now_ns(),
-                    )
-                    .map_err(operation)?;
+                let owner = &mut runtime.cva;
+                let changed = crate::perception_publication_resolution::sync_principal_profile(
+                    &mut owner.container,
+                    &owner.memories,
+                    &mut owner.entities,
+                    &owner.entity_resolutions,
+                    &owner.graph,
+                    &owner.archive,
+                    &phy.owner_id,
+                    profile,
+                    crate::insomnia::runtime_step::now_ns(),
+                )
+                .map_err(operation)?;
                 Ok((
                     changed,
                     false,

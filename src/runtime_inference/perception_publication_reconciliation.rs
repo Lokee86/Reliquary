@@ -1,4 +1,7 @@
 use crate::container::Container;
+use crate::entity_reconciliation_model::{
+    EntityReconciliationEvaluation, EntityReconciliationPrepared,
+};
 use crate::entity_resolution_owner::{ResolutionWriteContext, ResolutionWritePlan};
 use crate::entity_resolution_store::EntityResolutionStore;
 use crate::entity_store::EntityStore;
@@ -6,8 +9,8 @@ use crate::graph_store::GraphStore;
 use crate::memory_store::{MemoryReadView, MemoryStore};
 use crate::relationship_store::RelationshipStore;
 use crate::{
-    EntityError, EntityMergeOutcome, EntityReconciliationError, EntityReconciliationEvaluation,
-    EntityReconciliationPrepared, GraphError, MemoryError, RelationshipError,
+    EntityError, EntityMergeOutcome, EntityReconciliationError, GraphError, MemoryError,
+    RelationshipError,
 };
 
 use super::perception_publication_resolution::{

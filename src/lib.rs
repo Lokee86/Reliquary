@@ -1965,3 +1965,7 @@ mod cva_import_scope;
 
 #[path = "perception/import_replay.rs"]
 pub(crate) mod perception_import_replay;
+#[path = "runtime_inference/perception_publication_reconciliation.rs"]
+pub(crate) mod perception_publication_reconciliation;
+#[path = "runtime_inference/perception_publication_resolution.rs"]
+pub(crate) mod perception_publication_resolution;

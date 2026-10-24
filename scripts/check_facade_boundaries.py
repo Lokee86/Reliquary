@@ -19,6 +19,7 @@ MOUNTED_PERCEPTION = {
     "src/runtime_inference/runtime_host_phy_perception.rs",
 }
 CONTAINER_FREE_READS = {
+    "src/external_source/mod.rs",
     "src/retrieval/conversation_search.rs", "src/retrieval/lexical_search.rs",
     "src/retrieval/semantic_search.rs", "src/retrieval/lexical_index.rs",
 }
@@ -40,6 +41,11 @@ def unresolved_reverse(row: dict, source: str | None, target: str | None,
 def violations(path: str, source: str, component: str | None, facts: set[str]) -> list[str]:
     view = masked(strip_inactive_cfg(source, facts))
     errors = []
+    native_access = (path.startswith("src/runtime_inference/perception_publication")
+                     or path.startswith("src/runtime_inference/external_owner_access")
+                     or path == "src/runtime_inference/agentic_memory_grading.rs")
+    if native_access and re.search(r"\b(?:" + PRODUCT_TYPES + r")\b|\bFn(?:Mut|Once)?\b", view):
+        errors.append(f"{path}: native owner access receives product binding or callback")
     if path in MOUNTED_PERCEPTION:
         for hit in re.finditer(
             r"\b(?:cva|phy)\s*\.\s*(?:resolve_principal_entity_mention|prepare_entity_resolution|commit_entity_resolution|prepare_entity_reconciliation|commit_entity_reconciliation)\s*\(", view
@@ -61,7 +67,7 @@ def violations(path: str, source: str, component: str | None, facts: set[str]) -
             if re.search(r"\b(?:Self|[A-Za-z_][A-Za-z0-9_]*(?:Error|Kind|Scope|Target))\s*::\s*$", view[max(0, hit.start()-80):hit.start()]):
                 continue
             errors.append(f"{path}:{view.count(chr(10), 0, hit.start()) + 1}: lower facade dependency: {hit.group()}")
-    if component == "perception" or path in CONTAINER_FREE_READS:
+    if component == "perception" or path in CONTAINER_FREE_READS or path.startswith("src/retrieval/external_vector"):
         for hit in re.finditer(r"\bContainer\b|\bcrate\s*::\s*container\s*::", view):
             errors.append(f"{path}:{view.count(chr(10), 0, hit.start()) + 1}: policy consumes physical Container instead of owner contract")
     if not path.startswith("src/facade/"):
@@ -104,7 +110,10 @@ def self_test() -> None:
     assert violations("src/runtime_inference/runtime_host_rel_perception.rs", "runtime.cva\n .prepare_entity_resolution(key, config)", "runtime-gateway", facts)
     assert violations("src/runtime_inference/runtime_host_phy_perception.rs", "phy.commit_entity_reconciliation(p, e, n)", "runtime-gateway", facts)
     assert not violations("src/runtime_inference/runtime_host_phy_perception.rs", "EntityResolutionEngineCore::new(endpoint); native::commit(container, stores, plan)", "runtime-gateway", facts)
-    print("Facade boundary fixtures passed (28 cases).")
+    assert violations("src/runtime_inference/perception_publication_resolution.rs", "fn apply(owner: &mut Cva) {}", "runtime-gateway", facts)
+    assert violations("src/runtime_inference/agentic_memory_grading.rs", "fn read(f: impl Fn(MemoryId) -> i16) {}", "runtime-gateway", facts)
+    assert not violations("src/runtime_inference/perception_publication_resolution.rs", "fn apply(store: &mut EntityStore, container: &mut Container) {}", "runtime-gateway", facts)
+    print("Facade boundary fixtures passed (31 cases).")
 
 
 def main() -> int:

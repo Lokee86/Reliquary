@@ -1026,6 +1026,9 @@
       ],
       "current_production_source_files": [
         "src/external_source/index.rs",
+        "src/external_source/mod.rs",
+        "src/external_source/processing.rs",
+        "src/external_source/provenance.rs",
         "src/external_source/provider.rs",
         "src/external_source/publication.rs"
       ],
@@ -1182,6 +1185,7 @@
         "src/archive/interaction_stream.rs",
         "src/archive/interaction_stream_persistence.rs",
         "src/facade/interaction_runtime_project_file.rs",
+        "src/runtime_inference/agentic_memory_grading.rs",
         "src/runtime_inference/configured_runtime.rs",
         "src/runtime_inference/configured_runtime_decision.rs",
         "src/runtime_inference/configured_runtime_insomnia_model.rs",
@@ -1195,6 +1199,8 @@
         "src/runtime_inference/interaction_session.rs",
         "src/runtime_inference/multiplexing_journal.rs",
         "src/runtime_inference/openai_codex_device_auth/refresh.rs",
+        "src/runtime_inference/perception_publication_reconciliation.rs",
+        "src/runtime_inference/perception_publication_resolution.rs",
         "src/runtime_inference/runtime_host.rs",
         "src/runtime_inference/runtime_host_archive_search.rs",
         "src/runtime_inference/runtime_host_gateway.rs",
@@ -1282,9 +1288,6 @@
         "project-environment"
       ],
       "current_production_source_files": [
-        "src/external_source/mod.rs",
-        "src/external_source/processing.rs",
-        "src/external_source/provenance.rs",
         "src/facade/agentic_memory_grading.rs",
         "src/facade/configured_runtime_historical.rs",
         "src/facade/configured_runtime_insomnia.rs",
@@ -3803,10 +3806,10 @@
     },
     {
       "path": "src/external_source/mod.rs",
-      "component": "public-consumers",
+      "component": "external-sources",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation",
+      "evidence": "External Sources provider, search, preparation and evidence policy; public owner extensions were physically extracted to facade.",
       "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation",
       "source_sha256": "1f787d8f3f924e15249c896d82d7fbe21c6069552a87274e26524ca0e71cddd6",
@@ -3816,10 +3819,10 @@
     },
     {
       "path": "src/external_source/processing.rs",
-      "component": "public-consumers",
+      "component": "external-sources",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation",
+      "evidence": "External Sources provider, search, preparation and evidence policy; public owner extensions were physically extracted to facade.",
       "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation",
       "source_sha256": "745ea74240905d23953da0a649a53ef45af28dbeff6936a55de7dded411fbd4f",
@@ -3829,10 +3832,10 @@
     },
     {
       "path": "src/external_source/provenance.rs",
-      "component": "public-consumers",
+      "component": "external-sources",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "direct source-role evidence: Cva extension implementation, Phylactery extension implementation",
+      "evidence": "External Sources provider, search, preparation and evidence policy; public owner extensions were physically extracted to facade.",
       "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation; Phylactery extension implementation",
       "source_sha256": "be5745946dcdfc308fd75042fa8ccbefbc644e72195cf097485cefeaa6160ac3",
@@ -13476,7 +13479,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_gateway_agentic_memory_graph`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-explicit",
-      "source_sha256": "c5f62bf16ae98b938b024520c23a85f01caad6655c0c792ae8fe36c4f37c04b4",
+      "source_sha256": "05baf91d3d6298fb18d87af9cd71c2429f259c679519a13755f4489f3d32be8e",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -13518,7 +13521,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_gateway_agentic_memory_query`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-explicit",
-      "source_sha256": "f42b3d17b0d559c07baa819b57256974bc9632f17f103d593cf95e985d0a3220",
+      "source_sha256": "093946229b8bcb3ffcd73b88a7b34a8ea34b0eeaf09052479a00292c411d3a22",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -14275,11 +14278,11 @@
       "classification": "production",
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_gateway_semantic`; responsibility assigned to `runtime-gateway` in target DAG",
-      "certainty": "reviewed-source-role",
-      "source_sha256": "329ea2388aae633dcd85e929abbfa4d8eefe6139fd408fe0ebde035daf6127b4",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 16,
-      "symbol_spans_sha256": "9fc830ca8b967486ffd2a4a53123b3b4035b9060070b4f84c66a68a8e6c7693f"
+      "certainty": "reviewed-explicit",
+      "source_sha256": "c83e14b79dafb324052f865101584cb2ab8eb0bde94d55b972389ed648204747",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/runtime_inference/runtime_host_gateway_semantic_mutation.rs",
@@ -14547,11 +14550,11 @@
       "classification": "production",
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_phy_dream`; responsibility assigned to `runtime-gateway` in target DAG",
-      "certainty": "reviewed-source-role",
-      "source_sha256": "4de2e2c91b6855a1141be92563c3a1848af6f16ee9315bd415abf824cec36d29",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "d4a8b61036ce3f18f57354ff650c7c0b5d3773250fda28678fac4f00108ff32a",
       "compiler_inventory_match": false,
-      "compiler_item_count": 16,
-      "symbol_spans_sha256": "e2cb458af304ddba771baaaece1231a45a07ee7fac40f0d0c126d86c3049616d"
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/runtime_inference/runtime_host_phy_execution.rs",
@@ -14582,7 +14585,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_phy_perception`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-explicit",
-      "source_sha256": "522efea6110c72bffe0720dac9e4d6019bb55ac35535eede975ec8b381cdabd5",
+      "source_sha256": "ef670898ea9692d14cb004943a0262b1a1fa9229dc57d8adc9383be6c3d09ad8",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -14627,11 +14630,11 @@
       "classification": "production",
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_rel_dream`; responsibility assigned to `runtime-gateway` in target DAG",
-      "certainty": "reviewed-source-role",
-      "source_sha256": "4ad72c50cfe94475771d409a003241e90f87fd47baed1feb438986f6be5c0021",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "0a74ce548735354aa030a1d0343a2f3496433c5760457aeb831ecbc60ca456c9",
       "compiler_inventory_match": false,
-      "compiler_item_count": 18,
-      "symbol_spans_sha256": "263aa7beb6c4fbad93cf2dca504c14688b98de21bbd64357f8bc000596bb999b"
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/runtime_inference/runtime_host_rel_execution.rs",
@@ -14664,7 +14667,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_rel_perception`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-explicit",
-      "source_sha256": "c9b159d494ce0283fdaa63b9d2d3c852ba7886041577fe717c6b4a45ebe468c7",
+      "source_sha256": "4159585ea50c40546478e1bd6685e60e32edaa380403c45bf05f8e8975bf3524",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -15779,7 +15782,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "86ee3a21ab545526b47a32dc11da34fa209b29fc86807cdc7b60b9a9ee627eb0",
+      "source_sha256": "e95950701b7c6dd87e99d0065bf494be32f144f73babc7df1aef3293f7184d48",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -15803,7 +15806,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "f1d95242c68d506c98fc939e58493acc022a5069cab4122e403031516dd4fa35",
+      "source_sha256": "ee94101c2a875fa7ba86b2c57c28e554ac5669e6162b904a80b99224149bbe11",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -15815,7 +15818,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "fef1aac95dbc9dece32f45cb20d1f709ff8480b8be13e117611244cc34a16d05",
+      "source_sha256": "55791219d202a1accff0e36ade82952d924536a344f82eaedd27b33d046c109e",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -15839,7 +15842,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "2769f6748c54d113adc6af10b44b8b78d6f330ea69b11fa19d8f16db29087f92",
+      "source_sha256": "0db55307b23150d2d46cc7057e23578f231c6e57476c4d0d4c81cbec3ff163f4",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -15851,7 +15854,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "6b6812ce7092bc95868084644312f55d9b1b560662eaa22920bf689b8e64fcfe",
+      "source_sha256": "d378f391b756b73dfc1f9ef0c590f7a53a1a33a6057bef87356a285e2bbe3c63",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -16224,6 +16227,42 @@
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
       "source_sha256": "e5f4bb221794bfd883faa4ceab8c11078246875cbe8a11a55e49dafafe96f7b0",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/agentic_memory_grading.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Concrete mounted owner access over existing owner stores and immutable identity/activity facts; no public product dependency.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "dc0879b5e43a567698e12d76c55c417c8dcac7aeb227f80a53960d66b5603b29",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/perception_publication_reconciliation.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Concrete native Perception publication over existing owner stores; shared by mounted execution and public adapters without product handles or provider callbacks.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "ef26cd1c4b241e6c46b44434cb360f2b2d0d24309fb2888f9c53a3090e408a69",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/perception_publication_resolution.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Concrete native Perception publication over existing owner stores; shared by mounted execution and public adapters without product handles or provider callbacks.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "c23c2bddf6421c9c5a2300c5d49570ef477193d90f6db5a278bf7289660abd12",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -30798,11 +30837,11 @@
     },
     {
       "from": "public-consumers",
-      "path": "entity_resolution_engine::EntityResolutionEngine",
+      "path": "cva_entity_resolution_engine::EntityResolutionEngine",
       "exported_name": "EntityResolutionEngine",
-      "defining_module": "entity_resolution_engine",
-      "defining_source": "src/perception/entity_resolution_engine.rs",
-      "defining_component": "perception",
+      "defining_module": "cva_entity_resolution_engine",
+      "defining_source": "src/facade/cva_entity_resolution_engine.rs",
+      "defining_component": "public-consumers",
       "external_value_contract": null,
       "relation": "public-reexport/type surface",
       "certainty": "module-path-resolved"
@@ -30919,11 +30958,11 @@
     },
     {
       "from": "public-consumers",
-      "path": "entity_resolver::EntityResolver",
+      "path": "cva_entity_resolver::EntityResolver",
       "exported_name": "EntityResolver",
-      "defining_module": "entity_resolver",
-      "defining_source": "src/perception/entity_resolver.rs",
-      "defining_component": "perception",
+      "defining_module": "cva_entity_resolver",
+      "defining_source": "src/facade/cva_entity_resolver.rs",
+      "defining_component": "public-consumers",
       "external_value_contract": null,
       "relation": "public-reexport/type surface",
       "certainty": "module-path-resolved"
@@ -35339,7 +35378,6 @@
       "src/external_source/mod.rs",
       "src/external_source/processing.rs",
       "src/external_source/provenance.rs",
-      "src/facade/agentic_memory_grading.rs",
       "src/facade/configured_runtime_historical.rs",
       "src/facade/configured_runtime_insomnia.rs",
       "src/facade/configured_runtime_vectors.rs",
@@ -35411,6 +35449,7 @@
       "src/retrieval/semantic_search.rs",
       "src/retrieval/vector_generation_store.rs",
       "src/rewrite.rs",
+      "src/runtime_inference/agentic_memory_grading.rs",
       "src/runtime_inference/agentic_memory_retrieval.rs",
       "src/runtime_inference/configured_runtime.rs",
       "src/runtime_inference/configured_runtime_insomnia_model.rs",
@@ -35419,9 +35458,14 @@
       "src/runtime_inference/insomnia.rs",
       "src/runtime_inference/insomnia/evidence.rs",
       "src/runtime_inference/interaction_runtime.rs",
+      "src/runtime_inference/perception_publication_reconciliation.rs",
+      "src/runtime_inference/perception_publication_resolution.rs",
       "src/runtime_inference/runtime_host_gateway_agentic_memory_graph.rs",
       "src/runtime_inference/runtime_host_gateway_agentic_memory_query.rs",
+      "src/runtime_inference/runtime_host_gateway_semantic.rs",
+      "src/runtime_inference/runtime_host_phy_dream.rs",
       "src/runtime_inference/runtime_host_phy_perception.rs",
+      "src/runtime_inference/runtime_host_rel_dream.rs",
       "src/runtime_inference/runtime_host_rel_perception.rs",
       "src/runtime_inference/runtime_vector_step.rs"
     ],
@@ -35443,7 +35487,11 @@
       "src/runtime_inference/insomnia/worker.rs",
       "src/runtime_inference/insomnia/worker/runtime.rs"
     ],
-    "added_reachable_paths": [],
+    "added_reachable_paths": [
+      "src/runtime_inference/agentic_memory_grading.rs",
+      "src/runtime_inference/perception_publication_reconciliation.rs",
+      "src/runtime_inference/perception_publication_resolution.rs"
+    ],
     "compiler_inventory_refreshed": false,
     "note": "Source hashes and explicit ownership rows only; compiler and symbol inventories require their separate acceptance refresh."
   }

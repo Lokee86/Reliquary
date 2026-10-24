@@ -3570,6 +3570,12 @@
       "owner": "perception",
       "symbol": "EntityResolverError",
       "reason": "Phase 6 source-reviewed immutable public result/input/error or bounded constant; preserved API or concrete prepare/commit value only, no Perception implementation callback. Exact witnesses: benchmarks/phase6-perception-dispositions.json."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "public-consumers",
+      "symbol": "MemoryProvenance",
+      "reason": "Exact immutable public cross-owner provenance result defined in memory_provenance_model.rs; fields are owned Memory/Episode/ResolvedTurn values and vectors, with no executable facade capability. Runtime returns this supported API value; not a callback/service exception."
     }
   ],
   "forbidden_symbols": [
