@@ -1,20 +1,15 @@
 use super::*;
+use crate::archive::ArchiveReadView;
 use crate::fragment_store::fragment_id;
 
 impl LexicalIndex {
     pub(crate) fn ensure_raw_current(
         &mut self,
-        archive: &Archive,
-        container: &mut Container,
+        archive: &ArchiveReadView<'_>,
     ) -> Result<(), ArchiveError> {
-        let nodes = archive
-            .nodes
-            .iter()
-            .skip(self.raw_turns.len())
-            .cloned()
-            .collect::<Vec<_>>();
+        let nodes = archive.nodes_from(self.raw_turns.len());
         for node in nodes {
-            let text = archive.content(container, node.content_id)?;
+            let text = archive.content(node.content_id)?;
             let slot = self.raw_turns.len();
             for (term, count) in term_counts(&text) {
                 self.raw_postings.entry(term).or_default().push(Posting {

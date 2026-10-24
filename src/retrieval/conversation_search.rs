@@ -1,11 +1,9 @@
-use crate::archive_vector_store::ArchiveVectorStore;
+use crate::archive::ArchiveReadView;
 use crate::fragmenter::path_fragment_windows;
 use crate::lexical_index::LexicalIndex;
-use crate::packed_vector_store::PackedVectorStore;
-use crate::vector_generation_store::VectorGenerationStore;
+use crate::vector_generation_store::VectorReadView;
 use crate::{
-    Archive, CompatibilityProfileId, Container, ConversationSearchHit, FragmentConfig,
-    RetrievalConfig, SearchError,
+    CompatibilityProfileId, ConversationSearchHit, FragmentConfig, RetrievalConfig, SearchError,
 };
 
 pub(crate) fn branch_candidate_limit(limit: usize) -> usize {
@@ -15,12 +13,9 @@ pub(crate) fn branch_candidate_limit(limit: usize) -> usize {
 }
 
 pub(crate) fn search_conversation_branch_parts(
-    archive: &Archive,
-    container: &mut Container,
+    archive: &ArchiveReadView<'_>,
     lexical_index: &mut LexicalIndex,
-    vector_generations: &mut VectorGenerationStore,
-    archive_vectors: &mut ArchiveVectorStore,
-    packed_vectors: &mut PackedVectorStore,
+    vectors: &VectorReadView<'_>,
     compatibility_profile_id: Option<CompatibilityProfileId>,
     query_vector: Option<&[f32]>,
     conversation_id: &str,
@@ -45,21 +40,15 @@ pub(crate) fn search_conversation_branch_parts(
     )?;
     let lexical = crate::lexical_search::lexical_candidates_from_fragments(
         archive,
-        container,
         query,
         &fragments,
         candidate_limit,
     )?;
     let semantic = match (compatibility_profile_id, query_vector) {
-        (Some(profile), Some(vector))
-            if vector_generations.current_generation(profile).is_some() =>
-        {
+        (Some(profile), Some(vector)) if vectors.current_generation(profile).is_some() => {
             let allowed = fragments.iter().map(|fragment| fragment.id).collect();
             crate::semantic_search::semantic_search_vector(
-                vector_generations,
-                archive_vectors,
-                packed_vectors,
-                container,
+                vectors,
                 archive,
                 profile,
                 vector,
@@ -83,7 +72,7 @@ pub(crate) fn search_conversation_branch_parts(
     candidates
         .into_iter()
         .map(|candidate| {
-            let text = archive.fragment_text_for(container, &candidate.fragment)?;
+            let text = archive.fragment_text_for(&candidate.fragment)?;
             Ok(ConversationSearchHit {
                 fragment: candidate.fragment,
                 text,

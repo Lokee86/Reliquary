@@ -56,6 +56,58 @@ pub(crate) struct MemoryStore {
     next_memory_version: u64,
 }
 
+/// A Container-neutral, owner-qualified view of current Memory read facts.
+/// Construction is inert; bodies are loaded only when `memory` is requested.
+pub(crate) struct MemoryReadView<'a> {
+    store: &'a MemoryStore,
+    container: &'a Container,
+}
+
+impl<'a> MemoryReadView<'a> {
+    pub(crate) fn new(store: &'a MemoryStore, container: &'a Container) -> Self {
+        Self { store, container }
+    }
+
+    pub(crate) fn memory(&self, id: MemoryId) -> Result<Memory, MemoryError> {
+        self.store.memory(self.container, id)
+    }
+
+    pub(crate) fn current_ids(&self) -> Vec<MemoryId> {
+        self.store.current_ids()
+    }
+
+    pub(crate) fn current_body_ids(&self) -> Vec<MemoryBodyId> {
+        self.store.current_body_ids()
+    }
+
+    pub(crate) fn routing_metadata(&self, id: MemoryId) -> Option<&MemoryRoutingMetadata> {
+        self.store.routing_metadata(id)
+    }
+
+    pub(crate) fn memory_version(&self) -> u64 {
+        self.store.memory_version()
+    }
+
+    pub(crate) fn contains_memory(&self, id: MemoryId) -> bool {
+        self.store.contains_memory(id)
+    }
+
+    pub(crate) fn validate_entity_mention_key(
+        &self,
+        key: MemoryEntityMentionKey,
+    ) -> Result<(), MemoryError> {
+        self.store.validate_entity_mention_key(key)
+    }
+
+    pub(crate) fn resolution_source_inactive(&self, id: MemoryId) -> bool {
+        self.store.resolution_source_inactive(id)
+    }
+
+    pub(crate) fn records(&self) -> &[MemoryRecord] {
+        self.store.records()
+    }
+}
+
 pub(crate) enum PublishPreflight {
     Retry(Memory),
     New {

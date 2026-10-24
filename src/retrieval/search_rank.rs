@@ -1,9 +1,10 @@
+use crate::archive::ArchiveReadView;
 use crate::lexical_contract::LexicalHit;
-use crate::{Archive, RetrievalConfig, SearchCandidate, SearchError, SemanticSearchHit};
+use crate::{RetrievalConfig, SearchCandidate, SearchError, SemanticSearchHit};
 use std::collections::HashMap;
 
 pub(crate) fn rank_search_candidates(
-    archive: &Archive,
+    archive: &ArchiveReadView<'_>,
     lexical: Vec<LexicalHit>,
     semantic: Vec<SemanticSearchHit>,
     config: RetrievalConfig,
@@ -48,7 +49,7 @@ pub(crate) fn rank_search_candidates(
 }
 
 pub(crate) fn diversify_candidates(
-    archive: &Archive,
+    archive: &ArchiveReadView<'_>,
     candidates: Vec<SearchCandidate>,
     limit: usize,
 ) -> Result<Vec<SearchCandidate>, SearchError> {
@@ -80,7 +81,7 @@ pub(crate) fn diversify_candidates(
 }
 
 fn fragment_overlap(
-    archive: &Archive,
+    archive: &ArchiveReadView<'_>,
     left: &crate::Fragment,
     right: &crate::Fragment,
 ) -> Result<f64, SearchError> {

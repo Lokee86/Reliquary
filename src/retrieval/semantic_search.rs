@@ -1,18 +1,14 @@
-use crate::archive_vector_store::ArchiveVectorStore;
-use crate::packed_vector_store::PackedVectorStore;
-use crate::vector_generation_store::VectorGenerationStore;
+use crate::archive::ArchiveReadView;
+use crate::vector_generation_store::VectorReadView;
 use crate::{
-    Archive, CompatibilityProfileId, Container, FragmentId, MAX_SEMANTIC_SEARCH_LIMIT, ScalarType,
-    SemanticSearchError, SemanticSearchHit,
+    CompatibilityProfileId, FragmentId, MAX_SEMANTIC_SEARCH_LIMIT, ScalarType, SemanticSearchError,
+    SemanticSearchHit,
 };
 use std::collections::HashSet;
 
 pub(crate) fn semantic_search_vector(
-    generations: &mut VectorGenerationStore,
-    archive_vectors: &mut ArchiveVectorStore,
-    packed_vectors: &mut PackedVectorStore,
-    container: &mut Container,
-    archive: &Archive,
+    vectors: &VectorReadView<'_>,
+    archive: &ArchiveReadView<'_>,
     compatibility_profile_id: CompatibilityProfileId,
     query: &[f32],
     limit: usize,
@@ -21,11 +17,11 @@ pub(crate) fn semantic_search_vector(
     if !(1..=MAX_SEMANTIC_SEARCH_LIMIT).contains(&limit) {
         return Err(SemanticSearchError::InvalidLimit);
     }
-    let generation = generations
+    let generation = vectors
         .current_generation(compatibility_profile_id)
         .ok_or(SemanticSearchError::MissingGeneration)?;
-    let binding = archive_vectors.get(container, generation.archive_vector_id)?;
-    let packed = packed_vectors.get(container, binding.packed_vector_id)?;
+    let binding = vectors.archive_vector_set(generation.archive_vector_id)?;
+    let packed = vectors.packed_vectors(binding.packed_vector_id)?;
     let schema = packed.schema();
     if schema.scalar != ScalarType::F32 {
         return Err(SemanticSearchError::UnsupportedScalar(schema.scalar));
@@ -70,9 +66,7 @@ pub(crate) fn semantic_search_vector(
             .get(ordinal)
             .ok_or(SemanticSearchError::CorruptMatrix("row binding"))?;
         let fragment = archive
-            .fragments
-            .get(fragment_id)
-            .cloned()
+            .fragment(fragment_id)
             .ok_or(SemanticSearchError::MissingFragment)?;
         hits.push(SemanticSearchHit {
             fragment,

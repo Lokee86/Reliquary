@@ -105,8 +105,8 @@ fn drain_inner<E: GeneralEndpoint>(
     reporter: Option<&dyn InsomniaProgressReporter>,
 ) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
     let initial_stats = cva.insomnia_stats();
-    cva.lexical_index
-        .ensure_current(&cva.archive, &mut cva.container)?;
+    let archive_read = crate::archive::ArchiveReadView::new(&cva.archive, &cva.container);
+    cva.lexical_index.ensure_current(&archive_read)?;
     let owner_uuid = cva.owner_uuid();
     let accepted_rel_turn = cva.rel_turn_count();
     let shared = DrainShared {

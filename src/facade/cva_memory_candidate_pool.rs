@@ -1,7 +1,9 @@
+use crate::lexical_search::MemoryLexicalReadView;
 use crate::memory_candidate_pool::MemoryCandidatePool;
 use crate::memory_retrieval_vectors::{
     exact_memory_scores, load_searchable_memory_vectors, validate_query,
 };
+use crate::memory_store::MemoryReadView;
 use crate::{CompatibilityProfileId, Cva, MemoryRetrievalError};
 
 impl Cva {
@@ -18,12 +20,11 @@ impl Cva {
                 return Err(MemoryRetrievalError::InvalidQueryVector);
             }
         }
-        let lexical = crate::lexical_search::complete_memory_lexical_matches(
-            &mut self.lexical_index,
-            &self.memories,
-            &mut self.container,
-            query,
-        )?;
+        let lexical = {
+            let memory_read = MemoryReadView::new(&self.memories, &self.container);
+            let mut view = MemoryLexicalReadView::new(&mut self.lexical_index, memory_read);
+            view.complete_candidates(query)?
+        };
         let (_, vectors) = load_searchable_memory_vectors(
             &mut self.container,
             &self.memories,

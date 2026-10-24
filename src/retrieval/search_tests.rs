@@ -129,8 +129,8 @@ fn diversification_penalizes_overlapping_ranges_from_same_conversation() {
         candidate(overlapping[1].clone(), 0.90),
         candidate(other[0].clone(), 0.80),
     ];
-    let diversified =
-        crate::search_rank::diversify_candidates(&cva.archive, candidates, 3).unwrap();
+    let archive = crate::archive::ArchiveReadView::new(&cva.archive, &cva.container);
+    let diversified = crate::search_rank::diversify_candidates(&archive, candidates, 3).unwrap();
     assert_eq!(diversified[0].fragment.id, overlapping[0].id);
     assert_eq!(diversified[1].fragment.id, other[0].id);
 }

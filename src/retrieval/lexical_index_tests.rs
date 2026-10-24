@@ -1,3 +1,4 @@
+use crate::archive::ArchiveReadView;
 use crate::lexical_search::lexical_candidates_parts;
 use crate::{Cva, FragmentConfig, MemoryDraft, MemoryId, Phylactery};
 use std::fs;
@@ -145,8 +146,8 @@ fn indexed_lexical_results_match_full_scan_exactly() {
 
     for query in ["alpha", "beta alpha", "alphabet", "gamma delta", "missing"] {
         let indexed = cva.lexical_candidates(query, 30).unwrap();
-        let scanned =
-            lexical_candidates_parts(&cva.archive, &mut cva.container, query, 30).unwrap();
+        let archive = ArchiveReadView::new(&cva.archive, &cva.container);
+        let scanned = lexical_candidates_parts(&archive, query, 30).unwrap();
         assert_eq!(indexed.len(), scanned.len(), "query={query}");
         for (indexed, scanned) in indexed.iter().zip(&scanned) {
             assert_eq!(indexed.fragment, scanned.fragment, "query={query}");

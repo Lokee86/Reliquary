@@ -1,4 +1,5 @@
 use crate::compatibility_profile_probe::{validate_embedding_batch, verify_endpoint};
+use crate::vector_generation_store::VectorReadView;
 use crate::{
     CompatibilityProfileId, Cva, EmbeddingEndpoint, EmbeddingMode, FragmentId,
     MAX_SEMANTIC_SEARCH_LIMIT, SemanticSearchError, SemanticSearchHit,
@@ -42,12 +43,16 @@ impl Cva {
         limit: usize,
         allowed_fragments: Option<&HashSet<FragmentId>>,
     ) -> Result<Vec<SemanticSearchHit>, SemanticSearchError> {
+        let vectors = VectorReadView::new(
+            &self.vector_generations,
+            &self.archive_vectors,
+            &self.packed_vectors,
+            &self.container,
+        );
+        let archive = crate::archive::ArchiveReadView::new(&self.archive, &self.container);
         crate::semantic_search::semantic_search_vector(
-            &mut self.vector_generations,
-            &mut self.archive_vectors,
-            &mut self.packed_vectors,
-            &mut self.container,
-            &self.archive,
+            &vectors,
+            &archive,
             compatibility_profile_id,
             query,
             limit,

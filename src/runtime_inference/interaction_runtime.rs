@@ -125,13 +125,17 @@ impl InteractionRuntime {
         query: &str,
         limit: usize,
     ) -> Result<Vec<crate::ConversationSearchHit>, crate::SearchError> {
+        let archive = crate::archive::ArchiveReadView::new(&self.cva.archive, &self.cva.container);
+        let vectors = crate::vector_generation_store::VectorReadView::new(
+            &self.cva.vector_generations,
+            &self.cva.archive_vectors,
+            &self.cva.packed_vectors,
+            &self.cva.container,
+        );
         crate::conversation_search::search_conversation_branch_parts(
-            &self.cva.archive,
-            &mut self.cva.container,
+            &archive,
             &mut self.cva.lexical_index,
-            &mut self.cva.vector_generations,
-            &mut self.cva.archive_vectors,
-            &mut self.cva.packed_vectors,
+            &vectors,
             Some(compatibility_profile_id),
             Some(query_vector),
             conversation_id,

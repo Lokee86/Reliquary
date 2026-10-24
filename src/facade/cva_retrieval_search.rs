@@ -56,13 +56,8 @@ impl Cva {
             query,
             config.candidate_limit,
         )?;
-        crate::search_rank::rank_search_candidates(
-            &self.archive,
-            lexical,
-            semantic,
-            config,
-            weights,
-        )
+        let archive = crate::archive::ArchiveReadView::new(&self.archive, &self.container);
+        crate::search_rank::rank_search_candidates(&archive, lexical, semantic, config, weights)
     }
 
     pub(crate) fn search_fragments_with_vector(
@@ -94,12 +89,7 @@ impl Cva {
             }
             _ => Vec::new(),
         };
-        crate::search_rank::rank_search_candidates(
-            &self.archive,
-            lexical,
-            semantic,
-            config,
-            weights,
-        )
+        let archive = crate::archive::ArchiveReadView::new(&self.archive, &self.container);
+        crate::search_rank::rank_search_candidates(&archive, lexical, semantic, config, weights)
     }
 }

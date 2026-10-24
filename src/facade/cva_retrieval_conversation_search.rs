@@ -1,3 +1,5 @@
+use crate::archive::ArchiveReadView;
+use crate::vector_generation_store::VectorReadView;
 use crate::{CompatibilityProfileId, ConversationSearchHit, Cva, SearchError};
 
 impl Cva {
@@ -46,13 +48,17 @@ impl Cva {
         compatibility_profile_id: Option<CompatibilityProfileId>,
         query_vector: Option<&[f32]>,
     ) -> Result<Vec<ConversationSearchHit>, SearchError> {
+        let archive = ArchiveReadView::new(&self.archive, &self.container);
+        let vectors = VectorReadView::new(
+            &self.vector_generations,
+            &self.archive_vectors,
+            &self.packed_vectors,
+            &self.container,
+        );
         crate::conversation_search::search_conversation_branch_parts(
-            &self.archive,
-            &mut self.container,
+            &archive,
             &mut self.lexical_index,
-            &mut self.vector_generations,
-            &mut self.archive_vectors,
-            &mut self.packed_vectors,
+            &vectors,
             compatibility_profile_id,
             query_vector,
             conversation_id,

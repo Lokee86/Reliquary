@@ -1,11 +1,10 @@
 use super::*;
-use crate::memory_store::MemoryStore;
+use crate::memory_store::MemoryReadView;
 
 impl LexicalIndex {
     pub(crate) fn ensure_memories_current(
         &mut self,
-        memories: &MemoryStore,
-        container: &mut Container,
+        memories: &MemoryReadView<'_>,
     ) -> Result<(), MemoryError> {
         let version = memories.memory_version();
         if self.memory_version == version {
@@ -42,7 +41,7 @@ impl LexicalIndex {
             if archived {
                 continue;
             }
-            let memory = memories.memory(container, id)?;
+            let memory = memories.memory(id)?;
             self.index_memory(id, &memory.title, &memory.content);
         }
         self.memory_version = version;

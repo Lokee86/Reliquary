@@ -54,8 +54,9 @@ impl Cva {
         ),
         InsomniaExtractionError,
     > {
+        let archive_read = crate::archive::ArchiveReadView::new(&self.archive, &self.container);
         self.lexical_index
-            .ensure_current(&self.archive, &mut self.container)
+            .ensure_current(&archive_read)
             .map_err(|error| InsomniaExtractionError::InvalidOutput(error.to_string()))?;
         let plans = plan_evidence(
             &self.archive,

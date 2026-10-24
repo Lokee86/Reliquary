@@ -163,10 +163,9 @@ fn validate_claim(claim: &InsomniaWork, scope: &str) -> Result<(), InsomniaProce
 impl super::evidence::EvidenceSearch for crate::lexical_index::LexicalIndex {
     fn ensure_current(
         &mut self,
-        archive: &Archive,
-        container: &mut Container,
+        archive: &crate::archive::ArchiveReadView<'_>,
     ) -> Result<(), crate::ArchiveError> {
-        crate::lexical_index::LexicalIndex::ensure_current(self, archive, container)
+        crate::lexical_index::LexicalIndex::ensure_current(self, archive)
     }
     fn search_fragments(&self, query: &str, limit: usize) -> Vec<crate::Fragment> {
         self.search(&crate::lexical_contract::lexical_terms(query), limit)

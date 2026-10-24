@@ -7,7 +7,8 @@ use crate::file_index::FileIndex;
 use crate::file_memory_link_index::FileMemoryLinkIndex;
 use crate::source_attachment_index::SourceAttachmentIndex;
 use crate::{
-    ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, Container, Node, ResolvedTurn,
+    ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, Container, ContentId, Fragment,
+    FragmentId, Node, ResolvedTurn, StoredFile,
 };
 
 #[path = "archive_history_prune.rs"]
@@ -32,6 +33,80 @@ pub struct Archive {
     pub(crate) file_memory_links: FileMemoryLinkIndex,
     pub(crate) record_versions: Vec<ArchiveRecordVersion>,
     pub(crate) next_archive_version: u64,
+}
+
+/// Container-neutral read contract for Archive-owned source facts and text.
+/// It binds the existing owner handles without opening a new snapshot or lease.
+pub(crate) struct ArchiveReadView<'a> {
+    archive: &'a Archive,
+    container: &'a Container,
+}
+
+impl<'a> ArchiveReadView<'a> {
+    pub(crate) fn new(archive: &'a Archive, container: &'a Container) -> Self {
+        Self { archive, container }
+    }
+
+    pub(crate) fn fragments_from(&self, start: usize) -> Vec<Fragment> {
+        self.archive.fragments.iter().skip(start).cloned().collect()
+    }
+
+    pub(crate) fn fragment(&self, id: FragmentId) -> Option<Fragment> {
+        self.archive.fragments.get(id).cloned()
+    }
+
+    pub(crate) fn fragment_archive_version(&self, id: FragmentId) -> Option<u64> {
+        self.archive.fragments.archive_version(id)
+    }
+
+    pub(crate) fn files_from(&self, start: usize) -> Vec<StoredFile> {
+        self.archive.files.iter().skip(start).cloned().collect()
+    }
+
+    pub(crate) fn nodes_from(&self, start: usize) -> Vec<Node> {
+        self.archive.nodes.iter().skip(start).cloned().collect()
+    }
+
+    pub(crate) fn branch_nodes(
+        &self,
+        conversation_id: &str,
+        leaf_node_id: &str,
+    ) -> Result<Vec<Node>, ArchiveError> {
+        self.archive.branch_nodes(conversation_id, leaf_node_id)
+    }
+
+    pub(crate) fn require_current_conversation_id(
+        &self,
+        conversation_id: &str,
+    ) -> Result<(), ArchiveError> {
+        self.archive
+            .require_current_conversation_id(conversation_id)
+    }
+
+    pub(crate) fn fragment_nodes_for(
+        &self,
+        fragment: &Fragment,
+    ) -> Result<Vec<Node>, ArchiveError> {
+        self.archive.fragment_nodes_for(fragment)
+    }
+
+    pub(crate) fn content(&self, id: ContentId) -> Result<String, ArchiveError> {
+        self.archive.content(self.container, id)
+    }
+
+    pub(crate) fn fragment_text(&self, id: FragmentId) -> Result<String, ArchiveError> {
+        let fragment = self.fragment(id).ok_or(ArchiveError::MissingFragment)?;
+        self.require_current_conversation_id(&fragment.conversation_id)?;
+        self.fragment_text_for(&fragment)
+    }
+
+    pub(crate) fn fragment_text_for(&self, fragment: &Fragment) -> Result<String, ArchiveError> {
+        self.fragment_nodes_for(fragment)?
+            .into_iter()
+            .map(|node| Ok(format!("{}: {}", node.role, self.content(node.content_id)?)))
+            .collect::<Result<Vec<_>, ArchiveError>>()
+            .map(|turns| turns.join("\n"))
+    }
 }
 
 impl Archive {

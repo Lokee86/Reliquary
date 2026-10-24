@@ -8,6 +8,52 @@ use crate::{
 };
 use std::collections::HashMap;
 
+/// Immutable row/data access for Retrieval, bound to existing owner stores.
+/// The Container handle remains private and reads stay lazy per requested set.
+pub(crate) struct VectorReadView<'a> {
+    generations: &'a VectorGenerationStore,
+    archive_vectors: &'a crate::archive_vector_store::ArchiveVectorStore,
+    packed_vectors: &'a crate::packed_vector_store::PackedVectorStore,
+    container: &'a Container,
+}
+
+impl<'a> VectorReadView<'a> {
+    pub(crate) fn new(
+        generations: &'a VectorGenerationStore,
+        archive_vectors: &'a crate::archive_vector_store::ArchiveVectorStore,
+        packed_vectors: &'a crate::packed_vector_store::PackedVectorStore,
+        container: &'a Container,
+    ) -> Self {
+        Self {
+            generations,
+            archive_vectors,
+            packed_vectors,
+            container,
+        }
+    }
+
+    pub(crate) fn current_generation(
+        &self,
+        profile_id: CompatibilityProfileId,
+    ) -> Option<VectorGeneration> {
+        self.generations.current_generation(profile_id)
+    }
+
+    pub(crate) fn archive_vector_set(
+        &self,
+        id: crate::ArchiveVectorId,
+    ) -> Result<crate::ArchiveVectorSet, crate::ArchiveVectorError> {
+        self.archive_vectors.get(self.container, id)
+    }
+
+    pub(crate) fn packed_vectors(
+        &self,
+        id: crate::PackedVectorId,
+    ) -> Result<lodestone_packed::PackedVectors, crate::PackedVectorError> {
+        self.packed_vectors.get(self.container, id)
+    }
+}
+
 #[derive(Default)]
 pub(crate) struct VectorGenerationStore {
     generations: Vec<VectorGeneration>,

@@ -4,9 +4,8 @@ use crate::lexical_contract::{LexicalHit, term_counts};
 mod memory;
 #[path = "lexical_index/raw.rs"]
 mod raw;
-use crate::{
-    Archive, ArchiveError, Container, FileSearchHit, Fragment, MemoryError, MemoryId, StoredFile,
-};
+use crate::archive::ArchiveReadView;
+use crate::{ArchiveError, FileSearchHit, Fragment, MemoryError, MemoryId, StoredFile};
 use std::collections::HashMap;
 
 #[derive(Default)]
@@ -63,11 +62,10 @@ pub(crate) struct MemoryLexicalHit {
 impl LexicalIndex {
     pub(crate) fn ensure_current(
         &mut self,
-        archive: &Archive,
-        container: &mut Container,
+        archive: &ArchiveReadView<'_>,
     ) -> Result<(), ArchiveError> {
-        for fragment in archive.fragments.iter().skip(self.fragments.len()) {
-            let text = archive.fragment_text(container, fragment.id)?;
+        for fragment in archive.fragments_from(self.fragments.len()) {
+            let text = archive.fragment_text_for(&fragment)?;
             let counts = term_counts(&text);
             let slot = self.fragments.len();
             for (term, count) in counts {
@@ -78,10 +76,10 @@ impl LexicalIndex {
             }
             self.fragments.push(IndexedFragment {
                 fragment: fragment.clone(),
-                archive_version: archive.fragments.archive_version(fragment.id).unwrap_or(0),
+                archive_version: archive.fragment_archive_version(fragment.id).unwrap_or(0),
             });
         }
-        for file in archive.files.iter().skip(self.files.len()) {
+        for file in archive.files_from(self.files.len()) {
             let counts = term_counts(&file.filename);
             let slot = self.files.len();
             for (term, count) in counts {
