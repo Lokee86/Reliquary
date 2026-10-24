@@ -107,3 +107,37 @@ fn failed_reconsideration_restores_rejected_mention_after_reopen() {
         }
     ));
 }
+
+#[test]
+fn reset_failure_returns_without_attempting_rejection_restoration() {
+    use crate::entity_candidate_test_support::install_rel_mention;
+    use crate::{EntityResolutionReason, MemoryEntityResolutionStatus};
+    let path = temp_path("reconsider-read-only.rel");
+    let mut rel = Cva::create_project(&path).unwrap();
+    let memory = publish_rel_memory(
+        &mut rel,
+        "late-school-read-only",
+        "School",
+        "Eastwood is the durable school attended by the family.",
+    );
+    let key = install_rel_mention(&mut rel, memory, "Eastwood");
+    rel.put_entity_rejected(key, 0, EntityResolutionReason::GenericRole, 10)
+        .unwrap();
+    let mut draft = entity_draft("Eastwood", &[], "late-read-only-entity", 20);
+    draft.created_at_ns = 20;
+    rel.publish_entity(None, 0, draft).unwrap();
+    rel.sync().unwrap();
+    drop(rel);
+    let before = std::fs::read(&path).unwrap();
+    let mut rel = Cva::open_read_only(&path).unwrap();
+    let endpoint = SimulatedGeneralEndpoint::new("unused-resolver", vec![]);
+    let error = rel.reconcile_entities(&endpoint, 100).unwrap_err();
+    assert!(!error.to_string().contains("failed to restore rejection"));
+    assert!(matches!(
+        rel.entity_resolution(key).unwrap().status,
+        MemoryEntityResolutionStatus::Rejected {
+            reason: EntityResolutionReason::GenericRole
+        }
+    ));
+    assert_eq!(std::fs::read(&path).unwrap(), before);
+}

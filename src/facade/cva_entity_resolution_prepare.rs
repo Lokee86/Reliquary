@@ -1,7 +1,7 @@
 use crate::entity_candidates::EntityCandidateContext;
+use crate::entity_resolution_prepare::{self, EntityResolutionContext};
 use crate::lexical_search::MemoryLexicalReadView;
 use crate::memory_store::MemoryReadView;
-use crate::entity_resolution_prepare::{self, EntityResolutionContext};
 use crate::{
     Cva, EntityCandidateConfig, EntityResolutionPreparation, EntityResolverError,
     MemoryEntityMentionKey, Phylactery,

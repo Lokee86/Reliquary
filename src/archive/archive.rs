@@ -95,17 +95,11 @@ impl<'a> ArchiveReadView<'a> {
     }
 
     pub(crate) fn fragment_text(&self, id: FragmentId) -> Result<String, ArchiveError> {
-        let fragment = self.fragment(id).ok_or(ArchiveError::MissingFragment)?;
-        self.require_current_conversation_id(&fragment.conversation_id)?;
-        self.fragment_text_for(&fragment)
+        self.archive.fragment_text(self.container, id)
     }
 
     pub(crate) fn fragment_text_for(&self, fragment: &Fragment) -> Result<String, ArchiveError> {
-        self.fragment_nodes_for(fragment)?
-            .into_iter()
-            .map(|node| Ok(format!("{}: {}", node.role, self.content(node.content_id)?)))
-            .collect::<Result<Vec<_>, ArchiveError>>()
-            .map(|turns| turns.join("\n"))
+        self.archive.fragment_text_for(self.container, fragment)
     }
 }
 

@@ -1,6 +1,8 @@
 use crate::entity_principal::{PrincipalContext, PrincipalResolutionPlan};
 use crate::memory_store::MemoryReadView;
-use crate::{Cva, EntityResolutionOutcome, EntityResolverError, MemoryEntityMentionKey, Phylactery};
+use crate::{
+    Cva, EntityResolutionOutcome, EntityResolverError, MemoryEntityMentionKey, Phylactery,
+};
 
 fn apply_principal_plan(
     owner: &mut Cva,
@@ -11,10 +13,15 @@ fn apply_principal_plan(
         return Ok(plan.outcome);
     }
     if let Some((id, draft)) = plan.entity_draft.take() {
-        owner.entities.publish(&mut owner.container, Some(id), 0, draft)?;
+        owner
+            .entities
+            .publish(&mut owner.container, Some(id), 0, draft)?;
     }
     if plan.associate {
-        let entity_id = plan.outcome.entity_id.expect("association plan has an Entity");
+        let entity_id = plan
+            .outcome
+            .entity_id
+            .expect("association plan has an Entity");
         plan.outcome.association_changed = owner
             .set_principal_association(
                 plan.outcome.key.memory_id,
@@ -58,7 +65,8 @@ impl Cva {
             }
             .resolve_principal_entity_mention(key, now_ns)?
         };
-        plan.map(|plan| apply_principal_plan(self, plan, now_ns)).transpose()
+        plan.map(|plan| apply_principal_plan(self, plan, now_ns))
+            .transpose()
     }
 
     pub(crate) fn sync_principal_profile(

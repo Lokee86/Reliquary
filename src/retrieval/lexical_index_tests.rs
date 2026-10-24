@@ -278,3 +278,15 @@ fn memory_lexical_index_updates_slots_incrementally_across_archive_state_changes
     assert_eq!(cva.lexical_index.memory_indexed_slots(), 2);
     assert_eq!(cva.lexical_index.indexed_memory_version(), 4);
 }
+
+#[test]
+fn index_rebuild_preserves_tombstoned_conversation_error() {
+    let mut cva = Cva::create(test_path("tombstoned-index.rel")).unwrap();
+    add_fragment(&mut cva, "deleted", "retained source terms");
+    cva.tombstone_conversation("deleted").unwrap();
+    let mut index = crate::lexical_index::LexicalIndex::default();
+    assert!(matches!(
+        index.ensure_current(&ArchiveReadView::new(&cva.archive, &cva.container)),
+        Err(crate::ArchiveError::TombstonedConversation)
+    ));
+}

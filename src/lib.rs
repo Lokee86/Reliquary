@@ -26,12 +26,16 @@ mod cva_entity_reconciliation;
 mod cva_entity_resolution_batch;
 #[path = "facade/cva_entity_resolution_commit.rs"]
 mod cva_entity_resolution_commit;
+#[path = "facade/cva_entity_resolution_engine.rs"]
+mod cva_entity_resolution_engine;
 #[path = "facade/cva_entity_resolution_owner.rs"]
 mod cva_entity_resolution_owner;
 #[path = "facade/cva_entity_resolution_prepare.rs"]
 mod cva_entity_resolution_prepare;
 #[path = "facade/cva_entity_resolution_processor.rs"]
 mod cva_entity_resolution_processor;
+#[path = "facade/cva_entity_resolver.rs"]
+mod cva_entity_resolver;
 #[path = "facade/cva_memory_candidate_pool.rs"]
 mod cva_memory_candidate_pool;
 #[path = "facade/cva_relationship_owner.rs"]
@@ -1203,6 +1207,8 @@ pub use context_engine::{
     plan_session_compaction, render_assistant_content, render_assistant_content_from_echo,
     request_context, request_messages,
 };
+pub use cva_entity_resolution_engine::EntityResolutionEngine;
+pub use cva_entity_resolver::EntityResolver;
 pub use cva_principal_repack::PrincipalBackfillRepackResult;
 pub use cva_reconcile::{CvaComparison, CvaReconcileResult, CvaRelation};
 pub use cva_reconcile_conflict::CvaReconcileConflict;
@@ -1278,7 +1284,6 @@ pub use entity_reconciliation_model::{
     EntityReconciliationCandidate, EntityReconciliationRelation, EntityReconciliationReport,
 };
 pub use entity_resolution_batch::EntityResolutionBatchOutcome;
-pub use entity_resolution_engine::EntityResolutionEngine;
 pub use entity_resolution_model::{
     DEFAULT_ENTITY_RESOLUTION_DORMANT_TTL_NS, DEFAULT_ENTITY_RESOLUTION_PENDING_TTL_NS,
     EntityResolutionCompaction, EntityResolutionDormant, EntityResolutionPending,
@@ -1289,7 +1294,7 @@ pub(crate) use entity_resolution_prepared::{
     EntityResolutionEvaluation, EntityResolutionPreparation, EntityResolutionPrepared,
 };
 pub use entity_resolver::{
-    EntityResolver, MAX_ENTITY_RESOLVER_EVIDENCE_MEMORIES, MAX_ENTITY_RESOLVER_EVIDENCE_TEXT_BYTES,
+    MAX_ENTITY_RESOLVER_EVIDENCE_MEMORIES, MAX_ENTITY_RESOLVER_EVIDENCE_TEXT_BYTES,
 };
 pub use entity_resolver_error::EntityResolverError;
 pub use entity_resolver_model::{

@@ -51,13 +51,24 @@ pub(crate) enum EntityResolutionCommitOperation {
 }
 
 impl EntityResolutionCommitContext<'_> {
-    fn memory_version(&self) -> u64 { self.memories.memory_version() }
-    fn entity_version(&self) -> u64 { self.entities.entity_version() }
-    fn graph_version(&self) -> u64 { self.graph.graph_version() }
-    fn entity_resolution(&self, key: MemoryEntityMentionKey) -> Option<&crate::MemoryEntityResolution> {
+    fn memory_version(&self) -> u64 {
+        self.memories.memory_version()
+    }
+    fn entity_version(&self) -> u64 {
+        self.entities.entity_version()
+    }
+    fn graph_version(&self) -> u64 {
+        self.graph.graph_version()
+    }
+    fn entity_resolution(
+        &self,
+        key: MemoryEntityMentionKey,
+    ) -> Option<&crate::MemoryEntityResolution> {
         self.resolutions.get(key)
     }
-    fn entity(&self, id: EntityId) -> Result<Entity, crate::EntityError> { self.entities.entity(id) }
+    fn entity(&self, id: EntityId) -> Result<Entity, crate::EntityError> {
+        self.entities.entity(id)
+    }
     fn entity_creation_conflicts(&self, surface: &str, kind: &str, limit: usize) -> Vec<Entity> {
         self.entities.creation_conflicts(surface, kind, limit)
     }
@@ -73,7 +84,9 @@ pub(crate) fn plan_entity_resolution_commit(
         || context.memory_version() != prepared.memory_version
         || context.entity_version() != prepared.entity_version
         || context.graph_version() != prepared.graph_version
-        || context.entity_resolution(prepared.key).map_or(0, |value| value.revision)
+        || context
+            .entity_resolution(prepared.key)
+            .map_or(0, |value| value.revision)
             != prepared.expected_resolution_revision
     {
         return Ok(None);
@@ -81,7 +94,9 @@ pub(crate) fn plan_entity_resolution_commit(
 
     let key = prepared.key;
     let mut output = evaluation.output;
-    if output.reason.is_rejection_class() { output.decision = EntityResolutionDecision::Reject; }
+    if output.reason.is_rejection_class() {
+        output.decision = EntityResolutionDecision::Reject;
+    }
     let expected_revision = prepared.expected_resolution_revision;
     let (decision, operation) = match output.decision {
         EntityResolutionDecision::ResolveExisting(entity_id) => {
@@ -93,72 +108,145 @@ pub(crate) fn plan_entity_resolution_commit(
             }
             let surface = prepared.candidates.mention.text.trim();
             let already_known = entity.canonical_name.eq_ignore_ascii_case(surface)
-                || entity.aliases.iter().any(|alias| alias.eq_ignore_ascii_case(surface));
-            let alias_equivalent = prepared.candidates.candidates.iter()
+                || entity
+                    .aliases
+                    .iter()
+                    .any(|alias| alias.eq_ignore_ascii_case(surface));
+            let alias_equivalent = prepared
+                .candidates
+                .candidates
+                .iter()
                 .find(|candidate| candidate.entity.id == entity_id)
-                .is_some_and(|candidate| candidate.exact_surface || candidate.normalized_surface || candidate.alias_surface);
-            let alias_update = if !surface.is_empty() && !already_known && alias_equivalent
+                .is_some_and(|candidate| {
+                    candidate.exact_surface
+                        || candidate.normalized_surface
+                        || candidate.alias_surface
+                });
+            let alias_update = if !surface.is_empty()
+                && !already_known
+                && alias_equivalent
                 && entity.aliases.len() < MAX_ENTITY_ALIASES
             {
                 let mut aliases = entity.aliases.clone();
                 aliases.push(surface.to_owned());
-                Some((entity.revision, EntityDraft {
-                    canonical_name: entity.canonical_name.clone(), aliases, kind: entity.kind.clone(),
-                    summary: entity.summary.clone(),
-                    mutation_id: format!("entity-resolution-alias:{}:{}", hex32(&entity.id.0), entity.revision + 1),
-                    created_at_ns: entity.created_at_ns,
-                    updated_at_ns: now_ns.max(entity.updated_at_ns),
-                }))
-            } else { None };
-            (output.decision, EntityResolutionCommitOperation::Existing {
-                entity_id, alias_update, expected_revision, now_ns,
-            })
+                Some((
+                    entity.revision,
+                    EntityDraft {
+                        canonical_name: entity.canonical_name.clone(),
+                        aliases,
+                        kind: entity.kind.clone(),
+                        summary: entity.summary.clone(),
+                        mutation_id: format!(
+                            "entity-resolution-alias:{}:{}",
+                            hex32(&entity.id.0),
+                            entity.revision + 1
+                        ),
+                        created_at_ns: entity.created_at_ns,
+                        updated_at_ns: now_ns.max(entity.updated_at_ns),
+                    },
+                ))
+            } else {
+                None
+            };
+            (
+                output.decision,
+                EntityResolutionCommitOperation::Existing {
+                    entity_id,
+                    alias_update,
+                    expected_revision,
+                    now_ns,
+                },
+            )
         }
         EntityResolutionDecision::CreateNew => {
-            let materialization = evaluation.materialization.ok_or_else(|| EntityResolverError::InvalidOutput(
-                "create_new evaluation missing Entity metadata".into(),
-            ))?;
+            let materialization = evaluation.materialization.ok_or_else(|| {
+                EntityResolverError::InvalidOutput(
+                    "create_new evaluation missing Entity metadata".into(),
+                )
+            })?;
             if materialization.kind.trim() == PRINCIPAL_ENTITY_KIND {
                 return Err(EntityResolverError::InvalidOutput(
                     "principal Entities are reserved for deterministic principal resolution".into(),
                 ));
             }
             let conflicts = context.entity_creation_conflicts(
-                prepared.candidates.mention.text.trim(), &materialization.kind,
+                prepared.candidates.mention.text.trim(),
+                &materialization.kind,
                 MAX_ENTITY_RESOLUTION_CANDIDATES,
             );
             if !conflicts.is_empty() {
+                output.reason = crate::EntityResolutionReason::Ambiguous;
                 let mut ids = conflicts.iter().map(|entity| entity.id).collect::<Vec<_>>();
                 for candidate in &prepared.candidates.candidates {
-                    if ids.len() >= MAX_ENTITY_RESOLUTION_CANDIDATES { break; }
-                    if !ids.contains(&candidate.entity.id) { ids.push(candidate.entity.id); }
+                    if ids.len() >= MAX_ENTITY_RESOLUTION_CANDIDATES {
+                        break;
+                    }
+                    if !ids.contains(&candidate.entity.id) {
+                        ids.push(candidate.entity.id);
+                    }
                 }
-                (EntityResolutionDecision::Unresolved, EntityResolutionCommitOperation::Unresolved {
-                    candidate_entity_ids: ids,
-                    candidate_fingerprint: prepared.candidate_fingerprint,
-                    context_fingerprint: prepared.context_fingerprint,
-                    expected_revision, now_ns,
-                })
+                (
+                    EntityResolutionDecision::Unresolved,
+                    EntityResolutionCommitOperation::Unresolved {
+                        candidate_entity_ids: ids,
+                        candidate_fingerprint: prepared.candidate_fingerprint,
+                        context_fingerprint: prepared.context_fingerprint,
+                        expected_revision,
+                        now_ns,
+                    },
+                )
             } else {
                 let draft = crate::entity_resolution_processor_support::bootstrap_entity_draft(
-                    &prepared.memory, &prepared.candidates, materialization,
+                    &prepared.memory,
+                    &prepared.candidates,
+                    materialization,
                 );
-                (output.decision, EntityResolutionCommitOperation::Create { draft, expected_revision, now_ns })
+                (
+                    output.decision,
+                    EntityResolutionCommitOperation::Create {
+                        draft,
+                        expected_revision,
+                        now_ns,
+                    },
+                )
             }
         }
-        EntityResolutionDecision::Unresolved => (output.decision, EntityResolutionCommitOperation::Unresolved {
-            candidate_entity_ids: prepared.candidates.candidates.iter().map(|value| value.entity.id).collect(),
-            candidate_fingerprint: prepared.candidate_fingerprint,
-            context_fingerprint: prepared.context_fingerprint,
-            expected_revision, now_ns,
-        }),
-        EntityResolutionDecision::Reject => (output.decision, EntityResolutionCommitOperation::Rejected { expected_revision, now_ns }),
+        EntityResolutionDecision::Unresolved => (
+            output.decision,
+            EntityResolutionCommitOperation::Unresolved {
+                candidate_entity_ids: prepared
+                    .candidates
+                    .candidates
+                    .iter()
+                    .map(|value| value.entity.id)
+                    .collect(),
+                candidate_fingerprint: prepared.candidate_fingerprint,
+                context_fingerprint: prepared.context_fingerprint,
+                expected_revision,
+                now_ns,
+            },
+        ),
+        EntityResolutionDecision::Reject => (
+            output.decision,
+            EntityResolutionCommitOperation::Rejected {
+                expected_revision,
+                now_ns,
+            },
+        ),
     };
-    Ok(Some(EntityResolutionCommitPlan { key, decision, reason: output.reason, operation }))
+    Ok(Some(EntityResolutionCommitPlan {
+        key,
+        decision,
+        reason: output.reason,
+        operation,
+    }))
 }
 
 fn hex32(bytes: &[u8; 32]) -> String {
     let mut out = String::with_capacity(64);
-    for byte in bytes { use std::fmt::Write; let _ = write!(out, "{byte:02x}"); }
+    for byte in bytes {
+        use std::fmt::Write;
+        let _ = write!(out, "{byte:02x}");
+    }
     out
 }

@@ -65,7 +65,7 @@ impl LexicalIndex {
         archive: &ArchiveReadView<'_>,
     ) -> Result<(), ArchiveError> {
         for fragment in archive.fragments_from(self.fragments.len()) {
-            let text = archive.fragment_text_for(&fragment)?;
+            let text = archive.fragment_text(fragment.id)?;
             let counts = term_counts(&text);
             let slot = self.fragments.len();
             for (term, count) in counts {

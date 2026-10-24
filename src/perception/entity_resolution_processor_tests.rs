@@ -614,3 +614,46 @@ fn first_seen_high_level_entity_can_still_promote_immediately() {
     assert!(result.entity_created);
     assert_eq!(rel.entities().len(), 1);
 }
+
+#[test]
+fn conflicting_create_plan_persists_ambiguous_reason() {
+    let mut rel = Cva::create_project(temp_path("commit-conflict-reason.rel")).unwrap();
+    rel.publish_entity(None, 0, entity_draft("Zephyr", &[], "existing-zephyr", 1))
+        .unwrap();
+    let memory = publish_rel_memory(
+        &mut rel,
+        "zephyr-mention",
+        "Editor",
+        "Zephyr is a durable local editor.",
+    );
+    let key = install_rel_mention(&mut rel, memory, "Zephyr");
+    let crate::EntityResolutionPreparation::Ready(prepared) = rel
+        .prepare_entity_resolution(key, EntityCandidateConfig::default())
+        .unwrap()
+    else {
+        panic!("expected pending resolution");
+    };
+    let outcome = rel
+        .commit_entity_resolution(
+            prepared,
+            crate::EntityResolutionEvaluation {
+                output: crate::EntityResolverOutput {
+                    decision: EntityResolutionDecision::CreateNew,
+                    reason: EntityResolutionReason::ContextConflictNewIdentity,
+                },
+                materialization: Some(crate::EntityMaterialization {
+                    kind: "test".into(),
+                    summary: "Conflicting editor identity.".into(),
+                }),
+            },
+            100,
+        )
+        .unwrap()
+        .unwrap();
+    assert_eq!(outcome.decision, EntityResolutionDecision::Unresolved);
+    assert_eq!(outcome.reason, EntityResolutionReason::Ambiguous);
+    assert!(
+        matches!(&rel.entity_resolution(key).unwrap().status, MemoryEntityResolutionStatus::Pending(value) if value.reason == EntityResolutionReason::Ambiguous)
+    );
+    assert_eq!(rel.entities().len(), 1);
+}

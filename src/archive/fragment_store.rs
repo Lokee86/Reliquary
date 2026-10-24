@@ -118,7 +118,7 @@ impl Archive {
 
     pub(crate) fn fragment_text(
         &self,
-        container: &mut Container,
+        container: &Container,
         id: FragmentId,
     ) -> Result<String, ArchiveError> {
         let fragment = self
@@ -132,7 +132,7 @@ impl Archive {
 
     pub(crate) fn fragment_text_for(
         &self,
-        container: &mut Container,
+        container: &Container,
         fragment: &Fragment,
     ) -> Result<String, ArchiveError> {
         let nodes = self.fragment_nodes_for(fragment)?;

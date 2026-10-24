@@ -247,9 +247,10 @@ macro_rules! impl_reconsider {
                 let mut changed = 0usize;
                 for candidate in selected {
                     *timestamp = timestamp.saturating_add(1);
+                    self.reset_entity_resolution(candidate.key, *timestamp)
+                        .map_err(|error| EntityReconciliationError::Operation(error.to_string()))?;
+                    *timestamp = timestamp.saturating_add(1);
                     let result = (|| -> Result<(), crate::EntityResolverError> {
-                        self.reset_entity_resolution(candidate.key, *timestamp)?;
-                        *timestamp = timestamp.saturating_add(1);
                         if self.$principal_method(candidate.key, *timestamp)?.is_some() {
                             return Ok(());
                         }
@@ -297,7 +298,7 @@ impl_reconciliation!(Cva, CvaError, resolve_principal_entity_mention);
 impl_reconciliation!(
     Phylactery,
     PhylacteryError,
-    reject_phy_principal_entity_mention
+    resolve_principal_entity_mention
 );
 impl_reconsider!(Cva, resolve_principal_entity_mention);
-impl_reconsider!(Phylactery, reject_phy_principal_entity_mention);
+impl_reconsider!(Phylactery, resolve_principal_entity_mention);

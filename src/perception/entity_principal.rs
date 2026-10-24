@@ -67,15 +67,18 @@ impl PrincipalContext<'_> {
             }
             None
         } else {
-            Some((entity_id, EntityDraft {
-                canonical_name: principal_id.clone(),
-                aliases: Vec::new(),
-                kind: PRINCIPAL_ENTITY_KIND.into(),
-                summary: "Durable Phylactery-backed user principal.".into(),
-                mutation_id: format!("principal-entity:{principal_id}"),
-                created_at_ns: 0,
-                updated_at_ns: 0,
-            }))
+            Some((
+                entity_id,
+                EntityDraft {
+                    canonical_name: principal_id.clone(),
+                    aliases: Vec::new(),
+                    kind: PRINCIPAL_ENTITY_KIND.into(),
+                    summary: "Durable Phylactery-backed user principal.".into(),
+                    mutation_id: format!("principal-entity:{principal_id}"),
+                    created_at_ns: 0,
+                    updated_at_ns: 0,
+                },
+            ))
         };
         let expected_revision = self
             .entity_resolutions
@@ -109,14 +112,18 @@ impl PrincipalContext<'_> {
         now_ns: i64,
     ) -> Result<Option<(EntityId, u64, EntityDraft)>, crate::EntityError> {
         if !is_phy_principal_id(principal_id) {
-            return Err(crate::EntityError::InvalidField("principal Entity identity"));
+            return Err(crate::EntityError::InvalidField(
+                "principal Entity identity",
+            ));
         }
         let entity_id = principal_entity_id(principal_id);
         let Ok(entity) = self.entities.entity(entity_id) else {
             return Ok(None);
         };
         if entity.kind != PRINCIPAL_ENTITY_KIND || entity.canonical_name != principal_id {
-            return Err(crate::EntityError::InvalidField("principal Entity identity"));
+            return Err(crate::EntityError::InvalidField(
+                "principal Entity identity",
+            ));
         }
 
         let aliases = principal_profile_aliases(profile);

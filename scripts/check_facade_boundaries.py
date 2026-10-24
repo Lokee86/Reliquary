@@ -12,7 +12,12 @@ from check_multiplexing_phase4_coverage import masked
 
 ROOT = Path(__file__).resolve().parents[1]
 UPPER = {"public-consumers", "runtime-gateway"}
+PRODUCT_TYPES = r"Cva|Phylactery|EntityResolver|EntityResolutionEngine"
 CONCRETE_READ_CONTRACTS = {"src/perception/entity_audit.rs", "src/external_source/mod.rs"}
+CONTAINER_FREE_READS = {
+    "src/retrieval/conversation_search.rs", "src/retrieval/lexical_search.rs",
+    "src/retrieval/semantic_search.rs", "src/retrieval/lexical_index.rs",
+}
 VALUE_VARIANTS = {
     "src/container/container.rs": "Phylactery,",
     "src/ego/ego_store.rs": "Phylactery,",
@@ -37,7 +42,7 @@ def violations(path: str, source: str, component: str | None, facts: set[str]) -
     # Qualified and aliased imports, macro arguments, and concrete receiver types
     # all retain the forbidden identifier. Error/DTO names are separate tokens.
     if component not in UPPER:
-        for hit in re.finditer(r"\b(?:Cva|Phylactery)\b", view):
+        for hit in re.finditer(r"\b(?:" + PRODUCT_TYPES + r")\b", view):
             # Enum variants describe owner kind/errors, not facade capabilities.
             line = view[view.rfind("\n", 0, hit.start()) + 1:view.find("\n", hit.end())]
             if line.strip() == VALUE_VARIANTS.get(path):
@@ -45,7 +50,12 @@ def violations(path: str, source: str, component: str | None, facts: set[str]) -
             if re.search(r"\b(?:Self|[A-Za-z_][A-Za-z0-9_]*(?:Error|Kind|Scope|Target))\s*::\s*$", view[max(0, hit.start()-80):hit.start()]):
                 continue
             errors.append(f"{path}:{view.count(chr(10), 0, hit.start()) + 1}: lower facade dependency: {hit.group()}")
+    if component == "perception" or path in CONTAINER_FREE_READS:
+        for hit in re.finditer(r"\bContainer\b|\bcrate\s*::\s*container\s*::", view):
+            errors.append(f"{path}:{view.count(chr(10), 0, hit.start()) + 1}: policy consumes physical Container instead of owner contract")
     if not path.startswith("src/facade/"):
+        if re.search(r"\bpub\s+struct\s+(?:" + PRODUCT_TYPES + r")\b", view):
+            errors.append(f"{path}: public product binding outside facade")
         if re.search(r"\bimpl\s+ConfiguredRuntime\b", view) and re.search(r"\b(?:Cva|Phylactery)\b", view):
             errors.append(f"{path}: offline public ConfiguredRuntime composition outside facade")
         for hit in re.finditer(r"\bimpl\s+(?:crate\s*::\s*)?(?:Cva|Phylactery)\b|\bimpl_\w+\s*!\s*\(\s*(?:Cva|Phylactery)\b|\bimpl\s+\w+\s+for\s+(?:Cva|Phylactery)\b", view):
@@ -76,7 +86,11 @@ def self_test() -> None:
     assert unresolved_reverse({"canonical": "unknown::Owner"}, "retrieval", None, set())
     assert not unresolved_reverse({"canonical": "lodestone_packed::ScalarType"}, "retrieval", None, {("retrieval", "lodestone_packed::ScalarType")})
     assert unresolved_reverse({"canonical": "product::*"}, "retrieval", "public-consumers", set())
-    print("Facade boundary fixtures passed (21 cases).")
+    assert violations("src/perception/policy.rs", "fn run(value: &Container) {}", "perception", facts)
+    assert violations("src/perception/policy.rs", "use crate::EntityResolutionEngine;", "perception", facts)
+    assert violations("src/perception/policy.rs", "pub struct EntityResolver {}", "public-consumers", facts)
+    assert not violations("src/perception/policy.rs", "fn run(value: &MemoryReadView) {}", "perception", facts)
+    print("Facade boundary fixtures passed (25 cases).")
 
 
 def main() -> int:
@@ -104,6 +118,8 @@ def main() -> int:
         target = files.get(row["target_path"], {}).get("component")
         if source not in UPPER and target in UPPER and (source, target, row["target_symbol"]) not in values:
             errors.append(f"{row['source_path']}:{row['line']}: lower import of upper composition: {row['import']} -> {row['target_path']}")
+        if source == "perception" and target == "container" and (source, target, row["target_symbol"]) not in values:
+            errors.append(f"{row['source_path']}:{row['line']}: Perception imports physical Container capability: {row['import']}")
     for row in uncertain:
         source = files.get(row["source_path"], {}).get("component")
         target = files.get(row.get("target_path"), {}).get("component")

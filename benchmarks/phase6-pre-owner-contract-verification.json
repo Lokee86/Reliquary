@@ -1,0 +1,59 @@
+{
+  "schema": "phase6-pre-owner-contract-verification.v1",
+  "source_checkpoint": "a1e5fd8",
+  "rust_source_digest": "a8a18600c0ee0214cbaa1475edb27e65807680590e643c0ffecb14680769e336",
+  "scope": "Verified implementation checkpoint before final Container-neutral contracts/public binding split; not final A6 acceptance",
+  "test_totals": {
+    "library": {
+      "passed": 2000,
+      "failed": 0,
+      "ignored": 5,
+      "groups": 1,
+      "log": ".verification-tmp/phase6-lib-tests-windows.log",
+      "log_sha256": "98b9306df56086df021da3cabf15c03309f0ff8058fb5e59f8df2e1e5e9cc00a"
+    },
+    "integration": {
+      "passed": 163,
+      "failed": 0,
+      "ignored": 1,
+      "groups": 25,
+      "log": ".verification-tmp/phase6-integration-tests.log",
+      "log_sha256": "1ecbc1b708b039b7c98385a5dc66241dfc3f3306758e49c099bed07ae5f6772f"
+    },
+    "cli": {
+      "passed": 32,
+      "failed": 0,
+      "ignored": 0,
+      "groups": 1,
+      "log": ".verification-tmp/phase6-cli-tests.log",
+      "log_sha256": "7d56f8d70ef3bd96ca09173a4a6180b3318d39ee86ac5ba09ac7bb4af4b34b38"
+    },
+    "corpus": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "groups": 1,
+      "log": ".verification-tmp/phase6-corpus.log",
+      "log_sha256": "173c3152611c805511d7dc7f79ef55ecab7f69ee315fbf59987d6c94a0514caa"
+    },
+    "doctests": {
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "groups": 1,
+      "log": ".verification-tmp/phase6-doctests.log",
+      "log_sha256": "977346af0694e0f90e5a02bfe5e9f7437ddae446c8134aed95cae12c0d9555a0"
+    }
+  },
+  "command_status": {
+    "doctests": 0,
+    "check": 0,
+    "corpus": 0,
+    "fmt": 0,
+    "roundtrip": 0,
+    "integration": 0
+  },
+  "corpus_fixtures": 6,
+  "normal_windows_permissions": true,
+  "restricted_run": "Initial restricted library run had30 environment-related failures and was stopped after local mock/hard-link failures; normal Windows run passed all2000 plus5 existing ignored. Logs retained, not counted as success."
+}
