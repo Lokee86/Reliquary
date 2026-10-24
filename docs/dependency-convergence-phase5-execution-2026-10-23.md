@@ -8,7 +8,7 @@ Execute the [45-task specification](dependency-convergence-phase5-runtime-orches
 
 ## Overview
 
-Implementation in progress. No final gate is accepted by this receipt. The original main worktree and its spec edit are preserved. Dedicated worktree starts at integrated Phase 4 commit `10cbe4b7`.
+Implementation is integrated into `main` at `9a3678f`; Rust source is pinned to `fe9948e`. The original specification edits were preserved in `806234c` and reconciled without removing their execution constraints. B5 through D5 have bounded source/behavioral acceptance. A5 remains limited: Rust, CLI, corpus and documentation checks passed, but the required full architecture refresh did not publish a snapshot within its bounded retry. This is not a full A5 acceptance claim.
 
 ## B5 boundary and source baseline
 
@@ -53,56 +53,66 @@ Supported `Cva`/`Phylactery` APIs, `ConfiguredRuntime` offline methods, DreamPro
 
 ## Task ledger
 
-The denominator remains 45 tasks / eight gates. `pending` includes verification still required. B5 task records are pinned to the baseline above, not inferred from target DAG acyclicity.
+The denominator remains 45 tasks / eight gates. The 42 B5–D5 tasks have bounded source/behavioral receipts; the three A5 tasks have the explicit dispositions below. B5 task records are pinned to the baseline above, not inferred from target DAG acyclicity.
 
 | Task | State | Receipt / remaining work |
 
 | --- | --- | --- |
-| P5.0.1 | Verified (source) | Baseline receipt: `../benchmarks/dependency-convergence-phase5-baseline-2026-10-23.json`; source receipt `before_checkpoint`, `accepted_map_before`. |
-| P5.0.2 | Verified (source) | Source receipt `tuple_reviews`, `source_proof_limits`; B5 boundary above. |
-| P5.0.3 | Verified (source) | Contract and migration register above; source receipt `tuple_reviews`, `source_role_corrections`. |
-| P5.1.1 | Verified (source) | No source cut: Gateway keyed maps and lease/writer lifetime; REL/PHY mount, detach and reopen tests in final Rust gate. `src/runtime_inference/runtime_host_gateway.rs`, `runtime_host_rel_execution.rs`, `runtime_host_phy_execution.rs`; source receipt `tuple_reviews`. |
-| P5.1.2 | Verified (source) | Explicit DreamOwnerRead, EvidenceSearch and UserMemoryOwner ports; existing RelShared mutate/with_rel fences remain authoritative. `src/runtime_inference/runtime_host_rel_execution.rs`; source receipt `tuple_reviews`, `after`. |
-| P5.1.3 | Verified (source) | Owner claim/result/config values split; extraction/evidence is facade-free; grouped publication moved unchanged to owner_lifecycle/insomnia_application.rs; prior import replay remains canonical. `src/runtime_inference/runtime_host_rel_insomnia.rs`; source receipt `tuple_reviews`, `source_role_corrections`. |
-| P5.1.4 | Verified (source) | Dream canonical read port, pure provider evaluator, temporal policy and settlement evaluation separated from supported offline composition. `src/runtime_inference/runtime_host_rel_dream.rs`; source receipt `tuple_reviews`, `source_role_corrections`. |
-| P5.1.5 | Verified (source) | No source cut: mounted Perception prepares/evaluates/commits with existing owner fences; exact public Cva extensions remain Phase6. `src/runtime_inference/runtime_host_rel_perception.rs`; source receipt `tuple_reviews`, `after`. |
-| P5.1.6 | Verified (source) | No worker rewrite: vector batches freeze before embed and revalidate on commit; vector normalization is now a vector-owned immutable contract. `src/runtime_inference/runtime_host_rel_vectors.rs`; source receipt `tuple_reviews`, `after`. |
-| P5.1.7 | Verified (source) | No source cut: shared PHY lease/worker lifetime remains Gateway-owned; Instance only has attachment/grants. `src/runtime_inference/runtime_host_phy_execution.rs`; source receipt `tuple_reviews`, `after`. |
-| P5.1.8 | Verified (source) | No source cut: PHY Dream/Perception/Vectors worker loops use the keyed owner execution, not instance maps. PHY worker family sources named in spec; source receipt `tuple_reviews`, `after`. |
-| P5.1.9 | Verified (source) | Old internal model_switchboard_codec removed; extraction tests use final contracts; unused canonical historical forwarding removed. Public offline methods retained. REL/PHY owner execution sources; source receipt `tuple_reviews`, `after`. |
-| P5.2.1 | Verified (source) | `runtime_host_gateway.rs`, `runtime_host_gateway_mount.rs`, `runtime_host_gateway_admission.rs`; source receipt `tuple_reviews`, `after`. |
-| P5.2.2 | Verified (source) | `runtime_host_instances.rs`, `runtime_host_gateway_conversation_selection.rs`; source receipt `tuple_reviews`, `after`. |
-| P5.2.3 | Verified (source) | `runtime_host_gateway_semantic.rs`, `runtime_host_gateway_ambient.rs`; source receipt `tuple_reviews`, `after`. |
-| P5.2.4 | Verified (source) | Gateway admission/instance authorization sources; source receipt `tuple_reviews`, `after`. |
-| P5.2.5 | Verified (source) | Gateway publication/delivery sources; source receipt `tuple_reviews`, `after`. |
-| P5.2.6 | Verified (source) | `runtime_host.rs` and Gateway sources; source receipt `source_role_corrections`, `after`, `source_proof_limits`. |
-| P5.3.1 | Verified (source) | `multiplexing_journal.rs`, `runtime_host_gateway_conversation.rs`; source receipt `tuple_reviews`, `after`. |
-| P5.3.2 | Verified (source) | Gateway conversation/finalization sources; source receipt `tuple_reviews`, `after`. |
-| P5.3.3 | Verified (source) | Gateway conversation policy/branch sources; source receipt `tuple_reviews`, `after`. |
-| P5.3.4 | Verified (source) | Gateway cancellation/journal/finalization sources; source receipt `tuple_reviews`, `after`. |
-| P5.3.5 | Verified (source) | Gateway host/conversation generation sources; source receipt `tuple_reviews`, `after`. |
-| P5.3.6 | Verified (source) | Gateway events/snapshots sources; source receipt `tuple_reviews`, `after`. |
-| P5.3.7 | Verified (source) | Gateway streams/registry and `interaction_live.rs`; source receipt `tuple_reviews`, `after`. |
-| P5.3.8 | Verified (source) | Gateway reconnect/snapshot reader sources; source receipt `tuple_reviews`, `after`. |
-| P5.4.1 | Verified (source) | model_config/model_config_codec/retrieval_config/runtime_config are below switchboard routing/auth; validate_runtime no longer constructs a service. `configured_runtime.rs`, `configured_runtime_decision.rs`, `model_switchboard.rs`; source receipt `tuple_reviews`, `after`. |
-| P5.4.2 | Verified (source) | VectorNormalization moved with unchanged 0/1 tags; Insomnia completion codec remains lifecycle-owned; process/worker values separated from facade implementation. Configuration/codec moves: source receipt `source_role_corrections`, `tuple_reviews`; contract register above. |
-| P5.4.3 | Verified (source) | Insomnia stages resolve explicit evidence, release owner mutex for model I/O, then reacquire owner admission and canonical lifecycle publication. Insomnia runtime/processor/worker sources; source receipt `source_role_corrections`, `tuple_reviews`. |
-| P5.4.4 | Verified (source) | Pure DreamProcessor evaluation has no Cva/PHY handle; existing snapshot/revision/graph checks and final publication order preserved. Dream runtime, `dream_settlement.rs`, `dream_temporal_policy.rs`; source receipt `source_role_corrections`, `tuple_reviews`. |
-| P5.4.5 | Verified (source) | No source cut: Perception endpoint calls are outside prepare/commit owner scopes. Perception runtime consumer sources; source receipt `tuple_reviews`, `after`. |
-| P5.4.6 | Verified (source) | No source cut: embeddings follow prepare→embed→fresh lease/profile/owner validation; no provider or store moved into ConfiguredRuntime. Vectors runtime consumer sources; source receipt `tuple_reviews`, `after`. |
-| P5.4.7 | Verified (source) | Existing root exports and public offline methods preserved; offline Cva adapters are explicitly distinct from provider/domain services. Supported offline adapters: source receipt `source_role_corrections`; Phase 6 register above. |
-| P5.5.1 | Verified (source) | Context Engine runtime input consumer sources; source receipt `tuple_reviews`, `after`. |
-| P5.5.2 | Verified (source) | Compaction/checkpoint consumer sources; source receipt `tuple_reviews`, `after`. |
-| P5.5.3 | Verified (source) | Project historical-read consumers; source receipt `tuple_reviews`, `after`; Phase 4 baseline above. |
-| P5.5.4 | Verified (source) | `runtime_host_gateway_project_lifecycle.rs`; source receipt `tuple_reviews`; Phase 4 baseline above. |
-| P5.5.5 | Verified (source) | `runtime_host_gateway_external.rs`; source receipt `tuple_reviews`, `after`. |
-| P5.6.1 | Verified (source) | Deleted old codec forwarding; split canonical source owners once; no shadow execution, queue, compatibility adapter or old-owner test copy. Source receipt `tuple_reviews`, `source_role_corrections`, `after`. |
-| P5.6.2 | Verified (source) | Current-source mode reuses accepted map/resolver and retained exact before-image; source-role changes are reported separately from code/edge cuts. Source receipt `after`: 822 mapped production files, zero unmapped paths and zero unclassified new edges. |
-| P5.6.3 | Verified (source) | Focused source negatives reject facade handles at cut seams and lower Gateway/Instance imports; exact import graph retains Phase6 SCC witnesses and uncertainty. Source receipt `after.cycle_witnesses`, `source_proof_limits`; remaining facade SCC/debt stays explicit. |
-| P5.6.4 | Verification in progress | Consolidated bounded subsystem test/source-policy gate remains; no acceptance claimed. |
-| P5.7.1 | Verification in progress | Final version-pinned integration verification remains; no acceptance claimed. |
-| P5.7.2 | Pending final closure | Canonical documentation and `ddocs` policy/link pass await P5.7.1. |
-| P5.7.3 | Pending final closure | Worktree/commit disposition and Phase 6 handoff await P5.7.1–.2. |
+| P5.0.1 | Verified (source and behavior) | Baseline receipt: `../benchmarks/dependency-convergence-phase5-baseline-2026-10-23.json`; source receipt `before_checkpoint`, `accepted_map_before`. |
+| P5.0.2 | Verified (source and behavior) | Source receipt `tuple_reviews`, `source_proof_limits`; B5 boundary above. |
+| P5.0.3 | Verified (source and behavior) | Contract and migration register above; source receipt `tuple_reviews`, `source_role_corrections`. |
+| P5.1.1 | Verified (source and behavior) | No source cut: Gateway keyed maps and lease/writer lifetime; REL/PHY mount, detach and reopen tests in final Rust gate. `src/runtime_inference/runtime_host_gateway.rs`, `runtime_host_rel_execution.rs`, `runtime_host_phy_execution.rs`; source receipt `tuple_reviews`. |
+| P5.1.2 | Verified (source and behavior) | Explicit DreamOwnerRead, EvidenceSearch and UserMemoryOwner ports; existing RelShared mutate/with_rel fences remain authoritative. `src/runtime_inference/runtime_host_rel_execution.rs`; source receipt `tuple_reviews`, `after`. |
+| P5.1.3 | Verified (source and behavior) | Owner claim/result/config values split; extraction/evidence is facade-free; grouped publication moved unchanged to owner_lifecycle/insomnia_application.rs; prior import replay remains canonical. `src/runtime_inference/runtime_host_rel_insomnia.rs`; source receipt `tuple_reviews`, `source_role_corrections`. |
+| P5.1.4 | Verified (source and behavior) | Dream canonical read port, pure provider evaluator, temporal policy and settlement evaluation separated from supported offline composition. `src/runtime_inference/runtime_host_rel_dream.rs`; source receipt `tuple_reviews`, `source_role_corrections`. |
+| P5.1.5 | Verified (source and behavior) | No source cut: mounted Perception prepares/evaluates/commits with existing owner fences; exact public Cva extensions remain Phase6. `src/runtime_inference/runtime_host_rel_perception.rs`; source receipt `tuple_reviews`, `after`. |
+| P5.1.6 | Verified (source and behavior) | No worker rewrite: vector batches freeze before embed and revalidate on commit; vector normalization is now a vector-owned immutable contract. `src/runtime_inference/runtime_host_rel_vectors.rs`; source receipt `tuple_reviews`, `after`. |
+| P5.1.7 | Verified (source and behavior) | No source cut: shared PHY lease/worker lifetime remains Gateway-owned; Instance only has attachment/grants. `src/runtime_inference/runtime_host_phy_execution.rs`; source receipt `tuple_reviews`, `after`. |
+| P5.1.8 | Verified (source and behavior) | No source cut: PHY Dream/Perception/Vectors worker loops use the keyed owner execution, not instance maps. PHY worker family sources named in spec; source receipt `tuple_reviews`, `after`. |
+| P5.1.9 | Verified (source and behavior) | Old internal model_switchboard_codec removed; extraction tests use final contracts; unused canonical historical forwarding removed. Public offline methods retained. REL/PHY owner execution sources; source receipt `tuple_reviews`, `after`. |
+| P5.2.1 | Verified (source and behavior) | `runtime_host_gateway.rs`, `runtime_host_gateway_mount.rs`, `runtime_host_gateway_admission.rs`; source receipt `tuple_reviews`, `after`. |
+| P5.2.2 | Verified (source and behavior) | `runtime_host_instances.rs`, `runtime_host_gateway_conversation_selection.rs`; source receipt `tuple_reviews`, `after`. |
+| P5.2.3 | Verified (source and behavior) | `runtime_host_gateway_semantic.rs`, `runtime_host_gateway_ambient.rs`; source receipt `tuple_reviews`, `after`. |
+| P5.2.4 | Verified (source and behavior) | Gateway admission/instance authorization sources; source receipt `tuple_reviews`, `after`. |
+| P5.2.5 | Verified (source and behavior) | Gateway publication/delivery sources; source receipt `tuple_reviews`, `after`. |
+| P5.2.6 | Verified (source and behavior) | `runtime_host.rs` and Gateway sources; source receipt `source_role_corrections`, `after`, `source_proof_limits`. |
+| P5.3.1 | Verified (source and behavior) | `multiplexing_journal.rs`, `runtime_host_gateway_conversation.rs`; source receipt `tuple_reviews`, `after`. |
+| P5.3.2 | Verified (source and behavior) | Gateway conversation/finalization sources; source receipt `tuple_reviews`, `after`. |
+| P5.3.3 | Verified (source and behavior) | Gateway conversation policy/branch sources; source receipt `tuple_reviews`, `after`. |
+| P5.3.4 | Verified (source and behavior) | Gateway cancellation/journal/finalization sources; source receipt `tuple_reviews`, `after`. |
+| P5.3.5 | Verified (source and behavior) | Gateway host/conversation generation sources; source receipt `tuple_reviews`, `after`. |
+| P5.3.6 | Verified (source and behavior) | Gateway events/snapshots sources; source receipt `tuple_reviews`, `after`. |
+| P5.3.7 | Verified (source and behavior) | Gateway streams/registry and `interaction_live.rs`; source receipt `tuple_reviews`, `after`. |
+| P5.3.8 | Verified (source and behavior) | Gateway reconnect/snapshot reader sources; source receipt `tuple_reviews`, `after`. |
+| P5.4.1 | Verified (source and behavior) | model_config/model_config_codec/retrieval_config/runtime_config are below switchboard routing/auth; validate_runtime no longer constructs a service. `configured_runtime.rs`, `configured_runtime_decision.rs`, `model_switchboard.rs`; source receipt `tuple_reviews`, `after`. |
+| P5.4.2 | Verified (source and behavior) | VectorNormalization moved with unchanged 0/1 tags; Insomnia completion codec remains lifecycle-owned; process/worker values separated from facade implementation. Configuration/codec moves: source receipt `source_role_corrections`, `tuple_reviews`; contract register above. |
+| P5.4.3 | Verified (source and behavior) | Insomnia stages resolve explicit evidence, release owner mutex for model I/O, then reacquire owner admission and canonical lifecycle publication. Insomnia runtime/processor/worker sources; source receipt `source_role_corrections`, `tuple_reviews`. |
+| P5.4.4 | Verified (source and behavior) | Pure DreamProcessor evaluation has no Cva/PHY handle; existing snapshot/revision/graph checks and final publication order preserved. Dream runtime, `dream_settlement.rs`, `dream_temporal_policy.rs`; source receipt `source_role_corrections`, `tuple_reviews`. |
+| P5.4.5 | Verified (source and behavior) | No source cut: Perception endpoint calls are outside prepare/commit owner scopes. Perception runtime consumer sources; source receipt `tuple_reviews`, `after`. |
+| P5.4.6 | Verified (source and behavior) | No source cut: embeddings follow prepare→embed→fresh lease/profile/owner validation; no provider or store moved into ConfiguredRuntime. Vectors runtime consumer sources; source receipt `tuple_reviews`, `after`. |
+| P5.4.7 | Verified (source and behavior) | Existing root exports and public offline methods preserved; offline Cva adapters are explicitly distinct from provider/domain services. Supported offline adapters: source receipt `source_role_corrections`; Phase 6 register above. |
+| P5.5.1 | Verified (source and behavior) | Context Engine runtime input consumer sources; source receipt `tuple_reviews`, `after`. |
+| P5.5.2 | Verified (source and behavior) | Compaction/checkpoint consumer sources; source receipt `tuple_reviews`, `after`. |
+| P5.5.3 | Verified (source and behavior) | Project historical-read consumers; source receipt `tuple_reviews`, `after`; Phase 4 baseline above. |
+| P5.5.4 | Verified (source and behavior) | `runtime_host_gateway_project_lifecycle.rs`; source receipt `tuple_reviews`; Phase 4 baseline above. |
+| P5.5.5 | Verified (source and behavior) | `runtime_host_gateway_external.rs`; source receipt `tuple_reviews`, `after`. |
+| P5.6.1 | Verified (source and behavior) | Deleted old codec forwarding; split canonical source owners once; no shadow execution, queue, compatibility adapter or old-owner test copy. Source receipt `tuple_reviews`, `source_role_corrections`, `after`. |
+| P5.6.2 | Verified (source and behavior) | Current-source mode reuses accepted map/resolver and retained exact before-image; source-role changes are reported separately from code/edge cuts. Source receipt `after`: 822 mapped production files, zero unmapped paths and zero unclassified new edges. |
+| P5.6.3 | Verified (source and behavior) | Focused source negatives reject facade handles at cut seams and lower Gateway/Instance imports; exact import graph retains Phase6 SCC witnesses and uncertainty. Source receipt `after.cycle_witnesses`, `source_proof_limits`; remaining facade SCC/debt stays explicit. |
+| P5.6.4 | Verified | Full library and integration suites, source guards and current-format corpus passed; machine acceptance receipt below. |
+| P5.7.1 | Limited; A5 not fully accepted | Rust/CLI/corpus checks passed. Full architecture refresh stopped after its clean 15-minute analysis window without a snapshot; no full refresh/convergence pass claimed. |
+| P5.7.2 | Documentation verified; A5 dependency limited | Canonical docs updated; full/changed documentation policy and Archivist indexes/links passed. |
+| P5.7.3 | Integrated; A5 dependency limited | All Phase 5 changes integrated into main; feature/acceptance checkouts align with the final documentation commit. Exact Phase 6 tuples remain in the deferred register and source receipt. |
+
+## Final verification and worktree disposition
+
+The [machine acceptance receipt](../benchmarks/dependency-convergence-phase5-acceptance-2026-10-23.json) pins commands, source/binary hashes and corrected intermediate failures. Library: 1,999 passed / five ignored. Integration: 163 passed / one ignored. Explicit promoted current-format corpus: one passed across all six retained files with unchanged hashes/heads. CLI: 32 passed. Formatting, locked all-target checks and doctests passed. The six ordinarily ignored cases are retained explicitly; the promoted corpus case was separately executed.
+
+The successful library executable predates the final source commit but every final Rust input matches that checkpoint and predates the executable; its SHA-256 and normalized source digest are retained. No source changed during final acceptance. Parallel integration compilation first failed with missing-crate artifacts; serial compilation and tests passed. Initial sandbox loopback/Windows capability failures are not successful receipts.
+
+The required architecture entrypoint passed its multiplexing, external-source, owner, runtime, history and physical guards. A first refresh window was interrupted after 30 minutes; a clean-checkout retry used resolved tools and was stopped after 15 minutes of Rust analysis without publication. No full Pitlord/Arcana refresh or convergence ratchet pass is claimed. This remains the A5 verification limitation, rather than a source-code or test failure silently counted as passing.
+
+`Reliquary`, `Reliquary-phase5` and its detached acceptance checkout retain integrated Phase 5 changes; ignored test logs remain in the feature checkout. Two unrelated untracked Phase 6/7 specification files in the original main worktree are preserved untouched. No pull request or remote push was requested. The runtime import SCC is four components (Import, Perception, public consumers, runtime gateway), down from twelve on a consistent policy; physical/owner-store components were absent both before and after. Remaining Phase 6 edges are classified, not eliminated.
 
 ## Related docs
 
@@ -121,8 +131,8 @@ B5 accepts only the inherited bounded map/source-contract baseline. D5/A5 requir
 - Inspected: required architecture/invariant/storage/maintainer/limitations/roadmap documents, controlling spec and prior receipts.
 - Updated: architecture/API/model-runtime/runtime/context/configuration ownership, preservation contracts, current limitations, maintainer/coverage/roadmap/index and this execution/source receipt.
 - Not affected: persistent schema, public signatures, queue/host/stream semantics, Project Environment authority and deferred Context Engine features.
-- Compliance check: final documentation policy, changed-from and Archivist checks pending.
-- Known documentation gaps: installed Pitlord docs command availability must be reported, not inferred from source guards.
+- Compliance check: full and changed-from shared documentation policy plus Archivist indexes/links passed on the clean acceptance checkout.
+- Known documentation gaps: installed Pitlord rejects `docs` as an unknown command; no documentation-ownership pass is claimed.
 
 ## Architecture impact
 
@@ -130,4 +140,4 @@ B5 accepts only the inherited bounded map/source-contract baseline. D5/A5 requir
 - Ownership or boundary impact: lower configuration/owner evidence/value contracts; one lifecycle-owned grouped publisher; pure Dream evaluation separated from supported public composition.
 - Pitlord enforcement impact: focused runtime source guard is part of the existing architecture entrypoint; accepted component checker adds current-source-only incremental evidence.
 - Other verification impact: one serial Rust/CLI acceptance run, source/physical/owner/history negatives, incremental imports and required architecture refresh.
-- Known architectural gaps: inherited symbol-level graph completeness and explicit retained source debt remain disclosed; source-role correction is not edge elimination.
+- Known architectural gaps: full refreshed architecture/convergence run incomplete; inherited symbol-level graph completeness, 96 uncertain imports and exact retained source debt remain explicit. Source-role correction is not edge elimination.

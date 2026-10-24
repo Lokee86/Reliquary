@@ -204,6 +204,13 @@
       "failed": 0,
       "ignored": 0,
       "result_groups": 1
+    },
+    "current-format-corpus-explicit": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "fixtures": 6,
+      "log": ".test-tmp/phase5-current-corpus.log"
     }
   },
   "library_provenance": {
@@ -225,11 +232,43 @@
     "shared_policy": "passed at source checkpoint",
     "changed_from_origin_main": "passed at source checkpoint",
     "archivist_indexes_links": "passed at source checkpoint",
-    "final_documentation_recheck": "pending"
+    "final_documentation_recheck": "full/changed policy and indexes/links passed; final receipt closure text rechecked separately",
+    "pitlord_docs": "unavailable: unknown command docs"
   },
   "architecture_refresh": {
-    "status": "clean-checkout retry in progress; first attempt interrupted after 30 minutes without snapshot",
-    "command": "python scripts/check_architecture.py --refresh"
+    "command": "python scripts/check_architecture.py --refresh",
+    "status": "incomplete; no snapshot published",
+    "source_guards": "all passed",
+    "attempts": [
+      "feature checkout: interrupted after 30-minute window",
+      "clean checkout: interrupted after 15-minute Rust analysis window"
+    ],
+    "log": ".test-tmp/phase5-architecture-clean-resolved.log",
+    "full_pitlord_convergence_pass_claimed": false
   },
-  "closure": "pending remaining acceptance checks and integration"
+  "closure": "implementation integrated; B5-D5 bounded acceptance; A5 limited, not fully accepted",
+  "integration_checkpoint": "9a3678f",
+  "gates_summary": {
+    "B5": "accepted bounded source and existing behavior",
+    "O5": "accepted bounded source and existing behavior",
+    "G5": "accepted bounded source and existing behavior",
+    "Q5": "accepted bounded source and existing behavior",
+    "E5": "accepted bounded source and existing behavior",
+    "S5": "accepted bounded source and existing behavior",
+    "D5": "accepted bounded source and existing behavior",
+    "A5": "limited: functional/docs/worktree receipts complete; full architecture refresh incomplete"
+  },
+  "ordinary_ignored_cases": [
+    "test cva_historical_import::tests::historical_retained_corpus::historical_retained_corpus_native_acceptance ... ignored, requires a hash-pinned retained REL; run scripts/freshness_historical_corpus.py",
+    "test cva_semantic_source::tests::semantic_release_measurement ... ignored, release measurement; run explicitly with --ignored --nocapture",
+    "test runtime_host::gateway::agentic_memory::graph::frozen_fixture_tests::agentic_frozen_fixture_acceptance ... ignored, requires worktree-local copies of authoritative REL fixtures; use scripts/agentic_memory_fixture_acceptance.py",
+    "test runtime_host::gateway::tests::p6_harness::crash::p6_crash_child ... ignored, runner invokes this in an isolated subprocess that must abort",
+    "test runtime_host::gateway::tests::p6_harness::crash::p6_crash_recover ... ignored, runner reopens physical files left by the abrupt crash child",
+    "test promoted_canonical_corpus_reopens_after_runtime_retirement ... ignored, explicit local promoted six-file corpus admission"
+  ],
+  "worktrees": {
+    "main": "all Phase5 implementation integrated; unrelated untracked Phase6/7 specs preserved",
+    "feature": "all tracked changes integrated at final receipt checkpoint",
+    "acceptance": "same final tracked tree; ignored analyzer state is not accepted evidence"
+  }
 }
