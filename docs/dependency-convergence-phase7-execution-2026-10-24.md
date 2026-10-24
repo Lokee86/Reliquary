@@ -10,7 +10,7 @@ Record local execution of the [31-ticket Phase 7 plan](dependency-convergence-ph
 
 Execution started from `0495689c34aa9a1c10699fd31f7b504db03b9492` on 2026-10-24, using local Luna subagents and no connectors. The supplied specification was the only initial untracked file. No Rust implementation or persistent format changed.
 
-**Phase 7 is not accepted.** Its literal prerequisite, accepted Phase 5 A5, is unmet. Phase 5's source/behavior checkpoint is available, but its execution ledger leaves P5.7.1 limited and A5 architecture acceptance open. Phase 6 A6 accepts bounded source/API/behavior evidence and explicitly carries the graph-proof gap forward. These receipts can seed B7; they cannot establish the prerequisite by implication.
+**Phase 7 is not accepted.** Phase 5's source/behavior checkpoint is integrated and Phase 6 A6 is accepted. The controlling specification now explicitly permits B7/H7/R7 execution from these checkpoints without an accepted Phase 5 A5 full architecture refresh. Phase 5 P5.7.1 and its full graph proof remain incomplete; Phase 7 A7 must resolve that evidence gap against the original final architecture contract. No A5 completion or reduced proof standard is implied.
 
 The [baseline receipt](../benchmarks/phase7-baseline.json) measures current cfg-aware source imports against the existing 34-component map. It retains every unapproved edge and uncertainty rather than consulting historical debt as permission. The [runtime residual register](../benchmarks/phase7-runtime-residuals.json) anchors the remaining runtime/public aggregate witnesses and candidate cuts. Neither receipt is a compiler-resolved call graph.
 
@@ -20,7 +20,7 @@ The corrected-map measurement contains 3,580 cross-component import rows, includ
 
 | Gate | Disposition | Evidence still needed |
 |---|---|---|
-| B7 | Open; bounded baseline and source witness preparation | Accepted A5 prerequisite; comparable historical coverage; material call/cfg uncertainty resolved or bounded by concrete source evidence |
+| B7 | Open; bounded baseline and source witness preparation | Comparable historical coverage and exact classification of candidate imports; material call/cfg uncertainty resolved or bounded by concrete source evidence. Phase 5 A5 is an A7 proof obligation, not a B7 prerequisite. |
 | H7 | Not started | Accepted B7 and actual implementation cuts or proved absence for every conditional seam |
 | R7 | Not accepted; standalone source-policy checks prepared | Integration after B7/H7, representative callback/placement negatives and material uncertainty disposition |
 | A7 | Open | Source-proven allowed DAG, complete required verification, documentation ownership and integrated final implementation |
@@ -55,7 +55,7 @@ Rust/CLI/corpus acceptance in the Phase 6 receipt remains historical evidence fo
 - Ownership or boundary impact: one omitted file row restored to its existing Insomnia owner; no Rust cut.
 - Pitlord enforcement impact: reachable-file mapping and its fixtures run before the existing architecture gate; no debt suppression or gate replacement.
 - Other verification impact: reproducible current source inventory, exact import/SCC witnesses and negative policy fixtures.
-- Known architectural gaps: A5 prerequisite, runtime/public SCC, material call/cfg proof, historical comparability and final A7 integration remain open.
+- Known architectural gaps: inherited A5 full graph-proof obligation, runtime/public SCC, material call/cfg proof, historical comparability and final A7 integration remain open. Phase 5 A5 is not a Phase 7 execution prerequisite.
 
 ## Related docs
 
@@ -67,4 +67,4 @@ Rust/CLI/corpus acceptance in the Phase 6 receipt remains historical evidence fo
 
 ## Notes
 
-Resume from the pinned baseline and residual register after the prerequisite and B7 evidence gaps are resolved. No Phase 8 or reduced closure standard is introduced.
+Resume B7 evidence reconciliation immediately from the pinned integrated Phase 6 baseline and residual register; proceed to witnessed H7 source cuts only after B7 acceptance. The incomplete Phase 5 A5 graph proof remains required for A7, not B7. No Phase 8 or reduced closure standard is introduced.
