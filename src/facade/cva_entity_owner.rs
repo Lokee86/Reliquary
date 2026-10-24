@@ -3,7 +3,7 @@ use crate::{
 };
 
 macro_rules! impl_owner {
-    ($owner:ty, $reject_principal:expr) => {
+    ($owner:ty, $publish:ident, $replay:ident, $backfill:ident, $entity:ident, $tombstone:ident, $retention:ident, $historical:ident, $lifecycle:ident, $revision:ident, $surface:ident, $normalized:ident, $alias:ident, $conflicts:ident, $replacement:ident, $version:ident, $entities:ident, $stats:ident) => {
         impl $owner {
             pub fn publish_entity(
                 &mut self,
@@ -11,15 +11,8 @@ macro_rules! impl_owner {
                 expected_revision: u64,
                 draft: EntityDraft,
             ) -> Result<(Entity, bool), EntityError> {
-                crate::owner_lifecycle::entity_publication_admission::validate_entity_publication(
-                    &draft,
-                    $reject_principal,
-                )?;
-                self.owner
-                    .entities
-                    .publish(&mut self.owner.container, id, expected_revision, draft)
+                crate::perception_entity_merge_runtime::$publish(self, id, expected_revision, draft)
             }
-
             pub(crate) fn replay_entity_revision(
                 &mut self,
                 id: EntityId,
@@ -27,75 +20,33 @@ macro_rules! impl_owner {
                 draft: EntityDraft,
                 global_id: Option<EntityGlobalId>,
             ) -> Result<(Entity, bool), EntityError> {
-                self.owner.entities.publish_with_global_id(
-                    &mut self.owner.container,
-                    Some(id),
+                crate::perception_entity_merge_runtime::$replay(
+                    self,
+                    id,
                     expected_revision,
                     draft,
                     global_id,
                 )
             }
-
             pub fn backfill_entity_global_ids(&mut self) -> Result<usize, EntityError> {
-                let missing: Vec<_> = self
-                    .entities()
-                    .into_iter()
-                    .filter(|entity| entity.global_id.is_none())
-                    .collect();
-                for entity in &missing {
-                    self.publish_entity(
-                        Some(entity.id),
-                        entity.revision,
-                        EntityDraft {
-                            canonical_name: entity.canonical_name.clone(),
-                            aliases: entity.aliases.clone(),
-                            kind: entity.kind.clone(),
-                            summary: entity.summary.clone(),
-                            mutation_id: format!(
-                                "entity-global-uuid-backfill:{}:{}",
-                                entity
-                                    .id
-                                    .0
-                                    .iter()
-                                    .map(|byte| format!("{byte:02x}"))
-                                    .collect::<String>(),
-                                entity.revision + 1
-                            ),
-                            created_at_ns: entity.created_at_ns,
-                            updated_at_ns: entity.updated_at_ns,
-                        },
-                    )?;
-                }
-                Ok(missing.len())
+                crate::perception_entity_merge_runtime::$backfill(self)
             }
-
             pub fn entity(&self, id: EntityId) -> Result<Entity, EntityError> {
-                self.entities.entity(id)
+                crate::perception_entity_merge_runtime::$entity(self, id)
             }
-
             pub fn tombstone_entity(
                 &mut self,
                 id: EntityId,
                 expected_revision: u64,
             ) -> Result<crate::owner_lifecycle::TombstoneOutcome, EntityError> {
-                let result = self.owner.entities.tombstone_direct(
-                    &mut self.owner.container,
-                    id,
-                    expected_revision,
-                )?;
-                self.graph
-                    .exclude_from_current(crate::SemanticNodeRef::entity(id))
-                    .map_err(|_| EntityError::InvalidField("Entity graph projection"))?;
-                Ok(result)
+                crate::perception_entity_merge_runtime::$tombstone(self, id, expected_revision)
             }
-
             pub fn entity_retention_descriptor(
                 &self,
                 id: EntityId,
             ) -> Result<crate::EntityRetentionDescriptor, EntityError> {
-                self.entities.retention_descriptor(id)
+                crate::perception_entity_merge_runtime::$retention(self, id)
             }
-
             pub fn historical_entity_revision(
                 &self,
                 id: EntityId,
@@ -104,111 +55,103 @@ macro_rules! impl_owner {
                 crate::owner_lifecycle::HistoricalPayload<Entity, crate::EntityRetainedRevision>,
                 EntityError,
             > {
-                let value = match self.entity_revision(id, revision) {
-                    Ok(value) => value,
-                    Err(EntityError::PayloadUnavailable(reason)) => {
-                        let structure = self
-                            .entity_retention_descriptor(id)?
-                            .revisions
-                            .into_iter()
-                            .find(|r| r.revision == revision)
-                            .ok_or(EntityError::MissingEntity)?;
-                        return Ok(crate::owner_lifecycle::HistoricalPayload::Pruned {
-                            structural_history: structure,
-                            reason,
-                        });
-                    }
-                    Err(error) => return Err(error),
-                };
-                Ok(match self.entity_lifecycle_state(id)? {
-                    crate::owner_lifecycle::LifecycleState::Active => {
-                        crate::owner_lifecycle::HistoricalPayload::Available(value)
-                    }
-                    crate::owner_lifecycle::LifecycleState::Tombstoned(_) => {
-                        crate::owner_lifecycle::HistoricalPayload::Tombstoned(value)
-                    }
-                })
+                crate::perception_entity_merge_runtime::$historical(self, id, revision)
             }
-
             pub fn entity_lifecycle_state(
                 &self,
                 id: EntityId,
             ) -> Result<crate::owner_lifecycle::LifecycleState, EntityError> {
-                self.entities.lifecycle_state(id)
+                crate::perception_entity_merge_runtime::$lifecycle(self, id)
             }
-
             pub fn entity_revision(
                 &self,
                 id: EntityId,
                 revision: u64,
             ) -> Result<Entity, EntityError> {
-                self.entities.entity_revision(id, revision)
+                crate::perception_entity_merge_runtime::$revision(self, id, revision)
             }
-
             pub fn entity_candidates_for_surface(
                 &self,
                 surface: &str,
                 limit: usize,
             ) -> Vec<Entity> {
-                self.entities.candidates_for_surface(surface, limit)
+                crate::perception_entity_merge_runtime::$surface(self, surface, limit)
             }
-
             pub fn entity_candidates_for_normalized_surface(
                 &self,
                 surface: &str,
                 limit: usize,
             ) -> Vec<Entity> {
-                self.entities
-                    .candidates_for_normalized_surface(surface, limit)
+                crate::perception_entity_merge_runtime::$normalized(self, surface, limit)
             }
-
             pub fn entity_candidates_for_alias_surface(
                 &self,
                 surface: &str,
                 limit: usize,
             ) -> Vec<Entity> {
-                self.entities.candidates_for_alias_surface(surface, limit)
+                crate::perception_entity_merge_runtime::$alias(self, surface, limit)
             }
-
             pub(crate) fn entity_creation_conflicts(
                 &self,
                 surface: &str,
                 kind: &str,
                 limit: usize,
             ) -> Vec<Entity> {
-                self.entities.creation_conflicts(surface, kind, limit)
+                crate::perception_entity_merge_runtime::$conflicts(self, surface, kind, limit)
             }
-
             pub fn retired_entity_replacement(&self, id: EntityId) -> Option<EntityId> {
-                self.entities.retired_replacement(id)
+                crate::perception_entity_merge_runtime::$replacement(self, id)
             }
-
             pub fn entity_version(&self) -> u64 {
-                self.entities.entity_version()
+                crate::perception_entity_merge_runtime::$version(self)
+            }
+            pub fn entities(&self) -> Vec<Entity> {
+                crate::perception_entity_merge_runtime::$entities(self)
+            }
+            pub fn entity_stats(&self) -> EntityStats {
+                crate::perception_entity_merge_runtime::$stats(self)
             }
         }
     };
 }
 
-impl_owner!(Cva, false);
-impl_owner!(Phylactery, true);
-
-impl Cva {
-    pub fn entities(&self) -> Vec<Entity> {
-        self.runtime_entities()
-    }
-
-    pub fn entity_stats(&self) -> EntityStats {
-        self.runtime_entity_stats()
-    }
-}
-
-impl Phylactery {
-    pub fn entities(&self) -> Vec<Entity> {
-        self.entities.current()
-    }
-
-    pub fn entity_stats(&self) -> EntityStats {
-        self.entities.stats()
-    }
-}
+impl_owner!(
+    Cva,
+    publish_entity_rel,
+    replay_entity_revision_rel,
+    backfill_entity_global_ids_rel,
+    entity_rel,
+    tombstone_entity_rel,
+    entity_retention_rel,
+    historical_entity_rel,
+    entity_lifecycle_rel,
+    entity_revision_rel,
+    entity_candidates_rel,
+    entity_candidates_normalized_rel,
+    entity_candidates_alias_rel,
+    entity_creation_conflicts_rel,
+    entity_retired_replacement_rel,
+    entity_version_rel,
+    entities_rel,
+    entity_stats_rel
+);
+impl_owner!(
+    Phylactery,
+    publish_entity_phy,
+    replay_entity_revision_phy,
+    backfill_entity_global_ids_phy,
+    entity_phy,
+    tombstone_entity_phy,
+    entity_retention_phy,
+    historical_entity_phy,
+    entity_lifecycle_phy,
+    entity_revision_phy,
+    entity_candidates_phy,
+    entity_candidates_normalized_phy,
+    entity_candidates_alias_phy,
+    entity_creation_conflicts_phy,
+    entity_retired_replacement_phy,
+    entity_version_phy,
+    entities_phy,
+    entity_stats_phy
+);

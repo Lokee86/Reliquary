@@ -6,23 +6,21 @@ impl Phylactery {
         &mut self,
         packed: PackedVectors,
     ) -> Result<PackedVectorId, PackedVectorError> {
-        self.owner
-            .packed_vectors
-            .put(&mut self.owner.container, packed)
+        self.public_put_packed_vectors(packed)
     }
 
     pub fn packed_vectors(
         &mut self,
         id: PackedVectorId,
     ) -> Result<PackedVectors, PackedVectorError> {
-        self.owner.packed_vectors.get(&mut self.owner.container, id)
+        self.public_packed_vectors(id)
     }
 
     pub fn packed_vector_infos(&self) -> Vec<PackedVectorInfo> {
-        self.packed_vectors.infos()
+        self.public_packed_vector_infos()
     }
 
     pub fn packed_vector_stats(&self) -> PackedVectorStats {
-        self.packed_vectors.stats()
+        self.public_packed_vector_stats()
     }
 }

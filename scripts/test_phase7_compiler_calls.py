@@ -8,7 +8,10 @@ from pathlib import Path
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from check_phase7_compiler_calls import analyze, source_fingerprint, validate_provenance, without_generics
+from check_phase7_compiler_calls import (
+    analyze, callable_const_value, hir_owner_spans, source_fingerprint,
+    validate_provenance, without_generics,
+)
 
 
 class CompilerCallTests(unittest.TestCase):
@@ -86,6 +89,36 @@ class CompilerCallTests(unittest.TestCase):
         self.assertEqual(1, report["external_calls_without_mapped_caller"])
         self.assertEqual([], report["unknown_calls"])
 
+    def test_external_impl_short_name_uses_explicit_matching_mir_defpath(self):
+        doc, mir, mapping, dag = self.fixture(call="Vec::push")
+        doc["external_crates"]["2"] = {"name": "alloc"}
+        mir[1] = (" // + const_: Const { ty: for<Region(BrNamed(DefId(3:42 ~ "
+                  "alloc[abcd]::vec::{impl#4}::push::'_)))> fn(&mut Vec<u8>, u8) "
+                  "{Vec::<u8>::push}, val: Value(ConstValue(ZeroSized: "
+                  "fn(&mut Vec<u8>, u8) {Vec::<u8>::push})) }\n")
+        report = analyze(doc, mir, mapping, dag)
+        self.assertEqual(1, report["external_constant_calls"])
+        self.assertEqual([], report["unknown_calls"])
+
+    def test_trait_method_defid_does_not_externalize_local_receiver(self):
+        doc, mir, mapping, dag = self.fixture(call="<owner::Owner as Deref>::deref")
+        mir[1] = (" // + const_: Const { ty: fn(&Owner) -> &Target {<Owner as Deref>::deref}, "
+                  "val: Value(ConstValue(ZeroSized: fn(&Owner) -> &Target {<Owner as Deref>::deref; "
+                  "DefId(2:627 ~ core[abcd]::ops::Deref::deref)})) }\n")
+        report = analyze(doc, mir, mapping, dag)
+        self.assertEqual(0, report["external_constant_calls"])
+        self.assertEqual(1, len(report["unknown_calls"]))
+
+    def test_unrelated_external_defid_does_not_externalize_direct_call(self):
+        doc, mir, mapping, dag = self.fixture(call="owner::Owner::missing")
+        mir[1] = (" // + const_: Const { ty: for<Region(BrNamed(DefId(2:42 ~ "
+                  "core[abcd]::ops::Deref::deref::'_)))> fn(&Owner) "
+                  "{owner::Owner::missing}, val: Value(ConstValue(ZeroSized: "
+                  "fn(&Owner) {owner::Owner::missing})) }\n")
+        report = analyze(doc, mir, mapping, dag)
+        self.assertEqual(0, report["external_constant_calls"])
+        self.assertEqual(1, len(report["unknown_calls"]))
+
     def test_unrecognized_unqualified_crate_root_remains_unknown(self):
         report = analyze(*self.fixture(call="untracked_crate::Thing::run"))
         self.assertEqual(0, report["external_constant_calls"])
@@ -131,6 +164,67 @@ class CompilerCallTests(unittest.TestCase):
         report = analyze(doc, mir, mapping, dag)
         self.assertEqual([], report["cross_component_calls"])
         self.assertEqual(1, len(report["unknown_calls"]))
+        self.assertEqual("Owner::read", report["unknown_calls"][0]["target"])
+
+    def test_nested_erased_regions_do_not_replace_function_symbol(self):
+        rendered = ("ConstValue(ZeroSized: for<Region(DefId(0:1 ~ crate::owner::read))> "
+                    "fn(&Owner<'{erased}>) -> u8 {Owner::<'{erased}>::read})")
+        self.assertEqual("Owner::<'{erased}>::read", callable_const_value(rendered))
+
+    def test_shortened_target_without_exact_hir_defid_remains_unknown(self):
+        doc, mir, mapping, dag = self.fixture(call="Owner::read")
+        mir[1] = (" // + const_: Const { ty: for<Region(BrNamed(DefId(0:42 ~ "
+                  "reliquary_memory[abcd]::owner::{impl#0}::read::'_)))> "
+                  "fn(&Owner) {Owner::read}, val: Value(ConstValue(ZeroSized: "
+                  "fn(&Owner) {Owner::read})) }\n")
+        report = analyze(doc, mir, mapping, dag)
+        self.assertEqual([], report["violations"])
+        self.assertEqual(1, len(report["unknown_calls"]))
+
+    def test_exact_hir_owner_defid_resolves_shortened_target(self):
+        doc, mir, mapping, dag = self.fixture(call="Owner::read")
+        def_id = "DefId(0:42 ~ reliquary_memory[abcd]::owner::{impl#0}::read)"
+        mir[1] = (" // + const_: Const { ty: for<Region(BrNamed(DefId(0:42 ~ "
+                  "reliquary_memory[abcd]::owner::{impl#0}::read::'_)))> "
+                  "fn(&Owner) {Owner::read}, val: Value(ConstValue(ZeroSized: "
+                  "fn(&Owner) {Owner::read})) }\n")
+        hir = [f"{def_id} => OwnerNodes {{\n",
+               "    node: ParentedNode {\n",
+               f"                owner_id: {def_id},\n",
+               "                span: src/facade/api.rs:10:1: 12:1 (#0),\n",
+               "                                span: src/facade/nested.rs:1:1: 99:1 (#0),\n",
+               "}\n"]
+        report = analyze(doc, mir, mapping, dag, hir_owner_spans(hir))
+        self.assertEqual(1, len(report["violations"]))
+        self.assertEqual("facade", report["violations"][0]["target_component"])
+        self.assertEqual("exact-mir-defid-hir-owner-span",
+                         report["violations"][0]["resolved_by"])
+
+    def test_hir_owner_defid_mismatch_does_not_resolve_shortened_target(self):
+        doc, mir, mapping, dag = self.fixture(call="Owner::read")
+        def_id = "DefId(0:42 ~ reliquary_memory[abcd]::owner::{impl#0}::read)"
+        mir[1] = (" // + const_: Const { ty: for<Region(BrNamed(DefId(0:42 ~ "
+                  "reliquary_memory[abcd]::owner::{impl#0}::read::'_)))> "
+                  "fn(&Owner) {Owner::read}, val: Value(ConstValue(ZeroSized: "
+                  "fn(&Owner) {Owner::read; DefId(0:42 ~ reliquary_memory[abcd]::owner::{impl#0}::read)})) }\n")
+        other = "DefId(0:43 ~ reliquary_memory[abcd]::owner::{impl#0}::read)"
+        report = analyze(doc, mir, mapping, dag, hir_owner_spans([
+            f"{other} => OwnerNodes {{\n", f"                owner_id: {other},\n",
+            "                span: src/owner/api.rs:20:1: 22:1 (#0),\n", "}\n"]))
+        self.assertEqual([], report["cross_component_calls"])
+        self.assertEqual(1, len(report["unknown_calls"]))
+
+    def test_ambiguous_hir_owner_spans_fail_closed(self):
+        doc, mir, mapping, dag = self.fixture(call="Owner::read")
+        def_id = "DefId(0:42 ~ reliquary_memory[abcd]::owner::{impl#0}::read)"
+        mir[1] = (" // + const_: Const { ty: for<Region(BrNamed(DefId(0:42 ~ "
+                  "reliquary_memory[abcd]::owner::{impl#0}::read::'_)))> "
+                  "fn(&Owner) {Owner::read}, val: Value(ConstValue(ZeroSized: "
+                  "fn(&Owner) {Owner::read})) }\n")
+        report = analyze(doc, mir, mapping, dag, {def_id: [
+            {"path": "src/owner/api.rs", "line": 10, "end_line": 12},
+            {"path": "src/facade/api.rs", "line": 20, "end_line": 22}]})
+        self.assertEqual(1, len(report["unknown_calls"]))
 
     def test_drop_terminator_remains_explicit_destructor_unknown(self):
         doc, _, mapping, dag = self.fixture()
@@ -165,10 +259,15 @@ class CompilerCallTests(unittest.TestCase):
                                            "manifest_sha256": hashlib.sha256(
                                                manifest_path.read_bytes()).hexdigest()},
                        "artifacts": {"rustdoc": {"path": str(artifact), "sha256": artifact_hash},
-                                     "mir": {"path": str(artifact), "sha256": artifact_hash}}}
+                                     "mir": {"path": str(artifact), "sha256": artifact_hash},
+                                     "hir": {"path": str(artifact), "sha256": artifact_hash}}}
             with mock.patch("check_phase7_compiler_calls.ROOT", root):
-                valid = validate_provenance(receipt, artifact, artifact)
+                valid = validate_provenance(receipt, artifact, artifact, artifact)
                 self.assertTrue(valid["validated"], valid["errors"])
+                invalid_hir = validate_provenance(receipt, artifact, artifact, source_file)
+                self.assertFalse(invalid_hir["validated"])
+                self.assertIn("hir artifact path does not match the supplied input",
+                              invalid_hir["errors"])
                 source_file.write_text("pub fn changed() {}\n", encoding="utf-8")
                 changed = validate_provenance(receipt, artifact, artifact)
                 self.assertFalse(changed["validated"])

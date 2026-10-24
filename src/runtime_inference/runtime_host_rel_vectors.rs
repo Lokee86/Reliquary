@@ -212,9 +212,7 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
             let (archive_batch, progressed) = shared.mutate(
                 super::super::mutation_events::RelMutationFamily::Semantic,
                 |runtime| {
-                    let before = std::fs::metadata(runtime.cva.container.path())
-                        .map_err(operation)?
-                        .len();
+                    let before = runtime.cva.owner.backing_len().map_err(operation)?;
                     if let Some(generation) =
                         runtime.cva.runtime_current_vector_generation(profile.id)
                     {
@@ -242,10 +240,7 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
                         cva.current_vector_generation(profile.id),
                     )
                     .map_err(operation)?;
-                    let changed = std::fs::metadata(runtime.cva.container.path())
-                        .map_err(operation)?
-                        .len()
-                        != before;
+                    let changed = runtime.cva.owner.backing_len().map_err(operation)? != before;
                     Ok(((batch, changed), changed, Vec::new()))
                 },
             )?;

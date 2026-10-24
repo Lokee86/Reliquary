@@ -1,0 +1,12 @@
+{
+  "schema": "phase7-child-registration.v1",
+  "ticket": "P7.1.14d-RECONCILIATION-PROMOTION",
+  "parent": "P7.1.14",
+  "status": "registered-before-source-edit",
+  "source_checkpoint": "7c74b511b037c59eedc5978ae7d67999245ca004",
+  "witnesses": [{"source": "src/facade/cva_reconcile_promote.rs", "lines": [47, 50, 143, 147], "targets": ["Container::append", "Container::sync", "atomic_publication::atomic_replace", "atomic_publication::sync_parent"]}],
+  "cut": "Maintenance owns the pinned promotion source/fingerprint and backup/publication/recovery operations. Public reconciliation composes a held candidate between prepare and promote; no callback, Import service dependency or runtime aggregate is passed into Maintenance.",
+  "scope": ["src/facade/cva_reconcile_promote.rs", "src/maintenance/reconciliation_promotion.rs"],
+  "preserving_tests": ["cva_reconcile_promotion_tests", "cva_reconcile_tests"],
+  "invariants": ["source file leases and identity validation span candidate reconciliation", "backup holds original writer authority", "atomic replacement and parent sync order unchanged", "failed recovery retains backup", "no callback to public or runtime from Maintenance"]
+}

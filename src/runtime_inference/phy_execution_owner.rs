@@ -42,7 +42,7 @@ impl PhyExecutionOwner {
     }
 
     pub fn sync(&self) -> Result<(), PhylacteryError> {
-        self.owner.container.sync()?;
+        self.owner.sync()?;
         Ok(())
     }
 

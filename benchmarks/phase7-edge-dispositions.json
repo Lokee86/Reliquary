@@ -334,7 +334,7 @@
       "path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
       "entrypoint": "prepare",
       "insomnia_inference": "InsomniaExtractor + TemporalInferencer",
-      "sha256": "16260bd956531ca6cf23ad3f03447f8448eea374b91327a51565d9c022c78e10"
+      "sha256": "3f70115027cb83ab2e47c268d98aa0cb8e4c4b5d5eddad5d5b8f5947352e921e"
     },
     "source_hashes_sha256": {
       "src/external_source/index.rs": "38f4452b6ed36a346ccd559e6377fc4c6d827e0deec000bd0ac1959c273db5d8",
@@ -343,7 +343,7 @@
       "src/external_source/provenance.rs": "be5745946dcdfc308fd75042fa8ccbefbc644e72195cf097485cefeaa6160ac3",
       "src/external_source/provider.rs": "4d405a1874572e97c11b4985d68a049af0a64d19c0b3c0c37a6188ca03577bad",
       "src/runtime_inference/runtime_host_gateway_external.rs": "c94536ce16d11ededcc5558d1be6f4c484e3c5f0053787ce9cfde5b2875f7d3b",
-      "src/runtime_inference/runtime_host_gateway_external_processing.rs": "16260bd956531ca6cf23ad3f03447f8448eea374b91327a51565d9c022c78e10",
+      "src/runtime_inference/runtime_host_gateway_external_processing.rs": "3f70115027cb83ab2e47c268d98aa0cb8e4c4b5d5eddad5d5b8f5947352e921e",
       "src/runtime_inference/runtime_vector_step.rs": "a5d9e28702f06866db0b5ec6c630c84e58c29a32365ffe16b24d25cdae974718"
     },
     "proof_limit": "Bounded source and recorded-cfg check; no Rust compilation or macro-expanded call graph is asserted."

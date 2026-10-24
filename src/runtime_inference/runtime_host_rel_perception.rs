@@ -189,7 +189,7 @@ fn prepare(
         .lock()
         .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
     let cva = &mut runtime.cva;
-    let owner_id = cva.container.owner_id();
+    let owner_id = cva.owner.owner_id();
     let memories =
         crate::memory_store::MemoryReadView::new(&cva.owner.memories, &cva.owner.container);
     crate::perception_publication_resolution::prepare_entity_resolution(
@@ -220,7 +220,7 @@ fn commit(
             let now_ns = now_ns();
             let cva = &mut runtime.cva;
             let context = EntityResolutionCommitContext {
-                owner_id: cva.container.owner_id(),
+                owner_id: cva.owner.owner_id(),
                 memories: &cva.memories,
                 entities: &cva.entities,
                 graph: &cva.graph,

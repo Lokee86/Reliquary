@@ -1,0 +1,197 @@
+{
+  "schema": "phase7-perception-entity-operations-child.v1",
+  "status": "source-cut-implemented-awaiting-verification",
+  "parent_ticket": "P7.1.14 — Public facade→lower callback cycles",
+  "child": "P7.1.14a-PERCEPTION-ENTITY-OPERATIONS",
+  "registered_at": "2026-10-24",
+  "denominator": {
+    "phase7_spec_tickets": 31,
+    "named_children_before": 13,
+    "named_children_after": 14,
+    "tracked_total_after": 45,
+    "gates": 4
+  },
+  "scope": {
+    "facade_files": [
+      {
+        "path": "src/facade/cva_entity_audit.rs",
+        "sha256_at_registration": "701a06a1839c7c804ab7b4b09ea8504f11b392875617649034c51cd99021f022"
+      },
+      {
+        "path": "src/facade/cva_entity_candidates.rs",
+        "sha256_at_registration": "0d190e5f9f9a1a0cd0fdbff6c6beb883d749bde4f248495e99a961c7dd804717"
+      },
+      {
+        "path": "src/facade/cva_entity_merge.rs",
+        "sha256_at_registration": "7ae1a8cf873219b37e5b6a8c440326de82af85cad95738e2623c364f5924c8f6"
+      },
+      {
+        "path": "src/facade/cva_entity_owner.rs",
+        "sha256_at_registration": "040252e23cfc05d6b94fdb0f1b4d2e9a78409a91af2db9832fa8f45a5bdab339"
+      },
+      {
+        "path": "src/facade/cva_entity_principal.rs",
+        "sha256_at_registration": "6e03de6453c287ccf9e4bce497ad678307be1e99afb12290f0287248ff892c3d"
+      },
+      {
+        "path": "src/facade/cva_entity_reconciliation.rs",
+        "sha256_at_registration": "9a4321ecf02ea5d046f0925bdbd0c104ad9f0bd787dc268da1bf78098b310f20"
+      },
+      {
+        "path": "src/facade/cva_entity_resolution_batch.rs",
+        "sha256_at_registration": "e758b447fac1daf7d2b9fc8fd0bf66bd8060488bdbbd95ed8d2c0e1ed0372e1c"
+      },
+      {
+        "path": "src/facade/cva_entity_resolution_commit.rs",
+        "sha256_at_registration": "395e32eef5fbd825c41d998d282778e9fa1861acad9ea3514985f5d41a95ff9c"
+      },
+      {
+        "path": "src/facade/cva_entity_resolution_engine.rs",
+        "sha256_at_registration": "c441524f2d2bf523dd6f8a79ce8f59de1624a6513a022ac7df1530654da75f76"
+      },
+      {
+        "path": "src/facade/cva_entity_resolution_owner.rs",
+        "sha256_at_registration": "a05ef47eb4dfa5281e4a3609feede87d8e8e99e0896990daaba278f7078bac5d"
+      },
+      {
+        "path": "src/facade/cva_entity_resolution_prepare.rs",
+        "sha256_at_registration": "6e22004cb95768bf47bb0b10857cfbc7b7647cbbfad27cacb7e75954a9fc71c4"
+      },
+      {
+        "path": "src/facade/cva_entity_resolution_processor.rs",
+        "sha256_at_registration": "1d8f935e264749475ef4cf566071c512953884fec6390410b4f44785d551bda4"
+      },
+      {
+        "path": "src/facade/cva_entity_resolver.rs",
+        "sha256_at_registration": "e5f4bb221794bfd883faa4ceab8c11078246875cbe8a11a55e49dafafe96f7b0"
+      }
+    ],
+    "new_runtime_files": [
+      "src/runtime_inference/perception_entity_resolution.rs",
+      "src/runtime_inference/perception_entity_reconciliation.rs",
+      "src/runtime_inference/perception_entity_merge.rs"
+    ],
+    "existing_runtime_owner_files": "No edits; ratchets lane owns these."
+  },
+  "exact_compiler_witnesses": [
+    {
+      "path": "src/facade/cva_entity_resolution_processor.rs",
+      "line": 24,
+      "target": "entity_resolution_processor::stale_snapshot",
+      "component": "perception",
+      "mir_line_sha256": "251a2936c333b711075761643239b9d23aebeff2baa3cf70fc950fefaddedc1e"
+    },
+    {
+      "path": "src/facade/cva_entity_resolution_processor.rs",
+      "line": 44,
+      "target": "entity_resolution_processor::stale_snapshot",
+      "component": "perception",
+      "mir_line_sha256": "83f0e139d60924da01fdafabd0935b1a0bd737974e869303d34e707531233848"
+    },
+    {
+      "path": "src/facade/cva_entity_resolution_prepare.rs",
+      "line": 28,
+      "target": "entity_resolution_prepare::prepare_entity_resolution",
+      "component": "perception",
+      "mir_line_sha256": "2cf845035036d2a82ac52155e0bbd913c27a83860da456d77799e1540c0e1fc2"
+    },
+    {
+      "path": "src/facade/cva_entity_reconciliation.rs",
+      "line": 172,
+      "target": "entity_resolution_processor::stale_snapshot",
+      "component": "perception",
+      "mir_line_sha256": "d5617c04b924e5a1f926d24585a1befb314c0986d873dba6c72f8a7fb103397c"
+    },
+    {
+      "path": "src/facade/cva_entity_resolution_batch.rs",
+      "line": 61,
+      "target": "entity_resolution_batch::stale_snapshot",
+      "component": "perception",
+      "mir_line_sha256": "f76cbf05ef7e10ba41ec3baa457df18861e377322258a36250d1b78accd085d9"
+    },
+    {
+      "path": "src/facade/cva_entity_merge.rs",
+      "line": 24,
+      "target": "container::Container::owner_id",
+      "component": "container",
+      "mir_line_sha256": "6f3fe03b2634ee2ee4bb4584a07217105a7a7ef611d48e9dcf322ed875f3e997"
+    },
+    {
+      "path": "src/facade/cva_entity_reconciliation.rs",
+      "line": 90,
+      "target": "container::Container::sync",
+      "component": "container",
+      "mir_line_sha256": "8a379a0aa2b0a3499f8fc4768a2f7f2c89da866744e2d0e5264dd5d568a332d3"
+    }
+  ],
+  "unresolved_evidence_rule": "Every direct lower call in the scoped facade files must be reviewed against current source. Calls missing from the MIR name matcher or unknown-call sample remain unresolved evidence and are not authorized or suppressed by this child.",
+  "cut": "Move Perception planning/evaluation and Container-backed sync/owner identity composition behind concrete runtime operation functions. Keep supported Cva/Phylactery public methods as adapters delegating to canonical runtime operations. Lower Perception continues to own candidate selection and passive plans; owner-lifecycle publication remains in the existing owner boundary. Do not add target DAG edges, blanket map reclassification, public API changes, new mutable owner state, or duplicate owner methods.",
+  "contracts": [
+    "preserve public Cva and Phylactery method signatures and result/error variants",
+    "preserve timestamp progression, candidate ordering, model evaluation/retry semantics, owner admission and publication order",
+    "preserve sync timing and exact stale-snapshot behavior",
+    "preserve entity merge/reconciliation durable bytes and owner authority",
+    "no Container or store capability leaks into public adapter-only source"
+  ],
+  "preserving_tests": [
+    "entity resolution prepare/processor/commit tests",
+    "entity resolution batch tests",
+    "entity reconciliation tests",
+    "entity merge and retarget tests",
+    "existing public Cva/Phylactery API tests"
+  ],
+  "verification": "No Rust tests or Cargo commands run by this lane; parent owns build/integration checks. Source-specific architecture guards and scoped diff checks remain required.",
+  "implementation_status": "source-cut-implemented-awaiting-verification",
+  "acceptance": "open pending compiler evidence refresh and preserving behavior verification",
+  "implementation": {
+    "delegated_operations": [
+      "audit/candidate reads",
+      "principal resolution and profile sync",
+      "entity resolution preparation, evaluation, commit and parallel batch",
+      "merge/retarget publication planning",
+      "reconciliation evaluation, retry/reset/restore, owner sync and final audit"
+    ],
+    "facade_adapters": "Supported Cva/Phylactery signatures remain in facade and delegate to concrete runtime operations.",
+    "source_files": [
+      "src/facade/cva_entity_audit.rs",
+      "src/facade/cva_entity_candidates.rs",
+      "src/facade/cva_entity_merge.rs",
+      "src/facade/cva_entity_owner.rs",
+      "src/facade/cva_entity_principal.rs",
+      "src/facade/cva_entity_reconciliation.rs",
+      "src/facade/cva_entity_resolution_batch.rs",
+      "src/facade/cva_entity_resolution_commit.rs",
+      "src/facade/cva_entity_resolution_engine.rs",
+      "src/facade/cva_entity_resolution_owner.rs",
+      "src/facade/cva_entity_resolution_prepare.rs",
+      "src/facade/cva_entity_resolution_processor.rs",
+      "src/facade/cva_entity_resolver.rs",
+      "src/runtime_inference/perception_entity_resolution.rs",
+      "src/runtime_inference/perception_entity_reconciliation.rs",
+      "src/runtime_inference/perception_entity_merge.rs"
+    ],
+    "remaining_unsuppressed_facade_sources": [
+      "src/facade/cva_entity_resolver.rs and src/facade/cva_entity_resolution_engine.rs: public resolver/engine API constructors and accessors remain façade bindings to Perception core types; compiler implementation-call closure for indirect endpoint behavior remains A7 proof work."
+    ],
+    "compiler_call_delta": "All seven exact matched facade-to-Perception/Container endpoints were relocated into concrete runtime operations. The remaining directly visible Perception bindings are public resolver/engine constructors and model accessors; they expose no store or Container capability. No post-cut compiler call inventory exists yet.",
+    "cargo": "Not run by this lane; root owns compile/verification."
+  },
+  "implementation_source_hashes_sha256": {
+    "src/facade/cva_entity_audit.rs": "2ea4094549c8db29a8d13e4a57c6a0d4fbaf16756b557863fa9535871d05d2d7",
+    "src/facade/cva_entity_candidates.rs": "4e99981c1431b2225b37f290d4df6519e990080c75636d455ebf24f56a0587ff",
+    "src/facade/cva_entity_merge.rs": "889d43a65729430652927a202e4ffbde87bc47f4c37ecee8ded99056405ae8c4",
+    "src/facade/cva_entity_owner.rs": "4ab4a90e18b16ec56edc70bfa8dc8145a3a9ada0116bb723afef69c462b44e2c",
+    "src/facade/cva_entity_principal.rs": "91c2ff0064a176900862daf298e8eccc15789523eb7e68f4ad7f2a110674bfce",
+    "src/facade/cva_entity_reconciliation.rs": "939adecae92aff1b9188fd3ece0be5cc550f35aa02f5ea383f5a9e58a80d3226",
+    "src/facade/cva_entity_resolution_batch.rs": "eaec1b31200a7e6b06bec334a07ed970815788596847e401b10dfdfae569da16",
+    "src/facade/cva_entity_resolution_commit.rs": "003724892fe7bffef8d3e4f5dd85a253b6b63c0921fa6e31c858efae0b912d2e",
+    "src/facade/cva_entity_resolution_engine.rs": "c441524f2d2bf523dd6f8a79ce8f59de1624a6513a022ac7df1530654da75f76",
+    "src/facade/cva_entity_resolution_owner.rs": "107e36c5395a14512fcf1d9d5aa612b2e58633f9d718c59c6e80b56daaf33e7c",
+    "src/facade/cva_entity_resolution_prepare.rs": "f70d3d180078d8ae7d04e1cb7fa1ec1efcbe3d3049928e518b9b9894bcee416c",
+    "src/facade/cva_entity_resolution_processor.rs": "ccf0e86c0b2b33eb325b49d9c396b80a3b0da280736d94d2fa9aaa7b75e262ba",
+    "src/facade/cva_entity_resolver.rs": "e5f4bb221794bfd883faa4ceab8c11078246875cbe8a11a55e49dafafe96f7b0",
+    "src/runtime_inference/perception_entity_resolution.rs": "6061de3924ac72243c8d9e98bab95511db8cf46677ee21e1775bdaa1e4dc55fc",
+    "src/runtime_inference/perception_entity_reconciliation.rs": "580f8e7ce0aeee927201c91e0f913bdf9fe1bb1467c35497c01c3349a946d63e",
+    "src/runtime_inference/perception_entity_merge.rs": "0060f8a0295cdc6b1e0a6b34252337282bc261cb642c52079da5ae97c5d29141"
+  }
+}

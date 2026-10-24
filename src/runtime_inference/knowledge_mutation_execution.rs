@@ -114,7 +114,7 @@ impl crate::RelExecutionOwner {
         let active_at_birth =
             !draft.archived && matches!(draft.lifecycle_state.as_str(), "knowledge" | "canonical");
         let accepted_turn = self.owner.archive.rel_turn_count();
-        if first_creation && self.owner.container.owner_uuid().is_some() {
+        if first_creation && self.owner.owner_uuid().is_some() {
             self.runtime_prepare_memory_publication(
                 target_id,
                 &draft.mutation_id,
@@ -131,7 +131,7 @@ impl crate::RelExecutionOwner {
             expected_revision,
             draft,
         )?;
-        if self.owner.container.owner_uuid().is_some()
+        if self.owner.owner_uuid().is_some()
             && ((first_creation && changed) || self.runtime_has_pending_publication(memory.id))
         {
             self.runtime_freshness_initialize(memory.id)

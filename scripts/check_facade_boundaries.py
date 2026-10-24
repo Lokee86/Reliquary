@@ -36,6 +36,13 @@ VALUE_VARIANTS = {
     "src/owner_lifecycle/cva_reconcile_error.rs": "Cva(OwnerError),",
     "src/runtime_inference/insomnia/processor/result.rs": "Phylactery(String),",
 }
+FACADE_OWNER_API_DIRECT_CAPABILITIES = {
+    "src/facade/cva.rs": {
+        "container", "archive", "rel_metadata", "conversation_compactions",
+        "interaction_streams", "echo", "project_history", "project_files",
+    },
+    "src/facade/phylactery.rs": {"container", "profile"},
+}
 
 
 def unresolved_reverse(row: dict, source: str | None, target: str | None,
@@ -48,6 +55,18 @@ def unresolved_reverse(row: dict, source: str | None, target: str | None,
 def violations(path: str, source: str, component: str | None, facts: set[str]) -> list[str]:
     view = masked(strip_inactive_cfg(source, facts))
     errors = []
+    direct_capabilities = FACADE_OWNER_API_DIRECT_CAPABILITIES.get(path, set())
+    if direct_capabilities:
+        capability_pattern = "|".join(sorted(re.escape(value) for value in direct_capabilities))
+        direct_access = re.compile(
+            r"\bself\s*\.\s*(?:owner\s*\.\s*)?(?:" + capability_pattern + r")\b"
+        )
+        for hit in direct_access.finditer(view):
+            errors.append(
+                f"{path}:{view.count(chr(10), 0, hit.start()) + 1}: "
+                f"public owner facade directly accesses {hit.group().replace(' ', '')}; "
+                "delegate through its native runtime/lifecycle operation"
+            )
     if path == "src/runtime_inference/insomnia/native_processor.rs" and re.search(r"\bLexicalIndex\b", view):
         errors.append(f"{path}: producer read-adapter implementation belongs to runtime composition")
     native_access = (path.startswith("src/runtime_inference/perception_publication")
@@ -114,6 +133,20 @@ def self_test() -> None:
     assert violations("src/retrieval/query.rs", "impl_owner!(Cva);", "public-consumers", facts)
     assert violations("src/retrieval/query.rs", "impl Owner for Phylactery {}", "public-consumers", facts)
     assert not violations("src/facade/query.rs", "impl Cva {}", "public-consumers", facts)
+    for path, code in (
+        ("src/facade/cva.rs", "self.container.owner_uuid()"),
+        ("src/facade/cva.rs", "self.owner.archive.append_node()"),
+        ("src/facade/cva.rs", "self.owner.project_files.put()"),
+        ("src/facade/phylactery.rs", "self.owner.profile.put()"),
+        ("src/facade/phylactery.rs", "self.container.latest_version()"),
+    ):
+        assert violations(path, code, "public-consumers", facts), (path, code)
+    for path, code in (
+        ("src/facade/cva.rs", "self.runtime_owner_uuid()"),
+        ("src/facade/cva.rs", "self.native_append_archive_node()"),
+        ("src/facade/phylactery.rs", "self.runtime_profile()"),
+    ):
+        assert not violations(path, code, "public-consumers", facts), (path, code)
     assert violations("src/perception/entity_audit.rs", "fn audit<F: FnMut(MemoryId) -> Vec<EntityId>>(f: F) {}", "perception", facts)
     assert violations("src/external_source/mod.rs", "fn search(read: impl Fn(PackedVectorId) -> PackedVectors) {}", "external-sources", facts)
     assert not violations("src/perception/entity_audit.rs", "fn audit(owner: &EntityAuditContext) {}", "perception", facts)
@@ -136,7 +169,7 @@ def self_test() -> None:
     assert not violations("src/runtime_inference/runtime_host_gateway_external.rs", "native::install(&mut owner.store, plan)", "runtime-gateway", facts)
     assert violations("src/runtime_inference/insomnia/native_processor.rs", "impl EvidenceSearch for LexicalIndex {}", "insomnia", facts)
     assert not violations("src/runtime_inference/insomnia_runtime_execution.rs", "impl EvidenceSearch for LexicalIndex {}", "runtime-gateway", facts)
-    print("Facade boundary fixtures passed (36 cases).")
+    print("Facade boundary fixtures passed (44 cases).")
 
 
 def main() -> int:

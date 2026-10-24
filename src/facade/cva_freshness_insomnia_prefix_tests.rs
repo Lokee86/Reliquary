@@ -1,5 +1,6 @@
 use super::*;
 use crate::insomnia::completion::{decode_completion, encode_completion};
+use crate::owner_lifecycle::AcceptedInsomniaBirthMember;
 
 fn completion_payload(cva: &mut Cva) -> Vec<u8> {
     cva.container

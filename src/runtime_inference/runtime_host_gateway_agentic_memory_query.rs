@@ -63,7 +63,7 @@ impl GatewayRuntime {
                     let ids = pool.matched_memory_ids().collect::<Vec<_>>();
                     grade_agentic_memories(
                         &crate::ego_grade_read::EgoGradeRead::new(&runtime.cva.freshness),
-                        runtime.cva.container.owner_id(),
+                        runtime.cva.owner.owner_id(),
                         runtime.cva.archive.rel_turn_count(),
                         &ids,
                         owner.cut,

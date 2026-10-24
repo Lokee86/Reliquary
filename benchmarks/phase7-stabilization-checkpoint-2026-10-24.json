@@ -1,0 +1,98 @@
+{
+  "schema": "phase7-stabilization-checkpoint.v1",
+  "date": "2026-10-24",
+  "checkpoint_base": "7c74b511b037c59eedc5978ae7d67999245ca004",
+  "status": "behavioral and source-cut verification passed; architectural closure OPEN",
+  "scope": "paused Phase 7 source-cut working batch, with narrow integration repairs only",
+  "implementation": {
+    "new_reachable_modules_registered": 28,
+    "cfg_reachable_production_modules": 898,
+    "initial_rust_compiler_errors": 48,
+    "compiler_errors_after_repairs": 0,
+    "repair_families": [
+      "missing Rust imports after extraction",
+      "duplicate REL vector methods and PHY implementation ownership",
+      "vector owner argument and import epoch access corrections",
+      "mount identity fixture updated for validated_facts",
+      "Dream population test import correction",
+      "restored archive profile eligibility to use runtime_current_vector_generation (open-import and current coverage guards)"
+    ]
+  },
+  "verification": {
+    "cargo_check_locked_lib": {
+      "status": "pass",
+      "command": "cargo check --locked --lib -j1 --config profile.dev.package.reliquary-memory.debug=0"
+    },
+    "cargo_fmt_check": {
+      "status": "pass",
+      "command": "cargo fmt --check"
+    },
+    "git_diff_check": {
+      "status": "pass",
+      "command": "git diff --check",
+      "note": "line-ending warnings only"
+    },
+    "phase7_component_map": {
+      "status": "pass",
+      "module_count": 898,
+      "errors": 0
+    },
+    "facade_boundaries": {
+      "status": "pass",
+      "violations": 0,
+      "proof_limit": "bounded lexical/source guard"
+    },
+    "phase7_source_cuts": {
+      "status": "pass",
+      "guarded_seams": 26
+    },
+    "python_checker_tests": {
+      "status": "pass",
+      "passed": 45
+    },
+    "phase7_dependency_checker_tests": {
+      "status": "pass",
+      "passed": 9
+    },
+    "rust_library_tests": {
+      "status": "pass",
+      "passed": 2006,
+      "failed": 0,
+      "ignored": 5
+    },
+    "integration_and_examples": {
+      "status": "pass",
+      "passed": 165,
+      "failed": 0,
+      "ignored": 1
+    },
+    "cli_tests": {
+      "status": "pass",
+      "passed": 32,
+      "failed": 0,
+      "ignored": 0
+    },
+    "rust_test_environment": {
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_PROFILE_TEST_DEBUG": "0",
+      "CARGO_PROFILE_DEV_DEBUG": "0",
+      "RUSTC_BOOTSTRAP": "1",
+      "TEMP": "C:\\!bin\\workspace\\Reliquary\\.t",
+      "TMP": "C:\\!bin\\workspace\\Reliquary\\.t"
+    }
+  },
+  "architectural_acceptance": {
+    "B7": "OPEN",
+    "H7": "OPEN",
+    "R7": "PARTIAL",
+    "A7": "OPEN",
+    "proof_limit": "Passing compiler/build and lexical source guards is not the full compiler-resolved implementation/cfg/destructor call graph proof. Prior 182 unique unpermitted endpoints are old-source candidates, not current confirmed violations.",
+    "next": "Refresh exact post-checkpoint compiler MIR/rustdoc/HIR evidence, classify current violations separately from tooling uncertainty; isolate Arcana full-graph acceptance blocker."
+  },
+  "policy": {
+    "feature_work": false,
+    "compatibility_scaffolding_added": false,
+    "dag_broadening": false,
+    "exceptions_broadened": false
+  }
+}

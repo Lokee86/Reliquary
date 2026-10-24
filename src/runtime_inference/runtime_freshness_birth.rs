@@ -1,4 +1,3 @@
-use crate::freshness::FreshnessRecord;
 use crate::{CvaError, MemoryId};
 use std::collections::BTreeSet;
 
@@ -22,25 +21,13 @@ impl crate::RelExecutionOwner {
                 "publication turn exceeds accepted owner REL activity".into(),
             ));
         }
-        if self.owner.container.owner_uuid().is_none() {
+        if self.owner.owner_uuid().is_none() {
             return Err(CvaError::Freshness(
                 "legacy owner requires explicit Freshness migration".into(),
             ));
         }
-        let payload = self
-            .owner
-            .dream_freshness
-            .publication_intent_payload(id, mutation_id, turn, admit_at_birth)
-            .map_err(CvaError::Freshness)?;
-        if !payload.is_empty() {
-            self.owner.container.append(&payload)?;
-            self.owner.container.sync()?;
-            self.owner
-                .dream_freshness
-                .ingest(&payload)
-                .map_err(CvaError::Freshness)?;
-        }
-        Ok(())
+        self.owner
+            .persist_publication_intent(id, mutation_id, turn, admit_at_birth)
     }
 
     pub(crate) fn runtime_require_freshness_memory(&self, id: MemoryId) -> Result<(), CvaError> {
@@ -100,46 +87,12 @@ impl crate::RelExecutionOwner {
         turn: u64,
         admit_at_birth: bool,
     ) -> Result<(), CvaError> {
-        let owner = self.owner.container.owner_uuid().ok_or_else(|| {
-            CvaError::Freshness("legacy owner requires explicit migration before enrollment".into())
-        })?;
-        let mut record = FreshnessRecord::created();
-        if admit_at_birth {
-            record
-                .admit(turn)
-                .map_err(|error| CvaError::Freshness(error.to_string()))?;
-        }
         self.owner
-            .freshness
-            .persist_policy_if_needed(&mut self.owner.container, owner)
-            .map_err(CvaError::Freshness)?;
-        let payload = self
-            .owner
-            .freshness
-            .encode_initialize(owner, id, turn, record);
-        self.owner.container.append(&payload)?;
-        self.owner.container.sync()?;
-        self.owner
-            .freshness
-            .ingest_appended(&payload)
-            .map_err(CvaError::Freshness)
+            .persist_accepted_freshness_birth(id, turn, admit_at_birth)
     }
 
     fn runtime_consume_publication_intent(&mut self, id: MemoryId) -> Result<(), CvaError> {
-        if let Some(payload) = self
-            .owner
-            .dream_freshness
-            .consume_publication_intent_payload(id)
-            .map_err(CvaError::Freshness)?
-        {
-            self.owner.container.append(&payload)?;
-            self.owner.container.sync()?;
-            self.owner
-                .dream_freshness
-                .ingest(&payload)
-                .map_err(CvaError::Freshness)?;
-        }
-        Ok(())
+        self.owner.consume_publication_intent(id)
     }
 
     pub(crate) fn runtime_freshness_refresh_due(

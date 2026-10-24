@@ -1,5 +1,11 @@
 //! Explicit owner maintenance operations and their concrete request values.
 
+pub(crate) mod attachment_repack;
+mod historical_copy;
+pub(crate) mod principal_repack;
+pub(crate) mod reconciliation_promotion;
+pub(crate) mod reconciliation_sources;
+
 mod prune_selection;
 
 pub use prune_selection::{HistoryPruneReport, HistoryPruneRequest};

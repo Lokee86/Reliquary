@@ -469,8 +469,6 @@ mod cva_reconcile_promote;
 #[cfg(test)]
 #[path = "facade/cva_reconcile_relationship.rs"]
 mod cva_reconcile_relationship;
-#[path = "facade/cva_reconcile_repack.rs"]
-mod cva_reconcile_repack;
 #[path = "facade/cva_repack.rs"]
 mod cva_repack;
 #[path = "facade/cva_turn_ingest.rs"]
@@ -537,6 +535,10 @@ mod dream_settlement;
 mod freshness_access;
 #[path = "retrieval/memory_vector_reader.rs"]
 mod memory_vector_reader;
+#[path = "runtime_inference/reconciliation_operations.rs"]
+mod reconciliation_operations;
+#[path = "runtime_inference/reconciliation_repack.rs"]
+mod reconciliation_repack_runtime;
 pub use freshness_access::{AcceptedMemoryUseReceipt, EgoFreshnessCandidate, EgoMemoryFreshness};
 #[cfg(test)]
 #[path = "facade/cva_reconcile_ego_compact_tests.rs"]
@@ -801,6 +803,8 @@ mod fragment_model;
 mod fragment_store;
 #[path = "archive/fragmenter.rs"]
 mod fragmenter;
+#[path = "runtime_inference/freshness_operations.rs"]
+mod freshness_operations_runtime;
 #[path = "runtime_inference/general_decision.rs"]
 mod general_decision;
 #[path = "runtime_inference/general_endpoint.rs"]
@@ -844,10 +848,30 @@ mod interaction_model;
 mod interaction_runtime;
 #[path = "runtime_inference/knowledge_mutation_execution.rs"]
 mod knowledge_mutation_execution;
+#[path = "runtime_inference/perception_entity_merge.rs"]
+mod perception_entity_merge_runtime;
+#[path = "runtime_inference/perception_entity_reconciliation.rs"]
+mod perception_entity_reconciliation_runtime;
+#[path = "runtime_inference/perception_entity_resolution.rs"]
+mod perception_entity_resolution_runtime;
 #[path = "runtime_inference/phy_execution_owner.rs"]
 mod phy_execution_owner;
+#[path = "runtime_inference/public_archive_operations.rs"]
+mod public_archive_operations;
+#[path = "runtime_inference/public_dream_operations.rs"]
+mod public_dream_operations;
+#[path = "runtime_inference/public_memory_operations.rs"]
+mod public_memory_operations;
+#[path = "runtime_inference/public_owner_operations.rs"]
+mod public_owner_operations;
+#[path = "runtime_inference/public_retrieval_operations.rs"]
+mod public_retrieval_operations;
+#[path = "runtime_inference/public_vector_operations.rs"]
+mod public_vector_operations;
 #[path = "runtime_inference/reliquary_runtime_owner.rs"]
 mod rel_execution_owner;
+#[path = "runtime_inference/rel_lifecycle_execution.rs"]
+mod rel_lifecycle_execution;
 #[path = "runtime_inference/runtime_freshness_birth.rs"]
 mod runtime_freshness_birth;
 pub(crate) use interaction_runtime::RelExecution;

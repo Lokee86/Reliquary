@@ -116,12 +116,12 @@ fn prepare(
             now_ns,
         )
         .map_err(operation)?;
-        phy.owner.container.sync().map_err(operation)?;
+        phy.owner.sync().map_err(operation)?;
         return Ok(PreparedWork::Complete);
     }
     let prepared = {
         let phy = &mut *guard;
-        let owner_id = phy.owner.container.owner_id();
+        let owner_id = phy.owner.owner_id();
         crate::perception_publication_resolution::prepare_entity_resolution(
             crate::memory_store::MemoryReadView::new(&phy.owner.memories, &phy.owner.container),
             &mut phy.lexical_index,
@@ -160,7 +160,7 @@ fn commit(
     let outcome = {
         let phy = &mut *guard;
         let context = EntityResolutionCommitContext {
-            owner_id: phy.owner.container.owner_id(),
+            owner_id: phy.owner.owner_id(),
             memories: &phy.owner.memories,
             entities: &phy.owner.entities,
             graph: &phy.owner.graph,
@@ -183,7 +183,7 @@ fn commit(
         .map_err(operation)?
     };
     let phy = &mut *guard;
-    phy.owner.container.sync().map_err(operation)?;
+    phy.owner.sync().map_err(operation)?;
     let mut wakes = ResolutionReadContext {
         memories: &phy.owner.memories,
         entity_resolutions: &phy.owner.entity_resolutions,
@@ -286,7 +286,7 @@ fn reconcile(
     let Some(commit) = commit else {
         return Ok(false);
     };
-    guard.owner.container.sync().map_err(operation)?;
+    guard.owner.sync().map_err(operation)?;
     if commit.report.changed() {
         drop(guard);
         seed(shared)?;

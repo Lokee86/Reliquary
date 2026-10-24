@@ -1,0 +1,17 @@
+{
+  "schema": "phase7-child-registration.v1",
+  "ticket": "P7.1.14-PUBLIC-DREAM-OPERATIONS",
+  "parent": "P7.1.14",
+  "status": "registered-before-source-edit",
+  "source_checkpoint": "7c74b511b037c59eedc5978ae7d67999245ca004",
+  "witnesses": [
+    {"source": "src/facade/cva_dream_population.rs", "lines": [26, 37, 54, 59, 86], "targets": ["MemoryStore::memory_version", "MemoryStore::first_publication_prefix", "decode_completion"]},
+    {"source": "src/facade/phylactery_dream_candidates.rs", "lines": [55, 59], "targets": ["MemoryStore::memory", "MemoryStore::current_body_id"]},
+    {"source": "src/facade/dream_product_extensions.rs", "lines": [57, 114], "targets": ["MemoryStore::current_body_id", "MemoryStore::contains_memory"]},
+    {"source": "src/facade/dream_pair_admission.rs", "lines": [10, 29], "targets": ["MemoryStore::contains_memory"]}
+  ],
+  "cut": "Owner lifecycle owns immutable accepted prefix reconstruction and native pair/processing publication. Dream owns candidate and temporal policy. Runtime supplies borrowed owner facts and invokes canonical Dream operations. Supported public methods delegate; test-only historical prefix probes are not production forwarders.",
+  "scope": ["src/facade/cva_dream_population.rs", "src/facade/phylactery_dream_candidates.rs", "src/facade/dream_product_extensions.rs", "src/facade/dream_pair_admission.rs", "src/owner_lifecycle/dream_population_operations.rs", "src/runtime_inference/public_dream_operations.rs"],
+  "preserving_tests": ["dream population prefix/authority tests", "dream candidate and lifecycle tests", "dream cooldown tests", "publication replay tests"],
+  "invariants": ["immutable first-publication prefix authority", "publication validation order", "same candidate ranking and source-time policy", "passive reads", "same public API and bytes"]
+}

@@ -103,7 +103,7 @@ impl RelExecutionOwner {
     }
 
     pub(crate) fn runtime_owner_id(&self) -> Option<String> {
-        self.owner.container.owner_id()
+        self.owner.owner_id()
     }
 
     pub(crate) fn runtime_memory_revision(
@@ -252,7 +252,7 @@ impl RelExecutionOwner {
         &self,
         profile_id: crate::CompatibilityProfileId,
     ) -> Option<crate::VectorGeneration> {
-        if self.owner.container.owner_uuid().is_none() || self.runtime_open_import_epoch() {
+        if self.owner.owner_uuid().is_none() || self.runtime_open_import_epoch() {
             return None;
         }
         self.owner.compatibility_profiles.get_active(profile_id)?;
@@ -278,7 +278,7 @@ impl RelExecutionOwner {
     pub(crate) fn runtime_active_memory_compatibility_profiles(
         &self,
     ) -> Vec<crate::CompatibilityProfile> {
-        if self.owner.container.owner_uuid().is_none() || self.runtime_open_import_epoch() {
+        if self.owner.owner_uuid().is_none() || self.runtime_open_import_epoch() {
             return Vec::new();
         }
         let body_ids = self.owner.memories.current_body_ids();
@@ -368,7 +368,7 @@ impl RelExecutionOwner {
     }
 
     pub(crate) fn sync_owner(&self) -> Result<(), crate::CvaError> {
-        self.owner.container.sync()?;
+        self.owner.sync()?;
         Ok(())
     }
 
@@ -443,33 +443,8 @@ impl RelExecutionOwner {
         packed_vector_id: crate::PackedVectorId,
         memory_body_ids: Vec<crate::MemoryBodyId>,
     ) -> Result<crate::MemoryVectorId, crate::MemoryVectorError> {
-        self.compatibility_profiles
-            .get_active(compatibility_profile_id)
-            .ok_or(crate::MemoryVectorError::MissingProfile)?;
-        crate::memory_vector_store::validate_mapping_shape(
-            &self.compatibility_profiles,
-            &self.packed_vectors,
-            compatibility_profile_id,
-            packed_vector_id,
-            &memory_body_ids,
-        )?;
-        let mut seen = std::collections::HashSet::new();
-        for body in &memory_body_ids {
-            if !self.memories.contains_body(*body) {
-                return Err(crate::MemoryVectorError::MissingMemoryBody);
-            }
-            if !seen.insert(*body) {
-                return Err(crate::MemoryVectorError::DuplicateMemoryBody);
-            }
-        }
-        self.owner.memory_vectors.put(
-            &mut self.owner.container,
-            &self.owner.compatibility_profiles,
-            &self.owner.packed_vectors,
-            compatibility_profile_id,
-            packed_vector_id,
-            memory_body_ids,
-        )
+        self.owner
+            .put_memory_vectors(compatibility_profile_id, packed_vector_id, memory_body_ids)
     }
 
     pub fn build_missing_memory_vectors(

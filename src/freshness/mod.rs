@@ -61,3 +61,5 @@ pub(crate) fn record_dream_evidence_scan(
         },
     );
 }
+pub(crate) mod accepted_use;
+pub(crate) mod graph_snapshot;

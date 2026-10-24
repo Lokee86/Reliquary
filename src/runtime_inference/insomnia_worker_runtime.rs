@@ -74,6 +74,7 @@ pub(super) struct DrainShared<'a> {
     pub(super) dream_freshness:
         Mutex<&'a mut crate::freshness_dream_journal::DreamFreshnessJournal>,
     pub(super) owner_uuid: Option<[u8; 16]>,
+    pub(super) owner_id: Option<String>,
     pub(super) accepted_rel_turn: u64,
     pub(super) phylactery: Option<Mutex<&'a mut PhyExecutionOwner>>,
     progress: DrainProgress<'a>,
@@ -133,7 +134,8 @@ fn drain_inner<E: GeneralEndpoint>(
     let archive_read =
         crate::archive::ArchiveReadView::new(&cva.owner.archive, &cva.owner.container);
     cva.lexical_index.ensure_current(&archive_read)?;
-    let owner_uuid = cva.owner.container.owner_uuid();
+    let owner_uuid = cva.owner.owner_uuid();
+    let owner_id = cva.owner.owner_id();
     let accepted_rel_turn = cva.owner.archive.rel_turn_count();
     let shared = DrainShared {
         archive: &cva.owner.archive,
@@ -144,6 +146,7 @@ fn drain_inner<E: GeneralEndpoint>(
         freshness: Mutex::new(&mut cva.owner.freshness),
         dream_freshness: Mutex::new(&mut cva.owner.dream_freshness),
         owner_uuid,
+        owner_id,
         accepted_rel_turn,
         phylactery: phylactery.map(Mutex::new),
         progress: DrainProgress::new(reporter, initial_stats),

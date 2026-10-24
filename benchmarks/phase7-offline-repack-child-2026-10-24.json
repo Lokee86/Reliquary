@@ -1,0 +1,15 @@
+{
+  "schema": "phase7-child-registration.v1",
+  "ticket": "P7.1.14c-OFFLINE-REPACK",
+  "parent": "P7.1.14",
+  "status": "registered-before-source-edit",
+  "source_checkpoint": "7c74b511b037c59eedc5978ae7d67999245ca004",
+  "witnesses": [
+    {"source": "src/facade/cva_repack.rs", "lines": [27, 39, 68], "targets": ["Container::sync", "Container::object_payloads", "Container::append"]},
+    {"source": "src/facade/cva_principal_repack.rs", "lines": [35, 39, 54], "targets": ["Container::sync", "Container::object_payloads", "Container::append"]}
+  ],
+  "cut": "Move explicit offline attachment/principal repack copy, relocation, cleanup and historical-authority validation into Maintenance over the durable REL owner. Public methods delegate to canonical Maintenance operations; Maintenance replays and validates output through lower owner/History contracts without a public facade.",
+  "scope": ["src/facade/cva_repack.rs", "src/facade/cva_principal_repack.rs", "src/facade/historical_import_transform.rs", "src/maintenance/attachment_repack.rs", "src/maintenance/principal_repack.rs", "src/maintenance/historical_copy.rs"],
+  "preserving_tests": ["cva_repack::tests", "principal repack tests", "historical import transform tests", "workspace_management integration tests"],
+  "invariants": ["exact payload relocation and cleanup order", "same public signatures/result types", "historical receipt authority", "one owner writer", "no format change"]
+}

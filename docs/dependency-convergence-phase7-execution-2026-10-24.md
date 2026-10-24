@@ -39,6 +39,12 @@ The compiler call checker joins MIR call operands to private rustdoc implementat
 
 The [final compiler receipt](../benchmarks/phase7-final-compiler-evidence-2026-10-24.json) validates before/after source provenance and artifact hashes. Its exact matching resolves 936 cross-component call instances; 191 raw target-pair candidates (182 unique endpoints) remain unpermitted, including direct facade/Container calls. Pure immutable method calls are retained separately as disposition candidates, not automatically implementation violations. There are 112,636 unresolved instances: 80,401 unresolved local operands, 32,229 destructor terminators and six indirect/nonconstant terminators. These large numbers reflect incomplete compiler-name/implementation matching as well as dispatch uncertainty; they are not counts of distinct architectural violations. No suffix-based ownership inference is accepted. Exact endpoints, tool/profile hashes and full raw evidence hashes are preserved. This is reproducible current evidence of an open gate, not an accepted graph or authorization to waive residuals.
 
+## Stabilization checkpoint (2026-10-24)
+
+The paused post-`7c74b51` source-cut batch was integrated and verified without another extraction. All 28 new cfg-reachable production modules are registered under explicit component owners. Exact `cargo check --locked --lib` passed after repairing 48 compile errors in the paused batch; a stale mount-identity test helper and missing test import were corrected. A behavioral regression that wrongly exposed archive compatibility profiles during an unfinished import was repaired by reusing the canonical `runtime_current_vector_generation` admission path.
+
+The post-repair locked library suite passed **2,006 tests, zero failed, five ignored**; integration/examples passed **165, zero failed, one ignored**; CLI passed **32, zero failed**. The 45 Python checker tests, nine dependency checker tests, 26 source-cut guards, 898-module ownership map, bounded façade boundary check, Rust formatting and Git whitespace check passed. The exact command/profile and limits are in [the stabilization receipt](../benchmarks/phase7-stabilization-checkpoint-2026-10-24.json). This constitutes a behavioral/source-cut checkpoint **only**: B7/H7/R7/A7 remain open under the original acceptance standard. The old 182 compiler-call candidates are not a post-cut residual count.
+
 ## Verification
 
 Use the following local commands:

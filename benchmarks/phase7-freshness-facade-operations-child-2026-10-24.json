@@ -1,0 +1,497 @@
+{
+  "schema": "phase7-freshness-facade-operations-child.v1",
+  "status": "registered-before-source-edit",
+  "parent_ticket": "P7.1.14 \u00e2\u20ac\u201d Public facade\u00e2\u2020\u2019lower callback cycles",
+  "child": "P7.1.14-FRESHNESS-FACADE-OPERATIONS",
+  "registered_at": "2026-10-24",
+  "denominator": {
+    "phase7_spec_tickets": 31,
+    "named_children_before": 23,
+    "named_children_after": 24,
+    "tracked_total_after": 55,
+    "gates": 4
+  },
+  "scope": {
+    "facade_sources": [
+      {
+        "path": "src/facade/cva_freshness.rs",
+        "sha256_at_registration": "cdd26d2cf9c4f779a221135d063960efde69ef110db5154c0fdadaf313b0cbee",
+        "sha256_after_implementation": "5e151c8d66c334e8309338db820cf70437968916237cd03e8e256d4615ca5d51"
+      },
+      {
+        "path": "src/facade/freshness_access.rs",
+        "sha256_at_registration": "529f610a7b9c7eb40d514d5b8213eb5b311bfbde4f180d4a13a451b2437918ac",
+        "sha256_after_implementation": "486913e9f6bb4a22713117483edbc6dedf6dd537144d5982bcdaeaed8e173e4b"
+      },
+      {
+        "path": "src/facade/dream_freshness.rs",
+        "sha256_at_registration": "dcc704a466cc20301696bd4fefb8062ba9ea3fb75dab7e77fd889e55770f11e5",
+        "sha256_after_implementation": "d5a053a81dc9471242def1a67635c4be3d516b73da1cd7b91482414d2f652e82"
+      }
+    ],
+    "proposed_new_sources": [
+      "src/runtime_inference/freshness_operations.rs",
+      "src/owner_lifecycle/freshness_operations.rs"
+    ],
+    "ownership": "Runtime composes Freshness policy and scheduled projections; owner lifecycle owns physical append+sync. Existing durable owner source files are excluded.",
+    "implemented_sources": [
+      "src/runtime_inference/freshness_operations.rs",
+      "src/freshness/accepted_use.rs",
+      "src/freshness/graph_snapshot.rs",
+      "src/owner_lifecycle/freshness_operations.rs"
+    ]
+  },
+  "exact_compiler_witnesses": [
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 654,
+      "target": "graph_compact_codec::publication::version_at",
+      "source_component": "public-consumers",
+      "target_component": "graph-store",
+      "mir_line_sha256": "010696f99ddc93aacc646380a076ecf37a88e78fcfcf30bfd27e181e3ed8c9a5",
+      "target_definitions": [
+        {
+          "path": "src/semantic_graph/graph_publication_codec.rs",
+          "line": 106,
+          "end_line": 121,
+          "symbol": "graph_compact_codec::publication::version_at"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 315,
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "01249ba8769af607098167ea4b252b9e5851cdd10798e041cbf3731485290329",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 785,
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "02df8371504d8de51a542997bbb3f5ef6297116633afb8b18cc6ab4a4016165e",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 162,
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "16e0f7d713fd0436677ce1b6bd9301ec85ac36f9f990cbe9a372005335dd665c",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 314,
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "19799e1cac2210b1879aa92c8eeef94561e405638abc5b8d3349f990cdc8672a",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 163,
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "1ae55860044c819da540246352eab37714f9ef66fcf6c266548dd93592353933",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 142,
+      "target": "memory_store::MemoryStore::memory",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "mir_line_sha256": "1f815b5cdf0d33f108a4b4a35168b3ddba87672e33f5dcbb4e27715c2e62ba87",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 393,
+          "end_line": 400,
+          "symbol": "memory_store::MemoryStore::memory"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 555,
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "24ffb6b97a1f2a7e112a639a7828b33ffa3c8c7d79837c752bec1dddec15dd83",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/dream_freshness.rs",
+      "source_line": 89,
+      "target": "freshness_trace::scope",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "279fdd8320c396af7393454aead6b84b34fb986162280cd48c57a86845041973",
+      "target_definitions": [
+        {
+          "path": "src/freshness/trace.rs",
+          "line": 177,
+          "end_line": 177,
+          "symbol": "freshness_trace::scope"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 50,
+      "target": "container::Container::require_write_admission",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "36288a8f2dd7fc51cbfbc7b764cb12ed582667fb5e485dd92cba2e835e1d8aa9",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 250,
+          "end_line": 257,
+          "symbol": "container::Container::require_write_admission"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 973,
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "478b32031955b06f65e8dfa0f801154f3c01a11ecfd5f5f6d2cecdf71ecff30e",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 554,
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "63ef5f65c77cb0eb36d7019b645c6957c9bbb2494a935fb7b3c4cb804a37675e",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/freshness_access.rs",
+      "source_line": 195,
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "6e16d0f736ad3e20082c89de15a8ef116ae3973d7353b2c60fd7921bc71dc8e8",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 149,
+      "target": "container::Container::owner_uuid",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "70e8ed7b2a8c533792ad271712b3a50729fa1e6726109a87bb87de7443d4fdaf",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 510,
+          "end_line": 512,
+          "symbol": "container::Container::owner_uuid"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 947,
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "710bdf35ecf0ca0f6e52828ab3899d5add284bede225af9977db0fd54437df74",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/dream_freshness.rs",
+      "source_line": 111,
+      "target": "freshness_trace::scope",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "8d15af736cbe36488c978584a96c927283b890e8fae94db3ef44acf6e058da46",
+      "target_definitions": [
+        {
+          "path": "src/freshness/trace.rs",
+          "line": 177,
+          "end_line": 177,
+          "symbol": "freshness_trace::scope"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/freshness_access.rs",
+      "source_line": 48,
+      "target": "freshness_trace::scope",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "958971696ac8865dfe63f4961dba681d28f13b8a9e94b94f81ca8f9546097837",
+      "target_definitions": [
+        {
+          "path": "src/freshness/trace.rs",
+          "line": 177,
+          "end_line": 177,
+          "symbol": "freshness_trace::scope"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 948,
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "9a724eeb848322b0e7f31777007709dc44d1430516d970088a54524942e2815a",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 478,
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "a6fb5bbc6c37f1ca4ef9304681cbec2038ca0c3425d41a00a12c5912de89d348",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 406,
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "af48ad956c7812cf5163ddc32732f0f5108843ec414edf51e33f2676750b449c",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/freshness_access.rs",
+      "source_line": 194,
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "bc20254f32b2b298c674d38863bb87eb9bb4037a51ba9d099665e8a54a1079f5",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 479,
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "c2311b2a786ade2e40f8aadf873baffd1be224617f9c5033c5a023ddd8a7f2dc",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 462,
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "ccbd75a89493307a90facb85fea310adc8584e9ac94b9342638b79c2b8a194e5",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 461,
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "cd8f45899e4e1b042918fee91fbf0267368bcc98ebb9b30fb89df6a75feafa66",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 407,
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "cebb8947b412f34c3aac33620540db2c54e64071f3bfdd3519cea9d8dc773273",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 786,
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "e9651518138ca188f20874875b4843e03bdc2ca15b3665d4a34bf8bb5dd70eda",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ]
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 972,
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "mir_line_sha256": "f0bc1dfec820ab53def04abadde51667b360a9f81660d61f61e44d0fc369e1cd",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ]
+    }
+  ],
+  "cut": "Move Freshness service/policy and scheduling/projection composition out of public facade implementations into concrete Runtime operations. Move raw Container append+sync, write-admission checks and owner identity/physical reads into owner-lifecycle operations. Keep public supported Cva method signatures as delegates. Keep canonical Freshness computations over allowed Freshness/Memory/Graph inputs, and preserve all accepted-use, birth, event, receipt ordering and error outcomes.",
+  "preserved_contracts": [
+    "accepted-use receipts validate and append before projection updates in original order",
+    "Freshness birth/admit/event/reconciliation and replay preserve current ordering and durable bytes",
+    "owner write admission and physical append/sync stay bound to the mounted owner",
+    "public Cva API and return/error values remain unchanged",
+    "Dream initial settlement trace and idempotency behavior remain unchanged",
+    "no target DAG edge, blanket component-map reclassification or duplicate mutable state"
+  ],
+  "unresolved_evidence_rule": "All direct and unresolved calls in the three scoped facade sources must be reviewed; calls absent from the compiler matcher remain unproven and are not accepted by this child.",
+  "preserving_tests": [
+    "Freshness accepted-use, retry, receipts and propagation tests",
+    "Freshness event append/sync/reopen tests",
+    "Dream initial settlement and publication tests",
+    "Freshness trace/behavior tests"
+  ],
+  "implementation_status": "implemented-pending-compiler-and-boundary-review",
+  "acceptance": "open",
+  "verification": "Owned sources rustfmt-formatted successfully. No Cargo/tests run by this child. Parent integration compiler and boundary gates pending. Facade calls absent from exact compiler matcher remain unproven per unresolved_evidence_rule."
+}

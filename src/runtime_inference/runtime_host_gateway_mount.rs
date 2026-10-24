@@ -1,7 +1,6 @@
 //! Gateway file admission is read-only until identity and exclusive execution are established.
 use super::*;
-use crate::{Container, FileKind};
-use std::fs::File;
+use crate::FileKind;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
@@ -20,50 +19,29 @@ pub(super) struct MountedFileIdentity {
 }
 impl MountedFileIdentity {
     pub(super) fn inspect(path: &Path, kind: OwnerKind) -> Result<Self, ReliquaryRuntimeHostError> {
-        let canonical_path = std::fs::canonicalize(path).map_err(operation)?;
-        let mut file = File::open(&canonical_path).map_err(operation)?;
-        let (identity, owner_id) = Container::inspect_header(&mut file).map_err(operation)?;
-        Self::validated(
-            &file,
-            canonical_path,
-            identity.map(|i| i.file_kind),
-            owner_id,
-            kind,
-        )
+        let facts = crate::owner_lifecycle::ReliquaryOwner::inspect_mounted_container(path)
+            .map_err(operation)?;
+        Self::validated_facts(facts, kind)
     }
-    pub(super) fn from_container(
-        container: &Container,
+    pub(super) fn from_reliquary(
+        owner: &crate::owner_lifecycle::ReliquaryOwner,
         kind: OwnerKind,
     ) -> Result<Self, ReliquaryRuntimeHostError> {
-        let canonical_path = std::fs::canonicalize(container.path()).map_err(operation)?;
-        Self::validated_identity(
-            container.backing_file_identity().map_err(operation)?,
-            canonical_path,
-            container.identity().map(|i| i.file_kind),
-            container.owner_id(),
-            kind,
-        )
+        Self::validated_facts(owner.mounted_container_facts().map_err(operation)?, kind)
     }
-    fn validated(
-        file: &File,
-        canonical_path: PathBuf,
-        file_kind: Option<FileKind>,
-        owner_id: Option<String>,
+    pub(super) fn from_phylactery(
+        owner: &crate::owner_lifecycle::PhylacteryOwner,
         kind: OwnerKind,
     ) -> Result<Self, ReliquaryRuntimeHostError> {
-        Self::validated_identity(
-            Container::inspect_file_identity(file).map_err(operation)?,
-            canonical_path,
-            file_kind,
-            owner_id,
-            kind,
-        )
+        Self::validated_facts(owner.mounted_container_facts().map_err(operation)?, kind)
     }
-    fn validated_identity(
-        identity: Option<(u64, u64)>,
-        canonical_path: PathBuf,
-        file_kind: Option<FileKind>,
-        owner_id: Option<String>,
+    fn validated_facts(
+        (canonical_path, file_identity, file_kind, owner_id): (
+            PathBuf,
+            Option<(u64, u64)>,
+            Option<FileKind>,
+            Option<String>,
+        ),
         kind: OwnerKind,
     ) -> Result<Self, ReliquaryRuntimeHostError> {
         let expected = match kind {
@@ -81,7 +59,7 @@ impl MountedFileIdentity {
             OwnerKind::Rel => validate_rel_owner_id(&owner_id)?,
             OwnerKind::Phy => validate_owner_id(&owner_id, "phy-")?,
         }
-        let key = identity
+        let key = file_identity
             .map(|(volume, index)| FileKey::Physical(volume, index))
             .unwrap_or_else(|| FileKey::PathScoped(canonical_path.clone()));
         Ok(Self {
@@ -186,8 +164,8 @@ impl GatewayRuntime {
         let claim = MountClaim::acquire(&identity)?;
         let cva =
             crate::RelExecutionOwner::open_mounted(&identity.canonical_path).map_err(operation)?;
-        if !identity.matches(&MountedFileIdentity::from_container(
-            &cva.container,
+        if !identity.matches(&MountedFileIdentity::from_reliquary(
+            &cva.owner,
             OwnerKind::Rel,
         )?) {
             return Err(operation("REL file changed during mount admission"));
@@ -230,8 +208,8 @@ impl GatewayRuntime {
         )
         .map_err(operation)?;
         phy.validate_open_owner().map_err(operation)?;
-        if !identity.matches(&MountedFileIdentity::from_container(
-            &phy.container,
+        if !identity.matches(&MountedFileIdentity::from_phylactery(
+            &phy.owner,
             OwnerKind::Phy,
         )?) {
             return Err(operation("PHY file changed during mount admission"));
@@ -318,28 +296,21 @@ mod tests {
 
     #[test]
     fn legacy_typed_rel_prefixes_pass_mount_identity_validation() {
-        let path = crate::runtime_host_test_support::test_path("legacy-owner.rel");
-        let file = std::fs::OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create_new(true)
-            .open(&path)
-            .unwrap();
         let uuid = uuid::Uuid::new_v4();
         for prefix in REL_OWNER_PREFIXES {
             let owner_id = format!("{prefix}{uuid}");
-            let identity = MountedFileIdentity::validated(
-                &file,
-                PathBuf::from(format!("legacy-{prefix}{uuid}.rel")),
-                Some(FileKind::Reliquary),
-                Some(owner_id.clone()),
+            let identity = MountedFileIdentity::validated_facts(
+                (
+                    PathBuf::from(format!("legacy-{prefix}{uuid}.rel")),
+                    None,
+                    Some(FileKind::Reliquary),
+                    Some(owner_id.clone()),
+                ),
                 OwnerKind::Rel,
             )
             .unwrap();
             assert_eq!(identity.owner_id, owner_id);
         }
-        drop(file);
-        std::fs::remove_file(path).unwrap();
     }
 
     #[test]

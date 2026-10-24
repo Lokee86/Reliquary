@@ -429,7 +429,7 @@ impl GatewayRuntime {
             .topology_transition
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        let identity = MountedFileIdentity::from_container(&runtime.cva.container, OwnerKind::Rel)?;
+        let identity = MountedFileIdentity::from_reliquary(&runtime.cva.owner, OwnerKind::Rel)?;
         if self.existing_file_mount(&identity)? {
             return Ok(identity.owner_id);
         }
@@ -555,7 +555,7 @@ impl GatewayRuntime {
             .topology_transition
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        let identity = MountedFileIdentity::from_container(&owner.container, OwnerKind::Phy)?;
+        let identity = MountedFileIdentity::from_phylactery(&owner.owner, OwnerKind::Phy)?;
         if self.existing_file_mount(&identity)? {
             return Ok(identity.owner_id);
         }

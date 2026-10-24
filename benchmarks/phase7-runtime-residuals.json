@@ -6,16 +6,19 @@
   "source_checkpoint": "working tree inspected 2026-10-24; Phase 6 A6 receipt cfaebe1",
   "denominator": {
     "phase7_spec_tickets": 31,
-    "proposed_supplemental_children": 4,
-    "tracked_total_if_registered": 35,
+    "proposed_supplemental_children": 7,
+    "tracked_total_if_registered": 38,
     "accepted": 0,
     "implemented": 0,
-    "note": "The four children are proposed splits of the runtime residual family, not accepted or implemented work. They must be registered in B7 before code changes."
+    "note": "Four earlier runtime residual children plus three exact compiler-witnessed gateway-to-lower-component children are registered in separate receipts before implementation; the campaign-wide total includes other previously registered children."
   },
   "provenance": {
     "phase6_receipt": "docs/dependency-convergence-phase6-execution-2026-10-23.md",
     "phase6_final_verification": "benchmarks/phase6-final-verification.json",
-    "phase6_residual_scc": ["public-consumers", "runtime-gateway"],
+    "phase6_residual_scc": [
+      "public-consumers",
+      "runtime-gateway"
+    ],
     "phase6_statement": "Five runtime-to-public imports are retained aggregate composition/API boundaries; full symbol/call proof remains a Phase 7 A7 obligation.",
     "limits": [
       "Hashes anchor inspected working-tree bytes, not a new immutable A6 snapshot.",
@@ -42,106 +45,895 @@
     {
       "id": "RG-PUB-01",
       "direction": "runtime-gateway -> public-consumers",
-      "endpoint": {"path": "src/runtime_inference/interaction_runtime.rs", "line": 2, "symbol": "crate::Cva", "definition": "src/facade/cva.rs:32 Cva"},
+      "endpoint": {
+        "path": "src/runtime_inference/interaction_runtime.rs",
+        "line": 2,
+        "symbol": "crate::Cva",
+        "definition": "src/facade/cva.rs:32 Cva"
+      },
       "function_endpoints": [
-        {"path": "src/runtime_inference/interaction_runtime.rs", "line": 33, "function": "InteractionRuntime::new(cva: Cva)"},
-        {"path": "src/runtime_inference/interaction_runtime.rs", "line": 40, "function": "InteractionRuntime::accept_turn"},
-        {"path": "src/runtime_inference/interaction_runtime.rs", "line": 52, "function": "InteractionRuntime::schedule_session"},
-        {"path": "src/runtime_inference/interaction_runtime.rs", "line": 66, "function": "InteractionRuntime::finalize_inactive_session"}
+        {
+          "path": "src/runtime_inference/interaction_runtime.rs",
+          "line": 33,
+          "function": "InteractionRuntime::new(cva: Cva)"
+        },
+        {
+          "path": "src/runtime_inference/interaction_runtime.rs",
+          "line": 40,
+          "function": "InteractionRuntime::accept_turn"
+        },
+        {
+          "path": "src/runtime_inference/interaction_runtime.rs",
+          "line": 52,
+          "function": "InteractionRuntime::schedule_session"
+        },
+        {
+          "path": "src/runtime_inference/interaction_runtime.rs",
+          "line": 66,
+          "function": "InteractionRuntime::finalize_inactive_session"
+        }
       ],
-      "capability_examples": ["owns Cva", "calls Cva::ingest_turn_with_receipt and sync", "calls Cva::materialize_live_path_and_queue / finalize_inactive_path_and_queue", "exposes Cva via cva() and into_cva() at lines 276 and 280"],
+      "capability_examples": [
+        "owns Cva",
+        "calls Cva::ingest_turn_with_receipt and sync",
+        "calls Cva::materialize_live_path_and_queue / finalize_inactive_path_and_queue",
+        "exposes Cva via cva() and into_cva() at lines 276 and 280"
+      ],
       "status": "open"
     },
     {
       "id": "RG-PUB-02",
       "direction": "runtime-gateway -> public-consumers",
-      "endpoint": {"path": "src/runtime_inference/runtime_host_gateway.rs", "line": 5, "symbol": "crate::Phylactery", "definition": "src/facade/phylactery.rs:21 Phylactery"},
+      "endpoint": {
+        "path": "src/runtime_inference/runtime_host_gateway.rs",
+        "line": 5,
+        "symbol": "crate::Phylactery",
+        "definition": "src/facade/phylactery.rs:21 Phylactery"
+      },
       "function_endpoints": [
-        {"path": "src/runtime_inference/runtime_host_gateway.rs", "line": 265, "function": "PhyExecution.owner: Arc<Mutex<Phylactery>>"},
-        {"path": "src/runtime_inference/runtime_host_gateway.rs", "line": 548, "function": "GatewayRuntime::mount_phy"},
-        {"path": "src/runtime_inference/runtime_host_gateway.rs", "line": 568, "function": "GatewayRuntime::mount_phy_inner"},
-        {"path": "src/runtime_inference/runtime_host_gateway.rs", "line": 818, "function": "GatewayRuntime::with_phy callback over &mut Phylactery"},
-        {"path": "src/runtime_inference/runtime_host_gateway.rs", "line": 1399, "function": "GatewayRuntime::unmount_phy -> Phylactery"},
-        {"path": "src/runtime_inference/runtime_host_gateway.rs", "line": 1445, "function": "GatewayRuntime::unmount_rel -> Cva"}
+        {
+          "path": "src/runtime_inference/runtime_host_gateway.rs",
+          "line": 265,
+          "function": "PhyExecution.owner: Arc<Mutex<Phylactery>>"
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway.rs",
+          "line": 548,
+          "function": "GatewayRuntime::mount_phy"
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway.rs",
+          "line": 568,
+          "function": "GatewayRuntime::mount_phy_inner"
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway.rs",
+          "line": 818,
+          "function": "GatewayRuntime::with_phy callback over &mut Phylactery"
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway.rs",
+          "line": 1399,
+          "function": "GatewayRuntime::unmount_phy -> Phylactery"
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway.rs",
+          "line": 1445,
+          "function": "GatewayRuntime::unmount_rel -> Cva"
+        }
       ],
-      "capability_examples": ["runtime stores and passes mutable Phylactery to workers", "unmount stops/drains workers and transfers the aggregate Phylactery back", "REL unmount transfers owner.into_cva()"],
+      "capability_examples": [
+        "runtime stores and passes mutable Phylactery to workers",
+        "unmount stops/drains workers and transfers the aggregate Phylactery back",
+        "REL unmount transfers owner.into_cva()"
+      ],
       "status": "open"
     },
     {
       "id": "RG-PUB-03",
       "direction": "runtime-gateway -> public-consumers",
-      "endpoint": {"path": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs", "line": 2, "symbol": "crate::Cva", "definition": "src/facade/cva.rs:32 Cva"},
+      "endpoint": {
+        "path": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs",
+        "line": 2,
+        "symbol": "crate::Cva",
+        "definition": "src/facade/cva.rs:32 Cva"
+      },
       "function_endpoints": [
-        {"path": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs", "line": 6, "function": "GatewayRuntime::create_project_environment_rel -> Cva"},
-        {"path": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs", "line": 33, "function": "GatewayRuntime::adopt_project_environment_rel -> Cva"},
-        {"path": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs", "line": 43, "function": "GatewayRuntime::validate_project_environment_cva(&mut Cva)"},
-        {"path": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs", "line": 51, "function": "GatewayRuntime::reconcile_rel_file"}
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs",
+          "line": 6,
+          "function": "GatewayRuntime::create_project_environment_rel -> Cva"
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs",
+          "line": 33,
+          "function": "GatewayRuntime::adopt_project_environment_rel -> Cva"
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs",
+          "line": 43,
+          "function": "GatewayRuntime::validate_project_environment_cva(&mut Cva)"
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs",
+          "line": 51,
+          "function": "GatewayRuntime::reconcile_rel_file"
+        }
       ],
-      "capability_examples": ["returns aggregate REL from create/adopt operations", "passes mutable Cva into Project Environment validator", "delegates to crate::cva_project_environment"],
+      "capability_examples": [
+        "returns aggregate REL from create/adopt operations",
+        "passes mutable Cva into Project Environment validator",
+        "delegates to crate::cva_project_environment"
+      ],
       "status": "open"
     },
     {
       "id": "RG-PUB-04",
       "direction": "runtime-gateway -> public-consumers",
-      "endpoint": {"path": "src/runtime_inference/runtime_host_phy_execution.rs", "line": 2, "symbol": "crate::Phylactery", "definition": "src/facade/phylactery.rs:21 Phylactery"},
+      "endpoint": {
+        "path": "src/runtime_inference/runtime_host_phy_execution.rs",
+        "line": 2,
+        "symbol": "crate::Phylactery",
+        "definition": "src/facade/phylactery.rs:21 Phylactery"
+      },
       "function_endpoints": [
-        {"path": "src/runtime_inference/runtime_host_phy_execution.rs", "line": 74, "function": "WorkerShared.owner: Arc<Mutex<Phylactery>>"},
-        {"path": "src/runtime_inference/runtime_host_phy_execution.rs", "line": 171, "function": "PhyRuntime::start(owner: Arc<Mutex<Phylactery>>)"}
+        {
+          "path": "src/runtime_inference/runtime_host_phy_execution.rs",
+          "line": 74,
+          "function": "WorkerShared.owner: Arc<Mutex<Phylactery>>"
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_phy_execution.rs",
+          "line": 171,
+          "function": "PhyRuntime::start(owner: Arc<Mutex<Phylactery>>)"
+        }
       ],
-      "capability_examples": ["PHY workers receive and mutate the public aggregate owner through shared mutex state"],
+      "capability_examples": [
+        "PHY workers receive and mutate the public aggregate owner through shared mutex state"
+      ],
       "status": "open"
     },
     {
       "id": "RG-PUB-05",
       "direction": "runtime-gateway -> public-consumers",
-      "endpoint": {"path": "src/runtime_inference/runtime_host_reconciliation.rs", "line": 1, "symbol": "crate::Cva", "definition": "src/facade/cva.rs:32 Cva"},
+      "endpoint": {
+        "path": "src/runtime_inference/runtime_host_reconciliation.rs",
+        "line": 1,
+        "symbol": "crate::Cva",
+        "definition": "src/facade/cva.rs:32 Cva"
+      },
       "function_endpoints": [
-        {"path": "src/runtime_inference/runtime_host_reconciliation.rs", "line": 54, "function": "reconcile_rel_siblings"},
-        {"path": "src/runtime_inference/runtime_host_reconciliation.rs", "line": 103, "function": "reconcile_candidate"},
-        {"path": "src/runtime_inference/runtime_host_reconciliation.rs", "line": 159, "function": "recover_reconciliation_vectors"}
+        {
+          "path": "src/runtime_inference/runtime_host_reconciliation.rs",
+          "line": 54,
+          "function": "reconcile_rel_siblings"
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_reconciliation.rs",
+          "line": 103,
+          "function": "reconcile_candidate"
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_reconciliation.rs",
+          "line": 159,
+          "function": "recover_reconciliation_vectors"
+        }
       ],
-      "capability_examples": ["Cva::open_read_only at line 58", "Cva::compare at line 104", "Cva::reconcile_and_promote at line 124", "Cva::open and rebuild_derived_vectors at lines 164 and 177; sync and reopen validation follow"],
+      "capability_examples": [
+        "Cva::open_read_only at line 58",
+        "Cva::compare at line 104",
+        "Cva::reconcile_and_promote at line 124",
+        "Cva::open and rebuild_derived_vectors at lines 164 and 177; sync and reopen validation follow"
+      ],
       "status": "open"
     }
   ],
   "return_path_witness": {
     "direction": "public-consumers -> runtime-gateway",
-    "endpoint": {"path": "src/facade/interaction_runtime_project_file.rs", "line": 1, "symbol": "crate::InteractionRuntime", "definition": "src/runtime_inference/interaction_runtime.rs:27 InteractionRuntime"},
+    "endpoint": {
+      "path": "src/facade/interaction_runtime_project_file.rs",
+      "line": 1,
+      "symbol": "crate::InteractionRuntime",
+      "definition": "src/runtime_inference/interaction_runtime.rs:27 InteractionRuntime"
+    },
     "capability_example": "The facade extension implements InteractionRuntime::attach_project_file and reads self.cva.project_file_ref(file.id) at line 8, forming a concrete upper-to-runtime import/call path. This is a production facade file; test-only facade references are excluded.",
     "status": "source-anchored; exhaustive SCC path proof open"
   },
   "proposed_children": [
     {
       "id": "P7.1.12a-RUNTIME-GATEWAY-PHY-OWNER-HANDLE",
-      "scope": ["src/runtime_inference/runtime_host_gateway.rs", "src/runtime_inference/runtime_host_phy_execution.rs"],
+      "scope": [
+        "src/runtime_inference/runtime_host_gateway.rs",
+        "src/runtime_inference/runtime_host_phy_execution.rs"
+      ],
       "cut_proposal": "Replace runtime storage/worker dependence on facade Phylactery/Cva aggregates with an operation-specific lower owner execution representation; keep public mount/open/unmount adapters composing that state and preserve existing signatures where feasible.",
-      "preserving_test_families": ["runtime_host_gateway_tests", "runtime_host_gateway_admission_tests", "runtime_host_phy_execution_tests", "runtime_host_phy_execution_tests.rs inline behavior", "runtime_host_phy_* worker tests", "runtime_host_gateway_host_* and lifecycle tests"],
-      "critical_contracts": ["one mounted writer", "owner grants and independent instances", "fence/drain before transitions", "worker queue and shutdown/restart", "unmount returns supported aggregate type", "no public signature change"],
+      "preserving_test_families": [
+        "runtime_host_gateway_tests",
+        "runtime_host_gateway_admission_tests",
+        "runtime_host_phy_execution_tests",
+        "runtime_host_phy_execution_tests.rs inline behavior",
+        "runtime_host_phy_* worker tests",
+        "runtime_host_gateway_host_* and lifecycle tests"
+      ],
+      "critical_contracts": [
+        "one mounted writer",
+        "owner grants and independent instances",
+        "fence/drain before transitions",
+        "worker queue and shutdown/restart",
+        "unmount returns supported aggregate type",
+        "no public signature change"
+      ],
       "status": "proposed-open; requires B7 registration; no implementation"
     },
     {
       "id": "P7.1.12b-INTERACTION-CVA-ADAPTER",
-      "scope": ["src/runtime_inference/interaction_runtime.rs", "facade InteractionRuntime extensions"],
+      "scope": [
+        "src/runtime_inference/interaction_runtime.rs",
+        "facade InteractionRuntime extensions"
+      ],
       "cut_proposal": "Separate public InteractionRuntime/Cva binding from lower interaction stream/session operations, with facade composition retaining constructors, accessors, and published behavior.",
-      "preserving_test_families": ["interaction_runtime_tests", "interaction_session_tests", "interaction_background_tests", "interaction_live_tests", "interaction_live_acceptance_tests", "runtime_host_gateway_tests"],
-      "critical_contracts": ["turn receipt and replay idempotency", "sync acknowledgement", "session checkpoint/reopen behavior", "public InteractionRuntime API"],
+      "preserving_test_families": [
+        "interaction_runtime_tests",
+        "interaction_session_tests",
+        "interaction_background_tests",
+        "interaction_live_tests",
+        "interaction_live_acceptance_tests",
+        "runtime_host_gateway_tests"
+      ],
+      "critical_contracts": [
+        "turn receipt and replay idempotency",
+        "sync acknowledgement",
+        "session checkpoint/reopen behavior",
+        "public InteractionRuntime API"
+      ],
       "status": "proposed-open; requires B7 registration; no implementation"
     },
     {
       "id": "P7.1.12c-PROJECT-LIFECYCLE-AGGREGATE-ADAPTER",
-      "scope": ["src/runtime_inference/runtime_host_gateway_project_lifecycle.rs", "src/facade/cva_project_environment.rs"],
+      "scope": [
+        "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs",
+        "src/facade/cva_project_environment.rs"
+      ],
       "cut_proposal": "Move aggregate Cva construction/validation composition above gateway admission; gateway retains path identity, mount claim, and lifecycle admission, while project operations return passive results to the public adapter.",
-      "preserving_test_families": ["runtime_host_gateway_project_tests", "project_environment Git/Lore tests", "project_environment scope/owner tests", "project_environment admission tests"],
-      "critical_contracts": ["unmounted-path claim ordering", "project validation and repository identity", "create/adopt behavior", "public method signatures"],
+      "preserving_test_families": [
+        "runtime_host_gateway_project_tests",
+        "project_environment Git/Lore tests",
+        "project_environment scope/owner tests",
+        "project_environment admission tests"
+      ],
+      "critical_contracts": [
+        "unmounted-path claim ordering",
+        "project validation and repository identity",
+        "create/adopt behavior",
+        "public method signatures"
+      ],
       "status": "proposed-open; requires B7 registration; no implementation"
     },
     {
       "id": "P7.1.12d-OFFLINE-RECONCILIATION-ADAPTER",
-      "scope": ["src/runtime_inference/runtime_host_reconciliation.rs", "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs"],
+      "scope": [
+        "src/runtime_inference/runtime_host_reconciliation.rs",
+        "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs"
+      ],
       "cut_proposal": "Move offline Cva open/compare/promote/vector-recovery orchestration to an upper public adapter or owner-lifecycle coordinator; gateway retains unmounted path admission and endpoint acquisition.",
-      "preserving_test_families": ["runtime_host_reconciliation_tests", "facade cva_reconcile_tests", "reconciliation/merge/repack tests", "archive and memory vector recovery tests"],
-      "critical_contracts": ["candidate sort and conflict reports", "vector rebuild ordering", "sync and reopen validation", "no output/data format changes"],
+      "preserving_test_families": [
+        "runtime_host_reconciliation_tests",
+        "facade cva_reconcile_tests",
+        "reconciliation/merge/repack tests",
+        "archive and memory vector recovery tests"
+      ],
+      "critical_contracts": [
+        "candidate sort and conflict reports",
+        "vector rebuild ordering",
+        "sync and reopen validation",
+        "no output/data format changes"
+      ],
       "status": "proposed-open; requires B7 registration; no implementation"
+    },
+    {
+      "id": "P7.1.12-GATEWAY-CONTAINER-OPERATIONS",
+      "status": "registered-open-before-implementation",
+      "witness": [
+        {
+          "path": "src/runtime_inference/reliquary_runtime_owner.rs",
+          "line": 371,
+          "target": "container::Container::sync",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/phy_execution_owner.rs",
+          "line": 45,
+          "target": "container::Container::sync",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_mount.rs",
+          "line": 40,
+          "target": "container::Container::backing_file_identity",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 494,
+              "end_line": 496,
+              "symbol": "container::Container::backing_file_identity"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_phy_perception.rs",
+          "line": 186,
+          "target": "container::Container::sync",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_agentic_memory_graph.rs",
+          "line": 153,
+          "target": "container::Container::owner_id",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_agentic_memory_query.rs",
+          "line": 66,
+          "target": "container::Container::owner_id",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_freshness_birth.rs",
+          "line": 136,
+          "target": "container::Container::sync",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_mount.rs",
+          "line": 43,
+          "target": "container::Container::owner_id",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/reliquary_runtime_owner.rs",
+          "line": 255,
+          "target": "container::Container::owner_uuid",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 510,
+              "end_line": 512,
+              "symbol": "container::Container::owner_uuid"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_freshness_birth.rs",
+          "line": 103,
+          "target": "container::Container::owner_uuid",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 510,
+              "end_line": 512,
+              "symbol": "container::Container::owner_uuid"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_phy_perception.rs",
+          "line": 289,
+          "target": "container::Container::sync",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_freshness_birth.rs",
+          "line": 36,
+          "target": "container::Container::append",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 227,
+              "end_line": 237,
+              "symbol": "container::Container::append"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_freshness_birth.rs",
+          "line": 120,
+          "target": "container::Container::append",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 227,
+              "end_line": 237,
+              "symbol": "container::Container::append"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_freshness_birth.rs",
+          "line": 121,
+          "target": "container::Container::sync",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_mutation_events.rs",
+          "line": 87,
+          "target": "container::Container::backing_metadata",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 490,
+              "end_line": 492,
+              "symbol": "container::Container::backing_metadata"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/insomnia/worker/runtime/outcome.rs",
+          "line": 53,
+          "target": "container::Container::owner_id",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+          "line": 421,
+          "target": "container::Container::owner_uuid",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 510,
+              "end_line": 512,
+              "symbol": "container::Container::owner_uuid"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_freshness_birth.rs",
+          "line": 135,
+          "target": "container::Container::append",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 227,
+              "end_line": 237,
+              "symbol": "container::Container::append"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_phy_perception.rs",
+          "line": 163,
+          "target": "container::Container::owner_id",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/knowledge_mutation_execution.rs",
+          "line": 134,
+          "target": "container::Container::owner_uuid",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 510,
+              "end_line": 512,
+              "symbol": "container::Container::owner_uuid"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_mutation_events.rs",
+          "line": 71,
+          "target": "container::Container::backing_metadata",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 490,
+              "end_line": 492,
+              "symbol": "container::Container::backing_metadata"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_freshness_birth.rs",
+          "line": 37,
+          "target": "container::Container::sync",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_phy_perception.rs",
+          "line": 124,
+          "target": "container::Container::owner_id",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_mount.rs",
+          "line": 42,
+          "target": "container::Container::identity",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 506,
+              "end_line": 508,
+              "symbol": "container::Container::identity"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_rel_perception.rs",
+          "line": 192,
+          "target": "container::Container::owner_id",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_freshness_birth.rs",
+          "line": 25,
+          "target": "container::Container::owner_uuid",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 510,
+              "end_line": 512,
+              "symbol": "container::Container::owner_uuid"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_mount.rs",
+          "line": 38,
+          "target": "container::Container::path",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 498,
+              "end_line": 500,
+              "symbol": "container::Container::path"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_phy_perception.rs",
+          "line": 119,
+          "target": "container::Container::sync",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_rel_perception.rs",
+          "line": 223,
+          "target": "container::Container::owner_id",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_rel_vectors.rs",
+          "line": 215,
+          "target": "container::Container::path",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 498,
+              "end_line": 500,
+              "symbol": "container::Container::path"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/reliquary_runtime_owner.rs",
+          "line": 106,
+          "target": "container::Container::owner_id",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/reliquary_runtime_owner.rs",
+          "line": 281,
+          "target": "container::Container::owner_uuid",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 510,
+              "end_line": 512,
+              "symbol": "container::Container::owner_uuid"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_mount.rs",
+          "line": 25,
+          "target": "container::Container::inspect_header",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 480,
+              "end_line": 488,
+              "symbol": "container::Container::inspect_header"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_rel_vectors.rs",
+          "line": 245,
+          "target": "container::Container::path",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 498,
+              "end_line": 500,
+              "symbol": "container::Container::path"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/knowledge_mutation_execution.rs",
+          "line": 117,
+          "target": "container::Container::owner_uuid",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 510,
+              "end_line": 512,
+              "symbol": "container::Container::owner_uuid"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/insomnia_worker_runtime.rs",
+          "line": 136,
+          "target": "container::Container::owner_uuid",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 510,
+              "end_line": 512,
+              "symbol": "container::Container::owner_uuid"
+            }
+          ]
+        }
+      ],
+      "cut_or_disposition": "Move confirmed physical metadata, append/sync and mounted-file identity access behind owner-lifecycle operations on concrete REL/PHY state. Preserve file-key admission, owner UUID validation, exact sync/error order, and Freshness physical append-before-ingest ordering.",
+      "preserve": [
+        "Existing authorization and owner admission ordering",
+        "Owner-local durable bytes and error behavior"
+      ]
+    },
+    {
+      "id": "P7.1.12-GATEWAY-EXTERNAL-INDEX-VALUES",
+      "status": "registered-open-before-implementation",
+      "witness": [
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+          "line": 25,
+          "target": "external_index::model::identifier",
+          "definition": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 135,
+              "end_line": 140,
+              "symbol": "external_index::model::identifier"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+          "line": 271,
+          "target": "external_index::model::identifier",
+          "definition": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 135,
+              "end_line": 140,
+              "symbol": "external_index::model::identifier"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+          "line": 259,
+          "target": "external_index::model::identifier",
+          "definition": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 135,
+              "end_line": 140,
+              "symbol": "external_index::model::identifier"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_external.rs",
+          "line": 334,
+          "target": "external_index::model::ExternalMessageDescriptor::validate",
+          "definition": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 37,
+              "end_line": 48,
+              "symbol": "external_index::model::ExternalMessageDescriptor::validate"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_external.rs",
+          "line": 81,
+          "target": "external_index::model::identifier",
+          "definition": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 135,
+              "end_line": 140,
+              "symbol": "external_index::model::identifier"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+          "line": 223,
+          "target": "external_index::model::HydratedExternalMessage::validate",
+          "definition": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 91,
+              "end_line": 104,
+              "symbol": "external_index::model::HydratedExternalMessage::validate"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+          "line": 34,
+          "target": "external_index::model::HydratedExternalMessage::validate",
+          "definition": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 91,
+              "end_line": 104,
+              "symbol": "external_index::model::HydratedExternalMessage::validate"
+            }
+          ]
+        }
+      ],
+      "cut_or_disposition": "Source review exact passive model operations identifier, ExternalMessageDescriptor::validate, and HydratedExternalMessage::validate; definitions consume values only and have no ExternalIndexStore, Container, provider, callback or mutation capability. Register them as exact value-method evidence, not blanket component permission; preserve all invocation and validation ordering.",
+      "preserve": [
+        "Existing authorization and owner admission ordering",
+        "Owner-local durable bytes and error behavior"
+      ]
+    },
+    {
+      "id": "P7.1.12-GATEWAY-VECTOR-MAPPING",
+      "status": "registered-open-before-implementation",
+      "witness": [
+        {
+          "path": "src/runtime_inference/reliquary_runtime_owner.rs",
+          "line": 449,
+          "target": "memory_vector_store::validate_mapping_shape",
+          "definition": [
+            {
+              "path": "src/retrieval/memory_vector_store.rs",
+              "line": 250,
+              "end_line": 274,
+              "symbol": "memory_vector_store::validate_mapping_shape"
+            }
+          ]
+        }
+      ],
+      "cut_or_disposition": "Move mapping-shape validation into a concrete owner-lifecycle Memory Vector publication operation over the existing profile/packed-vector stores. Preserve missing profile/vector, row count, dimension, scalar, missing body and duplicate-body error ordering before publication.",
+      "preserve": [
+        "Existing authorization and owner admission ordering",
+        "Owner-local durable bytes and error behavior"
+      ]
     }
   ],
   "acceptance": {

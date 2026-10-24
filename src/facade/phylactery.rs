@@ -3,45 +3,31 @@ use crate::{Memory, MemoryDraft, MemoryError, MemoryId, MemoryStats, PhylacteryE
 
 impl Phylactery {
     pub fn owner_id(&self) -> Option<String> {
-        self.container.owner_id()
+        self.runtime_owner_id()
     }
 
     pub fn owner_uuid(&self) -> Option<[u8; 16]> {
-        self.container.owner_uuid()
+        self.runtime_owner_uuid()
     }
 
     pub fn profile(&self) -> crate::PhylacteryProfile {
-        self.profile.current()
+        self.runtime_profile()
     }
 
     pub fn set_profile(&mut self, display_name: Option<String>) -> Result<bool, PhylacteryError> {
-        let normalize = |value: Option<String>| {
-            value.and_then(|value| {
-                let trimmed = value.trim().to_owned();
-                (!trimmed.is_empty()).then_some(trimmed)
-            })
-        };
-        self.owner
-            .profile
-            .put(
-                &mut self.owner.container,
-                crate::PhylacteryProfile {
-                    display_name: normalize(display_name),
-                },
-            )
-            .map_err(PhylacteryError::Profile)
+        self.native_set_profile(display_name)
     }
 
     pub fn latest_global_version(&self) -> u64 {
-        self.container.latest_version()
+        self.runtime_latest_global_version()
     }
 
     pub fn transaction_time_ns(&self, version: u64) -> Option<i64> {
-        self.container.transaction_time_ns(version)
+        self.runtime_transaction_time_ns(version)
     }
 
     pub fn version_at_or_before(&self, transaction_time_ns: i64) -> Option<u64> {
-        self.container.version_at_or_before(transaction_time_ns)
+        self.runtime_version_at_or_before(transaction_time_ns)
     }
 
     pub fn publish_memory(
@@ -58,22 +44,14 @@ impl Phylactery {
         id: MemoryId,
         expected_revision: u64,
     ) -> Result<crate::owner_lifecycle::TombstoneOutcome, MemoryError> {
-        let result =
-            self.owner
-                .memories
-                .tombstone(&mut self.owner.container, id, expected_revision)?;
-        self.owner
-            .graph
-            .exclude_from_current(crate::SemanticNodeRef::memory(id))
-            .map_err(|_| MemoryError::InvalidField("Memory graph projection"))?;
-        Ok(result)
+        self.native_tombstone_memory(id, expected_revision)
     }
 
     pub fn memory_retention_descriptor(
         &self,
         id: MemoryId,
     ) -> Result<crate::MemoryRetentionDescriptor, MemoryError> {
-        self.memories.retention_descriptor(id)
+        self.native_memory_retention_descriptor(id)
     }
 
     pub fn historical_memory_revision(
@@ -115,7 +93,7 @@ impl Phylactery {
         &self,
         id: MemoryId,
     ) -> Result<crate::owner_lifecycle::LifecycleState, MemoryError> {
-        self.memories.lifecycle_state(id)
+        self.native_memory_lifecycle_state(id)
     }
 
     pub fn set_memory_temporal_status(
@@ -125,72 +103,29 @@ impl Phylactery {
         temporal_status: &str,
         mutation_id: String,
     ) -> Result<(Memory, bool), MemoryError> {
-        if !matches!(temporal_status, "current" | "future" | "historical") {
-            return Err(MemoryError::InvalidField("temporal status"));
-        }
-        let current = self.memory(id)?;
-        if current.revision != expected_revision {
-            return Err(MemoryError::RevisionConflict);
-        }
-        if current.temporal_status == temporal_status {
-            return Ok((current, false));
-        }
-        let draft = MemoryDraft {
-            category: current.category.clone(),
-            memory_type: current.memory_type.clone(),
-            authority_kind: current.authority_kind.clone(),
-            temporal_status: temporal_status.to_owned(),
-            title: current.title.clone(),
-            content: current.content.clone(),
-            scope: current.scope.clone(),
-            lifecycle_state: current.lifecycle_state.clone(),
-            archived: current.archived,
-            superseded_by: current.superseded_by,
-            parent_id: current.parent_id,
-            source_node_id: current.source_node_id.clone(),
-            content_source_conversation_id: current.content_source_conversation_id.clone(),
-            content_source_node_id: current.content_source_node_id.clone(),
-            grounding_source_conversation_id: current.grounding_source_conversation_id.clone(),
-            grounding_source_node_id: current.grounding_source_node_id.clone(),
-            source_episode_id: current.source_episode_id,
-            source_time_ns: current.source_time_ns,
-            mutation_id,
-            created_at_ns: current.created_at_ns,
-            updated_at_ns: current.updated_at_ns,
-        };
-        self.owner.memories.publish_with_source_ref(
-            &mut self.owner.container,
-            Some(id),
-            expected_revision,
-            draft,
-            current.source_ref.clone(),
-        )
+        self.native_set_memory_temporal_status(id, expected_revision, temporal_status, mutation_id)
     }
 
     pub fn memory_revision(&mut self, id: MemoryId, revision: u64) -> Result<Memory, MemoryError> {
-        self.owner
-            .memories
-            .memory_revision(&mut self.owner.container, id, revision)
+        self.native_memory_revision(id, revision)
     }
 
     pub fn memory_stats(&self) -> MemoryStats {
-        self.memories.stats()
+        self.native_memory_stats()
     }
 
     pub fn memory_version(&self) -> u64 {
-        self.memories.memory_version()
+        self.native_memory_version()
     }
 
     pub fn memory_routing_metadata(&self, id: MemoryId) -> Option<&crate::MemoryRoutingMetadata> {
-        self.memories.routing_metadata(id)
+        self.native_memory_routing_metadata(id)
     }
 
     pub fn put_memory_routing_metadata(
         &mut self,
         metadata: crate::MemoryRoutingMetadata,
     ) -> Result<bool, MemoryError> {
-        self.owner
-            .memories
-            .put_routing_metadata(&mut self.owner.container, metadata)
+        self.native_put_memory_routing_metadata(metadata)
     }
 }

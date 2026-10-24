@@ -1,0 +1,696 @@
+{
+  "schema": "phase7-runtime-lower-dependency-children.v1",
+  "date": "2026-10-24",
+  "status": "registered-open-before-implementation",
+  "parent_ticket": "P7.1.12",
+  "denominator": {
+    "phase7_parent_tickets": 31,
+    "previous_named_children": 13,
+    "children_added": 3,
+    "named_children_after": 16,
+    "tracked_obligations_after": 47,
+    "gates": 4,
+    "basis": "Adds three separately witnessed compiler-call children to the previously recorded 31+13=44 denominator; no residuals are classified away."
+  },
+  "compiler_evidence": "benchmarks/phase7-final-compiler-evidence-2026-10-24.json",
+  "compiler_evidence_sha256": "df67526f73ee0d4114eb8caa92dfdbc98eb9a157cdc5707e1d3854a6473677e1",
+  "children": [
+    {
+      "id": "P7.1.12-GATEWAY-CONTAINER-OPERATIONS",
+      "parent_ticket": "P7.1.12",
+      "status": "source-cut-implemented-awaiting-fresh-compiler-evidence",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "witnesses": [
+        {
+          "path": "src/runtime_inference/reliquary_runtime_owner.rs",
+          "line": 371,
+          "target": "container::Container::sync",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/phy_execution_owner.rs",
+          "line": 45,
+          "target": "container::Container::sync",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_mount.rs",
+          "line": 40,
+          "target": "container::Container::backing_file_identity",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 494,
+              "end_line": 496,
+              "symbol": "container::Container::backing_file_identity"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_phy_perception.rs",
+          "line": 186,
+          "target": "container::Container::sync",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_agentic_memory_graph.rs",
+          "line": 153,
+          "target": "container::Container::owner_id",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_agentic_memory_query.rs",
+          "line": 66,
+          "target": "container::Container::owner_id",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_freshness_birth.rs",
+          "line": 136,
+          "target": "container::Container::sync",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_mount.rs",
+          "line": 43,
+          "target": "container::Container::owner_id",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/reliquary_runtime_owner.rs",
+          "line": 255,
+          "target": "container::Container::owner_uuid",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 510,
+              "end_line": 512,
+              "symbol": "container::Container::owner_uuid"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_freshness_birth.rs",
+          "line": 103,
+          "target": "container::Container::owner_uuid",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 510,
+              "end_line": 512,
+              "symbol": "container::Container::owner_uuid"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_phy_perception.rs",
+          "line": 289,
+          "target": "container::Container::sync",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_freshness_birth.rs",
+          "line": 36,
+          "target": "container::Container::append",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 227,
+              "end_line": 237,
+              "symbol": "container::Container::append"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_freshness_birth.rs",
+          "line": 120,
+          "target": "container::Container::append",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 227,
+              "end_line": 237,
+              "symbol": "container::Container::append"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_freshness_birth.rs",
+          "line": 121,
+          "target": "container::Container::sync",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_mutation_events.rs",
+          "line": 87,
+          "target": "container::Container::backing_metadata",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 490,
+              "end_line": 492,
+              "symbol": "container::Container::backing_metadata"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/insomnia/worker/runtime/outcome.rs",
+          "line": 53,
+          "target": "container::Container::owner_id",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+          "line": 421,
+          "target": "container::Container::owner_uuid",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 510,
+              "end_line": 512,
+              "symbol": "container::Container::owner_uuid"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_freshness_birth.rs",
+          "line": 135,
+          "target": "container::Container::append",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 227,
+              "end_line": 237,
+              "symbol": "container::Container::append"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_phy_perception.rs",
+          "line": 163,
+          "target": "container::Container::owner_id",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/knowledge_mutation_execution.rs",
+          "line": 134,
+          "target": "container::Container::owner_uuid",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 510,
+              "end_line": 512,
+              "symbol": "container::Container::owner_uuid"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_mutation_events.rs",
+          "line": 71,
+          "target": "container::Container::backing_metadata",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 490,
+              "end_line": 492,
+              "symbol": "container::Container::backing_metadata"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_freshness_birth.rs",
+          "line": 37,
+          "target": "container::Container::sync",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_phy_perception.rs",
+          "line": 124,
+          "target": "container::Container::owner_id",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_mount.rs",
+          "line": 42,
+          "target": "container::Container::identity",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 506,
+              "end_line": 508,
+              "symbol": "container::Container::identity"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_rel_perception.rs",
+          "line": 192,
+          "target": "container::Container::owner_id",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_freshness_birth.rs",
+          "line": 25,
+          "target": "container::Container::owner_uuid",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 510,
+              "end_line": 512,
+              "symbol": "container::Container::owner_uuid"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_mount.rs",
+          "line": 38,
+          "target": "container::Container::path",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 498,
+              "end_line": 500,
+              "symbol": "container::Container::path"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_phy_perception.rs",
+          "line": 119,
+          "target": "container::Container::sync",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_rel_perception.rs",
+          "line": 223,
+          "target": "container::Container::owner_id",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_rel_vectors.rs",
+          "line": 215,
+          "target": "container::Container::path",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 498,
+              "end_line": 500,
+              "symbol": "container::Container::path"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/reliquary_runtime_owner.rs",
+          "line": 106,
+          "target": "container::Container::owner_id",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/reliquary_runtime_owner.rs",
+          "line": 281,
+          "target": "container::Container::owner_uuid",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 510,
+              "end_line": 512,
+              "symbol": "container::Container::owner_uuid"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_mount.rs",
+          "line": 25,
+          "target": "container::Container::inspect_header",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 480,
+              "end_line": 488,
+              "symbol": "container::Container::inspect_header"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_rel_vectors.rs",
+          "line": 245,
+          "target": "container::Container::path",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 498,
+              "end_line": 500,
+              "symbol": "container::Container::path"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/knowledge_mutation_execution.rs",
+          "line": 117,
+          "target": "container::Container::owner_uuid",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 510,
+              "end_line": 512,
+              "symbol": "container::Container::owner_uuid"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/insomnia_worker_runtime.rs",
+          "line": 136,
+          "target": "container::Container::owner_uuid",
+          "definition": [
+            {
+              "path": "src/container/container.rs",
+              "line": 510,
+              "end_line": 512,
+              "symbol": "container::Container::owner_uuid"
+            }
+          ]
+        }
+      ],
+      "source_sha256": {
+        "src/runtime_inference/insomnia/worker/runtime/outcome.rs": "6e9b671b299db9b98095ed29a945260191227c629f6ef212eee4dabe87e4386c",
+        "src/runtime_inference/insomnia_worker_runtime.rs": "ca83c64eafe76addf77fe28ac5cfc1e154a6c1cd616c9bb1e51b31c5b3eb31a0",
+        "src/runtime_inference/knowledge_mutation_execution.rs": "532af273c565cb98ffcf7c773949487ececd78b3a8b3f8cd8fe3306c6ce74b80",
+        "src/runtime_inference/phy_execution_owner.rs": "83964c91aca64b92a67b748220caf260497d2be7ef9007e149ccdec1c34c4afd",
+        "src/runtime_inference/reliquary_runtime_owner.rs": "84c68f3a539f01c846ec6123dc9cc32a783770cd198770c7a9ca57001de88328",
+        "src/runtime_inference/runtime_freshness_birth.rs": "60f07db4897c1ff4ad2dfa88f1f2c122780dc4e866b4be9775b3ff21592caa15",
+        "src/runtime_inference/runtime_host_gateway_agentic_memory_graph.rs": "5354c1c518e4ae8844a15ccf52bbdf5acce038ea8ec9006ea59952248960db67",
+        "src/runtime_inference/runtime_host_gateway_agentic_memory_query.rs": "1b1d0ead57fb5ef0525450b3d06accd0bc9baae1c6fc129e4ffa4c9a14105b8b",
+        "src/runtime_inference/runtime_host_gateway_external_processing.rs": "16260bd956531ca6cf23ad3f03447f8448eea374b91327a51565d9c022c78e10",
+        "src/runtime_inference/runtime_host_gateway_mount.rs": "c7dbf3f599526941a3f68391dc472fe8de6accbba514969a5e81df4efe67c5cd",
+        "src/runtime_inference/runtime_host_gateway_mutation_events.rs": "69987193f79f3e999da13c025c6da7b4b5ed9578f8bd6804025e14cb22786725",
+        "src/runtime_inference/runtime_host_phy_perception.rs": "e7038c682d1711257d14e93a74214e52234d4583464dd65463d1f8482283fe11",
+        "src/runtime_inference/runtime_host_rel_perception.rs": "f3c0f967a24bc9d7fbc00279f2b506cebd99101cf47e10b3a18d4436670ad782",
+        "src/runtime_inference/runtime_host_rel_vectors.rs": "98061445d3ad354505800b8418c5fb244a6538d66a852f7882914f5f0c70d998"
+      },
+      "cut_or_disposition": "Moved exact mounted-file inspection, owner identity, backing length, sync, Freshness append/sync/ingest sequences, and Memory Vector mapping validation/publication into concrete ReliquaryOwner/PhylacteryOwner lifecycle methods. Runtime call sites now delegate to those methods. Original sequence and typed error boundaries are preserved; owner-level build and fresh compiler evidence remain root-owned.",
+      "implementation_source_sha256": {
+        "src/owner_lifecycle/reliquary.rs": "79fded5c0314170d0164dfb7ac45c519028f35aca7088fbcf621db45c5d2deb9",
+        "src/owner_lifecycle/phylactery.rs": "ea325c0c32c79fd0af90f6f95399f6f252be89def1913488e68f741c08191c13",
+        "src/runtime_inference/reliquary_runtime_owner.rs": "3cbf4f15217a38ed001d6180fd68513822fedaa02cd04404931e5d5a40b4ae61",
+        "src/runtime_inference/phy_execution_owner.rs": "219d6778a37bc38ff0fbda2d89c02e742003fa878d8974cc2c342c6dd1e724a0",
+        "src/runtime_inference/runtime_freshness_birth.rs": "4994cdbb78d1e51f910ce386139ed62fb8e688d090f821386a5cd698e173f7b7",
+        "src/runtime_inference/runtime_host_gateway.rs": "2b8df4b0e9ca13ab1192233eaedeaffaa5426089fa7fbc003fd659b6b9e1541f",
+        "src/runtime_inference/runtime_host_gateway_mount.rs": "2f4ec8a988c06ab3a37a4761faf6078ca55ca60c4a5d4a48a2193dfbedf75b56",
+        "src/runtime_inference/knowledge_mutation_execution.rs": "a96f671a60e12843314380ddf4315223c94c300f5aef20bbdf335976456c43bb",
+        "src/runtime_inference/insomnia_worker_runtime.rs": "d5d7abc8ad932281bb8508c23bfdb51c91dc4e56b9d55be59afb155f67cccfdc",
+        "src/runtime_inference/insomnia/worker/runtime/outcome.rs": "5106ae94eb7e616e058cf9254675caf2d00842668ecae36f30bdfd71c62b6c3e",
+        "src/runtime_inference/runtime_host_gateway_agentic_memory_graph.rs": "290637ba0a8f2b64971002fcdf99e6e5b6db15273af5b13440e5c0e8f7f2d576",
+        "src/runtime_inference/runtime_host_gateway_agentic_memory_query.rs": "3a53901179bf0ccec542f0e4776d13f9f0b130f75ec2c7e68750bd4f40b41224",
+        "src/runtime_inference/runtime_host_gateway_external_processing.rs": "3f70115027cb83ab2e47c268d98aa0cb8e4c4b5d5eddad5d5b8f5947352e921e",
+        "src/runtime_inference/runtime_host_phy_perception.rs": "fda05c5175464a5bca63364b13338a8578aa9e54483868c6338fc092587c792d",
+        "src/runtime_inference/runtime_host_rel_perception.rs": "1416785bd81bae8e902a87ab4c1950ef6dec671506f1ecb7119c9cc8dbbc8d6f",
+        "src/runtime_inference/runtime_host_rel_vectors.rs": "4f83441e7bf7df099c2943c486a4b9ce3de7ee4460b3457047c9705e7ce04a53",
+        "src/runtime_inference/agentic_memory_frozen_fixture_scenarios.rs": "97c8a319fecc14bdef4131280fd0eaf4bf6d956306cdb1a0c0280f1b0945be14"
+      }
+    },
+    {
+      "id": "P7.1.12-GATEWAY-EXTERNAL-INDEX-VALUES",
+      "parent_ticket": "P7.1.12",
+      "status": "exact-immutable-value-contract-reviewed",
+      "source_component": "runtime-gateway",
+      "target_component": "external-index-store",
+      "witnesses": [
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+          "line": 25,
+          "target": "external_index::model::identifier",
+          "definition": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 135,
+              "end_line": 140,
+              "symbol": "external_index::model::identifier"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+          "line": 271,
+          "target": "external_index::model::identifier",
+          "definition": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 135,
+              "end_line": 140,
+              "symbol": "external_index::model::identifier"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+          "line": 259,
+          "target": "external_index::model::identifier",
+          "definition": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 135,
+              "end_line": 140,
+              "symbol": "external_index::model::identifier"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_external.rs",
+          "line": 334,
+          "target": "external_index::model::ExternalMessageDescriptor::validate",
+          "definition": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 37,
+              "end_line": 48,
+              "symbol": "external_index::model::ExternalMessageDescriptor::validate"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_external.rs",
+          "line": 81,
+          "target": "external_index::model::identifier",
+          "definition": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 135,
+              "end_line": 140,
+              "symbol": "external_index::model::identifier"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+          "line": 223,
+          "target": "external_index::model::HydratedExternalMessage::validate",
+          "definition": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 91,
+              "end_line": 104,
+              "symbol": "external_index::model::HydratedExternalMessage::validate"
+            }
+          ]
+        },
+        {
+          "path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+          "line": 34,
+          "target": "external_index::model::HydratedExternalMessage::validate",
+          "definition": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 91,
+              "end_line": 104,
+              "symbol": "external_index::model::HydratedExternalMessage::validate"
+            }
+          ]
+        }
+      ],
+      "source_sha256": {
+        "src/runtime_inference/runtime_host_gateway_external.rs": "c94536ce16d11ededcc5558d1be6f4c484e3c5f0053787ce9cfde5b2875f7d3b",
+        "src/runtime_inference/runtime_host_gateway_external_processing.rs": "16260bd956531ca6cf23ad3f03447f8448eea374b91327a51565d9c022c78e10"
+      },
+      "cut_or_disposition": "Retain these exact immutable value checks at the gateway call sites; source review confirms no store, Container, provider, callback or mutation capability. This is method-specific contract evidence, not a blanket dependency permission.",
+      "contract_source_sha256": {
+        "src/external_index/model.rs": "cbd86b31b1b7f39e625bbab3079170bbf98eed4a4047e224d7d67e864148e292"
+      },
+      "contract_invariants": [
+        "identifier reads one string and rejects empty/oversized/control-containing values; no store or callback capability",
+        "ExternalMessageDescriptor::validate reads descriptor/reference and namespace values; it does not access ExternalIndexStore or mutate state",
+        "HydratedExternalMessage::validate compares immutable descriptor/content values and verifies size/hash; it does not access a store or invoke a provider",
+        "Disposition applies only to these exact methods and does not authorize a component-wide runtime-gateway -> external-index-store edge"
+      ]
+    },
+    {
+      "id": "P7.1.12-GATEWAY-VECTOR-MAPPING",
+      "parent_ticket": "P7.1.12",
+      "status": "source-cut-implemented-awaiting-fresh-compiler-evidence",
+      "source_component": "runtime-gateway",
+      "target_component": "vector-store",
+      "witnesses": [
+        {
+          "path": "src/runtime_inference/reliquary_runtime_owner.rs",
+          "line": 449,
+          "target": "memory_vector_store::validate_mapping_shape",
+          "definition": [
+            {
+              "path": "src/retrieval/memory_vector_store.rs",
+              "line": 250,
+              "end_line": 274,
+              "symbol": "memory_vector_store::validate_mapping_shape"
+            }
+          ]
+        }
+      ],
+      "source_sha256": {
+        "src/runtime_inference/reliquary_runtime_owner.rs": "84c68f3a539f01c846ec6123dc9cc32a783770cd198770c7a9ca57001de88328"
+      },
+      "cut_or_disposition": "Moved profile/packed-vector/memory-body validation and Memory Vector publication, in the same validation/error order, into ReliquaryOwner::put_memory_vectors. Runtime delegates to that owner operation; fresh compiler evidence remains root-owned.",
+      "implementation_source_sha256": {
+        "src/owner_lifecycle/reliquary.rs": "79fded5c0314170d0164dfb7ac45c519028f35aca7088fbcf621db45c5d2deb9",
+        "src/owner_lifecycle/phylactery.rs": "ea325c0c32c79fd0af90f6f95399f6f252be89def1913488e68f741c08191c13",
+        "src/runtime_inference/reliquary_runtime_owner.rs": "3cbf4f15217a38ed001d6180fd68513822fedaa02cd04404931e5d5a40b4ae61",
+        "src/runtime_inference/phy_execution_owner.rs": "219d6778a37bc38ff0fbda2d89c02e742003fa878d8974cc2c342c6dd1e724a0",
+        "src/runtime_inference/runtime_freshness_birth.rs": "4994cdbb78d1e51f910ce386139ed62fb8e688d090f821386a5cd698e173f7b7",
+        "src/runtime_inference/runtime_host_gateway.rs": "2b8df4b0e9ca13ab1192233eaedeaffaa5426089fa7fbc003fd659b6b9e1541f",
+        "src/runtime_inference/runtime_host_gateway_mount.rs": "2f4ec8a988c06ab3a37a4761faf6078ca55ca60c4a5d4a48a2193dfbedf75b56",
+        "src/runtime_inference/knowledge_mutation_execution.rs": "a96f671a60e12843314380ddf4315223c94c300f5aef20bbdf335976456c43bb",
+        "src/runtime_inference/insomnia_worker_runtime.rs": "d5d7abc8ad932281bb8508c23bfdb51c91dc4e56b9d55be59afb155f67cccfdc",
+        "src/runtime_inference/insomnia/worker/runtime/outcome.rs": "5106ae94eb7e616e058cf9254675caf2d00842668ecae36f30bdfd71c62b6c3e",
+        "src/runtime_inference/runtime_host_gateway_agentic_memory_graph.rs": "290637ba0a8f2b64971002fcdf99e6e5b6db15273af5b13440e5c0e8f7f2d576",
+        "src/runtime_inference/runtime_host_gateway_agentic_memory_query.rs": "3a53901179bf0ccec542f0e4776d13f9f0b130f75ec2c7e68750bd4f40b41224",
+        "src/runtime_inference/runtime_host_gateway_external_processing.rs": "3f70115027cb83ab2e47c268d98aa0cb8e4c4b5d5eddad5d5b8f5947352e921e",
+        "src/runtime_inference/runtime_host_phy_perception.rs": "fda05c5175464a5bca63364b13338a8578aa9e54483868c6338fc092587c792d",
+        "src/runtime_inference/runtime_host_rel_perception.rs": "1416785bd81bae8e902a87ab4c1950ef6dec671506f1ecb7119c9cc8dbbc8d6f",
+        "src/runtime_inference/runtime_host_rel_vectors.rs": "4f83441e7bf7df099c2943c486a4b9ce3de7ee4460b3457047c9705e7ce04a53",
+        "src/runtime_inference/agentic_memory_frozen_fixture_scenarios.rs": "97c8a319fecc14bdef4131280fd0eaf4bf6d956306cdb1a0c0280f1b0945be14"
+      }
+    }
+  ],
+  "proof_limits": [
+    "Call endpoints are one-profile MIR evidence.",
+    "Only the exact listed endpoints are in this registration; no blanket edge or allowlist is granted.",
+    "ExternalIndex model calls are exact immutable value-method dispositions after source inspection; no source edit or general pair permission is authorized by that classification."
+  ]
+}

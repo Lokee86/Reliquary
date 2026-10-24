@@ -6,6 +6,25 @@ from check_phase7_source_cuts import violations
 
 
 class SourceCutTests(unittest.TestCase):
+    def test_public_retrieval_cannot_construct_private_readers(self):
+        self.assertTrue(violations("src/facade/cva_memory_retrieval.rs", "fn build() { MemoryReadView::new(&self.memories,&self.container); }", {"windows"}))
+
+    def test_public_dream_cannot_reach_owner_store(self):
+        self.assertTrue(violations("src/facade/dream_pair_admission.rs", "fn put() { self.owner.dream_pairs.put(payload); }", {"windows"}))
+
+    def test_public_dream_delegates_to_native_operation(self):
+        self.assertFalse(violations("src/facade/dream_pair_admission.rs", "fn put() { self.native_mark_dream_pair_evaluated(left,right) }", {"windows"}))
+
+    def test_offline_public_binding_cannot_create_physical_owner(self):
+        self.assertTrue(violations("src/facade/cva_lifecycle.rs", "fn create() { Container::create(path); }", {"windows"}))
+
+    def test_offline_public_binding_cannot_publish_or_decode(self):
+        for code in ("fn repack() { self.container.append(payload); }", "use crate::archive_codec::decode_record;"):
+            self.assertTrue(violations("src/facade/cva_repack.rs", code, {"windows"}))
+
+    def test_offline_public_binding_delegates_to_maintenance(self):
+        self.assertFalse(violations("src/facade/cva_repack.rs", "fn repack() { self.owner.repack_project_backed_attachments(path) }", {"windows"}))
+
     def test_physical_capability_negative(self):
         self.assertTrue(violations("src/runtime_inference/dream_owner_candidates.rs", "fn read(owner: &mut Container) {}", {"windows"}))
 

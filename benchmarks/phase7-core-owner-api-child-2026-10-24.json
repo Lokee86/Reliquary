@@ -1,0 +1,453 @@
+{
+  "schema": "phase7-child-registration.v1",
+  "ticket": "P7.1.14-CORE-OWNER-API",
+  "parent": "P7.1.14",
+  "status": "source-cut-implemented-awaiting-root-build-and-fresh-compiler-evidence",
+  "source_checkpoint": "7c74b511b037c59eedc5978ae7d67999245ca004",
+  "source_sha256": {
+    "src/facade/cva.rs": "1e5118b37266286e050a901aa5c6c04d01090566ecffda1a710e3ab52b40e1f4",
+    "src/facade/phylactery.rs": "c206c4471ec0634f525c7e1eb51f17af8d68db9c4df036a05cd991a6fb4fbc87"
+  },
+  "witnesses": [
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 36,
+      "target": "Container::identity"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 74,
+      "target": "RelMetadataStore::put"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 83,
+      "target": "Container::owner_uuid"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 87,
+      "target": "Container::latest_version"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 91,
+      "target": "Container::transaction_time_ns"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 95,
+      "target": "Container::version_at_or_before"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 99,
+      "target": "Archive public accessor"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 132,
+      "target": "Archive::append_node"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 142,
+      "target": "Archive::rel_turn_count"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 157,
+      "target": "Archive::conversation_metadata"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 159,
+      "target": "ConversationMetadata::new"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 163,
+      "target": "Archive::put_conversation_metadata"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 173,
+      "target": "Archive::conversation_metadata"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 175,
+      "target": "ConversationMetadata::new"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 179,
+      "target": "Archive::put_conversation_metadata"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 193,
+      "target": "Archive::set_conversation_policy"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 201,
+      "target": "Archive::conversation_metadata"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 209,
+      "target": "Archive::historical_conversation_metadata"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 219,
+      "target": "Archive::branch_turns"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 227,
+      "target": "Archive::historical_branch_turns"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 240,
+      "target": "Archive::branch_at"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 255,
+      "target": "Archive::materialize_branch_fragments"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 271,
+      "target": "Archive::materialize_path_fragments"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 283,
+      "target": "Archive::fragment_turns"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 289,
+      "target": "Archive::fragment_text"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 300,
+      "target": "Archive::materialize_branch_episodes"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 318,
+      "target": "Archive::materialize_path_episodes"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 329,
+      "target": "Archive::episodes"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 333,
+      "target": "Archive::episodes_for_conversation"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 337,
+      "target": "Archive::historical_episodes"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 342,
+      "target": "Archive::historical_episodes_for_conversation"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 346,
+      "target": "Archive::episode"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 350,
+      "target": "Archive::historical_episode"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 356,
+      "target": "Archive::episode_turns"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 474,
+      "target": "Archive::stats"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 478,
+      "target": "Archive::archive_version"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 482,
+      "target": "Archive::record_versions"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 486,
+      "target": "Archive::record_version"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 490,
+      "target": "Archive::branches"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 494,
+      "target": "Archive::historical_branches"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 498,
+      "target": "Archive::fragments"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 502,
+      "target": "Archive::historical_fragments"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 513,
+      "target": "Archive::store_file"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 517,
+      "target": "Archive::file"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 521,
+      "target": "Archive::files"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 542,
+      "target": "ConversationCompactionStore::put"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 558,
+      "target": "InteractionStreamStore::put"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 566,
+      "target": "InteractionStreamStore::record"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 573,
+      "target": "InteractionStreamStore::records_for_session"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 581,
+      "target": "InteractionStreamStore::borrowed_records_for_session"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 585,
+      "target": "InteractionStreamStore::all_records"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 601,
+      "target": "EchoStore::all_records"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 606,
+      "target": "Container::latest_version"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 607,
+      "target": "Archive::archive_version"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 608,
+      "target": "MemoryStore::memory_version"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 629,
+      "target": "ProjectHistoryStore::put"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 665,
+      "target": "ProjectFileStore::put"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 668,
+      "target": "Archive::register_file"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 679,
+      "target": "Archive::file"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 703,
+      "target": "ProjectFileStore::put"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 712,
+      "target": "Container::sync"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 660,
+      "target": "ProjectRepositoryManagement::default_for"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 680,
+      "target": "file_store::build_project_stored_file"
+    },
+    {
+      "source": "src/facade/cva.rs",
+      "source_line": 714,
+      "target": "file_store::build_stored_file_from_content_id"
+    },
+    {
+      "source": "src/facade/phylactery.rs",
+      "source_line": 6,
+      "target": "Container::owner_id"
+    },
+    {
+      "source": "src/facade/phylactery.rs",
+      "source_line": 10,
+      "target": "Container::owner_uuid"
+    },
+    {
+      "source": "src/facade/phylactery.rs",
+      "source_line": 14,
+      "target": "PhylacteryProfileStore::current"
+    },
+    {
+      "source": "src/facade/phylactery.rs",
+      "source_line": 26,
+      "target": "PhylacteryProfileStore::put"
+    },
+    {
+      "source": "src/facade/phylactery.rs",
+      "source_line": 36,
+      "target": "Container::latest_version"
+    },
+    {
+      "source": "src/facade/phylactery.rs",
+      "source_line": 40,
+      "target": "Container::transaction_time_ns"
+    },
+    {
+      "source": "src/facade/phylactery.rs",
+      "source_line": 44,
+      "target": "Container::version_at_or_before"
+    }
+  ],
+  "cut": "Move public REL/PHY owner API implementations behind native runtime operations and lifecycle operations. Preserve all public signatures, validation/error/publication ordering, return borrows where currently public, and native Archive operation behavior. No direct lower-to-public self-calls and no component-edge exceptions.",
+  "scope": [
+    "src/facade/cva.rs",
+    "src/facade/phylactery.rs",
+    "src/runtime_inference/public_owner_operations.rs",
+    "src/runtime_inference/public_archive_operations.rs",
+    "src/owner_lifecycle/archive_owner_api.rs"
+  ],
+  "preserving_tests": [
+    "Archive append/branch/fragment/episode/file tests",
+    "REL metadata and owner identity/version tests",
+    "Conversation policy/metadata tests",
+    "interaction stream, project history/file and compaction tests",
+    "PHY profile and identity/version tests",
+    "existing public API and detachable CLI contracts"
+  ],
+  "invariants": [
+    "same supported public signatures",
+    "same operation and error ordering",
+    "no facade direct physical/store calls",
+    "native runtime/lifecycle owner remains canonical",
+    "no compatibility shim, new store abstraction, or blanket DAG permission"
+  ],
+  "implementation_source_sha256": {
+    "src/facade/cva.rs": "39c19d6e4e83c2427ce5dc85c8e7d06d40275a52eb70ab9e2610c7b26180b6ad",
+    "src/facade/phylactery.rs": "7ebdd8044da5a44403bc9d2c61812ba66c9d0e855682967ec9d3a88dcd2ebba7",
+    "src/runtime_inference/public_owner_operations.rs": "e13ab5b7e341f1f254657b9f6b0563d328542e87a55b9e55940cea7635f1f1a8",
+    "src/runtime_inference/public_archive_operations.rs": "107422506b58e0da5b158106b11b1873739f64709168ef34b120c5b812f64bd5",
+    "src/owner_lifecycle/core_owner_api.rs": "4a4c0e4dc02f977919a1000c92f68a5333f82d89f34aedf53cd787248f20a9cd",
+    "scripts/check_facade_boundaries.py": "b4515760e3b410b459e536bf0d5c44c10995d203341f771e4830a6cebba64b1d"
+  },
+  "source_call_review": {
+    "runtime_self_calls": [
+      {
+        "source": "src/runtime_inference/public_owner_operations.rs",
+        "call": "RelExecutionOwner::runtime_owner_id",
+        "definition": "src/runtime_inference/reliquary_runtime_owner.rs::RelExecutionOwner::runtime_owner_id"
+      },
+      {
+        "source": "src/runtime_inference/public_owner_operations.rs",
+        "call": "RelExecutionOwner::sync_owner",
+        "definition": "src/runtime_inference/reliquary_runtime_owner.rs::RelExecutionOwner::sync_owner"
+      },
+      {
+        "source": "src/runtime_inference/public_owner_operations.rs",
+        "call": "RelExecutionOwner::native_put_rel_metadata -> ReliquaryOwner::put_rel_metadata",
+        "definition": "src/owner_lifecycle/core_owner_api.rs::ReliquaryOwner::put_rel_metadata"
+      },
+      {
+        "source": "src/runtime_inference/public_archive_operations.rs",
+        "call": "RelExecutionOwner::freshness_on_accepted_activity",
+        "definition": "src/runtime_inference/reliquary_runtime_owner.rs::RelExecutionOwner::freshness_on_accepted_activity"
+      },
+      {
+        "source": "src/runtime_inference/public_archive_operations.rs",
+        "call": "RelExecutionOwner::native_memory_version",
+        "definition": "src/runtime_inference/public_memory_operations.rs::RelExecutionOwner::native_memory_version"
+      },
+      {
+        "source": "src/runtime_inference/public_archive_operations.rs",
+        "call": "RelExecutionOwner::native_correlate_project_revision_with_management -> ReliquaryOwner::put_project_revision_correlation",
+        "definition": "src/owner_lifecycle/core_owner_api.rs::ReliquaryOwner::put_project_revision_correlation"
+      },
+      {
+        "source": "src/runtime_inference/public_owner_operations.rs",
+        "call": "PhyExecutionOwner::runtime_profile -> PhylacteryProfileStore::current",
+        "definition": "src/owner_lifecycle/phy_profile/store.rs::PhylacteryProfileStore::current"
+      },
+      {
+        "source": "src/runtime_inference/public_owner_operations.rs",
+        "call": "PhyExecutionOwner::native_set_profile -> PhylacteryOwner::set_profile",
+        "definition": "src/owner_lifecycle/core_owner_api.rs::PhylacteryOwner::set_profile"
+      }
+    ],
+    "owner_lifecycle_dispatches": "All remaining self.owner append, replay, materialization, compaction, interaction-stream and project-file/history operations resolve to explicit methods in src/owner_lifecycle/core_owner_api.rs; this file owns Container append/sync ordering.",
+    "direct_lower_store_reads": "Runtime wrappers retain direct Archive / InteractionStream / Echo reads as named runtime operations; these are explicit source targets for compiler evidence and component mapping, not blanket facade permissions.",
+    "reverse_product_callbacks": [],
+    "direct_capability_inventory": "scripts/check_facade_boundaries.py::FACADE_OWNER_API_DIRECT_CAPABILITIES enumerates direct facade receiver fields rejected for each public owner file."
+  },
+  "verification": {
+    "rustfmt": "rustfmt --edition 2024 --check passed for the edited facade, runtime operation, and lifecycle helper files",
+    "facade_guard_fixtures": "passed; 44 positive/negative cases",
+    "facade_owner_api_scan": "passed; zero direct Container/Archive/owner-store field calls in cva.rs and phylactery.rs",
+    "cargo": "not run; root owns Cargo builds"
+  }
+}

@@ -1,9 +1,6 @@
-use crate::compatibility_profile_probe::{validate_embedding_batch, verify_endpoint};
 use crate::{
-    CompatibilityProfileId, Cva, EmbeddingEndpoint, EmbeddingMode, MemoryBodyId,
-    MemoryVectorBuildResult, MemoryVectorError, MemoryVectorId, MemoryVectorInfo,
-    MemoryVectorLocation, MemoryVectorSet, MemoryVectorStats, PackedVectorId, PackedVectors,
-    ScalarType, VectorSchema,
+    CompatibilityProfileId, Cva, MemoryBodyId, MemoryVectorError, MemoryVectorId, MemoryVectorInfo,
+    MemoryVectorLocation, MemoryVectorSet, MemoryVectorStats,
 };
 
 impl Cva {
@@ -11,7 +8,7 @@ impl Cva {
         &mut self,
         id: MemoryVectorId,
     ) -> Result<MemoryVectorSet, MemoryVectorError> {
-        self.owner.memory_vectors.get(&mut self.owner.container, id)
+        self.public_memory_vectors(id)
     }
 
     pub fn memory_vector_location(
@@ -23,10 +20,10 @@ impl Cva {
     }
 
     pub fn memory_vector_infos(&self) -> Vec<MemoryVectorInfo> {
-        self.memory_vectors.infos()
+        self.public_memory_vector_infos()
     }
 
     pub fn memory_vector_stats(&self) -> MemoryVectorStats {
-        self.memory_vectors.stats()
+        self.public_memory_vector_stats()
     }
 }

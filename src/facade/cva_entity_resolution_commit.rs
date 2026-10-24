@@ -1,14 +1,11 @@
-use crate::entity_resolution_commit::{
-    self, EntityResolutionCommitContext, EntityResolutionCommitPlan,
-};
-use crate::owner_lifecycle::perception_publication_resolution::apply_entity_resolution_commit_plan;
+use crate::entity_resolution_commit::EntityResolutionCommitPlan;
 use crate::{
     Cva, EntityResolutionEvaluation, EntityResolutionOutcome, EntityResolutionPrepared,
     EntityResolverError, Phylactery,
 };
 
 macro_rules! impl_owner {
-    ($owner:ty, $reject_principal:expr) => {
+    ($owner:ty) => {
         impl $owner {
             pub(crate) fn plan_entity_resolution_commit(
                 &self,
@@ -16,15 +13,8 @@ macro_rules! impl_owner {
                 evaluation: EntityResolutionEvaluation,
                 now_ns: i64,
             ) -> Result<Option<EntityResolutionCommitPlan>, EntityResolverError> {
-                let context = EntityResolutionCommitContext {
-                    owner_id: self.owner_id(),
-                    memories: &self.memories,
-                    entities: &self.entities,
-                    graph: &self.graph,
-                    resolutions: &self.entity_resolutions,
-                };
-                entity_resolution_commit::plan_entity_resolution_commit(
-                    &context, prepared, evaluation, now_ns,
+                crate::perception_entity_resolution_runtime::plan_commit_rel(
+                    self, prepared, evaluation, now_ns,
                 )
             }
 
@@ -32,15 +22,7 @@ macro_rules! impl_owner {
                 &mut self,
                 plan: EntityResolutionCommitPlan,
             ) -> Result<EntityResolutionOutcome, EntityResolverError> {
-                apply_entity_resolution_commit_plan(
-                    &mut self.owner.container,
-                    &self.owner.memories,
-                    &mut self.owner.entities,
-                    &mut self.owner.entity_resolutions,
-                    &mut self.owner.graph,
-                    plan,
-                    $reject_principal,
-                )
+                crate::perception_entity_resolution_runtime::apply_commit_rel(self, plan)
             }
 
             pub(crate) fn commit_entity_resolution(
@@ -59,5 +41,33 @@ macro_rules! impl_owner {
         }
     };
 }
-impl_owner!(Cva, false);
-impl_owner!(Phylactery, true);
+impl_owner!(Cva);
+
+impl Phylactery {
+    pub(crate) fn plan_entity_resolution_commit(
+        &self,
+        prepared: EntityResolutionPrepared,
+        evaluation: EntityResolutionEvaluation,
+        now_ns: i64,
+    ) -> Result<Option<EntityResolutionCommitPlan>, EntityResolverError> {
+        crate::perception_entity_resolution_runtime::plan_commit_phy(
+            self, prepared, evaluation, now_ns,
+        )
+    }
+
+    pub(crate) fn apply_entity_resolution_commit_plan(
+        &mut self,
+        plan: EntityResolutionCommitPlan,
+    ) -> Result<EntityResolutionOutcome, EntityResolverError> {
+        crate::perception_entity_resolution_runtime::apply_commit_phy(self, plan)
+    }
+
+    pub(crate) fn commit_entity_resolution(
+        &mut self,
+        prepared: EntityResolutionPrepared,
+        evaluation: EntityResolutionEvaluation,
+        now_ns: i64,
+    ) -> Result<Option<EntityResolutionOutcome>, EntityResolverError> {
+        crate::perception_entity_resolution_runtime::commit_phy(self, prepared, evaluation, now_ns)
+    }
+}

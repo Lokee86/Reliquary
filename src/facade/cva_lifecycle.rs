@@ -31,19 +31,13 @@ impl Cva {
     }
 
     fn create_rel(path: impl AsRef<Path>, type_label: Option<&str>) -> Result<Self, CvaError> {
-        let container = Container::create_with_identity(
-            path,
-            crate::ContainerIdentity {
-                file_kind: crate::FileKind::Reliquary,
-                scope: None,
-            },
-        )?;
-        let mut cva = Self::initialize(container)?;
-        if let Some(type_label) = type_label {
-            cva.set_rel_metadata(Some(type_label.to_owned()), Vec::new())?;
-            cva.sync()?;
-        }
-        Ok(cva)
+        crate::rel_lifecycle_execution::create(
+            path.as_ref(),
+            None,
+            None,
+            type_label.map(str::to_owned),
+            true,
+        )
     }
 
     pub(crate) fn create_rel_with_uuid(
@@ -51,19 +45,13 @@ impl Cva {
         owner_uuid: [u8; 16],
         type_label: Option<String>,
     ) -> Result<Self, CvaError> {
-        let container = Container::create_with_identity_and_uuid(
-            path,
-            crate::ContainerIdentity {
-                file_kind: crate::FileKind::Reliquary,
-                scope: None,
-            },
-            owner_uuid,
-        )?;
-        let mut cva = Self::initialize(container)?;
-        if type_label.is_some() {
-            cva.set_rel_metadata(type_label, Vec::new())?;
-        }
-        Ok(cva)
+        crate::rel_lifecycle_execution::create(
+            path.as_ref(),
+            Some(owner_uuid),
+            None,
+            type_label,
+            false,
+        )
     }
 
     pub(crate) fn create_legacy_scope_with_uuid(
@@ -71,37 +59,25 @@ impl Cva {
         scope: crate::ReliquaryScopeKind,
         owner_uuid: [u8; 16],
     ) -> Result<Self, CvaError> {
-        let container = Container::create_with_identity_and_uuid(
-            path,
-            crate::ContainerIdentity {
-                file_kind: crate::FileKind::Reliquary,
-                scope: Some(scope),
-            },
-            owner_uuid,
-        )?;
-        Self::initialize(container)
-    }
-
-    fn initialize(container: Container) -> Result<Self, CvaError> {
-        Ok(Self::from_owner(
-            crate::owner_lifecycle::initialize_reliquary(container)?,
-        ))
+        crate::rel_lifecycle_execution::create(
+            path.as_ref(),
+            Some(owner_uuid),
+            Some(scope),
+            None,
+            false,
+        )
     }
 
     pub fn open(path: impl AsRef<Path>) -> Result<Self, CvaError> {
-        let container = Container::open(path)?;
-        Self::open_from_container(container)
+        crate::rel_lifecycle_execution::open(path.as_ref(), false)
     }
 
     /// Replays a coherent read-only snapshot without acquiring writer authority.
     pub fn open_read_only(path: impl AsRef<Path>) -> Result<Self, CvaError> {
-        Self::open_from_container(Container::open_read_only(path)?)
+        crate::rel_lifecycle_execution::open(path.as_ref(), true)
     }
 
     pub(crate) fn open_from_container(container: Container) -> Result<Self, CvaError> {
-        let mut replay = crate::owner_lifecycle::ReliquaryReplay::read(container)?;
-        let reconstruction = crate::history::reconstruct_reliquary(&mut replay)?;
-        let (owner, due) = replay.into_owner(reconstruction);
-        Ok(Self::from_reconstructed(owner, due))
+        crate::rel_lifecycle_execution::from_container(container)
     }
 }

@@ -2,7 +2,7 @@
   "version": 2,
   "status": "mapped-current-production; explicit excluded/test and unresolved historical paths retained",
   "as_of": "2026-10-23",
-  "source_checkpoint": "current HEAD 7059e4c3f39c028a3634843de8aa90cdb8120fa6 plus reviewed C03 working-tree corrections; historical baseline c43d33c136f560fdca2249619866e1acf9b7fdf3",
+  "source_checkpoint": "7c74b51 plus uncommitted Phase 7 compiler-witnessed source cuts; verification pending",
   "source_basis": [
     "tools/pitlord/owner-boundaries.json owner_files and module_components",
     "scripts/check_owner_boundaries.py module_tree with recorded cfg facts",
@@ -551,10 +551,13 @@
         "src/owner_lifecycle/archive_ordered_replay.rs",
         "src/owner_lifecycle/archive_replay_error.rs",
         "src/owner_lifecycle/atomic_publication.rs",
+        "src/owner_lifecycle/core_owner_api.rs",
         "src/owner_lifecycle/cva_reconcile_conflict.rs",
         "src/owner_lifecycle/cva_reconcile_error.rs",
         "src/owner_lifecycle/dream_begin_transport.rs",
         "src/owner_lifecycle/dream_graph_publication.rs",
+        "src/owner_lifecycle/dream_operation_facts.rs",
+        "src/owner_lifecycle/dream_population_operations.rs",
         "src/owner_lifecycle/dream_replay.rs",
         "src/owner_lifecycle/entity_publication_admission.rs",
         "src/owner_lifecycle/entity_resolution_admission.rs",
@@ -562,6 +565,7 @@
         "src/owner_lifecycle/external_index_backing.rs",
         "src/owner_lifecycle/external_owner_access.rs",
         "src/owner_lifecycle/external_publication.rs",
+        "src/owner_lifecycle/freshness_operations.rs",
         "src/owner_lifecycle/freshness_reconciliation.rs",
         "src/owner_lifecycle/freshness_replay.rs",
         "src/owner_lifecycle/global_versions.rs",
@@ -581,6 +585,7 @@
         "src/owner_lifecycle/insomnia_replay.rs",
         "src/owner_lifecycle/insomnia_runtime.rs",
         "src/owner_lifecycle/memory_frames.rs",
+        "src/owner_lifecycle/memory_lifecycle.rs",
         "src/owner_lifecycle/memory_ordered_replay.rs",
         "src/owner_lifecycle/memory_provenance.rs",
         "src/owner_lifecycle/memory_publish.rs",
@@ -605,13 +610,16 @@
         "src/owner_lifecycle/reliquary.rs",
         "src/owner_lifecycle/reliquary_accepted_replay.rs",
         "src/owner_lifecycle/reliquary_archive.rs",
+        "src/owner_lifecycle/reliquary_creation.rs",
         "src/owner_lifecycle/reliquary_graph.rs",
         "src/owner_lifecycle/reliquary_relations.rs",
         "src/owner_lifecycle/reliquary_replay.rs",
         "src/owner_lifecycle/reliquary_vectors.rs",
         "src/owner_lifecycle/relocation.rs",
+        "src/owner_lifecycle/retrieval_facts.rs",
         "src/owner_lifecycle/semantic_archive_read.rs",
         "src/owner_lifecycle/semantic_source.rs",
+        "src/owner_lifecycle/vector_owner_api.rs",
         "src/owner_lifecycle/vector_publication.rs",
         "src/runtime_inference/insomnia/completion.rs",
         "src/runtime_inference/insomnia/completion_compact_retained.rs"
@@ -810,7 +818,9 @@
         "review-clocks"
       ],
       "current_production_source_files": [
+        "src/freshness/accepted_use.rs",
         "src/freshness/ego_grades.rs",
+        "src/freshness/graph_snapshot.rs",
         "src/freshness/historical_dream.rs",
         "src/freshness/historical_planner.rs",
         "src/freshness/historical_propagation.rs",
@@ -1077,21 +1087,26 @@
         "maintenance-store"
       ],
       "current_production_source_files": [
+        "src/maintenance/attachment_repack.rs",
         "src/maintenance/compactions.rs",
         "src/maintenance/entity_resolution.rs",
         "src/maintenance/freshness_reconciliation.rs",
+        "src/maintenance/historical_copy.rs",
         "src/maintenance/mod.rs",
         "src/maintenance/phylactery_copy.rs",
         "src/maintenance/phylactery_prune.rs",
         "src/maintenance/phylactery_reclamation.rs",
+        "src/maintenance/principal_repack.rs",
         "src/maintenance/prune_selection.rs",
         "src/maintenance/reclamation.rs",
         "src/maintenance/reclamation_scan.rs",
         "src/maintenance/reconciliation_compare.rs",
         "src/maintenance/reconciliation_copy.rs",
         "src/maintenance/reconciliation_owner_access.rs",
+        "src/maintenance/reconciliation_promotion.rs",
         "src/maintenance/reconciliation_repack.rs",
         "src/maintenance/reconciliation_replay.rs",
+        "src/maintenance/reconciliation_sources.rs",
         "src/maintenance/reliquary_prune.rs",
         "src/maintenance/rewrite/archive_emit.rs",
         "src/maintenance/rewrite/archive_selection.rs",
@@ -1209,8 +1224,9 @@
         "src/runtime_inference/configured_runtime_decision.rs",
         "src/runtime_inference/configured_runtime_insomnia_model.rs",
         "src/runtime_inference/configured_runtime_vectors_model.rs",
-        "src/runtime_inference/dream_publication_execution.rs",
         "src/runtime_inference/dream_cooldown.rs",
+        "src/runtime_inference/dream_publication_execution.rs",
+        "src/runtime_inference/freshness_operations.rs",
         "src/runtime_inference/insomnia_runtime_execution.rs",
         "src/runtime_inference/insomnia_worker_runtime.rs",
         "src/runtime_inference/interaction_background.rs",
@@ -1225,9 +1241,22 @@
         "src/runtime_inference/knowledge_mutation_execution.rs",
         "src/runtime_inference/multiplexing_journal.rs",
         "src/runtime_inference/openai_codex_device_auth/refresh.rs",
+        "src/runtime_inference/perception_entity_merge.rs",
+        "src/runtime_inference/perception_entity_reconciliation.rs",
+        "src/runtime_inference/perception_entity_resolution.rs",
         "src/runtime_inference/perception_publication_reconciliation.rs",
         "src/runtime_inference/phy_execution_owner.rs",
+        "src/runtime_inference/public_archive_operations.rs",
+        "src/runtime_inference/public_dream_operations.rs",
+        "src/runtime_inference/public_memory_operations.rs",
+        "src/runtime_inference/public_owner_operations.rs",
+        "src/runtime_inference/public_retrieval_operations.rs",
+        "src/runtime_inference/public_vector_operations.rs",
+        "src/runtime_inference/reconciliation_operations.rs",
+        "src/runtime_inference/reconciliation_repack.rs",
+        "src/runtime_inference/rel_lifecycle_execution.rs",
         "src/runtime_inference/reliquary_runtime_owner.rs",
+        "src/runtime_inference/runtime_freshness_birth.rs",
         "src/runtime_inference/runtime_host.rs",
         "src/runtime_inference/runtime_host_archive_search.rs",
         "src/runtime_inference/runtime_host_gateway.rs",
@@ -1268,7 +1297,6 @@
         "src/runtime_inference/runtime_host_gateway_semantic_mutation.rs",
         "src/runtime_inference/runtime_host_gateway_semantic_provenance.rs",
         "src/runtime_inference/runtime_host_gateway_semantic_search.rs",
-        "src/runtime_inference/runtime_freshness_birth.rs",
         "src/runtime_inference/runtime_host_gateway_snapshot_reader.rs",
         "src/runtime_inference/runtime_host_gateway_snapshots.rs",
         "src/runtime_inference/runtime_host_gateway_stream_registry.rs",
@@ -1431,7 +1459,7 @@
     }
   ],
   "coverage": {
-    "current_src_rs_files": 1267,
+    "current_src_rs_files": 1360,
     "historical_src_rs_files": 1102,
     "unresolved_current_reachable_production_files": 0,
     "current_test_files": 411,
@@ -1439,15 +1467,15 @@
     "historical_unresolved_reachable_production_files": 0,
     "historical_test_files": 403,
     "historical_excluded_or_uncertain_files": 42,
-    "module_tree_reachable_paths": 807,
+    "module_tree_reachable_paths": 898,
     "compiler_inventory_matching_files": 808,
     "owner_file_entries": 409,
     "module_component_entries": 98,
     "phase6_facade_extension_files": 99,
     "root_public_reexports": 661,
     "unresolved_root_reexports": 0,
-    "component_assigned_current_files": 838,
-    "mapped_current_production_files": 808,
+    "component_assigned_current_files": 939,
+    "mapped_current_production_files": 909,
     "producer_value_contract_entries": 133,
     "compiler_inventory_production_files": 808,
     "compiler_item_count": 23382
@@ -6448,6 +6476,18 @@
       "compiler_inventory_match": false
     },
     {
+      "path": "src/freshness/accepted_use.rs",
+      "component": "freshness",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Freshness policy/projection operations with no direct physical publication ownership; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "1678d6d7fd85fa394e3fee51c518c8a022cd8252cb0f96406ee5978d2abaf09d",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
       "path": "src/freshness/compact_settlement.rs",
       "component": "freshness-store",
       "classification": "production",
@@ -6690,6 +6730,18 @@
       "compiler_inventory_match": true,
       "compiler_item_count": 5,
       "symbol_spans_sha256": "35b09a3cb84d8f22ead3763bc2262eb9404a719f256e62018916b2910adb4f88"
+    },
+    {
+      "path": "src/freshness/graph_snapshot.rs",
+      "component": "freshness",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Freshness policy/projection operations with no direct physical publication ownership; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "039075a9f0079980476199473a5f1016cfe988da1aab4e3d68c33bf94622c37a",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/freshness/historical_causal_basis.rs",
@@ -8006,6 +8058,18 @@
       "symbol_spans_sha256": "90d9c063f6957c94ea77914d1bd80f479f6970b8c89f8fd3d62abb6ca00c7da8"
     },
     {
+      "path": "src/maintenance/attachment_repack.rs",
+      "component": "maintenance",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Offline copy, repack, reconciliation, and publication maintenance operations; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "c5a81a47c09c01b3786f8eec306d0e1eec99d81f5c31432f8ab01b9da4836ff9",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
       "path": "src/maintenance/compactions.rs",
       "component": "maintenance",
       "classification": "production",
@@ -8040,6 +8104,18 @@
       "compiler_inventory_match": true,
       "compiler_item_count": 58,
       "symbol_spans_sha256": "0a6c9ee7b814b883b32f5612253b8f6bc477d00b0c344f1723a8721ffd9a179d"
+    },
+    {
+      "path": "src/maintenance/historical_copy.rs",
+      "component": "maintenance",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Offline copy, repack, reconciliation, and publication maintenance operations; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "0c84911bde145bd12995ebc8544d722d9a60cb3f99888f3857fa028621dab791",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/maintenance/manifest.rs",
@@ -8100,6 +8176,18 @@
       "compiler_inventory_match": true,
       "compiler_item_count": 9,
       "symbol_spans_sha256": "9729a58fc7ae6c78adbe5a6dd34c1fcd49c9284a972bf9678aec65f7ccf97c99"
+    },
+    {
+      "path": "src/maintenance/principal_repack.rs",
+      "component": "maintenance",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Offline copy, repack, reconciliation, and publication maintenance operations; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "7ef81985810df3ce7f41e2bb435016a01c0a8206120587a430bad61d15c072d2",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/maintenance/prune_selection.rs",
@@ -8174,6 +8262,18 @@
       "symbol_spans_sha256": "5df2c0fdabc085749efefbf8c8b0a93ccff4039c4f8ca1d33432595923481855"
     },
     {
+      "path": "src/maintenance/reconciliation_promotion.rs",
+      "component": "maintenance",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Offline copy, repack, reconciliation, and publication maintenance operations; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "cd61e7ad215c904412cbf8fc49bbc11ec65f896179da36919f6813712dfed0e5",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
       "path": "src/maintenance/reconciliation_repack.rs",
       "component": "maintenance",
       "classification": "production",
@@ -8196,6 +8296,18 @@
       "compiler_inventory_match": true,
       "compiler_item_count": 16,
       "symbol_spans_sha256": "297b82f267260eb5f191fcba4b76c1d2e1f655b2448f15176b352ec9070a92c7"
+    },
+    {
+      "path": "src/maintenance/reconciliation_sources.rs",
+      "component": "maintenance",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Offline copy, repack, reconciliation, and publication maintenance operations; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "3d5466aa79e3895781591a2b90b99760c85f8d6f5ef6149a4c507db53e595515",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/maintenance/reliquary_prune.rs",
@@ -8376,6 +8488,18 @@
       "compiler_inventory_match": true,
       "compiler_item_count": 56,
       "symbol_spans_sha256": "e1512ebac7030ecdae56f372bd1180c764ace27ec054f6485b0d2f819d9aa8a1"
+    },
+    {
+      "path": "src/memory/knowledge_mutation.rs",
+      "component": "memory-store",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Semantic mutation child value policy: pure direct-user draft construction and passive replacement/retirement planning over immutable values",
+      "certainty": "source-reviewed-responsibility",
+      "source_sha256": "b7135e095a62ec6e835c5f028e698d66ea27bee50ed5abc96c712621e609e9e2",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/memory/memory_codec.rs",
@@ -8573,18 +8697,6 @@
       "compiler_inventory_match": true,
       "compiler_item_count": 324,
       "symbol_spans_sha256": "f1382ad7b990bfb8dfc584023d9707a87519dcb4ed20b4f60ec9737e2f7defe5"
-    },
-    {
-      "path": "src/memory/knowledge_mutation.rs",
-      "component": "memory-store",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "Semantic mutation child value policy: pure direct-user draft construction and passive replacement/retirement planning over immutable values",
-      "certainty": "source-reviewed-responsibility",
-      "source_sha256": "b7135e095a62ec6e835c5f028e698d66ea27bee50ed5abc96c712621e609e9e2",
-      "compiler_inventory_match": false,
-      "compiler_item_count": null,
-      "symbol_spans_sha256": null
     },
     {
       "path": "src/memory/memory_provenance_model.rs",
@@ -8912,6 +9024,18 @@
       "symbol_spans_sha256": "2af98252652804c3518e8e47e1c2a52a807987837d90fcd80eb6b5ef1ad1dbd8"
     },
     {
+      "path": "src/owner_lifecycle/core_owner_api.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Durable owner operations over physical stores and canonical writer sequencing; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "98904ec0f0fe714947c23131a88d21cf9f9d0c9254cf77ea84adedbc8af14d8d",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
       "path": "src/owner_lifecycle/cva_reconcile_conflict.rs",
       "component": "owner-lifecycle",
       "classification": "production",
@@ -8955,6 +9079,30 @@
       "evidence": "Phase 7 registered source cut: Concrete owner writer for prepared Dream graph changes; no Dream callback",
       "certainty": "source-reviewed-responsibility",
       "source_sha256": "f8784ab0a5b5e35a667f24551e3caa9dce97c823451d4e634a053d53048a8e12"
+    },
+    {
+      "path": "src/owner_lifecycle/dream_operation_facts.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Durable owner operations over physical stores and canonical writer sequencing; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "8506b99a6aae41f2af8d95d822644a5e56df862b156f83090307eed1cfb09976",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/owner_lifecycle/dream_population_operations.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Durable owner operations over physical stores and canonical writer sequencing; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "24bfb66d97e586e14710888082842bed68f0b64fbfe9427e3c0cbebd65f86210",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/owner_lifecycle/dream_replay.rs",
@@ -9036,6 +9184,18 @@
       "evidence": "Concrete native owner admission, reads or ordered publication; domain planning stays above and enters as passive producer values.",
       "certainty": "reviewed-explicit",
       "source_sha256": "f8c9d5fe7b0349e5eca6adcc6a7c74e2e9cc23cef8e16caaec134bd7ff29056e",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/owner_lifecycle/freshness_operations.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Durable owner operations over physical stores and canonical writer sequencing; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "aacfaf5cd54a3652050e2b0e697fcd2ee1664a940c16735a8e76315185e651a8",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -9265,6 +9425,18 @@
       "compiler_inventory_match": true,
       "compiler_item_count": 2,
       "symbol_spans_sha256": "f3afb8e134621ce9192655e481a927cb4cfacdacd3ff96d82a7c0754f31b2565"
+    },
+    {
+      "path": "src/owner_lifecycle/memory_lifecycle.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Durable owner operations over physical stores and canonical writer sequencing; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "453d09acef72627a022dc7ed2063b7bdeaf462f40c83532468e46235ef92ee8f",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/owner_lifecycle/memory_ordered_replay.rs",
@@ -9589,6 +9761,18 @@
       "symbol_spans_sha256": "0afa99f9edb36ba6b5d98f4c6f221fd414d92807602424f934cf2501cc43a46c"
     },
     {
+      "path": "src/owner_lifecycle/reliquary_creation.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Durable owner operations over physical stores and canonical writer sequencing; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "39c772f15177c8eb13e283c75542baa29da9d490271ea02f36da248d0851c0ec",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
       "path": "src/owner_lifecycle/reliquary_graph.rs",
       "component": "owner-lifecycle",
       "classification": "production",
@@ -9649,6 +9833,18 @@
       "symbol_spans_sha256": "237430857320bb46673800c8ce4a7ce44aad483878a842162a28ebe2cef7fc59"
     },
     {
+      "path": "src/owner_lifecycle/retrieval_facts.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Durable owner operations over physical stores and canonical writer sequencing; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "9c95026193918fed9c3f04c5e7c7d29a367485ab2d78e3406c3623930e182554",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
       "path": "src/owner_lifecycle/semantic_archive_read.rs",
       "component": "owner-lifecycle",
       "classification": "production",
@@ -9671,6 +9867,18 @@
       "compiler_inventory_match": true,
       "compiler_item_count": 73,
       "symbol_spans_sha256": "9b1a027db2cf01f52d466ac1c9a23f16dd3b493b86caba45386aa5166e54d0bb"
+    },
+    {
+      "path": "src/owner_lifecycle/vector_owner_api.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Durable owner operations over physical stores and canonical writer sequencing; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "24564176936088a012871490e736bd7432547898d1551a93ccfffb0be8d685fd",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/owner_lifecycle/vector_publication.rs",
@@ -13262,6 +13470,18 @@
       "symbol_spans_sha256": "13f1ac1ca7734b0e7b8039c857a69456a488ee9fe4ff97271274ab1a4d089049"
     },
     {
+      "path": "src/runtime_inference/freshness_operations.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Runtime orchestration or public binding delegation on execution owners; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "811e861f0a15139731ee795668487e6c418cc85903c1fa310b70be6eb4b15bac",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
       "path": "src/runtime_inference/general_decision.rs",
       "component": "switchboard",
       "classification": "production",
@@ -14131,6 +14351,18 @@
       "source_sha256": "4221812f3d716648dbde9c36aa3b21958de227053f15cde4bf82a4d0d1d8ae75"
     },
     {
+      "path": "src/runtime_inference/knowledge_mutation_execution.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Semantic mutation child lower execution: concrete REL/PHY owner publication, graph, community, replacement and retirement operations",
+      "certainty": "source-reviewed-responsibility",
+      "source_sha256": "532af273c565cb98ffcf7c773949487ececd78b3a8b3f8cd8fe3306c6ce74b80",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
       "path": "src/runtime_inference/model_auth.rs",
       "component": "switchboard",
       "classification": "production",
@@ -14319,6 +14551,42 @@
       "compiler_inventory_match": false
     },
     {
+      "path": "src/runtime_inference/perception_entity_merge.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Runtime orchestration or public binding delegation on execution owners; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "0060f8a0295cdc6b1e0a6b34252337282bc261cb642c52079da5ae97c5d29141",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/perception_entity_reconciliation.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Runtime orchestration or public binding delegation on execution owners; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "580f8e7ce0aeee927201c91e0f913bdf9fe1bb1467c35497c01c3349a946d63e",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/perception_entity_resolution.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Runtime orchestration or public binding delegation on execution owners; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "6061de3924ac72243c8d9e98bab95511db8cf46677ee21e1775bdaa1e4dc55fc",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
       "path": "src/runtime_inference/perception_publication_reconciliation.rs",
       "component": "runtime-gateway",
       "classification": "production",
@@ -14352,6 +14620,114 @@
       "source_sha256": "83964c91aca64b92a67b748220caf260497d2be7ef9007e149ccdec1c34c4afd"
     },
     {
+      "path": "src/runtime_inference/public_archive_operations.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Runtime orchestration or public binding delegation on execution owners; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "107422506b58e0da5b158106b11b1873739f64709168ef34b120c5b812f64bd5",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/public_dream_operations.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Runtime orchestration or public binding delegation on execution owners; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "9c7168382bb66f3c0b8945e1f168aa2b5d1fa236617177a046612c7f89f2291b",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/public_memory_operations.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Runtime orchestration or public binding delegation on execution owners; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "070d372a78ce6d4ae619d40730818a71e08a226ae2fc6d42eaaa7c7f1237e715",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/public_owner_operations.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Runtime orchestration or public binding delegation on execution owners; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "e13ab5b7e341f1f254657b9f6b0563d328542e87a55b9e55940cea7635f1f1a8",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/public_retrieval_operations.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Runtime orchestration or public binding delegation on execution owners; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "7b69503e042f6630c5dcf1b2188951ee18497a2bd32fc66a512accb498c1539b",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/public_vector_operations.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Runtime orchestration or public binding delegation on execution owners; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "b709585a08decf203819b64a376e58be43ebdad78bc07c8b21a2949c5a8aa750",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/reconciliation_operations.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Runtime orchestration or public binding delegation on execution owners; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "59f863ca207ceb7af3d5019b439be91a9eaf013afa67075bef56f97d254bde92",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/reconciliation_repack.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Runtime orchestration or public binding delegation on execution owners; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "f3291eee4a8ee026a6c0574091db9b6bab59ae65ec47d5338e8bd75f5a2eabd6",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/rel_lifecycle_execution.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Runtime orchestration or public binding delegation on execution owners; Phase 7 source-cut responsibility review",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "74e76bf5bca7d022926cd4469a0f162a77dbe70ea36e53d6a2a443b40488d7ac",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
       "path": "src/runtime_inference/reliquary_runtime_owner.rs",
       "component": "runtime-gateway",
       "classification": "production",
@@ -14359,6 +14735,18 @@
       "evidence": "Phase 7 registered source cut: Canonical REL aggregate combining durable owner state and runtime derived indexes",
       "certainty": "source-reviewed-responsibility",
       "source_sha256": "84c68f3a539f01c846ec6123dc9cc32a783770cd198770c7a9ca57001de88328"
+    },
+    {
+      "path": "src/runtime_inference/runtime_freshness_birth.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Semantic mutation child scope: REL first-publication intent/birth and due-refresh operations over mounted owner state; public Cva entrypoints delegate",
+      "certainty": "source-reviewed-responsibility",
+      "source_sha256": "60f07db4897c1ff4ad2dfa88f1f2c122780dc4e866b4be9775b3ff21592caa15",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/runtime_inference/runtime_host.rs",
@@ -15315,30 +15703,6 @@
       "compiler_inventory_match": true,
       "compiler_item_count": 30,
       "symbol_spans_sha256": "e4aecd57fd9a4855b371d214e018e7779d49dae19d8cc7db9be66bb895bfb966"
-    },
-    {
-      "path": "src/runtime_inference/knowledge_mutation_execution.rs",
-      "component": "runtime-gateway",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "Semantic mutation child lower execution: concrete REL/PHY owner publication, graph, community, replacement and retirement operations",
-      "certainty": "source-reviewed-responsibility",
-      "source_sha256": "532af273c565cb98ffcf7c773949487ececd78b3a8b3f8cd8fe3306c6ce74b80",
-      "compiler_inventory_match": false,
-      "compiler_item_count": null,
-      "symbol_spans_sha256": null
-    },
-    {
-      "path": "src/runtime_inference/runtime_freshness_birth.rs",
-      "component": "runtime-gateway",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "Semantic mutation child scope: REL first-publication intent/birth and due-refresh operations over mounted owner state; public Cva entrypoints delegate",
-      "certainty": "source-reviewed-responsibility",
-      "source_sha256": "60f07db4897c1ff4ad2dfa88f1f2c122780dc4e866b4be9775b3ff21592caa15",
-      "compiler_inventory_match": false,
-      "compiler_item_count": null,
-      "symbol_spans_sha256": null
     },
     {
       "path": "src/runtime_inference/runtime_host_gateway_semantic_provenance.rs",
@@ -35948,6 +36312,118 @@
       "src/facade/cva_runtime_reconciliation.rs": [
         "public-consumers",
         "Supported Gateway offline reconciliation composition above path admission"
+      ],
+      "src/freshness/accepted_use.rs": [
+        "freshness",
+        "Freshness policy/projection operations with no direct physical publication ownership"
+      ],
+      "src/freshness/graph_snapshot.rs": [
+        "freshness",
+        "Freshness policy/projection operations with no direct physical publication ownership"
+      ],
+      "src/maintenance/attachment_repack.rs": [
+        "maintenance",
+        "Offline copy, repack, reconciliation, and publication maintenance operations"
+      ],
+      "src/maintenance/historical_copy.rs": [
+        "maintenance",
+        "Offline copy, repack, reconciliation, and publication maintenance operations"
+      ],
+      "src/maintenance/principal_repack.rs": [
+        "maintenance",
+        "Offline copy, repack, reconciliation, and publication maintenance operations"
+      ],
+      "src/maintenance/reconciliation_promotion.rs": [
+        "maintenance",
+        "Offline copy, repack, reconciliation, and publication maintenance operations"
+      ],
+      "src/maintenance/reconciliation_sources.rs": [
+        "maintenance",
+        "Offline copy, repack, reconciliation, and publication maintenance operations"
+      ],
+      "src/owner_lifecycle/core_owner_api.rs": [
+        "owner-lifecycle",
+        "Durable owner operations over physical stores and canonical writer sequencing"
+      ],
+      "src/owner_lifecycle/dream_operation_facts.rs": [
+        "owner-lifecycle",
+        "Durable owner operations over physical stores and canonical writer sequencing"
+      ],
+      "src/owner_lifecycle/dream_population_operations.rs": [
+        "owner-lifecycle",
+        "Durable owner operations over physical stores and canonical writer sequencing"
+      ],
+      "src/owner_lifecycle/freshness_operations.rs": [
+        "owner-lifecycle",
+        "Durable owner operations over physical stores and canonical writer sequencing"
+      ],
+      "src/owner_lifecycle/memory_lifecycle.rs": [
+        "owner-lifecycle",
+        "Durable owner operations over physical stores and canonical writer sequencing"
+      ],
+      "src/owner_lifecycle/reliquary_creation.rs": [
+        "owner-lifecycle",
+        "Durable owner operations over physical stores and canonical writer sequencing"
+      ],
+      "src/owner_lifecycle/retrieval_facts.rs": [
+        "owner-lifecycle",
+        "Durable owner operations over physical stores and canonical writer sequencing"
+      ],
+      "src/owner_lifecycle/vector_owner_api.rs": [
+        "owner-lifecycle",
+        "Durable owner operations over physical stores and canonical writer sequencing"
+      ],
+      "src/runtime_inference/freshness_operations.rs": [
+        "runtime-gateway",
+        "Runtime orchestration or public binding delegation on execution owners"
+      ],
+      "src/runtime_inference/perception_entity_merge.rs": [
+        "runtime-gateway",
+        "Runtime orchestration or public binding delegation on execution owners"
+      ],
+      "src/runtime_inference/perception_entity_reconciliation.rs": [
+        "runtime-gateway",
+        "Runtime orchestration or public binding delegation on execution owners"
+      ],
+      "src/runtime_inference/perception_entity_resolution.rs": [
+        "runtime-gateway",
+        "Runtime orchestration or public binding delegation on execution owners"
+      ],
+      "src/runtime_inference/public_archive_operations.rs": [
+        "runtime-gateway",
+        "Runtime orchestration or public binding delegation on execution owners"
+      ],
+      "src/runtime_inference/public_dream_operations.rs": [
+        "runtime-gateway",
+        "Runtime orchestration or public binding delegation on execution owners"
+      ],
+      "src/runtime_inference/public_memory_operations.rs": [
+        "runtime-gateway",
+        "Runtime orchestration or public binding delegation on execution owners"
+      ],
+      "src/runtime_inference/public_owner_operations.rs": [
+        "runtime-gateway",
+        "Runtime orchestration or public binding delegation on execution owners"
+      ],
+      "src/runtime_inference/public_retrieval_operations.rs": [
+        "runtime-gateway",
+        "Runtime orchestration or public binding delegation on execution owners"
+      ],
+      "src/runtime_inference/public_vector_operations.rs": [
+        "runtime-gateway",
+        "Runtime orchestration or public binding delegation on execution owners"
+      ],
+      "src/runtime_inference/reconciliation_operations.rs": [
+        "runtime-gateway",
+        "Runtime orchestration or public binding delegation on execution owners"
+      ],
+      "src/runtime_inference/reconciliation_repack.rs": [
+        "runtime-gateway",
+        "Runtime orchestration or public binding delegation on execution owners"
+      ],
+      "src/runtime_inference/rel_lifecycle_execution.rs": [
+        "runtime-gateway",
+        "Runtime orchestration or public binding delegation on execution owners"
       ]
     },
     "compiler_inventory_refreshed": false,
@@ -35959,6 +36435,11 @@
       ],
       "note": "Canonical runtime worker children follow actual algorithm ownership; mapping correction not counted as source edge elimination."
     },
-    "offline_background_cut": "benchmarks/phase7-offline-background-cut.json"
+    "offline_background_cut": "benchmarks/phase7-offline-background-cut.json",
+    "stabilization": {
+      "base_commit": "7c74b51",
+      "new_reachable_modules": 28,
+      "note": "Registers production responsibilities in paused Phase 7 working tree; pending current compiler and behavioral verification"
+    }
   }
 }

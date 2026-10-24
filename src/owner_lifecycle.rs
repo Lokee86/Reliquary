@@ -1,5 +1,22 @@
 //! Validated owner lifecycle boundary and read-only historical source capability.
 
+#[path = "owner_lifecycle/core_owner_api.rs"]
+mod core_owner_api;
+#[path = "owner_lifecycle/dream_operation_facts.rs"]
+mod dream_operation_facts;
+#[path = "owner_lifecycle/dream_population_operations.rs"]
+mod dream_population_operations;
+#[path = "owner_lifecycle/freshness_operations.rs"]
+pub(crate) mod freshness_operations;
+#[path = "owner_lifecycle/memory_lifecycle.rs"]
+mod memory_lifecycle;
+#[path = "owner_lifecycle/reliquary_creation.rs"]
+pub(crate) mod reliquary_creation;
+#[path = "owner_lifecycle/retrieval_facts.rs"]
+mod retrieval_facts;
+#[path = "owner_lifecycle/vector_owner_api.rs"]
+mod vector_owner_api;
+
 #[path = "owner_lifecycle/dream_graph_publication.rs"]
 mod dream_graph_publication;
 pub(crate) use dream_graph_publication::DreamGraphPublication;

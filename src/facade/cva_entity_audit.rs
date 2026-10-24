@@ -1,21 +1,18 @@
-use crate::entity_audit::EntityAuditContext;
 use crate::{Cva, EntityAuditReport, Phylactery};
 
 macro_rules! impl_owner_audit {
     ($owner:ty) => {
         impl $owner {
             pub fn audit_entities(&self) -> EntityAuditReport {
-                let context = EntityAuditContext {
-                    entities: &self.entities,
-                    memories: &self.memories,
-                    graph: &self.graph,
-                    resolutions: &self.entity_resolutions,
-                };
-                crate::entity_audit::audit_owner(&context)
+                crate::perception_entity_resolution_runtime::audit_rel(self)
             }
         }
     };
 }
 
 impl_owner_audit!(Cva);
-impl_owner_audit!(Phylactery);
+impl Phylactery {
+    pub fn audit_entities(&self) -> EntityAuditReport {
+        crate::perception_entity_resolution_runtime::audit_phy(self)
+    }
+}

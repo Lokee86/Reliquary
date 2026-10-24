@@ -1,4 +1,3 @@
-use crate::compatibility_profile_probe::{profile_from_endpoint, verify_endpoint};
 use crate::{
     CompatibilityProfile, CompatibilityProfileError, CompatibilityProfileId,
     CompatibilityProfileStats, CompatibilityReport, EmbeddingEndpoint, Phylactery,
@@ -9,53 +8,37 @@ impl Phylactery {
         &mut self,
         endpoint: &impl EmbeddingEndpoint,
     ) -> Result<CompatibilityProfile, CompatibilityProfileError> {
-        let candidate = profile_from_endpoint(endpoint)?;
-        if let Some(existing) = self.compatibility_profiles.compatible_with(&candidate) {
-            return Ok(existing.clone());
-        }
-        self.owner
-            .compatibility_profiles
-            .put(&mut self.owner.container, candidate.clone())?;
-        Ok(candidate)
+        self.public_establish_profile(endpoint)
     }
 
     pub fn compatibility_profile(
         &self,
         id: CompatibilityProfileId,
     ) -> Result<CompatibilityProfile, CompatibilityProfileError> {
-        self.compatibility_profiles
-            .get(id)
-            .cloned()
-            .ok_or(CompatibilityProfileError::MissingProfile)
+        self.public_profile(id)
     }
 
     pub fn compatibility_profiles(&self) -> Vec<CompatibilityProfile> {
-        self.compatibility_profiles.profiles()
+        self.public_profiles()
     }
 
     pub fn retire_compatibility_profile(
         &mut self,
         id: CompatibilityProfileId,
     ) -> Result<bool, CompatibilityProfileError> {
-        self.owner
-            .compatibility_profiles
-            .retire(&mut self.owner.container, id)
+        self.public_retire_profile(id)
     }
 
     pub fn compatibility_profile_is_retired(&self, id: CompatibilityProfileId) -> bool {
-        self.compatibility_profiles.is_retired(id)
+        self.public_profile_is_retired(id)
     }
 
     pub fn active_memory_compatibility_profiles(&self) -> Vec<CompatibilityProfile> {
-        self.compatibility_profiles
-            .profiles()
-            .into_iter()
-            .filter_map(|profile| self.active_memory_compatibility_profile(profile.id))
-            .collect()
+        self.public_active_memory_profiles()
     }
 
     pub fn compatibility_profile_stats(&self) -> CompatibilityProfileStats {
-        self.compatibility_profiles.stats()
+        self.public_profile_stats()
     }
 
     pub fn verify_compatibility_endpoint(
@@ -63,10 +46,6 @@ impl Phylactery {
         id: CompatibilityProfileId,
         endpoint: &impl EmbeddingEndpoint,
     ) -> Result<CompatibilityReport, CompatibilityProfileError> {
-        let profile = self
-            .compatibility_profiles
-            .get(id)
-            .ok_or(CompatibilityProfileError::MissingProfile)?;
-        verify_endpoint(profile, endpoint)
+        self.public_verify_compatibility_endpoint(id, endpoint)
     }
 }

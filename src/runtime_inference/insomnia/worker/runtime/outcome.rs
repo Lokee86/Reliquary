@@ -50,7 +50,7 @@ pub(super) fn apply_success(
             .map_err(|_| crate::InsomniaWorkerError::LockPoisoned)?;
         prepare_application_read(
             &crate::archive::ArchiveReadView::new(shared.archive, &container),
-            container.owner_id(),
+            shared.owner_id.clone(),
             episode,
             turns,
             extraction,

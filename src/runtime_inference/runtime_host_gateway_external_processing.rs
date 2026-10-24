@@ -418,7 +418,7 @@ impl GatewayRuntime {
                 {
                     return Err(operation(ExternalSourceError::Conflict));
                 }
-                let owner_uuid = r.cva.owner.container.owner_uuid();
+                let owner_uuid = r.cva.owner.owner_uuid();
                 let turn = r.cva.owner.archive.rel_turn_count();
                 let memories = crate::external_owner_access::publish_window(
                     &mut r.cva.owner.container,

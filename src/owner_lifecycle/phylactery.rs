@@ -21,7 +21,7 @@ use crate::relationship_rebuild::RelationshipOpenState;
 use crate::relationship_store::RelationshipStore;
 use crate::rewrite_lineage::RewriteLineageStore;
 use crate::{Container, ContainerIdentity, FileKind};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use super::{OwnerPhylacteryError, read_validation};
 
@@ -44,6 +44,30 @@ pub struct PhylacteryOwner {
     pub(crate) entities: EntityStore,
     pub(crate) entity_resolutions: EntityResolutionStore,
     pub(crate) relationships: RelationshipStore,
+}
+
+impl PhylacteryOwner {
+    pub(crate) fn owner_id(&self) -> Option<String> {
+        self.container.owner_id()
+    }
+
+    pub(crate) fn sync(&self) -> Result<(), crate::ContainerError> {
+        self.container.sync()
+    }
+
+    pub(crate) fn mounted_container_facts(
+        &self,
+    ) -> Result<
+        (
+            PathBuf,
+            Option<(u64, u64)>,
+            Option<FileKind>,
+            Option<String>,
+        ),
+        crate::ContainerError,
+    > {
+        super::reliquary::mounted_container_facts(&self.container)
+    }
 }
 
 pub(crate) fn create_phylactery(
