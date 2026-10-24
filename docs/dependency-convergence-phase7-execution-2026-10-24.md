@@ -45,6 +45,14 @@ The paused post-`7c74b51` source-cut batch was integrated and verified without a
 
 The post-repair locked library suite passed **2,006 tests, zero failed, five ignored**; integration/examples passed **165, zero failed, one ignored**; CLI passed **32, zero failed**. The 45 Python checker tests, nine dependency checker tests, 26 source-cut guards, 898-module ownership map, bounded façade boundary check, Rust formatting and Git whitespace check passed. The exact command/profile and limits are in [the stabilization receipt](../benchmarks/phase7-stabilization-checkpoint-2026-10-24.json). This constitutes a behavioral/source-cut checkpoint **only**: B7/H7/R7/A7 remain open under the original acceptance standard. The old 182 compiler-call candidates are not a post-cut residual count.
 
+## Postcheckpoint compiler evidence (2026-10-24)
+
+The verified stabilization commit `d1c0d4b` now has a new [postcheckpoint source-and-compiler inventory](../benchmarks/phase7-postcheckpoint-compiler-evidence-2026-10-24.json). It covers **898 cfg-reachable production files with no unmapped owners** and records 3,878 source imports, **1,150 lexically unapproved candidates across 36 component pairs**, 87 lexical uncertainties, and **zero strict source-import SCCs**. These are not counts of actual implementation defects.
+
+The matching Rustdoc/MIR emission succeeded at that commit. Its static-call checker counted **129,185 constant call instances**, **884 compiler-resolved cross-component calls**, and **50 unpermitted static call instances across 12 component pairs**. The 50 include direct owner/container capabilities as well as likely pure value constructors and validation helpers; every endpoint is recorded for exact source review. The run retains **67,418 unresolved call instances** (33,730 unmatched local, 32,250 destructor, 1,432 closure and six indirect/nonconstant), and was not augmented with an exact HIR owner-span join. The prior 191-instance compiler evidence belongs to the previous source checkpoint and is not a current residual count; checker improvements also limit direct comparison.
+
+**Acceptance is still OPEN.** Next work should first classify the 50 exact endpoints into true prohibited capabilities versus proven immutable/pure contracts, then execute only confirmed corrections as bounded component-scoped changes. HIR/destructor/indirect proof and the inherited Arcana/Pitlord graph gate remain separate evidence obligations. No wider DAG permission or blanket exception is authorized.
+
 ## Verification
 
 Use the following local commands:
