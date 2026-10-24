@@ -244,8 +244,7 @@ fn reconcile(
         (
             versions,
             crate::perception_publication_reconciliation::prepare_entity_reconciliation(
-                &phy.container,
-                &phy.memories,
+                crate::memory_store::MemoryReadView::new(&phy.memories, &phy.container),
                 &phy.entities,
                 &phy.graph,
                 &phy.entity_resolutions,
@@ -273,12 +272,7 @@ fn reconcile(
         crate::perception_publication_reconciliation::commit_entity_reconciliation::<
             crate::PhylacteryError,
         >(
-            &mut phy.container,
-            &phy.memories,
-            &mut phy.entities,
-            &mut phy.entity_resolutions,
-            &mut phy.graph,
-            &mut phy.relationships,
+            &mut crate::owner_lifecycle::perception_publication_merge::ReconciliationPublication::new(&mut phy.container, &phy.memories, &mut phy.entities, &mut phy.entity_resolutions, &mut phy.graph, &mut phy.relationships),
             prepared.1,
             evaluated,
             now_ns(),

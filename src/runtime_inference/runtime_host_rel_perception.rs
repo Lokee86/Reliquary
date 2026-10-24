@@ -308,8 +308,7 @@ fn reconcile(
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
         crate::perception_publication_reconciliation::prepare_entity_reconciliation(
-            &r.cva.container,
-            &r.cva.memories,
+            crate::memory_store::MemoryReadView::new(&r.cva.memories, &r.cva.container),
             &r.cva.entities,
             &r.cva.graph,
             &r.cva.entity_resolutions,
@@ -332,12 +331,9 @@ fn reconcile(
                 crate::perception_publication_reconciliation::commit_entity_reconciliation::<
                     crate::CvaError,
                 >(
-                    &mut r.cva.container,
-                    &r.cva.memories,
-                    &mut r.cva.entities,
-                    &mut r.cva.entity_resolutions,
-                    &mut r.cva.graph,
-                    &mut r.cva.relationships,
+                    &mut crate::owner_lifecycle::perception_publication_merge::ReconciliationPublication::new(
+                        &mut r.cva.container, &r.cva.memories, &mut r.cva.entities,
+                        &mut r.cva.entity_resolutions, &mut r.cva.graph, &mut r.cva.relationships),
                     prepared,
                     evaluation,
                     now_ns(),

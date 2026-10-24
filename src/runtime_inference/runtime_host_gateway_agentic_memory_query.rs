@@ -39,10 +39,21 @@ impl GatewayRuntime {
                 .ok_or_else(|| read_error("REL has no established Memory compatibility profile"))?;
             let mut candidates = self
                 .with_rel(&owner.token, |runtime| {
-                    let pool = runtime
-                        .cva
-                        .collect_memory_candidate_pool(staged.query(), &vector, profile)
-                        .map_err(operation)?;
+                    let cva = &mut runtime.cva;
+                    let pool = crate::memory_candidate_collection::collect_memory_candidate_pool(
+                        &crate::memory_store::MemoryReadView::new(&cva.memories, &cva.container),
+                        &crate::memory_vector_store::MemoryVectorReadView::new(
+                            &cva.memory_vectors,
+                            &cva.packed_vectors,
+                            &cva.container,
+                        ),
+                        &mut cva.lexical_index,
+                        cva.compatibility_profiles.get_active(profile).cloned(),
+                        staged.query(),
+                        &vector,
+                        profile,
+                    )
+                    .map_err(operation)?;
                     let ids = pool.matched_memory_ids().collect::<Vec<_>>();
                     grade_agentic_memories(
                         &runtime.cva.freshness,

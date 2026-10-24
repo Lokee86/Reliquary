@@ -4,7 +4,9 @@ use crate::entity_store::EntityStore;
 use crate::graph_store::GraphStore;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryReadView;
-use crate::{EntityCandidateConfig, EntityResolutionPreparation, EntityResolverError, PhylacteryProfile};
+use crate::{
+    EntityCandidateConfig, EntityResolutionPreparation, EntityResolverError, PhylacteryProfile,
+};
 
 pub(crate) fn prepare_entity_resolution(
     memories: crate::memory_store::MemoryReadView<'_>,

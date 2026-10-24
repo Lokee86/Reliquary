@@ -53,7 +53,7 @@ impl Cva {
                         }
                         None => 0,
                     }
-                }?
+                }
             }
             None => 0,
         };

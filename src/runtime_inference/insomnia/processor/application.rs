@@ -4,14 +4,13 @@ use super::source_validation::{candidate_source_time_ns, validate_candidate_sour
 use crate::insomnia::candidate::hex;
 use crate::memory_model::{memory_body_id, memory_id};
 use crate::{
-    Archive, Container, Episode, InsomniaExtraction, InsomniaOwnership, InsomniaRejection, Memory,
-    MemoryDraft, MemoryRef, MemoryRoutingMetadata, MemorySourceRef,
+    Episode, InsomniaExtraction, InsomniaOwnership, InsomniaRejection, Memory, MemoryDraft,
+    MemoryRef, MemoryRoutingMetadata, MemorySourceRef,
 };
 
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn prepare_application(
-    archive: &Archive,
-    container: &mut Container,
+pub(crate) fn prepare_application_read(
+    archive: &crate::archive::ArchiveReadView<'_>,
+    owner_id: Option<String>,
     episode: &Episode,
     turns: &[crate::ResolvedTurn],
     extraction: InsomniaExtraction,
@@ -24,7 +23,6 @@ pub(crate) fn prepare_application(
     for candidate in extraction.candidates {
         if let Err(reason) = validate_candidate_sources(
             archive,
-            container,
             &candidate,
             &episode.conversation_id,
             turns,
@@ -76,7 +74,7 @@ pub(crate) fn prepare_application(
                 routing_metadata,
             }),
             InsomniaOwnership::User => {
-                let owner_id = container.owner_id().ok_or_else(|| {
+                let owner_id = owner_id.clone().ok_or_else(|| {
                     InsomniaProcessError::InvalidCandidate(
                         "source Reliquary has no durable owner ID; migrate it before routing user Memory provenance"
                             .into(),
@@ -130,102 +128,4 @@ pub(crate) fn prepare_application(
         rejected,
         model: extraction.model,
     })
-}
-
-/// Exact owner-local publication capability; grants and principal selection stay above it.
-pub(crate) trait UserMemoryOwner {
-    fn owner_id(&self) -> Option<String>;
-    fn publish(
-        &mut self,
-        prepared: &PreparedUserMemory,
-        temporal: Option<crate::MemoryTemporalInference>,
-    ) -> Result<(Memory, bool), crate::MemoryError>;
-    fn memory(&mut self, id: crate::MemoryId) -> Result<Memory, crate::MemoryError>;
-    fn put_routing_metadata(
-        &mut self,
-        metadata: MemoryRoutingMetadata,
-    ) -> Result<(), crate::MemoryError>;
-    fn sync(&mut self) -> Result<(), String>;
-}
-
-pub(crate) fn publish_user_application(
-    phylactery: &mut impl UserMemoryOwner,
-    drafts: &[PreparedUserMemory],
-) -> Result<UserPublication, InsomniaProcessError> {
-    let owner_id = phylactery.owner_id().ok_or_else(|| {
-        InsomniaProcessError::Phylactery(
-            "Phylactery has no durable owner ID; migrate it before routed Insomnia processing"
-                .into(),
-        )
-    })?;
-    let mut created = Vec::new();
-    let mut existing = Vec::new();
-    let mut refs = Vec::with_capacity(drafts.len());
-    for prepared in drafts {
-        let temporal_inference = prepared.memory.bound_temporal_inference();
-        let draft = &prepared.memory.draft;
-        debug_assert_eq!(
-            prepared.memory.temporal.analysis.source_timestamp_ns,
-            draft.source_time_ns
-        );
-        let (memory, was_created) = match phylactery.publish(prepared, temporal_inference) {
-            Ok(value) => value,
-            Err(crate::MemoryError::MutationConflict) => {
-                let id = memory_id(&draft.mutation_id);
-                let memory = phylactery.memory(id)?;
-                if !same_routed_user_semantics(&memory, draft, &prepared.source_ref) {
-                    return Err(crate::MemoryError::MutationConflict.into());
-                }
-                (memory, false)
-            }
-            Err(error) => return Err(error.into()),
-        };
-        if let Some(metadata) = prepared.memory.routing_metadata.clone() {
-            phylactery.put_routing_metadata(metadata)?;
-        }
-        let memory = phylactery.memory(memory.id)?;
-        if was_created {
-            created.push(memory.clone());
-        } else {
-            existing.push(memory.clone());
-        }
-        refs.push(MemoryRef {
-            owner_id: owner_id.clone(),
-            memory_id: memory.id,
-        });
-    }
-    phylactery
-        .sync()
-        .map_err(|error| InsomniaProcessError::Phylactery(error.to_string()))?;
-    Ok(UserPublication {
-        created,
-        existing,
-        refs,
-    })
-}
-
-fn same_routed_user_semantics(
-    memory: &Memory,
-    draft: &MemoryDraft,
-    source_ref: &MemorySourceRef,
-) -> bool {
-    memory.category == draft.category
-        && memory.memory_type == draft.memory_type
-        && memory.authority_kind == draft.authority_kind
-        && memory.temporal_status == draft.temporal_status
-        && memory.scope == draft.scope
-        && memory.lifecycle_state == draft.lifecycle_state
-        && memory.archived == draft.archived
-        && memory.superseded_by == draft.superseded_by
-        && memory.parent_id == draft.parent_id
-        && memory.source_node_id.is_none()
-        && memory.content_source_conversation_id.is_none()
-        && memory.content_source_node_id.is_none()
-        && memory.grounding_source_conversation_id.is_none()
-        && memory.grounding_source_node_id.is_none()
-        && memory.source_episode_id.is_none()
-        && memory.source_time_ns == draft.source_time_ns
-        && memory.source_ref.as_ref() == Some(source_ref)
-        && memory.mutation_id == draft.mutation_id
-        && memory.created_at_ns == draft.created_at_ns
 }

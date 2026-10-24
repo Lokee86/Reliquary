@@ -1,17 +1,13 @@
-use crate::memory_store::MemoryStore;
-use crate::memory_vector_store::MemoryVectorStore;
-use crate::packed_vector_store::PackedVectorStore;
+use crate::memory_store::MemoryReadView;
+use crate::memory_vector_store::MemoryVectorReadView;
 use crate::{
-    CompatibilityProfileId, Container, MemoryBodyId, MemoryRetrievalError, MemoryVectorId,
-    ScalarType,
+    CompatibilityProfileId, MemoryBodyId, MemoryRetrievalError, MemoryVectorId, ScalarType,
 };
 use std::collections::HashMap;
 
 pub(crate) fn load_memory_vectors(
-    container: &mut Container,
-    memories: &MemoryStore,
-    memory_vectors: &MemoryVectorStore,
-    packed_vectors: &PackedVectorStore,
+    memories: &MemoryReadView<'_>,
+    memory_vectors: &MemoryVectorReadView<'_>,
     profile_id: CompatibilityProfileId,
 ) -> Result<HashMap<MemoryBodyId, Vec<f32>>, MemoryRetrievalError> {
     let mut by_set: HashMap<MemoryVectorId, Vec<(MemoryBodyId, u64)>> = HashMap::new();
@@ -25,8 +21,8 @@ pub(crate) fn load_memory_vectors(
     }
     let mut output = HashMap::new();
     for (set_id, locations) in by_set {
-        let set = memory_vectors.get(container, set_id)?;
-        let packed = packed_vectors.get(container, set.packed_vector_id)?;
+        let set = memory_vectors.get(set_id)?;
+        let packed = memory_vectors.packed(set.packed_vector_id)?;
         if packed.schema().scalar != ScalarType::F32 {
             return Err(MemoryRetrievalError::UnsupportedScalar(
                 packed.schema().scalar,
@@ -105,10 +101,8 @@ pub(crate) fn validate_query(query: &[f32]) -> Result<(), MemoryRetrievalError> 
 
 /// Load the current searchable population using the same validation for both consumers.
 pub(crate) fn load_searchable_memory_vectors(
-    container: &mut Container,
-    memories: &MemoryStore,
-    memory_vectors: &MemoryVectorStore,
-    packed_vectors: &PackedVectorStore,
+    memories: &MemoryReadView<'_>,
+    memory_vectors: &MemoryVectorReadView<'_>,
     profile_id: CompatibilityProfileId,
 ) -> Result<
     (
@@ -117,17 +111,11 @@ pub(crate) fn load_searchable_memory_vectors(
     ),
     MemoryRetrievalError,
 > {
-    let by_body = load_memory_vectors(
-        container,
-        memories,
-        memory_vectors,
-        packed_vectors,
-        profile_id,
-    )?;
+    let by_body = load_memory_vectors(memories, memory_vectors, profile_id)?;
     let mut searchable = std::collections::HashSet::new();
     let mut vectors = HashMap::new();
     for id in memories.current_ids() {
-        let memory = memories.memory(container, id)?;
+        let memory = memories.memory(id)?;
         if memory.archived {
             continue;
         }

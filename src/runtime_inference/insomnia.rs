@@ -46,7 +46,7 @@ mod processor;
 mod progress;
 #[path = "insomnia/rebuild.rs"]
 pub(crate) mod rebuild;
-#[path = "insomnia/runtime_step.rs"]
+#[path = "insomnia_runtime_execution.rs"]
 pub(crate) mod runtime_step;
 #[path = "insomnia/store.rs"]
 pub(crate) mod store;

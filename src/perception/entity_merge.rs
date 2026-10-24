@@ -26,6 +26,7 @@ pub(crate) enum EntityMergePlan {
 pub(crate) struct EntityMergePublicationPlan {
     pub(crate) merge: EntityMergePlan,
     pub(crate) graph_changes: Vec<SemanticGraphRelationChange>,
+    pub(crate) associations_retargeted: usize,
     pub(crate) owner_id: Option<String>,
     pub(crate) relationships: Vec<Result<EntityMergeRelationshipWrite, RelationshipError>>,
 }
@@ -286,4 +287,63 @@ pub(crate) fn short_bytes(bytes: &[u8; 32]) -> String {
         .take(8)
         .map(|byte| format!("{byte:02x}"))
         .collect()
+}
+
+pub(crate) fn prepare_merge_publication(
+    merge: EntityMergePlan,
+    owner_id: Option<String>,
+    memories: &MemoryStore,
+    entities: &EntityStore,
+    graph: &GraphStore,
+    relationships: &RelationshipStore,
+) -> EntityMergePublicationPlan {
+    let (associations_retargeted, graph_changes, writes) = match &merge {
+        EntityMergePlan::AlreadyMerged(_) => (0, Vec::new(), Vec::new()),
+        EntityMergePlan::Apply {
+            survivor,
+            retired,
+            now_ns,
+            ..
+        } => {
+            let (count, changes) = plan_merge_association_changes(graph, survivor.id, retired.id);
+            let writes = owner_id
+                .as_ref()
+                .map(|owner| {
+                    relationships
+                        .for_entity(&EntityRef {
+                            owner_id: owner.clone(),
+                            entity_id: retired.id,
+                        })
+                        .into_iter()
+                        .map(|relationship| {
+                            plan_relationship_retarget(
+                                owner,
+                                memories,
+                                entities,
+                                survivor.id,
+                                retired.id,
+                                &relationship,
+                                *now_ns,
+                            )
+                            .map(|draft| {
+                                EntityMergeRelationshipWrite {
+                                    id: relationship.id,
+                                    expected_revision: relationship.revision,
+                                    draft,
+                                }
+                            })
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            (count, changes, writes)
+        }
+    };
+    EntityMergePublicationPlan {
+        merge,
+        graph_changes,
+        associations_retargeted,
+        owner_id,
+        relationships: writes,
+    }
 }

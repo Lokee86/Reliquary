@@ -134,10 +134,15 @@ impl GatewayRuntime {
                 };
                 if !has_vector {
                     status.reliquary_vector_pending += 1;
-                } else if cva
-                    .dream_eligible_epoch(id, now)
-                    .map_err(operation)?
-                    .is_some()
+                } else if crate::dream_cooldown::owner_eligible_epoch(
+                    crate::memory_store::MemoryReadView::new(&cva.memories, &cva.container),
+                    Some(&cva.archive),
+                    &cva.processing_epochs,
+                    id,
+                    now,
+                )
+                .map_err(operation)?
+                .is_some()
                 {
                     status.reliquary_dream_pending += 1;
                 }
@@ -185,10 +190,15 @@ impl GatewayRuntime {
                 };
                 if !has_vector {
                     status.phylactery_vector_pending += 1;
-                } else if phy
-                    .dream_eligible_epoch(id, now)
-                    .map_err(operation)?
-                    .is_some()
+                } else if crate::dream_cooldown::owner_eligible_epoch(
+                    crate::memory_store::MemoryReadView::new(&phy.memories, &phy.container),
+                    None,
+                    &phy.processing_epochs,
+                    id,
+                    now,
+                )
+                .map_err(operation)?
+                .is_some()
                 {
                     status.phylactery_dream_pending += 1;
                 }

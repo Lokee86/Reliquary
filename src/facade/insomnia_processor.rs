@@ -1,7 +1,10 @@
+use crate::owner_lifecycle::personal_memory_publication::publish_user_application;
 use crate::{Cva, GeneralEndpoint, InsomniaExtractionError, InsomniaExtractor, InsomniaWork};
 
 pub use crate::insomnia::native_processor::{InsomniaProcessError, InsomniaProcessResult};
-use crate::insomnia::native_processor::{prepare_application, publish_user_application};
+use crate::insomnia::native_processor::{
+    PreparedUserMemory, application, prepare_application_read,
+};
 pub(crate) use crate::owner_lifecycle::insomnia_application::commit_application;
 
 impl Cva {
@@ -15,9 +18,9 @@ impl Cva {
     ) -> Result<InsomniaProcessResult, InsomniaProcessError> {
         let (episode, turns) = self.claimed_episode_input(claim, scope)?;
         let extraction = extract_with_evidence(self, extractor, &episode, &turns)?;
-        let mut prepared = prepare_application(
-            &self.archive,
-            &mut self.container,
+        let mut prepared = prepare_application_read(
+            &crate::archive::ArchiveReadView::new(&self.archive, &self.container),
+            self.container.owner_id(),
             &episode,
             &turns,
             extraction,
@@ -54,9 +57,9 @@ impl Cva {
     ) -> Result<InsomniaProcessResult, InsomniaProcessError> {
         let (episode, turns) = self.claimed_episode_input(claim, scope)?;
         let extraction = extract_with_evidence(self, extractor, &episode, &turns)?;
-        let mut prepared = prepare_application(
-            &self.archive,
-            &mut self.container,
+        let mut prepared = prepare_application_read(
+            &crate::archive::ArchiveReadView::new(&self.archive, &self.container),
+            self.container.owner_id(),
             &episode,
             &turns,
             extraction,
@@ -67,7 +70,7 @@ impl Cva {
         let user_publication = if prepared.user_drafts.is_empty() {
             None
         } else {
-            Some(publish_user_application(phylactery, &prepared.user_drafts)?)
+            Some(publish_user_application(&mut crate::owner_lifecycle::personal_memory_publication::PersonalMemoryPublication::new(&mut phylactery.container,&mut phylactery.memories), &prepared.user_drafts)?)
         };
         let owner_uuid = self.owner_uuid();
         let accepted_rel_turn = self.rel_turn_count();
@@ -92,9 +95,8 @@ impl Cva {
         claim: &InsomniaWork,
         scope: &str,
     ) -> Result<(crate::Episode, Vec<crate::ResolvedTurn>), InsomniaProcessError> {
-        crate::insomnia::native_processor::claimed_episode_input_parts(
-            &self.archive,
-            &mut self.container,
+        crate::insomnia::native_processor::claimed_episode_input_read(
+            &crate::archive::ArchiveReadView::new(&self.archive, &self.container),
             claim,
             scope,
         )
@@ -152,38 +154,5 @@ impl Cva {
             },
             completion,
         )
-    }
-}
-
-impl application::UserMemoryOwner for crate::Phylactery {
-    fn owner_id(&self) -> Option<String> {
-        crate::Phylactery::owner_id(self)
-    }
-    fn publish(
-        &mut self,
-        prepared: &PreparedUserMemory,
-        temporal: Option<crate::MemoryTemporalInference>,
-    ) -> Result<(crate::Memory, bool), crate::MemoryError> {
-        self.publish_memory_with_source_ref_and_temporal_inference(
-            None,
-            0,
-            prepared.memory.draft.clone(),
-            prepared.source_ref.clone(),
-            temporal,
-        )
-    }
-    fn memory(&mut self, id: crate::MemoryId) -> Result<crate::Memory, crate::MemoryError> {
-        crate::Phylactery::memory(self, id)
-    }
-    fn put_routing_metadata(
-        &mut self,
-        metadata: crate::MemoryRoutingMetadata,
-    ) -> Result<(), crate::MemoryError> {
-        self.memories
-            .put_routing_metadata(&mut self.container, metadata)
-            .map(|_| ())
-    }
-    fn sync(&mut self) -> Result<(), String> {
-        crate::Phylactery::sync(self).map_err(|error| error.to_string())
     }
 }

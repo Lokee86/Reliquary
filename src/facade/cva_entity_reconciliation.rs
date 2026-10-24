@@ -103,8 +103,7 @@ macro_rules! impl_reconciliation {
                 &self,
             ) -> Result<EntityReconciliationPrepared, EntityReconciliationError> {
                 crate::perception_publication_reconciliation::prepare_entity_reconciliation(
-                    &self.container,
-                    &self.memories,
+                    crate::memory_store::MemoryReadView::new(&self.memories, &self.container),
                     &self.entities,
                     &self.graph,
                     &self.entity_resolutions,
@@ -123,12 +122,7 @@ macro_rules! impl_reconciliation {
                 crate::perception_publication_reconciliation::commit_entity_reconciliation::<
                     $merge_error,
                 >(
-                    &mut self.container,
-                    &self.memories,
-                    &mut self.entities,
-                    &mut self.entity_resolutions,
-                    &mut self.graph,
-                    &mut self.relationships,
+                    &mut crate::owner_lifecycle::perception_publication_merge::ReconciliationPublication::new(&mut self.container, &self.memories, &mut self.entities, &mut self.entity_resolutions, &mut self.graph, &mut self.relationships),
                     prepared,
                     evaluation,
                     now_ns,

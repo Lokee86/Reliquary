@@ -63,3 +63,24 @@ pub(crate) fn eligible_dream_epoch(
         .unwrap_or(memory.updated_at_ns);
     Ok(cadence_elapsed(last_processed_ns, now_ns, dream_cadence()).then_some(0))
 }
+
+/// Eligibility over canonical owner reads; source-time admission stays in its owner.
+pub(crate) fn owner_eligible_epoch(
+    memories: crate::memory_store::MemoryReadView<'_>,
+    archive: Option<&crate::Archive>,
+    epochs: &crate::processing_epoch_store::ProcessingEpochStore,
+    id: MemoryId,
+    now_ns: i64,
+) -> Result<Option<u64>, MemoryError> {
+    let memory = memories.memory(id)?;
+    let source_time = match archive {
+        Some(archive) => reliquary_memory_source_timestamp_ns(archive, &memory),
+        None => crate::memory_source_time::memory_source_timestamp_ns(&memory),
+    };
+    eligible_dream_epoch(
+        &memory,
+        source_time,
+        epochs.state(id, DREAM_PROCESSING_LANE),
+        now_ns,
+    )
+}

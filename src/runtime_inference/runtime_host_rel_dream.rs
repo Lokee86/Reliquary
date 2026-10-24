@@ -53,10 +53,14 @@ fn prepare(
         if cooldowns.get(&id).is_some_and(|until| *until > now) {
             continue;
         }
-        let Some(epoch) = runtime
-            .cva
-            .dream_eligible_epoch(id, unix_now_ns())
-            .map_err(operation)?
+        let Some(epoch) = crate::dream_cooldown::owner_eligible_epoch(
+            crate::memory_store::MemoryReadView::new(&runtime.cva.memories, &runtime.cva.container),
+            Some(&runtime.cva.archive),
+            &runtime.cva.processing_epochs,
+            id,
+            unix_now_ns(),
+        )
+        .map_err(operation)?
         else {
             continue;
         };
@@ -146,7 +150,17 @@ fn commit(
                 .map_err(operation)?;
             runtime
                 .cva
-                .mark_dream_processed(id, snapshot.dream_epoch, unix_now_ns())
+                .processing_epochs
+                .put_for_memory(
+                    &mut runtime.cva.container,
+                    &runtime.cva.memories,
+                    id,
+                    crate::processing_epoch_model::DREAM_PROCESSING_LANE,
+                    crate::dream_cooldown::dream_processing_state(
+                        snapshot.dream_epoch,
+                        unix_now_ns(),
+                    ),
+                )
                 .map_err(operation)?;
             let resolutions = crate::entity_resolution_owner::ResolutionReadContext {
                 memories: &runtime.cva.memories,

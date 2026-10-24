@@ -45,9 +45,14 @@ fn prepare(
         if cooldowns.get(&id).is_some_and(|until| *until > now) {
             continue;
         }
-        let Some(epoch) = phy
-            .dream_eligible_epoch(id, unix_now_ns())
-            .map_err(operation)?
+        let Some(epoch) = crate::dream_cooldown::owner_eligible_epoch(
+            crate::memory_store::MemoryReadView::new(&phy.memories, &phy.container),
+            None,
+            &phy.processing_epochs,
+            id,
+            unix_now_ns(),
+        )
+        .map_err(operation)?
         else {
             continue;
         };
@@ -118,8 +123,18 @@ fn commit(
     }
     let source = snapshot.candidates.source.memory.id;
     phy.reconcile_dream_lifecycle(source).map_err(operation)?;
-    phy.mark_dream_processed(source, snapshot.dream_epoch, unix_now_ns())
-        .map_err(operation)?;
+    {
+        let phy = &mut *phy;
+        phy.processing_epochs
+            .put_for_memory(
+                &mut phy.container,
+                &phy.memories,
+                source,
+                crate::processing_epoch_model::DREAM_PROCESSING_LANE,
+                crate::dream_cooldown::dream_processing_state(snapshot.dream_epoch, unix_now_ns()),
+            )
+            .map_err(operation)?;
+    }
     phy.sync().map_err(operation)?;
     let mut ids = vec![source];
     ids.extend(

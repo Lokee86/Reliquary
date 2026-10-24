@@ -55,11 +55,7 @@ impl Cva {
             profile,
             now_ns,
         )?;
-        apply_principal_profile_sync_plan(
-            &mut self.container,
-            &mut self.entities,
-            plan,
-        )
+        apply_principal_profile_sync_plan(&mut self.container, &mut self.entities, plan)
     }
 }
 

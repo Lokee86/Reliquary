@@ -88,4 +88,3 @@ impl ResolutionReadContext<'_> {
         self.entity_resolutions.records()
     }
 }
-

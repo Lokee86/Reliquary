@@ -208,10 +208,31 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
                     let before = std::fs::metadata(runtime.cva.container.path())
                         .map_err(operation)?
                         .len();
-                    let batch = runtime
-                        .cva
-                        .prepare_semantic_archive_batch(profile.id)
-                        .map_err(operation)?;
+                    if let Some(generation) = runtime.cva.current_vector_generation(profile.id) {
+                        runtime
+                            .cva
+                            .process_semantic_freshness(generation.id, 64)
+                            .map_err(operation)?;
+                    }
+                    let cva = &runtime.cva;
+                    let read =
+                        crate::owner_lifecycle::semantic_archive_read::SemanticArchiveRead::new(
+                            crate::owner_lifecycle::semantic_source::SemanticSourceReadParts {
+                                container: &cva.container,
+                                archive: &cva.archive,
+                                freshness: &cva.freshness,
+                                generations: &cva.vector_generations,
+                                compatibility_profiles: &cva.compatibility_profiles,
+                                archive_vectors: &cva.archive_vectors,
+                                packed_vectors: &cva.packed_vectors,
+                            },
+                        );
+                    let batch = crate::semantic_archive_batch::prepare_batch(
+                        &read,
+                        profile.id,
+                        cva.current_vector_generation(profile.id),
+                    )
+                    .map_err(operation)?;
                     let changed = std::fs::metadata(runtime.cva.container.path())
                         .map_err(operation)?
                         .len()
@@ -235,10 +256,12 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
                 shared.mutate(
                     super::super::mutation_events::RelMutationFamily::Semantic,
                     |runtime| {
-                        runtime
-                            .cva
-                            .commit_semantic_archive_batch(batch, vectors)
-                            .map_err(operation)?;
+                        let current=runtime.cva.current_vector_generation(batch.profile.id);
+                        if let Some(plan)=crate::semantic_archive_batch::pack_batch(batch,vectors,current).map_err(operation)?{
+                            let cva=&mut runtime.cva;
+                            let generation=crate::owner_lifecycle::vector_publication::publish_semantic_archive(&mut cva.container,&cva.archive,&cva.compatibility_profiles,&mut cva.packed_vectors,&mut cva.archive_vectors,&mut cva.vector_generations,plan).map_err(operation)?;
+                            if cva.owner_uuid().is_some(){cva.process_semantic_freshness(generation.id,64).map_err(|e|operation(crate::VectorGenerationError::Freshness(e.to_string())))?;}
+                        }
                         Ok((
                             (),
                             true,

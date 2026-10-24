@@ -1065,10 +1065,15 @@ fn rel_pending(
         };
         if !has_vector {
             vector_pending += 1;
-        } else if cva
-            .dream_eligible_epoch(*id, now_ns)
-            .map_err(operation)?
-            .is_some()
+        } else if crate::dream_cooldown::owner_eligible_epoch(
+            crate::memory_store::MemoryReadView::new(&cva.memories, &cva.container),
+            Some(&cva.archive),
+            &cva.processing_epochs,
+            *id,
+            now_ns,
+        )
+        .map_err(operation)?
+        .is_some()
         {
             dream_pending += 1;
         }

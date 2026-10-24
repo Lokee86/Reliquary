@@ -105,6 +105,13 @@ pub(crate) fn hydrate_evidence_parts(
     container: &mut Container,
     plans: &[EvidencePlan],
 ) -> Result<(Vec<InsomniaEvidenceResult>, Vec<InsomniaEvidenceTurn>), InsomniaExtractionError> {
+    hydrate_evidence_read(&ArchiveReadView::new(archive, container), plans)
+}
+
+pub(crate) fn hydrate_evidence_read(
+    archive: &ArchiveReadView<'_>,
+    plans: &[EvidencePlan],
+) -> Result<(Vec<InsomniaEvidenceResult>, Vec<InsomniaEvidenceTurn>), InsomniaExtractionError> {
     let mut results = Vec::with_capacity(plans.len());
     let mut all_turns = Vec::new();
     for plan in plans {
@@ -112,14 +119,12 @@ pub(crate) fn hydrate_evidence_parts(
             Ok(EvidenceSelection::Turn {
                 conversation_id,
                 node,
-            }) => hydrate_turn(archive, container, conversation_id, node),
+            }) => hydrate_turn(archive, conversation_id, node),
             Ok(EvidenceSelection::Range {
                 conversation_id,
                 nodes,
-            }) => hydrate_range(archive, container, conversation_id, nodes),
-            Ok(EvidenceSelection::Search { fragments }) => {
-                hydrate_search(archive, container, fragments)
-            }
+            }) => hydrate_range(archive, conversation_id, nodes),
+            Ok(EvidenceSelection::Search { fragments }) => hydrate_search(archive, fragments),
             Err(error) => Err(error.clone()),
         };
         match resolved {
@@ -247,13 +252,12 @@ fn plan_search(
 }
 
 fn hydrate_turn(
-    archive: &Archive,
-    container: &mut Container,
+    archive: &ArchiveReadView<'_>,
     conversation_id: &str,
     node: &Node,
 ) -> Result<Vec<InsomniaEvidenceTurn>, String> {
     let content = archive
-        .content(container, node.content_id)
+        .content(node.content_id)
         .map_err(|error| error.to_string())?;
     Ok(vec![to_evidence_turn(
         conversation_id,
@@ -268,8 +272,7 @@ fn hydrate_turn(
 }
 
 fn hydrate_range(
-    archive: &Archive,
-    container: &mut Container,
+    archive: &ArchiveReadView<'_>,
     conversation_id: &str,
     nodes: &[Node],
 ) -> Result<Vec<InsomniaEvidenceTurn>, String> {
@@ -277,7 +280,7 @@ fn hydrate_range(
         .iter()
         .map(|node| {
             let content = archive
-                .content(container, node.content_id)
+                .content(node.content_id)
                 .map_err(|error| error.to_string())?;
             Ok(InsomniaEvidenceTurn {
                 conversation_id: conversation_id.to_owned(),
@@ -291,15 +294,14 @@ fn hydrate_range(
 }
 
 fn hydrate_search(
-    archive: &Archive,
-    container: &mut Container,
+    archive: &ArchiveReadView<'_>,
     fragments: &[Fragment],
 ) -> Result<Vec<InsomniaEvidenceTurn>, String> {
     let mut turns = Vec::new();
     for fragment in fragments {
         let conversation_id = fragment.conversation_id.clone();
         let fragment_turns = archive
-            .fragment_turns(container, fragment.id)
+            .fragment_turns(fragment.id)
             .map_err(|error| error.to_string())?;
         turns.extend(
             fragment_turns

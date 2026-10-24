@@ -36,31 +36,19 @@ impl Cva {
     }
 
     fn pending_semantic_fragments(&self) -> Result<Vec<(u64, crate::FragmentId)>, CvaError> {
-        let (owner, floor) = self.semantic_freshness_floor()?;
-        let mut pending = Vec::new();
-        for fragment in self.fragments() {
-            let Some(at) = self.semantic_fragment_position(fragment.id)? else {
-                continue;
-            };
-            if at > floor
-                && !self
-                    .freshness
-                    .contains_event(&crate::freshness_storage::semantic_fragment_event_id(
-                        owner,
-                        fragment.id,
-                    ))
-                    .map_err(CvaError::Freshness)?
-            {
-                pending.push((at, fragment.id));
-            }
-        }
-        pending.sort_by_key(|(at, id)| {
-            (
-                *at,
-                crate::freshness_storage::semantic_fragment_event_id(owner, *id),
-            )
-        });
-        Ok(pending)
+        crate::semantic_archive_batch::pending_fragments(
+            &crate::owner_lifecycle::semantic_archive_read::SemanticArchiveRead::new(
+                crate::owner_lifecycle::semantic_source::SemanticSourceReadParts {
+                    container: &self.container,
+                    archive: &self.archive,
+                    freshness: &self.freshness,
+                    generations: &self.vector_generations,
+                    compatibility_profiles: &self.compatibility_profiles,
+                    archive_vectors: &self.archive_vectors,
+                    packed_vectors: &self.packed_vectors,
+                },
+            ),
+        )
     }
 
     /// Process at most `limit` uncompleted retained fragments against one generation.
@@ -113,92 +101,53 @@ impl Cva {
     }
 }
 
-pub(crate) struct SemanticArchiveBatch {
-    profile: crate::CompatibilityProfile,
-    archive_version: u64,
-    fragment_ids: Vec<crate::FragmentId>,
-    pub texts: Vec<String>,
-}
-
+#[cfg(test)]
 impl Cva {
     pub(crate) fn prepare_semantic_archive_batch(
         &mut self,
         profile_id: crate::CompatibilityProfileId,
-    ) -> Result<Option<SemanticArchiveBatch>, CvaError> {
+    ) -> Result<Option<crate::semantic_archive_batch::SemanticArchiveBatch>, CvaError> {
         if let Some(generation) = self.current_vector_generation(profile_id) {
             self.process_semantic_freshness(generation.id, 64)?;
         }
-        let pending = self.pending_semantic_fragments()?;
-        if pending.is_empty() {
-            return Ok(None);
-        }
-        let archive_version = self.archive_version();
-        if let Some(generation) = self.current_vector_generation(profile_id) {
-            let set = self.archive_vectors(generation.archive_vector_id)?;
-            // A low-level generation may cover the Archive cut but omit a row.
-            // Retry that missing evidence; a cut watermark alone is insufficient.
-            if pending.iter().all(|(_, id)| {
-                self.archive
-                    .fragments
-                    .archive_version(*id)
-                    .is_some_and(|version| version <= generation.source_archive_version)
-                    && set.fragment_ids.contains(id)
-            }) {
-                return Ok(None);
-            }
-        }
-        let profile = self
-            .compatibility_profiles
-            .get(profile_id)
-            .cloned()
-            .ok_or_else(|| CvaError::Freshness("missing semantic embedding profile".into()))?;
-        let fragment_ids: Vec<_> = self
-            .fragments()
-            .into_iter()
-            .map(|fragment| fragment.id)
-            .collect();
-        let mut texts = Vec::with_capacity(fragment_ids.len());
-        for id in &fragment_ids {
-            texts.push(self.fragment_text(*id)?);
-        }
-        Ok(Some(SemanticArchiveBatch {
-            profile,
-            archive_version,
-            fragment_ids,
-            texts,
-        }))
+        let read = crate::owner_lifecycle::semantic_archive_read::SemanticArchiveRead::new(
+            crate::owner_lifecycle::semantic_source::SemanticSourceReadParts {
+                container: &self.container,
+                archive: &self.archive,
+                freshness: &self.freshness,
+                generations: &self.vector_generations,
+                compatibility_profiles: &self.compatibility_profiles,
+                archive_vectors: &self.archive_vectors,
+                packed_vectors: &self.packed_vectors,
+            },
+        );
+        crate::semantic_archive_batch::prepare_batch(
+            &read,
+            profile_id,
+            self.current_vector_generation(profile_id),
+        )
     }
-
     pub(crate) fn commit_semantic_archive_batch(
         &mut self,
-        batch: SemanticArchiveBatch,
+        batch: crate::semantic_archive_batch::SemanticArchiveBatch,
         vectors: Vec<Vec<f32>>,
     ) -> Result<(), CvaError> {
-        crate::compatibility_profile_probe::validate_embedding_batch(
-            &batch.profile,
-            &vectors,
-            batch.texts.len(),
-        )
-        .map_err(|e| CvaError::Freshness(e.to_string()))?;
-        // A newer retained generation can win while provider I/O is in flight.
-        if self
-            .current_vector_generation(batch.profile.id)
-            .is_some_and(|generation| generation.source_archive_version > batch.archive_version)
-        {
-            return Ok(());
+        let current = self.current_vector_generation(batch.profile.id);
+        if let Some(plan) = crate::semantic_archive_batch::pack_batch(batch, vectors, current)? {
+            let generation = crate::owner_lifecycle::vector_publication::publish_semantic_archive(
+                &mut self.container,
+                &self.archive,
+                &self.compatibility_profiles,
+                &mut self.packed_vectors,
+                &mut self.archive_vectors,
+                &mut self.vector_generations,
+                plan,
+            )?;
+            if self.owner_uuid().is_some() {
+                self.process_semantic_freshness(generation.id, 64)
+                    .map_err(|e| crate::VectorGenerationError::Freshness(e.to_string()))?;
+            }
         }
-        let schema = crate::VectorSchema::new(batch.profile.dimensions, crate::ScalarType::F32)
-            .map_err(|e| CvaError::Freshness(e.to_string()))?;
-        let bytes = vectors
-            .into_iter()
-            .flatten()
-            .flat_map(f32::to_le_bytes)
-            .collect();
-        let packed = crate::PackedVectors::from_bytes(schema, bytes)
-            .map_err(|e| CvaError::Freshness(e.to_string()))?;
-        let packed_id = self.put_packed_vectors(packed)?;
-        let archive_id = self.put_archive_vectors(packed_id, batch.fragment_ids)?;
-        self.publish_vector_generation(batch.profile.id, archive_id, batch.archive_version)?;
         Ok(())
     }
 }

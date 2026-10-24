@@ -1,8 +1,9 @@
 use super::progress::{elapsed_ms_between, report_retry};
 use super::{DrainCounters, DrainShared, now_ns};
 use crate::insomnia::backpressure;
-use crate::insomnia::native_processor::{prepare_application, publish_user_application};
+use crate::insomnia::native_processor::prepare_application_read;
 use crate::owner_lifecycle::insomnia_application::commit_application;
+use crate::owner_lifecycle::personal_memory_publication::publish_user_application;
 use crate::{
     GeneralEndpointError, InsomniaError, InsomniaExtractionError, InsomniaProgressEvent,
     InsomniaWork,
@@ -47,9 +48,9 @@ pub(super) fn apply_success(
             .container
             .lock()
             .map_err(|_| crate::InsomniaWorkerError::LockPoisoned)?;
-        prepare_application(
-            shared.archive,
-            &mut container,
+        prepare_application_read(
+            &crate::archive::ArchiveReadView::new(shared.archive, &container),
+            container.owner_id(),
             episode,
             turns,
             extraction,
@@ -66,8 +67,9 @@ pub(super) fn apply_success(
         let mut phylactery = phylactery
             .lock()
             .map_err(|_| crate::InsomniaWorkerError::LockPoisoned)?;
+        let phylactery = &mut **phylactery;
         Some(publish_user_application(
-            &mut **phylactery,
+            &mut crate::owner_lifecycle::personal_memory_publication::PersonalMemoryPublication::new(&mut phylactery.container,&mut phylactery.memories),
             &prepared.user_drafts,
         )?)
     };

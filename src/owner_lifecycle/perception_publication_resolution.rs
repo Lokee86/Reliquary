@@ -1,5 +1,7 @@
 use crate::entity_principal::PrincipalResolutionPlan;
-use crate::entity_resolution_commit::{EntityResolutionCommitOperation, EntityResolutionCommitPlan};
+use crate::entity_resolution_commit::{
+    EntityResolutionCommitOperation, EntityResolutionCommitPlan,
+};
 use crate::entity_resolution_store::EntityResolutionStore;
 use crate::entity_store::EntityStore;
 use crate::graph_store::GraphStore;
@@ -8,8 +10,9 @@ use crate::owner_lifecycle::entity_resolution_admission::{
     ResolutionWriteContext, ResolutionWritePlan, ResolutionWriteResult, apply_resolution_write_plan,
 };
 use crate::{
-    Container, EntityDraft, EntityError, EntityId, EntityResolutionDecision, EntityResolutionOutcome,
-    EntityResolverError, MemoryError, SemanticGraphRelationChange, GraphRelationOrigin,
+    Container, EntityDraft, EntityError, EntityId, EntityResolutionDecision,
+    EntityResolutionOutcome, EntityResolverError, GraphRelationOrigin, MemoryError,
+    SemanticGraphRelationChange,
 };
 
 pub(crate) fn apply_principal_resolution_plan(
@@ -272,4 +275,3 @@ pub(crate) fn apply_principal_profile_sync_plan(
         .publish(container, Some(id), revision, draft)
         .map(|(_, changed)| changed)
 }
-

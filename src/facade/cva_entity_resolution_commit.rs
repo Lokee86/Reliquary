@@ -1,8 +1,7 @@
 use crate::entity_resolution_commit::{
     self, EntityResolutionCommitContext, EntityResolutionCommitPlan,
 };
-use crate::owner_lifecycle::perception_publication_resolution::
-    apply_entity_resolution_commit_plan;
+use crate::owner_lifecycle::perception_publication_resolution::apply_entity_resolution_commit_plan;
 use crate::{
     Cva, EntityResolutionEvaluation, EntityResolutionOutcome, EntityResolutionPrepared,
     EntityResolverError, Phylactery,

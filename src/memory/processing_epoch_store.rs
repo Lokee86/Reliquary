@@ -12,6 +12,20 @@ pub(crate) struct ProcessingEpochStore {
 }
 
 impl ProcessingEpochStore {
+    pub(crate) fn put_for_memory(
+        &mut self,
+        container: &mut Container,
+        memories: &MemoryStore,
+        id: MemoryId,
+        lane: ProcessingLaneId,
+        state: ProcessingEpochState,
+    ) -> Result<bool, MemoryError> {
+        if !memories.contains_memory(id) {
+            return Err(MemoryError::MissingMemory);
+        }
+        self.put(container, id, lane, state)
+    }
+
     pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), MemoryError> {
         if payload.len() < PROCESSING_EPOCH_MAGIC.len()
             || payload[..PROCESSING_EPOCH_MAGIC.len()] != PROCESSING_EPOCH_MAGIC

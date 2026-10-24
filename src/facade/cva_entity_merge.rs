@@ -18,8 +18,15 @@ macro_rules! impl_entity_merge {
                     retired_id,
                     now_ns,
                 )?;
-                crate::perception_publication_reconciliation::apply_entity_merge_plan(
-                    plan,
+                crate::owner_lifecycle::perception_publication_merge::apply_entity_merge_plan(
+                    crate::entity_merge::prepare_merge_publication(
+                        plan,
+                        self.container.owner_id(),
+                        &self.memories,
+                        &self.entities,
+                        &self.graph,
+                        &self.relationships,
+                    ),
                     &mut self.container,
                     &self.memories,
                     &mut self.entities,

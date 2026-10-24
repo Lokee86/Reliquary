@@ -58,12 +58,17 @@ pub(crate) struct MemoryStore {
 
 /// A Container-neutral, owner-qualified view of current Memory read facts.
 /// Construction is inert; bodies are loaded only when `memory` is requested.
+#[derive(Clone, Copy)]
 pub(crate) struct MemoryReadView<'a> {
     store: &'a MemoryStore,
     container: &'a Container,
 }
 
 impl<'a> MemoryReadView<'a> {
+    pub(crate) fn current_body_id(&self, id: MemoryId) -> Result<MemoryBodyId, MemoryError> {
+        self.store.current_body_id(id)
+    }
+
     pub(crate) fn new(store: &'a MemoryStore, container: &'a Container) -> Self {
         Self { store, container }
     }

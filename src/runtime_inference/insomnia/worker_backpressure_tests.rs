@@ -114,9 +114,11 @@ fn runtime_backpressure_ignores_normal_attempt_budget() {
     };
     let cva = &mut cva;
     let claim = crate::insomnia::runtime_step::claim_runtime_insomnia(
-        &mut cva.container,
-        &cva.archive,
-        &mut cva.insomnia,
+        &mut crate::owner_lifecycle::insomnia_runtime::InsomniaRuntimePublication::lease(
+            &mut cva.container,
+            &cva.archive,
+            &mut cva.insomnia,
+        ),
         "runtime",
         &config,
     )
@@ -129,8 +131,11 @@ fn runtime_backpressure_ignores_normal_attempt_budget() {
         Some(Duration::from_secs(120)),
     ));
     crate::insomnia::runtime_step::fail_runtime_insomnia(
-        &mut cva.container,
-        &mut cva.insomnia,
+        &mut crate::owner_lifecycle::insomnia_runtime::InsomniaRuntimePublication::lease(
+            &mut cva.container,
+            &cva.archive,
+            &mut cva.insomnia,
+        ),
         &claim,
         &error,
         &config,

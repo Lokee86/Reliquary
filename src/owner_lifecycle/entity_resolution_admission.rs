@@ -2,8 +2,9 @@ use crate::entity_resolution_store::EntityResolutionStore;
 use crate::entity_store::EntityStore;
 use crate::memory_store::MemoryStore;
 use crate::{
-    Container, EntityId, EntityResolutionCompaction, EntityResolutionReason, MemoryEntityMentionKey,
-    MemoryEntityResolution, MemoryEntityResolutionStatus, MemoryError, MemoryId,
+    Container, EntityId, EntityResolutionCompaction, EntityResolutionReason,
+    MemoryEntityMentionKey, MemoryEntityResolution, MemoryEntityResolutionStatus, MemoryError,
+    MemoryId,
 };
 use std::collections::HashSet;
 

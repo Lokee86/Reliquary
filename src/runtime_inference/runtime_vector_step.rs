@@ -13,46 +13,6 @@ pub(crate) struct RuntimeMemoryVectorBatch {
     pub(crate) texts: Vec<String>,
 }
 
-pub(crate) fn select_body_ids(
-    profile_id: CompatibilityProfileId,
-    current: &[MemoryBodyId],
-    missing: impl Fn(CompatibilityProfileId, &[MemoryBodyId]) -> Vec<MemoryBodyId>,
-) -> Vec<MemoryBodyId> {
-    if current.is_empty() {
-        Vec::new()
-    } else {
-        missing(profile_id, current)
-    }
-}
-
-pub(crate) fn pending_rows(
-    profile_id: CompatibilityProfileId,
-    body_ids: Vec<MemoryBodyId>,
-    vectors: Vec<Vec<f32>>,
-    mut has_location: impl FnMut(CompatibilityProfileId, MemoryBodyId) -> bool,
-) -> (Vec<MemoryBodyId>, Vec<Vec<f32>>) {
-    let mut pending_ids = Vec::with_capacity(body_ids.len());
-    let mut pending_vectors = Vec::with_capacity(vectors.len());
-    for (body_id, vector) in body_ids.into_iter().zip(vectors) {
-        if !has_location(profile_id, body_id) {
-            pending_ids.push(body_id);
-            pending_vectors.push(vector);
-        }
-    }
-    (pending_ids, pending_vectors)
-}
-
-pub(crate) fn validate_body_presence(
-    body_ids: &[MemoryBodyId],
-    mut contains: impl FnMut(MemoryBodyId) -> bool,
-) -> Result<(), MemoryVectorError> {
-    if body_ids.iter().any(|id| !contains(*id)) {
-        Err(MemoryVectorError::MissingMemoryBody)
-    } else {
-        Ok(())
-    }
-}
-
 pub(crate) fn publication_plan(
     memories: &MemoryStore,
     profiles: &CompatibilityProfileStore,
@@ -64,16 +24,20 @@ pub(crate) fn publication_plan(
         return Err(MemoryVectorError::MissingProfile);
     }
     validate_embedding_batch(&batch.profile, &vectors, batch.body_ids.len())?;
-    let (body_ids, pending_vectors) = pending_rows(
-        batch.profile.id,
-        batch.body_ids,
-        vectors,
-        |profile, body| memory_vectors.location(profile, body).is_some(),
-    );
+    let mut body_ids = Vec::with_capacity(batch.body_ids.len());
+    let mut pending_vectors = Vec::with_capacity(vectors.len());
+    for (body, vector) in batch.body_ids.into_iter().zip(vectors) {
+        if memory_vectors.location(batch.profile.id, body).is_none() {
+            body_ids.push(body);
+            pending_vectors.push(vector);
+        }
+    }
     if body_ids.is_empty() {
         return Ok(None);
     }
-    validate_body_presence(&body_ids, |id| memories.contains_body(id))?;
+    if body_ids.iter().any(|id| !memories.contains_body(*id)) {
+        return Err(MemoryVectorError::MissingMemoryBody);
+    }
     let schema = VectorSchema::new(batch.profile.dimensions, ScalarType::F32)
         .map_err(|_| MemoryVectorError::InvalidEmbeddingMatrix)?;
     let row_bytes = usize::try_from(batch.profile.dimensions)

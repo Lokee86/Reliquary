@@ -43,10 +43,12 @@ pub(crate) fn load_fixture() -> RoutingFixture {
         .next()
         .expect("fixture compatibility profile");
     let by_body = load_memory_vectors(
-        &mut rel.container,
-        &rel.memories,
-        &rel.memory_vectors,
-        &rel.packed_vectors,
+        &crate::memory_store::MemoryReadView::new(&rel.memories, &rel.container),
+        &crate::memory_vector_store::MemoryVectorReadView::new(
+            &rel.memory_vectors,
+            &rel.packed_vectors,
+            &rel.container,
+        ),
         profile.id,
     )
     .unwrap();

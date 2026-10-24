@@ -1,4 +1,4 @@
-use super::processor::{PreparedApplication, PreparedMemory};
+use super::native_processor::{PreparedApplication, PreparedMemory};
 use super::temporal::{assess_draft, infer_prepared};
 use crate::{
     GeneralEndpoint, GeneralEndpointError, MemoryDraft, TemporalIndicationKind,

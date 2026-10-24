@@ -1,7 +1,8 @@
-use crate::{Archive, Container, InsomniaCandidate};
+use crate::InsomniaCandidate;
+use crate::archive::ArchiveReadView;
 
 pub(super) fn candidate_source_time_ns(
-    archive: &Archive,
+    archive: &ArchiveReadView<'_>,
     candidate: &InsomniaCandidate,
     turns: &[crate::ResolvedTurn],
 ) -> Result<i64, super::InsomniaProcessError> {
@@ -10,8 +11,7 @@ pub(super) fn candidate_source_time_ns(
         candidate.authority_source_node_id.as_deref(),
     ) {
         return archive
-            .nodes
-            .get(conversation_id, node_id)
+            .node(conversation_id, node_id)
             .map(|node| node.timestamp_ns)
             .ok_or_else(|| {
                 super::InsomniaProcessError::InvalidCandidate(
@@ -29,8 +29,7 @@ pub(super) fn candidate_source_time_ns(
 }
 
 pub(super) fn validate_candidate_sources(
-    archive: &Archive,
-    container: &mut Container,
+    archive: &ArchiveReadView<'_>,
     candidate: &InsomniaCandidate,
     episode_conversation_id: &str,
     episode_turns: &[crate::ResolvedTurn],
@@ -42,7 +41,6 @@ pub(super) fn validate_candidate_sources(
         .ok_or_else(|| "authority source disappeared from episode".to_owned())?;
     validate_support_source(
         archive,
-        container,
         candidate.authority_source_conversation_id.as_deref(),
         candidate.authority_source_node_id.as_deref(),
         candidate.authority_source_quote.as_deref(),
@@ -55,7 +53,6 @@ pub(super) fn validate_candidate_sources(
     )?;
     validate_support_source(
         archive,
-        container,
         candidate.grounding_source_conversation_id.as_deref(),
         candidate.grounding_source_node_id.as_deref(),
         candidate.grounding_source_quote.as_deref(),
@@ -70,8 +67,7 @@ pub(super) fn validate_candidate_sources(
 
 #[allow(clippy::too_many_arguments)]
 fn validate_support_source(
-    archive: &Archive,
-    container: &mut Container,
+    archive: &ArchiveReadView<'_>,
     conversation_id: Option<&str>,
     node_id: Option<&str>,
     quote: Option<&str>,
@@ -112,7 +108,7 @@ fn validate_support_source(
         return Err(format!("{label} source must not postdate user authority"));
     }
     let content = archive
-        .content(container, source.content_id)
+        .content(source.content_id)
         .map_err(|_| format!("{label} source body is unavailable"))?;
     if quote.trim().is_empty() || !content.contains(quote.trim()) {
         return Err(format!("{label} source quote is not verbatim"));

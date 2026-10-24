@@ -88,9 +88,7 @@ pub(super) fn worker_loop(
                 |runtime| {
                     let cva = &mut runtime.cva;
                     let claim = crate::insomnia::runtime_step::claim_runtime_insomnia(
-                        &mut cva.container,
-                        &cva.archive,
-                        &mut cva.insomnia,
+                        &mut crate::owner_lifecycle::insomnia_runtime::InsomniaRuntimePublication::lease(&mut cva.container,&cva.archive,&mut cva.insomnia),
                         &worker_id,
                         &shared.config,
                     )
@@ -149,9 +147,7 @@ fn process_claim(
                     let cva = &mut runtime.cva;
                     let value =
                         crate::insomnia::runtime_step::prepare_runtime_insomnia_application(
-                            &mut cva.container,
-                            &cva.archive,
-                            &mut cva.insomnia,
+                            &mut crate::owner_lifecycle::insomnia_runtime::InsomniaRuntimePublication::lease(&mut cva.container,&cva.archive,&mut cva.insomnia),
                             &claim,
                             extraction,
                             &shared.config,
@@ -190,12 +186,7 @@ fn process_claim(
             |runtime| {
                 let cva = &mut runtime.cva;
                 crate::insomnia::runtime_step::commit_runtime_insomnia_verified(
-                    &mut cva.container,
-                    &cva.archive,
-                    &mut cva.memories,
-                    &mut cva.insomnia,
-                    &mut cva.freshness,
-                    &mut cva.dream_freshness,
+                    &mut crate::owner_lifecycle::insomnia_runtime::InsomniaRuntimePublication::completion(&mut cva.container,&cva.archive,&mut cva.memories,&mut cva.insomnia,&mut cva.freshness,&mut cva.dream_freshness),
                     &claim,
                     prepared,
                     publication,
@@ -307,8 +298,11 @@ fn fail_claim(
         |runtime| {
             let cva = &mut runtime.cva;
             crate::insomnia::runtime_step::fail_runtime_insomnia(
-                &mut cva.container,
-                &mut cva.insomnia,
+                &mut crate::owner_lifecycle::insomnia_runtime::InsomniaRuntimePublication::lease(
+                    &mut cva.container,
+                    &cva.archive,
+                    &mut cva.insomnia,
+                ),
                 claim,
                 error,
                 &shared.config,
@@ -338,8 +332,8 @@ fn finish_evidence(
         let cva = &mut runtime.cva;
         crate::insomnia::runtime_step::hydrate_runtime_insomnia_evidence(
             &cva.archive,
+            &crate::archive::ArchiveReadView::new(&cva.archive, &cva.container),
             &mut cva.lexical_index,
-            &mut cva.container,
             claim,
             &round,
         )?

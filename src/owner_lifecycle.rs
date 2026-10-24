@@ -182,3 +182,15 @@ pub(crate) mod historical_freshness_read;
 
 #[path = "owner_lifecycle/physical_fingerprint.rs"]
 pub(crate) mod physical_fingerprint;
+
+#[path = "owner_lifecycle/perception_publication_merge.rs"]
+pub(crate) mod perception_publication_merge;
+
+#[path = "owner_lifecycle/personal_memory_publication.rs"]
+pub(crate) mod personal_memory_publication;
+
+#[path = "owner_lifecycle/insomnia_runtime.rs"]
+pub(crate) mod insomnia_runtime;
+
+#[path = "owner_lifecycle/semantic_archive_read.rs"]
+pub(crate) mod semantic_archive_read;

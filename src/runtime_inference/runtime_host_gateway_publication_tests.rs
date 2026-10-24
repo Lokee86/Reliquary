@@ -125,9 +125,11 @@ impl Fixture {
                 .unwrap();
             let cva = &mut runtime.cva;
             crate::insomnia::runtime_step::claim_runtime_insomnia(
-                &mut cva.container,
-                &cva.archive,
-                &mut cva.insomnia,
+                &mut crate::owner_lifecycle::insomnia_runtime::InsomniaRuntimePublication::lease(
+                    &mut cva.container,
+                    &cva.archive,
+                    &mut cva.insomnia,
+                ),
                 "publication-test",
                 &gateway.config,
             )
@@ -199,15 +201,20 @@ impl Fixture {
         ];
         let handle = runtime(&gateway, &rel);
         let mut owner = handle.lock().unwrap();
-        let claim = crate::insomnia::runtime_step::claim_runtime_insomnia(
-            &mut owner.cva.container,
-            &owner.cva.archive,
-            &mut owner.cva.insomnia,
-            "publication-recovery",
-            &gateway.config,
-        )
-        .unwrap()
-        .unwrap_or(claim);
+        let claim = {
+            let owner = &mut *owner;
+            crate::insomnia::runtime_step::claim_runtime_insomnia(
+                &mut crate::owner_lifecycle::insomnia_runtime::InsomniaRuntimePublication::lease(
+                    &mut owner.cva.container,
+                    &owner.cva.archive,
+                    &mut owner.cva.insomnia,
+                ),
+                "publication-recovery",
+                &gateway.config,
+            )
+            .unwrap()
+            .unwrap_or(claim)
+        };
         drop(owner);
         Self {
             gateway,
@@ -253,12 +260,14 @@ impl Fixture {
         let mut runtime = handle.lock().unwrap();
         let cva = &mut runtime.cva;
         crate::insomnia::runtime_step::commit_runtime_insomnia_verified(
-            &mut cva.container,
-            &cva.archive,
-            &mut cva.memories,
-            &mut cva.insomnia,
-            &mut cva.freshness,
-            &mut cva.dream_freshness,
+            &mut crate::owner_lifecycle::insomnia_runtime::InsomniaRuntimePublication::completion(
+                &mut cva.container,
+                &cva.archive,
+                &mut cva.memories,
+                &mut cva.insomnia,
+                &mut cva.freshness,
+                &mut cva.dream_freshness,
+            ),
             &self.claim,
             prepared,
             publication,

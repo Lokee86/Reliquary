@@ -43,6 +43,30 @@ pub(crate) struct ArchiveReadView<'a> {
 }
 
 impl<'a> ArchiveReadView<'a> {
+    pub(crate) fn episode(&self, id: crate::EpisodeId) -> Option<&crate::Episode> {
+        self.archive.episode(id)
+    }
+    pub(crate) fn episode_turns(
+        &self,
+        id: crate::EpisodeId,
+    ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
+        self.archive.episode_turns(self.container, id)
+    }
+    pub(crate) fn node(&self, conversation: &str, id: &str) -> Option<&Node> {
+        self.archive.nodes.get(conversation, id)
+    }
+    pub(crate) fn require_node(
+        &self,
+        conversation: &str,
+        id: &str,
+        error: ArchiveError,
+    ) -> Result<&Node, ArchiveError> {
+        self.archive.require_node(conversation, id, error)
+    }
+    pub(crate) fn fragment_turns(&self, id: FragmentId) -> Result<Vec<ResolvedTurn>, ArchiveError> {
+        self.archive.fragment_turns(self.container, id)
+    }
+
     pub(crate) fn new(archive: &'a Archive, container: &'a Container) -> Self {
         Self { archive, container }
     }

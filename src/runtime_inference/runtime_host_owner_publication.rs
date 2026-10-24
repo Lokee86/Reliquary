@@ -462,15 +462,20 @@ impl PublicationCoordinator {
                     ));
                 }
                 let inference = memory.bound_temporal_inference();
-                owner
-                    .publish_memory_with_source_ref_and_temporal_inference(
-                        None,
-                        0,
-                        memory.draft.clone(),
-                        source,
-                        inference,
-                    )
-                    .map_err(operation)?;
+                {
+                    let owner = &mut *owner;
+                    owner
+                        .memories
+                        .publish_with_source_ref_and_temporal_inference(
+                            &mut owner.container,
+                            None,
+                            0,
+                            memory.draft.clone(),
+                            Some(source),
+                            inference,
+                        )
+                        .map_err(operation)?;
+                }
                 created = true;
             }
             let original = owner.memory_revision(id, 1).map_err(operation)?;

@@ -1,5 +1,5 @@
 #[path = "processor/application.rs"]
-mod application;
+pub(crate) mod application;
 #[path = "processor/prepared.rs"]
 mod prepared;
 #[path = "processor/result.rs"]
@@ -7,7 +7,7 @@ mod result;
 #[path = "processor/source_validation.rs"]
 mod source_validation;
 
-pub(crate) use application::{prepare_application, publish_user_application};
+pub(crate) use application::prepare_application_read;
 pub(crate) use prepared::{
     PreparedApplication, PreparedMemory, PreparedUserMemory, UserPublication,
 };
@@ -29,21 +29,6 @@ impl super::evidence::EvidenceSearch for crate::lexical_index::LexicalIndex {
     }
 }
 
-pub(crate) fn claimed_episode_input_parts(
-    archive: &crate::Archive,
-    container: &mut crate::Container,
-    claim: &crate::InsomniaWork,
-    scope: &str,
-) -> Result<(crate::Episode, Vec<crate::ResolvedTurn>), InsomniaProcessError> {
-    validate_claim(claim, scope)?;
-    let episode = archive
-        .episode(claim.episode_id)
-        .cloned()
-        .ok_or(InsomniaProcessError::MissingEpisode)?;
-    let turns = archive.episode_turns(container, claim.episode_id)?;
-    Ok((episode, turns))
-}
-
 fn validate_claim(claim: &crate::InsomniaWork, scope: &str) -> Result<(), InsomniaProcessError> {
     if claim.state != crate::InsomniaWorkState::Processing
         || claim.lease_token.is_none()
@@ -53,4 +38,18 @@ fn validate_claim(claim: &crate::InsomniaWork, scope: &str) -> Result<(), Insomn
     } else {
         Ok(())
     }
+}
+
+pub(crate) fn claimed_episode_input_read(
+    archive: &crate::archive::ArchiveReadView<'_>,
+    claim: &crate::InsomniaWork,
+    scope: &str,
+) -> Result<(crate::Episode, Vec<crate::ResolvedTurn>), InsomniaProcessError> {
+    validate_claim(claim, scope)?;
+    let episode = archive
+        .episode(claim.episode_id)
+        .cloned()
+        .ok_or(InsomniaProcessError::MissingEpisode)?;
+    let turns = archive.episode_turns(claim.episode_id)?;
+    Ok((episode, turns))
 }

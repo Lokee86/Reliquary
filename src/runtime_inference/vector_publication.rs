@@ -1,7 +1,7 @@
 use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::memory_store::MemoryReadView;
 use crate::memory_vector_store::MemoryVectorStore;
-use crate::runtime_vector_step::{self, RuntimeMemoryVectorBatch};
+use crate::runtime_vector_step_policy::{self, RuntimeMemoryVectorBatch};
 use crate::{CompatibilityProfileId, MemoryVectorError};
 
 pub(crate) fn prepare_batch(
@@ -15,9 +15,11 @@ pub(crate) fn prepare_batch(
         .cloned()
         .ok_or(MemoryVectorError::MissingProfile)?;
     let current = memories.current_body_ids();
-    let body_ids = runtime_vector_step::select_body_ids(profile_id, &current, |profile, ids| {
-        vectors.missing_body_ids(profile, ids)
-    });
+    let body_ids = if current.is_empty() {
+        Vec::new()
+    } else {
+        vectors.missing_body_ids(profile_id, &current)
+    };
     if body_ids.is_empty() {
         return Ok(None);
     }

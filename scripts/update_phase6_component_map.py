@@ -52,6 +52,10 @@ def source_changes(base: str) -> tuple[set[str], set[str], set[str]]:
 
 
 def role(path: str, previous: str | None) -> tuple[str | None, str | None]:
+    if path in {"src/runtime_inference/insomnia_runtime_execution.rs", "src/runtime_inference/vector_publication.rs", "src/runtime_inference/semantic_archive_batch.rs"}:
+        return "runtime-gateway", "Mounted execution coordinates lower domain plans with concrete native owner publication; no product binding, physical handle parameter or provider callback."
+    if path.startswith("src/owner_lifecycle/"):
+        return "owner-lifecycle", "Concrete native owner admission, reads or ordered publication; domain planning stays above and enters as passive producer values."
     if path.startswith(("src/owner_lifecycle/perception_publication", "src/owner_lifecycle/entity_resolution_admission", "src/owner_lifecycle/external_owner_access", "src/owner_lifecycle/external_publication", "src/owner_lifecycle/vector_publication")):
         return "owner-lifecycle", "Concrete cross-owner admission, physical owner reads and ordered native publication over existing stores; semantic planning stays above and enters only as passive producer values."
     if path in {"src/external_source/mod.rs", "src/external_source/processing.rs", "src/external_source/provenance.rs"}:
@@ -66,7 +70,7 @@ def role(path: str, previous: str | None) -> tuple[str | None, str | None]:
         return "public-consumers", "Phase 6 public extension or composition source; placed above owner/domain implementation."
     if path == "src/archive/archive_search.rs":
         return "archive-store", "Archive owns search result/value DTOs and search policy; public Cva adapter resides in facade."
-    if path == "src/retrieval/vector_generation_store.rs":
+    if path in {"src/retrieval/vector_generation_store.rs", "src/retrieval/memory_vector_store.rs", "src/retrieval/packed_vector_store.rs"}:
         return "vector-store", "VectorGenerationStore is a durable owner store; the baseline owner-boundaries manifest explicitly assigns this path to vector-store. Retrieval consumes it through store APIs."
     if path.startswith("src/retrieval/"):
         return "retrieval", "Retrieval policy/implementation remains Retrieval-owned; public Cva/Phylactery adapters reside in facade."

@@ -287,3 +287,45 @@ pub(crate) fn memory_vector_id(
     }
     MemoryVectorId(hash.finalize().into())
 }
+
+pub(crate) struct SemanticArchivePublicationPlan {
+    pub(crate) profile_id: crate::CompatibilityProfileId,
+    pub(crate) archive_version: u64,
+    pub(crate) fragment_ids: Vec<crate::FragmentId>,
+    pub(crate) packed: crate::PackedVectors,
+}
+
+pub(crate) struct MemoryVectorReadView<'a> {
+    store: &'a MemoryVectorStore,
+    packed: &'a PackedVectorStore,
+    container: &'a Container,
+}
+impl<'a> MemoryVectorReadView<'a> {
+    pub(crate) fn new(
+        store: &'a MemoryVectorStore,
+        packed: &'a PackedVectorStore,
+        container: &'a Container,
+    ) -> Self {
+        Self {
+            store,
+            packed,
+            container,
+        }
+    }
+    pub(crate) fn location(
+        &self,
+        profile: CompatibilityProfileId,
+        id: MemoryBodyId,
+    ) -> Option<MemoryVectorLocation> {
+        self.store.location(profile, id)
+    }
+    pub(crate) fn get(&self, id: MemoryVectorId) -> Result<MemoryVectorSet, MemoryVectorError> {
+        self.store.get(self.container, id)
+    }
+    pub(crate) fn packed(
+        &self,
+        id: PackedVectorId,
+    ) -> Result<crate::PackedVectors, crate::PackedVectorError> {
+        self.packed.get(self.container, id)
+    }
+}

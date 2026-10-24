@@ -1969,3 +1969,12 @@ pub(crate) mod perception_import_replay;
 pub(crate) mod perception_publication_reconciliation;
 #[path = "runtime_inference/perception_publication_resolution.rs"]
 pub(crate) mod perception_publication_resolution;
+
+#[path = "runtime_inference/vector_publication.rs"]
+mod vector_publication;
+
+#[path = "runtime_inference/semantic_archive_batch.rs"]
+mod semantic_archive_batch;
+
+#[path = "retrieval/memory_candidate_collection.rs"]
+mod memory_candidate_collection;

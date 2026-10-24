@@ -91,7 +91,7 @@ impl Archive {
 
     pub(crate) fn fragment_turns(
         &self,
-        container: &mut Container,
+        container: &Container,
         id: FragmentId,
     ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
         let fragment = self

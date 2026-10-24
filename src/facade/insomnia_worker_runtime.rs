@@ -1,7 +1,7 @@
 use super::{InsomniaDrainResult, InsomniaWorkerConfig, InsomniaWorkerError};
 use crate::insomnia::evidence::{hydrate_evidence_parts, plan_evidence};
 use crate::insomnia::extraction::{InsomniaExtractionStage, InsomniaExtractor};
-use crate::insomnia::native_processor::claimed_episode_input_parts;
+use crate::insomnia::native_processor::claimed_episode_input_read;
 use crate::insomnia::store::InsomniaStore;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
@@ -201,7 +201,11 @@ fn worker_loop<E: GeneralEndpoint>(
                 .container
                 .lock()
                 .map_err(|_| InsomniaWorkerError::LockPoisoned)?;
-            claimed_episode_input_parts(shared.archive, &mut container, &claim, &config.scope)
+            claimed_episode_input_read(
+                &crate::archive::ArchiveReadView::new(shared.archive, &container),
+                &claim,
+                &config.scope,
+            )
         };
         let (episode, turns) = match input {
             Ok(input) => input,

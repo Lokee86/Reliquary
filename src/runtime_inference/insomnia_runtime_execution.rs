@@ -1,39 +1,25 @@
 use super::RuntimeInsomniaClaim;
 use super::backpressure;
-use super::evidence::{hydrate_evidence_parts, plan_evidence};
+use super::evidence::{hydrate_evidence_read, plan_evidence};
 use super::extraction::{InsomniaEvidenceRound, InsomniaExtractionError};
 use super::native_processor::{
-    PreparedApplication, UserPublication, claimed_episode_input_parts, prepare_application,
+    PreparedApplication, UserPublication, claimed_episode_input_read, prepare_application_read,
 };
-use super::store::InsomniaStore;
-use crate::freshness_dream_journal::DreamFreshnessJournal;
-use crate::freshness_storage::FreshnessStore;
 use crate::lexical_index::LexicalIndex;
-use crate::memory_store::MemoryStore;
-use crate::{
-    Archive, Container, InsomniaExtraction, InsomniaProcessResult, InsomniaWorkerConfig,
-    InsomniaWorkerError,
-};
+use crate::owner_lifecycle::insomnia_runtime::InsomniaRuntimePublication;
+use crate::{InsomniaExtraction, InsomniaProcessResult, InsomniaWorkerConfig, InsomniaWorkerError};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub(crate) fn claim_runtime_insomnia(
-    container: &mut Container,
-    archive: &Archive,
-    insomnia: &mut InsomniaStore,
+    owner: &mut InsomniaRuntimePublication<'_>,
     worker_id: &str,
     config: &InsomniaWorkerConfig,
 ) -> Result<Option<RuntimeInsomniaClaim>, InsomniaWorkerError> {
     let started_at_ns = now_ns();
-    let Some(work) = insomnia.claim_next(
-        container,
-        worker_id,
-        started_at_ns,
-        config.lease_duration_ns,
-    )?
-    else {
+    let Some(work) = owner.claim(worker_id, started_at_ns, config.lease_duration_ns)? else {
         return Ok(None);
     };
-    match claimed_episode_input_parts(archive, container, &work, &config.scope) {
+    match claimed_episode_input_read(&owner.read(), &work, &config.scope) {
         Ok((episode, turns)) => Ok(Some(RuntimeInsomniaClaim {
             work,
             episode,
@@ -41,10 +27,8 @@ pub(crate) fn claim_runtime_insomnia(
             started_at_ns,
         })),
         Err(error) => {
-            insomnia.terminal(
-                container,
-                work.episode_id,
-                work.lease_token.ok_or(crate::InsomniaError::InvalidLease)?,
+            owner.terminal(
+                &work,
                 started_at_ns,
                 now_ns(),
                 bounded_reason(error.to_string()),
@@ -55,9 +39,9 @@ pub(crate) fn claim_runtime_insomnia(
 }
 
 pub(crate) fn hydrate_runtime_insomnia_evidence(
-    archive: &Archive,
+    archive: &crate::Archive,
+    archive_read: &crate::archive::ArchiveReadView<'_>,
     lexical_index: &mut LexicalIndex,
-    container: &mut Container,
     claim: &RuntimeInsomniaClaim,
     round: &InsomniaEvidenceRound,
 ) -> Result<
@@ -67,36 +51,24 @@ pub(crate) fn hydrate_runtime_insomnia_evidence(
     ),
     InsomniaExtractionError,
 > {
-    let archive_read = crate::archive::ArchiveReadView::new(archive, container);
     lexical_index
-        .ensure_current(&archive_read)
+        .ensure_current(archive_read)
         .map_err(|error| InsomniaExtractionError::InvalidOutput(error.to_string()))?;
     let plans = plan_evidence(archive, lexical_index, &claim.episode, &round.requests);
-    hydrate_evidence_parts(archive, container, &plans)
+    hydrate_evidence_read(archive_read, &plans)
 }
 
 pub(crate) fn prepare_runtime_insomnia_application(
-    container: &mut Container,
-    archive: &Archive,
-    insomnia: &mut InsomniaStore,
+    owner: &mut InsomniaRuntimePublication<'_>,
     claim: &RuntimeInsomniaClaim,
     extraction: InsomniaExtraction,
     config: &InsomniaWorkerConfig,
 ) -> Result<PreparedApplication, InsomniaWorkerError> {
     let prepared_at_ns = now_ns();
-    insomnia.renew(
-        container,
-        claim.work.episode_id,
-        claim
-            .work
-            .lease_token
-            .ok_or(crate::InsomniaError::InvalidLease)?,
-        prepared_at_ns,
-        config.lease_duration_ns,
-    )?;
-    prepare_application(
-        archive,
-        container,
+    owner.renew(&claim.work, prepared_at_ns, config.lease_duration_ns)?;
+    prepare_application_read(
+        &owner.read(),
+        owner.owner_id(),
         &claim.episode,
         &claim.turns,
         extraction,
@@ -107,50 +79,27 @@ pub(crate) fn prepare_runtime_insomnia_application(
 }
 
 pub(crate) fn commit_runtime_insomnia_verified(
-    container: &mut Container,
-    archive: &Archive,
-    memories: &mut MemoryStore,
-    insomnia: &mut InsomniaStore,
-    freshness: &mut FreshnessStore,
-    dream_freshness: &mut DreamFreshnessJournal,
+    owner: &mut InsomniaRuntimePublication<'_>,
     claim: &RuntimeInsomniaClaim,
     prepared: PreparedApplication,
     publication: UserPublication,
     config: &InsomniaWorkerConfig,
 ) -> Result<InsomniaProcessResult, InsomniaWorkerError> {
     let completed_at_ns = now_ns();
-    insomnia.renew(
-        container,
-        claim.work.episode_id,
-        claim
-            .work
-            .lease_token
-            .ok_or(crate::InsomniaError::InvalidLease)?,
-        completed_at_ns,
-        config.lease_duration_ns,
-    )?;
-    let owner_uuid = container.owner_uuid();
-    let accepted_rel_turn = archive.rel_turn_count();
-    crate::owner_lifecycle::insomnia_application::commit_application(
-        container,
-        memories,
-        insomnia,
-        freshness,
-        dream_freshness,
-        owner_uuid,
-        accepted_rel_turn,
-        &claim.work,
-        prepared,
-        Some(publication),
-        claim.started_at_ns,
-        completed_at_ns,
-    )
-    .map_err(Into::into)
+    owner.renew(&claim.work, completed_at_ns, config.lease_duration_ns)?;
+    owner
+        .commit(
+            &claim.work,
+            prepared,
+            publication,
+            claim.started_at_ns,
+            completed_at_ns,
+        )
+        .map_err(Into::into)
 }
 
 pub(crate) fn fail_runtime_insomnia(
-    container: &mut Container,
-    insomnia: &mut InsomniaStore,
+    owner: &mut InsomniaRuntimePublication<'_>,
     claim: &RuntimeInsomniaClaim,
     error: &InsomniaExtractionError,
     config: &InsomniaWorkerConfig,
@@ -162,34 +111,23 @@ pub(crate) fn fail_runtime_insomnia(
         .lease_token
         .ok_or(crate::InsomniaError::InvalidLease)?;
     if let Some(retry_after_ns) = backpressure::retry_after_ns(error) {
-        insomnia.fail(
-            container,
-            claim.work.episode_id,
-            token,
+        owner.fail(
+            &claim.work,
             claim.started_at_ns,
             failed_at_ns,
             failed_at_ns.saturating_add(retry_after_ns),
             reason,
         )?;
     } else if retryable(error) && claim.work.attempt_count < config.max_attempts {
-        insomnia.fail(
-            container,
-            claim.work.episode_id,
-            token,
+        owner.fail(
+            &claim.work,
             claim.started_at_ns,
             failed_at_ns,
             failed_at_ns.saturating_add(config.retry_delay_ns),
             reason,
         )?;
     } else {
-        insomnia.terminal(
-            container,
-            claim.work.episode_id,
-            token,
-            claim.started_at_ns,
-            failed_at_ns,
-            reason,
-        )?;
+        owner.terminal(&claim.work, claim.started_at_ns, failed_at_ns, reason)?;
     }
     Ok(())
 }

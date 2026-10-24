@@ -77,6 +77,7 @@ pub(super) fn worker_loop(
                     .owner
                     .lock()
                     .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
+                let owner = &mut *owner;
                 let accepted = crate::owner_lifecycle::vector_publication::accept_profile(
                     &mut owner.container,
                     &mut owner.compatibility_profiles,
@@ -141,6 +142,7 @@ pub(super) fn worker_loop(
                     )
                     .map_err(operation)?;
                     if let Some(plan) = plan {
+                        let owner = &mut *owner;
                         crate::owner_lifecycle::vector_publication::publish_memory_vectors(
                             &mut owner.container,
                             &owner.compatibility_profiles,

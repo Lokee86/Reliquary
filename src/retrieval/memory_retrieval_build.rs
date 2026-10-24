@@ -24,10 +24,12 @@ pub(crate) fn build_memory_retrieval_index(
         return Err(MemoryRetrievalError::InvalidConfig);
     }
     let (searchable, vectors) = load_searchable_memory_vectors(
-        container,
-        memories,
-        memory_vectors,
-        packed_vectors,
+        &crate::memory_store::MemoryReadView::new(memories, container),
+        &crate::memory_vector_store::MemoryVectorReadView::new(
+            memory_vectors,
+            packed_vectors,
+            container,
+        ),
         profile_id,
     )?;
     let dimensions = vectors

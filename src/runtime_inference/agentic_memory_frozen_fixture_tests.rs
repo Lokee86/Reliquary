@@ -46,10 +46,12 @@ impl Fixture {
             .into_iter()
             .map(|profile| {
                 let (_, vectors) = crate::memory_retrieval_vectors::load_searchable_memory_vectors(
-                    &mut rel.container,
-                    &rel.memories,
-                    &rel.memory_vectors,
-                    &rel.packed_vectors,
+                    &crate::memory_store::MemoryReadView::new(&rel.memories, &rel.container),
+                    &crate::memory_vector_store::MemoryVectorReadView::new(
+                        &rel.memory_vectors,
+                        &rel.packed_vectors,
+                        &rel.container,
+                    ),
                     profile.id,
                 )
                 .unwrap();
