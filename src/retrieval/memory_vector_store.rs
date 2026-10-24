@@ -9,6 +9,12 @@ use crate::{
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 
+pub(crate) struct MemoryVectorPublicationPlan {
+    pub(crate) profile_id: CompatibilityProfileId,
+    pub(crate) packed_vectors: lodestone_packed::PackedVectors,
+    pub(crate) body_ids: Vec<MemoryBodyId>,
+}
+
 #[derive(Default)]
 pub(crate) struct MemoryVectorStore {
     objects: HashMap<MemoryVectorId, MemoryVectorEntry>,

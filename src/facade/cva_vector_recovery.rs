@@ -16,15 +16,14 @@ impl Cva {
         endpoint: &impl EmbeddingEndpoint,
     ) -> Result<DerivedVectorRecovery, CvaError> {
         let candidate = profile_from_endpoint(endpoint)?;
-        let profile = crate::vector_publication::accept_profile(
+        let profile = crate::owner_lifecycle::vector_publication::accept_profile(
             &mut self.container,
             &mut self.compatibility_profiles,
             candidate,
         )?;
 
         let batch = crate::vector_publication::prepare_batch(
-            &mut self.container,
-            &self.memories,
+            &crate::memory_store::MemoryReadView::new(&self.memories, &self.container),
             &self.compatibility_profiles,
             &self.memory_vectors,
             profile.id,
@@ -34,15 +33,27 @@ impl Cva {
                 let vectors = endpoint
                     .embed(EmbeddingMode::Document, &batch.texts)
                     .map_err(MemoryVectorError::from)?;
-                crate::vector_publication::commit_batch(
-                    &mut self.container,
-                    &self.memories,
-                    &self.compatibility_profiles,
-                    &mut self.packed_vectors,
-                    &mut self.memory_vectors,
-                    batch,
-                    vectors,
-                )?
+                {
+                    let plan = crate::runtime_vector_step_policy::publication_plan(
+                        &self.memories,
+                        &self.compatibility_profiles,
+                        &self.memory_vectors,
+                        batch,
+                        vectors,
+                    )?;
+                    match plan {
+                        Some(plan) => {
+                            crate::owner_lifecycle::vector_publication::publish_memory_vectors(
+                                &mut self.container,
+                                &self.compatibility_profiles,
+                                &mut self.packed_vectors,
+                                &mut self.memory_vectors,
+                                plan,
+                            )?
+                        }
+                        None => 0,
+                    }
+                }?
             }
             None => 0,
         };

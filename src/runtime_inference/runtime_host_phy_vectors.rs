@@ -77,7 +77,7 @@ pub(super) fn worker_loop(
                     .owner
                     .lock()
                     .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
-                let accepted = crate::vector_publication::accept_profile(
+                let accepted = crate::owner_lifecycle::vector_publication::accept_profile(
                     &mut owner.container,
                     &mut owner.compatibility_profiles,
                     candidate.as_ref().expect("profile candidate").clone(),
@@ -103,8 +103,7 @@ pub(super) fn worker_loop(
                     .lock()
                     .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
                 crate::vector_publication::prepare_batch(
-                    &mut owner.container,
-                    &owner.memories,
+                    &crate::memory_store::MemoryReadView::new(&owner.memories, &owner.container),
                     &owner.compatibility_profiles,
                     &owner.memory_vectors,
                     p.id,
@@ -133,16 +132,24 @@ pub(super) fn worker_loop(
                         .owner
                         .lock()
                         .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
-                    crate::vector_publication::commit_batch(
-                        &mut owner.container,
+                    let plan = crate::runtime_vector_step_policy::publication_plan(
                         &owner.memories,
                         &owner.compatibility_profiles,
-                        &mut owner.packed_vectors,
-                        &mut owner.memory_vectors,
+                        &owner.memory_vectors,
                         batch,
                         vectors,
                     )
                     .map_err(operation)?;
+                    if let Some(plan) = plan {
+                        crate::owner_lifecycle::vector_publication::publish_memory_vectors(
+                            &mut owner.container,
+                            &owner.compatibility_profiles,
+                            &mut owner.packed_vectors,
+                            &mut owner.memory_vectors,
+                            plan,
+                        )
+                        .map_err(operation)?;
+                    }
                     owner.sync().map_err(operation)?;
                 }
                 let active = shared

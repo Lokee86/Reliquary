@@ -103,6 +103,10 @@ impl<'a> MemoryReadView<'a> {
         self.store.resolution_source_inactive(id)
     }
 
+    pub(crate) fn body_embedding_text(&self, id: MemoryBodyId) -> Result<String, MemoryError> {
+        self.store.body_embedding_text(self.container, id)
+    }
+
     pub(crate) fn records(&self) -> &[MemoryRecord] {
         self.store.records()
     }
@@ -920,7 +924,7 @@ impl MemoryStore {
 
     pub(crate) fn body_embedding_text(
         &self,
-        container: &mut Container,
+        container: &Container,
         id: MemoryBodyId,
     ) -> Result<String, MemoryError> {
         let body = self.body_bytes(container, id)?;

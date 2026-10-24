@@ -60,8 +60,6 @@ mod entity_reconciliation_owner;
 mod external_source_extensions;
 #[path = "runtime_inference/runtime_vector_step.rs"]
 mod runtime_vector_step_policy;
-#[path = "runtime_inference/vector_publication.rs"]
-mod vector_publication;
 pub use agentic_memory_retrieval::AgenticMemoryController;
 pub use agentic_memory_retrieval_model::{
     AgenticMemoryAnchorReport, AgenticMemoryContent, AgenticMemoryError,

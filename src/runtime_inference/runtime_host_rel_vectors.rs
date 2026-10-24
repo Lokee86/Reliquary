@@ -88,7 +88,7 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
                 super::super::mutation_events::RelMutationFamily::Retrieval,
                 |runtime| {
                     let count = runtime.cva.active_memory_compatibility_profiles().len();
-                    let value = crate::vector_publication::accept_profile(
+                    let value = crate::owner_lifecycle::vector_publication::accept_profile(
                         &mut runtime.cva.container,
                         &mut runtime.cva.compatibility_profiles,
                         candidate.clone(),
@@ -119,8 +119,10 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
             crate::vector_publication::prepare_batch(
-                &mut runtime.cva.container,
-                &runtime.cva.memories,
+                &crate::memory_store::MemoryReadView::new(
+                    &runtime.cva.memories,
+                    &runtime.cva.container,
+                ),
                 &runtime.cva.compatibility_profiles,
                 &runtime.cva.memory_vectors,
                 profile.id,
@@ -142,16 +144,27 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
             shared.mutate(
                 super::super::mutation_events::RelMutationFamily::Retrieval,
                 |runtime| {
-                    let count = crate::vector_publication::commit_batch(
-                        &mut runtime.cva.container,
+                    let plan = crate::runtime_vector_step_policy::publication_plan(
                         &runtime.cva.memories,
                         &runtime.cva.compatibility_profiles,
-                        &mut runtime.cva.packed_vectors,
-                        &mut runtime.cva.memory_vectors,
+                        &runtime.cva.memory_vectors,
                         batch,
                         vectors,
                     )
                     .map_err(operation)?;
+                    let count = match plan {
+                        Some(plan) => {
+                            crate::owner_lifecycle::vector_publication::publish_memory_vectors(
+                                &mut runtime.cva.container,
+                                &runtime.cva.compatibility_profiles,
+                                &mut runtime.cva.packed_vectors,
+                                &mut runtime.cva.memory_vectors,
+                                plan,
+                            )
+                            .map_err(operation)?
+                        }
+                        None => 0,
+                    };
                     Ok((
                         (),
                         count > 0,

@@ -17,6 +17,9 @@ pub use vocabulary::{
 mod error;
 pub use error::OwnerError;
 
+#[path = "owner_lifecycle/vector_publication.rs"]
+pub(crate) mod vector_publication;
+
 #[path = "owner_lifecycle/memory_frames.rs"]
 pub(crate) mod memory_frames;
 
