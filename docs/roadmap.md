@@ -34,6 +34,8 @@ Completed Freshness, Dream, decision-routing, tombstone/import/rewrite, external
 
 ## Completed storage/history track
 
+The correction-only dependency campaign remains open under the [Phase 7 execution record](dependency-convergence-phase7-execution-2026-10-24.md): A5 architecture acceptance and B7 proof must be resolved before conditional hard cuts. Phase 6 bounded source/API/behavior acceptance does not close the final runtime/public SCC or whole-source graph obligation.
+
 The earlier CVAFRS06 settlement measured 395,533 bytes before normalization and 7,415,741 bytes across six canonical fixtures afterward. Those figures are historical measurements of the prior self-contained proof. The selected current-only CVAFRS07 design retains exact semantic scope and accepted-event journal references, stores a chronological causal numeric basis and sparse irreducible score corrections, and omits copied per-event recipient sets and complete derived output postimages. Its expanded UTF-8 budget is 64 MiB.
 
 The six-file CVAFRS07 conversion, semantic/clock/source-byte/mtime oracles, promotion, D3 source enforcement and A3 integration/documentation gates are accepted. The final result is recorded in the [Phase 3 execution ledger](dependency-convergence-phase3-execution-2026-10-22.md), [source-enforcement receipt](../benchmarks/dependency-convergence-phase3-source-enforcement-2026-10-23.json) and [final acceptance receipt](../benchmarks/dependency-convergence-phase3-final-acceptance-2026-10-23.json). The prior 5.235% whole-file result remains historical measurement of the completed earlier hard cut, not a result for this settlement format.

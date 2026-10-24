@@ -10,6 +10,8 @@ Import/CVA owns epoch metadata and identity in `src/imports/epoch_store.rs` and 
 
 ## Phase 6 public adapter ownership
 
+Phase 7 proof preparation belongs to the architecture enforcement scripts and the [execution record](dependency-convergence-phase7-execution-2026-10-24.md). `scripts/measure_phase7_baseline.py` owns the reproducible current import inventory; `benchmarks/phase7-baseline.json` pins inputs and coverage, and `benchmarks/phase7-runtime-residuals.json` records aggregate capability witnesses and proposed cut scopes. These artifacts do not transfer production ownership or accept the final DAG.
+
 Public Perception, Archive and Retrieval convenience methods belong to `src/facade/`; their algorithms, value types and durable owners stay in their named lower components. `owner_lifecycle/{entity_publication_admission,entity_resolution_admission,perception_publication_resolution,perception_publication_merge}.rs` own native cross-store admission and ordered Perception publication. `insomnia_runtime.rs`, `personal_memory_publication.rs`, `external_owner_access.rs`, `external_publication.rs` and `vector_publication.rs` own their corresponding native operations. Domain plans remain in Perception/Insomnia/Vectors; `freshness/ego_grades.rs` is the canonical read-only grade policy shared by public and mounted consumers. `src/lib.rs` owns registration and supported reexports. `scripts/check_facade_boundaries.py` guards public-extension placement and lower reverse imports. Exact moved files and verification are recorded in the [Phase 6 execution evidence](dependency-convergence-phase6-execution-2026-10-23.md).
 
 ## Canonical corpus acceptance

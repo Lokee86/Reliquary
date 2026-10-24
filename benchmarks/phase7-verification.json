@@ -1,0 +1,73 @@
+{
+  "schema": "dependency-convergence-phase7-verification.v1",
+  "date": "2026-10-24",
+  "status": "Partial execution only; prerequisite and B7 open; H7/R7/A7 not accepted",
+  "base_head": "0495689c34aa9a1c10699fd31f7b504db03b9492",
+  "execution": "Local work with Luna subagents; no connectors",
+  "production_rust_changed": false,
+  "ownership_change": "Restore missing native_processor.rs file row to existing insomnia module owner; no capability reclassification",
+  "checks": [
+    {
+      "command": "python -m unittest scripts.test_phase7_component_map -v",
+      "exit": 0,
+      "tests_passed": 4,
+      "scope": "Missing production file, duplicate mapping, unknown component, nonproduction/unassigned mapping and valid ownership"
+    },
+    {
+      "command": "python scripts/check_phase7_component_map.py --json",
+      "before": {"exit": 1, "reachable_files": 859, "errors": 1},
+      "after": {"exit": 0, "reachable_files": 859, "errors": 0},
+      "scope": "Recorded Windows cfg file ownership, not calls"
+    },
+    {
+      "command": "python scripts/check_production_component_graph.py --self-test-only",
+      "exit": 0,
+      "scope": "Cycle, immutable versus call, inactive cfg and unmapped classification fixtures"
+    },
+    {
+      "command": "python scripts/check_component_dag.py --self-test",
+      "exit": 0,
+      "components": 34,
+      "permitted_edges": 163,
+      "scope": "Target model and negative fixtures only"
+    },
+    {
+      "command": "python scripts/check_architecture.py",
+      "exit": 1,
+      "passed": ["coverage 96 fixtures / 166 APIs", "external 11 fixtures and source", "owner fixtures and source", "runtime 11 fixtures / 659 files", "facade 36 fixtures / 859 reachable files", "History fixtures and read-only source", "physical 13 fixtures and source", "retained-snapshot Pitlord validation / 25 rules", "convergence 13 fixtures"],
+      "failure": "Rust source differs from the indexed graph; inherited evidence freshness failure",
+      "log": ".verification-tmp/phase7/architecture.log",
+      "entrypoint_note": "This run preceded adding the new map guard to the entrypoint. The added fixture and live-map commands were separately executed successfully; no second broad run was needed.",
+      "refresh": "Not rerun; plan prohibits repeating the inherited stalled full export as proof"
+    },
+    {
+      "command": "python ../engineering-standards/tools/docs_policy/check.py --repo .",
+      "exit": 0
+    },
+    {
+      "command": "python ../engineering-standards/tools/docs_policy/check.py --repo . --changed-from origin/main",
+      "exit": 0
+    },
+    {
+      "command": "ddocs check --indexes --links",
+      "initial_exit": 1,
+      "repair": "ddocs fix --indexes updated docs/INDEX.md for the two Phase 7 documents",
+      "exit": 0
+    },
+    {
+      "command": "pitlord docs --repo . --ddocs-root docs --changed-from origin/main --timeout 2m",
+      "exit": 2,
+      "status": "UNAVAILABLE: installed executable rejects unknown command docs; no ownership pass claimed"
+    }
+  ],
+  "behavior_acceptance": "No fresh Rust/CLI/corpus run: Rust and corpus are unchanged. Phase 6 historical receipt is pinned in phase7-baseline.json, not reissued as A7 acceptance.",
+  "worktree_audit": {
+    "phase5_branch": "phase5-runtime-convergence",
+    "branch_checkpoint": "17514f007e48e81d5ea1ec7f41088564de9e7411",
+    "branch_commits_absent_from_main": 0,
+    "phase5_worktree_clean": true,
+    "phase5_acceptance_checkout_clean": true,
+    "disposition": "Preserved both worktrees; no deletion or final A7 integration acceptance"
+  },
+  "open_evidence": ["Accepted Phase 5 A5 prerequisite", "Capability/value classification of 1284 import candidates across 40 pairs", "97 import uncertainties and material symbol/cfg/macro reachability", "Same-map historical graph comparability", "Runtime/public aggregate hard cuts and preserving behavior tests", "Working Pitlord documentation ownership command", "Final allowed DAG and complete A7 integration"]
+}

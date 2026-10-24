@@ -11,6 +11,8 @@ Current runtime settlement, normalization, owner maintenance and rewrite behavio
 
 ## Phase 6 public facade boundary
 
+Phase 7 evidence preparation is recorded in the [execution record](dependency-convergence-phase7-execution-2026-10-24.md). Full architecture acceptance remains open: Phase 5 A5 was limited by missing refreshed graph proof, and runtime composition still has concrete `Cva`/`Phylactery` aggregate dependencies forming the runtime/public import SCC. Bounded source-policy checks do not certify an exhaustive compiled capability DAG.
+
 Public Cva/Phylactery entrypoints and Resolver/Engine bindings are upper composition under `src/facade/`. Perception owns candidate selection, audit calculation and passive resolution/reconciliation plans; Retrieval owns selection/ranking over Memory, Archive and Vector readers. Concrete owner-lifecycle admission and publication modules apply those plans to the already-open stores in their original order. Mounted Perception, vector, Insomnia, External Sources and agentic retrieval paths invoke these canonical contracts directly. Lower domain services receive owner-qualified readers or values and never call a public product facade. `scripts/check_facade_boundaries.py` enforces cfg-aware extension placement and reverse imports alongside the owner/runtime guards. [Phase 6 execution evidence](dependency-convergence-phase6-execution-2026-10-23.md) records the source cuts and verification disposition; the inherited A5 full-graph proof remains an open Phase 7 obligation.
 
 ## Physical access and replay

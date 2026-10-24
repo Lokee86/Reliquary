@@ -142,6 +142,9 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    run([sys.executable, "-m", "unittest", "scripts.test_phase7_component_map"])
+    run([sys.executable, "scripts/check_phase7_component_map.py"])
+
     run([sys.executable, "scripts/check_multiplexing_phase4_coverage.py", "--self-test"])
 
     run([sys.executable, "scripts/check_external_source_ownership.py", "--self-test"])

@@ -12725,6 +12725,15 @@
       "symbol_spans_sha256": "53670199e011b845176122a5e6037c37995cca7d09ded4d93330e2a001ece6ab"
     },
     {
+      "path": "src/runtime_inference/insomnia/native_processor.rs",
+      "component": "insomnia",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 7 B7 mapping reconciliation: owner-boundaries.json explicitly assigns insomnia::native_processor to insomnia; this file owns claim validation and ArchiveReadView evidence preparation, with no public aggregate extension or Retrieval implementation",
+      "certainty": "source-reviewed-owner-policy",
+      "source_sha256": "24cd62dc20000f4ddbe6ae9dcd680ecfacdef9047bc428453a55d3258c8fc85a"
+    },
+    {
       "path": "src/runtime_inference/insomnia/ownership.rs",
       "component": "insomnia",
       "classification": "production",

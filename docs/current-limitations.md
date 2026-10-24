@@ -8,6 +8,8 @@ Completed native import reconciliation may retain the left physical prefix as an
 
 ## Phase 6 verification boundary
 
+The [Phase 7 execution audit](dependency-convergence-phase7-execution-2026-10-24.md) found that its literal accepted-A5 prerequisite remains unmet. B7 source evidence is preparation only; the runtime/public aggregate SCC and material call/cfg uncertainty prevent H7/A7 acceptance. No conditional seam is closed solely from absent lexical imports.
+
 Phase 6 bounded source/API/behavior gates are accepted and the production import comparison is recorded in the [execution receipt](dependency-convergence-phase6-execution-2026-10-23.md). Import resolution is cfg-aware lexical evidence, not a complete compiler symbol/call graph. The inherited A5 full-architecture snapshot gap remains a named Phase 7 A7 obligation. The original 82 rows have exact dispositions: 49 implementation/binding import cuts and 33 immutable owner-qualified values. Public Resolver/Engine bindings remain supported above their private inference cores; no service-signature exception is required.
 
 ## Physical reader and writer admission

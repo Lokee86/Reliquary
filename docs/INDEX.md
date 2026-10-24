@@ -1,5 +1,8 @@
 # Reliquary Memory v2 Documentation
 
+- [Phase 7 final convergence specification](dependency-convergence-phase7-final-convergence-spec-2026-10-23.md) — 31 conditional tickets and four acceptance gates.
+- [Phase 7 execution evidence](dependency-convergence-phase7-execution-2026-10-24.md) — local baseline preparation, exact residual witnesses and open prerequisite/graph-proof gates.
+
 - [Phase 3 historical/Maintenance/Import convergence — execution spec](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md) — 119 correction-only execution tasks; the final ledger records 119/119 tasks and 12/12 gates accepted.
 - [Phase 3 execution realignment — lower lifecycle and evidence checkpoints](dependency-convergence-phase3-execution-realignment-2026-10-22.md) — accepted 21 additional counted L/H/M/I tasks and the Phase 4 handoff.
 - [Phase 3 final acceptance receipt](../benchmarks/dependency-convergence-phase3-final-acceptance-2026-10-23.json) — final integration and gate evidence.
@@ -185,6 +188,8 @@
 - [dependency-convergence-phase5-runtime-orchestration-spec-2026-10-23.md](dependency-convergence-phase5-runtime-orchestration-spec-2026-10-23.md) - Dependency Convergence Phase5 Runtime Orchestration Spec 2026 10 23 documentation.
 - [dependency-convergence-phase6-execution-2026-10-23.md](dependency-convergence-phase6-execution-2026-10-23.md) - Phase 6 execution and verification evidence.
 - [dependency-convergence-phase6-facade-boundaries-spec-2026-10-23.md](dependency-convergence-phase6-facade-boundaries-spec-2026-10-23.md) - Phase 6 public facade boundary specification.
+- [dependency-convergence-phase7-execution-2026-10-24.md](dependency-convergence-phase7-execution-2026-10-24.md) - Dependency Convergence Phase7 Execution 2026 10 24 documentation.
+- [dependency-convergence-phase7-final-convergence-spec-2026-10-23.md](dependency-convergence-phase7-final-convergence-spec-2026-10-23.md) - Dependency Convergence Phase7 Final Convergence Spec 2026 10 23 documentation.
 - [dependency-convergence-target-dag-2026-10-21.md](dependency-convergence-target-dag-2026-10-21.md) - Dependency Convergence Target Dag 2026 10 21 documentation.
 - [derived-semantic-nodes-exploration.md](derived-semantic-nodes-exploration.md) - Derived Semantic Nodes Exploration documentation.
 - [development-format-compatibility-retirement-audit-2026-10-19.md](development-format-compatibility-retirement-audit-2026-10-19.md) - Development Format Compatibility Retirement Audit 2026 10 19 documentation.
