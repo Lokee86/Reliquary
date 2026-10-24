@@ -3610,6 +3610,46 @@
       "consumer": "maintenance",
       "path": "lodestone_packed::VectorSchema",
       "reason": "Existing packed-vector payload and schema codec values used for exact selected-row emission; no embedding provider or inference."
+    },
+    {
+      "consumer": "external-sources",
+      "path": "lodestone_packed::PackedVectors",
+      "reason": "Phase 6 source-reviewed external codec tag/schema/payload value reexport; no public facade, provider or mutable owner capability. Witness: src/external_source/index.rs:4."
+    },
+    {
+      "consumer": "external-sources",
+      "path": "lodestone_packed::ScalarType",
+      "reason": "Phase 6 source-reviewed external codec tag/schema/payload value reexport; no public facade, provider or mutable owner capability. Witness: src/external_source/index.rs:4."
+    },
+    {
+      "consumer": "external-sources",
+      "path": "lodestone_packed::VectorSchema",
+      "reason": "Phase 6 source-reviewed external codec tag/schema/payload value reexport; no public facade, provider or mutable owner capability. Witness: src/external_source/index.rs:4."
+    },
+    {
+      "consumer": "retrieval",
+      "path": "lodestone_packed::ScalarType",
+      "reason": "Phase 6 source-reviewed external codec tag/schema/payload value reexport; no public facade, provider or mutable owner capability. Witness: src/retrieval/memory_retrieval_error.rs:1."
+    },
+    {
+      "consumer": "dream",
+      "path": "lodestone_packed::ScalarType",
+      "reason": "Phase 6 source-reviewed external codec tag/schema/payload value reexport; no public facade, provider or mutable owner capability. Witness: src/runtime_inference/dream_candidate_error.rs:1."
+    },
+    {
+      "consumer": "vectors",
+      "path": "lodestone_packed::PackedVectors",
+      "reason": "Phase 6 source-reviewed external codec tag/schema/payload value reexport; no public facade, provider or mutable owner capability. Witness: src/runtime_inference/runtime_vector_step.rs:2."
+    },
+    {
+      "consumer": "vectors",
+      "path": "lodestone_packed::ScalarType",
+      "reason": "Phase 6 source-reviewed external codec tag/schema/payload value reexport; no public facade, provider or mutable owner capability. Witness: src/runtime_inference/runtime_vector_step.rs:2."
+    },
+    {
+      "consumer": "vectors",
+      "path": "lodestone_packed::VectorSchema",
+      "reason": "Phase 6 source-reviewed external codec tag/schema/payload value reexport; no public facade, provider or mutable owner capability. Witness: src/runtime_inference/runtime_vector_step.rs:2."
     }
   ],
   "project_environment_scope_contract": {

@@ -21,6 +21,13 @@ VALUE_VARIANTS = {
 }
 
 
+def unresolved_reverse(row: dict, source: str | None, target: str | None,
+                       external_values: set[tuple[str, str]]) -> bool:
+    if source in UPPER:
+        return False
+    return target in UPPER or (target is None and (source, row["canonical"]) not in external_values)
+
+
 def violations(path: str, source: str, component: str | None, facts: set[str]) -> list[str]:
     view = masked(strip_inactive_cfg(source, facts))
     errors = []
@@ -66,7 +73,10 @@ def self_test() -> None:
     assert violations("src/external_source/mod.rs", "fn search(read: impl Fn(PackedVectorId) -> PackedVectors) {}", "external-sources", facts)
     assert not violations("src/perception/entity_audit.rs", "fn audit(owner: &EntityAuditContext) {}", "perception", facts)
     assert violations("src/runtime_inference/offline.rs", "impl ConfiguredRuntime { fn run(owner: &mut Cva) {} }", "runtime-gateway", facts)
-    print("Facade boundary fixtures passed (18 cases).")
+    assert unresolved_reverse({"canonical": "unknown::Owner"}, "retrieval", None, set())
+    assert not unresolved_reverse({"canonical": "lodestone_packed::ScalarType"}, "retrieval", None, {("retrieval", "lodestone_packed::ScalarType")})
+    assert unresolved_reverse({"canonical": "product::*"}, "retrieval", "public-consumers", set())
+    print("Facade boundary fixtures passed (21 cases).")
 
 
 def main() -> int:
@@ -87,17 +97,18 @@ def main() -> int:
     owner_policy = json.loads((ROOT / "tools/pitlord/owner-boundaries.json").read_text(encoding="utf-8"))
     values = {(row["consumer"], row["owner"], row["symbol"])
               for row in owner_policy["producer_value_contracts"]}
+    external_values = {(row["consumer"], row["path"])
+                       for row in owner_policy["external_value_contracts"]}
     for row in imports:
         source = files.get(row["source_path"], {}).get("component")
         target = files.get(row["target_path"], {}).get("component")
         if source not in UPPER and target in UPPER and (source, target, row["target_symbol"]) not in values:
             errors.append(f"{row['source_path']}:{row['line']}: lower import of upper composition: {row['import']} -> {row['target_path']}")
     for row in uncertain:
-        if files.get(row["source_path"], {}).get("component") not in UPPER:
-            # Unknown references to explicitly upper module/type names cannot be
-            # silently admitted by an unresolved export or glob expansion.
-            if re.search(r"\b(?:Cva|Phylactery|cva_[A-Za-z0-9_]+|phylactery_[A-Za-z0-9_]+)\b", row["import"]):
-                errors.append(f"{row['source_path']}:{row['line']}: unresolved possible reverse edge: {row['import']}")
+        source = files.get(row["source_path"], {}).get("component")
+        target = files.get(row.get("target_path"), {}).get("component")
+        if unresolved_reverse(row, source, target, external_values):
+            errors.append(f"{row['source_path']}:{row['line']}: unresolved possible reverse edge: {row['import']}")
     for error in errors:
         print(error)
     print(f"Facade source guard: {len(paths)} reachable production files, {len(errors)} violations; bounded lexical proof.")

@@ -390,7 +390,24 @@ def cycle_dispositions(edges: list[dict], groups: list[list[str]], categories: s
     return output
 
 
+def phase6_import_deferral(edge: dict, closure: dict = PHASE6_PERCEPTION_FACADE_CLOSURE) -> bool:
+    """Historical row registers cannot silently authorize current source debt."""
+    return (
+        closure.get("status") == "exact-bounded-phase6-deferred-ownership"
+        and edge["source_component"] == closure["source_component"]
+        and edge["target_component"] == closure["target_component"]
+        and edge["source"]["path"] in closure["source_paths"]
+        and edge["target"]["path"].startswith(tuple(closure["target_path_prefixes"]))
+    )
+
+
 def self_test() -> None:
+    legacy = {**PHASE6_PERCEPTION_FACADE_CLOSURE, "status": "exact-bounded-phase6-deferred-ownership"}
+    candidate = {"source_component": "public-consumers", "target_component": "perception",
+                 "source": {"path": legacy["source_paths"][0]}, "target": {"path": "src/perception/entity_audit_model.rs"}}
+    assert phase6_import_deferral(candidate, legacy)
+    assert not phase6_import_deferral(candidate, {**legacy, "status": "source-reconciled"})
+    assert not phase6_import_deferral({**candidate, "source": {"path": "src/perception/unregistered.rs"}}, legacy)
     # Separate components in one broad owner area must still form a cycle.
     rows = [
         {"source_component": "archive-store", "target_component": "public-consumers", "category": "strict-import", "relation": "imports",
@@ -464,10 +481,7 @@ def current_source_report(mapping_path: Path, output: Path, baseline: Path | Non
             disposition = f"retained-phase-{deferred[exact]['phase']}-debt"
         elif exact in prior:
             disposition = "inherited-baseline-nonconformance"
-        elif (source == PHASE6_PERCEPTION_FACADE_CLOSURE["source_component"]
-              and target == PHASE6_PERCEPTION_FACADE_CLOSURE["target_component"]
-              and edge["source"]["path"] in PHASE6_PERCEPTION_FACADE_CLOSURE["source_paths"]
-              and edge["target"]["path"].startswith(tuple(PHASE6_PERCEPTION_FACADE_CLOSURE["target_path_prefixes"]))):
+        elif phase6_import_deferral(edge):
             disposition = "retained-phase-6-facade-debt"
         else:
             disposition = "unresolved"
@@ -705,12 +719,7 @@ def main() -> int:
                             raise RuntimeError(f"deferred source-edge hash mismatch: {registry_row['source_path']}")
                         disposition = f"deferred-phase-{registry_row['phase']}"
                         evidence = f"Exact source-import tuple {registry_row['id']} in convergence-deferred-source-edges.json: {registry_row['reason']}"
-                    elif (
-                        edge["source_component"] == PHASE6_PERCEPTION_FACADE_CLOSURE["source_component"]
-                        and edge["target_component"] == PHASE6_PERCEPTION_FACADE_CLOSURE["target_component"]
-                        and edge["source"]["path"] in PHASE6_PERCEPTION_FACADE_CLOSURE["source_paths"]
-                        and edge["target"]["path"].startswith(tuple(PHASE6_PERCEPTION_FACADE_CLOSURE["target_path_prefixes"]))
-                    ):
+                    elif phase6_import_deferral(edge):
                         disposition = "deferred-phase-6"
                         evidence = "Exact bounded Phase 6 facade-import closure in convergence-phase6-perception-facade-import-closure.json; source-import SCC remains authoritative."
                 dispositions.append({**edge, "disposition": disposition, "evidence": evidence})

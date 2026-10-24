@@ -1,7 +1,7 @@
 {
-  "version": 1,
-  "status": "exact-bounded-phase6-deferred-ownership",
-  "scope": "Only current strict source-import rows in the Phase 1-3 SCC whose source is a macro-generated public-consumer perception façade module and whose target is a perception implementation module.",
+  "version": 2,
+  "status": "source-reconciled; acceptance-pending-three-public-service-signature-contracts",
+  "scope": "Historical original 82-row Phase 6 denominator; source_paths and component labels below describe the frozen before-image, not current implementation debt.",
   "source_component": "public-consumers",
   "target_component": "perception",
   "phase": 6,
@@ -18,8 +18,20 @@
     "src/perception/entity_resolution_prepare.rs",
     "src/perception/entity_resolution_processor.rs"
   ],
-  "target_path_prefixes": ["src/perception/"],
+  "target_path_prefixes": [
+    "src/perception/"
+  ],
   "row_count": 82,
-  "reason": "The façade modules generate Cva/Phylactery public methods while importing perception-owned implementation contracts. Phase 6 owns this outward API migration; this bounded closure does not permit imports from other source areas or new dependencies.",
-  "authority": "The exact current source-import rows and SCC membership remain authoritative; Arcana induced file-node export is supplementary only and cannot prove cross-component completeness."
+  "reason": "The original source families now contain concrete lower policy while public adapters live in facade. This register no longer authorizes current implementation import deferrals. Preserve exact public signatures; three service-signature rows await an explicit bounded acceptance decision.",
+  "authority": "The exact current source-import rows and SCC membership remain authoritative; Arcana induced file-node export is supplementary only and cannot prove cross-component completeness.",
+  "current_disposition": {
+    "artifact": "benchmarks/phase6-perception-dispositions.json",
+    "audited_rows": 82,
+    "implementation_imports_absent_from_facade": 46,
+    "immutable_value_rows": 33,
+    "preserved_public_service_signature_rows": 3,
+    "unclassified_rows": 0,
+    "accepted_gate": false
+  },
+  "baseline_head": "17514f007e48e81d5ea1ec7f41088564de9e7411"
 }
