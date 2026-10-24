@@ -10,7 +10,7 @@ impl Cva {
         &mut self,
         query: &str,
     ) -> Result<Vec<MemoryLexicalHit>, MemoryError> {
-        let memory_read = MemoryReadView::new(&self.memories, &self.container);
+        let memory_read = MemoryReadView::new(&self.owner.memories, &self.owner.container);
         let mut view = MemoryLexicalReadView::new(&mut self.lexical_index, memory_read);
         lexical_search::complete_memory_lexical_matches(&mut view, query)
     }
@@ -20,7 +20,7 @@ impl Cva {
         query: &str,
         limit: usize,
     ) -> Result<Vec<MemoryLexicalHit>, MemoryError> {
-        let memory_read = MemoryReadView::new(&self.memories, &self.container);
+        let memory_read = MemoryReadView::new(&self.owner.memories, &self.owner.container);
         let mut view = MemoryLexicalReadView::new(&mut self.lexical_index, memory_read);
         lexical_search::memory_lexical_candidates(&mut view, query, limit)
     }
@@ -30,7 +30,8 @@ impl Cva {
         query: &str,
         limit: usize,
     ) -> Result<Vec<LexicalHit>, SearchError> {
-        let archive_read = crate::archive::ArchiveReadView::new(&self.archive, &self.container);
+        let archive_read =
+            crate::archive::ArchiveReadView::new(&self.owner.archive, &self.owner.container);
         lexical_search::lexical_candidates(&mut self.lexical_index, &archive_read, query, limit)
     }
 
@@ -39,7 +40,8 @@ impl Cva {
         query: &str,
         limit: usize,
     ) -> Result<Vec<LexicalHit>, SearchError> {
-        let archive_read = crate::archive::ArchiveReadView::new(&self.archive, &self.container);
+        let archive_read =
+            crate::archive::ArchiveReadView::new(&self.owner.archive, &self.owner.container);
         lexical_search::raw_archive_candidates(&mut self.lexical_index, &archive_read, query, limit)
     }
 
@@ -58,7 +60,8 @@ impl Cva {
         query: &str,
         limit: usize,
     ) -> Result<Vec<FileSearchHit>, SearchError> {
-        let archive_read = crate::archive::ArchiveReadView::new(&self.archive, &self.container);
+        let archive_read =
+            crate::archive::ArchiveReadView::new(&self.owner.archive, &self.owner.container);
         lexical_search::search_files(&mut self.lexical_index, &archive_read, query, limit)
     }
 }
@@ -69,7 +72,7 @@ impl Phylactery {
         query: &str,
         limit: usize,
     ) -> Result<Vec<MemoryLexicalHit>, MemoryError> {
-        let memory_read = MemoryReadView::new(&self.memories, &self.container);
+        let memory_read = MemoryReadView::new(&self.owner.memories, &self.owner.container);
         let mut view = MemoryLexicalReadView::new(&mut self.lexical_index, memory_read);
         lexical_search::memory_lexical_candidates(&mut view, query, limit)
     }

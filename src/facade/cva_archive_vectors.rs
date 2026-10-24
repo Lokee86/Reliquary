@@ -24,9 +24,9 @@ impl Cva {
             }
             max_fragment_archive_version = max_fragment_archive_version.max(version);
         }
-        self.archive_vectors.put(
-            &mut self.container,
-            &self.packed_vectors,
+        self.owner.archive_vectors.put(
+            &mut self.owner.container,
+            &self.owner.packed_vectors,
             max_fragment_archive_version,
             packed_vector_id,
             fragment_ids,
@@ -37,7 +37,9 @@ impl Cva {
         &mut self,
         id: ArchiveVectorId,
     ) -> Result<ArchiveVectorSet, ArchiveVectorError> {
-        self.archive_vectors.get(&mut self.container, id)
+        self.owner
+            .archive_vectors
+            .get(&mut self.owner.container, id)
     }
 
     pub fn archive_vector_infos(&self) -> Vec<ArchiveVectorInfo> {

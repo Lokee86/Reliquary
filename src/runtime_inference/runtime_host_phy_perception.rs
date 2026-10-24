@@ -37,7 +37,7 @@ pub(super) fn seed(shared: &WorkerShared) -> Result<(), super::ReliquaryRuntimeH
         .lock()
         .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
     let mut keys = Vec::new();
-    for id in phy.memories.current_ids() {
+    for id in phy.owner.memories.current_ids() {
         if !phy
             .processing_epochs
             .state(id, crate::dream_cooldown::DREAM_PROCESSING_LANE)
@@ -45,12 +45,16 @@ pub(super) fn seed(shared: &WorkerShared) -> Result<(), super::ReliquaryRuntimeH
         {
             continue;
         }
-        let memory = phy.memories.memory(&phy.container, id).map_err(operation)?;
+        let memory = phy
+            .owner
+            .memories
+            .memory(&phy.owner.container, id)
+            .map_err(operation)?;
         if !memory.archived && memory.superseded_by.is_none() {
             keys.extend(
                 ResolutionReadContext {
-                    memories: &phy.memories,
-                    entity_resolutions: &phy.entity_resolutions,
+                    memories: &phy.owner.memories,
+                    entity_resolutions: &phy.owner.entity_resolutions,
                 }
                 .schedulable_entity_mentions_for_memory(id),
             );
@@ -91,10 +95,10 @@ fn prepare(
     let plan = {
         let phy = &mut *guard;
         crate::perception_publication_resolution::plan_phy_principal_resolution(
-            crate::memory_store::MemoryReadView::new(&phy.memories, &phy.container),
-            &phy.entities,
-            &phy.entity_resolutions,
-            &phy.graph,
+            crate::memory_store::MemoryReadView::new(&phy.owner.memories, &phy.owner.container),
+            &phy.owner.entities,
+            &phy.owner.entity_resolutions,
+            &phy.owner.graph,
             key,
             now_ns,
         )
@@ -103,27 +107,27 @@ fn prepare(
     if let Some(plan) = plan {
         let phy = &mut *guard;
         crate::owner_lifecycle::perception_publication_resolution::apply_principal_resolution_plan(
-            &mut phy.container,
-            &phy.memories,
-            &mut phy.entities,
-            &mut phy.entity_resolutions,
-            &mut phy.graph,
+            &mut phy.owner.container,
+            &phy.owner.memories,
+            &mut phy.owner.entities,
+            &mut phy.owner.entity_resolutions,
+            &mut phy.owner.graph,
             plan,
             now_ns,
         )
         .map_err(operation)?;
-        phy.container.sync().map_err(operation)?;
+        phy.owner.container.sync().map_err(operation)?;
         return Ok(PreparedWork::Complete);
     }
     let prepared = {
         let phy = &mut *guard;
-        let owner_id = phy.container.owner_id();
+        let owner_id = phy.owner.container.owner_id();
         crate::perception_publication_resolution::prepare_entity_resolution(
-            crate::memory_store::MemoryReadView::new(&phy.memories, &phy.container),
+            crate::memory_store::MemoryReadView::new(&phy.owner.memories, &phy.owner.container),
             &mut phy.lexical_index,
-            &phy.entities,
-            &phy.graph,
-            &phy.entity_resolutions,
+            &phy.owner.entities,
+            &phy.owner.graph,
+            &phy.owner.entity_resolutions,
             key,
             EntityCandidateConfig::default(),
             owner_id,
@@ -156,11 +160,11 @@ fn commit(
     let outcome = {
         let phy = &mut *guard;
         let context = EntityResolutionCommitContext {
-            owner_id: phy.container.owner_id(),
-            memories: &phy.memories,
-            entities: &phy.entities,
-            graph: &phy.graph,
-            resolutions: &phy.entity_resolutions,
+            owner_id: phy.owner.container.owner_id(),
+            memories: &phy.owner.memories,
+            entities: &phy.owner.entities,
+            graph: &phy.owner.graph,
+            resolutions: &phy.owner.entity_resolutions,
         };
         let Some(plan) = plan_entity_resolution_commit(&context, prepared, evaluation, now_ns)
             .map_err(operation)?
@@ -168,21 +172,21 @@ fn commit(
             return Ok(None);
         };
         crate::owner_lifecycle::perception_publication_resolution::apply_entity_resolution_commit_plan(
-            &mut phy.container,
-            &phy.memories,
-            &mut phy.entities,
-            &mut phy.entity_resolutions,
-            &mut phy.graph,
+            &mut phy.owner.container,
+            &phy.owner.memories,
+            &mut phy.owner.entities,
+            &mut phy.owner.entity_resolutions,
+            &mut phy.owner.graph,
             plan,
             true,
         )
         .map_err(operation)?
     };
     let phy = &mut *guard;
-    phy.container.sync().map_err(operation)?;
+    phy.owner.container.sync().map_err(operation)?;
     let mut wakes = ResolutionReadContext {
-        memories: &phy.memories,
-        entity_resolutions: &phy.entity_resolutions,
+        memories: &phy.owner.memories,
+        entity_resolutions: &phy.owner.entity_resolutions,
     }
     .pending_entity_mentions_for_surface(&surface)
     .into_iter()
@@ -192,8 +196,8 @@ fn commit(
         if let Some(id) = outcome.entity_id {
             wakes.extend(
                 ResolutionReadContext {
-                    memories: &phy.memories,
-                    entity_resolutions: &phy.entity_resolutions,
+                    memories: &phy.owner.memories,
+                    entity_resolutions: &phy.owner.entity_resolutions,
                 }
                 .pending_entity_mentions_for_candidate(id),
             );
@@ -234,9 +238,9 @@ fn reconcile(
             .lock()
             .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
         let versions = (
-            phy.entities.entity_version(),
-            phy.graph.graph_version(),
-            phy.memories.memory_version(),
+            phy.owner.entities.entity_version(),
+            phy.owner.graph.graph_version(),
+            phy.owner.memories.memory_version(),
         );
         if *last == Some(versions) {
             return Ok(false);
@@ -244,10 +248,10 @@ fn reconcile(
         (
             versions,
             crate::perception_publication_reconciliation::prepare_entity_reconciliation(
-                crate::memory_store::MemoryReadView::new(&phy.memories, &phy.container),
-                &phy.entities,
-                &phy.graph,
-                &phy.entity_resolutions,
+                crate::memory_store::MemoryReadView::new(&phy.owner.memories, &phy.owner.container),
+                &phy.owner.entities,
+                &phy.owner.graph,
+                &phy.owner.entity_resolutions,
             )
             .map_err(operation)?,
         )
@@ -272,7 +276,7 @@ fn reconcile(
         crate::perception_publication_reconciliation::commit_entity_reconciliation::<
             crate::PhylacteryError,
         >(
-            &mut crate::owner_lifecycle::perception_publication_merge::ReconciliationPublication::new(&mut phy.container, &phy.memories, &mut phy.entities, &mut phy.entity_resolutions, &mut phy.graph, &mut phy.relationships),
+            &mut crate::owner_lifecycle::perception_publication_merge::ReconciliationPublication::new(&mut phy.owner.container, &phy.owner.memories, &mut phy.owner.entities, &mut phy.owner.entity_resolutions, &mut phy.owner.graph, &mut phy.owner.relationships),
             prepared.1,
             evaluated,
             now_ns(),
@@ -282,7 +286,7 @@ fn reconcile(
     let Some(commit) = commit else {
         return Ok(false);
     };
-    guard.container.sync().map_err(operation)?;
+    guard.owner.container.sync().map_err(operation)?;
     if commit.report.changed() {
         drop(guard);
         seed(shared)?;
@@ -291,9 +295,9 @@ fn reconcile(
     }
     let phy = &*guard;
     *last = Some((
-        phy.entities.entity_version(),
-        phy.graph.graph_version(),
-        phy.memories.memory_version(),
+        phy.owner.entities.entity_version(),
+        phy.owner.graph.graph_version(),
+        phy.owner.memories.memory_version(),
     ));
     Ok(false)
 }

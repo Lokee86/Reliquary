@@ -10,8 +10,8 @@ pub(crate) fn rel_with_three_mentions() -> (Cva, MemoryId, Vec<MemoryEntityMenti
     let (memory, _) = owner.publish_memory(None, 0, draft()).unwrap();
     let body_id = owner.memory_body_id(memory.id).unwrap();
     let keys = install_mentions(
-        &mut owner.memories,
-        &mut owner.container,
+        &mut owner.owner.memories,
+        &mut owner.owner.container,
         memory.id,
         body_id,
     );
@@ -26,8 +26,8 @@ pub(crate) fn phy_with_three_mentions()
     let (memory, _) = owner.publish_memory(None, 0, draft()).unwrap();
     let body_id = owner.memory_body_id(memory.id).unwrap();
     let keys = install_mentions(
-        &mut owner.memories,
-        &mut owner.container,
+        &mut owner.owner.memories,
+        &mut owner.owner.container,
         memory.id,
         body_id,
     );

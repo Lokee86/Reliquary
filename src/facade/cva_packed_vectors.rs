@@ -6,18 +6,11 @@ use crate::{
 use lodestone_packed::PackedVectors;
 
 impl Cva {
-    pub fn put_packed_vectors(
-        &mut self,
-        packed: PackedVectors,
-    ) -> Result<PackedVectorId, PackedVectorError> {
-        self.packed_vectors.put(&mut self.container, packed)
-    }
-
     pub fn packed_vectors(
         &mut self,
         id: PackedVectorId,
     ) -> Result<PackedVectors, PackedVectorError> {
-        self.packed_vectors.get(&mut self.container, id)
+        self.owner.packed_vectors.get(&mut self.owner.container, id)
     }
 
     pub fn packed_vector_infos(&self) -> Vec<PackedVectorInfo> {

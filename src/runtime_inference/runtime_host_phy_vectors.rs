@@ -79,8 +79,8 @@ pub(super) fn worker_loop(
                     .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
                 let owner = &mut *owner;
                 let accepted = crate::owner_lifecycle::vector_publication::accept_profile(
-                    &mut owner.container,
-                    &mut owner.compatibility_profiles,
+                    &mut owner.owner.container,
+                    &mut owner.owner.compatibility_profiles,
                     candidate.as_ref().expect("profile candidate").clone(),
                 )
                 .map_err(operation)?;
@@ -104,9 +104,12 @@ pub(super) fn worker_loop(
                     .lock()
                     .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
                 crate::vector_publication::prepare_batch(
-                    &crate::memory_store::MemoryReadView::new(&owner.memories, &owner.container),
-                    &owner.compatibility_profiles,
-                    &owner.memory_vectors,
+                    &crate::memory_store::MemoryReadView::new(
+                        &owner.owner.memories,
+                        &owner.owner.container,
+                    ),
+                    &owner.owner.compatibility_profiles,
+                    &owner.owner.memory_vectors,
                     p.id,
                 )
                 .map_err(operation)?
@@ -134,9 +137,9 @@ pub(super) fn worker_loop(
                         .lock()
                         .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
                     let plan = crate::runtime_vector_step_policy::publication_plan(
-                        &owner.memories,
-                        &owner.compatibility_profiles,
-                        &owner.memory_vectors,
+                        &owner.owner.memories,
+                        &owner.owner.compatibility_profiles,
+                        &owner.owner.memory_vectors,
                         batch,
                         vectors,
                     )
@@ -144,10 +147,10 @@ pub(super) fn worker_loop(
                     if let Some(plan) = plan {
                         let owner = &mut *owner;
                         crate::owner_lifecycle::vector_publication::publish_memory_vectors(
-                            &mut owner.container,
-                            &owner.compatibility_profiles,
-                            &mut owner.packed_vectors,
-                            &mut owner.memory_vectors,
+                            &mut owner.owner.container,
+                            &owner.owner.compatibility_profiles,
+                            &mut owner.owner.packed_vectors,
+                            &mut owner.owner.memory_vectors,
                             plan,
                         )
                         .map_err(operation)?;

@@ -48,14 +48,14 @@ impl GatewayRuntime {
         }
         with_operation(self, &authority, |runtime| {
             let prior = runtime
-                .cva()
+                .cva
                 .echo_events(conversation_id, &generation.generation_id);
             validate_generation_tool_source(&prior)?;
             if let Some(previous) = prior.iter().find(|e| e.sequence == event.sequence) {
                 if previous != &event {
                     return Err(operation("tool event sequence conflict"));
                 }
-                runtime.cva().sync().map_err(operation)?;
+                runtime.cva.sync_owner().map_err(operation)?;
                 return Ok(false);
             }
             if generation.phase != DurableGenerationPhase::Running {
@@ -103,8 +103,13 @@ impl GatewayRuntime {
                 }
                 _ => {}
             }
-            let changed = runtime.cva.put_echo_event(event).map_err(operation)?;
-            runtime.cva().sync().map_err(operation)?;
+            let changed = runtime
+                .cva
+                .owner
+                .echo
+                .put(&mut runtime.cva.owner.container, event)
+                .map_err(operation)?;
+            runtime.cva.sync_owner().map_err(operation)?;
             Ok(changed)
         })
     }

@@ -1,0 +1,10 @@
+{
+  "schema": "phase7-read-cuts.v1",
+  "status": "registered-before-implementation",
+  "children": [
+    {"id": "P7.1.06-INSOMNIA-EVIDENCE-READ", "witness": "src/runtime_inference/insomnia/evidence.rs resolve_evidence_parts/hydrate_evidence_parts accept Container and construct ArchiveReadView", "cut": "Construct existing concrete ArchiveReadView in upper callers; evidence policy receives read-only owner view", "tests": ["insomnia::evidence_tests", "insomnia worker and processor tests"]},
+    {"id": "P7.1.07-DREAM-OWNER-READ", "witness": "dream_owner_candidates.rs and dream_owner_vectors.rs accept Container/MemoryVectorStore/PackedVectorStore and hydrate bodies/vector payloads", "cut": "Use concrete MemoryReadView and MemoryVectorReadView; preserve iteration, read error and ranking order", "tests": ["dream_candidate_tests", "dream_temporal_tests", "dream processor tests"]},
+    {"id": "P7.1.14-RETRIEVAL-OWNER-READ", "witness": "src/retrieval/memory_retrieval_build.rs build_memory_retrieval_index accepts Container", "cut": "Upper composition constructs existing MemoryReadView/MemoryVectorReadView; retrieval receives owner views and version facts", "tests": ["memory_retrieval_tests", "memory_retrieval_stale_tests"]}
+  ],
+  "denominator": "31 parent tickets + four runtime children + three read children = 38 parent/child obligations; gates remain four"
+}

@@ -186,8 +186,9 @@ impl Cva {
                 )
             })
             .map_err(crate::CvaError::Freshness)?;
-        self.freshness
-            .persist_policy_if_needed(&mut self.container, receipt.owner_uuid)
+        self.owner
+            .freshness
+            .persist_policy_if_needed(&mut self.owner.container, receipt.owner_uuid)
             .map_err(crate::CvaError::Freshness)?;
         crate::freshness_trace::measure("accepted_use.container_append_sync", || {
             self.container.append(&payload)?;
@@ -199,7 +200,7 @@ impl Cva {
                 .map_err(crate::CvaError::Freshness)
         })?;
         crate::freshness_trace::measure("accepted_use.due_refresh", || {
-            self.freshness_refresh_due(affected, receipt.accepted_turn)
+            self.runtime_freshness_refresh_due(affected, receipt.accepted_turn)
         })?;
         Ok(applied)
     }

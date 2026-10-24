@@ -365,7 +365,9 @@ impl GatewayRuntime {
         let token = self.authorize(instance, owner_id, OwnerGrant::ViewRel)?;
         let conversation_id = ConversationId::new(conversation_id.to_owned()).map_err(operation)?;
         self.with_rel(&token, |runtime| {
-            Ok(runtime.cva().conversation_policy(conversation_id.as_str()))
+            Ok(runtime
+                .cva
+                .runtime_conversation_policy(conversation_id.as_str()))
         })
     }
 
@@ -387,7 +389,7 @@ impl GatewayRuntime {
                     .set_conversation_policy(conversation_id.as_str(), policy)
                     .map_err(operation)?;
                 // Also synchronize an idempotent retry after a prior failed sync.
-                runtime.cva.sync().map_err(operation)?;
+                runtime.cva.sync_owner().map_err(operation)?;
                 Ok(changed)
             })
         })
@@ -430,8 +432,9 @@ impl GatewayRuntime {
                 return Ok(());
             }
             if let Some(branch) = runtime
-                .cva()
-                .archive()
+                .cva
+                .owner
+                .archive
                 .branches()
                 .into_iter()
                 .find(|branch| {
@@ -447,7 +450,7 @@ impl GatewayRuntime {
                 }
             } else {
                 let leaves = runtime
-                    .conversation_summaries()
+                    .conversation_summaries_operation()
                     .into_iter()
                     .find(|summary| summary.conversation_id == request.conversation_id)
                     .map(|summary| summary.leaf_node_ids)
@@ -634,7 +637,7 @@ impl GatewayRuntime {
 
     /// Explicitly admit this attached instance to the gateway-owned writable
     /// continuation. The returned value is only a snapshot; the mutable session
-    /// stays inside the shared InteractionRuntime. Repeated admission reuses the
+    /// stays inside the shared RelExecution. Repeated admission reuses the
     /// same owner runtime; the selected Archive branch supplies the cursor.
     /// It never creates a per-viewer continuation.
     pub fn admit_conversation_writer(
@@ -652,8 +655,9 @@ impl GatewayRuntime {
         let session = with_conversation_admission(self, &token, || {
             self.with_rel(&token, |runtime| {
                 let branch = runtime
-                    .cva()
-                    .archive()
+                    .cva
+                    .owner
+                    .archive
                     .branches()
                     .into_iter()
                     .find(|branch| {
@@ -699,7 +703,7 @@ impl GatewayRuntime {
             return Err(operation("branch ID must not be empty"));
         }
         self.with_rel(&token, |runtime| {
-            if !runtime.cva().archive().branches().iter().any(|branch| {
+            if !runtime.cva.runtime_archive_branches().iter().any(|branch| {
                 branch.conversation_id == conversation_id.as_str() && branch.id == branch_id
             }) {
                 return Err(operation(
@@ -1039,7 +1043,7 @@ impl GatewayRuntime {
         if status.state == SubmissionState::Pending {
             status = with_operation(self, &operation_authority, |runtime| {
                 let (policy, policy_revision) = runtime
-                    .cva()
+                    .cva
                     .conversation_policy(key.conversation_id.as_str());
                 let target = finalization::finalization_target(
                     runtime,
@@ -1055,7 +1059,7 @@ impl GatewayRuntime {
                 // Runtime -> journal is the only nested order here. Policy management
                 // holds this same runtime lock, so publication cannot race capture.
                 // A prior failed management sync cannot leak an undurable policy.
-                runtime.cva.sync().map_err(operation)?;
+                runtime.cva.sync_owner().map_err(operation)?;
                 let capture = FinalizeCapture {
                     branch_id: target.branch_id,
                     branch_label: target.branch_label,
@@ -1132,7 +1136,11 @@ impl GatewayRuntime {
                     Some(&receipt.node_id),
                 )?;
                 let result = runtime
-                    .schedule_session(key.conversation_id.as_str(), self.episode_policy, now_ns())
+                    .schedule_session_operation(
+                        key.conversation_id.as_str(),
+                        self.episode_policy,
+                        now_ns(),
+                    )
                     .map_err(operation)?;
                 Ok(PostCommitReceipt {
                     operation_id: format!(
@@ -1674,7 +1682,7 @@ fn with_admission<T>(
             token.owner_grant_generation,
         )
         .map_err(operation)?;
-    // No InteractionRuntime/store lock is held while the REL journal syncs.
+    // No RelExecution/store lock is held while the REL journal syncs.
     let result = f();
     drop(owner_lease);
     drop(attachment_lease);
@@ -1729,7 +1737,7 @@ fn with_conversation_admission<T>(
 fn with_operation<T>(
     gateway: &GatewayRuntime,
     authority: &OperationAuthority,
-    f: impl FnOnce(&mut crate::InteractionRuntime) -> Result<T, ReliquaryRuntimeHostError>,
+    f: impl FnOnce(&mut crate::RelExecution) -> Result<T, ReliquaryRuntimeHostError>,
 ) -> Result<T, ReliquaryRuntimeHostError> {
     with_accepted_work(gateway, authority, || {
         let owner = {
@@ -1820,7 +1828,7 @@ fn validate_finalize_identity(
 }
 
 fn archive_receipt_or_commit(
-    runtime: &mut crate::InteractionRuntime,
+    runtime: &mut crate::RelExecution,
     key: &ConversationSubmissionId,
     submission: &Submission,
     capture: &FinalizeCapture,
@@ -1835,8 +1843,9 @@ fn archive_receipt_or_commit(
     finalization::validate_publication_head(runtime, key, capture)?;
     let stable_id = key.submission_id.as_str();
     if runtime
-        .cva()
-        .archive()
+        .cva
+        .owner
+        .archive
         .has_node(key.conversation_id.as_str(), stable_id)
     {
         let turn = runtime
@@ -1898,7 +1907,7 @@ fn archive_receipt_or_commit(
             attachments,
             project_attachments: Vec::<StoredFile>::new(),
         };
-        let accepted = runtime.accept_turn(turn).map_err(operation)?;
+        let accepted = runtime.accept_turn_operation(turn).map_err(operation)?;
         if accepted.turn.node.id != stable_id {
             return Err(operation("Archive accepted a different Node ID"));
         }
@@ -1947,7 +1956,7 @@ fn archive_receipt_or_commit(
     })
 }
 fn validate_durable_turn(
-    runtime: &crate::InteractionRuntime,
+    runtime: &crate::RelExecution,
     turn: &ResolvedTurn,
     submission: &Submission,
     capture: &FinalizeCapture,
@@ -1955,8 +1964,9 @@ fn validate_durable_turn(
     validate_finalize_identity(submission, capture)?;
     let conversation_id = submission.id.conversation_id.as_str();
     let node = runtime
-        .cva()
-        .archive()
+        .cva
+        .owner
+        .archive
         .nodes
         .get(conversation_id, &turn.node_id)
         .ok_or_else(|| operation("stable Archive Node is absent from the node index"))?;
@@ -1975,9 +1985,7 @@ fn validate_durable_turn(
             "stable Archive Node differs from captured conversation, parent, principal, time, or content",
         ));
     }
-    let actual = runtime
-        .cva()
-        .files_for_source(conversation_id, &turn.node_id);
+    let actual = runtime.cva.files_for_source(conversation_id, &turn.node_id);
     if actual.len() != submission.attachments.len()
         || actual
             .iter()
@@ -1995,12 +2003,12 @@ fn validate_durable_turn(
     Ok(())
 }
 fn validate_archive_branch(
-    runtime: &crate::InteractionRuntime,
+    runtime: &crate::RelExecution,
     conversation_id: &str,
     branch_id: &str,
     leaf_node_id: &str,
 ) -> Result<(), ReliquaryRuntimeHostError> {
-    if runtime.cva().archive().branches().iter().any(|branch| {
+    if runtime.cva.runtime_archive_branches().iter().any(|branch| {
         branch.conversation_id == conversation_id
             && branch.id == branch_id
             && branch.leaf_node_id == leaf_node_id
@@ -2013,7 +2021,7 @@ fn validate_archive_branch(
     }
 }
 fn publish_branch(
-    runtime: &mut crate::InteractionRuntime,
+    runtime: &mut crate::RelExecution,
     conversation_id: &str,
     branch_id: &str,
     leaf_node_id: &str,
@@ -2024,8 +2032,9 @@ fn publish_branch(
         conversation_id: conversation_id.to_owned(),
         leaf_node_id: leaf_node_id.to_owned(),
         canonical: runtime
-            .cva()
-            .archive()
+            .cva
+            .owner
+            .archive
             .branches()
             .iter()
             .find(|branch| branch.conversation_id == conversation_id && branch.id == branch_id)
@@ -2033,30 +2042,36 @@ fn publish_branch(
             .unwrap_or(canonical_if_new),
     };
     if runtime
-        .cva()
-        .archive()
+        .cva
+        .owner
+        .archive
         .branches()
         .iter()
         .any(|branch| branch == &desired)
     {
         // A previous append may have reached the in-memory index before sync failed.
         // A receipt requires durability even when the desired branch already exists.
-        return runtime.cva().sync().map_err(operation);
+        return runtime.cva.sync_owner().map_err(operation);
     }
-    runtime.cva.append_branch(desired).map_err(operation)?;
-    runtime.cva().sync().map_err(operation)
+    runtime
+        .cva
+        .owner
+        .archive
+        .append_branch(&mut runtime.cva.owner.container, desired)
+        .map_err(operation)?;
+    runtime.cva.sync_owner().map_err(operation)
 }
 
 fn with_internal_runtime<T>(
     gateway: &GatewayRuntime,
     owner_id: &str,
-    f: impl FnOnce(&mut crate::InteractionRuntime) -> Result<T, ReliquaryRuntimeHostError>,
+    f: impl FnOnce(&mut crate::RelExecution) -> Result<T, ReliquaryRuntimeHostError>,
 ) -> Result<T, ReliquaryRuntimeHostError> {
     gateway.with_quiesced_rel_during_transition(owner_id, f)
 }
 
 fn ensure_session_at(
-    runtime: &mut crate::InteractionRuntime,
+    runtime: &mut crate::RelExecution,
     conversation_id: &str,
     parent: Option<&str>,
 ) -> Result<(), ReliquaryRuntimeHostError> {
@@ -2065,7 +2080,10 @@ fn ensure_session_at(
             return Err(operation("cannot rebind an in-flight continuation"));
         }
         if let Some(parent) = parent {
-            if !runtime.cva().archive().has_node(conversation_id, parent) {
+            if !runtime
+                .cva
+                .runtime_archive_has_node(conversation_id, parent)
+            {
                 return Err(operation("continuation parent is absent from Archive"));
             }
         }
@@ -2084,7 +2102,7 @@ fn ensure_session_at(
     Ok(())
 }
 fn restore_session_after_commit(
-    runtime: &mut crate::InteractionRuntime,
+    runtime: &mut crate::RelExecution,
     conversation_id: &str,
     stable_id: &str,
     _captured_parent: Option<&str>,

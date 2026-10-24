@@ -14,9 +14,10 @@ fn temporal_inference_round_trips_and_survives_matching_lifecycle_revisions() {
     let body_id = memory_body_id(&draft.title, &draft.content);
     let inference = bound_inference(body_id, Some(100));
     let (memory, created) = phy
+        .owner
         .memories
         .publish_with_source_ref_and_temporal_inference(
-            &mut phy.container,
+            &mut phy.owner.container,
             None,
             0,
             draft,
@@ -55,9 +56,10 @@ fn explicit_temporal_inference_is_part_of_mutation_idempotency() {
     let draft = draft("Review biweekly.", 100, "same-mutation");
     let body_id = memory_body_id(&draft.title, &draft.content);
     let first = bound_inference(body_id, Some(100));
-    phy.memories
+    phy.owner
+        .memories
         .publish_with_source_ref_and_temporal_inference(
-            &mut phy.container,
+            &mut phy.owner.container,
             None,
             0,
             draft.clone(),
@@ -69,14 +71,16 @@ fn explicit_temporal_inference_is_part_of_mutation_idempotency() {
     let mut conflicting = first;
     conflicting.inference.model = "different-model".into();
     assert!(matches!(
-        phy.memories.publish_with_source_ref_and_temporal_inference(
-            &mut phy.container,
-            None,
-            0,
-            draft,
-            None,
-            Some(conflicting),
-        ),
+        phy.owner
+            .memories
+            .publish_with_source_ref_and_temporal_inference(
+                &mut phy.owner.container,
+                None,
+                0,
+                draft,
+                None,
+                Some(conflicting),
+            ),
         Err(crate::MemoryError::MutationConflict)
     ));
 }
@@ -88,9 +92,10 @@ fn temporal_inference_is_dropped_when_reference_time_binding_changes() {
     let initial = draft("Review biweekly.", 100, "stale-1");
     let body_id = memory_body_id(&initial.title, &initial.content);
     let (memory, _) = phy
+        .owner
         .memories
         .publish_with_source_ref_and_temporal_inference(
-            &mut phy.container,
+            &mut phy.owner.container,
             None,
             0,
             initial,
@@ -102,9 +107,10 @@ fn temporal_inference_is_dropped_when_reference_time_binding_changes() {
     let mut changed = draft("Review biweekly.", 200, "stale-2");
     changed.lifecycle_state = "knowledge".into();
     let (updated, created) = phy
+        .owner
         .memories
         .publish_with_source_ref_and_temporal_inference(
-            &mut phy.container,
+            &mut phy.owner.container,
             Some(memory.id),
             memory.revision,
             changed,

@@ -27,12 +27,12 @@ macro_rules! impl_entity_merge {
                         &self.graph,
                         &self.relationships,
                     ),
-                    &mut self.container,
-                    &self.memories,
-                    &mut self.entities,
-                    &mut self.entity_resolutions,
-                    &mut self.graph,
-                    &mut self.relationships,
+                    &mut self.owner.container,
+                    &self.owner.memories,
+                    &mut self.owner.entities,
+                    &mut self.owner.entity_resolutions,
+                    &mut self.owner.graph,
+                    &mut self.owner.relationships,
                 )
             }
 
@@ -54,8 +54,8 @@ macro_rules! impl_entity_merge {
                     return Ok(false);
                 };
 
-                let resolution_changed = self.entity_resolutions.retarget_resolved(
-                    &mut self.container,
+                let resolution_changed = self.owner.entity_resolutions.retarget_resolved(
+                    &mut self.owner.container,
                     key,
                     from,
                     to,
@@ -67,17 +67,18 @@ macro_rules! impl_entity_merge {
                 {
                     crate::entity_merge::validate_retarget_association(
                         &self.memories,
-                        &self.entities,
+                        &self.owner.entities,
                         add,
                     )?;
                     changed |= self
+                        .owner
                         .graph
                         .set_entity_association(
-                            &mut self.container,
+                            &mut self.owner.container,
                             key.memory_id,
                             to,
                             true,
-                            self.graph.graph_version(),
+                            self.owner.graph.graph_version(),
                         )?
                         .is_some();
                 }
@@ -88,17 +89,18 @@ macro_rules! impl_entity_merge {
                 ) {
                     crate::entity_merge::validate_retarget_association(
                         &self.memories,
-                        &self.entities,
+                        &self.owner.entities,
                         remove,
                     )?;
                     changed |= self
+                        .owner
                         .graph
                         .set_entity_association(
-                            &mut self.container,
+                            &mut self.owner.container,
                             key.memory_id,
                             from,
                             false,
-                            self.graph.graph_version(),
+                            self.owner.graph.graph_version(),
                         )?
                         .is_some();
                 }

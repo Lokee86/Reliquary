@@ -21,8 +21,12 @@ macro_rules! impl_owner {
                     &self.entities,
                     &mut draft,
                 )?;
-                self.relationships
-                    .publish(&mut self.container, id, expected_revision, draft)
+                self.owner.relationships.publish(
+                    &mut self.owner.container,
+                    id,
+                    expected_revision,
+                    draft,
+                )
             }
 
             pub(crate) fn replay_relationship_revision(
@@ -31,8 +35,8 @@ macro_rules! impl_owner {
                 expected_revision: u64,
                 draft: RelationshipDraft,
             ) -> Result<(Relationship, bool), RelationshipError> {
-                self.relationships.publish_replayed(
-                    &mut self.container,
+                self.owner.relationships.publish_replayed(
+                    &mut self.owner.container,
                     id,
                     expected_revision,
                     draft,
@@ -51,8 +55,9 @@ macro_rules! impl_owner {
                 id: RelationshipId,
                 expected_revision: u64,
             ) -> Result<crate::owner_lifecycle::TombstoneOutcome, RelationshipError> {
-                self.relationships
-                    .tombstone(&mut self.container, id, expected_revision)
+                self.owner
+                    .relationships
+                    .tombstone(&mut self.owner.container, id, expected_revision)
             }
 
             pub fn relationship_retention_descriptor(

@@ -596,7 +596,7 @@ impl GatewayRuntime {
                         .collect::<Result<Vec<_>, _>>()
                         .map_err(operation)?;
                     if runtime
-                        .cva()
+                        .cva
                         .files_for_source(conversation.as_str(), &generation.generation_id)
                         != expected
                     {
@@ -645,8 +645,9 @@ impl GatewayRuntime {
                 }
             }
             let branch_leaf = runtime
-                .cva()
-                .archive()
+                .cva
+                .owner
+                .archive
                 .branches()
                 .iter()
                 .find(|branch| {
@@ -656,8 +657,9 @@ impl GatewayRuntime {
                 .map(|branch| branch.leaf_node_id.clone())
                 .ok_or_else(|| operation("generation branch is absent from Archive"))?;
             let node_exists = runtime
-                .cva()
-                .archive()
+                .cva
+                .owner
+                .archive
                 .has_node(conversation.as_str(), &generation.generation_id);
             if node_exists {
                 if let Some(artifacts) = artifacts.as_ref() {
@@ -673,7 +675,7 @@ impl GatewayRuntime {
                         .collect::<Result<Vec<_>, _>>()
                         .map_err(operation)?;
                     if runtime
-                        .cva()
+                        .cva
                         .files_for_source(conversation.as_str(), &generation.generation_id)
                         != expected
                     {
@@ -702,7 +704,7 @@ impl GatewayRuntime {
                         "generation branch advanced outside the active generation",
                     ));
                 } else {
-                    runtime.cva().sync().map_err(operation)?;
+                    runtime.cva.sync_owner().map_err(operation)?;
                 }
             } else {
                 if branch_leaf != generation.parent_node_id {
@@ -724,7 +726,7 @@ impl GatewayRuntime {
                         project_attachments: Vec::new(),
                     })
                     .map_err(operation)?;
-                runtime.cva().sync().map_err(operation)?;
+                runtime.cva.sync_owner().map_err(operation)?;
                 publish_branch(
                     runtime,
                     conversation.as_str(),
@@ -752,7 +754,7 @@ impl GatewayRuntime {
                 Some(&generation.generation_id),
             )?;
             runtime
-                .schedule_session(conversation.as_str(), self.episode_policy, now_ns())
+                .schedule_session_operation(conversation.as_str(), self.episode_policy, now_ns())
                 .map_err(operation)?;
             Ok(())
         })?;
@@ -824,12 +826,12 @@ fn conversation_generation_identity(
 }
 
 pub(super) fn generation_stream_for_conversation(
-    runtime: &crate::InteractionRuntime,
+    runtime: &crate::RelExecution,
     conversation_id: &str,
     generation: &DurableGeneration,
 ) -> Result<Option<InteractionStreamRecord>, ReliquaryRuntimeHostError> {
     let record = runtime
-        .cva()
+        .cva
         .interaction_streams_for_session(conversation_id)
         .into_iter()
         .find(|record| record.message_id == generation.generation_id);
@@ -856,7 +858,7 @@ fn validate_generation_stream_record(
 }
 
 fn validate_generation_stream(
-    runtime: &crate::InteractionRuntime,
+    runtime: &crate::RelExecution,
     conversation_id: &str,
     generation: &DurableGeneration,
     content: &str,
@@ -872,7 +874,7 @@ fn validate_generation_stream(
 }
 
 fn persist_generation_stream(
-    runtime: &mut crate::InteractionRuntime,
+    runtime: &mut crate::RelExecution,
     conversation_id: &str,
     generation: &DurableGeneration,
     content: &str,
@@ -881,7 +883,7 @@ fn persist_generation_stream(
     if let Some(current) = generation_stream_for_conversation(runtime, conversation_id, generation)?
     {
         if current.content == content && current.status == status {
-            return runtime.cva().sync().map_err(operation);
+            return runtime.cva.sync_owner().map_err(operation);
         }
     }
     runtime
@@ -896,11 +898,11 @@ fn persist_generation_stream(
             status,
         })
         .map_err(operation)?;
-    runtime.cva().sync().map_err(operation)
+    runtime.cva.sync_owner().map_err(operation)
 }
 
 pub(super) fn interrupt_generation_stream(
-    runtime: &mut crate::InteractionRuntime,
+    runtime: &mut crate::RelExecution,
     conversation_id: &str,
     generation: &DurableGeneration,
 ) -> Result<(), ReliquaryRuntimeHostError> {
@@ -923,15 +925,16 @@ pub(super) fn interrupt_generation_stream(
 }
 
 pub(super) fn validate_generation_archive_turn(
-    runtime: &mut crate::InteractionRuntime,
+    runtime: &mut crate::RelExecution,
     conversation_id: &str,
     generation: &DurableGeneration,
     principal_id: &str,
     content: &str,
 ) -> Result<(), ReliquaryRuntimeHostError> {
     let node = runtime
-        .cva()
-        .archive()
+        .cva
+        .owner
+        .archive
         .nodes
         .get(conversation_id, &generation.generation_id)
         .ok_or_else(|| operation("generated Archive node is absent"))?;

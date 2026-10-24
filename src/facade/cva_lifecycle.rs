@@ -1,5 +1,3 @@
-use crate::dream_duplicate_index::DuplicateIndex;
-use crate::lexical_index::LexicalIndex;
 use crate::{Container, Cva, CvaError};
 use std::path::Path;
 
@@ -88,84 +86,6 @@ impl Cva {
         Ok(Self::from_owner(
             crate::owner_lifecycle::initialize_reliquary(container)?,
         ))
-    }
-
-    fn from_owner(owner: crate::owner_lifecycle::ReliquaryOwner) -> Self {
-        let crate::owner_lifecycle::ReliquaryOwner {
-            owner_maintenance,
-            rewrite_lineage,
-            external_index,
-            container,
-            archive,
-            memories,
-            graph,
-            communities,
-            processing_epochs,
-            dream_pairs,
-            insomnia,
-            import_epochs,
-            packed_vectors,
-            memory_vectors,
-            archive_vectors,
-            compatibility_profiles,
-            vector_generations,
-            conversation_compactions,
-            interaction_streams,
-            echo,
-            ego,
-            entities,
-            entity_resolutions,
-            relationships,
-            project_history,
-            project_files,
-            rel_metadata,
-            freshness,
-            dream_freshness,
-        } = owner;
-        Self {
-            owner_maintenance,
-            rewrite_lineage,
-            external_index,
-            container,
-            archive,
-            memories,
-            graph,
-            communities,
-            processing_epochs,
-            dream_pairs,
-            insomnia,
-            import_epochs,
-            packed_vectors,
-            memory_vectors,
-            archive_vectors,
-            compatibility_profiles,
-            vector_generations,
-            conversation_compactions,
-            interaction_streams,
-            echo,
-            ego,
-            entities,
-            entity_resolutions,
-            relationships,
-            project_history,
-            project_files,
-            rel_metadata,
-            freshness,
-            dream_freshness,
-            duplicate_index: DuplicateIndex::empty(),
-            lexical_index: LexicalIndex::default(),
-            freshness_due: crate::FreshnessDueDispatcher::default(),
-            freshness_notifications: std::collections::BTreeMap::new(),
-        }
-    }
-
-    pub(crate) fn from_reconstructed(
-        owner: crate::owner_lifecycle::ReliquaryOwner,
-        due: crate::FreshnessDueDispatcher,
-    ) -> Self {
-        let mut result = Self::from_owner(owner);
-        result.freshness_due = due;
-        result
     }
 
     pub fn open(path: impl AsRef<Path>) -> Result<Self, CvaError> {

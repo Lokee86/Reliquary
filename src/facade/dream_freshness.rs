@@ -1,4 +1,3 @@
-use crate::dream_canonical::DreamOwnerRead;
 use crate::dream_pass_identity::initial_pass_id;
 use crate::{Cva, DreamPublicationOutcome, GraphRelationOrigin, MemoryId, PropagationEvent};
 use std::collections::BTreeSet;
@@ -256,13 +255,19 @@ fn fold_duplicate_roots(
     roots: BTreeSet<MemoryId>,
     source_id: MemoryId,
 ) -> Result<BTreeSet<MemoryId>, crate::CvaError> {
-    let parts = crate::dream_lifecycle::DreamOwnerReadParts {
-        container: &cva.container,
-        archive: &cva.archive,
-        memories: &cva.memories,
-        dream_freshness: &cva.dream_freshness,
-    };
     let relations = cva.graph_relations();
+    let parts = crate::memory_store::MemoryReadView::new(&cva.memories, &cva.container);
+    let fact_ids: BTreeSet<_> = roots
+        .iter()
+        .filter(|root| {
+            relations.iter().any(|relation| {
+                relation.kind == crate::GraphRelationKind::DuplicateOf
+                    && (relation.source == **root || relation.target == **root)
+            })
+        })
+        .flat_map(|root| crate::graph_relation_sets::duplicate_component(*root, &relations))
+        .collect();
+    let facts = crate::dream_lifecycle::owner_facts(cva, fact_ids, Some(source_id));
     let first = parts
         .memory_revision(source_id, 1)
         .map_err(crate::CvaError::from)?;
@@ -278,6 +283,7 @@ fn fold_duplicate_roots(
         }
         let representative = crate::dream_canonical::existing_duplicate_representative(
             &parts,
+            &facts,
             root,
             first.global_version,
             source_id,

@@ -286,7 +286,7 @@ impl GatewayRuntime {
         &self,
         token: &OwnerAccessToken,
         mutate: impl FnOnce(
-            &mut crate::InteractionRuntime,
+            &mut crate::RelExecution,
         ) -> Result<
             (T, RelEventClass, Vec<RelInvalidation>),
             ReliquaryRuntimeHostError,
@@ -299,13 +299,8 @@ impl GatewayRuntime {
             let mut gate = sequencer.gate(token.mount_epoch)?;
             let (value, class, invalidations, watermarks) = self.with_rel(token, |runtime| {
                 let (value, class, invalidations) = mutate(runtime)?;
-                runtime.cva.sync().map_err(operation)?;
-                Ok((
-                    value,
-                    class,
-                    invalidations,
-                    source_watermarks(runtime.cva()),
-                ))
+                runtime.cva.sync_owner().map_err(operation)?;
+                Ok((value, class, invalidations, source_watermarks(&runtime.cva)))
             })?;
             // Mutation is already authoritative. Distribution failure closes the
             // feed and demands a snapshot; it cannot undo/negate the committed result.

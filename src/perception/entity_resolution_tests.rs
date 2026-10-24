@@ -207,9 +207,10 @@ fn entity_resolution_owner_accepts_typed_target_but_owner_admission_rejects_miss
     let key = keys[0];
     let missing_entity = EntityId([250; 32]);
     direct
+        .owner
         .entity_resolutions
         .put_resolved(
-            &mut direct.container,
+            &mut direct.owner.container,
             key,
             0,
             missing_entity,

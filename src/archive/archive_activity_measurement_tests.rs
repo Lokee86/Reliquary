@@ -79,10 +79,11 @@ fn profile(path: &Path) {
     let mut rows = Vec::new();
     let mut count = 0_u64;
     for version in versions {
-        let bytes = cva.container.read(version.record).unwrap();
+        let bytes = cva.owner.container.read(version.record).unwrap();
         let (record, _) = cva
+            .owner
             .archive
-            .read_publication(&mut cva.container, version)
+            .read_publication(&mut cva.owner.container, version)
             .unwrap();
         let node = match record {
             ArchiveRecord::Node(node) => {

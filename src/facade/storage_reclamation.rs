@@ -11,15 +11,15 @@ impl Cva {
     ) -> Result<StorageReclamationReport, CvaError> {
         reclaim_reliquary_parts(
             ReliquaryReclamationParts {
-                container: &mut self.container,
-                archive: &self.archive,
-                memories: &self.memories,
-                entities: &self.entities,
-                relationships: &self.relationships,
-                graph: &self.graph,
-                vector_generations: &self.vector_generations,
-                freshness: &self.freshness,
-                import_epochs: &self.import_epochs,
+                container: &mut self.owner.container,
+                archive: &self.owner.archive,
+                memories: &self.owner.memories,
+                entities: &self.owner.entities,
+                relationships: &self.owner.relationships,
+                graph: &self.owner.graph,
+                vector_generations: &self.owner.vector_generations,
+                freshness: &self.owner.freshness,
+                import_epochs: &self.owner.import_epochs,
             },
             output_path.as_ref(),
         )
@@ -34,13 +34,13 @@ impl Phylactery {
         crate::maintenance::phylactery_reclamation::reclaim(
             crate::maintenance::phylactery_reclamation::PhylacteryReclamationParts {
                 source: crate::owner_lifecycle::PhylacteryReclamationSource::prepare(
-                    &mut self.container,
+                    &mut self.owner.container,
                 )
                 .map_err(PhylacteryError::Repack)?,
-                memories: &self.memories,
-                entities: &self.entities,
-                relationships: &self.relationships,
-                graph: &self.graph,
+                memories: &self.owner.memories,
+                entities: &self.owner.entities,
+                relationships: &self.owner.relationships,
+                graph: &self.owner.graph,
             },
             output_path.as_ref(),
         )

@@ -142,8 +142,8 @@ impl Cva {
         if require_current_coverage && !self.has_complete_current_coverage(&candidate) {
             return Err(VectorGenerationError::IncompleteCoverage);
         }
-        let generation = self.vector_generations.publish(
-            &mut self.container,
+        let generation = self.owner.vector_generations.publish(
+            &mut self.owner.container,
             compatibility_profile_id,
             archive_vector_id,
             source_archive_version,
@@ -168,16 +168,7 @@ impl Cva {
         &self,
         compatibility_profile_id: CompatibilityProfileId,
     ) -> Option<VectorGeneration> {
-        if self.owner_uuid().is_none() || self.open_import_epoch().is_some() {
-            return None;
-        }
-        self.compatibility_profiles
-            .get_active(compatibility_profile_id)?;
-        let generation = self
-            .vector_generations
-            .current_generation(compatibility_profile_id)?;
-        self.has_complete_current_coverage(&generation)
-            .then_some(generation)
+        self.runtime_current_vector_generation(compatibility_profile_id)
     }
 
     pub fn vector_generation_at(

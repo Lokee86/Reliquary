@@ -5,8 +5,9 @@ use crate::{
 impl crate::Cva {
     /// Publish one terminal, direct-only tombstone; an exact retry returns `false`.
     pub fn tombstone_conversation(&mut self, conversation_id: &str) -> Result<bool, ArchiveError> {
-        self.archive
-            .tombstone_conversation(&mut self.container, conversation_id)
+        self.owner
+            .archive
+            .tombstone_conversation(&mut self.owner.container, conversation_id)
     }
 
     pub fn conversation_tombstone(&self, conversation_id: &str) -> Option<&ConversationTombstone> {

@@ -1,4 +1,5 @@
 use super::*;
+use crate::InteractionRuntime;
 use crate::{
     AgenticMemoryController, AgenticMemoryOutcome, DecisionEndpoint, DecisionEndpointError,
     GraphRelationKind, MemoryRef,

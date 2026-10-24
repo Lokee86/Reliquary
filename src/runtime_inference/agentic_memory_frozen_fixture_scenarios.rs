@@ -94,7 +94,7 @@ pub(super) fn run(f: &Fixture) -> Value {
     let envelope = g.capture_agentic_read(i).unwrap();
     let edges = g
         .with_rel(&envelope.owners[0].token, |runtime| {
-            Ok(runtime.cva.graph_relations())
+            Ok(runtime.cva.runtime_graph_relations())
         })
         .unwrap();
     for edge in edges.into_iter().filter(|e| {

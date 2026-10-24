@@ -1,37 +1,27 @@
 use crate::graph_store::GraphStore;
 use crate::memory_retrieval_index::build_subcentroids;
 use crate::memory_retrieval_vectors::load_searchable_memory_vectors;
-use crate::memory_store::MemoryStore;
-use crate::memory_vector_store::MemoryVectorStore;
-use crate::packed_vector_store::PackedVectorStore;
+use crate::memory_store::MemoryReadView;
+use crate::memory_vector_store::MemoryVectorReadView;
 use crate::{
-    COMMUNITY_ALGORITHM_VERSION, CommunityId, CommunitySnapshot, CompatibilityProfileId, Container,
-    MemoryId, MemoryRetrievalError, MemoryRetrievalIndex,
+    COMMUNITY_ALGORITHM_VERSION, CommunityId, CommunitySnapshot, CompatibilityProfileId, MemoryId,
+    MemoryRetrievalError, MemoryRetrievalIndex,
 };
 use std::collections::HashMap;
 
 pub(crate) fn build_memory_retrieval_index(
-    container: &mut Container,
-    memories: &MemoryStore,
+    memories: &MemoryReadView<'_>,
     graph: &GraphStore,
     snapshot: Option<&CommunitySnapshot>,
-    memory_vectors: &MemoryVectorStore,
-    packed_vectors: &PackedVectorStore,
+    memory_vectors: &MemoryVectorReadView<'_>,
     profile_id: CompatibilityProfileId,
     subcentroids_per_community: usize,
 ) -> Result<MemoryRetrievalIndex, MemoryRetrievalError> {
     if subcentroids_per_community == 0 {
         return Err(MemoryRetrievalError::InvalidConfig);
     }
-    let (searchable, vectors) = load_searchable_memory_vectors(
-        &crate::memory_store::MemoryReadView::new(memories, container),
-        &crate::memory_vector_store::MemoryVectorReadView::new(
-            memory_vectors,
-            packed_vectors,
-            container,
-        ),
-        profile_id,
-    )?;
+    let (searchable, vectors) =
+        load_searchable_memory_vectors(memories, memory_vectors, profile_id)?;
     let dimensions = vectors
         .values()
         .next()

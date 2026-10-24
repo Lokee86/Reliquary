@@ -20,6 +20,18 @@ impl fmt::Display for DreamCandidateError {
 
 impl std::error::Error for DreamCandidateError {}
 
+impl From<crate::memory_vector_reader::MemoryVectorReadError> for DreamCandidateError {
+    fn from(value: crate::memory_vector_reader::MemoryVectorReadError) -> Self {
+        use crate::memory_vector_reader::MemoryVectorReadError;
+        match value {
+            MemoryVectorReadError::MemoryVectors(error) => Self::MemoryVectors(error),
+            MemoryVectorReadError::PackedVectors(error) => Self::PackedVectors(error),
+            MemoryVectorReadError::UnsupportedScalar(scalar) => Self::UnsupportedScalar(scalar),
+            MemoryVectorReadError::CorruptVector(reason) => Self::CorruptVector(reason),
+        }
+    }
+}
+
 impl From<MemoryError> for DreamCandidateError {
     fn from(value: MemoryError) -> Self {
         Self::Memory(value)

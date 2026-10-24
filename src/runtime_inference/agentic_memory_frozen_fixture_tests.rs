@@ -1,5 +1,6 @@
 //! Ignored, local-only acceptance runner. Only disposable copies may be supplied.
 use super::*;
+use crate::InteractionRuntime;
 use crate::{
     AgenticMemoryController, AgenticMemoryHandoffConfirmation, AgenticMemoryOutcome, Memory,
     MemoryId,

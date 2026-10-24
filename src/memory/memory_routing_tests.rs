@@ -26,13 +26,15 @@ fn routing_metadata_is_clock_neutral_body_bound_and_reopens() {
     };
 
     assert!(
-        cva.memories
-            .put_routing_metadata(&mut cva.container, metadata.clone())
+        cva.owner
+            .memories
+            .put_routing_metadata(&mut cva.owner.container, metadata.clone())
             .unwrap()
     );
     assert!(
-        !cva.memories
-            .put_routing_metadata(&mut cva.container, metadata.clone())
+        !cva.owner
+            .memories
+            .put_routing_metadata(&mut cva.owner.container, metadata.clone())
             .unwrap()
     );
     assert_eq!(cva.latest_global_version(), version);
@@ -56,8 +58,9 @@ fn routing_metadata_is_clock_neutral_body_bound_and_reopens() {
     });
     assert!(matches!(
         reopened
+            .owner
             .memories
-            .put_routing_metadata(&mut reopened.container, conflicting),
+            .put_routing_metadata(&mut reopened.owner.container, conflicting),
         Err(MemoryError::RoutingMetadataConflict)
     ));
 }

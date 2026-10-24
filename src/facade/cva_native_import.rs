@@ -16,11 +16,11 @@ impl Cva {
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             crate::imports::native_commit::import_native(
                 crate::imports::native_commit::NativeImportParts::new(
-                    &mut self.container,
-                    &mut self.archive,
-                    &self.project_files,
-                    &mut self.insomnia,
-                    &mut self.import_epochs,
+                    &mut self.owner.container,
+                    &mut self.owner.archive,
+                    &self.owner.project_files,
+                    &mut self.owner.insomnia,
+                    &mut self.owner.import_epochs,
                 ),
                 input,
                 now_ns,
@@ -56,7 +56,7 @@ impl Cva {
     }
 
     pub fn open_import_epoch(&self) -> Option<ImportStart> {
-        self.import_epochs.open().cloned()
+        self.runtime_open_import_start()
     }
 
     pub fn import_epoch_status(&self, import_id: &str) -> Option<ImportEpochStatus> {

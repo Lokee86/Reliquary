@@ -10,7 +10,9 @@ impl Cva {
         if !self.memories.contains_memory(left) || !self.memories.contains_memory(right) {
             return Err(MemoryError::MissingMemory);
         }
-        self.dream_pairs.put(&mut self.container, left, right)
+        self.owner
+            .dream_pairs
+            .put(&mut self.owner.container, left, right)
     }
 
     pub(crate) fn dream_pair_records(&self) -> Vec<(MemoryId, MemoryId)> {
@@ -27,7 +29,9 @@ impl Phylactery {
         if !self.memories.contains_memory(left) || !self.memories.contains_memory(right) {
             return Err(MemoryError::MissingMemory);
         }
-        self.dream_pairs.put(&mut self.container, left, right)
+        self.owner
+            .dream_pairs
+            .put(&mut self.owner.container, left, right)
     }
 
     pub(crate) fn dream_pair_records(&self) -> Vec<(MemoryId, MemoryId)> {

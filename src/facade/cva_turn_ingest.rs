@@ -10,20 +10,11 @@ impl Cva {
         &mut self,
         turn: IncomingTurn,
     ) -> Result<crate::archive_activity::TurnAcceptance<IngestedTurn>, ArchiveError> {
-        let accepted = self.archive.ingest_turn(
-            &mut self.container,
-            self.project_files.accepted_facts(),
-            turn,
-        )?;
-        let accepted_turn = self.archive.rel_turn_count();
-        self.freshness_on_accepted_activity(accepted_turn);
-        // Semantic work is rediscovered after vector publication, not attempted
-        // prematurely or silently discarded during accepted source publication.
-        Ok(accepted)
+        self.accept_interaction_turn(turn)
     }
 
     pub fn files_for_source(&self, conversation_id: &str, node_id: &str) -> Vec<StoredFile> {
-        self.archive.files_for_source(conversation_id, node_id)
+        self.runtime_files_for_source(conversation_id, node_id)
     }
 
     pub fn historical_files_for_source(

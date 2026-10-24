@@ -85,10 +85,10 @@ fn replay_with_skips(
 ) -> Result<GraphReplayResult, CvaReconcileError> {
     crate::owner_lifecycle::graph_ordered_replay::replay_with_skips(
         crate::owner_lifecycle::graph_ordered_replay::GraphReplayDestination {
-            container: &mut destination.container,
-            memories: &destination.memories,
-            entities: &destination.entities,
-            graph: &mut destination.graph,
+            container: &mut destination.owner.container,
+            memories: &destination.owner.memories,
+            entities: &destination.owner.entities,
+            graph: &mut destination.owner.graph,
         },
         tail,
         skips,

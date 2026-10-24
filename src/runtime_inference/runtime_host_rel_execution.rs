@@ -4,7 +4,7 @@ use super::super::{
     VECTOR_RETRY_POLL, notify_work, operation, stopped, wait_for_work, wait_for_work_timeout,
 };
 use super::{LeaseGate, LeaseGuard};
-use crate::{CompatibilityProfileId, EpisodePolicy, InsomniaWorkerConfig, InteractionRuntime};
+use crate::{CompatibilityProfileId, EpisodePolicy, InsomniaWorkerConfig, RelExecution};
 use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::sync::{Arc, Condvar, Mutex, RwLock};
 use std::thread::{self, JoinHandle};
@@ -23,7 +23,7 @@ use perception::RelPerceptionQueue;
 mod background;
 
 pub(super) struct RelShared {
-    pub(super) runtime: Arc<Mutex<InteractionRuntime>>,
+    pub(super) runtime: Arc<Mutex<RelExecution>>,
     pub(super) sequencer: Arc<super::events::RelSequencer>,
     pub(super) routes: Arc<RwLock<ReliquaryRuntimeRoutes>>,
     pub(super) signal: Arc<(Mutex<Control>, Condvar)>,
@@ -44,7 +44,7 @@ impl RelShared {
         &self,
         family: super::mutation_events::RelMutationFamily,
         action: impl FnOnce(
-            &mut InteractionRuntime,
+            &mut RelExecution,
         ) -> Result<
             (T, bool, Vec<super::events::RelInvalidation>),
             ReliquaryRuntimeHostError,
@@ -84,7 +84,7 @@ impl RelShared {
 }
 
 pub(super) struct RelRuntime {
-    pub(super) runtime: Option<Arc<Mutex<InteractionRuntime>>>,
+    pub(super) runtime: Option<Arc<Mutex<RelExecution>>>,
     pub(super) signal: Arc<(Mutex<Control>, Condvar)>,
     pub(super) insomnia_enabled: Arc<AtomicBool>,
     pub(super) memory_profile: Arc<Mutex<Option<CompatibilityProfileId>>>,
@@ -95,7 +95,7 @@ pub(super) struct RelRuntime {
 
 impl RelRuntime {
     pub(super) fn start(
-        runtime: InteractionRuntime,
+        runtime: RelExecution,
         sequencer: Arc<super::events::RelSequencer>,
         routes: Arc<RwLock<ReliquaryRuntimeRoutes>>,
         fence: Arc<LeaseGate>,
@@ -273,7 +273,9 @@ impl RelRuntime {
         Ok(())
     }
 
-    pub(super) fn into_cva(mut self) -> Result<crate::Cva, ReliquaryRuntimeHostError> {
+    pub(super) fn into_owner(
+        mut self,
+    ) -> Result<crate::RelExecutionOwner, ReliquaryRuntimeHostError> {
         self.stop_workers()?;
         let runtime = self
             .runtime
@@ -285,7 +287,7 @@ impl RelRuntime {
             .map_err(|_| operation("REL runtime still shared"))?
             .into_inner()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        Ok(runtime.into_cva())
+        Ok(runtime.cva)
     }
 }
 

@@ -190,7 +190,7 @@ impl GatewayRuntime {
             .ok_or_else(|| auth_error("graph anchor is outside the authorized REL closure"))?;
         self.with_rel(&owner.token, |runtime| {
             let mut evidence = BTreeMap::new();
-            for relation in runtime.cva.graph_relations() {
+            for relation in runtime.cva.runtime_graph_relations() {
                 for (source, target, direction, direction_key) in [
                     (
                         relation.source,
@@ -208,7 +208,7 @@ impl GatewayRuntime {
                     if source != anchor.memory_id || target == anchor.memory_id {
                         continue;
                     }
-                    let body = runtime.cva.memory(target).map_err(operation)?;
+                    let body = runtime.cva.runtime_memory(target).map_err(operation)?;
                     if body.archived {
                         continue;
                     }

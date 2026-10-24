@@ -355,9 +355,10 @@ fn direct_and_merge_terminal_retries_are_exact_and_cross_form_retries_fail() {
     let deleted = entity(7, "Direct retry", "direct-retry-create");
     assert!(
         direct
+            .owner
             .entities
             .replay_publication(
-                &mut direct.container,
+                &mut direct.owner.container,
                 EntityReplayPublication::Record(deleted.clone()),
             )
             .unwrap()
@@ -369,19 +370,21 @@ fn direct_and_merge_terminal_retries_are_exact_and_cross_form_retries_fail() {
     };
     assert!(
         direct
+            .owner
             .entities
-            .replay_publication(&mut direct.container, direct_terminal.clone())
+            .replay_publication(&mut direct.owner.container, direct_terminal.clone())
             .unwrap()
     );
     assert!(
         !direct
+            .owner
             .entities
-            .replay_publication(&mut direct.container, direct_terminal)
+            .replay_publication(&mut direct.owner.container, direct_terminal)
             .unwrap()
     );
     assert!(matches!(
-        direct.entities.replay_publication(
-            &mut direct.container,
+        direct.owner.entities.replay_publication(
+            &mut direct.owner.container,
             EntityReplayPublication::Tombstone {
                 id: deleted.id,
                 revision: 2,
@@ -398,9 +401,10 @@ fn direct_and_merge_terminal_retries_are_exact_and_cross_form_retries_fail() {
     for record in [&retired, &survivor] {
         assert!(
             merge
+                .owner
                 .entities
                 .replay_publication(
-                    &mut merge.container,
+                    &mut merge.owner.container,
                     EntityReplayPublication::Record(record.clone()),
                 )
                 .unwrap()
@@ -413,19 +417,21 @@ fn direct_and_merge_terminal_retries_are_exact_and_cross_form_retries_fail() {
     };
     assert!(
         merge
+            .owner
             .entities
-            .replay_publication(&mut merge.container, merge_terminal.clone())
+            .replay_publication(&mut merge.owner.container, merge_terminal.clone())
             .unwrap()
     );
     assert!(
         !merge
+            .owner
             .entities
-            .replay_publication(&mut merge.container, merge_terminal)
+            .replay_publication(&mut merge.owner.container, merge_terminal)
             .unwrap()
     );
     assert!(matches!(
-        merge.entities.replay_publication(
-            &mut merge.container,
+        merge.owner.entities.replay_publication(
+            &mut merge.owner.container,
             EntityReplayPublication::Tombstone {
                 id: retired.id,
                 revision: 2,

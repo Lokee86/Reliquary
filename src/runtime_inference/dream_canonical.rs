@@ -1,15 +1,82 @@
 use crate::graph_relation_sets::{duplicate_component, unique_superseder};
+use crate::memory_store::{MemoryOwnerWriter, MemoryReadView};
 use crate::{DreamLifecycleError, GraphRelation, GraphRelationKind, Memory, MemoryId};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
-/// Read-only owner facts used by canonical decisions; no facade or publication access.
-pub(crate) trait DreamOwnerRead {
+/// Current and historical Memory reads owned by the Memory store.
+pub(crate) trait DreamMemoryRead {
     fn memory(&self, id: MemoryId) -> Result<Memory, crate::MemoryError>;
     fn memory_revision(&self, id: MemoryId, revision: u64) -> Result<Memory, crate::MemoryError>;
-    fn is_publication_birth(&self, id: MemoryId) -> bool;
-    fn same_publication_cohort(&self, a: MemoryId, b: MemoryId) -> Result<bool, crate::CvaError>;
-    fn authority_anchor(&self, memory: &Memory) -> Option<(String, String)>;
-    fn representative_key(&self, memory: &Memory) -> (u8, i64, [u8; 32]);
+}
+
+impl DreamMemoryRead for MemoryReadView<'_> {
+    fn memory(&self, id: MemoryId) -> Result<Memory, crate::MemoryError> {
+        MemoryReadView::memory(self, id)
+    }
+    fn memory_revision(&self, id: MemoryId, revision: u64) -> Result<Memory, crate::MemoryError> {
+        MemoryReadView::memory_revision(self, id, revision)
+    }
+}
+
+impl DreamMemoryRead for MemoryOwnerWriter<'_> {
+    fn memory(&self, id: MemoryId) -> Result<Memory, crate::MemoryError> {
+        MemoryOwnerWriter::memory(self, id)
+    }
+    fn memory_revision(&self, id: MemoryId, revision: u64) -> Result<Memory, crate::MemoryError> {
+        MemoryOwnerWriter::memory_revision(self, id, revision)
+    }
+}
+
+/// Additional owner facts for cross-publication representative selection.
+pub(crate) struct DreamOwnerFacts {
+    pub(crate) publication_births: HashSet<MemoryId>,
+    pub(crate) cohorts: HashMap<(MemoryId, MemoryId), Result<bool, String>>,
+    pub(crate) anchors: HashMap<MemoryId, Option<(String, String)>>,
+    pub(crate) representative_keys: HashMap<MemoryId, (u8, i64, [u8; 32])>,
+}
+
+impl DreamOwnerFacts {
+    fn is_publication_birth(&self, id: MemoryId) -> bool {
+        self.publication_births.contains(&id)
+    }
+
+    fn same_publication_cohort(
+        &self,
+        a: MemoryId,
+        b: MemoryId,
+    ) -> Result<bool, DreamLifecycleError> {
+        self.cohorts
+            .get(&(a, b))
+            .cloned()
+            .ok_or_else(|| {
+                DreamLifecycleError::Freshness(format!(
+                    "missing prepared publication cohort fact for {:?} -> {:?}",
+                    a, b
+                ))
+            })?
+            .map_err(DreamLifecycleError::Freshness)
+    }
+
+    fn authority_anchor(
+        &self,
+        id: MemoryId,
+    ) -> Result<Option<(String, String)>, DreamLifecycleError> {
+        self.anchors.get(&id).cloned().ok_or_else(|| {
+            DreamLifecycleError::Freshness(format!(
+                "missing prepared authority anchor fact for {:?}",
+                id
+            ))
+        })
+    }
+
+    fn representative_key(&self, id: MemoryId) -> Result<(u8, i64, [u8; 32]), DreamLifecycleError> {
+        self.representative_keys.get(&id).copied().ok_or_else(|| {
+            DreamLifecycleError::Freshness(format!(
+                "missing prepared representative key for {:?}",
+                id
+            ))
+        })
+    }
 }
 
 pub(crate) fn explicit_authority_promotes(memory: &Memory) -> bool {
@@ -27,7 +94,7 @@ pub(crate) fn explicit_authority_promotes(memory: &Memory) -> bool {
 }
 
 pub(crate) fn canonical_superseders(
-    parts: &impl DreamOwnerRead,
+    parts: &impl DreamMemoryRead,
     source_id: MemoryId,
     relations: &[GraphRelation],
 ) -> Result<Vec<MemoryId>, DreamLifecycleError> {
@@ -48,7 +115,8 @@ pub(crate) fn canonical_superseders(
 }
 
 pub(crate) fn corroborated_representative(
-    parts: &impl DreamOwnerRead,
+    parts: &impl DreamMemoryRead,
+    facts: &DreamOwnerFacts,
     source_id: MemoryId,
     relations: &[GraphRelation],
 ) -> Result<Option<MemoryId>, DreamLifecycleError> {
@@ -60,7 +128,7 @@ pub(crate) fn corroborated_representative(
     let mut active = Vec::new();
     for id in component {
         let memory = parts.memory(id)?;
-        if let Some(anchor) = parts.authority_anchor(&memory) {
+        if let Some(anchor) = facts.authority_anchor(memory.id)? {
             anchors.insert(anchor);
         }
         if !memory.archived {
@@ -70,12 +138,17 @@ pub(crate) fn corroborated_representative(
     if anchors.len() < 2 || active.is_empty() {
         return Ok(None);
     }
-    active.sort_by_key(|memory| parts.representative_key(memory));
-    Ok(active.first().map(|memory| memory.id))
+    let mut active: Vec<_> = active
+        .into_iter()
+        .map(|memory| Ok((facts.representative_key(memory.id)?, memory)))
+        .collect::<Result<_, DreamLifecycleError>>()?;
+    active.sort_by_key(|(key, _)| *key);
+    Ok(active.first().map(|(_, memory)| memory.id))
 }
 
 pub(crate) fn existing_duplicate_representative(
-    parts: &impl DreamOwnerRead,
+    parts: &impl DreamMemoryRead,
+    facts: &DreamOwnerFacts,
     root_id: MemoryId,
     source_birth_version: u64,
     source_id: MemoryId,
@@ -83,6 +156,7 @@ pub(crate) fn existing_duplicate_representative(
 ) -> Result<Option<MemoryId>, DreamLifecycleError> {
     duplicate_representative(
         parts,
+        facts,
         root_id,
         source_birth_version,
         Some(source_id),
@@ -91,7 +165,8 @@ pub(crate) fn existing_duplicate_representative(
 }
 
 fn duplicate_representative(
-    parts: &impl DreamOwnerRead,
+    parts: &impl DreamMemoryRead,
+    facts: &DreamOwnerFacts,
     root_id: MemoryId,
     source_birth_version: u64,
     source_id: Option<MemoryId>,
@@ -102,7 +177,7 @@ fn duplicate_representative(
         // Only owner-local Memories with explicit durable birth enrollment can
         // represent an existing target; legacy rows and same-batch births are
         // excluded without recreating Dream's classifier or chronology key.
-        if !parts.is_publication_birth(id) {
+        if !facts.is_publication_birth(id) {
             continue;
         }
         let first = parts.memory_revision(id, 1)?;
@@ -110,9 +185,7 @@ fn duplicate_representative(
             continue;
         }
         if let Some(source_id) = source_id
-            && parts
-                .same_publication_cohort(source_id, id)
-                .map_err(|error| DreamLifecycleError::Freshness(error.to_string()))?
+            && facts.same_publication_cohort(source_id, id)?
         {
             continue;
         }
@@ -121,12 +194,16 @@ fn duplicate_representative(
             active.push(memory);
         }
     }
-    active.sort_by_key(|memory| parts.representative_key(memory));
-    Ok(active.first().map(|memory| memory.id))
+    let mut active: Vec<_> = active
+        .into_iter()
+        .map(|memory| Ok((facts.representative_key(memory.id)?, memory)))
+        .collect::<Result<_, DreamLifecycleError>>()?;
+    active.sort_by_key(|(key, _)| *key);
+    Ok(active.first().map(|(_, memory)| memory.id))
 }
 
 pub(crate) fn duplicate_component_has_active_peer(
-    parts: &impl DreamOwnerRead,
+    parts: &impl DreamMemoryRead,
     source_id: MemoryId,
     relations: &[GraphRelation],
 ) -> Result<bool, DreamLifecycleError> {
@@ -142,7 +219,7 @@ pub(crate) fn duplicate_component_has_active_peer(
 }
 
 fn target_has_canonical_authority(
-    parts: &impl DreamOwnerRead,
+    parts: &impl DreamMemoryRead,
     target: MemoryId,
     superseder: MemoryId,
 ) -> Result<bool, DreamLifecycleError> {
@@ -160,4 +237,54 @@ fn target_has_canonical_authority(
         }
     }
     Ok(false)
+}
+
+#[cfg(test)]
+mod owner_fact_tests {
+    use super::*;
+
+    struct NoMemoryReads;
+
+    impl DreamMemoryRead for NoMemoryReads {
+        fn memory(&self, _: MemoryId) -> Result<Memory, crate::MemoryError> {
+            panic!("ineligible candidate must not load Memory")
+        }
+        fn memory_revision(&self, _: MemoryId, _: u64) -> Result<Memory, crate::MemoryError> {
+            panic!("ineligible candidate must not load a Memory revision")
+        }
+    }
+
+    #[test]
+    fn deferred_history_error_is_not_surfaced_for_unrequested_cohort() {
+        let a = MemoryId([1; 32]);
+        let b = MemoryId([2; 32]);
+        let unrelated = MemoryId([3; 32]);
+        let facts = DreamOwnerFacts {
+            publication_births: HashSet::from([a, b]),
+            cohorts: HashMap::from([((a, b), Err("history unavailable".into()))]),
+            anchors: HashMap::new(),
+            representative_keys: HashMap::new(),
+        };
+
+        let ineligible = DreamOwnerFacts {
+            publication_births: HashSet::new(),
+            cohorts: facts.cohorts.clone(),
+            anchors: HashMap::new(),
+            representative_keys: HashMap::new(),
+        };
+        assert!(
+            existing_duplicate_representative(&NoMemoryReads, &ineligible, b, 1, a, &[],)
+                .unwrap()
+                .is_none()
+        );
+
+        assert!(matches!(
+            facts.same_publication_cohort(unrelated, b),
+            Err(DreamLifecycleError::Freshness(message)) if message.contains("missing prepared publication cohort fact")
+        ));
+        assert!(matches!(
+            facts.same_publication_cohort(a, b),
+            Err(DreamLifecycleError::Freshness(message)) if message == "history unavailable"
+        ));
+    }
 }

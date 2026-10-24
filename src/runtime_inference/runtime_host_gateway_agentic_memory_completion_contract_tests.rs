@@ -1,4 +1,5 @@
 use super::*;
+use crate::InteractionRuntime;
 use crate::{
     AgenticMemoryHandoffConfirmation, AgenticMemoryOutcome, DecisionEndpointError,
     GraphRelationKind, MemoryDraft, MemoryId, MemoryRef,
@@ -501,9 +502,9 @@ fn missing_freshness_receipt_failure_keeps_selected_delivery_without_enrolling_m
     let episode = crate::community_test_support::rel_episode(&mut rel);
     let anchor = crate::community_test_support::rel_memory(&mut rel, &episode, "legacy anchor");
     let (legacy, created) = crate::cva_memory_publish::publish_memory_parts(
-        &rel.archive,
-        &mut rel.memories,
-        &mut rel.container,
+        &rel.owner.archive,
+        &mut rel.owner.memories,
+        &mut rel.owner.container,
         None,
         0,
         legacy_memory_draft(),

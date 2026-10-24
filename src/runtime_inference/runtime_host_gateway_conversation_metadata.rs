@@ -39,8 +39,9 @@ impl GatewayRuntime {
         let token = self.authorize(instance, owner_id, OwnerGrant::ViewRel)?;
         self.with_rel(&token, |runtime| {
             runtime
-                .cva()
-                .archive()
+                .cva
+                .owner
+                .archive
                 .branches()
                 .into_iter()
                 .find(|branch| {
@@ -61,8 +62,9 @@ impl GatewayRuntime {
         let token = self.authorize(instance, owner_id, OwnerGrant::ViewRel)?;
         self.with_rel(&token, |runtime| {
             runtime
-                .cva()
-                .archive()
+                .cva
+                .owner
+                .archive
                 .branches()
                 .into_iter()
                 .find(|branch| branch.conversation_id == conversation_id && branch.id == branch_id)
@@ -98,7 +100,7 @@ impl GatewayRuntime {
         let token = self.authorize(instance, owner_id, OwnerGrant::ViewRel)?;
         self.with_rel(&token, |runtime| {
             runtime
-                .cva()
+                .cva
                 .conversation_branch_start_node_ids(conversation_id, leaf_node_id)
                 .map_err(operation)
         })
@@ -130,7 +132,9 @@ impl GatewayRuntime {
     ) -> Result<Vec<crate::ConversationCompaction>, ReliquaryRuntimeHostError> {
         let token = self.authorize(instance, owner_id, OwnerGrant::ViewRel)?;
         self.with_rel(&token, |runtime| {
-            Ok(runtime.cva().conversation_compactions(conversation_id))
+            Ok(runtime
+                .cva
+                .runtime_conversation_compactions(conversation_id))
         })
     }
 
@@ -168,7 +172,12 @@ impl GatewayRuntime {
     ) -> Result<bool, ReliquaryRuntimeHostError> {
         let token = self.authorize(instance, owner_id, OwnerGrant::ManageRel)?;
         self.with_rel_mutation(&token, RelMutationFamily::ConversationMetadata, |runtime| {
-            let changed = runtime.cva.put_echo_event(event).map_err(operation)?;
+            let changed = runtime
+                .cva
+                .owner
+                .echo
+                .put(&mut runtime.cva.owner.container, event)
+                .map_err(operation)?;
             Ok((changed, changed, Vec::new()))
         })
     }
@@ -178,9 +187,7 @@ impl GatewayRuntime {
 mod tests {
     use super::*;
     use crate::runtime_host_test_support::test_path;
-    use crate::{
-        Cva, EpisodePolicy, InsomniaWorkerConfig, InteractionRuntime, ReliquaryRuntimeRoutes,
-    };
+    use crate::{Cva, EpisodePolicy, InsomniaWorkerConfig, RelExecution, ReliquaryRuntimeRoutes};
     use std::collections::{BTreeMap, BTreeSet};
 
     #[test]
@@ -195,7 +202,7 @@ mod tests {
             EpisodePolicy::default(),
         );
         let rel = gateway
-            .mount_rel(InteractionRuntime::new(
+            .mount_rel(RelExecution::new(
                 Cva::create_project(test_path("p5c-conversation-metadata.rel")).unwrap(),
             ))
             .unwrap();
@@ -296,8 +303,9 @@ mod tests {
             .with_rel(&reader_token, |runtime| {
                 assert_eq!(
                     runtime
-                        .cva()
-                        .archive()
+                        .cva
+                        .owner
+                        .archive
                         .conversation_metadata("conv")
                         .unwrap()
                         .title

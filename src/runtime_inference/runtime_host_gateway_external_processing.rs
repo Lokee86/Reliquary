@@ -1,3 +1,184 @@
+use crate::external_index::model::identifier;
+use crate::external_index::store::SourceState;
+use crate::external_source::processing::{
+    self as source_processing, PreparedExternalMemory, PreparedExternalProcessing,
+};
+use crate::external_source::{
+    ExternalConversationSource, ExternalMemoryEvidence, ExternalSourceError,
+};
+use crate::{GeneralEndpoint, InsomniaExtractor, MemoryDraft, MemoryRoutingMetadata};
+
+fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+pub(super) fn prepare<E: GeneralEndpoint>(
+    owner: &str,
+    principal: &str,
+    scope: &str,
+    state: SourceState,
+    refs: &[ExternalMessageRef],
+    source: &impl ExternalConversationSource,
+    extractor: &InsomniaExtractor<E>,
+    now_ns: i64,
+) -> Result<PreparedExternalProcessing, ExternalSourceError> {
+    identifier(scope)?;
+    let expected = source_processing::descriptors(&state, refs)?;
+    let window = source_processing::window_key(owner, scope, &expected);
+    let hydrated = source.hydrate(principal, &expected)?;
+    if hydrated.len() != expected.len() {
+        return Err(ExternalSourceError::InvalidContract);
+    }
+    let mut bytes = 0;
+    for (message, descriptor) in hydrated.iter().zip(&expected) {
+        message.validate(descriptor)?;
+        bytes += message.content.len();
+    }
+    if bytes > 256 * 1024 {
+        return Err(ExternalSourceError::Bounds);
+    }
+    // Legacy internal field node_id is a transient source anchor here. It is
+    // never persisted as an Archive ID or carried into a MemoryDraft.
+    let turns = hydrated
+        .iter()
+        .map(|m| crate::ResolvedTurn {
+            node_id: m.descriptor.reference.message_id.clone(),
+            role: m.descriptor.role.clone(),
+            principal_id: m.descriptor.principal_id.clone(),
+            timestamp_ns: m.descriptor.timestamp_ns,
+            content: m.content.clone(),
+        })
+        .collect::<Vec<_>>();
+    let extraction = extractor
+        .extract_external_input(window, &state.namespace, &refs[0].conversation_id, &turns)
+        .map_err(|_| ExternalSourceError::Unavailable)?;
+    let mut project = Vec::new();
+    let mut user = Vec::new();
+    let inferencer = crate::TemporalInferencer::new(extractor.temporal_endpoint());
+    let through = expected.iter().map(|d| d.timestamp_ns).max().unwrap();
+    for candidate in extraction.candidates {
+        let authority = source_processing::evidence_chunk(
+            &hydrated,
+            &candidate.source_node_id,
+            &candidate.source_quote,
+        )?;
+        let anchor = hydrated
+            .iter()
+            .find(|m| m.descriptor.reference == authority.message)
+            .unwrap();
+        if anchor.descriptor.role != "user" {
+            return Err(ExternalSourceError::InvalidContract);
+        }
+        if candidate.ownership == crate::InsomniaOwnership::User
+            && anchor.descriptor.principal_id.as_deref() != Some(principal)
+        {
+            return Err(ExternalSourceError::Unauthorized);
+        }
+        let content = source_processing::optional_chunk(
+            &hydrated,
+            candidate.authority_source_node_id.as_deref(),
+            candidate.authority_source_quote.as_deref(),
+        )?;
+        let grounding = source_processing::optional_chunk(
+            &hydrated,
+            candidate.grounding_source_node_id.as_deref(),
+            candidate.grounding_source_quote.as_deref(),
+        )?;
+        for conversation in [
+            candidate.authority_source_conversation_id.as_deref(),
+            candidate.grounding_source_conversation_id.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            if conversation != refs[0].conversation_id {
+                return Err(ExternalSourceError::InvalidContract);
+            }
+        }
+        let source_time = content
+            .as_ref()
+            .map_or(anchor.descriptor.timestamp_ns, |c| {
+                hydrated
+                    .iter()
+                    .find(|m| m.descriptor.reference == c.message)
+                    .unwrap()
+                    .descriptor
+                    .timestamp_ns
+            });
+        let draft = MemoryDraft {
+            category: candidate.category,
+            memory_type: candidate.memory_type,
+            authority_kind: candidate.authority_kind,
+            temporal_status: candidate.temporal_status,
+            title: candidate.title,
+            content: candidate.content,
+            scope: if candidate.ownership == crate::InsomniaOwnership::User {
+                "private".to_owned()
+            } else {
+                scope.to_owned()
+            },
+            lifecycle_state: "extracted".into(),
+            archived: false,
+            superseded_by: None,
+            parent_id: None,
+            source_node_id: None,
+            content_source_conversation_id: None,
+            content_source_node_id: None,
+            grounding_source_conversation_id: None,
+            grounding_source_node_id: None,
+            source_episode_id: None,
+            source_time_ns: Some(source_time),
+            mutation_id: format!("external-insomnia:{}:{}", hex(&window), candidate.key),
+            created_at_ns: through,
+            updated_at_ns: now_ns.max(through),
+        };
+        let routing = candidate.routing_metadata.map(|r| MemoryRoutingMetadata {
+            memory_id: crate::memory_model::memory_id(&draft.mutation_id),
+            body_id: crate::memory_model::memory_body_id(&draft.title, &draft.content),
+            entity_mentions: r.entity_mentions,
+        });
+        let mut prepared = crate::insomnia::PreparedMemory {
+            temporal: crate::insomnia::temporal::assess_draft(&draft),
+            draft,
+            temporal_inference: None,
+            routing_metadata: routing,
+        };
+        crate::insomnia::temporal::infer_memory(&inferencer, &mut prepared)
+            .map_err(|_| ExternalSourceError::Unavailable)?;
+        let temporal = prepared.bound_temporal_inference();
+        let evidence = ExternalMemoryEvidence {
+            source_owner_id: owner.to_owned(),
+            principal_id: anchor
+                .descriptor
+                .principal_id
+                .clone()
+                .unwrap_or_else(|| principal.to_owned()),
+            processing_window: window,
+            authority,
+            content,
+            grounding,
+        };
+        evidence.validate()?;
+        let value = PreparedExternalMemory {
+            draft: prepared.draft,
+            temporal,
+            routing: prepared.routing_metadata,
+            evidence,
+        };
+        match candidate.ownership {
+            crate::InsomniaOwnership::Project => project.push(value),
+            crate::InsomniaOwnership::User => user.push(value),
+        }
+    }
+    Ok(PreparedExternalProcessing {
+        window,
+        expected: state,
+        project,
+        user,
+        rejected: extraction.rejected.len(),
+    })
+}
+
 use super::mutation_events::RelMutationFamily;
 use super::{GatewayRuntime, InstanceRuntime, OwnerGrant, operation};
 use crate::external_source::{self as external, *};
@@ -97,8 +278,9 @@ impl GatewayRuntime {
         let receipt = self
             .with_rel(&token, |r| {
                 r.cva
+                    .owner
                     .memories
-                    .external_window(&mut r.cva.container, window)
+                    .external_window(&mut r.cva.owner.container, window)
                     .map_err(operation)
             })
             .map_err(|_| ExternalSourceError::Storage)?;
@@ -110,8 +292,9 @@ impl GatewayRuntime {
             let private = match &phy {
                 Some(p) => self
                     .with_phy(p, |p| {
-                        p.memories
-                            .external_window(&mut p.container, window)
+                        p.owner
+                            .memories
+                            .external_window(&mut p.owner.container, window)
                             .map_err(operation)
                     })
                     .map_err(|_| ExternalSourceError::Unauthorized)?
@@ -147,7 +330,7 @@ impl GatewayRuntime {
         let destination = phy.as_ref().map(|p| p.owner_id());
         let candidate = match super::external_plan::ExternalWindowPlan::load(&plan_path)? {
             Some(plan) => plan.thaw(window, instance.principal_id(), destination, state.clone())?,
-            None => external::processing::prepare(
+            None => prepare(
                 owner,
                 instance.principal_id(),
                 scope,
@@ -213,8 +396,8 @@ impl GatewayRuntime {
                     Some(p) => self.with_phy(p, |p| {
                         self.validate_rel_distribution_token(&token)?;
                         external::publication::publish(
-                            &mut p.container,
-                            &mut p.memories,
+                            &mut p.owner.container,
+                            &mut p.owner.memories,
                             window,
                             &prepared.user,
                             None,
@@ -235,13 +418,13 @@ impl GatewayRuntime {
                 {
                     return Err(operation(ExternalSourceError::Conflict));
                 }
-                let owner_uuid = r.cva.container.owner_uuid();
-                let turn = r.cva.archive.rel_turn_count();
+                let owner_uuid = r.cva.owner.container.owner_uuid();
+                let turn = r.cva.owner.archive.rel_turn_count();
                 let memories = crate::external_owner_access::publish_window(
-                    &mut r.cva.container,
-                    &mut r.cva.memories,
-                    &mut r.cva.freshness,
-                    &mut r.cva.dream_freshness,
+                    &mut r.cva.owner.container,
+                    &mut r.cva.owner.memories,
+                    &mut r.cva.owner.freshness,
+                    &mut r.cva.owner.dream_freshness,
                     owner_uuid,
                     turn,
                     window,

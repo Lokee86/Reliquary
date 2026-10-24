@@ -5,6 +5,8 @@ use crate::memory_model::{
     memory_id,
 };
 use crate::memory_model::{GroupedBodyEncoding, GroupedBodySpan};
+#[path = "memory_lifecycle_update.rs"]
+pub(crate) mod lifecycle_update;
 use crate::{
     Container, MAX_MEMORY_ENTITY_MENTIONS, MAX_MEMORY_ROUTING_TEXT_BYTES, Memory, MemoryBodyId,
     MemoryDraft, MemoryEntityMentionKey, MemoryError, MemoryId, MemoryRoutingMetadata,
@@ -77,6 +79,14 @@ impl<'a> MemoryReadView<'a> {
         self.store.memory(self.container, id)
     }
 
+    pub(crate) fn memory_revision(
+        &self,
+        id: MemoryId,
+        revision: u64,
+    ) -> Result<Memory, MemoryError> {
+        self.store.memory_revision(self.container, id, revision)
+    }
+
     pub(crate) fn current_ids(&self) -> Vec<MemoryId> {
         self.store.current_ids()
     }
@@ -114,6 +124,41 @@ impl<'a> MemoryReadView<'a> {
 
     pub(crate) fn records(&self) -> &[MemoryRecord] {
         self.store.records()
+    }
+}
+
+/// Bounded writer view for ordered Memory lifecycle application. It exposes
+/// Memory reads and publications without exposing the Container handle.
+pub(crate) struct MemoryOwnerWriter<'a> {
+    store: &'a mut MemoryStore,
+    container: &'a mut Container,
+}
+
+impl<'a> MemoryOwnerWriter<'a> {
+    pub(crate) fn new(store: &'a mut MemoryStore, container: &'a mut Container) -> Self {
+        Self { store, container }
+    }
+
+    pub(crate) fn memory(&self, id: MemoryId) -> Result<Memory, MemoryError> {
+        self.store.memory(self.container, id)
+    }
+
+    pub(crate) fn memory_revision(
+        &self,
+        id: MemoryId,
+        revision: u64,
+    ) -> Result<Memory, MemoryError> {
+        self.store.memory_revision(self.container, id, revision)
+    }
+
+    pub(crate) fn publish(
+        &mut self,
+        id: MemoryId,
+        expected_revision: u64,
+        draft: MemoryDraft,
+    ) -> Result<(Memory, bool), MemoryError> {
+        self.store
+            .publish(self.container, Some(id), expected_revision, draft)
     }
 }
 

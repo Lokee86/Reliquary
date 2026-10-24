@@ -191,9 +191,10 @@ fn replay_birth_after_boundary_is_visible_only_to_later_physical_prefixes() {
     let path = temp.owner_path();
     let mut owner = Cva::create(&path).unwrap();
     let candidate = owner
+        .owner
         .memories
         .publish(
-            &mut owner.container,
+            &mut owner.owner.container,
             None,
             0,
             draft("replayed-prefix-candidate", "knowledge"),

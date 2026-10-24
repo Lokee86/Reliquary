@@ -1,10 +1,10 @@
 use crate::interaction_session::{InFlightMessage, validate_id};
 use crate::{
     EpisodePolicy, InteractionAttachment, InteractionCompletion, InteractionError, InteractionRole,
-    InteractionRuntime, InteractionTurn,
+    InteractionTurn, RelExecution,
 };
 
-impl InteractionRuntime {
+impl RelExecution {
     pub fn begin_message(
         &mut self,
         session_id: &str,
@@ -24,7 +24,7 @@ impl InteractionRuntime {
         timestamp_ns: i64,
     ) -> Result<(), InteractionError> {
         validate_id(&message_id, "message id")?;
-        if self.cva.archive().has_node(session_id, &message_id) {
+        if self.cva.archive.has_node(session_id, &message_id) {
             return Err(InteractionError::MessageAlreadyDurable);
         }
         let parent_message_id = self
@@ -37,7 +37,7 @@ impl InteractionRuntime {
             match parent_message_id.as_deref() {
                 Some(parent_id) => self
                     .cva
-                    .archive()
+                    .archive
                     .nodes
                     .get(session_id, parent_id)
                     .map(|node| node.principal_id.clone())
@@ -119,7 +119,7 @@ impl InteractionRuntime {
         now_ns: i64,
     ) -> Result<InteractionCompletion, InteractionError> {
         let receipt = self.complete_message(session_id, message_id)?;
-        let scheduling = self.schedule_session(session_id, policy, now_ns);
+        let scheduling = self.schedule_session_operation(session_id, policy, now_ns);
         Ok(InteractionCompletion {
             receipt,
             scheduling,
@@ -143,7 +143,7 @@ impl InteractionRuntime {
             attachments: message.attachments.clone(),
             project_attachments: message.project_attachments.clone(),
         };
-        match self.accept_turn(turn) {
+        match self.accept_turn_operation(turn) {
             Ok(receipt) => {
                 self.sessions
                     .get_mut(session_id)

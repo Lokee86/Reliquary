@@ -12,12 +12,14 @@ impl Cva {
         subcentroids_per_community: usize,
     ) -> Result<MemoryRetrievalIndex, MemoryRetrievalError> {
         build_memory_retrieval_index(
-            &mut self.container,
-            &self.memories,
+            &crate::memory_store::MemoryReadView::new(&self.memories, &self.container),
             &self.graph,
             self.communities.latest(),
-            &self.memory_vectors,
-            &self.packed_vectors,
+            &crate::memory_vector_store::MemoryVectorReadView::new(
+                &self.memory_vectors,
+                &self.packed_vectors,
+                &self.container,
+            ),
             compatibility_profile_id,
             subcentroids_per_community,
         )

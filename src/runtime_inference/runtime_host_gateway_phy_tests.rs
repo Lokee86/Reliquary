@@ -1,5 +1,6 @@
 use super::*;
 use crate::runtime_host_test_support::test_path;
+use crate::{InteractionRuntime, Phylactery};
 
 fn gateway() -> GatewayRuntime {
     GatewayRuntime::new(

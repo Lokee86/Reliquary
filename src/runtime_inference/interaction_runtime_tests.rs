@@ -84,6 +84,33 @@ fn replayed_normalized_turn_is_idempotent() {
 }
 
 #[test]
+fn extracted_session_operations_preserve_public_error_mapping() {
+    let path = test_path();
+    let mut runtime = InteractionRuntime::new(Cva::create(path).unwrap());
+    runtime.accept_turn(user_turn()).unwrap();
+    runtime
+        .open_session("session-1".into(), Some("message-1".into()))
+        .unwrap();
+    let policy = crate::EpisodePolicy {
+        inactivity_ns: 0,
+        ..Default::default()
+    };
+    let error = InteractionRuntime::finalize_inactive_session(&mut runtime, "session-1", policy, 2)
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        crate::InteractionError::Insomnia(crate::InsomniaError::InvalidField("episode inactivity"))
+    ));
+    let error =
+        InteractionRuntime::schedule_session(&mut runtime, "session-1", policy, 2).unwrap_err();
+    assert!(matches!(
+        error,
+        crate::InteractionError::Insomnia(crate::InsomniaError::InvalidField("episode policy"))
+    ));
+    assert_eq!(runtime.cva().stats().nodes, 1);
+}
+
+#[test]
 fn normalized_agent_role_maps_to_archive_assistant_role() {
     let path = test_path();
     let cva = Cva::create(path).unwrap();

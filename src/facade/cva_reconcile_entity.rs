@@ -19,8 +19,8 @@ pub(crate) fn replay_entity_tail(
     tail: EntityTail,
 ) -> Result<EntityReplayResult, CvaReconcileError> {
     crate::entity_ordered_replay::replay_entity_tail(
-        &mut owner.container,
-        &mut owner.entities,
+        &mut owner.owner.container,
+        &mut owner.owner.entities,
         tail,
     )
     .map_err(Into::into)

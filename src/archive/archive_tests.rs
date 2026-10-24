@@ -100,18 +100,23 @@ fn binary_content_round_trips_across_reopen() {
 
     let mut archive = Cva::create(&path).unwrap();
     archive
+        .owner
         .archive
-        .put_content_bytes(&mut archive.container, id, &bytes)
+        .put_content_bytes(&mut archive.owner.container, id, &bytes)
         .unwrap();
     assert_eq!(
         archive
+            .owner
             .archive
-            .content_bytes(&mut archive.container, id)
+            .content_bytes(&mut archive.owner.container, id)
             .unwrap(),
         bytes
     );
     assert!(matches!(
-        archive.archive.content(&mut archive.container, id),
+        archive
+            .owner
+            .archive
+            .content(&mut archive.owner.container, id),
         Err(ArchiveError::InvalidUtf8)
     ));
     archive.sync().unwrap();
@@ -120,8 +125,9 @@ fn binary_content_round_trips_across_reopen() {
     let mut reopened = Cva::open(&path).unwrap();
     assert_eq!(
         reopened
+            .owner
             .archive
-            .content_bytes(&mut reopened.container, id)
+            .content_bytes(&mut reopened.owner.container, id)
             .unwrap(),
         bytes
     );

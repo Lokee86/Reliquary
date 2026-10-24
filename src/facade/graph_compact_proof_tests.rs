@@ -597,9 +597,9 @@ fn native_graph_reclamation_keeps_publication_and_mappings_and_drops_orphan_carr
         };
         assert_eq!(graph_frames(&source), graph_frames(&output));
         let graph = if phy {
-            Phylactery::open(&source).unwrap().graph
+            Phylactery::open(&source).unwrap().owner.graph
         } else {
-            Cva::open(&source).unwrap().graph
+            Cva::open(&source).unwrap().owner.graph
         };
         let mut source_container = Container::open(&source).unwrap();
         let mut output_container = Container::open(&output).unwrap();

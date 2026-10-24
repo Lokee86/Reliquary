@@ -92,8 +92,8 @@ pub(crate) fn whole_owner_at(
     let mut projection = OwnerProjection::new(owner, "whole_owner", global, None)?;
     let archive = crate::historical_archive_fingerprint::archive_cut(cva, cuts.archive)?;
     let memory = crate::historical_memory_fingerprint::MemoryHistory::read(
-        &mut cva.container,
-        &cva.memories,
+        &mut cva.owner.container,
+        &cva.owner.memories,
     )?
     .at(cuts.memory)?;
     let entity = crate::historical_entity_fingerprint::entity_cut(

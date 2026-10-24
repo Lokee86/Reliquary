@@ -31,11 +31,11 @@ impl Cva {
         let owner_uuid = self.owner_uuid();
         let accepted_rel_turn = self.rel_turn_count();
         commit_application(
-            &mut self.container,
-            &mut self.memories,
-            &mut self.insomnia,
-            &mut self.freshness,
-            &mut self.dream_freshness,
+            &mut self.owner.container,
+            &mut self.owner.memories,
+            &mut self.owner.insomnia,
+            &mut self.owner.freshness,
+            &mut self.owner.dream_freshness,
             owner_uuid,
             accepted_rel_turn,
             claim,
@@ -70,16 +70,16 @@ impl Cva {
         let user_publication = if prepared.user_drafts.is_empty() {
             None
         } else {
-            Some(publish_user_application(&mut crate::owner_lifecycle::personal_memory_publication::PersonalMemoryPublication::new(&mut phylactery.container,&mut phylactery.memories), &prepared.user_drafts)?)
+            Some(publish_user_application(&mut crate::owner_lifecycle::personal_memory_publication::PersonalMemoryPublication::new(&mut phylactery.owner.container,&mut phylactery.owner.memories), &prepared.user_drafts)?)
         };
         let owner_uuid = self.owner_uuid();
         let accepted_rel_turn = self.rel_turn_count();
         commit_application(
-            &mut self.container,
-            &mut self.memories,
-            &mut self.insomnia,
-            &mut self.freshness,
-            &mut self.dream_freshness,
+            &mut self.owner.container,
+            &mut self.owner.memories,
+            &mut self.owner.insomnia,
+            &mut self.owner.freshness,
+            &mut self.owner.dream_freshness,
             owner_uuid,
             accepted_rel_turn,
             claim,
@@ -115,9 +115,8 @@ pub(super) fn extract_with_evidence<E: GeneralEndpoint>(
         InsomniaExtractionStage::Complete(extraction) => Ok(extraction),
         InsomniaExtractionStage::Evidence(round) => {
             let (results, evidence_turns) = super::evidence::resolve_evidence_parts(
-                &cva.archive,
+                &crate::archive::ArchiveReadView::new(&cva.owner.archive, &cva.owner.container),
                 &mut cva.lexical_index,
-                &mut cva.container,
                 episode,
                 &round.requests,
             )?;
@@ -133,8 +132,8 @@ impl Cva {
         completion: &mut crate::insomnia::completion::InsomniaCompletion,
     ) -> Result<(), crate::CvaError> {
         crate::owner_lifecycle::grouped_import_replay::hydrate_grouped_import_completion_bodies(
-            &mut self.container,
-            &self.memories,
+            &mut self.owner.container,
+            &self.owner.memories,
             completion,
         )
         .map_err(Into::into)
@@ -145,12 +144,12 @@ impl Cva {
     ) -> Result<bool, crate::CvaError> {
         crate::owner_lifecycle::grouped_import_replay::replay_grouped_import_completion(
             crate::owner_lifecycle::grouped_import_replay::GroupedImportDestination {
-                container: &mut self.container,
-                archive: &self.archive,
-                memories: &mut self.memories,
-                insomnia: &mut self.insomnia,
-                freshness: &mut self.freshness,
-                dream_freshness: &mut self.dream_freshness,
+                container: &mut self.owner.container,
+                archive: &self.owner.archive,
+                memories: &mut self.owner.memories,
+                insomnia: &mut self.owner.insomnia,
+                freshness: &mut self.owner.freshness,
+                dream_freshness: &mut self.owner.dream_freshness,
             },
             completion,
         )

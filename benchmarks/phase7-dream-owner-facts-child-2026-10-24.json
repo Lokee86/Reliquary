@@ -1,0 +1,33 @@
+{
+  "schema": "phase7-dream-owner-facts-child.v1",
+  "status": "source cut implemented; verification open",
+  "parent_ticket": "P7.1.05 — Freshness↔Dream owner cycle",
+  "child": "P7.1.05a-DREAM-OWNER-FACTS",
+  "denominator": "31 parents + 12 named children = 43 tracked obligations; four gates unchanged",
+  "scope": [
+    "src/runtime_inference/dream_canonical.rs",
+    "src/facade/dream_lifecycle.rs",
+    "src/facade/dream_freshness.rs"
+  ],
+  "exact_witnesses": [
+    {
+      "edge": "dream -> public-consumers callback",
+      "source": "src/runtime_inference/dream_canonical.rs:13-18",
+      "target": "src/facade/dream_lifecycle.rs:26-41",
+      "details": "DreamOwnerRead is a lower-owned behavior interface; the facade implementation reads DreamFreshnessJournal, constructs HistorySource, calls history::same_publication_birth_cohort, and calls history::dream_representative::representative_key."
+    },
+    {
+      "edge": "dream-freshness -> dream facade callback",
+      "source": "src/facade/dream_freshness.rs:259-264",
+      "target": "src/facade/dream_lifecycle.rs:10-41",
+      "details": "fold_duplicate_roots constructs DreamOwnerReadParts and calls its lower DreamMemoryRead method for memory_revision."
+    }
+  ],
+  "cut": "Dream lower code reads Memory through concrete MemoryReadView (MemoryOwnerWriter remains supported for PHY owner lifecycle) and consumes passive DreamOwnerFacts. Facade snapshots only the requested duplicate-component IDs. Freshness prepares cohort facts only for (source_id, publication-birth candidate) pairs; lifecycle corroboration prepares no History cohort facts. Deferred errors stay conditional, while missing requested owner/history facts fail closed.",
+  "evidence_required": [
+    "source witness removed",
+    "preserved error ordering",
+    "no target DAG edge added"
+  ],
+  "verification": "Scoped git diff --check passed. Focused unit regression added but not run. No Cargo commands run per parent instruction; parent compile/verification pending."
+}

@@ -136,9 +136,9 @@ fn freshness_orders_complete_pool_and_keeps_missing_stale_and_dormant_candidates
                 )
                 .unwrap();
             let (legacy, created) = crate::cva_memory_publish::publish_memory_parts(
-                &runtime.cva.archive,
-                &mut runtime.cva.memories,
-                &mut runtime.cva.container,
+                &runtime.cva.owner.archive,
+                &mut runtime.cva.owner.memories,
+                &mut runtime.cva.owner.container,
                 None,
                 0,
                 legacy_draft(),

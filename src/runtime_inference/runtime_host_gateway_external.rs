@@ -112,10 +112,10 @@ impl GatewayRuntime {
         let before = prepared.expected_revision;
         self.with_rel_mutation(token, RelMutationFamily::Retrieval, |r| {
             let status = crate::external_owner_access::install(
-                &mut r.cva.container,
-                &mut r.cva.external_index,
-                &mut r.cva.compatibility_profiles,
-                &mut r.cva.packed_vectors,
+                &mut r.cva.owner.container,
+                &mut r.cva.owner.external_index,
+                &mut r.cva.owner.compatibility_profiles,
+                &mut r.cva.owner.packed_vectors,
                 prepared,
             )
             .map_err(operation)?;
@@ -241,7 +241,9 @@ impl GatewayRuntime {
             .map_err(|_| ExternalSourceError::Unauthorized)?;
         match token.kind {
             OwnerKind::Rel => self.with_rel(&token, |r| {
-                r.cva.external_memory_evidence(id).map_err(operation)
+                r.cva
+                    .runtime_external_memory_evidence(id)
+                    .map_err(operation)
             }),
             OwnerKind::Phy => self.with_phy(&token, |p| {
                 p.external_memory_evidence(id).map_err(operation)
@@ -269,10 +271,14 @@ impl GatewayRuntime {
             .map_err(|_| ExternalSourceError::Unauthorized)?;
         match token.kind {
             OwnerKind::Rel => self.with_rel(&token, |r| {
-                if let Some(evidence) = r.cva.external_memory_evidence(id).map_err(operation)? {
+                if let Some(evidence) = r
+                    .cva
+                    .runtime_external_memory_evidence(id)
+                    .map_err(operation)?
+                {
                     return Ok(Some(SourceEvidenceRef::External(evidence)));
                 }
-                let memory = r.cva.memory(id).map_err(operation)?;
+                let memory = r.cva.runtime_memory(id).map_err(operation)?;
                 if let Some(source) = memory.source_ref {
                     return Ok(Some(SourceEvidenceRef::Reliquary(source)));
                 }

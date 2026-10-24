@@ -103,9 +103,9 @@ impl Cva {
             CvaError::Freshness("Dream population requires a versioned owner".into())
         })?;
         let state = DreamPopulationPrefix::scan_through(
-            &mut self.container,
-            &self.archive,
-            &self.memories,
+            &mut self.owner.container,
+            &self.owner.archive,
+            &self.owner.memories,
             owner,
             prefix_end,
         )?;

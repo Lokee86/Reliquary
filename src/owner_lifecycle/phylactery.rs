@@ -21,11 +21,13 @@ use crate::relationship_rebuild::RelationshipOpenState;
 use crate::relationship_store::RelationshipStore;
 use crate::rewrite_lineage::RewriteLineageStore;
 use crate::{Container, ContainerIdentity, FileKind};
+use std::path::Path;
 
 use super::{OwnerPhylacteryError, read_validation};
 
-/// Replayed PHY constituents. Facade-only lexical and duplicate caches remain outside.
-pub(crate) struct PhylacteryOwner {
+/// Replayed durable PHY constituents. Runtime-owned Retrieval and Dream caches
+/// remain outside this storage-only owner state.
+pub struct PhylacteryOwner {
     pub(crate) owner_maintenance: OwnerMaintenanceStore,
     pub(crate) rewrite_lineage: RewriteLineageStore,
     pub(crate) container: Container,
@@ -42,6 +44,46 @@ pub(crate) struct PhylacteryOwner {
     pub(crate) entities: EntityStore,
     pub(crate) entity_resolutions: EntityResolutionStore,
     pub(crate) relationships: RelationshipStore,
+}
+
+pub(crate) fn create_phylactery(
+    path: impl AsRef<Path>,
+) -> Result<PhylacteryOwner, OwnerPhylacteryError> {
+    let container = Container::create_with_identity(
+        path,
+        ContainerIdentity {
+            file_kind: FileKind::Phylactery,
+            scope: None,
+        },
+    )?;
+    initialize_phylactery(container)
+}
+
+pub(crate) fn create_phylactery_with_uuid(
+    path: impl AsRef<Path>,
+    owner_uuid: [u8; 16],
+) -> Result<PhylacteryOwner, OwnerPhylacteryError> {
+    let container = Container::create_with_identity_and_uuid(
+        path,
+        ContainerIdentity {
+            file_kind: FileKind::Phylactery,
+            scope: None,
+        },
+        owner_uuid,
+    )?;
+    initialize_phylactery(container)
+}
+
+pub(crate) fn open_phylactery(
+    path: impl AsRef<Path>,
+) -> Result<PhylacteryOwner, OwnerPhylacteryError> {
+    open_phylactery_from_container(Container::open(path)?)
+}
+
+pub(crate) fn open_phylactery_read_only(
+    path: impl AsRef<Path>,
+) -> Result<PhylacteryOwner, OwnerPhylacteryError> {
+    open_phylactery_from_container(Container::open_read_only(path)?)
 }
 
 pub(crate) fn initialize_phylactery(

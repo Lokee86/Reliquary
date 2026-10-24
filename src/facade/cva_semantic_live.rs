@@ -135,12 +135,12 @@ impl Cva {
         let current = self.current_vector_generation(batch.profile.id);
         if let Some(plan) = crate::semantic_archive_batch::pack_batch(batch, vectors, current)? {
             let generation = crate::owner_lifecycle::vector_publication::publish_semantic_archive(
-                &mut self.container,
-                &self.archive,
-                &self.compatibility_profiles,
-                &mut self.packed_vectors,
-                &mut self.archive_vectors,
-                &mut self.vector_generations,
+                &mut self.owner.container,
+                &self.owner.archive,
+                &self.owner.compatibility_profiles,
+                &mut self.owner.packed_vectors,
+                &mut self.owner.archive_vectors,
+                &mut self.owner.vector_generations,
                 plan,
             )?;
             if self.owner_uuid().is_some() {

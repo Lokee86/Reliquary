@@ -131,8 +131,9 @@ impl Cva {
         self.freshness
             .validate_semantic_preappend(source.owner_uuid, &payload)
             .map_err(CvaError::Freshness)?;
-        self.freshness
-            .persist_policy_if_needed(&mut self.container, source.owner_uuid)
+        self.owner
+            .freshness
+            .persist_policy_if_needed(&mut self.owner.container, source.owner_uuid)
             .map_err(CvaError::Freshness)?;
         self.container
             .append(&payload)
@@ -144,7 +145,7 @@ impl Cva {
             .ingest_appended(&payload)
             .map_err(CvaError::Freshness)?;
         if !effects.is_empty() {
-            self.freshness_refresh_due(
+            self.runtime_freshness_refresh_due(
                 effects.keys().copied().collect::<Vec<_>>(),
                 source.activity_position,
             )?;
@@ -216,8 +217,9 @@ impl Cva {
         let mut source_episodes = std::collections::HashSet::new();
         for id in &memory_ids {
             let memory = self
+                .owner
                 .memories
-                .memory(&mut self.container, *id)
+                .memory(&mut self.owner.container, *id)
                 .map_err(|e| CvaError::Freshness(e.to_string()))?;
             if source_memory_cohort.contains(id) || source_has_memory_provenance(source, &memory) {
                 source_memory_cohort.insert(*id);
@@ -236,8 +238,9 @@ impl Cva {
         let mut excluded_memories = 0;
         for id in &memory_ids {
             let memory = self
+                .owner
                 .memories
-                .memory(&mut self.container, *id)
+                .memory(&mut self.owner.container, *id)
                 .map_err(|e| CvaError::Freshness(e.to_string()))?;
             if memory
                 .source_episode_id

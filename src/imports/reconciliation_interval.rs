@@ -478,24 +478,19 @@ pub(super) fn replay_frame(
                 .put(&mut output.container, memory, lane, state)?;
         }
     }
-    if let Some(record) = crate::owner_lifecycle::insomnia_import_replay::decode_record(payload)? {
-        // These records have no container coordinates. Preserve retries,
-        // failures and lease transitions in their accepted physical order.
-        match record {
-            crate::insomnia::codec::InsomniaRecord::Work(work) => {
-                crate::owner_lifecycle::import_epoch_transport::append_replay_payload(
-                    &mut output.container,
-                    payload,
-                )?;
-                output.insomnia.apply_work(work);
-            }
-            crate::insomnia::codec::InsomniaRecord::Attempt(attempt) => {
-                crate::owner_lifecycle::import_epoch_transport::append_replay_payload(
-                    &mut output.container,
-                    payload,
-                )?;
-                output.insomnia.apply_attempt(attempt);
-            }
+    // These records have no container coordinates. Preserve retries,
+    // failures and lease transitions in their accepted physical order.
+    match crate::owner_lifecycle::insomnia_import_replay::replay_record(
+        &mut output.container,
+        &mut output.insomnia,
+        payload,
+    ) {
+        Ok(_) => {}
+        Err(crate::owner_lifecycle::insomnia_import_replay::ReplayError::Decode(error)) => {
+            return Err(error.into());
+        }
+        Err(crate::owner_lifecycle::insomnia_import_replay::ReplayError::Append(error)) => {
+            return Err(error.into());
         }
     }
     if crate::perception_import_replay::is_resolution_delta(payload) {

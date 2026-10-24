@@ -1,9 +1,8 @@
 use crate::compatibility_profile_probe::{validate_embedding_batch, verify_endpoint};
 use crate::{
     CompatibilityProfileId, EmbeddingEndpoint, EmbeddingMode, MemoryBodyId,
-    MemoryVectorBuildResult, MemoryVectorError, MemoryVectorId, MemoryVectorInfo,
-    MemoryVectorLocation, MemoryVectorSet, MemoryVectorStats, PackedVectorId, PackedVectors,
-    Phylactery, ScalarType, VectorSchema,
+    MemoryVectorBuildResult, MemoryVectorError, MemoryVectorId, MemoryVectorInfo, MemoryVectorSet,
+    MemoryVectorStats, PackedVectorId, PackedVectors, Phylactery, ScalarType, VectorSchema,
 };
 
 impl Phylactery {
@@ -32,10 +31,10 @@ impl Phylactery {
                 return Err(MemoryVectorError::DuplicateMemoryBody);
             }
         }
-        self.memory_vectors.put(
-            &mut self.container,
-            &self.compatibility_profiles,
-            &self.packed_vectors,
+        self.owner.memory_vectors.put(
+            &mut self.owner.container,
+            &self.owner.compatibility_profiles,
+            &self.owner.packed_vectors,
             compatibility_profile_id,
             packed_vector_id,
             memory_body_ids,
@@ -46,16 +45,7 @@ impl Phylactery {
         &mut self,
         id: MemoryVectorId,
     ) -> Result<MemoryVectorSet, MemoryVectorError> {
-        self.memory_vectors.get(&mut self.container, id)
-    }
-
-    pub fn memory_vector_location(
-        &self,
-        compatibility_profile_id: CompatibilityProfileId,
-        memory_body_id: MemoryBodyId,
-    ) -> Option<MemoryVectorLocation> {
-        self.memory_vectors
-            .location(compatibility_profile_id, memory_body_id)
+        self.owner.memory_vectors.get(&mut self.owner.container, id)
     }
 
     pub fn memory_vector_infos(&self) -> Vec<MemoryVectorInfo> {
@@ -99,8 +89,9 @@ impl Phylactery {
         let mut texts = Vec::with_capacity(missing.len());
         for body_id in &missing {
             texts.push(
-                self.memories
-                    .body_embedding_text(&mut self.container, *body_id)?,
+                self.owner
+                    .memories
+                    .body_embedding_text(&mut self.owner.container, *body_id)?,
             );
         }
         let vectors = endpoint.embed(EmbeddingMode::Document, &texts)?;

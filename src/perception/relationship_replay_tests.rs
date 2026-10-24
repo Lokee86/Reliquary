@@ -72,9 +72,10 @@ fn exact_older_mutation_retry_is_inert_and_semantic_conflicts_do_not_append() {
     let first = record(1, 90, 7, "mutation-one");
     assert!(
         owner
+            .owner
             .relationships
             .replay_publication(
-                &mut owner.container,
+                &mut owner.owner.container,
                 RelationshipReplayPublication::Record(first.clone()),
             )
             .unwrap()
@@ -85,9 +86,10 @@ fn exact_older_mutation_retry_is_inert_and_semantic_conflicts_do_not_append() {
     second.participants[0].role = Some("  revised role  ".into());
     assert!(
         owner
+            .owner
             .relationships
             .replay_publication(
-                &mut owner.container,
+                &mut owner.owner.container,
                 RelationshipReplayPublication::Record(second.clone()),
             )
             .unwrap()
@@ -101,9 +103,10 @@ fn exact_older_mutation_retry_is_inert_and_semantic_conflicts_do_not_append() {
     );
     assert!(
         !owner
+            .owner
             .relationships
             .replay_publication(
-                &mut owner.container,
+                &mut owner.owner.container,
                 RelationshipReplayPublication::Record(first.clone()),
             )
             .unwrap()
@@ -113,8 +116,8 @@ fn exact_older_mutation_retry_is_inert_and_semantic_conflicts_do_not_append() {
     let mut summary_conflict = first.clone();
     summary_conflict.summary = "different semantic description".into();
     assert!(matches!(
-        owner.relationships.replay_publication(
-            &mut owner.container,
+        owner.owner.relationships.replay_publication(
+            &mut owner.owner.container,
             RelationshipReplayPublication::Record(summary_conflict),
         ),
         Err(RelationshipError::MutationConflict)
@@ -124,8 +127,8 @@ fn exact_older_mutation_retry_is_inert_and_semantic_conflicts_do_not_append() {
     let mut participant_conflict = first.clone();
     participant_conflict.participants[0].role = Some("different role".into());
     assert!(matches!(
-        owner.relationships.replay_publication(
-            &mut owner.container,
+        owner.owner.relationships.replay_publication(
+            &mut owner.owner.container,
             RelationshipReplayPublication::Record(participant_conflict),
         ),
         Err(RelationshipError::MutationConflict)
@@ -138,8 +141,9 @@ fn exact_older_mutation_retry_is_inert_and_semantic_conflicts_do_not_append() {
     };
     assert!(
         owner
+            .owner
             .relationships
-            .replay_publication(&mut owner.container, tombstone.clone())
+            .replay_publication(&mut owner.owner.container, tombstone.clone())
             .unwrap()
     );
     let after_tombstone = fs::read(&path).unwrap();
@@ -149,14 +153,15 @@ fn exact_older_mutation_retry_is_inert_and_semantic_conflicts_do_not_append() {
     );
     assert!(
         !owner
+            .owner
             .relationships
-            .replay_publication(&mut owner.container, tombstone)
+            .replay_publication(&mut owner.owner.container, tombstone)
             .unwrap()
     );
     assert_no_write(&path, &owner, &after_tombstone, tombstone_clocks);
     assert!(matches!(
-        owner.relationships.replay_publication(
-            &mut owner.container,
+        owner.owner.relationships.replay_publication(
+            &mut owner.owner.container,
             RelationshipReplayPublication::Tombstone {
                 id: first.id,
                 revision: 4,
@@ -165,8 +170,8 @@ fn exact_older_mutation_retry_is_inert_and_semantic_conflicts_do_not_append() {
         Err(RelationshipError::TerminalTombstone)
     ));
     assert!(matches!(
-        owner.relationships.replay_publication(
-            &mut owner.container,
+        owner.owner.relationships.replay_publication(
+            &mut owner.owner.container,
             RelationshipReplayPublication::Record({
                 let mut resurrection = second;
                 resurrection.revision = 3;

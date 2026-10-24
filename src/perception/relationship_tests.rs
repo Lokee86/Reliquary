@@ -144,9 +144,10 @@ fn relationship_store_keeps_typed_participant_while_owner_rejects_missing_local_
     let owner_id = direct.owner_id().unwrap();
     let missing_entity = EntityId([98; 32]);
     let direct_value = direct
+        .owner
         .relationships
         .publish(
-            &mut direct.container,
+            &mut direct.owner.container,
             None,
             0,
             draft(

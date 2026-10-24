@@ -29,8 +29,9 @@ pub(crate) fn archive_cut(cva: &mut Cva, cut: u64) -> Result<ArchiveCut, String>
         .take_while(|v| v.archive_version <= cut)
     {
         let (record, applying) = cva
+            .owner
             .archive
-            .read_publication(&mut cva.container, version)
+            .read_publication(&mut cva.owner.container, version)
             .map_err(|e| e.to_string())?;
         let value = match record {
             ArchiveRecord::Node(value) => json!({"node": node(cva, &value, &mut contents)?}),
@@ -146,8 +147,9 @@ fn content(
         json!({"pruned": {"bytes": marker.byte_length, "manifest": hex(&marker.manifest_digest)}})
     } else {
         let bytes = cva
+            .owner
             .archive
-            .content_bytes(&mut cva.container, id)
+            .content_bytes(&mut cva.owner.container, id)
             .map_err(|e| e.to_string())?;
         json!({"bytes_hex": hex(&bytes)})
     };

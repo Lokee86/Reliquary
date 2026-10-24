@@ -66,9 +66,10 @@ fn stale_pending_candidate_requires_explicit_repair_after_reopen() {
 
     // Simulate a legacy/incomplete merge that retired the Entity without
     // retargeting the pending resolution candidate.
-    rel.entities
+    rel.owner
+        .entities
         .tombstone(
-            &mut rel.container,
+            &mut rel.owner.container,
             retired.id,
             retired.revision,
             survivor.id,

@@ -15,8 +15,9 @@ macro_rules! impl_owner {
                     &draft,
                     $reject_principal,
                 )?;
-                self.entities
-                    .publish(&mut self.container, id, expected_revision, draft)
+                self.owner
+                    .entities
+                    .publish(&mut self.owner.container, id, expected_revision, draft)
             }
 
             pub(crate) fn replay_entity_revision(
@@ -26,8 +27,8 @@ macro_rules! impl_owner {
                 draft: EntityDraft,
                 global_id: Option<EntityGlobalId>,
             ) -> Result<(Entity, bool), EntityError> {
-                self.entities.publish_with_global_id(
-                    &mut self.container,
+                self.owner.entities.publish_with_global_id(
+                    &mut self.owner.container,
                     Some(id),
                     expected_revision,
                     draft,
@@ -77,9 +78,11 @@ macro_rules! impl_owner {
                 id: EntityId,
                 expected_revision: u64,
             ) -> Result<crate::owner_lifecycle::TombstoneOutcome, EntityError> {
-                let result =
-                    self.entities
-                        .tombstone_direct(&mut self.container, id, expected_revision)?;
+                let result = self.owner.entities.tombstone_direct(
+                    &mut self.owner.container,
+                    id,
+                    expected_revision,
+                )?;
                 self.graph
                     .exclude_from_current(crate::SemanticNodeRef::entity(id))
                     .map_err(|_| EntityError::InvalidField("Entity graph projection"))?;
@@ -142,10 +145,6 @@ macro_rules! impl_owner {
                 self.entities.entity_revision(id, revision)
             }
 
-            pub fn entities(&self) -> Vec<Entity> {
-                self.entities.current()
-            }
-
             pub fn entity_candidates_for_surface(
                 &self,
                 surface: &str,
@@ -187,13 +186,29 @@ macro_rules! impl_owner {
             pub fn entity_version(&self) -> u64 {
                 self.entities.entity_version()
             }
-
-            pub fn entity_stats(&self) -> EntityStats {
-                self.entities.stats()
-            }
         }
     };
 }
 
 impl_owner!(Cva, false);
 impl_owner!(Phylactery, true);
+
+impl Cva {
+    pub fn entities(&self) -> Vec<Entity> {
+        self.runtime_entities()
+    }
+
+    pub fn entity_stats(&self) -> EntityStats {
+        self.runtime_entity_stats()
+    }
+}
+
+impl Phylactery {
+    pub fn entities(&self) -> Vec<Entity> {
+        self.entities.current()
+    }
+
+    pub fn entity_stats(&self) -> EntityStats {
+        self.entities.stats()
+    }
+}

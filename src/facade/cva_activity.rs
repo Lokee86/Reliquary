@@ -12,7 +12,7 @@ impl Cva {
 
     /// Count of first accepted logical user/assistant identities in this REL.
     pub fn rel_turn_count(&self) -> u64 {
-        self.archive.rel_turn_count()
+        self.runtime_rel_turn_count()
     }
 
     /// The first REL-local activity position, or None for missing/noneligible turns.

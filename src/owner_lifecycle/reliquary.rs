@@ -25,7 +25,9 @@ use crate::relationship_store::RelationshipStore;
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::{Archive, Container};
 
-pub(crate) struct ReliquaryOwner {
+/// Concrete mutable REL owner state shared by the public Cva adapter and
+/// mounted runtime execution. Runtime code depends on this lower owner type.
+pub struct ReliquaryOwner {
     pub(crate) owner_maintenance: crate::owner_maintenance::OwnerMaintenanceStore,
     pub(crate) rewrite_lineage: crate::rewrite_lineage::RewriteLineageStore,
     pub(crate) external_index: crate::external_index::store::ExternalIndexStore,

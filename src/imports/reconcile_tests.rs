@@ -149,8 +149,9 @@ fn import_and_finish_with_grouped_memory(cva: &mut Cva, namespace: &str, now_ns:
         body_id: cva.memory_body_id(memory_id).unwrap(),
         entity_mentions: vec![mention],
     };
-    cva.memories
-        .put_routing_metadata(&mut cva.container, routing)
+    cva.owner
+        .memories
+        .put_routing_metadata(&mut cva.owner.container, routing)
         .unwrap();
     assert!(
         cva.put_entity_rejected(
@@ -815,9 +816,16 @@ fn valid_insomnia_journal_history_is_replayed_with_completed_import() {
         has_work_record,
         "retained work journal remains in the completed epoch"
     );
-    let _ = has_attempt_record; // Terminal failures are retained as work records in this codec.
+    assert!(
+        !has_attempt_record,
+        "current completion is stored in the grouped receipt format"
+    );
     let expected_work = right.insomnia_work(episode_id).unwrap().clone();
     let expected_attempts = right.insomnia_attempts(episode_id);
+    assert!(
+        !expected_attempts.is_empty(),
+        "grouped completion retains the projected completed attempt"
+    );
     right.sync().unwrap();
     drop(right);
 

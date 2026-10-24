@@ -41,14 +41,20 @@ impl GatewayRuntime {
                 .with_rel(&owner.token, |runtime| {
                     let cva = &mut runtime.cva;
                     let pool = crate::memory_candidate_collection::collect_memory_candidate_pool(
-                        &crate::memory_store::MemoryReadView::new(&cva.memories, &cva.container),
+                        &crate::memory_store::MemoryReadView::new(
+                            &cva.owner.memories,
+                            &cva.owner.container,
+                        ),
                         &crate::memory_vector_store::MemoryVectorReadView::new(
-                            &cva.memory_vectors,
-                            &cva.packed_vectors,
-                            &cva.container,
+                            &cva.owner.memory_vectors,
+                            &cva.owner.packed_vectors,
+                            &cva.owner.container,
                         ),
                         &mut cva.lexical_index,
-                        cva.compatibility_profiles.get_active(profile).cloned(),
+                        cva.owner
+                            .compatibility_profiles
+                            .get_active(profile)
+                            .cloned(),
                         staged.query(),
                         &vector,
                         profile,
@@ -134,7 +140,10 @@ impl GatewayRuntime {
             .find(|owner| owner.token.owner_id == memory.owner_id)
             .ok_or_else(|| auth_error("Memory is outside the authorized REL closure"))?;
         self.with_rel(&owner.token, |runtime| {
-            let body = runtime.cva.memory(memory.memory_id).map_err(operation)?;
+            let body = runtime
+                .cva
+                .runtime_memory(memory.memory_id)
+                .map_err(operation)?;
             if body.archived {
                 return Err(operation(
                     "agentic Memory candidate is no longer searchable",

@@ -44,9 +44,10 @@ fn historical_matrix_native_foreign_and_missing_declared_provenance_reject_retai
         }
         // An actual immutable Memory revision injects incompatible retained
         // provenance below the facade, not an authored manifest or score plan.
-        cva.memories
+        cva.owner
+            .memories
             .publish_with_source_ref(
-                &mut cva.container,
+                &mut cva.owner.container,
                 Some(id),
                 current.revision,
                 changed,

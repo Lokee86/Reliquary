@@ -56,6 +56,8 @@ mod synthesis;
 pub(crate) mod temporal;
 #[path = "../facade/insomnia_worker.rs"]
 mod worker;
+#[path = "insomnia_worker_runtime.rs"]
+pub(crate) mod worker_runtime;
 
 pub use backpressure::DEFAULT_INSOMNIA_BACKPRESSURE_DELAY_NS;
 pub use contract::{

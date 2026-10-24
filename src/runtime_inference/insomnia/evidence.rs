@@ -1,6 +1,6 @@
 use super::extraction::{InsomniaEvidenceResult, InsomniaEvidenceTurn, InsomniaExtractionError};
 use crate::archive::ArchiveReadView;
-use crate::{Archive, Container, Episode, Fragment, Node, ResolvedTurn};
+use crate::{Archive, Episode, Fragment, Node, ResolvedTurn};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 
@@ -60,24 +60,20 @@ fn parse_request(value: &Value) -> Result<EvidenceRequest, InsomniaExtractionErr
 }
 
 pub(crate) fn resolve_evidence_parts(
-    archive: &Archive,
+    archive: &ArchiveReadView<'_>,
     lexical_index: &mut impl EvidenceSearch,
-    container: &mut Container,
     episode: &Episode,
     requests: &[EvidenceRequest],
 ) -> Result<(Vec<InsomniaEvidenceResult>, Vec<InsomniaEvidenceTurn>), InsomniaExtractionError> {
     {
-        let archive_read = ArchiveReadView::new(archive, container);
-        lexical_index
-            .ensure_current(&archive_read)
-            .map_err(|error| {
-                InsomniaExtractionError::InvalidOutput(format!(
-                    "Archive lexical index could not be built: {error}"
-                ))
-            })?;
+        lexical_index.ensure_current(archive).map_err(|error| {
+            InsomniaExtractionError::InvalidOutput(format!(
+                "Archive lexical index could not be built: {error}"
+            ))
+        })?;
     }
-    let plans = plan_evidence(archive, lexical_index, episode, requests);
-    hydrate_evidence_parts(archive, container, &plans)
+    let plans = plan_evidence(archive.archive(), lexical_index, episode, requests);
+    hydrate_evidence_read(archive, &plans)
 }
 
 pub(crate) fn plan_evidence(
@@ -98,14 +94,6 @@ pub(crate) fn plan_evidence(
             },
         })
         .collect()
-}
-
-pub(crate) fn hydrate_evidence_parts(
-    archive: &Archive,
-    container: &mut Container,
-    plans: &[EvidencePlan],
-) -> Result<(Vec<InsomniaEvidenceResult>, Vec<InsomniaEvidenceTurn>), InsomniaExtractionError> {
-    hydrate_evidence_read(&ArchiveReadView::new(archive, container), plans)
 }
 
 pub(crate) fn hydrate_evidence_read(

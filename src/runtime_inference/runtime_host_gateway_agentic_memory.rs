@@ -44,7 +44,8 @@ impl GatewayRuntime {
                         .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
                     profile
                 };
-                let cut = self.with_rel(&token, |runtime| Ok(runtime.cva.rel_turn_count()))?;
+                let cut =
+                    self.with_rel(&token, |runtime| Ok(runtime.cva.runtime_rel_turn_count()))?;
                 owners.push(AgenticOwnerRead {
                     token,
                     profile,

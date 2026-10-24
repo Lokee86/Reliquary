@@ -5,8 +5,7 @@ use crate::{
 
 #[path = "../runtime_inference/insomnia/worker/model.rs"]
 pub(crate) mod model;
-#[path = "insomnia_worker_runtime.rs"]
-mod runtime;
+use crate::insomnia::worker_runtime as runtime;
 pub use model::{
     DEFAULT_INSOMNIA_LEASE_NS, DEFAULT_INSOMNIA_MAX_ATTEMPTS, DEFAULT_INSOMNIA_POLL_NS,
     DEFAULT_INSOMNIA_RETRY_DELAY_NS, DEFAULT_INSOMNIA_SCOPE, DEFAULT_INSOMNIA_WORKERS,
@@ -20,10 +19,7 @@ impl Cva {
         embedding_endpoint: &V,
         config: InsomniaWorkerConfig,
     ) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
-        validate_config(&config)?;
-        let mut result = runtime::drain(self, extractor, &config)?;
-        fill_project_vectors(self, embedding_endpoint, &mut result, None)?;
-        Ok(result)
+        runtime::drain_with_vectors(self, extractor, embedding_endpoint, &config)
     }
 
     pub fn drain_insomnia_backlog_with_progress<E: GeneralEndpoint, V: EmbeddingEndpoint>(
@@ -33,7 +29,7 @@ impl Cva {
         config: InsomniaWorkerConfig,
         progress: &dyn InsomniaProgressReporter,
     ) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
-        validate_config(&config)?;
+        runtime::validate_config(&config)?;
         let mut result = runtime::drain_with_progress(self, extractor, &config, progress)?;
         fill_project_vectors(self, embedding_endpoint, &mut result, Some(progress))?;
         Ok(result)
@@ -46,7 +42,7 @@ impl Cva {
         embedding_endpoint: &V,
         config: InsomniaWorkerConfig,
     ) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
-        validate_config(&config)?;
+        runtime::validate_config(&config)?;
         let mut result = runtime::drain_routed(self, phylactery, extractor, &config)?;
         fill_routed_vectors(self, phylactery, embedding_endpoint, &mut result, None)?;
         Ok(result)
@@ -60,7 +56,7 @@ impl Cva {
         config: InsomniaWorkerConfig,
         progress: &dyn InsomniaProgressReporter,
     ) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
-        validate_config(&config)?;
+        runtime::validate_config(&config)?;
         let mut result =
             runtime::drain_routed_with_progress(self, phylactery, extractor, &config, progress)?;
         fill_routed_vectors(
@@ -148,21 +144,4 @@ fn report_vector_complete(
             already_present,
         });
     }
-}
-
-fn validate_config(config: &InsomniaWorkerConfig) -> Result<(), InsomniaWorkerError> {
-    if config.workers == 0 || config.workers > MAX_INSOMNIA_WORKERS {
-        return Err(InsomniaWorkerError::InvalidConfig("workers"));
-    }
-    if config.scope.trim().is_empty() || config.worker_id_prefix.trim().is_empty() {
-        return Err(InsomniaWorkerError::InvalidConfig("scope/worker ID"));
-    }
-    if config.lease_duration_ns <= 0
-        || config.retry_delay_ns <= 0
-        || config.poll_interval_ns <= 0
-        || config.max_attempts == 0
-    {
-        return Err(InsomniaWorkerError::InvalidConfig("timing/attempt limits"));
-    }
-    Ok(())
 }

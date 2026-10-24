@@ -1,4 +1,5 @@
 use super::*;
+use crate::{InteractionRuntime, Phylactery};
 
 fn path(name: &str) -> PathBuf {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))

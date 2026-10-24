@@ -9,13 +9,15 @@ fn historical_mixed_fragment_rendering_has_a_total_byte_bound() {
     for fragment in cva.fragments() {
         let ordinary = cva.fragment_text(fragment.id).unwrap();
         let bounded = cva
+            .owner
             .archive
-            .fragment_text_bounded(&mut cva.container, &fragment, ordinary.len())
+            .fragment_text_bounded(&mut cva.owner.container, &fragment, ordinary.len())
             .unwrap();
         assert_eq!(bounded, ordinary);
         assert!(
-            cva.archive
-                .fragment_text_bounded(&mut cva.container, &fragment, ordinary.len() - 1)
+            cva.owner
+                .archive
+                .fragment_text_bounded(&mut cva.owner.container, &fragment, ordinary.len() - 1)
                 .is_err()
         );
     }

@@ -10,7 +10,7 @@ impl GatewayRuntime {
     ) -> Result<Option<crate::ProjectRevisionCorrelation>, ReliquaryRuntimeHostError> {
         let token = self.explicit_rel_token(instance, owner_id)?;
         let correlation = self.with_rel(&token, |runtime| {
-            Ok(runtime.cva().latest_project_revision_correlation())
+            Ok(runtime.cva.runtime_latest_project_revision_correlation())
         })?;
         self.deliver_rel(instance, &token, correlation)
     }
@@ -85,7 +85,12 @@ impl GatewayRuntime {
         #[cfg(test)]
         self.project_io_completed();
         self.with_rel_mutation(&token, RelMutationFamily::Project, |runtime| {
-            if runtime.cva.latest_project_revision_correlation().as_ref() != Some(&correlation) {
+            if runtime
+                .cva
+                .runtime_latest_project_revision_correlation()
+                .as_ref()
+                != Some(&correlation)
+            {
                 return Err(operation(
                     "Project association changed during repository I/O",
                 ));
@@ -128,7 +133,12 @@ impl GatewayRuntime {
         #[cfg(test)]
         self.project_io_completed();
         let file = self.with_rel_mutation(&token, RelMutationFamily::Project, |runtime| {
-            if runtime.cva.latest_project_revision_correlation().as_ref() != Some(&correlation) {
+            if runtime
+                .cva
+                .runtime_latest_project_revision_correlation()
+                .as_ref()
+                != Some(&correlation)
+            {
                 return Err(operation(
                     "Project association changed during repository I/O",
                 ));
@@ -166,9 +176,9 @@ impl GatewayRuntime {
         // Capture the owning Archive binding and its independently accepted history together.
         let (reference, current, history) = self.with_rel(&token, |runtime| {
             Ok((
-                runtime.cva.project_file_ref(file_id),
-                runtime.cva.latest_project_revision_correlation(),
-                runtime.cva.project_revision_correlations(),
+                runtime.cva.runtime_project_file_ref(file_id),
+                runtime.cva.runtime_latest_project_revision_correlation(),
+                runtime.cva.runtime_project_revision_correlations(),
             ))
         })?;
         let bytes = match reference {
@@ -190,7 +200,7 @@ impl GatewayRuntime {
                 bytes
             }
             None => self.with_rel(&token, |runtime| {
-                runtime.cva.file_bytes(file_id).map_err(operation)
+                runtime.cva.runtime_file_bytes(file_id).map_err(operation)
             })?,
         };
         self.deliver_rel(instance, &token, bytes)

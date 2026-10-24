@@ -26,9 +26,9 @@ impl VectorHistory {
             mappings: BTreeMap::new(),
             matrices: BTreeMap::new(),
         };
-        for generation in cva.vector_generations.generations() {
+        for generation in cva.owner.vector_generations.generations() {
             if generation.source_archive_version == 0
-                || generation.source_archive_version > cva.archive.archive_version()
+                || generation.source_archive_version > cva.owner.archive.archive_version()
             {
                 return Err(crate::VectorGenerationError::SourceArchiveVersion.to_string());
             }
@@ -71,8 +71,9 @@ impl VectorHistory {
                 continue;
             }
             let mapping = cva
+                .owner
                 .archive_vectors
-                .get(&mut cva.container, generation.archive_vector_id)
+                .get(&mut cva.owner.container, generation.archive_vector_id)
                 .map_err(|e| e.to_string())?;
             let crate::ArchiveVectorSet {
                 id,
@@ -106,8 +107,9 @@ impl VectorHistory {
                 Value::Null
             } else {
                 let packed = cva
+                    .owner
                     .packed_vectors
-                    .get(&mut cva.container, id)
+                    .get(&mut cva.owner.container, id)
                     .map_err(|e| e.to_string())?;
                 json!(hex(packed.bytes()))
             };

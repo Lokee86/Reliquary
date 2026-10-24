@@ -225,7 +225,7 @@ impl GatewayRuntime {
 }
 
 // Post-sync producer calls use RelSequencerGate::publish_stream. No producer or
-// mutable InteractionRuntime session inspection is introduced on the P4 branch.
+// mutable RelExecution session inspection is introduced on the P4 branch.
 #[cfg(test)]
 #[path = "runtime_host_gateway_streams_tests.rs"]
 mod tests;

@@ -295,12 +295,17 @@ pub(crate) struct SemanticArchivePublicationPlan {
     pub(crate) packed: crate::PackedVectors,
 }
 
+#[derive(Clone, Copy)]
 pub(crate) struct MemoryVectorReadView<'a> {
     store: &'a MemoryVectorStore,
     packed: &'a PackedVectorStore,
     container: &'a Container,
 }
 impl<'a> MemoryVectorReadView<'a> {
+    pub(crate) fn binding_count(&self, profile: CompatibilityProfileId) -> usize {
+        self.store.binding_count(profile)
+    }
+
     pub(crate) fn new(
         store: &'a MemoryVectorStore,
         packed: &'a PackedVectorStore,

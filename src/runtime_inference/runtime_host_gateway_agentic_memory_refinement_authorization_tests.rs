@@ -1,4 +1,5 @@
 use super::*;
+use crate::InteractionRuntime;
 use crate::{AgenticMemoryController, DecisionEndpoint, MemoryRef};
 use serde_json::{Value, json};
 use std::sync::{Arc, Mutex, Weak};

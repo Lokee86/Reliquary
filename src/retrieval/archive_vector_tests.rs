@@ -129,10 +129,11 @@ fn archive_vector_owner_accepts_typed_binding_while_composition_rejects_missing_
     let archive_version = cva.archive_version();
 
     let id = cva
+        .owner
         .archive_vectors
         .put(
-            &mut cva.container,
-            &cva.packed_vectors,
+            &mut cva.owner.container,
+            &cva.owner.packed_vectors,
             archive_version,
             packed_id,
             vec![missing_fragment],

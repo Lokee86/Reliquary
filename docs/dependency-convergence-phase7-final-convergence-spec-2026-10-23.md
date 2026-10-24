@@ -1,6 +1,6 @@
 # Phase 7 — Final dependency graph elimination and architecture acceptance
 
-**Status:** Execution started; B7 remains open. Integrated Phase 6 source and bounded A6 receipts satisfy the Phase 7 execution prerequisite; the missing Phase 5 A5 full graph proof is an explicit A7 obligation. See the [execution evidence](dependency-convergence-phase7-execution-2026-10-24.md). No H7 implementation or A7 acceptance is claimed.
+**Status:** Execution started; B7 remains open. Integrated Phase 6 source and bounded A6 receipts satisfy the Phase 7 execution prerequisite; the missing Phase 5 A5 full graph proof is an explicit A7 obligation. See the [execution evidence](dependency-convergence-phase7-execution-2026-10-24.md). H7 source cuts are integrated in the working tree; final verification and A7 acceptance remain open.
 **Date:** 2026-10-23.
 **Campaign:** [Dependency Convergence](dependency-convergence-architecture-refactor-2026-10-21.md).
 **Implementation prerequisite (satisfied):** Phase 6 A6 accepted and integrated at `0495689`, with Phase 5 implementation/behavioral evidence integrated at `17514f0`. Phase 5 A5 **full architecture refresh was not accepted**; that proof is explicitly carried into Phase 7 A7, not a prerequisite to B7/H7/R7 execution. This is not a waiver: no final A7/refactor completion claim is allowed until the full graph-proof obligation is satisfied under the original architecture standard. If it cannot be proven, document the exact gap and leave A7 open. Base source cuts on the integrated Phase 6 checkpoint.
@@ -92,7 +92,7 @@ The categories are fixed architectural seams, not a request to invent a violatio
 
 **A7 exit:** Source-proven allowed architectural DAG, tested accepted behavior, permanent ratchets, canonical docs and integrated committed HEAD. Any new feature work remains on the normal roadmap.
 
-**Denominator:** P7.0 4 + P7.1 16 + P7.2 5 + P7.3 6 = **31 bounded tickets**; gates **B7, H7, R7, A7 = 4**. Baseline preparation is committed at `89de02d`; no gate is accepted and no H7 hard cut is implemented. B7 binds each conditional ticket to actual source witnesses or a documented zero-finding disposition; it does not license vague implementation bundles.
+**Denominator:** P7.0 4 + P7.1 16 + P7.2 5 + P7.3 6 = **31 bounded parent tickets**; gates **B7, H7, R7, A7 = 4**. Thirteen source-witnessed children are registered in the execution evidence, including [Import/Insomnia replay](../benchmarks/phase7-import-insomnia-replay-child-2026-10-24.json), for **44 tracked obligations**. Baseline preparation is committed at `89de02d`; source cuts are implemented in the working tree, while gate acceptance remains subject to current implementation-call evidence and integrated verification. B7 binds each conditional ticket to actual source witnesses or a documented zero-finding disposition; it does not license vague implementation bundles.
 
 ## Sequencing and cost
 

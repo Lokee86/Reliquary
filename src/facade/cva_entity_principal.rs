@@ -26,11 +26,11 @@ impl Cva {
         )?;
         plan.map(|plan| {
             apply_principal_resolution_plan(
-                &mut self.container,
-                &self.memories,
-                &mut self.entities,
-                &mut self.entity_resolutions,
-                &mut self.graph,
+                &mut self.owner.container,
+                &self.owner.memories,
+                &mut self.owner.entities,
+                &mut self.owner.entity_resolutions,
+                &mut self.owner.graph,
                 plan,
                 now_ns,
             )
@@ -55,7 +55,7 @@ impl Cva {
             profile,
             now_ns,
         )?;
-        apply_principal_profile_sync_plan(&mut self.container, &mut self.entities, plan)
+        apply_principal_profile_sync_plan(&mut self.owner.container, &mut self.owner.entities, plan)
     }
 }
 
@@ -78,11 +78,11 @@ impl Phylactery {
             return Ok(None);
         };
         apply_principal_resolution_plan(
-            &mut self.container,
-            &self.memories,
-            &mut self.entities,
-            &mut self.entity_resolutions,
-            &mut self.graph,
+            &mut self.owner.container,
+            &self.owner.memories,
+            &mut self.owner.entities,
+            &mut self.owner.entity_resolutions,
+            &mut self.owner.graph,
             plan,
             now_ns,
         )

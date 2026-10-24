@@ -1,4 +1,5 @@
 use super::*;
+use crate::InteractionRuntime;
 use crate::{AgenticMemoryOutcome, DecisionEndpointError, MemoryId, MemoryRef};
 use serde_json::{Value, json};
 use std::collections::{BTreeSet, VecDeque};

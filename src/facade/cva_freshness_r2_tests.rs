@@ -53,9 +53,9 @@ fn legacy_baseline_is_explicit_non_birth_idempotent_and_preserved_on_reopen() {
     // Simulate a genuinely pre-Freshness accepted Memory without calling the
     // present-day facade's first-publication intent adapter.
     let (older, created) = crate::cva_memory_publish::publish_memory_parts(
-        &rel.archive,
-        &mut rel.memories,
-        &mut rel.container,
+        &rel.owner.archive,
+        &mut rel.owner.memories,
+        &mut rel.owner.container,
         None,
         0,
         draft("older"),

@@ -1,4 +1,4 @@
-use crate::compatibility_vector::cosine;
+use crate::memory_vector_reader::cosine;
 use crate::{
     COMMUNITY_NAMING_CONTRACT_VERSION, Community, DEFAULT_COMMUNITY_NAMING_REPRESENTATIVES,
     DreamCommunityNamingError, MAX_COMMUNITY_SEMANTIC_NAME_BYTES, Memory, MemoryId,

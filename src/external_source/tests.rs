@@ -23,10 +23,10 @@ pub(crate) mod test_support {
         prepared: index::PreparedIndex,
     ) -> Result<ExternalIndexStatus, ExternalSourceError> {
         crate::external_owner_access::install(
-            &mut cva.container,
-            &mut cva.external_index,
-            &mut cva.compatibility_profiles,
-            &mut cva.packed_vectors,
+            &mut cva.owner.container,
+            &mut cva.owner.external_index,
+            &mut cva.owner.compatibility_profiles,
+            &mut cva.owner.packed_vectors,
             prepared,
         )
     }
@@ -57,13 +57,13 @@ pub(crate) mod test_support {
         window: [u8; 32],
         prepared: &[crate::external_source::processing::PreparedExternalMemory],
     ) -> Result<Vec<crate::Memory>, crate::MemoryError> {
-        let owner_uuid = cva.container.owner_uuid();
-        let turn = cva.archive.rel_turn_count();
+        let owner_uuid = cva.owner.container.owner_uuid();
+        let turn = cva.owner.archive.rel_turn_count();
         crate::external_owner_access::publish_window(
-            &mut cva.container,
-            &mut cva.memories,
-            &mut cva.freshness,
-            &mut cva.dream_freshness,
+            &mut cva.owner.container,
+            &mut cva.owner.memories,
+            &mut cva.owner.freshness,
+            &mut cva.owner.dream_freshness,
             owner_uuid,
             turn,
             window,
@@ -205,7 +205,7 @@ impl ExternalConversationSource for Host {
 fn path() -> std::path::PathBuf {
     std::env::temp_dir().join(format!("external-{}.cva", uuid::Uuid::new_v4()))
 }
-fn rebuild(cva: &mut Cva, host: &Host) -> ExternalIndexStatus {
+pub(crate) fn rebuild(cva: &mut Cva, host: &Host) -> ExternalIndexStatus {
     let profile = crate::compatibility_profile_probe::profile_from_endpoint(&Endpoint).unwrap();
     let old = cva
         .external_index
@@ -475,8 +475,9 @@ fn corrupt_publication_does_not_claim_embedded_versions_and_empty_receipt_reopen
     drop(cva);
     let mut cva = Cva::open(&path).unwrap();
     assert!(
-        cva.memories
-            .external_window(&mut cva.container, [9; 32])
+        cva.owner
+            .memories
+            .external_window(&mut cva.owner.container, [9; 32])
             .unwrap()
             .is_some()
     );
@@ -552,84 +553,6 @@ impl crate::GeneralEndpoint for SemanticEndpoint {
         }
     }
 }
-#[test]
-fn shared_insomnia_derives_project_and_user_memories_from_transient_evidence() {
-    let host = Host::new("The project uses Rust. Alice prefers concise replies.");
-    let mut cva = Cva::create(path()).unwrap();
-    rebuild(&mut cva, &host);
-    let state = cva.external_index.sources["host:test"].clone();
-    let refs = vec![state.messages[0].descriptor.reference.clone()];
-    let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
-    let endpoint = || SemanticEndpoint {
-        calls: calls.clone(),
-    };
-    let extractor = crate::InsomniaExtractor::new(endpoint()).with_ownership_endpoint(endpoint());
-    let prepared = processing::prepare(
-        "rel-source",
-        "alice",
-        "project",
-        state,
-        &refs,
-        &host,
-        &extractor,
-        100,
-    )
-    .unwrap();
-    assert_eq!(prepared.project.len(), 1);
-    assert_eq!(prepared.user.len(), 1);
-    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 3);
-    let project = publish_window(&mut cva, prepared.window, &prepared.project).unwrap();
-    let phy_path = std::env::temp_dir().join(format!("external-{}.phy", uuid::Uuid::new_v4()));
-    let mut phy = crate::Phylactery::create(&phy_path).unwrap();
-    let user = publication::publish(
-        &mut phy.container,
-        &mut phy.memories,
-        prepared.window,
-        &prepared.user,
-        None,
-    )
-    .unwrap();
-    assert_eq!(project[0].source_time_ns, Some(42));
-    assert_eq!(user[0].source_time_ns, Some(42));
-    assert!(project[0].source_episode_id.is_none());
-    assert!(user[0].source_ref.is_none());
-    assert_eq!(
-        cva.external_memory_evidence(project[0].id)
-            .unwrap()
-            .unwrap()
-            .authority
-            .message,
-        refs[0]
-    );
-    assert_eq!(
-        phy.external_memory_evidence(user[0].id)
-            .unwrap()
-            .unwrap()
-            .authority
-            .message,
-        refs[0]
-    );
-    assert!(cva.episodes().is_empty());
-    drop(phy);
-    let phy = crate::Phylactery::open(&phy_path).unwrap();
-    assert!(phy.external_memory_evidence(user[0].id).unwrap().is_some());
-}
-
-impl Host {
-    pub(crate) fn refs(&self) -> Vec<ExternalMessageRef> {
-        self.state
-            .lock()
-            .unwrap()
-            .messages
-            .iter()
-            .map(|m| m.descriptor.reference.clone())
-            .collect()
-    }
-    pub(crate) fn deny(&self) {
-        self.state.lock().unwrap().denied = true;
-    }
-}
-
 #[test]
 fn corrupt_logical_index_reopens_without_losing_semantics_and_rebuild_persists() {
     let path = path();
@@ -711,4 +634,19 @@ fn interrupted_preparation_reopens_old_cursor_and_retries_exactly_once() {
         reopened.external_index.sources["host:test"].status(),
         updated
     );
+}
+
+impl Host {
+    pub(crate) fn refs(&self) -> Vec<ExternalMessageRef> {
+        self.state
+            .lock()
+            .unwrap()
+            .messages
+            .iter()
+            .map(|m| m.descriptor.reference.clone())
+            .collect()
+    }
+    pub(crate) fn deny(&self) {
+        self.state.lock().unwrap().denied = true;
+    }
 }

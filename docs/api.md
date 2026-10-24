@@ -1,5 +1,7 @@
 # Rust API Reference
 
+Phase 7 preserves the supported `Cva`, `Phylactery`, `InteractionRuntime` and Gateway method signatures while binding them to canonical runtime owner aggregates. Their durable stores and one mounted writer remain unchanged; public names are aliases/adapters over the same concrete state, not second mutable owners. Verification scope is recorded in the [Phase 7 execution record](dependency-convergence-phase7-execution-2026-10-24.md).
+
 Parent index: [Documentation index](INDEX.md)
 
 ## Public facade implementation ownership

@@ -1,9 +1,8 @@
 use super::ExternalConversationSource;
 use crate::external_index::model::*;
 use crate::external_index::store::{IndexedChunk, IndexedMessage, SourceState};
-use crate::{
-    CompatibilityProfile, EmbeddingEndpoint, EmbeddingMode, PackedVectors, ScalarType, VectorSchema,
-};
+use crate::runtime_vector_step_policy::{ExternalEmbeddingError, ExternalEmbeddingService};
+use crate::{CompatibilityProfile, PackedVectors, ScalarType, VectorSchema};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -14,18 +13,15 @@ pub(crate) struct PreparedIndex {
     pub matrices: Vec<PackedVectors>,
 }
 fn verify(
-    endpoint: &impl EmbeddingEndpoint,
+    endpoint: &impl ExternalEmbeddingService,
     profile: &CompatibilityProfile,
 ) -> Result<(), ExternalSourceError> {
-    if profile.dimensions == 0
-        || profile.dimensions > 4096
-        || !crate::compatibility_profile_probe::verify_endpoint(profile, endpoint)
-            .map_err(|_| ExternalSourceError::Unavailable)?
-            .compatible
-    {
-        return Err(ExternalSourceError::InvalidContract);
-    }
-    Ok(())
+    endpoint
+        .verify_profile(profile)
+        .map_err(|error| match error {
+            ExternalEmbeddingError::Unavailable => ExternalSourceError::Unavailable,
+            ExternalEmbeddingError::InvalidProfile => ExternalSourceError::InvalidContract,
+        })
 }
 fn source_contract(
     source: &impl ExternalConversationSource,
@@ -40,7 +36,7 @@ fn source_contract(
 pub(crate) fn prepare_incremental(
     source: &impl ExternalConversationSource,
     principal: &str,
-    endpoint: &impl EmbeddingEndpoint,
+    endpoint: &impl ExternalEmbeddingService,
     profile: CompatibilityProfile,
     old: SourceState,
 ) -> Result<PreparedIndex, ExternalSourceError> {
@@ -153,7 +149,7 @@ pub(crate) fn prepare_incremental(
             .checked_add(1)
             .ok_or(ExternalSourceError::Bounds)?;
     }
-    let matrices = fill_missing(source, principal, endpoint, &mut state)?;
+    let matrices = fill_missing(source, principal, endpoint, &profile, &mut state)?;
     source.authorize(principal)?;
     Ok(PreparedIndex {
         expected_revision,
@@ -165,7 +161,7 @@ pub(crate) fn prepare_incremental(
 pub(crate) fn prepare_rebuild(
     source: &impl ExternalConversationSource,
     principal: &str,
-    endpoint: &impl EmbeddingEndpoint,
+    endpoint: &impl ExternalEmbeddingService,
     profile: CompatibilityProfile,
     old: Option<&SourceState>,
 ) -> Result<PreparedIndex, ExternalSourceError> {
@@ -219,7 +215,7 @@ pub(crate) fn prepare_rebuild(
         last_digest: [0; 32],
         rebuild: true,
     };
-    let matrices = fill_missing(source, principal, endpoint, &mut state)?;
+    let matrices = fill_missing(source, principal, endpoint, &profile, &mut state)?;
     source.authorize(principal)?;
     Ok(PreparedIndex {
         expected_revision: old.map(|s| s.revision),
@@ -231,7 +227,8 @@ pub(crate) fn prepare_rebuild(
 fn fill_missing(
     source: &impl ExternalConversationSource,
     principal: &str,
-    endpoint: &impl EmbeddingEndpoint,
+    endpoint: &impl ExternalEmbeddingService,
+    profile: &CompatibilityProfile,
     state: &mut SourceState,
 ) -> Result<Vec<PackedVectors>, ExternalSourceError> {
     if state.messages.len() > MAX_EXTERNAL_MANIFEST {
@@ -265,9 +262,15 @@ fn fill_missing(
             if inputs.is_empty() {
                 continue;
             }
-            let vectors = endpoint
-                .embed(EmbeddingMode::Document, &inputs)
-                .map_err(|_| ExternalSourceError::Unavailable)?;
+            let vectors =
+                endpoint
+                    .embed_documents(profile, &inputs)
+                    .map_err(|error| match error {
+                        ExternalEmbeddingError::Unavailable => ExternalSourceError::Unavailable,
+                        ExternalEmbeddingError::InvalidProfile => {
+                            ExternalSourceError::InvalidContract
+                        }
+                    })?;
             if vectors.len() != inputs.len() {
                 return Err(ExternalSourceError::InvalidContract);
             }
@@ -341,7 +344,7 @@ pub(crate) fn validate_vector(vector: &[f32], dimensions: u32) -> Result<(), Ext
     Ok(())
 }
 pub(crate) fn query_vector(
-    endpoint: &impl EmbeddingEndpoint,
+    endpoint: &impl ExternalEmbeddingService,
     profile: &CompatibilityProfile,
     query: &str,
 ) -> Result<Vec<f32>, ExternalSourceError> {
@@ -350,8 +353,11 @@ pub(crate) fn query_vector(
     }
     verify(endpoint, profile)?;
     let vectors = endpoint
-        .embed(EmbeddingMode::Query, &[query.to_owned()])
-        .map_err(|_| ExternalSourceError::Unavailable)?;
+        .embed_query(profile, query)
+        .map_err(|error| match error {
+            ExternalEmbeddingError::Unavailable => ExternalSourceError::Unavailable,
+            ExternalEmbeddingError::InvalidProfile => ExternalSourceError::InvalidContract,
+        })?;
     if vectors.len() != 1 {
         return Err(ExternalSourceError::InvalidContract);
     }

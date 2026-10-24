@@ -1,5 +1,13 @@
 //! Validated owner lifecycle boundary and read-only historical source capability.
 
+#[path = "owner_lifecycle/dream_graph_publication.rs"]
+mod dream_graph_publication;
+pub(crate) use dream_graph_publication::DreamGraphPublication;
+
+pub(crate) fn open_reliquary_replay(path: &std::path::Path) -> Result<ReliquaryReplay, OwnerError> {
+    ReliquaryReplay::read(crate::Container::open(path)?)
+}
+
 #[path = "owner_lifecycle/history_source.rs"]
 mod history_source;
 pub(crate) use history_source::{
@@ -32,6 +40,10 @@ pub(crate) mod insomnia_replay;
 #[path = "owner_lifecycle/insomnia_import_replay.rs"]
 pub(crate) mod insomnia_import_replay;
 
+#[cfg(test)]
+#[path = "owner_lifecycle/insomnia_import_replay_tests.rs"]
+mod insomnia_import_replay_tests;
+
 #[path = "owner_lifecycle/open_route.rs"]
 pub(crate) mod open_route;
 
@@ -59,8 +71,10 @@ pub(crate) use read_validation::{
 
 #[path = "owner_lifecycle/phylactery.rs"]
 mod phylactery;
+pub use phylactery::PhylacteryOwner;
 pub(crate) use phylactery::{
-    PhylacteryOwner, initialize_phylactery, open_phylactery_from_container,
+    create_phylactery, create_phylactery_with_uuid, initialize_phylactery, open_phylactery,
+    open_phylactery_from_container, open_phylactery_read_only,
 };
 
 #[path = "owner_lifecycle/global_versions.rs"]
@@ -96,7 +110,8 @@ pub(crate) mod dream_replay;
 
 #[path = "owner_lifecycle/reliquary.rs"]
 mod reliquary;
-pub(crate) use reliquary::{ReliquaryOwner, initialize_reliquary};
+pub use reliquary::ReliquaryOwner;
+pub(crate) use reliquary::initialize_reliquary;
 /// Validated native owner and its already reconstructed, non-durable due projection.
 pub(crate) type ReconstructedReliquary = (ReliquaryOwner, crate::FreshnessDueDispatcher);
 

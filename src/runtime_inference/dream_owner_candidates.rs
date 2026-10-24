@@ -2,22 +2,18 @@ use crate::chronos::temporal_matches;
 use crate::dream_candidate_ranking::{
     ScoredCandidate, lexical_score, rank_lanes, select_candidates,
 };
-use crate::dream_owner_vectors::load_memory_vectors;
 use crate::dream_pair_history::DreamPairStore;
 use crate::dream_temporal_policy::analyze_memory_temporal;
 use crate::graph_store::GraphStore;
-use crate::memory_store::MemoryStore;
-use crate::memory_vector_store::MemoryVectorStore;
-use crate::packed_vector_store::PackedVectorStore;
+use crate::memory_store::MemoryReadView;
+use crate::memory_vector_reader::MemoryVectorReader;
 use crate::{
-    CompatibilityProfileId, Container, DreamCandidateConfig, DreamCandidateError,
-    DreamCandidateSet, DreamMemoryContext, GraphRelation, MAX_DREAM_CANDIDATE_LIMIT, Memory,
-    MemoryBodyId, MemoryId,
+    CompatibilityProfileId, DreamCandidateConfig, DreamCandidateError, DreamCandidateSet,
+    DreamMemoryContext, GraphRelation, MAX_DREAM_CANDIDATE_LIMIT, Memory, MemoryBodyId, MemoryId,
 };
 
 pub(crate) fn dream_memory_context<R>(
-    container: &mut Container,
-    memories: &MemoryStore,
+    memories: &MemoryReadView<'_>,
     graph: &GraphStore,
     memory_id: MemoryId,
     source_time: &R,
@@ -25,19 +21,17 @@ pub(crate) fn dream_memory_context<R>(
 where
     R: Fn(&Memory) -> Option<i64>,
 {
-    let memory = memories.memory(container, memory_id)?;
+    let memory = memories.memory(memory_id)?;
     let body_id = memories.current_body_id(memory_id)?;
     let relations = graph.active_relations();
     Ok(build_context(memory, body_id, &relations, source_time))
 }
 
 pub(crate) fn dream_candidates<R>(
-    container: &mut Container,
-    memories: &MemoryStore,
+    memories: &MemoryReadView<'_>,
     graph: &GraphStore,
     dream_pairs: &DreamPairStore,
-    memory_vectors: &MemoryVectorStore,
-    packed_vectors: &PackedVectorStore,
+    memory_vectors: &MemoryVectorReader<'_>,
     compatibility_profile_id: CompatibilityProfileId,
     source_id: MemoryId,
     config: DreamCandidateConfig,
@@ -47,15 +41,9 @@ where
     R: Fn(&Memory) -> Option<i64>,
 {
     validate_config(config)?;
-    let source = memories.memory(container, source_id)?;
+    let source = memories.memory(source_id)?;
     let source_body = memories.current_body_id(source_id)?;
-    let vectors = load_memory_vectors(
-        container,
-        memories,
-        memory_vectors,
-        packed_vectors,
-        compatibility_profile_id,
-    )?;
+    let vectors = memory_vectors.load(memories, compatibility_profile_id)?;
     let source_vector = vectors
         .get(&source_body)
         .ok_or(DreamCandidateError::MissingSourceVector)?;
@@ -73,7 +61,7 @@ where
         {
             continue;
         }
-        let memory = memories.memory(container, id)?;
+        let memory = memories.memory(id)?;
         if memory.archived {
             continue;
         }

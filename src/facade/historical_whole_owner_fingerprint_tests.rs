@@ -245,13 +245,15 @@ fn global_cut_rejects_a_file_whose_repository_binding_is_only_visible_later() {
         10,
     )
     .unwrap();
-    cva.archive
-        .register_file(&mut cva.container, file.clone())
+    cva.owner
+        .archive
+        .register_file(&mut cva.owner.container, file.clone())
         .unwrap();
     let file_global = cva.latest_global_version();
-    cva.container.allocate_version().unwrap();
-    cva.project_files
-        .put(&mut cva.container, file.id, reference)
+    cva.owner.container.allocate_version().unwrap();
+    cva.owner
+        .project_files
+        .put(&mut cva.owner.container, file.id, reference)
         .unwrap();
     cva.sync().unwrap();
     drop(cva);

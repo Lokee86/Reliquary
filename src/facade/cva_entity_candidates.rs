@@ -14,11 +14,11 @@ macro_rules! impl_candidate_owner {
                 key: MemoryEntityMentionKey,
                 config: EntityCandidateConfig,
             ) -> Result<EntityCandidateSet, EntityCandidateError> {
-                let memories = MemoryReadView::new(&self.memories, &self.container);
+                let memories = MemoryReadView::new(&self.owner.memories, &self.owner.container);
                 let mut context = EntityCandidateContext {
                     memories: MemoryLexicalReadView::new(&mut self.lexical_index, memories),
-                    entities: &self.entities,
-                    graph: &self.graph,
+                    entities: &self.owner.entities,
+                    graph: &self.owner.graph,
                 };
                 entity_candidates::entity_candidates_for_mention(&mut context, key, config)
             }

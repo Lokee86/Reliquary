@@ -1,8 +1,6 @@
 use crate::memory_store::MemoryReadView;
 use crate::memory_vector_store::MemoryVectorReadView;
-use crate::{
-    CompatibilityProfileId, MemoryBodyId, MemoryRetrievalError, MemoryVectorId, ScalarType,
-};
+use crate::{CompatibilityProfileId, MemoryBodyId, MemoryRetrievalError};
 use std::collections::HashMap;
 
 pub(crate) fn load_memory_vectors(
@@ -10,50 +8,22 @@ pub(crate) fn load_memory_vectors(
     memory_vectors: &MemoryVectorReadView<'_>,
     profile_id: CompatibilityProfileId,
 ) -> Result<HashMap<MemoryBodyId, Vec<f32>>, MemoryRetrievalError> {
-    let mut by_set: HashMap<MemoryVectorId, Vec<(MemoryBodyId, u64)>> = HashMap::new();
-    for body_id in memories.current_body_ids() {
-        if let Some(location) = memory_vectors.location(profile_id, body_id) {
-            by_set
-                .entry(location.set_id)
-                .or_default()
-                .push((body_id, location.row));
-        }
-    }
-    let mut output = HashMap::new();
-    for (set_id, locations) in by_set {
-        let set = memory_vectors.get(set_id)?;
-        let packed = memory_vectors.packed(set.packed_vector_id)?;
-        if packed.schema().scalar != ScalarType::F32 {
-            return Err(MemoryRetrievalError::UnsupportedScalar(
-                packed.schema().scalar,
-            ));
-        }
-        for (body_id, row) in locations {
-            let ordinal = usize::try_from(row)
-                .map_err(|_| MemoryRetrievalError::CorruptVector("row ordinal"))?;
-            let bytes = packed
-                .row(ordinal)
-                .ok_or(MemoryRetrievalError::CorruptVector("missing row"))?;
-            output.insert(body_id, decode_f32_row(bytes)?);
-        }
-    }
-    Ok(output)
-}
-
-fn decode_f32_row(bytes: &[u8]) -> Result<Vec<f32>, MemoryRetrievalError> {
-    if !bytes.len().is_multiple_of(4) {
-        return Err(MemoryRetrievalError::CorruptVector("f32 row width"));
-    }
-    bytes
-        .chunks_exact(4)
-        .map(|chunk| {
-            let value = f32::from_le_bytes(chunk.try_into().expect("f32 width"));
-            value
-                .is_finite()
-                .then_some(value)
-                .ok_or(MemoryRetrievalError::CorruptVector("non-finite vector"))
+    crate::memory_vector_reader::MemoryVectorReader::new(*memory_vectors)
+        .load(memories, profile_id)
+        .map_err(|error| match error {
+            crate::memory_vector_reader::MemoryVectorReadError::MemoryVectors(error) => {
+                MemoryRetrievalError::MemoryVectors(error)
+            }
+            crate::memory_vector_reader::MemoryVectorReadError::PackedVectors(error) => {
+                MemoryRetrievalError::PackedVectors(error)
+            }
+            crate::memory_vector_reader::MemoryVectorReadError::UnsupportedScalar(scalar) => {
+                MemoryRetrievalError::UnsupportedScalar(scalar)
+            }
+            crate::memory_vector_reader::MemoryVectorReadError::CorruptVector(reason) => {
+                MemoryRetrievalError::CorruptVector(reason)
+            }
         })
-        .collect()
 }
 
 /// Canonical exact scorer, before routing, seed or presentation limits.

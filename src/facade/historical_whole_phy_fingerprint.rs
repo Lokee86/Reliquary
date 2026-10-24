@@ -60,8 +60,8 @@ pub(crate) fn whole_owner_at_phy(phy: &mut Phylactery, global: u64) -> Result<Wh
     let mut projection = OwnerProjection::new(owner, "whole_owner_phy", global, None)?;
 
     let memory = crate::historical_memory_fingerprint::MemoryHistory::read(
-        &mut phy.container,
-        &phy.memories,
+        &mut phy.owner.container,
+        &phy.owner.memories,
     )?
     .at(cuts.memory)?;
     let entity = crate::historical_entity_fingerprint::entity_cut(

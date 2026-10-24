@@ -45,8 +45,8 @@ fn turn(id: &str, role: &str) -> IncomingTurn {
     }
 }
 fn append(cva: &mut Cva, incoming: IncomingTurn) -> Result<TurnAcceptance<Node>, ArchiveError> {
-    cva.archive.append_node(
-        &mut cva.container,
+    cva.owner.archive.append_node(
+        &mut cva.owner.container,
         incoming.id,
         incoming.conversation_id,
         incoming.parent_id,
@@ -62,9 +62,9 @@ fn accept(
     ingest: bool,
 ) -> Result<(bool, Option<u64>, u64), ArchiveError> {
     if ingest {
-        let result = cva.archive.ingest_turn(
-            &mut cva.container,
-            cva.project_files.accepted_facts(),
+        let result = cva.owner.archive.ingest_turn(
+            &mut cva.owner.container,
+            cva.owner.project_files.accepted_facts(),
             incoming,
         )?;
         Ok((

@@ -1,5 +1,7 @@
 # Reliquary Storage Format
 
+Phase 7 changes runtime/source ownership only: mounted REL/PHY retain one writer, independent grants, existing publication/cancellation ordering and public method signatures. Durable V2 bytes and corpus fixtures are unchanged. The [execution record](dependency-convergence-phase7-execution-2026-10-24.md) distinguishes source cuts, regression results and final graph acceptance.
+
 Parent index: [Documentation index](INDEX.md)
 
 
@@ -88,7 +90,7 @@ The existing Ego Identity/Anchor deleted-record encoding is unchanged. Replay re
 
 ## CVAFRS07 compact semantic settlement (selected; Phase 3 accepted)
 
-The current runtime codec is CVAFRS07 only. The [format selection specification](dependency-convergence-phase3-settlement-format-2026-10-23.md) is normative; six-file conversion, frozen-corpus oracle parity, promotion and all Phase 3 gates are accepted locally. The [final acceptance receipt](../benchmarks/dependency-convergence-phase3-final-acceptance-2026-10-23.json) records the integrated gate evidence. Physical offsets select a finite construction interval only and are not persisted as continuing authority. Phases 4–7 remain pending.
+The current runtime codec is CVAFRS07 only. The [format selection specification](dependency-convergence-phase3-settlement-format-2026-10-23.md) is normative; six-file conversion, frozen-corpus oracle parity, promotion and all Phase 3 gates are accepted locally. The [final acceptance receipt](../benchmarks/dependency-convergence-phase3-final-acceptance-2026-10-23.json) records the integrated gate evidence. Physical offsets select a finite construction interval only and are not persisted as continuing authority. Phases 4–6 are integrated; Phase 7 source changes preserve the durable format, with final architecture acceptance open.
 
 CVAFRS07 retains exact owner/import/start/corpus/manifest/input/policy identity and semantic cuts. It stores sorted Memory-ID and UTF-8 dictionaries, exact born/affected/cohort/record-key sets, source Node pairs, accepted event identity/digest/turn references, supersession membership, pre-scoring anchor values, chronological causal contributions and sparse signed score corrections. On reopen, Freshness resolves each exact event reference against retained journal leaves, validates the canonical payload digest and recomposes scores from the causal basis before applying accepted corrections. The wire omits copied per-event recipient sets and complete derived output postimages. It uses canonical minimal LEB128 counts/indexes and signed values, validates every index and ordering constraint, rejects trailing bytes, and enforces a 64 MiB expanded UTF-8 budget across unique text and owned copies. ImportComplete continues to bind the exact settlement payload digest.
 

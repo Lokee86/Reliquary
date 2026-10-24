@@ -37,9 +37,9 @@ pub(crate) fn replay_archive_tail(
     let before = destination.archive_version();
     for entry in &tail.records {
         let result = crate::archive_ordered_replay::ArchiveReplayWriter {
-            container: &mut destination.container,
-            archive: &mut destination.archive,
-            project_files: &mut destination.project_files,
+            container: &mut destination.owner.container,
+            archive: &mut destination.owner.archive,
+            project_files: &mut destination.owner.project_files,
         }
         .replay(entry);
         match result {
@@ -68,9 +68,9 @@ pub(crate) fn replay_file_memory_links(
     links: &[FileMemoryLinkReplay],
 ) -> Result<usize, CvaReconcileError> {
     crate::owner_lifecycle::archive_ordered_replay::replay_file_memory_links(
-        &mut destination.container,
-        &mut destination.archive,
-        &destination.memories,
+        &mut destination.owner.container,
+        &mut destination.owner.archive,
+        &destination.owner.memories,
         links,
     )
 }

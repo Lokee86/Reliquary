@@ -11,8 +11,8 @@ impl GatewayRuntime {
         sequencer: &super::events::RelSequencer,
     ) -> Result<(), ReliquaryRuntimeHostError> {
         let mut watermarks = self.with_quiesced_rel_during_transition(owner_id, |runtime| {
-            runtime.cva.sync().map_err(operation)?;
-            Ok(super::snapshots::reader::source_watermarks(runtime.cva()))
+            runtime.cva.sync_owner().map_err(operation)?;
+            Ok(super::snapshots::reader::source_watermarks(&runtime.cva))
         })?;
         watermarks.conversation_journal_sequence = Some(
             self.conversation

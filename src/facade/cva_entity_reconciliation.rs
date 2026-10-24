@@ -122,7 +122,7 @@ macro_rules! impl_reconciliation {
                 crate::perception_publication_reconciliation::commit_entity_reconciliation::<
                     $merge_error,
                 >(
-                    &mut crate::owner_lifecycle::perception_publication_merge::ReconciliationPublication::new(&mut self.container, &self.memories, &mut self.entities, &mut self.entity_resolutions, &mut self.graph, &mut self.relationships),
+                    &mut crate::owner_lifecycle::perception_publication_merge::ReconciliationPublication::new(&mut self.owner.container, &self.owner.memories, &mut self.owner.entities, &mut self.owner.entity_resolutions, &mut self.owner.graph, &mut self.owner.relationships),
                     prepared,
                     evaluation,
                     now_ns,

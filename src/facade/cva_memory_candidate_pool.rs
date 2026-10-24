@@ -9,14 +9,17 @@ impl crate::Cva {
     ) -> Result<crate::memory_candidate_pool::MemoryCandidatePool, crate::MemoryRetrievalError>
     {
         crate::memory_candidate_collection::collect_memory_candidate_pool(
-            &crate::memory_store::MemoryReadView::new(&self.memories, &self.container),
+            &crate::memory_store::MemoryReadView::new(&self.owner.memories, &self.owner.container),
             &crate::memory_vector_store::MemoryVectorReadView::new(
-                &self.memory_vectors,
-                &self.packed_vectors,
-                &self.container,
+                &self.owner.memory_vectors,
+                &self.owner.packed_vectors,
+                &self.owner.container,
             ),
             &mut self.lexical_index,
-            self.compatibility_profiles.get_active(profile).cloned(),
+            self.owner
+                .compatibility_profiles
+                .get_active(profile)
+                .cloned(),
             query,
             vector,
             profile,

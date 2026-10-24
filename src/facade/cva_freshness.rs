@@ -15,7 +15,7 @@ impl Cva {
     }
 
     pub fn freshness_has_pending_publication(&self, id: MemoryId) -> bool {
-        self.dream_freshness.pending_initialization(id).is_some()
+        self.runtime_has_pending_publication(id)
     }
 
     pub fn freshness_is_publication_birth(&self, id: MemoryId) -> bool {
@@ -42,36 +42,6 @@ impl Cva {
             }
     }
 
-    pub(crate) fn freshness_prepare_memory_publication(
-        &mut self,
-        id: MemoryId,
-        mutation_id: &str,
-        turn: u64,
-        admit_at_birth: bool,
-    ) -> Result<(), CvaError> {
-        if turn > self.archive.rel_turn_count() {
-            return Err(CvaError::Freshness(
-                "publication turn exceeds accepted owner REL activity".into(),
-            ));
-        }
-        let owner = self.owner_uuid().ok_or_else(|| {
-            CvaError::Freshness("legacy owner requires explicit Freshness migration".into())
-        })?;
-        let payload = self
-            .dream_freshness
-            .publication_intent_payload(id, mutation_id, turn, admit_at_birth)
-            .map_err(CvaError::Freshness)?;
-        if !payload.is_empty() {
-            self.container.append(&payload)?;
-            self.container.sync()?;
-            self.dream_freshness
-                .ingest(&payload)
-                .map_err(CvaError::Freshness)?;
-        }
-        let _ = owner;
-        Ok(())
-    }
-
     /// Pins numerical defaults before any Memory or Dream Freshness state is enrolled.
     pub fn set_freshness_policy_before_enrollment(
         &mut self,
@@ -91,15 +61,17 @@ impl Cva {
         self.freshness
             .set_policy_before_enrollment(policy)
             .map_err(CvaError::Freshness)?;
-        self.freshness
-            .persist_policy_if_needed(&mut self.container, owner)
+        self.owner
+            .freshness
+            .persist_policy_if_needed(&mut self.owner.container, owner)
             .map_err(CvaError::Freshness)
     }
 
     /// Returns the owner-local durable record, including an explicit Web-admission anchor.
     pub fn freshness_record(&self, id: MemoryId) -> Option<FreshnessRecord> {
-        self.freshness
-            .current_rewrite_record(id, self.rel_turn_count())
+        self.owner
+            .freshness
+            .current_rewrite_record(id, self.owner.archive.rel_turn_count())
     }
 
     pub fn freshness_record_at_cut(
@@ -156,8 +128,10 @@ impl Cva {
     /// it cannot backdate a score or create a first-cycle Dream publication birth.
     /// Repeat calls preserve the original baseline even after further activity.
     pub fn enroll_legacy_freshness_baseline(&mut self, id: MemoryId) -> Result<bool, CvaError> {
-        self.require_freshness_memory(id)?;
-        if self.freshness_is_publication_birth(id) || self.freshness_has_pending_publication(id) {
+        self.runtime_require_freshness_memory(id)?;
+        if self.owner.dream_freshness.is_publication_birth(id)
+            || self.runtime_has_pending_publication(id)
+        {
             return Err(CvaError::Freshness(
                 "a proven first publication cannot be re-enrolled as a legacy baseline".into(),
             ));
@@ -165,23 +139,24 @@ impl Cva {
         if self.freshness.records().contains_key(&id) {
             return Ok(false);
         }
-        let memory = self.memory(id)?;
+        let memory = self.owner.memories.memory(&self.owner.container, id)?;
         if memory.archived || !matches!(memory.lifecycle_state.as_str(), "knowledge" | "canonical")
         {
             return Err(CvaError::Freshness(
                 "legacy baseline requires a nonarchived settled Memory".into(),
             ));
         }
-        let owner = self.owner_uuid().ok_or_else(|| {
+        let owner = self.owner.container.owner_uuid().ok_or_else(|| {
             CvaError::Freshness("legacy owner requires explicit owner migration first".into())
         })?;
-        let turn = self.archive.rel_turn_count();
+        let turn = self.owner.archive.rel_turn_count();
         let mut record = FreshnessRecord::created();
         record
             .admit(turn)
             .map_err(|error| CvaError::Freshness(error.to_string()))?;
-        self.freshness
-            .persist_policy_if_needed(&mut self.container, owner)
+        self.owner
+            .freshness
+            .persist_policy_if_needed(&mut self.owner.container, owner)
             .map_err(CvaError::Freshness)?;
         let payload = self.freshness.encode_initialize(owner, id, turn, record);
         self.container.append(&payload)?;
@@ -189,97 +164,14 @@ impl Cva {
         self.freshness
             .ingest_appended(&payload)
             .map_err(CvaError::Freshness)?;
-        self.freshness_refresh_due([id], turn)?;
+        self.runtime_freshness_refresh_due([id], turn)?;
         Ok(true)
     }
 
     /// Initializes only an accepted first-publication Memory. Legacy enrollment
     /// must use the explicit baseline API and is never a Dream birth receipt.
     pub fn freshness_initialize(&mut self, id: MemoryId) -> Result<bool, CvaError> {
-        self.require_freshness_memory(id)?;
-        let intent = self.dream_freshness.pending_initialization(id);
-        if self.freshness.records().contains_key(&id) {
-            if let Some((mutation_id, turn, admit_at_birth)) = intent {
-                if self.memories.first_mutation_id(id) != Some(mutation_id.as_str()) {
-                    return Err(CvaError::Freshness(
-                        "publication intent does not match first accepted Memory identity".into(),
-                    ));
-                }
-                // Ordinary reopen may derive a birth from an accepted Memory
-                // and pending intent without mutating the file. Persist that
-                // derived birth before consuming the only durable recovery
-                // proof, or a second reopen would silently lose the score.
-                if !self
-                    .freshness
-                    .has_durable_birth(id)
-                    .map_err(CvaError::Freshness)?
-                {
-                    self.persist_accepted_freshness_birth(id, turn, admit_at_birth)?;
-                }
-                self.consume_publication_intent(id)?;
-            }
-            return Ok(false);
-        }
-        // A normal accepted birth has an immutable first-publication intent.
-        // Legacy Memories require a separate explicit migration policy; an
-        // ordinary caller must never manufacture a fresh +100 birth for them.
-        let (mutation_id, turn, admit_at_birth) = intent.clone().ok_or_else(|| {
-            CvaError::Freshness(
-                "Freshness enrollment requires accepted first-publication proof; legacy enrollment needs explicit migration".into(),
-            )
-        })?;
-        if self.memories.first_mutation_id(id) != Some(mutation_id.as_str()) {
-            return Err(CvaError::Freshness(
-                "publication intent does not match first accepted Memory identity".into(),
-            ));
-        }
-        self.persist_accepted_freshness_birth(id, turn, admit_at_birth)?;
-        self.freshness_refresh_due([id], turn)?;
-        if intent.is_some() {
-            self.consume_publication_intent(id)?;
-        }
-        Ok(true)
-    }
-
-    fn persist_accepted_freshness_birth(
-        &mut self,
-        id: MemoryId,
-        turn: u64,
-        admit_at_birth: bool,
-    ) -> Result<(), CvaError> {
-        let owner = self.owner_uuid().ok_or_else(|| {
-            CvaError::Freshness("legacy owner requires explicit migration before enrollment".into())
-        })?;
-        let mut record = FreshnessRecord::created();
-        if admit_at_birth {
-            record
-                .admit(turn)
-                .map_err(|error| CvaError::Freshness(error.to_string()))?;
-        }
-        self.freshness
-            .persist_policy_if_needed(&mut self.container, owner)
-            .map_err(CvaError::Freshness)?;
-        let payload = self.freshness.encode_initialize(owner, id, turn, record);
-        self.container.append(&payload)?;
-        self.container.sync()?;
-        self.freshness
-            .ingest_appended(&payload)
-            .map_err(CvaError::Freshness)
-    }
-
-    fn consume_publication_intent(&mut self, id: MemoryId) -> Result<(), CvaError> {
-        if let Some(payload) = self
-            .dream_freshness
-            .consume_publication_intent_payload(id)
-            .map_err(CvaError::Freshness)?
-        {
-            self.container.append(&payload)?;
-            self.container.sync()?;
-            self.dream_freshness
-                .ingest(&payload)
-                .map_err(CvaError::Freshness)?;
-        }
-        Ok(())
+        self.runtime_freshness_initialize(id)
     }
 
     /// Starts decay at the first successful active Dream settlement. Repeated calls
@@ -287,11 +179,11 @@ impl Cva {
     pub(crate) fn freshness_admit(&mut self, id: MemoryId, turn: u64) -> Result<bool, CvaError> {
         let owner_uuid = self.owner_uuid();
         let outcome = crate::owner_lifecycle::freshness_reconciliation::admit(
-            &mut self.container,
-            &self.archive,
-            &self.memories,
+            &mut self.owner.container,
+            &self.owner.archive,
+            &self.owner.memories,
             owner_uuid,
-            &mut self.freshness,
+            &mut self.owner.freshness,
             id,
             turn,
         )?;
@@ -395,7 +287,7 @@ impl Cva {
         })?;
         let affected = effects.keys().copied().collect::<Vec<_>>();
         for (id, amount) in &effects {
-            self.require_freshness_memory(*id)?;
+            self.runtime_require_freshness_memory(*id)?;
             if *amount <= 0 || *amount > self.freshness.policy().linkage_principal {
                 return Err(CvaError::Freshness(
                     "event effect exceeds the pinned positive principal bound".into(),
@@ -415,15 +307,16 @@ impl Cva {
         let payload = self
             .freshness
             .encode_event(owner, event_id, turn, proof, effects, postimages);
-        self.freshness
-            .persist_policy_if_needed(&mut self.container, owner)
+        self.owner
+            .freshness
+            .persist_policy_if_needed(&mut self.owner.container, owner)
             .map_err(CvaError::Freshness)?;
         self.container.append(&payload)?;
         self.container.sync()?;
         self.freshness
             .ingest_appended(&payload)
             .map_err(CvaError::Freshness)?;
-        self.freshness_refresh_due(affected, turn)?;
+        self.runtime_freshness_refresh_due(affected, turn)?;
         Ok(true)
     }
 
@@ -437,7 +330,7 @@ impl Cva {
         preexisting_ids: std::collections::BTreeSet<MemoryId>,
         graph_version_before: u64,
     ) -> Result<crate::InitialDreamPass, CvaError> {
-        self.require_freshness_memory(source_id)?;
+        self.runtime_require_freshness_memory(source_id)?;
         let owner = self.owner_uuid().ok_or_else(|| {
             CvaError::Freshness("legacy owner requires explicit migration before Dream pass".into())
         })?;
@@ -506,8 +399,9 @@ impl Cva {
                 .ok_or_else(|| CvaError::Freshness("pass receipt missing".into()));
         }
         let payload = self.current_dream_begin_payload(&pass)?;
-        self.freshness
-            .persist_policy_if_needed(&mut self.container, owner)
+        self.owner
+            .freshness
+            .persist_policy_if_needed(&mut self.owner.container, owner)
             .map_err(CvaError::Freshness)?;
         self.container.append(&payload)?;
         self.container.sync()?;
@@ -707,8 +601,8 @@ impl Cva {
             .ok_or_else(|| {
                 CvaError::Freshness("Dream acceptance lacks durable graph provenance".into())
             })?;
-        let mut scan = self.container.read_source()?;
-        let mut objects = self.container.read_source()?;
+        let mut scan = self.owner.container.read_source()?;
+        let mut objects = self.owner.container.read_source()?;
         let mut states = BTreeMap::new();
         let mut memberships = crate::freshness::CommunityMembership::new();
         let mut community_found = proof.community_generation.is_none();
@@ -904,11 +798,11 @@ impl Cva {
     ) -> Result<(), CvaError> {
         let owner_uuid = self.owner_uuid();
         let outcome = crate::owner_lifecycle::freshness_reconciliation::replay_entry(
-            &mut self.container,
-            &self.archive,
-            &self.memories,
+            &mut self.owner.container,
+            &self.owner.archive,
+            &self.owner.memories,
             owner_uuid,
-            &mut self.freshness,
+            &mut self.owner.freshness,
             crate::freshness_storage::FreshnessReplayEntry::Initialize {
                 memory_id: id,
                 source_turn: destination_turn,
@@ -926,11 +820,11 @@ impl Cva {
     ) -> Result<(), CvaError> {
         let owner_uuid = self.owner_uuid();
         let outcome = crate::owner_lifecycle::freshness_reconciliation::replay_entry(
-            &mut self.container,
-            &self.archive,
-            &self.memories,
+            &mut self.owner.container,
+            &self.owner.archive,
+            &self.owner.memories,
             owner_uuid,
-            &mut self.freshness,
+            &mut self.owner.freshness,
             crate::freshness_storage::FreshnessReplayEntry::Admit {
                 memory_id: id,
                 source_turn: destination_turn,
@@ -950,11 +844,11 @@ impl Cva {
     ) -> Result<(), CvaError> {
         let owner_uuid = self.owner_uuid();
         let outcome = crate::owner_lifecycle::freshness_reconciliation::replay_entry(
-            &mut self.container,
-            &self.archive,
-            &self.memories,
+            &mut self.owner.container,
+            &self.owner.archive,
+            &self.owner.memories,
             owner_uuid,
-            &mut self.freshness,
+            &mut self.owner.freshness,
             crate::freshness_storage::FreshnessReplayEntry::Event {
                 event_id,
                 source_turn: destination_turn,
@@ -977,11 +871,11 @@ impl Cva {
     ) -> Result<(), CvaError> {
         let owner_uuid = self.owner_uuid();
         let outcome = crate::owner_lifecycle::freshness_reconciliation::replay_entry(
-            &mut self.container,
-            &self.archive,
-            &self.memories,
+            &mut self.owner.container,
+            &self.owner.archive,
+            &self.owner.memories,
             owner_uuid,
-            &mut self.freshness,
+            &mut self.owner.freshness,
             crate::freshness_storage::FreshnessReplayEntry::AcceptedUseReceipt {
                 use_id,
                 source_turn: turn,
@@ -1002,11 +896,11 @@ impl Cva {
         let destination_turn = evidence.accepted_turn;
         let owner_uuid = self.owner_uuid();
         let outcome = crate::owner_lifecycle::freshness_reconciliation::replay_entry(
-            &mut self.container,
-            &self.archive,
-            &self.memories,
+            &mut self.owner.container,
+            &self.owner.archive,
+            &self.owner.memories,
             owner_uuid,
-            &mut self.freshness,
+            &mut self.owner.freshness,
             crate::freshness_storage::FreshnessReplayEntry::Event {
                 event_id,
                 source_turn: destination_turn,
@@ -1029,7 +923,7 @@ impl Cva {
         outcome: Option<crate::owner_lifecycle::freshness_reconciliation::RefreshDue>,
     ) -> Result<(), CvaError> {
         if let Some(outcome) = outcome {
-            self.freshness_refresh_due(outcome.memories, outcome.turn)?;
+            self.runtime_freshness_refresh_due(outcome.memories, outcome.turn)?;
         }
         Ok(())
     }
@@ -1042,7 +936,7 @@ impl Cva {
         &mut self,
         id: MemoryId,
     ) -> Result<(), CvaError> {
-        self.require_freshness_memory(id)?;
+        self.runtime_require_freshness_memory(id)?;
         let payload = self
             .dream_freshness
             .replay_publication_birth_payload(id)
@@ -1080,17 +974,6 @@ impl Cva {
         self.dream_freshness
             .ingest(&payload)
             .map_err(CvaError::Freshness)
-    }
-
-    fn require_freshness_memory(&self, id: MemoryId) -> Result<(), CvaError> {
-        if self.memories.contains_memory(id) {
-            Ok(())
-        } else {
-            Err(CvaError::Freshness(format!(
-                "unknown owner-local Memory {:?}",
-                id
-            )))
-        }
     }
 }
 

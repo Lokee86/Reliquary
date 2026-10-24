@@ -17,7 +17,9 @@ impl Cva {
             .episode(episode_id)
             .ok_or(InsomniaError::MissingEpisode)?;
         let source = crate::insomnia_admission::episode_source(&episode, priority);
-        self.insomnia.queue(&mut self.container, &source, now_ns)
+        self.owner
+            .insomnia
+            .queue(&mut self.owner.container, &source, now_ns)
     }
 
     pub fn materialize_live_path_and_queue(
@@ -164,8 +166,12 @@ impl Cva {
         now_ns: i64,
         lease_duration_ns: i64,
     ) -> Result<Option<InsomniaWork>, InsomniaError> {
-        self.insomnia
-            .claim_next(&mut self.container, worker_id, now_ns, lease_duration_ns)
+        self.owner.insomnia.claim_next(
+            &mut self.owner.container,
+            worker_id,
+            now_ns,
+            lease_duration_ns,
+        )
     }
 
     pub fn renew_insomnia_lease(
@@ -175,8 +181,8 @@ impl Cva {
         now_ns: i64,
         lease_duration_ns: i64,
     ) -> Result<InsomniaWork, InsomniaError> {
-        self.insomnia.renew(
-            &mut self.container,
+        self.owner.insomnia.renew(
+            &mut self.owner.container,
             episode_id,
             token,
             now_ns,
@@ -245,8 +251,8 @@ impl Cva {
         retry_after_ns: i64,
         reason: String,
     ) -> Result<InsomniaWork, InsomniaError> {
-        self.insomnia.fail(
-            &mut self.container,
+        self.owner.insomnia.fail(
+            &mut self.owner.container,
             episode_id,
             token,
             started_at_ns,
@@ -264,8 +270,8 @@ impl Cva {
         terminal_at_ns: i64,
         reason: String,
     ) -> Result<InsomniaWork, InsomniaError> {
-        self.insomnia.terminal(
-            &mut self.container,
+        self.owner.insomnia.terminal(
+            &mut self.owner.container,
             episode_id,
             token,
             started_at_ns,
@@ -279,8 +285,9 @@ impl Cva {
         episode_id: EpisodeId,
         now_ns: i64,
     ) -> Result<InsomniaWork, InsomniaError> {
-        self.insomnia
-            .retry_terminal(&mut self.container, episode_id, now_ns)
+        self.owner
+            .insomnia
+            .retry_terminal(&mut self.owner.container, episode_id, now_ns)
     }
 
     pub fn insomnia_work(&self, episode_id: EpisodeId) -> Option<&InsomniaWork> {
@@ -288,7 +295,7 @@ impl Cva {
     }
 
     pub fn insomnia_attempts(&self, episode_id: EpisodeId) -> Vec<InsomniaAttempt> {
-        self.insomnia.attempts(episode_id)
+        self.runtime_insomnia_attempts(episode_id)
     }
 
     pub fn insomnia_stats(&self) -> InsomniaStats {

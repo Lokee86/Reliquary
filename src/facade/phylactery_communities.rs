@@ -1,8 +1,7 @@
 use crate::community_scan_merge::scan_merge_snapshot;
 use crate::{
     COMMUNITY_ALGORITHM_VERSION, CommunityError, CommunityId, CommunityLineageTransition,
-    CommunitySemanticName, CommunitySemanticNameSource, CommunitySnapshot, CommunityStats,
-    Phylactery,
+    CommunitySemanticName, CommunitySnapshot, CommunityStats, Phylactery,
 };
 
 impl Phylactery {
@@ -37,23 +36,18 @@ impl Phylactery {
         community_id: CommunityId,
         name: impl Into<String>,
     ) -> Result<bool, CommunityError> {
-        let name = name.into().trim().to_owned();
-        self.publish_community_semantic_name(CommunitySemanticName {
-            community_id,
-            baseline_community_id: community_id,
-            contract_version: 0,
-            source: CommunitySemanticNameSource::User,
-            name,
-            representative_memories: Vec::new(),
-        })
+        self.runtime_set_knowledge_community_name(community_id, name.into())
     }
 
     pub(crate) fn publish_community_semantic_name(
         &mut self,
         record: CommunitySemanticName,
     ) -> Result<bool, CommunityError> {
-        self.communities
-            .publish_semantic_name(&mut self.container, &self.graph, record)
+        self.owner.communities.publish_semantic_name(
+            &mut self.owner.container,
+            &self.owner.graph,
+            record,
+        )
     }
 
     pub fn refresh_communities_leiden(&mut self) -> Result<CommunitySnapshot, CommunityError> {
@@ -72,9 +66,9 @@ impl Phylactery {
             .ok_or(CommunityError::MissingOwnerIdentity)?;
         let generation = self.communities.next_generation()?;
         let snapshot = scan_merge_snapshot(&self.graph, owner_uuid, generation)?;
-        self.communities.publish(
-            &mut self.container,
-            &self.graph,
+        self.owner.communities.publish(
+            &mut self.owner.container,
+            &self.owner.graph,
             owner_uuid,
             snapshot.clone(),
         )?;

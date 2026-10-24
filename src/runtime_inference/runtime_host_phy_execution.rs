@@ -1,5 +1,6 @@
 use super::{LeaseGate, ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes};
-use crate::{CompatibilityProfile, CompatibilityProfileId, Phylactery};
+use crate::phy_execution_owner::PhyExecutionOwner;
+use crate::{CompatibilityProfile, CompatibilityProfileId};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex, RwLock};
@@ -71,7 +72,7 @@ impl MentionQueue {
 }
 
 pub(super) struct WorkerShared {
-    pub(super) owner: Arc<Mutex<Phylactery>>,
+    pub(super) owner: Arc<Mutex<PhyExecutionOwner>>,
     pub(super) routes: Arc<RwLock<ReliquaryRuntimeRoutes>>,
     pub(super) fence: Arc<LeaseGate>,
     control: Arc<(Mutex<Control>, Condvar)>,
@@ -169,7 +170,7 @@ pub(super) struct PhyRuntime {
 
 impl PhyRuntime {
     pub(super) fn start(
-        owner: Arc<Mutex<Phylactery>>,
+        owner: Arc<Mutex<PhyExecutionOwner>>,
         routes: Arc<RwLock<ReliquaryRuntimeRoutes>>,
         fence: Arc<LeaseGate>,
     ) -> Result<Self, ReliquaryRuntimeHostError> {

@@ -13,8 +13,7 @@ impl Phylactery {
         active: bool,
         expected_graph_version: u64,
     ) -> Result<Option<GraphRelation>, GraphError> {
-        crate::graph_endpoint_admission::validate_memory_changes(
-            &self.memories,
+        self.runtime_set_knowledge_relations(
             &[GraphRelationChange {
                 source,
                 target,
@@ -22,15 +21,9 @@ impl Phylactery {
                 active,
             }],
             GraphRelationOrigin::Dream,
-        )?;
-        self.graph.set_relation(
-            &mut self.container,
-            source,
-            target,
-            kind,
-            active,
             expected_graph_version,
         )
+        .map(|relations| relations.into_iter().next())
     }
 
     pub fn set_memory_relation_with_origin(
@@ -42,8 +35,7 @@ impl Phylactery {
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
     ) -> Result<Option<GraphRelation>, GraphError> {
-        crate::graph_endpoint_admission::validate_memory_changes(
-            &self.memories,
+        self.runtime_set_knowledge_relations(
             &[GraphRelationChange {
                 source,
                 target,
@@ -51,16 +43,9 @@ impl Phylactery {
                 active,
             }],
             origin,
-        )?;
-        self.graph.set_relation_with_origin(
-            &mut self.container,
-            source,
-            target,
-            kind,
-            active,
-            origin,
             expected_graph_version,
         )
+        .map(|relations| relations.into_iter().next())
     }
 
     pub fn set_memory_relations(
@@ -68,13 +53,11 @@ impl Phylactery {
         changes: &[GraphRelationChange],
         expected_graph_version: u64,
     ) -> Result<Vec<GraphRelation>, GraphError> {
-        crate::graph_endpoint_admission::validate_memory_changes(
-            &self.memories,
+        self.runtime_set_knowledge_relations(
             changes,
             GraphRelationOrigin::Dream,
-        )?;
-        self.graph
-            .set_relations(&mut self.container, changes, expected_graph_version)
+            expected_graph_version,
+        )
     }
 
     pub fn set_memory_relations_with_origin(
@@ -83,13 +66,7 @@ impl Phylactery {
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
     ) -> Result<Vec<GraphRelation>, GraphError> {
-        crate::graph_endpoint_admission::validate_memory_changes(&self.memories, changes, origin)?;
-        self.graph.set_relations_with_origin(
-            &mut self.container,
-            changes,
-            origin,
-            expected_graph_version,
-        )
+        self.runtime_set_knowledge_relations(changes, origin, expected_graph_version)
     }
 
     pub fn set_entity_association(
@@ -106,8 +83,8 @@ impl Phylactery {
             &[change],
             GraphRelationOrigin::Perception,
         )?;
-        self.graph.set_entity_association(
-            &mut self.container,
+        self.owner.graph.set_entity_association(
+            &mut self.owner.container,
             memory_id,
             entity_id,
             active,
@@ -127,16 +104,12 @@ impl Phylactery {
             changes,
             origin,
         )?;
-        self.graph.set_semantic_relations_with_origin(
-            &mut self.container,
+        self.owner.graph.set_semantic_relations_with_origin(
+            &mut self.owner.container,
             changes,
             origin,
             expected_graph_version,
         )
-    }
-
-    pub fn graph_version(&self) -> u64 {
-        self.graph.graph_version()
     }
 
     pub fn memory_graph_version(&self) -> u64 {

@@ -25,9 +25,10 @@ impl Phylactery {
         source_ref: MemorySourceRef,
         temporal_inference: Option<crate::MemoryTemporalInference>,
     ) -> Result<(Memory, bool), MemoryError> {
-        self.memories
+        self.owner
+            .memories
             .publish_with_source_ref_and_temporal_inference(
-                &mut self.container,
+                &mut self.owner.container,
                 id,
                 expected_revision,
                 draft,
@@ -42,7 +43,7 @@ impl Phylactery {
         source_ref: MemorySourceRef,
         updated_at_ns: i64,
     ) -> Result<(Memory, bool), MemoryError> {
-        let current = self.memories.memory(&mut self.container, id)?;
+        let current = self.owner.memories.memory(&mut self.owner.container, id)?;
         if let Some(existing) = current.source_ref.as_ref() {
             return if existing == &source_ref {
                 Ok((current, false))
@@ -83,8 +84,8 @@ impl Phylactery {
             created_at_ns: current.created_at_ns,
             updated_at_ns: updated_at_ns.max(current.updated_at_ns),
         };
-        self.memories.publish_with_source_ref(
-            &mut self.container,
+        self.owner.memories.publish_with_source_ref(
+            &mut self.owner.container,
             Some(id),
             current.revision,
             draft,

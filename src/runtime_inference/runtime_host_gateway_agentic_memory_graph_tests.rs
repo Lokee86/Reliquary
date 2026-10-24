@@ -1,4 +1,5 @@
 use super::*;
+use crate::InteractionRuntime;
 use crate::{GraphRelationKind, MemoryId};
 
 fn fixture() -> (GatewayRuntime, Arc<InstanceRuntime>, Vec<MemoryRef>) {

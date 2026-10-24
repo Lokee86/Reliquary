@@ -241,9 +241,10 @@ fn divergent_reconcile_merges_generic_processing_lane_independently() {
     let lane = ProcessingLaneId(2);
     let mut left_cva = Cva::open(&left).unwrap();
     left_cva
+        .owner
         .processing_epochs
         .put(
-            &mut left_cva.container,
+            &mut left_cva.owner.container,
             id,
             lane,
             ProcessingEpochState {
@@ -258,9 +259,10 @@ fn divergent_reconcile_merges_generic_processing_lane_independently() {
 
     let mut right_cva = Cva::open(&right).unwrap();
     right_cva
+        .owner
         .processing_epochs
         .put(
-            &mut right_cva.container,
+            &mut right_cva.owner.container,
             id,
             lane,
             ProcessingEpochState {
@@ -312,9 +314,10 @@ fn divergent_reconcile_rejects_processing_cadence_version_conflict() {
     let lane = ProcessingLaneId(2);
     for (path, cadence_version) in [(&left, 1), (&right, 2)] {
         let mut cva = Cva::open(path).unwrap();
-        cva.processing_epochs
+        cva.owner
+            .processing_epochs
             .put(
-                &mut cva.container,
+                &mut cva.owner.container,
                 id,
                 lane,
                 ProcessingEpochState {
@@ -348,9 +351,10 @@ fn dream_rejects_persisted_cadence_version_mismatch_when_state_is_used() {
         0,
         45 * DAY_NS,
     );
-    cva.processing_epochs
+    cva.owner
+        .processing_epochs
         .put(
-            &mut cva.container,
+            &mut cva.owner.container,
             id,
             DREAM_PROCESSING_LANE,
             ProcessingEpochState {

@@ -10,6 +10,7 @@ use crate::MemoryId;
 use crate::freshness::{
     FreshnessBoundaryIndex, FreshnessError, FreshnessPolicy, FreshnessRecord, FreshnessState,
 };
+use std::collections::VecDeque;
 
 /// One lifecycle boundary removed from the due index for durable settlement.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -33,6 +34,20 @@ pub struct FreshnessReversal {
 pub struct FreshnessRefresh {
     pub next_boundary: Option<u64>,
     pub reversal: Option<FreshnessReversal>,
+}
+
+/// Volatile, owner-local notification buffer derived from accepted Freshness
+/// state. It is transport-neutral and carries no runtime callback capability.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub(crate) struct FreshnessNotificationState {
+    pub(crate) crossings: VecDeque<FreshnessDue>,
+    pub(crate) reversal: Option<FreshnessReversal>,
+}
+
+impl FreshnessNotificationState {
+    pub(crate) fn is_empty(&self) -> bool {
+        self.crossings.is_empty() && self.reversal.is_none()
+    }
 }
 
 /// Rebuildable due index wrapper with an explicit bounded drain contract.

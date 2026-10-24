@@ -1,22 +1,47 @@
 use super::{InsomniaDrainResult, InsomniaWorkerConfig, InsomniaWorkerError};
-use crate::insomnia::evidence::{hydrate_evidence_parts, plan_evidence};
+use crate::insomnia::evidence::{hydrate_evidence_read, plan_evidence};
 use crate::insomnia::extraction::{InsomniaExtractionStage, InsomniaExtractor};
 use crate::insomnia::native_processor::claimed_episode_input_read;
 use crate::insomnia::store::InsomniaStore;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
+use crate::phy_execution_owner::PhyExecutionOwner;
 use crate::{
-    Archive, Container, Cva, GeneralEndpoint, InsomniaExtractionError, InsomniaProgressEvent,
-    InsomniaProgressReporter, InsomniaSemanticStage, InsomniaWork, Phylactery,
+    Archive, Container, EmbeddingEndpoint, GeneralEndpoint, InsomniaExtractionError,
+    InsomniaProgressEvent, InsomniaProgressReporter, InsomniaSemanticStage, InsomniaWork,
+    RelExecutionOwner,
 };
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-#[path = "../runtime_inference/insomnia/worker/runtime/outcome.rs"]
+/// Runtime entry point used by InteractionRuntime. This keeps the full drain
+/// and vectorization operation in the lower worker component instead of
+/// routing runtime execution through the public Cva extension methods.
+pub(crate) fn drain_with_vectors<E: GeneralEndpoint, V: EmbeddingEndpoint>(
+    cva: &mut RelExecutionOwner,
+    extractor: &InsomniaExtractor<E>,
+    embedding_endpoint: &V,
+    config: &InsomniaWorkerConfig,
+) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
+    validate_config(config)?;
+    let mut result = drain(cva, extractor, config)?;
+    let memories = cva.owner.memories.stats().memories;
+    if memories > 0 {
+        let profile = cva.establish_compatibility_profile(embedding_endpoint)?;
+        let vectors = cva.build_missing_memory_vectors(profile.id, embedding_endpoint)?;
+        result.memory_vector_profile_id = Some(profile.id);
+        result.memory_vectors_embedded = vectors.embedded;
+        result.memory_vectors_already_present = vectors.already_present;
+        result.memory_vector_set_id = vectors.created_set;
+    }
+    Ok(result)
+}
+
+#[path = "insomnia/worker/runtime/outcome.rs"]
 mod outcome;
-#[path = "../runtime_inference/insomnia/worker/runtime/progress.rs"]
+#[path = "insomnia/worker/runtime/progress.rs"]
 mod progress;
 
 use outcome::{apply_success, record_failure, terminal_claim};
@@ -50,7 +75,7 @@ pub(super) struct DrainShared<'a> {
         Mutex<&'a mut crate::freshness_dream_journal::DreamFreshnessJournal>,
     pub(super) owner_uuid: Option<[u8; 16]>,
     pub(super) accepted_rel_turn: u64,
-    pub(super) phylactery: Option<Mutex<&'a mut Phylactery>>,
+    pub(super) phylactery: Option<Mutex<&'a mut PhyExecutionOwner>>,
     progress: DrainProgress<'a>,
 }
 
@@ -61,16 +86,16 @@ enum ClaimState {
     Paused,
 }
 
-pub(super) fn drain<E: GeneralEndpoint>(
-    cva: &mut Cva,
+pub(crate) fn drain<E: GeneralEndpoint>(
+    cva: &mut RelExecutionOwner,
     extractor: &InsomniaExtractor<E>,
     config: &InsomniaWorkerConfig,
 ) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
     drain_inner(cva, None, extractor, config, None)
 }
 
-pub(super) fn drain_with_progress<E: GeneralEndpoint>(
-    cva: &mut Cva,
+pub(crate) fn drain_with_progress<E: GeneralEndpoint>(
+    cva: &mut RelExecutionOwner,
     extractor: &InsomniaExtractor<E>,
     config: &InsomniaWorkerConfig,
     progress: &dyn InsomniaProgressReporter,
@@ -78,18 +103,18 @@ pub(super) fn drain_with_progress<E: GeneralEndpoint>(
     drain_inner(cva, None, extractor, config, Some(progress))
 }
 
-pub(super) fn drain_routed<E: GeneralEndpoint>(
-    cva: &mut Cva,
-    phylactery: &mut Phylactery,
+pub(crate) fn drain_routed<E: GeneralEndpoint>(
+    cva: &mut RelExecutionOwner,
+    phylactery: &mut PhyExecutionOwner,
     extractor: &InsomniaExtractor<E>,
     config: &InsomniaWorkerConfig,
 ) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
     drain_inner(cva, Some(phylactery), extractor, config, None)
 }
 
-pub(super) fn drain_routed_with_progress<E: GeneralEndpoint>(
-    cva: &mut Cva,
-    phylactery: &mut Phylactery,
+pub(crate) fn drain_routed_with_progress<E: GeneralEndpoint>(
+    cva: &mut RelExecutionOwner,
+    phylactery: &mut PhyExecutionOwner,
     extractor: &InsomniaExtractor<E>,
     config: &InsomniaWorkerConfig,
     progress: &dyn InsomniaProgressReporter,
@@ -98,25 +123,26 @@ pub(super) fn drain_routed_with_progress<E: GeneralEndpoint>(
 }
 
 fn drain_inner<E: GeneralEndpoint>(
-    cva: &mut Cva,
-    phylactery: Option<&mut Phylactery>,
+    cva: &mut RelExecutionOwner,
+    phylactery: Option<&mut PhyExecutionOwner>,
     extractor: &InsomniaExtractor<E>,
     config: &InsomniaWorkerConfig,
     reporter: Option<&dyn InsomniaProgressReporter>,
 ) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
-    let initial_stats = cva.insomnia_stats();
-    let archive_read = crate::archive::ArchiveReadView::new(&cva.archive, &cva.container);
+    let initial_stats = cva.owner.insomnia.stats();
+    let archive_read =
+        crate::archive::ArchiveReadView::new(&cva.owner.archive, &cva.owner.container);
     cva.lexical_index.ensure_current(&archive_read)?;
-    let owner_uuid = cva.owner_uuid();
-    let accepted_rel_turn = cva.rel_turn_count();
+    let owner_uuid = cva.owner.container.owner_uuid();
+    let accepted_rel_turn = cva.owner.archive.rel_turn_count();
     let shared = DrainShared {
-        archive: &cva.archive,
+        archive: &cva.owner.archive,
         lexical_index: &cva.lexical_index,
-        container: Mutex::new(&mut cva.container),
-        memories: Mutex::new(&mut cva.memories),
-        insomnia: Mutex::new(&mut cva.insomnia),
-        freshness: Mutex::new(&mut cva.freshness),
-        dream_freshness: Mutex::new(&mut cva.dream_freshness),
+        container: Mutex::new(&mut cva.owner.container),
+        memories: Mutex::new(&mut cva.owner.memories),
+        insomnia: Mutex::new(&mut cva.owner.insomnia),
+        freshness: Mutex::new(&mut cva.owner.freshness),
+        dream_freshness: Mutex::new(&mut cva.owner.dream_freshness),
         owner_uuid,
         accepted_rel_turn,
         phylactery: phylactery.map(Mutex::new),
@@ -321,10 +347,13 @@ fn run_extraction<E: GeneralEndpoint>(
                 &round.requests,
             );
             let (results, evidence_turns) = {
-                let mut container = shared.container.lock().map_err(|_| {
+                let container = shared.container.lock().map_err(|_| {
                     InsomniaExtractionError::InvalidOutput("CVA container lock poisoned".into())
                 })?;
-                hydrate_evidence_parts(shared.archive, &mut container, &plans)?
+                hydrate_evidence_read(
+                    &crate::archive::ArchiveReadView::new(shared.archive, &container),
+                    &plans,
+                )?
             };
             extractor.finish_evidence_with_stage_reporter(
                 episode,
@@ -350,4 +379,21 @@ fn sleep_ns(value: i64) {
     thread::sleep(Duration::from_nanos(
         u64::try_from(value).unwrap_or(u64::MAX),
     ));
+}
+
+pub(crate) fn validate_config(config: &InsomniaWorkerConfig) -> Result<(), InsomniaWorkerError> {
+    if config.workers == 0 || config.workers > super::MAX_INSOMNIA_WORKERS {
+        return Err(InsomniaWorkerError::InvalidConfig("workers"));
+    }
+    if config.scope.trim().is_empty() || config.worker_id_prefix.trim().is_empty() {
+        return Err(InsomniaWorkerError::InvalidConfig("scope/worker ID"));
+    }
+    if config.lease_duration_ns <= 0
+        || config.retry_delay_ns <= 0
+        || config.poll_interval_ns <= 0
+        || config.max_attempts == 0
+    {
+        return Err(InsomniaWorkerError::InvalidConfig("timing/attempt limits"));
+    }
+    Ok(())
 }

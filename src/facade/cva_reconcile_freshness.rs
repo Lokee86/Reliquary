@@ -23,12 +23,12 @@ pub(crate) fn replay_freshness(
         &source_view(left),
         &source_view(right),
         crate::maintenance::freshness_reconciliation::FreshnessReplayDestination {
-            container: &mut output.container,
-            archive: &output.archive,
-            memories: &output.memories,
+            container: &mut output.owner.container,
+            archive: &output.owner.archive,
+            memories: &output.owner.memories,
             owner_uuid,
-            freshness: &mut output.freshness,
-            dream_freshness: &mut output.dream_freshness,
+            freshness: &mut output.owner.freshness,
+            dream_freshness: &mut output.owner.dream_freshness,
         },
     )
 }

@@ -9,8 +9,9 @@ impl Cva {
         self.memories
             .current_body_id(memory_id)
             .map_err(|_| ArchiveError::MissingFileMemoryTarget)?;
-        self.archive
-            .link_file_to_memory(&mut self.container, file_id, memory_id)
+        self.owner
+            .archive
+            .link_file_to_memory(&mut self.owner.container, file_id, memory_id)
     }
 
     pub fn file_memory_links(&self, file_id: FileId) -> Vec<FileMemoryLink> {

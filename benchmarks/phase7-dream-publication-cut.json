@@ -1,0 +1,9 @@
+{
+  "ticket": "P7.1.07-DREAM-PUBLICATION",
+  "status": "registered-before-implementation",
+  "witnesses": ["dream_owner_publisher.rs publish_dream_pair accepts Container and calls GraphStore::set_relations", "dream_owner_duplicate.rs publish_duplicate_pair/duplicate_key accept Container and invoke MemoryStore/GraphStore physical methods"],
+  "cut": "Dream prepares passive graph changes and duplicate cache decisions from owner readers; runtime executes through concrete owner-lifecycle publication context, then Dream finalizes cache against committed graph",
+  "preserve": ["classification and verification before reads", "graph conflict before duplicate hydration", "duplicate cache refresh and filtered-user-authority order", "published outcome distinctions and retry behavior"],
+  "tests": ["dream_duplicate_tests", "dream_publisher_tests", "dream_authority_tests", "runtime PHY/REL Dream worker tests"],
+  "denominator": "Additional named child of P7.1.07; 31 parents plus eight registered children = 39 obligations; four gates unchanged"
+}

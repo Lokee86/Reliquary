@@ -23,8 +23,8 @@ impl GatewayRuntime {
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
                 .sequence();
             let mut state = self.with_rel(token, |runtime| {
-                let cva = runtime.cva();
-                let mut conversations = cva.conversation_summaries();
+                let cva = &runtime.cva;
+                let mut conversations = cva.owner.archive.conversation_summaries();
                 conversations.sort_by(|a, b| a.conversation_id.cmp(&b.conversation_id));
                 let mut branches = cva.branches();
                 branches.sort_by(|a, b| {

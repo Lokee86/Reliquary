@@ -20,8 +20,9 @@ impl Cva {
         text: String,
     ) -> Result<EgoAnchor, CvaError> {
         Ok(self
+            .owner
             .ego
-            .create_anchor(&mut self.container, priority, text)?)
+            .create_anchor(&mut self.owner.container, priority, text)?)
     }
 
     pub fn update_ego_anchor(
@@ -31,9 +32,13 @@ impl Cva {
         priority: EgoAnchorPriority,
         text: String,
     ) -> Result<(EgoAnchor, bool), CvaError> {
-        Ok(self
-            .ego
-            .update_anchor(&mut self.container, id, expected_revision, priority, text)?)
+        Ok(self.owner.ego.update_anchor(
+            &mut self.owner.container,
+            id,
+            expected_revision,
+            priority,
+            text,
+        )?)
     }
 
     pub fn delete_ego_anchor(
@@ -42,8 +47,9 @@ impl Cva {
         expected_revision: u64,
     ) -> Result<bool, CvaError> {
         Ok(self
+            .owner
             .ego
-            .delete_anchor(&mut self.container, id, expected_revision)?)
+            .delete_anchor(&mut self.owner.container, id, expected_revision)?)
     }
 
     pub fn ego_web_synthesis(&self) -> Option<&EgoWebSynthesis> {
@@ -57,8 +63,8 @@ impl Cva {
         text: String,
     ) -> Result<(EgoWebSynthesis, bool), CvaError> {
         validate_source_memory_version(source_memory_version, self.memory_version())?;
-        Ok(self.ego.put_synthesis(
-            &mut self.container,
+        Ok(self.owner.ego.put_synthesis(
+            &mut self.owner.container,
             expected_revision,
             source_memory_version,
             text,

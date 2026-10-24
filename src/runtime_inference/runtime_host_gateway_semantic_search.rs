@@ -164,7 +164,7 @@ impl GatewayRuntime {
                         };
                         let result = match lane.token.kind {
                             OwnerKind::Rel => self.with_rel(&lane.token, |runtime| {
-                                let owner_id = runtime.cva.owner_id().ok_or_else(|| {
+                                let owner_id = runtime.cva.runtime_owner_id().ok_or_else(|| {
                                     operation("Reliquary does not have durable owner identity")
                                 })?;
                                 let retrieval = runtime

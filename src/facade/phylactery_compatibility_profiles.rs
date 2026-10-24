@@ -13,8 +13,9 @@ impl Phylactery {
         if let Some(existing) = self.compatibility_profiles.compatible_with(&candidate) {
             return Ok(existing.clone());
         }
-        self.compatibility_profiles
-            .put(&mut self.container, candidate.clone())?;
+        self.owner
+            .compatibility_profiles
+            .put(&mut self.owner.container, candidate.clone())?;
         Ok(candidate)
     }
 
@@ -36,21 +37,13 @@ impl Phylactery {
         &mut self,
         id: CompatibilityProfileId,
     ) -> Result<bool, CompatibilityProfileError> {
-        self.compatibility_profiles.retire(&mut self.container, id)
+        self.owner
+            .compatibility_profiles
+            .retire(&mut self.owner.container, id)
     }
 
     pub fn compatibility_profile_is_retired(&self, id: CompatibilityProfileId) -> bool {
         self.compatibility_profiles.is_retired(id)
-    }
-
-    pub fn active_memory_compatibility_profile(
-        &self,
-        id: CompatibilityProfileId,
-    ) -> Option<CompatibilityProfile> {
-        let profile = self.compatibility_profiles.get_active(id)?;
-        self.memory_vectors
-            .has_complete_coverage(id, &self.memories.current_body_ids())
-            .then(|| profile.clone())
     }
 
     pub fn active_memory_compatibility_profiles(&self) -> Vec<CompatibilityProfile> {

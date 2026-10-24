@@ -11,31 +11,32 @@ impl Cva {
         now_ns: i64,
     ) -> Result<ImportCompletionOutcome, CvaError> {
         let views = crate::imports::owner_completion::CompletionReadViews {
-            archive: &self.archive,
-            memories: &self.memories,
+            archive: &self.owner.archive,
+            memories: &self.owner.memories,
             settlement: crate::history::SettlementCompletionEvidence::new(
-                &self.archive,
-                &self.memories,
-                &self.graph,
-                &self.freshness,
-                &self.dream_freshness,
+                &self.owner.archive,
+                &self.owner.memories,
+                &self.owner.graph,
+                &self.owner.freshness,
+                &self.owner.dream_freshness,
             ),
-            insomnia: crate::insomnia::import_readiness::ImportReadiness::new(&self.insomnia),
+            insomnia: crate::insomnia::import_readiness::ImportReadiness::new(&self.owner.insomnia),
             dream: crate::dream_readiness::DreamReadiness::new(
-                &self.dream_freshness,
-                &self.processing_epochs,
+                &self.owner.dream_freshness,
+                &self.owner.processing_epochs,
             ),
             perception: crate::perception_import_readiness::ImportReadiness::new(
-                &self.memories,
-                &self.entity_resolutions,
+                &self.owner.memories,
+                &self.owner.entity_resolutions,
             ),
             watermarks: self.import_watermarks(),
-            turn: self.archive.rel_turn_count(),
+            turn: self.owner.archive.rel_turn_count(),
         };
-        let mut access = crate::owner_lifecycle::ImportCompletionAccess::new(&mut self.container);
+        let mut access =
+            crate::owner_lifecycle::ImportCompletionAccess::new(&mut self.owner.container);
         crate::imports::owner_completion::complete_with_views(
             &mut access,
-            &mut self.import_epochs,
+            &mut self.owner.import_epochs,
             import_id,
             now_ns,
             views,

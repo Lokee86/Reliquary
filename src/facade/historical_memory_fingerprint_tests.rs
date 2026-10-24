@@ -42,7 +42,7 @@ fn memory_cuts_preserve_revisions_and_terminal_visibility_across_reopen() {
     let path = dir.join("owner.phy");
     let mut phy = Phylactery::create(&path).unwrap();
     let first = phy.publish_memory(None, 0, draft("create")).unwrap().0;
-    let baseline = MemoryHistory::read(&mut phy.container, &phy.memories).unwrap();
+    let baseline = MemoryHistory::read(&mut phy.owner.container, &phy.owner.memories).unwrap();
     let before = baseline.at(1).unwrap().fingerprint;
     let mut changed = draft("archive");
     changed.archived = true;
@@ -50,7 +50,7 @@ fn memory_cuts_preserve_revisions_and_terminal_visibility_across_reopen() {
     let second = phy.publish_memory(Some(first.id), 1, changed).unwrap().0;
     assert_eq!(second.revision, 2);
     phy.tombstone_memory(first.id, second.revision).unwrap();
-    let history = MemoryHistory::read(&mut phy.container, &phy.memories).unwrap();
+    let history = MemoryHistory::read(&mut phy.owner.container, &phy.owner.memories).unwrap();
     assert_eq!(before, history.at(1).unwrap().fingerprint);
     assert_eq!(history.at(0).unwrap().current.len(), 0);
     assert_eq!(history.at(1).unwrap().current[&first.id], 1);
@@ -71,7 +71,8 @@ fn memory_cuts_preserve_revisions_and_terminal_visibility_across_reopen() {
     phy.sync().unwrap();
     drop(phy);
     let mut reopened = Phylactery::open(&path).unwrap();
-    let after = MemoryHistory::read(&mut reopened.container, &reopened.memories).unwrap();
+    let after =
+        MemoryHistory::read(&mut reopened.owner.container, &reopened.owner.memories).unwrap();
     for cut in 0..=3 {
         assert_eq!(
             history.at(cut).unwrap().fingerprint,
@@ -97,7 +98,7 @@ fn memory_oracle_represents_explicitly_pruned_body_without_fabrication() {
     )
     .unwrap();
     let mut pruned = Phylactery::open(&output).unwrap();
-    let history = MemoryHistory::read(&mut pruned.container, &pruned.memories).unwrap();
+    let history = MemoryHistory::read(&mut pruned.owner.container, &pruned.owner.memories).unwrap();
     assert!(history.revision(memory.id, 1).is_ok());
     assert_eq!(
         history

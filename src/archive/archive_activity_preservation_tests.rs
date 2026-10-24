@@ -77,10 +77,11 @@ fn repeat(cva: &mut Cva, version: u64) {
         .is_some()
     {
         let (_, applying) = cva
+            .owner
             .archive
             .read_publication(
-                &mut cva.container,
-                *cva.archive.record_version(version).unwrap(),
+                &mut cva.owner.container,
+                *cva.owner.archive.record_version(version).unwrap(),
             )
             .unwrap();
         let local = cva.archive.next_archive_version;
@@ -102,8 +103,9 @@ fn repeat(cva: &mut Cva, version: u64) {
         cva.archive.next_archive_version += 1;
         return;
     }
-    cva.archive
-        .publish_record(&mut cva.container, record)
+    cva.owner
+        .archive
+        .publish_record(&mut cva.owner.container, record)
         .unwrap();
 }
 

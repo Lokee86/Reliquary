@@ -49,7 +49,7 @@ fn prepare(
         .lock()
         .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
     let now = Instant::now();
-    for id in runtime.cva.memory_ids() {
+    for id in runtime.cva.runtime_memory_ids() {
         if cooldowns.get(&id).is_some_and(|until| *until > now) {
             continue;
         }
@@ -64,8 +64,12 @@ fn prepare(
         else {
             continue;
         };
-        let body = runtime.cva.memory_body_id(id).map_err(operation)?;
-        if runtime.cva.memory_vector_location(profile, body).is_none() {
+        let body = runtime.cva.runtime_memory_body_id(id).map_err(operation)?;
+        if runtime
+            .cva
+            .runtime_memory_vector_location(profile, body)
+            .is_none()
+        {
             continue;
         }
         let candidates = runtime
@@ -74,14 +78,14 @@ fn prepare(
             .map_err(operation)?;
         return Ok(Some(DreamSnapshot {
             candidates,
-            graph_version: runtime.cva.graph_version(),
+            graph_version: runtime.cva.runtime_graph_version(),
             dream_epoch: epoch,
         }));
     }
     Ok(None)
 }
 fn current(
-    runtime: &mut crate::InteractionRuntime,
+    runtime: &mut crate::RelExecution,
     set: &DreamCandidateSet,
 ) -> Result<bool, ReliquaryRuntimeHostError> {
     if runtime
@@ -130,14 +134,14 @@ fn commit(
     shared.mutate(
         super::super::mutation_events::RelMutationFamily::Background,
         |runtime| {
-            if runtime.cva.graph_version() != snapshot.graph_version
+            if runtime.cva.runtime_graph_version() != snapshot.graph_version
                 || !current(runtime, &snapshot.candidates)?
             {
                 return Ok((false, false, vec![]));
             }
             let policy = DreamVerificationPolicy::default();
             for (classification, verification) in evaluated {
-                let graph = runtime.cva.graph_version();
+                let graph = runtime.cva.runtime_graph_version();
                 runtime
                     .cva
                     .publish_dream_pair(&classification, verification.as_ref(), policy, graph)
@@ -150,10 +154,11 @@ fn commit(
                 .map_err(operation)?;
             runtime
                 .cva
+                .owner
                 .processing_epochs
                 .put_for_memory(
-                    &mut runtime.cva.container,
-                    &runtime.cva.memories,
+                    &mut runtime.cva.owner.container,
+                    &runtime.cva.owner.memories,
                     id,
                     crate::processing_epoch_model::DREAM_PROCESSING_LANE,
                     crate::dream_cooldown::dream_processing_state(

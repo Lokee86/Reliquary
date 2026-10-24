@@ -4,6 +4,8 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Public adapter source boundary
 
+Mounted runtime aggregates own derived caches beside, rather than inside, durable REL/PHY owner state. Public aliases preserve supported API type identity; runtime execution must invoke canonical lower operations, not facade extension implementations attached to the same type. Compiler call evidence checks implementation locations as well as imported type definitions so a type alias cannot conceal an upward call.
+
 Public product extension implementations belong to `src/facade/`; lower Perception, Retrieval and owner code must not import or call back through `Cva`/`Phylactery`. Concrete store borrows and immutable owner facts preserve validation and mutation authority below composition. The cfg-aware facade source guard is part of the architecture entrypoint; [Phase 6 evidence](dependency-convergence-phase6-execution-2026-10-23.md) separately records source proof and acceptance limits.
 
 ## Permanent dependency architecture invariants

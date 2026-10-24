@@ -87,14 +87,21 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
             active_profile = Some(shared.mutate(
                 super::super::mutation_events::RelMutationFamily::Retrieval,
                 |runtime| {
-                    let count = runtime.cva.active_memory_compatibility_profiles().len();
+                    let count = runtime
+                        .cva
+                        .runtime_active_memory_compatibility_profiles()
+                        .len();
                     let value = crate::owner_lifecycle::vector_publication::accept_profile(
-                        &mut runtime.cva.container,
-                        &mut runtime.cva.compatibility_profiles,
+                        &mut runtime.cva.owner.container,
+                        &mut runtime.cva.owner.compatibility_profiles,
                         candidate.clone(),
                     )
                     .map_err(operation)?;
-                    let changed = runtime.cva.active_memory_compatibility_profiles().len() != count;
+                    let changed = runtime
+                        .cva
+                        .runtime_active_memory_compatibility_profiles()
+                        .len()
+                        != count;
                     Ok((
                         value,
                         changed,
@@ -155,10 +162,10 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
                     let count = match plan {
                         Some(plan) => {
                             crate::owner_lifecycle::vector_publication::publish_memory_vectors(
-                                &mut runtime.cva.container,
-                                &runtime.cva.compatibility_profiles,
-                                &mut runtime.cva.packed_vectors,
-                                &mut runtime.cva.memory_vectors,
+                                &mut runtime.cva.owner.container,
+                                &runtime.cva.owner.compatibility_profiles,
+                                &mut runtime.cva.owner.packed_vectors,
+                                &mut runtime.cva.owner.memory_vectors,
                                 plan,
                             )
                             .map_err(operation)?
@@ -208,7 +215,9 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
                     let before = std::fs::metadata(runtime.cva.container.path())
                         .map_err(operation)?
                         .len();
-                    if let Some(generation) = runtime.cva.current_vector_generation(profile.id) {
+                    if let Some(generation) =
+                        runtime.cva.runtime_current_vector_generation(profile.id)
+                    {
                         runtime
                             .cva
                             .process_semantic_freshness(generation.id, 64)
@@ -256,10 +265,10 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
                 shared.mutate(
                     super::super::mutation_events::RelMutationFamily::Semantic,
                     |runtime| {
-                        let current=runtime.cva.current_vector_generation(batch.profile.id);
+                        let current=runtime.cva.runtime_current_vector_generation(batch.profile.id);
                         if let Some(plan)=crate::semantic_archive_batch::pack_batch(batch,vectors,current).map_err(operation)?{
                             let cva=&mut runtime.cva;
-                            let generation=crate::owner_lifecycle::vector_publication::publish_semantic_archive(&mut cva.container,&cva.archive,&cva.compatibility_profiles,&mut cva.packed_vectors,&mut cva.archive_vectors,&mut cva.vector_generations,plan).map_err(operation)?;
+                            let generation=crate::owner_lifecycle::vector_publication::publish_semantic_archive(&mut cva.owner.container,&cva.owner.archive,&cva.owner.compatibility_profiles,&mut cva.owner.packed_vectors,&mut cva.owner.archive_vectors,&mut cva.owner.vector_generations,plan).map_err(operation)?;
                             if cva.owner_uuid().is_some(){cva.process_semantic_freshness(generation.id,64).map_err(|e|operation(crate::VectorGenerationError::Freshness(e.to_string())))?;}
                         }
                         Ok((

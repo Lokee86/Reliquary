@@ -19,8 +19,8 @@ pub(crate) fn read_memory_range(
 ) -> Result<MemoryTail, CvaReconcileError> {
     crate::memory_ordered_replay::read_memory_range(
         MemoryReplaySource {
-            container: &mut owner.container,
-            memories: &owner.memories,
+            container: &mut owner.owner.container,
+            memories: &owner.owner.memories,
         },
         start_chunk,
         end_chunk,
@@ -33,10 +33,10 @@ pub(crate) fn replay_memory_tail(
 ) -> Result<MemoryReplayResult, CvaReconcileError> {
     crate::memory_ordered_replay::replay_memory_tail(
         MemoryReplayDestination {
-            archive: &owner.archive,
-            memories: &mut owner.memories,
-            insomnia: &mut owner.insomnia,
-            container: &mut owner.container,
+            archive: &owner.owner.archive,
+            memories: &mut owner.owner.memories,
+            insomnia: &mut owner.owner.insomnia,
+            container: &mut owner.owner.container,
         },
         tail,
     )

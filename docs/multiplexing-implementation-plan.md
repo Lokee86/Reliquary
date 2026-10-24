@@ -1,5 +1,7 @@
 # Multiplexing consumer and release plan
 
+Phase 7 changes runtime/source ownership only: mounted REL/PHY retain one writer, independent grants, existing publication/cancellation ordering and public method signatures. Durable V2 bytes and corpus fixtures are unchanged. The [execution record](dependency-convergence-phase7-execution-2026-10-24.md) distinguishes source cuts, regression results and final graph acceptance.
+
 Current implementation: [Runtime multiplexing](subsystems/runtime-multiplexing.md)
 
 ## Purpose

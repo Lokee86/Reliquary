@@ -104,7 +104,7 @@ struct ClaimIdentity {
     canonical_path: PathBuf,
 }
 static LIVE_MOUNTS: OnceLock<Mutex<BTreeMap<String, ClaimIdentity>>> = OnceLock::new();
-pub(super) struct MountClaim(String);
+pub(crate) struct MountClaim(String);
 impl MountClaim {
     pub(super) fn acquire(
         identity: &MountedFileIdentity,
@@ -184,14 +184,15 @@ impl GatewayRuntime {
             return Ok(identity.owner_id);
         }
         let claim = MountClaim::acquire(&identity)?;
-        let cva = crate::Cva::open(&identity.canonical_path).map_err(operation)?;
+        let cva =
+            crate::RelExecutionOwner::open_mounted(&identity.canonical_path).map_err(operation)?;
         if !identity.matches(&MountedFileIdentity::from_container(
             &cva.container,
             OwnerKind::Rel,
         )?) {
             return Err(operation("REL file changed during mount admission"));
         }
-        self.mount_rel_inner(InteractionRuntime::new(cva), identity, claim)
+        self.mount_rel_inner(RelExecution::from_owner(cva), identity, claim)
     }
     pub fn mount_phy_path(
         &self,
@@ -210,7 +211,25 @@ impl GatewayRuntime {
             return Ok(identity.owner_id);
         }
         let claim = MountClaim::acquire(&identity)?;
-        let phy = Phylactery::open(&identity.canonical_path).map_err(operation)?;
+        let mut phy = crate::phy_execution_owner::PhyExecutionOwner::open_unvalidated(
+            &identity.canonical_path,
+        )
+        .map_err(operation)?;
+        let history = crate::owner_lifecycle::HistorySource::new(&phy.container)
+            .map_err(|error| operation(crate::PhylacteryError::Repack(error.to_string())))?;
+        crate::history::validate_phylactery_prune_evidence(
+            &phy.owner_maintenance,
+            &history,
+            &phy.graph,
+            &phy.memories,
+            &phy.entities,
+            &phy.relationships,
+            &phy.compatibility_profiles,
+            &phy.memory_vectors,
+            &phy.packed_vectors,
+        )
+        .map_err(operation)?;
+        phy.validate_open_owner().map_err(operation)?;
         if !identity.matches(&MountedFileIdentity::from_container(
             &phy.container,
             OwnerKind::Phy,

@@ -1,4 +1,4 @@
-use crate::{InteractionError, InteractionRuntime, InteractionSession};
+use crate::{InteractionError, InteractionSession, RelExecution};
 
 pub(crate) struct InFlightMessage {
     pub(crate) message_id: String,
@@ -16,7 +16,7 @@ pub(crate) struct SessionState {
     pub(crate) in_flight: Option<InFlightMessage>,
 }
 
-impl InteractionRuntime {
+impl RelExecution {
     pub fn open_session(
         &mut self,
         session_id: String,
@@ -29,11 +29,11 @@ impl InteractionRuntime {
         match resume_from.as_deref() {
             Some(message_id) => {
                 validate_id(message_id, "resume message id")?;
-                if !self.cva.archive().has_node(&session_id, message_id) {
+                if !self.cva.owner.archive.has_node(&session_id, message_id) {
                     return Err(InteractionError::MissingResumeMessage);
                 }
             }
-            None if self.cva.archive().has_conversation(&session_id) => {
+            None if self.cva.owner.archive.has_conversation(&session_id) => {
                 return Err(InteractionError::ResumeRequired);
             }
             None => {}

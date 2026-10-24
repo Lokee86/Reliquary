@@ -7,12 +7,12 @@ impl GatewayRuntime {
     pub(in super::super) fn recover_rel_before_start(
         &self,
         owner_id: &str,
-        runtime: &mut crate::InteractionRuntime,
+        runtime: &mut crate::RelExecution,
     ) -> Result<(), ReliquaryRuntimeHostError> {
         let journal = self.conversation.journal(owner_id)?;
         // Validate branch ownership before recovery can publish any effects.
         self.conversation
-            .rebuild_continuations(owner_id, runtime.cva().archive().branches())?;
+            .rebuild_continuations(owner_id, runtime.cva.runtime_archive_branches())?;
         let durable_host_operations = journal
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
@@ -31,7 +31,7 @@ impl GatewayRuntime {
         }
         recover_journal_runtime(&journal, owner_id, runtime, self.episode_policy)?;
         self.conversation
-            .rebuild_continuations(owner_id, runtime.cva().archive().branches())
+            .rebuild_continuations(owner_id, runtime.cva.runtime_archive_branches())
     }
 
     /// Reconcile existing publication while quiesced; never start queued work.
@@ -59,7 +59,7 @@ impl GatewayRuntime {
 fn recover_journal_runtime(
     journal: &Arc<Mutex<RelJournal>>,
     owner_id: &str,
-    runtime: &mut crate::InteractionRuntime,
+    runtime: &mut crate::RelExecution,
     episode_policy: crate::EpisodePolicy,
 ) -> Result<(), ReliquaryRuntimeHostError> {
     {
@@ -80,8 +80,9 @@ fn recover_journal_runtime(
         {
             reconcile_generation_checkpoint(runtime, journal, &key, generation)?;
             if runtime
-                .cva()
-                .archive()
+                .cva
+                .owner
+                .archive
                 .has_node(key.conversation_id.as_str(), &generation.generation_id)
             {
                 let principal_id = journal
@@ -104,8 +105,9 @@ fn recover_journal_runtime(
                     &record.content,
                 )?;
                 let branch_leaf = runtime
-                    .cva()
-                    .archive()
+                    .cva
+                    .owner
+                    .archive
                     .branches()
                     .iter()
                     .find(|branch| {
@@ -135,7 +137,11 @@ fn recover_journal_runtime(
                     Some(&generation.generation_id),
                 )?;
                 runtime
-                    .schedule_session(key.conversation_id.as_str(), episode_policy, now_ns())
+                    .schedule_session_operation(
+                        key.conversation_id.as_str(),
+                        episode_policy,
+                        now_ns(),
+                    )
                     .map_err(operation)?;
                 journal
                     .lock()
@@ -160,7 +166,7 @@ fn recover_journal_runtime(
 /// A stream may be one synchronized append ahead of its journal marker.
 /// Verify the acknowledged UTF-8 prefix before accepting that crash handoff.
 fn reconcile_generation_checkpoint(
-    runtime: &crate::InteractionRuntime,
+    runtime: &crate::RelExecution,
     journal: &Arc<Mutex<RelJournal>>,
     key: &ConversationSubmissionId,
     generation: &DurableGeneration,
@@ -217,7 +223,7 @@ fn reconcile_generation_checkpoint(
 fn recover_submission_receipts(
     journal: &Arc<Mutex<RelJournal>>,
     owner_id: &str,
-    runtime: &mut crate::InteractionRuntime,
+    runtime: &mut crate::RelExecution,
     episode_policy: crate::EpisodePolicy,
 ) -> Result<(), ReliquaryRuntimeHostError> {
     let statuses = journal
@@ -310,7 +316,7 @@ fn recover_submission_receipts(
             capture.parent_node_id.as_deref(),
         )?;
         runtime
-            .schedule_session(key.conversation_id.as_str(), episode_policy, now_ns())
+            .schedule_session_operation(key.conversation_id.as_str(), episode_policy, now_ns())
             .map_err(operation)?;
         let post = PostCommitReceipt {
             operation_id: format!(
@@ -333,15 +339,16 @@ fn recover_submission_receipts(
 }
 
 pub(super) fn archive_receipt_if_present(
-    runtime: &mut crate::InteractionRuntime,
+    runtime: &mut crate::RelExecution,
     key: &ConversationSubmissionId,
     submission: &Submission,
     capture: &FinalizeCapture,
 ) -> Result<Option<ArchiveReceipt>, ReliquaryRuntimeHostError> {
     let stable_id = key.submission_id.as_str();
     if !runtime
-        .cva()
-        .archive()
+        .cva
+        .owner
+        .archive
         .has_node(key.conversation_id.as_str(), stable_id)
     {
         return Ok(None);

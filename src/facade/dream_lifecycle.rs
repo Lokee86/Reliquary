@@ -1,45 +1,64 @@
+use crate::dream_canonical::DreamOwnerFacts;
 use crate::dream_canonical::{
     canonical_superseders, corroborated_representative, duplicate_component_has_active_peer,
     explicit_authority_promotes,
 };
+use crate::memory_store::MemoryReadView;
 use crate::{
     Cva, DreamLifecycleError, DreamLifecycleResult, GraphRelation, GraphRelationKind, Memory,
     MemoryDraft, MemoryId,
 };
+use std::collections::{HashMap, HashSet};
 
-pub(crate) struct DreamOwnerReadParts<'a> {
-    pub(crate) container: &'a crate::Container,
-    pub(crate) archive: &'a crate::Archive,
-    pub(crate) memories: &'a crate::memory_store::MemoryStore,
-    pub(crate) dream_freshness: &'a crate::freshness_dream_journal::DreamFreshnessJournal,
-}
-
-impl crate::dream_canonical::DreamOwnerRead for DreamOwnerReadParts<'_> {
-    fn memory(&self, id: MemoryId) -> Result<Memory, crate::MemoryError> {
-        self.memories.memory(self.container, id)
+pub(crate) fn owner_facts(
+    cva: &Cva,
+    ids: impl IntoIterator<Item = MemoryId>,
+    cohort_source: Option<MemoryId>,
+) -> DreamOwnerFacts {
+    let ids: HashSet<_> = ids.into_iter().collect();
+    let births: HashSet<_> = ids
+        .iter()
+        .copied()
+        .filter(|id| cva.dream_freshness.is_publication_birth(*id))
+        .collect();
+    let mut anchors = HashMap::new();
+    let mut representative_keys = HashMap::new();
+    let memories = MemoryReadView::new(&cva.memories, &cva.container);
+    for id in &ids {
+        if let Ok(memory) = memories.memory(*id) {
+            let anchor = memory.source_node_id.clone().and_then(|node| {
+                memory
+                    .source_episode_id
+                    .and_then(|episode| cva.archive.episode(episode))
+                    .map(|episode| (episode.conversation_id.clone(), node))
+            });
+            anchors.insert(*id, anchor);
+            representative_keys.insert(
+                *id,
+                crate::history::dream_representative::representative_key(&cva.archive, &memory),
+            );
+        }
     }
-    fn memory_revision(&self, id: MemoryId, revision: u64) -> Result<Memory, crate::MemoryError> {
-        self.memories.memory_revision(self.container, id, revision)
+    let mut cohorts = HashMap::new();
+    if let Some(source_id) = cohort_source.filter(|_| !births.is_empty()) {
+        let history = crate::owner_lifecycle::HistorySource::new(&cva.container)
+            .map_err(|error| crate::CvaError::Container(error.0).to_string());
+        for id in &births {
+            let result = match &history {
+                Ok(history) => {
+                    crate::history::same_publication_birth_cohort(history, source_id, *id)
+                        .map_err(|error| error.to_string())
+                }
+                Err(error) => Err(error.clone()),
+            };
+            cohorts.insert((source_id, *id), result);
+        }
     }
-    fn is_publication_birth(&self, id: MemoryId) -> bool {
-        self.dream_freshness.is_publication_birth(id)
-    }
-    fn same_publication_cohort(&self, a: MemoryId, b: MemoryId) -> Result<bool, crate::CvaError> {
-        let history = crate::owner_lifecycle::HistorySource::new(self.container)
-            .map_err(|error| crate::CvaError::Container(error.0))?;
-        crate::history::same_publication_birth_cohort(&history, a, b)
-    }
-    fn authority_anchor(&self, memory: &Memory) -> Option<(String, String)> {
-        let node = memory.source_node_id.clone()?;
-        let conversation = memory
-            .source_episode_id
-            .and_then(|id| self.archive.episode(id))?
-            .conversation_id
-            .clone();
-        Some((conversation, node))
-    }
-    fn representative_key(&self, memory: &Memory) -> (u8, i64, [u8; 32]) {
-        crate::history::dream_representative::representative_key(self.archive, memory)
+    DreamOwnerFacts {
+        publication_births: births,
+        cohorts,
+        anchors,
+        representative_keys,
     }
 }
 
@@ -52,12 +71,7 @@ impl Cva {
         let mut revised = Vec::new();
         let mut archived = Vec::new();
         let mut canonicalized = {
-            let parts = DreamOwnerReadParts {
-                container: &self.container,
-                archive: &self.archive,
-                memories: &self.memories,
-                dream_freshness: &self.dream_freshness,
-            };
+            let parts = MemoryReadView::new(&self.memories, &self.container);
             canonical_superseders(&parts, source_id, &relations)?
         };
 
@@ -84,12 +98,7 @@ impl Cva {
         if !source.archived
             && source.lifecycle_state == "extracted"
             && {
-                let parts = DreamOwnerReadParts {
-                    container: &self.container,
-                    archive: &self.archive,
-                    memories: &self.memories,
-                    dream_freshness: &self.dream_freshness,
-                };
+                let parts = MemoryReadView::new(&self.memories, &self.container);
                 duplicate_component_has_active_peer(&parts, source_id, &relations)?
             }
             && let Some(memory) =
@@ -104,13 +113,13 @@ impl Cva {
             canonicalized.push(source_id);
         }
         if let Some(representative) = {
-            let parts = DreamOwnerReadParts {
-                container: &self.container,
-                archive: &self.archive,
-                memories: &self.memories,
-                dream_freshness: &self.dream_freshness,
-            };
-            corroborated_representative(&parts, source_id, &relations)?
+            let parts = MemoryReadView::new(&self.memories, &self.container);
+            let facts = owner_facts(
+                self,
+                crate::graph_relation_sets::duplicate_component(source_id, &relations),
+                None,
+            );
+            corroborated_representative(&parts, &facts, source_id, &relations)?
         } {
             canonicalized.push(representative);
         }

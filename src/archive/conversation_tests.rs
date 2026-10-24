@@ -233,8 +233,9 @@ fn conversation_policy_codec_fails_closed_on_unknown_or_incomplete_state() {
     let path = test_path();
     let mut cva = Cva::create(path).unwrap();
     cva.ingest_turn(turn("root", None, 10, "Root")).unwrap();
-    cva.archive
-        .put_conversation_metadata(&mut cva.container, exhausted)
+    cva.owner
+        .archive
+        .put_conversation_metadata(&mut cva.owner.container, exhausted)
         .unwrap();
     let version = cva.archive_version();
     assert!(

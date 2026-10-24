@@ -14,8 +14,8 @@ pub(crate) fn replay_interaction_streams(
     records: Vec<InteractionStreamRecord>,
 ) -> Result<(), CvaReconcileError> {
     crate::interaction_stream_reconciliation::replay_interaction_streams(
-        &mut output.interaction_streams,
-        &mut output.container,
+        &mut output.owner.interaction_streams,
+        &mut output.owner.container,
         records,
     )
     .map_err(CvaError::from)

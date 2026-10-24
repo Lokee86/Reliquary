@@ -228,7 +228,7 @@ impl PublicationCoordinator {
 
     pub(super) fn freeze(
         &self,
-        runtime: &mut InteractionRuntime,
+        runtime: &mut RelExecution,
         claim: &RuntimeInsomniaClaim,
         prepared: PreparedApplication,
     ) -> Result<EpisodePlan, ReliquaryRuntimeHostError> {
@@ -465,9 +465,10 @@ impl PublicationCoordinator {
                 {
                     let owner = &mut *owner;
                     owner
+                        .owner
                         .memories
                         .publish_with_source_ref_and_temporal_inference(
-                            &mut owner.container,
+                            &mut owner.owner.container,
                             None,
                             0,
                             memory.draft.clone(),
@@ -519,11 +520,11 @@ impl PublicationCoordinator {
 
     pub(super) fn verify_receipt(
         &self,
-        runtime: &mut InteractionRuntime,
+        runtime: &mut RelExecution,
         plan: &EpisodePlan,
     ) -> Result<bool, ReliquaryRuntimeHostError> {
         let episode = parse_episode(&plan.episode_id)?;
-        let attempts = runtime.cva.insomnia_attempts(episode);
+        let attempts = runtime.cva.runtime_insomnia_attempts(episode);
         let Some(receipt) = attempts
             .iter()
             .find(|a| a.state == crate::InsomniaWorkState::Complete)
@@ -559,7 +560,10 @@ impl PublicationCoordinator {
         for frozen in &plan.prepared.project_drafts {
             let (memory, _) = thaw_memory(frozen)?;
             let id = crate::memory_model::memory_id(&memory.draft.mutation_id);
-            let original = runtime.cva.memory_revision(id, 1).map_err(operation)?;
+            let original = runtime
+                .cva
+                .runtime_memory_revision(id, 1)
+                .map_err(operation)?;
             verify_memory(frozen, &original)?;
         }
         Ok(true)

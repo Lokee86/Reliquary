@@ -24,8 +24,8 @@ pub(crate) fn replay_relationship_tail(
     tail: RelationshipTail,
 ) -> Result<RelationshipReplayResult, CvaReconcileError> {
     crate::relationship_ordered_replay::replay_relationship_tail(
-        &mut owner.container,
-        &mut owner.relationships,
+        &mut owner.owner.container,
+        &mut owner.owner.relationships,
         tail,
     )
     .map_err(Into::into)

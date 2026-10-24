@@ -87,9 +87,8 @@ fn evidence_resolves_exact_turn_range_and_lexical_search() {
     }))
     .unwrap();
     let (results, turns) = resolve_evidence_parts(
-        &cva.archive,
+        &crate::archive::ArchiveReadView::new(&cva.owner.archive, &cva.owner.container),
         &mut cva.lexical_index,
-        &mut cva.container,
         &episode,
         &requests,
     )

@@ -30,7 +30,7 @@ pub struct InstanceAuthorization {
 
 /// Per-instance managed conversation selection for one REL.
 ///
-/// This is selection/reopen state only. It does not own an InteractionRuntime
+/// This is selection/reopen state only. It does not own an RelExecution
 /// session or represent a shared writable continuation.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct ManagedConversationState {

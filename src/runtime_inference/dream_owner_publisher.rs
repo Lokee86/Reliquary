@@ -1,38 +1,40 @@
 use crate::dream_duplicate_index::DuplicateIndex;
-use crate::dream_owner_duplicate::publish_duplicate_pair;
+use crate::dream_owner_duplicate::{finish_duplicate_publication, prepare_duplicate_pair};
 use crate::graph_store::GraphStore;
-use crate::memory_store::MemoryStore;
+use crate::memory_store::MemoryReadView;
 use crate::{
-    Container, DreamEvidenceSide, DreamPairClassification, DreamPairVerification,
-    DreamPublicationError, DreamPublicationOutcome, DreamRelationDirection, DreamRelationKind,
-    DreamVerificationPolicy, DreamVerificationVerdict, GraphRelationChange, GraphRelationKind,
-    GraphRelationOrigin, Memory, MemoryId,
+    DreamEvidenceSide, DreamPairClassification, DreamPairVerification, DreamPublicationError,
+    DreamPublicationOutcome, DreamRelationDirection, DreamRelationKind, DreamVerificationPolicy,
+    DreamVerificationVerdict, GraphRelationChange, GraphRelationKind, GraphRelationOrigin, Memory,
+    MemoryId,
 };
 use std::collections::HashSet;
 
+#[path = "dream_owner_lifecycle.rs"]
+mod lifecycle;
+pub(crate) use lifecycle::reconcile_phy_lifecycle;
+
 type RelationIdentity = (MemoryId, MemoryId, GraphRelationKind);
 
-pub(crate) fn publish_dream_pair<R>(
-    container: &mut Container,
-    memories: &MemoryStore,
-    graph: &mut GraphStore,
+pub(crate) fn prepare_dream_pair<R>(
+    memories: &MemoryReadView<'_>,
+    graph: &GraphStore,
     duplicate_index: &mut DuplicateIndex,
     classification: &DreamPairClassification,
     verification: Option<&DreamPairVerification>,
     policy: DreamVerificationPolicy,
     expected_graph_version: u64,
     source_time: &R,
-) -> Result<DreamPublicationOutcome, DreamPublicationError>
+) -> Result<DreamPublicationPlan, DreamPublicationError>
 where
     R: Fn(&Memory) -> Option<i64>,
 {
     validate_classification(classification)?;
     if let Some(outcome) = verification_gate(classification, verification, policy)? {
-        return Ok(outcome);
+        return Ok(DreamPublicationPlan::Complete(outcome));
     }
     if classification.relation == DreamRelationKind::DuplicateOf {
-        return publish_duplicate_pair(
-            container,
+        return prepare_duplicate_pair(
             memories,
             graph,
             duplicate_index,
@@ -71,11 +73,45 @@ where
         }
     }
     if changes.is_empty() {
-        return Ok(DreamPublicationOutcome::NoChange);
+        return Ok(DreamPublicationPlan::Complete(
+            DreamPublicationOutcome::NoChange,
+        ));
     }
     validate_dream_memory_changes(memories, &changes)?;
-    let published = graph.set_relations(container, &changes, expected_graph_version)?;
-    if published.is_empty() {
+    Ok(DreamPublicationPlan::Changes {
+        changes,
+        duplicate: None,
+    })
+}
+
+pub(crate) enum DreamPublicationPlan {
+    Complete(DreamPublicationOutcome),
+    Changes {
+        changes: Vec<GraphRelationChange>,
+        duplicate: Option<DuplicatePublication>,
+    },
+}
+
+pub(crate) struct DuplicatePublication {
+    pub(crate) next_index: DuplicateIndex,
+    pub(crate) authority_filtered: bool,
+}
+
+pub(crate) fn finish_dream_pair<R>(
+    memories: &MemoryReadView<'_>,
+    graph: &GraphStore,
+    duplicate_index: &mut DuplicateIndex,
+    duplicate: Option<DuplicatePublication>,
+    published: Vec<crate::GraphRelation>,
+    source_time: &R,
+) -> Result<DreamPublicationOutcome, DreamPublicationError>
+where
+    R: Fn(&Memory) -> Option<i64>,
+{
+    if let Some(duplicate) = duplicate {
+        finish_duplicate_publication(memories, graph, duplicate_index, duplicate, source_time)?;
+        Ok(DreamPublicationOutcome::Published(published))
+    } else if published.is_empty() {
         Ok(DreamPublicationOutcome::NoChange)
     } else {
         Ok(DreamPublicationOutcome::Published(published))
@@ -91,7 +127,7 @@ pub(crate) fn dream_may_change_relation(graph: &GraphStore, change: GraphRelatio
 }
 
 pub(crate) fn validate_dream_memory_changes(
-    memories: &MemoryStore,
+    memories: &MemoryReadView<'_>,
     changes: &[GraphRelationChange],
 ) -> Result<(), DreamPublicationError> {
     for change in changes {

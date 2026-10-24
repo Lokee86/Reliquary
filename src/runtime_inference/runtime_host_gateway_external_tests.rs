@@ -2,6 +2,7 @@ use super::*;
 use crate::external_source::tests::{Endpoint, Host, SemanticEndpoint};
 use crate::external_source::*;
 use crate::runtime_host_test_support::test_path;
+use crate::{InteractionRuntime, Phylactery};
 
 struct Fixture {
     gateway: Arc<GatewayRuntime>,
@@ -199,7 +200,7 @@ fn external_partial_phy_commit_resumes_frozen_plan_and_missing_receipt_fails_clo
         })
         .unwrap();
     let refs = f.host.refs();
-    let prepared = crate::external_source::processing::prepare(
+    let prepared = super::external_processing::prepare(
         &f.rel, "alice", "project", state, &refs, &f.host, &extractor, 100,
     )
     .unwrap();
@@ -210,8 +211,8 @@ fn external_partial_phy_commit_resumes_frozen_plan_and_missing_receipt_fails_clo
     f.gateway
         .with_phy(&phy, |p| {
             crate::external_source::publication::publish(
-                &mut p.container,
-                &mut p.memories,
+                &mut p.owner.container,
+                &mut p.owner.memories,
                 prepared.window,
                 &prepared.user,
                 None,
@@ -466,4 +467,72 @@ fn external_completed_window_requires_fresh_message_authority_on_replay() {
         Err(ExternalSourceError::Unauthorized)
     );
     assert_eq!(calls.load(Ordering::SeqCst), before);
+}
+
+#[test]
+fn shared_insomnia_derives_project_and_user_memories_from_transient_evidence() {
+    let host = Host::new("The project uses Rust. Alice prefers concise replies.");
+    let mut cva = crate::Cva::create(test_path("external-shared.rel")).unwrap();
+    crate::external_source::tests::rebuild(&mut cva, &host);
+    let state = cva.external_index.sources["host:test"].clone();
+    let refs = vec![state.messages[0].descriptor.reference.clone()];
+    let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let endpoint = || SemanticEndpoint {
+        calls: calls.clone(),
+    };
+    let extractor = crate::InsomniaExtractor::new(endpoint()).with_ownership_endpoint(endpoint());
+    let prepared = super::external_processing::prepare(
+        "rel-source",
+        "alice",
+        "project",
+        state,
+        &refs,
+        &host,
+        &extractor,
+        100,
+    )
+    .unwrap();
+    assert_eq!(prepared.project.len(), 1);
+    assert_eq!(prepared.user.len(), 1);
+    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 3);
+    let project = crate::external_source::tests::test_support::publish_window(
+        &mut cva,
+        prepared.window,
+        &prepared.project,
+    )
+    .unwrap();
+    let phy_path = test_path("external-shared.phy");
+    let mut phy = crate::Phylactery::create(&phy_path).unwrap();
+    let user = crate::external_source::publication::publish(
+        &mut phy.owner.container,
+        &mut phy.owner.memories,
+        prepared.window,
+        &prepared.user,
+        None,
+    )
+    .unwrap();
+    assert_eq!(project[0].source_time_ns, Some(42));
+    assert_eq!(user[0].source_time_ns, Some(42));
+    assert!(project[0].source_episode_id.is_none());
+    assert!(user[0].source_ref.is_none());
+    assert_eq!(
+        cva.external_memory_evidence(project[0].id)
+            .unwrap()
+            .unwrap()
+            .authority
+            .message,
+        refs[0]
+    );
+    assert_eq!(
+        phy.external_memory_evidence(user[0].id)
+            .unwrap()
+            .unwrap()
+            .authority
+            .message,
+        refs[0]
+    );
+    assert!(cva.episodes().is_empty());
+    drop(phy);
+    let phy = crate::Phylactery::open(&phy_path).unwrap();
+    assert!(phy.external_memory_evidence(user[0].id).unwrap().is_some());
 }

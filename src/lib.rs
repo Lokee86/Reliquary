@@ -525,16 +525,18 @@ mod dream_owner_candidates;
 mod dream_owner_duplicate;
 #[path = "runtime_inference/dream_owner_publisher.rs"]
 mod dream_owner_publisher;
-#[path = "runtime_inference/dream_owner_vectors.rs"]
-mod dream_owner_vectors;
 #[path = "runtime_inference/dream_pair_context.rs"]
 mod dream_pair_context;
 #[path = "runtime_inference/dream_pair_history.rs"]
 mod dream_pair_history;
+#[path = "runtime_inference/dream_publication_execution.rs"]
+mod dream_publication_execution;
 #[path = "runtime_inference/dream_settlement.rs"]
 mod dream_settlement;
 #[path = "facade/freshness_access.rs"]
 mod freshness_access;
+#[path = "retrieval/memory_vector_reader.rs"]
+mod memory_vector_reader;
 pub use freshness_access::{AcceptedMemoryUseReceipt, EgoFreshnessCandidate, EgoMemoryFreshness};
 #[cfg(test)]
 #[path = "facade/cva_reconcile_ego_compact_tests.rs"]
@@ -832,27 +834,43 @@ mod graph_store;
 mod insomnia;
 #[path = "runtime_inference/interaction_background.rs"]
 mod interaction_background;
+#[path = "facade/interaction_background.rs"]
+mod interaction_background_public;
 #[path = "runtime_inference/interaction_error.rs"]
 mod interaction_error;
 #[path = "runtime_inference/interaction_model.rs"]
 mod interaction_model;
 #[path = "runtime_inference/interaction_runtime.rs"]
 mod interaction_runtime;
+#[path = "runtime_inference/knowledge_mutation_execution.rs"]
+mod knowledge_mutation_execution;
+#[path = "runtime_inference/phy_execution_owner.rs"]
+mod phy_execution_owner;
+#[path = "runtime_inference/reliquary_runtime_owner.rs"]
+mod rel_execution_owner;
+#[path = "runtime_inference/runtime_freshness_birth.rs"]
+mod runtime_freshness_birth;
+pub(crate) use interaction_runtime::RelExecution;
+pub(crate) use rel_execution_owner::RelExecutionOwner;
+#[path = "facade/interaction_runtime.rs"]
+mod interaction_runtime_public;
 #[path = "runtime_inference/interaction_session.rs"]
 mod interaction_session;
-#[path = "archive/interaction_stream.rs"]
+#[path = "runtime_inference/interaction_stream.rs"]
 mod interaction_stream;
 #[path = "archive/interaction_stream_codec.rs"]
 mod interaction_stream_codec;
 #[cfg(test)]
 #[path = "archive/interaction_stream_compact_tests.rs"]
 mod interaction_stream_compact_tests;
-#[path = "archive/interaction_stream_persistence.rs"]
+#[path = "runtime_inference/interaction_stream_persistence.rs"]
 mod interaction_stream_persistence;
 #[path = "archive/interaction_stream_record.rs"]
 mod interaction_stream_record;
 #[path = "archive/interaction_stream_store.rs"]
 mod interaction_stream_store;
+#[path = "memory/knowledge_mutation.rs"]
+mod knowledge_mutation;
 #[path = "retrieval/lexical_contract.rs"]
 mod lexical_contract;
 #[path = "retrieval/lexical_index.rs"]
@@ -990,8 +1008,6 @@ mod phylactery_communities;
 mod phylactery_compatibility_profiles;
 #[path = "facade/phylactery_dream_candidates.rs"]
 mod phylactery_dream_candidates;
-#[path = "facade/phylactery_dream_canonical.rs"]
-mod phylactery_dream_canonical;
 #[path = "facade/phylactery_dream_lifecycle.rs"]
 mod phylactery_dream_lifecycle;
 #[path = "facade/phylactery_dream_publisher.rs"]
@@ -1350,7 +1366,8 @@ pub use interaction_error::InteractionError;
 pub use interaction_model::{
     InteractionAttachment, InteractionRole, InteractionSession, InteractionTurn,
 };
-pub use interaction_runtime::{InteractionCompletion, InteractionReceipt, InteractionRuntime};
+pub use interaction_runtime::{InteractionCompletion, InteractionReceipt};
+pub use interaction_runtime_public::InteractionRuntime;
 pub use interaction_stream_record::{
     InteractionStreamRecord, InteractionStreamStatus, InteractionTurnStatus,
     ResolvedInteractionTurn,
@@ -1899,6 +1916,10 @@ mod source_identity;
 mod archive_import_model;
 #[path = "facade/cva_episode_policy.rs"]
 mod cva_episode_policy;
+#[path = "facade/cva_runtime_project_environment.rs"]
+mod cva_runtime_project_environment;
+#[path = "facade/cva_runtime_reconciliation.rs"]
+mod cva_runtime_reconciliation;
 #[path = "facade/interaction_runtime_project_file.rs"]
 mod interaction_runtime_project_file;
 #[path = "archive/interaction_stream_error.rs"]

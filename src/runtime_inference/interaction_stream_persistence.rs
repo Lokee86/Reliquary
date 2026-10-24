@@ -1,9 +1,7 @@
 use crate::interaction_session::InFlightMessage;
-use crate::{
-    InteractionError, InteractionRuntime, InteractionStreamRecord, InteractionStreamStatus,
-};
+use crate::{InteractionError, InteractionStreamRecord, InteractionStreamStatus, RelExecution};
 
-impl InteractionRuntime {
+impl RelExecution {
     pub fn checkpoint_message(
         &mut self,
         session_id: &str,
@@ -13,8 +11,12 @@ impl InteractionRuntime {
             let message = self.message_mut(session_id, message_id)?;
             stream_record(session_id, message, InteractionStreamStatus::Streaming)
         };
-        self.cva.put_interaction_stream(record)?;
-        self.cva.sync()?;
+        self.cva
+            .owner
+            .interaction_streams
+            .put(&mut self.cva.owner.container, record)
+            .map_err(crate::CvaError::from)?;
+        self.cva.sync_owner()?;
         Ok(())
     }
 
@@ -42,8 +44,11 @@ impl InteractionRuntime {
         let record = stream_record(session_id, &message, InteractionStreamStatus::Interrupted);
         if let Err(error) = self
             .cva
-            .put_interaction_stream(record)
-            .and_then(|_| self.cva.sync())
+            .owner
+            .interaction_streams
+            .put(&mut self.cva.owner.container, record)
+            .map_err(crate::CvaError::from)
+            .and_then(|_| self.cva.sync_owner())
         {
             if let Some(state) = self.sessions.get_mut(session_id) {
                 state.in_flight = Some(message);

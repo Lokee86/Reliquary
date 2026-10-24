@@ -3,9 +3,64 @@ use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::{MemoryVectorPublicationPlan, MemoryVectorStore};
 use crate::{
-    CompatibilityProfile, CompatibilityProfileId, MemoryBodyId, MemoryVectorError, PackedVectors,
-    ScalarType, VectorSchema,
+    CompatibilityProfile, EmbeddingEndpoint, EmbeddingMode, MemoryBodyId, MemoryVectorError,
+    PackedVectors, ScalarType, VectorSchema,
 };
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum ExternalEmbeddingError {
+    Unavailable,
+    InvalidProfile,
+}
+
+/// Vector-owned provider protocol consumed by External Sources. The provider
+/// implementation stays in this component, keeping provider callbacks out of
+/// the source-policy owner.
+pub(crate) trait ExternalEmbeddingService {
+    fn verify_profile(&self, profile: &CompatibilityProfile) -> Result<(), ExternalEmbeddingError>;
+    fn embed_documents(
+        &self,
+        profile: &CompatibilityProfile,
+        inputs: &[String],
+    ) -> Result<Vec<Vec<f32>>, ExternalEmbeddingError>;
+    fn embed_query(
+        &self,
+        profile: &CompatibilityProfile,
+        query: &str,
+    ) -> Result<Vec<Vec<f32>>, ExternalEmbeddingError>;
+}
+
+impl<E: EmbeddingEndpoint> ExternalEmbeddingService for E {
+    fn verify_profile(&self, profile: &CompatibilityProfile) -> Result<(), ExternalEmbeddingError> {
+        if profile.dimensions == 0 || profile.dimensions > 4096 {
+            return Err(ExternalEmbeddingError::InvalidProfile);
+        }
+        let report = crate::compatibility_profile_probe::verify_endpoint(profile, self)
+            .map_err(|_| ExternalEmbeddingError::Unavailable)?;
+        report
+            .compatible
+            .then_some(())
+            .ok_or(ExternalEmbeddingError::InvalidProfile)
+    }
+
+    fn embed_documents(
+        &self,
+        _profile: &CompatibilityProfile,
+        inputs: &[String],
+    ) -> Result<Vec<Vec<f32>>, ExternalEmbeddingError> {
+        self.embed(EmbeddingMode::Document, inputs)
+            .map_err(|_| ExternalEmbeddingError::Unavailable)
+    }
+
+    fn embed_query(
+        &self,
+        _profile: &CompatibilityProfile,
+        query: &str,
+    ) -> Result<Vec<Vec<f32>>, ExternalEmbeddingError> {
+        self.embed(EmbeddingMode::Query, &[query.to_owned()])
+            .map_err(|_| ExternalEmbeddingError::Unavailable)
+    }
+}
 
 pub(crate) struct RuntimeMemoryVectorBatch {
     pub(crate) profile: CompatibilityProfile,

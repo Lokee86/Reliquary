@@ -1,6 +1,7 @@
 use super::*;
 use crate::runtime_host_test_support::test_path;
 use crate::{Cva, MemoryDraft, MemoryId, SimulatedEmbeddingEndpoint, VectorNormalization};
+use crate::{InteractionRuntime, Phylactery};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 

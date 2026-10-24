@@ -43,6 +43,10 @@ pub(crate) struct ArchiveReadView<'a> {
 }
 
 impl<'a> ArchiveReadView<'a> {
+    pub(crate) fn archive(&self) -> &Archive {
+        self.archive
+    }
+
     pub(crate) fn episode(&self, id: crate::EpisodeId) -> Option<&crate::Episode> {
         self.archive.episode(id)
     }

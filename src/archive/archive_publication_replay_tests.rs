@@ -11,8 +11,9 @@ fn native_node_and_terminal_prune_only_payload_and_reopen_with_bound_proof() {
     let text = "private native Archive payload ".repeat(2000);
     let content_id = crate::archive_store::hash_content(text.as_bytes());
     let mut cva = crate::Cva::create_project(&source_path).unwrap();
-    cva.archive
-        .put_content_bytes(&mut cva.container, content_id, text.as_bytes())
+    cva.owner
+        .archive
+        .put_content_bytes(&mut cva.owner.container, content_id, text.as_bytes())
         .unwrap();
     let node = publication::encode(&ArchivePublication::Record {
         archive_version: 1,
@@ -85,8 +86,9 @@ fn native_node_and_terminal_prune_only_payload_and_reopen_with_bound_proof() {
     assert_eq!(reclaimed.archive_version(), 2);
     assert_eq!(
         reclaimed
+            .owner
             .archive
-            .content_bytes(&mut reclaimed.container, content_id)
+            .content_bytes(&mut reclaimed.owner.container, content_id)
             .unwrap(),
         text.as_bytes()
     );
@@ -140,9 +142,12 @@ fn native_node_and_terminal_prune_only_payload_and_reopen_with_bound_proof() {
             .collect::<Vec<_>>(),
         times
     );
-    let node = output.archive.nodes.get("c", "n").unwrap().clone();
+    let node = output.owner.archive.nodes.get("c", "n").unwrap().clone();
     assert!(matches!(
-        output.archive.node_content(&mut output.container, &node),
+        output
+            .owner
+            .archive
+            .node_content(&mut output.owner.container, &node),
         Err(ArchiveError::PayloadUnavailable(_))
     ));
     assert!(std::fs::metadata(&output_path).unwrap().len() < before.len() as u64);
@@ -246,8 +251,9 @@ fn rel_dispatch_reopens_native_records_and_repeat_at_their_own_objects() {
     assert_eq!(versions[3].record, repeat_object);
     let repeated = versions[3];
     let (record, applying) = reopened
+        .owner
         .archive
-        .read_publication(&mut reopened.container, repeated)
+        .read_publication(&mut reopened.owner.container, repeated)
         .unwrap();
     assert_eq!(applying.archive_version, 2);
     assert!(matches!(
@@ -259,16 +265,18 @@ fn rel_dispatch_reopens_native_records_and_repeat_at_their_own_objects() {
     ));
     assert!(
         reopened
+            .owner
             .archive
-            .branch_at(&mut reopened.container, "c", "b", 2)
+            .branch_at(&mut reopened.owner.container, "c", "b", 2)
             .unwrap()
             .unwrap()
             .canonical
     );
     assert!(
         !reopened
+            .owner
             .archive
-            .branch_at(&mut reopened.container, "c", "b", 4)
+            .branch_at(&mut reopened.owner.container, "c", "b", 4)
             .unwrap()
             .unwrap()
             .canonical
@@ -280,8 +288,9 @@ fn rel_dispatch_reopens_native_records_and_repeat_at_their_own_objects() {
     assert_eq!(published, 3);
     assert!(
         !destination
+            .owner
             .archive
-            .branch_at(&mut destination.container, "c", "b", 3)
+            .branch_at(&mut destination.owner.container, "c", "b", 3)
             .unwrap()
             .unwrap()
             .canonical

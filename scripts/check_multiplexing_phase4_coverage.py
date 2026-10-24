@@ -152,8 +152,16 @@ def check_gateway(source):
             if "semantic_write_token(" not in body or "OwnerKind::Rel" not in body or "OwnerKind::Phy" not in body:
                 errors.append(f"{name}: missing exact-owner REL/PHY write discrimination")
             elif name == "rename_knowledge_community_for_owner":
-                if "rename_knowledge_community_for(" not in body or "with_phy(" not in body:
-                    errors.append(f"{name}: missing canonical semantic/PHY rename")
+                required = (
+                    "OwnerKind::Rel=>{self.with_rel_mutation(",
+                    "RelMutationFamily::Semantic",
+                    "runtime_set_knowledge_community_name(",
+                    "OwnerKind::Phy=>self.with_phy(",
+                    "phy.runtime_set_knowledge_community_name(",
+                    "phy.sync(",
+                )
+                if not all(step in route_body for step in required):
+                    errors.append(f"{name}: missing exact canonical REL mutation / PHY owner write and sync")
             elif "with_rel_mutation(" not in body or "with_phy(" not in body:
                 errors.append(f"{name}: missing canonical committed REL / private PHY writes")
         elif category == "ephemeral" and "with_rel_distribution_admission(" not in body:
@@ -353,6 +361,26 @@ def self_test():
     expect(check_gateway("impl GatewayRuntime { pub fn create_knowledge_memory_for(&self) { self.with_rel(); } }"))
     expect(check_gateway("impl GatewayRuntime { pub fn create_knowledge_memory_for_owner(&self) { self.semantic_write_token(); self.with_rel_mutation(); } }"))
     expect(not check_gateway("impl GatewayRuntime { pub fn create_knowledge_memory_for_owner(&self) { self.semantic_write_token(); match token.kind { OwnerKind::Rel => self.with_rel_mutation(), OwnerKind::Phy => self.with_phy() } } }"))
+    community_rename = """impl GatewayRuntime {
+        pub fn rename_knowledge_community_for_owner(&self) {
+            let token = self.semantic_write_token(instance, owner_id)?;
+            match token.kind {
+                OwnerKind::Rel => { self.with_rel_mutation(&token, RelMutationFamily::Semantic, |runtime| {
+                    let changed = runtime.cva.runtime_set_knowledge_community_name(community_id, name)?;
+                    Ok(((), changed, vec![RelInvalidation::Community(community_id)]))
+                }) },
+                OwnerKind::Phy => self.with_phy(&token, |phy| {
+                    phy.runtime_set_knowledge_community_name(community_id, name)?;
+                    phy.sync()
+                }),
+            }
+        }
+    }"""
+    expect(not check_gateway(community_rename))
+    expect(check_gateway(community_rename.replace("runtime_set_knowledge_community_name", "rename_community")))
+    expect(check_gateway(community_rename.replace("self.with_rel_mutation(", "self.with_rel(")))
+    expect(check_gateway(community_rename.replace("self.with_phy(", "self.with_rel(")))
+    expect(check_gateway(community_rename.replace("phy.sync()", "Ok(())")))
     expect(check_gateway("impl GatewayRuntime { pub fn rel_metadata_for(&self) { runtime.cva.set_rel_metadata(); } }"))
     expect(not check_gateway('impl GatewayRuntime { pub fn rel_metadata_for(&self) { let text = "runtime.cva.set_metadata()"; } }'))
     expect(check_gateway("impl GatewayRuntime { pub fn reopen_rel(&self) {} }"))

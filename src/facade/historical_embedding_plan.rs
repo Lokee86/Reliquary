@@ -238,8 +238,9 @@ pub(super) fn prepare(
             "missing fragment rows",
         )?;
         let text = cva
+            .owner
             .archive
-            .fragment_text_bounded(&mut cva.container, &fragment, limits.source_bytes)
+            .fragment_text_bounded(&mut cva.owner.container, &fragment, limits.source_bytes)
             .map_err(|e| match e {
                 crate::ArchiveError::Container(crate::ContainerError::ChunkTooLarge)
                 | crate::ArchiveError::FieldTooLarge => budget("source text bytes"),

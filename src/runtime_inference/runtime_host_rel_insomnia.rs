@@ -88,7 +88,7 @@ pub(super) fn worker_loop(
                 |runtime| {
                     let cva = &mut runtime.cva;
                     let claim = crate::insomnia::runtime_step::claim_runtime_insomnia(
-                        &mut crate::owner_lifecycle::insomnia_runtime::InsomniaRuntimePublication::lease(&mut cva.container,&cva.archive,&mut cva.insomnia),
+                        &mut crate::owner_lifecycle::insomnia_runtime::InsomniaRuntimePublication::lease(&mut cva.owner.container,&cva.owner.archive,&mut cva.owner.insomnia),
                         &worker_id,
                         &shared.config,
                     )
@@ -147,7 +147,7 @@ fn process_claim(
                     let cva = &mut runtime.cva;
                     let value =
                         crate::insomnia::runtime_step::prepare_runtime_insomnia_application(
-                            &mut crate::owner_lifecycle::insomnia_runtime::InsomniaRuntimePublication::lease(&mut cva.container,&cva.archive,&mut cva.insomnia),
+                            &mut crate::owner_lifecycle::insomnia_runtime::InsomniaRuntimePublication::lease(&mut cva.owner.container,&cva.owner.archive,&mut cva.owner.insomnia),
                             &claim,
                             extraction,
                             &shared.config,
@@ -186,7 +186,7 @@ fn process_claim(
             |runtime| {
                 let cva = &mut runtime.cva;
                 crate::insomnia::runtime_step::commit_runtime_insomnia_verified(
-                    &mut crate::owner_lifecycle::insomnia_runtime::InsomniaRuntimePublication::completion(&mut cva.container,&cva.archive,&mut cva.memories,&mut cva.insomnia,&mut cva.freshness,&mut cva.dream_freshness),
+                    &mut crate::owner_lifecycle::insomnia_runtime::InsomniaRuntimePublication::completion(&mut cva.owner.container,&cva.owner.archive,&mut cva.owner.memories,&mut cva.owner.insomnia,&mut cva.owner.freshness,&mut cva.owner.dream_freshness),
                     &claim,
                     prepared,
                     publication,
@@ -224,9 +224,10 @@ fn retry_publication(
         |runtime| {
             let now = crate::insomnia::runtime_step::now_ns();
             let cva = &mut runtime.cva;
-            cva.insomnia
+            cva.owner
+                .insomnia
                 .fail(
-                    &mut cva.container,
+                    &mut cva.owner.container,
                     claim.work.episode_id,
                     claim
                         .work
@@ -299,9 +300,9 @@ fn fail_claim(
             let cva = &mut runtime.cva;
             crate::insomnia::runtime_step::fail_runtime_insomnia(
                 &mut crate::owner_lifecycle::insomnia_runtime::InsomniaRuntimePublication::lease(
-                    &mut cva.container,
-                    &cva.archive,
-                    &mut cva.insomnia,
+                    &mut cva.owner.container,
+                    &cva.owner.archive,
+                    &mut cva.owner.insomnia,
                 ),
                 claim,
                 error,
@@ -331,8 +332,8 @@ fn finish_evidence(
         })?;
         let cva = &mut runtime.cva;
         crate::insomnia::runtime_step::hydrate_runtime_insomnia_evidence(
-            &cva.archive,
-            &crate::archive::ArchiveReadView::new(&cva.archive, &cva.container),
+            &cva.owner.archive,
+            &crate::archive::ArchiveReadView::new(&cva.owner.archive, &cva.owner.container),
             &mut cva.lexical_index,
             claim,
             &round,
@@ -357,7 +358,7 @@ fn sweep_inactive(shared: &RelShared) -> Result<(), ReliquaryRuntimeHostError> {
             let now = crate::insomnia::runtime_step::now_ns();
             for session_id in sessions {
                 runtime
-                    .finalize_inactive_session(&session_id, shared.episode_policy, now)
+                    .finalize_inactive_session_operation(&session_id, shared.episode_policy, now)
                     .map_err(operation)?;
             }
             Ok(((), false, vec![]))

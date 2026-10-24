@@ -161,11 +161,11 @@ fn prepare(
                 .map_err(operation)?;
                 plan.map(|plan| {
                     crate::owner_lifecycle::perception_publication_resolution::apply_principal_resolution_plan(
-                        &mut cva.container,
-                        &cva.memories,
-                        &mut cva.entities,
-                        &mut cva.entity_resolutions,
-                        &mut cva.graph,
+                        &mut cva.owner.container,
+                        &cva.owner.memories,
+                        &mut cva.owner.entities,
+                        &mut cva.owner.entity_resolutions,
+                        &mut cva.owner.graph,
                         plan,
                         now_ns,
                     )
@@ -190,13 +190,14 @@ fn prepare(
         .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
     let cva = &mut runtime.cva;
     let owner_id = cva.container.owner_id();
-    let memories = crate::memory_store::MemoryReadView::new(&cva.memories, &cva.container);
+    let memories =
+        crate::memory_store::MemoryReadView::new(&cva.owner.memories, &cva.owner.container);
     crate::perception_publication_resolution::prepare_entity_resolution(
         memories,
         &mut cva.lexical_index,
-        &cva.entities,
-        &cva.graph,
-        &cva.entity_resolutions,
+        &cva.owner.entities,
+        &cva.owner.graph,
+        &cva.owner.entity_resolutions,
         key,
         EntityCandidateConfig::default(),
         owner_id,
@@ -232,11 +233,11 @@ fn commit(
             };
             let outcome =
                 crate::owner_lifecycle::perception_publication_resolution::apply_entity_resolution_commit_plan(
-                    &mut cva.container,
-                    &cva.memories,
-                    &mut cva.entities,
-                    &mut cva.entity_resolutions,
-                    &mut cva.graph,
+                    &mut cva.owner.container,
+                    &cva.owner.memories,
+                    &mut cva.owner.entities,
+                    &mut cva.owner.entity_resolutions,
+                    &mut cva.owner.graph,
                     plan,
                     false,
                 )
@@ -332,8 +333,8 @@ fn reconcile(
                     crate::CvaError,
                 >(
                     &mut crate::owner_lifecycle::perception_publication_merge::ReconciliationPublication::new(
-                        &mut r.cva.container, &r.cva.memories, &mut r.cva.entities,
-                        &mut r.cva.entity_resolutions, &mut r.cva.graph, &mut r.cva.relationships),
+                        &mut r.cva.owner.container, &r.cva.owner.memories, &mut r.cva.owner.entities,
+                        &mut r.cva.owner.entity_resolutions, &mut r.cva.owner.graph, &mut r.cva.owner.relationships),
                     prepared,
                     evaluation,
                     now_ns(),

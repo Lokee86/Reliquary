@@ -2,7 +2,6 @@ use crate::archive_vector_store::ArchiveVectorStore;
 use crate::community_store::CommunityStore;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::conversation_compaction_store::ConversationCompactionStore;
-use crate::cva_memory_publish::publish_memory_parts;
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::dream_pair_history::DreamPairStore;
 use crate::echo_store::EchoStore;
@@ -29,42 +28,7 @@ use crate::{
     MemoryError, MemoryId, MemoryStats, Node, ResolvedTurn, StoredFile,
 };
 
-pub struct Cva {
-    pub(crate) owner_maintenance: crate::owner_maintenance::OwnerMaintenanceStore,
-    pub(crate) rewrite_lineage: crate::rewrite_lineage::RewriteLineageStore,
-    pub(crate) external_index: crate::external_index::store::ExternalIndexStore,
-    pub(crate) container: Container,
-    pub(crate) archive: Archive,
-    pub(crate) memories: MemoryStore,
-    pub(crate) graph: GraphStore,
-    pub(crate) communities: CommunityStore,
-    pub(crate) duplicate_index: DuplicateIndex,
-    pub(crate) processing_epochs: ProcessingEpochStore,
-    pub(crate) dream_pairs: DreamPairStore,
-    pub(crate) insomnia: InsomniaStore,
-    pub(crate) import_epochs: crate::imports::ImportEpochStore,
-    pub(crate) lexical_index: LexicalIndex,
-    pub(crate) packed_vectors: PackedVectorStore,
-    pub(crate) memory_vectors: MemoryVectorStore,
-    pub(crate) archive_vectors: ArchiveVectorStore,
-    pub(crate) compatibility_profiles: CompatibilityProfileStore,
-    pub(crate) vector_generations: VectorGenerationStore,
-    pub(crate) conversation_compactions: ConversationCompactionStore,
-    pub(crate) interaction_streams: InteractionStreamStore,
-    pub(crate) echo: EchoStore,
-    pub(crate) ego: EgoStore,
-    pub(crate) entities: EntityStore,
-    pub(crate) entity_resolutions: EntityResolutionStore,
-    pub(crate) relationships: RelationshipStore,
-    pub(crate) project_history: ProjectHistoryStore,
-    pub(crate) project_files: ProjectFileStore,
-    pub(crate) rel_metadata: RelMetadataStore,
-    pub(crate) freshness: crate::freshness_storage::FreshnessStore,
-    pub(crate) dream_freshness: crate::freshness_dream_journal::DreamFreshnessJournal,
-    pub(crate) freshness_due: crate::FreshnessDueDispatcher,
-    pub(crate) freshness_notifications:
-        std::collections::BTreeMap<MemoryId, crate::cva_freshness_due::FreshnessNotificationState>,
-}
+pub use crate::rel_execution_owner::RelExecutionOwner as Cva;
 
 impl Cva {
     pub fn legacy_scope_kind(&self) -> Option<crate::ReliquaryScopeKind> {
@@ -74,7 +38,7 @@ impl Cva {
     }
 
     pub fn rel_metadata(&self) -> crate::RelMetadata {
-        self.rel_metadata.effective(&self.container)
+        self.runtime_rel_metadata()
     }
 
     pub fn set_rel_metadata(
@@ -105,17 +69,18 @@ impl Cva {
             type_label,
             dependencies,
         };
-        self.rel_metadata
-            .put(&mut self.container, metadata)
+        self.owner
+            .rel_metadata
+            .put(&mut self.owner.container, metadata)
             .map_err(CvaError::RelMetadata)
     }
 
     pub fn owner_id(&self) -> Option<String> {
-        self.container.owner_id()
+        self.runtime_owner_id()
     }
 
     pub fn owner_uuid(&self) -> Option<[u8; 16]> {
-        self.container.owner_uuid()
+        self.owner.container.owner_uuid()
     }
 
     pub fn latest_global_version(&self) -> u64 {
@@ -164,8 +129,8 @@ impl Cva {
         timestamp_ns: i64,
         content: &str,
     ) -> Result<Node, ArchiveError> {
-        let accepted = self.archive.append_node(
-            &mut self.container,
+        let accepted = self.owner.archive.append_node(
+            &mut self.owner.container,
             id,
             conversation_id,
             parent_id,
@@ -179,7 +144,7 @@ impl Cva {
     }
 
     pub fn append_branch(&mut self, branch: Branch) -> Result<(), ArchiveError> {
-        self.archive.append_branch(&mut self.container, branch)
+        self.runtime_append_branch(branch)
     }
 
     pub fn set_conversation_title(
@@ -193,8 +158,9 @@ impl Cva {
             .cloned()
             .unwrap_or_else(|| ConversationMetadata::new(conversation_id));
         metadata.title = Some(title);
-        self.archive
-            .put_conversation_metadata(&mut self.container, metadata)
+        self.owner
+            .archive
+            .put_conversation_metadata(&mut self.owner.container, metadata)
     }
 
     pub fn set_conversation_active(
@@ -208,13 +174,14 @@ impl Cva {
             .cloned()
             .unwrap_or_else(|| ConversationMetadata::new(conversation_id));
         metadata.active = active;
-        self.archive
-            .put_conversation_metadata(&mut self.container, metadata)
+        self.owner
+            .archive
+            .put_conversation_metadata(&mut self.owner.container, metadata)
     }
 
     /// Canonical durable policy; absent legacy metadata is sequential at revision 1.
     pub fn conversation_policy(&self, conversation_id: &str) -> (crate::ConversationPolicy, u64) {
-        self.archive.conversation_policy(conversation_id)
+        self.runtime_conversation_policy(conversation_id)
     }
 
     /// Publish a policy change for an existing conversation. Synchronize before acknowledgement.
@@ -223,8 +190,11 @@ impl Cva {
         conversation_id: &str,
         policy: crate::ConversationPolicy,
     ) -> Result<bool, ArchiveError> {
-        self.archive
-            .set_conversation_policy(&mut self.container, conversation_id, policy)
+        self.owner.archive.set_conversation_policy(
+            &mut self.owner.container,
+            conversation_id,
+            policy,
+        )
     }
 
     pub fn conversation_metadata(&self, conversation_id: &str) -> Option<&ConversationMetadata> {
@@ -244,8 +214,9 @@ impl Cva {
         conversation_id: &str,
         branch_id: &str,
     ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
-        self.archive
-            .branch_turns(&mut self.container, conversation_id, branch_id)
+        self.owner
+            .archive
+            .branch_turns(&mut self.owner.container, conversation_id, branch_id)
     }
 
     pub fn historical_branch_turns(
@@ -253,8 +224,11 @@ impl Cva {
         conversation_id: &str,
         branch_id: &str,
     ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
-        self.archive
-            .historical_branch_turns(&mut self.container, conversation_id, branch_id)
+        self.owner.archive.historical_branch_turns(
+            &mut self.owner.container,
+            conversation_id,
+            branch_id,
+        )
     }
 
     pub fn branch_at(
@@ -263,8 +237,8 @@ impl Cva {
         branch_id: &str,
         archive_version: u64,
     ) -> Result<Option<Branch>, ArchiveError> {
-        self.archive.branch_at(
-            &mut self.container,
+        self.owner.archive.branch_at(
+            &mut self.owner.container,
             conversation_id,
             branch_id,
             archive_version,
@@ -278,8 +252,8 @@ impl Cva {
         config: FragmentConfig,
         close_tail: bool,
     ) -> Result<Vec<Fragment>, ArchiveError> {
-        self.archive.materialize_branch_fragments(
-            &mut self.container,
+        self.owner.archive.materialize_branch_fragments(
+            &mut self.owner.container,
             conversation_id,
             branch_id,
             config,
@@ -294,8 +268,8 @@ impl Cva {
         config: FragmentConfig,
         close_tail: bool,
     ) -> Result<Vec<Fragment>, ArchiveError> {
-        self.archive.materialize_path_fragments(
-            &mut self.container,
+        self.owner.archive.materialize_path_fragments(
+            &mut self.owner.container,
             conversation_id,
             leaf_node_id,
             config,
@@ -304,11 +278,15 @@ impl Cva {
     }
 
     pub fn fragment_turns(&mut self, id: FragmentId) -> Result<Vec<ResolvedTurn>, ArchiveError> {
-        self.archive.fragment_turns(&mut self.container, id)
+        self.owner
+            .archive
+            .fragment_turns(&mut self.owner.container, id)
     }
 
     pub fn fragment_text(&mut self, id: FragmentId) -> Result<String, ArchiveError> {
-        self.archive.fragment_text(&mut self.container, id)
+        self.owner
+            .archive
+            .fragment_text(&mut self.owner.container, id)
     }
 
     pub fn materialize_branch_episodes(
@@ -319,8 +297,8 @@ impl Cva {
         origin: EpisodeOrigin,
         close_tail: Option<(EpisodeBoundary, i64)>,
     ) -> Result<EpisodeBuildResult, ArchiveError> {
-        self.archive.materialize_branch_episodes(
-            &mut self.container,
+        self.owner.archive.materialize_branch_episodes(
+            &mut self.owner.container,
             conversation_id,
             branch_id,
             config,
@@ -337,8 +315,8 @@ impl Cva {
         origin: EpisodeOrigin,
         close_tail: Option<(EpisodeBoundary, i64)>,
     ) -> Result<EpisodeBuildResult, ArchiveError> {
-        self.archive.materialize_path_episodes(
-            &mut self.container,
+        self.owner.archive.materialize_path_episodes(
+            &mut self.owner.container,
             conversation_id,
             leaf_node_id,
             config,
@@ -373,7 +351,9 @@ impl Cva {
     }
 
     pub fn episode_turns(&mut self, id: EpisodeId) -> Result<Vec<ResolvedTurn>, ArchiveError> {
-        self.archive.episode_turns(&mut self.container, id)
+        self.owner
+            .archive
+            .episode_turns(&mut self.owner.container, id)
     }
 
     pub fn publish_memory(
@@ -382,46 +362,7 @@ impl Cva {
         expected_revision: u64,
         draft: MemoryDraft,
     ) -> Result<(Memory, bool), MemoryError> {
-        let preflight = crate::cva_memory_publish::preflight_memory_parts(
-            &self.archive,
-            &mut self.memories,
-            &mut self.container,
-            id,
-            expected_revision,
-            &draft,
-        )?;
-        let target_id = match preflight {
-            crate::memory_store::PublishPreflight::Retry(memory) => memory.id,
-            crate::memory_store::PublishPreflight::New { record, .. } => record.id,
-        };
-        let first_creation = !self.memories.contains_memory(target_id);
-        let active_at_birth =
-            !draft.archived && matches!(draft.lifecycle_state.as_str(), "knowledge" | "canonical");
-        let accepted_turn = self.archive.rel_turn_count();
-        if first_creation && self.owner_uuid().is_some() {
-            self.freshness_prepare_memory_publication(
-                target_id,
-                &draft.mutation_id,
-                accepted_turn,
-                active_at_birth,
-            )
-            .map_err(|error| MemoryError::Freshness(error.to_string()))?;
-        }
-        let (memory, changed) = publish_memory_parts(
-            &self.archive,
-            &mut self.memories,
-            &mut self.container,
-            id,
-            expected_revision,
-            draft,
-        )?;
-        if self.owner_uuid().is_some()
-            && ((first_creation && changed) || self.freshness_has_pending_publication(memory.id))
-        {
-            self.freshness_initialize(memory.id)
-                .map_err(|error| MemoryError::Freshness(error.to_string()))?;
-        }
-        Ok((memory, changed))
+        self.runtime_publish_knowledge_memory(id, expected_revision, draft)
     }
 
     /// Read Memory content without access reinforcement or REL activity advancement.
@@ -429,7 +370,7 @@ impl Cva {
     /// Only a trusted host's confirmed external consumption may separately call
     /// `record_accepted_memory_use`; fetching content is never that confirmation.
     pub fn memory(&mut self, id: MemoryId) -> Result<Memory, MemoryError> {
-        self.memories.memory(&mut self.container, id)
+        self.runtime_memory(id)
     }
 
     pub fn tombstone_memory(
@@ -437,10 +378,12 @@ impl Cva {
         id: MemoryId,
         expected_revision: u64,
     ) -> Result<crate::owner_lifecycle::TombstoneOutcome, MemoryError> {
-        let result = self
-            .memories
-            .tombstone(&mut self.container, id, expected_revision)?;
-        self.graph
+        let result =
+            self.owner
+                .memories
+                .tombstone(&mut self.owner.container, id, expected_revision)?;
+        self.owner
+            .graph
             .exclude_from_current(crate::SemanticNodeRef::memory(id))
             .map_err(|_| MemoryError::InvalidField("Memory graph projection"))?;
         Ok(result)
@@ -538,8 +481,7 @@ impl Cva {
     }
 
     pub fn memory_revision(&mut self, id: MemoryId, revision: u64) -> Result<Memory, MemoryError> {
-        self.memories
-            .memory_revision(&mut self.container, id, revision)
+        self.runtime_memory_revision(id, revision)
     }
 
     pub fn memory_stats(&self) -> MemoryStats {
@@ -547,7 +489,7 @@ impl Cva {
     }
 
     pub fn memory_ids(&self) -> Vec<MemoryId> {
-        self.memories.current_ids()
+        self.runtime_memory_ids()
     }
 
     pub fn memory_version(&self) -> u64 {
@@ -555,19 +497,20 @@ impl Cva {
     }
 
     pub fn memory_body_id(&self, id: MemoryId) -> Result<crate::MemoryBodyId, MemoryError> {
-        self.memories.current_body_id(id)
+        self.runtime_memory_body_id(id)
     }
 
     pub fn memory_routing_metadata(&self, id: MemoryId) -> Option<&crate::MemoryRoutingMetadata> {
-        self.memories.routing_metadata(id)
+        self.runtime_memory_routing_metadata(id)
     }
 
     pub fn put_memory_routing_metadata(
         &mut self,
         metadata: crate::MemoryRoutingMetadata,
     ) -> Result<bool, MemoryError> {
-        self.memories
-            .put_routing_metadata(&mut self.container, metadata)
+        self.owner
+            .memories
+            .put_routing_metadata(&mut self.owner.container, metadata)
     }
 
     pub fn stats(&self) -> ArchiveStats {
@@ -608,8 +551,9 @@ impl Cva {
         mime_type: Option<String>,
         bytes: &[u8],
     ) -> Result<StoredFile, ArchiveError> {
-        self.archive
-            .store_file(&mut self.container, filename, mime_type, bytes)
+        self.owner
+            .archive
+            .store_file(&mut self.owner.container, filename, mime_type, bytes)
     }
 
     pub fn file(&self, id: FileId) -> Option<&StoredFile> {
@@ -621,15 +565,14 @@ impl Cva {
     }
 
     pub fn file_bytes(&mut self, id: FileId) -> Result<Vec<u8>, ArchiveError> {
-        self.archive.file_bytes(&mut self.container, id)
+        self.runtime_file_bytes(id)
     }
 
     pub fn conversation_compactions(
         &self,
         conversation_id: &str,
     ) -> Vec<crate::ConversationCompaction> {
-        self.conversation_compactions
-            .for_conversation(conversation_id)
+        self.runtime_conversation_compactions(conversation_id)
     }
 
     pub fn put_conversation_compaction(
@@ -639,8 +582,8 @@ impl Cva {
         summary: String,
         supersedes_through_message_id: Option<&str>,
     ) -> Result<crate::ConversationCompaction, CvaError> {
-        let record = self.conversation_compactions.put(
-            &mut self.container,
+        let record = self.owner.conversation_compactions.put(
+            &mut self.owner.container,
             conversation_id,
             through_message_id,
             summary,
@@ -653,8 +596,9 @@ impl Cva {
         &mut self,
         record: crate::InteractionStreamRecord,
     ) -> Result<(), CvaError> {
-        self.interaction_streams
-            .put(&mut self.container, record)
+        self.owner
+            .interaction_streams
+            .put(&mut self.owner.container, record)
             .map_err(CvaError::from)
     }
 
@@ -685,15 +629,15 @@ impl Cva {
     }
 
     pub fn put_echo_event(&mut self, event: crate::EchoEvent) -> Result<bool, CvaError> {
-        Ok(self.echo.put(&mut self.container, event)?)
+        self.runtime_put_echo_event(event).map_err(CvaError::from)
     }
 
     pub fn echo_events(&self, conversation_id: &str, message_id: &str) -> Vec<crate::EchoEvent> {
-        self.echo.for_turn(conversation_id, message_id)
+        self.runtime_echo_events(conversation_id, message_id)
     }
 
     pub(crate) fn conversation_echo_events(&self, conversation_id: &str) -> Vec<crate::EchoEvent> {
-        self.echo.for_conversation(conversation_id)
+        self.runtime_conversation_echo_events(conversation_id)
     }
 
     pub(crate) fn echo_records(&self) -> Vec<crate::EchoEvent> {
@@ -723,9 +667,10 @@ impl Cva {
         repository_management: crate::ProjectRepositoryManagement,
     ) -> Result<(crate::ProjectRevisionCorrelation, bool), CvaError> {
         let rel_cut = self.current_rel_semantic_cut();
-        self.project_history
+        self.owner
+            .project_history
             .put(
-                &mut self.container,
+                &mut self.owner.container,
                 rel_cut,
                 project_revision,
                 repository_management,
@@ -734,11 +679,11 @@ impl Cva {
     }
 
     pub fn project_revision_correlations(&self) -> Vec<crate::ProjectRevisionCorrelation> {
-        self.project_history.records()
+        self.runtime_project_revision_correlations()
     }
 
     pub fn latest_project_revision_correlation(&self) -> Option<crate::ProjectRevisionCorrelation> {
-        self.project_history.latest()
+        self.runtime_latest_project_revision_correlation()
     }
 
     pub fn register_project_file(
@@ -758,10 +703,12 @@ impl Cva {
             byte_length,
             &reference,
         )?;
-        self.project_files
-            .put(&mut self.container, file.id, reference)?;
-        self.archive
-            .register_file(&mut self.container, file.clone())?;
+        self.owner
+            .project_files
+            .put(&mut self.owner.container, file.id, reference)?;
+        self.owner
+            .archive
+            .register_file(&mut self.owner.container, file.clone())?;
         Ok(file)
     }
 
@@ -794,13 +741,14 @@ impl Cva {
                 "only legacy embedded attachment identities can be rebound".into(),
             ));
         }
-        self.project_files
-            .put(&mut self.container, file.id, reference)
+        self.owner
+            .project_files
+            .put(&mut self.owner.container, file.id, reference)
             .map_err(CvaError::from)
     }
 
     pub fn project_file_ref(&self, file_id: crate::FileId) -> Option<crate::ProjectFileRef> {
-        self.project_files.get(file_id).cloned()
+        self.runtime_project_file_ref(file_id)
     }
 
     pub fn sync(&self) -> Result<(), CvaError> {

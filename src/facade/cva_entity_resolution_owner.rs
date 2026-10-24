@@ -97,8 +97,8 @@ macro_rules! impl_owner {
                 }
                 .put_entity_resolved(key, expected_revision, entity_id, reason, now_ns)?;
                 match apply_resolution_write_plan(
-                    &mut self.container,
-                    &mut self.entity_resolutions,
+                    &mut self.owner.container,
+                    &mut self.owner.entity_resolutions,
                     plan,
                 )? {
                     ResolutionWriteResult::Changed(value) => Ok(value),
@@ -119,8 +119,8 @@ macro_rules! impl_owner {
                 }
                 .put_entity_rejected(key, expected_revision, reason, now_ns)?;
                 match apply_resolution_write_plan(
-                    &mut self.container,
-                    &mut self.entity_resolutions,
+                    &mut self.owner.container,
+                    &mut self.owner.entity_resolutions,
                     plan,
                 )? {
                     ResolutionWriteResult::Changed(value) => Ok(value),
@@ -152,8 +152,8 @@ macro_rules! impl_owner {
                     now_ns,
                 )?;
                 match apply_resolution_write_plan(
-                    &mut self.container,
-                    &mut self.entity_resolutions,
+                    &mut self.owner.container,
+                    &mut self.owner.entity_resolutions,
                     plan,
                 )? {
                     ResolutionWriteResult::Changed(value) => Ok(value),
@@ -172,8 +172,8 @@ macro_rules! impl_owner {
                 }
                 .reset_entity_resolution(key, now_ns)?;
                 match apply_resolution_write_plan(
-                    &mut self.container,
-                    &mut self.entity_resolutions,
+                    &mut self.owner.container,
+                    &mut self.owner.entity_resolutions,
                     plan,
                 )? {
                     ResolutionWriteResult::Changed(value) => Ok(value),
@@ -191,8 +191,8 @@ macro_rules! impl_owner {
                 }
                 .compact_entity_resolutions(now_ns)?;
                 match apply_resolution_write_plan(
-                    &mut self.container,
-                    &mut self.entity_resolutions,
+                    &mut self.owner.container,
+                    &mut self.owner.entity_resolutions,
                     plan,
                 )? {
                     ResolutionWriteResult::Compacted(value) => Ok(value),
@@ -224,8 +224,8 @@ macro_rules! impl_owner {
                 }
                 .import_entity_resolution(value)?;
                 match apply_resolution_write_plan(
-                    &mut self.container,
-                    &mut self.entity_resolutions,
+                    &mut self.owner.container,
+                    &mut self.owner.entity_resolutions,
                     plan,
                 )? {
                     ResolutionWriteResult::Imported => Ok(()),

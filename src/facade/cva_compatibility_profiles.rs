@@ -5,19 +5,6 @@ use crate::{
 };
 
 impl Cva {
-    pub fn establish_compatibility_profile(
-        &mut self,
-        endpoint: &impl EmbeddingEndpoint,
-    ) -> Result<CompatibilityProfile, CompatibilityProfileError> {
-        let candidate = profile_from_endpoint(endpoint)?;
-        if let Some(existing) = self.compatibility_profiles.compatible_with(&candidate) {
-            return Ok(existing.clone());
-        }
-        self.compatibility_profiles
-            .put(&mut self.container, candidate.clone())?;
-        Ok(candidate)
-    }
-
     pub fn compatibility_profile(
         &self,
         id: CompatibilityProfileId,
@@ -36,7 +23,9 @@ impl Cva {
         &mut self,
         id: CompatibilityProfileId,
     ) -> Result<bool, CompatibilityProfileError> {
-        self.compatibility_profiles.retire(&mut self.container, id)
+        self.owner
+            .compatibility_profiles
+            .retire(&mut self.owner.container, id)
     }
 
     pub fn compatibility_profile_is_retired(&self, id: CompatibilityProfileId) -> bool {
@@ -57,11 +46,7 @@ impl Cva {
     }
 
     pub fn active_memory_compatibility_profiles(&self) -> Vec<CompatibilityProfile> {
-        self.compatibility_profiles
-            .profiles()
-            .into_iter()
-            .filter_map(|profile| self.active_memory_compatibility_profile(profile.id))
-            .collect()
+        self.runtime_active_memory_compatibility_profiles()
     }
 
     pub fn active_archive_compatibility_profiles(&self) -> Vec<CompatibilityProfile> {

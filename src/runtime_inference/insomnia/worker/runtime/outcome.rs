@@ -69,7 +69,7 @@ pub(super) fn apply_success(
             .map_err(|_| crate::InsomniaWorkerError::LockPoisoned)?;
         let phylactery = &mut **phylactery;
         Some(publish_user_application(
-            &mut crate::owner_lifecycle::personal_memory_publication::PersonalMemoryPublication::new(&mut phylactery.container,&mut phylactery.memories),
+            &mut crate::owner_lifecycle::personal_memory_publication::PersonalMemoryPublication::new(&mut phylactery.owner.container,&mut phylactery.owner.memories),
             &prepared.user_drafts,
         )?)
     };

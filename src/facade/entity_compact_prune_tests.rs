@@ -380,9 +380,9 @@ fn rel_prune_redacts_all_selected_history_preserves_clocks_and_reclaims_authenti
     let output = scratch.file("pruned.rel");
     let reclaimed = scratch.file("reclaimed.rel");
     let mut rel = Cva::create(&source).unwrap();
-    let seed = seed_entities(&mut rel.entities, &mut rel.container);
+    let seed = seed_entities(&mut rel.owner.entities, &mut rel.owner.container);
     let source_hash = hash_file(&source);
-    let expected_source_records = rel.entities.records().to_vec();
+    let expected_source_records = rel.owner.entities.records().to_vec();
     let original_digests = source_carrier_digests(&mut rel.container, seed.selected_id);
     assert_eq!(original_digests.len(), 3);
 
@@ -475,9 +475,9 @@ fn phy_prune_preserves_option_identity_history_and_unrelated_description() {
     let source = scratch.file("source.phy");
     let output = scratch.file("pruned.phy");
     let mut phy = Phylactery::create(&source).unwrap();
-    let seed = seed_entities(&mut phy.entities, &mut phy.container);
+    let seed = seed_entities(&mut phy.owner.entities, &mut phy.owner.container);
     let source_hash = hash_file(&source);
-    let expected_records = phy.entities.records().to_vec();
+    let expected_records = phy.owner.entities.records().to_vec();
     let original_digests = source_carrier_digests(&mut phy.container, seed.selected_id);
     let report = phy
         .prune_tombstoned_history(
@@ -676,7 +676,7 @@ fn rel_open_rejects_rechecksummed_missing_wrong_and_duplicate_compact_descriptio
     let source = scratch.file("source.rel");
     let pruned = scratch.file("pruned.rel");
     let mut rel = Cva::create(&source).unwrap();
-    let seed = seed_entities(&mut rel.entities, &mut rel.container);
+    let seed = seed_entities(&mut rel.owner.entities, &mut rel.owner.container);
     rel.prune_tombstoned_history(
         &pruned,
         HistoryPruneRequest {

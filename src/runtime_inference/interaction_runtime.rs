@@ -1,8 +1,9 @@
 use crate::interaction_session::SessionState;
 use crate::{
-    ArchiveError, ConversationSummary, Cva, CvaError, EpisodePolicy, EpisodeSchedulingResult,
-    IngestedTurn, InteractionError, InteractionStreamStatus, InteractionTurn,
-    InteractionTurnStatus, ResolvedInteractionTurn, ResolvedTurn,
+    ArchiveError, ConversationSummary, CvaError, EpisodeBoundary, EpisodeOrigin, EpisodePolicy,
+    EpisodeSchedulingResult, IngestedTurn, InsomniaError, InsomniaPriority, InteractionError,
+    InteractionStreamStatus, InteractionTurn, InteractionTurnStatus, ResolvedInteractionTurn,
+    ResolvedTurn,
 };
 use std::collections::HashMap;
 
@@ -24,77 +25,133 @@ pub struct InteractionCompletion {
     pub scheduling: Result<EpisodeSchedulingResult, InteractionError>,
 }
 
-pub struct InteractionRuntime {
-    pub(crate) cva: Cva,
+pub struct RelExecution {
+    pub(crate) cva: crate::RelExecutionOwner,
     pub(crate) sessions: HashMap<String, SessionState>,
 }
 
-impl InteractionRuntime {
-    pub fn new(cva: Cva) -> Self {
+impl RelExecution {
+    pub(crate) fn from_owner(cva: crate::RelExecutionOwner) -> Self {
         Self {
             cva,
             sessions: HashMap::new(),
         }
     }
 
-    pub fn accept_turn(&mut self, turn: InteractionTurn) -> Result<InteractionReceipt, CvaError> {
-        let accepted = self.cva.ingest_turn_with_receipt(turn.into())?;
-        self.cva.sync()?;
+    pub(crate) fn accept_turn_operation(
+        &mut self,
+        turn: InteractionTurn,
+    ) -> Result<InteractionReceipt, CvaError> {
+        let accepted = self.cva.accept_interaction_turn(turn.into())?;
+        self.cva.sync_owner()?;
         Ok(InteractionReceipt {
             turn: accepted.value,
-            archive_version: self.cva.archive_version(),
+            archive_version: self.cva.archive.archive_version(),
             inserted: accepted.inserted,
             activity_position: accepted.activity_position,
             rel_turn_count: accepted.rel_turn_count,
         })
     }
 
-    pub fn schedule_session(
+    pub(crate) fn schedule_session_operation(
         &mut self,
         session_id: &str,
         policy: EpisodePolicy,
         now_ns: i64,
     ) -> Result<EpisodeSchedulingResult, InteractionError> {
         let leaf = self.session_leaf(session_id)?;
-        let result = self
+        let policy = policy
+            .validate()
+            .map_err(|_| InsomniaError::InvalidField("episode policy"))?;
+        let episodes = self
             .cva
-            .materialize_live_path_and_queue(session_id, &leaf, policy, now_ns)?;
-        self.cva.sync()?;
+            .owner
+            .archive
+            .materialize_path_episodes(
+                &mut self.cva.owner.container,
+                session_id,
+                &leaf,
+                policy.episode,
+                EpisodeOrigin::Live,
+                None,
+            )
+            .map_err(|_| InsomniaError::InvalidField("episode materialization"))?;
+        let result = self.queue_episode_result(episodes, InsomniaPriority::Live, now_ns)?;
+        self.cva.sync_owner()?;
         Ok(result)
     }
 
-    pub fn finalize_inactive_session(
+    pub(crate) fn finalize_inactive_session_operation(
         &mut self,
         session_id: &str,
         policy: EpisodePolicy,
         now_ns: i64,
     ) -> Result<Option<EpisodeSchedulingResult>, InteractionError> {
         let leaf = self.session_leaf(session_id)?;
-        let result = self
+        let policy = policy
+            .validate()
+            .map_err(|_| InsomniaError::InvalidField("episode inactivity"))?;
+        let last_source_ns = self
             .cva
-            .finalize_inactive_path_and_queue(session_id, &leaf, policy, now_ns)?;
+            .archive
+            .require_node(session_id, &leaf, ArchiveError::MissingLeaf)
+            .map_err(|_| InsomniaError::InvalidField("episode inactivity"))?
+            .timestamp_ns;
+        let result = if !policy.inactive(last_source_ns, now_ns) {
+            None
+        } else {
+            let episodes = self
+                .cva
+                .owner
+                .archive
+                .materialize_path_episodes(
+                    &mut self.cva.owner.container,
+                    session_id,
+                    &leaf,
+                    policy.episode,
+                    EpisodeOrigin::Live,
+                    Some((EpisodeBoundary::Inactivity, now_ns)),
+                )
+                .map_err(|_| InsomniaError::InvalidField("episode inactivity"))?;
+            Some(self.queue_episode_result(episodes, InsomniaPriority::Live, now_ns)?)
+        };
         if result.is_some() {
-            self.cva.sync()?;
+            self.cva.sync_owner()?;
         }
         Ok(result)
     }
 
-    pub fn finalize_explicit_session(
+    pub(crate) fn finalize_explicit_session_operation(
         &mut self,
         session_id: &str,
         policy: EpisodePolicy,
         now_ns: i64,
     ) -> Result<EpisodeSchedulingResult, InteractionError> {
         let leaf = self.session_leaf(session_id)?;
-        let result = self
+        let policy = policy
+            .validate()
+            .map_err(|_| InsomniaError::InvalidField("episode policy"))?;
+        let episodes = self
             .cva
-            .finalize_explicit_path_and_queue(session_id, &leaf, policy, now_ns)?;
-        self.cva.sync()?;
+            .owner
+            .archive
+            .materialize_path_episodes(
+                &mut self.cva.owner.container,
+                session_id,
+                &leaf,
+                policy.episode,
+                EpisodeOrigin::Live,
+                Some((EpisodeBoundary::Explicit, now_ns)),
+            )
+            .map_err(|_| InsomniaError::InvalidField("explicit episode"))?;
+        let result =
+            self.queue_episode_result(episodes, InsomniaPriority::ImmediateLive, now_ns)?;
+        self.cva.sync_owner()?;
         Ok(result)
     }
 
-    pub fn conversation_summaries(&self) -> Vec<ConversationSummary> {
-        self.cva.conversation_summaries()
+    pub(crate) fn conversation_summaries_operation(&self) -> Vec<ConversationSummary> {
+        self.cva.archive.conversation_summaries()
     }
 
     pub fn conversation_turns(
@@ -102,7 +159,11 @@ impl InteractionRuntime {
         conversation_id: &str,
         leaf_node_id: &str,
     ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
-        self.cva.conversation_turns(conversation_id, leaf_node_id)
+        self.cva.owner.archive.conversation_turns(
+            &mut self.cva.owner.container,
+            conversation_id,
+            leaf_node_id,
+        )
     }
 
     pub fn search_conversation_branch(
@@ -112,8 +173,37 @@ impl InteractionRuntime {
         query: &str,
         limit: usize,
     ) -> Result<Vec<crate::ConversationSearchHit>, crate::SearchError> {
-        self.cva
-            .search_conversation_branch(conversation_id, leaf_node_id, query, limit)
+        self.search_conversation_branch_operation(conversation_id, leaf_node_id, query, limit)
+    }
+
+    pub(crate) fn search_conversation_branch_operation(
+        &mut self,
+        conversation_id: &str,
+        leaf_node_id: &str,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<crate::ConversationSearchHit>, crate::SearchError> {
+        let archive = crate::archive::ArchiveReadView::new(
+            &self.cva.owner.archive,
+            &self.cva.owner.container,
+        );
+        let vectors = crate::vector_generation_store::VectorReadView::new(
+            &self.cva.owner.vector_generations,
+            &self.cva.owner.archive_vectors,
+            &self.cva.owner.packed_vectors,
+            &self.cva.owner.container,
+        );
+        crate::conversation_search::search_conversation_branch_parts(
+            &archive,
+            &mut self.cva.lexical_index,
+            &vectors,
+            None,
+            None,
+            conversation_id,
+            leaf_node_id,
+            query,
+            limit,
+        )
     }
 
     pub(crate) fn search_conversation_branch_with_vector(
@@ -125,12 +215,34 @@ impl InteractionRuntime {
         query: &str,
         limit: usize,
     ) -> Result<Vec<crate::ConversationSearchHit>, crate::SearchError> {
-        let archive = crate::archive::ArchiveReadView::new(&self.cva.archive, &self.cva.container);
+        self.search_conversation_branch_with_vector_operation(
+            compatibility_profile_id,
+            query_vector,
+            conversation_id,
+            leaf_node_id,
+            query,
+            limit,
+        )
+    }
+
+    pub(crate) fn search_conversation_branch_with_vector_operation(
+        &mut self,
+        compatibility_profile_id: crate::CompatibilityProfileId,
+        query_vector: &[f32],
+        conversation_id: &str,
+        leaf_node_id: &str,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<crate::ConversationSearchHit>, crate::SearchError> {
+        let archive = crate::archive::ArchiveReadView::new(
+            &self.cva.owner.archive,
+            &self.cva.owner.container,
+        );
         let vectors = crate::vector_generation_store::VectorReadView::new(
-            &self.cva.vector_generations,
-            &self.cva.archive_vectors,
-            &self.cva.packed_vectors,
-            &self.cva.container,
+            &self.cva.owner.vector_generations,
+            &self.cva.owner.archive_vectors,
+            &self.cva.owner.packed_vectors,
+            &self.cva.owner.container,
         );
         crate::conversation_search::search_conversation_branch_parts(
             &archive,
@@ -145,7 +257,7 @@ impl InteractionRuntime {
         )
     }
 
-    pub fn conversation_transcript(
+    pub(crate) fn conversation_transcript_operation(
         &mut self,
         conversation_id: &str,
         leaf_node_id: &str,
@@ -163,23 +275,30 @@ impl InteractionRuntime {
         leaf_node_id: &str,
         excluded: &std::collections::HashSet<String>,
     ) -> Result<Vec<ResolvedInteractionTurn>, ArchiveError> {
-        let durable = self.cva.conversation_turns(conversation_id, leaf_node_id)?;
+        let durable = self.cva.owner.archive.conversation_turns(
+            &mut self.cva.owner.container,
+            conversation_id,
+            leaf_node_id,
+        )?;
         let mut transcript = self.resolve_interaction_turns(conversation_id, durable);
         self.append_stream_records(conversation_id, &mut transcript, excluded);
         transcript.sort_by_key(|turn| turn.timestamp_ns);
         Ok(transcript)
     }
 
-    pub fn conversation_transcript_page(
+    pub(crate) fn conversation_transcript_page_operation(
         &mut self,
         conversation_id: &str,
         end_node_id: &str,
         limit: usize,
         include_stream_records: bool,
     ) -> Result<(Vec<ResolvedInteractionTurn>, Option<String>), ArchiveError> {
-        let (durable, older_cursor) =
-            self.cva
-                .conversation_turn_page(conversation_id, end_node_id, limit)?;
+        let (durable, older_cursor) = self.cva.owner.archive.conversation_turn_page(
+            &mut self.cva.owner.container,
+            conversation_id,
+            end_node_id,
+            limit,
+        )?;
         let mut transcript = self.resolve_interaction_turns(conversation_id, durable);
         if include_stream_records {
             self.append_stream_records(
@@ -200,7 +319,10 @@ impl InteractionRuntime {
         durable
             .into_iter()
             .map(|turn| {
-                let attachments = self.cva.files_for_source(conversation_id, &turn.node_id);
+                let attachments = self
+                    .cva
+                    .archive
+                    .files_for_source(conversation_id, &turn.node_id);
                 ResolvedInteractionTurn {
                     message_id: turn.node_id,
                     role: turn.role,
@@ -226,14 +348,15 @@ impl InteractionRuntime {
             .collect::<std::collections::HashSet<_>>();
         for record in self
             .cva
-            .borrowed_interaction_streams_for_session(conversation_id)
+            .interaction_streams
+            .borrowed_records_for_session(conversation_id)
         {
             if excluded.contains(&record.message_id) {
                 continue;
             }
             if self
                 .cva
-                .archive()
+                .archive
                 .has_node(conversation_id, &record.message_id)
             {
                 continue;
@@ -269,16 +392,11 @@ impl InteractionRuntime {
         }
     }
 
-    pub fn session_leaf_node_id(&self, session_id: &str) -> Result<String, InteractionError> {
+    pub(crate) fn session_leaf_node_id_operation(
+        &self,
+        session_id: &str,
+    ) -> Result<String, InteractionError> {
         self.session_leaf(session_id)
-    }
-
-    pub fn cva(&self) -> &Cva {
-        &self.cva
-    }
-
-    pub fn into_cva(self) -> Cva {
-        self.cva
     }
 
     fn session_leaf(&self, session_id: &str) -> Result<String, InteractionError> {
@@ -288,5 +406,24 @@ impl InteractionRuntime {
             .leaf_message_id
             .clone()
             .ok_or(InteractionError::SessionHasNoDurableTurn)
+    }
+
+    fn queue_episode_result(
+        &mut self,
+        episodes: crate::EpisodeBuildResult,
+        priority: InsomniaPriority,
+        now_ns: i64,
+    ) -> Result<EpisodeSchedulingResult, InsomniaError> {
+        let mut queued = Vec::new();
+        for episode in &episodes.created {
+            let source = crate::insomnia_admission::episode_source(episode, priority);
+            let (work, _) =
+                self.cva
+                    .owner
+                    .insomnia
+                    .queue(&mut self.cva.owner.container, &source, now_ns)?;
+            queued.push(work);
+        }
+        Ok(EpisodeSchedulingResult { episodes, queued })
     }
 }

@@ -33,11 +33,11 @@ macro_rules! impl_owner {
                 plan: EntityResolutionCommitPlan,
             ) -> Result<EntityResolutionOutcome, EntityResolverError> {
                 apply_entity_resolution_commit_plan(
-                    &mut self.container,
-                    &self.memories,
-                    &mut self.entities,
-                    &mut self.entity_resolutions,
-                    &mut self.graph,
+                    &mut self.owner.container,
+                    &self.owner.memories,
+                    &mut self.owner.entities,
+                    &mut self.owner.entity_resolutions,
+                    &mut self.owner.graph,
                     plan,
                     $reject_principal,
                 )

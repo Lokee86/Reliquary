@@ -14,15 +14,17 @@ impl GatewayRuntime {
         let token = self.authorize(instance, owner_id, OwnerGrant::ViewRel)?;
         let branch_id = self.with_rel(&token, |runtime| {
             if !runtime
-                .cva()
-                .archive()
+                .cva
+                .owner
+                .archive
                 .has_node(conversation_id, leaf_node_id)
             {
                 return Err(operation("selected leaf is not in this conversation"));
             }
             Ok(runtime
-                .cva()
-                .archive()
+                .cva
+                .owner
+                .archive
                 .branches()
                 .into_iter()
                 .find(|b| b.conversation_id == conversation_id && b.leaf_node_id == leaf_node_id)
@@ -53,16 +55,18 @@ impl GatewayRuntime {
         let token = self.authorize(instance, owner_id, OwnerGrant::SubmitConversation)?;
         self.with_rel_mutation(&token, RelMutationFamily::ConversationBranch, |runtime| {
             if !runtime
-                .cva()
-                .archive()
+                .cva
+                .owner
+                .archive
                 .has_node(conversation_id, leaf_node_id)
             {
                 return Err(operation("selected leaf is not in this conversation"));
             }
-            if let Some(branch) =
-                runtime.cva().archive().branches().into_iter().find(|b| {
-                    b.conversation_id == conversation_id && b.leaf_node_id == leaf_node_id
-                })
+            if let Some(branch) = runtime
+                .cva
+                .runtime_archive_branches()
+                .into_iter()
+                .find(|b| b.conversation_id == conversation_id && b.leaf_node_id == leaf_node_id)
             {
                 return Ok((branch.id, false, Vec::new()));
             }

@@ -367,14 +367,22 @@ fn owner_scope_events_outside_epoch_interval_are_compared_by_normalized_facts() 
     );
     left.container.append(&left_payload).unwrap();
     right.container.append(&right_payload).unwrap();
-    left.container.sync().unwrap();
-    right.container.sync().unwrap();
-    left.freshness
-        .bind_history_source(&left.container, fs::metadata(&left_path).unwrap().len())
+    left.owner.container.sync().unwrap();
+    right.owner.container.sync().unwrap();
+    left.owner
+        .freshness
+        .bind_history_source(
+            &left.owner.container,
+            fs::metadata(&left_path).unwrap().len(),
+        )
         .unwrap();
     right
+        .owner
         .freshness
-        .bind_history_source(&right.container, fs::metadata(&right_path).unwrap().len())
+        .bind_history_source(
+            &right.owner.container,
+            fs::metadata(&right_path).unwrap().len(),
+        )
         .unwrap();
     let requested = BTreeSet::from([id]);
     let left_events = left
@@ -627,9 +635,10 @@ fn completed_scope_inventory(
         // Ordinary current creation and all later current Entity publication
         // shapes retain exact owner evidence in the completed import.
         let (legacy, changed) = cva
+            .owner
             .entities
             .publish_with_global_id(
-                &mut cva.container,
+                &mut cva.owner.container,
                 None,
                 0,
                 entity_draft(

@@ -83,7 +83,9 @@ impl GatewayRuntime {
         instance: &InstanceRuntime,
     ) -> Result<Vec<ConversationSummary>, ReliquaryRuntimeHostError> {
         let token = self.ambient_rel_token(instance)?;
-        self.with_rel(&token, |runtime| Ok(runtime.conversation_summaries()))
+        self.with_rel(&token, |runtime| {
+            Ok(runtime.conversation_summaries_operation())
+        })
     }
 
     pub fn conversation_summaries_for(
@@ -92,7 +94,9 @@ impl GatewayRuntime {
         owner_id: &str,
     ) -> Result<Vec<ConversationSummary>, ReliquaryRuntimeHostError> {
         let token = self.explicit_rel_token(instance, owner_id)?;
-        self.with_rel(&token, |runtime| Ok(runtime.conversation_summaries()))
+        self.with_rel(&token, |runtime| {
+            Ok(runtime.conversation_summaries_operation())
+        })
     }
 
     /// Read a transcript from the REL selected by this exact instance attachment.
@@ -131,7 +135,7 @@ impl GatewayRuntime {
     ) -> Result<Vec<EchoEvent>, ReliquaryRuntimeHostError> {
         let token = self.ambient_rel_token(instance)?;
         self.with_rel(&token, |runtime| {
-            Ok(runtime.cva().echo_events(conversation_id, message_id))
+            Ok(runtime.cva.runtime_echo_events(conversation_id, message_id))
         })
     }
 
@@ -174,7 +178,7 @@ impl GatewayRuntime {
     ) -> Result<Vec<EchoEvent>, ReliquaryRuntimeHostError> {
         let token = self.explicit_rel_token(instance, owner_id)?;
         self.with_rel(&token, |runtime| {
-            Ok(runtime.cva().echo_events(conversation_id, message_id))
+            Ok(runtime.cva.runtime_echo_events(conversation_id, message_id))
         })
     }
 
@@ -188,7 +192,9 @@ impl GatewayRuntime {
     ) -> Result<Vec<EchoEvent>, ReliquaryRuntimeHostError> {
         let token = self.explicit_rel_token(instance, owner_id)?;
         self.with_rel(&token, |runtime| {
-            Ok(runtime.cva().conversation_echo_events(conversation_id))
+            Ok(runtime
+                .cva
+                .runtime_conversation_echo_events(conversation_id))
         })
     }
 
@@ -204,7 +210,7 @@ impl GatewayRuntime {
         let token = self.explicit_rel_token(instance, owner_id)?;
         let transcript = self.with_rel(&token, |runtime| {
             runtime
-                .conversation_transcript(conversation_id, end_message_id)
+                .conversation_transcript_operation(conversation_id, end_message_id)
                 .map_err(operation)
         })?;
         let start = transcript
@@ -219,7 +225,9 @@ impl GatewayRuntime {
         let mut turns = Vec::new();
         for turn in &transcript[start..] {
             let events = self.with_rel(&token, |runtime| {
-                Ok(runtime.cva().echo_events(conversation_id, &turn.message_id))
+                Ok(runtime
+                    .cva
+                    .runtime_echo_events(conversation_id, &turn.message_id))
             })?;
             if !events.is_empty() {
                 turns.push(crate::RuntimeEchoTurn {
@@ -249,7 +257,9 @@ impl GatewayRuntime {
     ) -> Result<Vec<StoredFile>, ReliquaryRuntimeHostError> {
         let token = self.ambient_rel_token(instance)?;
         self.with_rel(&token, |runtime| {
-            Ok(runtime.cva().files_for_source(conversation_id, node_id))
+            Ok(runtime
+                .cva
+                .runtime_files_for_source(conversation_id, node_id))
         })
     }
 
@@ -262,7 +272,9 @@ impl GatewayRuntime {
     ) -> Result<Vec<StoredFile>, ReliquaryRuntimeHostError> {
         let token = self.explicit_rel_token(instance, owner_id)?;
         self.with_rel(&token, |runtime| {
-            Ok(runtime.cva().files_for_source(conversation_id, node_id))
+            Ok(runtime
+                .cva
+                .runtime_files_for_source(conversation_id, node_id))
         })
     }
 
@@ -273,7 +285,7 @@ impl GatewayRuntime {
     ) -> Result<Option<crate::ProjectFileRef>, ReliquaryRuntimeHostError> {
         let token = self.ambient_rel_token(instance)?;
         self.with_rel(&token, |runtime| {
-            Ok(runtime.cva().project_file_ref(file_id))
+            Ok(runtime.cva.runtime_project_file_ref(file_id))
         })
     }
 
@@ -285,7 +297,7 @@ impl GatewayRuntime {
     ) -> Result<Option<crate::ProjectFileRef>, ReliquaryRuntimeHostError> {
         let token = self.explicit_rel_token(instance, owner_id)?;
         self.with_rel(&token, |runtime| {
-            Ok(runtime.cva().project_file_ref(file_id))
+            Ok(runtime.cva.runtime_project_file_ref(file_id))
         })
     }
 
@@ -296,7 +308,7 @@ impl GatewayRuntime {
     ) -> Result<Vec<u8>, ReliquaryRuntimeHostError> {
         let token = self.ambient_rel_token(instance)?;
         self.with_rel(&token, |runtime| {
-            runtime.cva.file_bytes(file_id).map_err(operation)
+            runtime.cva.runtime_file_bytes(file_id).map_err(operation)
         })
     }
 
@@ -308,7 +320,7 @@ impl GatewayRuntime {
     ) -> Result<Vec<u8>, ReliquaryRuntimeHostError> {
         let token = self.explicit_rel_token(instance, owner_id)?;
         self.with_rel(&token, |runtime| {
-            runtime.cva.file_bytes(file_id).map_err(operation)
+            runtime.cva.runtime_file_bytes(file_id).map_err(operation)
         })
     }
 
@@ -320,7 +332,10 @@ impl GatewayRuntime {
     ) -> Result<Vec<ArchiveSearchHit>, ReliquaryRuntimeHostError> {
         let token = self.ambient_rel_token(instance)?;
         self.with_rel(&token, |runtime| {
-            runtime.cva.search_archive(query, limit).map_err(operation)
+            runtime
+                .cva
+                .runtime_search_archive(query, limit)
+                .map_err(operation)
         })
     }
 
@@ -333,7 +348,10 @@ impl GatewayRuntime {
     ) -> Result<Vec<ArchiveSearchHit>, ReliquaryRuntimeHostError> {
         let token = self.explicit_rel_token(instance, owner_id)?;
         self.with_rel(&token, |runtime| {
-            runtime.cva.search_archive(query, limit).map_err(operation)
+            runtime
+                .cva
+                .runtime_search_archive(query, limit)
+                .map_err(operation)
         })
     }
 
@@ -387,7 +405,7 @@ impl GatewayRuntime {
     ) -> Result<Memory, ReliquaryRuntimeHostError> {
         let token = self.ambient_rel_token(instance)?;
         self.with_rel(&token, |runtime| {
-            runtime.cva.memory(memory_id).map_err(operation)
+            runtime.cva.runtime_memory(memory_id).map_err(operation)
         })
     }
 
@@ -399,7 +417,7 @@ impl GatewayRuntime {
     ) -> Result<Memory, ReliquaryRuntimeHostError> {
         let token = self.explicit_rel_token(instance, owner_id)?;
         self.with_rel(&token, |runtime| {
-            runtime.cva.memory(memory_id).map_err(operation)
+            runtime.cva.runtime_memory(memory_id).map_err(operation)
         })
     }
 
@@ -429,7 +447,7 @@ impl GatewayRuntime {
         memory_id: MemoryId,
     ) -> Result<MemoryProvenance, ReliquaryRuntimeHostError> {
         let memory = self.with_rel(token, |runtime| {
-            runtime.cva.memory(memory_id).map_err(operation)
+            runtime.cva.runtime_memory(memory_id).map_err(operation)
         })?;
         if let Some(source_ref) = memory.source_ref.clone() {
             // A foreign source owner is a separate authorization boundary even if
@@ -466,7 +484,7 @@ impl GatewayRuntime {
         let token = self.explicit_rel_token(instance, source_owner_id)?;
         let mut memory = memory;
         let provenance = self.with_rel(&token, |runtime| {
-            if runtime.cva().owner_id().as_deref() != Some(source_owner_id) {
+            if runtime.cva.runtime_owner_id().as_deref() != Some(source_owner_id) {
                 return Err(operation(
                     "external Memory provenance belongs to a different REL",
                 ));
@@ -487,7 +505,7 @@ impl GatewayRuntime {
         instance: &InstanceRuntime,
     ) -> Result<crate::RelMetadata, ReliquaryRuntimeHostError> {
         let token = self.ambient_rel_token(instance)?;
-        self.with_rel(&token, |runtime| Ok(runtime.cva().rel_metadata()))
+        self.with_rel(&token, |runtime| Ok(runtime.cva.runtime_rel_metadata()))
     }
 
     pub fn rel_metadata_for(
@@ -496,7 +514,7 @@ impl GatewayRuntime {
         owner_id: &str,
     ) -> Result<crate::RelMetadata, ReliquaryRuntimeHostError> {
         let token = self.explicit_rel_token(instance, owner_id)?;
-        self.with_rel(&token, |runtime| Ok(runtime.cva().rel_metadata()))
+        self.with_rel(&token, |runtime| Ok(runtime.cva.runtime_rel_metadata()))
     }
 
     pub fn dependency_closure(
@@ -540,7 +558,7 @@ impl GatewayRuntime {
                 continue;
             };
             let dependencies = self.with_rel(&token, |runtime| {
-                Ok(runtime.cva().rel_metadata().dependencies)
+                Ok(runtime.cva.runtime_rel_metadata().dependencies)
             })?;
             ordered.push(current);
             // Reverse push preserves the REL's canonical dependency ordering.
@@ -627,7 +645,7 @@ impl GatewayRuntime {
             let runtime = runtime
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-            graph.insert(id, runtime.cva().rel_metadata().dependencies);
+            graph.insert(id, runtime.cva.runtime_rel_metadata().dependencies);
         }
         if !graph.contains_key(owner_id) {
             return Err(operation(format!("REL owner {owner_id} is not mounted")));
@@ -745,7 +763,7 @@ impl GatewayRuntime {
         let token = self.authorize(instance, owner_id, OwnerGrant::ManageRel)?;
         let changes = relation_changes(source, target, old_kind, new_kind)?;
         self.with_rel_mutation(&token, RelMutationFamily::Semantic, |runtime| {
-            let version = runtime.cva().graph_version();
+            let version = runtime.cva.runtime_graph_version();
             runtime
                 .cva
                 .set_memory_relations_with_origin(&changes, GraphRelationOrigin::User, version)
@@ -783,7 +801,7 @@ impl GatewayRuntime {
     ) -> Result<crate::MemorySearchLane, ReliquaryRuntimeHostError> {
         self.with_rel(token, |runtime| {
             let owner_id = runtime
-                .cva()
+                .cva
                 .owner_id()
                 .ok_or_else(|| operation("REL does not have durable owner identity"))?;
             let result = runtime

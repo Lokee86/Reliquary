@@ -244,7 +244,7 @@ impl GatewayRuntime {
             if changed {
                 let mut watermarks = self.with_rel(&token, |runtime| {
                     Ok(super::super::snapshots::reader::source_watermarks(
-                        runtime.cva(),
+                        &runtime.cva,
                     ))
                 })?;
                 watermarks.conversation_journal_sequence =

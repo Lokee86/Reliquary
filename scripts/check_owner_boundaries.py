@@ -838,13 +838,14 @@ def production_path_fixture_check() -> None:
             ROOT = Path(directory)
             (ROOT / "src").mkdir()
             (ROOT / "src/lib.rs").write_text(
-                "mod owner; mod memory; mod service; mod unknown; mod bridge;\n"
+                "mod owner; mod memory; mod graph; mod service; mod unknown; mod bridge;\n"
                 "pub use service::Cva as Facade; pub use memory::MemoryId;\n"
                 "pub(crate) use unknown::Cva as Secret; pub use unknown::run as Helper;\n"
                 "pub fn root_helper() {} pub use unknown::*;\n",
                 encoding="utf-8",
             )
             (ROOT / "src/memory.rs").write_text("pub struct MemoryStore; pub struct MemoryId;", encoding="utf-8")
+            (ROOT / "src/graph.rs").write_text("pub struct GraphRelation; pub struct GraphStore;", encoding="utf-8")
             (ROOT / "src/service.rs").write_text("pub struct Cva; pub fn service_work() {}", encoding="utf-8")
             (ROOT / "src/unknown.rs").write_text("pub fn run() {}", encoding="utf-8")
             (ROOT / "src/bridge.rs").write_text("pub use crate::service::service_work as Work; pub use crate::memory::MemoryId as Id; pub use crate::service::*; mod inner { pub use crate::service::service_work as Imported; pub use crate::memory::MemoryId as Value; } pub use inner::Imported as Nested; pub use inner::Value as NestedId;", encoding="utf-8")
@@ -870,13 +871,24 @@ def production_path_fixture_check() -> None:
                 "owner_files": [{"path": "src/owner.rs", "component": "archive-store", "classification": "production"}],
                 "module_components": [
                     {"module": "memory", "component": "memory-store"},
+                    {"module": "graph", "component": "graph-store"},
                     {"module": "service", "component": "rel-facade"},
                     {"module": "bridge", "component": "archive-store"},
                 ],
                 "forbidden_symbols": ["Cva"],
                 "producer_value_contracts": [{"consumer": "archive-store", "owner": "memory-store", "symbol": "MemoryId"}],
             }
-            dag = {"components": [{"id": name, "depends_on": []} for name in ["archive-store", "memory-store", "rel-facade"]]}
+            dag = {"components": [{"id": name, "depends_on": []} for name in ["archive-store", "memory-store", "graph-store", "rel-facade"]]}
+            manifest["owner_files"][0]["component"] = "memory-store"
+            manifest["producer_value_contracts"].append(
+                {"consumer": "memory-store", "owner": "graph-store", "symbol": "GraphRelation"}
+            )
+            (ROOT / "src/owner.rs").write_text("use crate::graph::GraphRelation;", encoding="utf-8")
+            assert not main_check(manifest, dag), "exact GraphRelation value contract should pass"
+            (ROOT / "src/owner.rs").write_text("use crate::graph::GraphStore;", encoding="utf-8")
+            assert main_check(manifest, dag), "GraphStore capability must remain forbidden"
+            manifest["producer_value_contracts"].pop()
+            manifest["owner_files"][0]["component"] = "archive-store"
             cases = [
                 ("use crate as root; fn invalid() { root::memory::MemoryStore::new(); }", True),
                 ("use crate as root; use root::service::Cva;", True),

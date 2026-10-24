@@ -138,17 +138,17 @@ impl Cva {
         };
         let open_epoch = self.open_import_epoch();
         let owners = crate::history::HistoricalSettlementReadOwners::new(
-            &self.archive,
-            &self.memories,
-            &self.graph,
-            &self.dream_freshness,
-            &self.import_epochs,
-            &self.freshness,
+            &self.owner.archive,
+            &self.owner.memories,
+            &self.owner.graph,
+            &self.owner.dream_freshness,
+            &self.owner.import_epochs,
+            &self.owner.freshness,
         );
         let mut writer =
             crate::owner_lifecycle::historical_settlement::HistoricalSettlementWriteAccess::new(
-                &mut self.container,
-                &self.freshness,
+                &mut self.owner.container,
+                &self.owner.freshness,
             );
         let Some(publication) = crate::imports::historical_commit::commit(
             &mut writer,

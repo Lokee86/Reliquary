@@ -12,7 +12,7 @@ Own future Reliquary implementation work. Completed behavior belongs in current 
 
 ## Overview
 
-The dependency-convergence architecture refactor has completed Phases 0–3 and is accepted locally. Phase 4 Project Environment is integrated, and Phase 5 runtime convergence is tracked by its [execution receipt](dependency-convergence-phase5-execution-2026-10-23.md); Phases 6–7 retain public-facade and final graph closure. The campaign remains limited to dependency convergence, existing architectural corrections/retirements, and documentation catch-up for touched surfaces; it does not absorb new feature work from this roadmap. See [Dependency Convergence Architecture Refactor](dependency-convergence-architecture-refactor-2026-10-21.md) and its [permanent, explicitly allowlisted target component DAG](dependency-convergence-target-dag-2026-10-21.md). No cycle, upward/ancestral backreach (even if acyclic), unauthorized sibling coupling or unlisted direct dependency is permitted after convergence.
+The dependency-convergence architecture refactor has integrated Phases 0–6. Phase 7 source cuts are in progress under its [execution record](dependency-convergence-phase7-execution-2026-10-24.md); inherited A5 full-graph proof and final A7 integration acceptance remain open. The campaign remains limited to dependency convergence, existing architectural corrections/retirements, and documentation catch-up for touched surfaces; it does not absorb new feature work from this roadmap. See [Dependency Convergence Architecture Refactor](dependency-convergence-architecture-refactor-2026-10-21.md) and its [permanent, explicitly allowlisted target component DAG](dependency-convergence-target-dag-2026-10-21.md). No cycle, upward/ancestral backreach (even if acyclic), unauthorized sibling coupling or unlisted direct dependency is permitted after convergence.
 
 Phase 1's physical storage boundary is implemented and accepted locally on
 Windows; its verification record documents platform limits. Its [execution specification](dependency-convergence-phase1-storage-foundation-spec-2026-10-21.md)
@@ -34,7 +34,7 @@ Completed Freshness, Dream, decision-routing, tombstone/import/rewrite, external
 
 ## Completed storage/history track
 
-The correction-only dependency campaign remains open under the [Phase 7 execution record](dependency-convergence-phase7-execution-2026-10-24.md): A5 architecture acceptance and B7 proof must be resolved before conditional hard cuts. Phase 6 bounded source/API/behavior acceptance does not close the final runtime/public SCC or whole-source graph obligation.
+The correction-only dependency campaign remains open under the [Phase 7 execution record](dependency-convergence-phase7-execution-2026-10-24.md): Integrated A5 source/behavior and accepted A6 authorize conditional cuts; inherited A5 graph proof remains part of A7. Phase 6 bounded source/API/behavior acceptance does not close the final runtime/public SCC or whole-source graph obligation.
 
 The earlier CVAFRS06 settlement measured 395,533 bytes before normalization and 7,415,741 bytes across six canonical fixtures afterward. Those figures are historical measurements of the prior self-contained proof. The selected current-only CVAFRS07 design retains exact semantic scope and accepted-event journal references, stores a chronological causal numeric basis and sparse irreducible score corrections, and omits copied per-event recipient sets and complete derived output postimages. Its expanded UTF-8 budget is 64 MiB.
 

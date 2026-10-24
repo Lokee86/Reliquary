@@ -96,7 +96,7 @@ impl GatewayRuntime {
         let token = self.semantic_token(instance, owner_id)?;
         match token.kind {
             OwnerKind::Rel => self.with_rel(&token, |runtime| {
-                runtime.cva.memory(memory_id).map_err(operation)
+                runtime.cva.runtime_memory(memory_id).map_err(operation)
             }),
             OwnerKind::Phy => {
                 self.with_phy(&token, |owner| owner.memory(memory_id).map_err(operation))
@@ -136,7 +136,9 @@ impl GatewayRuntime {
     ) -> Result<crate::EntityStats, ReliquaryRuntimeHostError> {
         let token = self.semantic_token(instance, owner_id)?;
         match token.kind {
-            OwnerKind::Rel => self.with_rel(&token, |runtime| Ok(runtime.cva.entity_stats())),
+            OwnerKind::Rel => {
+                self.with_rel(&token, |runtime| Ok(runtime.cva.runtime_entity_stats()))
+            }
             OwnerKind::Phy => self.with_phy(&token, |owner| Ok(owner.entity_stats())),
         }
     }
@@ -148,7 +150,7 @@ impl GatewayRuntime {
     ) -> Result<Vec<crate::Entity>, ReliquaryRuntimeHostError> {
         let token = self.semantic_token(instance, owner_id)?;
         match token.kind {
-            OwnerKind::Rel => self.with_rel(&token, |runtime| Ok(runtime.cva.entities())),
+            OwnerKind::Rel => self.with_rel(&token, |runtime| Ok(runtime.cva.runtime_entities())),
             OwnerKind::Phy => self.with_phy(&token, |owner| Ok(owner.entities())),
         }
     }
@@ -160,9 +162,9 @@ impl GatewayRuntime {
     ) -> Result<Vec<crate::SemanticGraphRelation>, ReliquaryRuntimeHostError> {
         let token = self.semantic_token(instance, owner_id)?;
         match token.kind {
-            OwnerKind::Rel => {
-                self.with_rel(&token, |runtime| Ok(runtime.cva.semantic_graph_relations()))
-            }
+            OwnerKind::Rel => self.with_rel(&token, |runtime| {
+                Ok(runtime.cva.runtime_semantic_graph_relations())
+            }),
             OwnerKind::Phy => self.with_phy(&token, |owner| Ok(owner.semantic_graph_relations())),
         }
     }
@@ -176,7 +178,10 @@ impl GatewayRuntime {
         let token = self.semantic_token(instance, owner_id)?;
         match token.kind {
             OwnerKind::Rel => self.with_rel(&token, |runtime| {
-                Ok(runtime.cva.memory_routing_metadata(memory_id).cloned())
+                Ok(runtime
+                    .cva
+                    .runtime_memory_routing_metadata(memory_id)
+                    .cloned())
             }),
             OwnerKind::Phy => self.with_phy(&token, |owner| {
                 Ok(owner.memory_routing_metadata(memory_id).cloned())
@@ -297,8 +302,8 @@ impl GatewayRuntime {
                 )
                 .map_err(operation)?;
                 let changed = crate::owner_lifecycle::perception_publication_resolution::apply_principal_profile_sync_plan(
-                    &mut owner.container,
-                    &mut owner.entities,
+                    &mut owner.owner.container,
+                    &mut owner.owner.entities,
                     plan,
                 )
                 .map_err(operation)?;

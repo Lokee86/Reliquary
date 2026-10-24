@@ -1,4 +1,5 @@
 use super::*;
+use crate::InteractionRuntime;
 use crate::{
     DecisionEndpointError, EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode,
     SimulatedEmbeddingEndpoint, VectorNormalization,

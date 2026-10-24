@@ -6,11 +6,7 @@ impl Cva {
         &self,
         id: MemoryId,
     ) -> Result<Option<ExternalMemoryEvidence>, ExternalSourceError> {
-        let body = self
-            .memories
-            .current_body_id(id)
-            .map_err(|_| ExternalSourceError::Unavailable)?;
-        Ok(self.memories.external_evidence.get(&(id, body)).cloned())
+        self.runtime_external_memory_evidence(id)
     }
 }
 

@@ -31,8 +31,8 @@ struct Cut {
     external_indexes: Vec<crate::external_source::ExternalIndexStatus>,
     external_damaged: bool,
 }
-fn cut(runtime: &crate::InteractionRuntime) -> Cut {
-    let cva = runtime.cva();
+fn cut(runtime: &crate::RelExecution) -> Cut {
+    let cva = &runtime.cva;
     Cut {
         watermarks: super::snapshots::reader::source_watermarks(cva),
         metadata: cva.rel_metadata(),
@@ -54,13 +54,13 @@ fn cut(runtime: &crate::InteractionRuntime) -> Cut {
 /// (for example a community name or Dream cooldown). IDs contain no bodies.
 pub(super) fn commit<T>(
     gate: &mut RelSequencerGate<'_>,
-    runtime: &mut crate::InteractionRuntime,
+    runtime: &mut crate::RelExecution,
     family: RelMutationFamily,
     mutate: impl FnOnce(
-        &mut crate::InteractionRuntime,
+        &mut crate::RelExecution,
     ) -> Result<(T, bool, Vec<RelInvalidation>), ReliquaryRuntimeHostError>,
 ) -> Result<T, ReliquaryRuntimeHostError> {
-    if runtime.cva().open_import_epoch().is_some() {
+    if runtime.cva.runtime_open_import_epoch() {
         return Err(operation("REL mutation is fenced by an open import epoch"));
     }
     let before = cut(runtime);
@@ -97,7 +97,7 @@ pub(super) fn commit<T>(
             return Err(error);
         }
     };
-    if let Err(error) = runtime.cva.sync().map_err(operation) {
+    if let Err(error) = runtime.cva.sync_owner().map_err(operation) {
         gate.invalidate();
         return Err(error);
     }
@@ -202,7 +202,7 @@ impl GatewayRuntime {
         token: &OwnerAccessToken,
         family: RelMutationFamily,
         mutate: impl FnOnce(
-            &mut crate::InteractionRuntime,
+            &mut crate::RelExecution,
         )
             -> Result<(T, bool, Vec<RelInvalidation>), ReliquaryRuntimeHostError>,
     ) -> Result<T, ReliquaryRuntimeHostError> {

@@ -123,9 +123,10 @@ fn rel_tail_repair_refuses_open_import_epoch_without_mutating_source() {
         sha2::Sha256::digest([owner_uuid.as_slice(), import_key.as_bytes()].concat())
     );
     owner
+        .owner
         .import_epochs
         .append_start(
-            &mut owner.container,
+            &mut owner.owner.container,
             ImportStart {
                 owner_uuid,
                 import_id,

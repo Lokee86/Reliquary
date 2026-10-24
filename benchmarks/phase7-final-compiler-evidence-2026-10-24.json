@@ -1,0 +1,3590 @@
+{
+  "schema": "phase7-final-compiler-evidence.v1",
+  "date": "2026-10-24",
+  "status": "A7 OPEN; exact calls plus explicit unresolved evidence; not exhaustive capability closure",
+  "provenance_validation": {
+    "status": "validated",
+    "validated": true,
+    "errors": []
+  },
+  "build_provenance": {
+    "schema": "phase7-compiler-provenance.v1",
+    "source_snapshot": {
+      "before_sha256": "106640dc2b07c4b09e8cf34d88fb5f8d571be29f745dd4c85d539504cf01a839",
+      "after_sha256": "106640dc2b07c4b09e8cf34d88fb5f8d571be29f745dd4c85d539504cf01a839",
+      "file_count": 1333,
+      "manifest_path": ".verification-tmp/phase7/compiler-source-manifest-accepted.json",
+      "manifest_sha256": "e798fe00bf0cc1e506b77ff3b7de1a6f7a3f946b5bfd993661a21fc16068967f"
+    },
+    "artifacts": {
+      "rustdoc": {
+        "path": "C:\\!bin\\workspace\\Reliquary\\target\\doc\\reliquary_memory.json",
+        "sha256": "cefb8147c01f4f4372d4e7af776a0770ff23c9bf24ba7e0a0e2d9a24364b4133"
+      },
+      "mir": {
+        "path": "C:\\!bin\\workspace\\Reliquary\\target\\debug\\deps\\reliquary_memory-7f9fe1eea22f08e2.mir",
+        "sha256": "53a2f31d13cd9538caeedce38128b1b3f15da9e08195a7829b3a8857847ad847"
+      }
+    },
+    "commands": [
+      {
+        "command": [
+          "cargo",
+          "rustdoc",
+          "--lib",
+          "--locked",
+          "--jobs",
+          "1",
+          "--",
+          "--document-private-items",
+          "-Z",
+          "unstable-options",
+          "--output-format",
+          "json"
+        ],
+        "exit": 0,
+        "log": ".verification-tmp/phase7/compiler-rustdoc-accepted.log",
+        "log_sha256": "e5eec9bbdff934cb39030c7c48cb401e87ac965f7506e7d4de96a196683b8181"
+      },
+      {
+        "command": [
+          "cargo",
+          "rustc",
+          "--lib",
+          "--locked",
+          "--jobs",
+          "1",
+          "--",
+          "--emit=dep-info,metadata,link,mir",
+          "-Zmir-include-spans=yes",
+          "-Zverbose-internals=yes"
+        ],
+        "exit": 0,
+        "log": ".verification-tmp/phase7/compiler-mir-accepted.log",
+        "log_sha256": "1838e371e42a6d18f9f4488788b9d90e368daa1c9414659ea32fac46c7d224d3"
+      }
+    ],
+    "environment": {
+      "RUSTC_BOOTSTRAP": "1",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_PROFILE_DEV_DEBUG": "0",
+      "CARGO_PROFILE_TEST_DEBUG": "0"
+    },
+    "rustc_version": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-pc-windows-msvc\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+    "cfg": [
+      "debug_assertions",
+      "panic=\"unwind\"",
+      "target_abi=\"\"",
+      "target_arch=\"x86_64\"",
+      "target_endian=\"little\"",
+      "target_env=\"msvc\"",
+      "target_family=\"windows\"",
+      "target_feature=\"cmpxchg16b\"",
+      "target_feature=\"fxsr\"",
+      "target_feature=\"sse\"",
+      "target_feature=\"sse2\"",
+      "target_feature=\"sse3\"",
+      "target_has_atomic=\"128\"",
+      "target_has_atomic=\"16\"",
+      "target_has_atomic=\"32\"",
+      "target_has_atomic=\"64\"",
+      "target_has_atomic=\"8\"",
+      "target_has_atomic=\"ptr\"",
+      "target_has_atomic_primitive_alignment=\"128\"",
+      "target_has_atomic_primitive_alignment=\"16\"",
+      "target_has_atomic_primitive_alignment=\"32\"",
+      "target_has_atomic_primitive_alignment=\"64\"",
+      "target_has_atomic_primitive_alignment=\"8\"",
+      "target_has_atomic_primitive_alignment=\"ptr\"",
+      "target_os=\"windows\"",
+      "target_pointer_width=\"64\"",
+      "target_vendor=\"pc\"",
+      "windows"
+    ],
+    "features": [],
+    "elapsed_seconds": 10.112992525100708,
+    "policy_hashes": {
+      "Cargo.toml": "feffedb1c273f7abd97b6aac73d7eb9aa5028d804a9b884126cd1df8e1a25d52",
+      "Cargo.lock": "a5ed62212b53e70c45bcefd81dc5ce2c9261174faa5ef5fc33fddda573923486",
+      "tools/pitlord/production-components.json": "65d9042f388aa258a7aa2d98ec8a9e350e22a5349a8a6ec8d9d0f9d5623b6b41",
+      "tools/pitlord/convergence-component-dag.json": "4d972fb32851c6e5b361555fa52338f65369c2d06d11fd7e375a19f1ede7e742"
+    }
+  },
+  "raw_output": ".verification-tmp/phase7/compiler-calls-final.json",
+  "raw_output_sha256": "a15ef379eed329d74d2a8a275573467502ec8292d44f08b7f9050336249e2d5f",
+  "checker_sha256": "abf32166bff12d61a0f614745a82d13c788a51c9b1113b470516ae5792f14b95",
+  "coverage": {
+    "target_components": 34,
+    "instantiated_source_components": 33,
+    "reachable_modules": 871,
+    "uninstantiated_target_component": "ego",
+    "profile": "Windows x86_64 MSVC; no features; development debug assertions; debug symbols disabled",
+    "relations": "MIR constant call operands with exact private rustdoc implementation identities; no suffix/name-based inference"
+  },
+  "counts": {
+    "constant_calls": 129187,
+    "external_constant_calls": 13156,
+    "external_calls_without_mapped_caller": 1788,
+    "same_component_calls": 2459,
+    "unknown_call_reasons": {
+      "drop terminator requires destructor analysis": 32229,
+      "indirect or nonconstant call terminator": 6,
+      "unresolved local compiler target": 80401
+    }
+  },
+  "cross_component_calls": 936,
+  "unpermitted_raw_calls": 191,
+  "unpermitted_unique_calls": 182,
+  "unknown_raw_calls": 112636,
+  "unknown_unique_calls": 71003,
+  "unpermitted_pair_matrix": [
+    {
+      "source": "dream",
+      "target": "freshness-store",
+      "calls": 1
+    },
+    {
+      "source": "history",
+      "target": "container",
+      "calls": 4
+    },
+    {
+      "source": "memory-store",
+      "target": "perception-store",
+      "calls": 2
+    },
+    {
+      "source": "perception-store",
+      "target": "memory-store",
+      "calls": 5
+    },
+    {
+      "source": "public-consumers",
+      "target": "archive-store",
+      "calls": 4
+    },
+    {
+      "source": "public-consumers",
+      "target": "container",
+      "calls": 60
+    },
+    {
+      "source": "public-consumers",
+      "target": "freshness-store",
+      "calls": 3
+    },
+    {
+      "source": "public-consumers",
+      "target": "graph-store",
+      "calls": 1
+    },
+    {
+      "source": "public-consumers",
+      "target": "memory-store",
+      "calls": 49
+    },
+    {
+      "source": "public-consumers",
+      "target": "owner-lifecycle",
+      "calls": 3
+    },
+    {
+      "source": "public-consumers",
+      "target": "perception",
+      "calls": 10
+    },
+    {
+      "source": "public-consumers",
+      "target": "retrieval",
+      "calls": 2
+    },
+    {
+      "source": "public-consumers",
+      "target": "vector-store",
+      "calls": 2
+    },
+    {
+      "source": "public-consumers",
+      "target": "vectors",
+      "calls": 1
+    },
+    {
+      "source": "runtime-gateway",
+      "target": "container",
+      "calls": 36
+    },
+    {
+      "source": "runtime-gateway",
+      "target": "external-index-store",
+      "calls": 7
+    },
+    {
+      "source": "runtime-gateway",
+      "target": "vector-store",
+      "calls": 1
+    }
+  ],
+  "unpermitted_call_endpoints": [
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 654,
+      "mir_line_sha256": "010696f99ddc93aacc646380a076ecf37a88e78fcfcf30bfd27e181e3ed8c9a5",
+      "target": "graph_compact_codec::publication::version_at",
+      "source_component": "public-consumers",
+      "target_component": "graph-store",
+      "target_definitions": [
+        {
+          "path": "src/semantic_graph/graph_publication_codec.rs",
+          "line": 106,
+          "end_line": 121,
+          "symbol": "graph_compact_codec::publication::version_at"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 315,
+      "mir_line_sha256": "01249ba8769af607098167ea4b252b9e5851cdd10798e041cbf3731485290329",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 785,
+      "mir_line_sha256": "02df8371504d8de51a542997bbb3f5ef6297116633afb8b18cc6ab4a4016165e",
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/../facade/insomnia_cva.rs",
+      "source_line": 236,
+      "mir_line_sha256": "0373aaf0f2832f5335fb9629994c0a16809ff4edefcfc85b13b23b31d218e423",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/historical_embedding.rs",
+      "source_line": 27,
+      "mir_line_sha256": "07dd5431d43862e8e9e4932df10c9f5f59ed7dec5f89bb7c9cddc4d03f96fee1",
+      "target": "container::Container::path",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 498,
+          "end_line": 500,
+          "symbol": "container::Container::path"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/memory/memory_store.rs",
+      "source_line": 842,
+      "mir_line_sha256": "0875ed8c81f0d348980312c8fe5b94721a843314af69127bd5831b8e986d0e13",
+      "target": "entity_resolution_model::MemoryEntityMentionKey::new",
+      "source_component": "memory-store",
+      "target_component": "perception-store",
+      "target_definitions": [
+        {
+          "path": "src/perception/entity_resolution_model.rs",
+          "line": 16,
+          "end_line": 23,
+          "symbol": "entity_resolution_model::MemoryEntityMentionKey::new"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/reliquary_runtime_owner.rs",
+      "source_line": 371,
+      "mir_line_sha256": "08761906e2cd3cde96c6fabf5ead903e34d43cd4606ea88352ae34f2331bf17e",
+      "target": "container::Container::sync",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/phy_execution_owner.rs",
+      "source_line": 45,
+      "mir_line_sha256": "0e59f9008dca4efe568f5ac07095097f9ceddffd09069a5e3468404dc898d17f",
+      "target": "container::Container::sync",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery_memory_vectors.rs",
+      "source_line": 73,
+      "mir_line_sha256": "0f43759311c788dd2917176b931a04eb25503bed5f9dac1af2ae48c4ac2c6023",
+      "target": "memory_store::MemoryStore::current_body_ids",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 813,
+          "end_line": 822,
+          "symbol": "memory_store::MemoryStore::current_body_ids"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery_memory_source.rs",
+      "source_line": 87,
+      "mir_line_sha256": "0fda651f9804c572917407c4e778c8b4bff17983e45a4c40dbd04d62dd771f8f",
+      "target": "memory_store::MemoryStore::publish_with_source_ref",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 214,
+          "end_line": 230,
+          "symbol": "memory_store::MemoryStore::publish_with_source_ref"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery_dream_candidates.rs",
+      "source_line": 59,
+      "mir_line_sha256": "11cf40fec399eb13b74114723e254817b0fdceacd482630f424d698bb45c91ec",
+      "target": "memory_store::MemoryStore::current_body_id",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 824,
+          "end_line": 827,
+          "symbol": "memory_store::MemoryStore::current_body_id"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_lifecycle.rs",
+      "source_line": 54,
+      "mir_line_sha256": "120e169ef98343fa79e7f13b1898043e1d107a8ce4a817b05c384f391c74dd0a",
+      "target": "container::Container::create_with_identity_and_uuid",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 188,
+          "end_line": 225,
+          "symbol": "container::Container::create_with_identity_and_uuid"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_mount.rs",
+      "source_line": 40,
+      "mir_line_sha256": "125fd6134be7d9a30d10dcf1f1c4a5dc7eb23819512d231eb495dbda5d2ba020",
+      "target": "container::Container::backing_file_identity",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 494,
+          "end_line": 496,
+          "symbol": "container::Container::backing_file_identity"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery_memory_source.rs",
+      "source_line": 28,
+      "mir_line_sha256": "12f79c89aec95edf58bd1f7ce28cf6363542433ce48f412ecaf657716d48fc18",
+      "target": "memory_store::MemoryStore::publish_with_source_ref_and_temporal_inference",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 232,
+          "end_line": 276,
+          "symbol": "memory_store::MemoryStore::publish_with_source_ref_and_temporal_inference"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_phy_perception.rs",
+      "source_line": 186,
+      "mir_line_sha256": "131341f75b30ef770b6f6ca52494bc215929fa6dd536baf04b190402770bed0a",
+      "target": "container::Container::sync",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/perception/entity_resolution_codec.rs",
+      "source_line": 107,
+      "mir_line_sha256": "15131d7fcd2e89359373a16d2be1a01a57ad6349f3c1d8c106c608e0db1b6ef6",
+      "target": "memory_routing_model::MemoryTextField::from_tag",
+      "source_component": "perception-store",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_routing_model.rs",
+          "line": 20,
+          "end_line": 26,
+          "symbol": "memory_routing_model::MemoryTextField::from_tag"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/historical_embedding.rs",
+      "source_line": 365,
+      "mir_line_sha256": "151e53c50610ea1ea26a324919f0a5a558245f5ef268fdfa44d79430da5fe4ea",
+      "target": "container::Container::set_owner_write_scope",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 246,
+          "end_line": 248,
+          "symbol": "container::Container::set_owner_write_scope"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_archive_vectors.rs",
+      "source_line": 14,
+      "mir_line_sha256": "160e2d006b8ee50a39428c519e55fbb48832ba267babb58410c56e4a41206895",
+      "target": "archive_vector_store::validate_mapping_shape",
+      "source_component": "public-consumers",
+      "target_component": "vector-store",
+      "target_definitions": [
+        {
+          "path": "src/retrieval/archive_vector_store.rs",
+          "line": 186,
+          "end_line": 199,
+          "symbol": "archive_vector_store::validate_mapping_shape"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 162,
+      "mir_line_sha256": "16e0f7d713fd0436677ce1b6bd9301ec85ac36f9f990cbe9a372005335dd665c",
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva.rs",
+      "source_line": 496,
+      "mir_line_sha256": "18eb8b6fe9d55c1fb69a8112be3f5545bd2633f35d09f65c13c0436800de000b",
+      "target": "memory_store::MemoryStore::memory_version",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 769,
+          "end_line": 771,
+          "symbol": "memory_store::MemoryStore::memory_version"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_agentic_memory_graph.rs",
+      "source_line": 153,
+      "mir_line_sha256": "192a9459fab963965a3fc9a3a327fe79c7a64a6c913898504eb733b5a814e79d",
+      "target": "container::Container::owner_id",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 514,
+          "end_line": 518,
+          "symbol": "container::Container::owner_id"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 314,
+      "mir_line_sha256": "19799e1cac2210b1879aa92c8eeef94561e405638abc5b8d3349f990cdc8672a",
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery.rs",
+      "source_line": 6,
+      "mir_line_sha256": "1a25e68c723b7c773e4b868dfc9d98398314992f3cd64182584b0fd93242ccd3",
+      "target": "container::Container::owner_id",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 514,
+          "end_line": 518,
+          "symbol": "container::Container::owner_id"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 163,
+      "mir_line_sha256": "1ae55860044c819da540246352eab37714f9ef66fcf6c266548dd93592353933",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_dream_population.rs",
+      "source_line": 26,
+      "mir_line_sha256": "1c5cb4ffdc7d16ae8df8d80be09b974f174e099bfdf767803551f778f2b600fb",
+      "target": "memory_store::MemoryStore::memory_version",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 769,
+          "end_line": 771,
+          "symbol": "memory_store::MemoryStore::memory_version"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+      "source_line": 25,
+      "mir_line_sha256": "1d3b0b35404dc6ac9c80e069e88c80291e7fbe66b3413aca55888ba27a284708",
+      "target": "external_index::model::identifier",
+      "source_component": "runtime-gateway",
+      "target_component": "external-index-store",
+      "target_definitions": [
+        {
+          "path": "src/external_index/model.rs",
+          "line": 135,
+          "end_line": 140,
+          "symbol": "external_index::model::identifier"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 142,
+      "mir_line_sha256": "1f815b5cdf0d33f108a4b4a35168b3ddba87672e33f5dcbb4e27715c2e62ba87",
+      "target": "memory_store::MemoryStore::memory",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 393,
+          "end_line": 400,
+          "symbol": "memory_store::MemoryStore::memory"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_agentic_memory_query.rs",
+      "source_line": 66,
+      "mir_line_sha256": "212ff09498075f63a8ce379ddbee5abfc269f7d72fceec29b444c3719865f09b",
+      "target": "container::Container::owner_id",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 514,
+          "end_line": 518,
+          "symbol": "container::Container::owner_id"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 240,
+      "mir_line_sha256": "215c0ac0cf1a9d93f66f764e0a611e5fc7799128a1b244de0621271a78084cc2",
+      "target": "memory_store::MemoryStore::memory",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 393,
+          "end_line": 400,
+          "symbol": "memory_store::MemoryStore::memory"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery_memory_source.rs",
+      "source_line": 46,
+      "mir_line_sha256": "223528552a086f3a8e7f2063154ed2ebb3fb27d923d16a2d9c06fb3b73605014",
+      "target": "memory_store::MemoryStore::memory",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 393,
+          "end_line": 400,
+          "symbol": "memory_store::MemoryStore::memory"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/../facade/insomnia_processor.rs",
+      "source_line": 62,
+      "mir_line_sha256": "23dac6fecf885019f7eeeb1555edd6c67293f3e8b182501cc3db23d1ce404ab7",
+      "target": "container::Container::owner_id",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 514,
+          "end_line": 518,
+          "symbol": "container::Container::owner_id"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 555,
+      "mir_line_sha256": "24ffb6b97a1f2a7e112a639a7828b33ffa3c8c7d79837c752bec1dddec15dd83",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_entity_resolution_processor.rs",
+      "source_line": 24,
+      "mir_line_sha256": "251a2936c333b711075761643239b9d23aebeff2baa3cf70fc950fefaddedc1e",
+      "target": "entity_resolution_processor::stale_snapshot",
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "target_definitions": [
+        {
+          "path": "src/perception/entity_resolution_processor.rs",
+          "line": 1,
+          "end_line": 3,
+          "symbol": "entity_resolution_processor::stale_snapshot"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/../facade/insomnia_processor.rs",
+      "source_line": 23,
+      "mir_line_sha256": "2609fc9c26a097e750318b8e4f69f9b356a421eea13d6323a7242e1585a33fb9",
+      "target": "container::Container::owner_id",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 514,
+          "end_line": 518,
+          "symbol": "container::Container::owner_id"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_freshness_birth.rs",
+      "source_line": 136,
+      "mir_line_sha256": "263c2b2bf13cf4db3d52e385c99a020d6e89606e25bb7ba10252b992fac6093a",
+      "target": "container::Container::sync",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery_memory_vectors.rs",
+      "source_line": 92,
+      "mir_line_sha256": "27181088d6aa654980c622a446caa16b6198131e4f79171b653136149acac60e",
+      "target": "memory_store::MemoryStore::body_embedding_text",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 975,
+          "end_line": 983,
+          "symbol": "memory_store::MemoryStore::body_embedding_text"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/dream_freshness.rs",
+      "source_line": 89,
+      "mir_line_sha256": "279fdd8320c396af7393454aead6b84b34fb986162280cd48c57a86845041973",
+      "target": "freshness_trace::scope",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/trace.rs",
+          "line": 177,
+          "end_line": 177,
+          "symbol": "freshness_trace::scope"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_mount.rs",
+      "source_line": 43,
+      "mir_line_sha256": "29244f371bf84eaab34f856c8c11b415b1c0a448b07f8c09d0fb63f9b82210ea",
+      "target": "container::Container::owner_id",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 514,
+          "end_line": 518,
+          "symbol": "container::Container::owner_id"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_repack.rs",
+      "source_line": 39,
+      "mir_line_sha256": "2b5ef73544bb0a34e6e55665baf407a2c387534206a3106d0bce8cd6fe496290",
+      "target": "container::Container::object_payloads",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 470,
+          "end_line": 477,
+          "symbol": "container::Container::object_payloads"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_entity_resolution_prepare.rs",
+      "source_line": 28,
+      "mir_line_sha256": "2cf845035036d2a82ac52155e0bbd913c27a83860da456d77799e1540c0e1fc2",
+      "target": "entity_resolution_prepare::prepare_entity_resolution",
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "target_definitions": [
+        {
+          "path": "src/perception/entity_resolution_prepare.rs",
+          "line": 20,
+          "end_line": 88,
+          "symbol": "entity_resolution_prepare::prepare_entity_resolution"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/reliquary_runtime_owner.rs",
+      "source_line": 255,
+      "mir_line_sha256": "2e3d13175fea7f63b81a03ad98d79c7bb34d7efe6a47c127ba4a8eb473351e1f",
+      "target": "container::Container::owner_uuid",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 510,
+          "end_line": 512,
+          "symbol": "container::Container::owner_uuid"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/historical_embedding_plan.rs",
+      "source_line": 310,
+      "mir_line_sha256": "2ea653d8230381ce7cbd6ab770c25f63ec6241c9fef637bce1083d1a49a0e234",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery.rs",
+      "source_line": 10,
+      "mir_line_sha256": "2fffea847a0638b7345c5cef8f584a762389a6414a9dca469df4ebf11bc8a0ae",
+      "target": "container::Container::owner_uuid",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 510,
+          "end_line": 512,
+          "symbol": "container::Container::owner_uuid"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery.rs",
+      "source_line": 177,
+      "mir_line_sha256": "31dc52fdcf02c7c02482df81e4ae758899295539d908a43b2e24c7c4b98fbadc",
+      "target": "memory_store::MemoryStore::stats",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 985,
+          "end_line": 992,
+          "symbol": "memory_store::MemoryStore::stats"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_freshness_birth.rs",
+      "source_line": 103,
+      "mir_line_sha256": "32caf4f5355e9361233b0614f413898b3d9c4bc5b614d57d3483fdc5bb9aadd5",
+      "target": "container::Container::owner_uuid",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 510,
+          "end_line": 512,
+          "symbol": "container::Container::owner_uuid"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_dream_population.rs",
+      "source_line": 37,
+      "mir_line_sha256": "33f2e50ba652e8b20665917e455574548c8a9261469ba3e3ed6e3cbed8b9b1b1",
+      "target": "memory_store::MemoryStore::first_publication_prefix",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 723,
+          "end_line": 741,
+          "symbol": "memory_store::MemoryStore::first_publication_prefix"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_dream_population.rs",
+      "source_line": 29,
+      "mir_line_sha256": "347213a83b61e859fb77f71dcecd12b5ce792e817e40f455c852710845d84716",
+      "target": "memory_external_publication::decode",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/external_publication.rs",
+          "line": 98,
+          "end_line": 184,
+          "symbol": "memory_external_publication::decode"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 50,
+      "mir_line_sha256": "36288a8f2dd7fc51cbfbc7b764cb12ed582667fb5e485dd92cba2e835e1d8aa9",
+      "target": "container::Container::require_write_admission",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 250,
+          "end_line": 257,
+          "symbol": "container::Container::require_write_admission"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_phy_perception.rs",
+      "source_line": 289,
+      "mir_line_sha256": "36772a00561a9d74d999a82f60ef13e94a3fd7d6ed543728da100846ec573eeb",
+      "target": "container::Container::sync",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/dream_pair_admission.rs",
+      "source_line": 10,
+      "mir_line_sha256": "41bfd66730650b672660cf05b254bfd9a0a0fd7d98f6a27ad16352fa11e0e8c4",
+      "target": "memory_store::MemoryStore::contains_memory",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 773,
+          "end_line": 775,
+          "symbol": "memory_store::MemoryStore::contains_memory"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/history/import_epoch_scope.rs",
+      "source_line": 135,
+      "mir_line_sha256": "41cd4c4ea8599ee74a2e1a22da483ff00fc38db6f9754c1d1201b9beddf1f6b0",
+      "target": "container::ObjectRef::legacy_bytes",
+      "source_component": "history",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 99,
+          "end_line": 105,
+          "symbol": "container::ObjectRef::legacy_bytes"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_principal_repack.rs",
+      "source_line": 205,
+      "mir_line_sha256": "4213c17303095c68028be8ea9efa34f147a7ff7bfbdd4682bb8bfbae7653174d",
+      "target": "archive_codec::encode_node",
+      "source_component": "public-consumers",
+      "target_component": "archive-store",
+      "target_definitions": [
+        {
+          "path": "src/archive/archive_codec.rs",
+          "line": 45,
+          "end_line": 50,
+          "symbol": "archive_codec::encode_node"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/interaction_background.rs",
+      "source_line": 136,
+      "mir_line_sha256": "432dea903fd16447643ac0f45b448938e3ea40ce8f90009c84905cfcfbbc5667",
+      "target": "memory_store::MemoryStore::current_ids",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 801,
+          "end_line": 805,
+          "symbol": "memory_store::MemoryStore::current_ids"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/historical_embedding_plan.rs",
+      "source_line": 56,
+      "mir_line_sha256": "438fa13a6585d170bcb8c71072c70acfb067efa987044c76f00d6672a2db97f1",
+      "target": "container::Container::path",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 498,
+          "end_line": 500,
+          "symbol": "container::Container::path"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 252,
+      "mir_line_sha256": "4661078f61c361b203927792e2e15cbb8b2b812449e278ec66316d074a2026cd",
+      "target": "memory_store::MemoryStore::current_body_id",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 824,
+          "end_line": 827,
+          "symbol": "memory_store::MemoryStore::current_body_id"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 973,
+      "mir_line_sha256": "478b32031955b06f65e8dfa0f801154f3c01a11ecfd5f5f6d2cecdf71ecff30e",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_memory_retrieval.rs",
+      "source_line": 36,
+      "mir_line_sha256": "47be85d31b8c078ee6bcf239fcee90350ba24041aa735006521a6ec311238b7d",
+      "target": "memory_store::MemoryStore::memory_version",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 769,
+          "end_line": 771,
+          "symbol": "memory_store::MemoryStore::memory_version"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+      "source_line": 271,
+      "mir_line_sha256": "480a7673ab8ef98b2c2ac94893a3099a81cde83cf7da142df6e77531e0a94230",
+      "target": "external_index::model::identifier",
+      "source_component": "runtime-gateway",
+      "target_component": "external-index-store",
+      "target_definitions": [
+        {
+          "path": "src/external_index/model.rs",
+          "line": 135,
+          "end_line": 140,
+          "symbol": "external_index::model::identifier"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_freshness_birth.rs",
+      "source_line": 36,
+      "mir_line_sha256": "4b773c3db73b3738d41c131d2214c4c1e7cb5b09cea452c147ea7cdc896ff1a3",
+      "target": "container::Container::append",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva.rs",
+      "source_line": 488,
+      "mir_line_sha256": "4c721f86164a155808bd4c567a8986f9f8b4b4553e7d65caf76d5291e2b08e7c",
+      "target": "memory_store::MemoryStore::stats",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 985,
+          "end_line": 992,
+          "symbol": "memory_store::MemoryStore::stats"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/perception/entity_resolution_codec.rs",
+      "source_line": 71,
+      "mir_line_sha256": "4c86fdbaac70d9401deaa9ac7d94f3e1fb9a62a2599c984da1af8022b03fddc7",
+      "target": "memory_routing_model::MemoryTextField::tag",
+      "source_component": "perception-store",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_routing_model.rs",
+          "line": 13,
+          "end_line": 18,
+          "symbol": "memory_routing_model::MemoryTextField::tag"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_freshness_birth.rs",
+      "source_line": 120,
+      "mir_line_sha256": "4ddcac764ee86051b6c038d7f34ae515b85f46858dbe92696e38d91c58dc8c41",
+      "target": "container::Container::append",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_reconcile_promote.rs",
+      "source_line": 143,
+      "mir_line_sha256": "4e28aa883bbd96fdafbb8017a3d7da01466a7aeb9e046ed9d01c2c811217e679",
+      "target": "atomic_publication::atomic_replace",
+      "source_component": "public-consumers",
+      "target_component": "owner-lifecycle",
+      "target_definitions": [
+        {
+          "path": "src/owner_lifecycle/atomic_publication.rs",
+          "line": 5,
+          "end_line": 7,
+          "symbol": "atomic_publication::atomic_replace"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_dream_population.rs",
+      "source_line": 86,
+      "mir_line_sha256": "4fecdaafb230d821d69eb08429713b3d7b8dd9ebc54bd02ec9a51a56e55061f1",
+      "target": "memory_store::MemoryStore::first_publication_prefix",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 723,
+          "end_line": 741,
+          "symbol": "memory_store::MemoryStore::first_publication_prefix"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_freshness_birth.rs",
+      "source_line": 121,
+      "mir_line_sha256": "51cd15dbb7c584c6fb85b8206e8bfd973bc0f0639197cb055851f584b0a07195",
+      "target": "container::Container::sync",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_mutation_events.rs",
+      "source_line": 87,
+      "mir_line_sha256": "55faba48c188b5e638f04fb59d58c8a2ef4cef0969630f2f1b2f13aef70e3534",
+      "target": "container::Container::backing_metadata",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 490,
+          "end_line": 492,
+          "symbol": "container::Container::backing_metadata"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_lifecycle.rs",
+      "source_line": 34,
+      "mir_line_sha256": "5608358e36e7653d3b89a569f2ac2fa659b07ed34bcdbd0f212efaf87cd1065e",
+      "target": "container::Container::create_with_identity",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 181,
+          "end_line": 186,
+          "symbol": "container::Container::create_with_identity"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/insomnia/worker/runtime/outcome.rs",
+      "source_line": 53,
+      "mir_line_sha256": "58a969d502524cbb4dc90858d82daa60597689caeb4d5db4ef9ca56e9b4e2dd9",
+      "target": "container::Container::owner_id",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 514,
+          "end_line": 518,
+          "symbol": "container::Container::owner_id"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/dream_product_extensions.rs",
+      "source_line": 114,
+      "mir_line_sha256": "5a473b1e95e4a2a177bcad341d0d2b263473198eee62b7a334a6ef89ec5889da",
+      "target": "memory_store::MemoryStore::contains_memory",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 773,
+          "end_line": 775,
+          "symbol": "memory_store::MemoryStore::contains_memory"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/history/import_epoch_scope.rs",
+      "source_line": 80,
+      "mir_line_sha256": "6169f8249e941b830f802e6ef8b87f9abda191f43abfc26754164a0aa6d6854e",
+      "target": "container::ObjectRef::legacy_bytes",
+      "source_component": "history",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 99,
+          "end_line": 105,
+          "symbol": "container::ObjectRef::legacy_bytes"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+      "source_line": 421,
+      "mir_line_sha256": "61c8f2f034b691fe4ee6aa049e5afdcff67c1e2d2dee26c0d2fbb829ee3ecfc3",
+      "target": "container::Container::owner_uuid",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 510,
+          "end_line": 512,
+          "symbol": "container::Container::owner_uuid"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/historical_embedding.rs",
+      "source_line": 361,
+      "mir_line_sha256": "6242b723d8c871f30b3f1d58548e8a64cbd56549bbdd7cb8507092a9c215b3ec",
+      "target": "container::Container::set_owner_write_scope",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 246,
+          "end_line": 248,
+          "symbol": "container::Container::set_owner_write_scope"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 554,
+      "mir_line_sha256": "63ef5f65c77cb0eb36d7019b645c6957c9bbb2494a935fb7b3c4cb804a37675e",
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery.rs",
+      "source_line": 192,
+      "mir_line_sha256": "6546052b463a957b0442db55b3f97a7a6ba66ee829e9946127df8b1452302dce",
+      "target": "memory_store::MemoryStore::put_routing_metadata",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 917,
+          "end_line": 936,
+          "symbol": "memory_store::MemoryStore::put_routing_metadata"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+      "source_line": 259,
+      "mir_line_sha256": "66475d5072a6652a1ab2b045a7526f84730e4a10a5b4ee21c8195e158399219f",
+      "target": "external_index::model::identifier",
+      "source_component": "runtime-gateway",
+      "target_component": "external-index-store",
+      "target_definitions": [
+        {
+          "path": "src/external_index/model.rs",
+          "line": 135,
+          "end_line": 140,
+          "symbol": "external_index::model::identifier"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_freshness_birth.rs",
+      "source_line": 135,
+      "mir_line_sha256": "669adfeed12d5f642f236a557ab88718b7244fa5bfaa521ad180bde8a32ecaac",
+      "target": "container::Container::append",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva.rs",
+      "source_line": 382,
+      "mir_line_sha256": "673b55779b3a856cd0d38d531dd306e94629eab2c7d16f0d70ff704a08435986",
+      "target": "memory_store::MemoryStore::tombstone",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 416,
+          "end_line": 461,
+          "symbol": "memory_store::MemoryStore::tombstone"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/freshness_access.rs",
+      "source_line": 195,
+      "mir_line_sha256": "6e16d0f736ad3e20082c89de15a8ef116ae3973d7353b2c60fd7921bc71dc8e8",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery.rs",
+      "source_line": 171,
+      "mir_line_sha256": "6e411f43dd80238aa91003b2b04e1de62ce69015b287c6c848bbf2879ba85cda",
+      "target": "memory_store::MemoryStore::memory_revision",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 402,
+          "end_line": 414,
+          "symbol": "memory_store::MemoryStore::memory_revision"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_reconcile_promote.rs",
+      "source_line": 147,
+      "mir_line_sha256": "6f19ec489cc1da0e24b7796de0f4ac5316828cfa630d15a2ed84399813d542a9",
+      "target": "atomic_publication::sync_parent",
+      "source_component": "public-consumers",
+      "target_component": "owner-lifecycle",
+      "target_definitions": [
+        {
+          "path": "src/owner_lifecycle/atomic_publication.rs",
+          "line": 15,
+          "end_line": 17,
+          "symbol": "atomic_publication::sync_parent"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_entity_merge.rs",
+      "source_line": 24,
+      "mir_line_sha256": "6f3fe03b2634ee2ee4bb4584a07217105a7a7ef611d48e9dcf322ed875f3e997",
+      "target": "container::Container::owner_id",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 514,
+          "end_line": 518,
+          "symbol": "container::Container::owner_id"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 219,
+      "mir_line_sha256": "6fc6beea12ad8c2861433b2504d643175a66d9b2291999857e299566d7efe18a",
+      "target": "memory_store::MemoryStore::memory",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 393,
+          "end_line": 400,
+          "symbol": "memory_store::MemoryStore::memory"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 149,
+      "mir_line_sha256": "70e8ed7b2a8c533792ad271712b3a50729fa1e6726109a87bb87de7443d4fdaf",
+      "target": "container::Container::owner_uuid",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 510,
+          "end_line": 512,
+          "symbol": "container::Container::owner_uuid"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 947,
+      "mir_line_sha256": "710bdf35ecf0ca0f6e52828ab3899d5add284bede225af9977db0fd54437df74",
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_external.rs",
+      "source_line": 334,
+      "mir_line_sha256": "71176ef0e7fc5c5044738a6c9b5a59a18874aed803042ab75aa9aba3736ab9c7",
+      "target": "external_index::model::ExternalMessageDescriptor::validate",
+      "source_component": "runtime-gateway",
+      "target_component": "external-index-store",
+      "target_definitions": [
+        {
+          "path": "src/external_index/model.rs",
+          "line": 37,
+          "end_line": 48,
+          "symbol": "external_index::model::ExternalMessageDescriptor::validate"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery_dream_candidates.rs",
+      "source_line": 55,
+      "mir_line_sha256": "718f1b0e75bc2a73c58d7d37e64baeacfa50feef49db9539049ac9c92e07a2d5",
+      "target": "memory_store::MemoryStore::memory",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 393,
+          "end_line": 400,
+          "symbol": "memory_store::MemoryStore::memory"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva.rs",
+      "source_line": 755,
+      "mir_line_sha256": "74e700d530255e7d78b1fef96466b5ffa8cf2e8867671df6f8ef20ea03867226",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/memory/memory_store.rs",
+      "source_line": 956,
+      "mir_line_sha256": "75fe35f463a41f6d8995efd0a967616d34932ceab7d2a4c9a78eb00043560ecd",
+      "target": "entity_resolution_model::MemoryEntityMentionKey::new",
+      "source_component": "memory-store",
+      "target_component": "perception-store",
+      "target_definitions": [
+        {
+          "path": "src/perception/entity_resolution_model.rs",
+          "line": 16,
+          "end_line": 23,
+          "symbol": "entity_resolution_model::MemoryEntityMentionKey::new"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/history/import_admission_epoch.rs",
+      "source_line": 50,
+      "mir_line_sha256": "7a76dc004ad123c569ec761aa30308d7315196a4ab2bed8cb02d9c0cfd51d03f",
+      "target": "container::ObjectRef::legacy_bytes",
+      "source_component": "history",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 99,
+          "end_line": 105,
+          "symbol": "container::ObjectRef::legacy_bytes"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_principal_repack.rs",
+      "source_line": 39,
+      "mir_line_sha256": "7ad114d52c5a40679eec0e4e1f530784502bb97d60a27360a9aa6daada185bd3",
+      "target": "container::Container::object_payloads",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 470,
+          "end_line": 477,
+          "symbol": "container::Container::object_payloads"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/external_source_extensions.rs",
+      "source_line": 18,
+      "mir_line_sha256": "7d4fc9ee34fcac9ffe03f46480882bba3f464854bee0d4b1379dcfd15aa55449",
+      "target": "memory_store::MemoryStore::current_body_id",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 824,
+          "end_line": 827,
+          "symbol": "memory_store::MemoryStore::current_body_id"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva.rs",
+      "source_line": 651,
+      "mir_line_sha256": "7d938eeeb887868e5175bc65759f9dbca3f9991a7bfc46b6397e8dc5151f45f4",
+      "target": "memory_store::MemoryStore::memory_version",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 769,
+          "end_line": 771,
+          "symbol": "memory_store::MemoryStore::memory_version"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_phy_perception.rs",
+      "source_line": 163,
+      "mir_line_sha256": "7ffac462e20e2598756de0ed1d7779634903eee3bbaa626451f92f78a0b63f32",
+      "target": "container::Container::owner_id",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 514,
+          "end_line": 518,
+          "symbol": "container::Container::owner_id"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva.rs",
+      "source_line": 396,
+      "mir_line_sha256": "807c5fdc59fc81579df239702329cb165ce13070494586c9277bd020fb40d2fa",
+      "target": "memory_store::MemoryStore::retention_descriptor",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 516,
+          "end_line": 521,
+          "symbol": "memory_store::MemoryStore::retention_descriptor"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_external.rs",
+      "source_line": 81,
+      "mir_line_sha256": "82ad3228dcf05dc5a34f94945c1b2fe55af03bc8472e458f1ed670e7f9123d15",
+      "target": "external_index::model::identifier",
+      "source_component": "runtime-gateway",
+      "target_component": "external-index-store",
+      "target_definitions": [
+        {
+          "path": "src/external_index/model.rs",
+          "line": 135,
+          "end_line": 140,
+          "symbol": "external_index::model::identifier"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_entity_resolution_processor.rs",
+      "source_line": 44,
+      "mir_line_sha256": "83f0e139d60924da01fdafabd0935b1a0bd737974e869303d34e707531233848",
+      "target": "entity_resolution_processor::stale_snapshot",
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "target_definitions": [
+        {
+          "path": "src/perception/entity_resolution_processor.rs",
+          "line": 1,
+          "end_line": 3,
+          "symbol": "entity_resolution_processor::stale_snapshot"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 141,
+      "mir_line_sha256": "86276c6d1358aeb98a281bd7382a3e99f08c0166dfc455de5d173045c7aeaabd",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_vector_recovery.rs",
+      "source_line": 25,
+      "mir_line_sha256": "8682bc43494e4f1b03f2d27c1ae40862faba2c3e3fed6c9ad56d21258f6831c2",
+      "target": "vector_publication::prepare_batch",
+      "source_component": "public-consumers",
+      "target_component": "vectors",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/vector_publication.rs",
+          "line": 7,
+          "end_line": 35,
+          "symbol": "vector_publication::prepare_batch"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_entity_reconciliation.rs",
+      "source_line": 90,
+      "mir_line_sha256": "8a379a0aa2b0a3499f8fc4768a2f7f2c89da866744e2d0e5264dd5d568a332d3",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/dream_freshness.rs",
+      "source_line": 111,
+      "mir_line_sha256": "8d15af736cbe36488c978584a96c927283b890e8fae94db3ef44acf6e058da46",
+      "target": "freshness_trace::scope",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/trace.rs",
+          "line": 177,
+          "end_line": 177,
+          "symbol": "freshness_trace::scope"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/knowledge_mutation_execution.rs",
+      "source_line": 134,
+      "mir_line_sha256": "8dd354a6c54aee0d17d4927973408ccc6504cfd20e47b4d71ed3661e2fff855d",
+      "target": "container::Container::owner_uuid",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 510,
+          "end_line": 512,
+          "symbol": "container::Container::owner_uuid"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_repack.rs",
+      "source_line": 68,
+      "mir_line_sha256": "8feb30820f40c428cdff921d6aec5d1fafdf5bcfd54d16c10c4cb7762d119230",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_mutation_events.rs",
+      "source_line": 71,
+      "mir_line_sha256": "90bccbf1f1ec715315bc265f6a735409e5611e7aa3d04e508e1924c07c8dc674",
+      "target": "container::Container::backing_metadata",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 490,
+          "end_line": 492,
+          "symbol": "container::Container::backing_metadata"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/dream_pair_admission.rs",
+      "source_line": 29,
+      "mir_line_sha256": "92017f43638ffbc49ae2c5810e47721bca2662be7bf8ef3f2d9b8c572fd7a2df",
+      "target": "memory_store::MemoryStore::contains_memory",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 773,
+          "end_line": 775,
+          "symbol": "memory_store::MemoryStore::contains_memory"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_principal_repack.rs",
+      "source_line": 54,
+      "mir_line_sha256": "9208949fdaef5abdbb303e9bc105290d396fea32ba69000da5f22b66b36160b7",
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_principal_repack.rs",
+      "source_line": 36,
+      "mir_line_sha256": "94dd0b88032ccc5f7075735a72e61d0d4efd152c672f3c05fa6e7973f30272a6",
+      "target": "container::Container::path",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 498,
+          "end_line": 500,
+          "symbol": "container::Container::path"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/freshness_access.rs",
+      "source_line": 48,
+      "mir_line_sha256": "958971696ac8865dfe63f4961dba681d28f13b8a9e94b94f81ca8f9546097837",
+      "target": "freshness_trace::scope",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/trace.rs",
+          "line": 177,
+          "end_line": 177,
+          "symbol": "freshness_trace::scope"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 948,
+      "mir_line_sha256": "9a724eeb848322b0e7f31777007709dc44d1430516d970088a54524942e2815a",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/../facade/insomnia_cva.rs",
+      "source_line": 235,
+      "mir_line_sha256": "9ae78cb3b38c9f245c9a75cb792b249a824491b55c421cad1ed7e324242c121c",
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_file_memory.rs",
+      "source_line": 9,
+      "mir_line_sha256": "9cf009c39a69468f3231dff89ffaeeed9cf2bfbbbb6cfef67c8c5ef96839cb50",
+      "target": "memory_store::MemoryStore::current_body_id",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 824,
+          "end_line": 827,
+          "symbol": "memory_store::MemoryStore::current_body_id"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_freshness_birth.rs",
+      "source_line": 37,
+      "mir_line_sha256": "9f4a0506db63408bc4cb3e52e42821e4621c24643e78eeb040c784a6e4f6905a",
+      "target": "container::Container::sync",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_reconcile_promote.rs",
+      "source_line": 117,
+      "mir_line_sha256": "a2e1fae1e6a301333d8d1514680e0ff3c372b0f148878a6825f5cd65eaa74078",
+      "target": "container::Container::backing_file_identity",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 494,
+          "end_line": 496,
+          "symbol": "container::Container::backing_file_identity"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_phy_perception.rs",
+      "source_line": 124,
+      "mir_line_sha256": "a33f74f1b43588626093292a60ed1f370a2e7a8c82731aee53d17f1151ce1e7b",
+      "target": "container::Container::owner_id",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 514,
+          "end_line": 518,
+          "symbol": "container::Container::owner_id"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/perception/entity_resolution_store.rs",
+      "source_line": 286,
+      "mir_line_sha256": "a34430b52c8e6f3f825c215b16b14d12db81ac15d943838aa586c298d50127b7",
+      "target": "memory_routing_model::MemoryTextField::tag",
+      "source_component": "perception-store",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_routing_model.rs",
+          "line": 13,
+          "end_line": 18,
+          "symbol": "memory_routing_model::MemoryTextField::tag"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 478,
+      "mir_line_sha256": "a6fb5bbc6c37f1ca4ef9304681cbec2038ca0c3425d41a00a12c5912de89d348",
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_repack.rs",
+      "source_line": 64,
+      "mir_line_sha256": "a72d3543ed2186db4d7d8309341edfdf23d9361ed4c35b9dd0bcef95e72c52ab",
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/dream_product_extensions.rs",
+      "source_line": 56,
+      "mir_line_sha256": "acbf4e3889d0db575104d1e7e1f17c43951725b1d2cf97dc58f234467c419b08",
+      "target": "memory_store::MemoryStore::memory",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 393,
+          "end_line": 400,
+          "symbol": "memory_store::MemoryStore::memory"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/historical_embedding.rs",
+      "source_line": 289,
+      "mir_line_sha256": "adf82780b2ec85fb3ad1fc9104218096c4667617b3952527679fcced070de652",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_mount.rs",
+      "source_line": 42,
+      "mir_line_sha256": "aebdc18221934fc6d5548267a420046280d1221588df5c9f93a89e82783cd721",
+      "target": "container::Container::identity",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 506,
+          "end_line": 508,
+          "symbol": "container::Container::identity"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 406,
+      "mir_line_sha256": "af48ad956c7812cf5163ddc32732f0f5108843ec414edf51e33f2676750b449c",
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 201,
+      "mir_line_sha256": "af951edec44930489f74e508fac5ae77e6a082e13b03631d0e01b9fb73cc0910",
+      "target": "memory_store::MemoryStore::current_ids",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 801,
+          "end_line": 805,
+          "symbol": "memory_store::MemoryStore::current_ids"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/../facade/insomnia_cva.rs",
+      "source_line": 207,
+      "mir_line_sha256": "af9b47ceb114b7347cf3960c67e93eeb071e4aed0cb77f02545180c3a9001822",
+      "target": "memory_store::MemoryStore::contains_memory",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 773,
+          "end_line": 775,
+          "symbol": "memory_store::MemoryStore::contains_memory"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_rel_perception.rs",
+      "source_line": 192,
+      "mir_line_sha256": "b1cdf9ba896ec06b4d5da654c32292adeb1c6022e5885da162ad2e72cf592232",
+      "target": "container::Container::owner_id",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 514,
+          "end_line": 518,
+          "symbol": "container::Container::owner_id"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_principal_repack.rs",
+      "source_line": 200,
+      "mir_line_sha256": "b25b7ae52126663b5e9446b508c2447fed357e3d79b6ab48c478945821a42f7a",
+      "target": "archive_codec::decode_record",
+      "source_component": "public-consumers",
+      "target_component": "archive-store",
+      "target_definitions": [
+        {
+          "path": "src/archive/archive_codec.rs",
+          "line": 274,
+          "end_line": 314,
+          "symbol": "archive_codec::decode_record"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery.rs",
+      "source_line": 161,
+      "mir_line_sha256": "b2b0150f6c7d614a7528ae6fd37624f44292652d60c8395d508965c1b31960bd",
+      "target": "memory_store::MemoryStore::publish_with_source_ref",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 214,
+          "end_line": 230,
+          "symbol": "memory_store::MemoryStore::publish_with_source_ref"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_repack.rs",
+      "source_line": 28,
+      "mir_line_sha256": "b3a3443f607d198a90a65a3efdcf48dcf80450fddad958c44eaa1643ad39ea88",
+      "target": "container::Container::path",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 498,
+          "end_line": 500,
+          "symbol": "container::Container::path"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery.rs",
+      "source_line": 76,
+      "mir_line_sha256": "b3ef62ad52b43f7077fc9b78a3a76319cd871ee8e0b29e83ca2c28789e17f1e2",
+      "target": "memory_store::MemoryStore::retention_descriptor",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 516,
+          "end_line": 521,
+          "symbol": "memory_store::MemoryStore::retention_descriptor"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/reliquary_runtime_owner.rs",
+      "source_line": 449,
+      "mir_line_sha256": "b4a7234a2c80018f44730964a9dea3c519c48a9c0cc37ceca16d369cce4ad24a",
+      "target": "memory_vector_store::validate_mapping_shape",
+      "source_component": "runtime-gateway",
+      "target_component": "vector-store",
+      "target_definitions": [
+        {
+          "path": "src/retrieval/memory_vector_store.rs",
+          "line": 250,
+          "end_line": 274,
+          "symbol": "memory_vector_store::validate_mapping_shape"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/history/import_epoch_scope.rs",
+      "source_line": 105,
+      "mir_line_sha256": "b50b6c44aafba33e074700ecbd7b3bd543af7b9d87da37ef612b07077c9eb942",
+      "target": "container::ObjectRef::legacy_bytes",
+      "source_component": "history",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 99,
+          "end_line": 105,
+          "symbol": "container::ObjectRef::legacy_bytes"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_retrieval_memory_search.rs",
+      "source_line": 12,
+      "mir_line_sha256": "b8888248300610fe9b37d22b77b721e4db4c14e399b776f1b3ba49dce481488d",
+      "target": "memory_search::validate",
+      "source_component": "public-consumers",
+      "target_component": "retrieval",
+      "target_definitions": [
+        {
+          "path": "src/retrieval/memory_search.rs",
+          "line": 21,
+          "end_line": 27,
+          "symbol": "memory_search::validate"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_freshness_birth.rs",
+      "source_line": 25,
+      "mir_line_sha256": "ba5938d0fd896aeace82c9b48c208145731e44b6535c734d04a28e1f7b5da019",
+      "target": "container::Container::owner_uuid",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 510,
+          "end_line": 512,
+          "symbol": "container::Container::owner_uuid"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/freshness_access.rs",
+      "source_line": 194,
+      "mir_line_sha256": "bc20254f32b2b298c674d38863bb87eb9bb4037a51ba9d099665e8a54a1079f5",
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_mount.rs",
+      "source_line": 38,
+      "mir_line_sha256": "bd6cc3e75693e0de637e6954c5a7a55d3e7668beee2b93a54e4f460922d2ede4",
+      "target": "container::Container::path",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 498,
+          "end_line": 500,
+          "symbol": "container::Container::path"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/historical_embedding.rs",
+      "source_line": 30,
+      "mir_line_sha256": "bd70a7d8080939d80a391e88b70afee4b111dd67c3475e3b340912976558964b",
+      "target": "container::Container::path",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 498,
+          "end_line": 500,
+          "symbol": "container::Container::path"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva.rs",
+      "source_line": 35,
+      "mir_line_sha256": "be356696f965ab02d6ef2a251e30905eda64ef9f27a881625c39e992532b12d7",
+      "target": "container::Container::identity",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 506,
+          "end_line": 508,
+          "symbol": "container::Container::identity"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 479,
+      "mir_line_sha256": "c2311b2a786ade2e40f8aadf873baffd1be224617f9c5033c5a023ddd8a7f2dc",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery.rs",
+      "source_line": 185,
+      "mir_line_sha256": "c2bd0196eec99c1f82986e5baf7b9d78feed490ed7022135943c5f0b52b995ec",
+      "target": "memory_store::MemoryStore::routing_metadata",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 848,
+          "end_line": 852,
+          "symbol": "memory_store::MemoryStore::routing_metadata"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_retrieval_memory_search.rs",
+      "source_line": 32,
+      "mir_line_sha256": "c3117b58768e3087afdaa3f4122051151f8c54ed5347f64fd6f03748fcebc60c",
+      "target": "memory_search::validate",
+      "source_component": "public-consumers",
+      "target_component": "retrieval",
+      "target_definitions": [
+        {
+          "path": "src/retrieval/memory_search.rs",
+          "line": 21,
+          "end_line": 27,
+          "symbol": "memory_search::validate"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+      "source_line": 223,
+      "mir_line_sha256": "c4352d5be657e1f7c83312b61516483b247018380cae991753a1101135eb1580",
+      "target": "external_index::model::HydratedExternalMessage::validate",
+      "source_component": "runtime-gateway",
+      "target_component": "external-index-store",
+      "target_definitions": [
+        {
+          "path": "src/external_index/model.rs",
+          "line": 91,
+          "end_line": 104,
+          "symbol": "external_index::model::HydratedExternalMessage::validate"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_compatibility_profiles.rs",
+      "source_line": 44,
+      "mir_line_sha256": "c7853cff4d2b7198fd6f9139fd8bcaa287065272994067eb1431729bcffb6d52",
+      "target": "memory_store::MemoryStore::current_body_ids",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 813,
+          "end_line": 822,
+          "symbol": "memory_store::MemoryStore::current_body_ids"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/perception/entity_resolution_delta_codec.rs",
+      "source_line": 134,
+      "mir_line_sha256": "c7d50c4a082560fb09a219c75a8c33ecf82dbd5008e788d78e5e7c8918f65da1",
+      "target": "memory_routing_model::MemoryTextField::from_tag",
+      "source_component": "perception-store",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_routing_model.rs",
+          "line": 20,
+          "end_line": 26,
+          "symbol": "memory_routing_model::MemoryTextField::from_tag"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_principal_repack.rs",
+      "source_line": 163,
+      "mir_line_sha256": "c86ca2a624d2a8a3142493517274211947e49f2b80e07e428a27ea77a896ff8a",
+      "target": "archive_codec::publication::decode",
+      "source_component": "public-consumers",
+      "target_component": "archive-store",
+      "target_definitions": [
+        {
+          "path": "src/archive/archive_publication_codec.rs",
+          "line": 116,
+          "end_line": 215,
+          "symbol": "archive_codec::publication::decode"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_principal_repack.rs",
+      "source_line": 58,
+      "mir_line_sha256": "c97286fbe7580f70af9a51d42407df21f6235daf71b7522b6013df2711d198e1",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 462,
+      "mir_line_sha256": "ccbd75a89493307a90facb85fea310adc8584e9ac94b9342638b79c2b8a194e5",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_phy_perception.rs",
+      "source_line": 119,
+      "mir_line_sha256": "cd4a5b897272cf2b0c45a464a3ab2caab8f822fc82aebda870b3d143c2bbcd30",
+      "target": "container::Container::sync",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 461,
+      "mir_line_sha256": "cd8f45899e4e1b042918fee91fbf0267368bcc98ebb9b30fb89df6a75feafa66",
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 407,
+      "mir_line_sha256": "cebb8947b412f34c3aac33620540db2c54e64071f3bfdd3519cea9d8dc773273",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery_memory_vectors.rs",
+      "source_line": 27,
+      "mir_line_sha256": "cf248044a7f245b56b5b7a48be270abc9127b7322016db73846a971a30c37cc8",
+      "target": "memory_store::MemoryStore::contains_body",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 797,
+          "end_line": 799,
+          "symbol": "memory_store::MemoryStore::contains_body"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva.rs",
+      "source_line": 83,
+      "mir_line_sha256": "d09d328f23ac0c3ff251e86599567481bbc2a7a0ce5c2efaa8a4b4fbcd6ec57e",
+      "target": "container::Container::owner_uuid",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 510,
+          "end_line": 512,
+          "symbol": "container::Container::owner_uuid"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery_memory_vectors.rs",
+      "source_line": 18,
+      "mir_line_sha256": "d11344eaa837db6d096e1f74e641f16c7ac7d8c056ed162a683eb1b099061ede",
+      "target": "memory_vector_store::validate_mapping_shape",
+      "source_component": "public-consumers",
+      "target_component": "vector-store",
+      "target_definitions": [
+        {
+          "path": "src/retrieval/memory_vector_store.rs",
+          "line": 250,
+          "end_line": 274,
+          "symbol": "memory_vector_store::validate_mapping_shape"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_rel_perception.rs",
+      "source_line": 223,
+      "mir_line_sha256": "d3f6bb313f95c3002b847249a41ef38e7901827a2f8b69481761b40be28c5e02",
+      "target": "container::Container::owner_id",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 514,
+          "end_line": 518,
+          "symbol": "container::Container::owner_id"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+      "source_line": 34,
+      "mir_line_sha256": "d4a460e4c34427b590f6655f4471daa6299a36f640022b34628fdadbb93bd999",
+      "target": "external_index::model::HydratedExternalMessage::validate",
+      "source_component": "runtime-gateway",
+      "target_component": "external-index-store",
+      "target_definitions": [
+        {
+          "path": "src/external_index/model.rs",
+          "line": 91,
+          "end_line": 104,
+          "symbol": "external_index::model::HydratedExternalMessage::validate"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_entity_reconciliation.rs",
+      "source_line": 172,
+      "mir_line_sha256": "d5617c04b924e5a1f926d24585a1befb314c0986d873dba6c72f8a7fb103397c",
+      "target": "entity_resolution_processor::stale_snapshot",
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "target_definitions": [
+        {
+          "path": "src/perception/entity_resolution_processor.rs",
+          "line": 1,
+          "end_line": 3,
+          "symbol": "entity_resolution_processor::stale_snapshot"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_rel_vectors.rs",
+      "source_line": 215,
+      "mir_line_sha256": "d66ed9c61e4ad7dc1fd9356fbbdcd64dcc992f0c585c7cab15db0bfb02d18d5a",
+      "target": "container::Container::path",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 498,
+          "end_line": 500,
+          "symbol": "container::Container::path"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/reliquary_runtime_owner.rs",
+      "source_line": 106,
+      "mir_line_sha256": "d714a7db9fe49b24716ac8abf57456db56da7b1b18b36a8bd190ce29ddcc896d",
+      "target": "container::Container::owner_id",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 514,
+          "end_line": 518,
+          "symbol": "container::Container::owner_id"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 205,
+      "mir_line_sha256": "d9c28f1d3e911e7396d5e38574e671425846cb248959dd7f4f5088789d3cc0fe",
+      "target": "memory_store::MemoryStore::current_body_id",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 824,
+          "end_line": 827,
+          "symbol": "memory_store::MemoryStore::current_body_id"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/reliquary_runtime_owner.rs",
+      "source_line": 281,
+      "mir_line_sha256": "dc7b1100d7a54186715cb557dde21035482ab5a84bcb6bed0596edb0cc23aecd",
+      "target": "container::Container::owner_uuid",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 510,
+          "end_line": 512,
+          "symbol": "container::Container::owner_uuid"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva.rs",
+      "source_line": 437,
+      "mir_line_sha256": "de16cc0be28814218bbb510b21f879fe28efce4be42b13052cd632a755d87584",
+      "target": "memory_store::MemoryStore::lifecycle_state",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 501,
+          "end_line": 514,
+          "symbol": "memory_store::MemoryStore::lifecycle_state"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_mount.rs",
+      "source_line": 25,
+      "mir_line_sha256": "e0373cc768b6336b16ba7e8bb43b63bca9f6db1534422e3eedb2d781eb507b8e",
+      "target": "container::Container::inspect_header",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 480,
+          "end_line": 488,
+          "symbol": "container::Container::inspect_header"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_reconcile_promote.rs",
+      "source_line": 47,
+      "mir_line_sha256": "e1866439d97aa593405a4b36bc77be0dd7093ce7175183e0daac07e464065d21",
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery.rs",
+      "source_line": 181,
+      "mir_line_sha256": "e1971f11e6f3d1adb1c48b7aea56ff7fee2532aacef56cfa7e1291dfea264156",
+      "target": "memory_store::MemoryStore::memory_version",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 769,
+          "end_line": 771,
+          "symbol": "memory_store::MemoryStore::memory_version"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery.rs",
+      "source_line": 62,
+      "mir_line_sha256": "e223149271353858008691dc4547f680afe9b1c83195f7618ad072bc8589448b",
+      "target": "memory_store::MemoryStore::tombstone",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 416,
+          "end_line": 461,
+          "symbol": "memory_store::MemoryStore::tombstone"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_reconcile_promote.rs",
+      "source_line": 50,
+      "mir_line_sha256": "e31e7e1b57d1b37983e6c97bb4d363d8b324fc3f0a1064f401400a43a7ed05e1",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_rel_vectors.rs",
+      "source_line": 245,
+      "mir_line_sha256": "e66fd173a75085c75a5dc75ff4b7c2307cf3fadb12434796239c16a5d9e7bac9",
+      "target": "container::Container::path",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 498,
+          "end_line": 500,
+          "symbol": "container::Container::path"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery.rs",
+      "source_line": 118,
+      "mir_line_sha256": "e695bffdd5c3d2c7e9ec13b76c4b28f89b08332630737c4044c140a8630dfd72",
+      "target": "memory_store::MemoryStore::lifecycle_state",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 501,
+          "end_line": 514,
+          "symbol": "memory_store::MemoryStore::lifecycle_state"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/knowledge_mutation_execution.rs",
+      "source_line": 117,
+      "mir_line_sha256": "e92cc19beefc7105d965d71862d233f23b270e8c58b7a03560a5251aaced90ea",
+      "target": "container::Container::owner_uuid",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 510,
+          "end_line": 512,
+          "symbol": "container::Container::owner_uuid"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/dream_product_extensions.rs",
+      "source_line": 57,
+      "mir_line_sha256": "e94c0c44e2006d48abe399f2a538f11f03b3b46de742aef9f2804868bcf2b2a0",
+      "target": "memory_store::MemoryStore::current_body_id",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 824,
+          "end_line": 827,
+          "symbol": "memory_store::MemoryStore::current_body_id"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 786,
+      "mir_line_sha256": "e9651518138ca188f20874875b4843e03bdc2ca15b3665d4a34bf8bb5dd70eda",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery_memory_retrieval.rs",
+      "source_line": 36,
+      "mir_line_sha256": "eb4588ec83c54aafeaaaf61c2c38ffcf153a5e14df4e9b9ef6b390083f8a8d39",
+      "target": "memory_store::MemoryStore::memory_version",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 769,
+          "end_line": 771,
+          "symbol": "memory_store::MemoryStore::memory_version"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 138,
+      "mir_line_sha256": "ebf6493151c639c7e4a73c78f6f10d7cf4a0f52280b4af9f1ab34391f140ceaf",
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_principal_repack.rs",
+      "source_line": 188,
+      "mir_line_sha256": "ec813efeafd72a053d5c73db5d50862610e02f0c1bf5ace4e78ec995fca527b4",
+      "target": "archive_codec::publication::encode",
+      "source_component": "public-consumers",
+      "target_component": "archive-store",
+      "target_definitions": [
+        {
+          "path": "src/archive/archive_publication_codec.rs",
+          "line": 41,
+          "end_line": 114,
+          "symbol": "archive_codec::publication::encode"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/insomnia_worker_runtime.rs",
+      "source_line": 136,
+      "mir_line_sha256": "ee5ec556126c24842ff83b7826eb6476d587165b870561f45284caf9f2bcc8ca",
+      "target": "container::Container::owner_uuid",
+      "source_component": "runtime-gateway",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 510,
+          "end_line": 512,
+          "symbol": "container::Container::owner_uuid"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_lifecycle.rs",
+      "source_line": 74,
+      "mir_line_sha256": "ef3e39e5ab911a802f0f356fc49c05cf78cc6db57453a857c6eec2d8ae9c2ed1",
+      "target": "container::Container::create_with_identity_and_uuid",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 188,
+          "end_line": 225,
+          "symbol": "container::Container::create_with_identity_and_uuid"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 972,
+      "mir_line_sha256": "f0bc1dfec820ab53def04abadde51667b360a9f81660d61f61e44d0fc369e1cd",
+      "target": "container::Container::append",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 227,
+          "end_line": 237,
+          "symbol": "container::Container::append"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/perception/entity_resolution_delta_codec.rs",
+      "source_line": 54,
+      "mir_line_sha256": "f0e053614e94cc6375bce76ac37efe22287bd950ff7fa6460e099beadf2fa26c",
+      "target": "memory_routing_model::MemoryTextField::tag",
+      "source_component": "perception-store",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_routing_model.rs",
+          "line": 13,
+          "end_line": 18,
+          "symbol": "memory_routing_model::MemoryTextField::tag"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_dream_population.rs",
+      "source_line": 59,
+      "mir_line_sha256": "f22c6ca2816556cf243af5db3014ce62b6be06a7b3155d97a22f352538cab1ec",
+      "target": "insomnia::completion::decode_completion",
+      "source_component": "public-consumers",
+      "target_component": "owner-lifecycle",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/insomnia/completion.rs",
+          "line": 165,
+          "end_line": 178,
+          "symbol": "insomnia::completion::decode_completion"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva.rs",
+      "source_line": 511,
+      "mir_line_sha256": "f55db2b8222038e4e5194a63abd7288fba44c4b183826b0c1b2f479db0ffe4cb",
+      "target": "memory_store::MemoryStore::put_routing_metadata",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 917,
+          "end_line": 936,
+          "symbol": "memory_store::MemoryStore::put_routing_metadata"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_entity_resolution_batch.rs",
+      "source_line": 61,
+      "mir_line_sha256": "f76cbf05ef7e10ba41ec3baa457df18861e377322258a36250d1b78accd085d9",
+      "target": "entity_resolution_batch::stale_snapshot",
+      "source_component": "public-consumers",
+      "target_component": "perception",
+      "target_definitions": [
+        {
+          "path": "src/perception/entity_resolution_batch.rs",
+          "line": 145,
+          "end_line": 147,
+          "symbol": "entity_resolution_batch::stale_snapshot"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_principal_repack.rs",
+      "source_line": 35,
+      "mir_line_sha256": "f7bd9df47ea05767e93e772afebf5071b26c502e685f10f30824f4feb54f087f",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_dream_population.rs",
+      "source_line": 54,
+      "mir_line_sha256": "fe9b17512e2d402710047ee7a6a133d8f7f6155478e3b3cb042cebf6b40143bb",
+      "target": "memory_store::MemoryStore::first_publication_prefix",
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 723,
+          "end_line": 741,
+          "symbol": "memory_store::MemoryStore::first_publication_prefix"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_repack.rs",
+      "source_line": 27,
+      "mir_line_sha256": "ff5a071cee314f7cf0179931df4c7cd1023311be872159a8ecdce2efe4ecd916",
+      "target": "container::Container::sync",
+      "source_component": "public-consumers",
+      "target_component": "container",
+      "target_definitions": [
+        {
+          "path": "src/container/container.rs",
+          "line": 541,
+          "end_line": 544,
+          "symbol": "container::Container::sync"
+        }
+      ],
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/dream_settlement.rs",
+      "source_line": 26,
+      "mir_line_sha256": "ff5c1e99d8e8cb871c847cb53c06f89a63a709d38912ffe1bfd1c04fc64a04fa",
+      "target": "freshness_trace::scope",
+      "source_component": "dream",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/trace.rs",
+          "line": 177,
+          "end_line": 177,
+          "symbol": "freshness_trace::scope"
+        }
+      ],
+      "permitted": false
+    }
+  ],
+  "unknown_call_sample": [
+    {
+      "source_path": "src/facade/cva_reconcile_promote.rs",
+      "source_line": 116,
+      "mir_line_sha256": "000079e96f9b75076b277fe9c6e583f508fe68bdadfea67f68132d32f4cc3b49",
+      "target": "<std::result::Result<(), ContainerError> as Try>::branch",
+      "source_component": "public-consumers",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/imports/epoch_codec.rs",
+      "source_line": 121,
+      "mir_line_sha256": "00045f5e38f74fe9898f7709e85be755867635670105d09db04625ed714c237c",
+      "target": "<std::result::Result<std::string::String, epoch_model::ImportError> as FromResidual<std::result::Result<Infallible, serde_json::Error>>>::from_residual",
+      "source_component": "import-store",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_conversation_generation_events.rs",
+      "source_line": 37,
+      "mir_line_sha256": "0004926daa4e737a525db61d5fc84fe3ffb6a27c5a8d019824b5342a791ab89a",
+      "target": "erased",
+      "source_component": "runtime-gateway",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/freshness/dream_population_digest.rs",
+      "source_line": 14,
+      "mir_line_sha256": "00049c7a4ef3d857b07fb5d01371b553c3c05629676b14189f2811ed2e7f90a7",
+      "target": "erased",
+      "source_component": "dream-store",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_rel_perception.rs",
+      "source_line": 101,
+      "mir_line_sha256": "0005a39b1a823b3e0d9d359433d699945820164d30a49f346f3f7ed218d3d0e3",
+      "target": "Vec::new",
+      "source_component": "runtime-gateway",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/runtime_inference/insomnia/extraction.rs",
+      "source_line": 301,
+      "mir_line_sha256": "00068ccc10f772b7ec76324a00c2cdfaaa3a65be8459f59ff050b318e75523ee",
+      "terminator_kind": "drop",
+      "target": null,
+      "reason": "drop terminator requires destructor analysis",
+      "source_component": "insomnia"
+    },
+    {
+      "source_path": "src/archive/ordered_replay.rs",
+      "source_line": 57,
+      "mir_line_sha256": "0007044a806e76993c8ecea843b994f1960fa7449525915cdea79bbb941fab4a",
+      "target": "<std::result::Result<ArchiveTail, archive_error::ArchiveError> as FromResidual<std::result::Result<Infallible, archive_error::ArchiveError>>>::from_residual",
+      "source_component": "archive-store",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_conversation_generation.rs",
+      "source_line": 152,
+      "mir_line_sha256": "00075dabbb20c3b8cf80c5f08c8684fdb4771ad96c8987c5e2d77c8368039f7b",
+      "terminator_kind": "drop",
+      "target": null,
+      "reason": "drop terminator requires destructor analysis",
+      "source_component": "runtime-gateway"
+    },
+    {
+      "source_path": "src/facade/cva_freshness.rs",
+      "source_line": 898,
+      "mir_line_sha256": "00087c3d5a18f4ae9e7851051e8629391dafe1febbb56381e2befdea7a00dc8e",
+      "target": "<std::result::Result<std::option::Option<RefreshDue>, OwnerError> as Try>::branch",
+      "source_component": "public-consumers",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_external.rs",
+      "source_line": 82,
+      "mir_line_sha256": "00090dacffec1a573a416c47ffe6c888294d44e57eb2204155857dd3ebb23d02",
+      "target": "<std::result::Result<std::option::Option<SourceState>, external_index::model::ExternalSourceError> as Try>::branch",
+      "source_component": "runtime-gateway",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/facade/historical_embedding.rs",
+      "source_line": 27,
+      "mir_line_sha256": "00099d9b19b59026056b5329175708c79fceb0f1532233bda2f9c83ffed964de",
+      "target": "Metadata::len",
+      "source_component": "public-consumers",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_rel_insomnia.rs",
+      "source_line": 180,
+      "mir_line_sha256": "0009d0ec6841793e20ce765eda924b647fe3d6f3a375845ba727de131dfe7870",
+      "target": "PublicationCoordinator::thaw",
+      "source_component": "runtime-gateway",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/config_security/model_config_codec.rs",
+      "source_line": 91,
+      "mir_line_sha256": "000b87e73b149ba793cce80845068b37522b658f090519e18efbb05d661a5973",
+      "target": "<std::result::Result<Vec<u8>, ConfigError> as FromResidual<std::result::Result<Infallible, ConfigError>>>::from_residual",
+      "source_component": "config-security",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/facade/cva_repack.rs",
+      "source_line": 75,
+      "mir_line_sha256": "000bd1587531530582743354eacbf023003c639204da430710116e5ccc8a2d29",
+      "target": "erased",
+      "source_component": "public-consumers",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_owner_publication.rs",
+      "source_line": 568,
+      "mir_line_sha256": "000c9f8ff22c1941a6cc66daa9fee6413fb1629b597be6cea1d18c97289ae853",
+      "terminator_kind": "drop",
+      "target": null,
+      "reason": "drop terminator requires destructor analysis",
+      "source_component": "runtime-gateway"
+    },
+    {
+      "source_path": "src/history/manifest_encoding.rs",
+      "source_line": 36,
+      "mir_line_sha256": "000fce736f380391a13c31fabc1fd1ec98b86d8d486d4a0c48dbb7c54ee54b31",
+      "target": "<impl AsRef<[u8]> as AsRef<[u8]>>::as_ref",
+      "source_component": "history",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/maintenance/rewrite/plan.rs",
+      "source_line": 40,
+      "mir_line_sha256": "00112084f004f0bee2bf960b56597e1f7e6de2198eb53f0da89b3da3c546e5e2",
+      "target": "<std::result::Result<std::collections::BTreeSet<[u8; ValTree(Leaf(0x0000000000000020): usize)]>, RewriteError> as Try>::branch",
+      "source_component": "maintenance",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/owner_lifecycle/freshness_reconciliation.rs",
+      "source_line": 310,
+      "mir_line_sha256": "00123d5a1a4b59335a018ceef8084770cc6c132d6ed72a405da307829c43ed6f",
+      "target": "<std::result::Result<std::option::Option<RefreshDue>, OwnerError> as FromResidual<std::result::Result<Infallible, OwnerError>>>::from_residual",
+      "source_component": "owner-lifecycle",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/perception/relationship_description_proof.rs",
+      "source_line": 12,
+      "mir_line_sha256": "001376944c7f572d8d80b7c41d0b73c8ed9a054b50ae5387a0c0a27f1ebb6b35",
+      "target": "<std::result::Result<std::option::Option<(relationship_model::RelationshipId, u64, RelationshipDescriptionProof)>, relationship_error::RelationshipError> as FromResidual<std::result::Result<Infallible, ContainerError>>>::from_residual",
+      "source_component": "perception-store",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/facade/dream_lifecycle.rs",
+      "source_line": 224,
+      "mir_line_sha256": "0013b8f52bd0b9f3b29e1e2f568ea508b27bf2e8912fc52c937995d0f814fb42",
+      "target": "<std::string::String as Clone>::clone",
+      "source_component": "public-consumers",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/config_security/config_object.rs",
+      "source_line": 25,
+      "mir_line_sha256": "0013dbef1ad7d674856e95b78fbb007786e70be4d86674fdd403e59ddd69715d",
+      "target": "<std::result::Result<(), ConfigError> as Try>::branch",
+      "source_component": "config-security",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/imports/contract.rs",
+      "source_line": 35,
+      "mir_line_sha256": "00144d13b9736126567f6a1f67b5964d908cf71b3f29f25bf6d1632fa61dab82",
+      "target": "<__S as agentic_memory_retrieval_decision::_::_serde::Serializer>::serialize_struct",
+      "source_component": "import",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/facade/cva_graph.rs",
+      "source_line": 70,
+      "mir_line_sha256": "001486f165b440a0043c31057dbbee8f1b398b7c0f167d00b916450e5655c5fe",
+      "target": "knowledge_mutation_execution::runtime_set_knowledge_relations",
+      "source_component": "public-consumers",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/freshness_storage.rs",
+      "source_line": 1255,
+      "mir_line_sha256": "00150d2c77c2b03502ce9f4875ee06d19959200eaa53aeb973005d7e1b6e7d42",
+      "target": "<Vec<u8> as Deref>::deref",
+      "source_component": "freshness-store",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/runtime_inference/agentic_memory_retrieval_decision.rs",
+      "source_line": 164,
+      "mir_line_sha256": "001528a4c2d0ca87caa5e7b88fe099b4e8b3610dda09f8b9c72b31a6ebd71a01",
+      "target": "<std::result::Result<serde_json::Value, AgenticMemoryError> as Try>::branch",
+      "source_component": "retrieval",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/freshness/freshness_semantic_settlement.rs",
+      "source_line": 65,
+      "mir_line_sha256": "00169586ebf4d1fac16abbedb31ad317b0c65c547504f48293bbb58cebfff9cf",
+      "target": "erased",
+      "source_component": "freshness-store",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/chronos/chronos_absolute_calendar.rs",
+      "source_line": 233,
+      "mir_line_sha256": "0016b4ecc2512d05707c3248e35c3d435dbdd548e6da2534088e701d63633bb5",
+      "target": "<str as PartialEq>::eq",
+      "source_component": "chronos",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/chronos/chronos_model.rs",
+      "source_line": 154,
+      "mir_line_sha256": "00185d6b4b42a68f18c7e5e09db5a80a9123dae94d712e39e7d4b99167358c2b",
+      "target": "<Vec<TemporalInterval> as Default>::default",
+      "source_component": "chronos",
+      "reason": "unresolved local compiler target"
+    },
+    {
+      "source_path": "src/runtime_inference/openai_codex_general.rs",
+      "source_line": 13,
+      "mir_line_sha256": "00199e394bf88884c8c97a11dfbc69b5ea8944595130171494a9b040e9295279",
+      "terminator_kind": "drop",
+      "target": null,
+      "reason": "drop terminator requires destructor analysis",
+      "source_component": "switchboard"
+    },
+    {
+      "source_path": "src/staleness/mod.rs",
+      "source_line": 143,
+      "mir_line_sha256": "001a40f272017a7e507a01050c2903be636b01b288a5c04cf9aa06a28b466029",
+      "target": "<u128 as From<u64>>::from",
+      "source_component": "review-clocks",
+      "reason": "unresolved local compiler target"
+    }
+  ],
+  "value_nonviolation_examples": {
+    "classification": "Source reviewed immutable value methods require exact contract disposition; raw target-pair candidates are not all capability violations",
+    "symbols": [
+      "MemoryTextField::tag",
+      "MemoryTextField::from_tag",
+      "ObjectRef::legacy_bytes",
+      "MemoryEntityMentionKey::new"
+    ],
+    "note": "No blanket pair allowlist or new DAG edge is granted by these examples."
+  },
+  "required_remaining_proof": [
+    "Eliminate real facade/private-owner and Runtime/Container capability bypasses at the recorded endpoints",
+    "Resolve exact local call targets absent from compiler inventory, destructor dispatch and six indirect/nonconstant call terminators with grounded source evidence",
+    "Review cfg/platform/macro reachability beyond the single compiled profile",
+    "Satisfy inherited A5 and final current source architecture proof; bounded import SCC absence is insufficient"
+  ],
+  "proof_limits": [
+    "One compiler profile; static MIR constant calls only. Indirect/dynamic calls, drop terminators requiring destructor analysis, and unrecognized local targets remain unknown. MIR is an unstable compiler output, pinned by compiler version and input hashes. Same-source provenance is included only when a provenance receipt is supplied; external calls without mapped local caller spans are counted separately.",
+    "The 191-or-other raw unpermitted rows are candidates containing duplicates and immutable value methods; only source-confirmed capability witnesses authorize cuts. Material unresolved calls block acceptance.",
+    "Rustdoc and MIR are different compiler representations; source-stable hashes do not prove all compiler-generated/dynamic relationships are resolved."
+  ]
+}

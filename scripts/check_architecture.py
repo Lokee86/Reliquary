@@ -144,6 +144,10 @@ def main() -> int:
 
     run([sys.executable, "-m", "unittest", "scripts.test_phase7_component_map"])
     run([sys.executable, "scripts/check_phase7_component_map.py"])
+    run([sys.executable, "-m", "unittest", "discover", "-s", "scripts/tests", "-p", "test_phase7_dependencies.py"])
+    run([sys.executable, "scripts/check_phase7_dependencies.py", "--check"])
+    run([sys.executable, "-m", "unittest", "scripts.test_phase7_source_cuts", "scripts.test_phase7_compiler_calls"])
+    run([sys.executable, "scripts/check_phase7_source_cuts.py"])
 
     run([sys.executable, "scripts/check_multiplexing_phase4_coverage.py", "--self-test"])
 

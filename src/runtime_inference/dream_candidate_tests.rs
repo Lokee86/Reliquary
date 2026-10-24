@@ -349,8 +349,7 @@ fn owner_candidate_core_accepts_persisted_memory_source_time() {
         .unwrap();
     let source_time = |memory: &crate::Memory| memory_source_timestamp_ns(memory);
     let context = dream_memory_context_from_parts(
-        &mut cva.container,
-        &cva.memories,
+        &crate::memory_store::MemoryReadView::new(&cva.memories, &cva.container),
         &cva.graph,
         memory.id,
         &source_time,

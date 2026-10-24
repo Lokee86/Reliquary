@@ -109,8 +109,9 @@ fn reopen_rejects_file_link_to_missing_memory() {
     let path = test_path();
     let mut cva = Cva::create(&path).unwrap();
     let file_id = ingest_file(&mut cva);
-    cva.archive
-        .link_file_to_memory(&mut cva.container, file_id, MemoryId([6; 32]))
+    cva.owner
+        .archive
+        .link_file_to_memory(&mut cva.owner.container, file_id, MemoryId([6; 32]))
         .unwrap();
     cva.sync().unwrap();
     drop(cva);

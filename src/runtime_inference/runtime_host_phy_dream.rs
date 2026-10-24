@@ -46,9 +46,9 @@ fn prepare(
             continue;
         }
         let Some(epoch) = crate::dream_cooldown::owner_eligible_epoch(
-            crate::memory_store::MemoryReadView::new(&phy.memories, &phy.container),
+            crate::memory_store::MemoryReadView::new(&phy.owner.memories, &phy.owner.container),
             None,
-            &phy.processing_epochs,
+            &phy.owner.processing_epochs,
             id,
             unix_now_ns(),
         )
@@ -60,9 +60,23 @@ fn prepare(
         if phy.memory_vector_location(profile, body).is_none() {
             continue;
         }
-        let candidates = phy
-            .dream_candidates(profile, id, DreamCandidateConfig::default())
-            .map_err(operation)?;
+        let candidates = crate::dream_owner_candidates::dream_candidates(
+            &crate::memory_store::MemoryReadView::new(&phy.owner.memories, &phy.owner.container),
+            &phy.owner.graph,
+            &phy.owner.dream_pairs,
+            &crate::memory_vector_reader::MemoryVectorReader::new(
+                crate::memory_vector_store::MemoryVectorReadView::new(
+                    &phy.owner.memory_vectors,
+                    &phy.owner.packed_vectors,
+                    &phy.owner.container,
+                ),
+            ),
+            profile,
+            id,
+            DreamCandidateConfig::default(),
+            &crate::memory_source_time::memory_source_timestamp_ns,
+        )
+        .map_err(operation)?;
         return Ok(Some(Snapshot {
             candidates,
             graph_version: phy.graph_version(),
@@ -73,7 +87,7 @@ fn prepare(
 }
 
 fn current(
-    phy: &mut crate::Phylactery,
+    phy: &mut crate::phy_execution_owner::PhyExecutionOwner,
     set: &crate::DreamCandidateSet,
 ) -> Result<bool, super::ReliquaryRuntimeHostError> {
     if phy
@@ -97,6 +111,28 @@ fn current(
     Ok(true)
 }
 
+fn publish_pair(
+    phy: &mut crate::phy_execution_owner::PhyExecutionOwner,
+    classification: &DreamPairClassification,
+    verification: Option<&DreamPairVerification>,
+    policy: DreamVerificationPolicy,
+    graph_version: u64,
+) -> Result<crate::DreamPublicationOutcome, crate::DreamPublicationError> {
+    crate::dream_publication_execution::publish_dream_pair(
+        crate::owner_lifecycle::DreamGraphPublication::new(
+            &mut phy.owner.container,
+            &phy.owner.memories,
+            &mut phy.owner.graph,
+        ),
+        &mut phy.duplicate_index,
+        classification,
+        verification,
+        policy,
+        graph_version,
+        &crate::memory_source_time::memory_source_timestamp_ns,
+    )
+}
+
 fn commit(
     shared: &WorkerShared,
     snapshot: &Snapshot,
@@ -118,17 +154,31 @@ fn commit(
     let policy = DreamVerificationPolicy::default();
     for (classification, verification) in evaluated {
         let version = phy.graph_version();
-        phy.publish_dream_pair(&classification, verification.as_ref(), policy, version)
-            .map_err(operation)?;
+        publish_pair(
+            &mut phy,
+            &classification,
+            verification.as_ref(),
+            policy,
+            version,
+        )
+        .map_err(operation)?;
     }
     let source = snapshot.candidates.source.memory.id;
-    phy.reconcile_dream_lifecycle(source).map_err(operation)?;
+    {
+        let state = &mut phy.owner;
+        let graph = &state.graph;
+        let mut memories =
+            crate::memory_store::MemoryOwnerWriter::new(&mut state.memories, &mut state.container);
+        crate::dream_owner_publisher::reconcile_phy_lifecycle(&mut memories, graph, source)
+            .map_err(operation)?;
+    }
     {
         let phy = &mut *phy;
-        phy.processing_epochs
+        phy.owner
+            .processing_epochs
             .put_for_memory(
-                &mut phy.container,
-                &phy.memories,
+                &mut phy.owner.container,
+                &phy.owner.memories,
                 source,
                 crate::processing_epoch_model::DREAM_PROCESSING_LANE,
                 crate::dream_cooldown::dream_processing_state(snapshot.dream_epoch, unix_now_ns()),
@@ -147,8 +197,8 @@ fn commit(
     ids.sort_by_key(|id| id.0);
     ids.dedup();
     let resolutions = crate::entity_resolution_owner::ResolutionReadContext {
-        memories: &phy.memories,
-        entity_resolutions: &phy.entity_resolutions,
+        memories: &phy.owner.memories,
+        entity_resolutions: &phy.owner.entity_resolutions,
     };
     let keys = ids
         .into_iter()

@@ -574,8 +574,9 @@ fn interrupted_import_recovers_source_episode_and_queue_cuts() {
             }
         }
         if cut >= 4 {
-            cva.archive
-                .put_import_receipt(&mut cva.container, prepared.receipt.clone())
+            cva.owner
+                .archive
+                .put_import_receipt(&mut cva.owner.container, prepared.receipt.clone())
                 .unwrap();
         }
         cva.sync().unwrap();
@@ -619,10 +620,11 @@ fn interrupted_import_epoch_resumes_each_durable_phase_without_duplicates() {
         };
 
         if cut >= 1 {
-            cva.import_epochs
-                .append_start(&mut cva.container, start.clone())
+            cva.owner
+                .import_epochs
+                .append_start(&mut cva.owner.container, start.clone())
                 .unwrap();
-            cva.container.sync().unwrap();
+            cva.owner.container.sync().unwrap();
         }
         if cut >= 2 {
             cva.with_import_write_scope(|cva| {
@@ -677,8 +679,9 @@ fn interrupted_import_epoch_resumes_each_durable_phase_without_duplicates() {
         }
         if cut >= 5 {
             cva.with_import_write_scope(|cva| {
-                cva.archive
-                    .put_import_receipt(&mut cva.container, prepared.receipt.clone())
+                cva.owner
+                    .archive
+                    .put_import_receipt(&mut cva.owner.container, prepared.receipt.clone())
                     .unwrap();
             });
         }
@@ -1035,23 +1038,26 @@ fn completed_epoch_rebuilds_and_completion_retry_is_exact() {
     let start = cva.open_import_epoch().unwrap().clone();
     let complete = completion_for(&mut cva, &start, &receipt, 200);
 
-    cva.container.set_owner_write_scope(true);
-    cva.import_epochs
-        .append_complete(&mut cva.container, complete.clone())
+    cva.owner.container.set_owner_write_scope(true);
+    cva.owner
+        .import_epochs
+        .append_complete(&mut cva.owner.container, complete.clone())
         .unwrap();
-    cva.container.sync().unwrap();
+    cva.owner.container.sync().unwrap();
     assert!(cva.open_import_epoch().is_none());
 
     let completed_len = fs::metadata(&path).unwrap().len();
     let completed_clocks = current_watermarks(&cva);
-    cva.import_epochs
-        .append_complete(&mut cva.container, complete.clone())
+    cva.owner
+        .import_epochs
+        .append_complete(&mut cva.owner.container, complete.clone())
         .unwrap();
     let mut conflicting = complete.clone();
     conflicting.receipt_digest.push('x');
     assert!(
-        cva.import_epochs
-            .append_complete(&mut cva.container, conflicting)
+        cva.owner
+            .import_epochs
+            .append_complete(&mut cva.owner.container, conflicting)
             .is_err()
     );
     assert_eq!(fs::metadata(&path).unwrap().len(), completed_len);
@@ -1078,8 +1084,9 @@ fn invalid_source_revision_does_not_open_or_poison_an_epoch() {
     // receipt retry behavior, not the production readiness coordinator.
     let complete = completion_for(&mut cva, &start, &receipt, 200);
     cva.with_import_write_scope(|cva| {
-        cva.import_epochs
-            .append_complete(&mut cva.container, complete)
+        cva.owner
+            .import_epochs
+            .append_complete(&mut cva.owner.container, complete)
     })
     .unwrap();
     cva.sync().unwrap();

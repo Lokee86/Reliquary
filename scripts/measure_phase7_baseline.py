@@ -24,7 +24,7 @@ from check_production_component_graph import component_manifest, cycle_witness, 
 MAPPING = ROOT / "tools/pitlord/production-components.json"
 DAG = ROOT / "tools/pitlord/convergence-component-dag.json"
 OWNER_POLICY = ROOT / "tools/pitlord/owner-boundaries.json"
-OUTPUT = ROOT / "benchmarks/phase7-baseline.json"
+OUTPUT = ROOT / ".verification-tmp/phase7/current-imports.json"
 PHASE5 = ROOT / "benchmarks/dependency-convergence-phase5-source-2026-10-23.json"
 PHASE5_ACCEPTANCE = ROOT / "benchmarks/dependency-convergence-phase5-acceptance-2026-10-23.json"
 PHASE6 = ROOT / "benchmarks/phase6-final-verification.json"
@@ -52,6 +52,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=OUTPUT)
     args = parser.parse_args()
+    output = args.output if args.output.is_absolute() else ROOT / args.output
+    if output.resolve() == (ROOT / "benchmarks/phase7-baseline.json").resolve() and output.exists():
+        raise ValueError("Phase 7 B7 before-image is immutable; choose a separate current-source receipt")
 
     for path in (MAPPING, DAG, OWNER_POLICY):
         if not path.is_file():
@@ -201,10 +204,10 @@ def main() -> int:
         ],
         "prerequisites": {
             "phase5_A5_accepted": a5_accepted,
-            "phase5_A5_disposition": "UNMET: Phase 5 execution receipt marks P5.7.1 Limited; full architecture refresh did not publish and no full convergence pass is claimed.",
+            "phase5_A5_disposition": "Phase 5 source/behavior is integrated; P5.7.1 full graph proof remains limited and must be discharged at A7. It does not block source cuts.",
             "phase5_source_checkpoint_available": PHASE5.is_file(),
             "phase6_A6_bounded_accepted": json.loads(PHASE6.read_text(encoding="utf-8")).get("status", "") if PHASE6.is_file() else False,
-            "overall": "A5 full acceptance prerequisite is unmet; B7 remains open regardless of this bounded source inventory.",
+            "overall": "Integrated Phase 5 source/behavior and accepted Phase 6 A6 authorize execution; inherited A5 graph proof remains an A7 closure obligation under the amended specification.",
         },
         "inputs": {
             "git_head": head,

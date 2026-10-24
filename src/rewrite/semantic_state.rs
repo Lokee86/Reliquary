@@ -56,12 +56,12 @@ pub(crate) fn copy_semantic_state_rel(
 ) -> Result<(), RewriteError> {
     let owner_id = source.owner_id();
     let mut output = crate::maintenance::rewrite::semantic_emit::SemanticRewriteDestination {
-        container: &mut destination.container,
-        memories: &destination.memories,
-        entities: &mut destination.entities,
-        relationships: &mut destination.relationships,
-        graph: &mut destination.graph,
-        ego: &mut destination.ego,
+        container: &mut destination.owner.container,
+        memories: &destination.owner.memories,
+        entities: &mut destination.owner.entities,
+        relationships: &mut destination.owner.relationships,
+        graph: &mut destination.owner.graph,
+        ego: &mut destination.owner.ego,
     };
     crate::maintenance::rewrite::semantic_emit::copy_semantic_state_rel(
         owner_id.as_deref(),
@@ -78,12 +78,12 @@ pub(crate) fn copy_semantic_state_phy(
 ) -> Result<(), RewriteError> {
     let owner_id = source.owner_id();
     let mut output = crate::maintenance::rewrite::semantic_emit::SemanticRewriteDestination {
-        container: &mut destination.container,
-        memories: &destination.memories,
-        entities: &mut destination.entities,
-        relationships: &mut destination.relationships,
-        graph: &mut destination.graph,
-        ego: &mut destination.ego,
+        container: &mut destination.owner.container,
+        memories: &destination.owner.memories,
+        entities: &mut destination.owner.entities,
+        relationships: &mut destination.owner.relationships,
+        graph: &mut destination.owner.graph,
+        ego: &mut destination.owner.ego,
     };
     crate::maintenance::rewrite::semantic_emit::copy_semantic_state_phy(
         owner_id.as_deref(),

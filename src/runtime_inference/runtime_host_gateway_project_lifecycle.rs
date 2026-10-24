@@ -1,68 +1,23 @@
 use super::{GatewayRuntime, OwnerKind, mount::MountClaim, mount::MountedFileIdentity};
-use crate::{Cva, ProjectAdoptionSource, ProjectRepositoryMode, ProjectRevisionRef};
+use crate::ReliquaryRuntimeHostError;
 use std::path::Path;
+use std::sync::MutexGuard;
 
 impl GatewayRuntime {
-    pub fn create_project_environment_rel(
+    pub(crate) fn reserve_new_rel_path(
         &self,
         rel_path: &Path,
-        project_dir: &Path,
-        mode: ProjectRepositoryMode,
-    ) -> Result<Cva, super::ReliquaryRuntimeHostError> {
-        // A new REL has no owner header to inspect or mount-claim yet.
-        // Container::create_with_identity uses create_new(true), which is the
-        // atomic no-overwrite admission for this trusted pre-mount path.
-        let _lifecycle = self
+    ) -> Result<MutexGuard<'_, ()>, ReliquaryRuntimeHostError> {
+        let guard = self
             .lifecycle
             .lock()
-            .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
         if rel_path.exists() {
             return Err(super::operation("new Project REL target already exists"));
         }
-        crate::cva_project_environment::create_project_rel(rel_path, project_dir, mode)
-            .map_err(super::operation)
+        Ok(guard)
     }
-    pub fn inspect_project_adoption_source(
-        &self,
-        rel_path: &Path,
-    ) -> Result<ProjectAdoptionSource, super::ReliquaryRuntimeHostError> {
-        let _claim = self.admit_unmounted_path(rel_path)?;
-        crate::cva_project_environment::inspect_project_adoption_source(rel_path)
-            .map_err(super::operation)
-    }
-    pub fn adopt_project_environment_rel(
-        &self,
-        source: &ProjectAdoptionSource,
-        project_dir: &Path,
-        mode: ProjectRepositoryMode,
-    ) -> Result<Cva, super::ReliquaryRuntimeHostError> {
-        let _claim = self.admit_unmounted_path(&source.path)?;
-        crate::cva_project_environment::adopt_project_rel(source, project_dir, mode)
-            .map_err(super::operation)
-    }
-    pub fn validate_project_environment_cva(
-        &self,
-        cva: &mut Cva,
-        project_dir: &Path,
-    ) -> Result<ProjectRevisionRef, super::ReliquaryRuntimeHostError> {
-        crate::cva_project_environment::validate_project_environment_cva(cva, project_dir)
-            .map_err(super::operation)
-    }
-    pub fn reconcile_rel_file(
-        &self,
-        canonical: impl AsRef<Path>,
-    ) -> Result<crate::RelReconciliationReport, super::ReliquaryRuntimeHostError> {
-        let path = canonical.as_ref();
-        let _claim = self.admit_unmounted_path(path)?;
-        let endpoint = self
-            .routes
-            .read()
-            .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?
-            .embedding();
-        super::super::reconciliation::reconcile_rel_file_unmounted(path, endpoint.as_ref())
-            .map_err(super::operation)
-    }
-    fn admit_unmounted_path(
+    pub(crate) fn admit_unmounted_path(
         &self,
         path: &Path,
     ) -> Result<MountClaim, super::ReliquaryRuntimeHostError> {
@@ -77,5 +32,18 @@ impl GatewayRuntime {
             ));
         }
         MountClaim::acquire(&identity)
+    }
+
+    pub(crate) fn reconciliation_embedding_endpoint(
+        &self,
+    ) -> Result<
+        Option<std::sync::Arc<dyn crate::EmbeddingEndpoint + Send + Sync>>,
+        ReliquaryRuntimeHostError,
+    > {
+        Ok(self
+            .routes
+            .read()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .embedding())
     }
 }

@@ -50,14 +50,14 @@ pub(super) fn automatic_branch_identity(
 }
 
 pub(super) fn finalization_target(
-    runtime: &crate::InteractionRuntime,
+    runtime: &crate::RelExecution,
     conversation_id: &str,
     submission: &Submission,
     policy: ConversationPolicy,
 ) -> Result<FinalizationTarget, ReliquaryRuntimeHostError> {
     let submitted_branch = metadata_branch(submission);
     let expected = expected_parent(submission)?;
-    let branches = runtime.cva().archive().branches();
+    let branches = runtime.cva.runtime_archive_branches();
 
     if let Some(branch) = branches
         .iter()
@@ -65,8 +65,9 @@ pub(super) fn finalization_target(
     {
         if let Some(expected_parent) = expected.as_deref() {
             let ancestry = runtime
-                .cva()
-                .archive()
+                .cva
+                .owner
+                .archive
                 .branch_nodes(conversation_id, &branch.leaf_node_id)
                 .map_err(operation)?;
             if !ancestry.iter().any(|node| node.id == expected_parent) {
@@ -104,7 +105,7 @@ pub(super) fn finalization_target(
     }
 
     let leaves = runtime
-        .conversation_summaries()
+        .conversation_summaries_operation()
         .into_iter()
         .find(|summary| summary.conversation_id == conversation_id)
         .map(|summary| summary.leaf_node_ids)
@@ -112,7 +113,9 @@ pub(super) fn finalization_target(
 
     let parent_node_id = match (policy, expected) {
         (ConversationPolicy::VisibleAutoBranch, Some(parent))
-            if runtime.cva().archive().has_node(conversation_id, &parent) =>
+            if runtime
+                .cva
+                .runtime_archive_has_node(conversation_id, &parent) =>
         {
             Some(parent)
         }
@@ -153,13 +156,14 @@ pub(super) fn finalization_target(
 }
 
 pub(super) fn validate_publication_head(
-    runtime: &crate::InteractionRuntime,
+    runtime: &crate::RelExecution,
     key: &ConversationSubmissionId,
     capture: &FinalizeCapture,
 ) -> Result<(), ReliquaryRuntimeHostError> {
     if let Some(branch) = runtime
-        .cva()
-        .archive()
+        .cva
+        .owner
+        .archive
         .branches()
         .into_iter()
         .find(|branch| {

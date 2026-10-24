@@ -2,7 +2,8 @@ use super::instances::{InstanceAuthorization, InstanceId, InstanceRuntime, Owner
 use super::{ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes, operation};
 #[path = "runtime_host_rel_execution.rs"]
 mod rel_runtime;
-use crate::{EpisodePolicy, InsomniaWorkerConfig, InteractionRuntime, Phylactery};
+use crate::phy_execution_owner::PhyExecutionOwner;
+use crate::{EpisodePolicy, InsomniaWorkerConfig, RelExecution};
 use rel_runtime::RelRuntime;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::PathBuf;
@@ -250,7 +251,7 @@ struct AttachmentEntry {
     leases: Arc<LeaseGate>,
 }
 
-struct RelExecution {
+struct RelMountedExecution {
     sequencer: Arc<events::RelSequencer>,
     file_identity: MountedFileIdentity,
     _mount_claim: MountClaim,
@@ -262,7 +263,7 @@ struct RelExecution {
 struct PhyExecution {
     file_identity: MountedFileIdentity,
     _mount_claim: MountClaim,
-    owner: Arc<Mutex<Phylactery>>,
+    owner: Arc<Mutex<PhyExecutionOwner>>,
     runtime: Arc<Mutex<PhyRuntime>>,
     mount_epoch: AtomicU64,
     fence: Arc<LeaseGate>,
@@ -306,7 +307,7 @@ impl OwnerAccessToken {
 /// controls: do not bind them directly to untrusted requests. Use instance-taking
 /// management methods for client maintenance and viewable_rel_owners for listing.
 pub struct GatewayRuntime {
-    rel_executions: RwLock<BTreeMap<DurableOwnerId, RelExecution>>,
+    rel_executions: RwLock<BTreeMap<DurableOwnerId, RelMountedExecution>>,
     phy_executions: Arc<RwLock<BTreeMap<DurableOwnerId, PhyExecution>>>,
     instances: RwLock<HashMap<InstanceId, AttachmentEntry>>,
     // Admission authority survives detach/unmount for this gateway lifetime.
@@ -418,7 +419,7 @@ impl GatewayRuntime {
     #[cfg(test)]
     pub(super) fn mount_rel(
         &self,
-        runtime: InteractionRuntime,
+        runtime: RelExecution,
     ) -> Result<DurableOwnerId, ReliquaryRuntimeHostError> {
         let _lifecycle = self
             .lifecycle
@@ -428,8 +429,7 @@ impl GatewayRuntime {
             .topology_transition
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        let identity =
-            MountedFileIdentity::from_container(&runtime.cva().container, OwnerKind::Rel)?;
+        let identity = MountedFileIdentity::from_container(&runtime.cva.container, OwnerKind::Rel)?;
         if self.existing_file_mount(&identity)? {
             return Ok(identity.owner_id);
         }
@@ -439,7 +439,7 @@ impl GatewayRuntime {
 
     fn mount_rel_inner(
         &self,
-        mut runtime: InteractionRuntime,
+        mut runtime: RelExecution,
         identity: MountedFileIdentity,
         claim: MountClaim,
     ) -> Result<DurableOwnerId, ReliquaryRuntimeHostError> {
@@ -526,7 +526,7 @@ impl GatewayRuntime {
         if mounted
             .insert(
                 owner_id.clone(),
-                RelExecution {
+                RelMountedExecution {
                     sequencer,
                     file_identity: identity,
                     _mount_claim: claim,
@@ -545,7 +545,7 @@ impl GatewayRuntime {
     #[cfg(test)]
     pub(super) fn mount_phy(
         &self,
-        owner: Phylactery,
+        owner: PhyExecutionOwner,
     ) -> Result<DurableOwnerId, ReliquaryRuntimeHostError> {
         let _lifecycle = self
             .lifecycle
@@ -565,7 +565,7 @@ impl GatewayRuntime {
 
     fn mount_phy_inner(
         &self,
-        owner: Phylactery,
+        owner: PhyExecutionOwner,
         identity: MountedFileIdentity,
         claim: MountClaim,
     ) -> Result<DurableOwnerId, ReliquaryRuntimeHostError> {
@@ -761,7 +761,7 @@ impl GatewayRuntime {
     fn with_rel<T>(
         &self,
         token: &OwnerAccessToken,
-        f: impl FnOnce(&mut InteractionRuntime) -> Result<T, ReliquaryRuntimeHostError>,
+        f: impl FnOnce(&mut RelExecution) -> Result<T, ReliquaryRuntimeHostError>,
     ) -> Result<T, ReliquaryRuntimeHostError> {
         if token.kind != OwnerKind::Rel {
             return Err(operation("owner token is not for a REL"));
@@ -815,7 +815,7 @@ impl GatewayRuntime {
     fn with_phy<T>(
         &self,
         token: &OwnerAccessToken,
-        f: impl FnOnce(&mut Phylactery) -> Result<T, ReliquaryRuntimeHostError>,
+        f: impl FnOnce(&mut PhyExecutionOwner) -> Result<T, ReliquaryRuntimeHostError>,
     ) -> Result<T, ReliquaryRuntimeHostError> {
         if token.kind != OwnerKind::Phy || token.grant != OwnerGrant::UseOwnPhy {
             return Err(operation("owner token is not authorized for a PHY"));
@@ -1218,7 +1218,7 @@ impl GatewayRuntime {
     pub(super) fn with_quiesced_rel<T>(
         &self,
         owner_id: &str,
-        f: impl FnOnce(&mut InteractionRuntime) -> Result<T, ReliquaryRuntimeHostError>,
+        f: impl FnOnce(&mut RelExecution) -> Result<T, ReliquaryRuntimeHostError>,
     ) -> Result<T, ReliquaryRuntimeHostError> {
         let _lifecycle = self
             .lifecycle
@@ -1232,7 +1232,7 @@ impl GatewayRuntime {
     pub(super) fn with_quiesced_rel_during_transition<T>(
         &self,
         owner_id: &str,
-        f: impl FnOnce(&mut InteractionRuntime) -> Result<T, ReliquaryRuntimeHostError>,
+        f: impl FnOnce(&mut RelExecution) -> Result<T, ReliquaryRuntimeHostError>,
     ) -> Result<T, ReliquaryRuntimeHostError> {
         self.with_quiesced_rel_inner(owner_id, f)
     }
@@ -1240,7 +1240,7 @@ impl GatewayRuntime {
     fn with_quiesced_rel_inner<T>(
         &self,
         owner_id: &str,
-        f: impl FnOnce(&mut InteractionRuntime) -> Result<T, ReliquaryRuntimeHostError>,
+        f: impl FnOnce(&mut RelExecution) -> Result<T, ReliquaryRuntimeHostError>,
     ) -> Result<T, ReliquaryRuntimeHostError> {
         if self.shutting_down.load(Ordering::SeqCst) {
             return Err(operation("gateway is shutting down"));
@@ -1396,7 +1396,10 @@ impl GatewayRuntime {
         Ok(())
     }
 
-    pub fn unmount_phy(&self, owner_id: &str) -> Result<Phylactery, ReliquaryRuntimeHostError> {
+    pub fn unmount_phy(
+        &self,
+        owner_id: &str,
+    ) -> Result<crate::Phylactery, ReliquaryRuntimeHostError> {
         let _lifecycle = self
             .lifecycle
             .lock()
@@ -1487,7 +1490,7 @@ impl GatewayRuntime {
         let owner = owner
             .into_inner()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        owner.into_cva()
+        owner.into_owner()
     }
 
     fn attachment_entry(

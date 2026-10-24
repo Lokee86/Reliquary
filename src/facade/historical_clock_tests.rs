@@ -20,9 +20,10 @@ impl Drop for Fixture {
     }
 }
 fn append(rel: &mut Cva, c: &str, n: &str, parent: Option<&str>, role: &str, t: i64) {
-    rel.archive
+    rel.owner
+        .archive
         .append_node(
-            &mut rel.container,
+            &mut rel.owner.container,
             n.into(),
             c.into(),
             parent.map(str::to_owned),

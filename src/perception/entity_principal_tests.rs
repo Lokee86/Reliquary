@@ -367,8 +367,8 @@ fn install_rel_mention(rel: &mut Cva, id: crate::MemoryId, text: &str) -> Memory
     let body = rel.memory_body_id(id).unwrap();
     let content = rel.memory(id).unwrap().content;
     install_mention(
-        &mut rel.memories,
-        &mut rel.container,
+        &mut rel.owner.memories,
+        &mut rel.owner.container,
         id,
         body,
         &content,
@@ -384,8 +384,8 @@ fn install_phy_mention(
     let body = phy.memory_body_id(id).unwrap();
     let content = phy.memory(id).unwrap().content;
     install_mention(
-        &mut phy.memories,
-        &mut phy.container,
+        &mut phy.owner.memories,
+        &mut phy.owner.container,
         id,
         body,
         &content,

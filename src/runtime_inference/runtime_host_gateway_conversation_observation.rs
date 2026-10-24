@@ -30,7 +30,7 @@ impl GatewayRuntime {
             .conversation
             .coordinator(owner_id, conversation_id.as_str())?;
         let snapshot = self.with_rel(&token, |runtime| {
-            runtime.cva().sync().map_err(operation)?;
+            runtime.cva.sync_owner().map_err(operation)?;
             coordinator.observe(&journal, |journal| {
                 build_conversation_observation(
                     runtime,
@@ -90,8 +90,9 @@ impl GatewayRuntime {
                     // sibling or a later operation merely sharing an ancestor.
                     if generation.parent_node_id != leaf_node_id
                         || runtime
-                            .cva()
-                            .archive()
+                            .cva
+                            .owner
+                            .archive
                             .has_node(conversation_id.as_str(), &generation.generation_id)
                     {
                         continue;
@@ -150,9 +151,9 @@ impl GatewayRuntime {
     ) -> Result<RelObservationSummary, ReliquaryRuntimeHostError> {
         let _ = instance; // Selection is exposed only by the exact conversation stream.
         self.with_conversation_source_runtime(owner_id, epoch, |runtime| {
-            runtime.cva().sync().map_err(operation)?;
+            runtime.cva.sync_owner().map_err(operation)?;
             let journal = self.conversation.journal(owner_id)?;
-            let cva = runtime.cva();
+            let cva = &runtime.cva;
             // Clone the body-free journal index once, then partition it by
             // conversation. The same journal cut is checked while each
             // coordinator observation is acquired below.
@@ -175,7 +176,9 @@ impl GatewayRuntime {
             }
             let mut ids = BTreeSet::new();
             ids.extend(
-                cva.conversation_summaries()
+                cva.owner
+                    .archive
+                    .conversation_summaries()
                     .into_iter()
                     .map(|s| s.conversation_id),
             );
@@ -252,7 +255,7 @@ impl GatewayRuntime {
                 conversations.push(summary);
             }
             let mut durable_watermarks =
-                super::super::snapshots::reader::source_watermarks(runtime.cva());
+                super::super::snapshots::reader::source_watermarks(&runtime.cva);
             let rel_id = {
                 let journal = journal
                     .lock()
@@ -310,7 +313,7 @@ impl GatewayRuntime {
             .conversation
             .coordinator(&owner_id, conversation_id.as_str())?;
         self.with_conversation_source_runtime(&owner_id, key.mount_epoch, |runtime| {
-            runtime.cva().sync().map_err(operation)?;
+            runtime.cva.sync_owner().map_err(operation)?;
             coordinator.observe(&journal, |journal| {
                 let conversation = build_conversation_observation(
                     runtime,
@@ -405,11 +408,11 @@ impl GatewayRuntime {
     ) -> Result<Vec<ConversationDurableDelta>, ReliquaryRuntimeHostError> {
         let journal = self.conversation.journal(owner_id)?;
         self.with_conversation_source_runtime(owner_id, epoch, |runtime| {
-            runtime.cva().sync().map_err(operation)?;
+            runtime.cva.sync_owner().map_err(operation)?;
             let journal = journal
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-            let mut watermarks = super::super::snapshots::reader::source_watermarks(runtime.cva());
+            let mut watermarks = super::super::snapshots::reader::source_watermarks(&runtime.cva);
             watermarks.conversation_journal_sequence = Some(journal.sequence());
             let rel_id = journal.rel_id();
             let mut facts = Vec::new();
@@ -516,12 +519,12 @@ impl GatewayRuntime {
         })
     }
 
-    /// Mirrors existing owner -> InteractionRuntime acquisition. No second gate or lease.
+    /// Mirrors existing owner -> RelExecution acquisition. No second gate or lease.
     fn with_conversation_source_runtime<T>(
         &self,
         owner_id: &str,
         epoch: u64,
-        read: impl FnOnce(&mut crate::InteractionRuntime) -> Result<T, ReliquaryRuntimeHostError>,
+        read: impl FnOnce(&mut crate::RelExecution) -> Result<T, ReliquaryRuntimeHostError>,
     ) -> Result<T, ReliquaryRuntimeHostError> {
         let (owner, mounted_epoch) = {
             let rels = self
@@ -558,7 +561,7 @@ impl GatewayRuntime {
 }
 
 fn build_conversation_observation(
-    runtime: &crate::InteractionRuntime,
+    runtime: &crate::RelExecution,
     journal: &RelJournal,
     owner_id: &str,
     mount_epoch: u64,
@@ -585,7 +588,7 @@ fn build_conversation_observation(
 }
 
 fn build_conversation_observation_from_statuses(
-    runtime: &crate::InteractionRuntime,
+    runtime: &crate::RelExecution,
     journal: &RelJournal,
     owner_id: &str,
     mount_epoch: u64,
@@ -593,8 +596,10 @@ fn build_conversation_observation_from_statuses(
     statuses: Vec<(ConversationSubmissionId, SubmissionStatus)>,
     instance: Option<&InstanceRuntime>,
 ) -> Result<ConversationObservationSnapshot, ReliquaryRuntimeHostError> {
-    let (policy, policy_revision) = runtime.cva().conversation_policy(conversation_id.as_str());
-    let archive = runtime.cva().archive();
+    let (policy, policy_revision) = runtime
+        .cva
+        .runtime_conversation_policy(conversation_id.as_str());
+    let archive = &runtime.cva.owner.archive;
     let mut branches: Vec<_> = archive
         .branches()
         .into_iter()
@@ -704,7 +709,7 @@ fn build_conversation_observation_from_statuses(
 }
 
 fn checkpoint_from_journal(
-    runtime: &crate::InteractionRuntime,
+    runtime: &crate::RelExecution,
     journal: &RelJournal,
     mount_epoch: u64,
     conversation_id: &ConversationId,
@@ -748,7 +753,7 @@ fn checkpoint_from_journal(
     // session-wide convenience accessor clones every record and its full text;
     // doing that here would read unbounded ahead text while holding source locks.
     let record = runtime
-        .cva()
+        .cva
         .interaction_stream_record(&generation.generation_id)
         .ok_or_else(|| operation("durable checkpoint has no interaction stream record"))?;
     if record.session_id != conversation_id.as_str()

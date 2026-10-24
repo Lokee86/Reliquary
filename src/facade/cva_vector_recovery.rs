@@ -17,8 +17,8 @@ impl Cva {
     ) -> Result<DerivedVectorRecovery, CvaError> {
         let candidate = profile_from_endpoint(endpoint)?;
         let profile = crate::owner_lifecycle::vector_publication::accept_profile(
-            &mut self.container,
-            &mut self.compatibility_profiles,
+            &mut self.owner.container,
+            &mut self.owner.compatibility_profiles,
             candidate,
         )?;
 
@@ -44,10 +44,10 @@ impl Cva {
                     match plan {
                         Some(plan) => {
                             crate::owner_lifecycle::vector_publication::publish_memory_vectors(
-                                &mut self.container,
-                                &self.compatibility_profiles,
-                                &mut self.packed_vectors,
-                                &mut self.memory_vectors,
+                                &mut self.owner.container,
+                                &self.owner.compatibility_profiles,
+                                &mut self.owner.packed_vectors,
+                                &mut self.owner.memory_vectors,
                                 plan,
                             )?
                         }

@@ -24,9 +24,10 @@ fn replay_of_an_accepted_older_mutation_is_inert_while_entity_remains_active() {
     };
     assert!(
         owner
+            .owner
             .entities
             .replay_publication(
-                &mut owner.container,
+                &mut owner.owner.container,
                 EntityReplayPublication::Record(first.clone())
             )
             .unwrap()
@@ -37,17 +38,22 @@ fn replay_of_an_accepted_older_mutation_is_inert_while_entity_remains_active() {
     next.mutation_id = "second".into();
     assert!(
         owner
+            .owner
             .entities
-            .replay_publication(&mut owner.container, EntityReplayPublication::Record(next))
+            .replay_publication(
+                &mut owner.owner.container,
+                EntityReplayPublication::Record(next)
+            )
             .unwrap()
     );
     let before = std::fs::read(&path).unwrap();
     let clocks = (owner.entity_version(), owner.latest_global_version());
     assert!(
         !owner
+            .owner
             .entities
             .replay_publication(
-                &mut owner.container,
+                &mut owner.owner.container,
                 EntityReplayPublication::Record(first.clone())
             )
             .unwrap()
@@ -60,8 +66,8 @@ fn replay_of_an_accepted_older_mutation_is_inert_while_entity_remains_active() {
     let mut conflicting = first;
     conflicting.global_id = None;
     assert!(matches!(
-        owner.entities.replay_publication(
-            &mut owner.container,
+        owner.owner.entities.replay_publication(
+            &mut owner.owner.container,
             EntityReplayPublication::Record(conflicting)
         ),
         Err(EntityError::MutationConflict)

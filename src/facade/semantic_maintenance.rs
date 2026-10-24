@@ -26,8 +26,8 @@ impl Cva {
     ) -> Result<crate::ConversationCompactionMaintenance, CvaError> {
         Ok(
             crate::maintenance::compactions::maintain_conversation_compactions(
-                &mut self.container,
-                &mut self.conversation_compactions,
+                &mut self.owner.container,
+                &mut self.owner.conversation_compactions,
             )?,
         )
     }
@@ -36,10 +36,10 @@ impl Cva {
     /// Opening a REL never invokes this repair automatically.
     pub fn repair_retired_entity_references(&mut self) -> Result<usize, CvaError> {
         Ok(crate::maintenance::entity_resolution::repair(
-            &mut self.container,
-            &mut self.entity_resolutions,
-            &self.memories,
-            &self.entities,
+            &mut self.owner.container,
+            &mut self.owner.entity_resolutions,
+            &self.owner.memories,
+            &self.owner.entities,
         )?)
     }
 }
@@ -68,10 +68,10 @@ impl Phylactery {
     /// Opening a PHY never invokes this repair automatically.
     pub fn repair_retired_entity_references(&mut self) -> Result<usize, PhylacteryError> {
         Ok(crate::maintenance::entity_resolution::repair(
-            &mut self.container,
-            &mut self.entity_resolutions,
-            &self.memories,
-            &self.entities,
+            &mut self.owner.container,
+            &mut self.owner.entity_resolutions,
+            &self.owner.memories,
+            &self.owner.entities,
         )?)
     }
 }

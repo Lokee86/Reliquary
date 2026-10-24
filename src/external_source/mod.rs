@@ -9,7 +9,7 @@ pub use crate::external_index::model::{
     HydratedExternalMessage, MAX_EXTERNAL_BATCH, MAX_EXTERNAL_INDEX_BYTES, MAX_EXTERNAL_MANIFEST,
     MAX_EXTERNAL_MESSAGE_BYTES, MAX_EXTERNAL_RESULTS, external_content_hash,
 };
-use crate::external_index::{model, store};
+use crate::external_index::store;
 mod provider;
 pub use provider::ExternalConversationSource;
 pub(crate) mod index;

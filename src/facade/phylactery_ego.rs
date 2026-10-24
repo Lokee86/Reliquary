@@ -33,8 +33,9 @@ impl Phylactery {
         text: String,
     ) -> Result<(EgoIdentity, bool), PhylacteryError> {
         Ok(self
+            .owner
             .ego
-            .put_identity(&mut self.container, expected_revision, text)?)
+            .put_identity(&mut self.owner.container, expected_revision, text)?)
     }
 
     pub fn create_ego_identity(
@@ -42,7 +43,10 @@ impl Phylactery {
         name: String,
         text: String,
     ) -> Result<EgoIdentity, PhylacteryError> {
-        Ok(self.ego.create_identity(&mut self.container, name, text)?)
+        Ok(self
+            .owner
+            .ego
+            .create_identity(&mut self.owner.container, name, text)?)
     }
 
     pub fn update_ego_identity(
@@ -52,13 +56,20 @@ impl Phylactery {
         name: String,
         text: String,
     ) -> Result<(EgoIdentity, bool), PhylacteryError> {
-        Ok(self
-            .ego
-            .update_identity(&mut self.container, id, expected_revision, name, text)?)
+        Ok(self.owner.ego.update_identity(
+            &mut self.owner.container,
+            id,
+            expected_revision,
+            name,
+            text,
+        )?)
     }
 
     pub fn activate_ego_identity(&mut self, id: EgoIdentityId) -> Result<bool, PhylacteryError> {
-        Ok(self.ego.activate_identity(&mut self.container, id)?)
+        Ok(self
+            .owner
+            .ego
+            .activate_identity(&mut self.owner.container, id)?)
     }
 
     pub fn delete_ego_identity(
@@ -67,8 +78,9 @@ impl Phylactery {
         expected_revision: u64,
     ) -> Result<bool, PhylacteryError> {
         Ok(self
+            .owner
             .ego
-            .delete_identity(&mut self.container, id, expected_revision)?)
+            .delete_identity(&mut self.owner.container, id, expected_revision)?)
     }
 
     pub fn ego_personality(&self) -> Option<&EgoPersonality> {
@@ -82,8 +94,8 @@ impl Phylactery {
         source_memory_version: u64,
     ) -> Result<(EgoPersonality, bool), PhylacteryError> {
         validate_source_memory_version(source_memory_version, self.memory_version())?;
-        Ok(self.ego.put_personality(
-            &mut self.container,
+        Ok(self.owner.ego.put_personality(
+            &mut self.owner.container,
             expected_revision,
             text,
             source_memory_version,
@@ -103,8 +115,9 @@ impl Phylactery {
         text: String,
     ) -> Result<EgoAnchor, PhylacteryError> {
         Ok(self
+            .owner
             .ego
-            .create_anchor(&mut self.container, priority, text)?)
+            .create_anchor(&mut self.owner.container, priority, text)?)
     }
 
     pub fn update_ego_anchor(
@@ -114,9 +127,13 @@ impl Phylactery {
         priority: EgoAnchorPriority,
         text: String,
     ) -> Result<(EgoAnchor, bool), PhylacteryError> {
-        Ok(self
-            .ego
-            .update_anchor(&mut self.container, id, expected_revision, priority, text)?)
+        Ok(self.owner.ego.update_anchor(
+            &mut self.owner.container,
+            id,
+            expected_revision,
+            priority,
+            text,
+        )?)
     }
 
     pub fn delete_ego_anchor(
@@ -125,8 +142,9 @@ impl Phylactery {
         expected_revision: u64,
     ) -> Result<bool, PhylacteryError> {
         Ok(self
+            .owner
             .ego
-            .delete_anchor(&mut self.container, id, expected_revision)?)
+            .delete_anchor(&mut self.owner.container, id, expected_revision)?)
     }
 
     pub fn ego_web_synthesis(&self) -> Option<&EgoWebSynthesis> {
@@ -140,8 +158,8 @@ impl Phylactery {
         text: String,
     ) -> Result<(EgoWebSynthesis, bool), PhylacteryError> {
         validate_source_memory_version(source_memory_version, self.memory_version())?;
-        Ok(self.ego.put_synthesis(
-            &mut self.container,
+        Ok(self.owner.ego.put_synthesis(
+            &mut self.owner.container,
             expected_revision,
             source_memory_version,
             text,

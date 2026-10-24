@@ -16,14 +16,14 @@ macro_rules! impl_owner {
                 config: EntityCandidateConfig,
             ) -> Result<EntityResolutionPreparation, EntityResolverError> {
                 let owner_id = self.owner_id();
-                let memories = MemoryReadView::new(&self.memories, &self.container);
+                let memories = MemoryReadView::new(&self.owner.memories, &self.owner.container);
                 let mut context = EntityResolutionContext {
                     candidates: EntityCandidateContext {
                         memories: MemoryLexicalReadView::new(&mut self.lexical_index, memories),
-                        entities: &self.entities,
-                        graph: &self.graph,
+                        entities: &self.owner.entities,
+                        graph: &self.owner.graph,
                     },
-                    resolutions: &self.entity_resolutions,
+                    resolutions: &self.owner.entity_resolutions,
                 };
                 entity_resolution_prepare::prepare_entity_resolution(
                     &mut context,

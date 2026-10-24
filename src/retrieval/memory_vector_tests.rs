@@ -230,11 +230,12 @@ fn memory_vector_owner_accepts_typed_binding_while_composition_rejects_missing_b
     let missing_body = crate::MemoryBodyId([0xf1; 32]);
 
     let id = cva
+        .owner
         .memory_vectors
         .put(
-            &mut cva.container,
-            &cva.compatibility_profiles,
-            &cva.packed_vectors,
+            &mut cva.owner.container,
+            &cva.owner.compatibility_profiles,
+            &cva.owner.packed_vectors,
             profile.id,
             packed_id,
             vec![missing_body],
@@ -252,9 +253,14 @@ fn memory_vector_owner_accepts_typed_binding_while_composition_rejects_missing_b
         cva.put_memory_vectors(profile.id, packed_id, vec![missing_body]),
         Err(MemoryVectorError::MissingMemoryBody)
     ));
-    assert_eq!(cva.container.latest_version(), accepted_version);
-    assert_eq!(cva.memory_vectors.stats().objects, 1);
-    assert!(cva.memory_vectors.get(&mut cva.container, id).is_ok());
+    assert_eq!(cva.owner.container.latest_version(), accepted_version);
+    assert_eq!(cva.owner.memory_vectors.stats().objects, 1);
+    assert!(
+        cva.owner
+            .memory_vectors
+            .get(&mut cva.owner.container, id)
+            .is_ok()
+    );
 }
 
 #[test]

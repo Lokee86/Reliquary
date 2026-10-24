@@ -739,10 +739,11 @@ fn import_born_memory_and_dream_completion_accepts_affected_freshness_result_coh
     };
     let unrelated_key = MemoryEntityMentionKey::new(unrelated, &unrelated_mention);
     let unrelated_body_id = cva.memory_body_id(unrelated).unwrap();
-    cva.container.set_owner_write_scope(true);
-    cva.memories
+    cva.owner.container.set_owner_write_scope(true);
+    cva.owner
+        .memories
         .put_routing_metadata(
-            &mut cva.container,
+            &mut cva.owner.container,
             MemoryRoutingMetadata {
                 memory_id: unrelated,
                 body_id: unrelated_body_id,
@@ -777,11 +778,12 @@ fn import_born_memory_and_dream_completion_accepts_affected_freshness_result_coh
         body_id: cva.memory_body_id(imported_memory).unwrap(),
         entity_mentions: vec![mention],
     };
-    cva.container.set_owner_write_scope(true);
-    cva.memories
-        .put_routing_metadata(&mut cva.container, routing)
+    cva.owner.container.set_owner_write_scope(true);
+    cva.owner
+        .memories
+        .put_routing_metadata(&mut cva.owner.container, routing)
         .unwrap();
-    cva.container.set_owner_write_scope(false);
+    cva.owner.container.set_owner_write_scope(false);
 
     // A real accepted initial Dream proof makes the import-born Memory ready.
     let pass =

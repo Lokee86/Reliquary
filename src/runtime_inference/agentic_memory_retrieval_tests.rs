@@ -219,8 +219,9 @@ fn freshness_order_is_complete_passive_neutral_and_owner_qualified() {
         .collect::<Vec<_>>();
     let owner_uuid = first.owner_uuid().unwrap();
     first
+        .owner
         .freshness
-        .persist_policy_if_needed(&mut first.container, owner_uuid)
+        .persist_policy_if_needed(&mut first.owner.container, owner_uuid)
         .unwrap();
     for n in 0..2000 {
         first

@@ -519,6 +519,11 @@
       "classification": "production"
     },
     {
+      "path": "src/memory/knowledge_mutation.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
       "path": "src/memory/memory_publication_codec.rs",
       "component": "memory-store",
       "classification": "production"
@@ -2152,6 +2157,16 @@
       "path": "src/owner_lifecycle/insomnia_application.rs",
       "component": "owner-lifecycle",
       "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/dream_graph_publication.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_lifecycle_update.rs",
+      "component": "memory-store",
+      "classification": "production"
     }
   ],
   "module_components": [
@@ -2318,10 +2333,6 @@
     {
       "module": "history::transformed_copy",
       "component": "history"
-    },
-    {
-      "module": "freshness",
-      "component": "freshness"
     },
     {
       "module": "imports::completion_coordinator",
@@ -2646,6 +2657,82 @@
     {
       "module": "insomnia::native_processor::source_validation",
       "component": "insomnia"
+    },
+    {
+      "module": "owner_lifecycle::dream_graph_publication",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "dream_owner_publisher::lifecycle",
+      "component": "dream"
+    },
+    {
+      "module": "dream_publication_execution",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "memory_vector_reader",
+      "component": "vectors"
+    },
+    {
+      "module": "insomnia::worker_runtime",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "rel_execution_owner",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "phy_execution_owner",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "interaction_runtime_public",
+      "component": "public-consumers"
+    },
+    {
+      "module": "interaction_stream",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "interaction_stream_persistence",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "memory_store::lifecycle_update",
+      "component": "memory-store"
+    },
+    {
+      "module": "cva_runtime_project_environment",
+      "component": "public-consumers"
+    },
+    {
+      "module": "cva_runtime_reconciliation",
+      "component": "public-consumers"
+    },
+    {
+      "module": "insomnia::worker_runtime::outcome",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "insomnia::worker_runtime::progress",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "interaction_background_public",
+      "component": "public-consumers"
+    },
+    {
+      "module": "dream_cooldown",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "knowledge_mutation_execution",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "runtime_freshness_birth",
+      "component": "runtime-gateway"
     }
   ],
   "producer_value_contracts": [
@@ -3676,6 +3763,13 @@
       "reason": "Phase 6 exact passive producer instruction/result/error; concrete native owner admission and ordered publication consume data only, never invoke a semantic service or provider. Source: owner_lifecycle native publication modules."
     },
     {
+      "consumer": "memory-store",
+      "owner": "graph-store",
+      "symbol": "GraphRelation",
+      "reason": "Exact passive relation value used by knowledge_mutation::plan_knowledge_replacement to select and copy adjacent relation facts. graph_model.rs defines only Copy IDs, enum tags, flags and version numbers; no GraphStore, writer, session or callback capability is received.",
+      "evidence": "benchmarks/phase7-gateway-semantic-mutation-cut.json"
+    },
+    {
       "consumer": "external-sources",
       "owner": "pure-codec",
       "symbol": "ExternalChunkRef",
@@ -3722,6 +3816,27 @@
       "owner": "pure-codec",
       "symbol": "PhylacteryProfile",
       "reason": "Exact immutable profile input for pure principal synchronization planning; no owner store, product binding or executable provider."
+    },
+    {
+      "consumer": "dream",
+      "owner": "retrieval",
+      "symbol": "MemoryRetrievalIndex",
+      "reason": "Read-only built vector/index facts supplied by upper composition; Dream only reads immutable index values, no owner session or writer",
+      "evidence": "benchmarks/phase7-edge-dispositions.json exact local source proof"
+    },
+    {
+      "consumer": "dream",
+      "owner": "retrieval",
+      "symbol": "MemoryRetrievalError",
+      "reason": "Error enum payload only; no retrieval operation",
+      "evidence": "benchmarks/phase7-edge-dispositions.json exact local source proof"
+    },
+    {
+      "consumer": "external-sources",
+      "owner": "vector-store",
+      "symbol": "CompatibilityProfile",
+      "reason": "Owned immutable profile metadata; indexing reads fields, receives no profile store",
+      "evidence": "benchmarks/phase7-edge-dispositions.json exact local source proof"
     }
   ],
   "forbidden_symbols": [

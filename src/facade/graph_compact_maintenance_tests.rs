@@ -547,7 +547,7 @@ fn native_graph_fresh_rewrite_keeps_baseline_relations_and_accepts_followup_writ
             let ids = ["rewrite-native-a", "rewrite-native-b", "rewrite-native-c"].map(|name| {
                 crate::cva_reconcile_graph_test_support::publish_memory(&mut owner, name)
             });
-            append_native_graph_facts(&mut owner.container, &owner.graph, ids, 90_001);
+            append_native_graph_facts(&mut owner.owner.container, &owner.owner.graph, ids, 90_001);
             owner.sync().unwrap();
             ids
         } else {
@@ -559,7 +559,7 @@ fn native_graph_fresh_rewrite_keeps_baseline_relations_and_accepts_followup_writ
                     .0
                     .id
             });
-            append_native_graph_facts(&mut owner.container, &owner.graph, ids, 90_001);
+            append_native_graph_facts(&mut owner.owner.container, &owner.owner.graph, ids, 90_001);
             owner.sync().unwrap();
             ids
         };

@@ -84,9 +84,10 @@ fn archive_fingerprint_survives_object_relocation() {
     let dir = scratch();
     let mut cva = Cva::create(dir.join("owner.rel")).unwrap();
     let orphan = b"unreferenced Archive content before accepted content";
-    cva.archive
+    cva.owner
+        .archive
         .put_content_bytes(
-            &mut cva.container,
+            &mut cva.owner.container,
             crate::archive_store::hash_content(orphan),
             orphan,
         )

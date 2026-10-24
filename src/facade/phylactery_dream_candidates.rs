@@ -16,8 +16,7 @@ impl Phylactery {
     ) -> Result<DreamMemoryContext, DreamCandidateError> {
         let source_time = |memory: &Memory| memory_source_timestamp_ns(memory);
         dream_memory_context_from_parts(
-            &mut self.container,
-            &self.memories,
+            &crate::memory_store::MemoryReadView::new(&self.memories, &self.container),
             &self.graph,
             memory_id,
             &source_time,
@@ -32,12 +31,16 @@ impl Phylactery {
     ) -> Result<DreamCandidateSet, DreamCandidateError> {
         let source_time = |memory: &Memory| memory_source_timestamp_ns(memory);
         dream_candidates_from_parts(
-            &mut self.container,
-            &self.memories,
+            &crate::memory_store::MemoryReadView::new(&self.memories, &self.container),
             &self.graph,
             &self.dream_pairs,
-            &self.memory_vectors,
-            &self.packed_vectors,
+            &crate::memory_vector_reader::MemoryVectorReader::new(
+                crate::memory_vector_store::MemoryVectorReadView::new(
+                    &self.memory_vectors,
+                    &self.packed_vectors,
+                    &self.container,
+                ),
+            ),
             compatibility_profile_id,
             source_id,
             config,
@@ -49,7 +52,10 @@ impl Phylactery {
         &mut self,
         memory_id: MemoryId,
     ) -> Result<DreamTemporalAnalysis, MemoryError> {
-        let memory = self.memories.memory(&mut self.container, memory_id)?;
+        let memory = self
+            .owner
+            .memories
+            .memory(&mut self.owner.container, memory_id)?;
         let body_id = self.memories.current_body_id(memory_id)?;
         Ok(analyze_memory_temporal(
             &memory,

@@ -1,4 +1,5 @@
 use super::*;
+use crate::InteractionRuntime;
 use crate::{DecisionEndpointError, SimulatedEmbeddingEndpoint, VectorNormalization};
 use serde_json::{Value, json};
 

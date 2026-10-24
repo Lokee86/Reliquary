@@ -48,12 +48,12 @@ impl Cva {
         compatibility_profile_id: Option<CompatibilityProfileId>,
         query_vector: Option<&[f32]>,
     ) -> Result<Vec<ConversationSearchHit>, SearchError> {
-        let archive = ArchiveReadView::new(&self.archive, &self.container);
+        let archive = ArchiveReadView::new(&self.owner.archive, &self.owner.container);
         let vectors = VectorReadView::new(
-            &self.vector_generations,
-            &self.archive_vectors,
-            &self.packed_vectors,
-            &self.container,
+            &self.owner.vector_generations,
+            &self.owner.archive_vectors,
+            &self.owner.packed_vectors,
+            &self.owner.container,
         );
         crate::conversation_search::search_conversation_branch_parts(
             &archive,

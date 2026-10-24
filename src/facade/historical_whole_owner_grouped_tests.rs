@@ -85,9 +85,10 @@ fn whole_owner_cut_inside_grouped_publication_selects_individual_memory_versions
         updated_at_ns: 4,
     };
     let batch = cva
+        .owner
         .memories
         .stage_grouped_publication(
-            &mut cva.container,
+            &mut cva.owner.container,
             vec![
                 (draft("grouped-one"), None, None),
                 (draft("grouped-two"), None, None),

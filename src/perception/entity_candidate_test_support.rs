@@ -43,8 +43,8 @@ pub(crate) fn install_rel_mention(
     let body_id = rel.memory_body_id(memory_id).unwrap();
     let memory = rel.memory(memory_id).unwrap();
     install_mention(
-        &mut rel.memories,
-        &mut rel.container,
+        &mut rel.owner.memories,
+        &mut rel.owner.container,
         memory_id,
         body_id,
         &memory.content,
@@ -60,8 +60,8 @@ pub(crate) fn install_phy_mention(
     let body_id = phy.memory_body_id(memory_id).unwrap();
     let memory = phy.memory(memory_id).unwrap();
     install_mention(
-        &mut phy.memories,
-        &mut phy.container,
+        &mut phy.owner.memories,
+        &mut phy.owner.container,
         memory_id,
         body_id,
         &memory.content,
