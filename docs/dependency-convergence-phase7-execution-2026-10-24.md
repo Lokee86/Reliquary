@@ -53,6 +53,14 @@ The matching Rustdoc/MIR emission succeeded at that commit. Its static-call chec
 
 **Acceptance is still OPEN.** Next work should first classify the 50 exact endpoints into true prohibited capabilities versus proven immutable/pure contracts, then execute only confirmed corrections as bounded component-scoped changes. HIR/destructor/indirect proof and the inherited Arcana/Pitlord graph gate remain separate evidence obligations. No wider DAG permission or blanket exception is authorized.
 
+## Postcheckpoint static-call disposition (2026-10-24)
+
+The exact 50-call inventory at source commit `d1c0d4b` has been reviewed against caller/callee implementations and reconciled in [the finite call-disposition register](../benchmarks/phase7-postcheckpoint-call-dispositions-2026-10-24.json). No implementation edits or DAG policy changes were made during this review. The 50 distinct MIR call instances consist of **26 confirmed prohibited owner-capability calls across five component pairs**, **20 pure immutable-value/validation contract candidates across five pairs**, and **four feature-gated Freshness tracing calls across two pairs**. The 20 value/validation candidates are *not* automatically accepted: they require the exact contract proof under the original DAG. Tracing is inert in the measured default cfg, but its enabled feature has side effects and needs independent cfg/ownership disposition.
+
+The confirmed capability cuts are bounded by existing tickets, not new arbitrary child counts: P7.1.14 has 13 public-consumer→Container, eight public-consumer→MemoryStore, two public-consumer→Perception live-read-view, and one public-consumer→Vectors publication-preparation calls. P7.1.12 has two Gateway→Container backing-metadata calls. Each exact source line, target definition, MIR line digest and affected boundary is recorded in the JSON register; preserving the already passing targeted regression families is the exit condition for each cut. No further extraction begins as part of inventory generation.
+
+All 13 existing child-ticket receipts were reconciled to the integrated stabilization checkpoint without rewriting their historical registration statuses. They are source-integrated and behaviorally verified, **not** formally architecture-accepted. The denominator remains 31 parents plus 13 named children. The five closure slices above are *not* additional tickets. Compiler gaps (67,418 unresolved instances including destructor/cfg/indirect analysis) and stale Lexicon/Arcana A5/A7 graph proof remain distinct obligations. **B7/H7/A7 OPEN; R7 PARTIAL.**
+
 ## Verification
 
 Use the following local commands:
@@ -61,7 +69,7 @@ Use the following local commands:
 python scripts/check_phase7_component_map.py
 python scripts/check_phase7_source_cuts.py
 python -m unittest scripts.test_phase7_component_map scripts.test_phase7_source_cuts scripts.test_phase7_compiler_calls
-python -m pytest --basetemp .pytest_tmp scripts/tests/test_phase7_dependencies.py
+python -m unittest discover -s scripts/tests -p test_phase7_dependencies.py
 python scripts/check_phase7_dependencies.py --check
 ```
 

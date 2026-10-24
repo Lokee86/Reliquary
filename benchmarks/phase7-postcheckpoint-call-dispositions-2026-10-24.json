@@ -1,0 +1,998 @@
+{
+  "schema": "phase7-postcheckpoint-call-dispositions.v1",
+  "date": "2026-10-24",
+  "status": "finite_review_complete_architecture_unaccepted",
+  "source_commit": "d1c0d4b2a9dc44ee864dad99bf0e75d8ce897248",
+  "review_head": "6258a08530fc64e0ca14105048d06beb46dae9f6",
+  "input": {
+    "path": "benchmarks/phase7-postcheckpoint-compiler-evidence-2026-10-24.json",
+    "sha256": "4cecef72f54031a13f2e76ce47e7b314de2d843813ef743287b1603cd11ca12b",
+    "cfg": "Rust stable 1.97.1 windows-x86_64-msvc; default crate feature profile, RUSTC_BOOTSTRAP=1, CARGO_INCREMENTAL=0, CARGO_PROFILE_DEV_DEBUG=0"
+  },
+  "method": "Exact MIR/rustdoc endpoints and caller/callee source inspected. Pure calls are not accepted exceptions.",
+  "counts": {
+    "cfg_trace_uncertainty": 4,
+    "pure_contract_candidate": 20,
+    "confirmed_prohibited_capability": 26
+  },
+  "dispositions": [
+    {
+      "boundary": "dream->freshness-store",
+      "classification": "cfg_trace_uncertainty",
+      "review_basis": "Default no-op; optional feature creates trace frames",
+      "calls": [
+        {
+          "source_path": "src/runtime_inference/dream_settlement.rs",
+          "source_line": 26,
+          "target": "freshness_trace::scope",
+          "mir_line_sha256": "53e5e19c0343deba827bbb53f0fcbaf43093942fcf436de512dfad2a8330db32",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/freshness/trace.rs",
+              "line": 177,
+              "end_line": 177,
+              "symbol": "freshness_trace::scope"
+            }
+          ]
+        }
+      ],
+      "count": 1,
+      "acceptance": "requires exact unchanged-DAG proof; not yet accepted"
+    },
+    {
+      "boundary": "history->container",
+      "classification": "pure_contract_candidate",
+      "review_basis": "Immutable ObjectRef byte encoding",
+      "calls": [
+        {
+          "source_path": "src/history/import_epoch_scope.rs",
+          "source_line": 80,
+          "target": "container::ObjectRef::legacy_bytes",
+          "mir_line_sha256": "6169f8249e941b830f802e6ef8b87f9abda191f43abfc26754164a0aa6d6854e",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/container/container.rs",
+              "line": 99,
+              "end_line": 105,
+              "symbol": "container::ObjectRef::legacy_bytes"
+            }
+          ]
+        },
+        {
+          "source_path": "src/history/import_epoch_scope.rs",
+          "source_line": 105,
+          "target": "container::ObjectRef::legacy_bytes",
+          "mir_line_sha256": "b50b6c44aafba33e074700ecbd7b3bd543af7b9d87da37ef612b07077c9eb942",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/container/container.rs",
+              "line": 99,
+              "end_line": 105,
+              "symbol": "container::ObjectRef::legacy_bytes"
+            }
+          ]
+        },
+        {
+          "source_path": "src/history/import_epoch_scope.rs",
+          "source_line": 135,
+          "target": "container::ObjectRef::legacy_bytes",
+          "mir_line_sha256": "41cd4c4ea8599ee74a2e1a22da483ff00fc38db6f9754c1d1201b9beddf1f6b0",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/container/container.rs",
+              "line": 99,
+              "end_line": 105,
+              "symbol": "container::ObjectRef::legacy_bytes"
+            }
+          ]
+        },
+        {
+          "source_path": "src/history/import_admission_epoch.rs",
+          "source_line": 50,
+          "target": "container::ObjectRef::legacy_bytes",
+          "mir_line_sha256": "7a76dc004ad123c569ec761aa30308d7315196a4ab2bed8cb02d9c0cfd51d03f",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/container/container.rs",
+              "line": 99,
+              "end_line": 105,
+              "symbol": "container::ObjectRef::legacy_bytes"
+            }
+          ]
+        }
+      ],
+      "count": 4,
+      "acceptance": "requires exact unchanged-DAG proof; not yet accepted"
+    },
+    {
+      "boundary": "memory-store->perception-store",
+      "classification": "pure_contract_candidate",
+      "review_basis": "Immutable mention key constructor",
+      "calls": [
+        {
+          "source_path": "src/memory/memory_store.rs",
+          "source_line": 842,
+          "target": "entity_resolution_model::MemoryEntityMentionKey::new",
+          "mir_line_sha256": "38acd03996fa62768196c03a6d88a2fd1b20150e885e85c1db13eb9e6cd973b2",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/perception/entity_resolution_model.rs",
+              "line": 16,
+              "end_line": 23,
+              "symbol": "entity_resolution_model::MemoryEntityMentionKey::new"
+            }
+          ]
+        },
+        {
+          "source_path": "src/memory/memory_store.rs",
+          "source_line": 956,
+          "target": "entity_resolution_model::MemoryEntityMentionKey::new",
+          "mir_line_sha256": "72cc222da4e1a4023df1f72020a4e192f7a8caff034b848d1adac2fcd71ba353",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/perception/entity_resolution_model.rs",
+              "line": 16,
+              "end_line": 23,
+              "symbol": "entity_resolution_model::MemoryEntityMentionKey::new"
+            }
+          ]
+        }
+      ],
+      "count": 2,
+      "acceptance": "requires exact unchanged-DAG proof; not yet accepted"
+    },
+    {
+      "boundary": "perception-store->memory-store",
+      "classification": "pure_contract_candidate",
+      "review_basis": "Enum codec only",
+      "calls": [
+        {
+          "source_path": "src/perception/entity_resolution_delta_codec.rs",
+          "source_line": 54,
+          "target": "memory_routing_model::MemoryTextField::tag",
+          "mir_line_sha256": "f0e053614e94cc6375bce76ac37efe22287bd950ff7fa6460e099beadf2fa26c",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/memory/memory_routing_model.rs",
+              "line": 13,
+              "end_line": 18,
+              "symbol": "memory_routing_model::MemoryTextField::tag"
+            }
+          ]
+        },
+        {
+          "source_path": "src/perception/entity_resolution_delta_codec.rs",
+          "source_line": 134,
+          "target": "memory_routing_model::MemoryTextField::from_tag",
+          "mir_line_sha256": "c7d50c4a082560fb09a219c75a8c33ecf82dbd5008e788d78e5e7c8918f65da1",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/memory/memory_routing_model.rs",
+              "line": 20,
+              "end_line": 26,
+              "symbol": "memory_routing_model::MemoryTextField::from_tag"
+            }
+          ]
+        },
+        {
+          "source_path": "src/perception/entity_resolution_codec.rs",
+          "source_line": 71,
+          "target": "memory_routing_model::MemoryTextField::tag",
+          "mir_line_sha256": "4c86fdbaac70d9401deaa9ac7d94f3e1fb9a62a2599c984da1af8022b03fddc7",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/memory/memory_routing_model.rs",
+              "line": 13,
+              "end_line": 18,
+              "symbol": "memory_routing_model::MemoryTextField::tag"
+            }
+          ]
+        },
+        {
+          "source_path": "src/perception/entity_resolution_codec.rs",
+          "source_line": 107,
+          "target": "memory_routing_model::MemoryTextField::from_tag",
+          "mir_line_sha256": "15131d7fcd2e89359373a16d2be1a01a57ad6349f3c1d8c106c608e0db1b6ef6",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/memory/memory_routing_model.rs",
+              "line": 20,
+              "end_line": 26,
+              "symbol": "memory_routing_model::MemoryTextField::from_tag"
+            }
+          ]
+        },
+        {
+          "source_path": "src/perception/entity_resolution_store.rs",
+          "source_line": 286,
+          "target": "memory_routing_model::MemoryTextField::tag",
+          "mir_line_sha256": "a34430b52c8e6f3f825c215b16b14d12db81ac15d943838aa586c298d50127b7",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/memory/memory_routing_model.rs",
+              "line": 13,
+              "end_line": 18,
+              "symbol": "memory_routing_model::MemoryTextField::tag"
+            }
+          ]
+        }
+      ],
+      "count": 5,
+      "acceptance": "requires exact unchanged-DAG proof; not yet accepted"
+    },
+    {
+      "boundary": "public-consumers->container",
+      "classification": "confirmed_prohibited_capability",
+      "review_basis": "Direct Container owner I/O, write scope and identity",
+      "calls": [
+        {
+          "source_path": "src/facade/cva_semantic_source.rs",
+          "source_line": 138,
+          "target": "container::Container::append",
+          "mir_line_sha256": "b6289f1f4d91b1eff6b95ea5f2dd9371b8827dffd6f3c32f95c2390658ea4935",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/container/container.rs",
+              "line": 227,
+              "end_line": 237,
+              "symbol": "container::Container::append"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/cva_semantic_source.rs",
+          "source_line": 141,
+          "target": "container::Container::sync",
+          "mir_line_sha256": "19f66a14e8bc1875781d5a0d91c7d03424ff9c2b5fcefd17ea57cf942e6aa34b",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/historical_embedding.rs",
+          "source_line": 27,
+          "target": "container::Container::path",
+          "mir_line_sha256": "a40de882c790ed1710e5b7ece2d0c6354ecb9a7bd8b2fb63405f5fb3473d4fd7",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/container/container.rs",
+              "line": 498,
+              "end_line": 500,
+              "symbol": "container::Container::path"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/historical_embedding.rs",
+          "source_line": 30,
+          "target": "container::Container::path",
+          "mir_line_sha256": "39c3b7053704a726ea5f21b1eed1c2d2bda9d50b98d1b1f697864beb0fa0b786",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/container/container.rs",
+              "line": 498,
+              "end_line": 500,
+              "symbol": "container::Container::path"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/historical_embedding.rs",
+          "source_line": 289,
+          "target": "container::Container::sync",
+          "mir_line_sha256": "b6d1f40745ad392978c9bf0925f29a2d224be224656ab66e7694822665e0e92f",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/historical_embedding.rs",
+          "source_line": 361,
+          "target": "container::Container::set_owner_write_scope",
+          "mir_line_sha256": "3001507fdc8dc2638d45f22ae332c6508c71b938948cc9dd8823507019324f41",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/container/container.rs",
+              "line": 246,
+              "end_line": 248,
+              "symbol": "container::Container::set_owner_write_scope"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/historical_embedding.rs",
+          "source_line": 365,
+          "target": "container::Container::set_owner_write_scope",
+          "mir_line_sha256": "2e637968cb916d056baf3412ada76762e8bb263f015a1a8557a07b0ecb466ab7",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/container/container.rs",
+              "line": 246,
+              "end_line": 248,
+              "symbol": "container::Container::set_owner_write_scope"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/historical_embedding_plan.rs",
+          "source_line": 56,
+          "target": "container::Container::path",
+          "mir_line_sha256": "580a10e994a0682d71d07a56271f90725a2a2e268af552fecf3187a67da4f9f7",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/container/container.rs",
+              "line": 498,
+              "end_line": 500,
+              "symbol": "container::Container::path"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/historical_embedding_plan.rs",
+          "source_line": 310,
+          "target": "container::Container::sync",
+          "mir_line_sha256": "cd276f7b43ab8155d3056bd4f735a50655e2ff2ab3e5b028e37f02036a679173",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/insomnia_cva.rs",
+          "source_line": 235,
+          "target": "container::Container::append",
+          "mir_line_sha256": "ff093267905ac26362659b0c25bf8c1b48918a3d5015c7af02a8811afaf8d699",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/container/container.rs",
+              "line": 227,
+              "end_line": 237,
+              "symbol": "container::Container::append"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/insomnia_cva.rs",
+          "source_line": 236,
+          "target": "container::Container::sync",
+          "mir_line_sha256": "f3410ae5d4e474cbd85f18f34e2a76c354a5c5fddec3b92032287b90746ff1e9",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/container/container.rs",
+              "line": 541,
+              "end_line": 544,
+              "symbol": "container::Container::sync"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/insomnia_processor.rs",
+          "source_line": 23,
+          "target": "container::Container::owner_id",
+          "mir_line_sha256": "064630deaf2b3972e7727bec266048827e8334c6c7bbbcd88aed3b52ef37ebf0",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/insomnia_processor.rs",
+          "source_line": 62,
+          "target": "container::Container::owner_id",
+          "mir_line_sha256": "629eefb2058baef6b54c1b63e217fa66c3a78ec3e41c1839b8ef07e01b778a27",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/container/container.rs",
+              "line": 514,
+              "end_line": 518,
+              "symbol": "container::Container::owner_id"
+            }
+          ]
+        }
+      ],
+      "count": 13,
+      "acceptance": "requires source correction"
+    },
+    {
+      "boundary": "public-consumers->memory-store",
+      "classification": "confirmed_prohibited_capability",
+      "review_basis": "Direct live MemoryStore queries",
+      "calls": [
+        {
+          "source_path": "src/facade/cva_semantic_source.rs",
+          "source_line": 201,
+          "target": "memory_store::MemoryStore::current_ids",
+          "mir_line_sha256": "765cdaea2a83d85abc5c7a7e76dc19efe618f61eaf80aeaad9ae1edfd2ca2758",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/memory/memory_store.rs",
+              "line": 801,
+              "end_line": 805,
+              "symbol": "memory_store::MemoryStore::current_ids"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/cva_semantic_source.rs",
+          "source_line": 219,
+          "target": "memory_store::MemoryStore::memory",
+          "mir_line_sha256": "5c53946830a2e46eef1d11aa29d9798a4074889b2ddc2a2e4a9b59a589da992a",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/memory/memory_store.rs",
+              "line": 393,
+              "end_line": 400,
+              "symbol": "memory_store::MemoryStore::memory"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/cva_semantic_source.rs",
+          "source_line": 240,
+          "target": "memory_store::MemoryStore::memory",
+          "mir_line_sha256": "163b7e9fa53a664a78782ac1a1685576801e2773959c44a469407336b12ee325",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/memory/memory_store.rs",
+              "line": 393,
+              "end_line": 400,
+              "symbol": "memory_store::MemoryStore::memory"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/cva_semantic_source.rs",
+          "source_line": 252,
+          "target": "memory_store::MemoryStore::current_body_id",
+          "mir_line_sha256": "3c07e746cb1d1c98fe4d4a23601e66718f01d8497c8b6d0e2dd69105158cbb58",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/memory/memory_store.rs",
+              "line": 824,
+              "end_line": 827,
+              "symbol": "memory_store::MemoryStore::current_body_id"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/cva_semantic_source.rs",
+          "source_line": 205,
+          "target": "memory_store::MemoryStore::current_body_id",
+          "mir_line_sha256": "6ae4068c59bce5bc441f4852249f96cba88a17f8629e3425b826c561b86cd1d9",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/memory/memory_store.rs",
+              "line": 824,
+              "end_line": 827,
+              "symbol": "memory_store::MemoryStore::current_body_id"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/cva_file_memory.rs",
+          "source_line": 9,
+          "target": "memory_store::MemoryStore::current_body_id",
+          "mir_line_sha256": "6cb29c7d8c84ce6d4b2e9a0e718f62221c8e68acc20e63ec67c5df3a39040f45",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/memory/memory_store.rs",
+              "line": 824,
+              "end_line": 827,
+              "symbol": "memory_store::MemoryStore::current_body_id"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/insomnia_cva.rs",
+          "source_line": 207,
+          "target": "memory_store::MemoryStore::contains_memory",
+          "mir_line_sha256": "b44591f1dc32e1c8ad46ee30d78446457cdc8936926a4d5cd0ed22fe854ed1ff",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/memory/memory_store.rs",
+              "line": 773,
+              "end_line": 775,
+              "symbol": "memory_store::MemoryStore::contains_memory"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/interaction_background.rs",
+          "source_line": 136,
+          "target": "memory_store::MemoryStore::current_ids",
+          "mir_line_sha256": "a62b60b201dad3c048c65527a56995c7ee80c3d085e98b5ad0899d2e286f707e",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/memory/memory_store.rs",
+              "line": 801,
+              "end_line": 805,
+              "symbol": "memory_store::MemoryStore::current_ids"
+            }
+          ]
+        }
+      ],
+      "count": 8,
+      "acceptance": "requires source correction"
+    },
+    {
+      "boundary": "public-consumers->perception",
+      "classification": "confirmed_prohibited_capability",
+      "review_basis": "Constructs Perception live read view with owner stores",
+      "calls": [
+        {
+          "source_path": "src/facade/cva_import_readiness.rs",
+          "source_line": 41,
+          "target": "perception_import_readiness::ImportReadiness::new",
+          "mir_line_sha256": "30188fce8becd662a32c8ebb2d1ce3542e98bd3fd0db2b3e34443cff1dcb2d4d",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/perception/import_readiness.rs",
+              "line": 12,
+              "end_line": 17,
+              "symbol": "perception_import_readiness::ImportReadiness::new"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/cva_import_completion.rs",
+          "source_line": 28,
+          "target": "perception_import_readiness::ImportReadiness::new",
+          "mir_line_sha256": "4285e8f9b4a2d5a0df81cc3dd3111199cc7ea1fac861a0d8067b1c412f1f4fb5",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/perception/import_readiness.rs",
+              "line": 12,
+              "end_line": 17,
+              "symbol": "perception_import_readiness::ImportReadiness::new"
+            }
+          ]
+        }
+      ],
+      "count": 2,
+      "acceptance": "requires source correction"
+    },
+    {
+      "boundary": "public-consumers->retrieval",
+      "classification": "pure_contract_candidate",
+      "review_basis": "Pure query and bounds validator",
+      "calls": [
+        {
+          "source_path": "src/facade/cva_retrieval_memory_search.rs",
+          "source_line": 12,
+          "target": "memory_search::validate",
+          "mir_line_sha256": "1e9344c79f9da74f64e05290c50774170ac26ff78891e153d7f6cc92ae63d583",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/retrieval/memory_search.rs",
+              "line": 21,
+              "end_line": 27,
+              "symbol": "memory_search::validate"
+            }
+          ]
+        },
+        {
+          "source_path": "src/facade/cva_retrieval_memory_search.rs",
+          "source_line": 32,
+          "target": "memory_search::validate",
+          "mir_line_sha256": "7546313143af5e42d0460c230d0dbfb7b34c930bd53f3db274fe8e04f67aba3c",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/retrieval/memory_search.rs",
+              "line": 21,
+              "end_line": 27,
+              "symbol": "memory_search::validate"
+            }
+          ]
+        }
+      ],
+      "count": 2,
+      "acceptance": "requires exact unchanged-DAG proof; not yet accepted"
+    },
+    {
+      "boundary": "public-consumers->vectors",
+      "classification": "confirmed_prohibited_capability",
+      "review_basis": "Runs vector publication preparation over owner views",
+      "calls": [
+        {
+          "source_path": "src/facade/cva_vector_recovery.rs",
+          "source_line": 25,
+          "target": "vector_publication::prepare_batch",
+          "mir_line_sha256": "7aaa102b6141920cbafc8c3dfeeea981a87f986234eac4f4edb60e08a2857457",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/runtime_inference/vector_publication.rs",
+              "line": 7,
+              "end_line": 35,
+              "symbol": "vector_publication::prepare_batch"
+            }
+          ]
+        }
+      ],
+      "count": 1,
+      "acceptance": "requires source correction"
+    },
+    {
+      "boundary": "runtime-gateway->container",
+      "classification": "confirmed_prohibited_capability",
+      "review_basis": "Direct Container backing metadata I/O",
+      "calls": [
+        {
+          "source_path": "src/runtime_inference/runtime_host_gateway_mutation_events.rs",
+          "source_line": 71,
+          "target": "container::Container::backing_metadata",
+          "mir_line_sha256": "0fc77fd7ddf0c3f8b7b36184704f431062f0886eddadde6bdf89ec6c0c71189f",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/container/container.rs",
+              "line": 490,
+              "end_line": 492,
+              "symbol": "container::Container::backing_metadata"
+            }
+          ]
+        },
+        {
+          "source_path": "src/runtime_inference/runtime_host_gateway_mutation_events.rs",
+          "source_line": 87,
+          "target": "container::Container::backing_metadata",
+          "mir_line_sha256": "c555c0af2691449542f8f4da3fd8064bcb02f1dc8236cb5c09e2816d537e9c3c",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/container/container.rs",
+              "line": 490,
+              "end_line": 492,
+              "symbol": "container::Container::backing_metadata"
+            }
+          ]
+        }
+      ],
+      "count": 2,
+      "acceptance": "requires source correction"
+    },
+    {
+      "boundary": "runtime-gateway->external-index-store",
+      "classification": "pure_contract_candidate",
+      "review_basis": "Pure external value validators",
+      "calls": [
+        {
+          "source_path": "src/runtime_inference/runtime_host_gateway_external.rs",
+          "source_line": 81,
+          "target": "external_index::model::identifier",
+          "mir_line_sha256": "5c2144a40baf95a6264d8972a4a3254c02647f5f31985e76c1b8f8eb24ddada1",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 135,
+              "end_line": 140,
+              "symbol": "external_index::model::identifier"
+            }
+          ]
+        },
+        {
+          "source_path": "src/runtime_inference/runtime_host_gateway_external.rs",
+          "source_line": 334,
+          "target": "external_index::model::ExternalMessageDescriptor::validate",
+          "mir_line_sha256": "820db24d3772e486b28635da7c7a2efd45a2430a039042c04b7c6ed60a2e090c",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 37,
+              "end_line": 48,
+              "symbol": "external_index::model::ExternalMessageDescriptor::validate"
+            }
+          ]
+        },
+        {
+          "source_path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+          "source_line": 25,
+          "target": "external_index::model::identifier",
+          "mir_line_sha256": "58428d41f2d677fec8d99fb9c102a4cc4b1b141eb132c62471447799d564ee72",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 135,
+              "end_line": 140,
+              "symbol": "external_index::model::identifier"
+            }
+          ]
+        },
+        {
+          "source_path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+          "source_line": 34,
+          "target": "external_index::model::HydratedExternalMessage::validate",
+          "mir_line_sha256": "c10069bbbb110e4b2f76b64e24fad79dcccfee50aaac99b2839bce8a9eada71f",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 91,
+              "end_line": 104,
+              "symbol": "external_index::model::HydratedExternalMessage::validate"
+            }
+          ]
+        },
+        {
+          "source_path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+          "source_line": 223,
+          "target": "external_index::model::HydratedExternalMessage::validate",
+          "mir_line_sha256": "2a119edbec74869b34aed5981c239c0f7ad20106ddfde24085c6c5b59064840d",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 91,
+              "end_line": 104,
+              "symbol": "external_index::model::HydratedExternalMessage::validate"
+            }
+          ]
+        },
+        {
+          "source_path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+          "source_line": 259,
+          "target": "external_index::model::identifier",
+          "mir_line_sha256": "436137d55fc81ad17f22cbe3d126ed89507eb23ff86cb05c40234805239bcfd6",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 135,
+              "end_line": 140,
+              "symbol": "external_index::model::identifier"
+            }
+          ]
+        },
+        {
+          "source_path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+          "source_line": 271,
+          "target": "external_index::model::identifier",
+          "mir_line_sha256": "e0213daa5535b47e77bc58055b4fde663b3719ea127c2c7e061da8c5988f7aa9",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/external_index/model.rs",
+              "line": 135,
+              "end_line": 140,
+              "symbol": "external_index::model::identifier"
+            }
+          ]
+        }
+      ],
+      "count": 7,
+      "acceptance": "requires exact unchanged-DAG proof; not yet accepted"
+    },
+    {
+      "boundary": "runtime-gateway->freshness-store",
+      "classification": "cfg_trace_uncertainty",
+      "review_basis": "Default no-op; optional feature creates trace frames",
+      "calls": [
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 1220,
+          "target": "freshness_trace::scope",
+          "mir_line_sha256": "0314c4db2045c7e75a0254b62562a6c31ee95947f8b1a6a94ab99b7e565af1ab",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/freshness/trace.rs",
+              "line": 177,
+              "end_line": 177,
+              "symbol": "freshness_trace::scope"
+            }
+          ]
+        },
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 1387,
+          "target": "freshness_trace::scope",
+          "mir_line_sha256": "5b92d01ada1bdf7f6c9bb1b893f5d27f9b9318835d8040fcf626cdc833ee09fa",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/freshness/trace.rs",
+              "line": 177,
+              "end_line": 177,
+              "symbol": "freshness_trace::scope"
+            }
+          ]
+        },
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 1412,
+          "target": "freshness_trace::scope",
+          "mir_line_sha256": "257666484eebfc3a4b8e7cedb813dc03745cfae82d6202d0ede8bed30bb743d1",
+          "resolved_by": "exact-rustdoc-symbol",
+          "target_definitions": [
+            {
+              "path": "src/freshness/trace.rs",
+              "line": 177,
+              "end_line": 177,
+              "symbol": "freshness_trace::scope"
+            }
+          ]
+        }
+      ],
+      "count": 3,
+      "acceptance": "requires exact unchanged-DAG proof; not yet accepted"
+    }
+  ],
+  "closure_slices_existing_tickets": [
+    {
+      "existing_parent": "P7.1.14",
+      "boundary": "public-consumers->container",
+      "calls": 13,
+      "exit": "Eliminate exact live owner endpoints, preserving existing seam regressions"
+    },
+    {
+      "existing_parent": "P7.1.14",
+      "boundary": "public-consumers->memory-store",
+      "calls": 8,
+      "exit": "Eliminate exact live owner endpoints, preserving existing seam regressions"
+    },
+    {
+      "existing_parent": "P7.1.14",
+      "boundary": "public-consumers->perception",
+      "calls": 2,
+      "exit": "Eliminate exact live owner endpoints, preserving existing seam regressions"
+    },
+    {
+      "existing_parent": "P7.1.14",
+      "boundary": "public-consumers->vectors",
+      "calls": 1,
+      "exit": "Eliminate exact live owner endpoints, preserving existing seam regressions"
+    },
+    {
+      "existing_parent": "P7.1.12",
+      "boundary": "runtime-gateway->container",
+      "calls": 2,
+      "exit": "Remove direct physical metadata calls; preserve mutation receipt/extent behavior"
+    }
+  ],
+  "child_reconciliation": {
+    "children": [
+      {
+        "receipt": "benchmarks/phase7-core-owner-api-child-2026-10-24.json",
+        "historical_status": "source-cut-implemented-awaiting-root-build-and-fresh-compiler-evidence",
+        "reconciled": "source-cut integrated at d1c0d4b; tests passed; A7 open"
+      },
+      {
+        "receipt": "benchmarks/phase7-dream-owner-facts-child-2026-10-24.json",
+        "historical_status": "source cut implemented; verification open",
+        "reconciled": "source-cut integrated at d1c0d4b; tests passed; A7 open"
+      },
+      {
+        "receipt": "benchmarks/phase7-freshness-facade-operations-child-2026-10-24.json",
+        "historical_status": "registered-before-source-edit",
+        "reconciled": "source-cut integrated at d1c0d4b; tests passed; A7 open"
+      },
+      {
+        "receipt": "benchmarks/phase7-import-insomnia-replay-child-2026-10-24.json",
+        "historical_status": "implemented-source-cut-awaiting-verification",
+        "reconciled": "source-cut integrated at d1c0d4b; tests passed; A7 open"
+      },
+      {
+        "receipt": "benchmarks/phase7-offline-repack-child-2026-10-24.json",
+        "historical_status": "registered-before-source-edit",
+        "reconciled": "source-cut integrated at d1c0d4b; tests passed; A7 open"
+      },
+      {
+        "receipt": "benchmarks/phase7-perception-entity-operations-child-2026-10-24.json",
+        "historical_status": "source-cut-implemented-awaiting-verification",
+        "reconciled": "source-cut integrated at d1c0d4b; tests passed; A7 open"
+      },
+      {
+        "receipt": "benchmarks/phase7-public-dream-child-2026-10-24.json",
+        "historical_status": "registered-before-source-edit",
+        "reconciled": "source-cut integrated at d1c0d4b; tests passed; A7 open"
+      },
+      {
+        "receipt": "benchmarks/phase7-public-memory-child-2026-10-24.json",
+        "historical_status": "registered-before-source-edit",
+        "reconciled": "source-cut integrated at d1c0d4b; tests passed; A7 open"
+      },
+      {
+        "receipt": "benchmarks/phase7-public-retrieval-child-2026-10-24.json",
+        "historical_status": "registered-before-source-edit",
+        "reconciled": "source-cut integrated at d1c0d4b; tests passed; A7 open"
+      },
+      {
+        "receipt": "benchmarks/phase7-reconciliation-coordination-child-2026-10-24.json",
+        "historical_status": "registered-before-source-edit",
+        "reconciled": "source-cut integrated at d1c0d4b; tests passed; A7 open"
+      },
+      {
+        "receipt": "benchmarks/phase7-reconciliation-promotion-child-2026-10-24.json",
+        "historical_status": "registered-before-source-edit",
+        "reconciled": "source-cut integrated at d1c0d4b; tests passed; A7 open"
+      },
+      {
+        "receipt": "benchmarks/phase7-rel-lifecycle-child-2026-10-24.json",
+        "historical_status": "registered-before-source-edit",
+        "reconciled": "source-cut integrated at d1c0d4b; tests passed; A7 open"
+      },
+      {
+        "receipt": "benchmarks/phase7-vector-owner-api-child-2026-10-24.json",
+        "historical_status": "registered-before-implementation",
+        "reconciled": "source-cut integrated at d1c0d4b; tests passed; A7 open"
+      }
+    ],
+    "denominator": "31 existing parents + 13 children; no new tickets"
+  },
+  "proof_limits": [
+    "20 pure contract candidates still require unchanged-DAG proof.",
+    "4 trace calls require feature-profile/ownership proof.",
+    "67418 unresolved MIR instances: 33730 local, 32250 destructor, 1432 closure, 6 indirect. Not confirmed defects.",
+    "Inherited A5 and A7 Arcana current full-graph proof open.",
+    "No implementation edits started."
+  ],
+  "acceptance": {
+    "B7": "OPEN",
+    "H7": "OPEN",
+    "R7": "PARTIAL",
+    "A7": "OPEN"
+  },
+  "policy": {
+    "new_dag_edges": 0,
+    "new_exceptions": 0,
+    "features_added": 0
+  }
+}
