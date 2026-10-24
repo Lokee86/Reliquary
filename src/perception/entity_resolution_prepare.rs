@@ -37,9 +37,8 @@ pub(crate) fn prepare_entity_resolution(
     )?;
     let memory = context.candidates.memory(key.memory_id)?;
     let evidence_context = EvidenceContext {
-        memories: context.candidates.memories,
+        memories: context.candidates.memories.memory_view(),
         graph: context.candidates.graph,
-        container: context.candidates.container,
     };
     let evidence = hydrate_evidence(&evidence_context, &candidates, key.memory_id)?;
     let admission_context =

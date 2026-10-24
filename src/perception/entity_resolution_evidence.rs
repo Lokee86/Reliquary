@@ -1,15 +1,14 @@
 use crate::graph_store::GraphStore;
-use crate::memory_store::MemoryStore;
-use crate::{Container, EntityCandidateSet, EntityId, EntityResolverError, Memory, MemoryId};
+use crate::memory_store::MemoryReadView;
+use crate::{EntityCandidateSet, EntityResolverError, Memory, MemoryId};
 
-pub(crate) struct EvidenceContext<'a> {
-    pub(crate) memories: &'a MemoryStore,
-    pub(crate) graph: &'a GraphStore,
-    pub(crate) container: &'a Container,
+pub(crate) struct EvidenceContext<'store, 'view> {
+    pub(crate) memories: &'view MemoryReadView<'store>,
+    pub(crate) graph: &'view GraphStore,
 }
 
 pub(super) fn hydrate_admission_context(
-    owner: &EvidenceContext<'_>,
+    owner: &EvidenceContext<'_, '_>,
     set: &EntityCandidateSet,
     source_id: MemoryId,
 ) -> Result<Vec<Memory>, EntityResolverError> {
@@ -18,7 +17,7 @@ pub(super) fn hydrate_admission_context(
         if *id == source_id {
             continue;
         }
-        let memory = owner.memories.memory(owner.container, *id)?;
+        let memory = owner.memories.memory(*id)?;
         if !memory.archived {
             context.push(memory);
         }
@@ -27,7 +26,7 @@ pub(super) fn hydrate_admission_context(
 }
 
 pub(super) fn hydrate_evidence(
-    owner: &EvidenceContext<'_>,
+    owner: &EvidenceContext<'_, '_>,
     set: &EntityCandidateSet,
     source_id: MemoryId,
 ) -> Result<Vec<Vec<Memory>>, EntityResolverError> {
@@ -48,7 +47,7 @@ pub(super) fn hydrate_evidence(
 
         let mut evidence = Vec::with_capacity(ids.len());
         for id in ids {
-            let memory = owner.memories.memory(owner.container, id)?;
+            let memory = owner.memories.memory(id)?;
             if !memory.archived {
                 evidence.push(memory);
             }

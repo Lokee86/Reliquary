@@ -1,4 +1,6 @@
 use crate::entity_candidates::EntityCandidateContext;
+use crate::lexical_search::MemoryLexicalReadView;
+use crate::memory_store::MemoryReadView;
 use crate::entity_resolution_prepare::{self, EntityResolutionContext};
 use crate::{
     Cva, EntityCandidateConfig, EntityResolutionPreparation, EntityResolverError,
@@ -14,11 +16,10 @@ macro_rules! impl_owner {
                 config: EntityCandidateConfig,
             ) -> Result<EntityResolutionPreparation, EntityResolverError> {
                 let owner_id = self.owner_id();
+                let memories = MemoryReadView::new(&self.memories, &self.container);
                 let mut context = EntityResolutionContext {
                     candidates: EntityCandidateContext {
-                        memories: &self.memories,
-                        lexical_index: &mut self.lexical_index,
-                        container: &mut self.container,
+                        memories: MemoryLexicalReadView::new(&mut self.lexical_index, memories),
                         entities: &self.entities,
                         graph: &self.graph,
                     },

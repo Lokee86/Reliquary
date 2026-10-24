@@ -9,18 +9,15 @@ use crate::entity_candidate_rank::{
 use crate::entity_candidate_routing::{context_query, graph_neighbor_ids, memory_contains_surface};
 use crate::entity_store::EntityStore;
 use crate::graph_store::GraphStore;
-use crate::lexical_index::LexicalIndex;
-use crate::memory_store::MemoryStore;
+use crate::lexical_search::MemoryLexicalReadView;
 use crate::{
-    Container, Entity, EntityCandidateSet, EntityId, Memory, MemoryEntityMention,
-    MemoryEntityMentionKey, MemoryId, MemoryRoutingMetadata,
+    Entity, EntityCandidateSet, EntityId, Memory, MemoryEntityMention, MemoryEntityMentionKey,
+    MemoryId, MemoryRoutingMetadata,
 };
 use std::collections::HashMap;
 
 pub(crate) struct EntityCandidateContext<'a> {
-    pub(crate) memories: &'a MemoryStore,
-    pub(crate) lexical_index: &'a mut LexicalIndex,
-    pub(crate) container: &'a mut Container,
+    pub(crate) memories: MemoryLexicalReadView<'a>,
     pub(crate) entities: &'a EntityStore,
     pub(crate) graph: &'a GraphStore,
 }
@@ -31,7 +28,7 @@ impl EntityCandidateContext<'_> {
     }
 
     pub(crate) fn memory(&mut self, memory_id: MemoryId) -> Result<Memory, crate::MemoryError> {
-        self.memories.memory(self.container, memory_id)
+        self.memories.memory(memory_id)
     }
 
     fn entities_for_surface(&self, surface: &str, limit: usize) -> Vec<Entity> {
@@ -56,13 +53,7 @@ impl EntityCandidateContext<'_> {
         query: &str,
         limit: usize,
     ) -> Result<Vec<crate::lexical_index::MemoryLexicalHit>, crate::MemoryError> {
-        crate::lexical_search::memory_lexical_candidates(
-            self.lexical_index,
-            self.memories,
-            self.container,
-            query,
-            limit,
-        )
+        self.memories.candidates(query, limit)
     }
 
     fn entity(&self, entity_id: EntityId) -> Result<Entity, crate::EntityError> {

@@ -1,4 +1,6 @@
 use crate::entity_candidates::{self, EntityCandidateContext};
+use crate::lexical_search::MemoryLexicalReadView;
+use crate::memory_store::MemoryReadView;
 use crate::{
     Cva, EntityCandidateConfig, EntityCandidateError, EntityCandidateSet, MemoryEntityMentionKey,
     Phylactery,
@@ -12,10 +14,9 @@ macro_rules! impl_candidate_owner {
                 key: MemoryEntityMentionKey,
                 config: EntityCandidateConfig,
             ) -> Result<EntityCandidateSet, EntityCandidateError> {
+                let memories = MemoryReadView::new(&self.memories, &self.container);
                 let mut context = EntityCandidateContext {
-                    memories: &self.memories,
-                    lexical_index: &mut self.lexical_index,
-                    container: &mut self.container,
+                    memories: MemoryLexicalReadView::new(&mut self.lexical_index, memories),
                     entities: &self.entities,
                     graph: &self.graph,
                 };
