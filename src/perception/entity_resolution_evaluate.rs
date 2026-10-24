@@ -1,11 +1,11 @@
 use crate::entity_admission::is_obvious_transient_occurrence;
+use crate::entity_resolver::EntityResolverCore;
 use crate::{
     EntityAdmissionDecision, EntityResolutionDecision, EntityResolutionEvaluation,
-    EntityResolutionPrepared, EntityResolver, EntityResolverError, EntityResolverOutput,
-    GeneralEndpoint,
+    EntityResolutionPrepared, EntityResolverError, EntityResolverOutput, GeneralEndpoint,
 };
 
-impl<E: GeneralEndpoint> EntityResolver<E> {
+impl<E: GeneralEndpoint> EntityResolverCore<E> {
     pub(crate) fn evaluate_prepared(
         &self,
         prepared: &EntityResolutionPrepared,

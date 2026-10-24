@@ -20,7 +20,7 @@ macro_rules! impl_owner {
                 match self.prepare_entity_resolution(key, config)? {
                     EntityResolutionPreparation::Complete(outcome) => Ok(outcome),
                     EntityResolutionPreparation::Ready(prepared) => {
-                        let evaluation = resolver.evaluate_prepared(&prepared)?;
+                        let evaluation = resolver.core.evaluate_prepared(&prepared)?;
                         self.commit_entity_resolution(prepared, evaluation, now_ns)?
                             .ok_or_else(crate::entity_resolution_processor::stale_snapshot)
                     }
@@ -40,7 +40,7 @@ macro_rules! impl_owner {
                 match self.prepare_entity_resolution(key, config)? {
                     EntityResolutionPreparation::Complete(outcome) => Ok(outcome),
                     EntityResolutionPreparation::Ready(prepared) => {
-                        let evaluation = engine.evaluate_prepared(&prepared)?;
+                        let evaluation = engine.core.evaluate_prepared(&prepared)?;
                         self.commit_entity_resolution(prepared, evaluation, now_ns)?
                             .ok_or_else(crate::entity_resolution_processor::stale_snapshot)
                     }

@@ -112,7 +112,7 @@ fn prepared_resolution_cannot_commit_to_a_different_owner() {
         crate::EntityResolutionPreparation::Ready(value) => value,
         crate::EntityResolutionPreparation::Complete(_) => panic!("expected prepared work"),
     };
-    let evaluation = resolver.evaluate_prepared(&prepared).unwrap();
+    let evaluation = resolver.core.evaluate_prepared(&prepared).unwrap();
 
     let mut other = Cva::create_project(temp_path("owner-other.rel")).unwrap();
     assert_ne!(source.owner_id(), other.owner_id());
@@ -144,7 +144,7 @@ fn stale_prepared_resolution_is_rejected_before_persistence() {
         crate::EntityResolutionPreparation::Ready(value) => value,
         crate::EntityResolutionPreparation::Complete(_) => panic!("expected prepared work"),
     };
-    let evaluation = resolver.evaluate_prepared(&prepared).unwrap();
+    let evaluation = resolver.core.evaluate_prepared(&prepared).unwrap();
 
     publish_rel_memory(
         &mut rel,

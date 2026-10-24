@@ -8,27 +8,27 @@ use serde_json::{Value, json};
 pub const MAX_ENTITY_RESOLVER_EVIDENCE_MEMORIES: usize = 3;
 pub const MAX_ENTITY_RESOLVER_EVIDENCE_TEXT_BYTES: usize = 4096;
 
-pub struct EntityResolver<E> {
+pub(crate) struct EntityResolverCore<E> {
     endpoint: E,
     system_prompt: String,
 }
 
-impl<E: GeneralEndpoint> EntityResolver<E> {
-    pub fn new(endpoint: E) -> Self {
+impl<E: GeneralEndpoint> EntityResolverCore<E> {
+    pub(crate) fn new(endpoint: E) -> Self {
         Self {
             endpoint,
             system_prompt: ENTITY_RESOLVER_SYSTEM_PROMPT.to_owned(),
         }
     }
 
-    pub fn with_system_prompt(endpoint: E, system_prompt: impl Into<String>) -> Self {
+    pub(crate) fn with_system_prompt(endpoint: E, system_prompt: impl Into<String>) -> Self {
         Self {
             endpoint,
             system_prompt: system_prompt.into(),
         }
     }
 
-    pub fn model(&self) -> &str {
+    pub(crate) fn model(&self) -> &str {
         self.endpoint.model()
     }
 

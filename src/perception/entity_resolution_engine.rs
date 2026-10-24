@@ -1,34 +1,38 @@
 use crate::entity_admission::{is_bare_generic_surface, is_obvious_transient_occurrence};
 use crate::entity_resolution_decision::try_decision_fast_path;
+use crate::entity_resolver::EntityResolverCore;
 use crate::{
-    DecisionEndpoint, EntityResolutionEvaluation, EntityResolutionPrepared, EntityResolver,
-    EntityResolverError, GeneralEndpoint,
+    DecisionEndpoint, EntityResolutionEvaluation, EntityResolutionPrepared, EntityResolverError,
+    GeneralEndpoint,
 };
 use std::sync::Arc;
 
-pub struct EntityResolutionEngine<E> {
-    fallback: EntityResolver<E>,
+pub(crate) struct EntityResolutionEngineCore<E> {
+    fallback: EntityResolverCore<E>,
     decision: Option<Arc<dyn DecisionEndpoint>>,
 }
 
-impl<E: GeneralEndpoint> EntityResolutionEngine<E> {
-    pub fn new(fallback: E) -> Self {
+impl<E: GeneralEndpoint> EntityResolutionEngineCore<E> {
+    pub(crate) fn new(fallback: E) -> Self {
         Self {
-            fallback: EntityResolver::new(fallback),
+            fallback: EntityResolverCore::new(fallback),
             decision: None,
         }
     }
 
-    pub fn with_decision_endpoint(mut self, decision: Option<Arc<dyn DecisionEndpoint>>) -> Self {
+    pub(crate) fn with_decision_endpoint(
+        mut self,
+        decision: Option<Arc<dyn DecisionEndpoint>>,
+    ) -> Self {
         self.decision = decision;
         self
     }
 
-    pub fn decision_model(&self) -> Option<&str> {
+    pub(crate) fn decision_model(&self) -> Option<&str> {
         self.decision.as_ref().map(|endpoint| endpoint.model())
     }
 
-    pub fn fallback_model(&self) -> &str {
+    pub(crate) fn fallback_model(&self) -> &str {
         self.fallback.model()
     }
 
@@ -72,8 +76,8 @@ mod tests {
         entity_draft, install_rel_mention, publish_rel_memory, temp_path,
     };
     use crate::{
-        Cva, EntityCandidateConfig, EntityId, EntityResolutionDecision, GraphRelationKind,
-        SimulatedDecisionEndpoint, SimulatedGeneralEndpoint,
+        Cva, EntityCandidateConfig, EntityId, EntityResolutionDecision, EntityResolutionEngine,
+        GraphRelationKind, SimulatedDecisionEndpoint, SimulatedGeneralEndpoint,
     };
     use serde_json::json;
 

@@ -35,7 +35,7 @@ macro_rules! impl_owner {
                         }
                     }
                     let mut slots = crate::entity_resolution_batch::evaluate_wave(
-                        engine,
+                        &engine.core,
                         prepared,
                         &mut speculative_evaluations,
                     )?;
@@ -55,7 +55,7 @@ macro_rules! impl_owner {
                                             evaluation
                                         } else {
                                             reevaluations += 1;
-                                            crate::entity_resolution_batch::evaluate_prepared_with_retry(engine, &fresh)?
+                                            crate::entity_resolution_batch::evaluate_prepared_with_retry(&engine.core, &fresh)?
                                         };
                                         timestamp = timestamp.saturating_add(1);
                                         self.commit_entity_resolution(fresh, evaluation, timestamp)?

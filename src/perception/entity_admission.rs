@@ -1,5 +1,5 @@
 use crate::entity_resolver::{
-    EntityResolver, invalid, mention_field, parse_reason, required_string,
+    EntityResolverCore, invalid, mention_field, parse_reason, required_string,
 };
 use crate::entity_resolver_schema::{ENTITY_ADMISSION_SYSTEM_PROMPT, entity_admission_schema};
 use crate::{
@@ -11,7 +11,7 @@ use serde_json::{Value, json};
 pub const MAX_ENTITY_ADMISSION_CONTEXT_MEMORIES: usize = 8;
 const MAX_ENTITY_ADMISSION_CONTEXT_TEXT_BYTES: usize = 2048;
 
-impl<E: GeneralEndpoint> EntityResolver<E> {
+impl<E: GeneralEndpoint> EntityResolverCore<E> {
     pub(crate) fn admit(
         &self,
         memory: &Memory,

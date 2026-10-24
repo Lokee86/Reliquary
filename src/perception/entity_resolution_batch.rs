@@ -1,7 +1,8 @@
+use crate::entity_resolution_engine::EntityResolutionEngineCore;
 use crate::{
-    EntityCandidateConfig, EntityResolutionEngine, EntityResolutionEvaluation,
-    EntityResolutionOutcome, EntityResolutionPreparation, EntityResolutionPrepared,
-    EntityResolverError, GeneralEndpoint, GeneralEndpointError, MemoryEntityMentionKey,
+    EntityCandidateConfig, EntityResolutionEvaluation, EntityResolutionOutcome,
+    EntityResolutionPreparation, EntityResolutionPrepared, EntityResolverError, GeneralEndpoint,
+    GeneralEndpointError, MemoryEntityMentionKey,
 };
 use std::sync::mpsc;
 use std::thread;
@@ -23,7 +24,7 @@ pub(crate) enum SpeculativeEvaluation {
 }
 
 pub(crate) fn evaluate_wave<E: GeneralEndpoint>(
-    engine: &EntityResolutionEngine<E>,
+    engine: &EntityResolutionEngineCore<E>,
     prepared: Vec<EntityResolutionPreparation>,
     speculative_evaluations: &mut usize,
 ) -> Result<Vec<Option<SpeculativeEvaluation>>, EntityResolverError> {
@@ -57,7 +58,7 @@ pub(crate) fn evaluate_wave<E: GeneralEndpoint>(
 }
 
 pub(crate) fn evaluate_prepared_with_retry<E: GeneralEndpoint>(
-    engine: &EntityResolutionEngine<E>,
+    engine: &EntityResolutionEngineCore<E>,
     prepared: &EntityResolutionPrepared,
 ) -> Result<EntityResolutionEvaluation, EntityResolverError> {
     const MAX_RETRIES: usize = 5;

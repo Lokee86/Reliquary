@@ -275,7 +275,7 @@ pub(super) fn worker_loop(
         };
         let engine = EntityResolutionEngine::new(SharedEndpoint(endpoint))
             .with_decision_endpoint(decision_endpoint);
-        let evaluation = match engine.evaluate_prepared(&prepared) {
+        let evaluation = match engine.core.evaluate_prepared(&prepared) {
             Ok(value) => value,
             Err(EntityResolverError::Endpoint(_)) => {
                 let mut queue = shared
