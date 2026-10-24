@@ -250,8 +250,24 @@ fn freshness_order_is_complete_passive_neutral_and_owner_qualified() {
     let turn = first.rel_turn_count();
     let records = first.freshness.records().clone();
     let bytes = std::fs::read(root.join("first.rel")).unwrap();
-    let mut ranked = grade_agentic_memories(&first, &ids, turn).unwrap();
-    ranked.extend(grade_agentic_memories(&second, &[ids[2]], 0).unwrap());
+    let mut ranked = grade_agentic_memories(
+        &first.freshness,
+        first.container.owner_id(),
+        first.archive.rel_turn_count(),
+        &ids,
+        turn,
+    )
+    .unwrap();
+    ranked.extend(
+        grade_agentic_memories(
+            &second.freshness,
+            second.container.owner_id(),
+            second.archive.rel_turn_count(),
+            &[ids[2]],
+            0,
+        )
+        .unwrap(),
+    );
     order_agentic_memories(&mut ranked);
     assert_eq!(ranked.len(), 17);
     assert_eq!(ranked[0].memory.memory_id, ids[15]);
@@ -274,5 +290,14 @@ fn freshness_order_is_complete_passive_neutral_and_owner_qualified() {
     assert_eq!(first.rel_turn_count(), turn);
     assert_eq!(first.freshness.records(), &records);
     assert_eq!(std::fs::read(root.join("first.rel")).unwrap(), bytes);
-    assert!(grade_agentic_memories(&first, &ids, turn + 1).is_err());
+    assert!(
+        grade_agentic_memories(
+            &first.freshness,
+            first.container.owner_id(),
+            first.archive.rel_turn_count(),
+            &ids,
+            turn + 1,
+        )
+        .is_err()
+    );
 }

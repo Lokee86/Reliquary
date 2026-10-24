@@ -44,7 +44,14 @@ impl GatewayRuntime {
                         .collect_memory_candidate_pool(staged.query(), &vector, profile)
                         .map_err(operation)?;
                     let ids = pool.matched_memory_ids().collect::<Vec<_>>();
-                    grade_agentic_memories(&runtime.cva, &ids, owner.cut).map_err(operation)
+                    grade_agentic_memories(
+                        &runtime.cva.freshness,
+                        runtime.cva.container.owner_id(),
+                        runtime.cva.archive.rel_turn_count(),
+                        &ids,
+                        owner.cut,
+                    )
+                    .map_err(operation)
                 })
                 .map_err(read_error)?;
             ranked.append(&mut candidates);

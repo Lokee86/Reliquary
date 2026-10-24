@@ -1,4 +1,4 @@
-#[path = "facade/agentic_memory_grading.rs"]
+#[path = "runtime_inference/agentic_memory_grading.rs"]
 mod agentic_memory_grading;
 #[path = "runtime_inference/agentic_memory_retrieval.rs"]
 mod agentic_memory_retrieval;

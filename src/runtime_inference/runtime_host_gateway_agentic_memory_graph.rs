@@ -148,7 +148,14 @@ impl GatewayRuntime {
         let ids = unseen.iter().map(|id| id.memory_id).collect::<Vec<_>>();
         let mut ranked = self
             .with_rel(&owner.token, |runtime| {
-                grade_agentic_memories(&runtime.cva, &ids, owner.cut).map_err(operation)
+                grade_agentic_memories(
+                    &runtime.cva.freshness,
+                    runtime.cva.container.owner_id(),
+                    runtime.cva.archive.rel_turn_count(),
+                    &ids,
+                    owner.cut,
+                )
+                .map_err(operation)
             })
             .map_err(read_error)?;
         order_agentic_memories(&mut ranked);
