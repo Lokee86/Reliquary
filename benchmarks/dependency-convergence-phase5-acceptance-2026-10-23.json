@@ -1,0 +1,235 @@
+{
+  "rust_source_sha256": "835305a6b66b447453c266c3170c0403397f7fb44013ceb7658cac996c5b6687",
+  "normal_windows_permissions": true,
+  "gates": [
+    {
+      "gate": "format",
+      "command": [
+        "cargo",
+        "fmt",
+        "--check"
+      ],
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 4.54,
+      "log": ".test-tmp\\phase5-acceptance-format.log"
+    },
+    {
+      "gate": "check",
+      "command": [
+        "cargo",
+        "check",
+        "--locked",
+        "--all-targets",
+        "--config",
+        "profile.dev.package.reliquary-memory.debug=0"
+      ],
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 40.18,
+      "log": ".test-tmp\\phase5-acceptance-check.log"
+    },
+    {
+      "gate": "lib",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--lib",
+        "--config",
+        "profile.dev.package.reliquary-memory.debug=0"
+      ],
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 767.01,
+      "log": ".test-tmp\\phase5-acceptance-lib.log"
+    },
+    {
+      "gate": "integration",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--test",
+        "*",
+        "--config",
+        "profile.dev.package.reliquary-memory.debug=0"
+      ],
+      "exit_code": 101,
+      "status": "failed",
+      "seconds": 255.61,
+      "log": ".test-tmp\\phase5-acceptance-integration.log"
+    },
+    {
+      "gate": "integration-serial",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--test",
+        "*",
+        "--jobs",
+        "1",
+        "--config",
+        "profile.dev.package.reliquary-memory.debug=0"
+      ],
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 287.47,
+      "log": ".test-tmp\\phase5-acceptance-integration-serial.log"
+    },
+    {
+      "gate": "doctests",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--doc",
+        "--jobs",
+        "1",
+        "--config",
+        "profile.dev.package.reliquary-memory.debug=0"
+      ],
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 14.2,
+      "log": ".test-tmp\\phase5-acceptance-doctests.log"
+    },
+    {
+      "gate": "cli-format",
+      "command": [
+        "cargo",
+        "fmt",
+        "--manifest-path",
+        "cli/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 0.88,
+      "log": ".test-tmp\\phase5-acceptance-cli-format.log"
+    },
+    {
+      "gate": "cli-check",
+      "command": [
+        "cargo",
+        "check",
+        "--manifest-path",
+        "cli/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "target",
+        "--jobs",
+        "1",
+        "--config",
+        "profile.dev.package.reliquary-memory.debug=0"
+      ],
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 205.65,
+      "log": ".test-tmp\\phase5-acceptance-cli-check.log"
+    },
+    {
+      "gate": "cli-test",
+      "command": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "cli/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "target",
+        "--jobs",
+        "1",
+        "--config",
+        "profile.dev.package.reliquary-memory.debug=0"
+      ],
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 709.0,
+      "log": ".test-tmp\\phase5-acceptance-cli-test.log"
+    },
+    {
+      "gate": "check-final",
+      "command": [
+        "cargo",
+        "check",
+        "--locked",
+        "--all-targets",
+        "--jobs",
+        "1",
+        "--config",
+        "profile.dev.package.reliquary-memory.debug=0"
+      ],
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 76.44,
+      "log": ".test-tmp\\phase5-acceptance-check-final.log"
+    }
+  ],
+  "final_rust_source_sha256": "5ed57ae305334252d5b439055eb971e2a89bb71f6eafe5626db5899e56e88d1f",
+  "passed_library_binary_sha256": "03b3b4c302c1ad58a01d4ee9170fc01d54aeb8c20725053abb51a3d2edc4661d",
+  "serial_retry_reason": "Observed E0463 missing-crate artifacts during parallel integration compilation; unchanged-input successful library receipt retained.",
+  "schema": "dependency-convergence-phase5-acceptance.v1",
+  "source_checkpoint": "fe9948e6c6e281be81152e7ce1e08325eb1af340",
+  "baseline_checkpoint": "10cbe4b7dce6fa5045f7a6a22ffd85635ce6770c",
+  "toolchain": {
+    "rustc": "1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "1.97.1 (c980f4866 2026-06-30)",
+    "incremental": false,
+    "package_debug": 0
+  },
+  "test_totals": {
+    "lib": {
+      "passed": 1999,
+      "failed": 0,
+      "ignored": 5,
+      "result_groups": 1
+    },
+    "integration-serial": {
+      "passed": 163,
+      "failed": 0,
+      "ignored": 1,
+      "result_groups": 25
+    },
+    "doctests": {
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "result_groups": 1
+    },
+    "cli-test": {
+      "passed": 32,
+      "failed": 0,
+      "ignored": 0,
+      "result_groups": 1
+    }
+  },
+  "library_provenance": {
+    "source_checkpoint": "fe9948e6c6e281be81152e7ce1e08325eb1af340",
+    "normalized_source_sha256": "f4e1592371ffec61574aaec213844f9152e6cadd2d4c873680dce64c5b5ec548",
+    "checkpoint_mismatches": [],
+    "source_files_newer_than_passed_library_binary": [],
+    "passed_library_binary_sha256": "03b3b4c302c1ad58a01d4ee9170fc01d54aeb8c20725053abb51a3d2edc4661d",
+    "note": "Runner-start fingerprint precedes the final source freeze. All final Rust inputs match source checkpoint and predate the library executable that passed the full suite."
+  },
+  "source_evidence": "dependency-convergence-phase5-source-2026-10-23.json",
+  "review": "Luna targeted semantic review: no actionable blockers; grouped publication, validation ordering, evidence bounds, PHY ownership and concurrency defaults preserved.",
+  "known_limits": [
+    "cfg-aware source imports are bounded evidence, not complete compiler-resolved symbol graph proof",
+    "96 uncertain import resolutions retained; four-component runtime/facade SCC remains for Phase 6",
+    "installed Pitlord lacks docs subcommand"
+  ],
+  "documentation": {
+    "shared_policy": "passed at source checkpoint",
+    "changed_from_origin_main": "passed at source checkpoint",
+    "archivist_indexes_links": "passed at source checkpoint",
+    "final_documentation_recheck": "pending"
+  },
+  "architecture_refresh": {
+    "status": "clean-checkout retry in progress; first attempt interrupted after 30 minutes without snapshot",
+    "command": "python scripts/check_architecture.py --refresh"
+  },
+  "closure": "pending remaining acceptance checks and integration"
+}
