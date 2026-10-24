@@ -148,9 +148,13 @@ fn commit(
                 .cva
                 .mark_dream_processed(id, snapshot.dream_epoch, unix_now_ns())
                 .map_err(operation)?;
+            let resolutions = crate::entity_resolution_owner::ResolutionReadContext {
+                memories: &runtime.cva.memories,
+                entity_resolutions: &runtime.cva.entity_resolutions,
+            };
             let keys = perception_ids(snapshot)
                 .into_iter()
-                .flat_map(|id| runtime.cva.schedulable_entity_mentions_for_memory(id))
+                .flat_map(|id| resolutions.schedulable_entity_mentions_for_memory(id))
                 .collect::<Vec<_>>();
             shared
                 .perception_queue

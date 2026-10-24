@@ -4,78 +4,141 @@
   "disposition_counts": [
     {
       "disposition": "implementation_import_removed_from_facade",
-      "count": 46
+      "count": 49
     },
     {
       "disposition": "retained_immutable_owner_qualified_public_value",
       "count": 33
-    },
-    {
-      "disposition": "retained_public_service_signature",
-      "count": 3
     }
   ],
-  "service_contract_inventory": [
-    {
-      "original_rows": [
-        {
-          "source": "src/perception/entity_reconciliation_owner.rs",
-          "disposition": "implementation_import_removed_from_facade",
-          "target": "src/perception/entity_resolution_engine.rs"
+  "service_contract_inventory": {
+    "former_exception_rows_resolved_as_binding_cuts": 3,
+    "exception_approval_required": false,
+    "public_signatures_preserved": true,
+    "bindings": [
+      {
+        "symbol": "EntityResolutionEngine",
+        "facade_binding": {
+          "source": "src/facade/cva_entity_resolution_engine.rs",
+          "type_witness": {
+            "line": 6,
+            "text": "pub struct EntityResolutionEngine<E> {"
+          },
+          "methods": [
+            {
+              "line": 11,
+              "text": "pub fn new(fallback: E) -> Self {"
+            },
+            {
+              "line": 17,
+              "text": "pub fn with_decision_endpoint(mut self, decision: Option<Arc<dyn DecisionEndpoint>>) -> Self {"
+            },
+            {
+              "line": 22,
+              "text": "pub fn decision_model(&self) -> Option<&str> {"
+            },
+            {
+              "line": 26,
+              "text": "pub fn fallback_model(&self) -> &str {"
+            }
+          ]
         },
-        {
-          "source": "src/perception/entity_resolution_batch.rs",
-          "disposition": "retained_public_service_signature",
-          "target": "src/perception/entity_resolution_engine.rs"
+        "lower_core": {
+          "path": "src/perception/entity_resolution_engine.rs",
+          "type_witness": {
+            "line": 10,
+            "text": "pub(crate) struct EntityResolutionEngineCore<E> {"
+          },
+          "evaluation_witness": {
+            "line": 39,
+            "text": "pub(crate) fn evaluate_prepared("
+          }
         },
-        {
-          "source": "src/perception/entity_resolution_processor.rs",
-          "disposition": "retained_public_service_signature",
-          "target": "src/perception/entity_resolution_engine.rs"
+        "public_parameter_entrypoints": [
+          {
+            "path": "src/facade/cva_entity_resolution_batch.rs",
+            "witness": {
+              "line": 12,
+              "text": "pub fn resolve_entity_mentions_with_engine_parallel<E: GeneralEndpoint>("
+            }
+          },
+          {
+            "path": "src/facade/cva_entity_resolution_processor.rs",
+            "witness": {
+              "line": 30,
+              "text": "pub fn resolve_entity_mention_with_engine<E: GeneralEndpoint>("
+            }
+          }
+        ],
+        "lower_consumers_use_core": [
+          {
+            "path": "src/perception/entity_resolution_batch.rs",
+            "witness": {
+              "line": 27,
+              "text": "engine: &EntityResolutionEngineCore<E>,"
+            }
+          },
+          {
+            "path": "src/perception/entity_reconciliation_owner.rs",
+            "witness": {
+              "line": 60,
+              "text": "crate::entity_resolution_engine::EntityResolutionEngineCore::new(endpoint)"
+            }
+          }
+        ]
+      },
+      {
+        "symbol": "EntityResolver",
+        "facade_binding": {
+          "source": "src/facade/cva_entity_resolver.rs",
+          "type_witness": {
+            "line": 5,
+            "text": "pub struct EntityResolver<E> {"
+          },
+          "methods": [
+            {
+              "line": 10,
+              "text": "pub fn new(endpoint: E) -> Self {"
+            },
+            {
+              "line": 16,
+              "text": "pub fn with_system_prompt(endpoint: E, system_prompt: impl Into<String>) -> Self {"
+            },
+            {
+              "line": 22,
+              "text": "pub fn model(&self) -> &str {"
+            }
+          ]
+        },
+        "lower_core": {
+          "path": "src/perception/entity_resolver.rs",
+          "type_witness": {
+            "line": 11,
+            "text": "pub(crate) struct EntityResolverCore<E> {"
+          },
+          "evaluation_witness": {
+            "line": 8,
+            "text": "impl<E: GeneralEndpoint> EntityResolverCore<E> {"
+          }
+        },
+        "public_parameter_entrypoint": {
+          "path": "src/facade/cva_entity_resolution_processor.rs",
+          "witness": {
+            "line": 10,
+            "text": "pub fn resolve_entity_mention<E: GeneralEndpoint>("
+          }
+        },
+        "lower_evaluation_policy": {
+          "path": "src/perception/entity_resolution_evaluate.rs",
+          "witness": {
+            "line": 9,
+            "text": "pub(crate) fn evaluate_prepared("
+          }
         }
-      ],
-      "current_signatures": [
-        {
-          "line": 14,
-          "call": "evaluate_wave(engine, ...) and evaluate_prepared_with_retry(engine, ...)",
-          "signature": "pub fn resolve_entity_mentions_with_engine_parallel<E: GeneralEndpoint>(&mut self, engine: &EntityResolutionEngine<E>, ...)",
-          "path": "src/facade/cva_entity_resolution_batch.rs"
-        },
-        {
-          "line": 32,
-          "call": "engine.evaluate_prepared(&prepared)",
-          "signature": "pub fn resolve_entity_mention_with_engine<E: GeneralEndpoint>(&mut self, engine: &EntityResolutionEngine<E>, ...)",
-          "path": "src/facade/cva_entity_resolution_processor.rs"
-        }
-      ],
-      "symbol": "EntityResolutionEngine",
-      "internal_facade_use": null,
-      "lower_policy_use": {
-        "line": 25,
-        "path": "src/perception/entity_reconciliation_owner.rs",
-        "call": "lower reconsider_late_exact_rejections builds engine and evaluates prepared mention",
-        "signature_scope": "not a public facade signature"
       }
-    },
-    {
-      "original_rows": [
-        {
-          "source": "src/perception/entity_resolution_processor.rs",
-          "disposition": "retained_public_service_signature",
-          "target": "src/perception/entity_resolver.rs"
-        }
-      ],
-      "current_signatures": [
-        {
-          "line": 12,
-          "call": "resolver.evaluate_prepared(&prepared)",
-          "signature": "pub fn resolve_entity_mention<E: GeneralEndpoint>(&mut self, resolver: &EntityResolver<E>, ...)",
-          "path": "src/facade/cva_entity_resolution_processor.rs"
-        }
-      ],
-      "symbol": "EntityResolver"
-    }
-  ],
+    ],
+    "source_only_note": "Binding/type relocation is evidenced from source. Compiler, public-consumer and final graph acceptance are separate pending gates."
+  },
   "schema": "phase6-original-82-perception-dispositions-v1",
   "known_unresolved": [],
   "register_path": "tools/pitlord/convergence-phase6-perception-facade-import-closure.json",
@@ -3231,76 +3294,56 @@
       "baseline_source": "src/perception/entity_resolution_batch.rs",
       "baseline_import": "crate::EntityResolutionEngine",
       "baseline_target": "src/perception/entity_resolution_engine.rs",
-      "disposition": "retained_public_service_signature",
+      "disposition": "implementation_import_removed_from_facade",
       "baseline_line": 1,
       "after": {
         "facade_entrypoints": [
           "resolve_entity_mentions_with_engine_parallel"
         ],
-        "same_symbol_lower_witness": [
-          {
-            "text": "EntityCandidateConfig, EntityResolutionEngine, EntityResolutionEvaluation,",
-            "line": 2
-          },
-          {
-            "text": "engine: &EntityResolutionEngine<E>,",
-            "line": 26
-          },
-          {
-            "text": "engine: &EntityResolutionEngine<E>,",
-            "line": 60
-          }
-        ],
+        "same_public_binding_in_lower_source": false,
         "current_lower_source_present": true,
-        "lower_policy_witness": [
+        "lower_core_source": "src/perception/entity_resolution_batch.rs",
+        "lower_core_witnesses": [
           {
-            "text": "pub(crate) fn evaluate_wave<E: GeneralEndpoint>(",
-            "line": 25
+            "line": 1,
+            "text": "use crate::entity_resolution_engine::EntityResolutionEngineCore;"
           },
           {
-            "text": "pub(crate) fn evaluate_prepared_with_retry<E: GeneralEndpoint>(",
-            "line": 59
+            "line": 26,
+            "text": "pub(crate) fn evaluate_wave<E: GeneralEndpoint>("
           },
           {
-            "text": "fn transient_endpoint_error(error: &EntityResolverError) -> bool {",
-            "line": 84
-          },
-          {
-            "text": "fn retry_delay(error: &EntityResolverError, attempt: usize) -> Duration {",
-            "line": 111
+            "line": 60,
+            "text": "pub(crate) fn evaluate_prepared_with_retry<E: GeneralEndpoint>("
           }
         ],
         "facade_source": "src/facade/cva_entity_resolution_batch.rs",
-        "public_cva_or_phylactery_impl_remains_in_lower_source": false,
-        "facade_symbol_witness": [
+        "public_binding_source": "src/facade/cva_entity_resolution_engine.rs",
+        "public_binding_witnesses": [
           {
-            "text": "Cva, EntityCandidateConfig, EntityResolutionBatchOutcome, EntityResolutionEngine,",
-            "line": 3
+            "line": 6,
+            "text": "pub struct EntityResolutionEngine<E> {"
           },
           {
-            "text": "engine: &EntityResolutionEngine<E>,",
-            "line": 14
+            "line": 11,
+            "text": "pub fn new(fallback: E) -> Self {"
           }
         ],
-        "lower_owner_impl_absence_witness": {
-          "owner_impl_matches": [],
-          "absence_proven": true,
-          "path": "src/perception/entity_resolution_batch.rs"
-        },
-        "facade_entrypoint_witnesses": [
+        "public_cva_or_phylactery_impl_remains_in_lower_source": false,
+        "public_entrypoint_witnesses": [
           {
-            "name": "resolve_entity_mentions_with_engine_parallel",
-            "witnesses": [
-              {
-                "text": "pub fn resolve_entity_mentions_with_engine_parallel<E: GeneralEndpoint>(",
-                "line": 12
-              }
-            ]
+            "line": 12,
+            "text": "pub fn resolve_entity_mentions_with_engine_parallel<E: GeneralEndpoint>("
+          },
+          {
+            "line": 14,
+            "text": "engine: &EntityResolutionEngine<E>,"
           }
-        ]
+        ],
+        "lower_policy_uses_core": true
       },
       "canonical": "entity_resolution_engine::EntityResolutionEngine",
-      "disposition_reason": "Exact public method parameter in the mapped facade; service API signature is explicitly pending user exception."
+      "disposition_reason": "The public binding moved to the façade and retains the public API. Perception policy/evaluation now uses the crate-private Core type; this baseline source-to-lower-public-binding import is absent. Source disposition only; no compiler or graph proof is implied."
     },
     {
       "symbol": "EntityResolutionEvaluation",
@@ -4861,61 +4904,52 @@
       "baseline_source": "src/perception/entity_resolution_processor.rs",
       "baseline_import": "crate::EntityResolutionEngine",
       "baseline_target": "src/perception/entity_resolution_engine.rs",
-      "disposition": "retained_public_service_signature",
+      "disposition": "implementation_import_removed_from_facade",
       "baseline_line": 1,
       "after": {
         "facade_entrypoints": [
-          "resolve_entity_mention",
           "resolve_entity_mention_with_engine"
         ],
-        "same_symbol_lower_witness": [],
+        "same_public_binding_in_lower_source": false,
         "current_lower_source_present": true,
-        "lower_policy_witness": [
+        "lower_core_source": "src/perception/entity_resolution_engine.rs",
+        "lower_core_witnesses": [
           {
-            "text": "pub(crate) fn stale_snapshot() -> crate::EntityResolverError {",
-            "line": 1
+            "line": 10,
+            "text": "pub(crate) struct EntityResolutionEngineCore<E> {"
+          },
+          {
+            "line": 39,
+            "text": "pub(crate) fn evaluate_prepared("
           }
         ],
         "facade_source": "src/facade/cva_entity_resolution_processor.rs",
-        "public_cva_or_phylactery_impl_remains_in_lower_source": false,
-        "facade_symbol_witness": [
+        "public_binding_source": "src/facade/cva_entity_resolution_engine.rs",
+        "public_binding_witnesses": [
           {
-            "text": "Cva, EntityCandidateConfig, EntityResolutionEngine, EntityResolutionOutcome,",
-            "line": 2
+            "line": 6,
+            "text": "pub struct EntityResolutionEngine<E> {"
           },
           {
-            "text": "engine: &EntityResolutionEngine<E>,",
-            "line": 32
+            "line": 11,
+            "text": "pub fn new(fallback: E) -> Self {"
           }
         ],
-        "lower_owner_impl_absence_witness": {
-          "owner_impl_matches": [],
-          "absence_proven": true,
-          "path": "src/perception/entity_resolution_processor.rs"
-        },
-        "facade_entrypoint_witnesses": [
+        "public_cva_or_phylactery_impl_remains_in_lower_source": false,
+        "public_entrypoint_witnesses": [
           {
-            "name": "resolve_entity_mention",
-            "witnesses": [
-              {
-                "text": "pub fn resolve_entity_mention<E: GeneralEndpoint>(",
-                "line": 10
-              }
-            ]
+            "line": 30,
+            "text": "pub fn resolve_entity_mention_with_engine<E: GeneralEndpoint>("
           },
           {
-            "name": "resolve_entity_mention_with_engine",
-            "witnesses": [
-              {
-                "text": "pub fn resolve_entity_mention_with_engine<E: GeneralEndpoint>(",
-                "line": 30
-              }
-            ]
+            "line": 32,
+            "text": "engine: &EntityResolutionEngine<E>,"
           }
-        ]
+        ],
+        "lower_policy_uses_core": true
       },
       "canonical": "entity_resolution_engine::EntityResolutionEngine",
-      "disposition_reason": "Exact public method parameter in the mapped facade; service API signature is explicitly pending user exception."
+      "disposition_reason": "The public binding moved to the façade and retains the public API. Perception policy/evaluation now uses the crate-private Core type; this baseline source-to-lower-public-binding import is absent. Source disposition only; no compiler or graph proof is implied."
     },
     {
       "symbol": "EntityResolutionOutcome",
@@ -5060,78 +5094,52 @@
       "baseline_source": "src/perception/entity_resolution_processor.rs",
       "baseline_import": "crate::EntityResolver",
       "baseline_target": "src/perception/entity_resolver.rs",
-      "disposition": "retained_public_service_signature",
+      "disposition": "implementation_import_removed_from_facade",
       "baseline_line": 1,
       "after": {
         "facade_entrypoints": [
-          "resolve_entity_mention",
-          "resolve_entity_mention_with_engine"
+          "resolve_entity_mention"
         ],
-        "same_symbol_lower_witness": [
+        "same_public_binding_in_lower_source": false,
+        "current_lower_source_present": true,
+        "lower_core_source": "src/perception/entity_resolver.rs",
+        "lower_core_witnesses": [
           {
-            "text": "pub(crate) fn stale_snapshot() -> crate::EntityResolverError {",
-            "line": 1
+            "line": 11,
+            "text": "pub(crate) struct EntityResolverCore<E> {"
           },
           {
-            "text": "crate::EntityResolverError::InvalidOutput(\"Entity resolution snapshot became stale\".into())",
-            "line": 2
-          }
-        ],
-        "current_lower_source_present": true,
-        "lower_policy_witness": [
-          {
-            "text": "pub(crate) fn stale_snapshot() -> crate::EntityResolverError {",
-            "line": 1
+            "line": 47,
+            "text": "pub(crate) fn resolve("
           }
         ],
         "facade_source": "src/facade/cva_entity_resolution_processor.rs",
-        "public_cva_or_phylactery_impl_remains_in_lower_source": false,
-        "facade_symbol_witness": [
+        "public_binding_source": "src/facade/cva_entity_resolver.rs",
+        "public_binding_witnesses": [
           {
-            "text": "EntityResolutionPreparation, EntityResolver, EntityResolverError, GeneralEndpoint,",
-            "line": 3
+            "line": 5,
+            "text": "pub struct EntityResolver<E> {"
           },
           {
-            "text": "resolver: &EntityResolver<E>,",
-            "line": 12
-          },
-          {
-            "text": ") -> Result<EntityResolutionOutcome, EntityResolverError> {",
-            "line": 16
-          },
-          {
-            "text": ") -> Result<EntityResolutionOutcome, EntityResolverError> {",
-            "line": 36
+            "line": 10,
+            "text": "pub fn new(endpoint: E) -> Self {"
           }
         ],
-        "lower_owner_impl_absence_witness": {
-          "owner_impl_matches": [],
-          "absence_proven": true,
-          "path": "src/perception/entity_resolution_processor.rs"
-        },
-        "facade_entrypoint_witnesses": [
+        "public_cva_or_phylactery_impl_remains_in_lower_source": false,
+        "public_entrypoint_witnesses": [
           {
-            "name": "resolve_entity_mention",
-            "witnesses": [
-              {
-                "text": "pub fn resolve_entity_mention<E: GeneralEndpoint>(",
-                "line": 10
-              }
-            ]
+            "line": 10,
+            "text": "pub fn resolve_entity_mention<E: GeneralEndpoint>("
           },
           {
-            "name": "resolve_entity_mention_with_engine",
-            "witnesses": [
-              {
-                "text": "pub fn resolve_entity_mention_with_engine<E: GeneralEndpoint>(",
-                "line": 30
-              }
-            ]
+            "line": 12,
+            "text": "resolver: &EntityResolver<E>,"
           }
-        ]
+        ],
+        "lower_policy_uses_core": true
       },
       "canonical": "entity_resolver::EntityResolver",
-      "disposition_reason": "Exact public method parameter in the mapped facade; service API signature is explicitly pending user exception."
+      "disposition_reason": "The public binding moved to the façade and retains the public API. Perception policy/evaluation now uses the crate-private Core type; this baseline source-to-lower-public-binding import is absent. Source disposition only; no compiler or graph proof is implied."
     },
     {
       "symbol": "EntityResolverError",
@@ -5331,5 +5339,6 @@
       "src/facade/cva_entity_resolution_processor.rs"
     ],
     "acceptance": "All 82 original rows classified; 46 removed implementation imports, 33 immutable owner values, 3 preserved downward public service parameters; final behavior and graph checks remain independently required."
-  }
+  },
+  "source_only_note": "All 82 baseline rows have source dispositions. This register does not claim final DAG/compiler acceptance; public signatures remain preserved with facade-owned bindings."
 }

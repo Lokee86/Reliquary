@@ -131,9 +131,13 @@ fn commit(
     );
     ids.sort_by_key(|id| id.0);
     ids.dedup();
+    let resolutions = crate::entity_resolution_owner::ResolutionReadContext {
+        memories: &phy.memories,
+        entity_resolutions: &phy.entity_resolutions,
+    };
     let keys = ids
         .into_iter()
-        .flat_map(|id| phy.schedulable_entity_mentions_for_memory(id))
+        .flat_map(|id| resolutions.schedulable_entity_mentions_for_memory(id))
         .collect::<Vec<_>>();
     drop(phy);
     shared.enqueue(keys)?;

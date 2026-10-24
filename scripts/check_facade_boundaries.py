@@ -14,6 +14,10 @@ ROOT = Path(__file__).resolve().parents[1]
 UPPER = {"public-consumers", "runtime-gateway"}
 PRODUCT_TYPES = r"Cva|Phylactery|EntityResolver|EntityResolutionEngine"
 CONCRETE_READ_CONTRACTS = {"src/perception/entity_audit.rs", "src/external_source/mod.rs"}
+MOUNTED_PERCEPTION = {
+    "src/runtime_inference/runtime_host_rel_perception.rs",
+    "src/runtime_inference/runtime_host_phy_perception.rs",
+}
 CONTAINER_FREE_READS = {
     "src/retrieval/conversation_search.rs", "src/retrieval/lexical_search.rs",
     "src/retrieval/semantic_search.rs", "src/retrieval/lexical_index.rs",
@@ -36,6 +40,13 @@ def unresolved_reverse(row: dict, source: str | None, target: str | None,
 def violations(path: str, source: str, component: str | None, facts: set[str]) -> list[str]:
     view = masked(strip_inactive_cfg(source, facts))
     errors = []
+    if path in MOUNTED_PERCEPTION:
+        for hit in re.finditer(
+            r"\b(?:cva|phy)\s*\.\s*(?:resolve_principal_entity_mention|prepare_entity_resolution|commit_entity_resolution|prepare_entity_reconciliation|commit_entity_reconciliation)\s*\(", view
+        ):
+            errors.append(f"{path}:{view.count(chr(10), 0, hit.start()) + 1}: mounted Perception execution calls facade helper")
+        if re.search(r"\bEntityResolutionEngine\b", view):
+            errors.append(f"{path}: mounted Perception execution constructs public inference binding")
     if path in CONCRETE_READ_CONTRACTS:
         for hit in re.finditer(r"\bFn(?:Mut|Once)?\b", view):
             errors.append(f"{path}:{view.count(chr(10), 0, hit.start()) + 1}: callback parameter replaces concrete owner read contract")
@@ -90,7 +101,10 @@ def self_test() -> None:
     assert violations("src/perception/policy.rs", "use crate::EntityResolutionEngine;", "perception", facts)
     assert violations("src/perception/policy.rs", "pub struct EntityResolver {}", "public-consumers", facts)
     assert not violations("src/perception/policy.rs", "fn run(value: &MemoryReadView) {}", "perception", facts)
-    print("Facade boundary fixtures passed (25 cases).")
+    assert violations("src/runtime_inference/runtime_host_rel_perception.rs", "runtime.cva\n .prepare_entity_resolution(key, config)", "runtime-gateway", facts)
+    assert violations("src/runtime_inference/runtime_host_phy_perception.rs", "phy.commit_entity_reconciliation(p, e, n)", "runtime-gateway", facts)
+    assert not violations("src/runtime_inference/runtime_host_phy_perception.rs", "EntityResolutionEngineCore::new(endpoint); native::commit(container, stores, plan)", "runtime-gateway", facts)
+    print("Facade boundary fixtures passed (28 cases).")
 
 
 def main() -> int:

@@ -267,5 +267,40 @@
       "preserved_in_facade": true
     }
   ],
-  "missing": []
+  "missing": [],
+  "service_binding_ownership": {
+    "source_only": true,
+    "public_bindings": [
+      {
+        "symbol": "EntityResolver",
+        "facade_path": "src/facade/cva_entity_resolver.rs",
+        "root_export_witness": {
+          "line": 1211,
+          "text": "pub use cva_entity_resolver::EntityResolver;"
+        },
+        "lower_core": "src/perception/entity_resolver.rs::EntityResolverCore",
+        "public_methods": [
+          "pub fn new(endpoint: E) -> Self",
+          "pub fn with_system_prompt(endpoint: E, system_prompt: impl Into<String>) -> Self",
+          "pub fn model(&self) -> &str"
+        ]
+      },
+      {
+        "symbol": "EntityResolutionEngine",
+        "facade_path": "src/facade/cva_entity_resolution_engine.rs",
+        "root_export_witness": {
+          "line": 1210,
+          "text": "pub use cva_entity_resolution_engine::EntityResolutionEngine;"
+        },
+        "lower_core": "src/perception/entity_resolution_engine.rs::EntityResolutionEngineCore",
+        "public_methods": [
+          "pub fn new(fallback: E) -> Self",
+          "pub fn with_decision_endpoint(mut self, decision: Option<Arc<dyn DecisionEndpoint>>) -> Self",
+          "pub fn decision_model(&self) -> Option<&str>",
+          "pub fn fallback_model(&self) -> &str"
+        ]
+      }
+    ],
+    "status": "Public method-parameter signatures remain preserved; service bindings are now facade-owned and lower Perception consumers use Core types. Source evidence only."
+  }
 }

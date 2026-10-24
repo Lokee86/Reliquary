@@ -4,7 +4,7 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Phase 6 public boundary acceptance
 
-The public facade source cuts are implemented; finish the exact retained-contract disposition and integrated verification gates in the [Phase 6 execution receipt](dependency-convergence-phase6-execution-2026-10-23.md) before claiming A6 acceptance. Phase 7 retains the inherited full-graph proof obligation, not unfinished Phase 6 source cuts.
+The public facade source cuts are implemented; finish the bounded mounted-execution correction and integrated verification gates in the [Phase 6 execution receipt](dependency-convergence-phase6-execution-2026-10-23.md) before claiming A6 acceptance. Phase 7 retains the inherited full-graph proof obligation, not unfinished Phase 6 source cuts.
 
 ## Purpose
 

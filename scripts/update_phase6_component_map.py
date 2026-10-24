@@ -52,10 +52,14 @@ def source_changes(base: str) -> tuple[set[str], set[str], set[str]]:
 
 
 def role(path: str, previous: str | None) -> tuple[str | None, str | None]:
+    if path.startswith("src/runtime_inference/perception_publication"):
+        return "runtime-gateway", "Concrete native Perception publication over existing owner stores; shared by mounted execution and public adapters without product handles or provider callbacks."
     if path.startswith("src/facade/"):
         return "public-consumers", "Phase 6 public extension or composition source; placed above owner/domain implementation."
     if path == "src/archive/archive_search.rs":
         return "archive-store", "Archive owns search result/value DTOs and search policy; public Cva adapter resides in facade."
+    if path == "src/retrieval/vector_generation_store.rs":
+        return "vector-store", "VectorGenerationStore is a durable owner store; the baseline owner-boundaries manifest explicitly assigns this path to vector-store. Retrieval consumes it through store APIs."
     if path.startswith("src/retrieval/"):
         return "retrieval", "Retrieval policy/implementation remains Retrieval-owned; public Cva/Phylactery adapters reside in facade."
     if path == "src/runtime_inference/runtime_vector_step.rs":
@@ -223,6 +227,19 @@ def apply_delta(mapping: dict[str, Any], changed: set[str], deleted: set[str], b
 
     for entry in result["components"]:
         entry["current_production_source_files"] = sorted(set(entry.get("current_production_source_files", [])))
+    # The public bindings now own their lower inference cores. Keep the type
+    # surface inventory aligned with the actual root reexports, rather than
+    # retaining the former Perception definitions as public API owners.
+    for row in result.get("root_reexports", []):
+        module = {
+            "EntityResolver": "cva_entity_resolver",
+            "EntityResolutionEngine": "cva_entity_resolution_engine",
+        }.get(row.get("exported_name"))
+        if module:
+            row.update(path=f"{module}::{row['exported_name']}",
+                       defining_module=module,
+                       defining_source=f"src/facade/{module}.rs",
+                       defining_component="public-consumers")
     result["phase6_map_delta"] = {
         "base_checkpoint": base,
         "updated_paths": sorted(changed & live),

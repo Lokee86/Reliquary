@@ -14,7 +14,7 @@ Observation synthesis and broader propositional reasoning remain active future w
 
 ## Public composition boundary
 
-Public `Cva`/`Phylactery` audit, candidate, resolution and reconciliation adapters belong to `src/facade/`. Perception retains audit calculation, candidate/evidence policy and concrete store-based preparation/commit contracts. Public adapters gather the existing owner borrows; lower services do not receive a product facade. [Phase 6 evidence](../dependency-convergence-phase6-execution-2026-10-23.md) records the migration and its verification limits.
+Public `Cva`/`Phylactery` audit, candidate, resolution and reconciliation adapters belong to `src/facade/`. Perception retains audit calculation, candidate/evidence policy and pure preparation/commit plans over concrete owner readers. Public adapters gather existing owner borrows; mounted workers use the same lower plans and concrete native publication without calling facade helpers. Public Resolver/Engine bindings own private inference cores, which mounted workers use directly. [Phase 6 evidence](../dependency-convergence-phase6-execution-2026-10-23.md) records the migration and its verification limits.
 
 ## Memory mention input
 

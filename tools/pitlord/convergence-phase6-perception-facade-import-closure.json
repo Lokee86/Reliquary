@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "status": "source-reconciled; acceptance-pending-three-public-service-signature-contracts",
+  "status": "source-reconciled; all-82-rows-disposed; integrated-acceptance-pending",
   "scope": "Historical original 82-row Phase 6 denominator; source_paths and component labels below describe the frozen before-image, not current implementation debt.",
   "source_component": "public-consumers",
   "target_component": "perception",
@@ -22,14 +22,14 @@
     "src/perception/"
   ],
   "row_count": 82,
-  "reason": "The original source families now contain concrete lower policy while public adapters live in facade. This register no longer authorizes current implementation import deferrals. Preserve exact public signatures; three service-signature rows await an explicit bounded acceptance decision.",
+  "reason": "The original 82 source-import rows are reconciled against current source. The three former public-service-signature rows now resolve as binding cuts: public EntityResolver/EntityResolutionEngine types live in facade modules, while Perception consumers use crate-private Core types. Public signatures remain preserved; no exception approval is required. This is source disposition only, not graph or compiler proof.",
   "authority": "The exact current source-import rows and SCC membership remain authoritative; Arcana induced file-node export is supplementary only and cannot prove cross-component completeness.",
   "current_disposition": {
     "artifact": "benchmarks/phase6-perception-dispositions.json",
     "audited_rows": 82,
-    "implementation_imports_absent_from_facade": 46,
+    "implementation_imports_absent_from_facade": 49,
     "immutable_value_rows": 33,
-    "preserved_public_service_signature_rows": 3,
+    "former_public_service_signature_rows_resolved_as_binding_cuts": 3,
     "unclassified_rows": 0,
     "accepted_gate": false
   },
