@@ -1,10 +1,25 @@
-use crate::entity_reconciliation::{ReconciliationRoundContext, reconcile_round};
-use crate::entity_reconciliation_model::EntityReconciliationReport;
-use crate::{Cva, EntityReconciliationError, GeneralEndpoint, Phylactery};
+use crate::entity_reconciliation::{
+    ReconciliationCandidateAction, ReconciliationRoundOutcome, evaluate_reconciliation_candidate,
+    plan_reconciliation_round,
+};
+use crate::entity_reconciliation_commit::{
+    ReconciliationCommitContext, plan_entity_reconciliation_commit, plan_late_rejection_wake,
+    plan_reconciliation_merge,
+};
+use crate::entity_reconciliation_model::{
+    EntityReconciliationEvaluation, EntityReconciliationPrepared, EntityReconciliationReport,
+};
+use crate::entity_reconciliation_owner::{
+    RejectionSelectionContext, evaluate_prepared_reconsideration, select_late_exact_rejections,
+};
+use crate::memory_store::MemoryReadView;
+use crate::{
+    Cva, CvaError, EntityReconciliationError, GeneralEndpoint, Phylactery, PhylacteryError,
+};
 use std::collections::HashSet;
 
 macro_rules! impl_reconciliation {
-    ($owner:ty $(, $archive:ident)?) => {
+    ($owner:ty, $merge_error:ty, $principal_method:ident) => {
         impl $owner {
             pub fn reconcile_entities<E: GeneralEndpoint>(
                 &mut self,
@@ -23,41 +38,58 @@ macro_rules! impl_reconciliation {
                 let mut seen_model_pairs = HashSet::new();
                 let mut timestamp = now_ns;
                 for round in 0..crate::DEFAULT_ENTITY_RECONCILIATION_ROUNDS {
-                    let mut context = ReconciliationRoundContext {
-                        container: &mut self.container,
-                        memories: &self.memories,
-                        entities: &mut self.entities,
-                        graph: &mut self.graph,
-                        resolutions: &mut self.entity_resolutions,
-                        relationships: &mut self.relationships,
+                    let plan = plan_reconciliation_round(&self.entities, &self.graph);
+                    let mut result = ReconciliationRoundOutcome {
+                        candidate_pairs: plan.candidates.len(),
+                        ..ReconciliationRoundOutcome::default()
                     };
-                    let result = reconcile_round(
-                        &mut context,
-                        endpoint,
-                        &mut timestamp,
-                        &mut seen_model_pairs,
-                    )?;
+                    for candidate in &plan.candidates {
+                        let action = {
+                            let memories = MemoryReadView::new(&self.memories, &self.container);
+                            evaluate_reconciliation_candidate(
+                                &self.entities,
+                                &self.graph,
+                                &memories,
+                                &plan,
+                                candidate,
+                                endpoint,
+                                &mut seen_model_pairs,
+                            )?
+                        };
+                        match action {
+                            ReconciliationCandidateAction::Skip => {}
+                            ReconciliationCandidateAction::Unresolved => {
+                                result.unresolved_pairs += 1;
+                            }
+                            ReconciliationCandidateAction::Merge {
+                                survivor,
+                                retired,
+                                deterministic,
+                            } => {
+                                timestamp = timestamp.saturating_add(1);
+                                let merged = self
+                                    .merge_entities(survivor, retired, timestamp)
+                                    .map_err(|error| {
+                                        EntityReconciliationError::Operation(error.to_string())
+                                    })?;
+                                if merged.changed {
+                                    result.changed = true;
+                                    if deterministic {
+                                        result.deterministic_merges += 1;
+                                    } else {
+                                        result.model_merges += 1;
+                                    }
+                                }
+                            }
+                        }
+                    }
                     report.candidate_pairs += result.candidate_pairs;
                     report.deterministic_merges += result.deterministic_merges;
                     report.model_merges += result.model_merges;
                     report.unresolved_pairs += result.unresolved_pairs;
-                    let reconsidered = {
-                        let mut context =
-                            crate::entity_reconciliation_owner::RejectionReconsiderationContext {
-                                container: &mut self.container,
-                                memories: &self.memories,
-                                entities: &mut self.entities,
-                                graph: &mut self.graph,
-                                resolutions: &mut self.entity_resolutions,
-                                lexical_index: &mut self.lexical_index,
-                                archive: None $(.or(Some(&self.$archive)))?,
-                            };
-                        crate::entity_reconciliation_owner::reconsider_late_exact_rejections(
-                            &mut context,
-                            endpoint,
-                            &mut timestamp,
-                        )?
-                    };
+
+                    let reconsidered =
+                        self.reconsider_late_exact_rejections(endpoint, &mut timestamp)?;
                     report.rejected_mentions_reconsidered += reconsidered;
                     self.container
                         .sync()
@@ -70,43 +102,20 @@ macro_rules! impl_reconciliation {
                 report.final_audit = self.audit_entities();
                 Ok(report)
             }
-        }
-    };
-}
-impl_reconciliation!(Cva, archive);
-impl_reconciliation!(Phylactery);
 
-macro_rules! impl_reconciliation_prepare {
-    ($owner:ty) => {
-        impl $owner {
             pub(crate) fn prepare_entity_reconciliation(
                 &self,
-            ) -> Result<
-                crate::entity_reconciliation_model::EntityReconciliationPrepared,
-                crate::EntityReconciliationError,
-            > {
+            ) -> Result<EntityReconciliationPrepared, EntityReconciliationError> {
+                let memories = MemoryReadView::new(&self.memories, &self.container);
                 let context = crate::entity_reconciliation_prepare::ReconciliationPrepareContext {
                     entities: &self.entities,
                     graph: &self.graph,
-                    memories: &self.memories,
+                    memories: &memories,
                     resolutions: &self.entity_resolutions,
-                    container: &self.container,
                 };
                 crate::entity_reconciliation_prepare::prepare_entity_reconciliation(&context)
             }
-        }
-    };
-}
-impl_reconciliation_prepare!(Cva);
-impl_reconciliation_prepare!(Phylactery);
 
-use crate::entity_reconciliation_commit::{self, ReconciliationCommitContext};
-use crate::entity_reconciliation_model::{
-    EntityReconciliationEvaluation, EntityReconciliationPrepared,
-};
-macro_rules! impl_reconciliation_commit {
-    ($owner:ty) => {
-        impl $owner {
             pub(crate) fn commit_entity_reconciliation(
                 &mut self,
                 prepared: EntityReconciliationPrepared,
@@ -114,25 +123,181 @@ macro_rules! impl_reconciliation_commit {
                 now_ns: i64,
             ) -> Result<
                 Option<crate::entity_reconciliation_model::EntityReconciliationCommit>,
-                crate::EntityReconciliationError,
+                EntityReconciliationError,
             > {
-                let mut context = ReconciliationCommitContext {
-                    container: &mut self.container,
-                    memories: &self.memories,
-                    entities: &mut self.entities,
-                    graph: &mut self.graph,
-                    resolutions: &mut self.entity_resolutions,
-                    relationships: &mut self.relationships,
+                let memories = MemoryReadView::new(&self.memories, &self.container);
+                let context = ReconciliationCommitContext {
+                    memories: &memories,
+                    entities: &self.entities,
+                    graph: &self.graph,
+                    resolutions: &self.entity_resolutions,
                 };
-                entity_reconciliation_commit::commit_entity_reconciliation(
-                    &mut context,
-                    prepared,
-                    evaluation,
-                    now_ns,
-                )
+                let Some(plan) = plan_entity_reconciliation_commit(&context, prepared, evaluation)
+                else {
+                    return Ok(None);
+                };
+
+                let mut timestamp = now_ns;
+                let mut deterministic_merges = 0usize;
+                let mut model_merges = 0usize;
+                for decision in &plan.decisions {
+                    let planned = {
+                        let memories = MemoryReadView::new(&self.memories, &self.container);
+                        let context = ReconciliationCommitContext {
+                            memories: &memories,
+                            entities: &self.entities,
+                            graph: &self.graph,
+                            resolutions: &self.entity_resolutions,
+                        };
+                        plan_reconciliation_merge(&context, &plan, decision, timestamp)?
+                    };
+                    let Some((merge_plan, deterministic)) = planned else {
+                        continue;
+                    };
+                    timestamp = timestamp.saturating_add(1);
+                    let outcome = crate::cva_entity_merge::apply_entity_merge_plan::<$merge_error>(
+                        merge_plan,
+                        &mut self.container,
+                        &self.memories,
+                        &mut self.entities,
+                        &mut self.entity_resolutions,
+                        &mut self.graph,
+                        &mut self.relationships,
+                    )
+                    .map_err(|error| EntityReconciliationError::Operation(error.to_string()))?;
+                    if outcome.changed {
+                        if deterministic {
+                            deterministic_merges += 1;
+                        } else {
+                            model_merges += 1;
+                        }
+                    }
+                }
+
+                let mut wake_keys = Vec::new();
+                for key in plan.late_rejected.iter().copied() {
+                    let wake = {
+                        let memories = MemoryReadView::new(&self.memories, &self.container);
+                        let context = ReconciliationCommitContext {
+                            memories: &memories,
+                            entities: &self.entities,
+                            graph: &self.graph,
+                            resolutions: &self.entity_resolutions,
+                        };
+                        plan_late_rejection_wake(&context, key)
+                    };
+                    let Some(wake) = wake else {
+                        continue;
+                    };
+                    timestamp = timestamp.saturating_add(1);
+                    self.reset_entity_resolution(wake.key, timestamp)
+                        .map_err(|error| EntityReconciliationError::Operation(error.to_string()))?;
+                    wake_keys.push(wake.key);
+                }
+
+                self.container
+                    .sync()
+                    .map_err(|error| EntityReconciliationError::Operation(error.to_string()))?;
+                let report = EntityReconciliationReport {
+                    rounds: 1,
+                    candidate_pairs: plan.candidate_pairs,
+                    deterministic_merges,
+                    model_merges,
+                    rejected_mentions_reconsidered: wake_keys.len(),
+                    unresolved_pairs: plan
+                        .candidate_pairs
+                        .saturating_sub(deterministic_merges + model_merges),
+                    final_audit: crate::entity_audit::audit_owner(
+                        &crate::entity_audit::EntityAuditContext {
+                            entities: &self.entities,
+                            memories: &self.memories,
+                            graph: &self.graph,
+                            resolutions: &self.entity_resolutions,
+                        },
+                    ),
+                };
+                Ok(Some(
+                    crate::entity_reconciliation_model::EntityReconciliationCommit {
+                        report,
+                        wake_keys,
+                    },
+                ))
             }
         }
     };
 }
-impl_reconciliation_commit!(Cva);
-impl_reconciliation_commit!(Phylactery);
+
+macro_rules! impl_reconsider {
+    ($owner:ty, $principal_method:ident) => {
+        impl $owner {
+            fn reconsider_late_exact_rejections<E: GeneralEndpoint>(
+                &mut self,
+                endpoint: &E,
+                timestamp: &mut i64,
+            ) -> Result<usize, EntityReconciliationError> {
+                let selected = {
+                    let memories = MemoryReadView::new(&self.memories, &self.container);
+                    let context = RejectionSelectionContext {
+                        memories: &memories,
+                        entities: &self.entities,
+                        resolutions: &self.entity_resolutions,
+                    };
+                    select_late_exact_rejections(&context)
+                };
+                let mut changed = 0usize;
+                for candidate in selected {
+                    *timestamp = timestamp.saturating_add(1);
+                    let result = (|| -> Result<(), crate::EntityResolverError> {
+                        self.reset_entity_resolution(candidate.key, *timestamp)?;
+                        *timestamp = timestamp.saturating_add(1);
+                        if self.$principal_method(candidate.key, *timestamp)?.is_some() {
+                            return Ok(());
+                        }
+                        match self.prepare_entity_resolution(
+                            candidate.key,
+                            crate::EntityCandidateConfig::default(),
+                        )? {
+                            crate::EntityResolutionPreparation::Complete(_) => Ok(()),
+                            crate::EntityResolutionPreparation::Ready(prepared) => {
+                                let evaluation = evaluate_prepared_reconsideration(
+                                    endpoint,
+                                    &prepared,
+                                )?;
+                                let commit = self
+                                    .plan_entity_resolution_commit(
+                                        prepared,
+                                        evaluation,
+                                        *timestamp,
+                                    )?
+                                    .ok_or_else(crate::entity_resolution_processor::stale_snapshot)?;
+                                self.apply_entity_resolution_commit_plan(commit)?;
+                                Ok(())
+                            }
+                        }
+                    })();
+                    if let Err(error) = result {
+                        *timestamp = timestamp.saturating_add(1);
+                        self.put_entity_rejected(candidate.key, 0, candidate.reason, *timestamp)
+                            .map_err(|restore| {
+                                EntityReconciliationError::Operation(format!(
+                                    "resolver failed ({error}); failed to restore rejection: {restore}"
+                                ))
+                            })?;
+                        return Err(error.into());
+                    }
+                    changed += 1;
+                }
+                Ok(changed)
+            }
+        }
+    };
+}
+
+impl_reconciliation!(Cva, CvaError, resolve_principal_entity_mention);
+impl_reconciliation!(
+    Phylactery,
+    PhylacteryError,
+    reject_phy_principal_entity_mention
+);
+impl_reconsider!(Cva, resolve_principal_entity_mention);
+impl_reconsider!(Phylactery, reject_phy_principal_entity_mention);

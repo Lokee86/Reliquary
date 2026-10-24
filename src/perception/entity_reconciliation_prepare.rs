@@ -6,22 +6,21 @@ use crate::entity_reconciliation_support::exact_entity_for_surface;
 use crate::entity_resolution_store::EntityResolutionStore;
 use crate::entity_store::EntityStore;
 use crate::graph_store::GraphStore;
-use crate::memory_store::MemoryStore;
+use crate::memory_store::MemoryReadView;
 use crate::{
-    Container, DEFAULT_ENTITY_RECONCILIATION_PAIR_LIMIT, EntityReconciliationError,
+    DEFAULT_ENTITY_RECONCILIATION_PAIR_LIMIT, EntityReconciliationError,
     MemoryEntityResolutionStatus,
 };
 
-pub(crate) struct ReconciliationPrepareContext<'a> {
+pub(crate) struct ReconciliationPrepareContext<'a, 'm> {
     pub(crate) entities: &'a EntityStore,
     pub(crate) graph: &'a GraphStore,
-    pub(crate) memories: &'a MemoryStore,
+    pub(crate) memories: &'a MemoryReadView<'m>,
     pub(crate) resolutions: &'a EntityResolutionStore,
-    pub(crate) container: &'a Container,
 }
 
 pub(crate) fn prepare_entity_reconciliation(
-    context: &ReconciliationPrepareContext<'_>,
+    context: &ReconciliationPrepareContext<'_, '_>,
 ) -> Result<EntityReconciliationPrepared, EntityReconciliationError> {
     let entities = context.entities.current();
     let candidates = reconciliation_candidates(&entities, DEFAULT_ENTITY_RECONCILIATION_PAIR_LIMIT);
@@ -43,7 +42,7 @@ pub(crate) fn prepare_entity_reconciliation(
             .map(|id| {
                 context
                     .memories
-                    .memory(context.container, id)
+                    .memory(id)
                     .map_err(|error| EntityReconciliationError::Operation(error.to_string()))
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -55,7 +54,7 @@ pub(crate) fn prepare_entity_reconciliation(
             .map(|id| {
                 context
                     .memories
-                    .memory(context.container, id)
+                    .memory(id)
                     .map_err(|error| EntityReconciliationError::Operation(error.to_string()))
             })
             .collect::<Result<Vec<_>, _>>()?;
