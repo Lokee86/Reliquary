@@ -91,8 +91,7 @@ fn prepare(
     let plan = {
         let phy = &mut *guard;
         crate::perception_publication_resolution::plan_phy_principal_resolution(
-            &phy.container,
-            &phy.memories,
+            crate::memory_store::MemoryReadView::new(&phy.memories, &phy.container),
             &phy.entities,
             &phy.entity_resolutions,
             &phy.graph,
@@ -103,7 +102,7 @@ fn prepare(
     };
     if let Some(plan) = plan {
         let phy = &mut *guard;
-        crate::perception_publication_resolution::apply_principal_resolution_plan(
+        crate::owner_lifecycle::perception_publication_resolution::apply_principal_resolution_plan(
             &mut phy.container,
             &phy.memories,
             &mut phy.entities,
@@ -120,8 +119,7 @@ fn prepare(
         let phy = &mut *guard;
         let owner_id = phy.container.owner_id();
         crate::perception_publication_resolution::prepare_entity_resolution(
-            &phy.container,
-            &phy.memories,
+            crate::memory_store::MemoryReadView::new(&phy.memories, &phy.container),
             &mut phy.lexical_index,
             &phy.entities,
             &phy.graph,
@@ -169,7 +167,7 @@ fn commit(
         else {
             return Ok(None);
         };
-        crate::perception_publication_resolution::apply_entity_resolution_commit_plan(
+        crate::owner_lifecycle::perception_publication_resolution::apply_entity_resolution_commit_plan(
             &mut phy.container,
             &phy.memories,
             &mut phy.entities,

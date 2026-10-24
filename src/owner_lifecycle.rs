@@ -139,6 +139,15 @@ pub(crate) mod import_epoch_transport;
 #[path = "owner_lifecycle/graph_ordered_replay.rs"]
 pub(crate) mod graph_ordered_replay;
 
+#[path = "owner_lifecycle/entity_resolution_admission.rs"]
+pub(crate) mod entity_resolution_admission;
+
+#[path = "owner_lifecycle/entity_publication_admission.rs"]
+pub(crate) mod entity_publication_admission;
+
+#[path = "owner_lifecycle/perception_publication_resolution.rs"]
+pub(crate) mod perception_publication_resolution;
+
 #[path = "owner_lifecycle/archive_ordered_replay.rs"]
 pub(crate) mod archive_ordered_replay;
 #[path = "owner_lifecycle/archive_replay_error.rs"]

@@ -145,9 +145,12 @@ fn prepare(
             let now_ns = now_ns();
             let outcome = {
                 let cva = &mut runtime.cva;
-                let plan = crate::perception_publication_resolution::plan_rel_principal_resolution(
-                    &cva.container,
+                let memories = crate::memory_store::MemoryReadView::new(
                     &cva.memories,
+                    &cva.container,
+                );
+                let plan = crate::perception_publication_resolution::plan_rel_principal_resolution(
+                    memories,
                     &cva.entities,
                     &cva.entity_resolutions,
                     &cva.graph,
@@ -157,7 +160,7 @@ fn prepare(
                 )
                 .map_err(operation)?;
                 plan.map(|plan| {
-                    crate::perception_publication_resolution::apply_principal_resolution_plan(
+                    crate::owner_lifecycle::perception_publication_resolution::apply_principal_resolution_plan(
                         &mut cva.container,
                         &cva.memories,
                         &mut cva.entities,
@@ -186,16 +189,17 @@ fn prepare(
         .lock()
         .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
     let cva = &mut runtime.cva;
+    let owner_id = cva.container.owner_id();
+    let memories = crate::memory_store::MemoryReadView::new(&cva.memories, &cva.container);
     crate::perception_publication_resolution::prepare_entity_resolution(
-        &cva.container,
-        &cva.memories,
+        memories,
         &mut cva.lexical_index,
         &cva.entities,
         &cva.graph,
         &cva.entity_resolutions,
         key,
         EntityCandidateConfig::default(),
-        cva.container.owner_id(),
+        owner_id,
     )
     .map(Some)
     .map_err(operation)
@@ -227,7 +231,7 @@ fn commit(
                 return Ok((None, false, vec![]));
             };
             let outcome =
-                crate::perception_publication_resolution::apply_entity_resolution_commit_plan(
+                crate::owner_lifecycle::perception_publication_resolution::apply_entity_resolution_commit_plan(
                     &mut cva.container,
                     &cva.memories,
                     &mut cva.entities,

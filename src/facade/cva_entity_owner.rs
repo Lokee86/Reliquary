@@ -11,7 +11,10 @@ macro_rules! impl_owner {
                 expected_revision: u64,
                 draft: EntityDraft,
             ) -> Result<(Entity, bool), EntityError> {
-                crate::entity_owner::validate_entity_publication(&draft, $reject_principal)?;
+                crate::owner_lifecycle::entity_publication_admission::validate_entity_publication(
+                    &draft,
+                    $reject_principal,
+                )?;
                 self.entities
                     .publish(&mut self.container, id, expected_revision, draft)
             }

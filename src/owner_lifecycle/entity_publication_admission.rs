@@ -1,6 +1,6 @@
 use crate::{EntityDraft, EntityError};
 
-/// Perception-owned principal exclusion shared by the REL and PHY adapters.
+/// REL/PHY principal exclusion at the native Entity publication boundary.
 pub(crate) fn validate_entity_publication(
     draft: &EntityDraft,
     reject_principal: bool,

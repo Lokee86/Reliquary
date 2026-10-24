@@ -20,6 +20,22 @@ pub(crate) enum EntityMergePlan {
     },
 }
 
+/// Concrete mutation facts prepared above native publication. Validation
+/// failures are carried per relationship so the owner can surface each one
+/// at the corresponding ordered write boundary.
+pub(crate) struct EntityMergePublicationPlan {
+    pub(crate) merge: EntityMergePlan,
+    pub(crate) graph_changes: Vec<SemanticGraphRelationChange>,
+    pub(crate) owner_id: Option<String>,
+    pub(crate) relationships: Vec<Result<EntityMergeRelationshipWrite, RelationshipError>>,
+}
+
+pub(crate) struct EntityMergeRelationshipWrite {
+    pub(crate) id: crate::RelationshipId,
+    pub(crate) expected_revision: u64,
+    pub(crate) draft: RelationshipDraft,
+}
+
 pub(crate) fn plan_entity_merge(
     entities: &EntityStore,
     survivor_id: EntityId,

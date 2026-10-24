@@ -657,8 +657,6 @@ mod entity_identity_guard;
 mod entity_merge;
 #[path = "perception/entity_model.rs"]
 mod entity_model;
-#[path = "perception/entity_owner.rs"]
-mod entity_owner;
 #[path = "perception/entity_principal.rs"]
 mod entity_principal;
 #[cfg(test)]

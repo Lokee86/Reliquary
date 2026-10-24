@@ -1,6 +1,6 @@
-use crate::entity_resolution_owner::{ResolutionReadContext, ResolutionWriteContext};
-use crate::perception_publication_resolution::{
-    ResolutionWriteResult, apply_resolution_write_plan,
+use crate::entity_resolution_owner::ResolutionReadContext;
+use crate::owner_lifecycle::entity_resolution_admission::{
+    ResolutionWriteContext, ResolutionWriteResult, apply_resolution_write_plan,
 };
 use crate::{
     Cva, EntityId, EntityResolutionCompaction, EntityResolutionReason, MemoryEntityMentionKey,
