@@ -26,7 +26,7 @@ impl GatewayRuntime {
                 let cva = &runtime.cva;
                 let mut conversations = cva.owner.archive.conversation_summaries();
                 conversations.sort_by(|a, b| a.conversation_id.cmp(&b.conversation_id));
-                let mut branches = cva.branches();
+                let mut branches = cva.runtime_branches();
                 branches.sort_by(|a, b| {
                     a.conversation_id
                         .cmp(&b.conversation_id)
@@ -35,19 +35,19 @@ impl GatewayRuntime {
                 if conversations.len() > MAX_SNAPSHOT_ITEMS || branches.len() > MAX_SNAPSHOT_ITEMS {
                     return Err(operation("REL snapshot exceeds its item bound"));
                 }
-                let project = cva
-                    .latest_project_revision_correlation()
-                    .map(|correlation| RelProjectStatus {
-                        correlation_sequence: correlation.sequence,
-                        repository_kind: correlation.project_revision.repository.kind,
-                        management: correlation.repository_management,
-                    });
+                let project =
+                    cva.runtime_latest_project_revision_correlation()
+                        .map(|correlation| RelProjectStatus {
+                            correlation_sequence: correlation.sequence,
+                            repository_kind: correlation.project_revision.repository.kind,
+                            management: correlation.repository_management,
+                        });
                 Ok(RelSnapshotState {
                     conversations,
                     branches,
                     submissions: Vec::new(),
                     host_work: Vec::new(),
-                    processing: cva.insomnia_stats(),
+                    processing: cva.runtime_insomnia_stats(),
                     processing_enabled: true,
                     project,
                     lifecycle: OwnerAdmission::Open,
@@ -117,15 +117,15 @@ impl GatewayRuntime {
 
 pub(in super::super) fn source_watermarks(cva: &crate::Cva) -> DurableWatermarks {
     DurableWatermarks {
-        global_version: Some(cva.latest_global_version()),
-        archive_version: Some(cva.archive_version()),
-        memory_version: Some(cva.memory_version()),
-        entity_version: Some(cva.entity_version()),
-        graph_version: Some(cva.graph_version()),
-        ego_mutation_version: Some(cva.ego_version()),
-        vector_version: Some(cva.vector_version()),
+        global_version: Some(cva.runtime_latest_global_version()),
+        archive_version: Some(cva.runtime_archive_version()),
+        memory_version: Some(cva.native_memory_version()),
+        entity_version: Some(cva.runtime_entity_version()),
+        graph_version: Some(cva.runtime_graph_version()),
+        ego_mutation_version: Some(cva.runtime_ego_version()),
+        vector_version: Some(cva.public_vector_version()),
         project_correlation_sequence: cva
-            .latest_project_revision_correlation()
+            .runtime_latest_project_revision_correlation()
             .map(|entry| entry.sequence),
         conversation_journal_sequence: None,
     }

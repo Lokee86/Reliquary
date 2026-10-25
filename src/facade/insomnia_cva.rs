@@ -1,4 +1,3 @@
-use super::completion::{InsomniaCompletion, encode_completion};
 use crate::{
     Cva, EpisodeBoundary, EpisodeConfig, EpisodeId, EpisodeOrigin, EpisodePolicy,
     EpisodeSchedulingResult, InsomniaAttempt, InsomniaError, InsomniaLeaseToken, InsomniaPriority,
@@ -12,14 +11,7 @@ impl Cva {
         priority: InsomniaPriority,
         now_ns: i64,
     ) -> Result<(InsomniaWork, bool), InsomniaError> {
-        let episode = self
-            .archive
-            .episode(episode_id)
-            .ok_or(InsomniaError::MissingEpisode)?;
-        let source = crate::insomnia_admission::episode_source(&episode, priority);
-        self.owner
-            .insomnia
-            .queue(&mut self.owner.container, &source, now_ns)
+        self.runtime_queue_insomnia_episode(episode_id, priority, now_ns)
     }
 
     pub fn materialize_live_path_and_queue(
@@ -29,9 +21,7 @@ impl Cva {
         policy: EpisodePolicy,
         now_ns: i64,
     ) -> Result<EpisodeSchedulingResult, InsomniaError> {
-        let policy = policy
-            .validate()
-            .map_err(|_| InsomniaError::InvalidField("episode policy"))?;
+        let policy = self.runtime_validate_insomnia_episode_policy(policy)?;
         let episodes = self
             .materialize_path_episodes(
                 conversation_id,
@@ -75,9 +65,7 @@ impl Cva {
         policy: EpisodePolicy,
         now_ns: i64,
     ) -> Result<EpisodeSchedulingResult, InsomniaError> {
-        let policy = policy
-            .validate()
-            .map_err(|_| InsomniaError::InvalidField("episode policy"))?;
+        let policy = self.runtime_validate_insomnia_episode_policy(policy)?;
         let episodes = self
             .finalize_explicit_path(conversation_id, leaf_node_id, policy.episode, now_ns)
             .map_err(|_| InsomniaError::InvalidField("explicit episode"))?;
@@ -166,12 +154,7 @@ impl Cva {
         now_ns: i64,
         lease_duration_ns: i64,
     ) -> Result<Option<InsomniaWork>, InsomniaError> {
-        self.owner.insomnia.claim_next(
-            &mut self.owner.container,
-            worker_id,
-            now_ns,
-            lease_duration_ns,
-        )
+        self.runtime_claim_insomnia_episode(worker_id, now_ns, lease_duration_ns)
     }
 
     pub fn renew_insomnia_lease(
@@ -181,13 +164,7 @@ impl Cva {
         now_ns: i64,
         lease_duration_ns: i64,
     ) -> Result<InsomniaWork, InsomniaError> {
-        self.owner.insomnia.renew(
-            &mut self.owner.container,
-            episode_id,
-            token,
-            now_ns,
-            lease_duration_ns,
-        )
+        self.runtime_renew_insomnia_lease(episode_id, token, now_ns, lease_duration_ns)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -202,44 +179,16 @@ impl Cva {
         memory_ids: Vec<MemoryId>,
         rejected_count: u32,
     ) -> Result<InsomniaWork, InsomniaError> {
-        if memory_ids
-            .iter()
-            .any(|id| !self.memories.contains_memory(*id))
-        {
-            return Err(InsomniaError::InvalidTransition);
-        }
-        let claim = self
-            .insomnia
-            .active_claim(episode_id, token, completed_at_ns)?;
-        let completion = InsomniaCompletion {
+        self.runtime_complete_insomnia_episode(
             episode_id,
-            attempt: claim.attempt_count,
+            token,
             started_at_ns,
             completed_at_ns,
-            transaction_time_ns: crate::Container::transaction_time_now_ns()?,
             extractor_model,
             extractor_version,
-            rejected_count,
             memory_ids,
-            external_memory_refs: Vec::new(),
-            global_version_start: self.container.next_version_candidate(),
-            bodies: Vec::new(),
-            records: Vec::new(),
-            routing_metadata: Vec::new(),
-            freshness_birth_turn: None,
-            freshness_policy_version: None,
-            freshness_birth_memory_ids: Vec::new(),
-        };
-        let payload = encode_completion(&completion)
-            .map_err(|_| InsomniaError::InvalidField("completion record"))?;
-        self.container.append(&payload)?;
-        self.container.sync()?;
-        self.insomnia
-            .apply_completion(&crate::insomnia_admission::completion_receipt(&completion))?;
-        self.insomnia
-            .work(episode_id)
-            .cloned()
-            .ok_or(InsomniaError::MissingWork)
+            rejected_count,
+        )
     }
 
     pub fn fail_insomnia_episode(
@@ -251,8 +200,7 @@ impl Cva {
         retry_after_ns: i64,
         reason: String,
     ) -> Result<InsomniaWork, InsomniaError> {
-        self.owner.insomnia.fail(
-            &mut self.owner.container,
+        self.runtime_fail_insomnia_episode(
             episode_id,
             token,
             started_at_ns,
@@ -270,8 +218,7 @@ impl Cva {
         terminal_at_ns: i64,
         reason: String,
     ) -> Result<InsomniaWork, InsomniaError> {
-        self.owner.insomnia.terminal(
-            &mut self.owner.container,
+        self.runtime_terminal_insomnia_episode(
             episode_id,
             token,
             started_at_ns,
@@ -285,13 +232,11 @@ impl Cva {
         episode_id: EpisodeId,
         now_ns: i64,
     ) -> Result<InsomniaWork, InsomniaError> {
-        self.owner
-            .insomnia
-            .retry_terminal(&mut self.owner.container, episode_id, now_ns)
+        self.runtime_retry_terminal_insomnia_episode(episode_id, now_ns)
     }
 
     pub fn insomnia_work(&self, episode_id: EpisodeId) -> Option<&InsomniaWork> {
-        self.insomnia.work(episode_id)
+        self.runtime_insomnia_work(episode_id)
     }
 
     pub fn insomnia_attempts(&self, episode_id: EpisodeId) -> Vec<InsomniaAttempt> {
@@ -299,7 +244,7 @@ impl Cva {
     }
 
     pub fn insomnia_stats(&self) -> InsomniaStats {
-        self.insomnia.stats()
+        self.runtime_insomnia_stats()
     }
 
     fn queue_episode_result(

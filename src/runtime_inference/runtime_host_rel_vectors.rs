@@ -186,7 +186,7 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
                 .cva
-                .active_memory_compatibility_profile(profile.id)
+                .public_active_memory_profile(profile.id)
                 .map(|profile| profile.id);
             *shared
                 .memory_profile
@@ -200,7 +200,7 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
                 .cva
-                .active_memory_compatibility_profile(profile.id)
+                .public_active_memory_profile(profile.id)
                 .map(|profile| profile.id);
             *shared
                 .memory_profile
@@ -218,7 +218,7 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
                     {
                         runtime
                             .cva
-                            .process_semantic_freshness(generation.id, 64)
+                            .runtime_process_semantic_freshness(generation.id, 64)
                             .map_err(operation)?;
                     }
                     let cva = &runtime.cva;
@@ -237,7 +237,7 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
                     let batch = crate::semantic_archive_batch::prepare_batch(
                         &read,
                         profile.id,
-                        cva.current_vector_generation(profile.id),
+                        cva.public_current_vector_generation(profile.id),
                     )
                     .map_err(operation)?;
                     let changed = runtime.cva.owner.backing_len().map_err(operation)? != before;
@@ -264,7 +264,7 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
                         if let Some(plan)=crate::semantic_archive_batch::pack_batch(batch,vectors,current).map_err(operation)?{
                             let cva=&mut runtime.cva;
                             let generation=crate::owner_lifecycle::vector_publication::publish_semantic_archive(&mut cva.owner.container,&cva.owner.archive,&cva.owner.compatibility_profiles,&mut cva.owner.packed_vectors,&mut cva.owner.archive_vectors,&mut cva.owner.vector_generations,plan).map_err(operation)?;
-                            if cva.owner_uuid().is_some(){cva.process_semantic_freshness(generation.id,64).map_err(|e|operation(crate::VectorGenerationError::Freshness(e.to_string())))?;}
+                            if cva.runtime_owner_uuid().is_some(){cva.runtime_process_semantic_freshness(generation.id,64).map_err(|e|operation(crate::VectorGenerationError::Freshness(e.to_string())))?;}
                         }
                         Ok((
                             (),

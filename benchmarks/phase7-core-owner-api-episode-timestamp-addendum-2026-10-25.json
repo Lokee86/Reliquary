@@ -1,0 +1,40 @@
+{
+  "schema": "phase7-child-scope-addendum.v1",
+  "ticket": "P7.1.14-CORE-OWNER-API",
+  "parent": "benchmarks/phase7-core-owner-api-child-2026-10-24.json",
+  "status": "source-cut-implemented-awaiting-root-build-and-fresh-compiler-evidence",
+  "date": "2026-10-25",
+  "scope": {
+    "public_methods": [
+      "Cva::finalize_inactive_path_episodes"
+    ],
+    "operation": "Move its existing `Archive::require_node(..., ArchiveError::MissingLeaf)` timestamp read behind a native runtime operation and mounted ReliquaryOwner capability; keep inactivity decision and materialization sequencing in the current public method.",
+    "files": [
+      "src/facade/cva_episode_policy.rs",
+      "src/runtime_inference/public_archive_operations.rs",
+      "src/owner_lifecycle/archive_owner_api.rs"
+    ]
+  },
+  "invariants": [
+    "preserve validation/error ordering and MissingLeaf mapping",
+    "preserve inactivity decision and all materialization behavior",
+    "no storage/DAG/map changes",
+    "all unrelated episode methods untouched"
+  ],
+  "pre_edit_source_sha256": {
+    "src/facade/cva_episode_policy.rs": "2a22d60bb69708d5ab55a9e87053d7f2f4e877d1a625cd712d924bec69c711a9",
+    "src/runtime_inference/public_archive_operations.rs": "bde64ce1aa696d0f7be640dfec9ab538ed8ac3fcb4f6960e8f13e0340ef67a5a",
+    "src/owner_lifecycle/archive_owner_api.rs": "be7bf00e305b004a4c794f35c9db176e7f86f02cf942125b11e97929b0b466db"
+  },
+  "post_edit_source_sha256": {
+    "src/facade/cva_episode_policy.rs": "b18ac2603d829edbc7eedd5f89952e295a71a3a63366310b0690c35dfb2a1ee7",
+    "src/runtime_inference/public_archive_operations.rs": "dc64f79408bc18337bf48cd9b343e71faa4d4b9b1cb50843e6e76abd938731eb",
+    "src/owner_lifecycle/archive_owner_api.rs": "6868aeae20b6c62bf9513662cbb67b44124d4d614ba42bc6a39d2032faacd1c6"
+  },
+  "verification": {
+    "rustfmt": "rustfmt --edition 2024 --check passed for all scoped Rust files and shared runtime/lifecycle modules",
+    "facade_boundary_guard": "python scripts/check_facade_boundaries.py passed",
+    "cargo": "not run; root owns integrated build",
+    "compiler_evidence": "existing compiler report predates this source cut; root must recapture after source freeze"
+  }
+}

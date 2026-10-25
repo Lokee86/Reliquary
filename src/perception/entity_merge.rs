@@ -4,9 +4,9 @@ use crate::graph_store::GraphStore;
 use crate::memory_store::MemoryStore;
 use crate::relationship_store::RelationshipStore;
 use crate::{
-    Entity, EntityDraft, EntityError, EntityId, EntityMergeOutcome, EntityRef, GraphError,
-    GraphRelationOrigin, MAX_ENTITY_ALIASES, MemoryEntityMentionKey, MemoryEntityResolutionStatus,
-    MemoryError, Relationship, RelationshipDraft, RelationshipError, SemanticGraphRelationChange,
+    Entity, EntityDraft, EntityError, EntityId, EntityMergeOutcome, EntityRef, MAX_ENTITY_ALIASES,
+    MemoryEntityMentionKey, MemoryEntityResolutionStatus, MemoryError, Relationship,
+    RelationshipDraft, SemanticGraphRelationChange,
 };
 
 pub(crate) enum EntityMergePlan {
@@ -20,15 +20,15 @@ pub(crate) enum EntityMergePlan {
     },
 }
 
-/// Concrete mutation facts prepared above native publication. Validation
-/// failures are carried per relationship so the owner can surface each one
-/// at the corresponding ordered write boundary.
+/// Concrete mutation facts prepared above native publication. Relationship
+/// drafts remain ordered; the owner validates each immediately before its write
+/// so a later invalid relationship does not preempt earlier publications.
 pub(crate) struct EntityMergePublicationPlan {
     pub(crate) merge: EntityMergePlan,
     pub(crate) graph_changes: Vec<SemanticGraphRelationChange>,
     pub(crate) associations_retargeted: usize,
     pub(crate) owner_id: Option<String>,
-    pub(crate) relationships: Vec<Result<EntityMergeRelationshipWrite, RelationshipError>>,
+    pub(crate) relationships: Vec<EntityMergeRelationshipWrite>,
 }
 
 pub(crate) struct EntityMergeRelationshipWrite {
@@ -120,13 +120,11 @@ pub(crate) fn plan_merge_association_changes(
 
 pub(crate) fn plan_relationship_retarget(
     owner_id: &str,
-    memories: &MemoryStore,
-    entities: &EntityStore,
     survivor_id: EntityId,
     retired_id: EntityId,
     relationship: &Relationship,
     now_ns: i64,
-) -> Result<RelationshipDraft, RelationshipError> {
+) -> RelationshipDraft {
     let retired_ref = EntityRef {
         owner_id: owner_id.to_owned(),
         entity_id: retired_id,
@@ -137,7 +135,7 @@ pub(crate) fn plan_relationship_retarget(
             participant.entity.entity_id = survivor_id;
         }
     }
-    let mut draft = RelationshipDraft {
+    RelationshipDraft {
         kind: relationship.kind.clone(),
         participants,
         evidence: relationship.evidence.clone(),
@@ -151,11 +149,7 @@ pub(crate) fn plan_relationship_retarget(
         ),
         created_at_ns: relationship.created_at_ns,
         updated_at_ns: now_ns.max(relationship.updated_at_ns),
-    };
-    crate::relationship_owner::validate_live_relationship_refs(
-        owner_id, memories, entities, &mut draft,
-    )?;
-    Ok(draft)
+    }
 }
 
 pub(crate) struct EntityResolutionRetargetPlan {
@@ -218,19 +212,6 @@ pub(crate) fn plan_retarget_remove_association(
             .entity_associations_for_memory(plan.key.memory_id)
             .contains(&plan.from))
     .then(|| SemanticGraphRelationChange::entity_association(plan.key.memory_id, plan.from, false))
-}
-
-pub(crate) fn validate_retarget_association(
-    memories: &MemoryStore,
-    entities: &EntityStore,
-    change: SemanticGraphRelationChange,
-) -> Result<(), GraphError> {
-    crate::graph_endpoint_admission::validate_semantic_changes(
-        memories,
-        entities,
-        &[change],
-        GraphRelationOrigin::Perception,
-    )
 }
 
 pub(crate) fn merged_aliases(
@@ -316,22 +297,18 @@ pub(crate) fn prepare_merge_publication(
                         })
                         .into_iter()
                         .map(|relationship| {
-                            plan_relationship_retarget(
+                            let draft = plan_relationship_retarget(
                                 owner,
-                                memories,
-                                entities,
                                 survivor.id,
                                 retired.id,
                                 &relationship,
                                 *now_ns,
-                            )
-                            .map(|draft| {
-                                EntityMergeRelationshipWrite {
-                                    id: relationship.id,
-                                    expected_revision: relationship.revision,
-                                    draft,
-                                }
-                            })
+                            );
+                            EntityMergeRelationshipWrite {
+                                id: relationship.id,
+                                expected_revision: relationship.revision,
+                                draft,
+                            }
                         })
                         .collect()
                 })

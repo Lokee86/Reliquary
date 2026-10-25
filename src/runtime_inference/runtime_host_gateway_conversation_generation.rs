@@ -597,7 +597,7 @@ impl GatewayRuntime {
                         .map_err(operation)?;
                     if runtime
                         .cva
-                        .files_for_source(conversation.as_str(), &generation.generation_id)
+                        .runtime_files_for_source(conversation.as_str(), &generation.generation_id)
                         != expected
                     {
                         return Err(operation(
@@ -676,7 +676,7 @@ impl GatewayRuntime {
                         .map_err(operation)?;
                     if runtime
                         .cva
-                        .files_for_source(conversation.as_str(), &generation.generation_id)
+                        .runtime_files_for_source(conversation.as_str(), &generation.generation_id)
                         != expected
                     {
                         return Err(operation(
@@ -714,7 +714,7 @@ impl GatewayRuntime {
                 }
                 runtime
                     .cva
-                    .ingest_turn(crate::IncomingTurn {
+                    .runtime_ingest_turn(crate::IncomingTurn {
                         id: generation.generation_id.clone(),
                         conversation_id: conversation.as_str().to_owned(),
                         parent_id: Some(generation.parent_node_id.clone()),
@@ -832,7 +832,7 @@ pub(super) fn generation_stream_for_conversation(
 ) -> Result<Option<InteractionStreamRecord>, ReliquaryRuntimeHostError> {
     let record = runtime
         .cva
-        .interaction_streams_for_session(conversation_id)
+        .runtime_interaction_streams_for_session(conversation_id)
         .into_iter()
         .find(|record| record.message_id == generation.generation_id);
     if let Some(record) = record.as_ref() {
@@ -888,7 +888,7 @@ fn persist_generation_stream(
     }
     runtime
         .cva
-        .put_interaction_stream(InteractionStreamRecord {
+        .native_put_interaction_stream(InteractionStreamRecord {
             message_id: generation.generation_id.clone(),
             session_id: conversation_id.to_owned(),
             parent_message_id: Some(generation.parent_node_id.clone()),

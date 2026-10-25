@@ -44,11 +44,9 @@ pub(super) fn admission_proof_for_scope(
         .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
     {
         let mut ingest_frame = |frame: crate::owner_lifecycle::HistoryFrame| -> Result<(), crate::owner_lifecycle::OwnerError> {
-            let object = frame.object;
+            let offset = frame.offset;
             let payload = frame.payload.as_slice();
             {
-                let location = object.legacy_bytes();
-                let offset = u64::from_le_bytes(location[..8].try_into().unwrap());
                 if offset < scope.marker_end {
                     return Ok(());
                 }

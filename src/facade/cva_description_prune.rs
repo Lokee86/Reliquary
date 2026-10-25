@@ -1,6 +1,6 @@
 //! Facade adapters for read-only retained-description proofs.
 
-use crate::owner_lifecycle::{HistorySource, LifecycleTarget};
+use crate::owner_lifecycle::LifecycleTarget;
 use crate::{Cva, CvaError};
 
 impl Cva {
@@ -16,12 +16,6 @@ impl Cva {
     }
 
     pub(crate) fn validate_pruned_descriptions(&self) -> Result<(), CvaError> {
-        let source = HistorySource::new(&self.container);
-        crate::history::reliquary_description_retention::validate_description_retention(
-            source,
-            &self.entities,
-            &self.relationships,
-            &self.owner_maintenance,
-        )
+        self.runtime_validate_pruned_descriptions()
     }
 }

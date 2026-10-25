@@ -1,0 +1,37 @@
+{
+  "schema": "phase7-child-scope-addendum.v1",
+  "date": "2026-10-24",
+  "status": "registered-before-implementation; acceptance open",
+  "child_ticket": "P7.1.14-CORE-OWNER-API",
+  "parent": "P7.1.14",
+  "title": "Exact Archive conversation tombstone API witness",
+  "basis": "This is a public Archive owner API operation and shares the existing CORE-OWNER-API responsibility. No new child is added. Exact source path is outside the original enumerated scope, so this pre-edit addendum binds it explicitly.",
+  "source_sha256_at_registration": {
+    "src/facade/cva_conversation_tombstone.rs": "45846275ede636c1b1f9e0cd4c05e618afcd12c02638d054ca455a9017845d8c",
+    "src/archive/archive_conversation_tombstone.rs": "326d1e19822be86854b7becd9e3b3acff6dc58f756b8e8eac2e23221bdae40c3"
+  },
+  "witnesses": [
+    {
+      "source_path": "src/facade/cva_conversation_tombstone.rs",
+      "source_line": 8,
+      "mir_line_sha256": "1b30d00e262b615f1ea4712fa9034255544311157810bab4e57eefe9ba69590e",
+      "target": "archive_conversation_tombstone::tombstone_conversation",
+      "target_definition": {
+        "path": "src/archive/archive_conversation_tombstone.rs",
+        "line": 7,
+        "end_line": 42,
+        "compiler_def_id": "DefId(0:50159 ~ reliquary_memory[b862]::archive_conversation_tombstone::{impl#0}::tombstone_conversation)"
+      }
+    }
+  ],
+  "scope_addition": [
+    "src/facade/cva_conversation_tombstone.rs"
+  ],
+  "cut": "Move the exact tombstone conversation owner operation into the already registered native archive/Gateway owner API implementation. Keep historical tombstone policy, validation, durable append and event ordering unchanged.",
+  "preserving_tests": [
+    "conversation tombstone API tests",
+    "Archive historical conversation and policy tests",
+    "public Archive owner API tests"
+  ],
+  "acceptance": "Open; exact scope addendum only, not architecture acceptance."
+}

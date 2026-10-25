@@ -101,7 +101,7 @@ impl GatewayRuntime {
         self.with_rel(&token, |runtime| {
             runtime
                 .cva
-                .conversation_branch_start_node_ids(conversation_id, leaf_node_id)
+                .runtime_conversation_branch_start_node_ids(conversation_id, leaf_node_id)
                 .map_err(operation)
         })
     }
@@ -118,7 +118,7 @@ impl GatewayRuntime {
         self.with_rel_mutation(&token, RelMutationFamily::ConversationMetadata, |runtime| {
             let changed = runtime
                 .cva
-                .set_conversation_title(conversation_id, title)
+                .native_set_conversation_title(conversation_id, title)
                 .map_err(operation)?;
             Ok((changed, changed, Vec::new()))
         })
@@ -152,7 +152,7 @@ impl GatewayRuntime {
         self.with_rel_mutation(&token, RelMutationFamily::ConversationMetadata, |runtime| {
             let record = runtime
                 .cva
-                .put_conversation_compaction(
+                .native_put_conversation_compaction(
                     conversation_id,
                     through_message_id,
                     summary,

@@ -39,6 +39,10 @@ fn freeze(owner: &ReliquaryOwner) -> Result<FrozenHistoricalImport, OwnerError> 
     );
     #[cfg(feature = "freshness-performance-trace")]
     let mut traces = Vec::new();
+    let owner_facts =
+        crate::owner_lifecycle::import_reconciliation_restore::historical_manifest_owner_facts(
+            owner,
+        );
     let result = crate::imports::historical_prepare::prepare(
         crate::imports::historical_manifest::HistoricalManifestReadViews {
             history: &history,
@@ -54,14 +58,11 @@ fn freeze(owner: &ReliquaryOwner) -> Result<FrozenHistoricalImport, OwnerError> 
                 archive_version: owner.archive.archive_version(),
                 activity_cut: owner.archive.rel_turn_count(),
                 memory_version: owner.memories.memory_version(),
-                graph_version: owner.graph.graph_version(),
-                memory_graph_version: owner.graph.memory_graph_version(),
-                vector_version: owner.vector_generations.vector_version(),
-                community_snapshot: owner
-                    .communities
-                    .latest_if_live_members(&owner.graph)
-                    .cloned(),
-                insomnia: owner.insomnia.stats(),
+                graph_version: owner_facts.graph_version,
+                memory_graph_version: owner_facts.memory_graph_version,
+                vector_version: owner_facts.vector_version,
+                community_snapshot: owner_facts.community_snapshot,
+                insomnia: owner_facts.insomnia,
             },
         },
         owner.import_epochs.open().cloned(),
@@ -87,14 +88,18 @@ fn commit(
     owner: &mut ReliquaryOwner,
     prepared: &PreparedHistoricalImport,
 ) -> Result<bool, OwnerError> {
+    let owner_facts =
+        crate::owner_lifecycle::import_reconciliation_restore::historical_manifest_owner_facts(
+            owner,
+        );
     let cut = crate::imports::historical_freeze::HistoricalOwnerCut {
         owner: prepared.settlement.owner,
         activity: owner.archive.rel_turn_count(),
         global: crate::owner_lifecycle::HistoryReadAccess::new(&owner.container)
             .latest_global_version(),
         archive: owner.archive.archive_version(),
-        graph: owner.graph.graph_version(),
-        memory_graph: owner.graph.memory_graph_version(),
+        graph: owner_facts.graph_version,
+        memory_graph: owner_facts.memory_graph_version,
     };
     let open_epoch = owner.import_epochs.open().cloned();
     let owners = crate::history::HistoricalSettlementReadOwners::new(

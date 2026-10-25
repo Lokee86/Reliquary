@@ -7,19 +7,6 @@ use crate::owner_lifecycle::ReliquaryOwner;
 use crate::reconciliation_values::{CvaComparison, CvaReconcileResult};
 use std::{collections::BTreeMap, path::Path};
 
-fn import_watermarks(owner: &ReliquaryOwner) -> crate::imports::ImportWatermarks {
-    crate::imports::ImportWatermarks {
-        global_version: owner.latest_global_version(),
-        archive_version: owner.archive.archive_version(),
-        memory_version: owner.memories.memory_version(),
-        entity_version: owner.entities.entity_version(),
-        relationship_version: owner.relationships.relationship_version(),
-        graph_version: owner.graph.graph_version(),
-        memory_graph_version: owner.graph.memory_graph_version(),
-        vector_version: owner.vector_generations.vector_version(),
-    }
-}
-
 pub(super) fn replay(
     left: &mut ReliquaryOwner,
     right: &mut ReliquaryOwner,
@@ -72,7 +59,8 @@ pub(super) fn replay(
                 continue;
             }
             let mut start = epoch.start;
-            start.pre = import_watermarks(&output);
+            start.pre =
+                crate::owner_lifecycle::import_reconciliation_restore::import_watermarks(&output);
             crate::owner_lifecycle::import_epoch_transport::append_import_start(
                 &mut output.container,
                 &mut output.import_epochs,
@@ -148,9 +136,7 @@ pub(super) fn replay(
             replayed_file_memory_links: coordinates.file_memory_links,
             canonical_change_required: changed,
             vector_rebuild_required: changed
-                && (left.archive_vectors.stats().objects > 0
-                    || left.packed_vectors.stats().objects > 0
-                    || left.memory_vectors.stats().objects > 0),
+                && crate::owner_lifecycle::import_reconciliation_restore::reconciliation_requires_vector_rebuild(left),
         };
         Ok((result, (reopened, due)))
     })();
@@ -201,19 +187,15 @@ pub(super) fn replay_interval(
             .cloned()
             .collect();
         for episode in episodes {
-            if output.insomnia.work(episode.id).is_none() {
-                let source = crate::owner_lifecycle::insomnia_replay::episode_source(
-                    &episode,
-                    if episode.origin == crate::EpisodeOrigin::Import {
-                        crate::InsomniaPriority::Import
-                    } else {
-                        crate::InsomniaPriority::Live
-                    },
-                );
-                output
-                    .insomnia
-                    .queue(&mut output.container, &source, episode.finalized_at_ns)?;
-            }
+            crate::owner_lifecycle::import_reconciliation_restore::queue_replayed_episode_if_missing(
+                output,
+                &episode,
+                if episode.origin == crate::EpisodeOrigin::Import {
+                    crate::InsomniaPriority::Import
+                } else {
+                    crate::InsomniaPriority::Live
+                },
+            )?;
         }
     }
     Ok(completions)

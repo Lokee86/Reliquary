@@ -1,7 +1,9 @@
 //! Native owner entry point for Import's one canonical completion sequence.
 use crate::Archive;
 use crate::dream_readiness::DreamReadiness;
-use crate::imports::{ImportCompletionOutcome, ImportEpochStore, ImportWatermarks};
+use crate::imports::{
+    ImportCompletionOutcome, ImportEpochStore, ImportReadinessReport, ImportWatermarks,
+};
 use crate::insomnia::import_readiness::ImportReadiness as InsomniaReadiness;
 use crate::memory_store::MemoryStore;
 use crate::owner_lifecycle::{ImportCompletionAccess, OwnerError, ReliquaryOwner};
@@ -17,6 +19,82 @@ pub(crate) struct CompletionReadViews<'a> {
     pub(crate) perception: PerceptionReadiness<'a>,
     pub(crate) watermarks: ImportWatermarks,
     pub(crate) turn: u64,
+}
+
+pub(crate) fn readiness(
+    owner: &mut ReliquaryOwner,
+    import_id: &str,
+) -> Result<ImportReadinessReport, OwnerError> {
+    let access = crate::owner_lifecycle::HistoryReadAccess::new(&owner.container);
+    let epochs = crate::imports::completion_coordinator::recover_epochs(&access, &owner.archive)?;
+    let start = crate::imports::readiness::requested_start(&epochs, import_id)?;
+    let Some(receipt) = owner
+        .archive
+        .import_receipts
+        .get(&start.import_key)
+        .cloned()
+    else {
+        return Ok(crate::imports::readiness::missing_receipt_report(
+            start.import_id,
+        ));
+    };
+
+    let scope_start = owner.import_epochs.open().cloned().ok_or_else(|| {
+        OwnerError::Freshness("historical reconstruction requires an open import epoch".into())
+    })?;
+    let scope = crate::history::read_import_epoch_scope(
+        &crate::owner_lifecycle::HistoryReadAccess::new(&owner.container),
+        &owner.archive,
+        &owner.memories,
+        scope_start,
+    )?;
+    let settlement = owner
+        .freshness
+        .import_settlements()
+        .iter()
+        .find(|settlement| {
+            settlement
+                .import_id
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>()
+                == start.import_id
+        })
+        .cloned();
+    // Preserve the former second scope replay inside the readiness policy.
+    let policy_start = owner.import_epochs.open().cloned().ok_or_else(|| {
+        OwnerError::Freshness("historical reconstruction requires an open import epoch".into())
+    })?;
+    let policy_scope = crate::history::read_import_epoch_scope(
+        &crate::owner_lifecycle::HistoryReadAccess::new(&owner.container),
+        &owner.archive,
+        &owner.memories,
+        policy_start,
+    )?;
+    let read_access = crate::owner_lifecycle::HistoryReadAccess::new(&owner.container);
+    let insomnia = InsomniaReadiness::new(&owner.insomnia);
+    let dream = DreamReadiness::new(&owner.dream_freshness, &owner.processing_epochs);
+    let perception = crate::imports::readiness::perception_readiness(owner);
+    let readiness = crate::imports::readiness::derive_import_readiness(
+        &start,
+        &receipt,
+        settlement.as_ref(),
+        &policy_scope,
+        &owner.archive,
+        &owner.memories,
+        &insomnia,
+        &dream,
+        &perception,
+        &read_access,
+        owner.archive.rel_turn_count(),
+        crate::owner_lifecycle::import_reconciliation_restore::import_watermarks(owner),
+    )?;
+    Ok(crate::imports::readiness::readiness_report(
+        start,
+        settlement.as_ref(),
+        &scope,
+        readiness,
+    ))
 }
 
 /// Complete an open import using accepted facts from a concrete native owner.
@@ -39,7 +117,7 @@ pub(crate) fn complete(
         insomnia: InsomniaReadiness::new(&owner.insomnia),
         dream: DreamReadiness::new(&owner.dream_freshness, &owner.processing_epochs),
         perception: PerceptionReadiness::new(&owner.memories, &owner.entity_resolutions),
-        watermarks: watermarks(owner),
+        watermarks: crate::owner_lifecycle::import_reconciliation_restore::import_watermarks(owner),
         turn: owner.archive.rel_turn_count(),
     };
     let mut access = ImportCompletionAccess::new(&mut owner.container);
@@ -128,17 +206,4 @@ fn validate_retained_settlements(
 ) -> Result<(), OwnerError> {
     let history = access.history_access();
     views.settlement.validate_retained(&history, epochs)
-}
-
-fn watermarks(owner: &ReliquaryOwner) -> ImportWatermarks {
-    ImportWatermarks {
-        global_version: owner.latest_global_version(),
-        archive_version: owner.archive.archive_version(),
-        memory_version: owner.memories.memory_version(),
-        entity_version: owner.entities.entity_version(),
-        relationship_version: owner.relationships.relationship_version(),
-        graph_version: owner.graph.graph_version(),
-        memory_graph_version: owner.graph.memory_graph_version(),
-        vector_version: owner.vector_generations.vector_version(),
-    }
 }

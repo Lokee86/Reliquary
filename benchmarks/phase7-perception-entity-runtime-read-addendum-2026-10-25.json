@@ -1,0 +1,165 @@
+{
+  "schema": "phase7-child-scope-addendum.v1",
+  "date": "2026-10-25",
+  "child_ticket": "P7.1.14a-PERCEPTION-ENTITY-OPERATIONS",
+  "status": "source-cut-implemented-awaiting-targeted-build-and-fresh-compiler-evidence",
+  "scope": {
+    "files": [
+      "src/owner_lifecycle/public_consumer_operations.rs",
+      "src/runtime_inference/perception_entity_resolution.rs",
+      "src/runtime_inference/runtime_host_phy_perception.rs",
+      "src/runtime_inference/runtime_host_rel_perception.rs"
+    ],
+    "intent": "Route the exact entity-resolution stored-record read and REL/PHY entity version reads through existing concrete owner lifecycle operations, returning only the borrowed record or scalar version. Preserve reader selection and reconciliation order."
+  },
+  "compiler_input": {
+    "calls_path": ".verification-tmp/phase7/closure-finish-default-20261025/calls.json",
+    "calls_sha256": "be6b772eaeb3aca52a5a1aee03559cbb68a1113f58f6913f319f0e735476d36c",
+    "provenance_path": ".verification-tmp/phase7/closure-finish-default-20261025/provenance.json",
+    "provenance_sha256": "d041a1bcde366a7cf67520caf3e43ba2d300207113ccbd96fb3ef9ed1de122dd",
+    "source_snapshot_sha256": "f42bccd6cc58eb4f095793300a48637222e2beb21980a642ff55a0e4a19f6303",
+    "source_manifest_sha256": "e64cc368801fb3491b8a9bd662a13032df1c09592ea1dfa1b7ca6133d637eb28"
+  },
+  "source_before": {
+    "src/runtime_inference/perception_entity_resolution.rs": "6061de3924ac72243c8d9e98bab95511db8cf46677ee21e1775bdaa1e4dc55fc",
+    "src/runtime_inference/runtime_host_phy_perception.rs": "690699c13c8e44f7230fb4c43c40dcffa99ea4d3ce23a8022294c4b43225f4d1",
+    "src/runtime_inference/runtime_host_rel_perception.rs": "64f6ef2fd5a6c95d7b7a4ffc92721beb9f17347ee06528bd7270ff8790094db9"
+  },
+  "witnesses": [
+    {
+      "source_path": "src/runtime_inference/perception_entity_resolution.rs",
+      "source_line": 640,
+      "source_column": 127,
+      "source_end_line": 640,
+      "source_end_column": 165,
+      "mir_line_sha256": "828f6b9b71a82ea060733a3cc0f27e10b5d6b04c6dee03e6fd2c0f009ae1c1f7",
+      "target": "EntityResolutionStore::get",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "entity_resolution_store::{impl#0}::get",
+      "compiler_def_id": "DefId(0:53131 ~ reliquary_memory[b862]::entity_resolution_store::{impl#0}::get)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "entity_resolution_store::{impl#0}::get",
+      "source_component": "runtime-gateway",
+      "target_component": "perception-store",
+      "target_definitions": [
+        {
+          "path": "src/perception/entity_resolution_store.rs",
+          "line": 148,
+          "end_line": 150
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/perception_entity_resolution.rs",
+      "source_line": 640,
+      "source_column": 127,
+      "source_end_line": 640,
+      "source_end_column": 165,
+      "mir_line_sha256": "828f6b9b71a82ea060733a3cc0f27e10b5d6b04c6dee03e6fd2c0f009ae1c1f7",
+      "target": "EntityResolutionStore::get",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "entity_resolution_store::{impl#0}::get",
+      "compiler_def_id": "DefId(0:53131 ~ reliquary_memory[b862]::entity_resolution_store::{impl#0}::get)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "entity_resolution_store::{impl#0}::get",
+      "source_component": "runtime-gateway",
+      "target_component": "perception-store",
+      "target_definitions": [
+        {
+          "path": "src/perception/entity_resolution_store.rs",
+          "line": 148,
+          "end_line": 150
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_rel_perception.rs",
+      "source_line": 283,
+      "source_column": 9,
+      "source_end_line": 283,
+      "source_end_column": 40,
+      "mir_line_sha256": "d454712419509dc3c07b28ac6d49f5170d7ebd22c85eac0de74dd6528b9eadb4",
+      "target": "entity_store::read::entity_version",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "entity_store::read::{impl#0}::entity_version",
+      "compiler_def_id": "DefId(0:53192 ~ reliquary_memory[b862]::entity_store::read::{impl#0}::entity_version)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "entity_store::read::{impl#0}::entity_version",
+      "source_component": "runtime-gateway",
+      "target_component": "perception-store",
+      "target_definitions": [
+        {
+          "path": "src/perception/entity_store_read.rs",
+          "line": 245,
+          "end_line": 247
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_phy_perception.rs",
+      "source_line": 241,
+      "source_column": 13,
+      "source_end_line": 241,
+      "source_end_column": 48,
+      "mir_line_sha256": "34170443b20db1d9b185165d9a7a3b9d2d0e02723a1e47330f047be66c93ed07",
+      "target": "entity_store::read::entity_version",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "entity_store::read::{impl#0}::entity_version",
+      "compiler_def_id": "DefId(0:53192 ~ reliquary_memory[b862]::entity_store::read::{impl#0}::entity_version)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "entity_store::read::{impl#0}::entity_version",
+      "source_component": "runtime-gateway",
+      "target_component": "perception-store",
+      "target_definitions": [
+        {
+          "path": "src/perception/entity_store_read.rs",
+          "line": 245,
+          "end_line": 247
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_phy_perception.rs",
+      "source_line": 298,
+      "source_column": 9,
+      "source_end_line": 298,
+      "source_end_column": 44,
+      "mir_line_sha256": "ce8a6792a27dbf6f5083d0071f5d76d8eb6cb5f8c115869f568761279802e971",
+      "target": "entity_store::read::entity_version",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "entity_store::read::{impl#0}::entity_version",
+      "compiler_def_id": "DefId(0:53192 ~ reliquary_memory[b862]::entity_store::read::{impl#0}::entity_version)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "entity_store::read::{impl#0}::entity_version",
+      "source_component": "runtime-gateway",
+      "target_component": "perception-store",
+      "target_definitions": [
+        {
+          "path": "src/perception/entity_store_read.rs",
+          "line": 245,
+          "end_line": 247
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    }
+  ],
+  "preserving_behavior": "Preserve the original owner read order and return values; do not add a target-DAG permission.",
+  "parent": "P7.1.14",
+  "title": "P7.1.14a PERCEPTION ENTITY OPERATIONS exact runtime owner call witnesses",
+  "basis": "Exact compiler call witnesses from the historical checkpoint are bound to their source files by matching the checkpoint SHA-256 against current source bytes at registration. Historical compiler evidence is only a scope witness; fresh same-source evidence is still required after implementation. No new ticket or DAG edge is introduced.",
+  "source_after": {
+    "src/runtime_inference/perception_entity_resolution.rs": "046aa71e4d06ef6e27fd2ca1af9f8f6fbd6688b1efebda43aec60de8846d7de2",
+    "src/runtime_inference/runtime_host_phy_perception.rs": "a6ce0beba60ffe4081ad1bba7d305dea365f361689e57cf988d023017f908f9e",
+    "src/runtime_inference/runtime_host_rel_perception.rs": "fdd2a6b9145469885cd38baf3b1b82479cac036e0e7228c0c23b89dabe042de5",
+    "src/owner_lifecycle/public_consumer_operations.rs": "91aeeedcc91dedb7cf18ffae1d61017e29325d5b8bd088b1d0fe32deda6759c4"
+  }
+}

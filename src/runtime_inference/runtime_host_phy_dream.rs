@@ -60,23 +60,29 @@ fn prepare(
         if phy.memory_vector_location(profile, body).is_none() {
             continue;
         }
-        let candidates = crate::dream_owner_candidates::dream_candidates(
+        let work = crate::dream_owner_candidates::prepare_dream_candidates(
             &crate::memory_store::MemoryReadView::new(&phy.owner.memories, &phy.owner.container),
             &phy.owner.graph,
             &phy.owner.dream_pairs,
             &crate::memory_vector_reader::MemoryVectorReader::new(
-                crate::memory_vector_store::MemoryVectorReadView::new(
-                    &phy.owner.memory_vectors,
-                    &phy.owner.packed_vectors,
-                    &phy.owner.container,
-                ),
+                phy.owner.memory_vector_read_view(),
             ),
             profile,
             id,
             DreamCandidateConfig::default(),
-            &crate::memory_source_time::memory_source_timestamp_ns,
         )
         .map_err(operation)?;
+        let source_times = work
+            .source_time_memories()
+            .map(|memory| {
+                (
+                    memory.id,
+                    crate::memory_source_time::memory_source_timestamp_ns(memory),
+                )
+            })
+            .collect();
+        let candidates =
+            crate::dream_owner_candidates::finish_dream_candidates(work, &source_times);
         return Ok(Some(Snapshot {
             candidates,
             graph_version: phy.graph_version(),
@@ -129,7 +135,7 @@ fn publish_pair(
         verification,
         policy,
         graph_version,
-        &crate::memory_source_time::memory_source_timestamp_ns,
+        crate::dream_publication_execution::DreamSourceTime::Phylactery,
     )
 }
 

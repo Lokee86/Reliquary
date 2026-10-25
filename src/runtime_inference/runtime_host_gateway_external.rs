@@ -21,12 +21,10 @@ impl GatewayRuntime {
             .map_err(|_| ExternalSourceError::Unauthorized)?;
         let (state, profile) = self
             .with_rel(&token, |r| {
-                let state = r
-                    .cva
-                    .external_index
-                    .read_state(namespace)
-                    .map_err(operation)?
-                    .ok_or_else(|| operation(ExternalSourceError::RebuildRequired))?;
+                let state =
+                    crate::external_owner_access::read_state(&r.cva.external_index, namespace)
+                        .map_err(operation)?
+                        .ok_or_else(|| operation(ExternalSourceError::RebuildRequired))?;
                 let profile =
                     crate::external_owner_access::profile(&r.cva.compatibility_profiles, &state)
                         .map_err(operation)?;
@@ -78,7 +76,7 @@ impl GatewayRuntime {
             .authorize(instance, owner, OwnerGrant::ManageRel)
             .map_err(|_| ExternalSourceError::Unauthorized)?;
         let namespace = source.source_namespace().to_owned();
-        crate::external_index::model::identifier(&namespace)?;
+        crate::external_source::validate_identifier(&namespace)?;
         let old = self
             .with_rel(&token, |r| {
                 Ok(r.cva.external_index.sources.get(&namespace).cloned())
@@ -246,7 +244,7 @@ impl GatewayRuntime {
                     .map_err(operation)
             }),
             OwnerKind::Phy => self.with_phy(&token, |p| {
-                p.external_memory_evidence(id).map_err(operation)
+                p.native_external_memory_evidence(id).map_err(operation)
             }),
         }
         .map_err(|_| ExternalSourceError::Unavailable)
@@ -300,7 +298,7 @@ impl GatewayRuntime {
                 }
             }),
             OwnerKind::Phy => self.with_phy(&token, |p| {
-                if let Some(evidence) = p.external_memory_evidence(id).map_err(operation)? {
+                if let Some(evidence) = p.native_external_memory_evidence(id).map_err(operation)? {
                     return Ok(Some(SourceEvidenceRef::External(evidence)));
                 }
                 Ok(p.memory(id)
@@ -331,7 +329,7 @@ pub(super) fn validate_external_evidence(
     }
     let mut current = std::collections::BTreeMap::new();
     for descriptor in &manifest.messages {
-        descriptor.validate(&state.namespace)?;
+        crate::external_source::validate_descriptor(descriptor, &state.namespace)?;
         let key = (
             &descriptor.reference.conversation_id,
             &descriptor.reference.message_id,

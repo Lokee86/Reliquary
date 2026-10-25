@@ -9,6 +9,99 @@ use crate::freshness::semantic_policy::{
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
+/// Detached source vector evidence passed to the live Freshness evaluator.
+pub(crate) struct LiveSemanticSourceVector<'a> {
+    pub(crate) fragment_id: &'a [u8],
+    pub(crate) components: &'a [f32],
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct LiveSemanticEventIdentity {
+    pub(crate) event_id: String,
+    pub(crate) base_policy_digest: [u8; 32],
+}
+
+pub(crate) fn live_semantic_event_id(owner: [u8; 16], fragment: crate::FragmentId) -> String {
+    crate::freshness_storage::semantic_fragment_event_id(owner, fragment)
+}
+
+/// Freshness-owned identity facts used together by the live semantic event codec.
+pub(crate) fn live_semantic_event_identity(
+    owner: [u8; 16],
+    fragment: crate::FragmentId,
+    base_policy: crate::freshness::FreshnessPolicy,
+) -> LiveSemanticEventIdentity {
+    LiveSemanticEventIdentity {
+        event_id: live_semantic_event_id(owner, fragment),
+        base_policy_digest: crate::freshness::semantic_policy::freshness_policy_digest(base_policy),
+    }
+}
+
+/// Apply the stable activity/event ordering after completed-event checks have run in
+/// the archive's original iteration order.
+pub(crate) fn order_live_pending_events(
+    events: impl IntoIterator<Item = (u64, crate::FragmentId, String)>,
+) -> Vec<(u64, crate::FragmentId)> {
+    let mut events = events.into_iter().collect::<Vec<_>>();
+    events.sort_by(|(left_at, _, left_id), (right_at, _, right_id)| {
+        left_at.cmp(right_at).then_with(|| left_id.cmp(right_id))
+    });
+    events.into_iter().map(|(at, id, _)| (at, id)).collect()
+}
+
+/// Evaluate one already-admitted live target as a Freshness policy operation.
+///
+/// This keeps vector validity, source-to-target scoring, candidate construction,
+/// reduction and the deterministic ranking score together while the Gateway retains
+/// owner eligibility, hydration, and global target-limit composition.
+pub(crate) fn evaluate_live_semantic_target(
+    policy: SemanticPolicy,
+    source_vectors: &[LiveSemanticSourceVector<'_>],
+    memory_id: MemoryId,
+    binding_id: [u8; 32],
+    generation_valid: bool,
+    target: &[f32],
+) -> Result<(bool, f64, Vec<SemanticEffect>), SemanticPolicyError> {
+    let eligible = cosine_similarity(target, target).is_ok()
+        && source_vectors
+            .iter()
+            .all(|source| source.components.len() == target.len());
+    let ranking_cosine = source_vectors
+        .iter()
+        .filter_map(|source| cosine_similarity(source.components, target).ok())
+        .max_by(f64::total_cmp)
+        .unwrap_or(-1.0);
+    if !eligible {
+        return Ok((false, ranking_cosine, Vec::new()));
+    }
+    let candidates = source_vectors
+        .iter()
+        .filter_map(|source| {
+            let cosine = cosine_similarity(source.components, target).ok()?;
+            Some(SemanticCandidate {
+                memory_id,
+                cosine,
+                fragment_id: source.fragment_id.to_vec(),
+                vector_binding_id: binding_id,
+                profile_compatible: true,
+                generation_valid,
+                source_excluded: false,
+            })
+        })
+        .collect::<Vec<_>>();
+    Ok((
+        true,
+        ranking_cosine,
+        plan_local_effects(policy, candidates)?,
+    ))
+}
+
+/// Validate a historical provider row using the same finite, nonzero vector policy
+/// used by live semantic target evaluation.
+pub(crate) fn historical_embedding_vector_is_usable(vector: &[f32]) -> bool {
+    cosine_similarity(vector, vector).is_ok()
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct HistoricalSemanticSourceVector {
     pub fragment_id: [u8; 32],

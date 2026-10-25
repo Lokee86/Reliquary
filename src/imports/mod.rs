@@ -48,6 +48,7 @@ pub(crate) mod historical_freeze;
 
 pub(crate) mod historical_commit;
 
+pub(crate) mod historical_owner_operations;
 pub(crate) mod historical_prepare;
 
 pub(crate) mod owner_historical;

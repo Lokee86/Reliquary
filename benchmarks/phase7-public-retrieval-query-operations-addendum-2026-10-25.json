@@ -1,0 +1,613 @@
+{
+  "schema": "phase7-child-scope-addendum.v1",
+  "date": "2026-10-25",
+  "child_ticket": "P7.1.14f-PUBLIC-RETRIEVAL",
+  "status": "source-cut-implemented-awaiting-integrated-verification",
+  "source_checkpoint": "current source captured by closure-finish-default-20261025",
+  "input": ".verification-tmp/phase7/closure-finish-default-20261025/calls.json",
+  "input_sha256": "be6b772eaeb3aca52a5a1aee03559cbb68a1113f58f6913f319f0e735476d36c",
+  "compiler_source_fingerprint": "f42bccd6cc58eb4f095793300a48637222e2beb21980a642ff55a0e4a19f6303",
+  "scope": {
+    "files": [
+      "src/facade/cva_retrieval_conversation_search.rs",
+      "src/facade/cva_retrieval_lexical_search.rs",
+      "src/facade/cva_retrieval_memory_search.rs",
+      "src/facade/cva_retrieval_search.rs",
+      "src/facade/cva_retrieval_semantic_search.rs",
+      "src/runtime_inference/public_retrieval_operations.rs",
+      "src/owner_lifecycle/archive_owner_api.rs"
+    ],
+    "public_methods": [
+      "Cva::search",
+      "Cva::search_with_result_limit",
+      "Cva::search_with_config",
+      "Cva::search_fragments_with_vector",
+      "Cva::search_conversation_branch",
+      "Cva::search_conversation_branch_with_vector",
+      "Cva::semantic_search",
+      "Cva::semantic_search_vector",
+      "Cva::search_files",
+      "Cva::complete_memory_lexical_matches",
+      "Cva::memory_lexical_candidates",
+      "Cva::lexical_candidates",
+      "Cva::raw_archive_candidates",
+      "Cva::lexical_candidates_from_fragments",
+      "Phylactery::memory_lexical_candidates"
+    ],
+    "cut": "Keep supported public Cva retrieval signatures as facade delegates. Move the remaining direct Archive/Memory/Vector reader construction and Retrieval calls into concrete RelExecutionOwner operations in public_retrieval_operations.rs. The existing PhyExecutionOwner memory-lexical operation handles the one Phylactery witness. Owner lifecycle supplies borrowed owner views (an ArchiveReadView operation is added to archive_owner_api.rs); RelExecutionOwner retains its mutable LexicalIndex. The existing Cva::search_memories route remains the pattern and is unchanged.",
+    "count": 34,
+    "witnesses": [
+      {
+        "source_path": "src/facade/cva_retrieval_conversation_search.rs",
+        "source_line": 51,
+        "source_column": 23,
+        "target": "ArchiveReadView::new",
+        "source_component": "public-consumers",
+        "target_component": "archive-store",
+        "mir_line_sha256": "dac85030f9383ae9ad6f29527543fef595840c28cba18229d99a7cec2828b7bd",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/archive/archive.rs",
+          "line": 74,
+          "end_line": 76
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_conversation_search.rs",
+        "source_line": 52,
+        "source_column": 23,
+        "target": "VectorReadView::new",
+        "source_component": "public-consumers",
+        "target_component": "vector-store",
+        "mir_line_sha256": "6541640a8063686e6b2a34bfe4148ec4951f3d0b1f398e5151663ab8347c4100",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/vector_generation_store.rs",
+          "line": 21,
+          "end_line": 33
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_conversation_search.rs",
+        "source_line": 58,
+        "source_column": 9,
+        "target": "search_conversation_branch_parts",
+        "source_component": "public-consumers",
+        "target_component": "retrieval",
+        "mir_line_sha256": "8218bda501f3b0611c78103ed4793ac728f47e021b20e1bb5067748af3f126b2",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/conversation_search.rs",
+          "line": 15,
+          "end_line": 83
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_lexical_search.rs",
+        "source_line": 13,
+        "source_column": 27,
+        "target": "MemoryReadView::new",
+        "source_component": "public-consumers",
+        "target_component": "memory-store",
+        "mir_line_sha256": "eb89eb9700e12da2703a4ec45c5978c6445a24debcc8640a14bbe3706986d41a",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/memory/memory_store.rs",
+          "line": 74,
+          "end_line": 76
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_lexical_search.rs",
+        "source_line": 14,
+        "source_column": 24,
+        "target": "MemoryLexicalReadView::new",
+        "source_component": "public-consumers",
+        "target_component": "retrieval",
+        "mir_line_sha256": "66fa09e7ccd0f988a9767079aa39e274ea590ace4bc8fbe0150d051ebc903725",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/lexical_search.rs",
+          "line": 15,
+          "end_line": 17
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_lexical_search.rs",
+        "source_line": 15,
+        "source_column": 9,
+        "target": "complete_memory_lexical_matches",
+        "source_component": "public-consumers",
+        "target_component": "retrieval",
+        "mir_line_sha256": "be146cc9f368ac62b6882139dc5c0d7b4f00fc9bf664b286ca075e7df05a694b",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/lexical_search.rs",
+          "line": 55,
+          "end_line": 60
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_lexical_search.rs",
+        "source_line": 23,
+        "source_column": 27,
+        "target": "MemoryReadView::new",
+        "source_component": "public-consumers",
+        "target_component": "memory-store",
+        "mir_line_sha256": "cad95a4734105bda476d562a1c97c1efbaefcc17debb080f02e01ac16cb4cd66",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/memory/memory_store.rs",
+          "line": 74,
+          "end_line": 76
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_lexical_search.rs",
+        "source_line": 24,
+        "source_column": 24,
+        "target": "MemoryLexicalReadView::new",
+        "source_component": "public-consumers",
+        "target_component": "retrieval",
+        "mir_line_sha256": "8f79e918e7ddb0f791a2c10b559726e728cc7481dfd18d919c1c71a3484f6030",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/lexical_search.rs",
+          "line": 15,
+          "end_line": 17
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_lexical_search.rs",
+        "source_line": 25,
+        "source_column": 9,
+        "target": "memory_lexical_candidates",
+        "source_component": "public-consumers",
+        "target_component": "retrieval",
+        "mir_line_sha256": "2248a605ab9cb98ddaf79fd2d0c8d2d7003cb197f9a0898230d6d0a84e5c1a78",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/lexical_search.rs",
+          "line": 62,
+          "end_line": 68
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_lexical_search.rs",
+        "source_line": 34,
+        "source_column": 13,
+        "target": "ArchiveReadView::new",
+        "source_component": "public-consumers",
+        "target_component": "archive-store",
+        "mir_line_sha256": "70c37ff18224640b700c4c3c3359add1288f7a26cd3a64eff1540078eb70bc97",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/archive/archive.rs",
+          "line": 74,
+          "end_line": 76
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_lexical_search.rs",
+        "source_line": 35,
+        "source_column": 9,
+        "target": "lexical_candidates",
+        "source_component": "public-consumers",
+        "target_component": "retrieval",
+        "mir_line_sha256": "5609b5e85bd790d51c9e93a2cb2d064c8e3cfde58c8c30720e8fa7f73a823340",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/lexical_search.rs",
+          "line": 70,
+          "end_line": 79
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_lexical_search.rs",
+        "source_line": 44,
+        "source_column": 13,
+        "target": "ArchiveReadView::new",
+        "source_component": "public-consumers",
+        "target_component": "archive-store",
+        "mir_line_sha256": "0f1ca4c5c6ce5d88d0b89d6cb91a93cd0e33a5857a96f0b2b0860dbac3020ad4",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/archive/archive.rs",
+          "line": 74,
+          "end_line": 76
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_lexical_search.rs",
+        "source_line": 45,
+        "source_column": 9,
+        "target": "raw_archive_candidates",
+        "source_component": "public-consumers",
+        "target_component": "retrieval",
+        "mir_line_sha256": "94f1456f4ceb45d44a22ab31bf744c51ff9b94de1e7f2176957d21750afbe31c",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/lexical_search.rs",
+          "line": 81,
+          "end_line": 90
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_lexical_search.rs",
+        "source_line": 54,
+        "source_column": 28,
+        "target": "ArchiveReadView::new",
+        "source_component": "public-consumers",
+        "target_component": "archive-store",
+        "mir_line_sha256": "2b88f4d9e8013cf62c956a8934a776d1c23c1717de984a47eb86f25e583fdc68",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/archive/archive.rs",
+          "line": 74,
+          "end_line": 76
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_lexical_search.rs",
+        "source_line": 55,
+        "source_column": 9,
+        "target": "lexical_candidates_from_fragments",
+        "source_component": "public-consumers",
+        "target_component": "retrieval",
+        "mir_line_sha256": "9eaf95394ad5a08fb5c08549afac774502309a5a99a26c73e47234bbf84392fe",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/lexical_search.rs",
+          "line": 92,
+          "end_line": 120
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_lexical_search.rs",
+        "source_line": 64,
+        "source_column": 13,
+        "target": "ArchiveReadView::new",
+        "source_component": "public-consumers",
+        "target_component": "archive-store",
+        "mir_line_sha256": "b946597861dcef14c4d6bc97231b921c1ad738d9e8f5958f25081afe5495fd2c",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/archive/archive.rs",
+          "line": 74,
+          "end_line": 76
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_lexical_search.rs",
+        "source_line": 65,
+        "source_column": 9,
+        "target": "search_files",
+        "source_component": "public-consumers",
+        "target_component": "retrieval",
+        "mir_line_sha256": "d015629dbc76f417f9e5dd387a894ae7bffc1ebe8e99c170fa36cff5b96afc93",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/lexical_search.rs",
+          "line": 122,
+          "end_line": 131
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_lexical_search.rs",
+        "source_line": 75,
+        "source_column": 27,
+        "target": "MemoryReadView::new",
+        "source_component": "public-consumers",
+        "target_component": "memory-store",
+        "mir_line_sha256": "41d043883627fbda7b1817ec747bb235de5b95bbd73e86bd95a2330f0d9db83a",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/memory/memory_store.rs",
+          "line": 74,
+          "end_line": 76
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_lexical_search.rs",
+        "source_line": 76,
+        "source_column": 24,
+        "target": "MemoryLexicalReadView::new",
+        "source_component": "public-consumers",
+        "target_component": "retrieval",
+        "mir_line_sha256": "23590fd61bdffb26c4745259324f2d6e3d96132106b1d3b5c325d261e0ba2601",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/lexical_search.rs",
+          "line": 15,
+          "end_line": 17
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_lexical_search.rs",
+        "source_line": 77,
+        "source_column": 9,
+        "target": "memory_lexical_candidates",
+        "source_component": "public-consumers",
+        "target_component": "retrieval",
+        "mir_line_sha256": "9d914a6e27a076934d23ba0336fd1e91ee69bf3a30bcf8848fb95f2b91684f57",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/lexical_search.rs",
+          "line": 62,
+          "end_line": 68
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_search.rs",
+        "source_line": 51,
+        "source_column": 23,
+        "target": "validate_search",
+        "source_component": "public-consumers",
+        "target_component": "retrieval",
+        "mir_line_sha256": "28a73afacf64c2d63d892d82f5b6c63feaa15331a8bb5079ed1896af1804e90a",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/search.rs",
+          "line": 6,
+          "end_line": 20
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_search.rs",
+        "source_line": 59,
+        "source_column": 23,
+        "target": "ArchiveReadView::new",
+        "source_component": "public-consumers",
+        "target_component": "archive-store",
+        "mir_line_sha256": "312de03349e6d636853980700d1c5bf84db59cbe2b336b15214efaf2bdcf88a8",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/archive/archive.rs",
+          "line": 74,
+          "end_line": 76
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_search.rs",
+        "source_line": 60,
+        "source_column": 9,
+        "target": "rank_search_candidates",
+        "source_component": "public-consumers",
+        "target_component": "retrieval",
+        "mir_line_sha256": "97a46a67120bf37e4ffba502f8159d375230a3b579b7132b005081a445b580ae",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/search_rank.rs",
+          "line": 6,
+          "end_line": 49
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_search.rs",
+        "source_line": 71,
+        "source_column": 23,
+        "target": "validate_search",
+        "source_component": "public-consumers",
+        "target_component": "retrieval",
+        "mir_line_sha256": "59543fa29a60a915734749fe7ac3c735bd86fef9be336adc196fd2f1687225c5",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/search.rs",
+          "line": 6,
+          "end_line": 20
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_search.rs",
+        "source_line": 76,
+        "source_column": 20,
+        "target": "VectorGenerationStore::current_generation",
+        "source_component": "public-consumers",
+        "target_component": "vector-store",
+        "mir_line_sha256": "5e5f7cb2c0f0a36023d37ef368c59248fcc9e454c9410262656fc47a0f559ea1",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/vector_generation_store.rs",
+          "line": 152,
+          "end_line": 159
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_search.rs",
+        "source_line": 92,
+        "source_column": 23,
+        "target": "ArchiveReadView::new",
+        "source_component": "public-consumers",
+        "target_component": "archive-store",
+        "mir_line_sha256": "f0c367b6ea97b99102cc0449ecbbd3ce2a32cc0a05a2f5d726e59f0f62f4c6b8",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/archive/archive.rs",
+          "line": 74,
+          "end_line": 76
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_search.rs",
+        "source_line": 93,
+        "source_column": 9,
+        "target": "rank_search_candidates",
+        "source_component": "public-consumers",
+        "target_component": "retrieval",
+        "mir_line_sha256": "f182e6c2e62df133fcbb3b3c4cf4d04154b6ad97449058fa44a75db623b02767",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/search_rank.rs",
+          "line": 6,
+          "end_line": 49
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_semantic_search.rs",
+        "source_line": 23,
+        "source_column": 23,
+        "target": "CompatibilityProfileStore::get_active",
+        "source_component": "public-consumers",
+        "target_component": "vector-store",
+        "mir_line_sha256": "0ef0cff09aaf5708a986c5b4e4adcab927f579816bd13b75898e2b2ee968d2cb",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/compatibility_profile_store.rs",
+          "line": 84,
+          "end_line": 88
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_semantic_search.rs",
+        "source_line": 28,
+        "source_column": 13,
+        "target": "verify_endpoint",
+        "source_component": "public-consumers",
+        "target_component": "vectors",
+        "mir_line_sha256": "85f6aa2e71a4a2d7103f98a6110547ff093e4d5f087b422014becf9d354abfbf",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/compatibility_profile_probe.rs",
+          "line": 50,
+          "end_line": 56
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_semantic_search.rs",
+        "source_line": 31,
+        "source_column": 23,
+        "target": "<impl EmbeddingEndpoint as embedding_endpoint::EmbeddingEndpoint>::embed",
+        "source_component": "public-consumers",
+        "target_component": "switchboard",
+        "mir_line_sha256": "c27240734d2694ce6ddf8e5af6c2830d0491d4512d731c76d768fa3907229989",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/runtime_inference/embedding_endpoint.rs",
+          "line": 60,
+          "end_line": 64
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_semantic_search.rs",
+        "source_line": 32,
+        "source_column": 9,
+        "target": "validate_embedding_batch",
+        "source_component": "public-consumers",
+        "target_component": "vectors",
+        "mir_line_sha256": "2f52c09efc38a48df7c00b85b21a2b22e6ebdf46164ee93ee2651693b7281dfe",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/compatibility_profile_probe.rs",
+          "line": 58,
+          "end_line": 64
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_semantic_search.rs",
+        "source_line": 46,
+        "source_column": 23,
+        "target": "VectorReadView::new",
+        "source_component": "public-consumers",
+        "target_component": "vector-store",
+        "mir_line_sha256": "e4fa2ca72cfce9d5c7a0340fbee44e41a1756a8618b451d6b41cc499b44e7677",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/vector_generation_store.rs",
+          "line": 21,
+          "end_line": 33
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_semantic_search.rs",
+        "source_line": 52,
+        "source_column": 23,
+        "target": "ArchiveReadView::new",
+        "source_component": "public-consumers",
+        "target_component": "archive-store",
+        "mir_line_sha256": "bd219c2425c3cab7e55997e26347f6350a5c1c609119a150e54316593a4126ed",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/archive/archive.rs",
+          "line": 74,
+          "end_line": 76
+        }
+      },
+      {
+        "source_path": "src/facade/cva_retrieval_semantic_search.rs",
+        "source_line": 53,
+        "source_column": 9,
+        "target": "semantic_search_vector",
+        "source_component": "public-consumers",
+        "target_component": "retrieval",
+        "mir_line_sha256": "ae9eaeb60dcda8cf16652ca14db84d998548b7e97e98aad129018b3898ce0c02",
+        "resolved_by": "exact-thir-defid-hir-owner-span",
+        "target_definition": {
+          "path": "src/retrieval/semantic_search.rs",
+          "line": 9,
+          "end_line": 80
+        }
+      }
+    ],
+    "existing_route_note": "Cva::search_memories is already delegated through runtime_host::memory_search and is recorded in the file scope only as an unchanged reference pattern; it has no unpermitted witness in the input compiler report."
+  },
+  "pure_contract_candidates": [
+    {
+      "target": "search::validate_search",
+      "instances": 2,
+      "basis": "Detached query/config validation only; exact method-level evidence required before disposition."
+    },
+    {
+      "target": "compatibility_profile_probe::validate_embedding_batch",
+      "instances": 1,
+      "basis": "Detached profile and vector-batch validation; exact method-level evidence required before disposition."
+    }
+  ],
+  "capability_dispositions": {
+    "owner_capabilities": "ArchiveReadView, VectorReadView, MemoryReadView/MemoryLexicalReadView and live VectorGeneration/Profile reads stay behind owner lifecycle operations.",
+    "retrieval_operations": "Lexical indexing/search, file search, conversation ranking, semantic vector search and candidate ranking remain Retrieval-owned and are invoked through Gateway.",
+    "provider_effects": "EmbeddingEndpoint verification and query embedding remain ordered Gateway provider effects; not pure value calls."
+  },
+  "invariants": [
+    "No public signature changes.",
+    "Preserve query/config validation, lexical index refresh, tombstone filtering, conversation branch scope, active profile selection, endpoint verification/embed order, vector validation, ranking, errors and read order.",
+    "No new DAG edge or blanket call exception.",
+    "No source edit until this registration is saved."
+  ],
+  "pre_edit_source_sha256": {
+    "src/facade/cva_retrieval_conversation_search.rs": "b84e7b59cb0e1506c423c9ac435ed49867625a31f0070b0f234a863fcea9fcf2",
+    "src/facade/cva_retrieval_lexical_search.rs": "47fe3ab124dfadd3d5fbeb9c24cbfec54591389bb3ff4a35081b747a1cf5137e",
+    "src/facade/cva_retrieval_memory_search.rs": "b7a6b62c72786bc155688cfdd2992f51f4f60858c36e4bb2cf5e33b12215463e",
+    "src/facade/cva_retrieval_search.rs": "93d41c9406023e6850d3f69c4a380d07503f405a16d0cda257dddc9989b1b9e5",
+    "src/facade/cva_retrieval_semantic_search.rs": "68b1ca54d535d2b09df15a1c74bb537eb43e11aa7cb4ac0c0d0155fe01722980",
+    "src/runtime_inference/public_retrieval_operations.rs": "7b69503e042f6630c5dcf1b2188951ee18497a2bd32fc66a512accb498c1539b",
+    "src/owner_lifecycle/archive_owner_api.rs": "6868aeae20b6c62bf9513662cbb67b44124d4d614ba42bc6a39d2032faacd1c6"
+  },
+  "acceptance": "Open; bounded source cut only. Preserve public signatures, ordering and errors. No DAG changes. Fresh same-source default/tracing compiler evidence, focused retrieval behavior tests and root integrated gates remain required.",
+  "post_edit_source_sha256": {
+    "src/facade/cva_retrieval_conversation_search.rs": "26bafe702330fa9b84900dab3a693466c5d824ae988489125a9b1ddad01b2aa3",
+    "src/facade/cva_retrieval_lexical_search.rs": "c34123baaca1b63652c302c1f15c9180f803c998b4dff692fc1dd6c454bf1499",
+    "src/facade/cva_retrieval_memory_search.rs": "b7a6b62c72786bc155688cfdd2992f51f4f60858c36e4bb2cf5e33b12215463e",
+    "src/facade/cva_retrieval_search.rs": "203f0f162d105ca351bf217761cdb8744eda0dee4a1303ab00097ff73bb2efe7",
+    "src/facade/cva_retrieval_semantic_search.rs": "eeb8eb86e8c95949415d6b9e8a9b5e6e4d0cf1978fc4ec16b1466069e48c6699",
+    "src/runtime_inference/public_retrieval_operations.rs": "798e7d5cbcef58528eb6bdeb4ed24827c49d41804ff48660bb6ff4ebf2d9adf5",
+    "src/owner_lifecycle/archive_owner_api.rs": "608520437b934ead84bfa4f46d6877537b3d916dc4bbcfbd77ffffb34bc1c21d"
+  },
+  "implementation": {
+    "changed_files": [
+      "src/facade/cva_retrieval_conversation_search.rs",
+      "src/facade/cva_retrieval_lexical_search.rs",
+      "src/facade/cva_retrieval_search.rs",
+      "src/facade/cva_retrieval_semantic_search.rs",
+      "src/runtime_inference/public_retrieval_operations.rs",
+      "src/owner_lifecycle/archive_owner_api.rs"
+    ],
+    "existing_no_violation_route": "src/facade/cva_retrieval_memory_search.rs remains delegated through runtime_host::memory_search; Phylactery lexical candidates now reuse the existing PhyExecutionOwner runtime operation.",
+    "expected_witnesses_removed": 34,
+    "current_compiler_status": "The input call report is valid only for the pre-edit source fingerprint and is retained as the registered witness. Fresh default/tracing compiler capture is required after the full source freeze.",
+    "verification": {
+      "rustfmt": "rustfmt --edition 2024 --check passed on all seven scoped Rust files",
+      "cargo": "not run; root owns integrated build and focused behavior tests",
+      "source_map": "No new module/file; both owner-lifecycle and runtime modules already exist in production component map."
+    }
+  }
+}

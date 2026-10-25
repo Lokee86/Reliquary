@@ -12,6 +12,8 @@ Freshness is an owner-local relevance/attention signal. It is not truth, validit
 
 Each REL Memory has one bounded signed score. The score changes through deterministic REL activity decay and explicitly authorized events over existing Memory graph topology. Perception and Chronos do not gate ordinary Freshness transitions.
 
+Freshness service code owns the finite operation/stage names used by optional `freshness-performance-trace` diagnostics. Scope guards measure caller-owned execution without passing execution callbacks into the store; the store owns only the bounded trace buffer. Diagnostics do not authorize publication or alter scoring. Offline historical embedding obtains a borrowing Gateway write-scope guard, which closes owner admission on return or panic unwind.
+
 ## Score and state
 
 | Parameter | Current contract |

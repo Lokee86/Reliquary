@@ -1,5 +1,4 @@
-use crate::memory_search::{MemoryLexicalSearchHit, validate};
-use crate::{Cva, Phylactery, SearchError};
+use crate::{Cva, MemoryLexicalSearchHit, Phylactery, SearchError};
 
 impl Cva {
     /// Return lexical candidates without access reinforcement. Even hydrated hits
@@ -9,16 +8,7 @@ impl Cva {
         query: &str,
         limit: usize,
     ) -> Result<Vec<MemoryLexicalSearchHit>, SearchError> {
-        validate(query, limit)?;
-        let hits = self.memory_lexical_candidates(query.trim(), limit)?;
-        hits.into_iter()
-            .map(|hit| {
-                Ok(MemoryLexicalSearchHit {
-                    memory: self.memory(hit.memory_id)?,
-                    score: hit.score,
-                })
-            })
-            .collect()
+        crate::runtime_host::memory_search::search_memories_rel(self, query, limit)
     }
 }
 
@@ -29,15 +19,6 @@ impl Phylactery {
         query: &str,
         limit: usize,
     ) -> Result<Vec<MemoryLexicalSearchHit>, SearchError> {
-        validate(query, limit)?;
-        let hits = self.memory_lexical_candidates(query.trim(), limit)?;
-        hits.into_iter()
-            .map(|hit| {
-                Ok(MemoryLexicalSearchHit {
-                    memory: self.memory(hit.memory_id)?,
-                    score: hit.score,
-                })
-            })
-            .collect()
+        crate::runtime_host::memory_search::search_memories_phy(self, query, limit)
     }
 }

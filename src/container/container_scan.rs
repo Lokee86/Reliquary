@@ -7,6 +7,7 @@ use std::path::Path;
 /// One opaque physical frame and the global clock observed after accepting it.
 pub(crate) struct PhysicalFrame {
     pub object: ObjectRef,
+    pub offset: u64,
     pub payload: Vec<u8>,
     pub latest_global: u64,
     pub end: u64,
@@ -267,6 +268,7 @@ impl PhysicalCursor<'_> {
         self.offset = end;
         Ok(Some(PhysicalFrame {
             object: ObjectRef::from_chunk(ChunkRef { offset: start, len }),
+            offset: start,
             payload,
             latest_global: self.next_version.saturating_sub(1),
             end,

@@ -6,23 +6,12 @@ impl Cva {
         object: ObjectRef,
         payload: &[u8],
     ) -> Result<Option<InitialDreamPass>, CvaError> {
-        crate::owner_lifecycle::dream_begin_transport::materialized_dream_begin(
-            &self.container,
-            &self.archive,
-            &self.memories,
-            object,
-            payload,
-        )
+        self.runtime_materialized_dream_begin(object, payload)
     }
     pub(crate) fn current_dream_begin_payload(
         &mut self,
         pass: &InitialDreamPass,
     ) -> Result<Vec<u8>, CvaError> {
-        crate::owner_lifecycle::dream_begin_transport::current_dream_begin_payload(
-            &self.container,
-            &self.archive,
-            &self.memories,
-            pass,
-        )
+        self.runtime_current_dream_begin_payload(pass)
     }
 }

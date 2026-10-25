@@ -77,15 +77,7 @@ impl Cva {
         active: bool,
         expected_graph_version: u64,
     ) -> Result<Option<SemanticGraphRelation>, GraphError> {
-        let change = SemanticGraphRelationChange::entity_association(memory_id, entity_id, active);
-        crate::graph_endpoint_admission::validate_semantic_changes(
-            &self.memories,
-            &self.entities,
-            &[change],
-            GraphRelationOrigin::Perception,
-        )?;
-        self.owner.graph.set_entity_association(
-            &mut self.owner.container,
+        self.native_graph_set_entity_association(
             memory_id,
             entity_id,
             active,
@@ -100,16 +92,7 @@ impl Cva {
         active: bool,
         expected_graph_version: u64,
     ) -> Result<Option<SemanticGraphRelation>, GraphError> {
-        let change =
-            SemanticGraphRelationChange::principal_association(memory_id, entity_id, active);
-        crate::graph_endpoint_admission::validate_semantic_changes(
-            &self.memories,
-            &self.entities,
-            &[change],
-            GraphRelationOrigin::Perception,
-        )?;
-        self.owner.graph.set_principal_association(
-            &mut self.owner.container,
+        self.native_graph_set_principal_association(
             memory_id,
             entity_id,
             active,
@@ -123,14 +106,7 @@ impl Cva {
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
     ) -> Result<Vec<SemanticGraphRelation>, GraphError> {
-        crate::graph_endpoint_admission::validate_semantic_changes(
-            &self.memories,
-            &self.entities,
-            changes,
-            origin,
-        )?;
-        self.owner.graph.set_semantic_relations_with_origin(
-            &mut self.owner.container,
+        self.native_graph_set_semantic_relations_with_origin(
             changes,
             origin,
             expected_graph_version,
@@ -142,11 +118,11 @@ impl Cva {
     }
 
     pub fn memory_graph_version(&self) -> u64 {
-        self.graph.memory_graph_version()
+        self.runtime_memory_graph_version()
     }
 
     pub fn graph_stats(&self) -> GraphStats {
-        self.graph.stats()
+        self.native_graph_graph_stats()
     }
 
     pub fn graph_relations(&self) -> Vec<GraphRelation> {
@@ -158,19 +134,19 @@ impl Cva {
     }
 
     pub fn entity_associations_for_memory(&self, memory_id: MemoryId) -> Vec<EntityId> {
-        self.graph.entity_associations_for_memory(memory_id)
+        self.native_graph_entity_associations_for_memory(memory_id)
     }
 
     pub fn memories_for_entity(&self, entity_id: EntityId) -> Vec<MemoryId> {
-        self.graph.memories_for_entity(entity_id)
+        self.native_graph_memories_for_entity(entity_id)
     }
 
     pub fn principal_associations_for_memory(&self, memory_id: MemoryId) -> Vec<EntityId> {
-        self.graph.principal_associations_for_memory(memory_id)
+        self.native_graph_principal_associations_for_memory(memory_id)
     }
 
     pub fn memories_for_principal(&self, entity_id: EntityId) -> Vec<MemoryId> {
-        self.graph.memories_for_principal(entity_id)
+        self.native_graph_memories_for_principal(entity_id)
     }
 
     pub fn principal_entity(&self, principal_id: &str) -> Option<Entity> {
@@ -188,7 +164,7 @@ impl Cva {
         let Some(entity) = self.principal_entity(principal_id) else {
             return Vec::new();
         };
-        self.graph.memories_for_principal(entity.id)
+        self.native_graph_memories_for_principal(entity.id)
     }
 
     pub fn semantic_graph_neighbors(
@@ -196,7 +172,7 @@ impl Cva {
         node: SemanticNodeRef,
         direction: GraphDirection,
     ) -> Result<Vec<SemanticGraphNeighbor>, GraphError> {
-        self.graph.semantic_neighbors(node, direction)
+        self.native_graph_semantic_graph_neighbors(node, direction)
     }
 
     pub fn graph_neighbors(
@@ -204,7 +180,7 @@ impl Cva {
         memory_id: MemoryId,
         direction: GraphDirection,
     ) -> Result<Vec<GraphNeighbor>, GraphError> {
-        self.graph.neighbors(memory_id, direction)
+        self.native_graph_graph_neighbors(memory_id, direction)
     }
 
     pub fn shortest_memory_path(
@@ -213,6 +189,6 @@ impl Cva {
         target: MemoryId,
         max_depth: usize,
     ) -> Result<Option<MemoryGraphPath>, GraphError> {
-        self.graph.shortest_path(source, target, max_depth)
+        self.native_graph_shortest_memory_path(source, target, max_depth)
     }
 }

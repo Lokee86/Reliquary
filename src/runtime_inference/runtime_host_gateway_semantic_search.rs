@@ -169,16 +169,16 @@ impl GatewayRuntime {
                                 })?;
                                 let retrieval = runtime
                                     .cva
-                                    .retrieve_memories(profile, vector, config)
+                                    .native_retrieve_memories(profile, vector, config)
                                     .map_err(operation)?;
                                 hydrate_lane_reliquary(&mut runtime.cva, owner_id, retrieval)
                             }),
                             OwnerKind::Phy => self.with_phy(&lane.token, |owner| {
-                                let owner_id = owner.owner_id().ok_or_else(|| {
+                                let owner_id = owner.runtime_owner_id().ok_or_else(|| {
                                     operation("Phylactery does not have durable owner identity")
                                 })?;
                                 let retrieval = owner
-                                    .retrieve_memories(profile, vector, config)
+                                    .native_retrieve_memories(profile, vector, config)
                                     .map_err(operation)?;
                                 hydrate_lane_phylactery(owner, owner_id, retrieval)
                             }),
@@ -257,7 +257,7 @@ fn hydrate_lane_reliquary(
         .memories
         .iter()
         .map(|id| {
-            cva.memory(*id)
+            cva.runtime_memory(*id)
                 .map(|memory| MemorySearchItem {
                     memory,
                     seed_score: scores.get(id).copied(),

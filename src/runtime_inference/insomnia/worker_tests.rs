@@ -455,6 +455,145 @@ fn progress_reports_episode_retries_and_completion() {
     )));
 }
 
+struct PanickingProvider;
+
+impl GeneralEndpoint for PanickingProvider {
+    fn model(&self) -> &str {
+        "panicking-provider"
+    }
+
+    fn complete_json(
+        &self,
+        _system_prompt: &str,
+        _user_payload: &str,
+        _schema_name: &str,
+        _schema: &Value,
+    ) -> Result<Value, GeneralEndpointError> {
+        panic!("provider sentinel")
+    }
+}
+
+struct EvidenceRequestEndpoint;
+
+impl GeneralEndpoint for EvidenceRequestEndpoint {
+    fn model(&self) -> &str {
+        "evidence-request-endpoint"
+    }
+
+    fn complete_json(
+        &self,
+        _system_prompt: &str,
+        user_payload: &str,
+        schema_name: &str,
+        _schema: &Value,
+    ) -> Result<Value, GeneralEndpointError> {
+        assert_eq!(schema_name, "insomnia_authority_disposition_ledger");
+        let payload: Value = serde_json::from_str(user_payload).unwrap();
+        let id = payload["turns"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|turn| turn["role"] == "user")
+            .and_then(|turn| turn["id"].as_str())
+            .unwrap();
+        Ok(json!({
+            "turns": {id: [{
+                "disposition":"omit", "authority_kind":"none", "category":"none",
+                "type":"none", "lifecycle":"none", "proposition":"",
+                "authority_source_node_id":"", "grounding_source_node_id":"",
+                "reason":"No durable memory here."
+            }]},
+            "evidence_requests": [{
+                "kind":"turn", "conversation_id":"c1", "node_id":id,
+                "start_node_id":"", "end_node_id":"", "query":"", "limit":0
+            }]
+        }))
+    }
+}
+
+fn drain_in_thread_with_timeout<E, P>(
+    mut cva: Cva,
+    extractor: InsomniaExtractor<E>,
+    progress: P,
+) -> Result<(), crate::InsomniaWorkerError>
+where
+    E: GeneralEndpoint + Send + 'static,
+    P: Fn(&InsomniaProgressEvent) + Send + Sync + 'static,
+{
+    let (done_sender, done_receiver) = std::sync::mpsc::channel();
+    thread::spawn(move || {
+        let embedding = SimulatedEmbeddingEndpoint::new(8, VectorNormalization::L2, 7);
+        let result = cva.drain_insomnia_backlog_with_progress(
+            &extractor,
+            &embedding,
+            InsomniaWorkerConfig {
+                workers: 1,
+                poll_interval_ns: 100_000,
+                ..Default::default()
+            },
+            &progress,
+        );
+        let _ = done_sender.send(result.map(|_| ()));
+    });
+    done_receiver
+        .recv_timeout(Duration::from_secs(5))
+        .expect("Insomnia worker completed instead of hanging")
+}
+
+#[test]
+fn provider_panic_closes_stage_reporter_and_returns_worker_panic() {
+    let path = test_path("provider-panic-progress.cva");
+    let mut cva = Cva::create(path).unwrap();
+    queue_import(&mut cva, "c1", 0);
+
+    let result =
+        drain_in_thread_with_timeout(cva, InsomniaExtractor::new(PanickingProvider), |_| {});
+
+    assert!(matches!(
+        result,
+        Err(crate::InsomniaWorkerError::ThreadPanicked)
+    ));
+}
+
+#[test]
+fn evidence_progress_panic_is_acknowledged_without_hanging() {
+    let path = test_path("evidence-progress-panic.cva");
+    let mut cva = Cva::create(path).unwrap();
+    queue_import(&mut cva, "c1", 0);
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let captured = Arc::clone(&events);
+    let progress = move |event: &InsomniaProgressEvent| {
+        captured.lock().unwrap().push(event.clone());
+        if matches!(
+            event,
+            InsomniaProgressEvent::EpisodeStage {
+                stage: crate::InsomniaSemanticStage::Evidence,
+                ..
+            }
+        ) {
+            panic!("evidence reporter sentinel");
+        }
+    };
+
+    let result = drain_in_thread_with_timeout(
+        cva,
+        InsomniaExtractor::new(EvidenceRequestEndpoint),
+        progress,
+    );
+
+    assert!(matches!(
+        result,
+        Err(crate::InsomniaWorkerError::ThreadPanicked)
+    ));
+    assert!(events.lock().unwrap().iter().any(|event| matches!(
+        event,
+        InsomniaProgressEvent::EpisodeStage {
+            stage: crate::InsomniaSemanticStage::Evidence,
+            ..
+        }
+    )));
+}
+
 #[test]
 fn invalid_endpoint_configuration_becomes_terminal_without_retry() {
     let path = test_path("terminal.cva");

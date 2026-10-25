@@ -104,7 +104,7 @@ impl GatewayRuntime {
                 |runtime| {
                     let owner_uuid = runtime
                         .cva
-                        .owner_uuid()
+                        .runtime_owner_uuid()
                         .ok_or_else(|| operation("REL lacks owner identity"))?;
                     let invalidations = memories
                         .iter()
@@ -113,7 +113,7 @@ impl GatewayRuntime {
                         .collect();
                     let applied = runtime
                         .cva
-                        .record_accepted_memory_use(
+                        .runtime_record_accepted_memory_use(
                             crate::AcceptedMemoryUseReceipt {
                                 owner_uuid,
                                 accepted_turn,

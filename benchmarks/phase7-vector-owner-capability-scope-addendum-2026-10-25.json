@@ -1,0 +1,14 @@
+{
+  "schema": "phase7-child-scope-addendum.v1",
+  "date": "2026-10-25",
+  "child_ticket": "P7.1.14-VECTOR-OWNER-API",
+  "status": "registered-before-edit; acceptance open",
+  "scope": "Exact packed/profile writes, raw already-prepared memory binding insertion, generation reference validation and borrowed vector read-view construction. Existing validation and write ordering are preserved; no capability is classified as a DTO.",
+  "source_before": {
+    "src/runtime_inference/public_vector_operations.rs": "4d00247b2b30ebc93daa98a40d9816f16763546fe88d9ff6f5fdb206742eddc1",
+    "src/runtime_inference/reliquary_runtime_owner.rs": "63d81abd9cbb4383b2d4afb1cf0466fe36f077b5ff6277d92b4a55a4f2965a33",
+    "src/runtime_inference/interaction_runtime.rs": "6a82b5e50bc66a8195adfed09b033db43fed494f245c93e41297f0937cca365c",
+    "src/runtime_inference/runtime_host_gateway_agentic_memory_query.rs": "6f1d869ab5c1b58a429dfb43c4127bd3cb530655949480f1b2cb1edeb0f79fb1",
+    "src/runtime_inference/runtime_host_phy_dream.rs": "b9d957ad50e63d6e63467bfc6852f0de5f084b7077950302edb4a6da952f35f1"
+  }
+}

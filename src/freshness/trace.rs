@@ -75,6 +75,10 @@ mod enabled {
         Scope { enabled }
     }
 
+    pub(crate) fn enabled() -> bool {
+        std::env::var_os("RELIQUARY_FRESHNESS_TRACE").is_some()
+    }
+
     fn row(stage: &'static str, elapsed_ns: u128, calls: u64, counts: Counts) -> String {
         format!(
             "{{\"stage\":\"{}\",\"elapsed_ns\":{},\"calls\":{},\"payload_bytes\":{},\"object_bytes\":{},\"event_count\":{},\"effect_count\":{},\"chunks_visited\":{},\"graph_mutations_decoded\":{},\"community_snapshots_encountered\":{},\"community_snapshots_matched\":{},\"version_filtered_records\":{}}}",
@@ -165,7 +169,7 @@ mod enabled {
 }
 
 #[cfg(feature = "freshness-performance-trace")]
-pub(crate) use enabled::{flush, measure, record, scope};
+pub(crate) use enabled::{Scope, enabled, flush, measure, record, scope};
 
 #[cfg(not(feature = "freshness-performance-trace"))]
 #[inline]
@@ -173,8 +177,16 @@ pub(crate) fn measure<T>(_: &'static str, operation: impl FnOnce() -> T) -> T {
     operation()
 }
 #[cfg(not(feature = "freshness-performance-trace"))]
+pub(crate) struct Scope;
+#[cfg(not(feature = "freshness-performance-trace"))]
+pub(crate) fn enabled() -> bool {
+    false
+}
+#[cfg(not(feature = "freshness-performance-trace"))]
 #[inline]
-pub(crate) fn scope(_: &'static str) {}
+pub(crate) fn scope(_: &'static str) -> Scope {
+    Scope
+}
 #[cfg(not(feature = "freshness-performance-trace"))]
 #[inline]
 pub(crate) fn flush() {}

@@ -4,7 +4,7 @@
   "status": "B7 bounded register; residuals remain open",
   "source_baseline_sha256": "c54a0a5fde6150aa37e97a35f861e21bf52bb5e81f61392fbb94df6af0fa2885",
   "source_checkpoint": "0495689c34aa9a1c10699fd31f7b504db03b9492",
-  "owner_policy_sha256": "94826ac5885f661ff51a29f193643ff89457271bdf6da60e1d69c80a2ee5fe73",
+  "owner_policy_sha256": "8fd88f93c3812a2a68be4400f9eddfeccf965c5c9699f387e53ddd3d98a82405",
   "classification_source_sha256": {
     "src/external_source/index.rs": "3812d7b48f0e1f3bb35d5e4a8b13f3df56277150e29e1f8f8d85e0e3433b9cc5",
     "src/external_source/processing.rs": "745ea74240905d23953da0a649a53ef45af28dbeff6936a55de7dded411fbd4f",
@@ -334,16 +334,16 @@
       "path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
       "entrypoint": "prepare",
       "insomnia_inference": "InsomniaExtractor + TemporalInferencer",
-      "sha256": "3f70115027cb83ab2e47c268d98aa0cb8e4c4b5d5eddad5d5b8f5947352e921e"
+      "sha256": "962e4826f3439fef68fe37189aa95fdc57b5a62a3cb35d149fb9eb766772ec36"
     },
     "source_hashes_sha256": {
       "src/external_source/index.rs": "38f4452b6ed36a346ccd559e6377fc4c6d827e0deec000bd0ac1959c273db5d8",
-      "src/external_source/mod.rs": "ec607b9eb3fd9a9b5ad275dfdef07ef633bcd265be21f97f88fc06dde6e9ab13",
+      "src/external_source/mod.rs": "483b300f628229128264add1d2df765807b37e303bee06d21cecae85f6ff6b48",
       "src/external_source/processing.rs": "53d2e4d0d4882da6f7af0b26ab94b69f555f85b027df05085d7e460fb106cdf9",
       "src/external_source/provenance.rs": "be5745946dcdfc308fd75042fa8ccbefbc644e72195cf097485cefeaa6160ac3",
       "src/external_source/provider.rs": "4d405a1874572e97c11b4985d68a049af0a64d19c0b3c0c37a6188ca03577bad",
-      "src/runtime_inference/runtime_host_gateway_external.rs": "c94536ce16d11ededcc5558d1be6f4c484e3c5f0053787ce9cfde5b2875f7d3b",
-      "src/runtime_inference/runtime_host_gateway_external_processing.rs": "3f70115027cb83ab2e47c268d98aa0cb8e4c4b5d5eddad5d5b8f5947352e921e",
+      "src/runtime_inference/runtime_host_gateway_external.rs": "a7822bf2deabc077595ec4df1023c50db2d022d0b12e7533b86f8b64650fa6a2",
+      "src/runtime_inference/runtime_host_gateway_external_processing.rs": "962e4826f3439fef68fe37189aa95fdc57b5a62a3cb35d149fb9eb766772ec36",
       "src/runtime_inference/runtime_vector_step.rs": "a5d9e28702f06866db0b5ec6c630c84e58c29a32365ffe16b24d25cdae974718"
     },
     "proof_limit": "Bounded source and recorded-cfg check; no Rust compilation or macro-expanded call graph is asserted."

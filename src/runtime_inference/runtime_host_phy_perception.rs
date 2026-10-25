@@ -238,8 +238,8 @@ fn reconcile(
             .lock()
             .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
         let versions = (
-            phy.owner.entities.entity_version(),
-            phy.owner.graph.graph_version(),
+            phy.owner.entity_version(),
+            phy.owner.owner_graph_version(),
             phy.owner.memories.memory_version(),
         );
         if *last == Some(versions) {
@@ -295,8 +295,8 @@ fn reconcile(
     }
     let phy = &*guard;
     *last = Some((
-        phy.owner.entities.entity_version(),
-        phy.owner.graph.graph_version(),
+        phy.owner.entity_version(),
+        phy.owner.owner_graph_version(),
         phy.owner.memories.memory_version(),
     ));
     Ok(false)

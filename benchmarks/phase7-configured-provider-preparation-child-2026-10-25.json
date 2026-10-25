@@ -1,0 +1,524 @@
+{
+  "schema": "phase7-child-correction-receipt.v1",
+  "id": "P7.1.13a-CONFIGURED-PROVIDER-PREPARATION",
+  "parent_ticket": "P7.1.13",
+  "status": "registered-before-implementation; acceptance open",
+  "scope": "Move concrete configured provider and extractor construction, embedding batching, and configured embedding probe mechanics out of the configured facade files into a runtime-gateway-owned module. Keep Cva/Phylactery file composition and report construction/signatures in the facade.",
+  "compiler_evidence": {
+    "path": ".verification-tmp/phase7/closure-finish-default-20261025/calls.json",
+    "sha256": "be6b772eaeb3aca52a5a1aee03559cbb68a1113f58f6913f319f0e735476d36c",
+    "proof_limit": "One compiler profile; static MIR constant calls only. Indirect/dynamic calls, drop terminators requiring destructor analysis, and unrecognized local targets remain unknown. Compiler-generated nominal field layout edges without an explicit local Drop::drop implementation remain passive value-layout witnesses; only exact local Drop implementations create executable destructor-call edges. MIR is an unstable compiler output, pinned by compiler version and input hashes. DefIds extracted from MIR function-signature text are diagnostic hints only and may identify bound regions; local implementation joins require exact THIR FnDef identities plus HIR owner spans or exact rustdoc symbols. External trait calls require exact THIR FnDef evidence, a concrete receiver without local/generic type components, and closed trait type arguments (lifetime-only arguments are inert); an external path root alone is insufficient. A closure-containing external call resolves only its callee; closure bodies are separate MIR items and remain subject to their own call analysis. Local closure DefIds require an exact HIR owner-span join. Same-source provenance is included only when a provenance receipt is supplied; external calls without mapped local caller spans are counted separately."
+  },
+  "source_sha256_at_registration": {
+    "src/facade/configured_runtime_insomnia.rs": "97d77bf04131efe1bdd92731b6a93e74435e64be209669865e18dcd3470e9347",
+    "src/facade/configured_runtime_vectors.rs": "a5f3762b46261ca16c238eaf876b039c1d91bf04722cf1b123d96067a9256eef"
+  },
+  "witness_count": 19,
+  "witnesses": [
+    {
+      "source_path": "src/facade/configured_runtime_insomnia.rs",
+      "source_line": 39,
+      "source_column": 20,
+      "source_end_line": 39,
+      "source_end_column": 91,
+      "mir_line_sha256": "c3380fab8aff0999cba55551384b3f2f758caad4392fc488483f001a207b122e",
+      "target": "ConfiguredGeneralEndpoint::from_insomnia_switchboard",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "configured_general::{impl#0}::from_insomnia_switchboard",
+      "compiler_def_id": "DefId(0:51536 ~ reliquary_memory[b862]::configured_general::{impl#0}::from_insomnia_switchboard)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "configured_general::{impl#0}::from_insomnia_switchboard",
+      "source_component": "public-consumers",
+      "target_component": "switchboard",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/configured_general.rs",
+          "line": 32,
+          "end_line": 49
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/configured_runtime_insomnia.rs",
+      "source_line": 41,
+      "source_column": 25,
+      "source_end_line": 41,
+      "source_end_column": 90,
+      "mir_line_sha256": "ed3e3976e695e1db18290264f0a1cf3026774114fc9a4b6099c5ce2b1a030a1a",
+      "target": "OpenAiReadyEmbeddingEndpoint::from_switchboard",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "openai_ready_embedding::{impl#0}::from_switchboard",
+      "compiler_def_id": "DefId(0:55481 ~ reliquary_memory[b862]::openai_ready_embedding::{impl#0}::from_switchboard)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "openai_ready_embedding::{impl#0}::from_switchboard",
+      "source_component": "public-consumers",
+      "target_component": "switchboard",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/openai_ready_embedding.rs",
+          "line": 33,
+          "end_line": 72
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/configured_runtime_insomnia.rs",
+      "source_line": 41,
+      "source_column": 25,
+      "source_end_line": 43,
+      "source_end_column": 88,
+      "mir_line_sha256": "5976a1345d5fb798b878a9cb4cfd2b96d6f9241c9f7e92d701e9e10ce825a348",
+      "target": "OpenAiReadyEmbeddingEndpoint::with_batching",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "public-consumers",
+      "target_component": "switchboard",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/openai_ready_embedding.rs",
+          "line": 74,
+          "end_line": 87
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/configured_runtime_insomnia.rs",
+      "source_line": 45,
+      "source_column": 23,
+      "source_end_line": 45,
+      "source_end_column": 93,
+      "mir_line_sha256": "e686d5c5bead5945c3dc86e30cb49b74471c9ab2cc979ff36dec35a24c067619",
+      "target": "ConfiguredGeneralEndpoint::from_chronos_switchboard",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "configured_general::{impl#0}::from_chronos_switchboard",
+      "compiler_def_id": "DefId(0:51541 ~ reliquary_memory[b862]::configured_general::{impl#0}::from_chronos_switchboard)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "configured_general::{impl#0}::from_chronos_switchboard",
+      "source_component": "public-consumers",
+      "target_component": "switchboard",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/configured_general.rs",
+          "line": 127,
+          "end_line": 144
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/configured_runtime_insomnia.rs",
+      "source_line": 47,
+      "source_column": 29,
+      "source_end_line": 47,
+      "source_end_column": 57,
+      "mir_line_sha256": "0add387799ef9b690565d64237d3f7d2daf814da95af2f681771bece32a4ed8b",
+      "target": "InsomniaExtractor::new",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "public-consumers",
+      "target_component": "insomnia",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/insomnia/extraction.rs",
+          "line": 123,
+          "end_line": 131
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/configured_runtime_insomnia.rs",
+      "source_line": 47,
+      "source_column": 29,
+      "source_end_line": 47,
+      "source_end_column": 89,
+      "mir_line_sha256": "2bf8c1bd86660c178b726c3b9f9e4bcccd847fad1a715b9ab764ddb5d5bf8438",
+      "target": "InsomniaExtractor::with_temporal_endpoint",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "public-consumers",
+      "target_component": "insomnia",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/insomnia/extraction.rs",
+          "line": 157,
+          "end_line": 163
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/configured_runtime_insomnia.rs",
+      "source_line": 48,
+      "source_column": 12,
+      "source_end_line": 48,
+      "source_end_column": 48,
+      "mir_line_sha256": "a31deca8c874f967c43d0a478dec987426925c49d7e7a804170d7e36a3b52c02",
+      "target": "ModelSwitchboard::insomnia_metadata",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "model_switchboard::{impl#0}::insomnia_metadata",
+      "compiler_def_id": "DefId(0:55293 ~ reliquary_memory[b862]::model_switchboard::{impl#0}::insomnia_metadata)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "model_switchboard::{impl#0}::insomnia_metadata",
+      "source_component": "public-consumers",
+      "target_component": "switchboard",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/model_switchboard.rs",
+          "line": 38,
+          "end_line": 40
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/configured_runtime_insomnia.rs",
+      "source_line": 50,
+      "source_column": 17,
+      "source_end_line": 50,
+      "source_end_column": 97,
+      "mir_line_sha256": "ccdb09c3901eb18d9c34a71c1e219a490dac033abba778126a6e99c7d3990b37",
+      "target": "ConfiguredGeneralEndpoint::from_insomnia_metadata_switchboard",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "configured_general::{impl#0}::from_insomnia_metadata_switchboard",
+      "compiler_def_id": "DefId(0:51537 ~ reliquary_memory[b862]::configured_general::{impl#0}::from_insomnia_metadata_switchboard)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "configured_general::{impl#0}::from_insomnia_metadata_switchboard",
+      "source_component": "public-consumers",
+      "target_component": "switchboard",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/configured_general.rs",
+          "line": 51,
+          "end_line": 68
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/configured_runtime_insomnia.rs",
+      "source_line": 49,
+      "source_column": 25,
+      "source_end_line": 52,
+      "source_end_column": 14,
+      "mir_line_sha256": "a99ff047f2f29e33a4d4ab9963f56201559b6a5374c76efe77a0ef53331134c8",
+      "target": "InsomniaExtractor::with_metadata_endpoint",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "public-consumers",
+      "target_component": "insomnia",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/insomnia/extraction.rs",
+          "line": 133,
+          "end_line": 139
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/configured_runtime_insomnia.rs",
+      "source_line": 54,
+      "source_column": 12,
+      "source_end_line": 54,
+      "source_end_column": 48,
+      "mir_line_sha256": "20bce4ecbc62f497dc6a6a7207c393bb7d66b45290d7be710bf9853df89e75ac",
+      "target": "ModelSwitchboard::entity_extraction",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "model_switchboard::{impl#0}::entity_extraction",
+      "compiler_def_id": "DefId(0:55294 ~ reliquary_memory[b862]::model_switchboard::{impl#0}::entity_extraction)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "model_switchboard::{impl#0}::entity_extraction",
+      "source_component": "public-consumers",
+      "target_component": "switchboard",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/model_switchboard.rs",
+          "line": 42,
+          "end_line": 44
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/configured_runtime_insomnia.rs",
+      "source_line": 56,
+      "source_column": 17,
+      "source_end_line": 56,
+      "source_end_column": 97,
+      "mir_line_sha256": "028863b10ec63c05f786bd0a1740dcc66f0bc4dd49b14e04bc307fddd1b2c47c",
+      "target": "ConfiguredGeneralEndpoint::from_entity_extraction_switchboard",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "configured_general::{impl#0}::from_entity_extraction_switchboard",
+      "compiler_def_id": "DefId(0:51538 ~ reliquary_memory[b862]::configured_general::{impl#0}::from_entity_extraction_switchboard)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "configured_general::{impl#0}::from_entity_extraction_switchboard",
+      "source_component": "public-consumers",
+      "target_component": "switchboard",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/configured_general.rs",
+          "line": 70,
+          "end_line": 87
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/configured_runtime_insomnia.rs",
+      "source_line": 55,
+      "source_column": 25,
+      "source_end_line": 58,
+      "source_end_column": 14,
+      "mir_line_sha256": "9b0444cffd07653c69b0138a86898c04c6105f2993d0643a2ea9fcac366e7e9f",
+      "target": "InsomniaExtractor::with_enrichment_endpoint",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "public-consumers",
+      "target_component": "insomnia",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/insomnia/extraction.rs",
+          "line": 141,
+          "end_line": 147
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/configured_runtime_insomnia.rs",
+      "source_line": 62,
+      "source_column": 17,
+      "source_end_line": 62,
+      "source_end_column": 98,
+      "mir_line_sha256": "5e76d4489c8c279b73642545043576ba4e23042939643f9736d9fb41b5755c36",
+      "target": "ConfiguredGeneralEndpoint::from_insomnia_ownership_switchboard",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "configured_general::{impl#0}::from_insomnia_ownership_switchboard",
+      "compiler_def_id": "DefId(0:51540 ~ reliquary_memory[b862]::configured_general::{impl#0}::from_insomnia_ownership_switchboard)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "configured_general::{impl#0}::from_insomnia_ownership_switchboard",
+      "source_component": "public-consumers",
+      "target_component": "switchboard",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/configured_general.rs",
+          "line": 108,
+          "end_line": 125
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/configured_runtime_insomnia.rs",
+      "source_line": 61,
+      "source_column": 25,
+      "source_end_line": 64,
+      "source_end_column": 14,
+      "mir_line_sha256": "e3dc4ade3dba85b47a9b626fee4e96d40ac3065bdec49ab3aed1f9ec51124ef8",
+      "target": "InsomniaExtractor::with_ownership_endpoint",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "public-consumers",
+      "target_component": "insomnia",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/insomnia/extraction.rs",
+          "line": 149,
+          "end_line": 155
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/configured_runtime_vectors.rs",
+      "source_line": 14,
+      "source_column": 13,
+      "source_end_line": 14,
+      "source_end_column": 78,
+      "mir_line_sha256": "81954e4f70afe941ffc7a9a04720316ea0f4e61d743587741ff5bf5980959380",
+      "target": "OpenAiReadyEmbeddingEndpoint::from_switchboard",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "openai_ready_embedding::{impl#0}::from_switchboard",
+      "compiler_def_id": "DefId(0:55481 ~ reliquary_memory[b862]::openai_ready_embedding::{impl#0}::from_switchboard)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "openai_ready_embedding::{impl#0}::from_switchboard",
+      "source_component": "public-consumers",
+      "target_component": "switchboard",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/openai_ready_embedding.rs",
+          "line": 33,
+          "end_line": 72
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/configured_runtime_vectors.rs",
+      "source_line": 15,
+      "source_column": 23,
+      "source_end_line": 16,
+      "source_end_column": 61,
+      "mir_line_sha256": "eb08ee9959bdc0a984cfae57f428148d78735d484816da4660c8064d83ffc38c",
+      "target": "<OpenAiReadyEmbeddingEndpoint as embedding_endpoint::EmbeddingEndpoint>::embed",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "embedding_endpoint::EmbeddingEndpoint::embed",
+      "compiler_def_id": "DefId(0:52714 ~ reliquary_memory[b862]::embedding_endpoint::EmbeddingEndpoint::embed)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "embedding_endpoint::EmbeddingEndpoint::embed",
+      "source_component": "public-consumers",
+      "target_component": "switchboard",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/embedding_endpoint.rs",
+          "line": 60,
+          "end_line": 64
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/configured_runtime_vectors.rs",
+      "source_line": 21,
+      "source_column": 28,
+      "source_end_line": 21,
+      "source_end_column": 52,
+      "mir_line_sha256": "9c80074952c33508cc066f842bc910e4d51c60741326b52e67070af819459ade",
+      "target": "<OpenAiReadyEmbeddingEndpoint as embedding_endpoint::EmbeddingEndpoint>::normalization",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "embedding_endpoint::EmbeddingEndpoint::normalization",
+      "compiler_def_id": "DefId(0:52713 ~ reliquary_memory[b862]::embedding_endpoint::EmbeddingEndpoint::normalization)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "embedding_endpoint::EmbeddingEndpoint::normalization",
+      "source_component": "public-consumers",
+      "target_component": "switchboard",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/embedding_endpoint.rs",
+          "line": 59,
+          "end_line": 59
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/configured_runtime_vectors.rs",
+      "source_line": 53,
+      "source_column": 9,
+      "source_end_line": 53,
+      "source_end_column": 74,
+      "mir_line_sha256": "2514eb1f0a1832f82ce356f94ce6c084ffc2ed634bf19553734554b6302340c9",
+      "target": "OpenAiReadyEmbeddingEndpoint::from_switchboard",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "openai_ready_embedding::{impl#0}::from_switchboard",
+      "compiler_def_id": "DefId(0:55481 ~ reliquary_memory[b862]::openai_ready_embedding::{impl#0}::from_switchboard)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "openai_ready_embedding::{impl#0}::from_switchboard",
+      "source_component": "public-consumers",
+      "target_component": "switchboard",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/openai_ready_embedding.rs",
+          "line": 33,
+          "end_line": 72
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/configured_runtime_vectors.rs",
+      "source_line": 53,
+      "source_column": 9,
+      "source_end_line": 55,
+      "source_end_column": 52,
+      "mir_line_sha256": "539062825e6c40997c8a313c00006ff8c05ac033e592eb172bc5a0610cc69a33",
+      "target": "OpenAiReadyEmbeddingEndpoint::with_batching",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "public-consumers",
+      "target_component": "switchboard",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/openai_ready_embedding.rs",
+          "line": 74,
+          "end_line": 87
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    }
+  ],
+  "contracts": [
+    "Construct insomnia main endpoint, embedding endpoint with configured batching, and Chronos endpoint in the existing order.",
+    "Attach metadata, entity enrichment, and optional ownership endpoints in their existing order and only when configured/present.",
+    "Preserve embedding probe query mode, one-item input, vector count, first-vector dimensions, and normalization.",
+    "Preserve public ConfiguredRuntime API signatures, facade report construction, error string mapping, and Cva/Phylactery offline file composition."
+  ],
+  "exit_criteria": [
+    "All 19 listed facade-to-provider/extractor capability calls move behind concrete runtime-owned operations.",
+    "Runtime operations accept ModelSwitchboard and scalar options; they do not reference ConfiguredRuntime, facade reports, or facade errors.",
+    "Refresh same-source compiler evidence; do not claim overall architecture acceptance from this child alone.",
+    "Root wires the dedicated runtime module in the configured runtime module map."
+  ],
+  "implementation_status": "implemented; same-source compiler post-capture pending root integration",
+  "post_implementation_source_sha256": {
+    "src/facade/configured_runtime_insomnia.rs": "76884ccb2e4049d9daf7f2f7f26351b57341c799f67a48a2aeea2ff142baa45a",
+    "src/facade/configured_runtime_vectors.rs": "b91f61978f4bc554b65f0cd3a33c6a1940f3f5a51a447b4916090816aadf3dbd",
+    "src/runtime_inference/configured_provider_operations.rs": "c2d56e96b8a69a1c68ad1f5da9029381dc6d83f8cbc195242278467f65a4d060"
+  },
+  "post_cut_witness_disposition": {
+    "pre_cut_witnesses": 19,
+    "facade_provider_or_extractor_calls_remaining_by_source_review": 0,
+    "verification": "source review after focused rustfmt; compiler evidence not refreshed because Cargo/source-graph capture is outside this bounded task",
+    "notes": "The 19 pre-cut compiler witness rows are retained verbatim above. Runtime operation module now owns provider endpoint preparation, extractor assembly, batching, and the probe embedding call; facade retains report assembly and archive file composition."
+  },
+  "historical_last_consumer_addendum": {
+    "source": "src/facade/configured_runtime_historical.rs",
+    "before_sha256": "659bbdeebdb6f2a510b4e18d3e6b98775ec0bd2eb44ef6bc1d5c348221a469a2",
+    "basis": "The private embedding_endpoint convenience method has this one remaining consumer. Migrate to the same concrete runtime provider operation before retiring the forwarder; preserve default batching16/concurrency1 and existing error text.",
+    "after_sha256": "1940b03cdc4f75a5477b7ad83d1d1db814f116246232d06225439cc6f500535e"
+  }
+}

@@ -1,11 +1,13 @@
 use crate::dream_duplicate_index::DuplicateIndex;
-use crate::dream_owner_duplicate::{finish_duplicate_publication, prepare_duplicate_pair};
+use crate::dream_owner_duplicate::{
+    DuplicateIndexSequence, DuplicateKeySequence, finish_duplicate_publication,
+};
 use crate::graph_store::GraphStore;
 use crate::memory_store::MemoryReadView;
 use crate::{
     DreamEvidenceSide, DreamPairClassification, DreamPairVerification, DreamPublicationError,
     DreamPublicationOutcome, DreamRelationDirection, DreamRelationKind, DreamVerificationPolicy,
-    DreamVerificationVerdict, GraphRelationChange, GraphRelationKind, GraphRelationOrigin, Memory,
+    DreamVerificationVerdict, GraphRelationChange, GraphRelationKind, GraphRelationOrigin,
     MemoryId,
 };
 use std::collections::HashSet;
@@ -16,7 +18,7 @@ pub(crate) use lifecycle::reconcile_phy_lifecycle;
 
 type RelationIdentity = (MemoryId, MemoryId, GraphRelationKind);
 
-pub(crate) fn prepare_dream_pair<R>(
+pub(crate) fn prepare_dream_pair(
     memories: &MemoryReadView<'_>,
     graph: &GraphStore,
     duplicate_index: &mut DuplicateIndex,
@@ -24,25 +26,21 @@ pub(crate) fn prepare_dream_pair<R>(
     verification: Option<&DreamPairVerification>,
     policy: DreamVerificationPolicy,
     expected_graph_version: u64,
-    source_time: &R,
-) -> Result<DreamPublicationPlan, DreamPublicationError>
-where
-    R: Fn(&Memory) -> Option<i64>,
-{
+) -> Result<DreamPublicationPlan, DreamPublicationError> {
     validate_classification(classification)?;
     if let Some(outcome) = verification_gate(classification, verification, policy)? {
         return Ok(DreamPublicationPlan::Complete(outcome));
     }
     if classification.relation == DreamRelationKind::DuplicateOf {
-        return prepare_duplicate_pair(
-            memories,
-            graph,
-            duplicate_index,
-            classification.a,
-            classification.b,
-            expected_graph_version,
-            source_time,
-        );
+        return Ok(DreamPublicationPlan::Duplicate(
+            DuplicateKeySequence::start(
+                graph,
+                duplicate_index,
+                classification.a,
+                classification.b,
+                expected_graph_version,
+            )?,
+        ));
     }
     let current_graph_version = graph.graph_version();
     if expected_graph_version != current_graph_version {
@@ -86,35 +84,44 @@ where
 
 pub(crate) enum DreamPublicationPlan {
     Complete(DreamPublicationOutcome),
+    Duplicate(DuplicateKeySequence),
     Changes {
         changes: Vec<GraphRelationChange>,
         duplicate: Option<DuplicatePublication>,
     },
 }
 
-pub(crate) struct DuplicatePublication {
-    pub(crate) next_index: DuplicateIndex,
-    pub(crate) authority_filtered: bool,
+pub(crate) use crate::dream_owner_duplicate::DuplicatePublication;
+
+pub(crate) enum DreamPublicationFinish {
+    Complete(DreamPublicationOutcome),
+    Rebuild {
+        sequence: DuplicateIndexSequence,
+        outcome: DreamPublicationOutcome,
+    },
 }
 
-pub(crate) fn finish_dream_pair<R>(
-    memories: &MemoryReadView<'_>,
+pub(crate) fn finish_dream_pair(
     graph: &GraphStore,
     duplicate_index: &mut DuplicateIndex,
     duplicate: Option<DuplicatePublication>,
     published: Vec<crate::GraphRelation>,
-    source_time: &R,
-) -> Result<DreamPublicationOutcome, DreamPublicationError>
-where
-    R: Fn(&Memory) -> Option<i64>,
-{
+) -> Result<DreamPublicationFinish, DreamPublicationError> {
     if let Some(duplicate) = duplicate {
-        finish_duplicate_publication(memories, graph, duplicate_index, duplicate, source_time)?;
-        Ok(DreamPublicationOutcome::Published(published))
+        let (sequence, outcome) =
+            finish_duplicate_publication(graph, duplicate_index, duplicate, published);
+        Ok(match sequence {
+            Some(sequence) => DreamPublicationFinish::Rebuild { sequence, outcome },
+            None => DreamPublicationFinish::Complete(outcome),
+        })
     } else if published.is_empty() {
-        Ok(DreamPublicationOutcome::NoChange)
+        Ok(DreamPublicationFinish::Complete(
+            DreamPublicationOutcome::NoChange,
+        ))
     } else {
-        Ok(DreamPublicationOutcome::Published(published))
+        Ok(DreamPublicationFinish::Complete(
+            DreamPublicationOutcome::Published(published),
+        ))
     }
 }
 

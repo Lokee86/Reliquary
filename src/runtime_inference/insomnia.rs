@@ -26,6 +26,7 @@ mod enrichment;
 mod error;
 #[path = "insomnia/evidence.rs"]
 mod evidence;
+pub(crate) use evidence::resolve_evidence_parts;
 #[path = "insomnia/extraction.rs"]
 mod extraction;
 #[path = "insomnia/input.rs"]
@@ -86,6 +87,7 @@ pub use progress::{
     DEFAULT_INSOMNIA_PROGRESS_INTERVAL_SECS, InsomniaProgressEvent, InsomniaProgressReporter,
     InsomniaSemanticStage,
 };
+pub(crate) use progress::{InsomniaSemanticProgress, InsomniaStageAcknowledgement};
 pub(crate) use worker::model::RuntimeInsomniaClaim;
 pub use worker::model::{
     DEFAULT_INSOMNIA_LEASE_NS, DEFAULT_INSOMNIA_MAX_ATTEMPTS, DEFAULT_INSOMNIA_POLL_NS,

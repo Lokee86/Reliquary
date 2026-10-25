@@ -51,6 +51,52 @@ pub(crate) struct HistoricalSettlementWriteAccess<'a> {
     container: &'a mut Container,
     freshness: &'a FreshnessStore,
 }
+
+impl super::ReliquaryOwner {
+    /// Construct the owner-bound read view used by historical Import policy.
+    pub(crate) fn historical_freshness_read_access(
+        &self,
+    ) -> super::historical_freshness_read::HistoricalFreshnessReadAccess<'_> {
+        super::historical_freshness_read::HistoricalFreshnessReadAccess::new(
+            &self.container,
+            &self.freshness,
+        )
+    }
+
+    /// Construct vector evidence access over the stores mounted by this REL.
+    pub(crate) fn historical_vector_read_access(
+        &self,
+    ) -> super::semantic_source::HistoricalVectorReadAccess<'_> {
+        super::semantic_source::HistoricalVectorReadAccess::new(
+            super::semantic_source::SemanticSourceReadParts {
+                container: &self.container,
+                archive: &self.archive,
+                freshness: &self.freshness,
+                generations: &self.vector_generations,
+                compatibility_profiles: &self.compatibility_profiles,
+                archive_vectors: &self.archive_vectors,
+                packed_vectors: &self.packed_vectors,
+            },
+            &self.memory_vectors,
+        )
+    }
+
+    /// Bind the historical settlement writer to this owner's physical session.
+    pub(crate) fn historical_settlement_write_access<'a>(
+        container: &'a mut Container,
+        freshness: &'a FreshnessStore,
+    ) -> HistoricalSettlementWriteAccess<'a> {
+        HistoricalSettlementWriteAccess::new(container, freshness)
+    }
+
+    /// Install a synced settlement publication into the durable Freshness owner.
+    pub(crate) fn install_historical_settlement(
+        &mut self,
+        publication: HistoricalSettlementPublicationResult,
+    ) -> FreshnessDueDispatcher {
+        publication.install(&mut self.freshness)
+    }
+}
 impl<'a> HistoricalSettlementWriteAccess<'a> {
     pub(crate) fn new(container: &'a mut Container, freshness: &'a FreshnessStore) -> Self {
         Self {

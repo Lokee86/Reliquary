@@ -13,6 +13,8 @@ mod historical;
 mod insomnia;
 #[path = "configured_runtime_insomnia_model.rs"]
 mod insomnia_model;
+#[path = "configured_provider_operations.rs"]
+mod provider_operations;
 #[path = "../facade/configured_runtime_vectors.rs"]
 mod vectors;
 #[path = "configured_runtime_vectors_model.rs"]

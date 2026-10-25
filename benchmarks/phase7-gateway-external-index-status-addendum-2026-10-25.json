@@ -1,0 +1,57 @@
+{
+  "schema": "phase7-child-scope-addendum.v1",
+  "date": "2026-10-25",
+  "child_ticket": "P7.1.12g-GATEWAY-EXTERNAL-INDEX-READ",
+  "status": "source-cut-implemented-awaiting-targeted-build-and-fresh-compiler-evidence",
+  "scope": {
+    "files": [
+      "src/runtime_inference/runtime_host_gateway_mutation_events.rs"
+    ],
+    "intent": "Move detached External Index status projection through the already registered external owner read contract; preserve snapshot contents and ordering."
+  },
+  "compiler_input": {
+    "calls_path": ".verification-tmp/phase7/closure-finish-default-20261025/calls.json",
+    "calls_sha256": "be6b772eaeb3aca52a5a1aee03559cbb68a1113f58f6913f319f0e735476d36c",
+    "provenance_path": ".verification-tmp/phase7/closure-finish-default-20261025/provenance.json",
+    "provenance_sha256": "d041a1bcde366a7cf67520caf3e43ba2d300207113ccbd96fb3ef9ed1de122dd",
+    "source_snapshot_sha256": "f42bccd6cc58eb4f095793300a48637222e2beb21980a642ff55a0e4a19f6303",
+    "source_manifest_sha256": "e64cc368801fb3491b8a9bd662a13032df1c09592ea1dfa1b7ca6133d637eb28"
+  },
+  "source_before": {
+    "src/runtime_inference/runtime_host_gateway_mutation_events.rs": "c993bfcdfbce0ec88026776c99f21f04a42a16ea2930f6a5a248ed817e3fb682"
+  },
+  "witnesses": [
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_mutation_events.rs",
+      "source_line": 48,
+      "source_column": 22,
+      "source_end_line": 48,
+      "source_end_column": 32,
+      "mir_line_sha256": "e2691db937fd723a8738c00a1f185570bfa53825709fa31eb5b10a9a3f71f68a",
+      "target": "SourceState::status",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "external_index::store::{impl#0}::status",
+      "compiler_def_id": "DefId(0:52149 ~ reliquary_memory[b862]::external_index::store::{impl#0}::status)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "external_index::store::{impl#0}::status",
+      "source_component": "runtime-gateway",
+      "target_component": "external-index-store",
+      "target_definitions": [
+        {
+          "path": "src/external_index/store.rs",
+          "line": 36,
+          "end_line": 46
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    }
+  ],
+  "preserving_behavior": "Move detached External Index status projection through the already registered external owner read contract; preserve snapshot contents and ordering.",
+  "parent": "P7.1.12",
+  "title": "P7.1.12g GATEWAY EXTERNAL INDEX READ exact runtime owner call witnesses",
+  "basis": "Exact compiler call witnesses from the historical checkpoint are bound to their source files by matching the checkpoint SHA-256 against current source bytes at registration. Historical compiler evidence is only a scope witness; fresh same-source evidence is still required after implementation. No new ticket or DAG edge is introduced.",
+  "source_after": {
+    "src/runtime_inference/runtime_host_gateway_mutation_events.rs": "c6aa3b37f95bf2b091b130b04d1c8797a693c5c7369026942475a8c518304edb"
+  }
+}

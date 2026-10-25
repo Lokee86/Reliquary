@@ -7,16 +7,7 @@ impl Cva {
     pub fn historical_completed_initial_dream_passes(
         &self,
     ) -> Result<BTreeMap<MemoryId, InitialDreamPass>, CvaError> {
-        if self.owner_uuid().is_none() {
-            return Err(CvaError::Freshness(
-                "historical Dream proof requires a durable REL owner".into(),
-            ));
-        }
-        crate::owner_lifecycle::dream_replay::retained_completed_passes(
-            &self.container,
-            &self.archive,
-            &self.memories,
-        )
+        self.runtime_historical_completed_initial_dream_passes()
     }
 
     /// Uses Dream's existing representative authority on the pinned completed
@@ -26,14 +17,6 @@ impl Cva {
         source_id: MemoryId,
         roots: &std::collections::BTreeSet<MemoryId>,
     ) -> Result<BTreeMap<MemoryId, MemoryId>, CvaError> {
-        crate::history::dream_representative::historical_dream_representatives(
-            &crate::owner_lifecycle::HistoryReadAccess::new(&self.container),
-            &self.archive,
-            &self.memories,
-            &self.dream_freshness,
-            &self.graph_relations(),
-            source_id,
-            roots,
-        )
+        self.runtime_historical_dream_representatives(source_id, roots)
     }
 }

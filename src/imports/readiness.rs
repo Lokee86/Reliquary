@@ -48,6 +48,14 @@ pub(crate) fn missing_receipt_report(import_id: String) -> ImportReadinessReport
     }
 }
 
+/// Construct the Perception-owned live readiness view at the Import policy
+/// boundary, where its bounded Memory and resolution inputs are assembled.
+pub(crate) fn perception_readiness(
+    owner: &crate::owner_lifecycle::ReliquaryOwner,
+) -> PerceptionReadiness<'_> {
+    PerceptionReadiness::new(&owner.memories, &owner.entity_resolutions)
+}
+
 /// Finish the read-only report after exact owner readiness checks. Vector
 /// availability does not create work and never certifies complete coverage.
 pub(crate) fn readiness_report(

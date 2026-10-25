@@ -34,7 +34,7 @@ WRITE = re.compile(
     r"\.cva\s*\.\s*(?:set_|publish_|commit_|mark_|reconcile_|resolve_|"
     r"correlate_|register_|create_|replace_|rename_|mutate_|validate_|"
     r"checkpoint_|ingest_|accept_|claim_|renew_|freeze_|fail_|finalize_|"
-    r"complete_|remove_|upsert_|retire_|append_|external_install|record_accepted_memory_use)[a-z_]*\s*\("
+    r"complete_|remove_|upsert_|retire_|append_|external_install|(?:runtime_)?record_accepted_memory_use)[a-z_]*\s*\("
 )
 
 def masked(source):
@@ -126,7 +126,7 @@ def check_gateway(source):
                 ".selected_ids.extend(",
                 "self.with_rel_mutation(",
                 "RelMutationFamily::AcceptedMemoryUse",
-                ".record_accepted_memory_use(",
+                ".runtime_record_accepted_memory_use(",
             )
             if not all(step in route_body for step in steps):
                 errors.append(f"{name}: missing confirmed coordinated accepted-use route")
@@ -501,7 +501,8 @@ def self_test():
         expect(not check_gateway(preparation))
         expect(check_gateway(preparation.replace("self.with_agentic_read_delivery();", "")))
         expect(check_gateway(preparation.replace("staged.commit();", "runtime.cva.record_accepted_memory_use(); staged.commit();")))
-    completion = "impl GatewayRuntime { pub fn complete_agentic_memory_delivery(&self) { self.authorize_agentic_completion(); controller.selected_ids.extend(); self.with_rel_mutation(RelMutationFamily::AcceptedMemoryUse, |runtime| { runtime.cva.record_accepted_memory_use(); }); } }"
+        expect(check_gateway(preparation.replace("staged.commit();", "runtime.cva.runtime_record_accepted_memory_use(); staged.commit();")))
+    completion = "impl GatewayRuntime { pub fn complete_agentic_memory_delivery(&self) { self.authorize_agentic_completion(); controller.selected_ids.extend(); self.with_rel_mutation(RelMutationFamily::AcceptedMemoryUse, |runtime| { runtime.cva.runtime_record_accepted_memory_use(); }); } }"
     expect(not check_gateway(completion))
     for removed in (
         "self.authorize_agentic_completion();", "controller.selected_ids.extend();",
@@ -514,6 +515,7 @@ def self_test():
     )))
     expect(not check_gateway("impl GatewayRuntime { pub fn conversation_echo_events_for(&self) { self.with_rel(); } }"))
     expect(check_gateway("impl GatewayRuntime { pub fn conversation_echo_events_for(&self) { runtime.cva.record_accepted_memory_use(); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn conversation_echo_events_for(&self) { runtime.cva.runtime_record_accepted_memory_use(); } }"))
     print(f"P4 coverage guard: {fixtures} negative/positive fixtures passed")
 
 def main():

@@ -1,6 +1,67 @@
 use crate::MemoryId;
 use std::collections::{BTreeMap, BTreeSet};
 
+/// Plain import-produced coordinates for rebasing accepted Dream journal data.
+/// This is a value protocol: Dream applies the supplied finite mapping without
+/// receiving an Import callback or access to Import state.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct DreamReplayCoordinates {
+    pub(crate) turns: BTreeMap<u64, u64>,
+    pub(crate) graph: BTreeMap<u64, u64>,
+    pub(crate) memory_graph: BTreeMap<u64, u64>,
+    pub(crate) community: BTreeMap<u64, u64>,
+    pub(crate) neutral: bool,
+}
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct DreamReplayCoordinateRequests {
+    pub(crate) turns: BTreeSet<u64>,
+    pub(crate) graph: BTreeSet<u64>,
+    pub(crate) proofs: Vec<crate::FreshnessEventProof>,
+}
+
+impl DreamReplayCoordinates {
+    fn map(map: &BTreeMap<u64, u64>, value: u64, neutral: bool) -> Result<u64, String> {
+        if neutral {
+            Ok(0)
+        } else {
+            map.get(&value)
+                .copied()
+                .ok_or_else(|| "Dream replay coordinate has no destination mapping".into())
+        }
+    }
+
+    fn turn(&self, value: u64) -> Result<u64, String> {
+        Self::map(&self.turns, value, self.neutral)
+    }
+
+    fn graph(&self, value: u64) -> Result<u64, String> {
+        Self::map(&self.graph, value, self.neutral)
+    }
+
+    fn proof(
+        &self,
+        mut proof: crate::FreshnessEventProof,
+    ) -> Result<crate::FreshnessEventProof, String> {
+        if self.neutral {
+            proof.graph_version = 0;
+            proof.community_generation = proof.community_generation.map(|_| 0);
+            proof.community_graph_version = proof.community_graph_version.map(|_| 0);
+            return Ok(proof);
+        }
+        proof.graph_version = Self::map(&self.memory_graph, proof.graph_version, false)?;
+        proof.community_generation = proof
+            .community_generation
+            .map(|value| Self::map(&self.community, value, false))
+            .transpose()?;
+        proof.community_graph_version = proof
+            .community_graph_version
+            .map(|value| Self::map(&self.memory_graph, value, false))
+            .transpose()?;
+        Ok(proof)
+    }
+}
+
 const MAGIC: &[u8; 8] = b"CVDREAM1";
 
 #[cfg(test)]
@@ -82,6 +143,28 @@ impl DreamFreshnessJournal {
         Ok(Some(entry))
     }
 
+    pub(crate) fn replay_coordinate_requests(
+        &self,
+        payload: &[u8],
+    ) -> Result<Option<DreamReplayCoordinateRequests>, String> {
+        let Some(entry) = self.replay_entry(payload)? else {
+            return Ok(None);
+        };
+        let mut requests = DreamReplayCoordinateRequests::default();
+        match entry {
+            DreamEntry::Accept(_, cut) | DreamEntry::Intent(_, _, cut, _) => {
+                requests.turns.insert(cut);
+            }
+            DreamEntry::AcceptGraph(_, cut, version, proof) => {
+                requests.turns.insert(cut);
+                requests.graph.insert(version);
+                requests.proofs.push(proof);
+            }
+            _ => {}
+        }
+        Ok(Some(requests))
+    }
+
     /// Re-encode caller-mapped coordinates through local retry and journal rules.
     pub(crate) fn encode_replay_entry(&self, entry: DreamEntry) -> Result<Vec<u8>, String> {
         let result = match entry {
@@ -117,35 +200,32 @@ impl DreamFreshnessJournal {
     pub(crate) fn rebase_import_payload(&self, payload: &[u8]) -> Result<Vec<u8>, String> {
         self.rebase_replay_payload(
             payload,
-            |_| Ok(0),
-            |_| Ok(0),
-            |mut proof| {
-                proof.graph_version = 0;
-                proof.community_generation = proof.community_generation.map(|_| 0);
-                proof.community_graph_version = proof.community_graph_version.map(|_| 0);
-                Ok(proof)
+            &DreamReplayCoordinates {
+                neutral: true,
+                ..Default::default()
             },
         )
     }
 
-    /// Rebase accepted journal coordinates with scalar-only mappings.
+    /// Rebase accepted journal coordinates from an Import-produced value plan.
     pub(crate) fn rebase_replay_payload(
         &self,
         payload: &[u8],
-        mut turn: impl FnMut(u64) -> Result<u64, String>,
-        mut graph: impl FnMut(u64) -> Result<u64, String>,
-        mut proof: impl FnMut(crate::FreshnessEventProof) -> Result<crate::FreshnessEventProof, String>,
+        coordinates: &DreamReplayCoordinates,
     ) -> Result<Vec<u8>, String> {
         let Some(entry) = self.replay_entry(payload)? else {
             return Ok(Vec::new());
         };
         let mapped = match entry {
-            DreamEntry::Accept(id, cut) => DreamEntry::Accept(id, turn(cut)?),
-            DreamEntry::AcceptGraph(id, cut, version, pinned) => {
-                DreamEntry::AcceptGraph(id, turn(cut)?, graph(version)?, proof(pinned)?)
-            }
+            DreamEntry::Accept(id, cut) => DreamEntry::Accept(id, coordinates.turn(cut)?),
+            DreamEntry::AcceptGraph(id, cut, version, pinned) => DreamEntry::AcceptGraph(
+                id,
+                coordinates.turn(cut)?,
+                coordinates.graph(version)?,
+                coordinates.proof(pinned)?,
+            ),
             DreamEntry::Intent(id, mutation, cut, admitted) => {
-                DreamEntry::Intent(id, mutation, turn(cut)?, admitted)
+                DreamEntry::Intent(id, mutation, coordinates.turn(cut)?, admitted)
             }
             other => other,
         };

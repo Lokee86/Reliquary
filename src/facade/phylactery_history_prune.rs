@@ -26,17 +26,6 @@ impl Phylactery {
         )
     }
     pub(crate) fn validate_prune_evidence(&mut self) -> Result<(), PhylacteryError> {
-        crate::history::validate_phylactery_prune_evidence(
-            &self.owner_maintenance,
-            &crate::owner_lifecycle::HistorySource::new(&self.container)
-                .map_err(|error| PhylacteryError::Repack(error.to_string()))?,
-            &self.graph,
-            &self.memories,
-            &self.entities,
-            &self.relationships,
-            &self.compatibility_profiles,
-            &self.memory_vectors,
-            &self.packed_vectors,
-        )
+        self.runtime_validate_prune_evidence()
     }
 }

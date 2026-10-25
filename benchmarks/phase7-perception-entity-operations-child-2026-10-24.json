@@ -1,7 +1,7 @@
 {
   "schema": "phase7-perception-entity-operations-child.v1",
   "status": "source-cut-implemented-awaiting-verification",
-  "parent_ticket": "P7.1.14 — Public facade→lower callback cycles",
+  "parent_ticket": "P7.1.14 \u00e2\u20ac\u201d Public facade\u00e2\u2020\u2019lower callback cycles",
   "child": "P7.1.14a-PERCEPTION-ENTITY-OPERATIONS",
   "registered_at": "2026-10-24",
   "denominator": {
@@ -171,7 +171,7 @@
       "src/runtime_inference/perception_entity_merge.rs"
     ],
     "remaining_unsuppressed_facade_sources": [
-      "src/facade/cva_entity_resolver.rs and src/facade/cva_entity_resolution_engine.rs: public resolver/engine API constructors and accessors remain façade bindings to Perception core types; compiler implementation-call closure for indirect endpoint behavior remains A7 proof work."
+      "src/facade/cva_entity_resolver.rs and src/facade/cva_entity_resolution_engine.rs: public resolver/engine API constructors and accessors remain fa\u00c3\u00a7ade bindings to Perception core types; compiler implementation-call closure for indirect endpoint behavior remains A7 proof work."
     ],
     "compiler_call_delta": "All seven exact matched facade-to-Perception/Container endpoints were relocated into concrete runtime operations. The remaining directly visible Perception bindings are public resolver/engine constructors and model accessors; they expose no store or Container capability. No post-cut compiler call inventory exists yet.",
     "cargo": "Not run by this lane; root owns compile/verification."
@@ -193,5 +193,19 @@
     "src/runtime_inference/perception_entity_resolution.rs": "6061de3924ac72243c8d9e98bab95511db8cf46677ee21e1775bdaa1e4dc55fc",
     "src/runtime_inference/perception_entity_reconciliation.rs": "580f8e7ce0aeee927201c91e0f913bdf9fe1bb1467c35497c01c3349a946d63e",
     "src/runtime_inference/perception_entity_merge.rs": "0060f8a0295cdc6b1e0a6b34252337282bc261cb642c52079da5ae97c5d29141"
-  }
+  },
+  "scope_addenda": [
+    {
+      "id": "P7.1.14a-PERCEPTION-ENTITY-OPERATIONS",
+      "receipt": "benchmarks/phase7-perception-entity-merge-admission-addendum-2026-10-25.json",
+      "status": "implemented; proof pending",
+      "witness_count": 2,
+      "compiler_evidence_sha256": "be6b772eaeb3aca52a5a1aee03559cbb68a1113f58f6913f319f0e735476d36c",
+      "post_implementation_source_sha256": {
+        "src/perception/entity_merge.rs": "809d8400306ea043cc41e257e97b9fccf9c45d4e2864bc232dcd9f8ec8d47654",
+        "src/runtime_inference/perception_entity_merge.rs": "2b82a3ca24155ea4d691056e6af14e1b87c31a2b1484cbed64c84c46b48ba6bb",
+        "src/owner_lifecycle/perception_publication_merge.rs": "15a5e1f58858082bc7a3c6db13a827cf44f0cc459710ea24cb7f6e3f77329b55"
+      }
+    }
+  ]
 }

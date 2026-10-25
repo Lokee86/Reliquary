@@ -49,7 +49,7 @@ impl GatewayRuntime {
         with_operation(self, &authority, |runtime| {
             let prior = runtime
                 .cva
-                .echo_events(conversation_id, &generation.generation_id);
+                .runtime_echo_events(conversation_id, &generation.generation_id);
             validate_generation_tool_source(&prior)?;
             if let Some(previous) = prior.iter().find(|e| e.sequence == event.sequence) {
                 if previous != &event {

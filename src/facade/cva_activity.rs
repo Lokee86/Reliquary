@@ -7,7 +7,7 @@ impl Cva {
         &self,
         version: u64,
     ) -> Result<u64, crate::ArchiveError> {
-        self.archive.activity_cut_at_archive_version(version)
+        self.runtime_activity_cut_at_archive_version(version)
     }
 
     /// Count of first accepted logical user/assistant identities in this REL.
@@ -17,7 +17,6 @@ impl Cva {
 
     /// The first REL-local activity position, or None for missing/noneligible turns.
     pub fn activity_position_for_turn(&self, conversation_id: &str, node_id: &str) -> Option<u64> {
-        self.archive
-            .activity_position_for_turn(conversation_id, node_id)
+        self.runtime_activity_position_for_turn(conversation_id, node_id)
     }
 }

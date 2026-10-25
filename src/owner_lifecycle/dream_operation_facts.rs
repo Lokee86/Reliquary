@@ -67,3 +67,14 @@ macro_rules! dream_facts {
 }
 dream_facts!(ReliquaryOwner);
 dream_facts!(PhylacteryOwner);
+
+impl PhylacteryOwner {
+    pub(crate) fn dream_lifecycle_write_parts(
+        &mut self,
+    ) -> (crate::memory_store::MemoryOwnerWriter<'_>, &GraphStore) {
+        (
+            crate::memory_store::MemoryOwnerWriter::new(&mut self.memories, &mut self.container),
+            &self.graph,
+        )
+    }
+}

@@ -184,13 +184,13 @@ impl GatewayRuntime {
             );
             // Node-derived summaries omit metadata-only conversations.
             ids.extend(
-                cva.archive()
+                cva.runtime_archive()
                     .conversations
                     .iter()
                     .map(|m| m.conversation_id.clone()),
             );
             ids.extend(
-                cva.branches()
+                cva.runtime_branches()
                     .into_iter()
                     .map(|branch| branch.conversation_id),
             );
@@ -754,7 +754,7 @@ fn checkpoint_from_journal(
     // doing that here would read unbounded ahead text while holding source locks.
     let record = runtime
         .cva
-        .interaction_stream_record(&generation.generation_id)
+        .runtime_interaction_stream_record(&generation.generation_id)
         .ok_or_else(|| operation("durable checkpoint has no interaction stream record"))?;
     if record.session_id != conversation_id.as_str()
         || record.message_id != generation.generation_id

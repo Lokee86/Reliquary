@@ -1,8 +1,8 @@
 {
   "version": 2,
   "status": "mapped-current-production; explicit excluded/test and unresolved historical paths retained",
-  "as_of": "2026-10-23",
-  "source_checkpoint": "7c74b51 plus uncommitted Phase 7 compiler-witnessed source cuts; verification pending",
+  "as_of": "2026-10-24",
+  "source_checkpoint": "cc9d2f4 plus integrated postcheckpoint closure source; same-source compiler receipt identifies exact current bytes",
   "source_basis": [
     "tools/pitlord/owner-boundaries.json owner_files and module_components",
     "scripts/check_owner_boundaries.py module_tree with recorded cfg facts",
@@ -584,6 +584,7 @@
         "src/owner_lifecycle/insomnia_import_replay.rs",
         "src/owner_lifecycle/insomnia_replay.rs",
         "src/owner_lifecycle/insomnia_runtime.rs",
+        "src/owner_lifecycle/insomnia_work_operations.rs",
         "src/owner_lifecycle/memory_frames.rs",
         "src/owner_lifecycle/memory_lifecycle.rs",
         "src/owner_lifecycle/memory_ordered_replay.rs",
@@ -1153,6 +1154,7 @@
         "src/imports/historical_manifest.rs",
         "src/imports/historical_manifest_model.rs",
         "src/imports/historical_manifest_plan.rs",
+        "src/imports/historical_owner_operations.rs",
         "src/imports/historical_prepare.rs",
         "src/imports/historical_reconstruction.rs",
         "src/imports/historical_reconstruction_model.rs",
@@ -1220,6 +1222,7 @@
       "current_production_source_files": [
         "src/facade/interaction_runtime_project_file.rs",
         "src/runtime_inference/agentic_memory_grading.rs",
+        "src/runtime_inference/configured_provider_operations.rs",
         "src/runtime_inference/configured_runtime.rs",
         "src/runtime_inference/configured_runtime_decision.rs",
         "src/runtime_inference/configured_runtime_insomnia_model.rs",
@@ -1227,6 +1230,8 @@
         "src/runtime_inference/dream_cooldown.rs",
         "src/runtime_inference/dream_publication_execution.rs",
         "src/runtime_inference/freshness_operations.rs",
+        "src/runtime_inference/historical_embedding_adapter.rs",
+        "src/runtime_inference/historical_import_execution.rs",
         "src/runtime_inference/insomnia_runtime_execution.rs",
         "src/runtime_inference/insomnia_worker_runtime.rs",
         "src/runtime_inference/interaction_background.rs",
@@ -1240,6 +1245,9 @@
         "src/runtime_inference/interaction_stream_persistence.rs",
         "src/runtime_inference/knowledge_mutation_execution.rs",
         "src/runtime_inference/multiplexing_journal.rs",
+        "src/runtime_inference/offline_community_naming.rs",
+        "src/runtime_inference/offline_dream_frontier.rs",
+        "src/runtime_inference/offline_dream_processing.rs",
         "src/runtime_inference/openai_codex_device_auth/refresh.rs",
         "src/runtime_inference/perception_entity_merge.rs",
         "src/runtime_inference/perception_entity_reconciliation.rs",
@@ -3371,8 +3379,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "owner-boundaries.json module_components `container` via cfg(test)-stripped module_tree",
       "certainty": "explicit-module-root",
-      "source_sha256": "4b369adcf3b4ac3fecd0c929761db45bf7aa34abf0867338032e8dea8917ccf6",
-      "compiler_inventory_match": true,
+      "source_sha256": "62a3f03055faff7dab1840082cb04279bf59c629639a3b33eb6c3bc15f3bffd6",
+      "compiler_inventory_match": false,
       "compiler_item_count": 34,
       "symbol_spans_sha256": "b8d535d7cdcf72d98f02af7c2a0eb4f52b378151d310fadbb4a83090efe1af4b"
     },
@@ -3900,7 +3908,7 @@
       "evidence": "External Sources provider, search, preparation and evidence policy; public owner extensions were physically extracted to facade.",
       "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation",
-      "source_sha256": "ec607b9eb3fd9a9b5ad275dfdef07ef633bcd265be21f97f88fc06dde6e9ab13",
+      "source_sha256": "483b300f628229128264add1d2df765807b37e303bee06d21cecae85f6ff6b48",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -4019,8 +4027,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "4871b2bcc34474e934280777348c92d519483ecf11a695e7b8203f55814abf74",
-      "compiler_inventory_match": true,
+      "source_sha256": "39c19d6e4e83c2427ce5dc85c8e7d06d40275a52eb70ab9e2610c7b26180b6ad",
+      "compiler_inventory_match": false,
       "compiler_item_count": 116,
       "symbol_spans_sha256": "3af463626b1c02d9290cf92b622b2288b0faeaa13fb4abae5927b48a26a99b7d"
     },
@@ -4057,8 +4065,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "5398670707afb4ff95d976b72839699d210549dcdc82ff3e3bb9edf04fcd6667",
-      "compiler_inventory_match": true,
+      "source_sha256": "f133aaef86cb4dc4d9b29a4034adc80ee63626f97ec5ad7e0534c547c5e66868",
+      "compiler_inventory_match": false,
       "compiler_item_count": 6,
       "symbol_spans_sha256": "6ce8ab838522b4741f6ebde4dd952be2695c061d675e868fb4ec25ec8f8234af"
     },
@@ -4083,8 +4091,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "b4cc03e6194d1b894f6bb77bc86a9b75f50a05af3c512e56385884785fa9d92b",
-      "compiler_inventory_match": true,
+      "source_sha256": "4ec468c72fe6d344c7326de05013f3ebc881a4d3c29f2b51e9844558de2b6603",
+      "compiler_inventory_match": false,
       "compiler_item_count": 12,
       "symbol_spans_sha256": "672e29b79bde60d292b8ed0f098bbb74ed184d89a64f1df1c1a5af121ad647d8"
     },
@@ -4148,8 +4156,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "a2bcde414988ad8e53aa411f1c8231346a7fc0fcbd1629afa1d410df8b4eba5d",
-      "compiler_inventory_match": true,
+      "source_sha256": "5434e772d421f10325675f2fb48caeef6983e481afbcf7574c02ae3a7219e8be",
+      "compiler_inventory_match": false,
       "compiler_item_count": 6,
       "symbol_spans_sha256": "2d3b031dd8af01c58462d1122acfb80be99f2661eafa26673a17387842ec5f9e"
     },
@@ -4183,7 +4191,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "701a06a1839c7c804ab7b4b09ea8504f11b392875617649034c51cd99021f022",
+      "source_sha256": "2ea4094549c8db29a8d13e4a57c6a0d4fbaf16756b557863fa9535871d05d2d7",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -4195,7 +4203,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "0d190e5f9f9a1a0cd0fdbff6c6beb883d749bde4f248495e99a961c7dd804717",
+      "source_sha256": "4e99981c1431b2225b37f290d4df6519e990080c75636d455ebf24f56a0587ff",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -4207,7 +4215,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "7ae1a8cf873219b37e5b6a8c440326de82af85cad95738e2623c364f5924c8f6",
+      "source_sha256": "889d43a65729430652927a202e4ffbde87bc47f4c37ecee8ded99056405ae8c4",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -4219,7 +4227,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "040252e23cfc05d6b94fdb0f1b4d2e9a78409a91af2db9832fa8f45a5bdab339",
+      "source_sha256": "4ab4a90e18b16ec56edc70bfa8dc8145a3a9ada0116bb723afef69c462b44e2c",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -4231,7 +4239,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "6e03de6453c287ccf9e4bce497ad678307be1e99afb12290f0287248ff892c3d",
+      "source_sha256": "91c2ff0064a176900862daf298e8eccc15789523eb7e68f4ad7f2a110674bfce",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -4243,7 +4251,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "9a4321ecf02ea5d046f0925bdbd0c104ad9f0bd787dc268da1bf78098b310f20",
+      "source_sha256": "939adecae92aff1b9188fd3ece0be5cc550f35aa02f5ea383f5a9e58a80d3226",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -4255,7 +4263,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "e758b447fac1daf7d2b9fc8fd0bf66bd8060488bdbbd95ed8d2c0e1ed0372e1c",
+      "source_sha256": "eaec1b31200a7e6b06bec334a07ed970815788596847e401b10dfdfae569da16",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -4267,7 +4275,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "395e32eef5fbd825c41d998d282778e9fa1861acad9ea3514985f5d41a95ff9c",
+      "source_sha256": "003724892fe7bffef8d3e4f5dd85a253b6b63c0921fa6e31c858efae0b912d2e",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -4279,7 +4287,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "c441524f2d2bf523dd6f8a79ce8f59de1624a6513a022ac7df1530654da75f76",
+      "source_sha256": "61c7fc6681d257b9b08ed4593ea5478efc1f1c045b11e7d8fe54032ee0f09880",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -4291,7 +4299,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "a05ef47eb4dfa5281e4a3609feede87d8e8e99e0896990daaba278f7078bac5d",
+      "source_sha256": "107e36c5395a14512fcf1d9d5aa612b2e58633f9d718c59c6e80b56daaf33e7c",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -4303,7 +4311,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "6e22004cb95768bf47bb0b10857cfbc7b7647cbbfad27cacb7e75954a9fc71c4",
+      "source_sha256": "f70d3d180078d8ae7d04e1cb7fa1ec1efcbe3d3049928e518b9b9894bcee416c",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -4315,7 +4323,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "1d8f935e264749475ef4cf566071c512953884fec6390410b4f44785d551bda4",
+      "source_sha256": "ccf0e86c0b2b33eb325b49d9c396b80a3b0da280736d94d2fa9aaa7b75e262ba",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -4327,7 +4335,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "e5f4bb221794bfd883faa4ceab8c11078246875cbe8a11a55e49dafafe96f7b0",
+      "source_sha256": "87698dd98edab39d6155c91e5b034903011be867002d3a3c87bc9909d8dc0ccc",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -4353,8 +4361,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "bfab40c6f0050eac39ccc46d5bfc32e176107d8ae630fd0e8d57c40ccf3f0fcf",
-      "compiler_inventory_match": true,
+      "source_sha256": "4e4992cc262e1ac45482bd6629640a4b499378ab5aa25469edbf30fec718c2db",
+      "compiler_inventory_match": false,
       "compiler_item_count": 5,
       "symbol_spans_sha256": "d43d8978fafc43e8d5dda041766955795eebdf461b4b635e3a9aea267d66fe00"
     },
@@ -4366,8 +4374,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "cdd26d2cf9c4f779a221135d063960efde69ef110db5154c0fdadaf313b0cbee",
-      "compiler_inventory_match": true,
+      "source_sha256": "41fb8da0ec4e780364043e961adfacd6251a596e77ae80e9ddeeda1adb818ae2",
+      "compiler_inventory_match": false,
       "compiler_item_count": 44,
       "symbol_spans_sha256": "4ac42ebc02e5bda5eba914b8cfe08824de2e8d3a84d42ee8e52005c7c570cb50"
     },
@@ -4477,8 +4485,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "1a6a54eae4a165878b9904cb40ba5818a5c184785f27c77da86cdc14c7b969d5",
-      "compiler_inventory_match": true,
+      "source_sha256": "72c6255da9fe4b36f34f1f4a6309404a821aa4aec496ff07a4d31ef63d38f474",
+      "compiler_inventory_match": false,
       "compiler_item_count": 4,
       "symbol_spans_sha256": "acd21adea59e956f2304b8e84b995cdb470362dc977343665a42969eaf4ae9ce"
     },
@@ -4490,8 +4498,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "63d0d852e6a46c48bac552d0c2b6523a81b918e9296f99e977e168db31d8e8c6",
-      "compiler_inventory_match": true,
+      "source_sha256": "cc71ddd14a7ed5cf27007fe6996dad7726de58101e9c8d4726b2554954fd2e2f",
+      "compiler_inventory_match": false,
       "compiler_item_count": 3,
       "symbol_spans_sha256": "94106a07a8dccd390f0fd239bb9eb91b31616c1935e36bf38ab71e3687e900a0"
     },
@@ -4516,8 +4524,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "7cb9d51a00e97103918f53452baeb24072b145b0cbd4756c070e1bd1ba1f985e",
-      "compiler_inventory_match": true,
+      "source_sha256": "6a7457569fad26130200bb16f6b6850fc416c9266e48e6148f8be8bd5dc33870",
+      "compiler_inventory_match": false,
       "compiler_item_count": 18,
       "symbol_spans_sha256": "edf832a4c28fa1bf03258bc00b0d90e198fcc60d17a4ecf3c85a155b300c6dbd"
     },
@@ -4541,8 +4549,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "0a254b6480a2fb79f6d6fde4fb223db44626427d973d0e128e53e8175e23cdc8",
-      "compiler_inventory_match": true,
+      "source_sha256": "b64954d8f6a0368b3b21d5921d6fec674ccf158b0b2f7be37981415458281952",
+      "compiler_inventory_match": false,
       "compiler_item_count": 5,
       "symbol_spans_sha256": "75278e80e629193b4ade37f1a5b785a545886bf86e280b2fa97054d3192d205a"
     },
@@ -4554,8 +4562,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "bc96b7474a52e890191fdfc06e28465abafdaf5396b618338bb452cb83f43ab6",
-      "compiler_inventory_match": true,
+      "source_sha256": "9a73002ecf9f2b8fbd1941fce3ebcd09ec09c62ccaf4c3ecc7c87a0fd47acccc",
+      "compiler_inventory_match": false,
       "compiler_item_count": 8,
       "symbol_spans_sha256": "cb13772038cb02b18a1bbf033eefd29e37d4473d5bef6648b07415e8c35b5695"
     },
@@ -4580,8 +4588,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "23b6f5bba9a71181032aa2e152753cc83c85247a04f4f27ff0e3237f79760983",
-      "compiler_inventory_match": true,
+      "source_sha256": "ff692e682eba315b9ce73da3216c62d4b706c4aba247334f3569109de3187a80",
+      "compiler_inventory_match": false,
       "compiler_item_count": 10,
       "symbol_spans_sha256": "1581ca04579f27de476c9c06405853024ca49864b69259c74537a4e3d007c852"
     },
@@ -4593,8 +4601,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "e5afd641c584ff1d2c09e5497a45b1a4b0ac22cd7201c189f47715db0a2b72f2",
-      "compiler_inventory_match": true,
+      "source_sha256": "d69867002ed0ba1b365c5c1f4dfa52e0f2c98c1e556c93a645b3ed7daf02a0aa",
+      "compiler_inventory_match": false,
       "compiler_item_count": 19,
       "symbol_spans_sha256": "f4b9a8b57b6d7f6819aff40e596a3c08117f93601eb60aa67e6e30bb88b4a4f7"
     },
@@ -4616,8 +4624,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "101d4f0045427c57db2b0efc41ac4be11a2e079de51ac7f7c55076b77667992d",
-      "compiler_inventory_match": true,
+      "source_sha256": "fdc79c1b5898539299e391d37778603c7c92feb284931fe1c68513ead1862e28",
+      "compiler_inventory_match": false,
       "compiler_item_count": 10,
       "symbol_spans_sha256": "76f8144a57deb458165e9e042bbad8ad1f4366b234c97edefd152881a1fb7eb6"
     },
@@ -4829,8 +4837,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "39c74bab1d3e58981d6dd43f4d748bb6882f119fb94ad5dd60a48dcb3ce7a452",
-      "compiler_inventory_match": true,
+      "source_sha256": "3e7756b3deaa83d0d28a45e3ca423a488a7ba1f54760ec128bf24bf10e2eee47",
+      "compiler_inventory_match": false,
       "compiler_item_count": 20,
       "symbol_spans_sha256": "be4b6dd57029806ba20efa4d8f5bdca1307da69c72539ff6691627dd18a93e0e"
     },
@@ -4917,8 +4925,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "d1100b06f7aa6298e65d44329bee7cc5c0340635d1aa492004df5a84aa187fbf",
-      "compiler_inventory_match": true,
+      "source_sha256": "10f24b13de5d24b827ffecb15ccdb9c5be7601e3fe2ace40e35865389ce5e57f",
+      "compiler_inventory_match": false,
       "compiler_item_count": 19,
       "symbol_spans_sha256": "e527b0bb05998866913665f7ced3083b42d8c3e98f4b3900b9f5fe69776ff75a"
     },
@@ -4953,7 +4961,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "adf97066d0e5b5ade8b77a816bda17986ce212a701f50be540c6ae96f6179cf4",
+      "source_sha256": "b7a6b62c72786bc155688cfdd2992f51f4f60858c36e4bb2cf5e33b12215463e",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -5008,7 +5016,7 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "97e8f0561cf33db184a4e2af66932aca523e1505e33e01b7a3732da2bb8401f1",
+      "source_sha256": "fcd5807899e137263fb37637f7f874a0e7a8588af01c09b695fa6aa1d711d9cb",
       "compiler_inventory_match": true,
       "compiler_item_count": 7,
       "symbol_spans_sha256": "11aaa9e3df7a57aff4d0eb6ffafba51e5877351c98b9ea96391a812b693c788f"
@@ -5031,7 +5039,7 @@
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation",
-      "source_sha256": "80c1ce50071cf04efd02552b3c3b8d3b2cdc3ff8ecd2120aeac043bbd8592114",
+      "source_sha256": "d49f03b53d86743b979b132389a5f77061a2d6a7dd047d213640900061f08417",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -5044,8 +5052,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "91ccf3d112b25344795aa3b3d0453024ad568a7e409eb83be915693306258ee0",
-      "compiler_inventory_match": true,
+      "source_sha256": "90db3baaf8d3f0c21b74df5e53cf912030e5fd08bd11ef8385dab7acce22f099",
+      "compiler_inventory_match": false,
       "compiler_item_count": 35,
       "symbol_spans_sha256": "32ab368dba6b5bf7c82e717c814bfdd84a7b8cd90425681700265f7933f45e6a"
     },
@@ -5080,8 +5088,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "345eb2ec0573dbdca9840c64d366a19781c90ebb819ff0a39904ed43c0f1a0ee",
-      "compiler_inventory_match": true,
+      "source_sha256": "e27e87ca4093ba864a9734cc08c1554860f3b218962e97992beee8bb21fe272d",
+      "compiler_inventory_match": false,
       "compiler_item_count": 14,
       "symbol_spans_sha256": "56617326e7602ec8b119ed3e774dcaf201ce7e839080e3c304ef40ce4bf2aa80"
     },
@@ -5093,7 +5101,7 @@
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation",
-      "source_sha256": "dcb82bf952fc6074ab7c4c459c7045215a096335dbc85816a31ffcae86f3d396",
+      "source_sha256": "681035cb1e9cc4effa4f6dcb534d6cb2d1eff8cc5d7da1a587f4b551adffee05",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -5125,7 +5133,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "dcc704a466cc20301696bd4fefb8062ba9ea3fb75dab7e77fd889e55770f11e5",
+      "source_sha256": "bca5280e17e02171d6031cfeb41fff8c0690e8c7155e250b1d0744f9f21f96c1",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -5150,8 +5158,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation, Phylactery extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation; Phylactery extension implementation",
-      "source_sha256": "5ec9726c609ad480af89a07ccb5cc2ec37b3eb54b5a74568237aa28eb90def40",
-      "compiler_inventory_match": true,
+      "source_sha256": "1e5c855237d62348688dd9dcd5415b9f56fe66e95419ff259a1ebaaf220edf59",
+      "compiler_inventory_match": false,
       "compiler_item_count": 7,
       "symbol_spans_sha256": "504c32ea60f0e849d6d9e76b2601ab9e7ec56aca010f025e6590f054857ecab4"
     },
@@ -5204,7 +5212,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "05505e06895cd79c0ae0bd76be48a168f7af95f3831e7398751c5253b4c11e39",
+      "source_sha256": "395b7d206bb1783951d2673be2fa782e9384da27fa8257828dd089b124430c80",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -5246,7 +5254,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "8baf38abe96be040d052eb4f2b275000eb115e1f229da36a93d50ad828de6eea",
+      "source_sha256": "024e4b576c4020a412373526bce3d5a4e39d156d26eec723cb5a0c9fe308babe",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -5258,7 +5266,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "529f610a7b9c7eb40d514d5b8213eb5b311bfbde4f180d4a13a451b2437918ac",
+      "source_sha256": "486913e9f6bb4a22713117483edbc6dedf6dd537144d5982bcdaeaed8e173e4b",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -5481,8 +5489,8 @@
       "evidence": "direct source-role evidence: Facade historical embedding/import adapter using Cva and owner state",
       "certainty": "source-confirmed-public-composition",
       "notes": "Facade historical embedding/import adapter using Cva and owner state",
-      "source_sha256": "ae2aac4ad1bb0808c91a8e546594f6c163961313e438f4cc63ce8b7142b4b943",
-      "compiler_inventory_match": true,
+      "source_sha256": "3fa781ad3d2a09fba549bb14e8d6c2a9f8cb569debc9abed2f1796bb231f8c0d",
+      "compiler_inventory_match": false,
       "compiler_item_count": 25,
       "symbol_spans_sha256": "76c3cfd6729bf4803747efaf645dfaf9f83bf2db71391b19baf628d4a39923dc"
     },
@@ -5527,8 +5535,8 @@
       "evidence": "direct source-role evidence: Facade historical embedding/import adapter using Cva and owner state",
       "certainty": "source-confirmed-public-composition",
       "notes": "Facade historical embedding/import adapter using Cva and owner state",
-      "source_sha256": "3d49ed31a3490bef585e0bb04c5889e6ea47256bec39099bab6dbc136b896925",
-      "compiler_inventory_match": true,
+      "source_sha256": "0f93940f8c719d0aae973b05c4565d9c1ed9bd585e4db20ad83f5152ac73c2db",
+      "compiler_inventory_match": false,
       "compiler_item_count": 13,
       "symbol_spans_sha256": "2b28228863887eaa338a2bec3c651b89b2d53e54b7f9ed2b5bf0285eeb4f2f34"
     },
@@ -5746,8 +5754,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "74f48eed891ff4e7948085fcb5c34166c59b5ab2e1ea51c4ef4c08756fbc11e9",
-      "compiler_inventory_match": true,
+      "source_sha256": "7d294cad543e4ca1b885413b1771c78a57fd8dfcf91e30b7f7efc0185d0c6f71",
+      "compiler_inventory_match": false,
       "compiler_item_count": 4,
       "symbol_spans_sha256": "b2b00c1ece0a8104ae07c44b916d6fb1b2f2eafd2c74676289fa27bff496adec"
     },
@@ -5991,7 +5999,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "a7bcbcdc3a5ae11530ec1c530fe91c8f3a81561640d445d8616f150e26e562d7",
+      "source_sha256": "b8609a3c0bd80885f858062cd86cdd908835c7d2f4fb1a259518d7322d1a599a",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -6003,7 +6011,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "97a2978e3e33f7bdbdd401f7248e35175eebba5fd932c9262e211c91a0368bdb",
+      "source_sha256": "3eeda3b781f0b929768c435069976104aeeb7ebc80f63000d08a772e57afeb05",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -6051,7 +6059,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "P7.1.14-OFFLINE-BACKGROUND: supported offline aggregate orchestration above runtime; no mounted worker caller",
       "certainty": "source-reviewed-consumer-trace",
-      "source_sha256": "e793b842f24feaea6b3cc67ee6bfe069718522320b47eef912371239f8c6990c"
+      "source_sha256": "74373337f8d5056940cf6463e3bf7c1d902c243ac2b6d97c2601b35cfa8f1f3e",
+      "compiler_inventory_match": false
     },
     {
       "path": "src/facade/interaction_runtime.rs",
@@ -6083,8 +6092,8 @@
       "evidence": "direct source-role evidence: Phylactery extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Phylactery extension implementation",
-      "source_sha256": "9e781dc60fc3a772175c5e1107162a85c715e521232c8f12c56a401ececdeb58",
-      "compiler_inventory_match": true,
+      "source_sha256": "7ebdd8044da5a44403bc9d2c61812ba66c9d0e855682967ec9d3a88dcd2ebba7",
+      "compiler_inventory_match": false,
       "compiler_item_count": 43,
       "symbol_spans_sha256": "46b3b2d5b31215542302d619047d61681a7085583487b0b0c201c2f9c3639d17"
     },
@@ -6109,8 +6118,8 @@
       "evidence": "direct source-role evidence: Phylactery extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Phylactery extension implementation",
-      "source_sha256": "7c6321d42ecac371023993bcf0816931dde11bcb3fb2a56acc2df0ac025b94ae",
-      "compiler_inventory_match": true,
+      "source_sha256": "aba411c7b325c09b323c77ea0c5d9105bbcaeaf755475df2606b2020da1229a3",
+      "compiler_inventory_match": false,
       "compiler_item_count": 11,
       "symbol_spans_sha256": "a7acec886102a175dfb2ee5de9d0062561b508f5d3a8500db31e782640be4cf2"
     },
@@ -6122,7 +6131,7 @@
       "evidence": "direct source-role evidence: Phylactery extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Phylactery extension implementation",
-      "source_sha256": "1c438e3904d2969d45be9ab9a534a0fe89112955e42cc89747eddb05f8736bcc",
+      "source_sha256": "391f7af6e10bc76b05c27041f8bf50f43b7bddee5368728b1093222072ece3dd",
       "compiler_inventory_match": false,
       "compiler_item_count": 5,
       "symbol_spans_sha256": "53506f40387d2b5577ebc7610e81b99945a59502121ee69c8d5f4e831e82c44b"
@@ -6235,8 +6244,8 @@
       "evidence": "direct source-role evidence: Phylactery extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Phylactery extension implementation",
-      "source_sha256": "6902d8b9094b475d5b7ae6c93c20cdce2b527fe0776acb6c8e16bb9af379634a",
-      "compiler_inventory_match": true,
+      "source_sha256": "3b4d5d23e148ad75339885ae466118c2a50a540170e19b7f5d709bd0124d2514",
+      "compiler_inventory_match": false,
       "compiler_item_count": 5,
       "symbol_spans_sha256": "60f1078412f92672b28fa8a992450d0e9ea6bd0b1965bed71f31985cdc1ac5f8"
     },
@@ -6248,8 +6257,8 @@
       "evidence": "direct source-role evidence: Phylactery extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Phylactery extension implementation",
-      "source_sha256": "21eb8929425864ff8bdec5628e051b7b081ffabc6beedf77c207a5299d49c097",
-      "compiler_inventory_match": true,
+      "source_sha256": "0b0bcc564516f13c507843337f910b6d6c4dc39c8c12609e4f348c7e9a68e6fb",
+      "compiler_inventory_match": false,
       "compiler_item_count": 5,
       "symbol_spans_sha256": "c984a9e0dd9f1d720347b873c797d50b5e734b1c3725991a9c99d85dde791c9a"
     },
@@ -6261,8 +6270,8 @@
       "evidence": "direct source-role evidence: Phylactery extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Phylactery extension implementation",
-      "source_sha256": "b4523631ee0a4d37fecb18a571454528253fa6fe92e07cd3f3cc05078a5cb25d",
-      "compiler_inventory_match": true,
+      "source_sha256": "a3ba617effc8f489b6ddf3370b65f112b64b92875892468eea91e99d2bdbf8dd",
+      "compiler_inventory_match": false,
       "compiler_item_count": 8,
       "symbol_spans_sha256": "2366d65b372884d541b259ae82e79bb520e9af8bde37a2509b479a345e63fce3"
     },
@@ -6274,8 +6283,8 @@
       "evidence": "direct source-role evidence: Phylactery extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Phylactery extension implementation",
-      "source_sha256": "9ac21724d50b9e3190ed39087be48be97050865b39911371993d0e7b2297debe",
-      "compiler_inventory_match": true,
+      "source_sha256": "c7ac9e37866c5af3a3acf204451063c8fa6d13c7d54c2cc4a4f31468b53d5c17",
+      "compiler_inventory_match": false,
       "compiler_item_count": 6,
       "symbol_spans_sha256": "6753975eff6f3c7754b63889200fd5d436f5016164e769df26ae2c4d1956d3fc"
     },
@@ -6918,8 +6927,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "owner-boundaries.json owner_files explicit assignment",
       "certainty": "reviewed-explicit",
-      "source_sha256": "791554c92c1ddbc0e20e1d778a1ff8a2bded68017a72e305902485014ae6c3e2",
-      "compiler_inventory_match": true,
+      "source_sha256": "4c730183b82004ff30e7f08c99418d9332f47e932d93bbde136973a454be01bd",
+      "compiler_inventory_match": false,
       "compiler_item_count": 28,
       "symbol_spans_sha256": "3d20ea18fbbe49943e28a5c28aa05a4e317ae52bea09c9e29b505c77958f11df"
     },
@@ -6990,8 +6999,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "owner-boundaries.json owner_files explicit assignment",
       "certainty": "reviewed-explicit",
-      "source_sha256": "d7893a7a4fc0815af676b931a7b1734cac59d28e3564626b1f276f17f1523e58",
-      "compiler_inventory_match": true,
+      "source_sha256": "ece1d7df066d3b36a1514a674edbfa38151c68b71535e896129ca26d5604a0c9",
+      "compiler_inventory_match": false,
       "compiler_item_count": 17,
       "symbol_spans_sha256": "56af2d1a5ec6557467f58681bb7b52906eb59c6c39bf8f28bc0779c685704405"
     },
@@ -7204,8 +7213,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "owner-boundaries.json owner_files explicit assignment",
       "certainty": "reviewed-explicit",
-      "source_sha256": "81d8c8873e0903cbc35351128c9461dedddee9db0790cbf58a8fd83b9acc267b",
-      "compiler_inventory_match": true,
+      "source_sha256": "0ed17a3a8c4aa95e0309155f40da60d353ee406b0ad4a235daaf66c07c9a64a9",
+      "compiler_inventory_match": false,
       "compiler_item_count": 4,
       "symbol_spans_sha256": "aeb2bc13160def9037c2e476cb87fe92106b1cc27c571b0dcb3d6efe8856f791"
     },
@@ -7216,8 +7225,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "owner-boundaries.json owner_files explicit assignment",
       "certainty": "reviewed-explicit",
-      "source_sha256": "2ca993ecfbbea99fda7ee94758ed5cdb3e5cda3f2cee410bf7f95fc91587ebf9",
-      "compiler_inventory_match": true,
+      "source_sha256": "26fbd1e74ec03c9a9fce4040d0ddc7a319321d769c540ad23d981d329136581f",
+      "compiler_inventory_match": false,
       "compiler_item_count": 27,
       "symbol_spans_sha256": "86e868ba7032cd5ea6370a0f31ee9257f2333e6d5b859432b87cfe8712d6370a"
     },
@@ -7694,6 +7703,18 @@
       "symbol_spans_sha256": "5180f08dce6c76843029267646717cf113fc2078000e7dac43ad07bb2e9eb87c"
     },
     {
+      "path": "src/imports/historical_owner_operations.rs",
+      "component": "import",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Explicit current-source owner classification in tools/pitlord/owner-boundaries.json; bounded Phase 7 operation cut.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "d22f91e9983a46d7ff4a065b518717c5cc7bc88b091539373ec8525ffa24cd96",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
       "path": "src/imports/historical_prepare.rs",
       "component": "import",
       "classification": "production",
@@ -7820,8 +7841,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "owner-boundaries.json owner_files explicit assignment",
       "certainty": "reviewed-explicit",
-      "source_sha256": "ff86a7e2959a825f1eb22db22c97433a83146e5118d13c0f8d81abb937851bf4",
-      "compiler_inventory_match": true,
+      "source_sha256": "1b52778107b4342a75a67c916fdfbbb4728a68aff8d6862b5363fdac17ad3596",
+      "compiler_inventory_match": false,
       "compiler_item_count": 9,
       "symbol_spans_sha256": "17f76569a4bd91525595e1f920367d7bdfb5a123417cd1a6cd635e4cca1398e6"
     },
@@ -7968,7 +7989,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "owner-boundaries.json owner_files explicit assignment",
       "certainty": "reviewed-explicit",
-      "source_sha256": "da724ebae78af04816f9e1ceefda9135f691c9fc0ce9fbc1ae0481251c5c77e4",
+      "source_sha256": "d05064097b1ffa38f65cb283dc2ffad7984ef8315f1edea604af1d7ab1132607",
       "compiler_inventory_match": true,
       "compiler_item_count": 27,
       "symbol_spans_sha256": "1c7102f17a0e2e558a5df608d982c3d4cbe87741902ef6417edf8a1d41452c6d"
@@ -8052,7 +8073,7 @@
       "reachability": "crate-root",
       "evidence": "Crate root exposes public facade and declares modules spanning components; retained as public-consumers composition node, with root-level imports requiring edge extraction.",
       "certainty": "crate-root-mixed-composition",
-      "source_sha256": "95430e07b7ec7680474e7af5271c3ff9bb62bca9287640423e512b7bc5e238a3",
+      "source_sha256": "8a1ec4256e0c6c5e945374a0df2efd282ef091b3041ad7e033318d1338729e64",
       "compiler_inventory_match": false,
       "compiler_item_count": 662,
       "symbol_spans_sha256": "90d9c063f6957c94ea77914d1bd80f479f6970b8c89f8fd3d62abb6ca00c7da8"
@@ -8136,8 +8157,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "owner-boundaries.json owner_files explicit assignment",
       "certainty": "reviewed-explicit",
-      "source_sha256": "e9471ef4c4084208e634aa1b550f600413f0b3516ce4a1660f6f02cff8069b0d",
-      "compiler_inventory_match": true,
+      "source_sha256": "7d99be4b51466a129587aca8f4c2710a4be37078faf83a911bde652ae3f122cf",
+      "compiler_inventory_match": false,
       "compiler_item_count": 3,
       "symbol_spans_sha256": "c181c5d41d8c5b646689f16c1bd339618ffea0b5558916da9a72cec0f4a7b0fb"
     },
@@ -8814,8 +8835,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "owner-boundaries.json owner_files explicit assignment",
       "certainty": "reviewed-explicit",
-      "source_sha256": "06b5781a35d7926ccc1f5a33aebc55c9022f70d988414a886632445d563c61c7",
-      "compiler_inventory_match": true,
+      "source_sha256": "63d2824904cc57997b0103ffa1dc68c055665305da7de98f0a2d5d671dbb720d",
+      "compiler_inventory_match": false,
       "compiler_item_count": 49,
       "symbol_spans_sha256": "ff1eac737cd51754ee58b99b8c62dc7ccea09bf2a1193a5c60b7c8d8622644f1"
     },
@@ -8858,7 +8879,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "owner-boundaries.json owner_files explicit assignment",
       "certainty": "reviewed-explicit",
-      "source_sha256": "636e98c74b7a8c0480d292979bfd3d0c7ff8f4a11c43d063559910b320047d51",
+      "source_sha256": "2e57f2efbd6889c57cc88a14c0e303cb07a775e1d391396175bf1e25760dc1ed",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -8982,7 +9003,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "owner-boundaries.json owner_files explicit assignment",
       "certainty": "reviewed-explicit",
-      "source_sha256": "cade2270650555f1b6437a2ca88c77770984f4d654f4342ab8b74a0fe514207d",
+      "source_sha256": "feec52f681a4a8cd2f85eac536d9b554b75f2039ff4938f12883cdacd5cbab75",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -8998,6 +9019,13 @@
       "compiler_inventory_match": true,
       "compiler_item_count": 7,
       "symbol_spans_sha256": "731bc27b3a03654f609ce7be87f0a28a0f64df6d9f5ccc89330eddfd64b993b1"
+    },
+    {
+      "path": "src/owner_lifecycle/archive_owner_api.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "cfg-reachable-module",
+      "evidence": "P7.1.14-CORE-OWNER-API exact Archive tombstone scope addendum"
     },
     {
       "path": "src/owner_lifecycle/archive_replay_error.rs",
@@ -9081,6 +9109,13 @@
       "source_sha256": "f8784ab0a5b5e35a667f24551e3caa9dce97c823451d4e634a053d53048a8e12"
     },
     {
+      "path": "src/owner_lifecycle/dream_journal_operations.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "cfg-reachable-module",
+      "evidence": "benchmarks\\phase7-dream-journal-persistence-child-2026-10-24.json"
+    },
+    {
       "path": "src/owner_lifecycle/dream_operation_facts.rs",
       "component": "owner-lifecycle",
       "classification": "production",
@@ -9117,6 +9152,23 @@
       "symbol_spans_sha256": "d88b13fb2246f8dab214da9ace3a71673f4b55c31ce4a3e78180792d7a9163c1"
     },
     {
+      "path": "src/owner_lifecycle/ego_operations.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "cfg-reachable-module",
+      "evidence": "benchmarks/phase7-ego-public-owner-operations-child-2026-10-24.json"
+    },
+    {
+      "path": "src/owner_lifecycle/entity_publication_access.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "cfg-reachable-module",
+      "evidence": "benchmarks/phase7-perception-entity-publication-access-child-addendum-2026-10-25.json",
+      "certainty": "source-reviewed-responsibility",
+      "source_sha256": "1dad60fbac2713d510b64c2ab4959a2cb2c2e5d33300d82a5c9de14a957934e0",
+      "compiler_inventory_match": false
+    },
+    {
       "path": "src/owner_lifecycle/entity_publication_admission.rs",
       "component": "owner-lifecycle",
       "classification": "production",
@@ -9139,6 +9191,16 @@
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/owner_lifecycle/entity_resolution_open_admission.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "cfg-reachable-module",
+      "evidence": "benchmarks\\phase7-perception-open-admission-child-addendum-2026-10-25.json",
+      "certainty": "source-reviewed-responsibility",
+      "source_sha256": "f57b29ad6ce917b4dbcb8648dc810a7ab86dadf4eaf943e7c2105320ddb1dad4",
+      "compiler_inventory_match": false
     },
     {
       "path": "src/owner_lifecycle/error.rs",
@@ -9303,8 +9365,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "owner-boundaries.json owner_files explicit assignment",
       "certainty": "reviewed-explicit",
-      "source_sha256": "a62bd1ae07e4fd1cca442e9c2759e4952a1b7792753af6e18484d173f31dd43c",
-      "compiler_inventory_match": true,
+      "source_sha256": "91ff7c05d5d15ea730d48d4a4f0d1fb337eddcf7617a5534d9808a8efdbf68e1",
+      "compiler_inventory_match": false,
       "compiler_item_count": 81,
       "symbol_spans_sha256": "681c4447d7c0582816ed86421f7053e16a099937d8191ffcb8939c1e7aea3bc7"
     },
@@ -9355,6 +9417,18 @@
       "compiler_inventory_match": true,
       "compiler_item_count": 2,
       "symbol_spans_sha256": "e9314ea54bede7036f22e4287472ea0e065a0f7a2a0f87081d502fa1c6a6bf44"
+    },
+    {
+      "path": "src/owner_lifecycle/import_reconciliation_restore.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "P7.1.09 registered owner restoration operation; concrete Community, Dream journal, and EntityResolution store writes.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "eaecc738b4140866a7aae8d78eebeb219237a3a9652040c978a2ad50a2db77e2",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/owner_lifecycle/import_session.rs",
@@ -9410,6 +9484,18 @@
       "evidence": "Concrete native owner admission, reads or ordered publication; domain planning stays above and enters as passive producer values.",
       "certainty": "reviewed-explicit",
       "source_sha256": "d00ec393b86cb42fef650cb4fa356ed755ec1aee77062dc96ecb82b0906612c6",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/owner_lifecycle/insomnia_work_operations.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "certainty": "source-confirmed-phase5-owner",
+      "evidence": "P7.1.14h registered public Insomnia work lifecycle; mounted owner retains concrete queue and transition capabilities",
+      "source_sha256": "0bfc1df39404f84cc4b38c7e32f9693f749052b4365a49c291ec48b646a4f5e3",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -9625,8 +9711,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "owner-boundaries.json owner_files explicit assignment",
       "certainty": "reviewed-explicit",
-      "source_sha256": "16724d41177006ce0b40fb99991ed3bde1bd300f6ae3349e6c232dd511696f8a",
-      "compiler_inventory_match": true,
+      "source_sha256": "ea325c0c32c79fd0af90f6f95399f6f252be89def1913488e68f741c08191c13",
+      "compiler_inventory_match": false,
       "compiler_item_count": 25,
       "symbol_spans_sha256": "758a338c0b90fbafb8cbd060450be323eaf0eab57372b0130c974cc1d1f34f92"
     },
@@ -9665,6 +9751,28 @@
       "compiler_inventory_match": true,
       "compiler_item_count": 2,
       "symbol_spans_sha256": "72b729645a99e6efa5877a2b13d3f69b8032152336aa3b48177bae3dd4bd9035"
+    },
+    {
+      "path": "src/owner_lifecycle/public_consumer_operations.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Exact Phase 7 correction: canonical operation ownership or immutable codec value contract; no DAG edge added.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "8b81ac9eb214c43cdeebebc7c61e9107fcf654d7bc7d6618d35595909078bbea",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/owner_lifecycle/public_graph_operations.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "cfg-reachable-module",
+      "evidence": "benchmarks/phase7-public-graph-owner-scope-addendum-2026-10-25.json",
+      "certainty": "source-reviewed-responsibility",
+      "source_sha256": "418ad5e1681d8eb4aee0b4b76e1b28beebf0c6a02dc822e7c8f090a344475b8f",
+      "compiler_inventory_match": false
     },
     {
       "path": "src/owner_lifecycle/publication_births.rs",
@@ -9725,14 +9833,21 @@
       "symbol_spans_sha256": "425a99d02d4b26df6e4eae57444dbacf2211615ad30d8369ac1a071bd2e8a33d"
     },
     {
+      "path": "src/owner_lifecycle/relationship_operations.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "cfg-reachable-module",
+      "evidence": "benchmarks/phase7-public-relationship-owner-operations-child-2026-10-24.json"
+    },
+    {
       "path": "src/owner_lifecycle/reliquary.rs",
       "component": "owner-lifecycle",
       "classification": "production",
       "reachability": "reachable-profile-module",
       "evidence": "owner-boundaries.json owner_files explicit assignment",
       "certainty": "reviewed-explicit",
-      "source_sha256": "1ef61804152ea5a4c31aec3fb47ad5d3b9c1e5e5b54f0f1ad387806fd7d96d38",
-      "compiler_inventory_match": true,
+      "source_sha256": "8706f72fb06a8794c8f6e46a2628d69fa253605ef83fe24b36736a567d35c91a",
+      "compiler_inventory_match": false,
       "compiler_item_count": 32,
       "symbol_spans_sha256": "30055165a21dbf4e5b7e181e1128f791d6e56e7dd400e42dcb786a73d58cdc1f"
     },
@@ -9857,6 +9972,18 @@
       "symbol_spans_sha256": null
     },
     {
+      "path": "src/owner_lifecycle/semantic_freshness_operations.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "P7.1.14-FRESHNESS-FACADE-OPERATIONS source scope addendum; owner-qualified semantic reads and durable event append/sync/ingest contracts.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "8adfc839cd48ea6b84e69b60eb47b6865e3f2aff057f87c801328ee83e0a4269",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
       "path": "src/owner_lifecycle/semantic_source.rs",
       "component": "owner-lifecycle",
       "classification": "production",
@@ -9891,6 +10018,13 @@
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/owner_lifecycle/vector_read_access.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "cfg-reachable-module",
+      "evidence": "benchmarks/phase7-vector-owner-read-scope-addendum-2026-10-25.json"
     },
     {
       "path": "src/owner_lifecycle/vocabulary.rs",
@@ -10729,8 +10863,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "owner-boundaries.json owner_files explicit assignment",
       "certainty": "reviewed-explicit",
-      "source_sha256": "217e8d5c0f289011bb9b32f2c76c769fdeec8b2a4ec65eec443760cb6a56a3ba",
-      "compiler_inventory_match": true,
+      "source_sha256": "2be01b9fd545cf6115d99a8e1a5a4966be486327cba6e1556c82064a65bc8efa",
+      "compiler_inventory_match": false,
       "compiler_item_count": 130,
       "symbol_spans_sha256": "18ef0affd320beae15695175cc031a199dcc710c884a49e8f2777e947c612d39"
     },
@@ -11310,19 +11444,6 @@
       "symbol_spans_sha256": "760709bee443b3b9e6e3db5ad9978971174084e1c82c19c46df6ff461c7bbe45"
     },
     {
-      "path": "src/perception/relationship_owner.rs",
-      "component": "perception",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "Perception-owned candidate, audit, reconciliation, or resolution calculation; public owner adapters reside in facade.",
-      "certainty": "reviewed-explicit",
-      "source_sha256": "ea12a47a5416f38711ac60e9f62863c019a9b3c9f0513200788f2f885da7a18c",
-      "compiler_inventory_match": false,
-      "notes": "Macro-generated public Cva/Phylactery extension methods; deferred public composition (C06).",
-      "compiler_item_count": null,
-      "symbol_spans_sha256": null
-    },
-    {
       "path": "src/perception/relationship_publication_codec.rs",
       "component": "perception-store",
       "classification": "production",
@@ -11767,6 +11888,18 @@
       "certainty": "unresolved",
       "source_sha256": "d0ee5da495372b51ef99862e821f9815ac0d7d9e3e05513aab5165d770fb87f5",
       "compiler_inventory_match": false
+    },
+    {
+      "path": "src/pure_codec/memory_text_field.rs",
+      "component": "pure-codec",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Exact Phase 7 correction: canonical operation ownership or immutable codec value contract; no DAG edge added.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "33d0caad016d0af46688299367e9a4c583a762522d84d38e3378093055e03fa4",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/retrieval/archive_vector_codec.rs",
@@ -12801,6 +12934,18 @@
       "symbol_spans_sha256": "68b8c444256bbdd6f8627c6bf18fafa9f1c72161bcf720e7a937707d9b0b5fed"
     },
     {
+      "path": "src/runtime_inference/configured_provider_operations.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "P7.1.13a registered concrete configured-provider preparation; Runtime owns endpoint and extractor assembly; facade retains offline file composition",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "c2d56e96b8a69a1c68ad1f5da9029381dc6d83f8cbc195242278467f65a4d060",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
       "path": "src/runtime_inference/configured_runtime.rs",
       "component": "runtime-gateway",
       "classification": "production",
@@ -13377,7 +13522,7 @@
       "certainty": "source-confirmed-phase5-owner",
       "evidence": "Phase 5 split: domain calculation/value contract separated from public offline composition",
       "compiler_inventory_match": false,
-      "source_sha256": "6ac13460ede7b60740bbd9fb2eaa37426844d38f38f5def35b0a7acf283835a8"
+      "source_sha256": "333bbf2024502638e1cf3e62bf5d0764761ca3f4c556a1f7691d044de9b759bd"
     },
     {
       "path": "src/runtime_inference/dream_temporal_policy.rs",
@@ -13476,7 +13621,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Runtime orchestration or public binding delegation on execution owners; Phase 7 source-cut responsibility review",
       "certainty": "reviewed-explicit",
-      "source_sha256": "811e861f0a15139731ee795668487e6c418cc85903c1fa310b70be6eb4b15bac",
+      "source_sha256": "48a34514b24c7a435cc8f5e76207029194011ef80338ea9f8caf104428a9de3c",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -13514,6 +13659,30 @@
       "compiler_inventory_match": true,
       "compiler_item_count": 34,
       "symbol_spans_sha256": "d7975d823888531f73abd66e01dc57c6dedbf1bc91d99b76f02094a83cd8513c"
+    },
+    {
+      "path": "src/runtime_inference/historical_embedding_adapter.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Registered VECTOR-OWNER-API historical embedding adapter: runtime provider, bounded transport and owner read composition",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "f9cf2402c678faf4330779b499e400bdcdc1de8ce972bcc5b46a9a34ff01a332",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/historical_import_execution.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Registered CORE-OWNER-API historical import proof, admission and settlement composition; immutable History and mutable owner publication remain distinct phases",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "6b848803a05ff5bd2b407d9cdf98d863644227ca7b19f444a0bbd68590e0666e",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/runtime_inference/insomnia.rs",
@@ -14127,7 +14296,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 7 source-role correction after canonical offline worker extraction: private worker execution/publication and progress; no public API binding",
       "certainty": "reviewed-explicit",
-      "source_sha256": "6e9b671b299db9b98095ed29a945260191227c629f6ef212eee4dabe87e4386c",
+      "source_sha256": "5106ae94eb7e616e058cf9254675caf2d00842668ecae36f30bdfd71c62b6c3e",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -14193,7 +14362,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 7 registered source cut: Canonical offline/runtime drain orchestration over concrete owners, inference and vector services",
       "certainty": "source-reviewed-responsibility",
-      "source_sha256": "ca83c64eafe76addf77fe28ac5cfc1e154a6c1cd616c9bb1e51b31c5b3eb31a0"
+      "source_sha256": "d5d7abc8ad932281bb8508c23bfdb51c91dc4e56b9d55be59afb155f67cccfdc",
+      "compiler_inventory_match": false
     },
     {
       "path": "src/runtime_inference/interaction_background.rs",
@@ -14357,7 +14527,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Semantic mutation child lower execution: concrete REL/PHY owner publication, graph, community, replacement and retirement operations",
       "certainty": "source-reviewed-responsibility",
-      "source_sha256": "532af273c565cb98ffcf7c773949487ececd78b3a8b3f8cd8fe3306c6ce74b80",
+      "source_sha256": "a96f671a60e12843314380ddf4315223c94c300f5aef20bbdf335976456c43bb",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -14417,6 +14587,42 @@
       "certainty": "unresolved",
       "source_sha256": "0ea25d2d85ed8f5af7fa9e8d860861fbbcfd3fb46c65f373fcdaa27ce5b462e9",
       "compiler_inventory_match": false
+    },
+    {
+      "path": "src/runtime_inference/offline_community_naming.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Explicit current-source owner classification in tools/pitlord/owner-boundaries.json; bounded Phase 7 operation cut.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "4c99d911ce0a2fbc161287e30944b9528d1bc4032f67fe8bf10f23d0477dbc63",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/offline_dream_frontier.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Explicit current-source owner classification in tools/pitlord/owner-boundaries.json; bounded Phase 7 operation cut.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "89d0d35137abde4b807cb8a75b36cba86b626b718d1b45a556fdfe6f9b4907db",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/offline_dream_processing.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Explicit current-source owner classification in tools/pitlord/owner-boundaries.json; bounded Phase 7 operation cut.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "422f6defbf467f30e45002161702c3715ea84a6bba0c29b951e7bb980a523d22",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
     },
     {
       "path": "src/runtime_inference/openai_codex_device_auth.rs",
@@ -14557,7 +14763,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Runtime orchestration or public binding delegation on execution owners; Phase 7 source-cut responsibility review",
       "certainty": "reviewed-explicit",
-      "source_sha256": "0060f8a0295cdc6b1e0a6b34252337282bc261cb642c52079da5ae97c5d29141",
+      "source_sha256": "ad7eaffad41ab3503d78c5f46cd3100c8cabc95e13906d258f275b27de5e012e",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -14617,7 +14823,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 7 registered source cut: Canonical PHY aggregate combining durable owner state and runtime derived indexes",
       "certainty": "source-reviewed-responsibility",
-      "source_sha256": "83964c91aca64b92a67b748220caf260497d2be7ef9007e149ccdec1c34c4afd"
+      "source_sha256": "ebd4f3d619b214a26d7f483ad56861f1969e8ca000724af3eab227116c791bac",
+      "compiler_inventory_match": false
     },
     {
       "path": "src/runtime_inference/public_archive_operations.rs",
@@ -14627,6 +14834,18 @@
       "evidence": "Runtime orchestration or public binding delegation on execution owners; Phase 7 source-cut responsibility review",
       "certainty": "reviewed-explicit",
       "source_sha256": "107422506b58e0da5b158106b11b1873739f64709168ef34b120c5b812f64bd5",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/public_consumer_execution.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Exact Phase 7 correction: canonical operation ownership or immutable codec value contract; no DAG edge added.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "268c6063bce66602ff5368420d2e5b6ab4aa940662075aa9990021069684eb68",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -14642,6 +14861,42 @@
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/public_ego_operations.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "cfg-reachable-module",
+      "evidence": "benchmarks/phase7-ego-public-owner-operations-child-2026-10-24.json"
+    },
+    {
+      "path": "src/runtime_inference/public_entity_resolution_bindings.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "P7.1.14a registered scope addendum: canonical generic EntityResolutionEngine and EntityResolver public binding implementations; Perception core remains inference policy owner.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "7c8fa62baa95dee8bf1171876ae001641f5f2c0ed9436b3cb0eab9e6bbf7d517",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/public_graph_operations.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "cfg-reachable-module",
+      "evidence": "benchmarks/phase7-public-graph-owner-scope-addendum-2026-10-25.json",
+      "certainty": "source-reviewed-responsibility",
+      "source_sha256": "f65475f58c56937e984b97db9fcfcf79b5ef54a0b1935a9651a95715c8087929",
+      "compiler_inventory_match": false
+    },
+    {
+      "path": "src/runtime_inference/public_insomnia_operations.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "cfg-reachable-module",
+      "evidence": "benchmarks\\phase7-insomnia-application-commit-child-2026-10-24.json"
     },
     {
       "path": "src/runtime_inference/public_memory_operations.rs",
@@ -14662,10 +14917,17 @@
       "reachability": "reachable-profile-module",
       "evidence": "Runtime orchestration or public binding delegation on execution owners; Phase 7 source-cut responsibility review",
       "certainty": "reviewed-explicit",
-      "source_sha256": "e13ab5b7e341f1f254657b9f6b0563d328542e87a55b9e55940cea7635f1f1a8",
+      "source_sha256": "a2ddc3cfd92021c19271da3bcf492a4bb89e5d6c9ffcb7e365261d9a8a6256a0",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/public_relationship_operations.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "cfg-reachable-module",
+      "evidence": "benchmarks/phase7-public-relationship-owner-operations-child-2026-10-24.json"
     },
     {
       "path": "src/runtime_inference/public_retrieval_operations.rs",
@@ -14675,6 +14937,18 @@
       "evidence": "Runtime orchestration or public binding delegation on execution owners; Phase 7 source-cut responsibility review",
       "certainty": "reviewed-explicit",
       "source_sha256": "7b69503e042f6630c5dcf1b2188951ee18497a2bd32fc66a512accb498c1539b",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/runtime_inference/public_semantic_operations.rs",
+      "component": "runtime-gateway",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "P7.1.14-FRESHNESS-FACADE-OPERATIONS source scope addendum; Gateway owns live semantic Freshness orchestration and ranking over owner lifecycle value facts.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "046d2c8e5d5055ef78b14d2764253b138a260d908922b926e1d5a593ec0ff19b",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -14734,7 +15008,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 7 registered source cut: Canonical REL aggregate combining durable owner state and runtime derived indexes",
       "certainty": "source-reviewed-responsibility",
-      "source_sha256": "84c68f3a539f01c846ec6123dc9cc32a783770cd198770c7a9ca57001de88328"
+      "source_sha256": "3cbf4f15217a38ed001d6180fd68513822fedaa02cd04404931e5d5a40b4ae61",
+      "compiler_inventory_match": false
     },
     {
       "path": "src/runtime_inference/runtime_freshness_birth.rs",
@@ -14743,7 +15018,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Semantic mutation child scope: REL first-publication intent/birth and due-refresh operations over mounted owner state; public Cva entrypoints delegate",
       "certainty": "source-reviewed-responsibility",
-      "source_sha256": "60f07db4897c1ff4ad2dfa88f1f2c122780dc4e866b4be9775b3ff21592caa15",
+      "source_sha256": "4994cdbb78d1e51f910ce386139ed62fb8e688d090f821386a5cd698e173f7b7",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -14789,8 +15064,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_gateway`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "e6e2fdb47cb3fa5dba1827c1ce7b1212afd4ddd865e3fac27ce5e685a1a475ab",
-      "compiler_inventory_match": true,
+      "source_sha256": "2b8df4b0e9ca13ab1192233eaedeaffaa5426089fa7fbc003fd659b6b9e1541f",
+      "compiler_inventory_match": false,
       "compiler_item_count": 197,
       "symbol_spans_sha256": "6f1762e99021d5cbb32c7aea08b273e27586e4bff1cc9c968c526f564dfec753"
     },
@@ -14887,7 +15162,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_gateway_agentic_memory_graph`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-explicit",
-      "source_sha256": "5354c1c518e4ae8844a15ccf52bbdf5acce038ea8ec9006ea59952248960db67",
+      "source_sha256": "290637ba0a8f2b64971002fcdf99e6e5b6db15273af5b13440e5c0e8f7f2d576",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -14929,7 +15204,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_gateway_agentic_memory_query`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-explicit",
-      "source_sha256": "1b1d0ead57fb5ef0525450b3d06accd0bc9baae1c6fc129e4ffa4c9a14105b8b",
+      "source_sha256": "3a53901179bf0ccec542f0e4776d13f9f0b130f75ec2c7e68750bd4f40b41224",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -15397,7 +15672,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_gateway_external`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-explicit",
-      "source_sha256": "c94536ce16d11ededcc5558d1be6f4c484e3c5f0053787ce9cfde5b2875f7d3b",
+      "source_sha256": "900a031349f01808e8bca256ff671ca7b5162fada85b510d71d93869d1235ff1",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -15421,7 +15696,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_gateway_external_processing`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-explicit",
-      "source_sha256": "16260bd956531ca6cf23ad3f03447f8448eea374b91327a51565d9c022c78e10",
+      "source_sha256": "f359ffecc4f01dccccce4ab0ff5356039e511852c5d5360a6aa7fa67392897e6",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -15495,8 +15770,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_gateway_mount`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "c7dbf3f599526941a3f68391dc472fe8de6accbba514969a5e81df4efe67c5cd",
-      "compiler_inventory_match": true,
+      "source_sha256": "93acedac067e9671d54bd2a7c4dd1825763504d59c75bea12ebbee39a3427d35",
+      "compiler_inventory_match": false,
       "compiler_item_count": 51,
       "symbol_spans_sha256": "0ba5498e5a9dea014eed870b97ce489db285e9e88504d73ce0a0737a95e4bef5"
     },
@@ -15507,8 +15782,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_gateway_mutation_events`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "69987193f79f3e999da13c025c6da7b4b5ed9578f8bd6804025e14cb22786725",
-      "compiler_inventory_match": true,
+      "source_sha256": "da1e5647fe8e8a2d617aead8590b1afee3745bcfbb88c1c74f0e9ba62c057e25",
+      "compiler_inventory_match": false,
       "compiler_item_count": 37,
       "symbol_spans_sha256": "d487bd50e63cf7597fecf0690f493129f7b32cd414b1a0b195d4a337a1c26850"
     },
@@ -15891,8 +16166,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_memory_search`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "cf8c811b598e6f63556d4be24220cf47417734481ca7732748cbe317b1f34e64",
-      "compiler_inventory_match": true,
+      "source_sha256": "bdec96af9c63a854159759aae76184ea639e1bbbfb505a2dacd3aeb6fbfb477b",
+      "compiler_inventory_match": false,
       "compiler_item_count": 11,
       "symbol_spans_sha256": "b2f089c2097cbb313b4077ca170d15da7af22e25b67dcaf149c9a1045fa513e5"
     },
@@ -15993,7 +16268,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_phy_perception`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-explicit",
-      "source_sha256": "e7038c682d1711257d14e93a74214e52234d4583464dd65463d1f8482283fe11",
+      "source_sha256": "fda05c5175464a5bca63364b13338a8578aa9e54483868c6338fc092587c792d",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -16075,7 +16350,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_rel_perception`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-explicit",
-      "source_sha256": "f3c0f967a24bc9d7fbc00279f2b506cebd99101cf47e10b3a18d4436670ad782",
+      "source_sha256": "1416785bd81bae8e902a87ab4c1950ef6dec671506f1ecb7119c9cc8dbbc8d6f",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -16087,7 +16362,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_rel_vectors`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-explicit",
-      "source_sha256": "98061445d3ad354505800b8418c5fb244a6538d66a852f7882914f5f0c70d998",
+      "source_sha256": "4f83441e7bf7df099c2943c486a4b9ce3de7ee4460b3457047c9705e7ce04a53",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -16177,7 +16452,7 @@
       "component": "vectors",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "Owner-qualified vector batch and prepare/validate/commit mechanics; faÃ§ade owner adapters live under src/facade.",
+      "evidence": "Owner-qualified vector batch and prepare/validate/commit mechanics; fa\u00c3\u0192\u00c6\u2019\u00c3\u201a\u00c2\u00a7ade owner adapters live under src/facade.",
       "certainty": "reviewed-explicit",
       "notes": "Cva extension implementation; Phylactery extension implementation",
       "source_sha256": "a5d9e28702f06866db0b5ec6c630c84e58c29a32365ffe16b24d25cdae974718",
@@ -26932,6 +27207,12 @@
       "evidence": "Historical source has no reviewed component assignment",
       "certainty": "unresolved",
       "source_sha256": "79372ae838ebfebaf70801886a410b96b6260031aae84fa9f150f0ba406d3671"
+    },
+    {
+      "path": "src/perception/relationship_owner.rs",
+      "component": "perception",
+      "classification": "retired",
+      "evidence": "Concrete live admission moved to owner_lifecycle/relationship_operations.rs under registered Relationship child"
     }
   ],
   "unresolved_production_paths": [],

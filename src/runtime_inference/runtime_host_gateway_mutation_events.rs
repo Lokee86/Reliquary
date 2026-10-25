@@ -35,18 +35,13 @@ fn cut(runtime: &crate::RelExecution) -> Cut {
     let cva = &runtime.cva;
     Cut {
         watermarks: super::snapshots::reader::source_watermarks(cva),
-        metadata: cva.rel_metadata(),
-        processing: cva.insomnia_stats(),
-        communities: cva.community_stats(),
-        community_names: cva.community_semantic_names(),
-        profiles: cva.compatibility_profiles().len(),
+        metadata: cva.runtime_rel_metadata(),
+        processing: cva.runtime_insomnia_stats(),
+        communities: cva.runtime_community_stats(),
+        community_names: cva.runtime_community_semantic_names(),
+        profiles: cva.public_profiles().len(),
         external_damaged: cva.external_index.damaged,
-        external_indexes: cva
-            .external_index
-            .sources
-            .values()
-            .map(|s| s.status())
-            .collect(),
+        external_indexes: crate::external_owner_access::statuses(&cva.external_index),
     }
 }
 
@@ -67,14 +62,7 @@ pub(super) fn commit<T>(
     // Freshness does not have a source watermark in this distribution protocol.
     // Distinguish validation failures (safe to retry) from unknown partial appends.
     let receipt_extent = if family == RelMutationFamily::AcceptedMemoryUse {
-        Some(
-            runtime
-                .cva
-                .container
-                .backing_metadata()
-                .map_err(operation)?
-                .len(),
-        )
+        Some(runtime.cva.owner.backing_len().map_err(operation)?)
     } else {
         None
     };
@@ -86,9 +74,9 @@ pub(super) fn commit<T>(
             let receipt_may_have_written = receipt_extent.is_some_and(|before| {
                 runtime
                     .cva
-                    .container
-                    .backing_metadata()
-                    .map(|metadata| metadata.len() != before)
+                    .owner
+                    .backing_len()
+                    .map(|length| length != before)
                     .unwrap_or(true)
             });
             if cut(runtime) != before || receipt_may_have_written {

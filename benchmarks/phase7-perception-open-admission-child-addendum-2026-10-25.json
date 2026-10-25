@@ -1,0 +1,116 @@
+{
+  "schema": "reliquary.phase7.child-scope-addendum.v1",
+  "date": "2026-10-25",
+  "status": "implemented-awaiting-integrated-rust-verification",
+  "parent": "P7.1.14a-PERCEPTION-ENTITY-OPERATIONS",
+  "title": "PHY open-time EntityResolution admission contract",
+  "registration_basis": {
+    "compiler_input": ".verification-tmp/phase7/closure-default-final-20261024/calls.json",
+    "compiler_input_sha256": "e05d24696b7839cbe2dae29373704422a3f8042b9afd0a4f6b1d954cbc406f6a",
+    "compiler_provenance_status": "invalid",
+    "warning": "Historical compiler capture does not prove current tree; use witnesses only as exact registered obligation and refresh proof after edits."
+  },
+  "scope_amendment": {
+    "existing_runtime_owner_file": {
+      "path": "src/runtime_inference/phy_execution_owner.rs",
+      "sha256_before_edit": "f5eccca1996808971016800a15bd7732efe43c2ddd22021a7c5c7320bd8b4fbd",
+      "exact_operation": "PhyExecutionOwner::validate_open_owner only; replace direct EntityResolutionStore local-validation and records dispatches with one owner-lifecycle admission contract."
+    },
+    "new_owner_lifecycle_module": "src/owner_lifecycle/entity_resolution_open_admission.rs",
+    "module_declaration": "src/owner_lifecycle.rs",
+    "supporting_store_validation_files_read_only": {
+      "src/owner_lifecycle/read_validation.rs": "45dd147fd6361f4fcbc3f7322df5541f5a7c12557dc70bf61a726ee89e6c36be",
+      "src/perception/entity_resolution_store.rs": "a782a1d2eff0397392bb93cb8803fecfcaac12b654589041ca3306b706882774"
+    }
+  },
+  "witnesses": [
+    {
+      "expanded_group_index": 337,
+      "boundary": "runtime-gateway->perception-store",
+      "target": "EntityResolutionStore::records",
+      "target_definition_identity": {
+        "path": "src/perception/entity_resolution_store.rs",
+        "line": 163,
+        "end_line": 167,
+        "compiler_def_id": "DefId(0:52290 ~ reliquary_memory[b862]::entity_resolution_store::{impl#0}::records)"
+      },
+      "target_definition": {
+        "path": "src/perception/entity_resolution_store.rs",
+        "line": 163,
+        "end_line": 167,
+        "excerpt": "    pub(crate) fn records(&self) -> Vec<MemoryEntityResolution> {\n        let mut values: Vec<_> = self.current.values().cloned().collect();\n        values.sort_by_key(|value| mention_sort_key(value.key));\n        values\n    }"
+      },
+      "call_count": 1,
+      "calls": [
+        {
+          "source_path": "src/runtime_inference/phy_execution_owner.rs",
+          "source_line": 111,
+          "source_column": 14,
+          "source_end_line": 111,
+          "source_end_column": 49,
+          "mir_line_sha256": "bc15abcee466913a2d965d0fea03f17bf7e3a96caac9c3d94715e811bdd3c4d3",
+          "compiler_def_id": "DefId(0:52290 ~ reliquary_memory[b862]::entity_resolution_store::{impl#0}::records)",
+          "definition_path": "entity_resolution_store::{impl#0}::records",
+          "source_excerpt": "            &result.entity_resolutions.records(),"
+        }
+      ]
+    },
+    {
+      "expanded_group_index": 338,
+      "boundary": "runtime-gateway->perception-store",
+      "target": "EntityResolutionStore::validate_local",
+      "target_definition_identity": {
+        "path": "src/perception/entity_resolution_store.rs",
+        "line": 141,
+        "end_line": 146,
+        "compiler_def_id": "DefId(0:52287 ~ reliquary_memory[b862]::entity_resolution_store::{impl#0}::validate_local)"
+      },
+      "target_definition": {
+        "path": "src/perception/entity_resolution_store.rs",
+        "line": 141,
+        "end_line": 146,
+        "excerpt": "    pub(crate) fn validate_local(&self) -> Result<(), MemoryError> {\n        for value in self.current.values() {\n            validate_status(&value.status)?;\n        }\n        Ok(())\n    }"
+      },
+      "call_count": 1,
+      "calls": [
+        {
+          "source_path": "src/runtime_inference/phy_execution_owner.rs",
+          "source_line": 107,
+          "source_column": 9,
+          "source_end_line": 107,
+          "source_end_column": 51,
+          "mir_line_sha256": "fe684cb07ea41c5b6e1a5c887da825ce7d8add1b7c865c10199d915ef3bbb7e2",
+          "compiler_def_id": "DefId(0:52287 ~ reliquary_memory[b862]::entity_resolution_store::{impl#0}::validate_local)",
+          "definition_path": "entity_resolution_store::{impl#0}::validate_local",
+          "source_excerpt": "        result.entity_resolutions.validate_local()?;"
+        }
+      ]
+    }
+  ],
+  "preserved_contracts": [
+    "run EntityResolutionStore::validate_local before cross-store reference validation",
+    "preserve exact existing errors and early-return behavior via ?",
+    "validate historical mention keys/status/entity references over all current records",
+    "do not mutate stores, container, replay state, or references",
+    "one materialization of records in the reference pass"
+  ],
+  "implementation_plan": "Introduce one owner-lifecycle function taking &MemoryStore, &EntityStore, &EntityResolutionStore; perform local validation first, then pass records to existing validate_entity_resolution_references. Gateway calls this single function during open-owner validation.",
+  "acceptance": "open; requires current compiler-source provenance, focused preserved-behavior test, and source/graph gates; no exception or proof shortcut.",
+  "implementation": {
+    "post_cut_source_sha256": {
+      "src/runtime_inference/phy_execution_owner.rs": "ebd4f3d619b214a26d7f483ad56861f1969e8ca000724af3eab227116c791bac",
+      "src/owner_lifecycle/entity_resolution_open_admission.rs": "f57b29ad6ce917b4dbcb8648dc810a7ab86dadf4eaf943e7c2105320ddb1dad4",
+      "src/owner_lifecycle.rs": "feec52f681a4a8cd2f85eac536d9b554b75f2039ff4938f12883cdacd5cbab75"
+    },
+    "source_guard": "scripts/check_phase7_source_cuts.py",
+    "source_guard_test": "scripts/test_phase7_source_cuts.py",
+    "behavior_test": "owner_lifecycle::entity_resolution_open_admission::tests::open_admission_preserves_cross_store_reference_error",
+    "verification": {
+      "source_cut_unit_tests": "43 passed",
+      "source_cut_production_guard": "83 guarded seams passed",
+      "rust_library_check": "passed before entity-publication-access cut",
+      "test_target_compile": "cargo test --no-run --lib completed successfully before entity-publication-access cut",
+      "focused_runtime_test": "not completed; final integrated Cargo lane owns runtime execution"
+    }
+  }
+}

@@ -6,13 +6,14 @@ pub(crate) fn publish_entity_rel(
     expected_revision: u64,
     draft: crate::EntityDraft,
 ) -> Result<(crate::Entity, bool), crate::EntityError> {
-    crate::owner_lifecycle::entity_publication_admission::validate_entity_publication(
-        &draft, false,
-    )?;
-    owner
-        .owner
-        .entities
-        .publish(&mut owner.owner.container, id, expected_revision, draft)
+    crate::owner_lifecycle::entity_publication_access::publish(
+        &mut owner.owner.container,
+        &mut owner.owner.entities,
+        id,
+        expected_revision,
+        draft,
+        false,
+    )
 }
 
 pub(crate) fn publish_entity_phy(
@@ -21,13 +22,14 @@ pub(crate) fn publish_entity_phy(
     expected_revision: u64,
     draft: crate::EntityDraft,
 ) -> Result<(crate::Entity, bool), crate::EntityError> {
-    crate::owner_lifecycle::entity_publication_admission::validate_entity_publication(
-        &draft, true,
-    )?;
-    owner
-        .owner
-        .entities
-        .publish(&mut owner.owner.container, id, expected_revision, draft)
+    crate::owner_lifecycle::entity_publication_access::publish(
+        &mut owner.owner.container,
+        &mut owner.owner.entities,
+        id,
+        expected_revision,
+        draft,
+        true,
+    )
 }
 
 pub(crate) fn replay_entity_revision_rel(
@@ -37,8 +39,9 @@ pub(crate) fn replay_entity_revision_rel(
     draft: crate::EntityDraft,
     global_id: Option<crate::EntityGlobalId>,
 ) -> Result<(crate::Entity, bool), crate::EntityError> {
-    owner.owner.entities.publish_with_global_id(
+    crate::owner_lifecycle::entity_publication_access::publish_with_global_id(
         &mut owner.owner.container,
+        &mut owner.owner.entities,
         Some(id),
         expected_revision,
         draft,
@@ -53,8 +56,9 @@ pub(crate) fn replay_entity_revision_phy(
     draft: crate::EntityDraft,
     global_id: Option<crate::EntityGlobalId>,
 ) -> Result<(crate::Entity, bool), crate::EntityError> {
-    owner.owner.entities.publish_with_global_id(
+    crate::owner_lifecycle::entity_publication_access::publish_with_global_id(
         &mut owner.owner.container,
+        &mut owner.owner.entities,
         Some(id),
         expected_revision,
         draft,
@@ -66,13 +70,13 @@ pub(crate) fn entity_rel(
     owner: &crate::RelExecutionOwner,
     id: EntityId,
 ) -> Result<crate::Entity, crate::EntityError> {
-    owner.owner.entities.entity(id)
+    crate::owner_lifecycle::entity_publication_access::entity(&owner.owner.entities, id)
 }
 pub(crate) fn entity_phy(
     owner: &crate::phy_execution_owner::PhyExecutionOwner,
     id: EntityId,
 ) -> Result<crate::Entity, crate::EntityError> {
-    owner.owner.entities.entity(id)
+    crate::owner_lifecycle::entity_publication_access::entity(&owner.owner.entities, id)
 }
 
 pub(crate) fn tombstone_entity_rel(
@@ -80,14 +84,15 @@ pub(crate) fn tombstone_entity_rel(
     id: EntityId,
     revision: u64,
 ) -> Result<crate::owner_lifecycle::TombstoneOutcome, crate::EntityError> {
-    let result = owner
-        .owner
-        .entities
-        .tombstone_direct(&mut owner.owner.container, id, revision)?;
+    let result = crate::owner_lifecycle::entity_publication_access::tombstone_direct(
+        &mut owner.owner.container,
+        &mut owner.owner.entities,
+        id,
+        revision,
+    )?;
     owner
         .owner
-        .graph
-        .exclude_from_current(crate::SemanticNodeRef::entity(id))
+        .exclude_entity_from_graph(id)
         .map_err(|_| crate::EntityError::InvalidField("Entity graph projection"))?;
     Ok(result)
 }
@@ -96,14 +101,15 @@ pub(crate) fn tombstone_entity_phy(
     id: EntityId,
     revision: u64,
 ) -> Result<crate::owner_lifecycle::TombstoneOutcome, crate::EntityError> {
-    let result = owner
-        .owner
-        .entities
-        .tombstone_direct(&mut owner.owner.container, id, revision)?;
+    let result = crate::owner_lifecycle::entity_publication_access::tombstone_direct(
+        &mut owner.owner.container,
+        &mut owner.owner.entities,
+        id,
+        revision,
+    )?;
     owner
         .owner
-        .graph
-        .exclude_from_current(crate::SemanticNodeRef::entity(id))
+        .exclude_entity_from_graph(id)
         .map_err(|_| crate::EntityError::InvalidField("Entity graph projection"))?;
     Ok(result)
 }
@@ -112,93 +118,119 @@ pub(crate) fn entity_retention_rel(
     owner: &crate::RelExecutionOwner,
     id: EntityId,
 ) -> Result<crate::EntityRetentionDescriptor, crate::EntityError> {
-    owner.owner.entities.retention_descriptor(id)
+    crate::owner_lifecycle::entity_publication_access::retention_descriptor(
+        &owner.owner.entities,
+        id,
+    )
 }
 pub(crate) fn entity_retention_phy(
     owner: &crate::phy_execution_owner::PhyExecutionOwner,
     id: EntityId,
 ) -> Result<crate::EntityRetentionDescriptor, crate::EntityError> {
-    owner.owner.entities.retention_descriptor(id)
+    crate::owner_lifecycle::entity_publication_access::retention_descriptor(
+        &owner.owner.entities,
+        id,
+    )
 }
 pub(crate) fn entity_lifecycle_rel(
     owner: &crate::RelExecutionOwner,
     id: EntityId,
 ) -> Result<crate::owner_lifecycle::LifecycleState, crate::EntityError> {
-    owner.owner.entities.lifecycle_state(id)
+    crate::owner_lifecycle::entity_publication_access::lifecycle_state(&owner.owner.entities, id)
 }
 pub(crate) fn entity_lifecycle_phy(
     owner: &crate::phy_execution_owner::PhyExecutionOwner,
     id: EntityId,
 ) -> Result<crate::owner_lifecycle::LifecycleState, crate::EntityError> {
-    owner.owner.entities.lifecycle_state(id)
+    crate::owner_lifecycle::entity_publication_access::lifecycle_state(&owner.owner.entities, id)
 }
 pub(crate) fn entity_revision_rel(
     owner: &crate::RelExecutionOwner,
     id: EntityId,
     revision: u64,
 ) -> Result<crate::Entity, crate::EntityError> {
-    owner.owner.entities.entity_revision(id, revision)
+    crate::owner_lifecycle::entity_publication_access::entity_revision(
+        &owner.owner.entities,
+        id,
+        revision,
+    )
 }
 pub(crate) fn entity_revision_phy(
     owner: &crate::phy_execution_owner::PhyExecutionOwner,
     id: EntityId,
     revision: u64,
 ) -> Result<crate::Entity, crate::EntityError> {
-    owner.owner.entities.entity_revision(id, revision)
+    crate::owner_lifecycle::entity_publication_access::entity_revision(
+        &owner.owner.entities,
+        id,
+        revision,
+    )
 }
 pub(crate) fn entity_candidates_rel(
     owner: &crate::RelExecutionOwner,
     surface: &str,
     limit: usize,
 ) -> Vec<crate::Entity> {
-    owner.owner.entities.candidates_for_surface(surface, limit)
+    crate::owner_lifecycle::entity_publication_access::candidates_for_surface(
+        &owner.owner.entities,
+        surface,
+        limit,
+    )
 }
 pub(crate) fn entity_candidates_phy(
     owner: &crate::phy_execution_owner::PhyExecutionOwner,
     surface: &str,
     limit: usize,
 ) -> Vec<crate::Entity> {
-    owner.owner.entities.candidates_for_surface(surface, limit)
+    crate::owner_lifecycle::entity_publication_access::candidates_for_surface(
+        &owner.owner.entities,
+        surface,
+        limit,
+    )
 }
 pub(crate) fn entity_candidates_normalized_rel(
     owner: &crate::RelExecutionOwner,
     surface: &str,
     limit: usize,
 ) -> Vec<crate::Entity> {
-    owner
-        .owner
-        .entities
-        .candidates_for_normalized_surface(surface, limit)
+    crate::owner_lifecycle::entity_publication_access::candidates_for_normalized_surface(
+        &owner.owner.entities,
+        surface,
+        limit,
+    )
 }
 pub(crate) fn entity_candidates_normalized_phy(
     owner: &crate::phy_execution_owner::PhyExecutionOwner,
     surface: &str,
     limit: usize,
 ) -> Vec<crate::Entity> {
-    owner
-        .owner
-        .entities
-        .candidates_for_normalized_surface(surface, limit)
+    crate::owner_lifecycle::entity_publication_access::candidates_for_normalized_surface(
+        &owner.owner.entities,
+        surface,
+        limit,
+    )
 }
 pub(crate) fn entity_candidates_alias_rel(
     owner: &crate::RelExecutionOwner,
     surface: &str,
     limit: usize,
 ) -> Vec<crate::Entity> {
-    owner
-        .owner
-        .entities
-        .candidates_for_alias_surface(surface, limit)
+    crate::owner_lifecycle::entity_publication_access::candidates_for_alias_surface(
+        &owner.owner.entities,
+        surface,
+        limit,
+    )
 }
 pub(crate) fn entity_candidates_alias_phy(
     owner: &crate::phy_execution_owner::PhyExecutionOwner,
     surface: &str,
     limit: usize,
 ) -> Vec<crate::Entity> {
-    owner
-        .owner
-        .entities
-        .candidates_for_alias_surface(surface, limit)
+    crate::owner_lifecycle::entity_publication_access::candidates_for_alias_surface(
+        &owner.owner.entities,
+        surface,
+        limit,
+    )
 }
 pub(crate) fn entity_creation_conflicts_rel(
     owner: &crate::RelExecutionOwner,
@@ -206,10 +238,12 @@ pub(crate) fn entity_creation_conflicts_rel(
     kind: &str,
     limit: usize,
 ) -> Vec<crate::Entity> {
-    owner
-        .owner
-        .entities
-        .creation_conflicts(surface, kind, limit)
+    crate::owner_lifecycle::entity_publication_access::creation_conflicts(
+        &owner.owner.entities,
+        surface,
+        kind,
+        limit,
+    )
 }
 pub(crate) fn entity_creation_conflicts_phy(
     owner: &crate::phy_execution_owner::PhyExecutionOwner,
@@ -217,28 +251,36 @@ pub(crate) fn entity_creation_conflicts_phy(
     kind: &str,
     limit: usize,
 ) -> Vec<crate::Entity> {
-    owner
-        .owner
-        .entities
-        .creation_conflicts(surface, kind, limit)
+    crate::owner_lifecycle::entity_publication_access::creation_conflicts(
+        &owner.owner.entities,
+        surface,
+        kind,
+        limit,
+    )
 }
 pub(crate) fn entity_retired_replacement_rel(
     owner: &crate::RelExecutionOwner,
     id: EntityId,
 ) -> Option<EntityId> {
-    owner.owner.entities.retired_replacement(id)
+    crate::owner_lifecycle::entity_publication_access::retired_replacement(
+        &owner.owner.entities,
+        id,
+    )
 }
 pub(crate) fn entity_retired_replacement_phy(
     owner: &crate::phy_execution_owner::PhyExecutionOwner,
     id: EntityId,
 ) -> Option<EntityId> {
-    owner.owner.entities.retired_replacement(id)
+    crate::owner_lifecycle::entity_publication_access::retired_replacement(
+        &owner.owner.entities,
+        id,
+    )
 }
 pub(crate) fn entity_version_rel(owner: &crate::RelExecutionOwner) -> u64 {
-    owner.owner.entities.entity_version()
+    crate::owner_lifecycle::entity_publication_access::entity_version(&owner.owner.entities)
 }
 pub(crate) fn entity_version_phy(owner: &crate::phy_execution_owner::PhyExecutionOwner) -> u64 {
-    owner.owner.entities.entity_version()
+    crate::owner_lifecycle::entity_publication_access::entity_version(&owner.owner.entities)
 }
 pub(crate) fn entities_rel(owner: &crate::RelExecutionOwner) -> Vec<crate::Entity> {
     owner.runtime_entities()
@@ -246,7 +288,7 @@ pub(crate) fn entities_rel(owner: &crate::RelExecutionOwner) -> Vec<crate::Entit
 pub(crate) fn entities_phy(
     owner: &crate::phy_execution_owner::PhyExecutionOwner,
 ) -> Vec<crate::Entity> {
-    owner.owner.entities.current()
+    crate::owner_lifecycle::entity_publication_access::current_entities(&owner.owner.entities)
 }
 pub(crate) fn entity_stats_rel(owner: &crate::RelExecutionOwner) -> crate::EntityStats {
     owner.runtime_entity_stats()
@@ -254,7 +296,7 @@ pub(crate) fn entity_stats_rel(owner: &crate::RelExecutionOwner) -> crate::Entit
 pub(crate) fn entity_stats_phy(
     owner: &crate::phy_execution_owner::PhyExecutionOwner,
 ) -> crate::EntityStats {
-    owner.owner.entities.stats()
+    crate::owner_lifecycle::entity_publication_access::stats(&owner.owner.entities)
 }
 
 pub(crate) fn historical_entity_rel(
@@ -454,30 +496,29 @@ pub(crate) fn retarget_rel(
     else {
         return Ok(false);
     };
-    let resolution_changed = owner.owner.entity_resolutions.retarget_resolved(
-        &mut owner.owner.container,
-        key,
-        from,
-        to,
-        now_ns,
-    )?;
+    let resolution_changed =
+        crate::owner_lifecycle::entity_publication_access::retarget_resolution(
+            &mut owner.owner.container,
+            &mut owner.owner.entity_resolutions,
+            key,
+            from,
+            to,
+            now_ns,
+        )?;
     let mut changed = resolution_changed;
     if let Some(add) = crate::entity_merge::plan_retarget_add_association(&owner.owner.graph, &plan)
     {
-        crate::entity_merge::validate_retarget_association(
-            &owner.owner.memories,
-            &owner.owner.entities,
-            add,
-        )?;
-        changed |= owner
-            .owner
-            .graph
-            .set_entity_association(
+        let expected_graph_version = owner.owner.owner_graph_version();
+        changed |=
+            crate::owner_lifecycle::perception_publication_merge::apply_retarget_association(
                 &mut owner.owner.container,
+                &owner.owner.memories,
+                &owner.owner.entities,
+                &mut owner.owner.graph,
                 key.memory_id,
                 to,
                 true,
-                owner.owner.graph.graph_version(),
+                expected_graph_version,
             )?
             .is_some();
     }
@@ -486,20 +527,17 @@ pub(crate) fn retarget_rel(
         &owner.owner.entity_resolutions,
         &plan,
     ) {
-        crate::entity_merge::validate_retarget_association(
-            &owner.owner.memories,
-            &owner.owner.entities,
-            remove,
-        )?;
-        changed |= owner
-            .owner
-            .graph
-            .set_entity_association(
+        let expected_graph_version = owner.owner.owner_graph_version();
+        changed |=
+            crate::owner_lifecycle::perception_publication_merge::apply_retarget_association(
                 &mut owner.owner.container,
+                &owner.owner.memories,
+                &owner.owner.entities,
+                &mut owner.owner.graph,
                 key.memory_id,
                 from,
                 false,
-                owner.owner.graph.graph_version(),
+                expected_graph_version,
             )?
             .is_some();
     }
@@ -523,30 +561,29 @@ pub(crate) fn retarget_phy(
     else {
         return Ok(false);
     };
-    let resolution_changed = owner.owner.entity_resolutions.retarget_resolved(
-        &mut owner.owner.container,
-        key,
-        from,
-        to,
-        now_ns,
-    )?;
+    let resolution_changed =
+        crate::owner_lifecycle::entity_publication_access::retarget_resolution(
+            &mut owner.owner.container,
+            &mut owner.owner.entity_resolutions,
+            key,
+            from,
+            to,
+            now_ns,
+        )?;
     let mut changed = resolution_changed;
     if let Some(add) = crate::entity_merge::plan_retarget_add_association(&owner.owner.graph, &plan)
     {
-        crate::entity_merge::validate_retarget_association(
-            &owner.owner.memories,
-            &owner.owner.entities,
-            add,
-        )?;
-        changed |= owner
-            .owner
-            .graph
-            .set_entity_association(
+        let expected_graph_version = owner.owner.owner_graph_version();
+        changed |=
+            crate::owner_lifecycle::perception_publication_merge::apply_retarget_association(
                 &mut owner.owner.container,
+                &owner.owner.memories,
+                &owner.owner.entities,
+                &mut owner.owner.graph,
                 key.memory_id,
                 to,
                 true,
-                owner.owner.graph.graph_version(),
+                expected_graph_version,
             )?
             .is_some();
     }
@@ -555,20 +592,17 @@ pub(crate) fn retarget_phy(
         &owner.owner.entity_resolutions,
         &plan,
     ) {
-        crate::entity_merge::validate_retarget_association(
-            &owner.owner.memories,
-            &owner.owner.entities,
-            remove,
-        )?;
-        changed |= owner
-            .owner
-            .graph
-            .set_entity_association(
+        let expected_graph_version = owner.owner.owner_graph_version();
+        changed |=
+            crate::owner_lifecycle::perception_publication_merge::apply_retarget_association(
                 &mut owner.owner.container,
+                &owner.owner.memories,
+                &owner.owner.entities,
+                &mut owner.owner.graph,
                 key.memory_id,
                 from,
                 false,
-                owner.owner.graph.graph_version(),
+                expected_graph_version,
             )?
             .is_some();
     }

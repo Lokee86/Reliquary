@@ -120,10 +120,10 @@ impl GatewayRuntime {
                     .collect::<Result<Vec<_>, _>>()?;
                 Ok((
                     memories,
-                    owner.entities(),
-                    owner.semantic_graph_relations(),
-                    owner.community_snapshot(),
-                    owner.community_semantic_names(),
+                    owner.runtime_entities(),
+                    owner.runtime_semantic_graph_relations(),
+                    owner.runtime_community_snapshot(),
+                    owner.runtime_community_semantic_names(),
                 ))
             }),
         }
@@ -139,7 +139,7 @@ impl GatewayRuntime {
             OwnerKind::Rel => {
                 self.with_rel(&token, |runtime| Ok(runtime.cva.runtime_entity_stats()))
             }
-            OwnerKind::Phy => self.with_phy(&token, |owner| Ok(owner.entity_stats())),
+            OwnerKind::Phy => self.with_phy(&token, |owner| Ok(owner.runtime_entity_stats())),
         }
     }
 
@@ -151,7 +151,7 @@ impl GatewayRuntime {
         let token = self.semantic_token(instance, owner_id)?;
         match token.kind {
             OwnerKind::Rel => self.with_rel(&token, |runtime| Ok(runtime.cva.runtime_entities())),
-            OwnerKind::Phy => self.with_phy(&token, |owner| Ok(owner.entities())),
+            OwnerKind::Phy => self.with_phy(&token, |owner| Ok(owner.runtime_entities())),
         }
     }
 
@@ -165,7 +165,9 @@ impl GatewayRuntime {
             OwnerKind::Rel => self.with_rel(&token, |runtime| {
                 Ok(runtime.cva.runtime_semantic_graph_relations())
             }),
-            OwnerKind::Phy => self.with_phy(&token, |owner| Ok(owner.semantic_graph_relations())),
+            OwnerKind::Phy => {
+                self.with_phy(&token, |owner| Ok(owner.runtime_semantic_graph_relations()))
+            }
         }
     }
 
@@ -184,7 +186,7 @@ impl GatewayRuntime {
                     .cloned())
             }),
             OwnerKind::Phy => self.with_phy(&token, |owner| {
-                Ok(owner.memory_routing_metadata(memory_id).cloned())
+                Ok(owner.native_memory_routing_metadata(memory_id).cloned())
             }),
         }
     }
@@ -197,7 +199,7 @@ impl GatewayRuntime {
             .attached_phy_owner_id()
             .ok_or_else(|| operation("instance has no bound PHY"))?;
         let token = self.authorize(instance, phy, OwnerGrant::UseOwnPhy)?;
-        self.with_phy(&token, |owner| Ok(owner.profile()))
+        self.with_phy(&token, |owner| Ok(owner.runtime_profile()))
     }
 
     /// Mutate only this verified instance's exact PHY; REL projection is separate.
@@ -211,7 +213,7 @@ impl GatewayRuntime {
             .ok_or_else(|| operation("instance has no bound PHY"))?;
         let token = self.authorize(instance, phy, OwnerGrant::UseOwnPhy)?;
         let changed = self.with_phy(&token, |owner| {
-            let changed = owner.set_profile(display_name).map_err(operation)?;
+            let changed = owner.native_set_profile(display_name).map_err(operation)?;
             if changed {
                 owner.sync().map_err(operation)?;
             }
@@ -234,7 +236,7 @@ impl GatewayRuntime {
             return Ok(false);
         };
         let token = self.authorize(instance, phy, OwnerGrant::UseOwnPhy)?;
-        let profile = self.with_phy(&token, |owner| Ok(owner.profile()))?;
+        let profile = self.with_phy(&token, |owner| Ok(owner.runtime_profile()))?;
         let changed = self.commit_principal_projection(instance, &rel, &token, &profile)?;
         if changed {
             self.wake_rel(rel_id)?;

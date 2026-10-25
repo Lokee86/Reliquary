@@ -34,6 +34,7 @@ impl From<ContainerError> for HistoryReadFailure {
 /// A bounded physical frame and the global clock observed after accepting it.
 pub(crate) struct HistoryFrame {
     pub(crate) object: ObjectRef,
+    pub(crate) offset: u64,
     pub(crate) payload: Vec<u8>,
     pub(crate) latest_global: u64,
     pub(crate) end: u64,
@@ -463,6 +464,7 @@ impl HistoryCursor<'_> {
 fn to_history_frame(frame: PhysicalFrame) -> HistoryFrame {
     HistoryFrame {
         object: frame.object,
+        offset: frame.offset,
         payload: frame.payload,
         latest_global: frame.latest_global,
         end: frame.end,

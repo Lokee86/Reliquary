@@ -1,0 +1,57 @@
+{
+  "schema": "phase7-child-scope-addendum.v1",
+  "date": "2026-10-25",
+  "child_ticket": "P7.1.14-CORE-OWNER-API",
+  "status": "source-cut-implemented-awaiting-targeted-build-and-fresh-compiler-evidence",
+  "scope": {
+    "files": [
+      "src/runtime_inference/insomnia_worker_runtime.rs"
+    ],
+    "intent": "Move the gateway worker Insomnia statistics read behind the existing concrete ReliquaryOwner API; preserve the initial snapshot and reporting order."
+  },
+  "compiler_input": {
+    "calls_path": ".verification-tmp/phase7/closure-finish-default-20261025/calls.json",
+    "calls_sha256": "be6b772eaeb3aca52a5a1aee03559cbb68a1113f58f6913f319f0e735476d36c",
+    "provenance_path": ".verification-tmp/phase7/closure-finish-default-20261025/provenance.json",
+    "provenance_sha256": "d041a1bcde366a7cf67520caf3e43ba2d300207113ccbd96fb3ef9ed1de122dd",
+    "source_snapshot_sha256": "f42bccd6cc58eb4f095793300a48637222e2beb21980a642ff55a0e4a19f6303",
+    "source_manifest_sha256": "e64cc368801fb3491b8a9bd662a13032df1c09592ea1dfa1b7ca6133d637eb28"
+  },
+  "source_before": {
+    "src/runtime_inference/insomnia_worker_runtime.rs": "22028390fb1b39d8bd12e350af60ca7b78752c9dd58c6e328841b107e3d9d765"
+  },
+  "witnesses": [
+    {
+      "source_path": "src/runtime_inference/insomnia_worker_runtime.rs",
+      "source_line": 134,
+      "source_column": 25,
+      "source_end_line": 134,
+      "source_end_column": 51,
+      "mir_line_sha256": "5c2c14d04a96f616d2e050fcb3b28b37b458368f609369256b73f9067b6f061b",
+      "target": "InsomniaStore::stats",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "insomnia::store::{impl#0}::stats",
+      "compiler_def_id": "DefId(0:54069 ~ reliquary_memory[b862]::insomnia::store::{impl#0}::stats)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "insomnia::store::{impl#0}::stats",
+      "source_component": "runtime-gateway",
+      "target_component": "insomnia-store",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/insomnia/store.rs",
+          "line": 144,
+          "end_line": 154
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    }
+  ],
+  "preserving_behavior": "Move the gateway worker Insomnia statistics read behind the existing concrete ReliquaryOwner API; preserve the initial snapshot and reporting order.",
+  "parent": "P7.1.14",
+  "title": "P7.1.14 CORE OWNER API exact runtime owner call witnesses",
+  "basis": "Exact compiler call witnesses from the historical checkpoint are bound to their source files by matching the checkpoint SHA-256 against current source bytes at registration. Historical compiler evidence is only a scope witness; fresh same-source evidence is still required after implementation. No new ticket or DAG edge is introduced.",
+  "source_after": {
+    "src/runtime_inference/insomnia_worker_runtime.rs": "28c6c9c01cfc996fdf632c1bbf358d01258734c7dc17396c156e26d2fc4896ba"
+  }
+}

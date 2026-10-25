@@ -43,8 +43,8 @@ impl crate::RelExecutionOwner {
 
     pub(crate) fn runtime_freshness_initialize(&mut self, id: MemoryId) -> Result<bool, CvaError> {
         self.runtime_require_freshness_memory(id)?;
-        let intent = self.owner.dream_freshness.pending_initialization(id);
-        if self.owner.freshness.records().contains_key(&id) {
+        let intent = self.owner.dream_pending_initialization(id);
+        if self.owner.freshness_has_record(id) {
             if let Some((mutation_id, turn, admit_at_birth)) = intent {
                 if self.owner.memories.first_mutation_id(id) != Some(mutation_id.as_str()) {
                     return Err(CvaError::Freshness(
@@ -53,8 +53,7 @@ impl crate::RelExecutionOwner {
                 }
                 if !self
                     .owner
-                    .freshness
-                    .has_durable_birth(id)
+                    .freshness_has_durable_birth(id)
                     .map_err(CvaError::Freshness)?
                 {
                     self.runtime_persist_accepted_freshness_birth(id, turn, admit_at_birth)?;
@@ -103,24 +102,31 @@ impl crate::RelExecutionOwner {
         let schedule_turn = self.owner.archive.rel_turn_count().max(accepted_turn);
         let affected: BTreeSet<_> = ids.into_iter().collect();
         for id in &affected {
-            let due = self
-                .freshness_due
-                .take_due_for(*id, schedule_turn)
-                .map_err(|error| CvaError::Freshness(error.to_string()))?;
+            let due = crate::owner_lifecycle::freshness_operations::take_due_for(
+                &mut self.freshness_due,
+                *id,
+                schedule_turn,
+            )
+            .map_err(|error| CvaError::Freshness(error.to_string()))?;
             for crossing in due {
                 self.buffer_freshness_crossing(crossing);
             }
         }
         self.freshness_on_accepted_activity(schedule_turn);
-        let policy = self.owner.freshness.policy();
+        let policy = self.owner.freshness_policy();
         let as_of_turn = self.owner.archive.rel_turn_count();
         for id in affected {
-            let Some(record) = self.owner.freshness.current_rewrite_record(id, as_of_turn) else {
+            let Some(record) = self.owner.current_freshness_rewrite_record(id, as_of_turn) else {
                 continue;
             };
-            let refreshed = self
-                .freshness_due
-                .refresh_with_transition(id, &record, schedule_turn, &policy)
+            let refreshed =
+                crate::owner_lifecycle::freshness_operations::refresh_due_with_transition(
+                    &mut self.freshness_due,
+                    id,
+                    &record,
+                    schedule_turn,
+                    &policy,
+                )
                 .map_err(|error| CvaError::Freshness(error.to_string()))?;
             if let Some(reversal) = refreshed.reversal {
                 self.freshness_notifications.entry(id).or_default().reversal = Some(reversal);

@@ -1,8 +1,7 @@
 use crate::{
-    CompatibilityProfileId, Cva, EmbeddingEndpoint, Fragment, FragmentId, RetrievalConfig,
-    SearchCandidate, SearchError,
+    CompatibilityProfileId, Cva, EmbeddingEndpoint, Fragment, RetrievalConfig, SearchCandidate,
+    SearchError,
 };
-use std::collections::HashSet;
 
 impl Cva {
     pub fn search(
@@ -11,7 +10,7 @@ impl Cva {
         endpoint: &impl EmbeddingEndpoint,
         query: &str,
     ) -> Result<Vec<SearchCandidate>, SearchError> {
-        self.search_with_config(
+        self.runtime_search_with_config(
             compatibility_profile_id,
             endpoint,
             query,
@@ -29,7 +28,7 @@ impl Cva {
         let candidate_limit = crate::DEFAULT_SEARCH_CANDIDATE_LIMIT
             .max(result_limit)
             .min(crate::MAX_SEMANTIC_SEARCH_LIMIT);
-        self.search_with_config(
+        self.runtime_search_with_config(
             compatibility_profile_id,
             endpoint,
             query,
@@ -48,16 +47,7 @@ impl Cva {
         query: &str,
         config: RetrievalConfig,
     ) -> Result<Vec<SearchCandidate>, SearchError> {
-        let weights = crate::search::validate_search(query, config)?;
-        let lexical = self.lexical_candidates(query, config.candidate_limit)?;
-        let semantic = self.semantic_search(
-            compatibility_profile_id,
-            endpoint,
-            query,
-            config.candidate_limit,
-        )?;
-        let archive = crate::archive::ArchiveReadView::new(&self.archive, &self.container);
-        crate::search_rank::rank_search_candidates(&archive, lexical, semantic, config, weights)
+        self.runtime_search_with_config(compatibility_profile_id, endpoint, query, config)
     }
 
     pub(crate) fn search_fragments_with_vector(
@@ -68,28 +58,12 @@ impl Cva {
         fragments: &[Fragment],
         config: RetrievalConfig,
     ) -> Result<Vec<SearchCandidate>, SearchError> {
-        let weights = crate::search::validate_search(query, config)?;
-        let lexical =
-            self.lexical_candidates_from_fragments(query, fragments, config.candidate_limit)?;
-        let semantic = match (compatibility_profile_id, query_vector) {
-            (Some(profile), Some(vector))
-                if self
-                    .vector_generations
-                    .current_generation(profile)
-                    .is_some() =>
-            {
-                let allowed: HashSet<FragmentId> =
-                    fragments.iter().map(|fragment| fragment.id).collect();
-                self.semantic_search_vector(
-                    profile,
-                    vector,
-                    config.candidate_limit,
-                    Some(&allowed),
-                )?
-            }
-            _ => Vec::new(),
-        };
-        let archive = crate::archive::ArchiveReadView::new(&self.archive, &self.container);
-        crate::search_rank::rank_search_candidates(&archive, lexical, semantic, config, weights)
+        self.runtime_search_fragments_with_vector(
+            compatibility_profile_id,
+            query_vector,
+            query,
+            fragments,
+            config,
+        )
     }
 }

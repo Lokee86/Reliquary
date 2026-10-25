@@ -114,7 +114,9 @@ pub(crate) fn reconcile_import_epochs(
     crate::history::reconciliation_inventory::validate_graph_overlap(&left_graph, &right_graph)?;
     if left.rel_metadata.effective(&left.container)
         != right.rel_metadata.effective(&right.container)
-        || left.freshness.policy() != right.freshness.policy()
+        || !crate::owner_lifecycle::import_reconciliation_restore::freshness_policies_match(
+            &left, &right,
+        )
     {
         return Err(unsupported(
             "import replay owner metadata or policy conflict",

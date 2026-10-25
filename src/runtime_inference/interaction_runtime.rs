@@ -187,12 +187,7 @@ impl RelExecution {
             &self.cva.owner.archive,
             &self.cva.owner.container,
         );
-        let vectors = crate::vector_generation_store::VectorReadView::new(
-            &self.cva.owner.vector_generations,
-            &self.cva.owner.archive_vectors,
-            &self.cva.owner.packed_vectors,
-            &self.cva.owner.container,
-        );
+        let vectors = self.cva.owner.vector_read_view();
         crate::conversation_search::search_conversation_branch_parts(
             &archive,
             &mut self.cva.lexical_index,
@@ -238,12 +233,7 @@ impl RelExecution {
             &self.cva.owner.archive,
             &self.cva.owner.container,
         );
-        let vectors = crate::vector_generation_store::VectorReadView::new(
-            &self.cva.owner.vector_generations,
-            &self.cva.owner.archive_vectors,
-            &self.cva.owner.packed_vectors,
-            &self.cva.owner.container,
-        );
+        let vectors = self.cva.owner.vector_read_view();
         crate::conversation_search::search_conversation_branch_parts(
             &archive,
             &mut self.cva.lexical_index,
@@ -417,11 +407,10 @@ impl RelExecution {
         let mut queued = Vec::new();
         for episode in &episodes.created {
             let source = crate::insomnia_admission::episode_source(episode, priority);
-            let (work, _) =
-                self.cva
-                    .owner
-                    .insomnia
-                    .queue(&mut self.cva.owner.container, &source, now_ns)?;
+            let (work, _) = self
+                .cva
+                .owner
+                .owner_insomnia_queue_episode(episode.id, priority, now_ns)?;
             queued.push(work);
         }
         Ok(EpisodeSchedulingResult { episodes, queued })

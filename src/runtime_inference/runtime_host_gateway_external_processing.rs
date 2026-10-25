@@ -1,4 +1,3 @@
-use crate::external_index::model::identifier;
 use crate::external_index::store::SourceState;
 use crate::external_source::processing::{
     self as source_processing, PreparedExternalMemory, PreparedExternalProcessing,
@@ -22,7 +21,7 @@ pub(super) fn prepare<E: GeneralEndpoint>(
     extractor: &InsomniaExtractor<E>,
     now_ns: i64,
 ) -> Result<PreparedExternalProcessing, ExternalSourceError> {
-    identifier(scope)?;
+    crate::external_source::validate_identifier(scope)?;
     let expected = source_processing::descriptors(&state, refs)?;
     let window = source_processing::window_key(owner, scope, &expected);
     let hydrated = source.hydrate(principal, &expected)?;
@@ -31,7 +30,7 @@ pub(super) fn prepare<E: GeneralEndpoint>(
     }
     let mut bytes = 0;
     for (message, descriptor) in hydrated.iter().zip(&expected) {
-        message.validate(descriptor)?;
+        crate::external_source::validate_hydrated(message, descriptor)?;
         bytes += message.content.len();
     }
     if bytes > 256 * 1024 {
@@ -199,7 +198,7 @@ impl GatewayRuntime {
             self.external_read_state(instance, owner, source.source_namespace())?;
         let mut descriptors = Vec::new();
         for reference in refs {
-            reference.message.validate()?;
+            crate::external_source::validate_reference(&reference.message)?;
             if reference.start >= reference.end || reference.end > MAX_EXTERNAL_MESSAGE_BYTES as u64
             {
                 return Err(ExternalSourceError::Bounds);
@@ -220,7 +219,7 @@ impl GatewayRuntime {
         }
         let mut result = Vec::new();
         for ((body, expected), reference) in bodies.iter().zip(&descriptors).zip(refs) {
-            body.validate(expected)?;
+            crate::external_source::validate_hydrated(body, expected)?;
             let content = body
                 .content
                 .get(reference.start as usize..reference.end as usize)
@@ -256,19 +255,17 @@ impl GatewayRuntime {
             .map_err(|_| ExternalSourceError::Unauthorized)?;
         source.authorize(instance.principal_id())?;
         let namespace = source.source_namespace().to_owned();
-        crate::external_index::model::identifier(&namespace)?;
+        crate::external_source::validate_identifier(&namespace)?;
         let state = self
             .with_rel(&token, |r| {
-                r.cva
-                    .external_index
-                    .read_state(&namespace)
+                crate::external_owner_access::read_state(&r.cva.external_index, &namespace)
                     .map_err(operation)?
                     .ok_or_else(|| operation(ExternalSourceError::RebuildRequired))
             })
             .map_err(|_| ExternalSourceError::RebuildRequired)?;
         let descriptors = external::processing::descriptors(&state, refs)?;
         super::external::validate_external_evidence(source, instance.principal_id(), &state, refs)?;
-        crate::external_index::model::identifier(scope)?;
+        crate::external_source::validate_identifier(scope)?;
         let window = external::processing::window_key(owner, scope, &descriptors);
         let phy = instance
             .attached_phy_owner_id()

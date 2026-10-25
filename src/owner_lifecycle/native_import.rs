@@ -1,5 +1,6 @@
 //! Concrete offline native Import producer access.
 use crate::imports::ImportEpochStore;
+use crate::owner_lifecycle::ReliquaryOwner;
 use crate::{EpisodeConfig, EpisodeOrigin};
 pub(crate) struct NativeImportParts<'a> {
     container: &'a mut crate::Container,
@@ -111,4 +112,14 @@ impl<'a> NativeImportParts<'a> {
         self.insomnia.queue(self.container, &source, now_ns)?;
         Ok(())
     }
+}
+
+pub(crate) fn parts(owner: &mut ReliquaryOwner) -> NativeImportParts<'_> {
+    NativeImportParts::new(
+        &mut owner.container,
+        &mut owner.archive,
+        &owner.project_files,
+        &mut owner.insomnia,
+        &mut owner.import_epochs,
+    )
 }

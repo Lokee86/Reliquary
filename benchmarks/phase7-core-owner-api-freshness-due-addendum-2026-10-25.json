@@ -1,0 +1,33 @@
+{
+  "schema": "phase7-child-scope-addendum.v1",
+  "ticket": "P7.1.14-CORE-OWNER-API",
+  "parent": "benchmarks/phase7-core-owner-api-child-2026-10-24.json",
+  "status": "source-cut-implemented-awaiting-root-build-and-fresh-compiler-evidence",
+  "date": "2026-10-25",
+  "scope": {
+    "public_methods": [
+      "Cva::drain_freshness_notifications"
+    ],
+    "operation": "Replace direct `self.owner.archive.rel_turn_count()` with the already existing native runtime `runtime_rel_turn_count()` accessor; preserve notification drain and freshness acceptance order.",
+    "files": [
+      "src/facade/cva_freshness_due.rs"
+    ]
+  },
+  "invariants": [
+    "no change to notification ordering/state mutation",
+    "no new owner or store abstraction",
+    "no component mapping/DAG changes"
+  ],
+  "pre_edit_source_sha256": {
+    "src/facade/cva_freshness_due.rs": "9a9e7a94db858c2c0ed2a15b0063bacf142a431300c47775b67ef83de59cae80"
+  },
+  "post_edit_source_sha256": {
+    "src/facade/cva_freshness_due.rs": "7b3c37e789930ef24cb8ee1d05c9c9b38589412df7d9b7f5ed275113df112c4b"
+  },
+  "verification": {
+    "rustfmt": "rustfmt --edition 2024 --check passed for all scoped Rust files and shared runtime/lifecycle modules",
+    "facade_boundary_guard": "python scripts/check_facade_boundaries.py passed",
+    "cargo": "not run; root owns integrated build",
+    "compiler_evidence": "existing compiler report predates this source cut; root must recapture after source freeze"
+  }
+}

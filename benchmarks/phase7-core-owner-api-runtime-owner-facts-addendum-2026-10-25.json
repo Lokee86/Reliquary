@@ -1,0 +1,178 @@
+{
+  "schema": "phase7-child-registration.v1",
+  "ticket": "P7.1.14-CORE-OWNER-API",
+  "parent": "P7.1.14-CORE-OWNER-API",
+  "status": "source-cut-implemented-awaiting-root-build-and-fresh-compiler-evidence",
+  "scope": [
+    "src/runtime_inference/reliquary_runtime_owner.rs",
+    "src/owner_lifecycle/entity_publication_access.rs",
+    "src/owner_lifecycle/insomnia_work_operations.rs",
+    "src/owner_lifecycle/import_epoch_transport.rs"
+  ],
+  "source_sha256_before": {
+    "src/runtime_inference/reliquary_runtime_owner.rs": "87f07df372f4aef6c23fd6b7f77eedfb34f58bb017f73cc17eedf2231c8142ef",
+    "src/owner_lifecycle/entity_publication_access.rs": "f89816f843e8d3ec82186fd4d0456998638c6b58cb6521909e6fc95a9aef3258",
+    "src/owner_lifecycle/insomnia_work_operations.rs": "0bfc1df39404f84cc4b38c7e32f9693f749052b4365a49c291ec48b646a4f5e3",
+    "src/owner_lifecycle/import_epoch_transport.rs": "5d73da958a006fb6b6bb91c4ee489578cbe5b308373f10eee102fb3863f0b490"
+  },
+  "compiler_checkpoint": {
+    "report": ".verification-tmp/phase7/closure-finish-default-20261025/calls.json",
+    "report_sha256": "be6b772eaeb3aca52a5a1aee03559cbb68a1113f58f6913f319f0e735476d36c",
+    "source_manifest": ".verification-tmp/phase7/closure-finish-default-20261025/source-manifest.json",
+    "source_manifest_sha256": "e64cc368801fb3491b8a9bd662a13032df1c09592ea1dfa1b7ca6133d637eb28",
+    "provenance": ".verification-tmp/phase7/closure-finish-default-20261025/provenance.json",
+    "provenance_sha256": "d041a1bcde366a7cf67520caf3e43ba2d300207113ccbd96fb3ef9ed1de122dd",
+    "reported_source_snapshot_sha256": "f42bccd6cc58eb4f095793300a48637222e2beb21980a642ff55a0e4a19f6303",
+    "reliquary_runtime_owner_reported_sha256": "5be886f3ea6ee54ba3b5b465f6e001f5dc8abc8c6959895211267baf86fd3278",
+    "current_reliquary_runtime_owner_sha256": "87f07df372f4aef6c23fd6b7f77eedfb34f58bb017f73cc17eedf2231c8142ef",
+    "witness_count": 5,
+    "current_source_site_count": 5,
+    "source_location_mismatch_count": 5,
+    "freshness_note": "This compiler report predates the root FreshnessDueDispatcher cut and subsequent edits. The report has 5 exact denied witnesses for the named targets; current source still has 5 matching direct call sites, but all five recorded line locations are stale. No claim is made that the old report is same-source evidence for this cut."
+  },
+  "witnesses": [
+    {
+      "source_path": "src/runtime_inference/reliquary_runtime_owner.rs",
+      "source_line": 86,
+      "source_column": 9,
+      "source_end_line": 86,
+      "source_end_column": 36,
+      "mir_line_sha256": "ce4c08a7b8bbbb7a4255eac92e81489a65ef657dbd4508b2b036b2b0177f37a3",
+      "target": "entity_store::read::stats",
+      "compiler_def_id": "DefId(0:53193 ~ reliquary_memory[b862]::entity_store::read::{impl#0}::stats)",
+      "source_component": "runtime-gateway",
+      "target_component": "perception-store",
+      "permitted": false,
+      "resolved_by": "exact-thir-defid-hir-owner-span"
+    },
+    {
+      "source_path": "src/runtime_inference/reliquary_runtime_owner.rs",
+      "source_line": 90,
+      "source_column": 9,
+      "source_end_line": 90,
+      "source_end_column": 38,
+      "mir_line_sha256": "839db29ccb2ea65947accebd0b190d398630eb5480812878fcace4ee2dcb68d2",
+      "target": "entity_store::read::current",
+      "compiler_def_id": "DefId(0:53179 ~ reliquary_memory[b862]::entity_store::read::{impl#0}::current)",
+      "source_component": "runtime-gateway",
+      "target_component": "perception-store",
+      "permitted": false,
+      "resolved_by": "exact-thir-defid-hir-owner-span"
+    },
+    {
+      "source_path": "src/runtime_inference/reliquary_runtime_owner.rs",
+      "source_line": 137,
+      "source_column": 9,
+      "source_end_line": 137,
+      "source_end_column": 49,
+      "mir_line_sha256": "99e4a6ee14a94192d4601961d09f92e5a073fe331c36fd13b9f5724d6d0479df",
+      "target": "InsomniaStore::attempts",
+      "compiler_def_id": "DefId(0:54068 ~ reliquary_memory[b862]::insomnia::store::{impl#0}::attempts)",
+      "source_component": "runtime-gateway",
+      "target_component": "insomnia-store",
+      "permitted": false,
+      "resolved_by": "exact-thir-defid-hir-owner-span"
+    },
+    {
+      "source_path": "src/runtime_inference/reliquary_runtime_owner.rs",
+      "source_line": 238,
+      "source_column": 9,
+      "source_end_line": 238,
+      "source_end_column": 40,
+      "mir_line_sha256": "3d0b7a5669cb6c1925db0a8b64233a8a4e58ffa556c1e998ffb493eaea15cafd",
+      "target": "ImportEpochStore::open",
+      "compiler_def_id": "DefId(0:49480 ~ reliquary_memory[b862]::imports::epoch_store::{impl#0}::open)",
+      "source_component": "runtime-gateway",
+      "target_component": "import-store",
+      "permitted": false,
+      "resolved_by": "exact-thir-defid-hir-owner-span"
+    },
+    {
+      "source_path": "src/runtime_inference/reliquary_runtime_owner.rs",
+      "source_line": 242,
+      "source_column": 9,
+      "source_end_line": 242,
+      "source_end_column": 40,
+      "mir_line_sha256": "3b3db71279f94e6ae05171c7c0d407609d4a6f34477773d1e9f92cdaca6b77ef",
+      "target": "ImportEpochStore::open",
+      "compiler_def_id": "DefId(0:49480 ~ reliquary_memory[b862]::imports::epoch_store::{impl#0}::open)",
+      "source_component": "runtime-gateway",
+      "target_component": "import-store",
+      "permitted": false,
+      "resolved_by": "exact-thir-defid-hir-owner-span"
+    }
+  ],
+  "current_call_sites": [
+    {
+      "source": "src/runtime_inference/reliquary_runtime_owner.rs",
+      "line": 85,
+      "target": "EntityStore::stats",
+      "existing_lifecycle_owner": "entity_publication_access::stats",
+      "contract": "preserve constant-time store stats; do not derive by scanning current entities"
+    },
+    {
+      "source": "src/runtime_inference/reliquary_runtime_owner.rs",
+      "line": 89,
+      "target": "EntityStore::current",
+      "existing_lifecycle_owner": "entity_publication_access::current_entities",
+      "contract": "preserve Vec<Entity> owned-clone result"
+    },
+    {
+      "source": "src/runtime_inference/reliquary_runtime_owner.rs",
+      "line": 133,
+      "target": "InsomniaStore::attempts",
+      "lifecycle_owner": "insomnia_work_operations::owner_insomnia_attempts",
+      "contract": "preserve returned owned attempt vector"
+    },
+    {
+      "source": "src/runtime_inference/reliquary_runtime_owner.rs",
+      "line": 261,
+      "target": "ImportEpochStore::open().is_some()",
+      "lifecycle_owner": "import_epoch_transport::open_import_epoch",
+      "contract": "preserve bool presence query"
+    },
+    {
+      "source": "src/runtime_inference/reliquary_runtime_owner.rs",
+      "line": 265,
+      "target": "ImportEpochStore::open().cloned()",
+      "lifecycle_owner": "import_epoch_transport::open_import_start",
+      "contract": "preserve optional cloned ImportStart"
+    }
+  ],
+  "cut": "Route the five named runtime owner facts through existing concrete owner-lifecycle accessors or add bounded accessors to the existing lifecycle modules. Preserve public/runtime signatures, return ownership, and the Entity stats no-scan behavior. No component/DAG/denominator changes.",
+  "invariants": [
+    "No scan of current entities for statistics",
+    "No return-borrow or clone behavior change",
+    "Keep ImportEpochStore semantic ownership in Import/lifecycle",
+    "No public facade, map, registry, shared script, or Cargo changes"
+  ],
+  "documentation_impact": {
+    "inspected": [
+      "docs/architecture.md",
+      "docs/invariants.md",
+      "docs/storage-format.md",
+      "docs/maintainer-map.md",
+      "docs/current-limitations.md",
+      "docs/roadmap.md"
+    ],
+    "planned_update": "No persistent format or public contract change; confirm documentation impact after implementation."
+  },
+  "implementation_source_sha256": {
+    "src/runtime_inference/reliquary_runtime_owner.rs": "6a4b779e9a3a68d437c4160bdff99cc1fc7a51fb30a16d4ab1ca68e1150142e3",
+    "src/owner_lifecycle/entity_publication_access.rs": "f89816f843e8d3ec82186fd4d0456998638c6b58cb6521909e6fc95a9aef3258",
+    "src/owner_lifecycle/insomnia_work_operations.rs": "2dab2477723eee2e927215691f8ada06d646e442e3675dc1341ff0cd98742d50",
+    "src/owner_lifecycle/import_epoch_transport.rs": "9a5fa9571977e7b439eed8cd0aab4ad3e0dd3d6c9750d310623f4c8180526693"
+  },
+  "implementation": {
+    "src/runtime_inference/reliquary_runtime_owner.rs": "Runtime facts now delegate to owner lifecycle stats/current, Insomnia attempts, and Import epoch accessors; runtime method signatures and return ownership are unchanged.",
+    "src/owner_lifecycle/entity_publication_access.rs": "Reused existing stats/current_entities functions; stats remains the store summary operation and does not scan current entity inventory.",
+    "src/owner_lifecycle/insomnia_work_operations.rs": "Added owner_insomnia_attempts as the lifecycle-owned value accessor.",
+    "src/owner_lifecycle/import_epoch_transport.rs": "Added open_import_epoch and open_import_start lifecycle read operations; Option<ImportStart> remains cloned."
+  },
+  "verification": {
+    "rustfmt": "rustfmt --edition 2024 passed on the three edited Rust files.",
+    "source_scan": "No EntityStore stats/current, InsomniaStore attempts, or ImportEpochStore open calls remain in reliquary_runtime_owner.rs.",
+    "cargo": "not run per task instructions; root owns Cargo builds.",
+    "fresh_compiler_evidence": "not run; the available default report predates the source checkpoint (5 direct-site witnesses, with all 5 stored source line locations stale). A fresh same-source compiler report is required."
+  }
+}

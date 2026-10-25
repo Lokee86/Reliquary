@@ -1,0 +1,124 @@
+{
+  "schema": "phase7-child-scope-addendum.v1",
+  "date": "2026-10-25",
+  "child": "P7.1.14-PUBLIC-DREAM-OPERATIONS",
+  "status": "registered before edits; implementation and integrated compiler proof pending",
+  "scope": [
+    "src/facade/dream_community_naming.rs",
+    "src/runtime_inference/public_dream_operations.rs",
+    "src/runtime_inference/offline_community_naming.rs"
+  ],
+  "basis": "Four exact compiler witnesses in the public community naming adapter invoke Dream representative selection and provider naming. Move the complete REL/PHY naming orchestration to runtime operations over concrete owners and a borrowed DreamCommunityNamer; retain Dream representative/provider policy and owner publication authority. Preserve snapshot admission, pending selection, hydration, provider retries, publication order, remaining count, and public signatures.",
+  "witness_count": 4,
+  "witnesses": [
+    {
+      "source_path": "src/facade/dream_community_naming.rs",
+      "source_line": 33,
+      "source_column": 35,
+      "source_end_line": 33,
+      "source_end_column": 72,
+      "mir_line_sha256": "da8372eae9d84f67236c477ece5ed8ad255950c1891bf75ee81378071eb101ab",
+      "target": "representative_ids",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "dream_community_naming_context::representative_ids",
+      "compiler_def_id": "DefId(0:52436 ~ reliquary_memory[9086]::dream_community_naming_context::representative_ids)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "dream_community_naming_context::representative_ids",
+      "source_component": "public-consumers",
+      "target_component": "dream",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/dream_community_naming_context.rs",
+          "line": 29,
+          "end_line": 94
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/dream_community_naming.rs",
+      "source_line": 43,
+      "source_column": 23,
+      "source_end_line": 43,
+      "source_end_column": 52,
+      "mir_line_sha256": "2bcd448dccfe0cdda6c666180a022a9dc6c87781384ef92da64c9b313ea1f832",
+      "target": "DreamCommunityNamer::generate_name",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "dream_community_naming::{impl#0}::generate_name",
+      "compiler_def_id": "DefId(0:52428 ~ reliquary_memory[9086]::dream_community_naming::{impl#0}::generate_name)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "dream_community_naming::{impl#0}::generate_name",
+      "source_component": "public-consumers",
+      "target_component": "dream",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/dream_community_naming.rs",
+          "line": 40,
+          "end_line": 69
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/dream_community_naming.rs",
+      "source_line": 89,
+      "source_column": 35,
+      "source_end_line": 89,
+      "source_end_column": 72,
+      "mir_line_sha256": "8c440850ce3f2ee62aa5c7d97695afa9798a11c962b7cd37b0fcf61e0a519b1e",
+      "target": "representative_ids",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "dream_community_naming_context::representative_ids",
+      "compiler_def_id": "DefId(0:52436 ~ reliquary_memory[9086]::dream_community_naming_context::representative_ids)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "dream_community_naming_context::representative_ids",
+      "source_component": "public-consumers",
+      "target_component": "dream",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/dream_community_naming_context.rs",
+          "line": 29,
+          "end_line": 94
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/dream_community_naming.rs",
+      "source_line": 99,
+      "source_column": 23,
+      "source_end_line": 99,
+      "source_end_column": 52,
+      "mir_line_sha256": "fe9aab34aee74ee7b7a1799093cb44aa418f025dc59488943767bad8ed34a217",
+      "target": "DreamCommunityNamer::generate_name",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "dream_community_naming::{impl#0}::generate_name",
+      "compiler_def_id": "DefId(0:52428 ~ reliquary_memory[9086]::dream_community_naming::{impl#0}::generate_name)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "dream_community_naming::{impl#0}::generate_name",
+      "source_component": "public-consumers",
+      "target_component": "dream",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/dream_community_naming.rs",
+          "line": 40,
+          "end_line": 69
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    }
+  ],
+  "calls_report_sha256": "14cf2aaec18902a4c0e5f4174d5ba949fa992d8591c156531f39909d339ef9b2",
+  "target_dag_edges_added": 0,
+  "denominator_change": 0,
+  "pre_edit_source_sha256": {
+    "src/facade/dream_community_naming.rs": "0abb1f965f486541ff4492723aacde62f6d0e3c033aa1da03f3ca9c8df9c569e",
+    "src/runtime_inference/public_dream_operations.rs": "d17a26dc745f52a930a156ffaf61ee44ea03fc3996b5f6f3ccb8e577f1b25a59"
+  },
+  "verification": "No source edits at registration. Existing runtime operation module is already integrated; no lib/map/DAG/registry/Cargo edits are part of this scope.",
+  "scope_refinement_before_implementation": "Complete existing naming orchestration moves to a focused runtime module; no new child or permitted edge."
+}

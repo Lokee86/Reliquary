@@ -1,6 +1,4 @@
-use crate::dream_pass_identity::initial_pass_id;
-use crate::{Cva, DreamPublicationOutcome, GraphRelationOrigin, MemoryId};
-use std::collections::BTreeSet;
+use crate::{Cva, DreamPublicationOutcome, MemoryId};
 
 /// Capture the durable first-pass identity before any Dream relation is published.
 /// The Freshness owner returns the original frozen cut on retry.
@@ -53,52 +51,16 @@ impl Cva {
         preexisting_roots: &[MemoryId],
         workers: usize,
     ) -> Result<bool, crate::CvaError> {
-        if self.initial_dream_pass_settled(&initial_pass_id(
-            self.owner_uuid()
-                .ok_or_else(|| crate::CvaError::Freshness("fixture lacks owner UUID".into()))?,
-            source_id,
-        )) {
-            return Ok(false);
-        }
-        let Some(pass) = begin_initial_pass(self, source_id, preexisting_roots.iter().copied())?
-        else {
-            return Err(crate::CvaError::Freshness(
-                "fixture source is not eligible for initial Dream".into(),
-            ));
-        };
-        let mut published = Vec::new();
-        for root in preexisting_roots {
-            if let Some(relation) = self
-                .set_memory_relation_with_origin(
-                    source_id,
-                    *root,
-                    crate::GraphRelationKind::Topical,
-                    true,
-                    crate::GraphRelationOrigin::Dream,
-                    self.graph_version(),
-                )
-                .map_err(|error| crate::CvaError::Freshness(error.to_string()))?
-            {
-                published.push(relation);
-            }
-        }
-        record_publication_roots(
+        crate::freshness_operations_runtime::run_initial_dream_trace_fixture(
             self,
             source_id,
-            &DreamPublicationOutcome::Published(published),
-        )?;
-        self.accept_initial_dream_settlement(&pass.pass_id, self.rel_turn_count())?;
-        let Some(work) = prepare_initial_settlement(self, source_id, false)? else {
-            return Err(crate::CvaError::Freshness(
-                "fixture initial Dream did not prepare".into(),
-            ));
-        };
-        work.evaluate(workers)?.commit(self)?;
-        Ok(true)
+            preexisting_roots,
+            workers,
+        )
     }
 
     pub fn freshness_trace_flush(&self) {
-        crate::freshness_trace::flush();
+        crate::freshness_operations_runtime::flush_freshness_trace();
     }
 }
 

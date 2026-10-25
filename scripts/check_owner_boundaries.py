@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import ntpath
 import re
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from check_multiplexing_phase4_coverage import closing, masked
 
@@ -245,6 +246,7 @@ def split_use_tree(tree: str, prefix: str = "") -> list[tuple[str, str | None]]:
 
 def module_tree(root: Path, cfg_facts: set[str] | None = None) -> dict[str, str]:
     """Read crate module declarations to resolve exact module paths to files."""
+    root = root.resolve()
     modules: dict[str, str] = {}
     visited: set[tuple[Path, str]] = set()
 
@@ -275,11 +277,42 @@ def module_tree(root: Path, cfg_facts: set[str] | None = None) -> dict[str, str]
                 if not child.exists():
                     child = (file.parent / name / "mod.rs").resolve()
             if child.is_file():
-                modules[module] = child.relative_to(root).as_posix()
+                modules[module] = relative_module_path(child, root)
                 walk(child, module)
 
     walk(root / "src/lib.rs", "")
     return modules
+
+
+def _strip_windows_extended_prefix(path: str) -> str:
+    """Normalize Win32 device paths while preserving their drive or UNC root."""
+    if path.startswith("\\\\?\\UNC\\"):
+        return "\\\\" + path[8:]
+    if re.match(r"^\\\\\?\\[A-Za-z]:\\", path):
+        return path[4:]
+    return path
+
+
+def relative_module_path(path: Path, root: Path) -> str:
+    """Return a root-relative source path across normal and extended Windows paths."""
+    path_text, root_text = str(path), str(root)
+    normalized_path_text = _strip_windows_extended_prefix(path_text)
+    normalized_root_text = _strip_windows_extended_prefix(root_text)
+    path_drive, _ = ntpath.splitdrive(normalized_path_text)
+    root_drive, _ = ntpath.splitdrive(normalized_root_text)
+    if path_drive and root_drive and ntpath.isabs(normalized_path_text) and ntpath.isabs(normalized_root_text):
+        path_text = ntpath.normcase(ntpath.normpath(normalized_path_text))
+        root_text = ntpath.normcase(ntpath.normpath(normalized_root_text))
+        try:
+            relative = ntpath.relpath(path_text, root_text)
+        except ValueError as error:
+            raise ValueError(f"module path and repository root have different drives: {path} / {root}") from error
+        if relative == ".." or relative.startswith("..\\") or ntpath.isabs(relative):
+            raise ValueError(f"module path is outside repository root: {path} / {root}")
+        return relative.replace("\\", "/")
+    if path_text.startswith("/") and root_text.startswith("/"):
+        return PurePosixPath(path_text).relative_to(PurePosixPath(root_text)).as_posix()
+    return path.resolve().relative_to(root.resolve()).as_posix()
 
 
 

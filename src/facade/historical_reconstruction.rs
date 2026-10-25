@@ -20,31 +20,7 @@ impl Cva {
         &mut self,
         options: HistoricalReconstructionOptions,
     ) -> Result<HistoricalReconstructionReport, HistoricalReconstructionError> {
-        let open_epoch = if options.fill_missing_embeddings {
-            self.open_import_epoch()
-        } else {
-            None
-        };
-        let accepted_settlement_exists = if options.fill_missing_embeddings && open_epoch.is_none()
-        {
-            Some(!self.freshness.import_settlements().is_empty())
-        } else {
-            None
-        };
-        crate::imports::historical_reconstruction::validate_initial_fill_admission(
-            options.fill_missing_embeddings,
-            open_epoch.as_ref(),
-            accepted_settlement_exists,
-        )?;
-        let frozen = self.freeze_historical_import()?;
-        let prepared = crate::imports::historical_reconstruction::prepare_without_endpoint(
-            frozen,
-            options.fill_missing_embeddings,
-        )?;
-        let committed = self.commit_historical_import(&prepared)?;
-        Ok(crate::imports::historical_reconstruction::report(
-            &prepared, committed, None,
-        ))
+        self.runtime_reconstruct_historical_freshness(options)
     }
 }
 
@@ -62,21 +38,10 @@ impl Cva {
         if !options.fill_missing_embeddings {
             return self.reconstruct_historical_freshness(options);
         }
-        let accepted = match self.open_import_epoch() {
-            Some(start) => self
-                .freshness
-                .import_settlements()
-                .iter()
-                .any(|settlement| {
-                    settlement
-                        .import_id
-                        .iter()
-                        .map(|byte| format!("{byte:02x}"))
-                        .collect::<String>()
-                        == start.import_id
-                }),
-            None => !self.freshness.import_settlements().is_empty(),
-        };
+        let open_epoch = self.open_import_epoch();
+        let accepted = self.runtime_has_accepted_historical_settlement(
+            open_epoch.as_ref().map(|start| start.import_id.as_str()),
+        );
         if accepted {
             return self.reconstruct_historical_freshness(options);
         }

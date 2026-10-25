@@ -1,30 +1,9 @@
 use crate::{MemoryBodyId, MemoryId};
 
+pub use crate::memory_text_field_contract::MemoryTextField;
+
 pub const MAX_MEMORY_ENTITY_MENTIONS: usize = 64;
 pub const MAX_MEMORY_ROUTING_TEXT_BYTES: usize = 512;
-
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum MemoryTextField {
-    Title,
-    Content,
-}
-
-impl MemoryTextField {
-    pub(crate) fn tag(self) -> u8 {
-        match self {
-            Self::Title => 1,
-            Self::Content => 2,
-        }
-    }
-
-    pub(crate) fn from_tag(tag: u8) -> Option<Self> {
-        match tag {
-            1 => Some(Self::Title),
-            2 => Some(Self::Content),
-            _ => None,
-        }
-    }
-}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MemoryEntityMention {

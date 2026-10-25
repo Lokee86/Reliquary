@@ -17,7 +17,7 @@ impl Cva {
         &mut self,
         limit: usize,
     ) -> Vec<FreshnessTransitionNotice> {
-        self.freshness_on_accepted_activity(self.owner.archive.rel_turn_count());
+        self.freshness_on_accepted_activity(self.runtime_rel_turn_count());
         let mut result = Vec::with_capacity(limit.min(64));
         while result.len() < limit {
             let Some((id, mut state)) = self.freshness_notifications.pop_first() else {

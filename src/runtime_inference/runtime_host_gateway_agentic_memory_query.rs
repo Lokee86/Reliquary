@@ -45,16 +45,9 @@ impl GatewayRuntime {
                             &cva.owner.memories,
                             &cva.owner.container,
                         ),
-                        &crate::memory_vector_store::MemoryVectorReadView::new(
-                            &cva.owner.memory_vectors,
-                            &cva.owner.packed_vectors,
-                            &cva.owner.container,
-                        ),
+                        &cva.owner.memory_vector_read_view(),
                         &mut cva.lexical_index,
-                        cva.owner
-                            .compatibility_profiles
-                            .get_active(profile)
-                            .cloned(),
+                        cva.owner.vector_profile_get_active(profile).cloned(),
                         staged.query(),
                         &vector,
                         profile,

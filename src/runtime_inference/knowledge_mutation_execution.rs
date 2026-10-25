@@ -42,7 +42,7 @@ impl crate::RelExecutionOwner {
             .owner
             .memories
             .memory(&self.owner.container, memory_id)?;
-        let relations = self.owner.graph.active_relations();
+        let relations = self.owner.owner_graph_relations();
         let plan = crate::knowledge_mutation::plan_knowledge_replacement(
             &current, &relations, title, content, now_ns,
         );
@@ -60,7 +60,7 @@ impl crate::RelExecutionOwner {
             } else {
                 relation.target
             };
-            let expected_graph_version = self.owner.graph.graph_version();
+            let expected_graph_version = self.owner.owner_graph_version();
             self.runtime_set_knowledge_relations(
                 &[GraphRelationChange {
                     source,
@@ -72,7 +72,7 @@ impl crate::RelExecutionOwner {
                 expected_graph_version,
             )?;
         }
-        let expected_graph_version = self.owner.graph.graph_version();
+        let expected_graph_version = self.owner.owner_graph_version();
         self.runtime_set_knowledge_relations(
             &[GraphRelationChange {
                 source: replacement.id,
@@ -146,17 +146,8 @@ impl crate::RelExecutionOwner {
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
     ) -> Result<Vec<crate::GraphRelation>, GraphError> {
-        crate::graph_endpoint_admission::validate_memory_changes(
-            &self.owner.memories,
-            changes,
-            origin,
-        )?;
-        self.owner.graph.set_relations_with_origin(
-            &mut self.owner.container,
-            changes,
-            origin,
-            expected_graph_version,
-        )
+        self.owner
+            .owner_runtime_set_knowledge_relations(changes, origin, expected_graph_version)
     }
 
     pub(crate) fn runtime_set_knowledge_community_name(
@@ -164,18 +155,8 @@ impl crate::RelExecutionOwner {
         community_id: CommunityId,
         name: String,
     ) -> Result<bool, CommunityError> {
-        self.owner.communities.publish_semantic_name(
-            &mut self.owner.container,
-            &self.owner.graph,
-            CommunitySemanticName {
-                community_id,
-                baseline_community_id: community_id,
-                contract_version: 0,
-                source: CommunitySemanticNameSource::User,
-                name: name.trim().to_owned(),
-                representative_memories: Vec::new(),
-            },
-        )
+        self.owner
+            .owner_runtime_set_knowledge_community_name(community_id, name)
     }
 }
 
@@ -191,7 +172,7 @@ impl crate::phy_execution_owner::PhyExecutionOwner {
             .owner
             .memories
             .memory(&mut self.owner.container, memory_id)?;
-        let relations = self.owner.graph.active_relations();
+        let relations = self.owner.owner_graph_relations();
         let plan = crate::knowledge_mutation::plan_knowledge_replacement(
             &current, &relations, title, content, now_ns,
         );
@@ -214,7 +195,7 @@ impl crate::phy_execution_owner::PhyExecutionOwner {
             } else {
                 relation.target
             };
-            let expected_graph_version = self.owner.graph.graph_version();
+            let expected_graph_version = self.owner.owner_graph_version();
             self.runtime_set_knowledge_relations(
                 &[GraphRelationChange {
                     source,
@@ -226,7 +207,7 @@ impl crate::phy_execution_owner::PhyExecutionOwner {
                 expected_graph_version,
             )?;
         }
-        let expected_graph_version = self.owner.graph.graph_version();
+        let expected_graph_version = self.owner.owner_graph_version();
         self.runtime_set_knowledge_relations(
             &[GraphRelationChange {
                 source: replacement.id,
@@ -278,17 +259,8 @@ impl crate::phy_execution_owner::PhyExecutionOwner {
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
     ) -> Result<Vec<crate::GraphRelation>, GraphError> {
-        crate::graph_endpoint_admission::validate_memory_changes(
-            &self.owner.memories,
-            changes,
-            origin,
-        )?;
-        self.owner.graph.set_relations_with_origin(
-            &mut self.owner.container,
-            changes,
-            origin,
-            expected_graph_version,
-        )
+        self.owner
+            .owner_runtime_set_knowledge_relations(changes, origin, expected_graph_version)
     }
 
     pub(crate) fn runtime_set_knowledge_community_name(
@@ -296,17 +268,7 @@ impl crate::phy_execution_owner::PhyExecutionOwner {
         community_id: CommunityId,
         name: String,
     ) -> Result<bool, CommunityError> {
-        self.owner.communities.publish_semantic_name(
-            &mut self.owner.container,
-            &self.owner.graph,
-            CommunitySemanticName {
-                community_id,
-                baseline_community_id: community_id,
-                contract_version: 0,
-                source: CommunitySemanticNameSource::User,
-                name: name.trim().to_owned(),
-                representative_memories: Vec::new(),
-            },
-        )
+        self.owner
+            .owner_runtime_set_knowledge_community_name(community_id, name)
     }
 }

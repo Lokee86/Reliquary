@@ -1,0 +1,944 @@
+{
+  "schema": "phase7-child-scope-addendum.v1",
+  "date": "2026-10-24",
+  "status": "implemented; fresh compiler proof and acceptance open",
+  "child": "P7.1.14-FRESHNESS-FACADE-OPERATIONS",
+  "parent": "P7.1.14",
+  "title": "Move semantic Freshness public execution into canonical Gateway and owner lifecycle",
+  "registration_basis": "Frozen default-cfg compiler evidence from closure-default-final-20261024/calls.json has direct semantic Freshness calls from the three facade files. Scope remains within the existing Freshness facade child; new dedicated runtime and owner-lifecycle modules are added to implement the concrete cut.",
+  "compiler_capture": {
+    "calls_path": ".verification-tmp/phase7/closure-default-final-20261024/calls.json",
+    "calls_sha256": "e05d24696b7839cbe2dae29373704422a3f8042b9afd0a4f6b1d954cbc406f6a",
+    "source_manifest_sha256": "8e4922975cad583ea734bf9bfc7066eebfb0b9599a05bcf4fa15d4171511232a",
+    "source_sha256_at_capture": {
+      "src/facade/cva_semantic_live.rs": "80c1ce50071cf04efd02552b3c3b8d3b2cdc3ff8ecd2120aeac043bbd8592114",
+      "src/facade/cva_semantic_source.rs": "c45c68d66e98031786146910e63bc44b74a59b94ad9e97d3e8fb558df05f18d6",
+      "src/facade/cva_semantic_fragment.rs": "97e8f0561cf33db184a4e2af66932aca523e1505e33e01b7a3732da2bb8401f1"
+    },
+    "witness_count": 54,
+    "evidence_caveat": "Historical compiler witnesses are the frozen pre-edit baseline; a fresh same-source compiler capture is required after implementation."
+  },
+  "scope": {
+    "facade_sources": [
+      "src/facade/cva_semantic_live.rs",
+      "src/facade/cva_semantic_source.rs",
+      "src/facade/cva_semantic_fragment.rs"
+    ],
+    "new_runtime_gateway_file": "src/runtime_inference/public_semantic_operations.rs",
+    "new_owner_lifecycle_file": "src/owner_lifecycle/semantic_freshness_operations.rs",
+    "module_declarations": [
+      "src/lib.rs",
+      "src/owner_lifecycle.rs"
+    ],
+    "source_sha256_at_registration": {
+      "src/facade/cva_semantic_live.rs": "80c1ce50071cf04efd02552b3c3b8d3b2cdc3ff8ecd2120aeac043bbd8592114",
+      "src/facade/cva_semantic_source.rs": "c45c68d66e98031786146910e63bc44b74a59b94ad9e97d3e8fb558df05f18d6",
+      "src/facade/cva_semantic_fragment.rs": "97e8f0561cf33db184a4e2af66932aca523e1505e33e01b7a3732da2bb8401f1",
+      "src/runtime_inference/public_semantic_operations.rs": null,
+      "src/owner_lifecycle/semantic_freshness_operations.rs": null,
+      "src/lib.rs": "0afc923d8192c51c9f765998b9962c0c899026e135019ec9a17f769f2f9be87c",
+      "src/owner_lifecycle.rs": "ddc2ba2d374ebf6cbc13b5e506dbc660055894c73f2709caa28751d193ff9aa2"
+    },
+    "component_owners": {
+      "src/runtime_inference/public_semantic_operations.rs": "runtime-gateway",
+      "src/owner_lifecycle/semantic_freshness_operations.rs": "owner-lifecycle"
+    }
+  },
+  "witnesses": [
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_fragment.rs",
+      "source_line": 15,
+      "target": "fragment_sources",
+      "source_component": "public-consumers",
+      "target_component": "owner-lifecycle",
+      "mir_line_sha256": "10bdc1a92dc0dd93bcd52e9876a727dee0eea0d38a00955fc2207ffeed4bdc91",
+      "target_definitions": [
+        {
+          "path": "src/owner_lifecycle/semantic_source.rs",
+          "line": 46,
+          "end_line": 61
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_fragment.rs",
+      "source_line": 21,
+      "target": "fragment_position",
+      "source_component": "public-consumers",
+      "target_component": "owner-lifecycle",
+      "mir_line_sha256": "40b5cbcf8219f80042f6a13d4a62a73addcf7576939faa4f959f5fe1be7f06de",
+      "target_definitions": [
+        {
+          "path": "src/owner_lifecycle/semantic_source.rs",
+          "line": 197,
+          "end_line": 205
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_fragment.rs",
+      "source_line": 66,
+      "target": "episode_store::episode_contains_node",
+      "source_component": "public-consumers",
+      "target_component": "archive-store",
+      "mir_line_sha256": "59faf2481d5feb4470e1624dd49c87b56c168afd10e9fdef6db3cb73ad06cb2a",
+      "target_definitions": [
+        {
+          "path": "src/archive/episode_store.rs",
+          "line": 95,
+          "end_line": 110
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_fragment.rs",
+      "source_line": 80,
+      "target": "prepare_semantic_fragment",
+      "source_component": "public-consumers",
+      "target_component": "owner-lifecycle",
+      "mir_line_sha256": "58e555d558f46f49fa5538bcea799b9f9778fdc75f7c8ca8bce73185094309ed",
+      "target_definitions": [
+        {
+          "path": "src/owner_lifecycle/semantic_source.rs",
+          "line": 62,
+          "end_line": 183
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_live.rs",
+      "source_line": 21,
+      "target": "import_settlement_storage::latest_import_settlement",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "e2730c13a2d759523204860ad458f53e60685108674445f23d7b001e6ca30580",
+      "target_definitions": [
+        {
+          "path": "src/freshness/freshness_import_settlement.rs",
+          "line": 318,
+          "end_line": 320
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_live.rs",
+      "source_line": 25,
+      "target": "activation::semantic_activation",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "9a987376636e22e85f135085ae2e5d9f9a637fd47294687c04263b501300c194",
+      "target_definitions": [
+        {
+          "path": "src/freshness/freshness_semantic_activation.rs",
+          "line": 24,
+          "end_line": 26
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_live.rs",
+      "source_line": 40,
+      "target": "SemanticArchiveRead::new",
+      "source_component": "public-consumers",
+      "target_component": "owner-lifecycle",
+      "mir_line_sha256": "db42bb938af896162bc269db7c26dc4d53b623b27a217880f69d93f9d6c394f4",
+      "target_definitions": [
+        {
+          "path": "src/owner_lifecycle/semantic_archive_read.rs",
+          "line": 8,
+          "end_line": 10
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_live.rs",
+      "source_line": 39,
+      "target": "pending_fragments",
+      "source_component": "public-consumers",
+      "target_component": "runtime-gateway",
+      "mir_line_sha256": "ddc75f980de4b0f0f2f7cd497c64e462e9c6d20eca45e17e5d5a86c3ff90b94e",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/semantic_archive_batch.rs",
+          "line": 9,
+          "end_line": 52
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 18,
+      "target": "NodeIndex::get",
+      "source_component": "public-consumers",
+      "target_component": "archive-store",
+      "mir_line_sha256": "fcb70cac1c9e378f9a3e873e25d5fe9e8fad43add7673f4cf711545c1371d9b1",
+      "target_definitions": [
+        {
+          "path": "src/archive/archive_record_index.rs",
+          "line": 16,
+          "end_line": 19
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 23,
+      "target": "VectorGenerationStore::generations",
+      "source_component": "public-consumers",
+      "target_component": "vector-store",
+      "mir_line_sha256": "c34cee76e181459d67e7855611fa93682d7f4285d332a0c04c995d80a1126609",
+      "target_definitions": [
+        {
+          "path": "src/retrieval/vector_generation_store.rs",
+          "line": 176,
+          "end_line": 178
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 45,
+      "target": "semantic_fragment_event_id",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "d9847bd2386c65e27437cd16353b996c14a46a4183f324a9e0ca9215fe3e773d",
+      "target_definitions": [
+        {
+          "path": "src/freshness_storage.rs",
+          "line": 2299,
+          "end_line": 2306
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 50,
+      "target": "FreshnessStore::contains_event",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "eb7c76e086464ddce20059cb02d7a049b171d6f3edecceb86df300b275042f1a",
+      "target_definitions": [
+        {
+          "path": "src/freshness_storage.rs",
+          "line": 1269,
+          "end_line": 1271
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 94,
+      "target": "semantic_fragment_event_id",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "76b884e5f1e5dddeba01204ad360f6524f0a2e66bc988810e5d5ef197ddac6d9",
+      "target_definitions": [
+        {
+          "path": "src/freshness_storage.rs",
+          "line": 2299,
+          "end_line": 2306
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 98,
+      "target": "FreshnessStore::contains_event",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "2ec5cc864e7ad90a27d8de2d3f08420d05ec8236cfd3a7ec7af6940731afdee3",
+      "target_definitions": [
+        {
+          "path": "src/freshness_storage.rs",
+          "line": 1269,
+          "end_line": 1271
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 125,
+      "target": "FreshnessStore::encode_semantic_event",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "89857f766adb24b0d32452cf8258c38a71353aeb08c4d0bfcd64d644238ae021",
+      "target_definitions": [
+        {
+          "path": "src/freshness_storage.rs",
+          "line": 1616,
+          "end_line": 1652
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 131,
+      "target": "FreshnessStore::validate_semantic_preappend",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "2664cd70db0d493040b2367e184ef598d73516a3c5ea0647a1a819a50603ee30",
+      "target_definitions": [
+        {
+          "path": "src/freshness_storage.rs",
+          "line": 1604,
+          "end_line": 1614
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 134,
+      "target": "public_owner_operations::runtime_append_semantic_source",
+      "source_component": "public-consumers",
+      "target_component": "runtime-gateway",
+      "mir_line_sha256": "30da1c57ef8a4d36b2aa076ca853812a9624bbdd2aa65653a564aa35dd740743",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/public_owner_operations.rs",
+          "line": 34,
+          "end_line": 49
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 135,
+      "target": "FreshnessStore::ingest_appended",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "a93fa51f7361822a3e991475aa83298e499d74321dd8d75e34138befa8cea188",
+      "target_definitions": [
+        {
+          "path": "src/freshness_storage.rs",
+          "line": 359,
+          "end_line": 383
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 139,
+      "target": "runtime_freshness_birth::runtime_freshness_refresh_due",
+      "source_component": "public-consumers",
+      "target_component": "runtime-gateway",
+      "mir_line_sha256": "4fac88c6bede2109b17364bd4c0a400adbd99afe6da1923ed910db69f8179403",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/runtime_freshness_birth.rs",
+          "line": 98,
+          "end_line": 130
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 149,
+      "target": "semantic_policy::freshness_policy_digest",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "738cfba5c138de98a34a8da5152265e0693d7f5b8eb3889e6187c326f3a1b35c",
+      "target_definitions": [
+        {
+          "path": "src/freshness/semantic_policy.rs",
+          "line": 15,
+          "end_line": 24
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 194,
+      "target": "public_consumer_execution::runtime_semantic_memory_targets",
+      "source_component": "public-consumers",
+      "target_component": "runtime-gateway",
+      "mir_line_sha256": "1e8f04f3143776532b0b1bd380ece45e229eca3f9796f93c757f8e5a96bf2156",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/public_consumer_execution.rs",
+          "line": 13,
+          "end_line": 25
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 203,
+      "target": "RelExecutionOwner::runtime_memory",
+      "source_component": "public-consumers",
+      "target_component": "runtime-gateway",
+      "mir_line_sha256": "25887706f588959965276e96d6c4e7b97caf0798c3a6ea37b23a87eeb76a22fc",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/reliquary_runtime_owner.rs",
+          "line": 30,
+          "end_line": 35
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 225,
+      "target": "RelExecutionOwner::runtime_memory",
+      "source_component": "public-consumers",
+      "target_component": "runtime-gateway",
+      "mir_line_sha256": "4f46f43f1470ebe9d91c1b3b1fa0225ecca3cf666db3a639d666a742e0e89d60",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/reliquary_runtime_owner.rs",
+          "line": 30,
+          "end_line": 35
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 274,
+      "target": "FreshnessStore::records",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "2c0e848bb3ac66e827678651ae4854bd45d74914a52beb24916072fdbb7d927d",
+      "target_definitions": [
+        {
+          "path": "src/freshness_storage.rs",
+          "line": 1263,
+          "end_line": 1265
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 279,
+      "target": "activation::birth_turn",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "a940b15eb1fb3abae8fcb1409b529fb297ebd9168cad78446fc5e2a391881134",
+      "target_definitions": [
+        {
+          "path": "src/freshness/freshness_semantic_activation.rs",
+          "line": 32,
+          "end_line": 34
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 268,
+      "target": "cosine_similarity",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "d8798ee956c6aaab93420684bf08f43d1a3469ed86b89fbe1d4755d5ad272a13",
+      "target_definitions": [
+        {
+          "path": "src/freshness/semantic_policy.rs",
+          "line": 155,
+          "end_line": 190
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 314,
+      "target": "AcceptedSemanticSource::represents",
+      "source_component": "public-consumers",
+      "target_component": "owner-lifecycle",
+      "mir_line_sha256": "e5618b4bdc104e6cd6703554ec2c3ba95da37fe6bc7c71b1faaa1abb0bb83d2e",
+      "target_definitions": [
+        {
+          "path": "src/owner_lifecycle/semantic_source.rs",
+          "line": 186,
+          "end_line": 194
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 370,
+      "target": "cosine_similarity",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "c9b78c7ea593fa3994afe485a06fc6cc7a4dbf4a217b787a265f5dcbeb696b19",
+      "target_definitions": [
+        {
+          "path": "src/freshness/semantic_policy.rs",
+          "line": 155,
+          "end_line": 190
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 381,
+      "target": "cosine_similarity",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "26f3a8a8dcf1cce248bfc3034bd8039029e53149265a46547b68403835587e64",
+      "target_definitions": [
+        {
+          "path": "src/freshness/semantic_policy.rs",
+          "line": 155,
+          "end_line": 190
+        }
+      ]
+    },
+    {
+      "evidence_class": "cross_component_calls",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 395,
+      "target": "plan_local_effects",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "caba5c653ab00e47f7335fe41124c945cf88c14af7b27002697bbaf301b0074a",
+      "target_definitions": [
+        {
+          "path": "src/freshness/semantic_policy.rs",
+          "line": 239,
+          "end_line": 282
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_fragment.rs",
+      "source_line": 15,
+      "target": "fragment_sources",
+      "source_component": "public-consumers",
+      "target_component": "owner-lifecycle",
+      "mir_line_sha256": "10bdc1a92dc0dd93bcd52e9876a727dee0eea0d38a00955fc2207ffeed4bdc91",
+      "target_definitions": [
+        {
+          "path": "src/owner_lifecycle/semantic_source.rs",
+          "line": 46,
+          "end_line": 61
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_fragment.rs",
+      "source_line": 21,
+      "target": "fragment_position",
+      "source_component": "public-consumers",
+      "target_component": "owner-lifecycle",
+      "mir_line_sha256": "40b5cbcf8219f80042f6a13d4a62a73addcf7576939faa4f959f5fe1be7f06de",
+      "target_definitions": [
+        {
+          "path": "src/owner_lifecycle/semantic_source.rs",
+          "line": 197,
+          "end_line": 205
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_fragment.rs",
+      "source_line": 66,
+      "target": "episode_store::episode_contains_node",
+      "source_component": "public-consumers",
+      "target_component": "archive-store",
+      "mir_line_sha256": "59faf2481d5feb4470e1624dd49c87b56c168afd10e9fdef6db3cb73ad06cb2a",
+      "target_definitions": [
+        {
+          "path": "src/archive/episode_store.rs",
+          "line": 95,
+          "end_line": 110
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_fragment.rs",
+      "source_line": 80,
+      "target": "prepare_semantic_fragment",
+      "source_component": "public-consumers",
+      "target_component": "owner-lifecycle",
+      "mir_line_sha256": "58e555d558f46f49fa5538bcea799b9f9778fdc75f7c8ca8bce73185094309ed",
+      "target_definitions": [
+        {
+          "path": "src/owner_lifecycle/semantic_source.rs",
+          "line": 62,
+          "end_line": 183
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_live.rs",
+      "source_line": 21,
+      "target": "import_settlement_storage::latest_import_settlement",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "e2730c13a2d759523204860ad458f53e60685108674445f23d7b001e6ca30580",
+      "target_definitions": [
+        {
+          "path": "src/freshness/freshness_import_settlement.rs",
+          "line": 318,
+          "end_line": 320
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_live.rs",
+      "source_line": 25,
+      "target": "activation::semantic_activation",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "9a987376636e22e85f135085ae2e5d9f9a637fd47294687c04263b501300c194",
+      "target_definitions": [
+        {
+          "path": "src/freshness/freshness_semantic_activation.rs",
+          "line": 24,
+          "end_line": 26
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_live.rs",
+      "source_line": 40,
+      "target": "SemanticArchiveRead::new",
+      "source_component": "public-consumers",
+      "target_component": "owner-lifecycle",
+      "mir_line_sha256": "db42bb938af896162bc269db7c26dc4d53b623b27a217880f69d93f9d6c394f4",
+      "target_definitions": [
+        {
+          "path": "src/owner_lifecycle/semantic_archive_read.rs",
+          "line": 8,
+          "end_line": 10
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 18,
+      "target": "NodeIndex::get",
+      "source_component": "public-consumers",
+      "target_component": "archive-store",
+      "mir_line_sha256": "fcb70cac1c9e378f9a3e873e25d5fe9e8fad43add7673f4cf711545c1371d9b1",
+      "target_definitions": [
+        {
+          "path": "src/archive/archive_record_index.rs",
+          "line": 16,
+          "end_line": 19
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 23,
+      "target": "VectorGenerationStore::generations",
+      "source_component": "public-consumers",
+      "target_component": "vector-store",
+      "mir_line_sha256": "c34cee76e181459d67e7855611fa93682d7f4285d332a0c04c995d80a1126609",
+      "target_definitions": [
+        {
+          "path": "src/retrieval/vector_generation_store.rs",
+          "line": 176,
+          "end_line": 178
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 45,
+      "target": "semantic_fragment_event_id",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "d9847bd2386c65e27437cd16353b996c14a46a4183f324a9e0ca9215fe3e773d",
+      "target_definitions": [
+        {
+          "path": "src/freshness_storage.rs",
+          "line": 2299,
+          "end_line": 2306
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 50,
+      "target": "FreshnessStore::contains_event",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "eb7c76e086464ddce20059cb02d7a049b171d6f3edecceb86df300b275042f1a",
+      "target_definitions": [
+        {
+          "path": "src/freshness_storage.rs",
+          "line": 1269,
+          "end_line": 1271
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 94,
+      "target": "semantic_fragment_event_id",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "76b884e5f1e5dddeba01204ad360f6524f0a2e66bc988810e5d5ef197ddac6d9",
+      "target_definitions": [
+        {
+          "path": "src/freshness_storage.rs",
+          "line": 2299,
+          "end_line": 2306
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 98,
+      "target": "FreshnessStore::contains_event",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "2ec5cc864e7ad90a27d8de2d3f08420d05ec8236cfd3a7ec7af6940731afdee3",
+      "target_definitions": [
+        {
+          "path": "src/freshness_storage.rs",
+          "line": 1269,
+          "end_line": 1271
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 125,
+      "target": "FreshnessStore::encode_semantic_event",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "89857f766adb24b0d32452cf8258c38a71353aeb08c4d0bfcd64d644238ae021",
+      "target_definitions": [
+        {
+          "path": "src/freshness_storage.rs",
+          "line": 1616,
+          "end_line": 1652
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 131,
+      "target": "FreshnessStore::validate_semantic_preappend",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "2664cd70db0d493040b2367e184ef598d73516a3c5ea0647a1a819a50603ee30",
+      "target_definitions": [
+        {
+          "path": "src/freshness_storage.rs",
+          "line": 1604,
+          "end_line": 1614
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 135,
+      "target": "FreshnessStore::ingest_appended",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "a93fa51f7361822a3e991475aa83298e499d74321dd8d75e34138befa8cea188",
+      "target_definitions": [
+        {
+          "path": "src/freshness_storage.rs",
+          "line": 359,
+          "end_line": 383
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 149,
+      "target": "semantic_policy::freshness_policy_digest",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "738cfba5c138de98a34a8da5152265e0693d7f5b8eb3889e6187c326f3a1b35c",
+      "target_definitions": [
+        {
+          "path": "src/freshness/semantic_policy.rs",
+          "line": 15,
+          "end_line": 24
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 274,
+      "target": "FreshnessStore::records",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "2c0e848bb3ac66e827678651ae4854bd45d74914a52beb24916072fdbb7d927d",
+      "target_definitions": [
+        {
+          "path": "src/freshness_storage.rs",
+          "line": 1263,
+          "end_line": 1265
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 279,
+      "target": "activation::birth_turn",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "a940b15eb1fb3abae8fcb1409b529fb297ebd9168cad78446fc5e2a391881134",
+      "target_definitions": [
+        {
+          "path": "src/freshness/freshness_semantic_activation.rs",
+          "line": 32,
+          "end_line": 34
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 268,
+      "target": "cosine_similarity",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "d8798ee956c6aaab93420684bf08f43d1a3469ed86b89fbe1d4755d5ad272a13",
+      "target_definitions": [
+        {
+          "path": "src/freshness/semantic_policy.rs",
+          "line": 155,
+          "end_line": 190
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 314,
+      "target": "AcceptedSemanticSource::represents",
+      "source_component": "public-consumers",
+      "target_component": "owner-lifecycle",
+      "mir_line_sha256": "e5618b4bdc104e6cd6703554ec2c3ba95da37fe6bc7c71b1faaa1abb0bb83d2e",
+      "target_definitions": [
+        {
+          "path": "src/owner_lifecycle/semantic_source.rs",
+          "line": 186,
+          "end_line": 194
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 370,
+      "target": "cosine_similarity",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "c9b78c7ea593fa3994afe485a06fc6cc7a4dbf4a217b787a265f5dcbeb696b19",
+      "target_definitions": [
+        {
+          "path": "src/freshness/semantic_policy.rs",
+          "line": 155,
+          "end_line": 190
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 381,
+      "target": "cosine_similarity",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "26f3a8a8dcf1cce248bfc3034bd8039029e53149265a46547b68403835587e64",
+      "target_definitions": [
+        {
+          "path": "src/freshness/semantic_policy.rs",
+          "line": 155,
+          "end_line": 190
+        }
+      ]
+    },
+    {
+      "evidence_class": "violations",
+      "source_path": "src/facade/cva_semantic_source.rs",
+      "source_line": 395,
+      "target": "plan_local_effects",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "mir_line_sha256": "caba5c653ab00e47f7335fe41124c945cf88c14af7b27002697bbaf301b0074a",
+      "target_definitions": [
+        {
+          "path": "src/freshness/semantic_policy.rs",
+          "line": 239,
+          "end_line": 282
+        }
+      ]
+    }
+  ],
+  "preserving_contracts": [
+    "Keep Cva public signatures, public SemanticFreshnessReport identity, return values and error conversions unchanged.",
+    "Keep accepted-source eligibility, event deduplication and fragment pending/error semantics unchanged.",
+    "Preserve exact two Memory hydration passes, hydrating one target at a time in each pass; do not materialize a vector of Memory bodies.",
+    "Keep lower Freshness semantic policy as owner of cosine scoring, candidate reduction and ranking.",
+    "Validate event canonical projection and owner identity before durable append; append and sync before Freshness ingest; due refresh remains after ingest.",
+    "Keep legacy activation boundary validation on lower owner read contracts while removing semantic_freshness_floor/validate_semantic_activation only after proving no remaining consumer.",
+    "Fragment readiness, owner source evidence, event IDs, source cohort exclusion, completion/pending counts and one-generation coverage checks remain behaviorally identical."
+  ],
+  "cut": "Move implementation bodies for live semantic pending/process scheduling, accepted-source processing, source candidate search, fragment semantic facts, and event application out of facade files into a dedicated runtime semantic operations module. Add narrow owner-lifecycle read/write contracts for source snapshots, per-Memory hydration, Freshness reads, physical append/sync, post-append ingestion and due projection refresh. No runtime module may access FreshnessStore or Container directly; no owner-lifecycle module may own scoring policy or call into runtime.",
+  "acceptance": "Open; registration authorizes bounded implementation only. Fresh compiler proof, source-cut guard, same-source feature-profile proofs and preserving tests remain pending.",
+  "implementation": {
+    "status": "applied",
+    "post_cut_source_sha256": {
+      "src/facade/cva_semantic_live.rs": "d49f03b53d86743b979b132389a5f77061a2d6a7dd047d213640900061f08417",
+      "src/facade/cva_semantic_source.rs": "90db3baaf8d3f0c21b74df5e53cf912030e5fd08bd11ef8385dab7acce22f099",
+      "src/facade/cva_semantic_fragment.rs": "fcd5807899e137263fb37637f7f874a0e7a8588af01c09b695fa6aa1d711d9cb",
+      "src/runtime_inference/public_semantic_operations.rs": "046d2c8e5d5055ef78b14d2764253b138a260d908922b926e1d5a593ec0ff19b",
+      "src/owner_lifecycle/semantic_freshness_operations.rs": "8adfc839cd48ea6b84e69b60eb47b6865e3f2aff057f87c801328ee83e0a4269",
+      "src/lib.rs": "8a1ec4256e0c6c5e945374a0df2efd282ef091b3041ad7e033318d1338729e64",
+      "src/owner_lifecycle.rs": "2747d929e06367fecc9b0697a63f0bb3c31b95e176ef6453d96828f91a06d2ca"
+    },
+    "source_guard": "scripts/check_phase7_source_cuts.py includes facade direct-access negatives, Gateway store-access negatives, owner scoring negatives, and exact-two-hydration-pass ratchet.",
+    "source_guard_test": "scripts/test_phase7_source_cuts.py::test_semantic_freshness_gateway_requires_owner_lifecycle_contracts",
+    "compiler_proof": "pending fresh same-source compiler capture; original 54 witnesses remain preserved as frozen baseline."
+  },
+  "not_claimed": [
+    "No fresh default/trace compiler closure proof",
+    "No Cargo suite run by this lane",
+    "No architecture acceptance or DAG exception"
+  ]
+}

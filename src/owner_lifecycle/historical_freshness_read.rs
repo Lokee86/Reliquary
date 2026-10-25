@@ -46,6 +46,22 @@ impl<'a> HistoricalFreshnessReadAccess<'a> {
     ) -> Option<&crate::freshness_storage::HistoricalImportFreshnessSettlement> {
         self.freshness.import_settlement(import_id)
     }
+    pub(crate) fn has_accepted_settlements(&self) -> bool {
+        !self.freshness.import_settlements().is_empty()
+    }
+    pub(crate) fn has_accepted_settlement_hex(&self, import_id: &str) -> bool {
+        self.freshness
+            .import_settlements()
+            .iter()
+            .any(|settlement| {
+                settlement
+                    .import_id
+                    .iter()
+                    .map(|byte| format!("{byte:02x}"))
+                    .collect::<String>()
+                    == import_id
+            })
+    }
     pub(crate) fn provisional_events(
         &self,
         recipients: &BTreeSet<MemoryId>,

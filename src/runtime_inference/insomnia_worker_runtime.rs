@@ -1,6 +1,6 @@
 use super::{InsomniaDrainResult, InsomniaWorkerConfig, InsomniaWorkerError};
 use crate::insomnia::evidence::{hydrate_evidence_read, plan_evidence};
-use crate::insomnia::extraction::{InsomniaExtractionStage, InsomniaExtractor};
+use crate::insomnia::extraction::{InsomniaExtractionStage, InsomniaExtractor, report_stage};
 use crate::insomnia::native_processor::claimed_episode_input_read;
 use crate::insomnia::store::InsomniaStore;
 use crate::lexical_index::LexicalIndex;
@@ -13,6 +13,7 @@ use crate::{
 };
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::mpsc::{self, SyncSender};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -130,7 +131,7 @@ fn drain_inner<E: GeneralEndpoint>(
     config: &InsomniaWorkerConfig,
     reporter: Option<&dyn InsomniaProgressReporter>,
 ) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
-    let initial_stats = cva.owner.insomnia.stats();
+    let initial_stats = cva.owner.insomnia_stats();
     let archive_read =
         crate::archive::ArchiveReadView::new(&cva.owner.archive, &cva.owner.container);
     cva.lexical_index.ensure_current(&archive_read)?;
@@ -258,23 +259,17 @@ fn worker_loop<E: GeneralEndpoint>(
                 complete,
                 terminal,
             });
-        let stage_reporter = |stage: InsomniaSemanticStage, items: usize| {
-            shared.progress.report(InsomniaProgressEvent::EpisodeStage {
-                episode_id: claim.episode_id,
-                worker_id: worker_id.clone(),
-                attempt: claim.attempt_count,
-                stage,
-                items,
-            });
-        };
-        let extraction = run_extraction(shared, extractor, &episode, &turns, &stage_reporter);
+        let extraction = run_extraction(shared, extractor, &episode, &turns, &claim, &worker_id);
         counters.active.fetch_sub(1, Ordering::SeqCst);
         match extraction {
             Ok(extraction) => {
-                stage_reporter(
-                    InsomniaSemanticStage::Persistence,
-                    extraction.candidates.len(),
-                );
+                shared.progress.report(InsomniaProgressEvent::EpisodeStage {
+                    episode_id: claim.episode_id,
+                    worker_id: worker_id.clone(),
+                    attempt: claim.attempt_count,
+                    stage: InsomniaSemanticStage::Persistence,
+                    items: extraction.candidates.len(),
+                });
                 apply_success(
                     shared,
                     &claim,
@@ -337,12 +332,57 @@ fn run_extraction<E: GeneralEndpoint>(
     extractor: &InsomniaExtractor<E>,
     episode: &crate::Episode,
     turns: &[crate::ResolvedTurn],
-    stage_reporter: &dyn Fn(InsomniaSemanticStage, usize),
+    claim: &InsomniaWork,
+    worker_id: &str,
 ) -> Result<crate::InsomniaExtraction, InsomniaExtractionError> {
-    match extractor.start_with_stage_reporter(episode, turns, stage_reporter)? {
+    if !shared.progress.enabled() {
+        return run_extraction_with_stage_events(shared, extractor, episode, turns, None);
+    }
+    thread::scope(|scope| {
+        let (sender, receiver) = mpsc::sync_channel::<crate::insomnia::InsomniaSemanticProgress>(0);
+        let reporter = scope.spawn(|| {
+            for event in receiver {
+                let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    shared.progress.report(InsomniaProgressEvent::EpisodeStage {
+                        episode_id: claim.episode_id,
+                        worker_id: worker_id.to_owned(),
+                        attempt: claim.attempt_count,
+                        stage: event.stage,
+                        items: event.items,
+                    });
+                }));
+                let failed = result.is_err();
+                let _ = event.acknowledged.send(result);
+                if failed {
+                    break;
+                }
+            }
+        });
+        let extraction =
+            run_extraction_with_stage_events(shared, extractor, episode, turns, Some(&sender));
+        drop(sender);
+        reporter
+            .join()
+            .unwrap_or_else(|payload| std::panic::resume_unwind(payload));
+        extraction
+    })
+}
+
+fn run_extraction_with_stage_events<E: GeneralEndpoint>(
+    shared: &DrainShared<'_>,
+    extractor: &InsomniaExtractor<E>,
+    episode: &crate::Episode,
+    turns: &[crate::ResolvedTurn],
+    stage_events: Option<&SyncSender<crate::insomnia::InsomniaSemanticProgress>>,
+) -> Result<crate::InsomniaExtraction, InsomniaExtractionError> {
+    match extractor.start_with_stage_events(episode, turns, stage_events)? {
         InsomniaExtractionStage::Complete(extraction) => Ok(extraction),
         InsomniaExtractionStage::Evidence(round) => {
-            stage_reporter(InsomniaSemanticStage::Evidence, round.requests.len());
+            report_stage(
+                stage_events,
+                InsomniaSemanticStage::Evidence,
+                round.requests.len(),
+            );
             let plans = plan_evidence(
                 shared.archive,
                 shared.lexical_index,
@@ -358,13 +398,13 @@ fn run_extraction<E: GeneralEndpoint>(
                     &plans,
                 )?
             };
-            extractor.finish_evidence_with_stage_reporter(
+            extractor.finish_evidence_with_stage_events(
                 episode,
                 turns,
                 round,
                 results,
                 evidence_turns,
-                stage_reporter,
+                stage_events,
             )
         }
     }

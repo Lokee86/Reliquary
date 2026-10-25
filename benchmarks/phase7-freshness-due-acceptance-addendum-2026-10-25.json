@@ -1,0 +1,98 @@
+{
+  "schema": "phase7-child-scope-addendum.v1",
+  "child": "P7.1.14-FRESHNESS-FACADE-OPERATIONS",
+  "date": "2026-10-25",
+  "status": "implemented; integrated and compiler verification pending",
+  "scope": [
+    "src/runtime_inference/reliquary_runtime_owner.rs",
+    "src/owner_lifecycle/freshness_operations.rs"
+  ],
+  "basis": "Move one finite due-crossing acceptance operation (drain one, advance, defer on failure) behind existing lifecycle dispatcher access; Runtime retains its notification buffer and64-crossing bound. Preserve derived state only and original error/defer/break ordering.",
+  "witnesses": [
+    {
+      "source_path": "src/runtime_inference/reliquary_runtime_owner.rs",
+      "source_line": 382,
+      "source_column": 29,
+      "source_end_line": 384,
+      "source_end_column": 45,
+      "mir_line_sha256": "9509dde4181975f636915d30859aa2397de4ea2e07e32213972a7b5d942fb012",
+      "target": "FreshnessDueDispatcher::drain_due",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "freshness_due::{impl#1}::drain_due",
+      "compiler_def_id": "DefId(0:50530 ~ reliquary_memory[b862]::freshness_due::{impl#1}::drain_due)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "freshness_due::{impl#1}::drain_due",
+      "source_component": "runtime-gateway",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness_due.rs",
+          "line": 204,
+          "end_line": 222
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/reliquary_runtime_owner.rs",
+      "source_line": 390,
+      "source_column": 16,
+      "source_end_line": 390,
+      "source_end_column": 47,
+      "mir_line_sha256": "a91cb96c10cbdbf2af1c2e90eb8798bc0398361a2173044e1d4229635479b9eb",
+      "target": "FreshnessDueDispatcher::advance",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "freshness_due::{impl#1}::advance",
+      "compiler_def_id": "DefId(0:50533 ~ reliquary_memory[b862]::freshness_due::{impl#1}::advance)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "freshness_due::{impl#1}::advance",
+      "source_component": "runtime-gateway",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness_due.rs",
+          "line": 272,
+          "end_line": 290
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/reliquary_runtime_owner.rs",
+      "source_line": 391,
+      "source_column": 25,
+      "source_end_line": 391,
+      "source_end_column": 54,
+      "mir_line_sha256": "db6f8c55155f78b641cf44149e39d12a0e2da3b7057a2c8b05cea1e9d6609b77",
+      "target": "FreshnessDueDispatcher::defer",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "freshness_due::{impl#1}::defer",
+      "compiler_def_id": "DefId(0:50532 ~ reliquary_memory[b862]::freshness_due::{impl#1}::defer)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "freshness_due::{impl#1}::defer",
+      "source_component": "runtime-gateway",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness_due.rs",
+          "line": 260,
+          "end_line": 268
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    }
+  ],
+  "pre_edit_source_sha256": {
+    "src/runtime_inference/reliquary_runtime_owner.rs": "1f3947536c5ba2b2c67fbc166497e37c83816ca4f023e9fe919b6bb714adf7a0",
+    "src/owner_lifecycle/freshness_operations.rs": "1a86ed76acdecce89beeb33a7ae99db44340d71a16d7bf1f22ab64d03a22493b"
+  },
+  "denominator_change": 0,
+  "target_dag_edges_added": 0,
+  "post_edit_source_sha256": {
+    "src/runtime_inference/reliquary_runtime_owner.rs": "87f07df372f4aef6c23fd6b7f77eedfb34f58bb017f73cc17eedf2231c8142ef",
+    "src/owner_lifecycle/freshness_operations.rs": "b583a7eb00c10aec455c42c08224117b4dd4876fa969806b6ddf3d9769e1d585"
+  }
+}

@@ -42,6 +42,45 @@ pub(super) struct Coordinates {
     community: BTreeMap<u64, u64>,
 }
 impl Coordinates {
+    fn dream_replay(
+        &self,
+        mut plan: crate::dream_replay_transport::PreparedDreamReplay,
+        source: &ReliquaryOwner,
+        output: &ReliquaryOwner,
+    ) -> Result<crate::dream_replay_transport::PreparedDreamReplay, String> {
+        for &cut in &plan.requests.turns {
+            plan.coordinates
+                .turns
+                .insert(cut, turn(source, output, cut).map_err(|e| e.to_string())?);
+        }
+        for &graph in &plan.requests.graph {
+            plan.coordinates.graph.insert(
+                graph,
+                Self::map(&self.graph, graph).map_err(|e| e.to_string())?,
+            );
+        }
+        for proof in &plan.requests.proofs {
+            let mapped = self
+                .proof(proof.clone())
+                .map_err(|error| error.to_string())?;
+            plan.coordinates
+                .memory_graph
+                .insert(proof.graph_version, mapped.graph_version);
+            if let (Some(source), Some(destination)) =
+                (proof.community_generation, mapped.community_generation)
+            {
+                plan.coordinates.community.insert(source, destination);
+            }
+            if let (Some(source), Some(destination)) = (
+                proof.community_graph_version,
+                mapped.community_graph_version,
+            ) {
+                plan.coordinates.memory_graph.insert(source, destination);
+            }
+        }
+        Ok(plan)
+    }
+
     pub(super) fn shared(
         source: &mut ReliquaryOwner,
         end: usize,
@@ -370,10 +409,10 @@ pub(super) fn replay_frame(
             .owner_uuid()
             .ok_or_else(|| unsupported("Community replay lacks owner"))?;
         let generation = snapshot.generation;
-        output
-            .communities
-            .publish(&mut output.container, &output.graph, owner, snapshot)
-            .map_err(CvaError::from)?;
+        crate::owner_lifecycle::import_reconciliation_restore::publish_community_snapshot(
+            output, owner, snapshot,
+        )
+        .map_err(CvaError::from)?;
         coordinates.community.insert(original, generation);
     }
     let source_facts = crate::history::freshness_reconciliation::FreshnessReplaySource {
@@ -441,18 +480,22 @@ pub(super) fn replay_frame(
                     &mut output.container,
                     &current,
                 )?;
-                output
-                    .dream_freshness
-                    .ingest_materialized_begin(owner, pass)
-                    .map_err(CvaError::Freshness)?;
+                crate::owner_lifecycle::import_reconciliation_restore::ingest_materialized_dream_begin(
+                    output, owner, pass,
+                )
+                .map_err(CvaError::Freshness)?;
             }
         } else {
+            let rebase_plan =
+                crate::dream_replay_transport::prepare_rebase(&output.dream_freshness, payload)
+                    .map_err(CvaError::Freshness)?;
+            let rebase_plan = coordinates
+                .dream_replay(rebase_plan, source, output)
+                .map_err(CvaError::Freshness)?;
             let rebased = crate::dream_replay_transport::rebase_payload(
                 &output.dream_freshness,
                 payload,
-                |cut| turn(source, output, cut),
-                |cut| Coordinates::map(&coordinates.graph, cut).map_err(|e| e.to_string()),
-                |proof| coordinates.proof(proof).map_err(|e| e.to_string()),
+                &rebase_plan.coordinates,
             )
             .map_err(CvaError::Freshness)?;
             if !rebased.is_empty() {
@@ -460,10 +503,10 @@ pub(super) fn replay_frame(
                     &mut output.container,
                     &rebased,
                 )?;
-                output
-                    .dream_freshness
-                    .ingest(&rebased)
-                    .map_err(CvaError::Freshness)?;
+                crate::owner_lifecycle::import_reconciliation_restore::ingest_rebased_dream_payload(
+                    output, &rebased,
+                )
+                .map_err(CvaError::Freshness)?;
             }
         }
     }
@@ -509,9 +552,9 @@ pub(super) fn replay_frame(
             .get(&object)
             .cloned()
             .ok_or_else(|| unsupported("resolution source postimage unavailable"))?;
-        output
-            .entity_resolutions
-            .persist_change(&mut output.container, change)?;
+        crate::owner_lifecycle::import_reconciliation_restore::persist_entity_resolution(
+            output, change,
+        )?;
     }
     Ok(0)
 }

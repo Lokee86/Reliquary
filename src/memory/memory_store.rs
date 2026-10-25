@@ -839,7 +839,14 @@ impl MemoryStore {
                 metadata
                     .entity_mentions
                     .iter()
-                    .map(|mention| MemoryEntityMentionKey::new(memory_id, mention))
+                    .map(|mention| {
+                        MemoryEntityMentionKey::from_parts(
+                            memory_id,
+                            mention.field,
+                            mention.start_byte,
+                            mention.end_byte,
+                        )
+                    })
                     .collect()
             })
             .unwrap_or_default()
@@ -953,7 +960,12 @@ impl MemoryStore {
 
     fn index_routing_metadata(&mut self, metadata: &MemoryRoutingMetadata) {
         for mention in &metadata.entity_mentions {
-            let key = MemoryEntityMentionKey::new(metadata.memory_id, mention);
+            let key = MemoryEntityMentionKey::from_parts(
+                metadata.memory_id,
+                mention.field,
+                mention.start_byte,
+                mention.end_byte,
+            );
             self.entity_mentions_by_surface
                 .entry(normalize_entity_surface(&mention.text))
                 .or_default()

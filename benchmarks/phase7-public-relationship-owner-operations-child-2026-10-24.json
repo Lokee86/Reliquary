@@ -1,0 +1,109 @@
+{
+  "schema": "phase7-child-registration.v1",
+  "ticket": "P7.1.14g-PUBLIC-RELATIONSHIP-OWNER-OPERATIONS",
+  "parent": "P7.1.14",
+  "status": "registered-before-implementation; acceptance open",
+  "registered_at": "2026-10-24",
+  "source_sha256_at_registration": {
+    "src/facade/cva_relationship_owner.rs": "7369227edb4f472c45143bb23be883af3c6cbd85b77d17b2eaa5bab8d3394481"
+  },
+  "witnesses": [
+    {
+      "source_path": "src/facade/cva_relationship_owner.rs",
+      "source_line": 24,
+      "mir_line_sha256": "3753aee4e4668491bea2177734d2564193023880e29a94422034e751f83de2b3",
+      "target": "RelationshipStore::publish",
+      "target_definition": {
+        "path": "src/perception/relationship_store.rs",
+        "line": 50,
+        "end_line": 59,
+        "compiler_def_id": "DefId(0:55188 ~ reliquary_memory[b862]::relationship_store::{impl#0}::publish)"
+      }
+    },
+    {
+      "source_path": "src/facade/cva_relationship_owner.rs",
+      "source_line": 24,
+      "mir_line_sha256": "3753aee4e4668491bea2177734d2564193023880e29a94422034e751f83de2b3",
+      "target": "RelationshipStore::publish",
+      "target_definition": {
+        "path": "src/perception/relationship_store.rs",
+        "line": 50,
+        "end_line": 59,
+        "compiler_def_id": "DefId(0:55188 ~ reliquary_memory[b862]::relationship_store::{impl#0}::publish)"
+      }
+    },
+    {
+      "source_path": "src/facade/cva_relationship_owner.rs",
+      "source_line": 38,
+      "mir_line_sha256": "1a7923810531a8c96d4ad28f4e44a27d81c75bef8cb272b00bf13aa6aa2898b4",
+      "target": "RelationshipStore::publish_replayed",
+      "target_definition": {
+        "path": "src/perception/relationship_store.rs",
+        "line": 61,
+        "end_line": 70,
+        "compiler_def_id": "DefId(0:55190 ~ reliquary_memory[b862]::relationship_store::{impl#0}::publish_replayed)"
+      }
+    },
+    {
+      "source_path": "src/facade/cva_relationship_owner.rs",
+      "source_line": 38,
+      "mir_line_sha256": "1a7923810531a8c96d4ad28f4e44a27d81c75bef8cb272b00bf13aa6aa2898b4",
+      "target": "RelationshipStore::publish_replayed",
+      "target_definition": {
+        "path": "src/perception/relationship_store.rs",
+        "line": 61,
+        "end_line": 70,
+        "compiler_def_id": "DefId(0:55190 ~ reliquary_memory[b862]::relationship_store::{impl#0}::publish_replayed)"
+      }
+    },
+    {
+      "source_path": "src/facade/cva_relationship_owner.rs",
+      "source_line": 58,
+      "mir_line_sha256": "d8eeda4b8d4a97895e320d3b75e97ee0249f9988f8776c1e69a30111aeb2d043",
+      "target": "RelationshipStore::tombstone",
+      "target_definition": {
+        "path": "src/perception/relationship_store.rs",
+        "line": 199,
+        "end_line": 256,
+        "compiler_def_id": "DefId(0:55196 ~ reliquary_memory[b862]::relationship_store::{impl#0}::tombstone)"
+      }
+    },
+    {
+      "source_path": "src/facade/cva_relationship_owner.rs",
+      "source_line": 58,
+      "mir_line_sha256": "d8eeda4b8d4a97895e320d3b75e97ee0249f9988f8776c1e69a30111aeb2d043",
+      "target": "RelationshipStore::tombstone",
+      "target_definition": {
+        "path": "src/perception/relationship_store.rs",
+        "line": 199,
+        "end_line": 256,
+        "compiler_def_id": "DefId(0:55196 ~ reliquary_memory[b862]::relationship_store::{impl#0}::tombstone)"
+      }
+    }
+  ],
+  "scope": [
+    "src/facade/cva_relationship_owner.rs"
+  ],
+  "cut": "Move public RelationshipStore publication, replay and tombstone operations behind the existing concrete Gateway/owner-lifecycle execution path; Perception keeps relationship admission and state policy. Preserve owner identity, revisions, entity validation, durable ordering, Graph projections and returned errors.",
+  "preserving_tests": [
+    "Cva and Phylactery relationship owner publication tests",
+    "relationship tombstone, replay and stale revision tests",
+    "storage reclamation relationship-publication family"
+  ],
+  "exit_criteria": [
+    "All listed direct capability calls are removed or re-owned through the canonical component operation.",
+    "Preserve all listed validation/error/order/byte/API behavior contracts.",
+    "Refresh same-source default compiler and trace/cfg call evidence after source freeze.",
+    "Run the focused existing preserving tests and root integration gates.",
+    "Update the exact child receipt with post-cut source hashes and eliminated witnesses; do not claim architecture acceptance from registration."
+  ],
+  "acceptance": "Open; registration authorizes bounded implementation scope only, not a DAG exception or gate closure.",
+  "implementation_scope_addendum": {
+    "registered_before_edit": true,
+    "new_modules": [
+      "src/owner_lifecycle/relationship_operations.rs",
+      "src/runtime_inference/public_relationship_operations.rs"
+    ],
+    "policy": "Concrete native owner contracts; no new DAG edges, owner state, callback or generic store framework."
+  }
+}

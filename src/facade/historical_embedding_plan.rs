@@ -41,21 +41,24 @@ pub(super) fn prepare(
         limits.sources,
         "sources",
     )?;
-    bounded(cva.archive.fragments.len(), limits.fragments, "fragments")?;
-    if cva.archive.fragments.len() == 0 {
+    bounded(
+        cva.runtime_historical_embedding_fragment_count(),
+        limits.fragments,
+        "fragments",
+    )?;
+    if cva.runtime_historical_embedding_fragment_count() == 0 {
         return Err(unsupported(
             "fill requires existing genuine Archive fragments",
         ));
     }
     bounded(
-        cva.archive.nodes.len(),
+        cva.runtime_historical_embedding_node_count(),
         limits.inspections,
         "Archive nodes/ancestry",
     )?;
     let input_bytes = usize::try_from(
-        std::fs::metadata(cva.container.path())
-            .map_err(unsupported)?
-            .len(),
+        cva.runtime_historical_backing_length()
+            .map_err(unsupported)?,
     )
     .map_err(|_| budget("prefix bytes overflow"))?;
     bounded(
@@ -63,12 +66,7 @@ pub(super) fn prepare(
         limits.temporary_bytes,
         "owner proof buffers",
     )?;
-    let generation = cva
-        .vector_generations
-        .generations()
-        .iter()
-        .max_by_key(|g| g.vector_version)
-        .copied();
+    let generation = cva.runtime_historical_latest_vector_generation();
     let profile = if let Some(g) = generation {
         cva.compatibility_profile(g.compatibility_profile_id)
             .map_err(unsupported)?
@@ -94,8 +92,7 @@ pub(super) fn prepare(
     // Cheap row-size checks precede both packed hydration and the full owner proof.
     if let Some(g) = generation {
         let set = cva
-            .archive_vectors
-            .info(g.archive_vector_id)
+            .runtime_historical_archive_vector_info(g.archive_vector_id)
             .ok_or_else(|| unsupported("missing source binding"))?;
         bounded(
             usize::try_from(set.rows).map_err(|_| budget("rows overflow"))?,
@@ -103,8 +100,7 @@ pub(super) fn prepare(
             "retained rows",
         )?;
         let packed = cva
-            .packed_vectors
-            .info(set.packed_vector_id)
+            .runtime_historical_packed_vector_info(set.packed_vector_id)
             .ok_or_else(|| unsupported("missing matrix"))?;
         bounded(
             usize::try_from(packed.byte_len).map_err(|_| budget("matrix overflow"))?,
@@ -124,7 +120,7 @@ pub(super) fn prepare(
         )?;
     }
     let mut metadata = 0usize;
-    for node in cva.archive.nodes.iter() {
+    for node in cva.runtime_historical_source_nodes() {
         metadata = add(
             metadata,
             add(
@@ -147,7 +143,7 @@ pub(super) fn prepare(
         )?;
         bounded(metadata, limits.temporary_bytes / 8, "source metadata")?;
     }
-    for fragment in cva.archive.fragments.iter() {
+    for fragment in cva.runtime_historical_source_fragments() {
         metadata = add(
             metadata,
             add(
@@ -162,10 +158,12 @@ pub(super) fn prepare(
     }
     // Includes repeated readiness/H1 proof scans; never assume only unique fragments cost work.
     let scan = mul(
-        cva.archive.nodes.len(),
+        cva.runtime_historical_embedding_node_count(),
         add(
-            cva.archive.fragments.len(),
-            limits.missing_rows.min(cva.archive.nodes.len()),
+            cva.runtime_historical_embedding_fragment_count(),
+            limits
+                .missing_rows
+                .min(cva.runtime_historical_embedding_node_count()),
         )?,
     )?;
     bounded(
@@ -181,7 +179,7 @@ pub(super) fn prepare(
     input::required_nodes(&cva.archive, cva.rel_turn_count()).map_err(unsupported)?;
     let timeline = cva.historical_freshness_timeline().map_err(unsupported)?;
     report.sources = timeline.activity_order.len();
-    report.fragments = cva.archive.fragments.len();
+    report.fragments = cva.runtime_historical_embedding_fragment_count();
     report.import_id = Some(
         crate::imports::historical_manifest_plan::historical_import_id(
             report.owner_uuid.unwrap(),
@@ -192,10 +190,10 @@ pub(super) fn prepare(
     let mut rows = BTreeMap::new();
     if let Some(g) = generation {
         let set = cva
-            .archive_vectors(g.archive_vector_id)
+            .runtime_historical_archive_vectors(g.archive_vector_id)
             .map_err(unsupported)?;
         let packed = cva
-            .packed_vectors(set.packed_vector_id)
+            .runtime_historical_packed_vectors(set.packed_vector_id)
             .map_err(unsupported)?;
         if packed.schema().dimensions != profile.dimensions
             || packed.schema().scalar != crate::ScalarType::F32
@@ -238,9 +236,7 @@ pub(super) fn prepare(
             "missing fragment rows",
         )?;
         let text = cva
-            .owner
-            .archive
-            .fragment_text_bounded(&mut cva.owner.container, &fragment, limits.source_bytes)
+            .runtime_historical_embedding_fragment_text(&fragment, limits.source_bytes)
             .map_err(|e| match e {
                 crate::ArchiveError::Container(crate::ContainerError::ChunkTooLarge)
                 | crate::ArchiveError::FieldTooLarge => budget("source text bytes"),
@@ -307,7 +303,7 @@ pub(super) fn prepare(
     // All native provenance, generation-complete and replacement-isolation gates
     // execute before provider I/O. This provisional proof is discarded, never committed.
     cva.freeze_historical_import().map_err(unsupported)?;
-    cva.container.sync().map_err(unsupported)?;
+    cva.runtime_sync_public_owner().map_err(unsupported)?;
     let expected = Expected::read(cva)?;
     Ok(Plan {
         profile,

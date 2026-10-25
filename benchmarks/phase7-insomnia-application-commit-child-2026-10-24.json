@@ -1,0 +1,72 @@
+{
+  "schema": "phase7-child-registration.v1",
+  "ticket": "P7.1.06-INSOMNIA-APPLICATION-COMMIT",
+  "parent": "P7.1.06",
+  "status": "registered-before-implementation; acceptance open",
+  "registered_at": "2026-10-24",
+  "source_sha256_at_registration": {
+    "src/facade/insomnia_processor.rs": "3eeda3b781f0b929768c435069976104aeeb7ebc80f63000d08a772e57afeb05"
+  },
+  "witnesses": [
+    {
+      "source_path": "src/facade/insomnia_processor.rs",
+      "source_line": 33,
+      "mir_line_sha256": "6db486a7a00e5e8c28f5011de83f095f166a776042b840a54dbf9387e6417636",
+      "target": "commit_application",
+      "target_definition": {
+        "path": "src/owner_lifecycle/insomnia_application.rs",
+        "line": 15,
+        "end_line": 151,
+        "compiler_def_id": "DefId(0:49231 ~ reliquary_memory[b862]::owner_lifecycle::insomnia_application::commit_application)"
+      }
+    },
+    {
+      "source_path": "src/facade/insomnia_processor.rs",
+      "source_line": 77,
+      "mir_line_sha256": "067a240d2c795f0ad44fa663888d57d885597b8c6a278655fb47debaa8f0dd52",
+      "target": "commit_application",
+      "target_definition": {
+        "path": "src/owner_lifecycle/insomnia_application.rs",
+        "line": 15,
+        "end_line": 151,
+        "compiler_def_id": "DefId(0:49231 ~ reliquary_memory[b862]::owner_lifecycle::insomnia_application::commit_application)"
+      }
+    },
+    {
+      "source_path": "src/facade/insomnia_processor.rs",
+      "source_line": 73,
+      "mir_line_sha256": "141904f4216bf0c3fe426dad22da8bcf60dda763d2bf8192be2b34fb6276cd65",
+      "target": "publish_user_application",
+      "target_definition": {
+        "path": "src/owner_lifecycle/personal_memory_publication.rs",
+        "line": 55,
+        "end_line": 115,
+        "compiler_def_id": "DefId(0:49626 ~ reliquary_memory[b862]::owner_lifecycle::personal_memory_publication::publish_user_application)"
+      }
+    }
+  ],
+  "scope": [
+    "src/facade/insomnia_processor.rs"
+  ],
+  "cut": "Move facade-owned Insomnia application commit/publication calls behind canonical Gateway owner operations; preserve one application commit, validation, memory publication, freshness and Dream journal ordering, and error mapping.",
+  "preserving_tests": [
+    "Insomnia processor application commit tests",
+    "Insomnia user draft publication tests",
+    "memory publication/tombstone tests",
+    "full existing Insomnia completion behavior family"
+  ],
+  "exit_criteria": [
+    "All listed direct capability calls are removed or re-owned through the canonical component operation.",
+    "Preserve all listed validation/error/order/byte/API behavior contracts.",
+    "Refresh same-source default compiler and trace/cfg call evidence after source freeze.",
+    "Run the focused existing preserving tests and root integration gates.",
+    "Update the exact child receipt with post-cut source hashes and eliminated witnesses; do not claim architecture acceptance from registration."
+  ],
+  "acceptance": "Open; registration authorizes bounded implementation scope only, not a DAG exception or gate closure.",
+  "implementation_scope_addendum": {
+    "registered_before_edit": true,
+    "new_module": "src/runtime_inference/public_insomnia_operations.rs",
+    "before_sha256": "3eeda3b781f0b929768c435069976104aeeb7ebc80f63000d08a772e57afeb05",
+    "scope": "Move the complete existing process/evidence/publication sequencing to canonical Gateway operations; no extra validation, worker, provider call, publication or sync. Test-only grouped import replay remains a test adapter."
+  }
+}

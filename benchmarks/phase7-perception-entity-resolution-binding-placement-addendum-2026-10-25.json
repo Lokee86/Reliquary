@@ -1,0 +1,49 @@
+{
+  "schema": "phase7-child-scope-addendum.v1",
+  "ticket": "P7.1.14a-PERCEPTION-ENTITY-OPERATIONS",
+  "parent": "benchmarks/phase7-perception-entity-publication-access-child-addendum-2026-10-25.json",
+  "status": "registered-before-implementation",
+  "date": "2026-10-25",
+  "basis": "The architecture source guard correctly rejects public product struct definitions in runtime-gateway. Keep public EntityResolutionEngine<E> and EntityResolver<E> concrete types in their existing facade source files with their original pub(crate) core fields. Route all constructors, configuration, and getters through named Gateway functions that operate on the existing Perception Core values; Gateway owns those functions, not the public product structs.",
+  "scope": {
+    "files": [
+      "src/facade/cva_entity_resolution_engine.rs",
+      "src/facade/cva_entity_resolver.rs",
+      "src/runtime_inference/public_entity_resolution_bindings.rs",
+      "scripts/check_phase7_source_cuts.py",
+      "scripts/test_phase7_source_cuts.py"
+    ],
+    "changes": [
+      "Define the two original concrete public structs and public methods in facade files, retaining pub(crate) core fields used by same-crate processor bindings.",
+      "Add seven named Gateway functions operating on the existing core values for construction, configuration, and getters.",
+      "Update source guard requirements and negative tests to assert thin public struct bindings and Gateway-owned functions without allowing facade-to-Core calls or Gateway product structs."
+    ]
+  },
+  "invariants": [
+    "preserve concrete public types, generic E, trait bounds, method signatures, Arc<dyn DecisionEndpoint>, and field visibility",
+    "preserve exactly one Perception Core per public value and existing clone/move behavior",
+    "facade methods call only Gateway functions; no direct core method calls or aliases",
+    "Gateway contains no public product struct definitions and no new map or DAG edge"
+  ],
+  "pre_edit_source_sha256": {
+    "src/facade/cva_entity_resolution_engine.rs": "61c7fc6681d257b9b08ed4593ea5478efc1f1c045b11e7d8fe54032ee0f09880",
+    "src/facade/cva_entity_resolver.rs": "87698dd98edab39d6155c91e5b034903011be867002d3a3c87bc9909d8dc0ccc",
+    "src/runtime_inference/public_entity_resolution_bindings.rs": "7e515c2f91568559913e3d19117e1cca00f46bfdc2db37f80dc6950fd683c9aa",
+    "scripts/check_phase7_source_cuts.py": "4abeb2dbb61029ddb9af8053c67e9448f733f0149a0c72481adea0aee9b89aa2",
+    "scripts/test_phase7_source_cuts.py": "d58c22790111510c6e1a1c9745f5e5ee58206e270f51d5ae5c470196211dda8a"
+  },
+  "post_edit_source_sha256": {
+    "src/facade/cva_entity_resolution_engine.rs": "9788094f278572921d65ecfc067ee62003b2e6b3e55f12a17a0f360376a4100c",
+    "src/facade/cva_entity_resolver.rs": "cb59a922e40751a6636dd2931c860313aaa954552196ca125dfaf44e3bf5c81e",
+    "src/runtime_inference/public_entity_resolution_bindings.rs": "3b7648ce5c8d65a8a08c18c9050381623f0e90e57c3a49a6638e7777fcb0bd39",
+    "scripts/check_phase7_source_cuts.py": "291e8fc2a066e18dd3a9f57b7bff8e67f5e8b19c7ff7a8584526178be9840496",
+    "scripts/test_phase7_source_cuts.py": "8e57f27d497072eeb9d68db9f4c6ba470bdfdf439dd70b02bbe3c8d00cbdf331"
+  },
+  "verification": {
+    "rustfmt": "rustfmt --edition 2024 passed for the three scoped Rust files",
+    "source_cut_tests": "scripts.test_phase7_source_cuts: 43 passed",
+    "source_guard": "scripts/check_phase7_source_cuts.py: 83 guarded seams passed",
+    "cargo": "not run; root owns integrated build"
+  },
+  "acceptance": "Open; exact placement correction only, pending source guard and root build."
+}

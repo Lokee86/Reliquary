@@ -18,12 +18,13 @@ impl ConfiguredRuntime {
         if !options.fill_missing_embeddings {
             return rel.reconstruct_historical_freshness(options);
         }
-        let endpoint = self.embedding_endpoint(16, 1).map_err(|e| {
-            HistoricalReconstructionError::EmbeddingFill(Box::new(HistoricalEmbeddingFailure {
-                report: HistoricalEmbeddingReport::default(),
-                message: e.to_string(),
-            }))
-        })?;
+        let endpoint = super::provider_operations::embedding_endpoint(&self.switchboard, 16, 1)
+            .map_err(|e| {
+                HistoricalReconstructionError::EmbeddingFill(Box::new(HistoricalEmbeddingFailure {
+                    report: HistoricalEmbeddingReport::default(),
+                    message: e.to_string(),
+                }))
+            })?;
         rel.reconstruct_historical_freshness_with_endpoint(options, &endpoint, limits, cancel)
     }
 }

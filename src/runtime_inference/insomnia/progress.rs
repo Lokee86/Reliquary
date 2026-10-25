@@ -1,4 +1,7 @@
 use crate::EpisodeId;
+use std::sync::mpsc::SyncSender;
+
+pub(crate) type InsomniaStageAcknowledgement = Result<(), Box<dyn std::any::Any + Send>>;
 
 pub const DEFAULT_INSOMNIA_PROGRESS_INTERVAL_SECS: u64 = 10;
 
@@ -13,6 +16,15 @@ pub enum InsomniaSemanticStage {
     Wording,
     Enrichment,
     Persistence,
+}
+
+/// Bounded value emitted by Insomnia extraction before a semantic stage runs.
+/// The runtime gateway consumes these events and attaches worker context.
+#[derive(Debug)]
+pub(crate) struct InsomniaSemanticProgress {
+    pub(crate) stage: InsomniaSemanticStage,
+    pub(crate) items: usize,
+    pub(crate) acknowledged: SyncSender<InsomniaStageAcknowledgement>,
 }
 
 impl InsomniaSemanticStage {

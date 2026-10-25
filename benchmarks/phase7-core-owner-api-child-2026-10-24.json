@@ -449,5 +449,30 @@
     "facade_guard_fixtures": "passed; 44 positive/negative cases",
     "facade_owner_api_scan": "passed; zero direct Container/Archive/owner-store field calls in cva.rs and phylactery.rs",
     "cargo": "not run; root owns Cargo builds"
-  }
+  },
+  "addenda": [
+    {
+      "id": "P7.1.14-CORE-OWNER-API",
+      "receipt": "benchmarks/phase7-core-owner-api-import-facades-addendum-2026-10-25.json",
+      "status": "implemented; compiler proof open",
+      "witness_count": 12,
+      "compiler_evidence_sha256": "be6b772eaeb3aca52a5a1aee03559cbb68a1113f58f6913f319f0e735476d36c",
+      "post_implementation_source_sha256": {
+        "src/facade/cva_native_import.rs": "af138aa260350ae5a01d144c713975decbd213b89db600e22b68fdc40782bf7d",
+        "src/facade/cva_import_readiness.rs": "4a684bf6bdcc40d54248fb5f85cda4eb2cbe0739f1dc15b4a1797861d5ca422a",
+        "src/runtime_inference/public_consumer_execution.rs": "6947b5344ea49e3c2426d9ebe5543423472ffb4b073044059cb56fe278e824db",
+        "src/imports/owner_completion.rs": "838b9fb18e4c1c971afc57981d3483b3915f3d1ce007da2e99991785eb50a8b2",
+        "src/owner_lifecycle/native_import.rs": "1ed2c70a1b29f538b3dc7b78517a8317528d2a7ed1344c052b7d020074eaf3e3"
+      }
+    },
+    {
+      "id": "P7.1.14-CORE-OWNER-API",
+      "receipt": "benchmarks/phase7-core-owner-api-runtime-owner-facts-addendum-2026-10-25.json",
+      "status": "implemented; fresh same-source compiler proof open",
+      "witness_count": 5,
+      "source_location_mismatch_count": 5,
+      "pre_edit_source_sha256": "87f07df372f4aef6c23fd6b7f77eedfb34f58bb017f73cc17eedf2231c8142ef",
+      "post_implementation_source_sha256": "6a4b779e9a3a68d437c4160bdff99cc1fc7a51fb30a16d4ab1ca68e1150142e3"
+    }
+  ]
 }

@@ -1,0 +1,200 @@
+{
+  "schema": "phase7-child-registration.v1",
+  "ticket": "P7.1.07-EGO-PUBLIC-OWNER-OPERATIONS",
+  "parent": "P7.1.07",
+  "status": "registered-before-implementation; acceptance open",
+  "registered_at": "2026-10-24",
+  "source_sha256_at_registration": {
+    "src/facade/cva_ego.rs": "44941736df2758cf501d7ab2d04dce4d8b76e848a992963905814f44fd864c58",
+    "src/facade/phylactery_ego.rs": "8896102b97147159874f72bde37ed8534c2f6a5c98e6917e187c29202b150f3b"
+  },
+  "witnesses": [
+    {
+      "source_path": "src/facade/cva_ego.rs",
+      "source_line": 22,
+      "mir_line_sha256": "3bb03ff09370a435596714fd45e78a4695ce4b4fa330c1099dc44747274c543d",
+      "target": "anchors::create_anchor",
+      "target_definition": {
+        "path": "src/ego/ego_store_anchors.rs",
+        "line": 8,
+        "end_line": 36,
+        "compiler_def_id": "DefId(0:51809 ~ reliquary_memory[b862]::ego_store::anchors::{impl#0}::create_anchor)"
+      }
+    },
+    {
+      "source_path": "src/facade/phylactery_ego.rs",
+      "source_line": 117,
+      "mir_line_sha256": "dd2307ce106bcda2bd1d883939efd0c6deaf1f405700128af5f957690a9cfe07",
+      "target": "anchors::create_anchor",
+      "target_definition": {
+        "path": "src/ego/ego_store_anchors.rs",
+        "line": 8,
+        "end_line": 36,
+        "compiler_def_id": "DefId(0:51809 ~ reliquary_memory[b862]::ego_store::anchors::{impl#0}::create_anchor)"
+      }
+    },
+    {
+      "source_path": "src/facade/cva_ego.rs",
+      "source_line": 49,
+      "mir_line_sha256": "48d49dcef933073e3cd157beba65b03d1eda5be069d0615cd90873c8714a762d",
+      "target": "anchors::delete_anchor",
+      "target_definition": {
+        "path": "src/ego/ego_store_anchors.rs",
+        "line": 80,
+        "end_line": 102,
+        "compiler_def_id": "DefId(0:51813 ~ reliquary_memory[b862]::ego_store::anchors::{impl#0}::delete_anchor)"
+      }
+    },
+    {
+      "source_path": "src/facade/phylactery_ego.rs",
+      "source_line": 144,
+      "mir_line_sha256": "c55f072ce99de22985cc3047deb81cd47e8ac85cd6062e13ec6b294fe082eb77",
+      "target": "anchors::delete_anchor",
+      "target_definition": {
+        "path": "src/ego/ego_store_anchors.rs",
+        "line": 80,
+        "end_line": 102,
+        "compiler_def_id": "DefId(0:51813 ~ reliquary_memory[b862]::ego_store::anchors::{impl#0}::delete_anchor)"
+      }
+    },
+    {
+      "source_path": "src/facade/cva_ego.rs",
+      "source_line": 35,
+      "mir_line_sha256": "31ff33e98574a0db6c7d2a7ba1e25361572ba78de2af4b89969305d7218e4374",
+      "target": "anchors::update_anchor",
+      "target_definition": {
+        "path": "src/ego/ego_store_anchors.rs",
+        "line": 38,
+        "end_line": 78,
+        "compiler_def_id": "DefId(0:51811 ~ reliquary_memory[b862]::ego_store::anchors::{impl#0}::update_anchor)"
+      }
+    },
+    {
+      "source_path": "src/facade/phylactery_ego.rs",
+      "source_line": 130,
+      "mir_line_sha256": "fb388da6aa18c8ca36467a3a6be25e2203cf522846c298fde25146a9f09ced9b",
+      "target": "anchors::update_anchor",
+      "target_definition": {
+        "path": "src/ego/ego_store_anchors.rs",
+        "line": 38,
+        "end_line": 78,
+        "compiler_def_id": "DefId(0:51811 ~ reliquary_memory[b862]::ego_store::anchors::{impl#0}::update_anchor)"
+      }
+    },
+    {
+      "source_path": "src/facade/phylactery_ego.rs",
+      "source_line": 97,
+      "mir_line_sha256": "99bef6239ab8ab58e82285f706ce83c71aa2cae1f447d87ee53d052d189ae5b1",
+      "target": "documents::put_personality",
+      "target_definition": {
+        "path": "src/ego/ego_store_documents.rs",
+        "line": 7,
+        "end_line": 39,
+        "compiler_def_id": "DefId(0:51820 ~ reliquary_memory[b862]::ego_store::documents::{impl#0}::put_personality)"
+      }
+    },
+    {
+      "source_path": "src/facade/cva_ego.rs",
+      "source_line": 66,
+      "mir_line_sha256": "279c72da5169da428349e74d8ff860f76fbe02f5b5287f8fdf2a1db8133e8c98",
+      "target": "documents::put_synthesis",
+      "target_definition": {
+        "path": "src/ego/ego_store_documents.rs",
+        "line": 41,
+        "end_line": 72,
+        "compiler_def_id": "DefId(0:51822 ~ reliquary_memory[b862]::ego_store::documents::{impl#0}::put_synthesis)"
+      }
+    },
+    {
+      "source_path": "src/facade/phylactery_ego.rs",
+      "source_line": 161,
+      "mir_line_sha256": "a1298f65116e01ffebadfb0c84dafc7bfcee6f19ccb04673b673da2c95d7fbda",
+      "target": "documents::put_synthesis",
+      "target_definition": {
+        "path": "src/ego/ego_store_documents.rs",
+        "line": 41,
+        "end_line": 72,
+        "compiler_def_id": "DefId(0:51822 ~ reliquary_memory[b862]::ego_store::documents::{impl#0}::put_synthesis)"
+      }
+    },
+    {
+      "source_path": "src/facade/phylactery_ego.rs",
+      "source_line": 46,
+      "mir_line_sha256": "c860c60fef5b5574fddfd52a4cb7d64dd3831422c7115684acfc6babd4823d62",
+      "target": "identities::create_identity",
+      "target_definition": {
+        "path": "src/ego/ego_store_identities.rs",
+        "line": 24,
+        "end_line": 58,
+        "compiler_def_id": "DefId(0:51826 ~ reliquary_memory[b862]::ego_store::identities::{impl#0}::create_identity)"
+      }
+    },
+    {
+      "source_path": "src/facade/phylactery_ego.rs",
+      "source_line": 80,
+      "mir_line_sha256": "a1b974a9c95c4ba5f3e25095b14d9136f727b66f88be29a97667d5592294ae39",
+      "target": "identities::delete_identity",
+      "target_definition": {
+        "path": "src/ego/ego_store_identities.rs",
+        "line": 127,
+        "end_line": 159,
+        "compiler_def_id": "DefId(0:51832 ~ reliquary_memory[b862]::ego_store::identities::{impl#0}::delete_identity)"
+      }
+    },
+    {
+      "source_path": "src/facade/phylactery_ego.rs",
+      "source_line": 35,
+      "mir_line_sha256": "6f9d270332d0fb6b80b784f4e771436df6910f1b738d2991de06ba88f66c8f9a",
+      "target": "identities::put_identity",
+      "target_definition": {
+        "path": "src/ego/ego_store_identities.rs",
+        "line": 8,
+        "end_line": 22,
+        "compiler_def_id": "DefId(0:51824 ~ reliquary_memory[b862]::ego_store::identities::{impl#0}::put_identity)"
+      }
+    },
+    {
+      "source_path": "src/facade/phylactery_ego.rs",
+      "source_line": 59,
+      "mir_line_sha256": "0b29e328f13031504e2c0173778e435776feed1ef193553d4f405329c4987712",
+      "target": "identities::update_identity",
+      "target_definition": {
+        "path": "src/ego/ego_store_identities.rs",
+        "line": 60,
+        "end_line": 105,
+        "compiler_def_id": "DefId(0:51828 ~ reliquary_memory[b862]::ego_store::identities::{impl#0}::update_identity)"
+      }
+    }
+  ],
+  "scope": [
+    "src/facade/cva_ego.rs",
+    "src/facade/phylactery_ego.rs"
+  ],
+  "cut": "Move public REL/PHY Ego store mutations from facade implementations to canonical Gateway owner operations; keep Ego as policy/model owner and preserve existing API signatures, revision checks, source-memory validation, write ordering and return values.",
+  "preserving_tests": [
+    "Cva Ego anchor/document tests",
+    "Phylactery Ego identity/profile tests",
+    "Ego stale revision, validation and source-memory-version tests",
+    "public API compile contracts"
+  ],
+  "exit_criteria": [
+    "All listed direct capability calls are removed or re-owned through the canonical component operation.",
+    "Preserve all listed validation/error/order/byte/API behavior contracts.",
+    "Refresh same-source default compiler and trace/cfg call evidence after source freeze.",
+    "Run the focused existing preserving tests and root integration gates.",
+    "Update the exact child receipt with post-cut source hashes and eliminated witnesses; do not claim architecture acceptance from registration."
+  ],
+  "acceptance": "Open; registration authorizes bounded implementation scope only, not a DAG exception or gate closure.",
+  "implementation_scope_addendum": {
+    "registered_before_edit": true,
+    "new_modules": [
+      "src/owner_lifecycle/ego_operations.rs",
+      "src/runtime_inference/public_ego_operations.rs"
+    ],
+    "policy": "Concrete native owner contracts; no new DAG edges, owner state, callback or generic store framework."
+  },
+  "version_read_scope_addendum_2026_10_25": {
+    "source_before": "22c3cd6de9b1b372435397f52cd3084bde5b36040bb256e291659a6bdbc58bd0",
+    "scope": "PHY public ego_version routes same live EgoStore version read through named owner operation; acceptance open"
+  }
+}

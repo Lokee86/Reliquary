@@ -225,9 +225,7 @@ fn retry_publication(
             let now = crate::insomnia::runtime_step::now_ns();
             let cva = &mut runtime.cva;
             cva.owner
-                .insomnia
-                .fail(
-                    &mut cva.owner.container,
+                .owner_insomnia_fail_episode(
                     claim.work.episode_id,
                     claim
                         .work

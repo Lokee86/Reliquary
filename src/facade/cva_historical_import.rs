@@ -57,70 +57,7 @@ impl Cva {
         &mut self,
         requested_complete: bool,
     ) -> Result<FrozenHistoricalImport, CvaError> {
-        let history = crate::owner_lifecycle::HistoryReadAccess::new(&self.container);
-        let admission = crate::history::import_admission::ImportAdmissionReadParts {
-            access: crate::owner_lifecycle::HistoryReadAccess::new(&self.container),
-            archive: &self.archive,
-            memories: &self.memories,
-            freshness: &self.freshness,
-            dream: &self.dream_freshness,
-        };
-        let freshness =
-            crate::owner_lifecycle::historical_freshness_read::HistoricalFreshnessReadAccess::new(
-                &self.container,
-                &self.freshness,
-            );
-        let dream = crate::history::dream_evidence::DreamEvidenceReadAccess::new(
-            &history,
-            &self.graph,
-            &self.dream_freshness,
-        );
-        let vectors = crate::owner_lifecycle::semantic_source::HistoricalVectorReadAccess::new(
-            crate::owner_lifecycle::semantic_source::SemanticSourceReadParts {
-                container: &self.container,
-                archive: &self.archive,
-                freshness: &self.freshness,
-                generations: &self.vector_generations,
-                compatibility_profiles: &self.compatibility_profiles,
-                archive_vectors: &self.archive_vectors,
-                packed_vectors: &self.packed_vectors,
-            },
-            &self.memory_vectors,
-        );
-        #[cfg(feature = "freshness-performance-trace")]
-        let mut traces = Vec::new();
-        let result = crate::imports::historical_prepare::prepare(
-            crate::imports::historical_manifest::HistoricalManifestReadViews {
-                history: &history,
-                archive: &self.archive,
-                memories: &self.memories,
-                admission: &admission,
-                freshness: &freshness,
-                dream: &dream,
-                vectors: &vectors,
-                cut: crate::imports::historical_manifest::ManifestOwnerCut {
-                    owner_uuid: history.owner_uuid(),
-                    global_version: self.latest_global_version(),
-                    archive_version: self.archive_version(),
-                    activity_cut: self.rel_turn_count(),
-                    memory_version: self.memory_version(),
-                    graph_version: self.graph_version(),
-                    memory_graph_version: self.memory_graph_version(),
-                    vector_version: self.vector_version(),
-                    community_snapshot: self.community_snapshot(),
-                    insomnia: self.insomnia_stats(),
-                },
-            },
-            self.open_import_epoch(),
-            requested_complete,
-            #[cfg(feature = "freshness-performance-trace")]
-            &mut traces,
-        );
-        #[cfg(feature = "freshness-performance-trace")]
-        for trace in traces {
-            crate::cva_freshness::record_dream_evidence_trace(trace);
-        }
-        result
+        self.runtime_freeze_historical_import(requested_complete)
     }
     /// Atomically replace provisional scoring. Exact accepted retries resolve before
     /// input drift checks and never erase legitimate post-checkpoint live events.
@@ -128,42 +65,7 @@ impl Cva {
         &mut self,
         prepared: &PreparedHistoricalImport,
     ) -> Result<bool, CvaError> {
-        let cut = crate::imports::historical_freeze::HistoricalOwnerCut {
-            owner: prepared.settlement.owner,
-            activity: self.rel_turn_count(),
-            global: self.latest_global_version(),
-            archive: self.archive_version(),
-            graph: self.graph_version(),
-            memory_graph: self.memory_graph_version(),
-        };
-        let open_epoch = self.open_import_epoch();
-        let owners = crate::history::HistoricalSettlementReadOwners::new(
-            &self.owner.archive,
-            &self.owner.memories,
-            &self.owner.graph,
-            &self.owner.dream_freshness,
-            &self.owner.import_epochs,
-            &self.owner.freshness,
-        );
-        let mut writer =
-            crate::owner_lifecycle::historical_settlement::HistoricalSettlementWriteAccess::new(
-                &mut self.owner.container,
-                &self.owner.freshness,
-            );
-        let Some(publication) = crate::imports::historical_commit::commit(
-            &mut writer,
-            &owners,
-            prepared,
-            cut,
-            open_epoch,
-        )?
-        else {
-            return Ok(false);
-        };
-        drop(writer);
-        self.freshness_due = publication.install(&mut self.freshness);
-        self.freshness_notifications.clear();
-        Ok(true)
+        self.runtime_commit_historical_import(prepared)
     }
 }
 

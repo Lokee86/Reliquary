@@ -1,7 +1,7 @@
 //! Exclusive offline historical fill. Provider callbacks never hold runtime locks.
 use super::embedding_model::*;
 use super::embedding_plan;
-use super::{fail, file_digest};
+use super::fail;
 use crate::{Cva, CvaError, EmbeddingEndpoint, EmbeddingMode, VectorGeneration};
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -22,12 +22,13 @@ pub(super) struct Expected {
 }
 impl Expected {
     pub(super) fn read(cva: &Cva) -> Result<Self, Stop> {
+        let (bytes, digest) = cva
+            .runtime_historical_backing_facts()
+            .map_err(unsupported)?;
         Ok(Self {
             global: cva.latest_global_version(),
-            bytes: std::fs::metadata(cva.container.path())
-                .map_err(unsupported)?
-                .len(),
-            digest: file_digest(cva.container.path()).map_err(unsupported)?,
+            bytes,
+            digest,
         })
     }
     pub(super) fn verify(&self, cva: &Cva) -> Result<(), Stop> {
@@ -45,71 +46,6 @@ impl Expected {
         }
     }
 }
-struct Provider<'a, E> {
-    endpoint: &'a E,
-    cancel: &'a AtomicBool,
-    report: &'a std::cell::RefCell<HistoricalEmbeddingReport>,
-    limits: HistoricalEmbeddingLimits,
-}
-impl<E: EmbeddingEndpoint> EmbeddingEndpoint for Provider<'_, E> {
-    fn dimensions(&self) -> u32 {
-        self.endpoint.dimensions()
-    }
-    fn normalization(&self) -> crate::VectorNormalization {
-        self.endpoint.normalization()
-    }
-    fn embed(
-        &self,
-        mode: EmbeddingMode,
-        inputs: &[String],
-    ) -> Result<Vec<Vec<f32>>, crate::EmbeddingEndpointError> {
-        let failure = |s: &str| crate::EmbeddingEndpointError::Failure(s.into());
-        if self.cancel.load(Ordering::Acquire) {
-            return Err(failure("historical fill cancelled"));
-        }
-        let bytes = inputs
-            .iter()
-            .try_fold(0usize, |n, s| n.checked_add(s.len()))
-            .ok_or_else(|| failure("historical byte budget overflow"))?;
-        {
-            let mut report = self.report.borrow_mut();
-            if inputs.len() > self.limits.batch_inputs.max(2)
-                || report.attempted_calls >= self.limits.source_calls + 2
-                || report.attempted_inputs + inputs.len() > self.limits.missing_rows + 4
-                || report
-                    .text_bytes
-                    .checked_add(bytes)
-                    .is_none_or(|n| n > self.limits.text_bytes)
-            {
-                return Err(failure("historical provider budget exceeded"));
-            }
-            report.attempted_calls += 1;
-            report.attempted_inputs += inputs.len();
-            report.text_bytes += bytes;
-        }
-        // Generous JSON overhead allowance, still fixed before transport allocation.
-        let cap = inputs
-            .len()
-            .checked_mul(self.dimensions() as usize)
-            .and_then(|n| n.checked_mul(64))
-            .and_then(|n| n.checked_add(4096))
-            .ok_or_else(|| failure("historical response budget overflow"))?;
-        let vectors = self.endpoint.embed_bounded(mode, inputs, cap)?;
-        if vectors.len() != inputs.len()
-            || vectors
-                .iter()
-                .any(|v| v.len() != self.dimensions() as usize)
-        {
-            return Err(crate::EmbeddingEndpointError::InvalidResponse(
-                "historical output shape",
-            ));
-        }
-        let mut report = self.report.borrow_mut();
-        report.completed_calls += 1;
-        report.completed_inputs += inputs.len();
-        Ok(vectors)
-    }
-}
 fn provider_stop(error: impl std::fmt::Display, cancel: &AtomicBool) -> Stop {
     if cancel.load(Ordering::Acquire) {
         (HistoricalEmbeddingDisposition::Cancelled, error.to_string())
@@ -121,12 +57,7 @@ fn provider_stop(error: impl std::fmt::Display, cancel: &AtomicBool) -> Stop {
     }
 }
 pub(super) fn coverage(cva: &mut Cva, report: &mut HistoricalEmbeddingReport) -> Result<(), Stop> {
-    let generation = cva
-        .vector_generations
-        .generations()
-        .iter()
-        .max_by_key(|g| g.vector_version)
-        .copied();
+    let generation = cva.runtime_historical_latest_vector_generation();
     report.coverage.clear();
     report.unavailable_fragments = 0;
     for fragment in cva.fragments() {
@@ -184,25 +115,25 @@ pub(super) fn fill<E: EmbeddingEndpoint>(
     let result = (|| -> Result<(), Stop> {
         let mut plan = embedding_plan::prepare(cva, limits, cancel, &mut report)?;
         check_cancel(cancel)?;
-        if !endpoint.supports_bounded_embedding() {
+        if !cva.runtime_historical_embedding_supports_bounded(endpoint) {
             return Err(unsupported(
                 "endpoint cannot enforce bounded request contract",
             ));
         }
-        if endpoint.dimensions() != plan.profile.dimensions
-            || endpoint.normalization() != plan.profile.normalization
+        if cva.runtime_historical_embedding_dimensions(endpoint) != plan.profile.dimensions
+            || cva.runtime_historical_embedding_normalization(endpoint)
+                != plan.profile.normalization
         {
             return Err(unsupported("incompatible configured endpoint"));
         }
         let cell = std::cell::RefCell::new(report.clone());
-        let provider = Provider {
+        let compatibility = cva.runtime_historical_embedding_verify_endpoint(
+            &plan.profile,
             endpoint,
             cancel,
-            report: &cell,
+            &cell,
             limits,
-        };
-        let compatibility =
-            crate::compatibility_profile_probe::verify_endpoint(&plan.profile, &provider);
+        );
         report = cell.borrow().clone();
         let compatibility = compatibility.map_err(|e| {
             if matches!(
@@ -226,7 +157,14 @@ pub(super) fn fill<E: EmbeddingEndpoint>(
             plan.expected.verify(cva)?;
             *cell.borrow_mut() = report.clone();
             let texts: Vec<_> = batch.iter().map(|row| row.text.clone()).collect();
-            let vectors = provider.embed(EmbeddingMode::Document, &texts);
+            let vectors = cva.runtime_historical_embedding_batch(
+                endpoint,
+                cancel,
+                &cell,
+                limits,
+                EmbeddingMode::Document,
+                &texts,
+            );
             report = cell.borrow().clone();
             let vectors = vectors.map_err(|e| {
                 if matches!(e, crate::EmbeddingEndpointError::InvalidResponse(_)) {
@@ -236,15 +174,11 @@ pub(super) fn fill<E: EmbeddingEndpoint>(
                 }
             })?;
             check_cancel(cancel)?;
-            crate::compatibility_profile_probe::validate_embedding_batch(
-                &plan.profile,
-                &vectors,
-                batch.len(),
-            )
-            .map_err(|e| (HistoricalEmbeddingDisposition::InvalidOutput, e.to_string()))?;
+            cva.runtime_historical_embedding_validate_batch(&plan.profile, &vectors, batch.len())
+                .map_err(|e| (HistoricalEmbeddingDisposition::InvalidOutput, e.to_string()))?;
             if vectors
                 .iter()
-                .any(|v| crate::freshness::semantic_policy::cosine_similarity(v, v).is_err())
+                .any(|v| !cva.runtime_historical_embedding_vector_is_usable(v))
             {
                 return Err((
                     HistoricalEmbeddingDisposition::InvalidOutput,
@@ -286,7 +220,7 @@ pub(super) fn fill<E: EmbeddingEndpoint>(
             report.generation_synced = false;
             report.final_generation = Some(generation.id);
             report.final_source_archive_version = Some(generation.source_archive_version);
-            cva.container.sync().map_err(unsupported)?;
+            cva.runtime_sync_public_owner().map_err(unsupported)?;
             report.generation_synced = true;
             report.new_rows += batch.len();
             plan.expected = Expected::read(cva)?;
@@ -325,12 +259,7 @@ pub(super) fn manifest_pass(
     cva: &Cva,
     source_records: &[super::encoding::Value],
 ) -> Result<super::encoding::Value, CvaError> {
-    let generation = cva
-        .vector_generations
-        .generations()
-        .iter()
-        .max_by_key(|g| g.vector_version)
-        .copied();
+    let generation = cva.runtime_historical_latest_vector_generation();
     crate::imports::historical_manifest_plan::embedding_pass(generation, source_records)
         .map_err(CvaError::from)
 }
@@ -358,13 +287,6 @@ pub(super) fn fill_open_epoch<E: EmbeddingEndpoint>(
     limits: HistoricalEmbeddingLimits,
     cancel: &AtomicBool,
 ) -> Result<HistoricalEmbeddingReport, HistoricalEmbeddingFailure> {
-    cva.container.set_owner_write_scope(true);
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        fill(cva, endpoint, limits, cancel)
-    }));
-    cva.container.set_owner_write_scope(false);
-    match result {
-        Ok(result) => result,
-        Err(payload) => std::panic::resume_unwind(payload),
-    }
+    let mut scope = cva.runtime_historical_embedding_write_scope();
+    fill(&mut scope, endpoint, limits, cancel)
 }

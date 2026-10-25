@@ -1,0 +1,97 @@
+{
+  "schema": "phase7-closure-verification.v1",
+  "date": "2026-10-24",
+  "status": "verification-in-progress; no final acceptance claim",
+  "source_base": "cc9d2f4005fe7a1cff47da8ea2b83b86885b92c9",
+  "historical_call_inventory": "benchmarks/phase7-postcheckpoint-call-dispositions-2026-10-24.json",
+  "current_child_registry": "benchmarks/phase7-indirect-call-corrections-2026-10-24.json",
+  "denominator": {
+    "parents": 31,
+    "children": 34,
+    "total": 65,
+    "gates": 4
+  },
+  "policy": {
+    "target_components": 34,
+    "permitted_target_edges": 163,
+    "target_dag_edges_added": 0,
+    "exact_value_exceptions_added": [
+      {
+        "consumer": "freshness",
+        "owner": "container",
+        "symbol": "ObjectRef",
+        "scope": "src/freshness/graph_snapshot.rs: opaque coordinate forwarded by value to the approved Graph decoder; no physical capability or ObjectRef method invocation"
+      }
+    ],
+    "blanket_exceptions_added": 0,
+    "features_added": 0,
+    "wire_format_changes": 0
+  },
+  "source_checks": {
+    "component_map": {
+      "status": "pass",
+      "reachable_modules": 901,
+      "ownership_errors": 0
+    },
+    "source_cuts": {
+      "status": "pass",
+      "guarded_seams": 64
+    },
+    "boundary_ratchets": {
+      "status": "pass",
+      "raw_receipt": ".verification-tmp/phase7/final/source-ratchets.json"
+    }
+  },
+  "verification": {
+    "cargo_fmt": "pass",
+    "cli_fmt": "pass",
+    "cli_locked_check": "pass",
+    "core_locked_check": "pass",
+    "cli_locked_tests": {
+      "status": "pass",
+      "passed": 32,
+      "failed": 0,
+      "ignored": 0
+    },
+    "archive_roundtrip": {
+      "status": "pass",
+      "nodes": 2,
+      "branches": 1,
+      "fragments": 1,
+      "content_objects": 2,
+      "expanded_refs": 2,
+      "bytes": 1058
+    },
+    "first_library_run": {
+      "passed": 2011,
+      "failed": 1,
+      "ignored": 5,
+      "failure": "New scope regression used a fixture with no open import epoch; its initial closed-admission assertion failed before exercising the guard.",
+      "correction": "Test-only setup now opens and verifies a native import epoch before checking scope admission. All normal/error/unwind assertions remain strict.",
+      "log": ".verification-tmp/phase7/final/library-first-run.log"
+    },
+    "full_locked_tests": {
+      "status": "historical-forwarder-checkpoint-pass; later owner cuts require rerun",
+      "library_passed": 2012,
+      "integration_passed": 163,
+      "ignored": 6,
+      "failed": 0,
+      "log": ".verification-tmp/phase7/final/forwarder-tests.log"
+    },
+    "compiler_default": {
+      "status": "historical-forwarder-checkpoint; stale after subsequent source cuts",
+      "unpermitted_calls": 647,
+      "unknown_calls": 32986,
+      "path": ".verification-tmp/phase7/closure-forwarder-current-20261024/calls.json"
+    },
+    "compiler_trace": "historical enabled capture and runtime pass; same-source final refresh required",
+    "architecture_refresh": "900-second attempt rejected at timeout; final source-stable 1200-second attempt pending",
+    "documentation": "shared policy (repository and changed-from origin/main) and Archivist indexes/links pass; Pitlord ownership pending current valid graph"
+  },
+  "acceptance": {
+    "B7": "OPEN",
+    "H7": "OPEN",
+    "R7": "PARTIAL",
+    "A7": "OPEN"
+  }
+}

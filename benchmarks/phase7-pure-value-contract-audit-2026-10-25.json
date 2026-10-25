@@ -1,0 +1,1598 @@
+{
+  "schema": "phase7-pure-value-contract-audit.v1",
+  "date": "2026-10-25",
+  "status": "candidate audit only; no compiler contract or disposition accepted",
+  "input": {
+    "calls_path": ".verification-tmp/phase7/closure-finish-default-20261025/calls.json",
+    "calls_sha256": "be6b772eaeb3aca52a5a1aee03559cbb68a1113f58f6913f319f0e735476d36c",
+    "provenance_path": ".verification-tmp/phase7/closure-finish-default-20261025/provenance.json",
+    "provenance_sha256": "d041a1bcde366a7cf67520caf3e43ba2d300207113ccbd96fb3ef9ed1de122dd",
+    "source_manifest_path": ".verification-tmp/phase7/closure-finish-default-20261025/source-manifest.json",
+    "source_manifest_sha256": "e64cc368801fb3491b8a9bd662a13032df1c09592ea1dfa1b7ca6133d637eb28",
+    "source_snapshot_sha256": "f42bccd6cc58eb4f095793300a48637222e2beb21980a642ff55a0e4a19f6303",
+    "compiler_violation_count": 320
+  },
+  "method": "Reviewed all distinct unpermitted target groups for value-only helpers. Candidate means current implementation and transitive callees have no external callback, live store/view, reader, writer, or I/O. Exact consumer witnesses and current callee body/file hashes are retained. The artifact source manifest is historical evidence; per-file current/source match is explicit.",
+  "candidate_witness_count": 64,
+  "candidate_contracts": [
+    {
+      "callee": "HistoryGenerationId::as_bytes",
+      "candidate_type": "immutable identity byte accessor",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/rewrite_lineage.rs",
+        "line": 21,
+        "end_line": 23,
+        "body_sha256_current": "ef7c322661d22d3c759aa5af22617c0470dcc633828dc3590a9567f48a86ff7f",
+        "file_sha256_current": "f6900370f55cd4052ebf4e9714d3a9356db2cbb0a249d2ba960f3fa6f9d6de73",
+        "file_sha256_compiler_snapshot": "f6900370f55cd4052ebf4e9714d3a9356db2cbb0a249d2ba960f3fa6f9d6de73",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/freshness/freshness_rewrite_baseline.rs",
+          "source_line": 192,
+          "source_column": 31,
+          "source_end_line": 192,
+          "source_end_column": 65,
+          "mir_line_sha256": "15eeb965844fde595518779975390ddfacd961f1efc7d1896989e1f14c76071c",
+          "source_component": "freshness-store",
+          "target_component": "maintenance-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "e29de6b540e08a8c2a7ff11273f86b3ba7caaf6c7b01cd00658535881ec672d6",
+          "consumer_file_matches_compiler_snapshot": true
+        },
+        {
+          "source_path": "src/semantic_graph/graph_rewrite_baseline.rs",
+          "source_line": 30,
+          "source_column": 22,
+          "source_end_line": 30,
+          "source_end_column": 43,
+          "mir_line_sha256": "a573ab17b835890bd12f1db5893394100de6f57af8925c611a119506bd75b558",
+          "source_component": "graph-store",
+          "target_component": "maintenance-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "13df585cca3ce030f558be20b8b0c2d1bbda4a83786c777f4e9e83b6165ec013",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "HistoryGenerationId::from_bytes",
+      "candidate_type": "immutable identity constructor",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/rewrite_lineage.rs",
+        "line": 17,
+        "end_line": 19,
+        "body_sha256_current": "17e26bce5bc00b394212959383759877bc2442190138c6f16b2ad47cc97a8f51",
+        "file_sha256_current": "f6900370f55cd4052ebf4e9714d3a9356db2cbb0a249d2ba960f3fa6f9d6de73",
+        "file_sha256_compiler_snapshot": "f6900370f55cd4052ebf4e9714d3a9356db2cbb0a249d2ba960f3fa6f9d6de73",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/freshness/freshness_rewrite_baseline.rs",
+          "source_line": 223,
+          "source_column": 34,
+          "source_end_line": 223,
+          "source_end_column": 88,
+          "mir_line_sha256": "83ac29ab6f788ee9b43addba74def8436337c68178da76fc2c5eb45763dc02c7",
+          "source_component": "freshness-store",
+          "target_component": "maintenance-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "e29de6b540e08a8c2a7ff11273f86b3ba7caaf6c7b01cd00658535881ec672d6",
+          "consumer_file_matches_compiler_snapshot": true
+        },
+        {
+          "source_path": "src/semantic_graph/graph_rewrite_baseline.rs",
+          "source_line": 59,
+          "source_column": 26,
+          "source_end_line": 59,
+          "source_end_column": 92,
+          "mir_line_sha256": "f0ee109523663c4bc4ebfc69d600d1aa6065adb18fa55c56d9fbb6fba1a1f2b7",
+          "source_component": "graph-store",
+          "target_component": "maintenance-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "13df585cca3ce030f558be20b8b0c2d1bbda4a83786c777f4e9e83b6165ec013",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "EmbeddingMode::tag",
+      "candidate_type": "codec enum tag",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/runtime_inference/embedding_endpoint.rs",
+        "line": 12,
+        "end_line": 17,
+        "body_sha256_current": "db81472e06e19822a23349bdc96829d87050e9c7926fc3b711a0e1d5177ebac5",
+        "file_sha256_current": "cce6d995806fa9bbd7ac21013318aad0e9c8d6eea329c6e1f577f65eec73e0f4",
+        "file_sha256_compiler_snapshot": "cce6d995806fa9bbd7ac21013318aad0e9c8d6eea329c6e1f577f65eec73e0f4",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/retrieval/compatibility_profile_codec.rs",
+          "source_line": 82,
+          "source_column": 18,
+          "source_end_line": 82,
+          "source_end_column": 38,
+          "mir_line_sha256": "e9e67f5a521083ffb4764f4078c3d942ef9a7ec8f5bda2e2ebe7e8d37aba3097",
+          "source_component": "vector-store",
+          "target_component": "switchboard",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "8d326adad58d1e967aa4193ce52f30363076322f72945632052b6c4c194306d8",
+          "consumer_file_matches_compiler_snapshot": true
+        },
+        {
+          "source_path": "src/retrieval/compatibility_profile_validation.rs",
+          "source_line": 101,
+          "source_column": 22,
+          "source_end_line": 101,
+          "source_end_column": 42,
+          "mir_line_sha256": "b9ca550de4b585dcb0c7c35f5050abc9cba91998e13e95de0402ffe25fdb570d",
+          "source_component": "vector-store",
+          "target_component": "switchboard",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "35bd21ce5329c8a33ccc11d529a868d68ebe3634638285a6b55be260f59014d5",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "EmbeddingMode::from_tag",
+      "candidate_type": "codec enum parser",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/runtime_inference/embedding_endpoint.rs",
+        "line": 19,
+        "end_line": 25,
+        "body_sha256_current": "a08a13785b51d8aef06b319022a3e658b872eef8f40559aee806f2542e62ef61",
+        "file_sha256_current": "cce6d995806fa9bbd7ac21013318aad0e9c8d6eea329c6e1f577f65eec73e0f4",
+        "file_sha256_compiler_snapshot": "cce6d995806fa9bbd7ac21013318aad0e9c8d6eea329c6e1f577f65eec73e0f4",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/retrieval/compatibility_profile_codec.rs",
+          "source_line": 123,
+          "source_column": 20,
+          "source_end_line": 123,
+          "source_end_column": 54,
+          "mir_line_sha256": "c474a8eb3a7bb4fd880268dc3e968ca4277088d93528cc17b4e1a325597d076d",
+          "source_component": "vector-store",
+          "target_component": "switchboard",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "8d326adad58d1e967aa4193ce52f30363076322f72945632052b6c4c194306d8",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "VectorNormalization::tag",
+      "candidate_type": "codec enum tag",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/retrieval/packed_vector_model.rs",
+        "line": 28,
+        "end_line": 33,
+        "body_sha256_current": "ac0c0a3c0959468eb96e9e6e845ecb19f63f48d2fddae8561c03731b7e74e2fa",
+        "file_sha256_current": "739283d29c40a1cda96175843b7ffae856bb0d6328ba4f840a064d3694ae4374",
+        "file_sha256_compiler_snapshot": "739283d29c40a1cda96175843b7ffae856bb0d6328ba4f840a064d3694ae4374",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/config_security/model_config_codec.rs",
+          "source_line": 113,
+          "source_column": 16,
+          "source_end_line": 113,
+          "source_end_column": 44,
+          "mir_line_sha256": "d5ce010d64913f8057a7a8db4f480e1b8a70a82fb31368268aad4c96c9350126",
+          "source_component": "config-security",
+          "target_component": "vector-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "f590c65ad2a9261bafa1496ad36c5842a31c3617c7d07d25ef7d771530ea5e2e",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "VectorNormalization::from_tag",
+      "candidate_type": "codec enum parser",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/retrieval/packed_vector_model.rs",
+        "line": 35,
+        "end_line": 41,
+        "body_sha256_current": "c99b20e39ed86280f4f03129bf8436defce8f8c8ae2621f10ed9fbfcb04cf04f",
+        "file_sha256_current": "739283d29c40a1cda96175843b7ffae856bb0d6328ba4f840a064d3694ae4374",
+        "file_sha256_compiler_snapshot": "739283d29c40a1cda96175843b7ffae856bb0d6328ba4f840a064d3694ae4374",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/config_security/model_config_codec.rs",
+          "source_line": 130,
+          "source_column": 9,
+          "source_end_line": 130,
+          "source_end_column": 49,
+          "mir_line_sha256": "34859de8964d26eb8fef3163e34204b2c2fd467594e2766a9bcd770dd9a90ce0",
+          "source_component": "config-security",
+          "target_component": "vector-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "f590c65ad2a9261bafa1496ad36c5842a31c3617c7d07d25ef7d771530ea5e2e",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "ClockReading::new",
+      "candidate_type": "unit-checked immutable clock value constructor",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/staleness/mod.rs",
+        "line": 44,
+        "end_line": 53,
+        "body_sha256_current": "9cc8218c9f78e7545bdcdfb8dba0b002147d7701c006d153b5174a051ad91cd9",
+        "file_sha256_current": "c96f98ebaeddbb38bba6e30cdfa4c69d143c8fd348357210905f54c32f1466c8",
+        "file_sha256_compiler_snapshot": "c96f98ebaeddbb38bba6e30cdfa4c69d143c8fd348357210905f54c32f1466c8",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/facade/review_clocks.rs",
+          "source_line": 23,
+          "source_column": 9,
+          "source_end_line": 23,
+          "source_end_column": 63,
+          "mir_line_sha256": "39d8a311e4f4bc9506b51d06babb60eccd26bdf9c1d5b46824875af3c5fcb8b2",
+          "source_component": "public-consumers",
+          "target_component": "review-clocks",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "26def79bfd4f7de1755f120ef40e2d3ac555d2263f636f0aaed9cbd59180cd6d",
+          "consumer_file_matches_compiler_snapshot": true
+        },
+        {
+          "source_path": "src/facade/review_clocks.rs",
+          "source_line": 33,
+          "source_column": 17,
+          "source_end_line": 33,
+          "source_end_column": 87,
+          "mir_line_sha256": "c33db1bba15bd856a2f6d7c8d990f6bb4629da40c8da72024b6508eefc8a31dd",
+          "source_component": "public-consumers",
+          "target_component": "review-clocks",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "26def79bfd4f7de1755f120ef40e2d3ac555d2263f636f0aaed9cbd59180cd6d",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "FreshnessPolicy::default_v1",
+      "candidate_type": "versioned constant policy value",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/freshness/policy.rs",
+        "line": 51,
+        "end_line": 59,
+        "body_sha256_current": "cd8adb2cf510162aaea09e0077548de8020c80597ee0ba28bad2a9a55dc0fb44",
+        "file_sha256_current": "93b68a6098a2a2872bb0e6dfa07803cda35e23be22a88c133504da1a0e380d90",
+        "file_sha256_compiler_snapshot": "93b68a6098a2a2872bb0e6dfa07803cda35e23be22a88c133504da1a0e380d90",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/imports/historical_manifest_plan.rs",
+          "source_line": 27,
+          "source_column": 18,
+          "source_end_line": 27,
+          "source_end_column": 47,
+          "mir_line_sha256": "ed3bd0630194dd0fe6731c5b21f881c7d64999c50d2619946f1c20f72eb402f3",
+          "source_component": "import",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "e2544ad5ce05551f406f764acd41d5756bf08fe30e458e9bb4d77dc93f2ae393",
+          "consumer_file_matches_compiler_snapshot": true
+        },
+        {
+          "source_path": "src/imports/historical_manifest_plan.rs",
+          "source_line": 45,
+          "source_column": 22,
+          "source_end_line": 45,
+          "source_end_column": 51,
+          "mir_line_sha256": "b4d00f7b0d4d538378d211f6fc3d6ed49f63d56d2852ae24a592aa524b7b8e4f",
+          "source_component": "import",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "e2544ad5ce05551f406f764acd41d5756bf08fe30e458e9bb4d77dc93f2ae393",
+          "consumer_file_matches_compiler_snapshot": true
+        },
+        {
+          "source_path": "src/imports/historical_settlement_plan.rs",
+          "source_line": 82,
+          "source_column": 14,
+          "source_end_line": 82,
+          "source_end_column": 43,
+          "mir_line_sha256": "1156c9079a2d5b569c29eb446d5cd2e0c153a436faec0d21b3f2649ad689bbff",
+          "source_component": "import",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "a840ab908d3f9348193d7a877d15d98cf837b9c899f88dca32f7cb9aff5233af",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "FreshnessRecord::created",
+      "candidate_type": "immutable fresh-record value constructor",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/freshness/score.rs",
+        "line": 58,
+        "end_line": 64,
+        "body_sha256_current": "3680e811e0f6851d8ad679d67d4c33e546728450c648da0338b981dd04fed064",
+        "file_sha256_current": "4d2d82089762035b5c13f935491390fb01b395951f7d5a7d04964341b07a9e60",
+        "file_sha256_compiler_snapshot": "4d2d82089762035b5c13f935491390fb01b395951f7d5a7d04964341b07a9e60",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/imports/historical_freeze.rs",
+          "source_line": 27,
+          "source_column": 25,
+          "source_end_line": 27,
+          "source_end_column": 51,
+          "mir_line_sha256": "03aa065302a60565b8b167d7c4deca9d474d55a135a6c7ab8ca98a1bd408ee02",
+          "source_component": "import",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "05cffe3a46f32472afb4fcbb7f3997ff0f38bf5dd33bb143061e61839cd8d29e",
+          "consumer_file_matches_compiler_snapshot": true
+        },
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 1068,
+          "source_column": 22,
+          "source_end_line": 1068,
+          "source_end_column": 55,
+          "mir_line_sha256": "0c2fa297e7d3c3f69e4d9482594473cf1ec6dae9f3d43ebf7465119a5bf6822d",
+          "source_component": "runtime-gateway",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "f16880dc71231f6e130fde128e1efd6dac4d1f24810effaac802ec3b25c6f229",
+          "consumer_file_matches_compiler_snapshot": false
+        }
+      ]
+    },
+    {
+      "callee": "FreshnessRecord::admit",
+      "candidate_type": "local value-state transition; mutates only supplied Copy record",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/freshness/score.rs",
+        "line": 67,
+        "end_line": 78,
+        "body_sha256_current": "d1d9e3603447f8e025ed8951ecd96be0217560a50eb9e9fb4f76b1860a2d089b",
+        "file_sha256_current": "4d2d82089762035b5c13f935491390fb01b395951f7d5a7d04964341b07a9e60",
+        "file_sha256_compiler_snapshot": "4d2d82089762035b5c13f935491390fb01b395951f7d5a7d04964341b07a9e60",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Calls validate_score, which only range-checks the copied record; callsites mutate local FreshnessRecord values, not a store reference.",
+      "witnesses": [
+        {
+          "source_path": "src/imports/historical_freeze.rs",
+          "source_line": 29,
+          "source_column": 13,
+          "source_end_line": 30,
+          "source_end_column": 27,
+          "mir_line_sha256": "93f5dade23a7f4071e89bc31014a4001fef594fcd95bc3e0d38178e11c45b2f9",
+          "source_component": "import",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "05cffe3a46f32472afb4fcbb7f3997ff0f38bf5dd33bb143061e61839cd8d29e",
+          "consumer_file_matches_compiler_snapshot": true
+        },
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 1069,
+          "source_column": 5,
+          "source_end_line": 1070,
+          "source_end_column": 21,
+          "mir_line_sha256": "2d3c3db81a6576e84670bc175d0bac120f87b3bf96dbfda78d1ba18c32aa74cc",
+          "source_component": "runtime-gateway",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "f16880dc71231f6e130fde128e1efd6dac4d1f24810effaac802ec3b25c6f229",
+          "consumer_file_matches_compiler_snapshot": false
+        }
+      ]
+    },
+    {
+      "callee": "SemanticPolicy::canonical_descriptor",
+      "candidate_type": "canonical value serialization with field validation",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/freshness/semantic_policy.rs",
+        "line": 83,
+        "end_line": 94,
+        "body_sha256_current": "bf06c015e56f41cdec4b8168553bdf81692c5e6840f43c24bde86c287b018165",
+        "file_sha256_current": "6b0e29b39aa0577708a878a8ee736fff982d55bad5fe24b5dcd2c43216ec970c",
+        "file_sha256_compiler_snapshot": "6b0e29b39aa0577708a878a8ee736fff982d55bad5fe24b5dcd2c43216ec970c",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Calls validate and format_threshold; both inspect fields and build a String only.",
+      "witnesses": [
+        {
+          "source_path": "src/imports/historical_manifest.rs",
+          "source_line": 270,
+          "source_column": 31,
+          "source_end_line": 271,
+          "source_end_column": 32,
+          "mir_line_sha256": "5cff337f9ee9ae1d44dc2f656a15c0e7d8d6002eb09c7883574dd4fdc64500d2",
+          "source_component": "import",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "67936fa9e2861dc1ac79ffa78bf43a7795096549292ab79597d6b97f21f44c84",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "SemanticPolicy::digest",
+      "candidate_type": "deterministic policy digest",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/freshness/semantic_policy.rs",
+        "line": 96,
+        "end_line": 101,
+        "body_sha256_current": "56aed07a802448a638db9eef19a72fbe5fc435ec7badd83059c54cbe5eaad18c",
+        "file_sha256_current": "6b0e29b39aa0577708a878a8ee736fff982d55bad5fe24b5dcd2c43216ec970c",
+        "file_sha256_compiler_snapshot": "6b0e29b39aa0577708a878a8ee736fff982d55bad5fe24b5dcd2c43216ec970c",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Calls canonical_descriptor, then hashes its bytes with SHA-256; no I/O or callback.",
+      "witnesses": [
+        {
+          "source_path": "src/imports/historical_manifest.rs",
+          "source_line": 273,
+          "source_column": 27,
+          "source_end_line": 274,
+          "source_end_column": 18,
+          "mir_line_sha256": "01e75c460cb79d925d9e75a93e3c9d2de455133334afd724fd0ffb049c0e79c2",
+          "source_component": "import",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "67936fa9e2861dc1ac79ffa78bf43a7795096549292ab79597d6b97f21f44c84",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "freshness_policy_digest",
+      "candidate_type": "deterministic policy digest",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/freshness/semantic_policy.rs",
+        "line": 15,
+        "end_line": 24,
+        "body_sha256_current": "3c023cb8ccb3bb87614eac97614309b847fae614a5be39a22e77300d2cdeace0",
+        "file_sha256_current": "6b0e29b39aa0577708a878a8ee736fff982d55bad5fe24b5dcd2c43216ec970c",
+        "file_sha256_compiler_snapshot": "6b0e29b39aa0577708a878a8ee736fff982d55bad5fe24b5dcd2c43216ec970c",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/runtime_inference/public_semantic_operations.rs",
+          "source_line": 226,
+          "source_column": 33,
+          "source_end_line": 228,
+          "source_end_column": 14,
+          "mir_line_sha256": "71b8e9289436f2b06d0650af287523c79f68cc290c3d15bd905ad8d92615f5da",
+          "source_component": "runtime-gateway",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "080f32e601c66f35eb5f8da4293fa4d78dbe51f89598dcda72b6f4163cf94132",
+          "consumer_file_matches_compiler_snapshot": false
+        }
+      ]
+    },
+    {
+      "callee": "HistoricalTimeline::from_accepted_archive",
+      "candidate_type": "source-value validation and immutable timeline construction",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/historical_timeline.rs",
+        "line": 258,
+        "end_line": 330,
+        "body_sha256_current": "d146366bcc9e9ffb7b674161c6fdd070a6b1427866c669daec23d5965fc02436",
+        "file_sha256_current": "fe750e6f412003491f2794b684b19653e1abac90f53688dfc1ab1cb81f5ec496",
+        "file_sha256_compiler_snapshot": "fe750e6f412003491f2794b684b19653e1abac90f53688dfc1ab1cb81f5ec496",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Calls validated_sources and HistoricalSource::activity; uses local BTreeMap/BTreeSet values and checks positions/ancestry only.",
+      "witnesses": [
+        {
+          "source_path": "src/history/source_proof.rs",
+          "source_line": 232,
+          "source_column": 5,
+          "source_end_line": 232,
+          "source_end_column": 76,
+          "mir_line_sha256": "e3da05fa80231d787c8bfc762d17c4c1d5f677181cc8c6ad33cf65948c1d8a02",
+          "source_component": "history",
+          "target_component": "pure-codec",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "5522ea17e94736a28f9bdaf70847e66f1a0d2c141e4430e826afaa1585be6fe6",
+          "consumer_file_matches_compiler_snapshot": true
+        },
+        {
+          "source_path": "src/history/source_proof.rs",
+          "source_line": 271,
+          "source_column": 5,
+          "source_end_line": 271,
+          "source_end_column": 89,
+          "mir_line_sha256": "6e5b341710e66eacacfdd255a9fa52c0efbb7a8992067a8186b988a9a9d3495e",
+          "source_component": "history",
+          "target_component": "pure-codec",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "5522ea17e94736a28f9bdaf70847e66f1a0d2c141e4430e826afaa1585be6fe6",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "HistoricalTimeline::position",
+      "candidate_type": "immutable timeline lookup",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/historical_timeline.rs",
+        "line": 356,
+        "end_line": 361,
+        "body_sha256_current": "d7dea7992dec67fa46d04fe978f1709c46082e6c2ae9c0658d55781e83446575",
+        "file_sha256_current": "fe750e6f412003491f2794b684b19653e1abac90f53688dfc1ab1cb81f5ec496",
+        "file_sha256_compiler_snapshot": "fe750e6f412003491f2794b684b19653e1abac90f53688dfc1ab1cb81f5ec496",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/freshness/historical_planner.rs",
+          "source_line": 125,
+          "source_column": 38,
+          "source_end_line": 125,
+          "source_end_column": 60,
+          "mir_line_sha256": "67806e7972094416edda067db2319a735fa055b9dcce02868836a49b62c3a000",
+          "source_component": "freshness",
+          "target_component": "pure-codec",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "52fd2f3e305861cd93cd7be612d4349a5af705c9882459df128da4ce8a627f20",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "CvaReconcileConflict::kind",
+      "candidate_type": "error-kind value accessor",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/owner_lifecycle/cva_reconcile_conflict.rs",
+        "line": 72,
+        "end_line": 88,
+        "body_sha256_current": "cda6964a600ff93c9c027edaaa4cdb1dccab7ceca5c52766a93875f539a4d0b2",
+        "file_sha256_current": "2855832f586653eae32a594f7660e0b1c7dad6fbb7a05138974e074f08c8637e",
+        "file_sha256_compiler_snapshot": "2855832f586653eae32a594f7660e0b1c7dad6fbb7a05138974e074f08c8637e",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/facade/cva_runtime_reconciliation.rs",
+          "source_line": 143,
+          "source_column": 49,
+          "source_end_line": 143,
+          "source_end_column": 64,
+          "mir_line_sha256": "44c1caeac32a95eefc4540bd95aabb5af73fb76337ba706f85993c2e4075c142",
+          "source_component": "public-consumers",
+          "target_component": "owner-lifecycle",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "be03a3789ebc2c36ff1aab86fef6d2356115aaa960ab1a7977c09f38420ec224",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "CvaReconcileError::conflict",
+      "candidate_type": "error payload accessor",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/owner_lifecycle/cva_reconcile_error.rs",
+        "line": 119,
+        "end_line": 124,
+        "body_sha256_current": "df748b9e0dd8199d3a539ba1853fc180c0af029803c43e11ccf8a790c49e6a13",
+        "file_sha256_current": "653a52070310855fa30a80bdd9cd31f1ae614b6f616f5f1eacb0cd39a0b7bc6b",
+        "file_sha256_compiler_snapshot": "653a52070310855fa30a80bdd9cd31f1ae614b6f616f5f1eacb0cd39a0b7bc6b",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/facade/cva_runtime_reconciliation.rs",
+          "source_line": 138,
+          "source_column": 45,
+          "source_end_line": 138,
+          "source_end_column": 61,
+          "mir_line_sha256": "04d5bf5392cd79b552ed579db5bc57ae13e978c12ab49154a12da0724e28190b",
+          "source_component": "public-consumers",
+          "target_component": "owner-lifecycle",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "be03a3789ebc2c36ff1aab86fef6d2356115aaa960ab1a7977c09f38420ec224",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "FreshnessNotificationState::is_empty",
+      "candidate_type": "read-only query on detached notification value",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/freshness_due.rs",
+        "line": 48,
+        "end_line": 50,
+        "body_sha256_current": "c7fcd6b4a96f768164580b4ac0b6202f723f679e85e48e7931cafb96aff3b581",
+        "file_sha256_current": "d0475ee8bfc09adc6467d1cde88a0538fd36f24eefc235ff738ce38681dc30d3",
+        "file_sha256_compiler_snapshot": "d0475ee8bfc09adc6467d1cde88a0538fd36f24eefc235ff738ce38681dc30d3",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Calls VecDeque::is_empty and checks an Option; it reads only this value.",
+      "witnesses": [
+        {
+          "source_path": "src/facade/cva_freshness_due.rs",
+          "source_line": 31,
+          "source_column": 17,
+          "source_end_line": 31,
+          "source_end_column": 33,
+          "mir_line_sha256": "20ccd13802948d6e49676ce5e7a601dd7b0e89011ab47a632976790d044a4050",
+          "source_component": "public-consumers",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "7b3c37e789930ef24cb8ee1d05c9c9b38589412df7d9b7f5ed275113df112c4b",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "MemoryTextField::tag",
+      "candidate_type": "codec enum tag",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/pure_codec/memory_text_field.rs",
+        "line": 9,
+        "end_line": 14,
+        "body_sha256_current": "4b786d3275de0ab9c71717d32015a1a9f4b296f7259cc6a21c8292a8bfda47a5",
+        "file_sha256_current": "33d0caad016d0af46688299367e9a4c583a762522d84d38e3378093055e03fa4",
+        "file_sha256_compiler_snapshot": "33d0caad016d0af46688299367e9a4c583a762522d84d38e3378093055e03fa4",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/perception/entity_resolution_processor_support.rs",
+          "source_line": 113,
+          "source_column": 9,
+          "source_end_line": 113,
+          "source_end_column": 24,
+          "mir_line_sha256": "7e9c8cb6cbedea886acb4bf1a798aa753b476533b0f5bd1d72e588b1119d729f",
+          "source_component": "perception",
+          "target_component": "pure-codec",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "19323ebc98d096e788bd11ec037578c88153c06f351023be687bbe46ecc58a09",
+          "consumer_file_matches_compiler_snapshot": true
+        },
+        {
+          "source_path": "src/runtime_inference/runtime_host_rel_perception.rs",
+          "source_line": 265,
+          "source_column": 51,
+          "source_end_line": 265,
+          "source_end_column": 64,
+          "mir_line_sha256": "67dd324dbb7fb6eb6acefc64aa1c50834ef60a6323ff490e44ab736d856ce539",
+          "source_component": "runtime-gateway",
+          "target_component": "pure-codec",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "64f6ef2fd5a6c95d7b7a4ffc92721beb9f17347ee06528bd7270ff8790094db9",
+          "consumer_file_matches_compiler_snapshot": true
+        },
+        {
+          "source_path": "src/runtime_inference/runtime_host_phy_perception.rs",
+          "source_line": 215,
+          "source_column": 9,
+          "source_end_line": 215,
+          "source_end_column": 24,
+          "mir_line_sha256": "745990c8ba82b73e343c98cb675ea710edbde749eb6ce538e0b56cfef7fedb0f",
+          "source_component": "runtime-gateway",
+          "target_component": "pure-codec",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "690699c13c8e44f7230fb4c43c40dcffa99ea4d3ce23a8022294c4b43225f4d1",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "EpisodePolicy::inactive",
+      "candidate_type": "deterministic policy arithmetic",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/archive/episode_policy.rs",
+        "line": 28,
+        "end_line": 30,
+        "body_sha256_current": "a4639c2c15e4e640d9aebe9f4beb51439840520beda36e688b00fd774bde4965",
+        "file_sha256_current": "5f5b451d3846224d73726c74e379eb5b1d3a93c3759531aea4cf33a4fcc11675",
+        "file_sha256_compiler_snapshot": "5f5b451d3846224d73726c74e379eb5b1d3a93c3759531aea4cf33a4fcc11675",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/facade/cva_episode_policy.rs",
+          "source_line": 17,
+          "source_column": 13,
+          "source_end_line": 17,
+          "source_end_column": 52,
+          "mir_line_sha256": "6ba6e9ef03bd5ab9e2fe69ff03c52331a318b8ddaebd9a27df0f843bd640cef9",
+          "source_component": "public-consumers",
+          "target_component": "archive-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "b18ac2603d829edbc7eedd5f89952e295a71a3a63366310b0690c35dfb2a1ee7",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "EpisodePolicy::validate",
+      "candidate_type": "immutable policy value validation",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/archive/episode_policy.rs",
+        "line": 21,
+        "end_line": 26,
+        "body_sha256_current": "6498befb6da9a715348af9fabcec367e36f994148dd80a57394ee27dab44df08",
+        "file_sha256_current": "5f5b451d3846224d73726c74e379eb5b1d3a93c3759531aea4cf33a4fcc11675",
+        "file_sha256_compiler_snapshot": "5f5b451d3846224d73726c74e379eb5b1d3a93c3759531aea4cf33a4fcc11675",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/facade/insomnia_cva.rs",
+          "source_line": 31,
+          "source_column": 22,
+          "source_end_line": 32,
+          "source_end_column": 24,
+          "mir_line_sha256": "0e6c579f46c23d37b62b5a7ce83510760085f0e6d9e9306715b768cbb03848e5",
+          "source_component": "public-consumers",
+          "target_component": "archive-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "8291100bef7debdbdf2113ac02f1ff99829fcd9332703f2690b550ff49712390",
+          "consumer_file_matches_compiler_snapshot": false
+        },
+        {
+          "source_path": "src/facade/insomnia_cva.rs",
+          "source_line": 77,
+          "source_column": 22,
+          "source_end_line": 78,
+          "source_end_column": 24,
+          "mir_line_sha256": "428815b23dba233bdd7963d88212e4a4a28d24ee0170251d3360d0faa0ce87f4",
+          "source_component": "public-consumers",
+          "target_component": "archive-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "8291100bef7debdbdf2113ac02f1ff99829fcd9332703f2690b550ff49712390",
+          "consumer_file_matches_compiler_snapshot": false
+        },
+        {
+          "source_path": "src/facade/cva_episode_policy.rs",
+          "source_line": 15,
+          "source_column": 22,
+          "source_end_line": 15,
+          "source_end_column": 39,
+          "mir_line_sha256": "cb28d9829cfa494ee0c6f4a620d39ad6e10589f9d3d97d4e136c2aaf5dbdca00",
+          "source_component": "public-consumers",
+          "target_component": "archive-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "b18ac2603d829edbc7eedd5f89952e295a71a3a63366310b0690c35dfb2a1ee7",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "RetrievalConfig::normalized_weights",
+      "candidate_type": "immutable config validation and normalization",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/config_security/retrieval_config.rs",
+        "line": 27,
+        "end_line": 42,
+        "body_sha256_current": "972d036e17c4e9f61a97b194709a0837896ea7cd0b84b46295c1414861955bde",
+        "file_sha256_current": "8a19c76e959bb697d9fa0442d51d81ea2d70f4a466f3ed61b3e034b32501019d",
+        "file_sha256_compiler_snapshot": "8a19c76e959bb697d9fa0442d51d81ea2d70f4a466f3ed61b3e034b32501019d",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/retrieval/search.rs",
+          "source_line": 13,
+          "source_column": 25,
+          "source_end_line": 13,
+          "source_end_column": 52,
+          "mir_line_sha256": "fd480d88601a2efc08c9c34a9e354f680357ed04d1077d77c1883c84ffc1290b",
+          "source_component": "retrieval",
+          "target_component": "config-security",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "470a3b283f5e73ac7599d56992c09da6b8c460e3a784973b6a68d8aef44ab71f",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "DreamProcessError::is_backpressure",
+      "candidate_type": "error classification through enum matches only",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/runtime_inference/dream_processor_error.rs",
+        "line": 35,
+        "end_line": 45,
+        "body_sha256_current": "589623a139b9d54a74f36b11a2672a0f48718a63e7d5a87d4d62d1a79b1e0460",
+        "file_sha256_current": "907371bc451977ed7c169a0b17f23f7b3b5d0b2ff9ab79b181c010c64a1e999f",
+        "file_sha256_compiler_snapshot": "907371bc451977ed7c169a0b17f23f7b3b5d0b2ff9ab79b181c010c64a1e999f",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Calls classification/verifier is_backpressure methods, which match enum variants, then GeneralEndpointError::is_backpressure, also a variant match.",
+      "witnesses": [
+        {
+          "source_path": "src/facade/dream_processor_frontier.rs",
+          "source_line": 270,
+          "source_column": 35,
+          "source_end_line": 270,
+          "source_end_column": 58,
+          "mir_line_sha256": "f01f0d94d312d41b6ec29d6e40b7c0e26d5c759b17c2efd4ce46497ec1dc0e17",
+          "source_component": "public-consumers",
+          "target_component": "dream",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "a4508f5052ec2b8a098d45d825450a752a7de037ef5faa966499efc806cff75a",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "SemanticNodeRef::as_memory",
+      "candidate_type": "immutable tagged-ID accessor",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/semantic_graph/semantic_node_model.rs",
+        "line": 57,
+        "end_line": 62,
+        "body_sha256_current": "2478ba48c74514c58dfad2c90754b4c2d8b0ea3af94fce235350d9244d89b6b0",
+        "file_sha256_current": "b124bd6707a36c824aa23f1ec406337de8191caf25ecc9d2316d8ac9bf60d68e",
+        "file_sha256_compiler_snapshot": "b124bd6707a36c824aa23f1ec406337de8191caf25ecc9d2316d8ac9bf60d68e",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 616,
+          "source_column": 34,
+          "source_end_line": 616,
+          "source_end_column": 61,
+          "mir_line_sha256": "ea75ac19c6a629a2ec09c2d650a76d40e33efc68d8f4d00a75a0e5f6703e9f93",
+          "source_component": "runtime-gateway",
+          "target_component": "graph-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "f16880dc71231f6e130fde128e1efd6dac4d1f24810effaac802ec3b25c6f229",
+          "consumer_file_matches_compiler_snapshot": false
+        },
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 616,
+          "source_column": 63,
+          "source_end_line": 616,
+          "source_end_column": 90,
+          "mir_line_sha256": "cf2836eb61009d265bb683bd514e80eadd855f5f4eee08dc6df53b9a6a96a6d2",
+          "source_component": "runtime-gateway",
+          "target_component": "graph-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "f16880dc71231f6e130fde128e1efd6dac4d1f24810effaac802ec3b25c6f229",
+          "consumer_file_matches_compiler_snapshot": false
+        }
+      ]
+    },
+    {
+      "callee": "principal_entity_id",
+      "candidate_type": "deterministic identifier digest",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/perception/entity_principal_identity.rs",
+        "line": 6,
+        "end_line": 12,
+        "body_sha256_current": "d2db966716bfb6d66a9cfae17d8cab5b09def4faeeec17e0fb62004e5ebdfa6b",
+        "file_sha256_current": "e750527ea7c671e92bf536f49c8f31bf0a7a8eda63750e96f9ab244dd01336d7",
+        "file_sha256_compiler_snapshot": "e750527ea7c671e92bf536f49c8f31bf0a7a8eda63750e96f9ab244dd01336d7",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/facade/cva_graph.rs",
+          "source_line": 156,
+          "source_column": 21,
+          "source_end_line": 158,
+          "source_end_column": 10,
+          "mir_line_sha256": "4e278d85e09eba3d02fd4b82e5e9b74d9fcb2f4ad410f345475df79a75e721dc",
+          "source_component": "public-consumers",
+          "target_component": "perception-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "823f5579a94138de41dfeafa98512159713e2b78706774223f6f758c78625f13",
+          "consumer_file_matches_compiler_snapshot": true
+        },
+        {
+          "source_path": "src/runtime_inference/runtime_host_gateway_semantic.rs",
+          "source_line": 316,
+          "source_column": 25,
+          "source_end_line": 316,
+          "source_end_column": 93,
+          "mir_line_sha256": "d8d3fde9750f7f247b8a49e565ea52f4efd3439eca024d095e54437a9c11c92e",
+          "source_component": "runtime-gateway",
+          "target_component": "perception-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "3d4417ef776c794fa6f7bc76a747fcd3ce55bfee296333aaecb43b46565d4f26",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "is_phy_principal_id",
+      "candidate_type": "string/UUID value validation",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/perception/entity_principal_identity.rs",
+        "line": 31,
+        "end_line": 36,
+        "body_sha256_current": "4ef592232dd0212837d4cac6d9a843f20e3e92cf635ed47e65f828b0e2fb514e",
+        "file_sha256_current": "e750527ea7c671e92bf536f49c8f31bf0a7a8eda63750e96f9ab244dd01336d7",
+        "file_sha256_compiler_snapshot": "e750527ea7c671e92bf536f49c8f31bf0a7a8eda63750e96f9ab244dd01336d7",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/facade/cva_graph.rs",
+          "source_line": 153,
+          "source_column": 13,
+          "source_end_line": 153,
+          "source_end_column": 80,
+          "mir_line_sha256": "172a8812e151c6076b217399a4125a4b37ce98f42ed408aab1ef4acf3b30e832",
+          "source_component": "public-consumers",
+          "target_component": "perception-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "823f5579a94138de41dfeafa98512159713e2b78706774223f6f758c78625f13",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "external_source::provenance::validate",
+      "candidate_type": "immutable external-evidence semantic validation",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/external_source/provenance.rs",
+        "line": 6,
+        "end_line": 23,
+        "body_sha256_current": "d75174600b00ed1b888d5e9567ce2deac25a8993c5d592c5347c26238042fdff",
+        "file_sha256_current": "be5745946dcdfc308fd75042fa8ccbefbc644e72195cf097485cefeaa6160ac3",
+        "file_sha256_compiler_snapshot": "be5745946dcdfc308fd75042fa8ccbefbc644e72195cf097485cefeaa6160ac3",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Calls ExternalMessageRef::validate and identifier; both inspect strings and contract fields only.",
+      "witnesses": [
+        {
+          "source_path": "src/memory/external_publication.rs",
+          "source_line": 152,
+          "source_column": 9,
+          "source_end_line": 152,
+          "source_end_column": 36,
+          "mir_line_sha256": "278e39cb2d818f497f13cb96198424b967567b9a3f903bb1f2de1d21081300a9",
+          "source_component": "memory-store",
+          "target_component": "external-sources",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "ad4f9f1163cf3ce614a563ba0888bfe64edddf7d7f24f7437d156c139b6fe432",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "initial_pass_id",
+      "candidate_type": "deterministic event-key formatting",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/freshness/dream_pass_identity.rs",
+        "line": 4,
+        "end_line": 14,
+        "body_sha256_current": "07789c14c39b50446238e0d73c1287e55617415c457944c05f98d3d706d176f6",
+        "file_sha256_current": "89181ced048ca48e5213ab8d495c97d17b82c4a3bb5fa79c916eff435a994fdd",
+        "file_sha256_compiler_snapshot": "89181ced048ca48e5213ab8d495c97d17b82c4a3bb5fa79c916eff435a994fdd",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 149,
+          "source_column": 24,
+          "source_end_line": 149,
+          "source_end_column": 90,
+          "mir_line_sha256": "409f490ce4d1948050463222c84dbe02d1010751681b7313c3a637abcb24bdab",
+          "source_component": "runtime-gateway",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "f16880dc71231f6e130fde128e1efd6dac4d1f24810effaac802ec3b25c6f229",
+          "consumer_file_matches_compiler_snapshot": false
+        },
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 272,
+          "source_column": 27,
+          "source_end_line": 272,
+          "source_end_column": 88,
+          "mir_line_sha256": "1f0c1d58b8a73ee1883e749d79dec4f7b27de20b6351e505bf0001f616651cf6",
+          "source_component": "runtime-gateway",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "f16880dc71231f6e130fde128e1efd6dac4d1f24810effaac802ec3b25c6f229",
+          "consumer_file_matches_compiler_snapshot": false
+        },
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 921,
+          "source_column": 19,
+          "source_end_line": 921,
+          "source_end_column": 85,
+          "mir_line_sha256": "9566abaed377d4a782e6e6e014f1ebf860e7cf58da7f110f7d43d8e024c1572f",
+          "source_component": "runtime-gateway",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "f16880dc71231f6e130fde128e1efd6dac4d1f24810effaac802ec3b25c6f229",
+          "consumer_file_matches_compiler_snapshot": false
+        }
+      ]
+    },
+    {
+      "callee": "semantic_fragment_event_id",
+      "candidate_type": "deterministic event-key digest",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/freshness_storage.rs",
+        "line": 2299,
+        "end_line": 2306,
+        "body_sha256_current": "a56f76c30dda21ae27b425bbd70dc07267c3d8c4ae6c55762eb8611d00f192ae",
+        "file_sha256_current": "4db7ddc0c25a6f8788be67172cc99e4195e21b8360b7696b4cf8298d11ae6ec4",
+        "file_sha256_compiler_snapshot": "4db7ddc0c25a6f8788be67172cc99e4195e21b8360b7696b4cf8298d11ae6ec4",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/runtime_inference/semantic_archive_batch.rs",
+          "source_line": 36,
+          "source_column": 29,
+          "source_end_line": 39,
+          "source_end_column": 18,
+          "mir_line_sha256": "b732c388ade28a6c471f1e56d264f5bd4532dbe5ec9cb16a43553faa0772b2f9",
+          "source_component": "runtime-gateway",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "3e7e7775dca87b8ef1f9b2ce298a1265ba106d65645fa37d89ba68470ed1bdf1",
+          "consumer_file_matches_compiler_snapshot": false
+        },
+        {
+          "source_path": "src/runtime_inference/semantic_archive_batch.rs",
+          "source_line": 48,
+          "source_column": 13,
+          "source_end_line": 48,
+          "source_end_column": 77,
+          "mir_line_sha256": "3e777526e35f1448aa8ec22d3016efd6d266f34d31a72c200b593ccf3afcb5c2",
+          "source_component": "runtime-gateway",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "3e7e7775dca87b8ef1f9b2ce298a1265ba106d65645fa37d89ba68470ed1bdf1",
+          "consumer_file_matches_compiler_snapshot": false
+        },
+        {
+          "source_path": "src/runtime_inference/public_semantic_operations.rs",
+          "source_line": 204,
+          "source_column": 18,
+          "source_end_line": 207,
+          "source_end_column": 10,
+          "mir_line_sha256": "f3712da69bb221db534e56cedd930bdc0cce1ca0369c5c56d406a3e73bf027fd",
+          "source_component": "runtime-gateway",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "080f32e601c66f35eb5f8da4293fa4d78dbe51f89598dcda72b6f4163cf94132",
+          "consumer_file_matches_compiler_snapshot": false
+        }
+      ]
+    },
+    {
+      "callee": "vector_generation_id",
+      "candidate_type": "deterministic vector-generation identifier digest",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/retrieval/vector_generation_validation.rs",
+        "line": 45,
+        "end_line": 56,
+        "body_sha256_current": "0d0404a86539afdfbbcae39d70b2806419d5c99be288ed0222a52cc2f7ba0eb9",
+        "file_sha256_current": "8da91a680be90a8bbb025a275d56d0e6d1aadc0216925d42d2c4c609c94d890b",
+        "file_sha256_compiler_snapshot": "8da91a680be90a8bbb025a275d56d0e6d1aadc0216925d42d2c4c609c94d890b",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/runtime_inference/public_vector_operations.rs",
+          "source_line": 297,
+          "source_column": 17,
+          "source_end_line": 301,
+          "source_end_column": 14,
+          "mir_line_sha256": "492e05dcfe57e451781f683870086e4f7b212bc2f17754b20a1fa4c7616a1147",
+          "source_component": "runtime-gateway",
+          "target_component": "vector-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "2d44269beff419aeb8eeca97a1233cb75a2f65fc2509a4455d7775ef43e9afd9",
+          "consumer_file_matches_compiler_snapshot": false
+        }
+      ]
+    },
+    {
+      "callee": "packed_vector_id",
+      "candidate_type": "deterministic packed-vector identifier digest",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/retrieval/packed_vector_store.rs",
+        "line": 224,
+        "end_line": 231,
+        "body_sha256_current": "996a67892fc6ba1bc3d908e96acfd94918a7fd1c3b69bf00458bdf685d329314",
+        "file_sha256_current": "266a9864881f005581b9d039051f91318389299ffff68e9c355509f7512d345b",
+        "file_sha256_compiler_snapshot": "266a9864881f005581b9d039051f91318389299ffff68e9c355509f7512d345b",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/external_source/index.rs",
+          "source_line": 292,
+          "source_column": 26,
+          "source_end_line": 292,
+          "source_end_column": 86,
+          "mir_line_sha256": "e185333e4a4bea4f5b827d4dabff3e4772c37d54b31843c7c182b422bed0cb39",
+          "source_component": "external-sources",
+          "target_component": "vector-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "38f4452b6ed36a346ccd559e6377fc4c6d827e0deec000bd0ac1959c273db5d8",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "cosine_similarity",
+      "candidate_type": "deterministic numerical value validation",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/freshness/semantic_policy.rs",
+        "line": 155,
+        "end_line": 190,
+        "body_sha256_current": "adbd6f5e9c3389978d9022d002ce43df143d1cf0e509ad545fd74c26d7bb4bc8",
+        "file_sha256_current": "6b0e29b39aa0577708a878a8ee736fff982d55bad5fe24b5dcd2c43216ec970c",
+        "file_sha256_compiler_snapshot": "6b0e29b39aa0577708a878a8ee736fff982d55bad5fe24b5dcd2c43216ec970c",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/facade/historical_embedding.rs",
+          "source_line": 248,
+          "source_column": 26,
+          "source_end_line": 248,
+          "source_end_column": 84,
+          "mir_line_sha256": "3f187e7c99b669eb9643155f1ee718360bc547bc96620bd48dd92865bcd1df03",
+          "source_component": "public-consumers",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "30b41d894b95ae6d327971894bf6c549b6e1f3fd54894c2848b94675753bcfa2",
+          "consumer_file_matches_compiler_snapshot": false
+        },
+        {
+          "source_path": "src/runtime_inference/public_semantic_operations.rs",
+          "source_line": 362,
+          "source_column": 33,
+          "source_end_line": 362,
+          "source_end_column": 74,
+          "mir_line_sha256": "5672bb9e4a9227fd27faec806cac168a6039e879c1dd9b271876efdc11f7e7c7",
+          "source_component": "runtime-gateway",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "080f32e601c66f35eb5f8da4293fa4d78dbe51f89598dcda72b6f4163cf94132",
+          "consumer_file_matches_compiler_snapshot": false
+        },
+        {
+          "source_path": "src/runtime_inference/public_semantic_operations.rs",
+          "source_line": 458,
+          "source_column": 12,
+          "source_end_line": 458,
+          "source_end_column": 61,
+          "mir_line_sha256": "947b1c052d1fd87a9ec8b009741757966097d7efc888d2a421b034e8af5cf5ac",
+          "source_component": "runtime-gateway",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "080f32e601c66f35eb5f8da4293fa4d78dbe51f89598dcda72b6f4163cf94132",
+          "consumer_file_matches_compiler_snapshot": false
+        },
+        {
+          "source_path": "src/runtime_inference/public_semantic_operations.rs",
+          "source_line": 469,
+          "source_column": 30,
+          "source_end_line": 469,
+          "source_end_column": 90,
+          "mir_line_sha256": "6fafbc863b1599caa7cd80625d26798cb8ac43f77e8863452e286d6338abe82b",
+          "source_component": "runtime-gateway",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "080f32e601c66f35eb5f8da4293fa4d78dbe51f89598dcda72b6f4163cf94132",
+          "consumer_file_matches_compiler_snapshot": false
+        }
+      ]
+    },
+    {
+      "callee": "HistoricalImportFreshnessSettlement::encode",
+      "candidate_type": "value-only validated settlement serialization",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/freshness/freshness_import_settlement.rs",
+        "line": 66,
+        "end_line": 68,
+        "body_sha256_current": "3c107c36724b2a73c8b9143b89ad94fd7ee0e9085bff8b9af3d82578c0d235c7",
+        "file_sha256_current": "6225e9f9e5176a304c161f468d87de5b0a3b3757d099619a92aa2f0f4bd8be92",
+        "file_sha256_compiler_snapshot": "6225e9f9e5176a304c161f468d87de5b0a3b3757d099619a92aa2f0f4bd8be92",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Calls try_encode/as_semantic and compact_settlement::encode; that path validates value facts, reconstructs from value maps, encodes bytes, and hashes. No container/store or callback.",
+      "witnesses": [
+        {
+          "source_path": "src/imports/completion_coordinator.rs",
+          "source_line": 22,
+          "source_column": 36,
+          "source_end_line": 22,
+          "source_end_column": 55,
+          "mir_line_sha256": "462dafd2e5d93902c69a1098eda1587b81ed6d4eb21c44d53607d8fae88bd51b",
+          "source_component": "import",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "bc7538a049a8b821fd0a7ea7615fee728c478c1bc38ec244b259f9045da4d121",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "HistoricalImportFreshnessSettlement::from_import_scope",
+      "candidate_type": "value-only settlement construction",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/freshness/freshness_import_settlement.rs",
+        "line": 164,
+        "end_line": 200,
+        "body_sha256_current": "45400250a4637bf9f70436865848e935d447c3b1a36f97bd76351cb86a13e834",
+        "file_sha256_current": "6225e9f9e5176a304c161f468d87de5b0a3b3757d099619a92aa2f0f4bd8be92",
+        "file_sha256_compiler_snapshot": "6225e9f9e5176a304c161f468d87de5b0a3b3757d099619a92aa2f0f4bd8be92",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/imports/historical_freeze.rs",
+          "source_line": 52,
+          "source_column": 22,
+          "source_end_line": 71,
+          "source_end_column": 6,
+          "mir_line_sha256": "eae46927092f9df3693473b61dc3accbbaa8925f3b8dd4e22183e854ef31f1e6",
+          "source_component": "import",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "05cffe3a46f32472afb4fcbb7f3997ff0f38bf5dd33bb143061e61839cd8d29e",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "HistoricalImportFreshnessSettlement::scope_identity",
+      "candidate_type": "value-only projection of accepted scope facts",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/freshness/freshness_import_settlement.rs",
+        "line": 138,
+        "end_line": 159,
+        "body_sha256_current": "acd040821e2309529298241787f0ad307e8fdc62463142cfcbcb8efd91f32594",
+        "file_sha256_current": "6225e9f9e5176a304c161f468d87de5b0a3b3757d099619a92aa2f0f4bd8be92",
+        "file_sha256_compiler_snapshot": "6225e9f9e5176a304c161f468d87de5b0a3b3757d099619a92aa2f0f4bd8be92",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Direct implementation is a fixed match, field validation, arithmetic, string/byte transformation, or deterministic digest; reviewed source body contains no store, reader, writer, provider, callback, or external I/O call.",
+      "witnesses": [
+        {
+          "source_path": "src/imports/readiness.rs",
+          "source_line": 345,
+          "source_column": 27,
+          "source_end_line": 345,
+          "source_end_column": 54,
+          "mir_line_sha256": "20e37f3f2cc6d603d7ee11943a1cee5c5dd9a143b7d0bd7e234ed10afac19a49",
+          "source_component": "import",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "1b52778107b4342a75a67c916fdfbbb4728a68aff8d6862b5363fdac17ad3596",
+          "consumer_file_matches_compiler_snapshot": true
+        },
+        {
+          "source_path": "src/imports/reconciliation.rs",
+          "source_line": 445,
+          "source_column": 12,
+          "source_end_line": 445,
+          "source_end_column": 41,
+          "mir_line_sha256": "94c671bb089a269741edc67a5f9d132455795c1e6a1eaa0bffbbbddbc24e087c",
+          "source_component": "import",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "8c2acce2f7ba48aabf26e182b901f7dc899988536d09fbc243da3cfb2732f4ec",
+          "consumer_file_matches_compiler_snapshot": true
+        },
+        {
+          "source_path": "src/imports/reconciliation.rs",
+          "source_line": 446,
+          "source_column": 16,
+          "source_end_line": 446,
+          "source_end_column": 45,
+          "mir_line_sha256": "31966014d1ae4b55371f44d4c6770806556300979a4575192c246e712d75caa7",
+          "source_component": "import",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "8c2acce2f7ba48aabf26e182b901f7dc899988536d09fbc243da3cfb2732f4ec",
+          "consumer_file_matches_compiler_snapshot": true
+        },
+        {
+          "source_path": "src/imports/reconciliation.rs",
+          "source_line": 451,
+          "source_column": 12,
+          "source_end_line": 451,
+          "source_end_column": 41,
+          "mir_line_sha256": "3b1105922965e5b9fa96eb83b74da304349b3f2b4181d59ed7ab008fd706d81e",
+          "source_component": "import",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "8c2acce2f7ba48aabf26e182b901f7dc899988536d09fbc243da3cfb2732f4ec",
+          "consumer_file_matches_compiler_snapshot": true
+        },
+        {
+          "source_path": "src/imports/reconciliation.rs",
+          "source_line": 452,
+          "source_column": 16,
+          "source_end_line": 452,
+          "source_end_column": 45,
+          "mir_line_sha256": "cf1887e6aec5bfc38a3b0ffb5d7ecfc0ee952bd357d60742e3e1377fe767dbf5",
+          "source_component": "import",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "8c2acce2f7ba48aabf26e182b901f7dc899988536d09fbc243da3cfb2732f4ec",
+          "consumer_file_matches_compiler_snapshot": true
+        },
+        {
+          "source_path": "src/imports/reconciliation.rs",
+          "source_line": 453,
+          "source_column": 12,
+          "source_end_line": 453,
+          "source_end_column": 41,
+          "mir_line_sha256": "49d2eac64c9d3a2e683e11309841e6b3c322f2ab8967fdb5ae64d089efb09662",
+          "source_component": "import",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "8c2acce2f7ba48aabf26e182b901f7dc899988536d09fbc243da3cfb2732f4ec",
+          "consumer_file_matches_compiler_snapshot": true
+        },
+        {
+          "source_path": "src/imports/reconciliation.rs",
+          "source_line": 454,
+          "source_column": 16,
+          "source_end_line": 454,
+          "source_end_column": 45,
+          "mir_line_sha256": "33d697579f8ba747222dd7bd250c7e3088fb687d7278fc54991cb892e9cda96c",
+          "source_component": "import",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "8c2acce2f7ba48aabf26e182b901f7dc899988536d09fbc243da3cfb2732f4ec",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    },
+    {
+      "callee": "HistoricalImportFreshnessSettlement::validate",
+      "candidate_type": "value-only semantic settlement validation",
+      "disposition": "candidate-only; no automatic contract or exception",
+      "target_definition": {
+        "path": "src/freshness/freshness_import_settlement.rs",
+        "line": 202,
+        "end_line": 284,
+        "body_sha256_current": "ab47ca79ec5384fccf3bef856910f2a914b077344b4820562462075c6c009a48",
+        "file_sha256_current": "6225e9f9e5176a304c161f468d87de5b0a3b3757d099619a92aa2f0f4bd8be92",
+        "file_sha256_compiler_snapshot": "6225e9f9e5176a304c161f468d87de5b0a3b3757d099619a92aa2f0f4bd8be92",
+        "file_matches_compiler_snapshot": true
+      },
+      "transitive_effect_review": "Calls as_semantic/semantic value validation and optional HistoricalCausalBasis::reconstruct; reconstruction uses local maps, records and pure scoring.",
+      "witnesses": [
+        {
+          "source_path": "src/imports/historical_settlement_plan.rs",
+          "source_line": 143,
+          "source_column": 9,
+          "source_end_line": 143,
+          "source_end_column": 30,
+          "mir_line_sha256": "d68cb40ee6a36952ea1f2ac377b125374f2147d1f0c84fbfebdd09649addf182",
+          "source_component": "import",
+          "target_component": "freshness-store",
+          "resolved_by": "exact-thir-defid-hir-owner-span",
+          "consumer_file_sha256_current": "a840ab908d3f9348193d7a877d15d98cf837b9c899f88dca32f7cb9aff5233af",
+          "consumer_file_matches_compiler_snapshot": true
+        }
+      ]
+    }
+  ],
+  "excluded_pure_like_or_capability_calls": [
+    {
+      "callee": "FreshnessDueDispatcher::advance",
+      "reason": "Mutates a live derived due index and its record map.",
+      "witnesses": [
+        {
+          "source_path": "src/runtime_inference/reliquary_runtime_owner.rs",
+          "source_line": 390,
+          "mir_line_sha256": "a91cb96c10cbdbf2af1c2e90eb8798bc0398361a2173044e1d4229635479b9eb",
+          "target_component": "freshness-store"
+        }
+      ]
+    },
+    {
+      "callee": "FreshnessDueDispatcher::defer",
+      "reason": "Mutates due-index scheduling state.",
+      "witnesses": [
+        {
+          "source_path": "src/runtime_inference/reliquary_runtime_owner.rs",
+          "source_line": 391,
+          "mir_line_sha256": "db6f8c55155f78b641cf44149e39d12a0e2da3b7057a2c8b05cea1e9d6609b77",
+          "target_component": "freshness-store"
+        }
+      ]
+    },
+    {
+      "callee": "FreshnessDueDispatcher::drain_due",
+      "reason": "Consumes due entries from a live dispatcher.",
+      "witnesses": [
+        {
+          "source_path": "src/runtime_inference/reliquary_runtime_owner.rs",
+          "source_line": 382,
+          "mir_line_sha256": "9509dde4181975f636915d30859aa2397de4ea2e07e32213972a7b5d942fb012",
+          "target_component": "freshness-store"
+        }
+      ]
+    },
+    {
+      "callee": "FreshnessDueDispatcher::refresh_with_transition",
+      "reason": "Mutates owner-local dispatcher/index state.",
+      "witnesses": [
+        {
+          "source_path": "src/runtime_inference/runtime_freshness_birth.rs",
+          "source_line": 120,
+          "mir_line_sha256": "3432a7ccdb42444c424b63b60993a52e8e5dcc143e3a53ed77c8e1906ed2d817",
+          "target_component": "freshness-store"
+        }
+      ]
+    },
+    {
+      "callee": "FreshnessDueDispatcher::take_due_for",
+      "reason": "Mutates/consumes due notifications.",
+      "witnesses": [
+        {
+          "source_path": "src/runtime_inference/runtime_freshness_birth.rs",
+          "source_line": 105,
+          "mir_line_sha256": "155ed0b471d1a8114f12733772fe64679b47eabc436cd455ab8e04b8ea377505",
+          "target_component": "freshness-store"
+        }
+      ]
+    },
+    {
+      "callee": "default_worker_count",
+      "reason": "Calls std::thread::available_parallelism; result depends on current process/host resources.",
+      "witnesses": [
+        {
+          "source_path": "src/facade/dream_processing.rs",
+          "source_line": 81,
+          "mir_line_sha256": "88fc186bf870caa86d89ad3c6397c8ac135f1bfd9d56a70d1084b5fe946da8d7",
+          "target_component": "freshness"
+        },
+        {
+          "source_path": "src/facade/dream_processor_frontier.rs",
+          "source_line": 100,
+          "mir_line_sha256": "ba81743442d709d8e8633944609d79d220e9d1f1f799da449177fbf46ad82a86",
+          "target_component": "freshness"
+        }
+      ]
+    },
+    {
+      "callee": "DreamReadiness::new",
+      "reason": "Constructs a view holding references to live DreamFreshnessJournal and ProcessingEpochStore.",
+      "witnesses": [
+        {
+          "source_path": "src/facade/cva_import_readiness.rs",
+          "source_line": 37,
+          "mir_line_sha256": "6b4f4a3d24ea21eec05ed7c4bdcdb159bc4aee5bd6dc91befbc3d1e37deaf744",
+          "target_component": "dream"
+        }
+      ]
+    },
+    {
+      "callee": "physical_fingerprint::file_digest",
+      "reason": "Opens and reads the named physical file.",
+      "witnesses": [
+        {
+          "source_path": "src/facade/cva_historical_import.rs",
+          "source_line": 44,
+          "mir_line_sha256": "4a266fda4d0cdaa1399b9e2d9362f36d1b2eca972ba330cf9a8e58bb82512e0a",
+          "target_component": "owner-lifecycle"
+        }
+      ]
+    },
+    {
+      "callee": "duplicate_component",
+      "reason": "No store/callback, but returns HashSet iteration as Vec; output order depends on randomized hash state, so not an exact stable value contract.",
+      "witnesses": [
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 1519,
+          "mir_line_sha256": "df43df26eea3c46e6c9dc2177908aa90cccbf11527bc890b71f967ab8a69f82d",
+          "target_component": "graph-store"
+        },
+        {
+          "source_path": "src/runtime_inference/public_dream_operations.rs",
+          "source_line": 366,
+          "mir_line_sha256": "ad7b6762b3f60bbbc3917c5c02917872df5720884cdfad48dfb02f4cde7edd12",
+          "target_component": "graph-store"
+        }
+      ]
+    },
+    {
+      "callee": "plan_local_effects",
+      "reason": "Deterministic policy body, but public generic IntoIterator permits caller-defined IntoIterator/Iterator::next callbacks; no blanket callee exemption without a monomorphized concrete-input proof.",
+      "witnesses": [
+        {
+          "source_path": "src/runtime_inference/public_semantic_operations.rs",
+          "source_line": 483,
+          "mir_line_sha256": "aedfd80a8f410831e6c92008d5d998adc491d9d3f6e870b9d053e3548b39505a",
+          "target_component": "freshness-store"
+        }
+      ]
+    }
+  ],
+  "no_exception_scope": "No blanket component-pair permission. Any later compiler contract should name exact callee definitions and require source/body hashes plus the listed transitive proof; candidates remain subject to root review and current-source refresh."
+}

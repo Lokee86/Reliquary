@@ -10,6 +10,8 @@ Completed native import reconciliation may retain the left physical prefix as an
 
 The [Phase 7 execution record](dependency-convergence-phase7-execution-2026-10-24.md) tracks implemented runtime/public, owner-reader and provider cuts. Integrated Phase 5 source/behavior and accepted A6 authorize execution; A5's missing full graph proof is an A7 obligation. Source imports and source rules alone cannot accept the architecture: compiler implementation calls, indirect-call uncertainty and final behavioral acceptance remain separate evidence.
 
+The postcheckpoint closure audit corrected the incomplete thirteen-child reconciliation: the existing receipts register 27 distinct children, and seven additional seams (two callback and five owner-operation seams) are registered in the [indirect-correction inventory](../benchmarks/phase7-indirect-call-corrections-2026-10-24.json), giving 65 parent/child obligations. Current compiler identities, callback/destructor reachability, graph freshness and integrated tests remain acceptance requirements; no historical count or source-only pass closes them.
+
 Phase 6 bounded source/API/behavior gates are accepted and the production import comparison is recorded in the [execution receipt](dependency-convergence-phase6-execution-2026-10-23.md). Import resolution is cfg-aware lexical evidence, not a complete compiler symbol/call graph. The inherited A5 full-architecture snapshot gap remains a named Phase 7 A7 obligation. The original 82 rows have exact dispositions: 49 implementation/binding import cuts and 33 immutable owner-qualified values. Public Resolver/Engine bindings remain supported above their private inference cores; no service-signature exception is required.
 
 ## Physical reader and writer admission

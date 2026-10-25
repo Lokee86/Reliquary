@@ -1,0 +1,156 @@
+{
+  "schema": "phase7-child-scope-addendum.v1",
+  "date": "2026-10-25",
+  "child": "P7.1.14-FRESHNESS-FACADE-OPERATIONS",
+  "status": "implemented; integrated verification and refreshed compiler proof pending",
+  "scope": [
+    "src/runtime_inference/public_vector_operations.rs",
+    "src/runtime_inference/runtime_host_rel_vectors.rs",
+    "src/runtime_inference/runtime_host_gateway_background.rs",
+    "src/runtime_inference/runtime_host_gateway_ambient.rs"
+  ],
+  "basis": "Five exact compiler witnesses still invoke the public semantic Freshness bindings after canonical Gateway operations were introduced. Migrate these existing consumers to those operations, preserving arguments and ordering.",
+  "calls_report_sha256": "be6b772eaeb3aca52a5a1aee03559cbb68a1113f58f6913f319f0e735476d36c",
+  "witnesses": [
+    {
+      "source_path": "src/runtime_inference/public_vector_operations.rs",
+      "source_line": 339,
+      "source_column": 13,
+      "source_end_line": 339,
+      "source_end_column": 63,
+      "mir_line_sha256": "e8cc3f7d41e257d1d976506cdfd4ec061f2bcfef0288784c74667e53f4dc9169",
+      "target": "cva_semantic_live::process_semantic_freshness",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "cva_semantic_live::{impl#0}::process_semantic_freshness",
+      "compiler_def_id": "DefId(0:48751 ~ reliquary_memory[b862]::cva_semantic_live::{impl#0}::process_semantic_freshness)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "cva_semantic_live::{impl#0}::process_semantic_freshness",
+      "source_component": "runtime-gateway",
+      "target_component": "public-consumers",
+      "target_definitions": [
+        {
+          "path": "src/facade/cva_semantic_live.rs",
+          "line": 15,
+          "end_line": 21
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_rel_vectors.rs",
+      "source_line": 219,
+      "source_column": 25,
+      "source_end_line": 221,
+      "source_end_column": 75,
+      "mir_line_sha256": "db8bd9e6fdf541e5226cc20f45c08ba1df769c935f7c936275c6c4d350ff391d",
+      "target": "cva_semantic_live::process_semantic_freshness",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "cva_semantic_live::{impl#0}::process_semantic_freshness",
+      "compiler_def_id": "DefId(0:48751 ~ reliquary_memory[b862]::cva_semantic_live::{impl#0}::process_semantic_freshness)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "cva_semantic_live::{impl#0}::process_semantic_freshness",
+      "source_component": "runtime-gateway",
+      "target_component": "public-consumers",
+      "target_definitions": [
+        {
+          "path": "src/facade/cva_semantic_live.rs",
+          "line": 15,
+          "end_line": 21
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_rel_vectors.rs",
+      "source_line": 267,
+      "source_column": 67,
+      "source_end_line": 267,
+      "source_end_column": 115,
+      "mir_line_sha256": "8cff4126b73c1376b28acff06c593a2927fd069f446986576b08b3d9458132e2",
+      "target": "cva_semantic_live::process_semantic_freshness",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "cva_semantic_live::{impl#0}::process_semantic_freshness",
+      "compiler_def_id": "DefId(0:48751 ~ reliquary_memory[b862]::cva_semantic_live::{impl#0}::process_semantic_freshness)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "cva_semantic_live::{impl#0}::process_semantic_freshness",
+      "source_component": "runtime-gateway",
+      "target_component": "public-consumers",
+      "target_definitions": [
+        {
+          "path": "src/facade/cva_semantic_live.rs",
+          "line": 15,
+          "end_line": 21
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_background.rs",
+      "source_line": 117,
+      "source_column": 49,
+      "source_end_line": 118,
+      "source_end_column": 56,
+      "mir_line_sha256": "9af09f3d35388c4baa2f016358419aae9ae8748f89b6fc5254c3aafc4e93e774",
+      "target": "cva_semantic_live::semantic_freshness_pending_fragments",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "cva_semantic_live::{impl#0}::semantic_freshness_pending_fragments",
+      "compiler_def_id": "DefId(0:48750 ~ reliquary_memory[b862]::cva_semantic_live::{impl#0}::semantic_freshness_pending_fragments)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "cva_semantic_live::{impl#0}::semantic_freshness_pending_fragments",
+      "source_component": "runtime-gateway",
+      "target_component": "public-consumers",
+      "target_definitions": [
+        {
+          "path": "src/facade/cva_semantic_live.rs",
+          "line": 9,
+          "end_line": 11
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_ambient.rs",
+      "source_line": 904,
+      "source_column": 45,
+      "source_end_line": 905,
+      "source_end_column": 60,
+      "mir_line_sha256": "4276f2f6e6a9c5512abf7da0da6c4dfa31eeff542289c6b9eeddfc22da43efed",
+      "target": "cva_semantic_live::semantic_freshness_pending_fragments",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "cva_semantic_live::{impl#0}::semantic_freshness_pending_fragments",
+      "compiler_def_id": "DefId(0:48750 ~ reliquary_memory[b862]::cva_semantic_live::{impl#0}::semantic_freshness_pending_fragments)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "cva_semantic_live::{impl#0}::semantic_freshness_pending_fragments",
+      "source_component": "runtime-gateway",
+      "target_component": "public-consumers",
+      "target_definitions": [
+        {
+          "path": "src/facade/cva_semantic_live.rs",
+          "line": 9,
+          "end_line": 11
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    }
+  ],
+  "pre_edit_source_sha256": {
+    "src/runtime_inference/public_vector_operations.rs": "0aeef8055ddc691210a1c001f87419cefbea30e4010abc1742fd4eaa29902520",
+    "src/runtime_inference/runtime_host_rel_vectors.rs": "7fd41b0c8c98feecacc02eccc71e2c17dafe70b7558f581bad1d6eb8ab702a54",
+    "src/runtime_inference/runtime_host_gateway_background.rs": "abcb47d295d17f3dafef8c8462d25d41bb2356bbfb8d47877a7f8f3171ed04d7",
+    "src/runtime_inference/runtime_host_gateway_ambient.rs": "d24c3f59a8fa6d51778c19927d7d37e3cff7026df83aaaa4f3888fafd81e19a5"
+  },
+  "target_dag_edges_added": 0,
+  "denominator_change": 0,
+  "verification": "rustfmt and source-cut negative/positive fixture passed; refreshed compiler and integrated behavior pending",
+  "post_edit_source_sha256": {
+    "src/runtime_inference/public_vector_operations.rs": "2d44269beff419aeb8eeca97a1233cb75a2f65fc2509a4455d7775ef43e9afd9",
+    "src/runtime_inference/runtime_host_rel_vectors.rs": "47e73a582f6f4c0726a290688f2a0b59b5735d06ce275f12a6a3f9ad70041109",
+    "src/runtime_inference/runtime_host_gateway_background.rs": "6b1ee6fabe7dd423380f4c466dda3ff7e7661f9942809a8a3a359e5d59560bed",
+    "src/runtime_inference/runtime_host_gateway_ambient.rs": "9f5e5b3402e3772284d4569ba5d5208e942f266edd1eec05534194cd661b3b07"
+  }
+}

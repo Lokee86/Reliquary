@@ -119,6 +119,10 @@ Test scratch paths must use collision-resistant identities such as `Uuid::new_v4
 
 Architecture refresh configures Lexicon with `init` when the adapter/language configuration differs, then always explicitly runs `scan` before Arcana synchronization and Pitlord enforcement. Initialization alone may retain an existing snapshot. Compare snapshot content identities with changed production files when diagnosing stale evidence; a passing rule check against an older snapshot is not proof that new source was analyzed. The root `.lexiconignore` excludes only `.test-tmp/` and `.verification-tmp/`, which contain generated verification artifacts and disposable repository copies. These folders have no tracked authored sources; `src`, `tests`, `examples` and `cli/src` retain their normal scope.
 
+Phase 7 compiler evidence is captured with `python scripts/emit_phase7_compiler_evidence.py --name closure`. Use a distinct name and `--features freshness-performance-trace` for the enabled tracing profile. The command emits locked private rustdoc, MIR, HIR and typed HIR under `.verification-tmp/phase7/<name>/`, records tool/profile/artifact hashes, and rejects source changes during emission. Run it after source edits have stopped. A successful emission is evidence capture; the call checker still fails on prohibited calls or material unresolved implementation targets. The [Phase 7 execution record](dependency-convergence-phase7-execution-2026-10-24.md) owns the measured acceptance status and inherited graph-proof obligations.
+
+Reproduce the local analyzer compatibility build with `python scripts/build_phase7_lexicon_adapter.py` before the Phase 7 architecture refresh. The builder uses a fresh repository-local copy, tests the source-manifest protocol and Cargo-root traversal, and records the exact patch and optimized binary identities. It leaves the sibling analyzer checkout unchanged. The [Pitlord procedure](../tools/pitlord/README.md) owns configuration, time limits and graph-evidence requirements.
+
 Prepared Archive round trip:
 
 ```text

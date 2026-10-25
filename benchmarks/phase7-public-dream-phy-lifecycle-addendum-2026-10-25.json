@@ -1,0 +1,110 @@
+{
+  "schema": "phase7-child-scope-addendum.v1",
+  "date": "2026-10-25",
+  "child": "P7.1.14-PUBLIC-DREAM-OPERATIONS",
+  "status": "source correction implemented; pending integrated build, behavior and same-source compiler acceptance",
+  "scope": [
+    "src/facade/phylactery_dream_lifecycle.rs",
+    "src/facade/phylactery_dream_publisher.rs",
+    "src/runtime_inference/public_dream_operations.rs",
+    "src/owner_lifecycle/dream_operation_facts.rs"
+  ],
+  "basis": "Three exact compiler witnesses in the PHY Dream lifecycle/publication adapters construct owner-lifecycle capabilities and invoke lifecycle publication directly from public-consumers. Route the supported operations through canonical runtime methods over PhyExecutionOwner; retain Dream policy and concrete owner-lifecycle publication/lifecycle mechanics. Preserve writer construction, graph/version inputs, publication source-time mode, error conversion and public signatures.",
+  "witness_count": 3,
+  "witnesses": [
+    {
+      "source_path": "src/facade/phylactery_dream_lifecycle.rs",
+      "source_line": 12,
+      "source_column": 13,
+      "source_end_line": 12,
+      "source_end_column": 99,
+      "mir_line_sha256": "b5aad8669a535ce898ed0ce6f08b465f2e2b2dc7a1bf3791fa24837beea5b3b3",
+      "target": "MemoryOwnerWriter::new",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "public-consumers",
+      "target_component": "memory-store",
+      "target_definitions": [
+        {
+          "path": "src/memory/memory_store.rs",
+          "line": 138,
+          "end_line": 140
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery_dream_lifecycle.rs",
+      "source_line": 13,
+      "source_column": 9,
+      "source_end_line": 13,
+      "source_end_column": 95,
+      "mir_line_sha256": "2e786b445a3182becf5b90370d1aa776b3c902ca6f9d3655a12c97c2f5a70f49",
+      "target": "reconcile_phy_lifecycle",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "dream_owner_publisher::lifecycle::reconcile_phy_lifecycle",
+      "compiler_def_id": "DefId(0:52508 ~ reliquary_memory[9086]::dream_owner_publisher::lifecycle::reconcile_phy_lifecycle)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "dream_owner_publisher::lifecycle::reconcile_phy_lifecycle",
+      "source_component": "public-consumers",
+      "target_component": "dream",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/dream_owner_lifecycle.rs",
+          "line": 12,
+          "end_line": 111
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/phylactery_dream_publisher.rs",
+      "source_line": 16,
+      "source_column": 13,
+      "source_end_line": 20,
+      "source_end_column": 14,
+      "mir_line_sha256": "83e3d5273fa3dd3ba5be2b7fddd10a4b9b27d332c9cc099b92f1c261e718feba",
+      "target": "DreamGraphPublication::new",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "public-consumers",
+      "target_component": "owner-lifecycle",
+      "target_definitions": [
+        {
+          "path": "src/owner_lifecycle/dream_graph_publication.rs",
+          "line": 13,
+          "end_line": 23
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    }
+  ],
+  "calls_report_sha256": "14cf2aaec18902a4c0e5f4174d5ba949fa992d8591c156531f39909d339ef9b2",
+  "target_dag_edges_added": 0,
+  "denominator_change": 0,
+  "pre_edit_source_sha256": {
+    "src/facade/phylactery_dream_lifecycle.rs": "f283a2ead63f82f0c66e447e521319b88d81d82621406402036b3c2222222b82",
+    "src/facade/phylactery_dream_publisher.rs": "3b8f287f551b417f83eb36a7c44a7a23b7d2f6fc6d1da74e7a20aaff198f7d95",
+    "src/runtime_inference/public_dream_operations.rs": "d17a26dc745f52a930a156ffaf61ee44ea03fc3996b5f6f3ccb8e577f1b25a59"
+  },
+  "verification": "No source edits at registration. Existing runtime operation module is already integrated; no lib/map/DAG/registry/Cargo edits are part of this scope.",
+  "scope_refinement_before_implementation": {
+    "2026-10-25": "Whole offline orchestration uses concrete runtime modules; mounted owner constructs borrowed PHY lifecycle writer/publication access. No new child or DAG edge."
+  },
+  "post_edit_source_sha256": {
+    "src/facade/phylactery_dream_lifecycle.rs": "d308285a2f078704e49311d1137db6b3e3551e43ce01e10d0d77c85d381b21e6",
+    "src/facade/phylactery_dream_publisher.rs": "a6c633586ebdd02ce15e7ba854654e64c155a223c809dcaab53762946b47d0fa",
+    "src/runtime_inference/public_dream_operations.rs": "499587aa6ac3f19e050214b9b5d265140ffa257d629362461a6245d9bbd8db03",
+    "src/owner_lifecycle/dream_operation_facts.rs": "b9ea0b3badf1f990a488d05bb714a973a3002908d6d68a076a0ed7909c02fa6b"
+  },
+  "implementation": "Public signatures bind canonical runtime operations. Complete offline inference/frontier orchestration uses concrete execution owners; lifecycle writer construction is owned by mounted PHY lifecycle, and Dream retains policy."
+}

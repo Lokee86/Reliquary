@@ -112,6 +112,47 @@ fn assert_unaccepted(
     assert_eq!(cva.freshness_record(id), Some(before));
     assert!(!fs::read(path).unwrap().windows(8).any(|w| w == b"CVAFRS04"));
 }
+
+#[test]
+fn historical_embedding_write_scope_restores_import_admission_on_exit() {
+    let (_path, mut cva, _) = historical_import_fixture("h8-write-scope.rel");
+    assert!(cva.open_import_epoch().is_none());
+    cva.import_native(
+        &crate::imports::NativeImport {
+            schema_version: 1,
+            source_namespace: "historical-embedding-write-scope".into(),
+            source_format: "historical-embedding-write-scope-test-v1".into(),
+            conversations: Vec::new(),
+        },
+        400,
+    )
+    .unwrap();
+    assert!(cva.open_import_epoch().is_some());
+    assert!(cva.owner.container.require_write_admission().is_err());
+
+    {
+        let scope = cva.runtime_historical_embedding_write_scope();
+        assert!(scope.owner.container.require_write_admission().is_ok());
+    }
+    assert!(cva.owner.container.require_write_admission().is_err());
+
+    let failed: Result<(), &str> = (|| {
+        let scope = cva.runtime_historical_embedding_write_scope();
+        assert!(scope.owner.container.require_write_admission().is_ok());
+        Err("injected operation failure")
+    })();
+    assert_eq!(failed, Err("injected operation failure"));
+    assert!(cva.owner.container.require_write_admission().is_err());
+
+    let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let scope = cva.runtime_historical_embedding_write_scope();
+        assert!(scope.owner.container.require_write_admission().is_ok());
+        panic!("injected operation panic");
+    }));
+    assert!(panic.is_err());
+    assert!(cva.owner.container.require_write_admission().is_err());
+}
+
 #[test]
 fn historical_embedding_native_fill_manifest_reopen_and_accepted_retry() {
     let (path, mut cva, id) = historical_import_fixture("h8-fill.rel");

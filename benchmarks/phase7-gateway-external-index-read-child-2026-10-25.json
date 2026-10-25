@@ -1,0 +1,80 @@
+{
+  "schema": "phase7-child-registration.v1",
+  "child": "P7.1.12g-GATEWAY-EXTERNAL-INDEX-READ",
+  "parent": "P7.1.12",
+  "date": "2026-10-25",
+  "status": "implemented; fresh compiler and behavior evidence pending",
+  "scope": [
+    "src/runtime_inference/runtime_host_gateway_external.rs",
+    "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+    "src/owner_lifecycle/external_owner_access.rs"
+  ],
+  "witnesses": [
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_external.rs",
+      "source_line": 24,
+      "source_column": 29,
+      "source_end_line": 27,
+      "source_end_column": 43,
+      "mir_line_sha256": "eea4116a976c3778925fbbc071c9f54b27e16886cc18d0f49954e1a58701f6a7",
+      "target": "ExternalIndexStore::read_state",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "external_index::store::{impl#1}::read_state",
+      "compiler_def_id": "DefId(0:52151 ~ reliquary_memory[b862]::external_index::store::{impl#1}::read_state)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "external_index::store::{impl#1}::read_state",
+      "source_component": "runtime-gateway",
+      "target_component": "external-index-store",
+      "target_definitions": [
+        {
+          "path": "src/external_index/store.rs",
+          "line": 97,
+          "end_line": 109
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+      "source_line": 261,
+      "source_column": 17,
+      "source_end_line": 263,
+      "source_end_column": 44,
+      "mir_line_sha256": "5595f0443856beb2da1b5ad2e626d4cfb47666c76ffc72b5135f9fc76b7cf718",
+      "target": "ExternalIndexStore::read_state",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "external_index::store::{impl#1}::read_state",
+      "compiler_def_id": "DefId(0:52151 ~ reliquary_memory[b862]::external_index::store::{impl#1}::read_state)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "external_index::store::{impl#1}::read_state",
+      "source_component": "runtime-gateway",
+      "target_component": "external-index-store",
+      "target_definitions": [
+        {
+          "path": "src/external_index/store.rs",
+          "line": 97,
+          "end_line": 109
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    }
+  ],
+  "compiler_report_sha256": "be6b772eaeb3aca52a5a1aee03559cbb68a1113f58f6913f319f0e735476d36c",
+  "pre_edit_source_sha256": {
+    "src/runtime_inference/runtime_host_gateway_external.rs": "9bf99761ffa995c9c59b5fcb358aac5118de49181a6bbdf9088aebfdd64698c9",
+    "src/runtime_inference/runtime_host_gateway_external_processing.rs": "f359ffecc4f01dccccce4ab0ff5356039e511852c5d5360a6aa7fa67392897e6",
+    "src/owner_lifecycle/external_owner_access.rs": "6dd913251ffec4df3d786885c5286f1c7600435d7bd59c4de91685beaf2c95c0"
+  },
+  "basis": "Two confirmed live index reads are distinct from the previous exact immutable External descriptor-value child. Lifecycle owns loaded-state validation and returns detached SourceState snapshots; Gateway retains grant checks, source authorization and post-I/O revalidation in their existing order.",
+  "preserving_tests": [
+    "external-source Gateway authorization, state conflict, rebuild and provider processing tests"
+  ],
+  "target_dag_edges_added": 0,
+  "post_edit_source_sha256": {
+    "src/runtime_inference/runtime_host_gateway_external.rs": "a7822bf2deabc077595ec4df1023c50db2d022d0b12e7533b86f8b64650fa6a2",
+    "src/runtime_inference/runtime_host_gateway_external_processing.rs": "962e4826f3439fef68fe37189aa95fdc57b5a62a3cb35d149fb9eb766772ec36",
+    "src/owner_lifecycle/external_owner_access.rs": "9bb625d2c0679658f624c53e6ca2ed609e550b841d6aa849f61626d0ef0eec4b"
+  }
+}

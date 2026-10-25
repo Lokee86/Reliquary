@@ -1,0 +1,536 @@
+{
+  "schema": "phase7-child-correction-addendum.v1",
+  "id": "P7.1.14-CORE-OWNER-API",
+  "addendum_kind": "scope refinement under existing registered child; not a new child obligation",
+  "status": "implemented; refreshed compiler proof pending root integration",
+  "parent_ticket": "P7.1.14",
+  "compiler_evidence": {
+    "path": ".verification-tmp/phase7/closure-finish-trace-20261025/calls.json",
+    "sha256": "14cf2aaec18902a4c0e5f4174d5ba949fa992d8591c156531f39909d339ef9b2"
+  },
+  "scope": [
+    "src/imports/completion_coordinator.rs",
+    "src/imports/historical_freeze.rs",
+    "src/imports/historical_manifest.rs",
+    "src/imports/historical_manifest_plan.rs",
+    "src/imports/historical_settlement_plan.rs",
+    "src/imports/readiness.rs",
+    "src/imports/reconciliation.rs",
+    "src/owner_lifecycle/import_reconciliation_restore.rs"
+  ],
+  "witness_count": 19,
+  "witnesses": [
+    {
+      "source_path": "src/imports/completion_coordinator.rs",
+      "source_line": 22,
+      "source_column": 36,
+      "source_end_line": 22,
+      "source_end_column": 55,
+      "mir_line_sha256": "a85e830c5f183c517c8d33e82d545c4cd8c16c6b162f0e2d395633fc83dfbb78",
+      "target": "HistoricalImportFreshnessSettlement::encode",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "freshness_storage::import_settlement_storage::{impl#0}::encode",
+      "compiler_def_id": "DefId(0:50753 ~ reliquary_memory[9086]::freshness_storage::import_settlement_storage::{impl#0}::encode)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "freshness_storage::import_settlement_storage::{impl#0}::encode",
+      "source_component": "import",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/freshness_import_settlement.rs",
+          "line": 66,
+          "end_line": 68
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/imports/readiness.rs",
+      "source_line": 345,
+      "source_column": 27,
+      "source_end_line": 345,
+      "source_end_column": 54,
+      "mir_line_sha256": "7d4f62e33ca65e98d526b2dbd03fba8ab5a61e7bd4c0f78023b1794f3b8556cf",
+      "target": "HistoricalImportFreshnessSettlement::scope_identity",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "freshness_storage::import_settlement_storage::{impl#0}::scope_identity",
+      "compiler_def_id": "DefId(0:50757 ~ reliquary_memory[9086]::freshness_storage::import_settlement_storage::{impl#0}::scope_identity)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "freshness_storage::import_settlement_storage::{impl#0}::scope_identity",
+      "source_component": "import",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/freshness_import_settlement.rs",
+          "line": 138,
+          "end_line": 159
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/imports/reconciliation.rs",
+      "source_line": 117,
+      "source_column": 12,
+      "source_end_line": 117,
+      "source_end_column": 35,
+      "mir_line_sha256": "aa644b2e732ddf5d6d3fae7ac16a6f18751ddad8b0b70d130ae2bd210db28ddd",
+      "target": "FreshnessStore::policy",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "freshness_storage::{impl#1}::policy",
+      "compiler_def_id": "DefId(0:50827 ~ reliquary_memory[9086]::freshness_storage::{impl#1}::policy)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "freshness_storage::{impl#1}::policy",
+      "source_component": "import",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness_storage.rs",
+          "line": 325,
+          "end_line": 327
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/imports/reconciliation.rs",
+      "source_line": 117,
+      "source_column": 39,
+      "source_end_line": 117,
+      "source_end_column": 63,
+      "mir_line_sha256": "df13131c4200bd7f438492ae2b79b306f31a4f9007bd4b6ecd4bbc828cf3be92",
+      "target": "FreshnessStore::policy",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "freshness_storage::{impl#1}::policy",
+      "compiler_def_id": "DefId(0:50827 ~ reliquary_memory[9086]::freshness_storage::{impl#1}::policy)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "freshness_storage::{impl#1}::policy",
+      "source_component": "import",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness_storage.rs",
+          "line": 325,
+          "end_line": 327
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/imports/reconciliation.rs",
+      "source_line": 445,
+      "source_column": 12,
+      "source_end_line": 445,
+      "source_end_column": 41,
+      "mir_line_sha256": "2b90057a2632606295a69b23fe3c6c9cd9ec8e062b95d7092fa38360568b1a6c",
+      "target": "HistoricalImportFreshnessSettlement::scope_identity",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "freshness_storage::import_settlement_storage::{impl#0}::scope_identity",
+      "compiler_def_id": "DefId(0:50757 ~ reliquary_memory[9086]::freshness_storage::import_settlement_storage::{impl#0}::scope_identity)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "freshness_storage::import_settlement_storage::{impl#0}::scope_identity",
+      "source_component": "import",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/freshness_import_settlement.rs",
+          "line": 138,
+          "end_line": 159
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/imports/reconciliation.rs",
+      "source_line": 446,
+      "source_column": 16,
+      "source_end_line": 446,
+      "source_end_column": 45,
+      "mir_line_sha256": "a944b2432ef3296c7a3a164f50fae2f7ee90d1d63a18a5452e6dbd4ada5ea6f0",
+      "target": "HistoricalImportFreshnessSettlement::scope_identity",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "freshness_storage::import_settlement_storage::{impl#0}::scope_identity",
+      "compiler_def_id": "DefId(0:50757 ~ reliquary_memory[9086]::freshness_storage::import_settlement_storage::{impl#0}::scope_identity)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "freshness_storage::import_settlement_storage::{impl#0}::scope_identity",
+      "source_component": "import",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/freshness_import_settlement.rs",
+          "line": 138,
+          "end_line": 159
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/imports/reconciliation.rs",
+      "source_line": 451,
+      "source_column": 12,
+      "source_end_line": 451,
+      "source_end_column": 41,
+      "mir_line_sha256": "7370fee78bcb3d61dfecd0ba08830945929866553e902800b1e8137bdb59873c",
+      "target": "HistoricalImportFreshnessSettlement::scope_identity",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "freshness_storage::import_settlement_storage::{impl#0}::scope_identity",
+      "compiler_def_id": "DefId(0:50757 ~ reliquary_memory[9086]::freshness_storage::import_settlement_storage::{impl#0}::scope_identity)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "freshness_storage::import_settlement_storage::{impl#0}::scope_identity",
+      "source_component": "import",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/freshness_import_settlement.rs",
+          "line": 138,
+          "end_line": 159
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/imports/reconciliation.rs",
+      "source_line": 452,
+      "source_column": 16,
+      "source_end_line": 452,
+      "source_end_column": 45,
+      "mir_line_sha256": "e2f83db146f28240356bad04fe70901c609e5ae8719ad11ae4265364fab53658",
+      "target": "HistoricalImportFreshnessSettlement::scope_identity",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "freshness_storage::import_settlement_storage::{impl#0}::scope_identity",
+      "compiler_def_id": "DefId(0:50757 ~ reliquary_memory[9086]::freshness_storage::import_settlement_storage::{impl#0}::scope_identity)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "freshness_storage::import_settlement_storage::{impl#0}::scope_identity",
+      "source_component": "import",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/freshness_import_settlement.rs",
+          "line": 138,
+          "end_line": 159
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/imports/reconciliation.rs",
+      "source_line": 453,
+      "source_column": 12,
+      "source_end_line": 453,
+      "source_end_column": 41,
+      "mir_line_sha256": "9f5396428ca1dc2e11f549ae49e50557d116921a03db41d7c9480e0d26f38d4d",
+      "target": "HistoricalImportFreshnessSettlement::scope_identity",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "freshness_storage::import_settlement_storage::{impl#0}::scope_identity",
+      "compiler_def_id": "DefId(0:50757 ~ reliquary_memory[9086]::freshness_storage::import_settlement_storage::{impl#0}::scope_identity)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "freshness_storage::import_settlement_storage::{impl#0}::scope_identity",
+      "source_component": "import",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/freshness_import_settlement.rs",
+          "line": 138,
+          "end_line": 159
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/imports/reconciliation.rs",
+      "source_line": 454,
+      "source_column": 16,
+      "source_end_line": 454,
+      "source_end_column": 45,
+      "mir_line_sha256": "943c3ae1ae2d6b716746eebd2f972d7796eb4c1d61d262efbb7ee79e108bb37a",
+      "target": "HistoricalImportFreshnessSettlement::scope_identity",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "freshness_storage::import_settlement_storage::{impl#0}::scope_identity",
+      "compiler_def_id": "DefId(0:50757 ~ reliquary_memory[9086]::freshness_storage::import_settlement_storage::{impl#0}::scope_identity)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "freshness_storage::import_settlement_storage::{impl#0}::scope_identity",
+      "source_component": "import",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/freshness_import_settlement.rs",
+          "line": 138,
+          "end_line": 159
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/imports/historical_manifest.rs",
+      "source_line": 270,
+      "source_column": 31,
+      "source_end_line": 271,
+      "source_end_column": 32,
+      "mir_line_sha256": "f9c4b0a286caf5b13cf39fd5f5dedf19229d2f6dd5fdc0afa80b4a2f86f341c7",
+      "target": "SemanticPolicy::canonical_descriptor",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "import",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/semantic_policy.rs",
+          "line": 83,
+          "end_line": 94
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/imports/historical_manifest.rs",
+      "source_line": 273,
+      "source_column": 27,
+      "source_end_line": 274,
+      "source_end_column": 18,
+      "mir_line_sha256": "fa98199e5cf74a259889d7f02f7d03f23d087b860050047ee3e6d2369cb3b848",
+      "target": "SemanticPolicy::digest",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "import",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/semantic_policy.rs",
+          "line": 96,
+          "end_line": 101
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/imports/historical_manifest_plan.rs",
+      "source_line": 27,
+      "source_column": 18,
+      "source_end_line": 27,
+      "source_end_column": 47,
+      "mir_line_sha256": "ed3bd0630194dd0fe6731c5b21f881c7d64999c50d2619946f1c20f72eb402f3",
+      "target": "FreshnessPolicy::default_v1",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "import",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/policy.rs",
+          "line": 51,
+          "end_line": 59
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/imports/historical_manifest_plan.rs",
+      "source_line": 45,
+      "source_column": 22,
+      "source_end_line": 45,
+      "source_end_column": 51,
+      "mir_line_sha256": "b4d00f7b0d4d538378d211f6fc3d6ed49f63d56d2852ae24a592aa524b7b8e4f",
+      "target": "FreshnessPolicy::default_v1",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "import",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/policy.rs",
+          "line": 51,
+          "end_line": 59
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/imports/historical_settlement_plan.rs",
+      "source_line": 82,
+      "source_column": 14,
+      "source_end_line": 82,
+      "source_end_column": 43,
+      "mir_line_sha256": "1156c9079a2d5b569c29eb446d5cd2e0c153a436faec0d21b3f2649ad689bbff",
+      "target": "FreshnessPolicy::default_v1",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "import",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/policy.rs",
+          "line": 51,
+          "end_line": 59
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/imports/historical_settlement_plan.rs",
+      "source_line": 143,
+      "source_column": 9,
+      "source_end_line": 143,
+      "source_end_column": 30,
+      "mir_line_sha256": "b16210d42a6e8b4d8f1a6f287e105c76e7e65ae0b5cb38bd3c7f620b17edac67",
+      "target": "HistoricalImportFreshnessSettlement::validate",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "freshness_storage::import_settlement_storage::{impl#0}::validate",
+      "compiler_def_id": "DefId(0:50759 ~ reliquary_memory[9086]::freshness_storage::import_settlement_storage::{impl#0}::validate)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "freshness_storage::import_settlement_storage::{impl#0}::validate",
+      "source_component": "import",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/freshness_import_settlement.rs",
+          "line": 202,
+          "end_line": 284
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/imports/historical_freeze.rs",
+      "source_line": 27,
+      "source_column": 25,
+      "source_end_line": 27,
+      "source_end_column": 51,
+      "mir_line_sha256": "03aa065302a60565b8b167d7c4deca9d474d55a135a6c7ab8ca98a1bd408ee02",
+      "target": "FreshnessRecord::created",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "import",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/score.rs",
+          "line": 58,
+          "end_line": 64
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/imports/historical_freeze.rs",
+      "source_line": 29,
+      "source_column": 13,
+      "source_end_line": 30,
+      "source_end_column": 27,
+      "mir_line_sha256": "b3b6c11baadfc547887720017c5d13c69557b7619a36ad46cad3488dfd94cbe2",
+      "target": "FreshnessRecord::admit",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "freshness::score::{impl#2}::admit",
+      "compiler_def_id": "DefId(0:48944 ~ reliquary_memory[9086]::freshness::score::{impl#2}::admit)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "freshness::score::{impl#2}::admit",
+      "source_component": "import",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/score.rs",
+          "line": 67,
+          "end_line": 78
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/imports/historical_freeze.rs",
+      "source_line": 52,
+      "source_column": 22,
+      "source_end_line": 71,
+      "source_end_column": 6,
+      "mir_line_sha256": "eae46927092f9df3693473b61dc3accbbaa8925f3b8dd4e22183e854ef31f1e6",
+      "target": "HistoricalImportFreshnessSettlement::from_import_scope",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "import",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/freshness_import_settlement.rs",
+          "line": 164,
+          "end_line": 200
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    }
+  ],
+  "classification": {
+    "live_owner_capabilities": 2,
+    "pure_detached_policy_and_value_candidates": 17,
+    "pure_candidates_migrated": 0,
+    "live_capability_targets": [
+      "FreshnessStore::policy"
+    ]
+  },
+  "basis": "Of the 19 exact Import-to-Freshness-store compiler witnesses, only the two `FreshnessStore::policy()` calls in import reconciliation read live owner state. Route that owner-backed equality fact through existing owner-lifecycle import reconciliation facts. The remaining 17 calls operate on detached settlement/policy/value data and are intentionally left at their current Import policy checkpoints.",
+  "preserving_contracts": [
+    "Preserve reconciliation metadata and policy comparison order and error text.",
+    "Keep settlement identity, encoding, validation, policy defaults, record construction, and digest behavior in their existing Import flow.",
+    "Do not wrap or relocate detached pure policy/value helpers."
+  ],
+  "target_dag_edges_added": 0,
+  "denominator_change": 0,
+  "pre_edit_source_sha256": {
+    "src/imports/completion_coordinator.rs": "bc7538a049a8b821fd0a7ea7615fee728c478c1bc38ec244b259f9045da4d121",
+    "src/imports/historical_freeze.rs": "05cffe3a46f32472afb4fcbb7f3997ff0f38bf5dd33bb143061e61839cd8d29e",
+    "src/imports/historical_manifest.rs": "67936fa9e2861dc1ac79ffa78bf43a7795096549292ab79597d6b97f21f44c84",
+    "src/imports/historical_manifest_plan.rs": "e2544ad5ce05551f406f764acd41d5756bf08fe30e458e9bb4d77dc93f2ae393",
+    "src/imports/historical_settlement_plan.rs": "a840ab908d3f9348193d7a877d15d98cf837b9c899f88dca32f7cb9aff5233af",
+    "src/imports/readiness.rs": "1b52778107b4342a75a67c916fdfbbb4728a68aff8d6862b5363fdac17ad3596",
+    "src/imports/reconciliation.rs": "8c2acce2f7ba48aabf26e182b901f7dc899988536d09fbc243da3cfb2732f4ec",
+    "src/owner_lifecycle/import_reconciliation_restore.rs": "6b11fa4c6a9277e181d7ca982036f7822ff3dab82ef237606774ecaa8a436edf"
+  },
+  "verification": "Focused rustfmt --check passed. No Cargo/build/tests run per bounded handoff. The owner-lifecycle helper preserves the original short-circuit placement of reconciliation metadata comparison before freshness policy equality; the other 17 pure detached calls remain untouched.",
+  "post_edit_source_sha256": {
+    "src/imports/completion_coordinator.rs": "bc7538a049a8b821fd0a7ea7615fee728c478c1bc38ec244b259f9045da4d121",
+    "src/imports/historical_freeze.rs": "05cffe3a46f32472afb4fcbb7f3997ff0f38bf5dd33bb143061e61839cd8d29e",
+    "src/imports/historical_manifest.rs": "67936fa9e2861dc1ac79ffa78bf43a7795096549292ab79597d6b97f21f44c84",
+    "src/imports/historical_manifest_plan.rs": "e2544ad5ce05551f406f764acd41d5756bf08fe30e458e9bb4d77dc93f2ae393",
+    "src/imports/historical_settlement_plan.rs": "a840ab908d3f9348193d7a877d15d98cf837b9c899f88dca32f7cb9aff5233af",
+    "src/imports/readiness.rs": "1b52778107b4342a75a67c916fdfbbb4728a68aff8d6862b5363fdac17ad3596",
+    "src/imports/reconciliation.rs": "538c22eae56804ccd125c2bcf6eddda9994c8288d6c09da0c4aa44d7e9e07e36",
+    "src/owner_lifecycle/import_reconciliation_restore.rs": "fb702e5f0bbccb145fce34b92f0b5dc415f835112f4a039c0d7b45442319781a"
+  }
+}

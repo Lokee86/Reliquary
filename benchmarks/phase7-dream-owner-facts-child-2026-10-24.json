@@ -1,7 +1,7 @@
 {
   "schema": "phase7-dream-owner-facts-child.v1",
   "status": "source cut implemented; verification open",
-  "parent_ticket": "P7.1.05 — Freshness↔Dream owner cycle",
+  "parent_ticket": "P7.1.05 \u00e2\u20ac\u201d Freshness\u00e2\u2020\u201dDream owner cycle",
   "child": "P7.1.05a-DREAM-OWNER-FACTS",
   "denominator": "31 parents + 12 named children = 43 tracked obligations; four gates unchanged",
   "scope": [
@@ -29,5 +29,13 @@
     "preserved error ordering",
     "no target DAG edge added"
   ],
-  "verification": "Scoped git diff --check passed. Focused unit regression added but not run. No Cargo commands run per parent instruction; parent compile/verification pending."
+  "verification": "Scoped git diff --check passed. Focused unit regression added but not run. No Cargo commands run per parent instruction; parent compile/verification pending.",
+  "rel_lifecycle_scope_addendum": {
+    "registered_before_edit": true,
+    "source_before": {
+      "src\\facade\\dream_lifecycle.rs": "47e0584b7553816b028ef4bee82906143f25b31d514fc65f6f7711ec12cf5267",
+      "src\\runtime_inference\\public_dream_operations.rs": "2e7c7dfd41c640018812f9e7f7e7f0b08bda53f9fcd646677029275375b2f6e2"
+    },
+    "scope": "REL lifecycle policy and owner-fact assembly move to canonical Gateway operation; public binding remains. Same owned stores, mutation IDs, validation order and ordered Memory writes; immutable facts are passed into Dream policy with no callback."
+  }
 }

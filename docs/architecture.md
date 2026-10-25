@@ -15,6 +15,14 @@ Phase 7 implementation is recorded in the [execution record](dependency-converge
 
 Dream reads Memory and vector payloads through concrete owner/service readers. Its publication policy produces passive Graph changes; runtime sequences native Graph publication and duplicate-cache completion. Memory applies Dream lifecycle updates through its bounded writer view. Insomnia evidence receives an Archive reader, and Retrieval index building receives Memory/vector readers. These lower policies receive no Container handle. External indexing invokes the Vectors embedding service, while Gateway owns provider-driven processing preparation.
 
+Configured endpoint/extractor preparation and embedding probes execute in the concrete runtime provider module; the public configured-runtime adapter retains offline file opening and report composition. Public lexical, semantic, conversation and file queries delegate to runtime retrieval operations, which obtain owner-qualified Archive/Memory/vector views. Community cache refresh and publication remain concrete mounted-owner operations. Public Insomnia queue and lease transitions pass through runtime to the lifecycle owner. These source boundaries still require final Phase 7 compiler and behavior acceptance.
+
+Gateway execution owns the public file-to-Memory, standalone Insomnia completion, semantic-target snapshot, derived-vector recovery and lexical-search composition. Public bindings invoke those operations; lifecycle retains physical admission, append/sync, backing extents and publication. Import constructs its Perception readiness view inside its own policy boundary. History receives physical offset/end scalars from lifecycle rather than decoding Container object references. The shared Memory text-field tags and mention-key coordinates are passive codec values; Memory and Perception retain their separate semantic owners. Freshness owns the finite diagnostic operation/stage vocabulary and scope lifetime, while its store retains the bounded trace buffer in feature-enabled builds.
+
+The exact Freshness-to-Container `ObjectRef` value exception in `owner-boundaries.json` covers only the opaque immutable coordinate passed by `freshness/graph_snapshot.rs` to the approved Graph decoder. This boundary invokes no `ObjectRef` constructor or method and receives no physical reader, writer or Container handle. It adds no permitted implementation edge to the target DAG.
+
+Gateway callers use the canonical native/runtime methods directly rather than calling the public Cva/Phylactery bindings. Concrete status reads for communities, work queues, conversation paths and graph clocks are obtained through the existing lifecycle owner; lexical candidate selection receives its Memory reader from that owner and stays in Retrieval. Public methods retain the same signatures and bind these operations. Compiler evidence still tracks the remaining facade algorithms and direct store calls separately; these cuts do not assert final DAG conformance.
+
 Public Cva/Phylactery entrypoints and Resolver/Engine bindings are upper composition under `src/facade/`. Perception owns candidate selection, audit calculation and passive resolution/reconciliation plans; Retrieval owns selection/ranking over Memory, Archive and Vector readers. Concrete owner-lifecycle admission and publication modules apply those plans to the already-open stores in their original order. Mounted Perception, vector, Insomnia, External Sources and agentic retrieval paths invoke these canonical contracts directly. Lower domain services receive owner-qualified readers or values and never call a public product facade. `scripts/check_facade_boundaries.py` enforces cfg-aware extension placement and reverse imports alongside the owner/runtime guards. [Phase 6 execution evidence](dependency-convergence-phase6-execution-2026-10-23.md) records the source cuts and verification disposition; the inherited A5 full-graph proof remains an open Phase 7 obligation.
 
 ## Physical access and replay
@@ -364,6 +372,29 @@ Crate-root Rust modules are composition/publication seams owned by the overall a
 - `src/owner_lifecycle/metadata/*`
 - `src/owner_lifecycle/phy_profile/*`
 - `src/runtime_inference/reliquary_runtime_owner.rs`
+- `src/runtime_inference/agentic_memory_grading.rs`
+- `src/runtime_inference/freshness_operations.rs`
+- `src/runtime_inference/insomnia_runtime_execution.rs`
+- `src/runtime_inference/knowledge_mutation_execution.rs`
+- `src/runtime_inference/public_archive_operations.rs`
+- `src/runtime_inference/public_consumer_execution.rs`
+- `src/runtime_inference/public_dream_operations.rs`
+- `src/runtime_inference/public_ego_operations.rs`
+- `src/runtime_inference/public_entity_resolution_bindings.rs`
+- `src/runtime_inference/public_graph_operations.rs`
+- `src/runtime_inference/public_insomnia_operations.rs`
+- `src/runtime_inference/public_memory_operations.rs`
+- `src/runtime_inference/public_owner_operations.rs`
+- `src/runtime_inference/public_relationship_operations.rs`
+- `src/runtime_inference/public_retrieval_operations.rs`
+- `src/runtime_inference/public_semantic_operations.rs`
+- `src/runtime_inference/public_vector_operations.rs`
+- `src/runtime_inference/reconciliation_operations.rs`
+- `src/runtime_inference/reconciliation_repack.rs`
+- `src/runtime_inference/rel_lifecycle_execution.rs`
+- `src/runtime_inference/runtime_freshness_birth.rs`
+- `src/runtime_inference/semantic_archive_batch.rs`
+- `src/runtime_inference/vector_publication.rs`
 - `src/runtime_inference/phy_execution_owner.rs`
 - `src/runtime_inference/dream_publication_execution.rs`
 - `src/runtime_inference/insomnia_worker_runtime.rs`
@@ -399,3 +430,7 @@ This is the target, not a description of the graph already achieved. Current coa
 
 
 Generic divergent reconciliation policy now resides in `maintenance/reconciliation_compare.rs`, `reconciliation_repack.rs` and `freshness_reconciliation.rs`. Public Cva adapters retain supported dispatch and physical source leases. Archive, Memory/Insomnia, Graph and Perception ordered replay use producer-local contracts and explicit validated lifecycle parts. Import epoch intervals call those lower contracts directly; their copy operation uses the shared lifecycle physical-copy primitive and Import-owned History validation. No Maintenance-to-Import or Import-to-Maintenance service call is introduced. Native import commit uses `imports/native_commit.rs` over a concrete lifecycle producer capability, with scope release on unwind. Completed-epoch reconciliation now uses the concrete lower REL owner. Import owns native historical prepare/commit and the canonical completion sequence; public adapters gather immutable capabilities and install results. Final I3 acceptance is tracked separately in the execution ledger.
+
+Concrete Phase 7 public Graph, Ego, Relationship and Archive bindings invoke Gateway operations, which use named mounted-owner contracts. Dream journal persistence, live vector queries/read-view construction and semantic Freshness store access belong to lifecycle owners; immutable results do not exempt live capabilities. The [Phase 7 execution record](dependency-convergence-phase7-execution-2026-10-24.md) separates implementation checkpoints from acceptance and compiler proof limits.
+
+Offline Dream generation, frontier selection and community naming are composed in `runtime_inference/offline_dream_processing.rs`, `offline_dream_frontier.rs` and `offline_community_naming.rs`; their public facade methods bind the existing runtime operations. Native PHY lifecycle publication stays with its owner-lifecycle operation. Historical Import reconstruction, preparation and commit orchestration is owned by `imports/historical_owner_operations.rs`, while the runtime adapter retains detached inputs and results. These source placements document current ownership only; Phase 7 acceptance remains open in the execution record.

@@ -50,6 +50,8 @@ pub(crate) mod memory_frames;
 
 #[path = "owner_lifecycle/insomnia_application.rs"]
 pub(crate) mod insomnia_application;
+#[path = "owner_lifecycle/insomnia_work_operations.rs"]
+mod insomnia_work_operations;
 
 #[path = "owner_lifecycle/insomnia_replay.rs"]
 pub(crate) mod insomnia_replay;
@@ -168,6 +170,9 @@ pub(crate) use import_completion_access::ImportCompletionAccess;
 #[path = "owner_lifecycle/import_epoch_transport.rs"]
 pub(crate) mod import_epoch_transport;
 
+#[path = "owner_lifecycle/import_reconciliation_restore.rs"]
+pub(crate) mod import_reconciliation_restore;
+
 #[path = "owner_lifecycle/graph_ordered_replay.rs"]
 pub(crate) mod graph_ordered_replay;
 
@@ -226,3 +231,33 @@ pub(crate) mod insomnia_runtime;
 
 #[path = "owner_lifecycle/semantic_archive_read.rs"]
 pub(crate) mod semantic_archive_read;
+
+#[path = "owner_lifecycle/semantic_freshness_operations.rs"]
+pub(crate) mod semantic_freshness_operations;
+
+#[path = "owner_lifecycle/public_consumer_operations.rs"]
+pub(crate) mod public_consumer_operations;
+
+#[path = "owner_lifecycle/ego_operations.rs"]
+mod ego_operations;
+
+#[path = "owner_lifecycle/relationship_operations.rs"]
+mod relationship_operations;
+
+#[path = "owner_lifecycle/archive_owner_api.rs"]
+mod archive_owner_api;
+
+#[path = "owner_lifecycle/dream_journal_operations.rs"]
+mod dream_journal_operations;
+
+#[path = "owner_lifecycle/entity_publication_access.rs"]
+pub(crate) mod entity_publication_access;
+#[path = "owner_lifecycle/entity_resolution_open_admission.rs"]
+pub(crate) mod entity_resolution_open_admission;
+#[path = "owner_lifecycle/vector_read_access.rs"]
+mod vector_read_access;
+
+#[path = "owner_lifecycle/public_graph_operations.rs"]
+mod public_graph_operations;
+
+pub(crate) use relationship_operations::validate_live_relationship_refs;

@@ -386,7 +386,7 @@ impl GatewayRuntime {
             self.with_rel(&token, |runtime| {
                 let changed = runtime
                     .cva
-                    .set_conversation_policy(conversation_id.as_str(), policy)
+                    .native_set_conversation_policy(conversation_id.as_str(), policy)
                     .map_err(operation)?;
                 // Also synchronize an idempotent retry after a prior failed sync.
                 runtime.cva.sync_owner().map_err(operation)?;
@@ -1044,7 +1044,7 @@ impl GatewayRuntime {
             status = with_operation(self, &operation_authority, |runtime| {
                 let (policy, policy_revision) = runtime
                     .cva
-                    .conversation_policy(key.conversation_id.as_str());
+                    .runtime_conversation_policy(key.conversation_id.as_str());
                 let target = finalization::finalization_target(
                     runtime,
                     key.conversation_id.as_str(),
@@ -1985,7 +1985,9 @@ fn validate_durable_turn(
             "stable Archive Node differs from captured conversation, parent, principal, time, or content",
         ));
     }
-    let actual = runtime.cva.files_for_source(conversation_id, &turn.node_id);
+    let actual = runtime
+        .cva
+        .runtime_files_for_source(conversation_id, &turn.node_id);
     if actual.len() != submission.attachments.len()
         || actual
             .iter()

@@ -74,7 +74,7 @@ fn prepare(
         }
         let candidates = runtime
             .cva
-            .dream_candidates(profile, id, DreamCandidateConfig::default())
+            .native_dream_candidates(profile, id, DreamCandidateConfig::default())
             .map_err(operation)?;
         return Ok(Some(DreamSnapshot {
             candidates,
@@ -90,7 +90,7 @@ fn current(
 ) -> Result<bool, ReliquaryRuntimeHostError> {
     if runtime
         .cva
-        .memory(set.source.memory.id)
+        .runtime_memory(set.source.memory.id)
         .map_err(operation)?
         .revision
         != set.source.memory.revision
@@ -100,7 +100,7 @@ fn current(
     for candidate in &set.candidates {
         if runtime
             .cva
-            .memory(candidate.context.memory.id)
+            .runtime_memory(candidate.context.memory.id)
             .map_err(operation)?
             .revision
             != candidate.context.memory.revision
@@ -144,13 +144,18 @@ fn commit(
                 let graph = runtime.cva.runtime_graph_version();
                 runtime
                     .cva
-                    .publish_dream_pair(&classification, verification.as_ref(), policy, graph)
+                    .native_publish_dream_pair(
+                        &classification,
+                        verification.as_ref(),
+                        policy,
+                        graph,
+                    )
                     .map_err(operation)?;
             }
             let id = snapshot.candidates.source.memory.id;
             runtime
                 .cva
-                .reconcile_dream_lifecycle(id)
+                .native_reconcile_dream_lifecycle(id)
                 .map_err(operation)?;
             runtime
                 .cva

@@ -24,6 +24,8 @@ The extractor receives bounded source evidence, produces structured candidates, 
 
 Candidate text, category/metadata, ownership, and provenance are validated independently. Grounding evidence cannot silently become semantic authority.
 
+Extraction emits bounded semantic-stage events before provider work. Gateway consumes each event, attaches worker context and acknowledges reporting before extraction proceeds. Insomnia receives no Gateway execution callback. If reporting panics, its panic is resumed before the next provider call; stage events do not become durable completion authority. Worker progress, heartbeat and publication remain Gateway responsibilities.
+
 ## Ownership routing
 
 Insomnia classifies accepted candidates into the appropriate durable owner, currently including REL/project and PHY/user placement. Ownership routing does not transfer source authority or bypass destination authorization.

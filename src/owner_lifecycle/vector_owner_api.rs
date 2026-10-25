@@ -155,3 +155,72 @@ impl PhylacteryOwner {
         self.compatibility_profiles.retire(&mut self.container, id)
     }
 }
+
+impl ReliquaryOwner {
+    pub(crate) fn put_packed_vectors(
+        &mut self,
+        packed: PackedVectors,
+    ) -> Result<PackedVectorId, PackedVectorError> {
+        self.packed_vectors.put(&mut self.container, packed)
+    }
+    pub(crate) fn put_compatibility_profile(
+        &mut self,
+        profile: CompatibilityProfile,
+    ) -> Result<CompatibilityProfileId, CompatibilityProfileError> {
+        self.compatibility_profiles
+            .put(&mut self.container, profile)
+    }
+    pub(crate) fn put_prepared_memory_vector_binding(
+        &mut self,
+        profile: CompatibilityProfileId,
+        packed: PackedVectorId,
+        bodies: Vec<MemoryBodyId>,
+    ) -> Result<MemoryVectorId, MemoryVectorError> {
+        self.memory_vectors.put(
+            &mut self.container,
+            &self.compatibility_profiles,
+            &self.packed_vectors,
+            profile,
+            packed,
+            bodies,
+        )
+    }
+    pub(crate) fn validate_vector_generation_reference(
+        &self,
+        archive_version: u64,
+        generation: &VectorGeneration,
+    ) -> Result<(), VectorGenerationError> {
+        crate::vector_generation_validation::validate_generation_reference(
+            archive_version,
+            &self.packed_vectors,
+            &self.archive_vectors,
+            &self.compatibility_profiles,
+            generation,
+        )
+    }
+    pub(crate) fn vector_read_view(&self) -> crate::vector_generation_store::VectorReadView<'_> {
+        crate::vector_generation_store::VectorReadView::new(
+            &self.vector_generations,
+            &self.archive_vectors,
+            &self.packed_vectors,
+            &self.container,
+        )
+    }
+}
+macro_rules! memory_vector_view {
+    ($owner:ty) => {
+        impl $owner {
+            pub(crate) fn memory_vector_read_view(
+                &self,
+            ) -> crate::memory_vector_store::MemoryVectorReadView<'_> {
+                crate::memory_vector_store::MemoryVectorReadView::new(
+                    &self.memory_vectors,
+                    &self.packed_vectors,
+                    &self.container,
+                )
+            }
+        }
+    };
+}
+memory_vector_view!(ReliquaryOwner);
+memory_vector_view!(PhylacteryOwner);

@@ -96,27 +96,27 @@ impl crate::RelExecutionOwner {
     }
 
     pub(crate) fn public_archive_vector_infos(&self) -> Vec<crate::ArchiveVectorInfo> {
-        self.owner.archive_vectors.infos()
+        self.owner.vector_archive_vectors_infos()
     }
 
     pub(crate) fn public_archive_vector_stats(&self) -> crate::ArchiveVectorStats {
-        self.owner.archive_vectors.stats()
+        self.owner.vector_archive_vectors_stats()
     }
 
     pub(crate) fn public_memory_vector_infos(&self) -> Vec<crate::MemoryVectorInfo> {
-        self.owner.memory_vectors.infos()
+        self.owner.vector_memory_vectors_infos()
     }
 
     pub(crate) fn public_memory_vector_stats(&self) -> crate::MemoryVectorStats {
-        self.owner.memory_vectors.stats()
+        self.owner.vector_memory_vectors_stats()
     }
 
     pub(crate) fn public_packed_vector_infos(&self) -> Vec<crate::PackedVectorInfo> {
-        self.owner.packed_vectors.infos()
+        self.owner.vector_packed_vectors_infos()
     }
 
     pub(crate) fn public_packed_vector_stats(&self) -> crate::PackedVectorStats {
-        self.owner.packed_vectors.stats()
+        self.owner.vector_packed_vectors_stats()
     }
 
     pub(crate) fn public_active_memory_profiles(&self) -> Vec<CompatibilityProfile> {
@@ -130,10 +130,12 @@ impl crate::RelExecutionOwner {
         if self.owner.owner_id().is_none() || self.owner.import_epochs.open().is_some() {
             return None;
         }
-        let profile = self.owner.compatibility_profiles.get_active(id)?;
+        let profile = self.owner.vector_profile_get_active(id)?;
         self.owner
-            .memory_vectors
-            .has_complete_coverage(id, &self.owner.memories.current_body_ids())
+            .vector_memory_vectors_has_complete_coverage(
+                id,
+                &self.owner.memories.current_body_ids(),
+            )
             .then(|| profile.clone())
     }
 
@@ -142,14 +144,13 @@ impl crate::RelExecutionOwner {
         id: CompatibilityProfileId,
     ) -> Result<CompatibilityProfile, CompatibilityProfileError> {
         self.owner
-            .compatibility_profiles
-            .get(id)
+            .vector_profile_get(id)
             .cloned()
             .ok_or(CompatibilityProfileError::MissingProfile)
     }
 
     pub(crate) fn public_profiles(&self) -> Vec<CompatibilityProfile> {
-        self.owner.compatibility_profiles.profiles()
+        self.owner.vector_profile_profiles()
     }
 
     pub(crate) fn public_retire_profile(
@@ -160,11 +161,11 @@ impl crate::RelExecutionOwner {
     }
 
     pub(crate) fn public_profile_is_retired(&self, id: CompatibilityProfileId) -> bool {
-        self.owner.compatibility_profiles.is_retired(id)
+        self.owner.vector_profile_is_retired(id)
     }
 
     pub(crate) fn public_profile_stats(&self) -> CompatibilityProfileStats {
-        self.owner.compatibility_profiles.stats()
+        self.owner.vector_profile_stats()
     }
 
     pub(crate) fn public_verify_compatibility_endpoint(
@@ -174,8 +175,7 @@ impl crate::RelExecutionOwner {
     ) -> Result<CompatibilityReport, CompatibilityProfileError> {
         let profile = self
             .owner
-            .compatibility_profiles
-            .get(id)
+            .vector_profile_get(id)
             .ok_or(CompatibilityProfileError::MissingProfile)?;
         crate::compatibility_profile_probe::verify_endpoint(profile, endpoint)
     }
@@ -187,8 +187,7 @@ impl crate::RelExecutionOwner {
     ) -> Result<VectorGeneration, VectorGenerationError> {
         let profile = self
             .owner
-            .compatibility_profiles
-            .get_active(profile_id)
+            .vector_profile_get_active(profile_id)
             .cloned()
             .ok_or(VectorGenerationError::MissingProfile)?;
         let compatibility =
@@ -243,10 +242,7 @@ impl crate::RelExecutionOwner {
         }
         let packed = PackedVectors::from_bytes(schema, bytes)
             .map_err(|_| VectorGenerationError::InvalidEmbeddingMatrix)?;
-        let packed_id = self
-            .owner
-            .packed_vectors
-            .put(&mut self.owner.container, packed)?;
+        let packed_id = self.owner.put_packed_vectors(packed)?;
         let archive_vector_id = self.owner.put_archive_vectors(packed_id, fragment_ids)?;
         self.public_publish_vector_generation(profile_id, archive_vector_id, source_archive_version)
     }
@@ -295,8 +291,7 @@ impl crate::RelExecutionOwner {
             ));
         }
         self.owner
-            .compatibility_profiles
-            .get_active(profile_id)
+            .vector_profile_get_active(profile_id)
             .ok_or(VectorGenerationError::MissingProfile)?;
         let candidate = VectorGeneration {
             id: crate::vector_generation_validation::vector_generation_id(
@@ -316,25 +311,22 @@ impl crate::RelExecutionOwner {
         {
             return Err(VectorGenerationError::SourceArchiveVersion);
         }
-        crate::vector_generation_validation::validate_generation_reference(
-            archive_version,
-            &self.owner.packed_vectors,
-            &self.owner.archive_vectors,
-            &self.owner.compatibility_profiles,
-            &candidate,
-        )?;
+        self.owner
+            .validate_vector_generation_reference(archive_version, &candidate)?;
         if require_current_coverage
             && (candidate.source_archive_version != archive_version
-                || !self.owner.archive_vectors.has_exact_fragment_coverage(
-                    candidate.archive_vector_id,
-                    &self
-                        .owner
-                        .archive
-                        .fragments()
-                        .iter()
-                        .map(|fragment| fragment.id)
-                        .collect::<Vec<_>>(),
-                ))
+                || !self
+                    .owner
+                    .vector_archive_vectors_has_exact_fragment_coverage(
+                        candidate.archive_vector_id,
+                        &self
+                            .owner
+                            .archive
+                            .fragments()
+                            .iter()
+                            .map(|fragment| fragment.id)
+                            .collect::<Vec<_>>(),
+                    ))
         {
             return Err(VectorGenerationError::IncompleteCoverage);
         }
@@ -344,7 +336,7 @@ impl crate::RelExecutionOwner {
             source_archive_version,
         )?;
         if process_live_semantic && self.owner.owner_uuid().is_some() {
-            self.process_semantic_freshness(generation.id, 64)
+            self.runtime_process_semantic_freshness(generation.id, 64)
                 .map_err(|error| VectorGenerationError::Freshness(error.to_string()))?;
         }
         Ok(generation)
@@ -355,8 +347,7 @@ impl crate::RelExecutionOwner {
         id: VectorGenerationId,
     ) -> Result<VectorGeneration, VectorGenerationError> {
         self.owner
-            .vector_generations
-            .generation(id)
+            .vector_generation_generation(id)
             .ok_or(VectorGenerationError::MissingGeneration)
     }
 
@@ -366,15 +357,14 @@ impl crate::RelExecutionOwner {
         version: u64,
     ) -> Option<VectorGeneration> {
         self.owner
-            .vector_generations
-            .generation_at(profile_id, version)
+            .vector_generation_generation_at(profile_id, version)
     }
 
     pub(crate) fn public_historical_vector_generation(
         &self,
         profile_id: CompatibilityProfileId,
     ) -> Option<VectorGeneration> {
-        self.owner.vector_generations.current_generation(profile_id)
+        self.owner.vector_generation_current_generation(profile_id)
     }
 
     pub(crate) fn public_current_vector_generation(
@@ -385,19 +375,18 @@ impl crate::RelExecutionOwner {
     }
 
     pub(crate) fn public_vector_version(&self) -> u64 {
-        self.owner.vector_generations.vector_version()
+        self.owner.vector_generation_vector_version()
     }
 
     pub(crate) fn public_vector_generation_stats(&self) -> VectorGenerationStats {
-        let mut stats = self.owner.vector_generations.stats();
+        let mut stats = self.owner.vector_generation_stats();
         stats.active_profiles = self.public_active_archive_profiles().len();
         stats
     }
 
     pub(crate) fn public_active_archive_profiles(&self) -> Vec<CompatibilityProfile> {
         self.owner
-            .compatibility_profiles
-            .profiles()
+            .vector_profile_profiles()
             .into_iter()
             .filter(|profile| self.runtime_current_vector_generation(profile.id).is_some())
             .collect()
@@ -407,37 +396,38 @@ impl crate::RelExecutionOwner {
 impl crate::phy_execution_owner::PhyExecutionOwner {
     pub(crate) fn public_active_memory_profiles(&self) -> Vec<CompatibilityProfile> {
         self.owner
-            .compatibility_profiles
-            .profiles()
+            .vector_profile_profiles()
             .into_iter()
             .filter_map(|profile| self.public_active_memory_profile(profile.id))
             .collect()
     }
 
     pub(crate) fn public_memory_vector_infos(&self) -> Vec<crate::MemoryVectorInfo> {
-        self.owner.memory_vectors.infos()
+        self.owner.vector_memory_vectors_infos()
     }
 
     pub(crate) fn public_memory_vector_stats(&self) -> crate::MemoryVectorStats {
-        self.owner.memory_vectors.stats()
+        self.owner.vector_memory_vectors_stats()
     }
 
     pub(crate) fn public_packed_vector_infos(&self) -> Vec<crate::PackedVectorInfo> {
-        self.owner.packed_vectors.infos()
+        self.owner.vector_packed_vectors_infos()
     }
 
     pub(crate) fn public_packed_vector_stats(&self) -> crate::PackedVectorStats {
-        self.owner.packed_vectors.stats()
+        self.owner.vector_packed_vectors_stats()
     }
 
     pub(crate) fn public_active_memory_profile(
         &self,
         id: CompatibilityProfileId,
     ) -> Option<CompatibilityProfile> {
-        let profile = self.owner.compatibility_profiles.get_active(id)?;
+        let profile = self.owner.vector_profile_get_active(id)?;
         self.owner
-            .memory_vectors
-            .has_complete_coverage(id, &self.owner.memories.current_body_ids())
+            .vector_memory_vectors_has_complete_coverage(
+                id,
+                &self.owner.memories.current_body_ids(),
+            )
             .then(|| profile.clone())
     }
 
@@ -476,11 +466,7 @@ impl crate::phy_execution_owner::PhyExecutionOwner {
         endpoint: &impl EmbeddingEndpoint,
     ) -> Result<CompatibilityProfile, CompatibilityProfileError> {
         let candidate = crate::compatibility_profile_probe::profile_from_endpoint(endpoint)?;
-        if let Some(existing) = self
-            .owner
-            .compatibility_profiles
-            .compatible_with(&candidate)
-        {
+        if let Some(existing) = self.owner.vector_profile_compatible_with(&candidate) {
             return Ok(existing.clone());
         }
         self.owner.put_compatibility_profile(candidate.clone())?;
@@ -492,14 +478,13 @@ impl crate::phy_execution_owner::PhyExecutionOwner {
         id: CompatibilityProfileId,
     ) -> Result<CompatibilityProfile, CompatibilityProfileError> {
         self.owner
-            .compatibility_profiles
-            .get(id)
+            .vector_profile_get(id)
             .cloned()
             .ok_or(CompatibilityProfileError::MissingProfile)
     }
 
     pub(crate) fn public_profiles(&self) -> Vec<CompatibilityProfile> {
-        self.owner.compatibility_profiles.profiles()
+        self.owner.vector_profile_profiles()
     }
 
     pub(crate) fn public_retire_profile(
@@ -510,11 +495,11 @@ impl crate::phy_execution_owner::PhyExecutionOwner {
     }
 
     pub(crate) fn public_profile_is_retired(&self, id: CompatibilityProfileId) -> bool {
-        self.owner.compatibility_profiles.is_retired(id)
+        self.owner.vector_profile_is_retired(id)
     }
 
     pub(crate) fn public_profile_stats(&self) -> CompatibilityProfileStats {
-        self.owner.compatibility_profiles.stats()
+        self.owner.vector_profile_stats()
     }
 
     pub(crate) fn public_verify_compatibility_endpoint(
@@ -524,8 +509,7 @@ impl crate::phy_execution_owner::PhyExecutionOwner {
     ) -> Result<CompatibilityReport, CompatibilityProfileError> {
         let profile = self
             .owner
-            .compatibility_profiles
-            .get(id)
+            .vector_profile_get(id)
             .ok_or(CompatibilityProfileError::MissingProfile)?;
         crate::compatibility_profile_probe::verify_endpoint(profile, endpoint)
     }
@@ -537,8 +521,7 @@ impl crate::phy_execution_owner::PhyExecutionOwner {
     ) -> Result<MemoryVectorBuildResult, MemoryVectorError> {
         let profile = self
             .owner
-            .compatibility_profiles
-            .get_active(profile_id)
+            .vector_profile_get_active(profile_id)
             .cloned()
             .ok_or(MemoryVectorError::MissingProfile)?;
         if !crate::compatibility_profile_probe::verify_endpoint(&profile, endpoint)?.compatible {
@@ -550,8 +533,7 @@ impl crate::phy_execution_owner::PhyExecutionOwner {
         }
         let missing = self
             .owner
-            .memory_vectors
-            .missing_body_ids(profile_id, &body_ids);
+            .vector_memory_vectors_missing_body_ids(profile_id, &body_ids);
         let already_present = body_ids.len().saturating_sub(missing.len());
         if missing.is_empty() {
             return Ok(MemoryVectorBuildResult {

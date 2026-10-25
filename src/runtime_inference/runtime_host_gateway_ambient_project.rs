@@ -35,7 +35,7 @@ impl GatewayRuntime {
         let correlation = self.with_rel(&token, |runtime| {
             runtime
                 .cva
-                .latest_project_revision_correlation()
+                .runtime_latest_project_revision_correlation()
                 .ok_or_else(|| operation("Project REL has no repository correlation"))
         })?;
         let root = crate::project_environment::repository_root(project_dir, &correlation)
@@ -55,7 +55,7 @@ impl GatewayRuntime {
         let correlation = self.with_rel(&token, |runtime| {
             runtime
                 .cva
-                .latest_project_revision_correlation()
+                .runtime_latest_project_revision_correlation()
                 .ok_or_else(|| operation("Project REL has no repository correlation"))
         })?;
         let current = crate::project_environment::current_revision_for(project_dir, &correlation)
@@ -75,7 +75,7 @@ impl GatewayRuntime {
         let correlation = self.with_rel(&token, |runtime| {
             runtime
                 .cva
-                .latest_project_revision_correlation()
+                .runtime_latest_project_revision_correlation()
                 .ok_or_else(|| operation("Project REL has no repository correlation"))
         })?;
         // Filesystem/git work is outside the owner runtime lock.
@@ -97,7 +97,7 @@ impl GatewayRuntime {
             }
             runtime
                 .cva
-                .correlate_project_revision_with_management(
+                .native_correlate_project_revision_with_management(
                     revision.clone(),
                     correlation.repository_management,
                 )
@@ -118,7 +118,7 @@ impl GatewayRuntime {
         let correlation = self.with_rel(&token, |runtime| {
             runtime
                 .cva
-                .latest_project_revision_correlation()
+                .runtime_latest_project_revision_correlation()
                 .ok_or_else(|| operation("Project REL has no repository correlation"))
         })?;
         let scope = crate::project_environment::ValidatedProjectScope::current(
@@ -145,14 +145,14 @@ impl GatewayRuntime {
             }
             runtime
                 .cva
-                .correlate_project_revision_with_management(
+                .native_correlate_project_revision_with_management(
                     prepared.reference.revision.clone(),
                     correlation.repository_management,
                 )
                 .map_err(operation)?;
             let file = runtime
                 .cva
-                .register_project_file(
+                .native_register_project_file(
                     prepared.filename,
                     prepared.mime_type,
                     prepared.byte_length,

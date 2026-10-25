@@ -89,6 +89,8 @@ mod compact_delta;
 mod freshness_trace;
 mod historical_timeline;
 mod maintenance;
+#[path = "pure_codec/memory_text_field.rs"]
+mod memory_text_field_contract;
 #[path = "maintenance/store.rs"]
 mod owner_maintenance;
 #[path = "facade/semantic_maintenance.rs"]
@@ -834,6 +836,10 @@ mod graph_query;
 mod graph_rebuild;
 #[path = "semantic_graph/graph_store.rs"]
 mod graph_store;
+#[path = "runtime_inference/historical_embedding_adapter.rs"]
+mod historical_embedding_adapter;
+#[path = "runtime_inference/historical_import_execution.rs"]
+mod historical_import_execution;
 #[path = "runtime_inference/insomnia.rs"]
 mod insomnia;
 #[path = "runtime_inference/interaction_background.rs"]
@@ -848,6 +854,12 @@ mod interaction_model;
 mod interaction_runtime;
 #[path = "runtime_inference/knowledge_mutation_execution.rs"]
 mod knowledge_mutation_execution;
+#[path = "runtime_inference/offline_community_naming.rs"]
+mod offline_community_naming;
+#[path = "runtime_inference/offline_dream_frontier.rs"]
+mod offline_dream_frontier;
+#[path = "runtime_inference/offline_dream_processing.rs"]
+mod offline_dream_processing;
 #[path = "runtime_inference/perception_entity_merge.rs"]
 mod perception_entity_merge_runtime;
 #[path = "runtime_inference/perception_entity_reconciliation.rs"]
@@ -858,8 +870,12 @@ mod perception_entity_resolution_runtime;
 mod phy_execution_owner;
 #[path = "runtime_inference/public_archive_operations.rs"]
 mod public_archive_operations;
+#[path = "runtime_inference/public_consumer_execution.rs"]
+mod public_consumer_execution;
 #[path = "runtime_inference/public_dream_operations.rs"]
 mod public_dream_operations;
+#[path = "runtime_inference/public_entity_resolution_bindings.rs"]
+mod public_entity_resolution_bindings;
 #[path = "runtime_inference/public_memory_operations.rs"]
 mod public_memory_operations;
 #[path = "runtime_inference/public_owner_operations.rs"]
@@ -1097,8 +1113,6 @@ mod relationship_compact_values;
 mod relationship_error;
 #[path = "perception/relationship_model.rs"]
 mod relationship_model;
-#[path = "perception/relationship_owner.rs"]
-mod relationship_owner;
 #[path = "perception/relationship_rebuild.rs"]
 mod relationship_rebuild;
 #[path = "perception/relationship_retained_structure.rs"]
@@ -1416,12 +1430,13 @@ pub use memory_retrieval_model::{
 };
 pub use memory_routing_model::{
     MAX_MEMORY_ENTITY_MENTIONS, MAX_MEMORY_ROUTING_TEXT_BYTES, MemoryEntityMention,
-    MemoryRoutingMetadata, MemoryTextField,
+    MemoryRoutingMetadata,
 };
 pub use memory_search::{
     MAX_MEMORY_LEXICAL_SEARCH_QUERY_BYTES, MAX_MEMORY_LEXICAL_SEARCH_RESULTS,
     MemoryLexicalSearchHit,
 };
+pub use memory_text_field_contract::MemoryTextField;
 pub use memory_vector_error::MemoryVectorError;
 pub use memory_vector_model::{
     MemoryVectorBuildResult, MemoryVectorId, MemoryVectorInfo, MemoryVectorLocation,
@@ -2021,8 +2036,23 @@ mod vector_publication;
 #[path = "runtime_inference/semantic_archive_batch.rs"]
 mod semantic_archive_batch;
 
+#[path = "runtime_inference/public_semantic_operations.rs"]
+mod public_semantic_operations;
+
 #[path = "retrieval/memory_candidate_collection.rs"]
 mod memory_candidate_collection;
 
 #[path = "freshness/ego_grades.rs"]
 mod ego_grade_read;
+
+#[path = "runtime_inference/public_ego_operations.rs"]
+mod public_ego_operations;
+
+#[path = "runtime_inference/public_relationship_operations.rs"]
+mod public_relationship_operations;
+
+#[path = "runtime_inference/public_insomnia_operations.rs"]
+mod public_insomnia_operations;
+
+#[path = "runtime_inference/public_graph_operations.rs"]
+mod public_graph_operations;

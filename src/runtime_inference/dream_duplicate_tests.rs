@@ -249,14 +249,176 @@ fn duplicate_chain_requires_authoritative_source_time() {
     assert_eq!(cva.graph_version(), 0);
 }
 
+#[test]
+fn duplicate_pair_requests_a_before_b_when_both_sources_are_untimed() {
+    let mut cva = Cva::create(test_path("duplicate-source-time-order.cva")).unwrap();
+    let left = cva
+        .publish_memory(None, 0, unprovenanced_draft("untimed-left"))
+        .unwrap()
+        .0
+        .id;
+    let right = cva
+        .publish_memory(None, 0, unprovenanced_draft("untimed-right"))
+        .unwrap()
+        .0
+        .id;
+    let (a, b) = canonical(left, right);
+    let classification = duplicate_classification(a, b);
+    let verification = accepted_verification(&classification);
+
+    assert!(matches!(
+        cva.publish_dream_pair(
+            &classification,
+            Some(&verification),
+            DreamVerificationPolicy::default(),
+            0,
+        ),
+        Err(DreamPublicationError::MissingSourceTimestamp(id)) if id == a
+    ));
+    assert_eq!(cva.graph_version(), 0);
+}
+
+#[test]
+fn duplicate_verification_mismatch_precedes_source_time_requests() {
+    let mut cva = Cva::create(test_path("duplicate-verification-before-source-time.cva")).unwrap();
+    let left = cva
+        .publish_memory(None, 0, unprovenanced_draft("mismatch-left"))
+        .unwrap()
+        .0
+        .id;
+    let right = cva
+        .publish_memory(None, 0, unprovenanced_draft("mismatch-right"))
+        .unwrap()
+        .0
+        .id;
+    let (a, b) = canonical(left, right);
+    let classification = duplicate_classification(a, b);
+    let mut verification = accepted_verification(&classification);
+    verification.b = a;
+
+    assert!(matches!(
+        cva.publish_dream_pair(
+            &classification,
+            Some(&verification),
+            DreamVerificationPolicy::default(),
+            0,
+        ),
+        Err(DreamPublicationError::VerificationMismatch)
+    ));
+    assert_eq!(cva.graph_version(), 0);
+}
+
+#[test]
+fn duplicate_graph_version_conflict_precedes_source_time_requests() {
+    let mut cva = Cva::create(test_path("duplicate-graph-version-before-source-time.cva")).unwrap();
+    let left = cva
+        .publish_memory(None, 0, unprovenanced_draft("conflict-left"))
+        .unwrap()
+        .0
+        .id;
+    let right = cva
+        .publish_memory(None, 0, unprovenanced_draft("conflict-right"))
+        .unwrap()
+        .0
+        .id;
+    let (a, b) = canonical(left, right);
+    let classification = duplicate_classification(a, b);
+    let verification = accepted_verification(&classification);
+
+    assert!(matches!(
+        cva.publish_dream_pair(
+            &classification,
+            Some(&verification),
+            DreamVerificationPolicy::default(),
+            1,
+        ),
+        Err(DreamPublicationError::Graph(
+            crate::GraphError::RevisionConflict { .. }
+        ))
+    ));
+    assert_eq!(cva.graph_version(), 0);
+}
+
+#[test]
+fn authority_filtered_rebuild_error_keeps_published_duplicate_graph() {
+    let mut cva = Cva::create(test_path("duplicate-post-publish-rebuild-error.cva")).unwrap();
+    let left = memory(&mut cva, "post-rebuild-left", "Left", "same", 10, false);
+    let middle = memory(&mut cva, "post-rebuild-middle", "Middle", "same", 20, false);
+    let right = cva
+        .publish_memory(None, 0, unprovenanced_draft("post-rebuild-untimed"))
+        .unwrap()
+        .0
+        .id;
+    cva.set_memory_relation_with_origin(
+        right,
+        left,
+        GraphRelationKind::DuplicateOf,
+        true,
+        crate::GraphRelationOrigin::User,
+        cva.graph_version(),
+    )
+    .unwrap();
+
+    // Model a current runtime index containing the established user edge. Its
+    // timestamp is immaterial to the pair plan; the source becomes necessary
+    // only when post-publication authority filtering rebuilds the index.
+    let keys = std::collections::HashMap::from([
+        (
+            left,
+            crate::dream_duplicate_index::DuplicateTemporalKey::new(10, left),
+        ),
+        (
+            right,
+            crate::dream_duplicate_index::DuplicateTemporalKey::new(30, right),
+        ),
+    ]);
+    cva.duplicate_index = crate::dream_duplicate_index::DuplicateIndex::rebuild(
+        cva.memory_graph_version(),
+        &cva.graph_relations(),
+        &keys,
+    );
+    let version_before_publication = cva.graph_version();
+    let (a, b) = canonical(left, middle);
+    let classification = duplicate_classification(a, b);
+    let verification = accepted_verification(&classification);
+
+    assert!(matches!(
+        cva.publish_dream_pair(
+            &classification,
+            Some(&verification),
+            DreamVerificationPolicy::default(),
+            version_before_publication,
+        ),
+        Err(DreamPublicationError::MissingSourceTimestamp(id)) if id == right
+    ));
+    assert_eq!(cva.graph_version(), version_before_publication + 1);
+    let relations = cva.graph_relations();
+    assert!(relations.iter().any(|relation| {
+        relation.source == right
+            && relation.target == left
+            && relation.kind == GraphRelationKind::DuplicateOf
+            && relation.origin == crate::GraphRelationOrigin::User
+    }));
+    assert!(relations.iter().any(|relation| {
+        relation.source == right
+            && relation.target == middle
+            && relation.kind == GraphRelationKind::DuplicateOf
+    }));
+    assert!(relations.iter().any(|relation| {
+        relation.source == middle
+            && relation.target == left
+            && relation.kind == GraphRelationKind::DuplicateOf
+    }));
+}
+
 fn unprovenanced_draft(mutation_id: &str) -> MemoryDraft {
     MemoryDraft {
         category: "project".into(),
         memory_type: "fact".into(),
         authority_kind: "unknown".into(),
         temporal_status: "unknown".into(),
-        title: "Untimed".into(),
-        content: "same".into(),
+        title: format!("Untimed {mutation_id}"),
+        content: format!("same {mutation_id}"),
         scope: "private".into(),
         lifecycle_state: "knowledge".into(),
         archived: false,

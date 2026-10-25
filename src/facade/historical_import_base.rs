@@ -1,38 +1,13 @@
 //! Import scope translation into the read-only History boundary.
-use crate::owner_lifecycle::HistorySource;
 use crate::{Cva, CvaError, MemoryId, freshness::FreshnessRecord};
 use std::collections::BTreeMap;
-
-use crate::owner_lifecycle::import_birth_facts::external_birth_facts;
 
 impl Cva {
     pub(crate) fn historical_import_base(
         &self,
         scope: &crate::imports::ImportEpochScope,
     ) -> Result<BTreeMap<MemoryId, FreshnessRecord>, CvaError> {
-        let source = crate::owner_lifecycle::HistorySource::new(&self.container)
-            .map_err(|error| CvaError::Container(error.0))?;
-        let external_birth_facts = external_birth_facts(&source, scope.start_offset);
-        crate::history::historical_freshness_base(
-            &source,
-            &self.memories,
-            crate::history::HistoricalFreshnessBaseCut {
-                owner_uuid: scope.start.owner_uuid,
-                prefix_end: scope.start_offset,
-                activity_cut: scope.base_cut,
-                global_cut: scope.start.pre.global_version,
-            },
-            external_birth_facts,
-        )
-        .map_err(|error| match error {
-            crate::history::HistoricalFreshnessBaseError::Freshness(message) => {
-                CvaError::Freshness(message)
-            }
-            crate::history::HistoricalFreshnessBaseError::Memory(error) => error.into(),
-            crate::history::HistoricalFreshnessBaseError::Source(error) => {
-                CvaError::Container(error.0)
-            }
-        })
+        self.runtime_historical_import_base(scope)
     }
 }
 

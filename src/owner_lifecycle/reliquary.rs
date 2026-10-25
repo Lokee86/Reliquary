@@ -75,6 +75,11 @@ impl ReliquaryOwner {
             .map(|metadata| metadata.len())
     }
 
+    /// Enable or close the narrowly scoped write lane used by offline historical embedding.
+    pub(crate) fn set_historical_embedding_write_scope(&mut self, active: bool) {
+        self.container.set_owner_write_scope(active);
+    }
+
     pub(crate) fn mounted_container_facts(
         &self,
     ) -> Result<

@@ -7,6 +7,15 @@ use crate::{
 };
 
 impl crate::RelExecutionOwner {
+    pub(crate) fn runtime_required_node_timestamp(
+        &self,
+        conversation_id: &str,
+        node_id: &str,
+    ) -> Result<i64, crate::ArchiveError> {
+        self.owner
+            .native_required_node_timestamp(conversation_id, node_id)
+    }
+
     pub(crate) fn runtime_archive(&self) -> &Archive {
         &self.owner.archive
     }
@@ -419,5 +428,93 @@ impl crate::RelExecutionOwner {
         self.owner
             .put_project_file_reference(file.id, reference)
             .map_err(CvaError::from)
+    }
+}
+
+// Canonical Gateway bindings for Archive lifecycle operations.
+impl crate::RelExecutionOwner {
+    pub(crate) fn runtime_historical_files_for_source(
+        &self,
+        conversation_id: &str,
+        node_id: &str,
+    ) -> Vec<crate::StoredFile> {
+        self.owner
+            .native_historical_files_for_source(conversation_id, node_id)
+    }
+
+    pub(crate) fn runtime_activity_cut_at_archive_version(
+        &self,
+        version: u64,
+    ) -> Result<u64, crate::ArchiveError> {
+        self.owner.native_activity_cut_at_archive_version(version)
+    }
+
+    pub(crate) fn runtime_activity_position_for_turn(
+        &self,
+        conversation_id: &str,
+        node_id: &str,
+    ) -> Option<u64> {
+        self.owner
+            .native_activity_position_for_turn(conversation_id, node_id)
+    }
+
+    pub(crate) fn runtime_file_memory_links(
+        &self,
+        file_id: crate::FileId,
+    ) -> Vec<crate::FileMemoryLink> {
+        self.owner.native_file_memory_links(file_id)
+    }
+
+    pub(crate) fn runtime_files_for_memory(
+        &self,
+        memory_id: crate::MemoryId,
+    ) -> Vec<crate::StoredFile> {
+        self.owner.native_files_for_memory(memory_id)
+    }
+
+    pub(crate) fn runtime_conversation_summaries(&self) -> Vec<crate::ConversationSummary> {
+        self.owner.native_conversation_summaries()
+    }
+
+    pub(crate) fn native_historical_conversation_turns(
+        &mut self,
+        conversation_id: &str,
+        leaf_node_id: &str,
+    ) -> Result<Vec<crate::ResolvedTurn>, crate::ArchiveError> {
+        self.owner
+            .native_historical_conversation_turns(conversation_id, leaf_node_id)
+    }
+
+    pub(crate) fn native_conversation_turn_page(
+        &mut self,
+        conversation_id: &str,
+        end_node_id: &str,
+        limit: usize,
+    ) -> Result<(Vec<crate::ResolvedTurn>, Option<String>), crate::ArchiveError> {
+        self.owner
+            .native_conversation_turn_page(conversation_id, end_node_id, limit)
+    }
+
+    pub(crate) fn native_tombstone_conversation(
+        &mut self,
+        conversation_id: &str,
+    ) -> Result<bool, crate::ArchiveError> {
+        self.owner.native_tombstone_conversation(conversation_id)
+    }
+
+    pub(crate) fn native_conversation_tombstone(
+        &self,
+        conversation_id: &str,
+    ) -> Option<&crate::ConversationTombstone> {
+        self.owner.native_conversation_tombstone(conversation_id)
+    }
+
+    pub(crate) fn native_conversation_lifecycle_state(
+        &self,
+        conversation_id: &str,
+    ) -> Result<crate::owner_lifecycle::LifecycleState, crate::owner_lifecycle::LifecycleError>
+    {
+        self.owner
+            .native_conversation_lifecycle_state(conversation_id)
     }
 }

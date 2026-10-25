@@ -1,5 +1,9 @@
 use super::*;
-use crate::{FragmentConfig, SimulatedEmbeddingEndpoint, VectorGenerationId, VectorNormalization};
+use crate::freshness::semantic_policy::SemanticPolicy;
+use crate::{
+    FragmentConfig, FragmentId, SimulatedEmbeddingEndpoint, VectorGeneration, VectorGenerationId,
+    VectorNormalization,
+};
 
 struct Fixture {
     path: std::path::PathBuf,

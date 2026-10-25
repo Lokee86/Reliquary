@@ -13,10 +13,7 @@ impl Cva {
         now_ns: i64,
     ) -> Result<Option<EpisodeBuildResult>, ArchiveError> {
         let policy = policy.validate()?;
-        let last_source_ns = self
-            .archive
-            .require_node(conversation_id, leaf_node_id, ArchiveError::MissingLeaf)?
-            .timestamp_ns;
+        let last_source_ns = self.runtime_required_node_timestamp(conversation_id, leaf_node_id)?;
         if !policy.inactive(last_source_ns, now_ns) {
             return Ok(None);
         }

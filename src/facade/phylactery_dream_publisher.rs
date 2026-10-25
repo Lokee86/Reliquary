@@ -1,8 +1,6 @@
-use crate::dream_publication_execution::publish_dream_pair as publish_dream_pair_from_parts;
-use crate::memory_source_time::memory_source_timestamp_ns;
 use crate::{
     DreamPairClassification, DreamPairVerification, DreamPublicationError, DreamPublicationOutcome,
-    DreamVerificationPolicy, Memory, Phylactery,
+    DreamVerificationPolicy, Phylactery,
 };
 
 impl Phylactery {
@@ -13,19 +11,6 @@ impl Phylactery {
         policy: DreamVerificationPolicy,
         expected_graph_version: u64,
     ) -> Result<DreamPublicationOutcome, DreamPublicationError> {
-        let source_time = |memory: &Memory| memory_source_timestamp_ns(memory);
-        publish_dream_pair_from_parts(
-            crate::owner_lifecycle::DreamGraphPublication::new(
-                &mut self.owner.container,
-                &self.owner.memories,
-                &mut self.owner.graph,
-            ),
-            &mut self.duplicate_index,
-            classification,
-            verification,
-            policy,
-            expected_graph_version,
-            &source_time,
-        )
+        self.native_publish_dream_pair(classification, verification, policy, expected_graph_version)
     }
 }

@@ -1,0 +1,165 @@
+{
+  "schema": "phase7-child-registration.v1",
+  "ticket": "P7.1.05b-DREAM-JOURNAL-PERSISTENCE",
+  "parent": "P7.1.05",
+  "status": "registered-before-implementation; acceptance open",
+  "registered_at": "2026-10-24",
+  "source_sha256_at_registration": {
+    "src/runtime_inference/freshness_operations.rs": "43efc92764a2cde57e98e2dbdb19309b82a60765fdc9de11fd36679fddbc5fda"
+  },
+  "witnesses": [
+    {
+      "source_path": "src/runtime_inference/freshness_operations.rs",
+      "source_line": 397,
+      "mir_line_sha256": "ebed32b66f26f3b9e044755694cbefdcc2e3e731efad9e16c6865401be71ec45",
+      "target": "DreamFreshnessJournal::ingest",
+      "target_definition": {
+        "path": "src/freshness_dream_journal.rs",
+        "line": 273,
+        "end_line": 386,
+        "compiler_def_id": "DefId(0:49711 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::ingest)"
+      }
+    },
+    {
+      "source_path": "src/runtime_inference/freshness_operations.rs",
+      "source_line": 413,
+      "mir_line_sha256": "379d27c68cb050d83165fa7eedffb1037b851d54f763c8f283708746eb63759e",
+      "target": "DreamFreshnessJournal::ingest",
+      "target_definition": {
+        "path": "src/freshness_dream_journal.rs",
+        "line": 273,
+        "end_line": 386,
+        "compiler_def_id": "DefId(0:49711 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::ingest)"
+      }
+    },
+    {
+      "source_path": "src/runtime_inference/freshness_operations.rs",
+      "source_line": 487,
+      "mir_line_sha256": "914a316f451cb0b069ed2a1471bf315e38f10f99355f32ae7fefcbc5e8a5ef08",
+      "target": "DreamFreshnessJournal::ingest",
+      "target_definition": {
+        "path": "src/freshness_dream_journal.rs",
+        "line": 273,
+        "end_line": 386,
+        "compiler_def_id": "DefId(0:49711 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::ingest)"
+      }
+    },
+    {
+      "source_path": "src/runtime_inference/freshness_operations.rs",
+      "source_line": 715,
+      "mir_line_sha256": "acf9fd27b7fb524a74e6b5f35eb1f0e93cadf64e00f18ff23282156a08397dbb",
+      "target": "DreamFreshnessJournal::ingest",
+      "target_definition": {
+        "path": "src/freshness_dream_journal.rs",
+        "line": 273,
+        "end_line": 386,
+        "compiler_def_id": "DefId(0:49711 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::ingest)"
+      }
+    },
+    {
+      "source_path": "src/runtime_inference/freshness_operations.rs",
+      "source_line": 876,
+      "mir_line_sha256": "c0314462aca3d47a75901e8b8221ef03e22d76d45a805370c58cd6c95ca2833b",
+      "target": "DreamFreshnessJournal::ingest",
+      "target_definition": {
+        "path": "src/freshness_dream_journal.rs",
+        "line": 273,
+        "end_line": 386,
+        "compiler_def_id": "DefId(0:49711 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::ingest)"
+      }
+    },
+    {
+      "source_path": "src/runtime_inference/freshness_operations.rs",
+      "source_line": 900,
+      "mir_line_sha256": "741d4f5b20ea889ac87086761098b359f7b016c4cf0a043ba4f2321abe1c3eae",
+      "target": "DreamFreshnessJournal::ingest",
+      "target_definition": {
+        "path": "src/freshness_dream_journal.rs",
+        "line": 273,
+        "end_line": 386,
+        "compiler_def_id": "DefId(0:49711 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::ingest)"
+      }
+    },
+    {
+      "source_path": "src/runtime_inference/freshness_operations.rs",
+      "source_line": 343,
+      "mir_line_sha256": "c30e0ada62884fdd73d16eb49f6c4cc2582ba5c4cb08bdd1c505945d2cec0e63",
+      "target": "DreamFreshnessJournal::ingest_materialized_begin",
+      "target_definition": {
+        "path": "src/freshness_dream_journal.rs",
+        "line": 391,
+        "end_line": 408,
+        "compiler_def_id": "DefId(0:49713 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::ingest_materialized_begin)"
+      }
+    },
+    {
+      "source_path": "src/runtime_inference/freshness_operations.rs",
+      "source_line": 868,
+      "mir_line_sha256": "d1a433c40ff7e2ea914860d83abf8dc8a41a9b392cd51154fbf1ee97026c2f50",
+      "target": "DreamFreshnessJournal::replay_publication_birth_payload",
+      "target_definition": {
+        "path": "src/freshness_dream_journal.rs",
+        "line": 594,
+        "end_line": 604,
+        "compiler_def_id": "DefId(0:49739 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::replay_publication_birth_payload)"
+      }
+    },
+    {
+      "source_path": "src/runtime_inference/freshness_operations.rs",
+      "source_line": 892,
+      "mir_line_sha256": "a6692bb16ebe2792313f4d0d207ea56f57a31bb203c1141d954fc6486e83d3fb",
+      "target": "DreamFreshnessJournal::replay_settled_payload",
+      "target_definition": {
+        "path": "src/freshness_dream_journal.rs",
+        "line": 574,
+        "end_line": 587,
+        "compiler_def_id": "DefId(0:49735 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::replay_settled_payload)"
+      }
+    }
+  ],
+  "scope": [
+    "src/runtime_inference/freshness_operations.rs"
+  ],
+  "cut": "Runtime-owned Dream journal persistence and replay operations. Replace direct Gateway calls into DreamFreshnessJournal with canonical owner operation surface while preserving payload bytes, replay validation, append ordering, and retry behavior.",
+  "preserving_tests": [
+    "Dream publication replay and settlement tests",
+    "freshness Dream journal replay/codec tests",
+    "dream settlement and initial pass lifecycle tests"
+  ],
+  "exit_criteria": [
+    "All listed direct capability calls are removed or re-owned through the canonical component operation.",
+    "Preserve all listed validation/error/order/byte/API behavior contracts.",
+    "Refresh same-source default compiler and trace/cfg call evidence after source freeze.",
+    "Run the focused existing preserving tests and root integration gates.",
+    "Update the exact child receipt with post-cut source hashes and eliminated witnesses; do not claim architecture acceptance from registration."
+  ],
+  "acceptance": "Open; registration authorizes bounded implementation scope only, not a DAG exception or gate closure.",
+  "exact_owner_read_scope_addendum": {
+    "registered_before_edit": true,
+    "new_module": "src/owner_lifecycle/dream_journal_operations.rs",
+    "methods": [
+      "accept_graph_payload",
+      "accepted_graph_cut",
+      "begin_is_retry",
+      "has_any",
+      "has_pending",
+      "ingest",
+      "ingest_materialized_begin",
+      "is_publication_birth",
+      "is_settled",
+      "pending",
+      "pending_for_source",
+      "pending_initialization",
+      "publication_birth_ids",
+      "replay_publication_birth_payload",
+      "replay_settled_payload",
+      "roots_payload",
+      "settled_ids",
+      "settled_payload"
+    ],
+    "basis": "Same Dream journal persistence seam; live retry/publication/replay reads are capabilities, not detached value exceptions. Exact Store methods and payload/error/order semantics are unchanged."
+  },
+  "source_before_owner_api_cut": {
+    "src/runtime_inference/freshness_operations.rs": "43efc92764a2cde57e98e2dbdb19309b82a60765fdc9de11fd36679fddbc5fda"
+  }
+}

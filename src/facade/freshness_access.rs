@@ -45,14 +45,7 @@ impl Cva {
         receipt: AcceptedMemoryUseReceipt,
         workers: usize,
     ) -> Result<usize, crate::CvaError> {
-        crate::freshness_operations_runtime::record_accepted_memory_use(
-            self,
-            receipt.owner_uuid,
-            receipt.use_id,
-            receipt.accepted_turn,
-            receipt.memories,
-            workers,
-        )
+        self.runtime_record_accepted_memory_use(receipt, workers)
     }
     /// Return current/historical signed Freshness grades without access reinforcement,
     /// activity advancement, or receipt creation. Lazy decay is a derived read.

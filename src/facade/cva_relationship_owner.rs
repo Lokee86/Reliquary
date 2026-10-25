@@ -12,21 +12,7 @@ macro_rules! impl_owner {
                 expected_revision: u64,
                 mut draft: RelationshipDraft,
             ) -> Result<(Relationship, bool), RelationshipError> {
-                let owner_id = self
-                    .owner_id()
-                    .ok_or(RelationshipError::MissingOwnerIdentity)?;
-                crate::relationship_owner::validate_live_relationship_refs(
-                    &owner_id,
-                    &self.memories,
-                    &self.entities,
-                    &mut draft,
-                )?;
-                self.owner.relationships.publish(
-                    &mut self.owner.container,
-                    id,
-                    expected_revision,
-                    draft,
-                )
+                self.native_publish_relationship(id, expected_revision, draft)
             }
 
             pub(crate) fn replay_relationship_revision(
@@ -35,19 +21,14 @@ macro_rules! impl_owner {
                 expected_revision: u64,
                 draft: RelationshipDraft,
             ) -> Result<(Relationship, bool), RelationshipError> {
-                self.owner.relationships.publish_replayed(
-                    &mut self.owner.container,
-                    id,
-                    expected_revision,
-                    draft,
-                )
+                self.native_replay_relationship_revision(id, expected_revision, draft)
             }
 
             pub fn relationship(
                 &self,
                 id: RelationshipId,
             ) -> Result<Relationship, RelationshipError> {
-                self.relationships.relationship(id)
+                self.native_relationship(id)
             }
 
             pub fn tombstone_relationship(
@@ -55,16 +36,14 @@ macro_rules! impl_owner {
                 id: RelationshipId,
                 expected_revision: u64,
             ) -> Result<crate::owner_lifecycle::TombstoneOutcome, RelationshipError> {
-                self.owner
-                    .relationships
-                    .tombstone(&mut self.owner.container, id, expected_revision)
+                self.native_tombstone_relationship(id, expected_revision)
             }
 
             pub fn relationship_retention_descriptor(
                 &self,
                 id: RelationshipId,
             ) -> Result<crate::RelationshipRetentionDescriptor, RelationshipError> {
-                self.relationships.retention_descriptor(id)
+                self.native_relationship_retention_descriptor(id)
             }
 
             pub fn historical_relationship_revision(
@@ -78,37 +57,14 @@ macro_rules! impl_owner {
                 >,
                 RelationshipError,
             > {
-                let value = match self.relationship_revision(id, revision) {
-                    Ok(value) => value,
-                    Err(RelationshipError::PayloadUnavailable(reason)) => {
-                        let structure = self
-                            .relationship_retention_descriptor(id)?
-                            .revisions
-                            .into_iter()
-                            .find(|r| r.revision == revision)
-                            .ok_or(RelationshipError::MissingRelationship)?;
-                        return Ok(crate::owner_lifecycle::HistoricalPayload::Pruned {
-                            structural_history: structure,
-                            reason,
-                        });
-                    }
-                    Err(error) => return Err(error),
-                };
-                Ok(match self.relationship_lifecycle_state(id)? {
-                    crate::owner_lifecycle::LifecycleState::Active => {
-                        crate::owner_lifecycle::HistoricalPayload::Available(value)
-                    }
-                    crate::owner_lifecycle::LifecycleState::Tombstoned(_) => {
-                        crate::owner_lifecycle::HistoricalPayload::Tombstoned(value)
-                    }
-                })
+                self.native_historical_relationship_revision(id, revision)
             }
 
             pub fn relationship_lifecycle_state(
                 &self,
                 id: RelationshipId,
             ) -> Result<crate::owner_lifecycle::LifecycleState, RelationshipError> {
-                self.relationships.lifecycle_state(id)
+                self.native_relationship_lifecycle_state(id)
             }
 
             pub fn relationship_revision(
@@ -116,23 +72,23 @@ macro_rules! impl_owner {
                 id: RelationshipId,
                 revision: u64,
             ) -> Result<Relationship, RelationshipError> {
-                self.relationships.relationship_revision(id, revision)
+                self.native_relationship_revision(id, revision)
             }
 
             pub fn relationships(&self) -> Vec<Relationship> {
-                self.relationships.current()
+                self.native_relationships()
             }
 
             pub fn relationships_for_entity(&self, entity: &EntityRef) -> Vec<Relationship> {
-                self.relationships.for_entity(entity)
+                self.native_relationships_for_entity(entity)
             }
 
             pub fn relationship_version(&self) -> u64 {
-                self.relationships.relationship_version()
+                self.native_relationship_version()
             }
 
             pub fn relationship_stats(&self) -> RelationshipStats {
-                self.relationships.stats()
+                self.native_relationship_stats()
             }
         }
     };

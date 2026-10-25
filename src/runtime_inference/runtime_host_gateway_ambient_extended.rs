@@ -139,7 +139,7 @@ impl GatewayRuntime {
         let updated = self.with_rel_mutation(&token, RelMutationFamily::Semantic, |runtime| {
             let (memory, _) = runtime
                 .cva
-                .publish_memory(Some(memory_id), expected_revision, draft)
+                .runtime_publish_knowledge_memory(Some(memory_id), expected_revision, draft)
                 .map_err(operation)?;
             let id = memory.id;
             Ok((memory, false, vec![RelInvalidation::Memory(id)]))

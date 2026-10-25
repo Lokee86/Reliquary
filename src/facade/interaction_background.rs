@@ -133,7 +133,7 @@ fn pending_dream_memories_at(
     cva: &mut crate::RelExecutionOwner,
     now_ns: i64,
 ) -> Result<Vec<(MemoryId, u64)>, MemoryError> {
-    let ids = cva.memories.current_ids();
+    let ids = cva.runtime_memory_ids();
     let mut pending = Vec::new();
     for id in ids {
         if let Some(epoch) = cva.dream_eligible_epoch(id, now_ns)? {

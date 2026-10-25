@@ -1,0 +1,348 @@
+{
+  "schema": "phase7-child-correction-addendum.v1",
+  "id": "P7.1.14-CORE-OWNER-API",
+  "addendum_kind": "scope refinement under existing registered child; not a new child obligation",
+  "status": "implemented; post-cut compiler capture pending root integration",
+  "parent_ticket": "P7.1.14",
+  "compiler_evidence": {
+    "path": ".verification-tmp/phase7/closure-finish-default-20261025/calls.json",
+    "sha256": "be6b772eaeb3aca52a5a1aee03559cbb68a1113f58f6913f319f0e735476d36c"
+  },
+  "source_sha256_at_registration": {
+    "src/facade/cva_native_import.rs": "e9acf8d5924254b68a2cf49522e1225af14f9805c64ac45d4d89b37fd0b789be",
+    "src/facade/cva_import_readiness.rs": "cc71ddd14a7ed5cf27007fe6996dad7726de58101e9c8d4726b2554954fd2e2f",
+    "src/runtime_inference/public_owner_operations.rs": "867da131b97cd5b3dd8020e74bbd95faf7c74cbbdf78af839b8f98029fd3487c",
+    "src/runtime_inference/public_consumer_execution.rs": "d34de9246135b8d09cf65659562664835b29e8859ee135c79b7341e23d2d98ea",
+    "src/imports/owner_completion.rs": "3318bbb931e9a1ba4ced636f563c70358b101d498a879fbf26fbce63cd7b4c46",
+    "src/owner_lifecycle/native_import.rs": "5cb036f4ce0911ffb898ed3672656e7578b6e19fff19aab2f1694bf6f8c70aba"
+  },
+  "witness_count": 12,
+  "witnesses": [
+    {
+      "source_path": "src/facade/cva_import_readiness.rs",
+      "source_line": 20,
+      "source_column": 26,
+      "source_end_line": 22,
+      "source_end_column": 34,
+      "mir_line_sha256": "454f874936902c0883e2af22221a9a21260789f85db38de58020edb8e5e49400",
+      "target": "import_settlement_storage::import_settlements",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "freshness_storage::import_settlement_storage::{impl#1}::import_settlements",
+      "compiler_def_id": "DefId(0:50689 ~ reliquary_memory[b862]::freshness_storage::import_settlement_storage::{impl#1}::import_settlements)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "freshness_storage::import_settlement_storage::{impl#1}::import_settlements",
+      "source_component": "public-consumers",
+      "target_component": "freshness-store",
+      "target_definitions": [
+        {
+          "path": "src/freshness/freshness_import_settlement.rs",
+          "line": 307,
+          "end_line": 309
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_import_readiness.rs",
+      "source_line": 35,
+      "source_column": 27,
+      "source_end_line": 35,
+      "source_end_column": 90,
+      "mir_line_sha256": "1f724a6b37c3f9ff0caac4d7eb6229b748c7c1dab8a69aaa9718c9313396f795",
+      "target": "HistoryReadAccess::new",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "public-consumers",
+      "target_component": "owner-lifecycle",
+      "target_definitions": [
+        {
+          "path": "src/owner_lifecycle/history_source.rs",
+          "line": 81,
+          "end_line": 83
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_import_readiness.rs",
+      "source_line": 36,
+      "source_column": 24,
+      "source_end_line": 36,
+      "source_end_column": 95,
+      "mir_line_sha256": "6ee1964aaf7132fcda782b75fc4eb50c413af3b2f1904b9052d1d9ab9b661e7b",
+      "target": "import_readiness::ImportReadiness::new",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "public-consumers",
+      "target_component": "insomnia",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/insomnia/import_readiness.rs",
+          "line": 10,
+          "end_line": 12
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_import_readiness.rs",
+      "source_line": 37,
+      "source_column": 21,
+      "source_end_line": 40,
+      "source_end_column": 10,
+      "mir_line_sha256": "6b4f4a3d24ea21eec05ed7c4bdcdb159bc4aee5bd6dc91befbc3d1e37deaf744",
+      "target": "DreamReadiness::new",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "public-consumers",
+      "target_component": "dream",
+      "target_definitions": [
+        {
+          "path": "src/runtime_inference/dream_readiness.rs",
+          "line": 11,
+          "end_line": 19
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_native_import.rs",
+      "source_line": 18,
+      "source_column": 17,
+      "source_end_line": 24,
+      "source_end_column": 18,
+      "mir_line_sha256": "d3e009f3c938601f9ba535c6f8f4752162aa701381a1cf795d1b97ec90ab09fb",
+      "target": "NativeImportParts::new",
+      "definition_crate": null,
+      "compiler_def_path": null,
+      "compiler_def_id": null,
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": null,
+      "source_component": "public-consumers",
+      "target_component": "owner-lifecycle",
+      "target_definitions": [
+        {
+          "path": "src/owner_lifecycle/native_import.rs",
+          "line": 12,
+          "end_line": 26
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_native_import.rs",
+      "source_line": 63,
+      "source_column": 9,
+      "source_end_line": 63,
+      "source_end_column": 45,
+      "mir_line_sha256": "f9f4f5c1e33a0ec1180ad951381f067033c92ac7049be1531725aaba39440fa1",
+      "target": "ImportEpochStore::status",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "imports::epoch_store::{impl#0}::status",
+      "compiler_def_id": "DefId(0:49481 ~ reliquary_memory[b862]::imports::epoch_store::{impl#0}::status)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "imports::epoch_store::{impl#0}::status",
+      "source_component": "public-consumers",
+      "target_component": "import-store",
+      "target_definitions": [
+        {
+          "path": "src/imports/epoch_store.rs",
+          "line": 108,
+          "end_line": 117
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_native_import.rs",
+      "source_line": 67,
+      "source_column": 9,
+      "source_end_line": 67,
+      "source_end_column": 38,
+      "mir_line_sha256": "59103e6b37e308192c0a4b36ddaea9946578de9ba01738c19e3a9eb32b68c598",
+      "target": "ImportEpochStore::statuses",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "imports::epoch_store::{impl#0}::statuses",
+      "compiler_def_id": "DefId(0:49483 ~ reliquary_memory[b862]::imports::epoch_store::{impl#0}::statuses)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "imports::epoch_store::{impl#0}::statuses",
+      "source_component": "public-consumers",
+      "target_component": "import-store",
+      "target_definitions": [
+        {
+          "path": "src/imports/epoch_store.rs",
+          "line": 119,
+          "end_line": 124
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_native_import.rs",
+      "source_line": 75,
+      "source_column": 29,
+      "source_end_line": 75,
+      "source_end_column": 59,
+      "mir_line_sha256": "0e90f27d0c438b3fab7e7f21d14670f2416609b2a5d162bf93e5b8521485baaf",
+      "target": "entity_store::read::entity_version",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "entity_store::read::{impl#0}::entity_version",
+      "compiler_def_id": "DefId(0:53192 ~ reliquary_memory[b862]::entity_store::read::{impl#0}::entity_version)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "entity_store::read::{impl#0}::entity_version",
+      "source_component": "public-consumers",
+      "target_component": "perception-store",
+      "target_definitions": [
+        {
+          "path": "src/perception/entity_store_read.rs",
+          "line": 245,
+          "end_line": 247
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_native_import.rs",
+      "source_line": 76,
+      "source_column": 35,
+      "source_end_line": 76,
+      "source_end_column": 76,
+      "mir_line_sha256": "ff0f1f6fb52ef1f673edc169b2c80e37b9e66f3c2828750346671575f00c13d2",
+      "target": "relationship_store::read::relationship_version",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "relationship_store::read::{impl#0}::relationship_version",
+      "compiler_def_id": "DefId(0:56063 ~ reliquary_memory[b862]::relationship_store::read::{impl#0}::relationship_version)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "relationship_store::read::{impl#0}::relationship_version",
+      "source_component": "public-consumers",
+      "target_component": "perception-store",
+      "target_definitions": [
+        {
+          "path": "src/perception/relationship_store_read.rs",
+          "line": 149,
+          "end_line": 151
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_native_import.rs",
+      "source_line": 77,
+      "source_column": 28,
+      "source_end_line": 77,
+      "source_end_column": 54,
+      "mir_line_sha256": "e446ad26429413c4f8d1cd0e61191dde86bcd3daeac99812933bd133d40f58ac",
+      "target": "graph_store::read::graph_version",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "graph_store::read::{impl#0}::graph_version",
+      "compiler_def_id": "DefId(0:53545 ~ reliquary_memory[b862]::graph_store::read::{impl#0}::graph_version)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "graph_store::read::{impl#0}::graph_version",
+      "source_component": "public-consumers",
+      "target_component": "graph-store",
+      "target_definitions": [
+        {
+          "path": "src/semantic_graph/graph_store_read.rs",
+          "line": 10,
+          "end_line": 12
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_native_import.rs",
+      "source_line": 78,
+      "source_column": 35,
+      "source_end_line": 78,
+      "source_end_column": 68,
+      "mir_line_sha256": "cd6f9bac5b14e0c5d72473a39bb08c4c842fc2f990f64d53940b9f786fbc2972",
+      "target": "graph_store::read::memory_graph_version",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "graph_store::read::{impl#0}::memory_graph_version",
+      "compiler_def_id": "DefId(0:53546 ~ reliquary_memory[b862]::graph_store::read::{impl#0}::memory_graph_version)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "graph_store::read::{impl#0}::memory_graph_version",
+      "source_component": "public-consumers",
+      "target_component": "graph-store",
+      "target_definitions": [
+        {
+          "path": "src/semantic_graph/graph_store_read.rs",
+          "line": 14,
+          "end_line": 16
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    },
+    {
+      "source_path": "src/facade/cva_native_import.rs",
+      "source_line": 79,
+      "source_column": 29,
+      "source_end_line": 79,
+      "source_end_column": 69,
+      "mir_line_sha256": "ececeef4d50bea2e55fa2fa17949bf528e87b0aa3c511a3926fff55e28fce808",
+      "target": "VectorGenerationStore::vector_version",
+      "definition_crate": "reliquary_memory",
+      "compiler_def_path": "vector_generation_store::{impl#1}::vector_version",
+      "compiler_def_id": "DefId(0:57739 ~ reliquary_memory[b862]::vector_generation_store::{impl#1}::vector_version)",
+      "compiler_def_id_role": "hint_only_possible_bound_region",
+      "definition_path": "vector_generation_store::{impl#1}::vector_version",
+      "source_component": "public-consumers",
+      "target_component": "vector-store",
+      "target_definitions": [
+        {
+          "path": "src/retrieval/vector_generation_store.rs",
+          "line": 180,
+          "end_line": 182
+        }
+      ],
+      "resolved_by": "exact-thir-defid-hir-owner-span",
+      "permitted": false
+    }
+  ],
+  "scope": "Move the public native-import and readiness facade bodies behind concrete runtime and canonical Import owner operations. The facades must not construct NativeImportParts, read import status stores, or build History/Insomnia/Dream owner capabilities. Preserve public signatures and readiness/admission sequencing, duplicate scope reads, error mapping, import write activity updates and panic behavior.",
+  "contracts": [
+    "Import remains owner of canonical admission, readiness policy, refusal and commit order.",
+    "Owner lifecycle owns NativeImportParts construction and exact import watermark facts.",
+    "Runtime owns the public Cva/RelExecutionOwner binding, applied-activity freshness updates, and epoch status API dispatch.",
+    "Readiness keeps requested-start, missing-receipt early return, both scope reads, settlement lookup, and subsequent policy read order.",
+    "No new callbacks, DAG exceptions, cloned mutable authority, or movement of import policy."
+  ],
+  "exit_criteria": [
+    "Remove the exact 12 compiler call witnesses from both facade files.",
+    "Facades delegate native import and readiness to concrete operations; keep public Cva signatures unchanged.",
+    "Focused rustfmt and source review; root owns Cargo and post-cut compiler recapture."
+  ],
+  "post_implementation_source_sha256": {
+    "src/facade/cva_native_import.rs": "af138aa260350ae5a01d144c713975decbd213b89db600e22b68fdc40782bf7d",
+    "src/facade/cva_import_readiness.rs": "4a684bf6bdcc40d54248fb5f85cda4eb2cbe0739f1dc15b4a1797861d5ca422a",
+    "src/runtime_inference/public_consumer_execution.rs": "6947b5344ea49e3c2426d9ebe5543423472ffb4b073044059cb56fe278e824db",
+    "src/imports/owner_completion.rs": "838b9fb18e4c1c971afc57981d3483b3915f3d1ce007da2e99991785eb50a8b2",
+    "src/owner_lifecycle/native_import.rs": "1ed2c70a1b29f538b3dc7b78517a8317528d2a7ed1344c052b7d020074eaf3e3"
+  },
+  "post_cut_witness_disposition": {
+    "pre_cut_witnesses": 12,
+    "remaining_direct_calls_by_source_review": 0,
+    "verification": "focused rustfmt check, diff whitespace check and source review; compiler evidence not refreshed in this bounded task",
+    "notes": "Cva facades dispatch to runtime operations; native import parts construction now occurs in owner lifecycle; existing Import owner_completion owns readiness view and policy call order. Both import scope reads and missing receipt early return are preserved."
+  }
+}

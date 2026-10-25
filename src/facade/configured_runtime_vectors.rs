@@ -2,7 +2,7 @@ use super::{
     ArchiveVectorBuildReport, ConfiguredRuntime, ConfiguredRuntimeError, EmbeddingProbeReport,
     operation,
 };
-use crate::{Cva, EmbeddingEndpoint, EmbeddingMode, OpenAiReadyEmbeddingEndpoint};
+use crate::Cva;
 use std::path::Path;
 
 impl ConfiguredRuntime {
@@ -10,15 +10,13 @@ impl ConfiguredRuntime {
         &self,
         text: &str,
     ) -> Result<EmbeddingProbeReport, ConfiguredRuntimeError> {
-        let endpoint =
-            OpenAiReadyEmbeddingEndpoint::from_switchboard(&self.switchboard).map_err(operation)?;
-        let vectors = endpoint
-            .embed(EmbeddingMode::Query, &[text.to_owned()])
-            .map_err(operation)?;
+        let (vectors, dimensions, normalization) =
+            super::provider_operations::probe_embedding(&self.switchboard, text)
+                .map_err(operation)?;
         Ok(EmbeddingProbeReport {
-            vectors: vectors.len(),
-            dimensions: vectors.first().map(Vec::len).unwrap_or(0),
-            normalization: endpoint.normalization(),
+            vectors,
+            dimensions,
+            normalization,
         })
     }
 
@@ -28,7 +26,12 @@ impl ConfiguredRuntime {
         batch_size: usize,
         concurrency: usize,
     ) -> Result<ArchiveVectorBuildReport, ConfiguredRuntimeError> {
-        let endpoint = self.embedding_endpoint(batch_size, concurrency)?;
+        let endpoint = super::provider_operations::embedding_endpoint(
+            &self.switchboard,
+            batch_size,
+            concurrency,
+        )
+        .map_err(operation)?;
         let mut rel = Cva::open(rel_path).map_err(operation)?;
         let profile = rel
             .establish_compatibility_profile(&endpoint)
@@ -43,16 +46,5 @@ impl ConfiguredRuntime {
             source_archive_version: generation.source_archive_version,
             vector_version: generation.vector_version,
         })
-    }
-
-    pub(super) fn embedding_endpoint(
-        &self,
-        batch_size: usize,
-        concurrency: usize,
-    ) -> Result<OpenAiReadyEmbeddingEndpoint, ConfiguredRuntimeError> {
-        OpenAiReadyEmbeddingEndpoint::from_switchboard(&self.switchboard)
-            .map_err(operation)?
-            .with_batching(batch_size, concurrency)
-            .map_err(operation)
     }
 }

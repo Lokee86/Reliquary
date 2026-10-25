@@ -249,6 +249,11 @@
       "classification": "production"
     },
     {
+      "path": "src/archive/interaction_stream_reconciliation.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
       "path": "src/archive/interaction_stream_record.rs",
       "component": "archive-store",
       "classification": "production"
@@ -259,7 +264,17 @@
       "classification": "production"
     },
     {
+      "path": "src/archive/ordered_replay.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
       "path": "src/archive/project_file_binding_codec.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/project_file_binding_store.rs",
       "component": "archive-store",
       "classification": "production"
     },
@@ -270,6 +285,11 @@
     },
     {
       "path": "src/archive/project_history_model.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/project_history_store.rs",
       "component": "archive-store",
       "classification": "production"
     },
@@ -374,13 +394,68 @@
       "classification": "production"
     },
     {
+      "path": "src/external_index/codec.rs",
+      "component": "external-index-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/external_index/mod.rs",
+      "component": "external-index-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/external_index/model.rs",
+      "component": "external-index-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/external_index/store.rs",
+      "component": "external-index-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/external_source/provider.rs",
+      "component": "external-sources",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/accepted_use.rs",
+      "component": "freshness",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/compact_settlement.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/compact_settlement_decode.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/compact_settlement_wire.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
       "path": "src/freshness/dream_begin_codec.rs",
       "component": "dream-store",
       "classification": "production"
     },
     {
+      "path": "src/freshness/dream_pass_identity.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
       "path": "src/freshness/dream_population_digest.rs",
       "component": "dream-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/ego_grades.rs",
+      "component": "freshness",
       "classification": "production"
     },
     {
@@ -434,12 +509,52 @@
       "classification": "production"
     },
     {
+      "path": "src/freshness/graph_snapshot.rs",
+      "component": "freshness",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/historical_causal_basis.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/historical_contract.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/historical_record_scoring.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/historical_settlement.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/mod.rs",
+      "component": "freshness",
+      "classification": "production"
+    },
+    {
       "path": "src/freshness/policy.rs",
       "component": "freshness-store",
       "classification": "production"
     },
     {
+      "path": "src/freshness/reconciliation.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
       "path": "src/freshness/score.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/semantic_policy.rs",
       "component": "freshness-store",
       "classification": "production"
     },
@@ -454,7 +569,217 @@
       "classification": "production"
     },
     {
+      "path": "src/freshness_due.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness_storage.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/historical_timeline.rs",
+      "component": "pure-codec",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/archive_retention.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/community_proof.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/completion_proof.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/cuts.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/dream_evidence.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/dream_representative.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/epoch_scope_proof.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/freshness_base.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/freshness_reconciliation.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/frontier.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/graph_proof.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/import_admission.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/import_admission_epoch.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/import_epoch_scope.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/import_replay_read.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/manifest_encoding.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/manifest_proof.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/memory_retention.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/memory_source_time.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/mod.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/phylactery_prune.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/publication_cohorts.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/reconciliation_inventory.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/reliquary_description_retention.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/reliquary_open.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/reliquary_vector_retention.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/retained_evidence.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/settlement_births.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/settlement_completion_evidence.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/settlement_scope.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/source_digest.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/source_proof.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/transformed_copy.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/vector_proof.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/chatgpt.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/claude.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/completion_coordinator.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/contract.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
       "path": "src/imports/epoch_codec.rs",
+      "component": "import-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/epoch_model.rs",
       "component": "import-store",
       "classification": "production"
     },
@@ -464,13 +789,313 @@
       "classification": "production"
     },
     {
+      "path": "src/imports/hermes.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_commit.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_embedding_model.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_event_plan.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_events.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_freeze.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_manifest.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_manifest_model.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_manifest_plan.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_prepare.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_reconstruction.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_reconstruction_model.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_settlement_plan.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/mod.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/native_commit.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/owner_completion.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/owner_historical.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/prepare.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/providers.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/readiness.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/reconciliation.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/reconciliation_copy.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/reconciliation_epoch_replay.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/reconciliation_interval.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/reconciliation_replay.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/attachment_repack.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/compactions.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/entity_resolution.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/freshness_reconciliation.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/historical_copy.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
       "path": "src/maintenance/manifest.rs",
       "component": "maintenance-store",
       "classification": "production"
     },
     {
+      "path": "src/maintenance/mod.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/phylactery_copy.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/phylactery_prune.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/phylactery_reclamation.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/principal_repack.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/prune_selection.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/reclamation.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/reclamation_scan.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/reconciliation_compare.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/reconciliation_copy.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/reconciliation_owner_access.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/reconciliation_promotion.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/reconciliation_repack.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/reconciliation_replay.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/reconciliation_sources.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/reliquary_prune.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/archive_emit.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/archive_selection.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/closure.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/error.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/file.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/mod.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/model.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/owner_access.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/plan.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/plan_source.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/semantic_emit.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
       "path": "src/maintenance/store.rs",
       "component": "maintenance-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/tail_repair.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/external_publication.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/knowledge_mutation.rs",
+      "component": "memory-store",
       "classification": "production"
     },
     {
@@ -514,12 +1139,12 @@
       "classification": "production"
     },
     {
-      "path": "src/memory/memory_model.rs",
+      "path": "src/memory/memory_lifecycle_update.rs",
       "component": "memory-store",
       "classification": "production"
     },
     {
-      "path": "src/memory/knowledge_mutation.rs",
+      "path": "src/memory/memory_model.rs",
       "component": "memory-store",
       "classification": "production"
     },
@@ -584,8 +1209,374 @@
       "classification": "production"
     },
     {
-      "path": "src/perception/entity_description_proof.rs",
-      "component": "perception-store",
+      "path": "src/owner_lifecycle.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "source_sha256": "feec52f681a4a8cd2f85eac536d9b554b75f2039ff4938f12883cdacd5cbab75"
+    },
+    {
+      "path": "src/owner_lifecycle/archive_ordered_replay.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/archive_owner_api.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/archive_replay_error.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/atomic_publication.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/core_owner_api.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/cva_reconcile_conflict.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/cva_reconcile_error.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/dream_begin_transport.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/dream_graph_publication.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/dream_journal_operations.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/dream_operation_facts.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/dream_population_operations.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/dream_replay.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/ego_operations.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/error.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/external_index_backing.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/freshness_operations.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/freshness_reconciliation.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/freshness_replay.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/global_versions.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/graph_endpoint_admission.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/graph_ordered_replay.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/grouped_import_replay.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/historical_freshness_read.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/historical_settlement.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/history_source.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/import_birth_facts.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/import_completion_access.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/import_epoch_transport.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/import_receipts.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/import_reconciliation_restore.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/import_session.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/insomnia_application.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/insomnia_import_replay.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/insomnia_replay.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/memory_frames.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/memory_lifecycle.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/memory_ordered_replay.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/memory_provenance.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/memory_publish.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/metadata/codec.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/metadata/model.rs",
+      "component": "pure-codec",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/metadata/store.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/native_import.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/open_route.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/phy_profile/codec.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/phy_profile/mod.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/phy_profile/model.rs",
+      "component": "pure-codec",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/phy_profile/store.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/phylactery.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/phylactery_error.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/physical_copy.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/physical_fingerprint.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/public_consumer_operations.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/publication_births.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/read_validation.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/reclamation_source.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/reconciliation_values.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/relationship_operations.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/reliquary.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/reliquary_accepted_replay.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/reliquary_archive.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/reliquary_creation.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/reliquary_graph.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/reliquary_relations.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/reliquary_replay.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/reliquary_vectors.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/relocation.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/retrieval_facts.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/semantic_freshness_operations.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/semantic_source.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/vector_owner_api.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/vocabulary.rs",
+      "component": "pure-codec",
       "classification": "production"
     },
     {
@@ -619,6 +1610,16 @@
       "classification": "production"
     },
     {
+      "path": "src/perception/entity_description_proof.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_description_prune.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
       "path": "src/perception/entity_error.rs",
       "component": "perception-store",
       "classification": "production"
@@ -634,6 +1635,11 @@
       "classification": "production"
     },
     {
+      "path": "src/perception/entity_ordered_replay.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
       "path": "src/perception/entity_principal_identity.rs",
       "component": "perception-store",
       "classification": "production"
@@ -645,6 +1651,11 @@
     },
     {
       "path": "src/perception/entity_rebuild.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_replay.rs",
       "component": "perception-store",
       "classification": "production"
     },
@@ -709,6 +1720,16 @@
       "classification": "production"
     },
     {
+      "path": "src/perception/import_readiness.rs",
+      "component": "perception",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/import_replay.rs",
+      "component": "perception",
+      "classification": "production"
+    },
+    {
       "path": "src/perception/relationship_codec.rs",
       "component": "perception-store",
       "classification": "production"
@@ -759,12 +1780,22 @@
       "classification": "production"
     },
     {
+      "path": "src/perception/relationship_ordered_replay.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
       "path": "src/perception/relationship_publication_codec.rs",
       "component": "perception-store",
       "classification": "production"
     },
     {
       "path": "src/perception/relationship_rebuild.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/relationship_replay.rs",
       "component": "perception-store",
       "classification": "production"
     },
@@ -786,6 +1817,111 @@
     {
       "path": "src/perception/relationship_store_validation.rs",
       "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/attachment.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/file.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/git.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/git_command.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/git_file.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/git_snapshot.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/git_upload.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/lore.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/lore_checkpoint.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/lore_file.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/lore_repository.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/lore_runtime.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/lore_upload.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/repository.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/scope.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/upload_paths.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/write_guard.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/write_guard_unix.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/write_guard_windows.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/pure_codec/memory_text_field.rs",
+      "component": "pure-codec",
       "classification": "production"
     },
     {
@@ -835,6 +1971,11 @@
     },
     {
       "path": "src/retrieval/compatibility_profile_store.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/compatibility_profile_validation.rs",
       "component": "vector-store",
       "classification": "production"
     },
@@ -924,6 +2065,11 @@
       "classification": "production"
     },
     {
+      "path": "src/rewrite_lineage.rs",
+      "component": "maintenance-store",
+      "classification": "production"
+    },
+    {
       "path": "src/runtime_inference/dream_pair_codec.rs",
       "component": "dream-store",
       "classification": "production"
@@ -934,7 +2080,67 @@
       "classification": "production"
     },
     {
+      "path": "src/runtime_inference/dream_readiness.rs",
+      "component": "dream",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/dream_replay_transport.rs",
+      "component": "dream",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/codec.rs",
+      "component": "insomnia-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/completion.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/completion_compact_retained.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/error.rs",
+      "component": "insomnia-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/import_readiness.rs",
+      "component": "insomnia",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/model.rs",
+      "component": "insomnia-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/rebuild.rs",
+      "component": "insomnia-store",
+      "classification": "production"
+    },
+    {
       "path": "src/runtime_inference/insomnia/store.rs",
+      "component": "insomnia-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/store/rebuild.rs",
+      "component": "insomnia-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/store/scheduler.rs",
+      "component": "insomnia-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/store/transitions.rs",
       "component": "insomnia-store",
       "classification": "production"
     },
@@ -1064,6 +2270,16 @@
       "classification": "production"
     },
     {
+      "path": "src/semantic_graph/ordered_replay.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/relation_sets.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
       "path": "src/semantic_graph/semantic_node_model.rs",
       "component": "graph-store",
       "classification": "production"
@@ -1074,1104 +2290,113 @@
       "classification": "production"
     },
     {
-      "path": "src/freshness/dream_pass_identity.rs",
-      "component": "freshness-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/epoch_model.rs",
-      "component": "import-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/freshness_storage.rs",
-      "component": "freshness-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/freshness/semantic_policy.rs",
-      "component": "freshness-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle.rs",
+      "path": "src/owner_lifecycle/vector_read_access.rs",
       "component": "owner-lifecycle",
       "classification": "production"
     },
     {
-      "path": "src/runtime_inference/insomnia/codec.rs",
-      "component": "insomnia-store",
-      "classification": "production"
+      "path": "src/owner_lifecycle/entity_resolution_open_admission.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "evidence": "P7.1.14a exact-scope addendum: ordered PHY EntityResolution replay admission contract",
+      "source_sha256": "f57b29ad6ce917b4dbcb8648dc810a7ab86dadf4eaf943e7c2105320ddb1dad4"
     },
     {
-      "path": "src/runtime_inference/insomnia/completion.rs",
+      "path": "src/owner_lifecycle/public_graph_operations.rs",
       "component": "owner-lifecycle",
       "classification": "production"
     },
     {
-      "path": "src/runtime_inference/insomnia/completion_compact_retained.rs",
+      "path": "src/owner_lifecycle/entity_publication_access.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "evidence": "P7.1.14a exact-scope addendum: Entity publication/read/retarget contracts",
+      "source_sha256": "1dad60fbac2713d510b64c2ab4959a2cb2c2e5d33300d82a5c9de14a957934e0"
+    },
+    {
+      "path": "src/owner_lifecycle/insomnia_work_operations.rs",
       "component": "owner-lifecycle",
       "classification": "production"
     },
     {
-      "path": "src/runtime_inference/insomnia/model.rs",
-      "component": "insomnia-store",
+      "path": "src/runtime_inference/configured_provider_operations.rs",
+      "component": "runtime-gateway",
       "classification": "production"
     },
     {
-      "path": "src/runtime_inference/insomnia/error.rs",
-      "component": "insomnia-store",
+      "path": "src/runtime_inference/historical_embedding_adapter.rs",
+      "component": "runtime-gateway",
       "classification": "production"
     },
     {
-      "path": "src/perception/entity_replay.rs",
-      "component": "perception-store",
+      "path": "src/runtime_inference/historical_import_execution.rs",
+      "component": "runtime-gateway",
       "classification": "production"
     },
     {
-      "path": "src/perception/relationship_replay.rs",
-      "component": "perception-store",
+      "path": "src/runtime_inference/offline_dream_frontier.rs",
+      "component": "runtime-gateway",
       "classification": "production"
     },
     {
-      "path": "src/runtime_inference/insomnia/store/rebuild.rs",
-      "component": "insomnia-store",
+      "path": "src/runtime_inference/offline_dream_processing.rs",
+      "component": "runtime-gateway",
       "classification": "production"
     },
     {
-      "path": "src/runtime_inference/insomnia/store/scheduler.rs",
-      "component": "insomnia-store",
+      "path": "src/runtime_inference/offline_community_naming.rs",
+      "component": "runtime-gateway",
       "classification": "production"
     },
     {
-      "path": "src/runtime_inference/insomnia/store/transitions.rs",
-      "component": "insomnia-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/freshness/compact_settlement.rs",
-      "component": "freshness-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/freshness/compact_settlement_decode.rs",
-      "component": "freshness-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/freshness/compact_settlement_wire.rs",
-      "component": "freshness-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/freshness/historical_causal_basis.rs",
-      "component": "freshness-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/freshness/historical_record_scoring.rs",
-      "component": "freshness-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/freshness/historical_contract.rs",
-      "component": "freshness-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/retrieval/compatibility_profile_validation.rs",
-      "component": "vector-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/rewrite_lineage.rs",
-      "component": "maintenance-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/cuts.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/freshness_base.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/frontier.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/mod.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/retained_evidence.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/community_proof.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/manifest_encoding.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/source_digest.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/reconciliation_inventory.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/history_source.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/vocabulary.rs",
-      "component": "pure-codec",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/error.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/historical_event_plan.rs",
+      "path": "src/imports/historical_owner_operations.rs",
       "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/graph_proof.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/vector_proof.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/source_proof.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/manifest_proof.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/memory_retention.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/archive_retention.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/mod.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/prune_selection.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/memory_frames.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/insomnia_replay.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/open_route.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/metadata/store.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/metadata/codec.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/metadata/model.rs",
-      "component": "pure-codec",
-      "classification": "production"
-    },
-    {
-      "path": "src/memory/external_publication.rs",
-      "component": "memory-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/runtime_inference/insomnia/rebuild.rs",
-      "component": "insomnia-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/archive/project_history_store.rs",
-      "component": "archive-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/archive/project_file_binding_store.rs",
-      "component": "archive-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/reliquary_replay.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/phylactery_error.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/read_validation.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/phylactery.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/phy_profile/mod.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/phy_profile/model.rs",
-      "component": "pure-codec",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/phy_profile/codec.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/phy_profile/store.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/external_index/codec.rs",
-      "component": "external-index-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/external_index/model.rs",
-      "component": "external-index-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/external_index/mod.rs",
-      "component": "external-index-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/external_index/store.rs",
-      "component": "external-index-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/external_source/provider.rs",
-      "component": "external-sources",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/phylactery_prune.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/phylactery_prune.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/perception/entity_description_prune.rs",
-      "component": "perception-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/global_versions.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/memory_provenance.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/reclamation.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/reclamation_scan.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/phylactery_copy.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/phylactery_reclamation.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/entity_resolution.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/tail_repair.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/compactions.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/relocation.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/reclamation_source.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/publication_births.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/external_index_backing.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/import_receipts.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/dream_replay.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/reliquary.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/freshness_replay.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/reliquary_description_retention.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/reliquary_vector_retention.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/completion_proof.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/settlement_completion_evidence.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/epoch_scope_proof.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/import_epoch_scope.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/reliquary_relations.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/reliquary_vectors.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/reliquary_archive.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/reliquary_graph.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/reliquary_accepted_replay.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/settlement_births.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/publication_cohorts.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/import_session.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/import_completion_access.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/import_epoch_transport.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/settlement_scope.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/historical_timeline.rs",
-      "component": "pure-codec",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/reliquary_open.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/freshness_due.rs",
-      "component": "freshness-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/readiness.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/runtime_inference/dream_readiness.rs",
-      "component": "dream",
-      "classification": "production"
-    },
-    {
-      "path": "src/perception/import_readiness.rs",
-      "component": "perception",
-      "classification": "production"
-    },
-    {
-      "path": "src/runtime_inference/insomnia/import_readiness.rs",
-      "component": "insomnia",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/transformed_copy.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/freshness/mod.rs",
-      "component": "freshness",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/completion_coordinator.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/reliquary_prune.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/cva_reconcile_error.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/cva_reconcile_conflict.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/rewrite/archive_selection.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/rewrite/closure.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/rewrite/error.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/rewrite/mod.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/rewrite/model.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/rewrite/plan.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/rewrite/plan_source.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/rewrite/semantic_emit.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/graph_endpoint_admission.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/rewrite/archive_emit.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/rewrite/file.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/rewrite/owner_access.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/archive/ordered_replay.rs",
-      "component": "archive-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/reconciliation_values.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/perception/entity_ordered_replay.rs",
-      "component": "perception-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/perception/relationship_ordered_replay.rs",
-      "component": "perception-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/semantic_graph/ordered_replay.rs",
-      "component": "graph-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/graph_ordered_replay.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/archive/interaction_stream_reconciliation.rs",
-      "component": "archive-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/atomic_publication.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/memory_ordered_replay.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/memory_publish.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/physical_copy.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/archive_ordered_replay.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/archive_replay_error.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/reconciliation_compare.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/reconciliation_copy.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/freshness_reconciliation.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/freshness_reconciliation.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/freshness_reconciliation.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/freshness/reconciliation.rs",
-      "component": "freshness-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/reconciliation_repack.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/reconciliation_replay.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/maintenance/reconciliation_owner_access.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/native_commit.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/native_import.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/dream_begin_transport.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/grouped_import_replay.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/semantic_source.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/dream_evidence.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/semantic_graph/relation_sets.rs",
-      "component": "graph-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/dream_representative.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/memory_source_time.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/import_birth_facts.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/import_admission.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/import_admission_epoch.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/historical_settlement_plan.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/freshness/historical_settlement.rs",
-      "component": "freshness-store",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/historical_settlement.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/historical_freeze.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/historical_freshness_read.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/physical_fingerprint.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/historical_events.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/historical_manifest_model.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/historical_manifest.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/historical_manifest_plan.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/historical_embedding_model.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/historical_reconstruction_model.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/historical_reconstruction.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/historical_commit.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/historical_prepare.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/runtime_inference/dream_replay_transport.rs",
-      "component": "dream",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/owner_historical.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/owner_completion.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/history/import_replay_read.rs",
-      "component": "history",
-      "classification": "production"
-    },
-    {
-      "path": "src/perception/import_replay.rs",
-      "component": "perception",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/insomnia_import_replay.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/reconciliation.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/reconciliation_copy.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/reconciliation_replay.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/reconciliation_interval.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/reconciliation_epoch_replay.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/mod.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/prepare.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/providers.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/hermes.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/chatgpt.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/claude.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/imports/contract.rs",
-      "component": "import",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment/scope.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment/attachment.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment/file.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment/git.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment/git_command.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment/git_file.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment/git_snapshot.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment/git_upload.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment/lore.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment/lore_checkpoint.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment/lore_file.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment/lore_repository.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment/lore_runtime.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment/lore_upload.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment/repository.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment/upload_paths.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment/write_guard.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment/write_guard_windows.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/project_environment/write_guard_unix.rs",
-      "component": "project-environment",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/insomnia_application.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/owner_lifecycle/dream_graph_publication.rs",
-      "component": "owner-lifecycle",
-      "classification": "production"
-    },
-    {
-      "path": "src/memory/memory_lifecycle_update.rs",
-      "component": "memory-store",
       "classification": "production"
     }
   ],
   "module_components": [
     {
-      "module": "dream_freshness",
+      "module": "archive_ordered_replay",
+      "component": "archive-store"
+    },
+    {
+      "module": "atomic_publication",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "chronos_detection_model",
+      "component": "chronos"
+    },
+    {
+      "module": "chronos_inference_model",
+      "component": "chronos"
+    },
+    {
+      "module": "compatibility_profile_probe",
+      "component": "vectors"
+    },
+    {
+      "module": "container",
+      "component": "container"
+    },
+    {
+      "module": "cva_memory_publish",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "cva_reconcile_conflict",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "cva_reconcile_error",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "cva_runtime_project_environment",
+      "component": "public-consumers"
+    },
+    {
+      "module": "cva_runtime_reconciliation",
       "component": "public-consumers"
     },
     {
@@ -2179,20 +2404,104 @@
       "component": "dream"
     },
     {
-      "module": "interaction_session",
+      "module": "dream_candidate_error",
+      "component": "dream"
+    },
+    {
+      "module": "dream_candidate_model",
+      "component": "dream"
+    },
+    {
+      "module": "dream_classifier_model",
+      "component": "dream"
+    },
+    {
+      "module": "dream_community_naming_adapter",
+      "component": "public-consumers"
+    },
+    {
+      "module": "dream_community_naming",
       "component": "runtime-gateway"
     },
     {
-      "module": "memory_retrieval_index",
-      "component": "retrieval"
+      "module": "dream_community_naming_context",
+      "component": "dream"
+    },
+    {
+      "module": "dream_community_naming_error",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "dream_cooldown",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "dream_freshness",
+      "component": "public-consumers"
+    },
+    {
+      "module": "dream_owner_publisher::lifecycle",
+      "component": "dream"
+    },
+    {
+      "module": "dream_processing",
+      "component": "public-consumers"
+    },
+    {
+      "module": "dream_processor",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "dream_processor_error",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "dream_processor_model",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "dream_processor_frontier",
+      "component": "public-consumers"
+    },
+    {
+      "module": "dream_publication_execution",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "dream_readiness",
+      "component": "dream"
+    },
+    {
+      "module": "dream_settlement",
+      "component": "dream"
+    },
+    {
+      "module": "dream_temporal_policy",
+      "component": "dream"
+    },
+    {
+      "module": "dream_verifier_model",
+      "component": "dream"
+    },
+    {
+      "module": "embedding_endpoint",
+      "component": "switchboard"
+    },
+    {
+      "module": "entity_description_proof",
+      "component": "perception-store"
     },
     {
       "module": "entity_identity_guard",
       "component": "perception-store"
     },
     {
-      "module": "container",
-      "component": "container"
+      "module": "entity_ordered_replay",
+      "component": "perception-store"
+    },
+    {
+      "module": "freshness",
+      "component": "freshness"
     },
     {
       "module": "freshness::historical_dream",
@@ -2215,324 +2524,60 @@
       "component": "freshness"
     },
     {
-      "module": "freshness::propagation",
-      "component": "freshness"
-    },
-    {
-      "module": "compatibility_profile_probe",
-      "component": "vectors"
-    },
-    {
-      "module": "embedding_endpoint",
-      "component": "switchboard"
-    },
-    {
-      "module": "interaction_model",
-      "component": "runtime-gateway"
-    },
-    {
-      "module": "chronos_inference_model",
-      "component": "chronos"
-    },
-    {
-      "module": "chronos_detection_model",
-      "component": "chronos"
-    },
-    {
-      "module": "freshness",
-      "component": "freshness"
-    },
-    {
-      "module": "imports",
-      "component": "import"
-    },
-    {
-      "module": "entity_description_proof",
-      "component": "perception-store"
-    },
-    {
-      "module": "insomnia::completion",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "owner_lifecycle::history_source",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "owner_lifecycle::vocabulary",
-      "component": "pure-codec"
-    },
-    {
-      "module": "owner_lifecycle::phy_profile::model",
-      "component": "pure-codec"
-    },
-    {
-      "module": "memory_external_publication",
-      "component": "memory-store"
-    },
-    {
-      "module": "imports::epoch_model",
-      "component": "import-store"
-    },
-    {
-      "module": "imports::epoch_store",
-      "component": "import-store"
-    },
-    {
-      "module": "history::epoch_scope_proof",
-      "component": "history"
-    },
-    {
-      "module": "imports::epoch_codec",
-      "component": "import-store"
-    },
-    {
-      "module": "history::import_epoch_scope",
-      "component": "history"
-    },
-    {
-      "module": "history::settlement_births",
-      "component": "history"
-    },
-    {
-      "module": "history::publication_cohorts",
-      "component": "history"
-    },
-    {
-      "module": "history::settlement_scope",
-      "component": "history"
-    },
-    {
-      "module": "historical_timeline",
-      "component": "pure-codec"
-    },
-    {
-      "module": "history::reliquary_open",
-      "component": "history"
-    },
-    {
-      "module": "freshness_due",
+      "module": "freshness::historical_settlement",
       "component": "freshness-store"
     },
     {
-      "module": "imports::readiness",
-      "component": "import"
-    },
-    {
-      "module": "dream_readiness",
-      "component": "dream"
-    },
-    {
-      "module": "perception_import_readiness",
-      "component": "perception"
-    },
-    {
-      "module": "insomnia::import_readiness",
-      "component": "insomnia"
-    },
-    {
-      "module": "history::transformed_copy",
-      "component": "history"
-    },
-    {
-      "module": "imports::completion_coordinator",
-      "component": "import"
-    },
-    {
-      "module": "maintenance::reliquary_prune",
-      "component": "maintenance"
-    },
-    {
-      "module": "cva_reconcile_error",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "cva_reconcile_conflict",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "maintenance::rewrite",
-      "component": "maintenance"
-    },
-    {
-      "module": "maintenance::rewrite::model",
-      "component": "maintenance"
-    },
-    {
-      "module": "maintenance::rewrite::error",
-      "component": "maintenance"
-    },
-    {
-      "module": "maintenance::rewrite::closure",
-      "component": "maintenance"
-    },
-    {
-      "module": "maintenance::rewrite::plan",
-      "component": "maintenance"
-    },
-    {
-      "module": "maintenance::rewrite::plan_source",
-      "component": "maintenance"
-    },
-    {
-      "module": "maintenance::rewrite::archive_selection",
-      "component": "maintenance"
-    },
-    {
-      "module": "maintenance::rewrite::semantic_emit",
-      "component": "maintenance"
-    },
-    {
-      "module": "graph_endpoint_admission",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "maintenance::rewrite::owner_access",
-      "component": "maintenance"
-    },
-    {
-      "module": "maintenance::rewrite::file",
-      "component": "maintenance"
-    },
-    {
-      "module": "maintenance::rewrite::archive_emit",
-      "component": "maintenance"
-    },
-    {
-      "module": "archive_ordered_replay",
-      "component": "archive-store"
-    },
-    {
-      "module": "reconciliation_values",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "entity_ordered_replay",
-      "component": "perception-store"
-    },
-    {
-      "module": "relationship_ordered_replay",
-      "component": "perception-store"
-    },
-    {
-      "module": "graph_ordered_replay",
-      "component": "graph-store"
-    },
-    {
-      "module": "owner_lifecycle::graph_ordered_replay",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "interaction_stream_reconciliation",
-      "component": "archive-store"
-    },
-    {
-      "module": "atomic_publication",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "memory_ordered_replay",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "cva_memory_publish",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "owner_lifecycle::physical_copy",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "owner_lifecycle::import_epoch_transport",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "owner_lifecycle::archive_ordered_replay",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "owner_lifecycle::archive_replay_error",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "maintenance::reconciliation_compare",
-      "component": "maintenance"
-    },
-    {
-      "module": "maintenance::reconciliation_copy",
-      "component": "maintenance"
-    },
-    {
-      "module": "owner_lifecycle::insomnia_replay",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "history::freshness_reconciliation",
-      "component": "history"
-    },
-    {
-      "module": "maintenance::freshness_reconciliation",
-      "component": "maintenance"
-    },
-    {
-      "module": "owner_lifecycle::freshness_reconciliation",
-      "component": "owner-lifecycle"
+      "module": "freshness::propagation",
+      "component": "freshness"
     },
     {
       "module": "freshness::reconciliation",
       "component": "freshness-store"
     },
     {
-      "module": "maintenance::reconciliation_repack",
-      "component": "maintenance"
+      "module": "freshness_due",
+      "component": "freshness-store"
     },
     {
-      "module": "maintenance::reconciliation_replay",
-      "component": "maintenance"
+      "module": "freshness_operations_runtime",
+      "component": "runtime-gateway"
     },
     {
-      "module": "maintenance::reconciliation_owner_access",
-      "component": "maintenance"
+      "module": "general_endpoint",
+      "component": "switchboard"
     },
     {
-      "module": "imports::native_commit",
-      "component": "import"
-    },
-    {
-      "module": "owner_lifecycle::native_import",
+      "module": "graph_endpoint_admission",
       "component": "owner-lifecycle"
     },
     {
-      "module": "owner_lifecycle::dream_begin_transport",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "owner_lifecycle::grouped_import_replay",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "owner_lifecycle::semantic_source",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "history::dream_evidence",
-      "component": "history"
+      "module": "graph_ordered_replay",
+      "component": "graph-store"
     },
     {
       "module": "graph_relation_sets",
       "component": "graph-store"
     },
     {
+      "module": "historical_timeline",
+      "component": "pure-codec"
+    },
+    {
+      "module": "history::dream_evidence",
+      "component": "history"
+    },
+    {
       "module": "history::dream_representative",
       "component": "history"
     },
     {
-      "module": "memory_source_time_admission",
+      "module": "history::epoch_scope_proof",
       "component": "history"
     },
     {
-      "module": "owner_lifecycle::import_birth_facts",
-      "component": "owner-lifecycle"
+      "module": "history::freshness_reconciliation",
+      "component": "history"
     },
     {
       "module": "history::import_admission",
@@ -2543,63 +2588,59 @@
       "component": "history"
     },
     {
-      "module": "freshness::historical_settlement",
-      "component": "freshness-store"
+      "module": "history::import_epoch_scope",
+      "component": "history"
     },
     {
-      "module": "owner_lifecycle::historical_settlement",
-      "component": "owner-lifecycle"
+      "module": "history::publication_cohorts",
+      "component": "history"
     },
     {
-      "module": "owner_lifecycle::historical_freshness_read",
-      "component": "owner-lifecycle"
+      "module": "history::reliquary_open",
+      "component": "history"
     },
     {
-      "module": "owner_lifecycle::physical_fingerprint",
-      "component": "owner-lifecycle"
+      "module": "history::settlement_births",
+      "component": "history"
     },
     {
-      "module": "model_config",
-      "component": "config-security"
+      "module": "history::settlement_scope",
+      "component": "history"
     },
     {
-      "module": "model_config_codec",
-      "component": "config-security"
+      "module": "history::transformed_copy",
+      "component": "history"
     },
     {
-      "module": "lexical_contract",
-      "component": "retrieval"
+      "module": "imports",
+      "component": "import"
     },
     {
-      "module": "insomnia::worker::model",
-      "component": "insomnia"
+      "module": "imports::completion_coordinator",
+      "component": "import"
     },
     {
-      "module": "retrieval_config",
-      "component": "config-security"
+      "module": "imports::epoch_codec",
+      "component": "import-store"
     },
     {
-      "module": "dream_processing",
-      "component": "public-consumers"
+      "module": "imports::epoch_model",
+      "component": "import-store"
     },
     {
-      "module": "dream_community_naming_adapter",
-      "component": "public-consumers"
+      "module": "imports::epoch_store",
+      "component": "import-store"
     },
     {
-      "module": "dream_settlement",
-      "component": "dream"
+      "module": "imports::native_commit",
+      "component": "import"
     },
     {
-      "module": "dream_processor_frontier",
-      "component": "public-consumers"
+      "module": "imports::readiness",
+      "component": "import"
     },
     {
-      "module": "dream_temporal_policy",
-      "component": "dream"
-    },
-    {
-      "module": "owner_lifecycle::insomnia_application",
+      "module": "insomnia::completion",
       "component": "owner-lifecycle"
     },
     {
@@ -2607,36 +2648,8 @@
       "component": "insomnia"
     },
     {
-      "module": "owner_lifecycle::entity_publication_admission",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "owner_lifecycle::entity_resolution_admission",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "owner_lifecycle::insomnia_runtime",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "owner_lifecycle::perception_publication_merge",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "owner_lifecycle::perception_publication_resolution",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "owner_lifecycle::personal_memory_publication",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "owner_lifecycle::semantic_archive_read",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "owner_lifecycle::vector_publication",
-      "component": "owner-lifecycle"
+      "module": "insomnia::import_readiness",
+      "component": "insomnia"
     },
     {
       "module": "insomnia::native_processor",
@@ -2659,56 +2672,12 @@
       "component": "insomnia"
     },
     {
-      "module": "owner_lifecycle::dream_graph_publication",
-      "component": "owner-lifecycle"
-    },
-    {
-      "module": "dream_owner_publisher::lifecycle",
-      "component": "dream"
-    },
-    {
-      "module": "dream_publication_execution",
-      "component": "runtime-gateway"
-    },
-    {
-      "module": "memory_vector_reader",
-      "component": "vectors"
+      "module": "insomnia::worker::model",
+      "component": "insomnia"
     },
     {
       "module": "insomnia::worker_runtime",
       "component": "runtime-gateway"
-    },
-    {
-      "module": "rel_execution_owner",
-      "component": "runtime-gateway"
-    },
-    {
-      "module": "phy_execution_owner",
-      "component": "runtime-gateway"
-    },
-    {
-      "module": "interaction_runtime_public",
-      "component": "public-consumers"
-    },
-    {
-      "module": "interaction_stream",
-      "component": "runtime-gateway"
-    },
-    {
-      "module": "interaction_stream_persistence",
-      "component": "runtime-gateway"
-    },
-    {
-      "module": "memory_store::lifecycle_update",
-      "component": "memory-store"
-    },
-    {
-      "module": "cva_runtime_project_environment",
-      "component": "public-consumers"
-    },
-    {
-      "module": "cva_runtime_reconciliation",
-      "component": "public-consumers"
     },
     {
       "module": "insomnia::worker_runtime::outcome",
@@ -2723,15 +2692,323 @@
       "component": "public-consumers"
     },
     {
-      "module": "dream_cooldown",
+      "module": "interaction_model",
       "component": "runtime-gateway"
+    },
+    {
+      "module": "interaction_runtime_public",
+      "component": "public-consumers"
+    },
+    {
+      "module": "interaction_session",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "interaction_stream",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "interaction_stream_persistence",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "interaction_stream_reconciliation",
+      "component": "archive-store"
     },
     {
       "module": "knowledge_mutation_execution",
       "component": "runtime-gateway"
     },
     {
+      "module": "lexical_contract",
+      "component": "retrieval"
+    },
+    {
+      "module": "maintenance::freshness_reconciliation",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::reconciliation_compare",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::reconciliation_copy",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::reconciliation_owner_access",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::reconciliation_repack",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::reconciliation_replay",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::reliquary_prune",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite::archive_emit",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite::archive_selection",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite::closure",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite::error",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite::file",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite::model",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite::owner_access",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite::plan",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite::plan_source",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite::semantic_emit",
+      "component": "maintenance"
+    },
+    {
+      "module": "memory_external_publication",
+      "component": "memory-store"
+    },
+    {
+      "module": "memory_ordered_replay",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "memory_retrieval_index",
+      "component": "retrieval"
+    },
+    {
+      "module": "memory_retrieval_model",
+      "component": "retrieval"
+    },
+    {
+      "module": "memory_source_time_admission",
+      "component": "history"
+    },
+    {
+      "module": "memory_store::lifecycle_update",
+      "component": "memory-store"
+    },
+    {
+      "module": "memory_vector_reader",
+      "component": "vectors"
+    },
+    {
+      "module": "model_config",
+      "component": "config-security"
+    },
+    {
+      "module": "model_config_codec",
+      "component": "config-security"
+    },
+    {
+      "module": "owner_lifecycle::archive_ordered_replay",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::archive_replay_error",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::dream_begin_transport",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::dream_graph_publication",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::entity_publication_admission",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::entity_resolution_admission",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::freshness_reconciliation",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::graph_ordered_replay",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::grouped_import_replay",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::historical_freshness_read",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::historical_settlement",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::history_source",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::import_birth_facts",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::import_epoch_transport",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::insomnia_application",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::insomnia_replay",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::insomnia_runtime",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::native_import",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::perception_publication_merge",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::perception_publication_resolution",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::personal_memory_publication",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::phy_profile::model",
+      "component": "pure-codec"
+    },
+    {
+      "module": "owner_lifecycle::physical_copy",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::physical_fingerprint",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::semantic_archive_read",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::semantic_source",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::vector_publication",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::vocabulary",
+      "component": "pure-codec"
+    },
+    {
+      "module": "perception_import_readiness",
+      "component": "perception"
+    },
+    {
+      "module": "phy_execution_owner",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "public_entity_resolution_bindings",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "public_semantic_operations",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "reconciliation_values",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "rel_execution_owner",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "relationship_ordered_replay",
+      "component": "perception-store"
+    },
+    {
+      "module": "retrieval_config",
+      "component": "config-security"
+    },
+    {
       "module": "runtime_freshness_birth",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "owner_lifecycle::insomnia_work_operations",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "configured_runtime::provider_operations",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "configured_general",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "insomnia::extraction",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "model_switchboard",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "openai_ready_embedding",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "historical_embedding_adapter",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "historical_import_execution",
       "component": "runtime-gateway"
     }
   ],
@@ -3837,6 +4114,150 @@
       "symbol": "CompatibilityProfile",
       "reason": "Owned immutable profile metadata; indexing reads fields, receives no profile store",
       "evidence": "benchmarks/phase7-edge-dispositions.json exact local source proof"
+    },
+    {
+      "consumer": "freshness",
+      "owner": "container",
+      "symbol": "ObjectRef",
+      "why": "Type-only immutable physical coordinate in src/freshness/graph_snapshot.rs publication_version; forwarded by value to the approved Graph decoder. No ObjectRef method, constructor, physical reader/writer, callback or Container capability is invoked."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "vector-store",
+      "symbol": "ArchiveVectorError",
+      "reason": "Historical embedding reports owner read failures as an immutable result value; Runtime receives no vector-store capability."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "vector-store",
+      "symbol": "ArchiveVectorId",
+      "reason": "Historical embedding passes stable archive-vector identity values to its mounted owner; no store capability is exposed."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "vector-store",
+      "symbol": "ArchiveVectorInfo",
+      "reason": "Historical embedding reads immutable archive-vector metadata returned by its mounted owner; no store capability is exposed."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "vector-store",
+      "symbol": "ArchiveVectorSet",
+      "reason": "Historical embedding receives immutable vector-set identity and fragment coordinates from its mounted owner; no store capability is exposed."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "vector-store",
+      "symbol": "CompatibilityProfile",
+      "reason": "Historical embedding consumes immutable compatibility metadata and probe references; provider verification remains in Runtime."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "vector-store",
+      "symbol": "CompatibilityProfileError",
+      "reason": "Historical embedding returns the vector owner's immutable compatibility validation error; no owner operation is exposed."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "vector-store",
+      "symbol": "CompatibilityReport",
+      "reason": "Historical embedding receives the immutable compatibility probe result; no profile store or writer is exposed."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "vector-store",
+      "symbol": "PackedVectorError",
+      "reason": "Historical embedding reports owner read failures as an immutable result value; Runtime receives no vector-store capability."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "vector-store",
+      "symbol": "PackedVectorId",
+      "reason": "Historical embedding passes stable packed-vector identity values to its mounted owner; no store capability is exposed."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "vector-store",
+      "symbol": "PackedVectorInfo",
+      "reason": "Historical embedding reads immutable packed-vector metadata returned by its mounted owner; no store capability is exposed."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "vector-store",
+      "symbol": "VectorGeneration",
+      "reason": "Historical embedding consumes immutable vector-generation identity and version coordinates; no generation store is exposed."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "graph-store",
+      "symbol": "COMMUNITY_ALGORITHM_VERSION",
+      "reason": "Offline Dream community naming pins the Graph-owned algorithm tag as a scalar value; it receives no Graph capability."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "graph-store",
+      "symbol": "COMMUNITY_NAMING_CONTRACT_VERSION",
+      "reason": "Offline Dream community naming writes the Graph-owned naming contract tag as a scalar value; it receives no Graph capability."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "graph-store",
+      "symbol": "CommunitySemanticName",
+      "reason": "Offline Dream community naming prepares the detached record value before owner publication; it receives no Graph store."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "graph-store",
+      "symbol": "CommunitySemanticNameSource",
+      "reason": "Offline Dream community naming uses the passive source tag in its detached record value; it receives no Graph store."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "graph-store",
+      "symbol": "CommunitySnapshot",
+      "reason": "Offline Dream community naming reads the detached snapshot returned by the owner; it receives no Graph store."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "retrieval",
+      "symbol": "DEFAULT_MEMORY_RETRIEVAL_SUBCENTROIDS",
+      "reason": "Offline Dream community naming uses Retrieval's fixed index-shape tuning constant; no Retrieval service capability is imported."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "vector-store",
+      "symbol": "CompatibilityProfileId",
+      "reason": "Offline Dream operations pass the stable profile identity to the mounted owner; no profile store is exposed."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "freshness-store",
+      "symbol": "FreshnessRecord",
+      "reason": "Historical Import wrapper forwards immutable score and activity-anchor records; no Freshness store or mutation API is exposed."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "freshness-store",
+      "symbol": "HistoricalImportFreshnessSettlement",
+      "reason": "Historical Import wrapper forwards the detached validated settlement value to Import and owner lifecycle; no Freshness store or publication capability is exposed."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "freshness-store",
+      "symbol": "ImportSemanticScope",
+      "reason": "Historical Import wrapper forwards the detached semantic scope value to Import validation; no Freshness store or mutation API is exposed."
+    },
+    {
+      "consumer": "import",
+      "owner": "freshness-store",
+      "symbol": "FreshnessDueDispatcher",
+      "reason": "Import returns the detached rebuilt due index as an operation result for Runtime to install; Import does not inspect or mutate it and receives no Freshness store."
+    },
+    {
+      "consumer": "import",
+      "owner": "freshness-store",
+      "symbol": "ImportSemanticScope",
+      "reason": "Import forwards the detached semantic-scope value to owner-lifecycle validation; it receives no Freshness store or mutation API."
     }
   ],
   "forbidden_symbols": [

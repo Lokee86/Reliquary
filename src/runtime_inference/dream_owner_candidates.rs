@@ -11,23 +11,68 @@ use crate::{
     CompatibilityProfileId, DreamCandidateConfig, DreamCandidateError, DreamCandidateSet,
     DreamMemoryContext, GraphRelation, MAX_DREAM_CANDIDATE_LIMIT, Memory, MemoryBodyId, MemoryId,
 };
+use std::collections::HashMap;
 
-pub(crate) fn dream_memory_context<R>(
+pub(crate) struct DreamMemoryContextWork {
+    pub(crate) memory: Memory,
+    pub(crate) body_id: MemoryBodyId,
+    relations: Vec<GraphRelation>,
+}
+
+pub(crate) fn prepare_dream_memory_context(
     memories: &MemoryReadView<'_>,
     graph: &GraphStore,
     memory_id: MemoryId,
-    source_time: &R,
-) -> Result<DreamMemoryContext, DreamCandidateError>
-where
-    R: Fn(&Memory) -> Option<i64>,
-{
+) -> Result<DreamMemoryContextWork, DreamCandidateError> {
     let memory = memories.memory(memory_id)?;
     let body_id = memories.current_body_id(memory_id)?;
-    let relations = graph.active_relations();
-    Ok(build_context(memory, body_id, &relations, source_time))
+    let relations = graph
+        .active_relations()
+        .into_iter()
+        .filter(|relation| relation.source == memory_id || relation.target == memory_id)
+        .collect();
+    Ok(DreamMemoryContextWork {
+        memory,
+        body_id,
+        relations,
+    })
 }
 
-pub(crate) fn dream_candidates<R>(
+pub(crate) fn finish_dream_memory_context(
+    work: DreamMemoryContextWork,
+    source_timestamp_ns: Option<i64>,
+) -> DreamMemoryContext {
+    build_context(
+        work.memory,
+        work.body_id,
+        &work.relations,
+        source_timestamp_ns,
+    )
+}
+
+pub(crate) struct DreamCandidateWork {
+    source: DreamMemoryContextWork,
+    candidates: Vec<DreamCandidateWorkItem>,
+    config: DreamCandidateConfig,
+}
+
+struct DreamCandidateWorkItem {
+    context: DreamMemoryContextWork,
+    semantic_score: Option<f64>,
+    lexical_score: f64,
+}
+
+impl DreamCandidateWork {
+    pub(crate) fn source_time_memories(&self) -> impl Iterator<Item = &Memory> {
+        std::iter::once(&self.source.memory).chain(
+            self.candidates
+                .iter()
+                .map(|candidate| &candidate.context.memory),
+        )
+    }
+}
+
+pub(crate) fn prepare_dream_candidates(
     memories: &MemoryReadView<'_>,
     graph: &GraphStore,
     dream_pairs: &DreamPairStore,
@@ -35,11 +80,7 @@ pub(crate) fn dream_candidates<R>(
     compatibility_profile_id: CompatibilityProfileId,
     source_id: MemoryId,
     config: DreamCandidateConfig,
-    source_time: &R,
-) -> Result<DreamCandidateSet, DreamCandidateError>
-where
-    R: Fn(&Memory) -> Option<i64>,
-{
+) -> Result<DreamCandidateWork, DreamCandidateError> {
     validate_config(config)?;
     let source = memories.memory(source_id)?;
     let source_body = memories.current_body_id(source_id)?;
@@ -48,9 +89,17 @@ where
         .get(&source_body)
         .ok_or(DreamCandidateError::MissingSourceVector)?;
     let relations = graph.active_relations();
-    let source_context = build_context(source, source_body, &relations, source_time);
+    let source_context = DreamMemoryContextWork {
+        relations: relations
+            .iter()
+            .copied()
+            .filter(|relation| relation.source == source_id || relation.target == source_id)
+            .collect(),
+        memory: source,
+        body_id: source_body,
+    };
 
-    let mut scored = Vec::new();
+    let mut candidates = Vec::new();
     for id in memories.current_ids() {
         if id == source_id
             || dream_pairs.contains(source_id, id)
@@ -71,39 +120,80 @@ where
             .map(|candidate| cosine(source_vector, candidate))
             .transpose()?;
         let lexical_score = lexical_score(&source_context.memory, &memory);
-        let context = build_context(memory, body_id, &relations, source_time);
-        let (temporal_matches, temporal_score) =
-            temporal_matches(&source_context.temporal, &context.temporal);
-        scored.push(ScoredCandidate {
+        let context = DreamMemoryContextWork {
+            relations: relations
+                .iter()
+                .copied()
+                .filter(|relation| relation.source == id || relation.target == id)
+                .collect(),
+            memory,
+            body_id,
+        };
+        candidates.push(DreamCandidateWorkItem {
             context,
             semantic_score,
             lexical_score,
-            semantic_rank: None,
-            prior_rank: None,
-            lexical_rank: None,
-            temporal_score,
-            temporal_rank: None,
-            temporal_matches,
-            fused_score: 0.0,
         });
     }
-    rank_lanes(&source_context, &mut scored, config);
-    Ok(DreamCandidateSet {
+
+    Ok(DreamCandidateWork {
         source: source_context,
-        candidates: select_candidates(scored, config),
+        candidates,
+        config,
     })
 }
 
-fn build_context<R>(
+pub(crate) fn finish_dream_candidates(
+    work: DreamCandidateWork,
+    source_times: &HashMap<MemoryId, Option<i64>>,
+) -> DreamCandidateSet {
+    let source_id = work.source.memory.id;
+    let source_context = build_context(
+        work.source.memory,
+        work.source.body_id,
+        &work.source.relations,
+        source_times.get(&source_id).copied().flatten(),
+    );
+    let mut scored = work
+        .candidates
+        .into_iter()
+        .map(|candidate| {
+            let candidate_id = candidate.context.memory.id;
+            let context = build_context(
+                candidate.context.memory,
+                candidate.context.body_id,
+                &candidate.context.relations,
+                source_times.get(&candidate_id).copied().flatten(),
+            );
+            let (temporal_matches, temporal_score) =
+                temporal_matches(&source_context.temporal, &context.temporal);
+            ScoredCandidate {
+                context,
+                semantic_score: candidate.semantic_score,
+                lexical_score: candidate.lexical_score,
+                semantic_rank: None,
+                prior_rank: None,
+                lexical_rank: None,
+                temporal_score,
+                temporal_rank: None,
+                temporal_matches,
+                fused_score: 0.0,
+            }
+        })
+        .collect::<Vec<_>>();
+    rank_lanes(&source_context, &mut scored, work.config);
+    DreamCandidateSet {
+        source: source_context,
+        candidates: select_candidates(scored, work.config),
+    }
+}
+
+fn build_context(
     memory: Memory,
     body_id: MemoryBodyId,
     relations: &[GraphRelation],
-    source_time: &R,
-) -> DreamMemoryContext
-where
-    R: Fn(&Memory) -> Option<i64>,
-{
-    let source_timestamp_ns = source_time(&memory);
+    source_timestamp_ns: Option<i64>,
+) -> DreamMemoryContext {
     let graph_relations = relations
         .iter()
         .copied()

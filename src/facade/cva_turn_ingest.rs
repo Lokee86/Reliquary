@@ -2,8 +2,7 @@ use crate::{ArchiveError, Cva, IncomingTurn, IngestedTurn, StoredFile};
 
 impl Cva {
     pub fn ingest_turn(&mut self, turn: IncomingTurn) -> Result<IngestedTurn, ArchiveError> {
-        self.ingest_turn_with_receipt(turn)
-            .map(|accepted| accepted.value)
+        self.runtime_ingest_turn(turn)
     }
 
     pub(crate) fn ingest_turn_with_receipt(
@@ -22,7 +21,6 @@ impl Cva {
         conversation_id: &str,
         node_id: &str,
     ) -> Vec<StoredFile> {
-        self.archive
-            .historical_files_for_source(conversation_id, node_id)
+        self.runtime_historical_files_for_source(conversation_id, node_id)
     }
 }

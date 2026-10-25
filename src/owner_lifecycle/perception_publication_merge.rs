@@ -61,10 +61,15 @@ where
         )?;
     }
 
-    owner_id.ok_or(RelationshipError::MissingOwnerIdentity)?;
+    let owner_id = owner_id.ok_or(RelationshipError::MissingOwnerIdentity)?;
     let mut relationships_retargeted = 0;
-    for write in writes {
-        let write = write?;
+    for mut write in writes {
+        crate::owner_lifecycle::validate_live_relationship_refs(
+            &owner_id,
+            memories,
+            entities,
+            &mut write.draft,
+        )?;
         relationships.publish(
             container,
             Some(write.id),
@@ -159,4 +164,24 @@ impl<'a> ReconciliationPublication<'a> {
     pub(crate) fn sync(&mut self) -> Result<(), crate::ContainerError> {
         self.container.sync()
     }
+}
+
+pub(crate) fn apply_retarget_association(
+    container: &mut Container,
+    memories: &MemoryStore,
+    entities: &EntityStore,
+    graph: &mut GraphStore,
+    memory: crate::MemoryId,
+    entity: crate::EntityId,
+    active: bool,
+    expected_graph_version: u64,
+) -> Result<Option<crate::SemanticGraphRelation>, GraphError> {
+    let change = crate::SemanticGraphRelationChange::entity_association(memory, entity, active);
+    crate::graph_endpoint_admission::validate_semantic_changes(
+        memories,
+        entities,
+        &[change],
+        crate::GraphRelationOrigin::Perception,
+    )?;
+    graph.set_entity_association(container, memory, entity, active, expected_graph_version)
 }

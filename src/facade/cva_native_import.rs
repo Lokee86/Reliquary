@@ -1,5 +1,5 @@
-use crate::imports::*;
-use crate::{Branch, Cva, EpisodeConfig, EpisodeOrigin, InsomniaPriority};
+use crate::Cva;
+use crate::imports::{ImportEpochStatus, ImportError, ImportReceipt, ImportStart, NativeImport};
 
 impl Cva {
     /// Offline/exclusive native import. Mounted management must compose this through
@@ -11,30 +11,7 @@ impl Cva {
         input: &NativeImport,
         now_ns: i64,
     ) -> Result<ImportReceipt, ImportError> {
-        let watermarks = self.import_watermarks();
-        let mut activity = Vec::new();
-        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            crate::imports::native_commit::import_native(
-                crate::imports::native_commit::NativeImportParts::new(
-                    &mut self.owner.container,
-                    &mut self.owner.archive,
-                    &self.owner.project_files,
-                    &mut self.owner.insomnia,
-                    &mut self.owner.import_epochs,
-                ),
-                input,
-                now_ns,
-                watermarks,
-                &mut activity,
-            )
-        }));
-        for turn in activity {
-            self.freshness_on_accepted_activity(turn);
-        }
-        match result {
-            Ok(result) => result,
-            Err(payload) => std::panic::resume_unwind(payload),
-        }
+        self.runtime_import_native(input, now_ns)
     }
 
     #[cfg(test)]
@@ -60,23 +37,10 @@ impl Cva {
     }
 
     pub fn import_epoch_status(&self, import_id: &str) -> Option<ImportEpochStatus> {
-        self.import_epochs.status(import_id)
+        self.runtime_import_epoch_status(import_id)
     }
 
     pub fn import_epoch_statuses(&self) -> Vec<ImportEpochStatus> {
-        self.import_epochs.statuses()
-    }
-
-    pub(crate) fn import_watermarks(&self) -> ImportWatermarks {
-        ImportWatermarks {
-            global_version: self.latest_global_version(),
-            archive_version: self.archive_version(),
-            memory_version: self.memory_version(),
-            entity_version: self.entities.entity_version(),
-            relationship_version: self.relationships.relationship_version(),
-            graph_version: self.graph.graph_version(),
-            memory_graph_version: self.graph.memory_graph_version(),
-            vector_version: self.vector_generations.vector_version(),
-        }
+        self.runtime_import_epoch_statuses()
     }
 }

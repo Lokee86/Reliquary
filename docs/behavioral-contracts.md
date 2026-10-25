@@ -103,7 +103,11 @@ src/facade/freshness_dream_history_tests.rs exercises archived and tombstoned bi
 
 ## C8 embedding acceptance fixtures
 
+The Phase 7 callback cuts preserve stage-before-provider ordering. `insomnia::extraction::stage_event_tests::reporter_panic_is_resumed_before_provider_work` verifies that a reporting panic prevents provider execution and retains its original payload. Gateway owns stage-event consumption; Insomnia owns the finite event values.
+
 historical_embedding_tests verifies native fill/refreeze/checkpoint/reopen, accepted retry, preflight no calls/writes, invalid output, drift, cancellation and partial vector retry. historical_embedding_evidence_tests verifies missing mixed evidence, byte-preserving retained/invalid rows, profile/endpoint/owner/clock rejection and cancelled partial progress. historical_embedding_import_tests exercises import_native through actual configured HTTP embedding and native checkpoint/reopen/prospective activation. OpenAI-ready transport tests verify redirect refusal, bounded response and one-request execution despite ordinary batching settings.
+
+`historical_embedding_tests::historical_embedding_write_scope_restores_import_admission_on_exit` verifies that temporary owner admission is closed after normal return, a returned error and panic unwind.
 
 ## C9 integrated historical contracts
 

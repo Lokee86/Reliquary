@@ -113,22 +113,22 @@ impl GatewayRuntime {
         self.with_rel(&token, |runtime| {
             let cva = &mut runtime.cva;
             let mut status = empty_status();
-            status.insomnia = cva.insomnia_stats();
+            status.insomnia = cva.runtime_insomnia_stats();
             status.reliquary_semantic_pending = cva
-                .semantic_freshness_pending_fragments()
+                .runtime_semantic_freshness_pending_fragments()
                 .map_err(operation)?;
-            status.reliquary_memories = cva.memory_stats();
-            status.reliquary_vectors = cva.memory_vector_stats();
+            status.reliquary_memories = cva.native_memory_stats();
+            status.reliquary_vectors = cva.public_memory_vector_stats();
             status.reliquary_perception_pending = pending;
             let now = crate::runtime_shared::unix_now_ns();
-            for id in cva.memory_ids() {
-                if cva.memory(id).map_err(operation)?.archived {
+            for id in cva.runtime_memory_ids() {
+                if cva.runtime_memory(id).map_err(operation)?.archived {
                     continue;
                 }
                 let has_vector = match profile {
                     Some(profile) => {
-                        let body = cva.memory_body_id(id).map_err(operation)?;
-                        cva.memory_vector_location(profile, body).is_some()
+                        let body = cva.runtime_memory_body_id(id).map_err(operation)?;
+                        cva.runtime_memory_vector_location(profile, body).is_some()
                     }
                     None => false,
                 };
@@ -173,8 +173,8 @@ impl GatewayRuntime {
         };
         self.with_phy(&token, |phy| {
             let mut status = empty_status();
-            status.phylactery_memories = Some(phy.memory_stats());
-            status.phylactery_vectors = Some(phy.memory_vector_stats());
+            status.phylactery_memories = Some(phy.native_memory_stats());
+            status.phylactery_vectors = Some(phy.public_memory_vector_stats());
             status.phylactery_perception_pending = pending;
             let now = crate::runtime_shared::unix_now_ns();
             for id in phy.memory_ids() {

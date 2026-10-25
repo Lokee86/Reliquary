@@ -31,24 +31,15 @@ pub(crate) fn pending_fragments(
         let Some(at) = read.fragment_position(fragment.id)? else {
             continue;
         };
-        if at > floor
-            && !read
-                .completed(&crate::freshness_storage::semantic_fragment_event_id(
-                    owner,
-                    fragment.id,
-                ))
-                .map_err(CvaError::Freshness)?
-        {
-            pending.push((at, fragment.id));
+        if at > floor {
+            let event_id =
+                crate::freshness::historical_semantic::live_semantic_event_id(owner, fragment.id);
+            if !read.completed(&event_id).map_err(CvaError::Freshness)? {
+                pending.push((at, fragment.id, event_id));
+            }
         }
     }
-    pending.sort_by_key(|(at, id)| {
-        (
-            *at,
-            crate::freshness_storage::semantic_fragment_event_id(owner, *id),
-        )
-    });
-    Ok(pending)
+    Ok(crate::freshness::historical_semantic::order_live_pending_events(pending))
 }
 pub(crate) fn prepare_batch(
     read: &SemanticArchiveRead<'_>,

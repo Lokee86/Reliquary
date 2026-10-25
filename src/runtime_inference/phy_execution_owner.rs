@@ -47,7 +47,7 @@ impl PhyExecutionOwner {
     }
 
     pub fn graph_version(&self) -> u64 {
-        self.owner.graph.graph_version()
+        self.owner.owner_graph_version()
     }
 
     pub fn memory_vector_location(
@@ -56,18 +56,19 @@ impl PhyExecutionOwner {
         memory_body_id: MemoryBodyId,
     ) -> Option<MemoryVectorLocation> {
         self.owner
-            .memory_vectors
-            .location(compatibility_profile_id, memory_body_id)
+            .vector_memory_vectors_location(compatibility_profile_id, memory_body_id)
     }
 
     pub fn active_memory_compatibility_profile(
         &self,
         id: CompatibilityProfileId,
     ) -> Option<CompatibilityProfile> {
-        let profile = self.owner.compatibility_profiles.get_active(id)?;
+        let profile = self.owner.vector_profile_get_active(id)?;
         self.owner
-            .memory_vectors
-            .has_complete_coverage(id, &self.owner.memories.current_body_ids())
+            .vector_memory_vectors_has_complete_coverage(
+                id,
+                &self.owner.memories.current_body_ids(),
+            )
             .then(|| profile.clone())
     }
 
@@ -104,11 +105,10 @@ impl PhyExecutionOwner {
 
     pub(crate) fn validate_open_owner(&mut self) -> Result<(), PhylacteryError> {
         let result = self;
-        result.entity_resolutions.validate_local()?;
-        crate::owner_lifecycle::validate_entity_resolution_references(
+        crate::owner_lifecycle::entity_resolution_open_admission::validate_open_entity_resolutions(
             &result.memories,
             &result.entities,
-            &result.entity_resolutions.records(),
+            &result.entity_resolutions,
         )?;
         Ok(())
     }

@@ -7,7 +7,7 @@ use super::synthesis;
 use crate::{Episode, GeneralEndpoint, GeneralEndpointError, InsomniaSemanticStage, ResolvedTurn};
 use serde_json::{Value, json};
 use std::fmt;
-use std::sync::Arc;
+use std::sync::{Arc, mpsc::SyncSender};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InsomniaRoutingMetadata {
@@ -189,21 +189,14 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
             conversation_id: conversation.to_owned(),
         };
         let payload = input.external_payload(namespace, turns);
-        let ledger = self.complete_ledger(&payload, turns, &[], false, &no_stage_progress)?;
+        let ledger = self.complete_ledger(&payload, turns, &[], false, None)?;
         if !parse_evidence_requests(&ledger)?.is_empty() {
             return Err(InsomniaExtractionError::InvalidOutput(
                 "external evidence must be in the authorized window".into(),
             ));
         }
         let entries = ledger::parse(&ledger, turns, &[])?;
-        self.synthesize(
-            &input,
-            turns,
-            &payload,
-            entries,
-            Vec::new(),
-            &no_stage_progress,
-        )
+        self.synthesize(&input, turns, &payload, entries, Vec::new(), None)
     }
 
     pub fn extract(
@@ -224,18 +217,18 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
         episode: &Episode,
         turns: &[ResolvedTurn],
     ) -> Result<InsomniaExtractionStage, InsomniaExtractionError> {
-        self.start_with_stage_reporter(episode, turns, &no_stage_progress)
+        self.start_with_stage_events(episode, turns, None)
     }
 
-    pub(crate) fn start_with_stage_reporter(
+    pub(crate) fn start_with_stage_events(
         &self,
         episode: &Episode,
         turns: &[ResolvedTurn],
-        stage_reporter: &dyn Fn(InsomniaSemanticStage, usize),
+        stage_events: Option<&SyncSender<crate::insomnia::InsomniaSemanticProgress>>,
     ) -> Result<InsomniaExtractionStage, InsomniaExtractionError> {
         let episode_payload = encode_episode_value(episode, turns)?;
         let initial_ledger =
-            self.complete_ledger(&episode_payload, turns, &[], true, stage_reporter)?;
+            self.complete_ledger(&episode_payload, turns, &[], true, stage_events)?;
         let requests = parse_evidence_requests(&initial_ledger)?;
         if requests.is_empty() {
             let entries = ledger::parse(&initial_ledger, turns, &[])?;
@@ -246,7 +239,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
                     &episode_payload,
                     entries,
                     Vec::new(),
-                    stage_reporter,
+                    stage_events,
                 )
                 .map(InsomniaExtractionStage::Complete);
         }
@@ -265,24 +258,17 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
         results: Vec<InsomniaEvidenceResult>,
         evidence_turns: Vec<InsomniaEvidenceTurn>,
     ) -> Result<InsomniaExtraction, InsomniaExtractionError> {
-        self.finish_evidence_with_stage_reporter(
-            episode,
-            turns,
-            round,
-            results,
-            evidence_turns,
-            &no_stage_progress,
-        )
+        self.finish_evidence_with_stage_events(episode, turns, round, results, evidence_turns, None)
     }
 
-    pub(crate) fn finish_evidence_with_stage_reporter(
+    pub(crate) fn finish_evidence_with_stage_events(
         &self,
         episode: &Episode,
         turns: &[ResolvedTurn],
         round: InsomniaEvidenceRound,
         results: Vec<InsomniaEvidenceResult>,
         evidence_turns: Vec<InsomniaEvidenceTurn>,
-        stage_reporter: &dyn Fn(InsomniaSemanticStage, usize),
+        stage_events: Option<&SyncSender<crate::insomnia::InsomniaSemanticProgress>>,
     ) -> Result<InsomniaExtraction, InsomniaExtractionError> {
         let evidence_results: Vec<_> = results.iter().map(evidence_result_json).collect();
         let evidence_payload_turns: Vec<_> =
@@ -297,7 +283,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
             "instruction": "Return the final authority/disposition ledger now. evidence_requests MUST be empty; no second evidence round is allowed. Archive evidence may resolve a referent through grounding_source_node_id or supply earlier assistant-authored content explicitly adopted/retained through authority_source_node_id, but archive evidence cannot supply user authority."
         });
         let final_ledger =
-            self.complete_ledger(&payload, turns, &evidence_turns, false, stage_reporter)?;
+            self.complete_ledger(&payload, turns, &evidence_turns, false, stage_events)?;
         if !parse_evidence_requests(&final_ledger)?.is_empty() {
             return Err(InsomniaExtractionError::InvalidOutput(
                 "model requested more than one archive-evidence round".into(),
@@ -310,7 +296,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
             &payload["authoritative_episode"],
             entries,
             evidence_turns,
-            stage_reporter,
+            stage_events,
         )
     }
 
@@ -320,11 +306,11 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
         turns: &[ResolvedTurn],
         evidence_turns: &[InsomniaEvidenceTurn],
         allow_evidence_requests: bool,
-        stage_reporter: &dyn Fn(InsomniaSemanticStage, usize),
+        stage_events: Option<&SyncSender<crate::insomnia::InsomniaSemanticProgress>>,
     ) -> Result<Value, InsomniaExtractionError> {
         let encoded = serde_json::to_string(payload)
             .map_err(|error| InsomniaExtractionError::InvalidOutput(error.to_string()))?;
-        stage_reporter(InsomniaSemanticStage::Ledger, 0);
+        report_stage(stage_events, InsomniaSemanticStage::Ledger, 0);
         let mut result = self.endpoint.complete_json(
             ledger::LEDGER_SYSTEM_PROMPT,
             &encoded,
@@ -338,7 +324,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
                 turns,
                 evidence_turns,
                 &mut result,
-                stage_reporter,
+                stage_events,
             )?;
             return Ok(result);
         }
@@ -355,7 +341,11 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
             "{}\n\nREPAIR MODE: The previous structured result omitted required user-turn keys. Return clauses only for the explicitly listed missing user turns. Do not repeat or modify already-present turns.",
             ledger::LEDGER_SYSTEM_PROMPT
         );
-        stage_reporter(InsomniaSemanticStage::LedgerTurnRepair, missing.len());
+        report_stage(
+            stage_events,
+            InsomniaSemanticStage::LedgerTurnRepair,
+            missing.len(),
+        );
         let repair = self.endpoint.complete_json(
             &repair_prompt,
             &repair_payload,
@@ -368,7 +358,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
             turns,
             evidence_turns,
             &mut result,
-            stage_reporter,
+            stage_events,
         )?;
         Ok(result)
     }
@@ -379,7 +369,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
         turns: &[ResolvedTurn],
         evidence_turns: &[InsomniaEvidenceTurn],
         result: &mut Value,
-        stage_reporter: &dyn Fn(InsomniaSemanticStage, usize),
+        stage_events: Option<&SyncSender<crate::insomnia::InsomniaSemanticProgress>>,
     ) -> Result<(), InsomniaExtractionError> {
         const MAX_REPAIR_CLAUSES: usize = 64;
         let missing = ledger::missing_clause_fields(result, turns)?;
@@ -428,7 +418,11 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
             "{}\n\nCLAUSE-FIELD REPAIR MODE: Structured ledger clauses contain missing or malformed fields. Infer only the explicitly listed repair fields for every target from the authoritative input and partial clauses. Do not revise any field that is not listed for repair.",
             ledger::LEDGER_SYSTEM_PROMPT
         );
-        stage_reporter(InsomniaSemanticStage::LedgerFieldRepair, missing.len());
+        report_stage(
+            stage_events,
+            InsomniaSemanticStage::LedgerFieldRepair,
+            missing.len(),
+        );
         let repair = self.endpoint.complete_json(
             &repair_prompt,
             &repair_payload,
@@ -451,7 +445,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
         episode_payload: &Value,
         entries: Vec<ledger::LedgerEntry>,
         evidence_turns: Vec<InsomniaEvidenceTurn>,
-        stage_reporter: &dyn Fn(InsomniaSemanticStage, usize),
+        stage_events: Option<&SyncSender<crate::insomnia::InsomniaSemanticProgress>>,
     ) -> Result<InsomniaExtraction, InsomniaExtractionError> {
         let mut groups = synthesis::build_groups(&entries)?;
         if groups.is_empty() {
@@ -463,7 +457,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
             });
         }
         if let Some(metadata_endpoint) = &self.metadata_endpoint {
-            stage_reporter(InsomniaSemanticStage::Metadata, groups.len());
+            report_stage(stage_events, InsomniaSemanticStage::Metadata, groups.len());
             metadata::classify(
                 metadata_endpoint.as_ref(),
                 episode_payload,
@@ -473,7 +467,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
             )?;
         }
         if let Some(ownership_endpoint) = &self.ownership_endpoint {
-            stage_reporter(InsomniaSemanticStage::Ownership, groups.len());
+            report_stage(stage_events, InsomniaSemanticStage::Ownership, groups.len());
             ownership::classify(
                 ownership_endpoint.as_ref(),
                 episode_payload,
@@ -485,7 +479,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
         let payload = synthesis::payload(episode_payload, &groups);
         let payload = serde_json::to_string(&payload)
             .map_err(|error| InsomniaExtractionError::InvalidOutput(error.to_string()))?;
-        stage_reporter(InsomniaSemanticStage::Wording, groups.len());
+        report_stage(stage_events, InsomniaSemanticStage::Wording, groups.len());
         let wording = self.endpoint.complete_json(
             synthesis::SYNTHESIS_SYSTEM_PROMPT,
             &payload,
@@ -495,7 +489,11 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
         let (mut candidates, rejected) =
             synthesis::materialize_input(episode, turns, &evidence_turns, &groups, &wording)?;
         if let Some(enrichment_endpoint) = &self.enrichment_endpoint {
-            stage_reporter(InsomniaSemanticStage::Enrichment, candidates.len());
+            report_stage(
+                stage_events,
+                InsomniaSemanticStage::Enrichment,
+                candidates.len(),
+            );
             enrichment::enrich(enrichment_endpoint.as_ref(), &mut candidates)?;
         }
         Ok(InsomniaExtraction {
@@ -507,7 +505,56 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
     }
 }
 
-fn no_stage_progress(_: InsomniaSemanticStage, _: usize) {}
+pub(crate) fn report_stage(
+    sender: Option<&SyncSender<crate::insomnia::InsomniaSemanticProgress>>,
+    stage: InsomniaSemanticStage,
+    items: usize,
+) {
+    if let Some(sender) = sender {
+        let (acknowledged, received) =
+            std::sync::mpsc::sync_channel::<crate::insomnia::InsomniaStageAcknowledgement>(0);
+        sender
+            .send(crate::insomnia::InsomniaSemanticProgress {
+                stage,
+                items,
+                acknowledged,
+            })
+            .expect("Gateway stage-event receiver is active during extraction");
+        match received.recv() {
+            Ok(Ok(())) => {}
+            Ok(Err(payload)) => std::panic::resume_unwind(payload),
+            Err(_) => panic!("Gateway stage-event acknowledgement is unavailable"),
+        }
+    }
+}
+
+#[cfg(test)]
+mod stage_event_tests {
+    use super::{InsomniaSemanticStage, report_stage};
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::{Arc, mpsc};
+
+    #[test]
+    fn evidence_reporter_panic_is_resumed_before_following_work() {
+        let (sender, receiver) = mpsc::sync_channel::<crate::insomnia::InsomniaSemanticProgress>(0);
+        let provider_called = Arc::new(AtomicBool::new(false));
+        let reporter = std::thread::spawn(move || {
+            let event = receiver.recv().expect("stage event arrives");
+            let panic = std::panic::catch_unwind(|| panic!("reporter sentinel"))
+                .expect_err("test reporter panics");
+            assert!(event.acknowledged.send(Err(panic)).is_ok());
+        });
+        let provider_was_called = provider_called.clone();
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            report_stage(Some(&sender), InsomniaSemanticStage::Evidence, 1);
+            provider_was_called.store(true, Ordering::SeqCst);
+        }));
+        reporter.join().expect("event receiver exits");
+        assert!(!provider_called.load(Ordering::SeqCst));
+        let panic = result.expect_err("original reporter panic is resumed");
+        assert_eq!(panic.downcast_ref::<&str>(), Some(&"reporter sentinel"));
+    }
+}
 
 fn encode_episode_value(
     episode: &Episode,

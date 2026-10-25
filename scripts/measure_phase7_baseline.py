@@ -60,6 +60,14 @@ def main() -> int:
         if not path.is_file():
             raise FileNotFoundError(f"required pinned input is missing: {path}")
 
+    source_paths_before = sorted((ROOT / "src").rglob("*.rs"))
+    source_hashes_before = {
+        path.relative_to(ROOT).as_posix(): digest(path) for path in source_paths_before
+    }
+    policy_hashes_before = {
+        path.relative_to(ROOT).as_posix(): digest(path) for path in (MAPPING, DAG, OWNER_POLICY)
+    }
+
     mapping, dag = json.loads(MAPPING.read_text(encoding="utf-8")), json.loads(DAG.read_text(encoding="utf-8"))
     owner_policy = json.loads(OWNER_POLICY.read_text(encoding="utf-8"))
     file_map, _baseline_map, components, mapping_conflicts = component_manifest(MAPPING)
@@ -184,6 +192,16 @@ def main() -> int:
             },
             "source_file_count": len(rust_sources),
             "source_manifest_sha256": source_manifest_sha,
+            "working_tree_stability": {
+                "source_manifest_sha256_before": hashlib.sha256(json.dumps(source_hashes_before, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+                "source_manifest_sha256_after": source_manifest_sha,
+                "production_component_map_sha256_before": policy_hashes_before[MAPPING.relative_to(ROOT).as_posix()],
+                "production_component_map_sha256_after": digest(MAPPING),
+                "target_dag_sha256_before": policy_hashes_before[DAG.relative_to(ROOT).as_posix()],
+                "target_dag_sha256_after": digest(DAG),
+                "owner_boundary_policy_sha256_before": policy_hashes_before[OWNER_POLICY.relative_to(ROOT).as_posix()],
+                "owner_boundary_policy_sha256_after": digest(OWNER_POLICY),
+            },
         },
         "source_imports": edges,
         "unapproved_pairs": unapproved_pairs,
@@ -197,7 +215,7 @@ def main() -> int:
         },
         "proof_limits": [
             "Direct import edges are source-resolved under the single pinned Windows x86_64 MSVC profile; they are not a complete execution/capability graph.",
-            "No confirmed implementation-call graph was produced. The Phase 6 public-consumers/runtime-gateway import SCC may include supported public composition; call semantics remain unproven.",
+            f"Current source-resolved strict imports contain {len(strict_sccs)} component SCC(s), of which {len(unapproved_sccs)} are unapproved. This lexical result does not prove implementation-call direction.",
             "Macro-expanded dependencies, cfg_attr and other platform profiles are not exhaustively enumerated.",
             "Historical Phase 0/1–3 edge rows were not reused: their ownership map/profile is not established as same-map comparable to this live A6 map. Phase 6 source evidence is pinned for provenance, not substituted for current imports.",
             "The 34-component target DAG is a policy input only; DAG validation does not demonstrate source conformance.",
@@ -233,6 +251,14 @@ def main() -> int:
         },
         "material_unknowns_remain": True,
     }
+    stability = result["scope"]["working_tree_stability"]
+    stability["stable"] = (
+        source_hashes_before == source_manifest
+        and all(policy_hashes_before[path.relative_to(ROOT).as_posix()] == digest(path)
+                for path in (MAPPING, DAG, OWNER_POLICY))
+    )
+    if not stability["stable"]:
+        raise RuntimeError("source or architecture policy changed during the bounded measurement")
     output = args.output if args.output.is_absolute() else ROOT / args.output
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")

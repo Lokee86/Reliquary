@@ -234,3 +234,9 @@ Runtime convergence retains the existing public Gateway/Instance, ConfiguredRunt
 ## Notes
 
 Decision inheritance changes configured endpoint composition only; semantic persistence and owner lifecycle are unchanged.
+
+## Code Map
+
+The public Memory text-field and mention-key values retain their existing variants, Memory identity and byte-span coordinates. Memory and Perception owners retain validation and publication authority; the shared value contract grants no store access.
+
+- `src/pure_codec/memory_text_field.rs`

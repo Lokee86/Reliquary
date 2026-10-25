@@ -6,7 +6,8 @@
       "description": "Pure field-change and known-mask value mechanics; no semantic owner, clock, persistence or publication authority",
       "paths": [
         "src/compact_delta.rs",
-        "src/historical_timeline.rs"
+        "src/historical_timeline.rs",
+        "src/pure_codec"
       ]
     },
     {

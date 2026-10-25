@@ -1,0 +1,91 @@
+{
+  "schema": "phase7-integration-checkpoint.v1",
+  "date": "2026-10-25",
+  "status": "historical verified checkpoint; subsequent source cuts require refreshed integrated proof",
+  "source_fingerprint_sha256": "f42bccd6cc58eb4f095793300a48637222e2beb21980a642ff55a0e4a19f6303",
+  "compiler_provenance_sha256": "d041a1bcde366a7cf67520caf3e43ba2d300207113ccbd96fb3ef9ed1de122dd",
+  "locked_core_check": "pass",
+  "formatting": "core and CLI pass",
+  "rust_tests": {
+    "library_passed": 2015,
+    "integration_passed": 163,
+    "failed": 0,
+    "ignored": 6,
+    "suite_count": 27
+  },
+  "cli_tests": {
+    "passed": 32,
+    "failed": 0,
+    "ignored": 0
+  },
+  "compiler_profiles": {
+    "default": {
+      "path": ".verification-tmp/phase7/closure-finish-default-20261025/calls.json",
+      "sha256": "be6b772eaeb3aca52a5a1aee03559cbb68a1113f58f6913f319f0e735476d36c",
+      "provenance_valid_at_capture": true,
+      "violations": 320,
+      "unknown_calls": 63946,
+      "unknown_reasons": {
+        "ambiguous or unmapped compiler target": 91,
+        "drop terminator has unresolved generic or dynamic field glue": 16714,
+        "indirect or nonconstant call terminator": 6,
+        "unresolved compiler closure target": 1322,
+        "unresolved local compiler target": 45813
+      }
+    },
+    "tracing": {
+      "path": ".verification-tmp/phase7/closure-finish-trace-20261025/calls.json",
+      "sha256": "14cf2aaec18902a4c0e5f4174d5ba949fa992d8591c156531f39909d339ef9b2",
+      "provenance_valid_at_capture": true,
+      "violations": 323,
+      "unknown_calls": 64052,
+      "unknown_reasons": {
+        "ambiguous or unmapped compiler target": 91,
+        "drop terminator has unresolved generic or dynamic field glue": 16767,
+        "indirect or nonconstant call terminator": 6,
+        "unresolved compiler closure target": 1323,
+        "unresolved local compiler target": 45865
+      }
+    }
+  },
+  "graph": {
+    "snapshot": "80a57efb7eec1e6ac5fc81721922a552502dff28020ac2868e499af42a6bbfe5",
+    "semantic_source_files": 916,
+    "assembly_roots": 1,
+    "callable_symbols": 12064,
+    "root_policy": "pass: 25 rules, 68106 source nodes and 3537 relationships",
+    "documentation_ownership": "pass: 917/917 mapped",
+    "convergence": "fail: 781 new plus4587 stale fingerprints; exact reconciliation separate"
+  },
+  "raw_logs": {
+    ".verification-tmp/phase7/finish-20261025/cargo-test-normal.log": {
+      "sha256": "38c3c5709b75e77e2e3bc8135458d601fb47f77f030f6ec92a40c046e3cffe55"
+    },
+    ".verification-tmp/phase7/finish-20261025/cli-check.log": {
+      "sha256": "5a52aaf7e1621dc79f5a0be3d75ee4c659cf2bd196fc9fecf72c9af702649d18"
+    },
+    ".verification-tmp/phase7/finish-20261025/cli-test.log": {
+      "sha256": "96f8efb0ab0feeb9863344f6e851daa3fcfe473d0dfe0e358a31512c03686d86"
+    },
+    ".verification-tmp/phase7/finish-20261025/architecture-refresh-rebuild.log": {
+      "sha256": "61205d0309ce0d924023c98d3bb8490843cf27b1915853d454182f42ba73b2fa"
+    },
+    ".verification-tmp/phase7/finish-20261025/pitlord-policy-check-current.log": {
+      "sha256": "fca1d0b6022d0c30b1d07ff67db7adfd0ca06236676b879e1eda09a344e7aa0c"
+    },
+    ".verification-tmp/phase7/finish-20261025/pitlord-docs-current.log": {
+      "sha256": "6d056a248cb039439e26ac045214907dec3f037d67500d2259fab324643b33fa"
+    }
+  },
+  "limits": [
+    "Restricted initial test run was stopped after local HTTP fixtures hung; successful full test run used normal Windows permissions and repository-local .t paths.",
+    "This graph and compiler checkpoint predates subsequent retrieval, Freshness, provider, community, Import and Insomnia corrections. Counts are not current residual totals.",
+    "Root Pitlord policy and documentation coverage do not substitute for exact34component-DAG compiler conformance."
+  ],
+  "acceptance": {
+    "B7": "OPEN",
+    "H7": "OPEN",
+    "R7": "PARTIAL",
+    "A7": "OPEN"
+  }
+}

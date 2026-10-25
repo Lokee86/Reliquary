@@ -43,13 +43,12 @@ impl RelExecutionOwner {
     }
 
     pub(crate) fn runtime_graph_relations(&self) -> Vec<crate::GraphRelation> {
-        self.owner.graph.active_relations()
+        self.owner.owner_graph_relations()
     }
 
     pub(crate) fn runtime_semantic_graph_relations(&self) -> Vec<crate::SemanticGraphRelation> {
         self.owner
-            .graph
-            .active_semantic_relations()
+            .owner_semantic_graph_relations()
             .into_iter()
             .filter(|relation| {
                 relation.kind != crate::SemanticGraphRelationKind::PrincipalAssociation
@@ -84,11 +83,11 @@ impl RelExecutionOwner {
     }
 
     pub(crate) fn runtime_entity_stats(&self) -> crate::EntityStats {
-        self.owner.entities.stats()
+        crate::owner_lifecycle::entity_publication_access::stats(&self.owner.entities)
     }
 
     pub(crate) fn runtime_entities(&self) -> Vec<crate::Entity> {
-        self.owner.entities.current()
+        crate::owner_lifecycle::entity_publication_access::current_entities(&self.owner.entities)
     }
 
     pub(crate) fn runtime_memory_routing_metadata(
@@ -99,7 +98,7 @@ impl RelExecutionOwner {
     }
 
     pub(crate) fn runtime_graph_version(&self) -> u64 {
-        self.owner.graph.graph_version()
+        self.owner.owner_graph_version()
     }
 
     pub(crate) fn runtime_owner_id(&self) -> Option<String> {
@@ -128,14 +127,14 @@ impl RelExecutionOwner {
         profile: crate::CompatibilityProfileId,
         body: crate::MemoryBodyId,
     ) -> Option<crate::MemoryVectorLocation> {
-        self.owner.memory_vectors.location(profile, body)
+        self.owner.vector_memory_vectors_location(profile, body)
     }
 
     pub(crate) fn runtime_insomnia_attempts(
         &self,
         episode_id: crate::EpisodeId,
     ) -> Vec<crate::InsomniaAttempt> {
-        self.owner.insomnia.attempts(episode_id)
+        self.owner.owner_insomnia_attempts(episode_id)
     }
 
     pub(crate) fn runtime_external_memory_evidence(
@@ -228,24 +227,43 @@ impl RelExecutionOwner {
     }
 
     pub(crate) fn runtime_community_snapshot(&self) -> Option<crate::CommunitySnapshot> {
-        self.owner
-            .communities
-            .latest_if_live_members(&self.owner.graph)
-            .cloned()
+        self.owner.community_snapshot()
     }
 
     pub(crate) fn runtime_community_semantic_names(&self) -> Vec<crate::CommunitySemanticName> {
-        self.owner
-            .communities
-            .current_semantic_names(&self.owner.graph)
+        self.owner.community_semantic_names()
+    }
+
+    pub(crate) fn runtime_community_semantic_name(
+        &self,
+        community_id: crate::CommunityId,
+    ) -> Option<crate::CommunitySemanticName> {
+        self.owner.native_community_semantic_name(community_id)
+    }
+
+    pub(crate) fn runtime_community_lineage(&self) -> Option<crate::CommunityLineageTransition> {
+        self.owner.native_community_lineage()
+    }
+
+    pub(crate) fn runtime_publish_community_semantic_name(
+        &mut self,
+        record: crate::CommunitySemanticName,
+    ) -> Result<bool, crate::CommunityError> {
+        self.owner.native_publish_community_semantic_name(record)
+    }
+
+    pub(crate) fn runtime_refresh_communities_leiden(
+        &mut self,
+    ) -> Result<crate::CommunitySnapshot, crate::CommunityError> {
+        self.owner.native_refresh_communities_leiden()
     }
 
     pub(crate) fn runtime_open_import_epoch(&self) -> bool {
-        self.owner.import_epochs.open().is_some()
+        crate::owner_lifecycle::import_epoch_transport::open_import_epoch(&self.owner.import_epochs)
     }
 
     pub(crate) fn runtime_open_import_start(&self) -> Option<crate::imports::ImportStart> {
-        self.owner.import_epochs.open().cloned()
+        crate::owner_lifecycle::import_epoch_transport::open_import_start(&self.owner.import_epochs)
     }
 
     pub(crate) fn runtime_current_vector_generation(
@@ -255,11 +273,10 @@ impl RelExecutionOwner {
         if self.owner.owner_uuid().is_none() || self.runtime_open_import_epoch() {
             return None;
         }
-        self.owner.compatibility_profiles.get_active(profile_id)?;
+        self.owner.vector_profile_get_active(profile_id)?;
         let generation = self
             .owner
-            .vector_generations
-            .current_generation(profile_id)?;
+            .vector_generation_current_generation(profile_id)?;
         let fragments = self
             .owner
             .archive
@@ -270,8 +287,10 @@ impl RelExecutionOwner {
         (generation.source_archive_version == self.owner.archive.archive_version()
             && self
                 .owner
-                .archive_vectors
-                .has_exact_fragment_coverage(generation.archive_vector_id, &fragments))
+                .vector_archive_vectors_has_exact_fragment_coverage(
+                    generation.archive_vector_id,
+                    &fragments,
+                ))
         .then_some(generation)
     }
 
@@ -283,18 +302,13 @@ impl RelExecutionOwner {
         }
         let body_ids = self.owner.memories.current_body_ids();
         self.owner
-            .compatibility_profiles
-            .profiles()
+            .vector_profile_profiles()
             .into_iter()
             .filter(|profile| {
-                self.owner
-                    .compatibility_profiles
-                    .get_active(profile.id)
-                    .is_some()
+                self.owner.vector_profile_get_active(profile.id).is_some()
                     && self
                         .owner
-                        .memory_vectors
-                        .has_complete_coverage(profile.id, &body_ids)
+                        .vector_memory_vectors_has_complete_coverage(profile.id, &body_ids)
             })
             .collect()
     }
@@ -389,18 +403,12 @@ impl RelExecutionOwner {
 
     pub(crate) fn freshness_on_accepted_activity(&mut self, accepted_turn: u64) {
         for _ in 0..64 {
-            let Some(due) = self
-                .freshness_due
-                .drain_due(accepted_turn, 1)
-                .into_iter()
-                .next()
-            else {
+            let Some(due) = crate::owner_lifecycle::freshness_operations::accept_next_due_crossing(
+                &mut self.freshness_due,
+                accepted_turn,
+            ) else {
                 break;
             };
-            if self.freshness_due.advance(due).is_err() {
-                let _ = self.freshness_due.defer(due);
-                break;
-            }
             self.buffer_freshness_crossing(due);
         }
     }
@@ -419,12 +427,10 @@ impl RelExecutionOwner {
         endpoint: &impl crate::EmbeddingEndpoint,
     ) -> Result<crate::CompatibilityProfile, crate::CompatibilityProfileError> {
         let candidate = crate::compatibility_profile_probe::profile_from_endpoint(endpoint)?;
-        if let Some(existing) = self.compatibility_profiles.compatible_with(&candidate) {
+        if let Some(existing) = self.owner.vector_profile_compatible_with(&candidate) {
             return Ok(existing.clone());
         }
-        self.owner
-            .compatibility_profiles
-            .put(&mut self.owner.container, candidate.clone())?;
+        self.owner.put_compatibility_profile(candidate.clone())?;
         Ok(candidate)
     }
 
@@ -432,9 +438,7 @@ impl RelExecutionOwner {
         &mut self,
         packed: lodestone_packed::PackedVectors,
     ) -> Result<crate::PackedVectorId, crate::PackedVectorError> {
-        self.owner
-            .packed_vectors
-            .put(&mut self.owner.container, packed)
+        self.owner.put_packed_vectors(packed)
     }
 
     pub fn put_memory_vectors(
@@ -456,8 +460,8 @@ impl RelExecutionOwner {
         use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
 
         let profile = self
-            .compatibility_profiles
-            .get_active(compatibility_profile_id)
+            .owner
+            .vector_profile_get_active(compatibility_profile_id)
             .cloned()
             .ok_or(crate::MemoryVectorError::MissingProfile)?;
         let compatibility = verify_endpoint(&profile, endpoint)?;
@@ -469,8 +473,8 @@ impl RelExecutionOwner {
             return Err(crate::MemoryVectorError::EmptyPopulation);
         }
         let missing = self
-            .memory_vectors
-            .missing_body_ids(compatibility_profile_id, &body_ids);
+            .owner
+            .vector_memory_vectors_missing_body_ids(compatibility_profile_id, &body_ids);
         let already_present = body_ids.len().saturating_sub(missing.len());
         if missing.is_empty() {
             return Ok(crate::MemoryVectorBuildResult {
@@ -507,14 +511,8 @@ impl RelExecutionOwner {
         }
         let packed = PackedVectors::from_bytes(schema, bytes)
             .map_err(|_| crate::MemoryVectorError::InvalidEmbeddingMatrix)?;
-        let packed_vector_id = self
-            .owner
-            .packed_vectors
-            .put(&mut self.owner.container, packed)?;
-        let set_id = self.owner.memory_vectors.put(
-            &mut self.owner.container,
-            &self.owner.compatibility_profiles,
-            &self.owner.packed_vectors,
+        let packed_vector_id = self.owner.put_packed_vectors(packed)?;
+        let set_id = self.owner.put_prepared_memory_vector_binding(
             compatibility_profile_id,
             packed_vector_id,
             missing.clone(),

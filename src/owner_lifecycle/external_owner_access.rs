@@ -9,6 +9,17 @@ use crate::memory_store::MemoryStore;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::{CompatibilityProfile, CompatibilityProfileId, Container, Memory, MemoryError};
 
+pub(crate) fn read_state(
+    index: &ExternalIndexStore,
+    namespace: &str,
+) -> Result<Option<SourceState>, ExternalSourceError> {
+    index.read_state(namespace)
+}
+
+pub(crate) fn statuses(index: &ExternalIndexStore) -> Vec<ExternalIndexStatus> {
+    index.sources.values().map(SourceState::status).collect()
+}
+
 pub(crate) fn profile(
     profiles: &CompatibilityProfileStore,
     state: &SourceState,

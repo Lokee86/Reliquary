@@ -61,14 +61,49 @@ The confirmed capability cuts are bounded by existing tickets, not new arbitrary
 
 All 13 existing child-ticket receipts were reconciled to the integrated stabilization checkpoint without rewriting their historical registration statuses. They are source-integrated and behaviorally verified, **not** formally architecture-accepted. The denominator remains 31 parents plus 13 named children. The five closure slices above are *not* additional tickets. Compiler gaps (67,418 unresolved instances including destructor/cfg/indirect analysis) and stale Lexicon/Arcana A5/A7 graph proof remain distinct obligations. **B7/H7/A7 OPEN; R7 PARTIAL.**
 
+## Current closure work and denominator correction (2026-10-24)
+
+The postcheckpoint closure implements the confirmed capability cuts and corrects the twenty value/validation calls through their proper owners rather than granting new DAG edges. Feature-enabled tracing uses a finite Freshness vocabulary and scoped timers instead of cross-component execution callbacks. Semantic-target enumeration retains only IDs/body coordinates and hydrates one Memory at a time in each original pass. Historical embedding uses a borrowing Gateway write-scope guard, whose destructor resets admission on ordinary return and panic unwind.
+
+A subsequent source/callback audit found remaining REL Dream source-time callbacks, Import-to-Dream replay coordinate callbacks and Gateway-to-Insomnia progress callbacks. Their exact registrations and the current child inventory are in [the indirect-correction register](../benchmarks/phase7-indirect-call-corrections-2026-10-24.json). The historical thirteen-receipt reconciliation above omitted fourteen independently registered children already present in the repository. Deduplicating their exact identifiers yields **27 previously registered children**; the two callback seams and five further independently witnessed owner seams are registered before implementation, giving **31 parents + 34 named children = 65 tracked obligations**, with four gates unchanged. Existing receipts retain their historical denominators. Completion of source cuts does not imply acceptance of any child.
+
+The local analyzer compatibility patch is `tools/pitlord/lexicon-toolstate-exclusion.patch`. It excludes only ignored verification directories and caches, including historical scratch-source copies. Its fixture retains authored `src` traversal. The sibling analyzer source is unchanged; the patched optimized adapter is built in repository-local generated storage. A scan started before subsequent source corrections is not accepted as current evidence.
+
+`scripts/emit_phase7_compiler_evidence.py` captures locked rustdoc, MIR, HIR and typed HIR artifacts from stable source bytes with hashes and provenance. Exact typed-HIR call identities can join MIR spans to HIR definition spans; shortened names and material ambiguous/indirect/destructor cases remain explicit. Integrated compiler, graph and behavioral results are still required before A7 can close.
+
+## Frozen post-bot stabilization and compiler inventory (2026-10-25)
+
+After the bot stopped, the complete dirty source batch was frozen without starting another architectural extraction. The current worktree passes `cargo check --locked --lib`, core formatting and Git whitespace checks. All **924 cfg-reachable production modules** have explicit owners. The **106 source-cut seams**, owner and History boundaries, runtime (692 files), facade (924 files), physical boundary (13 fixtures), and External Source ownership checks pass. The child registry resolves **31 parents + 37 children = 68 obligations**, with the same four acceptance gates.
+
+The frozen default-feature Rustdoc/MIR/HIR/THIR capture is recorded under `.verification-tmp/phase7/phase7-frozen-default-20261025/` with source fingerprint `c0c7a0c5e6aa3a04de753b3bec8bd020717e280f7f604655f0cb82e438b00243`. Compiler emission completed, but enumerating a generated built-MIR dump failed on a Windows long path. The four existing compiler artifacts were recovered without recompilation and validated against identical frozen-source hashes; **built-MIR destructor-layout proof remains incomplete**. The [exact frozen-call inventory](../benchmarks/phase7-postbot-frozen-inventory-2026-10-25.json) records **78 unpermitted compiled-call candidates across 28 component pairs**, with **58,080 unresolved call instances** separately accounted for. These raw candidates are **not** 78 confirmed architectural defects or accepted value exceptions. The earlier 320-call capture used a different compiler checker hash, so its reduction to 78 is not a controlled measurement of corrected implementation edges.
+
+The current frozen-source `cargo test --locked --jobs 2` run passed **2,015 library and 163 integration tests (zero failures, six ignored)**, plus doctests. The separate locked CLI run passed **32/32**. The seven Python checker files passed **154 tests**, including current compiler gate and dependency checks. These are implementation/behavior checkpoints, not graph acceptance.
+
+This checkpoint **does not close B7, H7 or A7**; R7 remains PARTIAL. The latest full Lexicon/Arcana graph evidence predates these source cuts. A fresh full graph, enabled feature/cfg coverage, explicit owner-capability versus immutable-contract disposition of the remaining calls, and bounded destructor/indirect uncertainty still require proof. No 34-component target-DAG edge, blanket exception, wire format or product feature is added.
+
 ## Verification
+
+The current [closure verification receipt](../benchmarks/phase7-closure-verification-2026-10-24.json) records the integrated run separately from historical checkpoints. The source audit covers 901 reachable production modules with no ownership holes and 64 guarded seams. All owner, runtime, facade, History, physical-storage, External Source and public API boundary ratchets pass. The exact Freshness `ObjectRef` type-only exception is recorded explicitly; it does not widen the 163-edge target DAG. Source-cut and build results do not replace the pending same-source compiler profiles or current full graph proof.
+
+The [postcheckpoint source-closure receipt](../benchmarks/phase7-postcheckpoint-source-closure-2026-10-24.json) preserves all 50 historical witnesses and maps them to the current replacement routes, symbols, components and source hashes. It also records the registered callback protocols and admission/hydration corrections. These source dispositions require the compiler and behavioral receipts before formal acceptance.
+
+The exact typed-HIR join expands beyond that old 50-call inventory. The [expanded disposition checkpoint](../benchmarks/phase7-expanded-call-dispositions-2026-10-24.json) preserves 788 pre-correction non-drop instances grouped by 467 exact implementation spans. It distinguishes 47 confirmed owner-capability groups, 80 forbidden upward binding spans, two value-only decoder candidates, and unaccepted immutable/semantic candidates. It is a historical checkpoint, not the current residual count. The [Gateway forwarder cut](../benchmarks/phase7-runtime-forwarder-cut-2026-10-24.json) registers the subsequent migration of canonical invocations and status reads under existing children. None of these findings justifies widening the target DAG.
+
+The current closure sequence is:
+
+1. Capture stable default and tracing compiler profiles and keep the unresolved call/destructor categories explicit. Preserve generated passive-value drop layouts separately from calls to an explicit local `Drop` implementation.
+2. Reconcile each expanded endpoint with its current implementation. Use exact existing child scopes for further cuts; register an independently witnessed seam before editing it. The proposed child identifiers in the expanded inventory are recommendations and do not change the denominator until registered.
+3. Migrate confirmed capability calls to the established owner/runtime operation and remove private forwarding code after its last consumer moves. Pure contracts require exact value/effect evidence; classification alone does not pass a ticket.
+4. Run the bounded production-scoped analyzer with the crate assembly root included, confirm actual callable/symbol coverage, synchronize Arcana, and run Pitlord policy plus documentation ownership. An empty or stale graph remains rejected even if its policy command returns zero.
+5. At stable source bytes, pass the integrated Rust/CLI, feature, Archive smoke and documentation gates, refresh receipts, audit the preserved worktrees and commit the integration. B7/H7/A7 and the overall refactor stay open for any remaining material implementation or proof gap.
 
 Use the following local commands:
 
 ```text
+python scripts/check_phase7_child_registry.py
 python scripts/check_phase7_component_map.py
 python scripts/check_phase7_source_cuts.py
-python -m unittest scripts.test_phase7_component_map scripts.test_phase7_source_cuts scripts.test_phase7_compiler_calls
+python -m unittest scripts.test_phase7_child_registry scripts.test_phase7_component_map scripts.test_phase7_source_cuts scripts.test_phase7_compiler_calls
 python -m unittest discover -s scripts/tests -p test_phase7_dependencies.py
 python scripts/check_phase7_dependencies.py --check
 ```
@@ -77,7 +112,7 @@ python scripts/check_phase7_dependencies.py --check
 
 The rebuilt local Pitlord implements its documentation command. Explicitly selecting the compatible release Arcana avoids an older binary's manifest-protocol error. A single bounded Rust scan consumed its 15-minute analysis budget without publishing a snapshot; Arcana sync did not start. The [refresh receipt](../benchmarks/phase7-architecture-refresh-2026-10-24.json) preserves tool hashes and the unchanged snapshot identity. The old inventory still reports 22 absent source paths. No full uncached analyzer export was repeated to hide that gap. Documentation policy and Archivist pass separately against current files.
 
-The locked library and CLI checks pass. The normal-permission whole library run has 2,004 passing cases, five ignored cases and one subsequently corrected test-fixture failure. Both the corrected exact test and the new standalone Work/Attempt replay test pass. The [stability receipt](../benchmarks/phase7-test-correction-stability-2026-10-24.json) proves subsequent Rust edits only changed test sources and exact cfg(test) wiring, preserving production bodies. This evidence is reported as a whole run plus focused correction, not a monolithic final zero-failure run. Integration/example verification passes 165 tests with one ignored; CLI passes 32 tests; doctests and a prepared two-node Archive round trip pass. Restricted-runner failures were diagnosed with an exact local HTTP test that passes with normal Windows permissions; accepted runtime checks use those permissions and repository-local temporary paths.
+At the earlier checkpoint, the locked library and CLI checks passed. Its normal-permission whole library run had 2,004 passing cases, five ignored cases and one subsequently corrected test-fixture failure. Both the corrected exact test and the new standalone Work/Attempt replay test pass. The [stability receipt](../benchmarks/phase7-test-correction-stability-2026-10-24.json) proves subsequent Rust edits only changed test sources and exact cfg(test) wiring, preserving production bodies. This evidence is reported as a whole run plus focused correction, not a monolithic final zero-failure run. Integration/example verification passes 165 tests with one ignored; CLI passes 32 tests; doctests and a prepared two-node Archive round trip pass. Restricted-runner failures were diagnosed with an exact local HTTP test that passes with normal Windows permissions; accepted runtime checks use those permissions and repository-local temporary paths.
 
 ## Documentation impact
 
@@ -106,3 +141,76 @@ The locked library and CLI checks pass. The normal-permission whole library run 
 ## Notes
 
 Existing Phase 5 worktrees are preserved. Both were clean and had no branch commits absent from main in the initial audit. The final integration audit and committed source checkpoint are separate from graph acceptance. No Phase 8 or reduced completion standard is introduced.
+
+## Owner-operation integration checkpoint (2026-10-25)
+
+The expanded compiler checkpoint has 647 unpermitted call instances and 32,986 unresolved call/drop instances before the subsequent owner cuts. It is historical evidence; neither number is a current residual count. The current integration adds concrete Ego, Relationship, Archive, Dream journal, Insomnia, Perception, semantic Freshness, Vector and Graph operations under registered children. Public bindings keep their supported signatures. Live store queries and borrowed read-view constructors remain owner capabilities, including when their outputs are immutable.
+
+The [exact call review](../benchmarks/phase7-call-review-exact-contracts-2026-10-25.json) distinguishes 13 detached-value candidates from 24 owner/service capabilities among the 37 decoder/value candidates. Its 64 live-read/endpoint groups cover 140 historical call instances and explicitly retain missing or ambiguous child-scope matches. Classification is not acceptance. At the time of this review, the registry contained 65 parent/child obligations; later registrations bring the current denominator to 31 parents plus 37 named children, or 68 obligations, and four gates.
+
+Five registered CORE-OWNER-API scope addenda on 2026-10-25 move the conversation, activity, file-memory, historical-file, episode timestamp and Freshness due reads behind existing Gateway/runtime and mounted Archive-owner operations. Their exact methods and before/after source hashes are recorded in the [conversation-read](../benchmarks/phase7-core-owner-api-conversation-read-addendum-2026-10-25.json), [Archive-reads](../benchmarks/phase7-core-owner-api-archive-reads-addendum-2026-10-25.json), [historical-files](../benchmarks/phase7-core-owner-api-historical-files-addendum-2026-10-25.json), [episode-timestamp](../benchmarks/phase7-core-owner-api-episode-timestamp-addendum-2026-10-25.json) and [Freshness-due](../benchmarks/phase7-core-owner-api-freshness-due-addendum-2026-10-25.json) receipts. These refine existing child scopes and do not change the target DAG. Subsequent registrations bring the current denominator to 68 obligations; the registry command below verifies it. Focused formatting and façade-boundary checks passed; integrated build and same-source compiler evidence remain pending. The 647-call report above predates these cuts and is not their current residual count.
+
+The full architecture command now requires the [compiler gate](../scripts/check_phase7_compiler_gate.py), which verifies artifact, tool, policy and source hashes and derives permissions from the unchanged DAG. A source-only run is explicitly partial. The coarse Pitlord area rules cannot establish 34-component implementation conformance on their own. The analyzer production manifest must include the crate assembly root as well as semantic modules; zero-callable snapshots are rejected.
+
+The earlier full forwarder checkpoint passes 2,012 library and 163 integration cases with six ignored and no failures; CLI passes 32. Later source cuts require a new integrated run. The current source checks and focused compilations are recorded separately. Final compiler profiles, analyzer freshness, behavior and documentation ownership remain open until refreshed at stable source bytes.
+
+## Same-source integration and continued correction (2026-10-25)
+
+The [integration checkpoint](../benchmarks/phase7-integration-checkpoint-2026-10-25.json) records 2,015 passing library tests, 163 passing integration tests, six ignored cases and zero failures, plus 32 passing CLI tests. The successful run used normal Windows permissions and repository-local temporary files; the restricted attempt was stopped after local HTTP fixtures waited for requests that were blocked. These results precede the subsequent correction batch and are not its final acceptance.
+
+The compiler emitter now drains HIR/typed-HIR output in bounded chunks. Both profiles completed with validated source provenance: the default profile reported 320 unpermitted call instances and 63,946 unresolved call/drop instances; tracing reported 323 and 64,052 respectively. These are checkpoint counts, not the residuals after further cuts. Exact generic implementation, destructor, macro-context and finite indirect-target proof remains required.
+
+The architecture wrapper now requests the existing bounded Rust rebuild instead of an incremental scan that can skip the adapter. The rebuild acknowledged the exact 917-file source manifest (916 semantic modules plus the assembly root), extracted 12,064 callable symbols and synchronized snapshot `80a57efb7eec1e6ac5fc81721922a552502dff28020ac2868e499af42a6bbfe5` to Arcana. Root policy and documentation ownership passed. The separate [convergence reconciliation](../benchmarks/phase7-current-convergence-reconciliation-2026-10-25.json) retains 820 current fingerprints: 39 retained and 781 newly reported; 4,587 historical entries are absent. Neither a passing coarse policy nor analyzer same-name artifacts clear the exact component gate.
+
+Further source cuts use exact pre-edit witnesses under the existing retrieval, Freshness, vector, community and Import children. The independently witnessed [configured-provider preparation](../benchmarks/phase7-configured-provider-preparation-child-2026-10-25.json) [public Insomnia work lifecycle](../benchmarks/phase7-public-insomnia-work-lifecycle-addendum-2026-10-25.json), and [live External index read](../benchmarks/phase7-gateway-external-index-read-child-2026-10-25.json) seams were registered before implementation. The current denominator is **31 parents + 37 named children = 68 obligations**, with four gates unchanged. Earlier receipts retain their historical denominators. Source review and focused checks do not accept these children without refreshed compiler and integrated evidence. **B7/H7/A7 remain OPEN; R7 remains PARTIAL.**
+
+## Remaining closure checklist (2026-10-25)
+
+The following work is still required after the current source edits stop. The latest architecture projection (`8bd1ff72…`) is bounded source-graph evidence, not acceptance: it maps all 917 manifest paths with no unmapped source files, but still reports 2,508 edges across DAG-disallowed pairs. The owner-source proof at `cc9d2f4` reports 1,151 unapproved import rows across 38 pairs and 87 uncertainties. The convergence reconciliation has 781 new and 4,587 absent historical fingerprints; these static findings remain subject to exact source review. The latest exact-call review uses historical compiler bytes, and the last integrated test receipt predates subsequent corrections. Keep every gate open until its required evidence is refreshed and passes.
+
+1. **Reconcile registrations and source ratchets.** Run the child registry, component map, source cuts, dependency policy and their focused tests. The registry currently verifies 31 parents plus 37 children and four gates.
+
+   ```text
+   python scripts/check_phase7_child_registry.py
+   python scripts/check_phase7_component_map.py
+   python scripts/check_phase7_source_cuts.py
+   python -m unittest scripts.test_phase7_child_registry scripts.test_phase7_component_map scripts.test_phase7_source_cuts scripts.test_phase7_compiler_calls
+   python -m unittest discover -s scripts/tests -p test_phase7_dependencies.py
+   python scripts/check_phase7_dependencies.py --check
+   ```
+
+2. **Capture and check same-source compiler profiles.** After the final edits, use fresh, unique capture names for the default and tracing profiles. Each capture emits `calls.json`, provenance, rustdoc, MIR, HIR and typed HIR under `.verification-tmp/phase7/<name>/`; retain prohibited and unresolved calls as blockers. Run the compiler gate against each report and record both outcomes and source hashes.
+
+   ```text
+   python scripts/emit_phase7_compiler_evidence.py --name phase7-closeout-default
+   python scripts/emit_phase7_compiler_evidence.py --features freshness-performance-trace --name phase7-closeout-tracing
+   python scripts/check_phase7_compiler_gate.py --report .verification-tmp/phase7/phase7-closeout-default/calls.json
+   python scripts/check_phase7_compiler_gate.py --report .verification-tmp/phase7/phase7-closeout-tracing/calls.json
+   ```
+
+3. **Refresh graph evidence at those stable source bytes.** Run the bounded architecture refresh with the validated compiler report(s), then run the full architecture policy gate with compiler evidence. Preserve raw output and current snapshot/manifest hashes; a source-only pass, zero exit from coarse policy, or stale Arcana snapshot is not A7 proof.
+
+   ```text
+   python scripts/check_architecture.py --refresh --compiler-evidence .verification-tmp/phase7/phase7-closeout-default/calls.json
+   python scripts/check_architecture.py --compiler-evidence .verification-tmp/phase7/phase7-closeout-tracing/calls.json
+   pitlord docs --repo . --ddocs-root docs --changed-from origin/main --timeout 2m
+   ```
+
+   The refreshed evidence must establish the exact 34-component target, production coverage, permitted directed calls, absence of prohibited SCCs, and disposition of material unresolved, cfg, macro and indirect calls. Reconcile current findings against the preserved fingerprint ledgers only with source review; do not accept the present 781-new/4,587-stale convergence reconciliation as compiler proof.
+
+4. **Run the integrated behavior and documentation gates after the last source edits.** Record the exact pass, fail and ignored counts, prepared Archive fixture and all output paths. The previous integration receipt is historical for this correction batch.
+
+   ```text
+   cargo fmt --check
+   cargo check --locked
+   cargo test --locked
+   cargo fmt --manifest-path cli/Cargo.toml -- --check
+   cargo check --manifest-path cli/Cargo.toml --locked
+   cargo test --manifest-path cli/Cargo.toml --locked
+   cargo run --release --example archive_roundtrip -- <prepared-graph.jsonl> <output.cva>
+   python ../engineering-standards/tools/docs_policy/check.py --repo .
+   python ../engineering-standards/tools/docs_policy/check.py --repo . --changed-from origin/main
+   ddocs check --indexes --links
+   ```
+
+5. **Reconcile integration and closeout.** The read-only audit found both Phase 5 worktrees clean at `17514f0` (`Reliquary-phase5` and its `target/phase5-acceptance-checkout`). Recheck them with all source/receipt changes at closeout; reconcile generated verification material; update current architecture, limits, maintainer/coverage documentation and the final receipt from the results above; commit the stable integration. If any material call or graph proof remains unresolved, report its exact scope and keep B7/H7/A7 open and R7 partial. The Phase 7 spec owns the formal ticket and gate exit conditions.

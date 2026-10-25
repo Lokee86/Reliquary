@@ -7,7 +7,7 @@ impl InteractionRuntime {
         message_id: &str,
         file: StoredFile,
     ) -> Result<(), InteractionError> {
-        if self.cva.project_file_ref(file.id).is_none() {
+        if self.cva.runtime_project_file_ref(file.id).is_none() {
             return Err(crate::CvaError::ProjectFile(
                 "project attachment is not registered".into(),
             )

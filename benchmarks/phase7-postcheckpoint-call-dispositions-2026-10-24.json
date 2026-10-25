@@ -994,5 +994,21 @@
     "new_dag_edges": 0,
     "new_exceptions": 0,
     "features_added": 0
+  },
+  "post_review_execution": {
+    "status": "source corrections implemented and source-audited; integrated acceptance pending; historical 50-call review preserved above",
+    "source_closure_receipt": "benchmarks/phase7-postcheckpoint-source-closure-2026-10-24.json",
+    "integrated_verification_receipt": "benchmarks/phase7-closure-verification-2026-10-24.json",
+    "current_exact_value_exception": "Freshness ObjectRef opaque coordinate only, recorded separately in source-closure and integrated receipts; no target-DAG implementation edge added",
+    "current_child_registry": "benchmarks/phase7-indirect-call-corrections-2026-10-24.json",
+    "tracked_obligations": {
+      "parents": 31,
+      "children": 37,
+      "total": 68,
+      "gates": 4
+    },
+    "scope": "Correct all original capability/value/trace endpoints under the unchanged DAG and separately registered material callback seams. Original source witnesses and review-time proof_limits remain historical evidence, not current residual counts.",
+    "acceptance": "B7/H7/A7 remain open pending same-source compiled calls, callback/destructor reconciliation, fresh graph and integrated checks.",
+    "current_registry_verification": "31 parents + 37 named children = 68 obligations; four gates unchanged (2026-10-25)"
   }
 }

@@ -280,8 +280,8 @@ fn versions(shared: &RelShared) -> Result<(u64, u64, u64), ReliquaryRuntimeHostE
         .lock()
         .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
     Ok((
-        r.cva.entities.entity_version(),
-        r.cva.graph.graph_version(),
+        r.cva.owner.entity_version(),
+        r.cva.runtime_graph_version(),
         r.cva.memories.memory_version(),
     ))
 }

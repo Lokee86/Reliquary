@@ -1,0 +1,776 @@
+{
+  "schema": "phase7-indirect-correction-registration.v1",
+  "date": "2026-10-24",
+  "status": "registered-before-implementation; acceptance open",
+  "source_base": "cc9d2f4",
+  "historical_register": "benchmarks/phase7-postcheckpoint-call-dispositions-2026-10-24.json",
+  "denominator_reconciliation": {
+    "prior_register_claimed_children": 13,
+    "unique_registered_children_found": 27,
+    "children_added": 10,
+    "named_children_after": 37,
+    "parent_tickets": 31,
+    "tracked_obligations_after": 68,
+    "gates": 4,
+    "basis": "Deduplicated 27 historical children plus 10 independently witnessed callback, owner, configured-provider, public Insomnia and live External index read seams, registered before implementation. Historical receipts retain their original denominators."
+  },
+  "prior_registered_children": [
+    {
+      "id": "P7.1.05a-DREAM-OWNER-FACTS",
+      "receipts": [
+        "benchmarks/phase7-dream-owner-facts-child-2026-10-24.json"
+      ]
+    },
+    {
+      "id": "P7.1.06-INSOMNIA-EVIDENCE-READ",
+      "receipts": [
+        "benchmarks/phase7-read-cuts.json"
+      ]
+    },
+    {
+      "id": "P7.1.07-DREAM-OWNER-READ",
+      "receipts": [
+        "benchmarks/phase7-read-cuts.json"
+      ]
+    },
+    {
+      "id": "P7.1.07-DREAM-PUBLICATION",
+      "receipts": [
+        "benchmarks/phase7-dream-publication-cut.json"
+      ]
+    },
+    {
+      "id": "P7.1.09a-IMPORT-INSOMNIA-REPLAY",
+      "receipts": [
+        "benchmarks/phase7-edge-dispositions.json",
+        "benchmarks/phase7-import-insomnia-replay-child-2026-10-24.json"
+      ]
+    },
+    {
+      "id": "P7.1.11-EXTERNAL-PROVIDER",
+      "receipts": [
+        "benchmarks/phase7-edge-dispositions.json"
+      ]
+    },
+    {
+      "id": "P7.1.12-GATEWAY-CONTAINER-OPERATIONS",
+      "receipts": [
+        "benchmarks/phase7-runtime-lower-dependency-children-2026-10-24.json",
+        "benchmarks/phase7-runtime-residuals.json"
+      ]
+    },
+    {
+      "id": "P7.1.12-GATEWAY-EXTERNAL-INDEX-VALUES",
+      "receipts": [
+        "benchmarks/phase7-runtime-lower-dependency-children-2026-10-24.json",
+        "benchmarks/phase7-runtime-residuals.json"
+      ]
+    },
+    {
+      "id": "P7.1.12-GATEWAY-VECTOR-MAPPING",
+      "receipts": [
+        "benchmarks/phase7-runtime-lower-dependency-children-2026-10-24.json",
+        "benchmarks/phase7-runtime-residuals.json"
+      ]
+    },
+    {
+      "id": "P7.1.12a-RUNTIME-GATEWAY-PHY-OWNER-HANDLE",
+      "receipts": [
+        "benchmarks/phase7-gateway-phy-owner-handle-addendum.json",
+        "benchmarks/phase7-gateway-phy-owner-handle.json",
+        "benchmarks/phase7-runtime-residuals.json"
+      ]
+    },
+    {
+      "id": "P7.1.12b-INTERACTION-CVA-ADAPTER",
+      "receipts": [
+        "benchmarks/phase7-adapter-cuts.json",
+        "benchmarks/phase7-interaction-owner-core.json",
+        "benchmarks/phase7-runtime-residuals.json"
+      ]
+    },
+    {
+      "id": "P7.1.12c-PROJECT-LIFECYCLE-AGGREGATE-ADAPTER",
+      "receipts": [
+        "benchmarks/phase7-adapter-cuts.json",
+        "benchmarks/phase7-runtime-residuals.json"
+      ]
+    },
+    {
+      "id": "P7.1.12d-OFFLINE-RECONCILIATION-ADAPTER",
+      "receipts": [
+        "benchmarks/phase7-adapter-cuts.json",
+        "benchmarks/phase7-runtime-residuals.json"
+      ]
+    },
+    {
+      "id": "P7.1.12e-GATEWAY-SEMANTIC-MUTATION-OPERATION-CUT",
+      "receipts": [
+        "benchmarks/phase7-gateway-semantic-mutation-cut.json"
+      ]
+    },
+    {
+      "id": "P7.1.14-CORE-OWNER-API",
+      "receipts": [
+        "benchmarks/phase7-core-owner-api-child-2026-10-24.json"
+      ]
+    },
+    {
+      "id": "P7.1.14-FRESHNESS-FACADE-OPERATIONS",
+      "receipts": [
+        "benchmarks/phase7-freshness-facade-operations-child-2026-10-24.json"
+      ]
+    },
+    {
+      "id": "P7.1.14-OFFLINE-BACKGROUND",
+      "receipts": [
+        "benchmarks/phase7-offline-background-cut.json"
+      ]
+    },
+    {
+      "id": "P7.1.14-PUBLIC-DREAM-OPERATIONS",
+      "receipts": [
+        "benchmarks/phase7-public-dream-child-2026-10-24.json"
+      ]
+    },
+    {
+      "id": "P7.1.14-RECONCILIATION-COORDINATION",
+      "receipts": [
+        "benchmarks/phase7-reconciliation-coordination-child-2026-10-24.json"
+      ]
+    },
+    {
+      "id": "P7.1.14-RETRIEVAL-OWNER-READ",
+      "receipts": [
+        "benchmarks/phase7-read-cuts.json"
+      ]
+    },
+    {
+      "id": "P7.1.14-VECTOR-OWNER-API",
+      "receipts": [
+        "benchmarks/phase7-vector-owner-api-child-2026-10-24.json"
+      ]
+    },
+    {
+      "id": "P7.1.14a-PERCEPTION-ENTITY-OPERATIONS",
+      "receipts": [
+        "benchmarks/phase7-perception-entity-operations-child-2026-10-24.json"
+      ]
+    },
+    {
+      "id": "P7.1.14b-REL-LIFECYCLE",
+      "receipts": [
+        "benchmarks/phase7-rel-lifecycle-child-2026-10-24.json"
+      ]
+    },
+    {
+      "id": "P7.1.14c-OFFLINE-REPACK",
+      "receipts": [
+        "benchmarks/phase7-offline-repack-child-2026-10-24.json"
+      ]
+    },
+    {
+      "id": "P7.1.14d-RECONCILIATION-PROMOTION",
+      "receipts": [
+        "benchmarks/phase7-reconciliation-promotion-child-2026-10-24.json"
+      ]
+    },
+    {
+      "id": "P7.1.14e-PUBLIC-MEMORY-OPERATIONS",
+      "receipts": [
+        "benchmarks/phase7-public-memory-child-2026-10-24.json"
+      ]
+    },
+    {
+      "id": "P7.1.14f-PUBLIC-RETRIEVAL",
+      "receipts": [
+        "benchmarks/phase7-public-retrieval-child-2026-10-24.json"
+      ]
+    }
+  ],
+  "new_children": [
+    {
+      "id": "P7.1.09b-IMPORT-DREAM-REBASE-FACTS",
+      "parent_ticket": "P7.1.09",
+      "status": "registered-before-implementation",
+      "witness": "Dream store invokes Import-owned turn/graph/proof closures during replay; replace them with finite passive coordinate facts, preserving missing-coordinate errors and publication order.",
+      "source_sha256_at_registration": {
+        "src/imports/reconciliation_interval.rs": "4e4bfd91b70487f17e8084656f9b2babe4e985b8875e08ce62222e756533072c",
+        "src/runtime_inference/dream_replay_transport.rs": "3fa372ad7e63d73df5ee0cd722a1389f4848e83d1add56183d0520a8936d9d7a",
+        "src/freshness_dream_journal.rs": "3ef450977361c0f8418d3383cf71ab7433093378b4f9aa56e71892c1e9f28d49"
+      }
+    },
+    {
+      "id": "P7.1.12f-INSOMNIA-PROGRESS-EVENTS",
+      "parent_ticket": "P7.1.12",
+      "status": "registered-before-implementation",
+      "witness": "Insomnia invokes Gateway-owned stage progress callback during extraction; replace it with bounded lower-produced stage events, retaining live progress ordering and Gateway reporting ownership.",
+      "source_sha256_at_registration": {
+        "src/runtime_inference/insomnia_worker_runtime.rs": "d5d7abc8ad932281bb8508c23bfdb51c91dc4e56b9d55be59afb155f67cccfdc",
+        "src/runtime_inference/insomnia/extraction.rs": "33c53622464a5b2b3b47a679050229c2bf83203e090de18e54020f08b90ceeb8"
+      }
+    },
+    {
+      "id": "P7.1.05b-DREAM-JOURNAL-PERSISTENCE",
+      "parent_ticket": "P7.1.05",
+      "status": "registered-before-implementation",
+      "receipt": "benchmarks/phase7-dream-journal-persistence-child-2026-10-24.json",
+      "source_sha256_at_registration": {
+        "src/runtime_inference/freshness_operations.rs": "43efc92764a2cde57e98e2dbdb19309b82a60765fdc9de11fd36679fddbc5fda"
+      },
+      "witnesses": [
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 397,
+          "mir_line_sha256": "ebed32b66f26f3b9e044755694cbefdcc2e3e731efad9e16c6865401be71ec45",
+          "target": "DreamFreshnessJournal::ingest",
+          "target_definition": {
+            "path": "src/freshness_dream_journal.rs",
+            "line": 273,
+            "end_line": 386,
+            "compiler_def_id": "DefId(0:49711 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::ingest)"
+          }
+        },
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 413,
+          "mir_line_sha256": "379d27c68cb050d83165fa7eedffb1037b851d54f763c8f283708746eb63759e",
+          "target": "DreamFreshnessJournal::ingest",
+          "target_definition": {
+            "path": "src/freshness_dream_journal.rs",
+            "line": 273,
+            "end_line": 386,
+            "compiler_def_id": "DefId(0:49711 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::ingest)"
+          }
+        },
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 487,
+          "mir_line_sha256": "914a316f451cb0b069ed2a1471bf315e38f10f99355f32ae7fefcbc5e8a5ef08",
+          "target": "DreamFreshnessJournal::ingest",
+          "target_definition": {
+            "path": "src/freshness_dream_journal.rs",
+            "line": 273,
+            "end_line": 386,
+            "compiler_def_id": "DefId(0:49711 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::ingest)"
+          }
+        },
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 715,
+          "mir_line_sha256": "acf9fd27b7fb524a74e6b5f35eb1f0e93cadf64e00f18ff23282156a08397dbb",
+          "target": "DreamFreshnessJournal::ingest",
+          "target_definition": {
+            "path": "src/freshness_dream_journal.rs",
+            "line": 273,
+            "end_line": 386,
+            "compiler_def_id": "DefId(0:49711 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::ingest)"
+          }
+        },
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 876,
+          "mir_line_sha256": "c0314462aca3d47a75901e8b8221ef03e22d76d45a805370c58cd6c95ca2833b",
+          "target": "DreamFreshnessJournal::ingest",
+          "target_definition": {
+            "path": "src/freshness_dream_journal.rs",
+            "line": 273,
+            "end_line": 386,
+            "compiler_def_id": "DefId(0:49711 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::ingest)"
+          }
+        },
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 900,
+          "mir_line_sha256": "741d4f5b20ea889ac87086761098b359f7b016c4cf0a043ba4f2321abe1c3eae",
+          "target": "DreamFreshnessJournal::ingest",
+          "target_definition": {
+            "path": "src/freshness_dream_journal.rs",
+            "line": 273,
+            "end_line": 386,
+            "compiler_def_id": "DefId(0:49711 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::ingest)"
+          }
+        },
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 343,
+          "mir_line_sha256": "c30e0ada62884fdd73d16eb49f6c4cc2582ba5c4cb08bdd1c505945d2cec0e63",
+          "target": "DreamFreshnessJournal::ingest_materialized_begin",
+          "target_definition": {
+            "path": "src/freshness_dream_journal.rs",
+            "line": 391,
+            "end_line": 408,
+            "compiler_def_id": "DefId(0:49713 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::ingest_materialized_begin)"
+          }
+        },
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 868,
+          "mir_line_sha256": "d1a433c40ff7e2ea914860d83abf8dc8a41a9b392cd51154fbf1ee97026c2f50",
+          "target": "DreamFreshnessJournal::replay_publication_birth_payload",
+          "target_definition": {
+            "path": "src/freshness_dream_journal.rs",
+            "line": 594,
+            "end_line": 604,
+            "compiler_def_id": "DefId(0:49739 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::replay_publication_birth_payload)"
+          }
+        },
+        {
+          "source_path": "src/runtime_inference/freshness_operations.rs",
+          "source_line": 892,
+          "mir_line_sha256": "a6692bb16ebe2792313f4d0d207ea56f57a31bb203c1141d954fc6486e83d3fb",
+          "target": "DreamFreshnessJournal::replay_settled_payload",
+          "target_definition": {
+            "path": "src/freshness_dream_journal.rs",
+            "line": 574,
+            "end_line": 587,
+            "compiler_def_id": "DefId(0:49735 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::replay_settled_payload)"
+          }
+        }
+      ],
+      "exit_criteria": [
+        "All listed direct capability calls are removed or re-owned through the canonical component operation.",
+        "Preserve all listed validation/error/order/byte/API behavior contracts.",
+        "Refresh same-source default compiler and trace/cfg call evidence after source freeze.",
+        "Run the focused existing preserving tests and root integration gates.",
+        "Update the exact child receipt with post-cut source hashes and eliminated witnesses; do not claim architecture acceptance from registration."
+      ]
+    },
+    {
+      "id": "P7.1.06-INSOMNIA-APPLICATION-COMMIT",
+      "parent_ticket": "P7.1.06",
+      "status": "registered-before-implementation",
+      "receipt": "benchmarks/phase7-insomnia-application-commit-child-2026-10-24.json",
+      "source_sha256_at_registration": {
+        "src/facade/insomnia_processor.rs": "3eeda3b781f0b929768c435069976104aeeb7ebc80f63000d08a772e57afeb05"
+      },
+      "witnesses": [
+        {
+          "source_path": "src/facade/insomnia_processor.rs",
+          "source_line": 33,
+          "mir_line_sha256": "6db486a7a00e5e8c28f5011de83f095f166a776042b840a54dbf9387e6417636",
+          "target": "commit_application",
+          "target_definition": {
+            "path": "src/owner_lifecycle/insomnia_application.rs",
+            "line": 15,
+            "end_line": 151,
+            "compiler_def_id": "DefId(0:49231 ~ reliquary_memory[b862]::owner_lifecycle::insomnia_application::commit_application)"
+          }
+        },
+        {
+          "source_path": "src/facade/insomnia_processor.rs",
+          "source_line": 77,
+          "mir_line_sha256": "067a240d2c795f0ad44fa663888d57d885597b8c6a278655fb47debaa8f0dd52",
+          "target": "commit_application",
+          "target_definition": {
+            "path": "src/owner_lifecycle/insomnia_application.rs",
+            "line": 15,
+            "end_line": 151,
+            "compiler_def_id": "DefId(0:49231 ~ reliquary_memory[b862]::owner_lifecycle::insomnia_application::commit_application)"
+          }
+        },
+        {
+          "source_path": "src/facade/insomnia_processor.rs",
+          "source_line": 73,
+          "mir_line_sha256": "141904f4216bf0c3fe426dad22da8bcf60dda763d2bf8192be2b34fb6276cd65",
+          "target": "publish_user_application",
+          "target_definition": {
+            "path": "src/owner_lifecycle/personal_memory_publication.rs",
+            "line": 55,
+            "end_line": 115,
+            "compiler_def_id": "DefId(0:49626 ~ reliquary_memory[b862]::owner_lifecycle::personal_memory_publication::publish_user_application)"
+          }
+        }
+      ],
+      "exit_criteria": [
+        "All listed direct capability calls are removed or re-owned through the canonical component operation.",
+        "Preserve all listed validation/error/order/byte/API behavior contracts.",
+        "Refresh same-source default compiler and trace/cfg call evidence after source freeze.",
+        "Run the focused existing preserving tests and root integration gates.",
+        "Update the exact child receipt with post-cut source hashes and eliminated witnesses; do not claim architecture acceptance from registration."
+      ]
+    },
+    {
+      "id": "P7.1.07-EGO-PUBLIC-OWNER-OPERATIONS",
+      "parent_ticket": "P7.1.07",
+      "status": "registered-before-implementation",
+      "receipt": "benchmarks/phase7-ego-public-owner-operations-child-2026-10-24.json",
+      "source_sha256_at_registration": {
+        "src/facade/cva_ego.rs": "44941736df2758cf501d7ab2d04dce4d8b76e848a992963905814f44fd864c58",
+        "src/facade/phylactery_ego.rs": "8896102b97147159874f72bde37ed8534c2f6a5c98e6917e187c29202b150f3b"
+      },
+      "witnesses": [
+        {
+          "source_path": "src/facade/cva_ego.rs",
+          "source_line": 22,
+          "mir_line_sha256": "3bb03ff09370a435596714fd45e78a4695ce4b4fa330c1099dc44747274c543d",
+          "target": "anchors::create_anchor",
+          "target_definition": {
+            "path": "src/ego/ego_store_anchors.rs",
+            "line": 8,
+            "end_line": 36,
+            "compiler_def_id": "DefId(0:51809 ~ reliquary_memory[b862]::ego_store::anchors::{impl#0}::create_anchor)"
+          }
+        },
+        {
+          "source_path": "src/facade/phylactery_ego.rs",
+          "source_line": 117,
+          "mir_line_sha256": "dd2307ce106bcda2bd1d883939efd0c6deaf1f405700128af5f957690a9cfe07",
+          "target": "anchors::create_anchor",
+          "target_definition": {
+            "path": "src/ego/ego_store_anchors.rs",
+            "line": 8,
+            "end_line": 36,
+            "compiler_def_id": "DefId(0:51809 ~ reliquary_memory[b862]::ego_store::anchors::{impl#0}::create_anchor)"
+          }
+        },
+        {
+          "source_path": "src/facade/cva_ego.rs",
+          "source_line": 49,
+          "mir_line_sha256": "48d49dcef933073e3cd157beba65b03d1eda5be069d0615cd90873c8714a762d",
+          "target": "anchors::delete_anchor",
+          "target_definition": {
+            "path": "src/ego/ego_store_anchors.rs",
+            "line": 80,
+            "end_line": 102,
+            "compiler_def_id": "DefId(0:51813 ~ reliquary_memory[b862]::ego_store::anchors::{impl#0}::delete_anchor)"
+          }
+        },
+        {
+          "source_path": "src/facade/phylactery_ego.rs",
+          "source_line": 144,
+          "mir_line_sha256": "c55f072ce99de22985cc3047deb81cd47e8ac85cd6062e13ec6b294fe082eb77",
+          "target": "anchors::delete_anchor",
+          "target_definition": {
+            "path": "src/ego/ego_store_anchors.rs",
+            "line": 80,
+            "end_line": 102,
+            "compiler_def_id": "DefId(0:51813 ~ reliquary_memory[b862]::ego_store::anchors::{impl#0}::delete_anchor)"
+          }
+        },
+        {
+          "source_path": "src/facade/cva_ego.rs",
+          "source_line": 35,
+          "mir_line_sha256": "31ff33e98574a0db6c7d2a7ba1e25361572ba78de2af4b89969305d7218e4374",
+          "target": "anchors::update_anchor",
+          "target_definition": {
+            "path": "src/ego/ego_store_anchors.rs",
+            "line": 38,
+            "end_line": 78,
+            "compiler_def_id": "DefId(0:51811 ~ reliquary_memory[b862]::ego_store::anchors::{impl#0}::update_anchor)"
+          }
+        },
+        {
+          "source_path": "src/facade/phylactery_ego.rs",
+          "source_line": 130,
+          "mir_line_sha256": "fb388da6aa18c8ca36467a3a6be25e2203cf522846c298fde25146a9f09ced9b",
+          "target": "anchors::update_anchor",
+          "target_definition": {
+            "path": "src/ego/ego_store_anchors.rs",
+            "line": 38,
+            "end_line": 78,
+            "compiler_def_id": "DefId(0:51811 ~ reliquary_memory[b862]::ego_store::anchors::{impl#0}::update_anchor)"
+          }
+        },
+        {
+          "source_path": "src/facade/phylactery_ego.rs",
+          "source_line": 97,
+          "mir_line_sha256": "99bef6239ab8ab58e82285f706ce83c71aa2cae1f447d87ee53d052d189ae5b1",
+          "target": "documents::put_personality",
+          "target_definition": {
+            "path": "src/ego/ego_store_documents.rs",
+            "line": 7,
+            "end_line": 39,
+            "compiler_def_id": "DefId(0:51820 ~ reliquary_memory[b862]::ego_store::documents::{impl#0}::put_personality)"
+          }
+        },
+        {
+          "source_path": "src/facade/cva_ego.rs",
+          "source_line": 66,
+          "mir_line_sha256": "279c72da5169da428349e74d8ff860f76fbe02f5b5287f8fdf2a1db8133e8c98",
+          "target": "documents::put_synthesis",
+          "target_definition": {
+            "path": "src/ego/ego_store_documents.rs",
+            "line": 41,
+            "end_line": 72,
+            "compiler_def_id": "DefId(0:51822 ~ reliquary_memory[b862]::ego_store::documents::{impl#0}::put_synthesis)"
+          }
+        },
+        {
+          "source_path": "src/facade/phylactery_ego.rs",
+          "source_line": 161,
+          "mir_line_sha256": "a1298f65116e01ffebadfb0c84dafc7bfcee6f19ccb04673b673da2c95d7fbda",
+          "target": "documents::put_synthesis",
+          "target_definition": {
+            "path": "src/ego/ego_store_documents.rs",
+            "line": 41,
+            "end_line": 72,
+            "compiler_def_id": "DefId(0:51822 ~ reliquary_memory[b862]::ego_store::documents::{impl#0}::put_synthesis)"
+          }
+        },
+        {
+          "source_path": "src/facade/phylactery_ego.rs",
+          "source_line": 46,
+          "mir_line_sha256": "c860c60fef5b5574fddfd52a4cb7d64dd3831422c7115684acfc6babd4823d62",
+          "target": "identities::create_identity",
+          "target_definition": {
+            "path": "src/ego/ego_store_identities.rs",
+            "line": 24,
+            "end_line": 58,
+            "compiler_def_id": "DefId(0:51826 ~ reliquary_memory[b862]::ego_store::identities::{impl#0}::create_identity)"
+          }
+        },
+        {
+          "source_path": "src/facade/phylactery_ego.rs",
+          "source_line": 80,
+          "mir_line_sha256": "a1b974a9c95c4ba5f3e25095b14d9136f727b66f88be29a97667d5592294ae39",
+          "target": "identities::delete_identity",
+          "target_definition": {
+            "path": "src/ego/ego_store_identities.rs",
+            "line": 127,
+            "end_line": 159,
+            "compiler_def_id": "DefId(0:51832 ~ reliquary_memory[b862]::ego_store::identities::{impl#0}::delete_identity)"
+          }
+        },
+        {
+          "source_path": "src/facade/phylactery_ego.rs",
+          "source_line": 35,
+          "mir_line_sha256": "6f9d270332d0fb6b80b784f4e771436df6910f1b738d2991de06ba88f66c8f9a",
+          "target": "identities::put_identity",
+          "target_definition": {
+            "path": "src/ego/ego_store_identities.rs",
+            "line": 8,
+            "end_line": 22,
+            "compiler_def_id": "DefId(0:51824 ~ reliquary_memory[b862]::ego_store::identities::{impl#0}::put_identity)"
+          }
+        },
+        {
+          "source_path": "src/facade/phylactery_ego.rs",
+          "source_line": 59,
+          "mir_line_sha256": "0b29e328f13031504e2c0173778e435776feed1ef193553d4f405329c4987712",
+          "target": "identities::update_identity",
+          "target_definition": {
+            "path": "src/ego/ego_store_identities.rs",
+            "line": 60,
+            "end_line": 105,
+            "compiler_def_id": "DefId(0:51828 ~ reliquary_memory[b862]::ego_store::identities::{impl#0}::update_identity)"
+          }
+        }
+      ],
+      "exit_criteria": [
+        "All listed direct capability calls are removed or re-owned through the canonical component operation.",
+        "Preserve all listed validation/error/order/byte/API behavior contracts.",
+        "Refresh same-source default compiler and trace/cfg call evidence after source freeze.",
+        "Run the focused existing preserving tests and root integration gates.",
+        "Update the exact child receipt with post-cut source hashes and eliminated witnesses; do not claim architecture acceptance from registration."
+      ]
+    },
+    {
+      "id": "P7.1.09-IMPORT-RECONCILIATION-OWNER-RESTORE",
+      "parent_ticket": "P7.1.09",
+      "status": "registered-before-implementation",
+      "receipt": "benchmarks/phase7-import-reconciliation-owner-restore-child-2026-10-24.json",
+      "source_sha256_at_registration": {
+        "src/imports/reconciliation_interval.rs": "0191de9160d1c8cc89993491619afe201ddf13efb6703801250454bb762a44b9"
+      },
+      "witnesses": [
+        {
+          "source_path": "src/imports/reconciliation_interval.rs",
+          "source_line": 506,
+          "mir_line_sha256": "269758e3b40ac348c5d472bcd046d1acafe783ed11191d4e7a501bc09125fa4c",
+          "target": "DreamFreshnessJournal::ingest",
+          "target_definition": {
+            "path": "src/freshness_dream_journal.rs",
+            "line": 273,
+            "end_line": 386,
+            "compiler_def_id": "DefId(0:49711 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::ingest)"
+          }
+        },
+        {
+          "source_path": "src/imports/reconciliation_interval.rs",
+          "source_line": 483,
+          "mir_line_sha256": "09ed38d517d2eb61f6bf2945ce5d4cee47f96f6280b208f5079f08fde1a64f44",
+          "target": "DreamFreshnessJournal::ingest_materialized_begin",
+          "target_definition": {
+            "path": "src/freshness_dream_journal.rs",
+            "line": 391,
+            "end_line": 408,
+            "compiler_def_id": "DefId(0:49713 ~ reliquary_memory[b862]::freshness_dream_journal::{impl#1}::ingest_materialized_begin)"
+          }
+        },
+        {
+          "source_path": "src/imports/reconciliation_interval.rs",
+          "source_line": 412,
+          "mir_line_sha256": "6126778d39e908f4f893b93a606d0b7924897b88ced88591220cc92a2c007728",
+          "target": "CommunityStore::publish",
+          "target_definition": {
+            "path": "src/semantic_graph/community_store.rs",
+            "line": 65,
+            "end_line": 76,
+            "compiler_def_id": "DefId(0:50590 ~ reliquary_memory[b862]::community_store::{impl#0}::publish)"
+          }
+        },
+        {
+          "source_path": "src/imports/reconciliation_interval.rs",
+          "source_line": 555,
+          "mir_line_sha256": "ac72cec93f2de624d7609841e10bf7ad521258b71af1097102718b2a7bf0a648",
+          "target": "EntityResolutionStore::persist_change",
+          "target_definition": {
+            "path": "src/perception/entity_resolution_store.rs",
+            "line": 67,
+            "end_line": 77,
+            "compiler_def_id": "DefId(0:52281 ~ reliquary_memory[b862]::entity_resolution_store::{impl#0}::persist_change)"
+          }
+        }
+      ],
+      "exit_criteria": [
+        "All listed direct capability calls are removed or re-owned through the canonical component operation.",
+        "Preserve all listed validation/error/order/byte/API behavior contracts.",
+        "Refresh same-source default compiler and trace/cfg call evidence after source freeze.",
+        "Run the focused existing preserving tests and root integration gates.",
+        "Update the exact child receipt with post-cut source hashes and eliminated witnesses; do not claim architecture acceptance from registration."
+      ]
+    },
+    {
+      "id": "P7.1.14g-PUBLIC-RELATIONSHIP-OWNER-OPERATIONS",
+      "parent_ticket": "P7.1.14",
+      "status": "registered-before-implementation",
+      "receipt": "benchmarks/phase7-public-relationship-owner-operations-child-2026-10-24.json",
+      "source_sha256_at_registration": {
+        "src/facade/cva_relationship_owner.rs": "7369227edb4f472c45143bb23be883af3c6cbd85b77d17b2eaa5bab8d3394481"
+      },
+      "witnesses": [
+        {
+          "source_path": "src/facade/cva_relationship_owner.rs",
+          "source_line": 24,
+          "mir_line_sha256": "3753aee4e4668491bea2177734d2564193023880e29a94422034e751f83de2b3",
+          "target": "RelationshipStore::publish",
+          "target_definition": {
+            "path": "src/perception/relationship_store.rs",
+            "line": 50,
+            "end_line": 59,
+            "compiler_def_id": "DefId(0:55188 ~ reliquary_memory[b862]::relationship_store::{impl#0}::publish)"
+          }
+        },
+        {
+          "source_path": "src/facade/cva_relationship_owner.rs",
+          "source_line": 24,
+          "mir_line_sha256": "3753aee4e4668491bea2177734d2564193023880e29a94422034e751f83de2b3",
+          "target": "RelationshipStore::publish",
+          "target_definition": {
+            "path": "src/perception/relationship_store.rs",
+            "line": 50,
+            "end_line": 59,
+            "compiler_def_id": "DefId(0:55188 ~ reliquary_memory[b862]::relationship_store::{impl#0}::publish)"
+          }
+        },
+        {
+          "source_path": "src/facade/cva_relationship_owner.rs",
+          "source_line": 38,
+          "mir_line_sha256": "1a7923810531a8c96d4ad28f4e44a27d81c75bef8cb272b00bf13aa6aa2898b4",
+          "target": "RelationshipStore::publish_replayed",
+          "target_definition": {
+            "path": "src/perception/relationship_store.rs",
+            "line": 61,
+            "end_line": 70,
+            "compiler_def_id": "DefId(0:55190 ~ reliquary_memory[b862]::relationship_store::{impl#0}::publish_replayed)"
+          }
+        },
+        {
+          "source_path": "src/facade/cva_relationship_owner.rs",
+          "source_line": 38,
+          "mir_line_sha256": "1a7923810531a8c96d4ad28f4e44a27d81c75bef8cb272b00bf13aa6aa2898b4",
+          "target": "RelationshipStore::publish_replayed",
+          "target_definition": {
+            "path": "src/perception/relationship_store.rs",
+            "line": 61,
+            "end_line": 70,
+            "compiler_def_id": "DefId(0:55190 ~ reliquary_memory[b862]::relationship_store::{impl#0}::publish_replayed)"
+          }
+        },
+        {
+          "source_path": "src/facade/cva_relationship_owner.rs",
+          "source_line": 58,
+          "mir_line_sha256": "d8eeda4b8d4a97895e320d3b75e97ee0249f9988f8776c1e69a30111aeb2d043",
+          "target": "RelationshipStore::tombstone",
+          "target_definition": {
+            "path": "src/perception/relationship_store.rs",
+            "line": 199,
+            "end_line": 256,
+            "compiler_def_id": "DefId(0:55196 ~ reliquary_memory[b862]::relationship_store::{impl#0}::tombstone)"
+          }
+        },
+        {
+          "source_path": "src/facade/cva_relationship_owner.rs",
+          "source_line": 58,
+          "mir_line_sha256": "d8eeda4b8d4a97895e320d3b75e97ee0249f9988f8776c1e69a30111aeb2d043",
+          "target": "RelationshipStore::tombstone",
+          "target_definition": {
+            "path": "src/perception/relationship_store.rs",
+            "line": 199,
+            "end_line": 256,
+            "compiler_def_id": "DefId(0:55196 ~ reliquary_memory[b862]::relationship_store::{impl#0}::tombstone)"
+          }
+        }
+      ],
+      "exit_criteria": [
+        "All listed direct capability calls are removed or re-owned through the canonical component operation.",
+        "Preserve all listed validation/error/order/byte/API behavior contracts.",
+        "Refresh same-source default compiler and trace/cfg call evidence after source freeze.",
+        "Run the focused existing preserving tests and root integration gates.",
+        "Update the exact child receipt with post-cut source hashes and eliminated witnesses; do not claim architecture acceptance from registration."
+      ]
+    },
+    {
+      "id": "P7.1.13a-CONFIGURED-PROVIDER-PREPARATION",
+      "parent_ticket": "P7.1.13",
+      "status": "registered-before-implementation",
+      "receipt": "benchmarks/phase7-configured-provider-preparation-child-2026-10-25.json",
+      "witness": "Move configured concrete provider/extractor preparation and embedding probe mechanics from the configured facade into runtime-gateway concrete operations; preserve provider construction order, optional endpoint attachment conditions, error mapping, offline file composition, public signatures and report construction.",
+      "source_sha256_at_registration": {
+        "src/facade/configured_runtime_insomnia.rs": "97d77bf04131efe1bdd92731b6a93e74435e64be209669865e18dcd3470e9347",
+        "src/facade/configured_runtime_vectors.rs": "a5f3762b46261ca16c238eaf876b039c1d91bf04722cf1b123d96067a9256eef"
+      },
+      "witness_count": 19
+    },
+    {
+      "id": "P7.1.14h-PUBLIC-INSOMNIA-WORK-LIFECYCLE",
+      "parent": "P7.1.14",
+      "status": "registered-before-implementation",
+      "scope": [
+        "src/facade/insomnia_cva.rs",
+        "src/runtime_inference/public_insomnia_operations.rs",
+        "src/owner_lifecycle/insomnia_work_operations.rs"
+      ],
+      "basis": "Eleven exact compiler call witnesses in closure-finish-default-20261025/calls.json reveal remaining facade work queue/claim/renew/fail/terminal/retry and episode-policy reads. Distinct from the application-commit child. Preserve admission, state-transition validation, ordering and error behavior.",
+      "preserving_tests": [
+        "Insomnia work queue/retry/reopen/claim worker families",
+        "public API and compiler call gate"
+      ]
+    },
+    {
+      "id": "P7.1.12g-GATEWAY-EXTERNAL-INDEX-READ",
+      "parent": "P7.1.12",
+      "receipt": "benchmarks/phase7-gateway-external-index-read-child-2026-10-25.json",
+      "status": "registered-before-implementation",
+      "scope": [
+        "src/runtime_inference/runtime_host_gateway_external.rs",
+        "src/runtime_inference/runtime_host_gateway_external_processing.rs",
+        "src/owner_lifecycle/external_owner_access.rs"
+      ],
+      "basis": "Two confirmed live index reads are distinct from the previous exact immutable External descriptor-value child. Lifecycle owns loaded-state validation and returns detached SourceState snapshots; Gateway retains grant checks, source authorization and post-I/O revalidation in their existing order."
+    }
+  ],
+  "existing_child_corrections": [
+    {
+      "id": "P7.1.05a-DREAM-OWNER-FACTS",
+      "witness": "Remaining REL Dream source-time closures capture Gateway Archive/History access; complete the existing passive-owner-facts boundary."
+    },
+    {
+      "existing_parent": "P7.1.14",
+      "existing_slice": "public-consumers->container postcheckpoint closure",
+      "witness": "The first unaccepted correction draft introduced a runtime helper invoking a historical-embedding facade closure. Replace that draft route with a runtime-owned RAII write scope; no independent preexisting SCC or new ticket is added for repairing the draft."
+    }
+  ],
+  "additional_behavior_correction": "Restore semantic target enumeration to IDs/body coordinates plus one hydrated body at a time; the first correction draft retained all current bodies."
+}

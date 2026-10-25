@@ -379,21 +379,21 @@ impl GatewayRuntime {
         self.with_rel(token, |runtime| {
             let cva = &mut runtime.cva;
             let memories = cva
-                .memory_ids()
+                .runtime_memory_ids()
                 .into_iter()
-                .map(|id| cva.memory(id).map_err(operation))
+                .map(|id| cva.runtime_memory(id).map_err(operation))
                 .collect::<Result<Vec<_>, _>>()?;
             Ok((
                 memories,
-                cva.entities()
+                cva.runtime_entities()
                     .into_iter()
                     .filter(|entity| {
                         entity.kind != crate::entity_principal_identity::PRINCIPAL_ENTITY_KIND
                     })
                     .collect::<Vec<Entity>>(),
-                cva.semantic_graph_relations(),
-                cva.community_snapshot(),
-                cva.community_semantic_names(),
+                cva.runtime_semantic_graph_relations(),
+                cva.runtime_community_snapshot(),
+                cva.runtime_community_semantic_names(),
             ))
         })
     }
@@ -610,7 +610,7 @@ impl GatewayRuntime {
         let changed = self.with_rel_mutation(&token, RelMutationFamily::Metadata, |runtime| {
             let changed = runtime
                 .cva
-                .set_rel_metadata(type_label, dependencies)
+                .native_put_rel_metadata(type_label, dependencies)
                 .map_err(operation)?;
             Ok((changed, false, vec![]))
         })?;
@@ -725,7 +725,7 @@ impl GatewayRuntime {
         let memory = self.with_rel_mutation(&token, RelMutationFamily::Semantic, |runtime| {
             let (memory, _) = runtime
                 .cva
-                .publish_memory(None, 0, draft)
+                .runtime_publish_knowledge_memory(None, 0, draft)
                 .map_err(operation)?;
             let id = memory.id;
             Ok((memory, false, vec![RelInvalidation::Memory(id)]))
@@ -745,7 +745,7 @@ impl GatewayRuntime {
         self.with_rel_mutation(&token, RelMutationFamily::Semantic, |runtime| {
             let changed = runtime
                 .cva
-                .set_community_name(community_id, name)
+                .runtime_set_knowledge_community_name(community_id, name)
                 .map_err(operation)?;
             Ok(((), changed, vec![RelInvalidation::Community(community_id)]))
         })
@@ -766,7 +766,7 @@ impl GatewayRuntime {
             let version = runtime.cva.runtime_graph_version();
             runtime
                 .cva
-                .set_memory_relations_with_origin(&changes, GraphRelationOrigin::User, version)
+                .runtime_set_knowledge_relations(&changes, GraphRelationOrigin::User, version)
                 .map_err(operation)?;
             Ok((
                 (),
@@ -802,11 +802,11 @@ impl GatewayRuntime {
         self.with_rel(token, |runtime| {
             let owner_id = runtime
                 .cva
-                .owner_id()
+                .runtime_owner_id()
                 .ok_or_else(|| operation("REL does not have durable owner identity"))?;
             let result = runtime
                 .cva
-                .retrieve_memories(profile, query_vector, config)
+                .native_retrieve_memories(profile, query_vector, config)
                 .map_err(operation)?;
             let scores = result
                 .seeds
@@ -819,7 +819,7 @@ impl GatewayRuntime {
                 .map(|id| {
                     runtime
                         .cva
-                        .memory(*id)
+                        .runtime_memory(*id)
                         .map(|memory| crate::MemorySearchItem {
                             memory,
                             seed_score: scores.get(id).copied(),
@@ -892,17 +892,17 @@ impl GatewayRuntime {
         };
         self.with_rel(&token, |runtime| {
             let cva = &mut runtime.cva;
-            let ids = cva.memory_ids();
+            let ids = cva.runtime_memory_ids();
             let (vector_pending, dream_pending) = rel_pending(cva, &ids, profile)?;
             Ok(crate::RuntimeBackgroundStatus {
-                insomnia: cva.insomnia_stats(),
-                reliquary_memories: cva.memory_stats(),
-                reliquary_vectors: cva.memory_vector_stats(),
+                insomnia: cva.runtime_insomnia_stats(),
+                reliquary_memories: cva.native_memory_stats(),
+                reliquary_vectors: cva.public_memory_vector_stats(),
                 phylactery_memories: None,
                 phylactery_vectors: None,
                 reliquary_vector_pending: vector_pending,
                 reliquary_semantic_pending: cva
-                    .semantic_freshness_pending_fragments()
+                    .runtime_semantic_freshness_pending_fragments()
                     .map_err(operation)?,
                 phylactery_vector_pending: 0,
                 reliquary_dream_pending: dream_pending,
@@ -991,14 +991,14 @@ fn resolve_memory_provenance(
 ) -> Result<MemoryProvenance, ReliquaryRuntimeHostError> {
     let source_episode = match memory.source_episode_id {
         Some(id) => Some(
-            cva.episode(id)
+            cva.runtime_episode(id)
                 .cloned()
                 .ok_or_else(|| operation("Memory source Episode is unavailable"))?,
         ),
         None => None,
     };
     let source_episode_turns = match source_episode.as_ref() {
-        Some(episode) => cva.episode_turns(episode.id).map_err(operation)?,
+        Some(episode) => cva.native_episode_turns(episode.id).map_err(operation)?,
         None => Vec::new(),
     };
     let source_turn = memory
@@ -1052,7 +1052,7 @@ fn resolve_source_turn(
         }
     };
     let turn = cva
-        .conversation_turns(conversation_id, node_id)
+        .runtime_conversation_turns(conversation_id, node_id)
         .map_err(operation)?
         .into_iter()
         .last()
@@ -1070,14 +1070,14 @@ fn rel_pending(
     let mut dream_pending = 0;
     let now_ns = crate::runtime_shared::unix_now_ns();
     for id in ids {
-        let memory = cva.memory(*id).map_err(operation)?;
+        let memory = cva.runtime_memory(*id).map_err(operation)?;
         if memory.archived {
             continue;
         }
         let has_vector = match profile {
             Some(profile) => {
-                let body = cva.memory_body_id(*id).map_err(operation)?;
-                cva.memory_vector_location(profile, body).is_some()
+                let body = cva.runtime_memory_body_id(*id).map_err(operation)?;
+                cva.runtime_memory_vector_location(profile, body).is_some()
             }
             None => false,
         };

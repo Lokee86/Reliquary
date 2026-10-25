@@ -73,7 +73,7 @@ impl GatewayRuntime {
             let branch_id = format!("branch-{}", uuid::Uuid::new_v4());
             runtime
                 .cva
-                .append_branch(crate::Branch {
+                .runtime_append_branch(crate::Branch {
                     id: branch_id.clone(),
                     conversation_id: conversation_id.to_owned(),
                     leaf_node_id: leaf_node_id.to_owned(),

@@ -31,19 +31,7 @@ impl Phylactery {
         &mut self,
         output_path: impl AsRef<Path>,
     ) -> Result<StorageReclamationReport, PhylacteryError> {
-        crate::maintenance::phylactery_reclamation::reclaim(
-            crate::maintenance::phylactery_reclamation::PhylacteryReclamationParts {
-                source: crate::owner_lifecycle::PhylacteryReclamationSource::prepare(
-                    &mut self.owner.container,
-                )
-                .map_err(PhylacteryError::Repack)?,
-                memories: &self.owner.memories,
-                entities: &self.owner.entities,
-                relationships: &self.owner.relationships,
-                graph: &self.owner.graph,
-            },
-            output_path.as_ref(),
-        )
+        self.runtime_reclaim_storage(output_path.as_ref())
     }
 }
 

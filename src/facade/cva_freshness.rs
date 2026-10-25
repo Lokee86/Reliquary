@@ -314,12 +314,5 @@ mod recovery_tests;
 pub(crate) fn record_dream_evidence_trace(
     trace: crate::history::dream_evidence::DreamEvidenceTrace,
 ) {
-    crate::freshness::record_dream_evidence_scan(
-        trace.elapsed_ns,
-        trace.payload_bytes,
-        trace.object_bytes,
-        trace.chunks,
-        trace.mutations,
-        trace.filtered,
-    );
+    crate::freshness_operations_runtime::record_dream_evidence_trace(trace);
 }

@@ -1,0 +1,2022 @@
+{
+  "schema": "phase7-live-query-capability-review.v1",
+  "date": "2026-10-24",
+  "status": "source-reviewed classification; implementation/acceptance open",
+  "input": "benchmarks/phase7-expanded-call-dispositions-2026-10-24.json",
+  "owner_receiver_rule": "Method signatures taking &self over live Archive/Graph/Freshness/Ego/Memory/Entity/Relationship/Insomnia/Vector/Compatibility/Generation/RewriteLineage state are owner capabilities even when they return immutable values. Constructors that capture owner/container references into read views are owner capabilities. EmbeddingEndpoint trait calls remain executable service capabilities. Detached value validators/tags are not promoted.",
+  "counts": {
+    "owner_capability_groups": 60,
+    "service_capability_groups": 4,
+    "instances": 140,
+    "owner_groups_without_exact_registered_scope": 37,
+    "owner_groups_with_multiple_exact_registered_scopes": 7
+  },
+  "groups": [
+    {
+      "group_index": 22,
+      "boundary": "import->graph-store",
+      "target": "CommunityStore::latest_if_live_members",
+      "target_definition_identity": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 128,
+        "end_line": 131,
+        "compiler_def_id": "DefId(0:50600 ~ reliquary_memory[b862]::community_store::{impl#0}::latest_if_live_members)"
+      },
+      "target_definition": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 128,
+        "end_line": 131,
+        "excerpt": "    pub(crate) fn latest_if_live_members(&self, graph: &GraphStore) -> Option<&CommunitySnapshot> {\n        self.latest()\n            .filter(|snapshot| snapshot_members_are_live(graph, snapshot))\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/imports/owner_historical.rs"
+      ],
+      "source_call": {
+        "source_path": "src/imports/owner_historical.rs",
+        "source_line": 60,
+        "source_excerpt": "                community_snapshot: owner\n                    .communities\n                    .latest_if_live_members(&owner.graph)",
+        "mir_line_sha256": "6faaf7f3c6a00307d0995d63a8e5d3b3f075324d9a323e9a272c07cd0600d29c"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 29,
+      "boundary": "import->insomnia-store",
+      "target": "InsomniaStore::stats",
+      "target_definition_identity": {
+        "path": "src/runtime_inference/insomnia/store.rs",
+        "line": 144,
+        "end_line": 154,
+        "compiler_def_id": "DefId(0:53233 ~ reliquary_memory[b862]::insomnia::store::{impl#0}::stats)"
+      },
+      "target_definition": {
+        "path": "src/runtime_inference/insomnia/store.rs",
+        "line": 144,
+        "end_line": 154,
+        "excerpt": "    pub(crate) fn stats(&self) -> InsomniaStats {\n        InsomniaStats {\n            total: self.work.len(),\n            pending: self.state_counts[0],\n            processing: self.state_counts[1],\n            complete: self.state_counts[2],"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/imports/owner_historical.rs"
+      ],
+      "source_call": {
+        "source_path": "src/imports/owner_historical.rs",
+        "source_line": 64,
+        "source_excerpt": "                insomnia: owner.insomnia.stats(),",
+        "mir_line_sha256": "6b02fba2f1f63dcc1d861192733f6f58705f46f13000ce144d6519d63c60b059"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 34,
+      "boundary": "import->vector-store",
+      "target": "ArchiveVectorStore::stats",
+      "target_definition_identity": {
+        "path": "src/retrieval/archive_vector_store.rs",
+        "line": 163,
+        "end_line": 168,
+        "compiler_def_id": "DefId(0:50285 ~ reliquary_memory[b862]::archive_vector_store::{impl#0}::stats)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/archive_vector_store.rs",
+        "line": 163,
+        "end_line": 168,
+        "excerpt": "    pub(crate) fn stats(&self) -> ArchiveVectorStats {\n        ArchiveVectorStats {\n            objects: self.objects.len(),\n            rows: self.objects.values().map(|entry| entry.info.rows).sum(),\n        }\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/imports/reconciliation_replay.rs"
+      ],
+      "source_call": {
+        "source_path": "src/imports/reconciliation_replay.rs",
+        "source_line": 151,
+        "source_excerpt": "                && (left.archive_vectors.stats().objects > 0",
+        "mir_line_sha256": "499288b3c1af9b043d8ea70e99414a078b9047b9376eb84be63f8c62396f7b2e"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 35,
+      "boundary": "import->vector-store",
+      "target": "MemoryVectorStore::stats",
+      "target_definition_identity": {
+        "path": "src/retrieval/memory_vector_store.rs",
+        "line": 218,
+        "end_line": 224,
+        "compiler_def_id": "DefId(0:54352 ~ reliquary_memory[b862]::memory_vector_store::{impl#0}::stats)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/memory_vector_store.rs",
+        "line": 218,
+        "end_line": 224,
+        "excerpt": "    pub(crate) fn stats(&self) -> MemoryVectorStats {\n        MemoryVectorStats {\n            objects: self.objects.len(),\n            rows: self.objects.values().map(|entry| entry.info.rows).sum(),\n            bindings: self.bindings.len(),\n        }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/imports/reconciliation_replay.rs"
+      ],
+      "source_call": {
+        "source_path": "src/imports/reconciliation_replay.rs",
+        "source_line": 153,
+        "source_excerpt": "                    || left.memory_vectors.stats().objects > 0),",
+        "mir_line_sha256": "6324a25adec357f921243bffd1be8cda6b697559106912880c8d87fa168028c7"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 36,
+      "boundary": "import->vector-store",
+      "target": "PackedVectorStore::stats",
+      "target_definition_identity": {
+        "path": "src/retrieval/packed_vector_store.rs",
+        "line": 210,
+        "end_line": 221,
+        "compiler_def_id": "DefId(0:54654 ~ reliquary_memory[b862]::packed_vector_store::{impl#1}::stats)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/packed_vector_store.rs",
+        "line": 210,
+        "end_line": 221,
+        "excerpt": "    pub(crate) fn stats(&self) -> PackedVectorStats {\n        PackedVectorStats {\n            objects: self.objects.len(),\n            rows: self.objects.values().map(|entry| entry.info.count).sum(),\n            matrix_bytes: self\n                .objects"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/imports/reconciliation_replay.rs"
+      ],
+      "source_call": {
+        "source_path": "src/imports/reconciliation_replay.rs",
+        "source_line": 152,
+        "source_excerpt": "                    || left.packed_vectors.stats().objects > 0",
+        "mir_line_sha256": "350868beb0a27f521f4b64d674a838d731d401be28e2783ca7fd2fdfb099cde1"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 44,
+      "boundary": "public-consumers->archive-store",
+      "target": "ArchiveReadView::new",
+      "target_definition_identity": {
+        "path": "src/archive/archive.rs",
+        "line": 74,
+        "end_line": 76,
+        "compiler_def_id": null
+      },
+      "target_definition": {
+        "path": "src/archive/archive.rs",
+        "line": 74,
+        "end_line": 76,
+        "excerpt": "    pub(crate) fn new(archive: &'a Archive, container: &'a Container) -> Self {\n        Self { archive, container }\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 12,
+      "source_paths": [
+        "src/facade/cva_retrieval_conversation_search.rs",
+        "src/facade/cva_retrieval_lexical_search.rs",
+        "src/facade/cva_retrieval_search.rs",
+        "src/facade/cva_retrieval_semantic_search.rs",
+        "src/facade/insomnia_processor.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_retrieval_conversation_search.rs",
+        "source_line": 51,
+        "source_excerpt": "        let archive = ArchiveReadView::new(&self.owner.archive, &self.owner.container);",
+        "mir_line_sha256": "dac85030f9383ae9ad6f29527543fef595840c28cba18229d99a7cec2828b7bd"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 47,
+      "boundary": "public-consumers->archive-store",
+      "target": "FragmentIndex::len",
+      "target_definition_identity": {
+        "path": "src/archive/archive_object_index.rs",
+        "line": 41,
+        "end_line": 43,
+        "compiler_def_id": "DefId(0:50206 ~ reliquary_memory[b862]::archive_object_index::{impl#1}::len)"
+      },
+      "target_definition": {
+        "path": "src/archive/archive_object_index.rs",
+        "line": 41,
+        "end_line": 43,
+        "excerpt": "    pub(crate) fn len(&self) -> usize {\n        self.records.len()\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 4,
+      "source_paths": [
+        "src/facade/historical_embedding_plan.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/historical_embedding_plan.rs",
+        "source_line": 44,
+        "source_excerpt": "    bounded(cva.archive.fragments.len(), limits.fragments, \"fragments\")?;",
+        "mir_line_sha256": "d4c638c9cd6e16471ef577c6943d00ef64ea92751f847391d074e0ae787b736f"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 48,
+      "boundary": "public-consumers->archive-store",
+      "target": "NodeIndex::get",
+      "target_definition_identity": {
+        "path": "src/archive/archive_record_index.rs",
+        "line": 16,
+        "end_line": 19,
+        "compiler_def_id": "DefId(0:50220 ~ reliquary_memory[b862]::archive_record_index::{impl#0}::get)"
+      },
+      "target_definition": {
+        "path": "src/archive/archive_record_index.rs",
+        "line": 16,
+        "end_line": 19,
+        "excerpt": "    pub(crate) fn get(&self, conversation_id: &str, id: &str) -> Option<&Node> {\n        self.ordinal(conversation_id, id)\n            .map(|index| &self.records[index])\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/facade/cva_semantic_source.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_semantic_source.rs",
+        "source_line": 18,
+        "source_excerpt": "        if self.archive.nodes.get(&node.conversation_id, &node.id) != Some(node) {",
+        "mir_line_sha256": "fcb70cac1c9e378f9a3e873e25d5fe9e8fad43add7673f4cf711545c1371d9b1"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.12e-GATEWAY-SEMANTIC-MUTATION-OPERATION-CUT",
+        "P7.1.14-FRESHNESS-FACADE-OPERATIONS"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 49,
+      "boundary": "public-consumers->archive-store",
+      "target": "NodeIndex::len",
+      "target_definition_identity": {
+        "path": "src/archive/archive_record_index.rs",
+        "line": 12,
+        "end_line": 14,
+        "compiler_def_id": "DefId(0:50219 ~ reliquary_memory[b862]::archive_record_index::{impl#0}::len)"
+      },
+      "target_definition": {
+        "path": "src/archive/archive_record_index.rs",
+        "line": 12,
+        "end_line": 14,
+        "excerpt": "    pub(crate) fn len(&self) -> usize {\n        self.records.len()\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 3,
+      "source_paths": [
+        "src/facade/historical_embedding_plan.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/historical_embedding_plan.rs",
+        "source_line": 51,
+        "source_excerpt": "        cva.archive.nodes.len(),",
+        "mir_line_sha256": "6f49af3e99645b2bfa8b65857ca273b201f8dcec7d3c6da92be53db171494b63"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 96,
+      "boundary": "public-consumers->ego-store",
+      "target": "ego_store::read::version",
+      "target_definition_identity": {
+        "path": "src/ego/ego_store_read.rs",
+        "line": 5,
+        "end_line": 7,
+        "compiler_def_id": "DefId(0:51834 ~ reliquary_memory[b862]::ego_store::read::{impl#0}::version)"
+      },
+      "target_definition": {
+        "path": "src/ego/ego_store_read.rs",
+        "line": 5,
+        "end_line": 7,
+        "excerpt": "    pub(crate) fn version(&self) -> u64 {\n        self.version\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/facade/cva_ego.rs",
+        "src/facade/phylactery_ego.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_ego.rs",
+        "source_line": 6,
+        "source_excerpt": "        self.ego.version()",
+        "mir_line_sha256": "094935896b0d255ed402280106ea2b7815c438d5424d180d065826aa3b461730"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.07-EGO-PUBLIC-OWNER-OPERATIONS"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 105,
+      "boundary": "public-consumers->freshness-store",
+      "target": "FreshnessStore::contains_event",
+      "target_definition_identity": {
+        "path": "src/freshness_storage.rs",
+        "line": 1269,
+        "end_line": 1271,
+        "compiler_def_id": "DefId(0:49944 ~ reliquary_memory[b862]::freshness_storage::{impl#1}::contains_event)"
+      },
+      "target_definition": {
+        "path": "src/freshness_storage.rs",
+        "line": 1269,
+        "end_line": 1271,
+        "excerpt": "    pub(crate) fn contains_event(&self, id: &str) -> Result<bool, String> {\n        Ok(self.find_event(id)?.is_some())\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/facade/cva_semantic_source.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_semantic_source.rs",
+        "source_line": 50,
+        "source_excerpt": "            if self\n                .freshness\n                .contains_event(&id)",
+        "mir_line_sha256": "eb7c76e086464ddce20059cb02d7a049b171d6f3edecceb86df300b275042f1a"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.12e-GATEWAY-SEMANTIC-MUTATION-OPERATION-CUT",
+        "P7.1.14-FRESHNESS-FACADE-OPERATIONS"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 109,
+      "boundary": "public-consumers->freshness-store",
+      "target": "FreshnessStore::validate_semantic_preappend",
+      "target_definition_identity": {
+        "path": "src/freshness_storage.rs",
+        "line": 1604,
+        "end_line": 1614,
+        "compiler_def_id": "DefId(0:49976 ~ reliquary_memory[b862]::freshness_storage::{impl#1}::validate_semantic_preappend)"
+      },
+      "target_definition": {
+        "path": "src/freshness_storage.rs",
+        "line": 1604,
+        "end_line": 1614,
+        "excerpt": "    pub(crate) fn validate_semantic_preappend(\n        &self,\n        owner: [u8; 16],\n        payload: &[u8],\n    ) -> Result<(), String> {\n        let mut staged = self.clone();"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/facade/cva_semantic_source.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_semantic_source.rs",
+        "source_line": 131,
+        "source_excerpt": "        self.freshness\n            .validate_semantic_preappend(source.owner_uuid, &payload)",
+        "mir_line_sha256": "2664cd70db0d493040b2367e184ef598d73516a3c5ea0647a1a819a50603ee30"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.12e-GATEWAY-SEMANTIC-MUTATION-OPERATION-CUT",
+        "P7.1.14-FRESHNESS-FACADE-OPERATIONS"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 114,
+      "boundary": "public-consumers->freshness-store",
+      "target": "import_settlement_storage::latest_import_settlement",
+      "target_definition_identity": {
+        "path": "src/freshness/freshness_import_settlement.rs",
+        "line": 318,
+        "end_line": 320,
+        "compiler_def_id": "DefId(0:49841 ~ reliquary_memory[b862]::freshness_storage::import_settlement_storage::{impl#1}::latest_import_settlement)"
+      },
+      "target_definition": {
+        "path": "src/freshness/freshness_import_settlement.rs",
+        "line": 318,
+        "end_line": 320,
+        "excerpt": "    pub(crate) fn latest_import_settlement(&self) -> Option<&HistoricalImportFreshnessSettlement> {\n        self.import_settlements.last()\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/facade/cva_semantic_live.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_semantic_live.rs",
+        "source_line": 21,
+        "source_excerpt": "        let mut floor = self\n            .freshness\n            .latest_import_settlement()",
+        "mir_line_sha256": "e2730c13a2d759523204860ad458f53e60685108674445f23d7b001e6ca30580"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.14-FRESHNESS-FACADE-OPERATIONS"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 118,
+      "boundary": "public-consumers->graph-store",
+      "target": "CommunityStore::current_semantic_names",
+      "target_definition_identity": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 38,
+        "end_line": 50,
+        "compiler_def_id": "DefId(0:50586 ~ reliquary_memory[b862]::community_store::{impl#0}::current_semantic_names)"
+      },
+      "target_definition": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 38,
+        "end_line": 50,
+        "excerpt": "    pub(crate) fn current_semantic_names(&self, graph: &GraphStore) -> Vec<CommunitySemanticName> {\n        let Some(snapshot) = self.latest() else {\n            return Vec::new();\n        };\n        if !snapshot_members_are_live(graph, snapshot) {\n            return Vec::new();"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/facade/cva_communities.rs",
+        "src/facade/phylactery_communities.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_communities.rs",
+        "source_line": 27,
+        "source_excerpt": "        self.communities.current_semantic_names(&self.graph)",
+        "mir_line_sha256": "6aa397ee2f5bbd309acb2477310fb72832d9f64ab3d3c3354e163192abe8a9e4"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.12e-GATEWAY-SEMANTIC-MUTATION-OPERATION-CUT"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 119,
+      "boundary": "public-consumers->graph-store",
+      "target": "CommunityStore::latest",
+      "target_definition_identity": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 23,
+        "end_line": 25,
+        "compiler_def_id": "DefId(0:50583 ~ reliquary_memory[b862]::community_store::{impl#0}::latest)"
+      },
+      "target_definition": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 23,
+        "end_line": 25,
+        "excerpt": "    pub(crate) fn latest(&self) -> Option<&CommunitySnapshot> {\n        self.snapshots.last()\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/facade/cva_communities.rs",
+        "src/facade/phylactery_communities.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_communities.rs",
+        "source_line": 54,
+        "source_excerpt": "        if let Some(snapshot) = self.communities.latest()",
+        "mir_line_sha256": "baacf5b6cff81c72afc888a13f976bb3ec8f7ede8079d3a15e45fb48d58751cf"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.12e-GATEWAY-SEMANTIC-MUTATION-OPERATION-CUT"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 120,
+      "boundary": "public-consumers->graph-store",
+      "target": "CommunityStore::latest_if_current_graph",
+      "target_definition_identity": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 123,
+        "end_line": 126,
+        "compiler_def_id": "DefId(0:50598 ~ reliquary_memory[b862]::community_store::{impl#0}::latest_if_current_graph)"
+      },
+      "target_definition": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 123,
+        "end_line": 126,
+        "excerpt": "    pub(crate) fn latest_if_current_graph(&self, graph: &GraphStore) -> Option<&CommunitySnapshot> {\n        self.latest()\n            .filter(|snapshot| snapshot_matches_current_graph(graph, snapshot))\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/facade/cva_communities.rs",
+        "src/facade/phylactery_communities.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_communities.rs",
+        "source_line": 56,
+        "source_excerpt": "            && self\n                .communities\n                .latest_if_current_graph(&self.graph)",
+        "mir_line_sha256": "28d4cacbd90edcc44347d8f08fbf710589a03ef1c369774a9884d4852d4cc76f"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.12e-GATEWAY-SEMANTIC-MUTATION-OPERATION-CUT"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 121,
+      "boundary": "public-consumers->graph-store",
+      "target": "CommunityStore::latest_if_live_members",
+      "target_definition_identity": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 128,
+        "end_line": 131,
+        "compiler_def_id": "DefId(0:50600 ~ reliquary_memory[b862]::community_store::{impl#0}::latest_if_live_members)"
+      },
+      "target_definition": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 128,
+        "end_line": 131,
+        "excerpt": "    pub(crate) fn latest_if_live_members(&self, graph: &GraphStore) -> Option<&CommunitySnapshot> {\n        self.latest()\n            .filter(|snapshot| snapshot_members_are_live(graph, snapshot))\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 4,
+      "source_paths": [
+        "src/facade/cva_communities.rs",
+        "src/facade/phylactery_communities.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_communities.rs",
+        "source_line": 9,
+        "source_excerpt": "        self.communities\n            .latest_if_live_members(&self.graph)",
+        "mir_line_sha256": "ceb236ea8c954b5134c239f98ad51de76246e929ff543eaa71afff54cacfdd99"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.12e-GATEWAY-SEMANTIC-MUTATION-OPERATION-CUT"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 122,
+      "boundary": "public-consumers->graph-store",
+      "target": "CommunityStore::latest_lineage",
+      "target_definition_identity": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 52,
+        "end_line": 54,
+        "compiler_def_id": "DefId(0:50588 ~ reliquary_memory[b862]::community_store::{impl#0}::latest_lineage)"
+      },
+      "target_definition": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 52,
+        "end_line": 54,
+        "excerpt": "    pub(crate) fn latest_lineage(&self) -> Option<CommunityLineageTransition> {\n        latest_lineage(&self.snapshots)\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/facade/cva_communities.rs",
+        "src/facade/phylactery_communities.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_communities.rs",
+        "source_line": 31,
+        "source_excerpt": "        self.communities.latest_lineage()",
+        "mir_line_sha256": "e3741941f6cfd42934dd73cc44c62ab3691a3d89ea73b975c1851ba506459715"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.12e-GATEWAY-SEMANTIC-MUTATION-OPERATION-CUT"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 127,
+      "boundary": "public-consumers->graph-store",
+      "target": "CommunityStore::stats",
+      "target_definition_identity": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 103,
+        "end_line": 121,
+        "compiler_def_id": "DefId(0:50596 ~ reliquary_memory[b862]::community_store::{impl#0}::stats)"
+      },
+      "target_definition": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 103,
+        "end_line": 121,
+        "excerpt": "    pub(crate) fn stats(&self, graph: &GraphStore) -> CommunityStats {\n        let latest = self.latest();\n        CommunityStats {\n            generations: latest.map_or(0, |snapshot| snapshot.generation),\n            communities: latest.map_or(0, |snapshot| snapshot.communities.len()),\n            memberships: latest.map_or(0, |snapshot| {"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/facade/cva_communities.rs",
+        "src/facade/phylactery_communities.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_communities.rs",
+        "source_line": 15,
+        "source_excerpt": "        self.communities.stats(&self.graph)",
+        "mir_line_sha256": "44a02098d621d9900d4cf11c5b3a4ec7634734c48264dc4308bc38eb706319a8"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.12e-GATEWAY-SEMANTIC-MUTATION-OPERATION-CUT"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 131,
+      "boundary": "public-consumers->graph-store",
+      "target": "graph_query::neighbors",
+      "target_definition_identity": {
+        "path": "src/semantic_graph/graph_query.rs",
+        "line": 35,
+        "end_line": 55,
+        "compiler_def_id": "DefId(0:52684 ~ reliquary_memory[b862]::graph_query::{impl#0}::neighbors)"
+      },
+      "target_definition": {
+        "path": "src/semantic_graph/graph_query.rs",
+        "line": 35,
+        "end_line": 55,
+        "excerpt": "    pub(crate) fn neighbors(\n        &self,\n        memory_id: MemoryId,\n        direction: GraphDirection,\n    ) -> Result<Vec<GraphNeighbor>, GraphError> {\n        let node_id = self.memory_projection_node_id(memory_id)?;"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/facade/cva_graph.rs",
+        "src/facade/phylactery_graph.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_graph.rs",
+        "source_line": 207,
+        "source_excerpt": "        self.graph.neighbors(memory_id, direction)",
+        "mir_line_sha256": "af36b81510876c679096b30da575ec985dfd3ee6517f25b30140e6dec1f07308"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.12e-GATEWAY-SEMANTIC-MUTATION-OPERATION-CUT"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 132,
+      "boundary": "public-consumers->graph-store",
+      "target": "graph_query::semantic_neighbors",
+      "target_definition_identity": {
+        "path": "src/semantic_graph/graph_query.rs",
+        "line": 11,
+        "end_line": 33,
+        "compiler_def_id": "DefId(0:52683 ~ reliquary_memory[b862]::graph_query::{impl#0}::semantic_neighbors)"
+      },
+      "target_definition": {
+        "path": "src/semantic_graph/graph_query.rs",
+        "line": 11,
+        "end_line": 33,
+        "excerpt": "    pub(crate) fn semantic_neighbors(\n        &self,\n        node: SemanticNodeRef,\n        direction: GraphDirection,\n    ) -> Result<Vec<SemanticGraphNeighbor>, GraphError> {\n        let node_id = self.semantic_node_id(node)?;"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/facade/cva_graph.rs",
+        "src/facade/phylactery_graph.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_graph.rs",
+        "source_line": 199,
+        "source_excerpt": "        self.graph.semantic_neighbors(node, direction)",
+        "mir_line_sha256": "b66b92b6bf2141e0b8e9b05a538034f249b2b85d2f87714061c6c2518f3d5ec0"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.12e-GATEWAY-SEMANTIC-MUTATION-OPERATION-CUT"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 133,
+      "boundary": "public-consumers->graph-store",
+      "target": "graph_query::shortest_path",
+      "target_definition_identity": {
+        "path": "src/semantic_graph/graph_query.rs",
+        "line": 57,
+        "end_line": 90,
+        "compiler_def_id": "DefId(0:52685 ~ reliquary_memory[b862]::graph_query::{impl#0}::shortest_path)"
+      },
+      "target_definition": {
+        "path": "src/semantic_graph/graph_query.rs",
+        "line": 57,
+        "end_line": 90,
+        "excerpt": "    pub(crate) fn shortest_path(\n        &self,\n        source: MemoryId,\n        target: MemoryId,\n        max_depth: usize,\n    ) -> Result<Option<MemoryGraphPath>, GraphError> {"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/facade/cva_graph.rs",
+        "src/facade/phylactery_graph.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_graph.rs",
+        "source_line": 216,
+        "source_excerpt": "        self.graph.shortest_path(source, target, max_depth)",
+        "mir_line_sha256": "a1a2ae989728587f4d17add298408aa7c613f6d1ecdf5c3169a37ed88144b365"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.12e-GATEWAY-SEMANTIC-MUTATION-OPERATION-CUT"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 142,
+      "boundary": "public-consumers->graph-store",
+      "target": "graph_store::read::stats",
+      "target_definition_identity": {
+        "path": "src/semantic_graph/graph_store_read.rs",
+        "line": 18,
+        "end_line": 43,
+        "compiler_def_id": "DefId(0:52704 ~ reliquary_memory[b862]::graph_store::read::{impl#0}::stats)"
+      },
+      "target_definition": {
+        "path": "src/semantic_graph/graph_store_read.rs",
+        "line": 18,
+        "end_line": 43,
+        "excerpt": "    pub(crate) fn stats(&self) -> GraphStats {\n        GraphStats {\n            nodes: self\n                .nodes\n                .iter()\n                .filter(|node| !self.excluded_nodes.contains(&node.semantic_node))"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/facade/cva_graph.rs",
+        "src/facade/phylactery_graph.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_graph.rs",
+        "source_line": 149,
+        "source_excerpt": "        self.graph.stats()",
+        "mir_line_sha256": "54b3176d95fe4828aa65f27fd7a80800b239a595050e5141f0d0c05a57a9dc18"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.12e-GATEWAY-SEMANTIC-MUTATION-OPERATION-CUT"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 166,
+      "boundary": "public-consumers->insomnia-store",
+      "target": "InsomniaStore::stats",
+      "target_definition_identity": {
+        "path": "src/runtime_inference/insomnia/store.rs",
+        "line": 144,
+        "end_line": 154,
+        "compiler_def_id": "DefId(0:53233 ~ reliquary_memory[b862]::insomnia::store::{impl#0}::stats)"
+      },
+      "target_definition": {
+        "path": "src/runtime_inference/insomnia/store.rs",
+        "line": 144,
+        "end_line": 154,
+        "excerpt": "    pub(crate) fn stats(&self) -> InsomniaStats {\n        InsomniaStats {\n            total: self.work.len(),\n            pending: self.state_counts[0],\n            processing: self.state_counts[1],\n            complete: self.state_counts[2],"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/facade/insomnia_cva.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/insomnia_cva.rs",
+        "source_line": 273,
+        "source_excerpt": "        self.insomnia.stats()",
+        "mir_line_sha256": "445bb6ca6234ca099680367ec4322d69b869e5c97becff9db4b96401339b428c"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 171,
+      "boundary": "public-consumers->maintenance-store",
+      "target": "RewriteLineageStore::generation",
+      "target_definition_identity": {
+        "path": "src/rewrite_lineage.rs",
+        "line": 79,
+        "end_line": 83,
+        "compiler_def_id": "DefId(0:50035 ~ reliquary_memory[b862]::rewrite_lineage::{impl#3}::generation)"
+      },
+      "target_definition": {
+        "path": "src/rewrite_lineage.rs",
+        "line": 79,
+        "end_line": 83,
+        "excerpt": "    pub(crate) fn generation(&self) -> HistoryGenerationId {\n        self.genesis\n            .as_ref()\n            .map_or(HistoryGenerationId::ZERO, |value| value.generation)\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/facade/rewrite_lineage_extensions.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/rewrite_lineage_extensions.rs",
+        "source_line": 5,
+        "source_excerpt": "        self.rewrite_lineage.generation()",
+        "mir_line_sha256": "dc837e26e2450fa8d7acf89e5170ba1fd5dbb85723fde1468df74567906a79f0"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 175,
+      "boundary": "public-consumers->memory-store",
+      "target": "MemoryReadView::new",
+      "target_definition_identity": {
+        "path": "src/memory/memory_store.rs",
+        "line": 74,
+        "end_line": 76,
+        "compiler_def_id": null
+      },
+      "target_definition": {
+        "path": "src/memory/memory_store.rs",
+        "line": 74,
+        "end_line": 76,
+        "excerpt": "    pub(crate) fn new(store: &'a MemoryStore, container: &'a Container) -> Self {\n        Self { store, container }\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 7,
+      "source_paths": [
+        "src/facade/cva_retrieval_lexical_search.rs",
+        "src/facade/dream_lifecycle.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_retrieval_lexical_search.rs",
+        "source_line": 13,
+        "source_excerpt": "        let memory_read = MemoryReadView::new(&self.owner.memories, &self.owner.container);",
+        "mir_line_sha256": "eb89eb9700e12da2703a4ec45c5978c6445a24debcc8640a14bbe3706986d41a"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 217,
+      "boundary": "public-consumers->perception-store",
+      "target": "relationship_store::read::current",
+      "target_definition_identity": {
+        "path": "src/perception/relationship_store_read.rs",
+        "line": 98,
+        "end_line": 106,
+        "compiler_def_id": "DefId(0:55165 ~ reliquary_memory[b862]::relationship_store::read::{impl#0}::current)"
+      },
+      "target_definition": {
+        "path": "src/perception/relationship_store_read.rs",
+        "line": 98,
+        "end_line": 106,
+        "excerpt": "    pub(crate) fn current(&self) -> Vec<Relationship> {\n        let mut values: Vec<_> = self\n            .current\n            .values()\n            .map(|index| resolve(&self.records[*index]))\n            .collect();"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/facade/cva_relationship_owner.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_relationship_owner.rs",
+        "source_line": 123,
+        "source_excerpt": "                self.relationships.current()",
+        "mir_line_sha256": "509c622280c558c6d21a07c1d6df895dcd125ee8e484bff4311fb94339dd7bf5"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.14g-PUBLIC-RELATIONSHIP-OWNER-OPERATIONS"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 224,
+      "boundary": "public-consumers->perception-store",
+      "target": "relationship_store::read::stats",
+      "target_definition_identity": {
+        "path": "src/perception/relationship_store_read.rs",
+        "line": 153,
+        "end_line": 159,
+        "compiler_def_id": "DefId(0:55172 ~ reliquary_memory[b862]::relationship_store::read::{impl#0}::stats)"
+      },
+      "target_definition": {
+        "path": "src/perception/relationship_store_read.rs",
+        "line": 153,
+        "end_line": 159,
+        "excerpt": "    pub(crate) fn stats(&self) -> RelationshipStats {\n        RelationshipStats {\n            relationships: self.current.len(),\n            revisions: self.records.len(),\n            relationship_version: self.relationship_version(),\n        }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/facade/cva_relationship_owner.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_relationship_owner.rs",
+        "source_line": 135,
+        "source_excerpt": "                self.relationships.stats()",
+        "mir_line_sha256": "0bcaf113ccaca5d94f2efe480d7ad7a9144ed4612f66e30aa8013e2b56034368"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.14g-PUBLIC-RELATIONSHIP-OWNER-OPERATIONS"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 225,
+      "boundary": "public-consumers->retrieval",
+      "target": "MemoryLexicalReadView::new",
+      "target_definition_identity": {
+        "path": "src/retrieval/lexical_search.rs",
+        "line": 15,
+        "end_line": 17,
+        "compiler_def_id": null
+      },
+      "target_definition": {
+        "path": "src/retrieval/lexical_search.rs",
+        "line": 15,
+        "end_line": 17,
+        "excerpt": "    pub(crate) fn new(index: &'a mut LexicalIndex, memories: MemoryReadView<'a>) -> Self {\n        Self { index, memories }\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 3,
+      "source_paths": [
+        "src/facade/cva_retrieval_lexical_search.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_retrieval_lexical_search.rs",
+        "source_line": 14,
+        "source_excerpt": "        let mut view = MemoryLexicalReadView::new(&mut self.lexical_index, memory_read);",
+        "mir_line_sha256": "66fa09e7ccd0f988a9767079aa39e274ea590ace4bc8fbe0150d051ebc903725"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 237,
+      "boundary": "public-consumers->switchboard",
+      "target": "<E as embedding_endpoint::EmbeddingEndpoint>::dimensions",
+      "target_definition_identity": {
+        "path": "src/runtime_inference/embedding_endpoint.rs",
+        "line": 58,
+        "end_line": 58,
+        "compiler_def_id": "DefId(0:51869 ~ reliquary_memory[b862]::embedding_endpoint::EmbeddingEndpoint::dimensions)"
+      },
+      "target_definition": {
+        "path": "src/runtime_inference/embedding_endpoint.rs",
+        "line": 58,
+        "end_line": 58,
+        "excerpt": "    fn dimensions(&self) -> u32;"
+      },
+      "receiver_class": "embedding endpoint service capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/facade/historical_embedding.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/historical_embedding.rs",
+        "source_line": 57,
+        "source_excerpt": "        self.endpoint.dimensions()",
+        "mir_line_sha256": "f935510ad0c3dd2ed58857e2bbdccfee3653abd86d6fe666e081a1adac7df29d"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "semantic_endpoint_review_required"
+    },
+    {
+      "group_index": 239,
+      "boundary": "public-consumers->switchboard",
+      "target": "<E as embedding_endpoint::EmbeddingEndpoint>::normalization",
+      "target_definition_identity": {
+        "path": "src/runtime_inference/embedding_endpoint.rs",
+        "line": 59,
+        "end_line": 59,
+        "compiler_def_id": "DefId(0:51870 ~ reliquary_memory[b862]::embedding_endpoint::EmbeddingEndpoint::normalization)"
+      },
+      "target_definition": {
+        "path": "src/runtime_inference/embedding_endpoint.rs",
+        "line": 59,
+        "end_line": 59,
+        "excerpt": "    fn normalization(&self) -> VectorNormalization;"
+      },
+      "receiver_class": "embedding endpoint service capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/facade/historical_embedding.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/historical_embedding.rs",
+        "source_line": 60,
+        "source_excerpt": "        self.endpoint.normalization()",
+        "mir_line_sha256": "96f2545b80e59c2f89c9b7a7ee4bc238ceafb481ccd01f863d1fc201c029d9fe"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "semantic_endpoint_review_required"
+    },
+    {
+      "group_index": 242,
+      "boundary": "public-consumers->switchboard",
+      "target": "<OpenAiReadyEmbeddingEndpoint as embedding_endpoint::EmbeddingEndpoint>::normalization",
+      "target_definition_identity": {
+        "path": "src/runtime_inference/embedding_endpoint.rs",
+        "line": 59,
+        "end_line": 59,
+        "compiler_def_id": "DefId(0:51870 ~ reliquary_memory[b862]::embedding_endpoint::EmbeddingEndpoint::normalization)"
+      },
+      "target_definition": {
+        "path": "src/runtime_inference/embedding_endpoint.rs",
+        "line": 59,
+        "end_line": 59,
+        "excerpt": "    fn normalization(&self) -> VectorNormalization;"
+      },
+      "receiver_class": "embedding endpoint service capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/facade/configured_runtime_vectors.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/configured_runtime_vectors.rs",
+        "source_line": 21,
+        "source_excerpt": "            normalization: endpoint.normalization(),",
+        "mir_line_sha256": "cdca9d6eb0def609fda46bed0ddf64b2ff89787dc4779254760a1850cde6dc8e"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "semantic_endpoint_review_required"
+    },
+    {
+      "group_index": 243,
+      "boundary": "public-consumers->switchboard",
+      "target": "<Provider<'{erased}, E> as embedding_endpoint::EmbeddingEndpoint>::dimensions",
+      "target_definition_identity": {
+        "path": "src/runtime_inference/embedding_endpoint.rs",
+        "line": 58,
+        "end_line": 58,
+        "compiler_def_id": "DefId(0:51869 ~ reliquary_memory[b862]::embedding_endpoint::EmbeddingEndpoint::dimensions)"
+      },
+      "target_definition": {
+        "path": "src/runtime_inference/embedding_endpoint.rs",
+        "line": 58,
+        "end_line": 58,
+        "excerpt": "    fn dimensions(&self) -> u32;"
+      },
+      "receiver_class": "embedding endpoint service capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/facade/historical_embedding.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/historical_embedding.rs",
+        "source_line": 94,
+        "source_excerpt": "            .checked_mul(self.dimensions() as usize)",
+        "mir_line_sha256": "442b3c517ed02c335d9d7cef151d4a42860d9e53414a62e63975a67560e7c5e6"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "semantic_endpoint_review_required"
+    },
+    {
+      "group_index": 256,
+      "boundary": "public-consumers->vector-store",
+      "target": "CompatibilityProfileStore::get_active",
+      "target_definition_identity": {
+        "path": "src/retrieval/compatibility_profile_store.rs",
+        "line": 84,
+        "end_line": 88,
+        "compiler_def_id": "DefId(0:50642 ~ reliquary_memory[b862]::compatibility_profile_store::{impl#0}::get_active)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/compatibility_profile_store.rs",
+        "line": 84,
+        "end_line": 88,
+        "excerpt": "    pub(crate) fn get_active(&self, id: CompatibilityProfileId) -> Option<&CompatibilityProfile> {\n        (!self.retired.contains(&id))\n            .then(|| self.profiles.get(&id))\n            .flatten()\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/facade/cva_retrieval_semantic_search.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_retrieval_semantic_search.rs",
+        "source_line": 23,
+        "source_excerpt": "        let profile = self\n            .compatibility_profiles\n            .get_active(compatibility_profile_id)",
+        "mir_line_sha256": "4508272b70516a6ba148dbcec6d0edd8f5ee571c5ea42fae2de15dac4f865b27"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 258,
+      "boundary": "public-consumers->vector-store",
+      "target": "VectorGenerationStore::current_generation",
+      "target_definition_identity": {
+        "path": "src/retrieval/vector_generation_store.rs",
+        "line": 152,
+        "end_line": 159,
+        "compiler_def_id": "DefId(0:56844 ~ reliquary_memory[b862]::vector_generation_store::{impl#1}::current_generation)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/vector_generation_store.rs",
+        "line": 152,
+        "end_line": 159,
+        "excerpt": "    pub(crate) fn current_generation(\n        &self,\n        compatibility_profile_id: CompatibilityProfileId,\n    ) -> Option<VectorGeneration> {\n        self.current_by_profile\n            .get(&compatibility_profile_id)"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/facade/cva_retrieval_search.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_retrieval_search.rs",
+        "source_line": 76,
+        "source_excerpt": "                if self\n                    .vector_generations\n                    .current_generation(profile)",
+        "mir_line_sha256": "b3f219f62caeb57207011ec4616dc2daa4e6954b24361b42c30b17754c1dcdbb"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 261,
+      "boundary": "public-consumers->vector-store",
+      "target": "VectorReadView::new",
+      "target_definition_identity": {
+        "path": "src/retrieval/vector_generation_store.rs",
+        "line": 21,
+        "end_line": 33,
+        "compiler_def_id": null
+      },
+      "target_definition": {
+        "path": "src/retrieval/vector_generation_store.rs",
+        "line": 21,
+        "end_line": 33,
+        "excerpt": "    pub(crate) fn new(\n        generations: &'a VectorGenerationStore,\n        archive_vectors: &'a crate::archive_vector_store::ArchiveVectorStore,\n        packed_vectors: &'a crate::packed_vector_store::PackedVectorStore,\n        container: &'a Container,\n    ) -> Self {"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/facade/cva_retrieval_conversation_search.rs",
+        "src/facade/cva_retrieval_semantic_search.rs"
+      ],
+      "source_call": {
+        "source_path": "src/facade/cva_retrieval_conversation_search.rs",
+        "source_line": 52,
+        "source_excerpt": "        let vectors = VectorReadView::new(\n            &self.owner.vector_generations,\n            &self.owner.archive_vectors,\n            &self.owner.packed_vectors,\n            &self.owner.container,\n        );",
+        "mir_line_sha256": "6541640a8063686e6b2a34bfe4148ec4951f3d0b1f398e5151663ab8347c4100"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 297,
+      "boundary": "runtime-gateway->freshness-store",
+      "target": "FreshnessStore::contains_event",
+      "target_definition_identity": {
+        "path": "src/freshness_storage.rs",
+        "line": 1269,
+        "end_line": 1271,
+        "compiler_def_id": "DefId(0:49944 ~ reliquary_memory[b862]::freshness_storage::{impl#1}::contains_event)"
+      },
+      "target_definition": {
+        "path": "src/freshness_storage.rs",
+        "line": 1269,
+        "end_line": 1271,
+        "excerpt": "    pub(crate) fn contains_event(&self, id: &str) -> Result<bool, String> {\n        Ok(self.find_event(id)?.is_some())\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/runtime_inference/freshness_operations.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/freshness_operations.rs",
+        "source_line": 182,
+        "source_excerpt": "        if self\n            .freshness\n            .contains_event(&event_id)",
+        "mir_line_sha256": "2bf9a90d87ed936f196c96f42661e6c37a1e24128dc0853130d9ca81970dd74b"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.05b-DREAM-JOURNAL-PERSISTENCE",
+        "P7.1.14-FRESHNESS-FACADE-OPERATIONS"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 298,
+      "boundary": "runtime-gateway->freshness-store",
+      "target": "FreshnessStore::current_rewrite_record",
+      "target_definition_identity": {
+        "path": "src/freshness_storage.rs",
+        "line": 1386,
+        "end_line": 1396,
+        "compiler_def_id": "DefId(0:49964 ~ reliquary_memory[b862]::freshness_storage::{impl#1}::current_rewrite_record)"
+      },
+      "target_definition": {
+        "path": "src/freshness_storage.rs",
+        "line": 1386,
+        "end_line": 1396,
+        "excerpt": "    pub(crate) fn current_rewrite_record(\n        &self,\n        id: MemoryId,\n        turn: u64,\n    ) -> Option<FreshnessRecord> {\n        let mut record = *self.records.get(&id)?;"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/runtime_inference/freshness_operations.rs",
+        "src/runtime_inference/runtime_freshness_birth.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/freshness_operations.rs",
+        "source_line": 53,
+        "source_excerpt": "        self.owner\n            .freshness\n            .current_rewrite_record(id, self.owner.archive.rel_turn_count())",
+        "mir_line_sha256": "b25006521e46530fd3422af84f576edbfb69f8fc6fbc1445ddabe113a96f4b6c"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 312,
+      "boundary": "runtime-gateway->freshness-store",
+      "target": "FreshnessStore::validate_event_payload",
+      "target_definition_identity": {
+        "path": "src/freshness_storage.rs",
+        "line": 1169,
+        "end_line": 1188,
+        "compiler_def_id": "DefId(0:49933 ~ reliquary_memory[b862]::freshness_storage::{impl#1}::validate_event_payload)"
+      },
+      "target_definition": {
+        "path": "src/freshness_storage.rs",
+        "line": 1169,
+        "end_line": 1188,
+        "excerpt": "    pub(crate) fn validate_event_payload(\n        &self,\n        id: &str,\n        turn: u64,\n        proof: FreshnessEventProof,\n        effects: &BTreeMap<MemoryId, i16>,"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/runtime_inference/freshness_operations.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/freshness_operations.rs",
+        "source_line": 242,
+        "source_excerpt": "        self.freshness\n            .validate_event_payload(&event_id, turn, proof, &effects, &postimages)",
+        "mir_line_sha256": "aa6c6e4ebb2b55cca230a343fd18e087651ecc1765b95a539387491701d69a98"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.05b-DREAM-JOURNAL-PERSISTENCE",
+        "P7.1.14-FRESHNESS-FACADE-OPERATIONS"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 315,
+      "boundary": "runtime-gateway->graph-store",
+      "target": "CommunityStore::contains_snapshot",
+      "target_definition_identity": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 27,
+        "end_line": 32,
+        "compiler_def_id": "DefId(0:50584 ~ reliquary_memory[b862]::community_store::{impl#0}::contains_snapshot)"
+      },
+      "target_definition": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 27,
+        "end_line": 32,
+        "excerpt": "    pub(crate) fn contains_snapshot(&self, generation: u64, derived_graph_version: u64) -> bool {\n        self.snapshots.iter().any(|snapshot| {\n            snapshot.generation == generation\n                && snapshot.derived_graph_version == derived_graph_version\n        })\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/runtime_inference/freshness_operations.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/freshness_operations.rs",
+        "source_line": 38,
+        "source_excerpt": "                        && self.communities.contains_snapshot(generation, version)",
+        "mir_line_sha256": "6a908b2b7b57bc08a4b659dcbb73f845cf30bf6a6019f450ec0c19e089d02842"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.05b-DREAM-JOURNAL-PERSISTENCE",
+        "P7.1.14-FRESHNESS-FACADE-OPERATIONS"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 316,
+      "boundary": "runtime-gateway->graph-store",
+      "target": "CommunityStore::current_semantic_names",
+      "target_definition_identity": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 38,
+        "end_line": 50,
+        "compiler_def_id": "DefId(0:50586 ~ reliquary_memory[b862]::community_store::{impl#0}::current_semantic_names)"
+      },
+      "target_definition": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 38,
+        "end_line": 50,
+        "excerpt": "    pub(crate) fn current_semantic_names(&self, graph: &GraphStore) -> Vec<CommunitySemanticName> {\n        let Some(snapshot) = self.latest() else {\n            return Vec::new();\n        };\n        if !snapshot_members_are_live(graph, snapshot) {\n            return Vec::new();"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/runtime_inference/reliquary_runtime_owner.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/reliquary_runtime_owner.rs",
+        "source_line": 238,
+        "source_excerpt": "        self.owner\n            .communities\n            .current_semantic_names(&self.owner.graph)",
+        "mir_line_sha256": "0f3d426c4517a5605c0180d1547da3c7648b9d3c6bae861ce62539b1db88bdb8"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 317,
+      "boundary": "runtime-gateway->graph-store",
+      "target": "CommunityStore::latest_if_live_members",
+      "target_definition_identity": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 128,
+        "end_line": 131,
+        "compiler_def_id": "DefId(0:50600 ~ reliquary_memory[b862]::community_store::{impl#0}::latest_if_live_members)"
+      },
+      "target_definition": {
+        "path": "src/semantic_graph/community_store.rs",
+        "line": 128,
+        "end_line": 131,
+        "excerpt": "    pub(crate) fn latest_if_live_members(&self, graph: &GraphStore) -> Option<&CommunitySnapshot> {\n        self.latest()\n            .filter(|snapshot| snapshot_members_are_live(graph, snapshot))\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/runtime_inference/reliquary_runtime_owner.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/reliquary_runtime_owner.rs",
+        "source_line": 231,
+        "source_excerpt": "        self.owner\n            .communities\n            .latest_if_live_members(&self.owner.graph)",
+        "mir_line_sha256": "86aa4137434455e55ece0ef0894cac3f2926c15f6f23c815d248e09714dfda84"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 334,
+      "boundary": "runtime-gateway->insomnia-store",
+      "target": "InsomniaStore::stats",
+      "target_definition_identity": {
+        "path": "src/runtime_inference/insomnia/store.rs",
+        "line": 144,
+        "end_line": 154,
+        "compiler_def_id": "DefId(0:53233 ~ reliquary_memory[b862]::insomnia::store::{impl#0}::stats)"
+      },
+      "target_definition": {
+        "path": "src/runtime_inference/insomnia/store.rs",
+        "line": 144,
+        "end_line": 154,
+        "excerpt": "    pub(crate) fn stats(&self) -> InsomniaStats {\n        InsomniaStats {\n            total: self.work.len(),\n            pending: self.state_counts[0],\n            processing: self.state_counts[1],\n            complete: self.state_counts[2],"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/runtime_inference/insomnia_worker_runtime.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/insomnia_worker_runtime.rs",
+        "source_line": 134,
+        "source_excerpt": "    let initial_stats = cva.owner.insomnia.stats();",
+        "mir_line_sha256": "fecdbda8642abd858fa660009b5270a9e0d112b5c875fd2b7a6b6a65744461b6"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 336,
+      "boundary": "runtime-gateway->perception-store",
+      "target": "EntityResolutionStore::get",
+      "target_definition_identity": {
+        "path": "src/perception/entity_resolution_store.rs",
+        "line": 148,
+        "end_line": 150,
+        "compiler_def_id": "DefId(0:52288 ~ reliquary_memory[b862]::entity_resolution_store::{impl#0}::get)"
+      },
+      "target_definition": {
+        "path": "src/perception/entity_resolution_store.rs",
+        "line": 148,
+        "end_line": 150,
+        "excerpt": "    pub(crate) fn get(&self, key: MemoryEntityMentionKey) -> Option<&MemoryEntityResolution> {\n        self.current.get(&key)\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/runtime_inference/perception_entity_resolution.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/perception_entity_resolution.rs",
+        "source_line": 640,
+        "source_excerpt": "            pub(crate) fn runtime_entity_resolution(&self,key:MemoryEntityMentionKey)->Option<&crate::MemoryEntityResolution>{self.owner.entity_resolutions.get(key)}",
+        "mir_line_sha256": "1d297c41722efc0c2a824581f8de26fed673a0c371028f6354f482734419d811"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.14a-PERCEPTION-ENTITY-OPERATIONS"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 338,
+      "boundary": "runtime-gateway->perception-store",
+      "target": "EntityResolutionStore::validate_local",
+      "target_definition_identity": {
+        "path": "src/perception/entity_resolution_store.rs",
+        "line": 141,
+        "end_line": 146,
+        "compiler_def_id": "DefId(0:52287 ~ reliquary_memory[b862]::entity_resolution_store::{impl#0}::validate_local)"
+      },
+      "target_definition": {
+        "path": "src/perception/entity_resolution_store.rs",
+        "line": 141,
+        "end_line": 146,
+        "excerpt": "    pub(crate) fn validate_local(&self) -> Result<(), MemoryError> {\n        for value in self.current.values() {\n            validate_status(&value.status)?;\n        }\n        Ok(())\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/runtime_inference/phy_execution_owner.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/phy_execution_owner.rs",
+        "source_line": 107,
+        "source_excerpt": "        result.entity_resolutions.validate_local()?;",
+        "mir_line_sha256": "fe684cb07ea41c5b6e1a5c887da825ce7d8add1b7c865c10199d915ef3bbb7e2"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.12a-RUNTIME-GATEWAY-PHY-OWNER-HANDLE"
+      ],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 348,
+      "boundary": "runtime-gateway->perception-store",
+      "target": "entity_store::read::current",
+      "target_definition_identity": {
+        "path": "src/perception/entity_store_read.rs",
+        "line": 103,
+        "end_line": 111,
+        "compiler_def_id": "DefId(0:52336 ~ reliquary_memory[b862]::entity_store::read::{impl#0}::current)"
+      },
+      "target_definition": {
+        "path": "src/perception/entity_store_read.rs",
+        "line": 103,
+        "end_line": 111,
+        "excerpt": "    pub(crate) fn current(&self) -> Vec<Entity> {\n        let mut values: Vec<_> = self\n            .current\n            .values()\n            .map(|index| resolve(&self.records[*index]))\n            .collect();"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/runtime_inference/perception_entity_merge.rs",
+        "src/runtime_inference/reliquary_runtime_owner.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/perception_entity_merge.rs",
+        "source_line": 249,
+        "source_excerpt": "    owner.owner.entities.current()",
+        "mir_line_sha256": "15b04728523d3a850dd0758f71404ce66d31fafaaf200c3edb3483c24da2ecca"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 354,
+      "boundary": "runtime-gateway->perception-store",
+      "target": "entity_store::read::stats",
+      "target_definition_identity": {
+        "path": "src/perception/entity_store_read.rs",
+        "line": 249,
+        "end_line": 255,
+        "compiler_def_id": "DefId(0:52350 ~ reliquary_memory[b862]::entity_store::read::{impl#0}::stats)"
+      },
+      "target_definition": {
+        "path": "src/perception/entity_store_read.rs",
+        "line": 249,
+        "end_line": 255,
+        "excerpt": "    pub(crate) fn stats(&self) -> EntityStats {\n        EntityStats {\n            entities: self.current.len(),\n            revisions: self.records.len(),\n            entity_version: self.entity_version(),\n        }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/runtime_inference/perception_entity_merge.rs",
+        "src/runtime_inference/reliquary_runtime_owner.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/perception_entity_merge.rs",
+        "source_line": 257,
+        "source_excerpt": "    owner.owner.entities.stats()",
+        "mir_line_sha256": "6c7a86fce44502a1cd3de1a2462e2af40cbca910827e9c4633eac1652d853b34"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 438,
+      "boundary": "runtime-gateway->vector-store",
+      "target": "ArchiveVectorStore::infos",
+      "target_definition_identity": {
+        "path": "src/retrieval/archive_vector_store.rs",
+        "line": 157,
+        "end_line": 161,
+        "compiler_def_id": "DefId(0:50284 ~ reliquary_memory[b862]::archive_vector_store::{impl#0}::infos)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/archive_vector_store.rs",
+        "line": 157,
+        "end_line": 161,
+        "excerpt": "    pub(crate) fn infos(&self) -> Vec<ArchiveVectorInfo> {\n        let mut infos: Vec<_> = self.objects.values().map(|entry| entry.info).collect();\n        infos.sort_by_key(|info| info.id.0);\n        infos\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/runtime_inference/public_vector_operations.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/public_vector_operations.rs",
+        "source_line": 99,
+        "source_excerpt": "        self.owner.archive_vectors.infos()",
+        "mir_line_sha256": "ce7f07c34b533a6ce6a979836fd7dd1b77a322bb5ca8752f194da9674aaee111"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 439,
+      "boundary": "runtime-gateway->vector-store",
+      "target": "ArchiveVectorStore::stats",
+      "target_definition_identity": {
+        "path": "src/retrieval/archive_vector_store.rs",
+        "line": 163,
+        "end_line": 168,
+        "compiler_def_id": "DefId(0:50285 ~ reliquary_memory[b862]::archive_vector_store::{impl#0}::stats)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/archive_vector_store.rs",
+        "line": 163,
+        "end_line": 168,
+        "excerpt": "    pub(crate) fn stats(&self) -> ArchiveVectorStats {\n        ArchiveVectorStats {\n            objects: self.objects.len(),\n            rows: self.objects.values().map(|entry| entry.info.rows).sum(),\n        }\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/runtime_inference/public_vector_operations.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/public_vector_operations.rs",
+        "source_line": 103,
+        "source_excerpt": "        self.owner.archive_vectors.stats()",
+        "mir_line_sha256": "a559b838d4080efa7b974c701da914369d225fc688aba208e79ac95fb69ff46b"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 441,
+      "boundary": "runtime-gateway->vector-store",
+      "target": "CompatibilityProfileStore::get",
+      "target_definition_identity": {
+        "path": "src/retrieval/compatibility_profile_store.rs",
+        "line": 80,
+        "end_line": 82,
+        "compiler_def_id": "DefId(0:50641 ~ reliquary_memory[b862]::compatibility_profile_store::{impl#0}::get)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/compatibility_profile_store.rs",
+        "line": 80,
+        "end_line": 82,
+        "excerpt": "    pub(crate) fn get(&self, id: CompatibilityProfileId) -> Option<&CompatibilityProfile> {\n        self.profiles.get(&id)\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 4,
+      "source_paths": [
+        "src/runtime_inference/public_vector_operations.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/public_vector_operations.rs",
+        "source_line": 144,
+        "source_excerpt": "        self.owner\n            .compatibility_profiles\n            .get(id)",
+        "mir_line_sha256": "c4216fe83efac4cc74c1b4a3aee6454f4e6226f37e79b2aca58f6edd0c45a57e"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 442,
+      "boundary": "runtime-gateway->vector-store",
+      "target": "CompatibilityProfileStore::get_active",
+      "target_definition_identity": {
+        "path": "src/retrieval/compatibility_profile_store.rs",
+        "line": 84,
+        "end_line": 88,
+        "compiler_def_id": "DefId(0:50642 ~ reliquary_memory[b862]::compatibility_profile_store::{impl#0}::get_active)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/compatibility_profile_store.rs",
+        "line": 84,
+        "end_line": 88,
+        "excerpt": "    pub(crate) fn get_active(&self, id: CompatibilityProfileId) -> Option<&CompatibilityProfile> {\n        (!self.retired.contains(&id))\n            .then(|| self.profiles.get(&id))\n            .flatten()\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 10,
+      "source_paths": [
+        "src/runtime_inference/phy_execution_owner.rs",
+        "src/runtime_inference/public_vector_operations.rs",
+        "src/runtime_inference/reliquary_runtime_owner.rs",
+        "src/runtime_inference/runtime_host_gateway_agentic_memory_query.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/phy_execution_owner.rs",
+        "source_line": 67,
+        "source_excerpt": "        let profile = self.owner.compatibility_profiles.get_active(id)?;",
+        "mir_line_sha256": "2acd5695bebf850c19a4db93d9a16ac8cfd719ccdcf44b4cdff8c7daeecf494e"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 444,
+      "boundary": "runtime-gateway->vector-store",
+      "target": "CompatibilityProfileStore::profiles",
+      "target_definition_identity": {
+        "path": "src/retrieval/compatibility_profile_store.rs",
+        "line": 121,
+        "end_line": 125,
+        "compiler_def_id": "DefId(0:50647 ~ reliquary_memory[b862]::compatibility_profile_store::{impl#0}::profiles)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/compatibility_profile_store.rs",
+        "line": 121,
+        "end_line": 125,
+        "excerpt": "    pub(crate) fn profiles(&self) -> Vec<CompatibilityProfile> {\n        let mut profiles: Vec<_> = self.profiles.values().cloned().collect();\n        profiles.sort_by_key(|profile| profile.id.0);\n        profiles\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 5,
+      "source_paths": [
+        "src/runtime_inference/public_vector_operations.rs",
+        "src/runtime_inference/reliquary_runtime_owner.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/public_vector_operations.rs",
+        "source_line": 152,
+        "source_excerpt": "        self.owner.compatibility_profiles.profiles()",
+        "mir_line_sha256": "e5dbb7bd4c4020a5dc94aed9640edbabd212a2a780fd409c02bbf00d312268ac"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 446,
+      "boundary": "runtime-gateway->vector-store",
+      "target": "CompatibilityProfileStore::stats",
+      "target_definition_identity": {
+        "path": "src/retrieval/compatibility_profile_store.rs",
+        "line": 127,
+        "end_line": 133,
+        "compiler_def_id": "DefId(0:50648 ~ reliquary_memory[b862]::compatibility_profile_store::{impl#0}::stats)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/compatibility_profile_store.rs",
+        "line": 127,
+        "end_line": 133,
+        "excerpt": "    pub(crate) fn stats(&self) -> CompatibilityProfileStats {\n        CompatibilityProfileStats {\n            profiles: self.profiles.len(),\n            active_profiles: self.profiles.len() - self.retired.len(),\n            retired_profiles: self.retired.len(),\n        }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/runtime_inference/public_vector_operations.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/public_vector_operations.rs",
+        "source_line": 167,
+        "source_excerpt": "        self.owner.compatibility_profiles.stats()",
+        "mir_line_sha256": "9eab677dae36a7302da188542aeca16c66b59af0265cc86f37847d4be59558c6"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 447,
+      "boundary": "runtime-gateway->vector-store",
+      "target": "MemoryVectorReadView::new",
+      "target_definition_identity": {
+        "path": "src/retrieval/memory_vector_store.rs",
+        "line": 309,
+        "end_line": 319,
+        "compiler_def_id": null
+      },
+      "target_definition": {
+        "path": "src/retrieval/memory_vector_store.rs",
+        "line": 309,
+        "end_line": 319,
+        "excerpt": "    pub(crate) fn new(\n        store: &'a MemoryVectorStore,\n        packed: &'a PackedVectorStore,\n        container: &'a Container,\n    ) -> Self {\n        Self {"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/runtime_inference/runtime_host_gateway_agentic_memory_query.rs",
+        "src/runtime_inference/runtime_host_phy_dream.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/runtime_host_phy_dream.rs",
+        "source_line": 68,
+        "source_excerpt": "                crate::memory_vector_store::MemoryVectorReadView::new(\n                    &phy.owner.memory_vectors,\n                    &phy.owner.packed_vectors,\n                    &phy.owner.container,\n                ),",
+        "mir_line_sha256": "a7684bce528eb3479598db80900c4549e9ee6f5ea7ea872225bc5347ed6c2806"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 449,
+      "boundary": "runtime-gateway->vector-store",
+      "target": "MemoryVectorStore::infos",
+      "target_definition_identity": {
+        "path": "src/retrieval/memory_vector_store.rs",
+        "line": 212,
+        "end_line": 216,
+        "compiler_def_id": "DefId(0:54351 ~ reliquary_memory[b862]::memory_vector_store::{impl#0}::infos)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/memory_vector_store.rs",
+        "line": 212,
+        "end_line": 216,
+        "excerpt": "    pub(crate) fn infos(&self) -> Vec<MemoryVectorInfo> {\n        let mut infos: Vec<_> = self.objects.values().map(|entry| entry.info).collect();\n        infos.sort_by_key(|info| info.id.0);\n        infos\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/runtime_inference/public_vector_operations.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/public_vector_operations.rs",
+        "source_line": 107,
+        "source_excerpt": "        self.owner.memory_vectors.infos()",
+        "mir_line_sha256": "6082e7442d4eaf24599107bffff0c577d32739eaf1a8bb9ff73486ec0b21a1e6"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 450,
+      "boundary": "runtime-gateway->vector-store",
+      "target": "MemoryVectorStore::location",
+      "target_definition_identity": {
+        "path": "src/retrieval/memory_vector_store.rs",
+        "line": 175,
+        "end_line": 181,
+        "compiler_def_id": "DefId(0:54345 ~ reliquary_memory[b862]::memory_vector_store::{impl#0}::location)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/memory_vector_store.rs",
+        "line": 175,
+        "end_line": 181,
+        "excerpt": "    pub(crate) fn location(\n        &self,\n        profile_id: CompatibilityProfileId,\n        body_id: MemoryBodyId,\n    ) -> Option<MemoryVectorLocation> {\n        self.bindings.get(&(profile_id, body_id)).copied()"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/runtime_inference/phy_execution_owner.rs",
+        "src/runtime_inference/reliquary_runtime_owner.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/phy_execution_owner.rs",
+        "source_line": 58,
+        "source_excerpt": "        self.owner\n            .memory_vectors\n            .location(compatibility_profile_id, memory_body_id)",
+        "mir_line_sha256": "87042f95acaac80b187bad4992d2a9f4e4a5bf6575708e206f0447bfe643b0f0"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 453,
+      "boundary": "runtime-gateway->vector-store",
+      "target": "MemoryVectorStore::stats",
+      "target_definition_identity": {
+        "path": "src/retrieval/memory_vector_store.rs",
+        "line": 218,
+        "end_line": 224,
+        "compiler_def_id": "DefId(0:54352 ~ reliquary_memory[b862]::memory_vector_store::{impl#0}::stats)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/memory_vector_store.rs",
+        "line": 218,
+        "end_line": 224,
+        "excerpt": "    pub(crate) fn stats(&self) -> MemoryVectorStats {\n        MemoryVectorStats {\n            objects: self.objects.len(),\n            rows: self.objects.values().map(|entry| entry.info.rows).sum(),\n            bindings: self.bindings.len(),\n        }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/runtime_inference/public_vector_operations.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/public_vector_operations.rs",
+        "source_line": 111,
+        "source_excerpt": "        self.owner.memory_vectors.stats()",
+        "mir_line_sha256": "3676830db2581629172bac72a664d349305eb21ffd10be96d8071d7d3891e9f3"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 454,
+      "boundary": "runtime-gateway->vector-store",
+      "target": "PackedVectorStore::infos",
+      "target_definition_identity": {
+        "path": "src/retrieval/packed_vector_store.rs",
+        "line": 204,
+        "end_line": 208,
+        "compiler_def_id": "DefId(0:54653 ~ reliquary_memory[b862]::packed_vector_store::{impl#1}::infos)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/packed_vector_store.rs",
+        "line": 204,
+        "end_line": 208,
+        "excerpt": "    pub(crate) fn infos(&self) -> Vec<PackedVectorInfo> {\n        let mut infos: Vec<_> = self.objects.values().map(|entry| entry.info).collect();\n        infos.sort_by_key(|info| info.id.0);\n        infos\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/runtime_inference/public_vector_operations.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/public_vector_operations.rs",
+        "source_line": 115,
+        "source_excerpt": "        self.owner.packed_vectors.infos()",
+        "mir_line_sha256": "ea0e832cf01b982cc67080c1d593b34b6ab9d5ab177873b502c85ec393ad2cb3"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 456,
+      "boundary": "runtime-gateway->vector-store",
+      "target": "PackedVectorStore::stats",
+      "target_definition_identity": {
+        "path": "src/retrieval/packed_vector_store.rs",
+        "line": 210,
+        "end_line": 221,
+        "compiler_def_id": "DefId(0:54654 ~ reliquary_memory[b862]::packed_vector_store::{impl#1}::stats)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/packed_vector_store.rs",
+        "line": 210,
+        "end_line": 221,
+        "excerpt": "    pub(crate) fn stats(&self) -> PackedVectorStats {\n        PackedVectorStats {\n            objects: self.objects.len(),\n            rows: self.objects.values().map(|entry| entry.info.count).sum(),\n            matrix_bytes: self\n                .objects"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/runtime_inference/public_vector_operations.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/public_vector_operations.rs",
+        "source_line": 119,
+        "source_excerpt": "        self.owner.packed_vectors.stats()",
+        "mir_line_sha256": "70f1035b5abed93a1ee281284c87b9cc74180cb6bd1348e5021db1bc169922e0"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 457,
+      "boundary": "runtime-gateway->vector-store",
+      "target": "VectorGenerationStore::current_generation",
+      "target_definition_identity": {
+        "path": "src/retrieval/vector_generation_store.rs",
+        "line": 152,
+        "end_line": 159,
+        "compiler_def_id": "DefId(0:56844 ~ reliquary_memory[b862]::vector_generation_store::{impl#1}::current_generation)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/vector_generation_store.rs",
+        "line": 152,
+        "end_line": 159,
+        "excerpt": "    pub(crate) fn current_generation(\n        &self,\n        compatibility_profile_id: CompatibilityProfileId,\n    ) -> Option<VectorGeneration> {\n        self.current_by_profile\n            .get(&compatibility_profile_id)"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/runtime_inference/public_vector_operations.rs",
+        "src/runtime_inference/reliquary_runtime_owner.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/public_vector_operations.rs",
+        "source_line": 377,
+        "source_excerpt": "        self.owner.vector_generations.current_generation(profile_id)",
+        "mir_line_sha256": "459b5e154bdce928c18f19f77069bcad754b528f4c5aa06d6fd8605a4447cbfd"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 458,
+      "boundary": "runtime-gateway->vector-store",
+      "target": "VectorGenerationStore::generation",
+      "target_definition_identity": {
+        "path": "src/retrieval/vector_generation_store.rs",
+        "line": 148,
+        "end_line": 150,
+        "compiler_def_id": "DefId(0:56843 ~ reliquary_memory[b862]::vector_generation_store::{impl#1}::generation)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/vector_generation_store.rs",
+        "line": 148,
+        "end_line": 150,
+        "excerpt": "    pub(crate) fn generation(&self, id: VectorGenerationId) -> Option<VectorGeneration> {\n        self.by_id.get(&id).map(|index| self.generations[*index])\n    }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/runtime_inference/public_vector_operations.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/public_vector_operations.rs",
+        "source_line": 357,
+        "source_excerpt": "        self.owner\n            .vector_generations\n            .generation(id)",
+        "mir_line_sha256": "426dd8691c9e9ddf83c532231a1de0ba918bd17373af70bbf57b45ee5f9aa3a0"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 459,
+      "boundary": "runtime-gateway->vector-store",
+      "target": "VectorGenerationStore::generation_at",
+      "target_definition_identity": {
+        "path": "src/retrieval/vector_generation_store.rs",
+        "line": 161,
+        "end_line": 174,
+        "compiler_def_id": "DefId(0:56845 ~ reliquary_memory[b862]::vector_generation_store::{impl#1}::generation_at)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/vector_generation_store.rs",
+        "line": 161,
+        "end_line": 174,
+        "excerpt": "    pub(crate) fn generation_at(\n        &self,\n        compatibility_profile_id: CompatibilityProfileId,\n        vector_version: u64,\n    ) -> Option<VectorGeneration> {\n        self.generations"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/runtime_inference/public_vector_operations.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/public_vector_operations.rs",
+        "source_line": 368,
+        "source_excerpt": "        self.owner\n            .vector_generations\n            .generation_at(profile_id, version)",
+        "mir_line_sha256": "bd2b5c798882679e32a2f889d3f4442159947383746e3d85565aa93291b7bd00"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 460,
+      "boundary": "runtime-gateway->vector-store",
+      "target": "VectorGenerationStore::stats",
+      "target_definition_identity": {
+        "path": "src/retrieval/vector_generation_store.rs",
+        "line": 184,
+        "end_line": 190,
+        "compiler_def_id": "DefId(0:56848 ~ reliquary_memory[b862]::vector_generation_store::{impl#1}::stats)"
+      },
+      "target_definition": {
+        "path": "src/retrieval/vector_generation_store.rs",
+        "line": 184,
+        "end_line": 190,
+        "excerpt": "    pub(crate) fn stats(&self) -> VectorGenerationStats {\n        VectorGenerationStats {\n            generations: self.generations.len(),\n            active_profiles: self.current_by_profile.len(),\n            vector_version: self.vector_version(),\n        }"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 1,
+      "source_paths": [
+        "src/runtime_inference/public_vector_operations.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/public_vector_operations.rs",
+        "source_line": 392,
+        "source_excerpt": "        let mut stats = self.owner.vector_generations.stats();",
+        "mir_line_sha256": "5b0acf7087e1a7d9c02ebaf382f7e5e1b2115e98103ff2c3728ea738316030d7"
+      },
+      "registered_child_scope_matches": [],
+      "classification": "confirmed_owner_capability"
+    },
+    {
+      "group_index": 462,
+      "boundary": "runtime-gateway->vector-store",
+      "target": "VectorReadView::new",
+      "target_definition_identity": {
+        "path": "src/retrieval/vector_generation_store.rs",
+        "line": 21,
+        "end_line": 33,
+        "compiler_def_id": null
+      },
+      "target_definition": {
+        "path": "src/retrieval/vector_generation_store.rs",
+        "line": 21,
+        "end_line": 33,
+        "excerpt": "    pub(crate) fn new(\n        generations: &'a VectorGenerationStore,\n        archive_vectors: &'a crate::archive_vector_store::ArchiveVectorStore,\n        packed_vectors: &'a crate::packed_vector_store::PackedVectorStore,\n        container: &'a Container,\n    ) -> Self {"
+      },
+      "receiver_class": "owner-store/view capability",
+      "call_count": 2,
+      "source_paths": [
+        "src/runtime_inference/interaction_runtime.rs"
+      ],
+      "source_call": {
+        "source_path": "src/runtime_inference/interaction_runtime.rs",
+        "source_line": 190,
+        "source_excerpt": "        let vectors = crate::vector_generation_store::VectorReadView::new(\n            &self.cva.owner.vector_generations,\n            &self.cva.owner.archive_vectors,\n            &self.cva.owner.packed_vectors,\n            &self.cva.owner.container,\n        );",
+        "mir_line_sha256": "45b6a7a9d987637a949dd28ab6f3b773e79443338c5a4c9ae5396cb7675b4eac"
+      },
+      "registered_child_scope_matches": [
+        "P7.1.12-GATEWAY-CONTAINER-OPERATIONS",
+        "P7.1.12-GATEWAY-EXTERNAL-INDEX-VALUES",
+        "P7.1.12-GATEWAY-VECTOR-MAPPING",
+        "P7.1.12a-RUNTIME-GATEWAY-PHY-OWNER-HANDLE",
+        "P7.1.12b-INTERACTION-CVA-ADAPTER",
+        "P7.1.12c-PROJECT-LIFECYCLE-AGGREGATE-ADAPTER",
+        "P7.1.12d-OFFLINE-RECONCILIATION-ADAPTER"
+      ],
+      "classification": "confirmed_owner_capability"
+    }
+  ],
+  "acceptance": "Open. This classification grants no exceptions. Every no-scope row remains an unresolved implementation obligation."
+}

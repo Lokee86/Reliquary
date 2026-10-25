@@ -1,5 +1,5 @@
 use crate::dream_candidate_test_support::{install_vectors, memory, test_path};
-use crate::dream_owner_candidates::dream_memory_context as dream_memory_context_from_parts;
+use crate::dream_owner_candidates::{finish_dream_memory_context, prepare_dream_memory_context};
 use crate::memory_source_time::memory_source_timestamp_ns;
 use crate::{Cva, DreamCandidateConfig, GraphRelationKind, MemoryDraft};
 
@@ -347,14 +347,14 @@ fn owner_candidate_core_accepts_persisted_memory_source_time() {
             },
         )
         .unwrap();
-    let source_time = |memory: &crate::Memory| memory_source_timestamp_ns(memory);
-    let context = dream_memory_context_from_parts(
+    let work = prepare_dream_memory_context(
         &crate::memory_store::MemoryReadView::new(&cva.memories, &cva.container),
         &cva.graph,
         memory.id,
-        &source_time,
     )
     .unwrap();
+    let source_time = memory_source_timestamp_ns(&work.memory);
+    let context = finish_dream_memory_context(work, source_time);
     assert_eq!(context.source_timestamp_ns, Some(123));
     assert!(context.graph_relations.is_empty());
 }

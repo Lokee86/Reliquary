@@ -3,6 +3,14 @@ use crate::imports::{ImportEpochStore, ImportStart};
 use crate::{Container, ContainerError};
 use std::path::Path;
 
+pub(crate) fn open_import_epoch(epochs: &ImportEpochStore) -> bool {
+    epochs.open().is_some()
+}
+
+pub(crate) fn open_import_start(epochs: &ImportEpochStore) -> Option<ImportStart> {
+    epochs.open().cloned()
+}
+
 pub(crate) fn append_replay_payload(
     container: &mut Container,
     payload: &[u8],

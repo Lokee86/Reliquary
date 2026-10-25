@@ -77,10 +77,8 @@ pub(crate) fn replay_import_epoch_scope(
             .map_err(|error| OwnerError::Freshness(error.to_string()))?
             && candidate == start
         {
-            let location = frame.object.legacy_bytes();
-            let offset = u64::from_le_bytes(location[..8].try_into().unwrap());
-            let len = u64::from_le_bytes(location[8..].try_into().unwrap());
-            let end = offset + 8 + len;
+            let offset = frame.offset;
+            let end = frame.end;
             if start_marker
                 .replace((offset, end, Sha256::digest(&frame.payload).into()))
                 .is_some()
@@ -102,8 +100,7 @@ pub(crate) fn replay_import_epoch_scope(
         .next_frame()
         .map_err(|error| OwnerError::Container(error.0))?
     {
-        let location = frame.object.legacy_bytes();
-        let offset = u64::from_le_bytes(location[..8].try_into().unwrap());
+        let offset = frame.offset;
         if offset <= start_offset {
             continue;
         }
@@ -132,8 +129,7 @@ pub(crate) fn replay_import_epoch_scope(
         .next_frame()
         .map_err(|error| OwnerError::Container(error.0))?
     {
-        let location = frame.object.legacy_bytes();
-        let offset = u64::from_le_bytes(location[..8].try_into().unwrap());
+        let offset = frame.offset;
         if offset <= start_offset {
             continue;
         }

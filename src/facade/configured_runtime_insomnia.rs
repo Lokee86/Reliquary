@@ -3,8 +3,8 @@ use super::{
     InsomniaTerminalFailure, operation,
 };
 use crate::{
-    ConfiguredGeneralEndpoint, Cva, EpisodeConfig, InsomniaExtractor, InsomniaProgressReporter,
-    InsomniaWorkState, InsomniaWorkerConfig, OpenAiReadyEmbeddingEndpoint, Phylactery,
+    Cva, EpisodeConfig, InsomniaProgressReporter, InsomniaWorkState, InsomniaWorkerConfig,
+    Phylactery,
 };
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -36,33 +36,13 @@ impl ConfiguredRuntime {
         options: ConfiguredInsomniaOptions,
         progress: Option<&dyn InsomniaProgressReporter>,
     ) -> Result<ConfiguredInsomniaReport, ConfiguredRuntimeError> {
-        let main = ConfiguredGeneralEndpoint::from_insomnia_switchboard(&self.switchboard)
-            .map_err(operation)?;
-        let embedding = OpenAiReadyEmbeddingEndpoint::from_switchboard(&self.switchboard)
-            .map_err(operation)?
-            .with_batching(options.embedding_batch_size, options.embedding_concurrency)
-            .map_err(operation)?;
-        let chronos = ConfiguredGeneralEndpoint::from_chronos_switchboard(&self.switchboard)
-            .map_err(operation)?;
-        let mut extractor = InsomniaExtractor::new(main).with_temporal_endpoint(chronos);
-        if self.switchboard.insomnia_metadata().is_some() {
-            extractor = extractor.with_metadata_endpoint(
-                ConfiguredGeneralEndpoint::from_insomnia_metadata_switchboard(&self.switchboard)
-                    .map_err(operation)?,
-            );
-        }
-        if self.switchboard.entity_extraction().is_some() {
-            extractor = extractor.with_enrichment_endpoint(
-                ConfiguredGeneralEndpoint::from_entity_extraction_switchboard(&self.switchboard)
-                    .map_err(operation)?,
-            );
-        }
-        if phy_path.is_some() {
-            extractor = extractor.with_ownership_endpoint(
-                ConfiguredGeneralEndpoint::from_insomnia_ownership_switchboard(&self.switchboard)
-                    .map_err(operation)?,
-            );
-        }
+        let (extractor, embedding) = super::provider_operations::prepare_insomnia(
+            &self.switchboard,
+            options.embedding_batch_size,
+            options.embedding_concurrency,
+            phy_path.is_some(),
+        )
+        .map_err(operation)?;
 
         let mut rel = Cva::open(rel_path).map_err(operation)?;
         let mut phy = phy_path

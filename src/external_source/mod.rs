@@ -23,6 +23,31 @@ pub(crate) mod tests;
 use crate::external_vector_reader::ExternalVectorReader;
 use store::SourceState;
 
+/// Validate host identifiers at the External Sources contract boundary.
+pub(crate) fn validate_identifier(value: &str) -> Result<(), ExternalSourceError> {
+    crate::external_index::model::identifier(value)
+}
+
+pub(crate) fn validate_reference(value: &ExternalMessageRef) -> Result<(), ExternalSourceError> {
+    value.validate()
+}
+
+/// Validate one descriptor before it enters or leaves the derived index owner.
+pub(crate) fn validate_descriptor(
+    value: &ExternalMessageDescriptor,
+    namespace: &str,
+) -> Result<(), ExternalSourceError> {
+    value.validate(namespace)
+}
+
+/// Validate hydrated host evidence against the expected indexed descriptor.
+pub(crate) fn validate_hydrated(
+    value: &HydratedExternalMessage,
+    expected: &ExternalMessageDescriptor,
+) -> Result<(), ExternalSourceError> {
+    value.validate(expected)
+}
+
 pub(crate) fn search(
     vectors: &mut ExternalVectorReader<'_>,
     state: &SourceState,
