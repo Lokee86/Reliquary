@@ -28,7 +28,12 @@
     "reliquary-import-store",
     "reliquary-maintenance-store",
     "reliquary-external-index-store",
-    "reliquary-owner-lifecycle"
+    "reliquary-owner-lifecycle",
+    "reliquary-ego-store",
+    "reliquary-freshness-store",
+    "reliquary-vector-store",
+    "reliquary-insomnia-store",
+    "reliquary-dream-store"
   ],
   "product_package": "reliquary-memory",
   "component_to_crate": {
@@ -41,11 +46,11 @@
     "memory-store": "reliquary-memory-core",
     "graph-store": "reliquary-graph",
     "perception-store": "reliquary-perception-store",
-    "ego-store": "reliquary-ego",
-    "freshness-store": "reliquary-freshness",
-    "vector-store": "reliquary-vectors",
-    "insomnia-store": "reliquary-insomnia",
-    "dream-store": "reliquary-dream",
+    "ego-store": "reliquary-ego-store",
+    "freshness-store": "reliquary-freshness-store",
+    "vector-store": "reliquary-vector-store",
+    "insomnia-store": "reliquary-insomnia-store",
+    "dream-store": "reliquary-dream-store",
     "import-store": "reliquary-import-store",
     "external-index-store": "reliquary-external-index-store",
     "maintenance-store": "reliquary-maintenance-store",
@@ -93,21 +98,22 @@
     ],
     "reliquary-freshness": [
       "reliquary-container",
+      "reliquary-freshness-store",
       "reliquary-graph",
       "reliquary-memory-core"
     ],
     "reliquary-insomnia": [
       "reliquary-archive",
       "reliquary-chronos",
-      "reliquary-container",
       "reliquary-freshness",
+      "reliquary-insomnia-store",
       "reliquary-memory-core",
       "reliquary-perception",
       "reliquary-switchboard"
     ],
     "reliquary-dream": [
       "reliquary-chronos",
-      "reliquary-container",
+      "reliquary-dream-store",
       "reliquary-freshness",
       "reliquary-graph",
       "reliquary-memory-core",
@@ -120,7 +126,7 @@
     ],
     "reliquary-ego": [
       "reliquary-archive",
-      "reliquary-container",
+      "reliquary-ego-store",
       "reliquary-freshness",
       "reliquary-graph",
       "reliquary-memory-core",
@@ -135,6 +141,7 @@
       "reliquary-memory-core",
       "reliquary-perception-store",
       "reliquary-switchboard",
+      "reliquary-vector-store",
       "reliquary-vectors"
     ],
     "reliquary-context-engine": [
@@ -147,25 +154,25 @@
     ],
     "reliquary-vectors": [
       "reliquary-archive",
-      "reliquary-container",
       "reliquary-memory-core",
-      "reliquary-switchboard"
+      "reliquary-switchboard",
+      "reliquary-vector-store"
     ],
     "reliquary-history": [
       "reliquary-archive",
-      "reliquary-dream",
+      "reliquary-dream-store",
       "reliquary-echo",
-      "reliquary-ego",
+      "reliquary-ego-store",
       "reliquary-external-index-store",
-      "reliquary-freshness",
+      "reliquary-freshness-store",
       "reliquary-graph",
       "reliquary-import-store",
-      "reliquary-insomnia",
+      "reliquary-insomnia-store",
       "reliquary-maintenance-store",
       "reliquary-memory-core",
       "reliquary-owner-lifecycle",
       "reliquary-perception-store",
-      "reliquary-vectors"
+      "reliquary-vector-store"
     ],
     "reliquary-container": [],
     "reliquary-switchboard": [],
@@ -188,20 +195,20 @@
     "reliquary-maintenance": [
       "reliquary-archive",
       "reliquary-container",
-      "reliquary-dream",
+      "reliquary-dream-store",
       "reliquary-echo",
-      "reliquary-ego",
+      "reliquary-ego-store",
       "reliquary-external-index-store",
-      "reliquary-freshness",
+      "reliquary-freshness-store",
       "reliquary-graph",
       "reliquary-history",
       "reliquary-import-store",
-      "reliquary-insomnia",
+      "reliquary-insomnia-store",
       "reliquary-maintenance-store",
       "reliquary-memory-core",
       "reliquary-owner-lifecycle",
       "reliquary-perception-store",
-      "reliquary-vectors"
+      "reliquary-vector-store"
     ],
     "reliquary-runtime-gateway": [
       "reliquary-archive",
@@ -239,18 +246,33 @@
     "reliquary-owner-lifecycle": [
       "reliquary-archive",
       "reliquary-container",
-      "reliquary-dream",
+      "reliquary-dream-store",
       "reliquary-echo",
-      "reliquary-ego",
+      "reliquary-ego-store",
       "reliquary-external-index-store",
-      "reliquary-freshness",
+      "reliquary-freshness-store",
       "reliquary-graph",
       "reliquary-import-store",
-      "reliquary-insomnia",
+      "reliquary-insomnia-store",
       "reliquary-maintenance-store",
       "reliquary-memory-core",
       "reliquary-perception-store",
-      "reliquary-vectors"
+      "reliquary-vector-store"
+    ],
+    "reliquary-ego-store": [
+      "reliquary-container"
+    ],
+    "reliquary-freshness-store": [
+      "reliquary-container"
+    ],
+    "reliquary-vector-store": [
+      "reliquary-container"
+    ],
+    "reliquary-insomnia-store": [
+      "reliquary-container"
+    ],
+    "reliquary-dream-store": [
+      "reliquary-container"
     ],
     "reliquary-memory": [
       "reliquary-history",
@@ -261,9 +283,10 @@
     ]
   },
   "notes": [
-    "Allowed dependency edges are ceilings, not preinstalled Cargo dependencies; add paths only as production code moves",
-    "Crate cycles are disallowed; logical boundaries inside one crate still require semantic API discipline",
-    "Five narrow support crates preserve store/lifecycle ownership without creating cycles",
-    "Legacy root remains functional until independently compiling crates replace its modules"
+    "Physical layering also requires that a lower logical component never depend on a crate containing a higher-rank service",
+    "Allowed edges are a maximum, not preinstalled Cargo dependencies; add path dependencies only when used",
+    "Independent low-ranked owner stores are required for Ego, Freshness, Vectors, Insomnia, Dream, Perception, Import, Maintenance and derived External Index",
+    "Owner Lifecycle consumes lower store APIs only, never semantic processors",
+    "Legacy root remains a working product host until services are extracted"
   ]
 }

@@ -24,6 +24,11 @@ members = [
     "crates/reliquary-import-store",
     "crates/reliquary-maintenance-store",
     "crates/reliquary-external-index-store",
+    "crates/reliquary-ego-store",
+    "crates/reliquary-freshness-store",
+    "crates/reliquary-vector-store",
+    "crates/reliquary-insomnia-store",
+    "crates/reliquary-dream-store",
     "crates/reliquary-owner-lifecycle",
 ]
 default-members = ["."]

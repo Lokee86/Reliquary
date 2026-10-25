@@ -2724,6 +2724,10 @@ name = "reliquary-dream"
 version = "0.1.0"
 
 [[package]]
+name = "reliquary-dream-store"
+version = "0.1.0"
+
+[[package]]
 name = "reliquary-echo"
 version = "0.1.0"
 
@@ -2732,11 +2736,19 @@ name = "reliquary-ego"
 version = "0.1.0"
 
 [[package]]
+name = "reliquary-ego-store"
+version = "0.1.0"
+
+[[package]]
 name = "reliquary-external-index-store"
 version = "0.1.0"
 
 [[package]]
 name = "reliquary-freshness"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-freshness-store"
 version = "0.1.0"
 
 [[package]]
@@ -2757,6 +2769,10 @@ version = "0.1.0"
 
 [[package]]
 name = "reliquary-insomnia"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-insomnia-store"
 version = "0.1.0"
 
 [[package]]
@@ -2818,6 +2834,10 @@ version = "0.1.0"
 
 [[package]]
 name = "reliquary-switchboard"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-vector-store"
 version = "0.1.0"
 
 [[package]]

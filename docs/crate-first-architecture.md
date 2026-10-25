@@ -9,7 +9,7 @@ Retain the accepted dependency-convergence architecture, not its Phase 0–7 exe
 
 The authoritative targets are [component-dag.json](architecture/component-dag.json) and [crate-map.json](architecture/crate-map.json). The former is the original 34-component, explicit-allowlist DAG, modified only to give Echo an independent owner in accordance with ADR 0014: 35 logical components, 173 approved direct logical edges. The latter records their physical ownership mapping and permitted crate dependencies. Allowed edges are *maximum permissions*, not requirements or imports to insert before they are used.
 
-The original October 21 phase execution ledger is archived in the Step 1 Git bundle, not carried into this new branch. No roadmap features are included.
+The original October 21 phase execution ledger is archived in the Step 1 Git bundle, not carried into this new branch. No roadmap features are included. The detailed source, API, directory and document crosswalk is the [crate layout specification](crate-first-layout-spec-2026-10-25.md).
 
 ## First-class libraries: 20
 
@@ -21,14 +21,14 @@ The original October 21 phase execution ledger is archived in the Step 1 Git bun
 | `reliquary-echo` | Ordered source-scoped computational/tool evidence; receiver acknowledgments |
 | `reliquary-graph` | Memory associations, semantic topology and Communities |
 | `reliquary-perception` | Entity/mention semantics and resolution/admission |
-| `reliquary-freshness` | Freshness store, triggered reinforcement, propagation and decay |
-| `reliquary-insomnia` | Memory extraction and durable work state |
-| `reliquary-dream` | Association, duplicate and Community synthesis; Dream journal |
+| `reliquary-freshness` | Triggered reinforcement, propagation and decay over a separate Freshness Store |
+| `reliquary-insomnia` | Memory extraction and processing over an independent durable work store |
+| `reliquary-dream` | Association, duplicate and Community synthesis; Dream journal is lower-owned |
 | `reliquary-chronos` | Temporal reasoning |
-| `reliquary-ego` | Identity, Personality, Anchors and summary synthesis/store |
+| `reliquary-ego` | Identity, Personality, Anchors and summary synthesis; durable Ego state is lower-owned |
 | `reliquary-retrieval` | Passive/semantic/agentic search and evidence selection |
 | `reliquary-context-engine` | Token budgeting, compaction and final model-facing context |
-| `reliquary-vectors` | Embedding generation, compatibility and vector storage |
+| `reliquary-vectors` | Embedding generation and compatibility decisions over a separate Vector Store |
 | `reliquary-history` | Nonmutating historical reconstruction |
 | `reliquary-switchboard` | Provider transport, routes and related config/security contracts |
 | `reliquary-project-environment` | Validated Lore/Git path and project authority |
@@ -36,23 +36,28 @@ The original October 21 phase execution ledger is archived in the Step 1 Git bun
 | `reliquary-maintenance` | Authorized prune/rewrite/reconcile/repair, but not its low-level store |
 | `reliquary-runtime-gateway` | REL/PHY runtime execution, sessions, host source integration |
 
-## Five necessary support crates
+## Ten support crates: strict physical dependency direction
 
-The 34-component logical graph is acyclic, but **collapsing all stores and services into just 20 physical crates makes two physical cycles**. Perception's service invokes Retrieval while Retrieval reads Perception's store; History reads Import/Maintenance stores while those services invoke History and Runtime relies on those owners.
+The original 20-crate collapse produced two physical cycles. The initial 25-library correction removed those cycles, but still permitted **ten physical layering inversions**: Owner Lifecycle and History would import the higher-level Ego, Freshness, Vectors, Insomnia and Dream packages for their stores. Cargo would compile that graph without guaranteeing the approved lower-to-higher separation.
 
-To keep the approved owner semantics and a physically compilable graph, keep these five *small, real authority seams*, not general-purpose managers:
+The final physical target separates all necessary rank-2 stores from their higher-rank services:
 
-| Support crate | Reason it must not be folded into the service crate |
+| Support crate | Responsibility |
 | --- | --- |
-| `reliquary-perception-store` | Retrieval may read accepted Entity data without importing the higher-level Perception service |
-| `reliquary-import-store` | Historical reconstruction/lifecycle read import receipts without depending on Import coordination |
-| `reliquary-maintenance-store` | History can inspect durable repair/prune evidence without depending on the mutating Maintenance service |
-| `reliquary-external-index-store` | Owner lifecycle can open host-index state without importing Runtime/Gateway |
-| `reliquary-owner-lifecycle` | Validated REL/PHY aggregate open/replay must remain below History, Import, Maintenance and Runtime |
+| `reliquary-perception-store` | Durable accepted Entity, mention and Relationship evidence for independent Retrieval/History reads |
+| `reliquary-ego-store` | Durable Identity, Personality, Anchors and Ego revisions, independent of synthesis |
+| `reliquary-freshness-store` | Durable scores, settlements and accepted effects, independent of reinforcement policy |
+| `reliquary-vector-store` | Durable vector/profile/generation evidence, independent of inference and embeddings |
+| `reliquary-insomnia-store` | Durable extraction work queue and completion evidence, independent of processing |
+| `reliquary-dream-store` | Dream journal and first-cycle evidence, independent of Dream inference |
+| `reliquary-import-store` | Import epochs/receipts visible to History without Import orchestration |
+| `reliquary-maintenance-store` | Maintenance manifests and proof evidence readable without mutation policy |
+| `reliquary-external-index-store` | Host-derived index state without Gateway authority |
+| `reliquary-owner-lifecycle` | Validated REL/PHY aggregate opening and replay using lower stores only |
 
-This yields 25 extracted libraries and the existing `reliquary-memory` **legacy product package** in the workspace. The product remains the present functional monolith. To avoid colliding with its existing Cargo package name (reliquary-memory), the new Memory domain library is reliquary-memory-core, while its logical identity remains memory. No production APIs are migrated in Step 2.
+This yields **30 libraries plus the existing `reliquary-memory` product package**. The root remains the functional monolith until extraction. To avoid colliding with its Cargo name, the new Memory domain is `reliquary-memory-core`.
 
-Other folded logical components remain distinct **inside** their crate: `pure-codec` and `review-clocks` in Container; `config-security` in Switchboard; owner stores inside their owning libraries where they do not induce cycles; `external-sources` inside Runtime/Gateway pending the separately deferred redesign. The 35-component logical allowlist remains valid inside multi-component crates even though Cargo only checks cross-crate dependencies.
+Other folded logical components remain distinct **inside** their crate: `pure-codec` and `review-clocks` in Container, `config-security` in Switchboard and `external-sources` inside Runtime/Gateway pending a separately deferred redesign. The original 35-component logical allowlist remains valid, but actual lower-level authority is now independently enforceable with Cargo.
 
 ## Echo correction
 
