@@ -1,3 +1,34 @@
+[workspace]
+members = [
+    "crates/reliquary-archive",
+    "crates/reliquary-memory-core",
+    "crates/reliquary-echo",
+    "crates/reliquary-graph",
+    "crates/reliquary-perception",
+    "crates/reliquary-freshness",
+    "crates/reliquary-insomnia",
+    "crates/reliquary-dream",
+    "crates/reliquary-chronos",
+    "crates/reliquary-ego",
+    "crates/reliquary-retrieval",
+    "crates/reliquary-context-engine",
+    "crates/reliquary-vectors",
+    "crates/reliquary-history",
+    "crates/reliquary-container",
+    "crates/reliquary-switchboard",
+    "crates/reliquary-project-environment",
+    "crates/reliquary-import",
+    "crates/reliquary-maintenance",
+    "crates/reliquary-runtime-gateway",
+    "crates/reliquary-perception-store",
+    "crates/reliquary-import-store",
+    "crates/reliquary-maintenance-store",
+    "crates/reliquary-external-index-store",
+    "crates/reliquary-owner-lifecycle",
+]
+default-members = ["."]
+resolver = "3"
+
 [package]
 name = "reliquary-memory"
 version = "0.1.0"

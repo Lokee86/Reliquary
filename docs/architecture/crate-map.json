@@ -1,0 +1,269 @@
+{
+  "version": 1,
+  "status": "layout-only-production-code-not-yet-extracted",
+  "primary_crates": [
+    "reliquary-archive",
+    "reliquary-memory-core",
+    "reliquary-echo",
+    "reliquary-graph",
+    "reliquary-perception",
+    "reliquary-freshness",
+    "reliquary-insomnia",
+    "reliquary-dream",
+    "reliquary-chronos",
+    "reliquary-ego",
+    "reliquary-retrieval",
+    "reliquary-context-engine",
+    "reliquary-vectors",
+    "reliquary-history",
+    "reliquary-container",
+    "reliquary-switchboard",
+    "reliquary-project-environment",
+    "reliquary-import",
+    "reliquary-maintenance",
+    "reliquary-runtime-gateway"
+  ],
+  "support_crates": [
+    "reliquary-perception-store",
+    "reliquary-import-store",
+    "reliquary-maintenance-store",
+    "reliquary-external-index-store",
+    "reliquary-owner-lifecycle"
+  ],
+  "product_package": "reliquary-memory",
+  "component_to_crate": {
+    "pure-codec": "reliquary-container",
+    "review-clocks": "reliquary-container",
+    "config-security": "reliquary-switchboard",
+    "container": "reliquary-container",
+    "archive-store": "reliquary-archive",
+    "echo": "reliquary-echo",
+    "memory-store": "reliquary-memory-core",
+    "graph-store": "reliquary-graph",
+    "perception-store": "reliquary-perception-store",
+    "ego-store": "reliquary-ego",
+    "freshness-store": "reliquary-freshness",
+    "vector-store": "reliquary-vectors",
+    "insomnia-store": "reliquary-insomnia",
+    "dream-store": "reliquary-dream",
+    "import-store": "reliquary-import-store",
+    "external-index-store": "reliquary-external-index-store",
+    "maintenance-store": "reliquary-maintenance-store",
+    "owner-lifecycle": "reliquary-owner-lifecycle",
+    "switchboard": "reliquary-switchboard",
+    "chronos": "reliquary-chronos",
+    "history": "reliquary-history",
+    "project-environment": "reliquary-project-environment",
+    "vectors": "reliquary-vectors",
+    "freshness": "reliquary-freshness",
+    "retrieval": "reliquary-retrieval",
+    "perception": "reliquary-perception",
+    "insomnia": "reliquary-insomnia",
+    "dream": "reliquary-dream",
+    "ego": "reliquary-ego",
+    "external-sources": "reliquary-runtime-gateway",
+    "maintenance": "reliquary-maintenance",
+    "import": "reliquary-import",
+    "context-engine": "reliquary-context-engine",
+    "runtime-gateway": "reliquary-runtime-gateway",
+    "public-consumers": "reliquary-memory"
+  },
+  "permitted_direct_crate_dependencies": {
+    "reliquary-archive": [
+      "reliquary-container"
+    ],
+    "reliquary-memory-core": [
+      "reliquary-container"
+    ],
+    "reliquary-echo": [
+      "reliquary-container"
+    ],
+    "reliquary-graph": [
+      "reliquary-container"
+    ],
+    "reliquary-perception": [
+      "reliquary-archive",
+      "reliquary-chronos",
+      "reliquary-graph",
+      "reliquary-memory-core",
+      "reliquary-perception-store",
+      "reliquary-retrieval",
+      "reliquary-switchboard",
+      "reliquary-vectors"
+    ],
+    "reliquary-freshness": [
+      "reliquary-container",
+      "reliquary-graph",
+      "reliquary-memory-core"
+    ],
+    "reliquary-insomnia": [
+      "reliquary-archive",
+      "reliquary-chronos",
+      "reliquary-container",
+      "reliquary-freshness",
+      "reliquary-memory-core",
+      "reliquary-perception",
+      "reliquary-switchboard"
+    ],
+    "reliquary-dream": [
+      "reliquary-chronos",
+      "reliquary-container",
+      "reliquary-freshness",
+      "reliquary-graph",
+      "reliquary-memory-core",
+      "reliquary-switchboard",
+      "reliquary-vectors"
+    ],
+    "reliquary-chronos": [
+      "reliquary-container",
+      "reliquary-switchboard"
+    ],
+    "reliquary-ego": [
+      "reliquary-archive",
+      "reliquary-container",
+      "reliquary-freshness",
+      "reliquary-graph",
+      "reliquary-memory-core",
+      "reliquary-retrieval",
+      "reliquary-switchboard"
+    ],
+    "reliquary-retrieval": [
+      "reliquary-archive",
+      "reliquary-echo",
+      "reliquary-freshness",
+      "reliquary-graph",
+      "reliquary-memory-core",
+      "reliquary-perception-store",
+      "reliquary-switchboard",
+      "reliquary-vectors"
+    ],
+    "reliquary-context-engine": [
+      "reliquary-archive",
+      "reliquary-echo",
+      "reliquary-ego",
+      "reliquary-freshness",
+      "reliquary-retrieval",
+      "reliquary-switchboard"
+    ],
+    "reliquary-vectors": [
+      "reliquary-archive",
+      "reliquary-container",
+      "reliquary-memory-core",
+      "reliquary-switchboard"
+    ],
+    "reliquary-history": [
+      "reliquary-archive",
+      "reliquary-dream",
+      "reliquary-echo",
+      "reliquary-ego",
+      "reliquary-external-index-store",
+      "reliquary-freshness",
+      "reliquary-graph",
+      "reliquary-import-store",
+      "reliquary-insomnia",
+      "reliquary-maintenance-store",
+      "reliquary-memory-core",
+      "reliquary-owner-lifecycle",
+      "reliquary-perception-store",
+      "reliquary-vectors"
+    ],
+    "reliquary-container": [],
+    "reliquary-switchboard": [],
+    "reliquary-project-environment": [
+      "reliquary-archive",
+      "reliquary-owner-lifecycle"
+    ],
+    "reliquary-import": [
+      "reliquary-archive",
+      "reliquary-dream",
+      "reliquary-echo",
+      "reliquary-freshness",
+      "reliquary-history",
+      "reliquary-import-store",
+      "reliquary-insomnia",
+      "reliquary-memory-core",
+      "reliquary-owner-lifecycle",
+      "reliquary-perception"
+    ],
+    "reliquary-maintenance": [
+      "reliquary-archive",
+      "reliquary-container",
+      "reliquary-dream",
+      "reliquary-echo",
+      "reliquary-ego",
+      "reliquary-external-index-store",
+      "reliquary-freshness",
+      "reliquary-graph",
+      "reliquary-history",
+      "reliquary-import-store",
+      "reliquary-insomnia",
+      "reliquary-maintenance-store",
+      "reliquary-memory-core",
+      "reliquary-owner-lifecycle",
+      "reliquary-perception-store",
+      "reliquary-vectors"
+    ],
+    "reliquary-runtime-gateway": [
+      "reliquary-archive",
+      "reliquary-chronos",
+      "reliquary-context-engine",
+      "reliquary-dream",
+      "reliquary-echo",
+      "reliquary-ego",
+      "reliquary-external-index-store",
+      "reliquary-freshness",
+      "reliquary-history",
+      "reliquary-import",
+      "reliquary-insomnia",
+      "reliquary-maintenance",
+      "reliquary-memory-core",
+      "reliquary-owner-lifecycle",
+      "reliquary-perception",
+      "reliquary-project-environment",
+      "reliquary-retrieval",
+      "reliquary-switchboard",
+      "reliquary-vectors"
+    ],
+    "reliquary-perception-store": [
+      "reliquary-container"
+    ],
+    "reliquary-import-store": [
+      "reliquary-container"
+    ],
+    "reliquary-maintenance-store": [
+      "reliquary-container"
+    ],
+    "reliquary-external-index-store": [
+      "reliquary-container"
+    ],
+    "reliquary-owner-lifecycle": [
+      "reliquary-archive",
+      "reliquary-container",
+      "reliquary-dream",
+      "reliquary-echo",
+      "reliquary-ego",
+      "reliquary-external-index-store",
+      "reliquary-freshness",
+      "reliquary-graph",
+      "reliquary-import-store",
+      "reliquary-insomnia",
+      "reliquary-maintenance-store",
+      "reliquary-memory-core",
+      "reliquary-perception-store",
+      "reliquary-vectors"
+    ],
+    "reliquary-memory": [
+      "reliquary-history",
+      "reliquary-import",
+      "reliquary-maintenance",
+      "reliquary-project-environment",
+      "reliquary-runtime-gateway"
+    ]
+  },
+  "notes": [
+    "Allowed dependency edges are ceilings, not preinstalled Cargo dependencies; add paths only as production code moves",
+    "Crate cycles are disallowed; logical boundaries inside one crate still require semantic API discipline",
+    "Five narrow support crates preserve store/lifecycle ownership without creating cycles",
+    "Legacy root remains functional until independently compiling crates replace its modules"
+  ]
+}

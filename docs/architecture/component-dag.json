@@ -1,0 +1,1158 @@
+{
+  "version": 2,
+  "status": "accepted-target-not-implemented",
+  "source_baseline": "c43d33c136f560fdca2249619866e1acf9b7fdf3",
+  "direction": "consumer -> dependency",
+  "invariants": [
+    "acyclic",
+    "no-upward-even-if-acyclic",
+    "explicit-allowlist-default-deny",
+    "owner-contract-only",
+    "minimize-sibling-dependencies",
+    "no-low-level-runtime-callbacks"
+  ],
+  "components": [
+    {
+      "id": "pure-codec",
+      "rank": 0,
+      "kind": "foundation",
+      "responsibility": "Pure codecs",
+      "depends_on": []
+    },
+    {
+      "id": "review-clocks",
+      "rank": 0,
+      "kind": "foundation",
+      "responsibility": "Pure clock arithmetic",
+      "depends_on": []
+    },
+    {
+      "id": "config-security",
+      "rank": 0,
+      "kind": "foundation",
+      "responsibility": "Credentials and configuration",
+      "depends_on": []
+    },
+    {
+      "id": "container",
+      "rank": 1,
+      "kind": "physical",
+      "responsibility": "Framing, physical read/write, exclusive writer, explicit repair",
+      "depends_on": [
+        {
+          "to": "pure-codec",
+          "mode": "read",
+          "why": "wire fields"
+        },
+        {
+          "to": "review-clocks",
+          "mode": "read",
+          "why": "clock types"
+        }
+      ]
+    },
+    {
+      "id": "archive-store",
+      "rank": 2,
+      "kind": "store",
+      "responsibility": "Conversation, Episode, fragment, checkpoint and interaction source authority; Echo separately owned",
+      "depends_on": [
+        {
+          "to": "container",
+          "mode": "write",
+          "why": "physical records"
+        },
+        {
+          "to": "pure-codec",
+          "mode": "read",
+          "why": "value coding"
+        },
+        {
+          "to": "review-clocks",
+          "mode": "read",
+          "why": "owner versions"
+        }
+      ]
+    },
+    {
+      "id": "echo",
+      "rank": 2,
+      "kind": "store",
+      "responsibility": "Source-scoped historical computational traces, tool evidence, ordering and receiver acknowledgments; never Archive/Memory truth",
+      "depends_on": [
+        {
+          "to": "container",
+          "mode": "write",
+          "why": "durable turn-attached events"
+        },
+        {
+          "to": "pure-codec",
+          "mode": "read",
+          "why": "trace encoding"
+        },
+        {
+          "to": "review-clocks",
+          "mode": "read",
+          "why": "event ordering"
+        }
+      ]
+    },
+    {
+      "id": "memory-store",
+      "rank": 2,
+      "kind": "store",
+      "responsibility": "Memory publication, revisions, lifecycle, provenance and accepted-use receipts",
+      "depends_on": [
+        {
+          "to": "container",
+          "mode": "write",
+          "why": "physical records"
+        },
+        {
+          "to": "pure-codec",
+          "mode": "read",
+          "why": "value deltas"
+        },
+        {
+          "to": "review-clocks",
+          "mode": "read",
+          "why": "version clocks"
+        }
+      ]
+    },
+    {
+      "id": "graph-store",
+      "rank": 2,
+      "kind": "store",
+      "responsibility": "Typed semantic Memory graph and Community derivations",
+      "depends_on": [
+        {
+          "to": "container",
+          "mode": "write",
+          "why": "physical records"
+        },
+        {
+          "to": "review-clocks",
+          "mode": "read",
+          "why": "version clocks"
+        }
+      ]
+    },
+    {
+      "id": "perception-store",
+      "rank": 2,
+      "kind": "store",
+      "responsibility": "Durable Entity, resolution, transitional Relationship; eventual Observations",
+      "depends_on": [
+        {
+          "to": "container",
+          "mode": "write",
+          "why": "physical records"
+        },
+        {
+          "to": "pure-codec",
+          "mode": "read",
+          "why": "value coding"
+        },
+        {
+          "to": "review-clocks",
+          "mode": "read",
+          "why": "version clocks"
+        }
+      ]
+    },
+    {
+      "id": "ego-store",
+      "rank": 2,
+      "kind": "store",
+      "responsibility": "Identity, Personality, Anchors and Memory-Web synthesis state",
+      "depends_on": [
+        {
+          "to": "container",
+          "mode": "write",
+          "why": "physical records"
+        },
+        {
+          "to": "pure-codec",
+          "mode": "read",
+          "why": "value coding"
+        },
+        {
+          "to": "review-clocks",
+          "mode": "read",
+          "why": "version clocks"
+        }
+      ]
+    },
+    {
+      "id": "freshness-store",
+      "rank": 2,
+      "kind": "store",
+      "responsibility": "Freshness scores, events, receipts and settlement history",
+      "depends_on": [
+        {
+          "to": "container",
+          "mode": "write",
+          "why": "physical records"
+        },
+        {
+          "to": "review-clocks",
+          "mode": "read",
+          "why": "activity clocks"
+        }
+      ]
+    },
+    {
+      "id": "vector-store",
+      "rank": 2,
+      "kind": "store",
+      "responsibility": "Compatibility profiles, bindings, packed vectors and generations",
+      "depends_on": [
+        {
+          "to": "container",
+          "mode": "write",
+          "why": "physical records"
+        },
+        {
+          "to": "pure-codec",
+          "mode": "read",
+          "why": "encoding"
+        }
+      ]
+    },
+    {
+      "id": "insomnia-store",
+      "rank": 2,
+      "kind": "store",
+      "responsibility": "Durable extraction work queue and completion receipts",
+      "depends_on": [
+        {
+          "to": "container",
+          "mode": "write",
+          "why": "physical records"
+        },
+        {
+          "to": "review-clocks",
+          "mode": "read",
+          "why": "activity versions"
+        }
+      ]
+    },
+    {
+      "id": "dream-store",
+      "rank": 2,
+      "kind": "store",
+      "responsibility": "Dream intents, pair history, journal and first-cycle evidence",
+      "depends_on": [
+        {
+          "to": "container",
+          "mode": "write",
+          "why": "physical records"
+        },
+        {
+          "to": "review-clocks",
+          "mode": "read",
+          "why": "activity versions"
+        }
+      ]
+    },
+    {
+      "id": "import-store",
+      "rank": 2,
+      "kind": "store",
+      "responsibility": "Import epochs, source boundaries, completion markers",
+      "depends_on": [
+        {
+          "to": "container",
+          "mode": "write",
+          "why": "physical records"
+        },
+        {
+          "to": "review-clocks",
+          "mode": "read",
+          "why": "epoch ordering"
+        }
+      ]
+    },
+    {
+      "id": "external-index-store",
+      "rank": 2,
+      "kind": "store",
+      "responsibility": "Current host-owned conversation source indexes, cursors and hashes",
+      "depends_on": [
+        {
+          "to": "container",
+          "mode": "write",
+          "why": "physical records"
+        }
+      ]
+    },
+    {
+      "id": "maintenance-store",
+      "rank": 2,
+      "kind": "store",
+      "responsibility": "Maintenance retention manifests and proof metadata",
+      "depends_on": [
+        {
+          "to": "container",
+          "mode": "write",
+          "why": "physical records"
+        },
+        {
+          "to": "review-clocks",
+          "mode": "read",
+          "why": "owner cuts"
+        }
+      ]
+    },
+    {
+      "id": "owner-lifecycle",
+      "rank": 3,
+      "kind": "composition",
+      "responsibility": "Validated REL/PHY aggregate opening and replay, not a semantic manager",
+      "depends_on": [
+        {
+          "to": "container",
+          "mode": "construct",
+          "why": "physical session"
+        },
+        {
+          "to": "archive-store",
+          "mode": "construct",
+          "why": "open Archive"
+        },
+        {
+          "to": "memory-store",
+          "mode": "construct",
+          "why": "open Memory"
+        },
+        {
+          "to": "graph-store",
+          "mode": "construct",
+          "why": "open Graph"
+        },
+        {
+          "to": "perception-store",
+          "mode": "construct",
+          "why": "open Perception"
+        },
+        {
+          "to": "ego-store",
+          "mode": "construct",
+          "why": "open Ego"
+        },
+        {
+          "to": "freshness-store",
+          "mode": "construct",
+          "why": "open Freshness"
+        },
+        {
+          "to": "vector-store",
+          "mode": "construct",
+          "why": "open Vectors"
+        },
+        {
+          "to": "insomnia-store",
+          "mode": "construct",
+          "why": "open Insomnia work"
+        },
+        {
+          "to": "dream-store",
+          "mode": "construct",
+          "why": "open Dream journals"
+        },
+        {
+          "to": "import-store",
+          "mode": "construct",
+          "why": "open Imports"
+        },
+        {
+          "to": "external-index-store",
+          "mode": "construct",
+          "why": "open source index"
+        },
+        {
+          "to": "maintenance-store",
+          "mode": "construct",
+          "why": "open maintenance state"
+        },
+        {
+          "to": "echo",
+          "mode": "construct",
+          "why": "open and replay distinct Echo owner"
+        }
+      ]
+    },
+    {
+      "id": "switchboard",
+      "rank": 3,
+      "kind": "capability",
+      "responsibility": "Typed inference routes/provider transport with no semantic authority",
+      "depends_on": [
+        {
+          "to": "config-security",
+          "mode": "read",
+          "why": "routes and credentials"
+        }
+      ]
+    },
+    {
+      "id": "chronos",
+      "rank": 4,
+      "kind": "capability",
+      "responsibility": "Shared temporal parsing, matching and optional inference",
+      "depends_on": [
+        {
+          "to": "review-clocks",
+          "mode": "read",
+          "why": "time and activity vocabulary"
+        },
+        {
+          "to": "switchboard",
+          "mode": "invoke",
+          "why": "temporal inference"
+        }
+      ]
+    },
+    {
+      "id": "history",
+      "rank": 4,
+      "kind": "capability",
+      "responsibility": "Read-only historical reconstruction/replay, no repair or publication",
+      "depends_on": [
+        {
+          "to": "owner-lifecycle",
+          "mode": "read",
+          "why": "validated owner cuts"
+        },
+        {
+          "to": "archive-store",
+          "mode": "read",
+          "why": "Archive source cuts"
+        },
+        {
+          "to": "memory-store",
+          "mode": "read",
+          "why": "Memory cuts"
+        },
+        {
+          "to": "graph-store",
+          "mode": "read",
+          "why": "Graph cuts"
+        },
+        {
+          "to": "perception-store",
+          "mode": "read",
+          "why": "Entity/Relationship cuts"
+        },
+        {
+          "to": "ego-store",
+          "mode": "read",
+          "why": "Ego revisions"
+        },
+        {
+          "to": "freshness-store",
+          "mode": "read",
+          "why": "Freshness settlements"
+        },
+        {
+          "to": "vector-store",
+          "mode": "read",
+          "why": "vector/profile generations"
+        },
+        {
+          "to": "insomnia-store",
+          "mode": "read",
+          "why": "work receipts"
+        },
+        {
+          "to": "dream-store",
+          "mode": "read",
+          "why": "Dream journals"
+        },
+        {
+          "to": "import-store",
+          "mode": "read",
+          "why": "epoch history"
+        },
+        {
+          "to": "external-index-store",
+          "mode": "read",
+          "why": "derived index evidence"
+        },
+        {
+          "to": "maintenance-store",
+          "mode": "read",
+          "why": "prune evidence"
+        },
+        {
+          "to": "echo",
+          "mode": "read",
+          "why": "immutable Echo historical cuts"
+        }
+      ]
+    },
+    {
+      "id": "project-environment",
+      "rank": 4,
+      "kind": "capability",
+      "responsibility": "Validated repository identity and paths, Lore/Git file history and REL revision correlation",
+      "depends_on": [
+        {
+          "to": "archive-store",
+          "mode": "read",
+          "why": "project revision correlation"
+        },
+        {
+          "to": "owner-lifecycle",
+          "mode": "read",
+          "why": "owner project identity"
+        }
+      ]
+    },
+    {
+      "id": "vectors",
+      "rank": 5,
+      "kind": "service",
+      "responsibility": "Embedding generation workflows, profiles, batching and vector publication",
+      "depends_on": [
+        {
+          "to": "switchboard",
+          "mode": "invoke",
+          "why": "embedding endpoint"
+        },
+        {
+          "to": "vector-store",
+          "mode": "write",
+          "why": "generated vectors and profiles"
+        },
+        {
+          "to": "archive-store",
+          "mode": "read",
+          "why": "source fragment input"
+        },
+        {
+          "to": "memory-store",
+          "mode": "read",
+          "why": "Memory source input"
+        }
+      ]
+    },
+    {
+      "id": "freshness",
+      "rank": 5,
+      "kind": "capability",
+      "responsibility": "Triggered-only scoring, propagation and lifecycle effects",
+      "depends_on": [
+        {
+          "to": "freshness-store",
+          "mode": "write",
+          "why": "score/event acceptance"
+        },
+        {
+          "to": "memory-store",
+          "mode": "read",
+          "why": "affected Memory identity"
+        },
+        {
+          "to": "graph-store",
+          "mode": "read",
+          "why": "accepted adjacency"
+        },
+        {
+          "to": "review-clocks",
+          "mode": "read",
+          "why": "activity-based decay"
+        }
+      ]
+    },
+    {
+      "id": "retrieval",
+      "rank": 6,
+      "kind": "service",
+      "responsibility": "Lexical, graph, embedding and agentic Memory search with passive inspection",
+      "depends_on": [
+        {
+          "to": "memory-store",
+          "mode": "read",
+          "why": "Memory bodies"
+        },
+        {
+          "to": "archive-store",
+          "mode": "read",
+          "why": "source evidence"
+        },
+        {
+          "to": "graph-store",
+          "mode": "read",
+          "why": "relationships and Communities"
+        },
+        {
+          "to": "perception-store",
+          "mode": "read",
+          "why": "accepted Entity metadata"
+        },
+        {
+          "to": "vectors",
+          "mode": "invoke",
+          "why": "query embeddings"
+        },
+        {
+          "to": "vector-store",
+          "mode": "read",
+          "why": "index and profile bindings"
+        },
+        {
+          "to": "freshness",
+          "mode": "read",
+          "why": "non-reinforcing scores"
+        },
+        {
+          "to": "switchboard",
+          "mode": "invoke",
+          "why": "agentic inference"
+        },
+        {
+          "to": "echo",
+          "mode": "read",
+          "why": "only after one visible source is selected"
+        }
+      ]
+    },
+    {
+      "id": "perception",
+      "rank": 7,
+      "kind": "service",
+      "responsibility": "Entity and mention resolution, future Observation synthesis",
+      "depends_on": [
+        {
+          "to": "perception-store",
+          "mode": "write",
+          "why": "accepted Entity and resolution"
+        },
+        {
+          "to": "memory-store",
+          "mode": "read",
+          "why": "mention evidence"
+        },
+        {
+          "to": "archive-store",
+          "mode": "read",
+          "why": "source authority"
+        },
+        {
+          "to": "graph-store",
+          "mode": "read",
+          "why": "relational evidence"
+        },
+        {
+          "to": "retrieval",
+          "mode": "invoke",
+          "why": "candidate evidence"
+        },
+        {
+          "to": "vectors",
+          "mode": "invoke",
+          "why": "semantic embeddings"
+        },
+        {
+          "to": "chronos",
+          "mode": "invoke",
+          "why": "temporal semantics"
+        },
+        {
+          "to": "switchboard",
+          "mode": "invoke",
+          "why": "resolution inference"
+        }
+      ]
+    },
+    {
+      "id": "insomnia",
+      "rank": 8,
+      "kind": "service",
+      "responsibility": "Episode-to-Memory extraction and durable publication",
+      "depends_on": [
+        {
+          "to": "insomnia-store",
+          "mode": "write",
+          "why": "queue and completion"
+        },
+        {
+          "to": "archive-store",
+          "mode": "read",
+          "why": "Episode source"
+        },
+        {
+          "to": "memory-store",
+          "mode": "write",
+          "why": "Memory publication"
+        },
+        {
+          "to": "perception",
+          "mode": "invoke",
+          "why": "mention routing"
+        },
+        {
+          "to": "chronos",
+          "mode": "invoke",
+          "why": "temporal metadata"
+        },
+        {
+          "to": "switchboard",
+          "mode": "invoke",
+          "why": "extraction model"
+        },
+        {
+          "to": "freshness",
+          "mode": "invoke",
+          "why": "birth effect"
+        }
+      ]
+    },
+    {
+      "id": "dream",
+      "rank": 8,
+      "kind": "service",
+      "responsibility": "First-cycle Memory pair settling, duplicates, relationships and Communities",
+      "depends_on": [
+        {
+          "to": "dream-store",
+          "mode": "write",
+          "why": "Dream journal"
+        },
+        {
+          "to": "memory-store",
+          "mode": "write",
+          "why": "canonical lifecycle"
+        },
+        {
+          "to": "graph-store",
+          "mode": "write",
+          "why": "relationships and Communities"
+        },
+        {
+          "to": "vectors",
+          "mode": "invoke",
+          "why": "similarity lookup"
+        },
+        {
+          "to": "chronos",
+          "mode": "invoke",
+          "why": "temporal pair semantics"
+        },
+        {
+          "to": "switchboard",
+          "mode": "invoke",
+          "why": "pair inference"
+        },
+        {
+          "to": "freshness",
+          "mode": "invoke",
+          "why": "link/first-pass effects"
+        }
+      ]
+    },
+    {
+      "id": "ego",
+      "rank": 8,
+      "kind": "service",
+      "responsibility": "Semantic Personality/Identity/Anchors and Memory-Web Summary synthesis, never final prompt assembly",
+      "depends_on": [
+        {
+          "to": "ego-store",
+          "mode": "write",
+          "why": "Ego state"
+        },
+        {
+          "to": "memory-store",
+          "mode": "read",
+          "why": "Memory provenance"
+        },
+        {
+          "to": "graph-store",
+          "mode": "read",
+          "why": "Web evidence"
+        },
+        {
+          "to": "retrieval",
+          "mode": "invoke",
+          "why": "working Web audit"
+        },
+        {
+          "to": "freshness",
+          "mode": "read",
+          "why": "nonreinforcing source scores"
+        },
+        {
+          "to": "archive-store",
+          "mode": "read",
+          "why": "source history"
+        },
+        {
+          "to": "switchboard",
+          "mode": "invoke",
+          "why": "summary creation inference"
+        }
+      ]
+    },
+    {
+      "id": "external-sources",
+      "rank": 9,
+      "kind": "integration",
+      "responsibility": "Current reference-only host transcript integration; substantial future redesign deferred",
+      "depends_on": [
+        {
+          "to": "external-index-store",
+          "mode": "write",
+          "why": "derived index"
+        },
+        {
+          "to": "vectors",
+          "mode": "invoke",
+          "why": "external embeddings"
+        },
+        {
+          "to": "insomnia",
+          "mode": "invoke",
+          "why": "shared extraction"
+        },
+        {
+          "to": "memory-store",
+          "mode": "write",
+          "why": "derived Memory publication"
+        },
+        {
+          "to": "freshness",
+          "mode": "invoke",
+          "why": "Memory birth event"
+        }
+      ]
+    },
+    {
+      "id": "maintenance",
+      "rank": 9,
+      "kind": "service",
+      "responsibility": "Reconciliation, prune, reclaim, repair and rewrite under owner validation",
+      "depends_on": [
+        {
+          "to": "history",
+          "mode": "read",
+          "why": "historical reconstruction"
+        },
+        {
+          "to": "owner-lifecycle",
+          "mode": "construct",
+          "why": "validated source/destination owners"
+        },
+        {
+          "to": "container",
+          "mode": "write",
+          "why": "authorized physical copy/repair"
+        },
+        {
+          "to": "archive-store",
+          "mode": "write",
+          "why": "Archive retention"
+        },
+        {
+          "to": "memory-store",
+          "mode": "write",
+          "why": "Memory retention"
+        },
+        {
+          "to": "graph-store",
+          "mode": "write",
+          "why": "Graph retention"
+        },
+        {
+          "to": "perception-store",
+          "mode": "write",
+          "why": "Entity retention"
+        },
+        {
+          "to": "ego-store",
+          "mode": "write",
+          "why": "Ego retention"
+        },
+        {
+          "to": "freshness-store",
+          "mode": "write",
+          "why": "Freshness retention"
+        },
+        {
+          "to": "vector-store",
+          "mode": "write",
+          "why": "vector retention"
+        },
+        {
+          "to": "insomnia-store",
+          "mode": "write",
+          "why": "work receipt retention"
+        },
+        {
+          "to": "dream-store",
+          "mode": "write",
+          "why": "Dream proof retention"
+        },
+        {
+          "to": "import-store",
+          "mode": "write",
+          "why": "epoch reconciliation"
+        },
+        {
+          "to": "external-index-store",
+          "mode": "write",
+          "why": "derived index rebuild"
+        },
+        {
+          "to": "maintenance-store",
+          "mode": "write",
+          "why": "maintenance proof"
+        },
+        {
+          "to": "echo",
+          "mode": "write",
+          "why": "Echo retention/rewrite"
+        }
+      ]
+    },
+    {
+      "id": "import",
+      "rank": 10,
+      "kind": "service",
+      "responsibility": "Native historical source intake, epoch coordination and completion settlement",
+      "depends_on": [
+        {
+          "to": "import-store",
+          "mode": "write",
+          "why": "epoch identity and completion"
+        },
+        {
+          "to": "archive-store",
+          "mode": "write",
+          "why": "import source Episodes"
+        },
+        {
+          "to": "insomnia",
+          "mode": "invoke",
+          "why": "source processing"
+        },
+        {
+          "to": "dream",
+          "mode": "invoke",
+          "why": "first-cycle settlement"
+        },
+        {
+          "to": "perception",
+          "mode": "invoke",
+          "why": "mention completion"
+        },
+        {
+          "to": "memory-store",
+          "mode": "read",
+          "why": "born Memory proofs"
+        },
+        {
+          "to": "freshness",
+          "mode": "invoke",
+          "why": "scoped settlement"
+        },
+        {
+          "to": "history",
+          "mode": "read",
+          "why": "pre-import historical base"
+        },
+        {
+          "to": "owner-lifecycle",
+          "mode": "construct",
+          "why": "exclusive owner import session"
+        },
+        {
+          "to": "echo",
+          "mode": "write",
+          "why": "historical captured execution evidence"
+        }
+      ]
+    },
+    {
+      "id": "context-engine",
+      "rank": 11,
+      "kind": "service",
+      "responsibility": "All context management, global budgeting, compaction and final model-facing assembly",
+      "depends_on": [
+        {
+          "to": "archive-store",
+          "mode": "read",
+          "why": "conversation source history and compaction checkpoints"
+        },
+        {
+          "to": "ego",
+          "mode": "read",
+          "why": "Ego summaries Identity and Anchors"
+        },
+        {
+          "to": "retrieval",
+          "mode": "invoke",
+          "why": "task-relevant evidence"
+        },
+        {
+          "to": "freshness",
+          "mode": "read",
+          "why": "injection-time item scores"
+        },
+        {
+          "to": "switchboard",
+          "mode": "invoke",
+          "why": "compaction inference"
+        },
+        {
+          "to": "echo",
+          "mode": "read",
+          "why": "source-scoped reasoning and tool evidence"
+        }
+      ]
+    },
+    {
+      "id": "runtime-gateway",
+      "rank": 12,
+      "kind": "orchestration",
+      "responsibility": "Mounted REL/PHY, authorization, scheduling, session lifecycle and execution delivery",
+      "depends_on": [
+        {
+          "to": "owner-lifecycle",
+          "mode": "construct",
+          "why": "mount owner sessions"
+        },
+        {
+          "to": "context-engine",
+          "mode": "invoke",
+          "why": "final prompt/compaction"
+        },
+        {
+          "to": "retrieval",
+          "mode": "invoke",
+          "why": "interactive search"
+        },
+        {
+          "to": "insomnia",
+          "mode": "invoke",
+          "why": "Episode scheduling"
+        },
+        {
+          "to": "dream",
+          "mode": "invoke",
+          "why": "Dream scheduling"
+        },
+        {
+          "to": "perception",
+          "mode": "invoke",
+          "why": "Entity processing"
+        },
+        {
+          "to": "ego",
+          "mode": "invoke",
+          "why": "synthesis scheduling"
+        },
+        {
+          "to": "import",
+          "mode": "invoke",
+          "why": "historical intake"
+        },
+        {
+          "to": "external-sources",
+          "mode": "invoke",
+          "why": "host feeds"
+        },
+        {
+          "to": "project-environment",
+          "mode": "invoke",
+          "why": "validated project operations"
+        },
+        {
+          "to": "maintenance",
+          "mode": "invoke",
+          "why": "authorized repairs and reconciliation"
+        },
+        {
+          "to": "history",
+          "mode": "read",
+          "why": "historical queries"
+        },
+        {
+          "to": "vectors",
+          "mode": "invoke",
+          "why": "embedding jobs"
+        },
+        {
+          "to": "freshness",
+          "mode": "invoke",
+          "why": "accepted content handoff"
+        },
+        {
+          "to": "chronos",
+          "mode": "invoke",
+          "why": "temporal capability"
+        },
+        {
+          "to": "switchboard",
+          "mode": "invoke",
+          "why": "model endpoint"
+        },
+        {
+          "to": "archive-store",
+          "mode": "read",
+          "why": "conversation owner contract"
+        },
+        {
+          "to": "memory-store",
+          "mode": "read",
+          "why": "Memory owner contract"
+        },
+        {
+          "to": "config-security",
+          "mode": "read",
+          "why": "local configuration and credentials"
+        },
+        {
+          "to": "echo",
+          "mode": "read",
+          "why": "authorized Echo retrieval and handoff"
+        }
+      ]
+    },
+    {
+      "id": "public-consumers",
+      "rank": 13,
+      "kind": "consumer",
+      "responsibility": "Facade, CLI and external host integrations; no private owner bypass",
+      "depends_on": [
+        {
+          "to": "runtime-gateway",
+          "mode": "invoke",
+          "why": "normal live operations"
+        },
+        {
+          "to": "maintenance",
+          "mode": "invoke",
+          "why": "explicit offline maintenance"
+        },
+        {
+          "to": "history",
+          "mode": "read",
+          "why": "offline historical cuts"
+        },
+        {
+          "to": "import",
+          "mode": "invoke",
+          "why": "explicit offline import"
+        },
+        {
+          "to": "project-environment",
+          "mode": "invoke",
+          "why": "project administration"
+        }
+      ]
+    }
+  ]
+}

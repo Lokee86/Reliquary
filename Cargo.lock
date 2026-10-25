@@ -2704,6 +2704,70 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
+name = "reliquary-archive"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-chronos"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-container"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-context-engine"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-dream"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-echo"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-ego"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-external-index-store"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-freshness"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-graph"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-history"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-import"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-import-store"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-insomnia"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-maintenance"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-maintenance-store"
+version = "0.1.0"
+
+[[package]]
 name = "reliquary-memory"
 version = "0.1.0"
 dependencies = [
@@ -2723,6 +2787,42 @@ dependencies = [
  "uuid",
  "zeroize",
 ]
+
+[[package]]
+name = "reliquary-memory-core"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-owner-lifecycle"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-perception"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-perception-store"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-project-environment"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-retrieval"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-runtime-gateway"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-switchboard"
+version = "0.1.0"
+
+[[package]]
+name = "reliquary-vectors"
+version = "0.1.0"
 
 [[package]]
 name = "reqwest"
