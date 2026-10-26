@@ -1,7 +1,7 @@
 use super::RelationshipStore;
 use crate::{EntityId, EntityRef, RelationshipError, RelationshipId, RelationshipMemoryRef};
-use reliquary_perception_store::relationship_codec::RelationshipTombstone;
-use reliquary_perception_store::relationship_model::{RelationshipParticipant, RelationshipRecord};
+use crate::relationship_codec::RelationshipTombstone;
+use crate::relationship_model::{RelationshipParticipant, RelationshipRecord};
 use std::collections::{BTreeSet, HashMap};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
