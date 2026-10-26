@@ -1,9 +1,23 @@
 # Echo crate extraction — implementation specification
 
-**Status:** Ready for implementation; extraction **not started**.  
+**Status:** Implemented and reviewed; focused extraction gates pass. Broader-suite and architecture-tool exceptions are recorded below.
 **Branch/baseline:** `refactor/crate-first-restart` at `880d2ec`; Container, Archive and Memory Core are extracted.  
 **Target:** `crates/reliquary-echo/` — a **real**, independently compiled source-scoped Echo owner.  
 **Scope:** correction-only hard cut, no new provider behavior or on-disk format.
+
+## Purpose
+
+Record the implementation boundary, preserved behavior, and completion gates for moving Echo into an independently compiled owner crate.
+
+## Overview
+
+Echo production code now lives in `crates/reliquary-echo/`. The root product and higher-level consumers use its canonical event types and store while retaining lifecycle admission, runtime authority, and evidence rendering at their existing layers. Final verification remains pending.
+
+## Related docs
+
+- [Crate-first architecture](crate-first-architecture.md) and [crate map](architecture/crate-map.json): accepted dependency direction and physical ownership.
+- [ADR 0014: Echo](decisions/0014-echo-historical-reasoning-traces.md), [storage format](storage-format.md#echo-sidecar-records), and [behavioral contracts](behavioral-contracts.md): semantics and persistence invariants.
+- [Architecture](architecture.md#echo-execution-evidence-crate), [Rust API](api.md#echo-source-owner), and [maintainer map](maintainer-map.md): current implementation and consumer ownership.
 
 ## 1. Problem and desired outcome
 
@@ -20,7 +34,7 @@ Echo is an independent durable owner, but the production implementation is still
 | [ADR 0001](decisions/0001-purpose-built-database-ownership.md), [storage format](storage-format.md), [behavioral contracts](behavioral-contracts.md) | Echo is REL-only and occupies `CVAECHO1` physical records. Preserve current eight-byte magic, typed binary fields, ID/sequence identity, UTF-8 lengths, present flags, error behavior, and byte-neutral opening. Echo consumes **no** global, Archive, Memory, Graph or Vector Generation version. It does not wrap records in `CVAPUB01`. |
 | [Container extraction](container-crate-extraction-spec-2026-10-25.md), [Archive extraction](archive-crate-extraction-spec-2026-10-25.md), [Memory Core extraction](memory-core-crate-extraction-spec-2026-10-25.md) | Reuse current physical writer/scan and error discipline. Archive's transcripts and Memory's revisions remain independently owned; do not move their code to Echo or make peers depend on Echo. |
 | [Runtime multiplexing](subsystems/runtime-multiplexing.md), [context engine](subsystems/context-engine.md) | Runtime/owner grants decide **who** may record or view evidence; Context Engine decides **how** chosen evidence is rendered. An Echo record by itself cannot grant authority or instantiate provider continuation. |
-| Actual current source | `src/echo/echo_model.rs`, `echo_codec.rs`, `echo_store.rs`, `echo_tests.rs`; `src/facade/cva.rs`, `cva_lifecycle.rs`, `cva_error.rs`; `cva_reconcile_repack.rs`; `src/context_engine/evidence.rs`; `src/runtime_inference/runtime_host_gateway_{ambient,conversation_generation_events,conversation_metadata}.rs`; `cli/src/import_{cmd,input,tests}.rs`; `tests/live_runtime_adapter.rs`. |
+| Pre-extraction source baseline | `src/echo/echo_model.rs`, `echo_codec.rs`, `echo_store.rs`, `echo_tests.rs`; `src/facade/cva.rs`, `cva_lifecycle.rs`, `cva_error.rs`; `cva_reconcile_repack.rs`; `src/context_engine/evidence.rs`; `src/runtime_inference/runtime_host_gateway_{ambient,conversation_generation_events,conversation_metadata}.rs`; `cli/src/import_{cmd,input,tests}.rs`; `tests/live_runtime_adapter.rs`. |
 
 **Selective salvage:** inspect actual Echo/reconcile/physical diffs in abandoned `d1c0d4b2`, `957733a4` and `86145476` against the verified current baseline; adopt a concrete correctness fix only when applicable. Do **not** cherry-pick phase scaffolds, broad architecture ratchets, or old wrappers. The original `C:\!bin\workspace\Reliquary` main, backup bundle and promoted corpus must remain untouched.
 
@@ -107,3 +121,52 @@ A bounded locally red interval is acceptable. **Do not** pre-extract Retrieval, 
 No provider-state continuation redesign, semantic role changes, Echo-driven Memory creation, bulk reasoning reconstruction, source-wide search, new lexical/vector retrieval infrastructure, Archive/Memory schema change, Context Engine redesign, Insomnia/Dream/Ego/Freshness extraction, global-history rewrite, or custom proof/ratchet framework.
 
 **Acceptance is a real owned, compiled Echo crate and working concrete callers.** A green empty scaffold, unused crate, or speculative test count is not completion.
+
+## Notes
+
+Implementation is present, but the final crate, workspace, CLI, and documentation integrity checks listed below have not yet been confirmed. Promoted CVAFRS07 corpus acceptance remains a separate Freshness/Import recovery gate and is not part of Echo extraction.
+
+
+## Implementation verification — 2026-10-26
+
+The production model and codec moved unchanged into `reliquary-echo`; the store
+now exposes the concrete operations used by the product. Root lifecycle replays
+that store in its original physical order. Internal consumers use the crate's
+canonical types, and the product retains its deliberate public re-exports. The
+old production modules and path declarations are removed. Review of the three
+archived revisions found no additional applicable Echo correctness fix.
+
+Passed with locked, offline Cargo resolution:
+
+- `cargo check -p reliquary-echo` and `cargo test -p reliquary-echo` (5 owner tests).
+- `cargo check --workspace`.
+- Focused root library tests for Echo, Context Engine, reconciliation, ambient
+  grants and live runtime (50 tests), plus `live_runtime_adapter` (2 tests).
+- Independent CLI check and test through `cli/Cargo.toml` (32 tests); both
+  lockfiles include the real Echo dependency.
+- Workspace and CLI formatting checks; full and changed-from-origin/main
+  documentation policy and Archivist index/link integrity initially passed; Git
+  whitespace check passes. A later concurrent Graph spec commit introduced five
+  unrelated documentation findings and an orphan-page index failure on rerun.
+
+The full `cargo test --locked --offline` was attempted. Three stale test-only
+Archive Episode ID assignments in `history_rewrite_contract.rs` and
+`freshness_retrieval_boundary.rs` were converted explicitly to Memory's opaque
+source ID so the suite could compile; both corrected integration suites pass independently. The
+broader run reported 19 failures outside
+the focused extraction seams and was interrupted after two loopback transport
+fixtures stalled. Exact diagnosis reproduced Windows hard-link permission denial
+and an Entity audit reopen revision assertion (1 versus expected 2). Provider
+transport failures use local TCP fixtures, not live provider credentials. No full
+suite pass is claimed; these failures require separate investigation.
+
+The architecture boundary guards pass, but the complete architecture check lacks
+a current Arcana snapshot. No graph census was generated, as required by this
+specification. The installed Pitlord binary has no `docs` command, so its docs gate
+is unavailable. The Cargo dependency boundary was checked directly: Echo depends
+only on Container among Reliquary crates. These tooling gaps remain explicit.
+
+Builds used repository-local temporary paths. Large root/CLI verification builds
+limited parallelism and disabled debug information/incremental output after the
+previous disk-full interruption. The authoritative corpus and original main
+checkout were untouched. CVAFRS07 acceptance remains separately pending.

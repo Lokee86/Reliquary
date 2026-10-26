@@ -40,9 +40,31 @@ error semantics. It does not change the storage format.
 
 Archive owns visible transcript/source facts, Nodes, Branches, Episodes,
 fragments, files and source receipts. Runtime stream/session coordination stays
-in `src/runtime_inference/`; Echo reasoning/tool evidence stays in `src/echo/`;
-`Cva::search_archive` and query policy stay in Retrieval under `src/retrieval/`.
-Multi-owner maintenance proof and lifecycle composition remain in root facades.
+in `src/runtime_inference/`; Echo reasoning/tool evidence belongs to the
+independently compiled `reliquary-echo` crate; `Cva::search_archive` and query
+policy stay in Retrieval under `src/retrieval/`. Multi-owner maintenance proof
+and lifecycle composition remain in root facades.
+
+## Echo execution-evidence crate
+
+`reliquary-echo` is the independently compiled owner of source-keyed historical
+reasoning, tool and activity evidence. Its model, `CVAECHO1` codec, replay and
+ordered source reads live under `crates/reliquary-echo/src/`; its only direct
+Reliquary dependency is `reliquary-container`. The root product holds and
+replays the crate's `EchoStore` while opening REL files, and keeps its public
+`EchoEvent`, `EchoEventKind` and `EchoError` re-exports for compatibility.
+Opening and replay remain byte-neutral; Echo does not allocate semantic
+versions or add a container or publication envelope.
+
+The root facade retains REL admission and lifecycle composition, and
+Maintenance retains cross-copy reconciliation. Runtime retains grants,
+authenticated source selection and generation/correlation checks. Context
+Engine retains evidence rendering and excludes private `ToolContextAccepted`
+acknowledgments. Archive transcript truth, Memory truth and provider
+continuation state remain with their existing owners. Ordinary Echo retrieval
+is scoped to one selected visible source; explicit conversation enumeration is
+for authorized transcript/restart materialization, and full enumeration is for
+maintenance/recovery.
 
 ## Memory semantic owner crate
 

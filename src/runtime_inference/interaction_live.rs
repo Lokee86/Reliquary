@@ -531,8 +531,8 @@ impl LiveSession {
         let mut result = Vec::new();
         for event in events {
             let kind = match event.kind {
-                crate::EchoEventKind::ToolCall => LiveToolEventKind::Invocation,
-                crate::EchoEventKind::ToolResult => LiveToolEventKind::Result,
+                reliquary_echo::EchoEventKind::ToolCall => LiveToolEventKind::Invocation,
+                reliquary_echo::EchoEventKind::ToolResult => LiveToolEventKind::Result,
                 _ => continue,
             };
             result.push(LiveToolEvent {

@@ -2,6 +2,19 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Purpose
+
+Record implementation ownership and the scoped verification results for the Memory Core extraction.
+
+## Overview
+
+Memory Core production code now lives in its independently compiled crate. The checks below cover its local store, selected root integrations, CLI, formatting, and workspace compilation; promoted CVAFRS07 corpus admission remains a separate gate.
+
+## Related docs
+
+- [Memory Core extraction specification](memory-core-crate-extraction-spec-2026-10-25.md) defines the owner boundary and acceptance criteria.
+- [Architecture](architecture.md), [storage format](storage-format.md), and [current limitations](current-limitations.md) describe current ownership and corpus constraints.
+
 ## Outcome and ownership
 
 Branch: `refactor/crate-first-restart`. The former root Memory store, current-format codecs, replay, body/routing indexes and immutable record types have moved to `crates/reliquary-memory-core/`. The root `Cva`, `Phylactery`, Insomnia, External Source, Import, Perception, Chronos and historical callers now consume that compiled owner. Its sole Reliquary Cargo dependency is `reliquary-container`.
@@ -29,3 +42,7 @@ Three focused owner-local tests cover accepted grouped content plus routing and 
 | Promoted authoritative `CVAFRS07` corpus | Not accepted here; requires separately recovered Freshness/Import semantics |
 
 **Scoped extraction acceptance:** Memory Core, selected root integration, CLI, formatting, and workspace checks pass. The full root suite and promoted `CVAFRS07` corpus admission were not performed; long-running whole-history measurements remain separate. Root test selections overlap and must not be summed as distinct test coverage.
+
+## Notes
+
+Root test selections overlap and must not be summed as distinct coverage. The full root suite and promoted `CVAFRS07` corpus admission were not performed.

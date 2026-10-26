@@ -24,7 +24,17 @@ ordered replay and read APIs, and directly depends only on
 Import and Maintenance. Archive publication bytes and the current storage
 format are preserved by this boundary. Runtime session/stream behavior, Echo
 reasoning evidence and retrieval policy remain in `src/runtime_inference/`,
-`src/echo/` and `src/retrieval/`, respectively.
+`crates/reliquary-echo/` and `src/retrieval/`, respectively.
+
+## Echo source owner
+
+The root product's public Echo event types are re-exports from
+`reliquary-echo`. That crate owns the `CVAECHO1` codec, replay, source-keyed
+ordering and append behavior, and depends only on `reliquary-container` among
+Reliquary crates. The product retains REL open/write admission and maps
+`EchoError` into `CvaError`; Runtime retains access grants and source selection,
+and Context Engine retains rendering policy. `ToolContextAccepted` persists as
+private receiver acknowledgment and is excluded from rendered model evidence.
 
 ## Physical Container access
 

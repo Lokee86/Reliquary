@@ -164,7 +164,7 @@ impl GatewayRuntime {
         &self,
         instance: &InstanceRuntime,
         owner_id: &str,
-        event: crate::EchoEvent,
+        event: reliquary_echo::EchoEvent,
     ) -> Result<bool, ReliquaryRuntimeHostError> {
         let token = self.authorize(instance, owner_id, OwnerGrant::ManageRel)?;
         self.with_rel_mutation(&token, RelMutationFamily::ConversationMetadata, |runtime| {
@@ -231,13 +231,13 @@ mod tests {
                 .put_echo_event_for(
                     &view,
                     &rel,
-                    crate::EchoEvent {
+                    reliquary_echo::EchoEvent {
                         conversation_id: "conv".into(),
                         message_id: "node".into(),
                         sequence: 0,
                         timestamp_ns: 0,
                         model_round: None,
-                        kind: crate::EchoEventKind::Commentary,
+                        kind: reliquary_echo::EchoEventKind::Commentary,
                         correlation_id: None,
                         name: None,
                         content: "cannot write".into()

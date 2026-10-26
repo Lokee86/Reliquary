@@ -1,9 +1,10 @@
 use crate::{
     ArchiveError, ArchiveVectorError, CommunityError, CompatibilityProfileError,
-    ConversationCompactionError, EchoError, EgoError, EntityError, GraphError, InsomniaError,
-    MemoryError, MemoryVectorError, PackedVectorError, RelationshipError, VectorGenerationError,
+    ConversationCompactionError, EgoError, EntityError, GraphError, InsomniaError, MemoryError,
+    MemoryVectorError, PackedVectorError, RelationshipError, VectorGenerationError,
 };
 use reliquary_container::ContainerError;
+use reliquary_echo::EchoError;
 use std::fmt;
 
 #[derive(Debug)]

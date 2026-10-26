@@ -7,7 +7,6 @@ use crate::cva_global_validation::validate_semantic_global_versions;
 use crate::cva_open_route::{OpenRecordRoute, classify_open_record};
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::dream_pair_history::DreamPairStore;
-use crate::echo_store::EchoStore;
 use crate::ego_store::EgoStore;
 use crate::entity_rebuild::EntityOpenState;
 use crate::entity_resolution_store::EntityResolutionStore;
@@ -40,6 +39,7 @@ use reliquary_archive::interaction_stream_store::InteractionStreamStore;
 use reliquary_archive::project_file_binding_store::ProjectFileStore;
 use reliquary_archive::project_history_store::ProjectHistoryStore;
 use reliquary_container::Container;
+use reliquary_echo::EchoStore;
 use std::path::Path;
 
 impl Cva {

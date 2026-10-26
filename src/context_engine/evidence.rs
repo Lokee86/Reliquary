@@ -1,5 +1,5 @@
 use super::{ContextEvidence, EvidenceKind};
-use crate::{EchoEvent, EchoEventKind};
+use reliquary_echo::{EchoEvent, EchoEventKind};
 
 pub fn render_assistant_content_from_echo(final_text: &str, events: &[EchoEvent]) -> String {
     let evidence = events

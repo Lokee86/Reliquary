@@ -448,12 +448,6 @@ mod dream_verifier_error;
 mod dream_verifier_model;
 #[path = "runtime_inference/dream_verifier_schema.rs"]
 mod dream_verifier_schema;
-#[path = "echo/echo_codec.rs"]
-mod echo_codec;
-#[path = "echo/echo_model.rs"]
-mod echo_model;
-#[path = "echo/echo_store.rs"]
-mod echo_store;
 #[path = "ego/ego_codec.rs"]
 mod ego_codec;
 #[path = "ego/ego_compact_apply.rs"]
@@ -1061,7 +1055,6 @@ pub use dream_verifier_model::{
     DreamVerificationSignal, DreamVerificationVerdict,
 };
 pub use dream_verifier_schema::{DREAM_VERIFIER_SYSTEM_PROMPT, dream_verifier_schema};
-pub use echo_model::{EchoError, EchoEvent, EchoEventKind};
 pub use ego_error::EgoError;
 pub use ego_model::{
     EgoAnchor, EgoAnchorId, EgoAnchorPriority, EgoIdentity, EgoIdentityId, EgoPersonality,
@@ -1233,6 +1226,7 @@ pub use reliquary_archive::project_history_model::{
     ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryManagement, ProjectRepositoryRef,
     ProjectRevisionCorrelation, ProjectRevisionRef, RelSemanticCut,
 };
+pub use reliquary_echo::{EchoError, EchoEvent, EchoEventKind};
 pub use runtime_host::memory_search::{
     DEFAULT_MEMORY_SEARCH_DEPTH, DEFAULT_MEMORY_SEARCH_RESULTS, MAX_MEMORY_SEARCH_DEPTH,
     MAX_MEMORY_SEARCH_QUERY_BYTES, MAX_MEMORY_SEARCH_RESULTS, MemorySearchItem, MemorySearchLane,

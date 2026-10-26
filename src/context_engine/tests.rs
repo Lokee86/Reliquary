@@ -1,5 +1,5 @@
 use super::*;
-use crate::{EchoEvent, EchoEventKind};
+use reliquary_echo::{EchoEvent, EchoEventKind};
 
 struct WordCounter;
 

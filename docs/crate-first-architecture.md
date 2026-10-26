@@ -1,6 +1,6 @@
 # Crate-first Reliquary architecture
 
-Status: **Container extracted; remaining owner crates are reserved targets** (2026-10-25).
+Status: **Container, Archive, Memory Core, and Echo owner crates extracted; remaining owner crates are reserved targets** (2026-10-26).
 Starting commit: `c43d33c`. Branch: `refactor/crate-first-restart`.
 
 ## Purpose
@@ -75,7 +75,7 @@ ADR 0014 says Echo is its own durable owner, although the old source stored `Ech
 
 ## Current acceptance boundary
 
-`reliquary-container` now owns the physical implementation and tests; the root consumes it through a real Cargo dependency and pulls bounded frames for owner replay. Ordinary open is nonmutating and writer/repair access is explicit. The remaining libraries still reserve layout only. The restart baseline does not implement promoted CVAFRS07 semantic settlements: current Freshness/Import recovery and all-six disposable-copy corpus admission remain required before product acceptance. See [current limitations](current-limitations.md#crate-first-recovery-boundary).
+`reliquary-container` owns physical implementation; `reliquary-archive`, `reliquary-memory-core` and `reliquary-echo` own their production stores, with Container as each crate's only direct Reliquary dependency. The root consumes them through Cargo dependencies and retains product lifecycle/composition. Ordinary open is nonmutating and writer/repair access is explicit. The remaining libraries still reserve layout only. The restart baseline does not implement promoted CVAFRS07 semantic settlements: current Freshness/Import recovery and all-six disposable-copy corpus admission remain required before product acceptance. See [current limitations](current-limitations.md#crate-first-recovery-boundary).
 
 ## Related docs
 

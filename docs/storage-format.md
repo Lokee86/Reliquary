@@ -343,7 +343,7 @@ Divergent Reliquary reconciliation retains and merges interaction-stream records
 
 ### Echo sidecar records
 
-Echo is durable turn-attached execution evidence stored inside REL files but outside the Archive/Memory semantic search populations. The initial record is append-only and keyed by `(conversation_id, message_id, sequence)`:
+Echo is durable turn-attached execution evidence stored inside REL files but outside the Archive/Memory semantic search populations. The `reliquary-echo` crate owns the `CVAECHO1` codec and replay; root REL lifecycle retains physical admission and hands each payload to that owner in physical order. The initial record is append-only and keyed by `(conversation_id, message_id, sequence)`:
 
 ```text
 8 bytes   "CVAECHO1"

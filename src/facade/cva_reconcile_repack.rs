@@ -307,7 +307,10 @@ fn replay_dream_pairs(
     Ok(())
 }
 
-fn replay_echo(output: &mut Cva, events: Vec<crate::EchoEvent>) -> Result<(), CvaReconcileError> {
+fn replay_echo(
+    output: &mut Cva,
+    events: Vec<reliquary_echo::EchoEvent>,
+) -> Result<(), CvaReconcileError> {
     for event in events {
         output.put_echo_event(event)?;
     }

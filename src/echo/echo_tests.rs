@@ -4,7 +4,9 @@ use std::path::PathBuf;
 use uuid::Uuid;
 
 fn test_path() -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("reliquary-echo-{}", Uuid::new_v4()));
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join(".test-tmp")
+        .join(format!("reliquary-echo-{}", Uuid::new_v4()));
     fs::create_dir_all(&dir).unwrap();
     dir.join("project.rel")
 }
@@ -36,7 +38,9 @@ fn echo_events_persist_inside_the_rel_in_sequence_order() {
     rel.sync().unwrap();
     drop(rel);
 
+    let bytes_before_open = fs::read(&path).unwrap();
     let reopened = Cva::open(&path).unwrap();
+    assert_eq!(fs::read(&path).unwrap(), bytes_before_open);
     let events = reopened.echo_events("conversation-1", "assistant-1");
     assert_eq!(events.len(), 3);
     assert_eq!(events[0].sequence, 0);

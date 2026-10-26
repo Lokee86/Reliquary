@@ -4,7 +4,6 @@ use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::cva_memory_publish::publish_memory_parts;
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::dream_pair_history::DreamPairStore;
-use crate::echo_store::EchoStore;
 use crate::ego_store::EgoStore;
 use crate::entity_resolution_store::EntityResolutionStore;
 use crate::entity_store::EntityStore;
@@ -29,6 +28,7 @@ use reliquary_archive::interaction_stream_store::InteractionStreamStore;
 use reliquary_archive::project_file_binding_store::ProjectFileStore;
 use reliquary_archive::project_history_store::ProjectHistoryStore;
 use reliquary_container::{Container, WriteAdmission};
+use reliquary_echo::EchoStore;
 
 pub struct Cva {
     pub(crate) owner_maintenance: crate::owner_maintenance::OwnerMaintenanceStore,
@@ -695,19 +695,26 @@ impl Cva {
         self.interaction_streams.all_records()
     }
 
-    pub fn put_echo_event(&mut self, event: crate::EchoEvent) -> Result<bool, CvaError> {
+    pub fn put_echo_event(&mut self, event: reliquary_echo::EchoEvent) -> Result<bool, CvaError> {
         Ok(self.echo.put(&mut self.container, event)?)
     }
 
-    pub fn echo_events(&self, conversation_id: &str, message_id: &str) -> Vec<crate::EchoEvent> {
+    pub fn echo_events(
+        &self,
+        conversation_id: &str,
+        message_id: &str,
+    ) -> Vec<reliquary_echo::EchoEvent> {
         self.echo.for_turn(conversation_id, message_id)
     }
 
-    pub(crate) fn conversation_echo_events(&self, conversation_id: &str) -> Vec<crate::EchoEvent> {
+    pub(crate) fn conversation_echo_events(
+        &self,
+        conversation_id: &str,
+    ) -> Vec<reliquary_echo::EchoEvent> {
         self.echo.for_conversation(conversation_id)
     }
 
-    pub(crate) fn echo_records(&self) -> Vec<crate::EchoEvent> {
+    pub(crate) fn echo_records(&self) -> Vec<reliquary_echo::EchoEvent> {
         self.echo.all_records()
     }
 

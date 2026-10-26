@@ -532,14 +532,14 @@ fn rel_provenance_policy_preserves_closure_strips_deliberately_or_rejects() {
     memory_draft.source_node_id = Some("source".into());
     memory_draft.content_source_conversation_id = Some("conversation".into());
     memory_draft.content_source_node_id = Some("content".into());
-    memory_draft.source_episode_id = Some(episode.id);
+    memory_draft.source_episode_id = Some(reliquary_memory_core::SourceEpisodeId(episode.id.0));
     let id = source.publish_memory(None, 0, memory_draft).unwrap().0.id;
     source.sync().unwrap();
     drop(source);
     let mut episode_only = Cva::open(&source_path).unwrap();
     let mut revised = draft("episode-only", "episode", "Episode-only provenance");
     revised.source_node_id = Some("source".into());
-    revised.source_episode_id = Some(episode.id);
+    revised.source_episode_id = Some(reliquary_memory_core::SourceEpisodeId(episode.id.0));
     episode_only.publish_memory(None, 0, revised).unwrap();
     episode_only.sync().unwrap();
     drop(episode_only);

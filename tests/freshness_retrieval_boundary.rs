@@ -73,7 +73,7 @@ fn draft(name: &str, content: &str, episode: &reliquary_memory::Episode) -> Memo
         content_source_node_id: Some("content-node".into()),
         grounding_source_conversation_id: None,
         grounding_source_node_id: None,
-        source_episode_id: Some(episode.id),
+        source_episode_id: Some(reliquary_memory_core::SourceEpisodeId(episode.id.0)),
         source_time_ns: Some(2),
         mutation_id: name.into(),
         created_at_ns: 1,

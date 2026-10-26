@@ -1,7 +1,8 @@
 use crate::{
-    Cva, CvaReconcileError, CvaRelation, EchoEvent, EchoEventKind, InteractionRole,
-    InteractionRuntime, InteractionStreamStatus,
+    Cva, CvaReconcileError, CvaRelation, InteractionRole, InteractionRuntime,
+    InteractionStreamStatus,
 };
+use reliquary_echo::{EchoEvent, EchoEventKind};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -265,5 +266,37 @@ fn compare_rejects_different_owners() {
     assert!(matches!(
         Cva::compare(&left, &right),
         Err(CvaReconcileError::OwnerMismatch { .. })
+    ));
+}
+
+#[test]
+fn divergent_reconcile_rejects_conflicting_echo_sequence() {
+    let dir = test_dir();
+    let left = dir.join("echo-left.rel");
+    let right = dir.join("echo-right.rel");
+    let output = dir.join("echo-conflict.rel");
+    create_base(&left);
+    fs::copy(&left, &right).unwrap();
+    for (path, content) in [(&left, "left"), (&right, "right")] {
+        let mut rel = Cva::open(path).unwrap();
+        rel.put_echo_event(EchoEvent {
+            conversation_id: "conversation".into(),
+            message_id: "assistant".into(),
+            sequence: 0,
+            timestamp_ns: 1,
+            model_round: None,
+            kind: EchoEventKind::ReasoningTrace,
+            correlation_id: None,
+            name: None,
+            content: content.into(),
+        })
+        .unwrap();
+        rel.sync().unwrap();
+    }
+    assert!(matches!(
+        Cva::reconcile(&left, &right, &output),
+        Err(CvaReconcileError::Cva(crate::CvaError::Echo(
+            reliquary_echo::EchoError::ConflictingSequence
+        )))
     ));
 }

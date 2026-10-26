@@ -5,10 +5,11 @@ use super::{
     operation,
 };
 use crate::{
-    ArchiveSearchHit, CommunityId, ConversationSearchHit, ConversationSummary, EchoEvent, Entity,
+    ArchiveSearchHit, CommunityId, ConversationSearchHit, ConversationSummary, Entity,
     GraphRelationChange, GraphRelationKind, GraphRelationOrigin, Memory, MemoryDraft, MemoryId,
     MemoryProvenance, ResolvedInteractionTurn, StoredFile,
 };
+use reliquary_echo::EchoEvent;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::Arc;
 use uuid::Uuid;

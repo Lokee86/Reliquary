@@ -3,24 +3,24 @@ use crate::{EchoError, EchoEvent};
 use reliquary_container::Container;
 use std::collections::{BTreeMap, HashMap};
 
+/// One REL scope's durable source-keyed evidence. Access is authorized by the caller.
 #[derive(Debug, Default)]
-pub(crate) struct EchoStore {
+pub struct EchoStore {
     records: HashMap<(String, String), BTreeMap<u64, EchoEvent>>,
 }
 
 impl EchoStore {
-    pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), EchoError> {
+    /// Replay a raw physical payload; unrelated owners are ignored.
+    pub fn ingest(&mut self, payload: &[u8]) -> Result<(), EchoError> {
         if let Some(event) = decode(payload)? {
             self.apply(event)?;
         }
         Ok(())
     }
 
-    pub(crate) fn put(
-        &mut self,
-        container: &mut Container,
-        event: EchoEvent,
-    ) -> Result<bool, EchoError> {
+    /// Append under caller-held writer authorization, then update accepted state.
+    /// Identical retries return `false`; conflicting source sequences fail closed.
+    pub fn put(&mut self, container: &mut Container, event: EchoEvent) -> Result<bool, EchoError> {
         if let Some(existing) = self.existing(&event) {
             return if existing == &event {
                 Ok(false)
@@ -34,14 +34,17 @@ impl EchoStore {
         Ok(true)
     }
 
-    pub(crate) fn for_turn(&self, conversation_id: &str, message_id: &str) -> Vec<EchoEvent> {
+    /// Read one selected visible source in ascending numeric sequence.
+    pub fn for_turn(&self, conversation_id: &str, message_id: &str) -> Vec<EchoEvent> {
         self.records
             .get(&(conversation_id.to_owned(), message_id.to_owned()))
             .map(|events| events.values().cloned().collect())
             .unwrap_or_default()
     }
 
-    pub(crate) fn for_conversation(&self, conversation_id: &str) -> Vec<EchoEvent> {
+    /// Explicit authorized transcript/restart enumeration within this REL scope.
+    /// This is not a conversation-wide reasoning search API.
+    pub fn for_conversation(&self, conversation_id: &str) -> Vec<EchoEvent> {
         let mut records = self
             .records
             .iter()
@@ -56,7 +59,8 @@ impl EchoStore {
         records
     }
 
-    pub(crate) fn all_records(&self) -> Vec<EchoEvent> {
+    /// Explicit recovery/reconciliation enumeration within the caller's authorized REL.
+    pub fn all_records(&self) -> Vec<EchoEvent> {
         let mut records = self
             .records
             .values()

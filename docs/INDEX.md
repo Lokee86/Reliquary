@@ -34,7 +34,7 @@
 - [Architecture](architecture.md) — implemented ownership, state, flows, and code map.
 - [Architecture maps](architecture/INDEX.md) — logical DAG and physical crate ownership.
 - [Crate-first target architecture](crate-first-architecture.md) — accepted logical DAG, Echo ownership and crate-first migration policy.
-- [Crate structure and layout specification](crate-first-layout-spec-2026-10-25.md) — 20 primary and 10 supporting crates, physical layering, code/doc crosswalk and completion gates.
+- [Crate structure and layout specification](crate-first-layout-spec-2026-10-25.md) — 20 primary and 10 supporting crates, physical layering, current extraction status, code/doc crosswalk and completion gates.
 - [Container crate extraction specification](container-crate-extraction-spec-2026-10-25.md) — first hard-cut extraction: physical scanning, writer exclusion, read-only open, clock framing and existing regressions.
 - [Archive crate extraction specification](archive-crate-extraction-spec-2026-10-25.md) — second hard-cut extraction: source owner, import receipts, Episodes, durable checkpoints, Echo exclusion and cross-owner dependency cuts.
 - [Memory Core crate extraction specification](memory-core-crate-extraction-spec-2026-10-25.md) — third hard-cut extraction: Memory persistence, foreign source identities, grouped publication boundaries, lifecycle/maintenance separation, and behavioral gates.
@@ -161,6 +161,7 @@
 - [domain-tombstone-convergence-split-2026-10-17.md](domain-tombstone-convergence-split-2026-10-17.md) - Domain Tombstone Convergence Split 2026 10 17 documentation.
 - [dream-classifier-v2-design.md](dream-classifier-v2-design.md) - Dream Classifier V2 Design documentation.
 - [dream-population-contract-2026-10-21.md](dream-population-contract-2026-10-21.md) - Dream Population Contract 2026 10 21 documentation.
+- [echo-crate-extraction-spec-2026-10-26.md](echo-crate-extraction-spec-2026-10-26.md) - Echo Crate Extraction Spec 2026 10 26 documentation.
 - [ego-cross-chat-context-plan.md](ego-cross-chat-context-plan.md) - Ego Cross Chat Context Plan documentation.
 - [ego-cross-rel-summary-inclusion-plan.md](ego-cross-rel-summary-inclusion-plan.md) - Ego Cross Rel Summary Inclusion Plan documentation.
 - [ego-status-decision-inventory-2026-10-14.md](ego-status-decision-inventory-2026-10-14.md) - Ego Status Decision Inventory 2026 10 14 documentation.
@@ -211,6 +212,7 @@
 - [invariants.md](invariants.md) - Invariants documentation.
 - [latest-offline-converter-coverage-2026-10-21.md](latest-offline-converter-coverage-2026-10-21.md) - Latest Offline Converter Coverage 2026 10 21 documentation.
 - [maintainer-map.md](maintainer-map.md) - Maintainer Map documentation.
+- [memory-core-crate-extraction-results-2026-10-25.md](memory-core-crate-extraction-results-2026-10-25.md) - Memory Core Crate Extraction Results 2026 10 25 documentation.
 - [memory-core-crate-extraction-spec-2026-10-25.md](memory-core-crate-extraction-spec-2026-10-25.md) - Memory Core Crate Extraction Spec 2026 10 25 documentation.
 - [minimal-lossless-history-storage-execution-2026-10-19.md](minimal-lossless-history-storage-execution-2026-10-19.md) - Minimal Lossless History Storage Execution 2026 10 19 documentation.
 - [minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md) - Minimal Lossless History Storage Format Policy Amendment 2026 10 19 documentation.

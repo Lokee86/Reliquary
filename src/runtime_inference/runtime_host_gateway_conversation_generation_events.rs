@@ -11,7 +11,7 @@ impl GatewayRuntime {
         owner_id: &str,
         conversation_id: &str,
         operation_id: &str,
-        event: crate::EchoEvent,
+        event: reliquary_echo::EchoEvent,
     ) -> Result<bool, ReliquaryRuntimeHostError> {
         let authority = OperationAuthority::capture(self, owner_id)?;
         let conversation = ConversationId::new(conversation_id).map_err(operation)?;
@@ -32,7 +32,7 @@ impl GatewayRuntime {
             || event.message_id != generation.generation_id
             || !matches!(
                 event.kind,
-                crate::EchoEventKind::ToolCall | crate::EchoEventKind::ToolResult
+                reliquary_echo::EchoEventKind::ToolCall | reliquary_echo::EchoEventKind::ToolResult
             )
             || event
                 .correlation_id
@@ -82,17 +82,18 @@ impl GatewayRuntime {
                 ));
             }
             let invocation = prior.iter().find(|e| {
-                e.kind == crate::EchoEventKind::ToolCall && e.correlation_id == event.correlation_id
+                e.kind == reliquary_echo::EchoEventKind::ToolCall
+                    && e.correlation_id == event.correlation_id
             });
             let result = prior.iter().any(|e| {
-                e.kind == crate::EchoEventKind::ToolResult
+                e.kind == reliquary_echo::EchoEventKind::ToolResult
                     && e.correlation_id == event.correlation_id
             });
             match event.kind {
-                crate::EchoEventKind::ToolCall if invocation.is_some() || result => {
+                reliquary_echo::EchoEventKind::ToolCall if invocation.is_some() || result => {
                     return Err(operation("tool invocation identity already exists"));
                 }
-                crate::EchoEventKind::ToolResult
+                reliquary_echo::EchoEventKind::ToolResult
                     if invocation.is_none()
                         || result
                         || invocation.is_some_and(|call| call.name != event.name) =>
@@ -113,7 +114,7 @@ impl GatewayRuntime {
 /// Validate the existing immutable source before native receipt projection.
 /// Generic historical Echo writes are not proof of well-formed tool ordering.
 pub(in super::super) fn validate_generation_tool_source(
-    events: &[crate::EchoEvent],
+    events: &[reliquary_echo::EchoEvent],
 ) -> Result<(), ReliquaryRuntimeHostError> {
     if events.len() > 256
         || events
@@ -130,7 +131,7 @@ pub(in super::super) fn validate_generation_tool_source(
     for event in events {
         if !matches!(
             event.kind,
-            crate::EchoEventKind::ToolCall | crate::EchoEventKind::ToolResult
+            reliquary_echo::EchoEventKind::ToolCall | reliquary_echo::EchoEventKind::ToolResult
         ) {
             continue;
         }
@@ -145,12 +146,12 @@ pub(in super::super) fn validate_generation_tool_source(
             .filter(|name| !name.trim().is_empty() && name.len() <= 256)
             .ok_or_else(|| operation("invalid tool name"))?;
         match event.kind {
-            crate::EchoEventKind::ToolCall => {
+            reliquary_echo::EchoEventKind::ToolCall => {
                 if calls.insert(id, name).is_some() {
                     return Err(operation("duplicate tool invocation identity"));
                 }
             }
-            crate::EchoEventKind::ToolResult => {
+            reliquary_echo::EchoEventKind::ToolResult => {
                 if calls.get(id).copied() != Some(name) || !results.insert(id) {
                     return Err(operation("tool result lacks its exact earlier invocation"));
                 }

@@ -2741,6 +2741,9 @@ version = "0.1.0"
 [[package]]
 name = "reliquary-echo"
 version = "0.1.0"
+dependencies = [
+ "reliquary-container",
+]
 
 [[package]]
 name = "reliquary-ego"
@@ -2807,6 +2810,7 @@ dependencies = [
  "regex",
  "reliquary-archive",
  "reliquary-container",
+ "reliquary-echo",
  "reliquary-memory-core",
  "reqwest",
  "serde",

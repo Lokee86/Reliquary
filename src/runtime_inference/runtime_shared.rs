@@ -32,7 +32,7 @@ pub struct RuntimeSemanticOwner {
 #[derive(Clone, Debug, PartialEq)]
 pub struct RuntimeEchoTurn {
     pub message_id: String,
-    pub events: Vec<crate::EchoEvent>,
+    pub events: Vec<reliquary_echo::EchoEvent>,
 }
 
 #[derive(Clone, Debug, PartialEq)]

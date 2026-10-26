@@ -69,17 +69,17 @@ fn first_turn_creates_one_durable_session_without_local_writer_authority() {
     );
 }
 
-fn tool(message: &str, sequence: u64, result: bool) -> crate::EchoEvent {
-    crate::EchoEvent {
+fn tool(message: &str, sequence: u64, result: bool) -> reliquary_echo::EchoEvent {
+    reliquary_echo::EchoEvent {
         conversation_id: "session".into(),
         message_id: message.into(),
         sequence,
         timestamp_ns: 2,
         model_round: None,
         kind: if result {
-            crate::EchoEventKind::ToolResult
+            reliquary_echo::EchoEventKind::ToolResult
         } else {
-            crate::EchoEventKind::ToolCall
+            reliquary_echo::EchoEventKind::ToolCall
         },
         correlation_id: Some("invocation-1".into()),
         name: Some("calculator".into()),
