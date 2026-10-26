@@ -456,7 +456,7 @@ fn divergent_completed_grouped_memory_epoch_replays_through_destination_owners()
     );
     assert_eq!(
         merged.entity_resolution(source_resolution.key),
-        Some(&source_resolution)
+        Some(source_resolution)
     );
     let replayed_dream_pass = merged
         .historical_completed_initial_dream_passes()

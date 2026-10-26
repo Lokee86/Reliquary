@@ -24,6 +24,10 @@ pub struct EntityResolutionStore {
 }
 
 impl EntityResolutionStore {
+    /// Immutable current facts for product cross-owner admission after replay.
+    pub fn values(&self) -> impl Iterator<Item = &MemoryEntityResolution> {
+        self.current.values()
+    }
     /// Foreign source IDs whose nonterminal or rejected state needs maintenance.
     pub fn maintenance_sources(&self) -> impl Iterator<Item = [u8; 32]> + '_ {
         self.maintenance.iter().map(|key| key.memory_id)
@@ -84,7 +88,8 @@ impl EntityResolutionStore {
         Ok(())
     }
 
-    pub fn from_fixture_changes(
+    #[cfg(test)]
+    pub(crate) fn from_fixture_changes(
         changes: impl IntoIterator<Item = DecodedEntityResolution>,
     ) -> Result<Self, ResolutionError> {
         let mut store = Self::default();

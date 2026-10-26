@@ -1,5 +1,4 @@
 use crate::entity_resolution_codec::*;
-use sha2::Digest;
 use std::{fs, path::PathBuf};
 fn scratch() -> PathBuf {
     let p = PathBuf::from(env!("CARGO_MANIFEST_DIR"))

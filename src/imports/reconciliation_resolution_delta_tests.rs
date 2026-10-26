@@ -45,16 +45,17 @@ fn entity_resolution_delta_interval_uses_source_postimage_and_destination_eviden
         v.last_attempt_at_ns = 10;
         v.attempt_count = 1;
     }
-    let destination_projection =
-        crate::entity_resolution_store::EntityResolutionStore::from_fixture_changes([
-            crate::entity_resolution_codec::DecodedEntityResolution {
-                key: prior.key,
-                revision: prior.revision,
-                updated_at_ns: prior.updated_at_ns,
-                status: Some(prior.status.clone()),
-            },
-        ])
-        .unwrap();
+    let mut destination_projection = crate::entity_resolution_store::EntityResolutionStore::default();
+    let destination_bytes = crate::entity_resolution_codec::delta::encode(
+        &crate::entity_resolution_codec::DecodedEntityResolution {
+            key: crate::entity_resolution_boundary::store_key(prior.key),
+            revision: prior.revision,
+            updated_at_ns: prior.updated_at_ns,
+            status: Some(prior.status.clone()),
+        },
+        None,
+    ).unwrap();
+    destination_projection.ingest(&destination_bytes).unwrap();
     target.entity_resolutions = destination_projection;
     let chunks = source.container.chunks().unwrap();
     let index = chunks.len() - 1;
@@ -71,7 +72,7 @@ fn entity_resolution_delta_interval_uses_source_postimage_and_destination_eviden
         &mut coordinates,
     )
     .unwrap();
-    assert_eq!(target.entity_resolution(key), Some(&expected));
+    assert_eq!(target.entity_resolution(key), Some(expected.clone()));
     assert_eq!(std::fs::read(&source_path).unwrap(), before);
     let change = crate::entity_resolution_store::EntityResolutionStore::materialized_changes(
         &mut source.container,
@@ -81,6 +82,13 @@ fn entity_resolution_delta_interval_uses_source_postimage_and_destination_eviden
     .unwrap();
     assert_eq!(
         crate::entity_resolution_codec::comparison_carrier(&change).unwrap(),
-        crate::entity_resolution_codec::encode_resolution(&expected).unwrap()
+        crate::entity_resolution_codec::comparison_carrier(
+            &crate::entity_resolution_codec::DecodedEntityResolution {
+                key: crate::entity_resolution_boundary::store_key(expected.key),
+                revision: expected.revision,
+                updated_at_ns: expected.updated_at_ns,
+                status: Some(expected.status),
+            }
+        ).unwrap()
     );
 }

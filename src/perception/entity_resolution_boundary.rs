@@ -195,7 +195,7 @@ impl ResolutionAdmission for EntityResolutionStore {
         self.retry_needed(store_key(key), c, x)
     }
     fn owner_validate(&self, m: &MemoryStore, e: &EntityStore) -> Result<(), MemoryError> {
-        for v in self.records() {
+        for v in self.values() {
             m.validate_historical_entity_mention_key(product_key(v.key))?;
             reliquary_perception_store::entity_resolution_store::validate_status(&v.status)
                 .map_err(memory_error)?;
@@ -352,7 +352,7 @@ impl ResolutionAdmission for EntityResolutionStore {
         e: &EntityStore,
     ) -> Result<usize, MemoryError> {
         let mut changes = Vec::new();
-        for v in self.records() {
+        for v in self.values() {
             m.validate_historical_entity_mention_key(product_key(v.key))?;
             reliquary_perception_store::entity_resolution_store::validate_status(&v.status)
                 .map_err(memory_error)?;
@@ -397,22 +397,16 @@ impl ResolutionAdmission for EntityResolutionStore {
                 _ => {}
             }
             if status != v.status {
-                changes.push(
-                    reliquary_perception_store::entity_resolution_codec::DecodedEntityResolution {
-                        key: v.key,
-                        revision: v
-                            .revision
-                            .checked_add(1)
-                            .ok_or(MemoryError::VersionExhausted)?,
-                        updated_at_ns: v.updated_at_ns,
-                        status: Some(status),
-                    },
-                );
+                changes.push((v.key, v.updated_at_ns, status));
             }
         }
         let count = changes.len();
-        for change in changes {
-            self.persist_change(c, change).map_err(memory_error)?;
+        for (key, updated_at_ns, status) in changes {
+            let revision = self.get(key).map_or(0, |v| v.revision)
+                .checked_add(1).ok_or(MemoryError::VersionExhausted)?;
+            self.persist_change(c, reliquary_perception_store::entity_resolution_codec::DecodedEntityResolution {
+                key, revision, updated_at_ns, status: Some(status),
+            }).map_err(memory_error)?;
         }
         Ok(count)
     }
