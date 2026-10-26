@@ -1,18 +1,18 @@
 use super::EntityResolutionStore;
-use crate::memory_store::MemoryStore;
 use crate::{
     DEFAULT_ENTITY_RESOLUTION_DORMANT_TTL_NS, DEFAULT_ENTITY_RESOLUTION_PENDING_TTL_NS,
-    EntityResolutionCompaction, EntityResolutionDormant, MemoryEntityResolutionStatus, MemoryError,
+    EntityResolutionCompaction, EntityResolutionDormant, MemoryEntityResolutionStatus,
+    ResolutionError,
 };
 use reliquary_container::Container;
 
 impl EntityResolutionStore {
-    pub(crate) fn compact(
+    pub fn compact(
         &mut self,
         container: &mut Container,
-        memories: &MemoryStore,
+        inactive_sources: &std::collections::HashSet<[u8; 32]>,
         now_ns: i64,
-    ) -> Result<EntityResolutionCompaction, MemoryError> {
+    ) -> Result<EntityResolutionCompaction, ResolutionError> {
         let snapshot: Vec<_> = self
             .maintenance
             .iter()
@@ -21,7 +21,7 @@ impl EntityResolutionStore {
         let mut result = EntityResolutionCompaction::default();
 
         for value in snapshot {
-            let inactive = memories.resolution_source_inactive(value.key.memory_id);
+            let inactive = inactive_sources.contains(&value.key.memory_id);
             match value.status {
                 MemoryEntityResolutionStatus::Resolved { .. } => {}
                 MemoryEntityResolutionStatus::Rejected { .. } if inactive => {

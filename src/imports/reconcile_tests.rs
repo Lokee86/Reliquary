@@ -1,5 +1,6 @@
 use super::*;
 use crate::Cva;
+use crate::entity_resolution_boundary::ResolutionAdmission;
 use crate::imports::{
     ImportBranch, ImportConversation, ImportEpochStatus, ImportMessage, NativeImport,
 };
@@ -406,7 +407,7 @@ fn divergent_completed_grouped_memory_epoch_replays_through_destination_owners()
     ));
     let source_resolution = right
         .entity_resolutions
-        .records()
+        .owner_records()
         .into_iter()
         .find(|resolution| resolution.key.memory_id == source_memory.id)
         .expect("terminal Perception rejection");

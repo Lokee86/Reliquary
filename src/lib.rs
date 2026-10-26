@@ -574,8 +574,7 @@ mod entity_resolution_batch_retry_tests;
 #[cfg(test)]
 #[path = "perception/entity_resolution_batch_tests.rs"]
 mod entity_resolution_batch_tests;
-#[path = "perception/entity_resolution_codec.rs"]
-mod entity_resolution_codec;
+use reliquary_perception_store::entity_resolution_codec;
 #[path = "perception/entity_resolution_commit.rs"]
 mod entity_resolution_commit;
 #[path = "perception/entity_resolution_decision.rs"]
@@ -610,8 +609,7 @@ mod entity_resolution_processor_tests;
 #[cfg(test)]
 #[path = "perception/entity_resolution_reconcile_tests.rs"]
 mod entity_resolution_reconcile_tests;
-#[path = "perception/entity_resolution_store.rs"]
-mod entity_resolution_store;
+use reliquary_perception_store::entity_resolution_store;
 #[cfg(test)]
 #[path = "perception/entity_resolution_test_support.rs"]
 mod entity_resolution_test_support;
@@ -1661,3 +1659,14 @@ use reliquary_graph::{community_codec, graph_codec, graph_compact_codec, graph_c
 #[cfg(test)]
 #[path = "semantic_graph/graph_publication_replay_tests.rs"]
 mod graph_publication_replay_tests;
+
+#[path = "perception/entity_resolution_boundary.rs"]
+mod entity_resolution_boundary;
+
+#[cfg(test)]
+#[path = "perception/entity_resolution_owner_format_tests.rs"]
+mod entity_resolution_owner_format_tests;
+
+#[cfg(test)]
+#[path = "perception/entity_resolution_retained_tests.rs"]
+mod entity_resolution_retained_tests;

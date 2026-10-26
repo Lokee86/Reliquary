@@ -1,5 +1,6 @@
 //! Ordered owner replay within an accepted import interval.
 use super::reconciliation::unsupported;
+use crate::entity_resolution_boundary::ResolutionAdmission;
 use crate::{Cva, CvaError, CvaReconcileError, FreshnessEventProof};
 use std::collections::BTreeMap;
 

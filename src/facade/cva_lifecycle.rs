@@ -9,6 +9,7 @@ use crate::dream_duplicate_index::DuplicateIndex;
 use crate::dream_pair_history::DreamPairStore;
 use crate::ego_store::EgoStore;
 use crate::entity_rebuild::EntityOpenState;
+use crate::entity_resolution_boundary::ResolutionAdmission;
 use crate::entity_resolution_store::EntityResolutionStore;
 use crate::entity_store::EntityStore;
 use crate::freshness_dream_journal::DreamFreshnessJournal;
@@ -669,20 +670,22 @@ impl Cva {
         result.validate_import_completion_settlements()?;
         result
             .entity_resolutions
-            .validate(&result.memories, &result.entities)?;
+            .owner_validate(&result.memories, &result.entities)?;
         Ok(result)
     }
 
     /// Explicitly canonicalize Entity-resolution references after entity retirement.
     /// Opening a REL/PHY never performs this durable maintenance automatically.
     pub fn repair_retired_entity_references(&mut self) -> Result<usize, CvaError> {
-        let repaired = self.entity_resolutions.repair_retired_entity_references(
-            &mut self.container,
-            &self.memories,
-            &self.entities,
-        )?;
+        let repaired = self
+            .entity_resolutions
+            .owner_repair_retired_entity_references(
+                &mut self.container,
+                &self.memories,
+                &self.entities,
+            )?;
         self.entity_resolutions
-            .validate(&self.memories, &self.entities)?;
+            .owner_validate(&self.memories, &self.entities)?;
         if repaired > 0 {
             self.container.sync()?;
         }

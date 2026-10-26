@@ -3,7 +3,7 @@ use crate::{EntityId, MemoryEntityMentionKey, MemoryEntityResolutionStatus};
 use std::collections::{HashMap, HashSet};
 
 impl EntityResolutionStore {
-    pub(crate) fn pending_for_entity(&self, entity_id: EntityId) -> Vec<MemoryEntityMentionKey> {
+    pub fn pending_for_entity(&self, entity_id: EntityId) -> Vec<MemoryEntityMentionKey> {
         let mut keys: Vec<_> = self
             .pending_by_entity
             .get(&entity_id)

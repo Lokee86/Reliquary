@@ -183,3 +183,9 @@ impl From<io::Error> for CvaReconcileError {
         Self::Io(value)
     }
 }
+
+impl From<reliquary_perception_store::ResolutionError> for CvaReconcileError {
+    fn from(e: reliquary_perception_store::ResolutionError) -> Self {
+        crate::entity_resolution_boundary::memory_error(e).into()
+    }
+}

@@ -1,3 +1,4 @@
+use crate::entity_resolution_boundary::ResolutionAdmission;
 use crate::{
     Cva, EntityId, EntityResolutionCompaction, EntityResolutionReason, MemoryEntityMentionKey,
     MemoryEntityResolution, MemoryEntityResolutionStatus, MemoryError, MemoryId, Phylactery,
@@ -25,7 +26,7 @@ macro_rules! impl_owner {
                 &self,
                 entity_id: EntityId,
             ) -> Vec<MemoryEntityMentionKey> {
-                self.entity_resolutions.pending_for_entity(entity_id)
+                self.entity_resolutions.owner_pending_for_entity(entity_id)
             }
 
             pub(crate) fn pending_entity_mentions_for_surface(
@@ -68,15 +69,15 @@ macro_rules! impl_owner {
             pub fn entity_resolution(
                 &self,
                 key: MemoryEntityMentionKey,
-            ) -> Option<&MemoryEntityResolution> {
-                self.entity_resolutions.get(key)
+            ) -> Option<MemoryEntityResolution> {
+                self.entity_resolutions.owner_get(key)
             }
 
             pub fn entity_resolutions_for_memory(
                 &self,
                 memory_id: MemoryId,
             ) -> Vec<MemoryEntityResolution> {
-                self.entity_resolutions.for_memory(memory_id)
+                self.entity_resolutions.owner_for_memory(memory_id)
             }
 
             pub fn entity_resolution_retry_needed(
@@ -85,7 +86,7 @@ macro_rules! impl_owner {
                 candidate_set_fingerprint: [u8; 32],
                 context_fingerprint: [u8; 32],
             ) -> bool {
-                self.entity_resolutions.retry_needed(
+                self.entity_resolutions.owner_retry_needed(
                     key,
                     candidate_set_fingerprint,
                     context_fingerprint,
@@ -100,7 +101,7 @@ macro_rules! impl_owner {
                 reason: EntityResolutionReason,
                 now_ns: i64,
             ) -> Result<bool, MemoryError> {
-                self.entity_resolutions.put_resolved(
+                self.entity_resolutions.owner_put_resolved(
                     &mut self.container,
                     &self.memories,
                     &self.entities,
@@ -119,7 +120,7 @@ macro_rules! impl_owner {
                 reason: EntityResolutionReason,
                 now_ns: i64,
             ) -> Result<bool, MemoryError> {
-                self.entity_resolutions.put_rejected(
+                self.entity_resolutions.owner_put_rejected(
                     &mut self.container,
                     &self.memories,
                     key,
@@ -140,7 +141,7 @@ macro_rules! impl_owner {
                 context_fingerprint: [u8; 32],
                 now_ns: i64,
             ) -> Result<bool, MemoryError> {
-                self.entity_resolutions.put_unresolved(
+                self.entity_resolutions.owner_put_unresolved(
                     &mut self.container,
                     &self.memories,
                     &self.entities,
@@ -161,7 +162,7 @@ macro_rules! impl_owner {
             ) -> Result<bool, MemoryError> {
                 self.memories.validate_entity_mention_key(key)?;
                 self.entity_resolutions
-                    .tombstone(&mut self.container, key, now_ns)
+                    .owner_tombstone(&mut self.container, key, now_ns)
             }
 
             pub fn compact_entity_resolutions(
@@ -169,22 +170,22 @@ macro_rules! impl_owner {
                 now_ns: i64,
             ) -> Result<EntityResolutionCompaction, MemoryError> {
                 self.entity_resolutions
-                    .compact(&mut self.container, &self.memories, now_ns)
+                    .owner_compact(&mut self.container, &self.memories, now_ns)
             }
 
             pub fn entity_resolutions(&self) -> Vec<MemoryEntityResolution> {
-                self.entity_resolutions.records()
+                self.entity_resolutions.owner_records()
             }
 
             pub(crate) fn entity_resolution_records(&self) -> Vec<MemoryEntityResolution> {
-                self.entity_resolutions.records()
+                self.entity_resolutions.owner_records()
             }
 
             pub fn import_entity_resolution(
                 &mut self,
                 value: MemoryEntityResolution,
             ) -> Result<(), MemoryError> {
-                self.entity_resolutions.import_current(
+                self.entity_resolutions.owner_import_current(
                     &mut self.container,
                     &self.memories,
                     &self.entities,

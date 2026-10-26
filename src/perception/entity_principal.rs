@@ -41,7 +41,7 @@ impl Cva {
         if !self.principal_mention_matches(key) {
             return Ok(None);
         }
-        if let Some(outcome) = terminal_outcome(key, self.entity_resolution(key)) {
+        if let Some(outcome) = terminal_outcome(key, self.entity_resolution(key).as_ref()) {
             return Ok(Some(outcome));
         }
 
@@ -165,7 +165,7 @@ impl Phylactery {
         {
             return Ok(None);
         }
-        if let Some(outcome) = terminal_outcome(key, self.entity_resolution(key)) {
+        if let Some(outcome) = terminal_outcome(key, self.entity_resolution(key).as_ref()) {
             return Ok(Some(outcome));
         }
 

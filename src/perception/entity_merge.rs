@@ -1,3 +1,4 @@
+use crate::entity_resolution_boundary::ResolutionAdmission;
 use crate::{
     Cva, CvaError, EntityDraft, EntityError, EntityId, EntityMergeOutcome, EntityRef,
     GraphRelationOrigin, MAX_ENTITY_ALIASES, MemoryEntityMentionKey, MemoryEntityResolutionStatus,
@@ -61,7 +62,7 @@ macro_rules! impl_entity_merge {
                     )?;
                 }
 
-                let resolutions_retargeted = self.entity_resolutions.retarget_entity_references(
+                let resolutions_retargeted = self.entity_resolutions.owner_retarget_entity_references(
                     &mut self.container,
                     &self.entities,
                     retired_id,
@@ -170,7 +171,7 @@ macro_rules! impl_entity_merge {
                 {
                     return Err(EntityError::InvalidField("principal Entity retarget").into());
                 }
-                let resolution_changed = self.entity_resolutions.retarget_resolved(
+                let resolution_changed = self.entity_resolutions.owner_retarget_resolved(
                     &mut self.container,
                     &self.memories,
                     &self.entities,

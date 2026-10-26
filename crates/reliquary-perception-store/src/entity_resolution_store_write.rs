@@ -1,30 +1,21 @@
-use super::{EntityResolutionStore, validate_status};
-use crate::entity_store::EntityStore;
-use crate::memory_store::MemoryStore;
+use super::EntityResolutionStore;
 use crate::{
     EntityId, EntityResolutionPending, EntityResolutionReason, MAX_ENTITY_RESOLUTION_CANDIDATES,
-    MemoryEntityMentionKey, MemoryEntityResolutionStatus, MemoryError,
+    MemoryEntityMentionKey, MemoryEntityResolutionStatus, ResolutionError,
 };
 use reliquary_container::Container;
 
 impl EntityResolutionStore {
-    pub(crate) fn put_resolved(
+    pub fn put_resolved(
         &mut self,
         container: &mut Container,
-        memories: &MemoryStore,
-        entities: &EntityStore,
         key: MemoryEntityMentionKey,
         expected_revision: u32,
         entity_id: EntityId,
         reason: EntityResolutionReason,
         now_ns: i64,
-    ) -> Result<bool, MemoryError> {
-        self.validate_write(memories, key, expected_revision)?;
-        if !entities.contains(entity_id) {
-            return Err(MemoryError::InvalidField(
-                "Entity resolution Entity reference",
-            ));
-        }
+    ) -> Result<bool, ResolutionError> {
+        self.validate_write(key, expected_revision)?;
         if let Some(current) = self.current.get(&key) {
             if current.status == (MemoryEntityResolutionStatus::Resolved { entity_id, reason }) {
                 return Ok(false);
@@ -39,16 +30,15 @@ impl EntityResolutionStore {
         )
     }
 
-    pub(crate) fn put_rejected(
+    pub fn put_rejected(
         &mut self,
         container: &mut Container,
-        memories: &MemoryStore,
         key: MemoryEntityMentionKey,
         expected_revision: u32,
         reason: EntityResolutionReason,
         now_ns: i64,
-    ) -> Result<bool, MemoryError> {
-        self.validate_write(memories, key, expected_revision)?;
+    ) -> Result<bool, ResolutionError> {
+        self.validate_write(key, expected_revision)?;
         if let Some(current) = self.current.get(&key) {
             if current.status == (MemoryEntityResolutionStatus::Rejected { reason }) {
                 return Ok(false);
@@ -64,11 +54,9 @@ impl EntityResolutionStore {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn put_unresolved(
+    pub fn put_unresolved(
         &mut self,
         container: &mut Container,
-        memories: &MemoryStore,
-        entities: &EntityStore,
         key: MemoryEntityMentionKey,
         expected_revision: u32,
         mut candidate_entity_ids: Vec<EntityId>,
@@ -76,17 +64,9 @@ impl EntityResolutionStore {
         candidate_set_fingerprint: [u8; 32],
         context_fingerprint: [u8; 32],
         now_ns: i64,
-    ) -> Result<bool, MemoryError> {
-        self.validate_write(memories, key, expected_revision)?;
+    ) -> Result<bool, ResolutionError> {
+        self.validate_write(key, expected_revision)?;
         normalize_candidates(&mut candidate_entity_ids)?;
-        if candidate_entity_ids
-            .iter()
-            .any(|id| !entities.contains(*id))
-        {
-            return Err(MemoryError::InvalidField(
-                "Entity resolution Entity reference",
-            ));
-        }
         let (first_seen_at_ns, attempt_count) = match self.current.get(&key) {
             None => (now_ns, 1),
             Some(current) => match &current.status {
@@ -136,27 +116,19 @@ impl EntityResolutionStore {
         )
     }
 
-    pub(crate) fn retarget_resolved(
+    pub fn retarget_resolved(
         &mut self,
         container: &mut Container,
-        memories: &MemoryStore,
-        entities: &EntityStore,
         key: MemoryEntityMentionKey,
         from: EntityId,
         to: EntityId,
         now_ns: i64,
-    ) -> Result<bool, MemoryError> {
-        memories.validate_entity_mention_key(key)?;
-        if !entities.contains(to) {
-            return Err(MemoryError::InvalidField(
-                "Entity resolution Entity reference",
-            ));
-        }
+    ) -> Result<bool, ResolutionError> {
         let current = self
             .current
             .get(&key)
             .cloned()
-            .ok_or(MemoryError::InvalidField("missing Entity resolution"))?;
+            .ok_or(ResolutionError::InvalidField("missing Entity resolution"))?;
         match current.status {
             MemoryEntityResolutionStatus::Resolved { entity_id, .. } if entity_id == to => {
                 Ok(false)
@@ -172,25 +144,19 @@ impl EntityResolutionStore {
                     },
                 )
             }
-            _ => Err(MemoryError::InvalidField(
+            _ => Err(ResolutionError::InvalidField(
                 "Entity resolution retarget source",
             )),
         }
     }
 
-    pub(crate) fn retarget_entity_references(
+    pub fn retarget_entity_references(
         &mut self,
         container: &mut Container,
-        entities: &EntityStore,
         from: EntityId,
         to: EntityId,
         now_ns: i64,
-    ) -> Result<usize, MemoryError> {
-        if !entities.contains(to) {
-            return Err(MemoryError::InvalidField(
-                "Entity resolution Entity reference",
-            ));
-        }
+    ) -> Result<usize, ResolutionError> {
         let values = self.current.values().cloned().collect::<Vec<_>>();
         let mut changed = 0usize;
         for current in values {
@@ -232,101 +198,30 @@ impl EntityResolutionStore {
         Ok(changed)
     }
 
-    pub(crate) fn repair_retired_entity_references(
-        &mut self,
-        container: &mut Container,
-        memories: &MemoryStore,
-        entities: &EntityStore,
-    ) -> Result<usize, MemoryError> {
-        let values = self.current.values().cloned().collect::<Vec<_>>();
-        let mut repairs = Vec::new();
-
-        for current in values {
-            memories.validate_historical_entity_mention_key(current.key)?;
-            validate_status(&current.status)?;
-            let mut changed = false;
-            let status = match current.status {
-                MemoryEntityResolutionStatus::Resolved {
-                    mut entity_id,
-                    reason,
-                } => {
-                    let canonical = entities
-                        .canonical_active_id(entity_id)
-                        .or_else(|| entities.contains_historical(entity_id).then_some(entity_id))
-                        .ok_or(MemoryError::InvalidField(
-                            "Entity resolution Entity reference",
-                        ))?;
-                    if canonical != entity_id {
-                        entity_id = canonical;
-                        changed = true;
-                    }
-                    MemoryEntityResolutionStatus::Resolved { entity_id, reason }
-                }
-                MemoryEntityResolutionStatus::Pending(mut value) => {
-                    canonicalize_candidates(
-                        &mut value.candidate_entity_ids,
-                        entities,
-                        &mut changed,
-                    )?;
-                    if changed {
-                        value.candidate_set_fingerprint = [0; 32];
-                    }
-                    MemoryEntityResolutionStatus::Pending(value)
-                }
-                MemoryEntityResolutionStatus::Dormant(mut value) => {
-                    canonicalize_candidates(
-                        &mut value.candidate_entity_ids,
-                        entities,
-                        &mut changed,
-                    )?;
-                    if changed {
-                        value.candidate_set_fingerprint = [0; 32];
-                    }
-                    MemoryEntityResolutionStatus::Dormant(value)
-                }
-                MemoryEntityResolutionStatus::Rejected { reason } => {
-                    MemoryEntityResolutionStatus::Rejected { reason }
-                }
-            };
-
-            if changed {
-                repairs.push((current.key, current.updated_at_ns, status));
-            }
-        }
-
-        let repaired = repairs.len();
-        for (key, updated_at_ns, status) in repairs {
-            self.append(container, key, updated_at_ns, status)?;
-        }
-        Ok(repaired)
-    }
-
     fn validate_write(
         &self,
-        memories: &MemoryStore,
         key: MemoryEntityMentionKey,
         expected_revision: u32,
-    ) -> Result<(), MemoryError> {
-        memories.validate_entity_mention_key(key)?;
+    ) -> Result<(), ResolutionError> {
         let current = self
             .current
             .get(&key)
             .map(|value| value.revision)
             .unwrap_or(0);
         if current != expected_revision {
-            return Err(MemoryError::RevisionConflict);
+            return Err(ResolutionError::RevisionConflict);
         }
         Ok(())
     }
 }
 
-fn reject_terminal(status: &MemoryEntityResolutionStatus) -> Result<(), MemoryError> {
+fn reject_terminal(status: &MemoryEntityResolutionStatus) -> Result<(), ResolutionError> {
     if matches!(
         status,
         MemoryEntityResolutionStatus::Resolved { .. }
             | MemoryEntityResolutionStatus::Rejected { .. }
     ) {
-        Err(MemoryError::InvalidField("terminal Entity resolution"))
+        Err(ResolutionError::InvalidField("terminal Entity resolution"))
     } else {
         Ok(())
     }
@@ -342,46 +237,24 @@ fn replace_candidate(values: &mut Vec<EntityId>, from: EntityId, to: EntityId) {
     values.dedup();
 }
 
-fn canonicalize_candidates(
-    values: &mut Vec<EntityId>,
-    entities: &EntityStore,
-    changed: &mut bool,
-) -> Result<(), MemoryError> {
-    for value in values.iter_mut() {
-        let canonical = entities
-            .canonical_active_id(*value)
-            .or_else(|| entities.contains_historical(*value).then_some(*value))
-            .ok_or(MemoryError::InvalidField(
-                "Entity resolution Entity reference",
-            ))?;
-        if canonical != *value {
-            *value = canonical;
-            *changed = true;
-        }
-    }
-    values.sort();
-    let original_len = values.len();
-    values.dedup();
-    *changed |= values.len() != original_len;
-    Ok(())
-}
-
-fn normalize_candidates(values: &mut Vec<EntityId>) -> Result<(), MemoryError> {
+fn normalize_candidates(values: &mut Vec<EntityId>) -> Result<(), ResolutionError> {
     values.sort();
     values.dedup();
     if values.len() > MAX_ENTITY_RESOLUTION_CANDIDATES {
-        return Err(MemoryError::FieldTooLarge);
+        return Err(ResolutionError::FieldTooLarge);
     }
     Ok(())
 }
 
-fn next_attempt(value: u16) -> Result<u16, MemoryError> {
-    value.checked_add(1).ok_or(MemoryError::VersionExhausted)
+fn next_attempt(value: u16) -> Result<u16, ResolutionError> {
+    value
+        .checked_add(1)
+        .ok_or(ResolutionError::VersionExhausted)
 }
 
-fn validate_retry_time(now_ns: i64, last_ns: i64) -> Result<(), MemoryError> {
+fn validate_retry_time(now_ns: i64, last_ns: i64) -> Result<(), ResolutionError> {
     if now_ns < last_ns {
-        Err(MemoryError::InvalidField("Entity resolution timestamp"))
+        Err(ResolutionError::InvalidField("Entity resolution timestamp"))
     } else {
         Ok(())
     }

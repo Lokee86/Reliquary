@@ -3,24 +3,21 @@ use crate::MemoryEntityResolution;
 use crate::{
     EntityId, EntityResolutionDormant, EntityResolutionPending, EntityResolutionReason,
     MAX_ENTITY_RESOLUTION_CANDIDATES, MemoryEntityMentionKey, MemoryEntityResolutionStatus,
-    MemoryError, MemoryId, MemoryTextField,
+    MemoryTextField, ResolutionError,
 };
 
 const MAGIC: [u8; 8] = *b"CVAERS01";
 
 #[path = "entity_resolution_delta_codec.rs"]
-pub(crate) mod delta;
+pub mod delta;
 #[cfg(test)]
 #[path = "entity_resolution_delta_tests.rs"]
 mod delta_tests;
 #[path = "entity_resolution_retained.rs"]
-pub(crate) mod retained;
-#[cfg(test)]
-#[path = "entity_resolution_retained_tests.rs"]
-mod retained_tests;
+pub mod retained;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct DecodedEntityResolution {
+pub struct DecodedEntityResolution {
     pub key: MemoryEntityMentionKey,
     pub revision: u32,
     pub updated_at_ns: i64,
@@ -28,7 +25,7 @@ pub(crate) struct DecodedEntityResolution {
 }
 
 /// Established full-field comparison identity, never an ordinary storage write.
-pub(crate) fn comparison_carrier(value: &DecodedEntityResolution) -> Result<Vec<u8>, MemoryError> {
+pub fn comparison_carrier(value: &DecodedEntityResolution) -> Result<Vec<u8>, ResolutionError> {
     encode_parts(
         value.key,
         value.revision,
@@ -38,7 +35,7 @@ pub(crate) fn comparison_carrier(value: &DecodedEntityResolution) -> Result<Vec<
 }
 
 #[cfg(test)]
-pub(crate) fn encode_resolution(value: &MemoryEntityResolution) -> Result<Vec<u8>, MemoryError> {
+pub fn encode_resolution(value: &MemoryEntityResolution) -> Result<Vec<u8>, ResolutionError> {
     encode_parts(
         value.key,
         value.revision,
@@ -48,11 +45,11 @@ pub(crate) fn encode_resolution(value: &MemoryEntityResolution) -> Result<Vec<u8
 }
 
 #[cfg(test)]
-pub(crate) fn encode_tombstone(
+pub fn encode_tombstone(
     key: MemoryEntityMentionKey,
     revision: u32,
     updated_at_ns: i64,
-) -> Result<Vec<u8>, MemoryError> {
+) -> Result<Vec<u8>, ResolutionError> {
     encode_parts(key, revision, updated_at_ns, None)
 }
 
@@ -61,13 +58,13 @@ fn encode_parts(
     revision: u32,
     updated_at_ns: i64,
     status: Option<&MemoryEntityResolutionStatus>,
-) -> Result<Vec<u8>, MemoryError> {
+) -> Result<Vec<u8>, ResolutionError> {
     if revision == 0 {
-        return Err(MemoryError::InvalidVersion);
+        return Err(ResolutionError::InvalidVersion);
     }
     let mut out = Vec::with_capacity(192);
     out.extend_from_slice(&MAGIC);
-    out.extend_from_slice(&key.memory_id.0);
+    out.extend_from_slice(&key.memory_id);
     out.push(key.field.tag());
     out.extend_from_slice(&key.start_byte.to_le_bytes());
     out.extend_from_slice(&key.end_byte.to_le_bytes());
@@ -96,16 +93,14 @@ fn encode_parts(
     Ok(out)
 }
 
-pub(crate) fn decode_resolution(
-    bytes: &[u8],
-) -> Result<Option<DecodedEntityResolution>, MemoryError> {
+pub fn decode_resolution(bytes: &[u8]) -> Result<Option<DecodedEntityResolution>, ResolutionError> {
     if bytes.len() < 8 || bytes[..8] != MAGIC {
         return Ok(None);
     }
     let mut cursor = 8;
-    let memory_id = MemoryId(read_array(bytes, &mut cursor)?);
+    let memory_id = read_array(bytes, &mut cursor)?;
     let field = MemoryTextField::from_tag(read_u8(bytes, &mut cursor)?).ok_or(
-        MemoryError::CorruptRecord("invalid Entity resolution mention field"),
+        ResolutionError::CorruptRecord("invalid Entity resolution mention field"),
     )?;
     let key = MemoryEntityMentionKey {
         memory_id,
@@ -115,7 +110,7 @@ pub(crate) fn decode_resolution(
     };
     let revision = read_u32(bytes, &mut cursor)?;
     if revision == 0 {
-        return Err(MemoryError::CorruptRecord(
+        return Err(ResolutionError::CorruptRecord(
             "invalid Entity resolution revision",
         ));
     }
@@ -138,13 +133,13 @@ pub(crate) fn decode_resolution(
             &mut cursor,
         )?)),
         _ => {
-            return Err(MemoryError::CorruptRecord(
+            return Err(ResolutionError::CorruptRecord(
                 "invalid Entity resolution status",
             ));
         }
     };
     if cursor != bytes.len() {
-        return Err(MemoryError::CorruptRecord(
+        return Err(ResolutionError::CorruptRecord(
             "Entity resolution trailing bytes",
         ));
     }
@@ -156,7 +151,10 @@ pub(crate) fn decode_resolution(
     }))
 }
 
-fn write_pending(out: &mut Vec<u8>, value: &EntityResolutionPending) -> Result<(), MemoryError> {
+fn write_pending(
+    out: &mut Vec<u8>,
+    value: &EntityResolutionPending,
+) -> Result<(), ResolutionError> {
     write_candidates(out, &value.candidate_entity_ids)?;
     out.push(value.reason.tag());
     out.extend_from_slice(&value.candidate_set_fingerprint);
@@ -167,7 +165,10 @@ fn write_pending(out: &mut Vec<u8>, value: &EntityResolutionPending) -> Result<(
     Ok(())
 }
 
-fn write_dormant(out: &mut Vec<u8>, value: &EntityResolutionDormant) -> Result<(), MemoryError> {
+fn write_dormant(
+    out: &mut Vec<u8>,
+    value: &EntityResolutionDormant,
+) -> Result<(), ResolutionError> {
     write_candidates(out, &value.candidate_entity_ids)?;
     out.push(value.reason.tag());
     out.extend_from_slice(&value.candidate_set_fingerprint);
@@ -179,7 +180,10 @@ fn write_dormant(out: &mut Vec<u8>, value: &EntityResolutionDormant) -> Result<(
     Ok(())
 }
 
-fn read_pending(bytes: &[u8], cursor: &mut usize) -> Result<EntityResolutionPending, MemoryError> {
+fn read_pending(
+    bytes: &[u8],
+    cursor: &mut usize,
+) -> Result<EntityResolutionPending, ResolutionError> {
     Ok(EntityResolutionPending {
         candidate_entity_ids: read_candidates(bytes, cursor)?,
         reason: read_reason(bytes, cursor)?,
@@ -191,7 +195,10 @@ fn read_pending(bytes: &[u8], cursor: &mut usize) -> Result<EntityResolutionPend
     })
 }
 
-fn read_dormant(bytes: &[u8], cursor: &mut usize) -> Result<EntityResolutionDormant, MemoryError> {
+fn read_dormant(
+    bytes: &[u8],
+    cursor: &mut usize,
+) -> Result<EntityResolutionDormant, ResolutionError> {
     let pending = read_pending(bytes, cursor)?;
     Ok(EntityResolutionDormant {
         candidate_entity_ids: pending.candidate_entity_ids,
@@ -205,9 +212,9 @@ fn read_dormant(bytes: &[u8], cursor: &mut usize) -> Result<EntityResolutionDorm
     })
 }
 
-fn write_candidates(out: &mut Vec<u8>, values: &[EntityId]) -> Result<(), MemoryError> {
+fn write_candidates(out: &mut Vec<u8>, values: &[EntityId]) -> Result<(), ResolutionError> {
     if values.len() > MAX_ENTITY_RESOLUTION_CANDIDATES {
-        return Err(MemoryError::FieldTooLarge);
+        return Err(ResolutionError::FieldTooLarge);
     }
     out.push(values.len() as u8);
     for value in values {
@@ -216,10 +223,10 @@ fn write_candidates(out: &mut Vec<u8>, values: &[EntityId]) -> Result<(), Memory
     Ok(())
 }
 
-fn read_candidates(bytes: &[u8], cursor: &mut usize) -> Result<Vec<EntityId>, MemoryError> {
+fn read_candidates(bytes: &[u8], cursor: &mut usize) -> Result<Vec<EntityId>, ResolutionError> {
     let count = read_u8(bytes, cursor)? as usize;
     if count > MAX_ENTITY_RESOLUTION_CANDIDATES {
-        return Err(MemoryError::CorruptRecord(
+        return Err(ResolutionError::CorruptRecord(
             "too many Entity resolution candidates",
         ));
     }
@@ -230,30 +237,44 @@ fn read_candidates(bytes: &[u8], cursor: &mut usize) -> Result<Vec<EntityId>, Me
     Ok(values)
 }
 
-fn read_reason(bytes: &[u8], cursor: &mut usize) -> Result<EntityResolutionReason, MemoryError> {
-    EntityResolutionReason::from_tag(read_u8(bytes, cursor)?).ok_or(MemoryError::CorruptRecord(
+fn read_reason(
+    bytes: &[u8],
+    cursor: &mut usize,
+) -> Result<EntityResolutionReason, ResolutionError> {
+    EntityResolutionReason::from_tag(read_u8(bytes, cursor)?).ok_or(ResolutionError::CorruptRecord(
         "invalid Entity resolution reason",
     ))
 }
 
-fn read_array<const N: usize>(bytes: &[u8], cursor: &mut usize) -> Result<[u8; N], MemoryError> {
-    let end = cursor.checked_add(N).ok_or(MemoryError::FieldTooLarge)?;
-    let raw = bytes.get(*cursor..end).ok_or(MemoryError::CorruptRecord(
-        "truncated Entity resolution record",
-    ))?;
+fn read_array<const N: usize>(
+    bytes: &[u8],
+    cursor: &mut usize,
+) -> Result<[u8; N], ResolutionError> {
+    let end = cursor
+        .checked_add(N)
+        .ok_or(ResolutionError::FieldTooLarge)?;
+    let raw = bytes
+        .get(*cursor..end)
+        .ok_or(ResolutionError::CorruptRecord(
+            "truncated Entity resolution record",
+        ))?;
     *cursor = end;
     Ok(raw.try_into().unwrap())
 }
 
-fn read_u8(bytes: &[u8], cursor: &mut usize) -> Result<u8, MemoryError> {
+fn read_u8(bytes: &[u8], cursor: &mut usize) -> Result<u8, ResolutionError> {
     Ok(read_array::<1>(bytes, cursor)?[0])
 }
-fn read_u16(bytes: &[u8], cursor: &mut usize) -> Result<u16, MemoryError> {
+fn read_u16(bytes: &[u8], cursor: &mut usize) -> Result<u16, ResolutionError> {
     Ok(u16::from_le_bytes(read_array(bytes, cursor)?))
 }
-fn read_u32(bytes: &[u8], cursor: &mut usize) -> Result<u32, MemoryError> {
+fn read_u32(bytes: &[u8], cursor: &mut usize) -> Result<u32, ResolutionError> {
     Ok(u32::from_le_bytes(read_array(bytes, cursor)?))
 }
-fn read_i64(bytes: &[u8], cursor: &mut usize) -> Result<i64, MemoryError> {
+fn read_i64(bytes: &[u8], cursor: &mut usize) -> Result<i64, ResolutionError> {
     Ok(i64::from_le_bytes(read_array(bytes, cursor)?))
 }
+
+#[cfg(test)]
+#[path = "entity_resolution_retained_tests.rs"]
+mod retained_tests;

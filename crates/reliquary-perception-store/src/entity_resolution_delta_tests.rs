@@ -4,7 +4,7 @@ use std::{fs, path::PathBuf};
 
 fn key() -> MemoryEntityMentionKey {
     MemoryEntityMentionKey {
-        memory_id: MemoryId([7; 32]),
+        memory_id: [7; 32],
         field: MemoryTextField::Content,
         start_byte: 0,
         end_byte: 2,
@@ -253,43 +253,4 @@ fn entity_resolution_delta_initial_dormant_and_missing_inheritance_reject() {
         .unwrap();
     assert!(store.ingest(&retry).is_err());
     assert!(store.records().is_empty());
-}
-
-#[test]
-fn entity_resolution_delta_explicit_v1_owner_rejection_is_nonmutating() {
-    let root = scratch();
-    let payload = delta::encode(
-        &change(
-            1,
-            Some(MemoryEntityResolutionStatus::Rejected {
-                reason: EntityResolutionReason::GenericRole,
-            }),
-        ),
-        None,
-    )
-    .unwrap();
-    for phy in [false, true] {
-        let path = root.join(if phy { "input.phy" } else { "input.rel" });
-        if phy {
-            let mut owner = crate::Phylactery::create(&path).unwrap();
-            owner.container.append(&payload).unwrap();
-            owner.sync().unwrap();
-        } else {
-            let mut owner = crate::Cva::create(&path).unwrap();
-            owner.container.append(&payload).unwrap();
-            owner.sync().unwrap();
-        }
-        let mut bytes = fs::read(&path).unwrap();
-        bytes[8..10].copy_from_slice(&1u16.to_le_bytes());
-        fs::write(&path, &bytes).unwrap();
-        if phy {
-            assert!(crate::Phylactery::open(&path).is_err());
-            assert!(crate::Phylactery::open(&path).is_err());
-        } else {
-            assert!(crate::Cva::open(&path).is_err());
-            assert!(crate::Cva::open(&path).is_err());
-        }
-        assert_eq!(fs::read(&path).unwrap(), bytes);
-    }
-    fs::remove_dir_all(root).unwrap();
 }

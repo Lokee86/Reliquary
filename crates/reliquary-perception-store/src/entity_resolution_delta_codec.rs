@@ -1,7 +1,7 @@
 //! Exact unresolved-evidence deltas; keys, decisions and local revisions stay literal.
 use super::*;
-pub(crate) const MAGIC: &[u8; 8] = b"CVAERS03";
-pub(crate) fn is_current(bytes: &[u8]) -> bool {
+pub const MAGIC: &[u8; 8] = b"CVAERS03";
+pub fn is_current(bytes: &[u8]) -> bool {
     bytes.starts_with(MAGIC)
 }
 
@@ -42,15 +42,15 @@ fn unresolved(status: &MemoryEntityResolutionStatus) -> Option<Unresolved<'_>> {
     }
 }
 
-pub(crate) fn encode(
+pub fn encode(
     value: &DecodedEntityResolution,
     previous: Option<&MemoryEntityResolutionStatus>,
-) -> Result<Vec<u8>, MemoryError> {
+) -> Result<Vec<u8>, ResolutionError> {
     if value.revision == 0 {
-        return Err(MemoryError::InvalidVersion);
+        return Err(ResolutionError::InvalidVersion);
     }
     let mut bytes = MAGIC.to_vec();
-    bytes.extend_from_slice(&value.key.memory_id.0);
+    bytes.extend_from_slice(&value.key.memory_id);
     bytes.push(value.key.field.tag());
     bytes.extend_from_slice(&value.key.start_byte.to_le_bytes());
     bytes.extend_from_slice(&value.key.end_byte.to_le_bytes());
@@ -119,10 +119,10 @@ pub(crate) fn encode(
     Ok(bytes)
 }
 
-pub(crate) fn decode<'a>(
+pub fn decode<'a>(
     bytes: &[u8],
     previous: impl FnOnce(MemoryEntityMentionKey) -> Option<&'a MemoryEntityResolutionStatus>,
-) -> Result<Option<DecodedEntityResolution>, MemoryError> {
+) -> Result<Option<DecodedEntityResolution>, ResolutionError> {
     if !is_current(bytes) {
         if bytes.starts_with(b"CVAERS") && !bytes.starts_with(b"CVAERS01") {
             return Err(corrupt("unknown or truncated Entity resolution version"));
@@ -130,7 +130,7 @@ pub(crate) fn decode<'a>(
         return Ok(None);
     }
     let mut cursor = 8;
-    let memory_id = MemoryId(read_array(bytes, &mut cursor)?);
+    let memory_id = read_array(bytes, &mut cursor)?;
     let field = MemoryTextField::from_tag(read_u8(bytes, &mut cursor)?)
         .ok_or(corrupt("invalid Entity resolution mention field"))?;
     let key = MemoryEntityMentionKey {
@@ -227,6 +227,6 @@ pub(crate) fn decode<'a>(
         status,
     }))
 }
-fn corrupt(message: &'static str) -> MemoryError {
-    MemoryError::CorruptRecord(message)
+fn corrupt(message: &'static str) -> ResolutionError {
+    ResolutionError::CorruptRecord(message)
 }

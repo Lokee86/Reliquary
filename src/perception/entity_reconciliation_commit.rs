@@ -74,7 +74,7 @@ macro_rules! impl_owner {
 
                 let mut wake_keys = Vec::new();
                 for key in prepared.late_rejected.iter().copied() {
-                    let Some(state) = self.entity_resolution(key).cloned() else {
+                    let Some(state) = self.entity_resolution(key) else {
                         continue;
                     };
                     if !matches!(state.status, MemoryEntityResolutionStatus::Rejected { .. }) {

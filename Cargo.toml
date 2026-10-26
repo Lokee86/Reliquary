@@ -94,6 +94,7 @@ path = "examples/entity_jev_resolution_experiment/main.rs"
 required-features = ["entity-calibration"]
 
 [dependencies]
+reliquary-perception-store = { path = "crates/reliquary-perception-store" }
 reliquary-graph = { path = "crates/reliquary-graph" }
 reliquary-echo = { path = "crates/reliquary-echo" }
 reliquary-memory-core = { path = "crates/reliquary-memory-core" }

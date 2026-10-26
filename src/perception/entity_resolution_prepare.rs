@@ -16,7 +16,7 @@ macro_rules! impl_owner {
                 key: MemoryEntityMentionKey,
                 config: EntityCandidateConfig,
             ) -> Result<EntityResolutionPreparation, EntityResolverError> {
-                if let Some(outcome) = terminal_outcome(key, self.entity_resolution(key)) {
+                if let Some(outcome) = terminal_outcome(key, self.entity_resolution(key).as_ref()) {
                     return Ok(EntityResolutionPreparation::Complete(outcome));
                 }
 

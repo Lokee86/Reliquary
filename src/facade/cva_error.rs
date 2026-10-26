@@ -116,3 +116,9 @@ from_error!(VectorGenerationError, VectorGenerations);
 from_error!(ConversationCompactionError, ConversationCompactions);
 from_error!(EchoError, Echo);
 from_error!(EgoError, Ego);
+
+impl From<reliquary_perception_store::ResolutionError> for CvaError {
+    fn from(e: reliquary_perception_store::ResolutionError) -> Self {
+        crate::entity_resolution_boundary::memory_error(e).into()
+    }
+}

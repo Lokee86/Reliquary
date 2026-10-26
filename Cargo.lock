@@ -2818,6 +2818,7 @@ dependencies = [
  "reliquary-echo",
  "reliquary-graph",
  "reliquary-memory-core",
+ "reliquary-perception-store",
  "reqwest",
  "serde",
  "serde_json",
@@ -2849,6 +2850,11 @@ version = "0.1.0"
 [[package]]
 name = "reliquary-perception-store"
 version = "0.1.0"
+dependencies = [
+ "reliquary-container",
+ "sha2",
+ "uuid",
+]
 
 [[package]]
 name = "reliquary-project-environment"
