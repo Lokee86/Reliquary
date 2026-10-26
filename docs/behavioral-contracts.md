@@ -5,7 +5,9 @@
 Opening a REL or PHY validates and replays accepted owner evidence without
 reclaiming obsolete compaction bytes or appending Entity-resolution repairs.
 Superseded compaction records are removed from the in-memory visible projection,
-not from the physical file. Stale-but-historical Entity references remain
+not from the physical file. An explicitly authorized Archive compaction publication may recycle
+its own superseded chunks; cross-owner pruning and history rewrites require
+higher-level Maintenance authority. Stale-but-historical Entity references remain
 readable until the caller explicitly invokes `repair_retired_entity_references()`;
 the latter publishes corrected revisions and synchronizes only when changes
 are required. The focused `container_owner_tests` cases verify unchanged

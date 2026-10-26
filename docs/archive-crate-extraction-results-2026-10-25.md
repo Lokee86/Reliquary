@@ -38,6 +38,16 @@ The entire root suite was not run: 1,384 tests outside the focused selections re
 
 The Lore repository-creation test fails when run with other selected tests with `Lore repository creation failed with status -1`, and passes in a fresh test process. It is retained and verified in isolation; no Lore implementation was changed. One serial attempt also encountered disk-full errors; generated build caches were removed and affected source tests were rerun successfully.
 
+## Follow-up correction and independent integration review (October 25)
+
+The initial review treated Archive-local compaction chunk recycling as cross-owner Maintenance. That was incorrect: the existing `ConversationCompactionStore::put` may recycle/coalesce its own superseded chunks **during an explicitly requested, authorized Archive write**. Cross-owner pruning, retained-history proof and whole-file rewrite remain higher-level Maintenance. Ordinary REL/PHY opening stays byte-neutral and uses `finish_without_reclaim`.
+
+- Removed unused, alternate open-time `ConversationCompactionOpenState::finish` and `finish_unrecovered`, `ConversationCompactionStore::recover` and `all_records`, and unused `InteractionStreamStore::apply`; preserved the active publication allocator and `free_and_coalesce`.
+- Made three unused implementation modules private: `archive_history`, `archive_record_index` and `interaction_stream_codec`. Other legitimately consumed modules remain public pending actual consumer extractions, rather than adding transient wrappers.
+- Independent verification: `cargo check --workspace --locked --offline` passed; Archive crate tests **27/27**; root `archive`-filtered tests **94/94**, root `conversation`-filtered tests **129/129**, root `imports::tests::` **19/19**, and independent CLI tests **32/32**. Filtered root selections may overlap and are not additive coverage counts.
+- The broader `import`-filtered selection was stopped at the known expensive `historical_native_due_reopen_and_every_live_use_prefix_preserve_all_recipients` after numerous passing cases; **it has no final pass verdict**. The entire root suite and `CVAFRS07` promoted-corpus acceptance remain outside this scoped follow-up.
+- Independently recovered build space by deleting only the inactive pre-refactor baseline audit's generated Cargo `target` directory (~14.2 GiB); the baseline source worktree, its Git state, original `main`, recovery bundles and authoritative corpus were not modified.
+
 ## Documentation impact
 
 - Inspected: governing architecture, invariants, storage format, maintainer map, current limitations, roadmap, linked extraction/DAG specifications and shared engineering standards.

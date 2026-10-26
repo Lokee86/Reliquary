@@ -60,26 +60,6 @@ impl ConversationCompactionOpenState {
         Ok(())
     }
 
-    pub(crate) fn finish(
-        self,
-        container: &mut Container,
-    ) -> Result<ConversationCompactionStore, ConversationCompactionError> {
-        let mut store = self.finish_unrecovered()?;
-        store.recover(container)?;
-        Ok(store)
-    }
-
-    /// Builds the replay projection without changing physical chunks. Call `recover` only after
-    /// owner-level evidence has been validated.
-    pub(crate) fn finish_unrecovered(
-        self,
-    ) -> Result<ConversationCompactionStore, ConversationCompactionError> {
-        Ok(ConversationCompactionStore {
-            chunks: self.chunks,
-            next_generation: self.next_generation.max(1),
-        })
-    }
-
     /// Builds the same visible compaction projection without reclaiming or rewriting chunks.
     pub fn finish_without_reclaim(
         self,
@@ -105,19 +85,6 @@ impl ConversationCompactionStore {
             chunks: BTreeMap::new(),
             next_generation: 1,
         }
-    }
-
-    pub(crate) fn all_records(&self) -> Vec<ConversationCompaction> {
-        let mut records = self
-            .chunks
-            .values()
-            .filter_map(|chunk| match chunk {
-                StoredCompactionChunk::Live { record, .. } => Some(record.clone()),
-                StoredCompactionChunk::Free(_) => None,
-            })
-            .collect::<Vec<_>>();
-        records.sort_by_key(|record| record.generation);
-        records
     }
 
     pub fn for_conversation(&self, conversation_id: &str) -> Vec<ConversationCompaction> {
@@ -175,26 +142,6 @@ impl ConversationCompactionStore {
             container.sync()?;
         }
         Ok(record)
-    }
-
-    pub(crate) fn recover(
-        &mut self,
-        container: &mut Container,
-    ) -> Result<(), ConversationCompactionError> {
-        let stale = self.stale_chunks();
-        for object in stale {
-            if self
-                .chunks
-                .get(&object)
-                .is_some_and(|chunk| !chunk.is_free())
-            {
-                self.free_and_coalesce(container, object)?;
-            }
-        }
-        if !self.chunks.is_empty() {
-            container.sync()?;
-        }
-        Ok(())
     }
 
     fn remove_stale_rows(&mut self) {

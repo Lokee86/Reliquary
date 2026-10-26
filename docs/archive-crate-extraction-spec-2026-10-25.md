@@ -93,9 +93,9 @@ The current source neighborhood contains **86 Rust files** (61 implementation an
 - **Read:** current and historical ancestry, branch turns, content and fragments, source file/attachment evidence, Episode coverage/open tail, record versions, source receipts, source compaction projection and immutable project correlations. Tombstoned history remains accessible only through historically authorized paths.
 - **Validation:** preserve Archive-owned `ArchiveError` and exact wrong-parent, missing-content, duplicate/conflicting source revision, invalid global/local version, incomplete-tail and unsupported record failure behavior. Cross-owner Memory target checks happen in composition, not Archive.
 - **Episode semantics:** complete response cycles remain indivisible, branch ancestry forms the source of truth, finite imported tails are finalizable without closing the conversation. No model call or Insomnia scheduling inside Archive.
-- **Compaction:** normal `Cva::open` already uses `finish_without_reclaim`; retain a byte-neutral visible projection and leave actual free/coalesce to explicitly authorized higher maintenance.
+- **Compaction:** normal `Cva::open` uses `finish_without_reclaim`; opening and replay must preserve bytes. Archive may recycle/coalesce its **own superseded compaction chunks during an explicit, authorized Archive publication** (`ConversationCompactionStore::put`), as part of its existing allocator semantics. This is not multi-owner Maintenance. Cross-owner pruning, retained-history proof, whole-file rewrite and externally requested reclamation remain higher Maintenance responsibilities. Obsolete open-time recovery helpers are removed rather than retained as dormant alternate paths.
 - **Stream:** persist begin/append/interrupted checkpoint records and accepted-prefix state only. Runtime owns message sessions, when to persist/notify/resume, and host transcript authority. Echo owns reasoning/tool activity traces.
-- **Public visibility:** no arbitrary writable store fields or raw file access. Export only concrete operations and value/typed-error types required by current consumers, not wholesale `pub` for every former `pub(crate)` helper.
+- **Public visibility:** no arbitrary writable store fields or raw file access. Unused implementation modules remain private. Other modules already consumed from root are temporarily public at the crate boundary and should be narrowed as their real consumers move in later extractions; do not introduce a new adapter merely to make public module counts smaller.
 
 ## 6. Move-once implementation sequence
 
@@ -116,7 +116,7 @@ A bounded red migration window is acceptable, with local coherent compilation ch
 - Node/branch chronology and tombstone closures, current-vs-historical views, exact Episode ancestry ranges, live/finite import finalization.
 - Source import receipt retry idempotence, source revision conflict rejection, attachments and provenance closure. Import epochs and completion are still coordinated above Archive.
 - File-to-Memory links validated only after both owner replays; project file binding hash/ID remains correct and independent of Git/Lore host authority.
-- Explicit prune/reclaim and valid historical cuts operate under Maintenance authorization; stale compaction chunks remain physically intact on ordinary open.
+- Cross-owner prune/rewrite and validated historical cuts operate under higher Maintenance authorization. Archive-local chunk reuse and coalescing during an authorized compaction **write** stays Archive-owned; stale compaction chunks remain physically intact on ordinary **open**.
 - Partial/interrupted runtime checkpoint bytes and continuation reopen match prior behavior without duplicating host canonical transcript or Echo.
 - Existing product `Archive`/model API exports and `Cva::search_archive`/CLI behavior still work against one Archive owner.
 

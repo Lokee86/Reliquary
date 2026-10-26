@@ -114,12 +114,6 @@ impl InteractionStreamStore {
         self.records.values().cloned().collect()
     }
 
-    fn apply(&mut self, record: InteractionStreamRecord) -> Result<(), ArchivePersistenceError> {
-        self.validate_transition(&record)?;
-        self.records.insert(record.message_id.clone(), record);
-        Ok(())
-    }
-
     fn apply_compact(&mut self, record: CompactRecord) -> Result<(), ArchivePersistenceError> {
         match record {
             CompactRecord::Begin(begin) => {
