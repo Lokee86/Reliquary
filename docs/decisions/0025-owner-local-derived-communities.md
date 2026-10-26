@@ -70,6 +70,6 @@ Rejected. Split/merge continuity requires explicit reconciliation semantics. Exa
 
 `src/semantic_graph/community_tests.rs` protects persistence/reopen, freshness, REL/PHY isolation, durable-owner requirements, and v1-to-v2 refresh compatibility.
 
-`src/semantic_graph/community_scan_merge_tests.rs` protects cross-shard community recovery, parent-level merging, worker-count determinism, and equivalence between stored root quality and modularity recomputed over the final partition on the original structural Graph.
+`crates/reliquary-graph/src/community_scan_merge_tests.rs` protects cross-shard community recovery, parent-level merging, worker-count determinism, and equivalence between stored root quality and modularity recomputed over the final partition on the original structural Graph.
 
-The ignored release benchmark in `src/semantic_graph/community_scan_merge_bench.rs` generates locality-friendly and deliberately interleaved sparse planted-community graphs and compares v2 wall time and modularity against monolithic Leiden. Frozen results are recorded in [Community scan-and-merge benchmark — 2026-08-27](../community-scan-merge-benchmark-2026-08-27.md).
+The ignored release benchmark in `crates/reliquary-graph/src/community_scan_merge_bench.rs` generates locality-friendly and deliberately interleaved sparse planted-community graphs and compares v2 wall time and modularity against monolithic Leiden. Frozen results are recorded in [Community scan-and-merge benchmark — 2026-08-27](../community-scan-merge-benchmark-2026-08-27.md).

@@ -61,7 +61,7 @@ fn envelope_history_digest_matches_marker_history_at_every_global_watermark() {
         drop(container);
         replay(&path).unwrap();
         let mut container = Container::open(&path).unwrap();
-        let graph = crate::graph_store::GraphStore::empty();
+        let graph = crate::graph_owner::GraphOwner::empty();
         digests.push(
             (0..=3)
                 .map(|cut| {

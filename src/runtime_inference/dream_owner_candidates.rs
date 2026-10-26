@@ -5,7 +5,7 @@ use crate::dream_candidate_ranking::{
 use crate::dream_owner_vectors::load_memory_vectors;
 use crate::dream_pair_history::DreamPairStore;
 use crate::dream_temporal::analyze_memory_temporal;
-use crate::graph_store::GraphStore;
+use crate::graph_owner::GraphOwner;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
@@ -18,7 +18,7 @@ use reliquary_container::Container;
 pub(crate) fn dream_memory_context<R>(
     container: &mut Container,
     memories: &MemoryStore,
-    graph: &GraphStore,
+    graph: &GraphOwner,
     memory_id: MemoryId,
     source_time: &R,
 ) -> Result<DreamMemoryContext, DreamCandidateError>
@@ -34,7 +34,7 @@ where
 pub(crate) fn dream_candidates<R>(
     container: &mut Container,
     memories: &MemoryStore,
-    graph: &GraphStore,
+    graph: &GraphOwner,
     dream_pairs: &DreamPairStore,
     memory_vectors: &MemoryVectorStore,
     packed_vectors: &PackedVectorStore,

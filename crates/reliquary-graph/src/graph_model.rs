@@ -205,7 +205,7 @@ pub struct GraphStats {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct GraphNodeRecord {
+pub struct GraphNodeRecord {
     pub semantic_node: SemanticNodeRef,
     pub node_id: NodeId,
 }

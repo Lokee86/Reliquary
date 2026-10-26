@@ -7,28 +7,28 @@ const SINGLE: &[u8; 8] = b"CVAGCM02";
 const BATCH: &[u8; 8] = b"CVAGCB02";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum GraphTransaction {
+pub enum GraphTransaction {
     Single(GraphOrdinalMutation),
     Batch(Vec<GraphOrdinalMutation>),
 }
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct GraphPublication {
+pub struct GraphPublication {
     pub graph_version: u64,
     pub transaction: GraphTransaction,
 }
 impl GraphPublication {
-    pub(crate) fn mutations(&self) -> &[GraphOrdinalMutation] {
+    pub fn mutations(&self) -> &[GraphOrdinalMutation] {
         match &self.transaction {
             GraphTransaction::Single(value) => std::slice::from_ref(value),
             GraphTransaction::Batch(values) => values,
         }
     }
-    pub(crate) fn is_single(&self) -> bool {
+    pub fn is_single(&self) -> bool {
         matches!(self.transaction, GraphTransaction::Single(_))
     }
 }
 
-pub(crate) fn encode(publication: &GraphPublication) -> Result<Vec<u8>, GraphError> {
+pub fn encode(publication: &GraphPublication) -> Result<Vec<u8>, GraphError> {
     if publication.graph_version == 0 {
         return Err(GraphError::InvalidGraphVersion);
     }
@@ -51,10 +51,7 @@ pub(crate) fn encode(publication: &GraphPublication) -> Result<Vec<u8>, GraphErr
     Ok(out)
 }
 
-pub(crate) fn decode(
-    bytes: &[u8],
-    global_version: u64,
-) -> Result<Option<GraphPublication>, GraphError> {
+pub fn decode(bytes: &[u8], global_version: u64) -> Result<Option<GraphPublication>, GraphError> {
     let single = if bytes.starts_with(b"CVAGCM") {
         true
     } else if bytes.starts_with(b"CVAGCB") {
@@ -104,7 +101,7 @@ pub(crate) fn decode(
     }))
 }
 
-pub(crate) fn version_at(
+pub fn version_at(
     object: ObjectRef,
     payload: &[u8],
 ) -> Result<Option<crate::graph_codec::GraphVersionPayload>, GraphError> {
@@ -122,7 +119,7 @@ pub(crate) fn version_at(
 }
 
 /// Coordinates alone are not semantic admission or ordinal-table authority.
-pub(crate) fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, GraphError> {
+pub fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, GraphError> {
     let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };

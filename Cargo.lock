@@ -2768,6 +2768,12 @@ version = "0.1.0"
 [[package]]
 name = "reliquary-graph"
 version = "0.1.0"
+dependencies = [
+ "arcana",
+ "leiden-rs",
+ "reliquary-container",
+ "sha2",
+]
 
 [[package]]
 name = "reliquary-history"
@@ -2804,13 +2810,13 @@ dependencies = [
  "aes-gcm",
  "arcana",
  "base64 0.22.1",
- "leiden-rs",
  "lodestone-packed",
  "lore",
  "regex",
  "reliquary-archive",
  "reliquary-container",
  "reliquary-echo",
+ "reliquary-graph",
  "reliquary-memory-core",
  "reqwest",
  "serde",

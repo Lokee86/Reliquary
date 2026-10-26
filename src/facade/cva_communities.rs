@@ -1,4 +1,4 @@
-use crate::community_scan_merge::scan_merge_snapshot;
+use crate::community_owner::scan_merge_snapshot;
 use crate::{
     COMMUNITY_ALGORITHM_VERSION, CommunityError, CommunityId, CommunityLineageTransition,
     CommunitySemanticName, CommunitySemanticNameSource, CommunitySnapshot, CommunityStats, Cva,
@@ -6,9 +6,7 @@ use crate::{
 
 impl Cva {
     pub fn community_snapshot(&self) -> Option<CommunitySnapshot> {
-        self.communities
-            .latest_if_live_members(&self.graph)
-            .cloned()
+        self.communities.latest_if_live_members(&self.graph)
     }
 
     pub fn community_stats(&self) -> CommunityStats {

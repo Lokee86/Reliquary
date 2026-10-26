@@ -1,9 +1,17 @@
 # Graph crate extraction — implementation specification
 
-**Status:** Specification only; Graph implementation is **not** extracted.  
-**Branch:** `refactor/crate-first-restart`. **Baseline for this specification:** committed `ad25bab`; Echo extraction changes are currently **uncommitted and must be preserved**.  
+**Status:** Implemented; Graph and Community state live in `reliquary-graph`. Verification and existing tooling/test limitations are recorded in the [execution evidence](graph-crate-extraction-evidence-2026-10-26.md).
+**Branch:** `refactor/crate-first-restart`. **Specification baseline:** `ad25bab`; **execution baseline:** `13016c4a`, where Echo was already committed and the working tree was clean. Echo implementation was preserved.
 **Target:** `crates/reliquary-graph/` (fifth first-class crate extraction: Container → Archive → Memory Core → Echo → Graph).  
 **Policy:** correction-only staged hard cut. No feature work, source format migration, extra architectural framework, or prerequirement to finish another domain's extraction.
+
+## Purpose
+
+Execute the accepted Graph and Community ownership cut without changing stored bytes or product admission.
+
+## Overview
+
+The staged implementation and verification contract follows.
 
 ## 1. Developer problem and outcome
 
@@ -134,3 +142,12 @@ High-cost historic/benchmark test cases must be explicitly identified as run or 
 No new Community algorithm, migration to a new Graph backend, new Observation entity semantics, new Dream classifier, new Memory lifecycle rule, Freshness propagation change, bulk derived vector construction, global search, novel real-time graph processing, cross-owner Graph, feature roadmap changes or legacy-format compatibility layer. No modification or staging of Echo's current uncommitted implementation.
 
 **Completion is real Graph/Community ownership behind a narrow crate API and working consumers, not successful compilation of an empty reserved crate.**
+## Related docs
+
+- [Crate-first layout](crate-first-layout-spec-2026-10-25.md)
+- [Architecture](architecture.md)
+- [Maintainer map](maintainer-map.md)
+
+## Notes
+
+CVAFRS07 whole-product corpus recovery remains a separate gate.

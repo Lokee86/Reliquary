@@ -204,7 +204,7 @@ fn historical_matrix_native_malformed_retained_community_fails_reopen_without_re
             malformed.communities[0].members.push(member);
         }
         let candidate = path.with_file_name(format!("invalid-community-{foreign}.rel"));
-        let payload = crate::community_codec::encode_snapshot(&malformed).unwrap();
+        let payload = crate::community_codec::encode_snapshot(&malformed.clone().into()).unwrap();
         let mut bytes = original.clone();
         bytes.extend((payload.len() as u64).to_le_bytes());
         bytes.extend(payload);

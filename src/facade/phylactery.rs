@@ -1,11 +1,11 @@
-use crate::community_store::CommunityStore;
+use crate::community_owner::CommunityOwner;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::dream_pair_history::DreamPairStore;
 use crate::ego_store::EgoStore;
 use crate::entity_resolution_store::EntityResolutionStore;
 use crate::entity_store::EntityStore;
-use crate::graph_store::GraphStore;
+use crate::graph_owner::GraphOwner;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
@@ -25,8 +25,8 @@ pub struct Phylactery {
     pub(crate) container: Container,
     pub(crate) memories: MemoryStore,
     pub(crate) lexical_index: LexicalIndex,
-    pub(crate) graph: GraphStore,
-    pub(crate) communities: CommunityStore,
+    pub(crate) graph: GraphOwner,
+    pub(crate) communities: CommunityOwner,
     pub(crate) duplicate_index: DuplicateIndex,
     pub(crate) processing_epochs: ProcessingEpochStore,
     pub(crate) dream_pairs: DreamPairStore,

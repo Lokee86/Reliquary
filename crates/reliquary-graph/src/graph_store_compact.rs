@@ -7,7 +7,7 @@ use crate::graph_compact_contract::GraphOrdinalMutation;
 impl GraphStore {
     /// Stable full-ID evidence for import comparison, never a persisted writer.
     /// Preserve single/batch shape and mutation order while removing ordinal scope.
-    pub(crate) fn normalized_import_evidence(&self, bytes: &[u8]) -> Result<Vec<u8>, GraphError> {
+    pub fn normalized_import_evidence(&self, bytes: &[u8]) -> Result<Vec<u8>, GraphError> {
         let (single, values) = self
             .decode_stored_transaction(bytes)?
             .ok_or(GraphError::InvalidGraphVersion)?;
@@ -23,10 +23,7 @@ impl GraphStore {
 
     /// Bind compact publications to stable endpoint identities, independently
     /// of this owner's ordinal assignment. Comparison hash schema tags stay exact.
-    pub(crate) fn compact_carrier_digest(
-        &self,
-        bytes: &[u8],
-    ) -> Result<Option<[u8; 32]>, GraphError> {
+    pub fn compact_carrier_digest(&self, bytes: &[u8]) -> Result<Option<[u8; 32]>, GraphError> {
         use sha2::{Digest, Sha256};
         let (ordinals, magic) =
             if let Some(envelope) = reliquary_container::publication_envelope::decode(bytes)? {
@@ -71,7 +68,7 @@ impl GraphStore {
         Ok(Some(hash.finalize().into()))
     }
 
-    pub(crate) fn resolve_compact_mutations(
+    pub fn resolve_compact_mutations(
         &self,
         values: &[GraphOrdinalMutation],
     ) -> Result<Vec<GraphMutationPayload>, GraphError> {
@@ -100,7 +97,7 @@ impl GraphStore {
     }
 
     /// Resolve concrete current publications from an accepted owner.
-    pub(crate) fn decode_stored_mutations(
+    pub fn decode_stored_mutations(
         &self,
         bytes: &[u8],
     ) -> Result<Option<Vec<GraphMutationPayload>>, GraphError> {
@@ -109,7 +106,7 @@ impl GraphStore {
             .map(|(_, values)| values))
     }
 
-    pub(crate) fn decode_stored_transaction(
+    pub fn decode_stored_transaction(
         &self,
         bytes: &[u8],
     ) -> Result<Option<(bool, Vec<GraphMutationPayload>)>, GraphError> {
@@ -132,8 +129,7 @@ impl GraphStore {
             .map(|values| Some((publication.is_single(), values)))
     }
 
-    #[cfg(test)]
-    pub(crate) fn encode_compact_mutations(
+    pub fn encode_compact_mutations(
         &self,
         values: &[GraphMutationPayload],
         single: bool,

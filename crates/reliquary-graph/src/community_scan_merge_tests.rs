@@ -7,7 +7,7 @@ use std::collections::{HashMap, HashSet};
 fn memory(index: usize) -> MemoryId {
     let mut bytes = [0_u8; 32];
     bytes[..8].copy_from_slice(&(index as u64).to_le_bytes());
-    MemoryId(bytes)
+    bytes
 }
 
 fn graph(node_count: usize, edges: &[(usize, usize)]) -> StructuralCommunityGraph {
@@ -21,7 +21,7 @@ fn member_sets(snapshot: &CommunitySnapshot) -> HashSet<Vec<[u8; 32]>> {
     snapshot
         .communities
         .iter()
-        .map(|community| community.members.iter().map(|member| member.0).collect())
+        .map(|community| community.members.iter().map(|member| *member).collect())
         .collect()
 }
 
@@ -40,8 +40,8 @@ fn scan_merge_preserves_two_dense_regions_across_shards() {
     )
     .unwrap();
     let expected = [
-        vec![memory(0).0, memory(1).0, memory(2).0],
-        vec![memory(3).0, memory(4).0, memory(5).0],
+        vec![memory(0), memory(1), memory(2)],
+        vec![memory(3), memory(4), memory(5)],
     ]
     .into_iter()
     .collect();

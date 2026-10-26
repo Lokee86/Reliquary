@@ -165,7 +165,7 @@ fn history_digest(container: &mut Container) -> [u8; 32] {
     owner_history_digest(
         container,
         watermark,
-        &crate::graph_store::GraphStore::empty(),
+        &crate::graph_owner::GraphOwner::empty(),
     )
     .unwrap()
 }
@@ -177,7 +177,7 @@ fn history_digests(path: &Path) -> Vec<[u8; 32]> {
             owner_history_digest(
                 &mut container,
                 watermark,
-                &crate::graph_store::GraphStore::empty(),
+                &crate::graph_owner::GraphOwner::empty(),
             )
             .unwrap()
         })

@@ -304,6 +304,7 @@ fn emit_rel(
         .graph
         .publish_rewrite_baseline(
             &mut output.container,
+            &output.memories,
             destination_owner,
             generation,
             parse_digest(&plan.policy_digest)?,
@@ -408,6 +409,7 @@ fn emit_phy(
         .graph
         .publish_rewrite_baseline(
             &mut output.container,
+            &output.memories,
             destination_owner,
             generation,
             parse_digest(&plan.policy_digest)?,

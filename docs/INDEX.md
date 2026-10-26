@@ -205,6 +205,8 @@
 - [freshness-semantic-historical-baseline-2026-10-11.md](freshness-semantic-historical-baseline-2026-10-11.md) - Freshness Semantic Historical Baseline 2026 10 11 documentation.
 - [freshness-semantic-policy-module-2026-10-11.md](freshness-semantic-policy-module-2026-10-11.md) - Freshness Semantic Policy Module 2026 10 11 documentation.
 - [freshness-semantic-release-verification-2026-10-12.md](freshness-semantic-release-verification-2026-10-12.md) - Freshness Semantic Release Verification 2026 10 12 documentation.
+- [graph-crate-extraction-evidence-2026-10-26.md](graph-crate-extraction-evidence-2026-10-26.md) - Graph Crate Extraction Evidence 2026 10 26 documentation.
+- [graph-crate-extraction-spec-2026-10-26.md](graph-crate-extraction-spec-2026-10-26.md) - Graph Crate Extraction Spec 2026 10 26 documentation.
 - [import-step24-attribution-acceptance-2026-10-17.md](import-step24-attribution-acceptance-2026-10-17.md) - Import Step24 Attribution Acceptance 2026 10 17 documentation.
 - [insomnia-explicit-memory-commit-plan.md](insomnia-explicit-memory-commit-plan.md) - Insomnia Explicit Memory Commit Plan documentation.
 - [insomnia-semantic-validation-2026-08-24.md](insomnia-semantic-validation-2026-08-24.md) - Insomnia Semantic Validation 2026 08 24 documentation.

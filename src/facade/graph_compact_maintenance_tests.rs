@@ -4,7 +4,7 @@ use crate::graph_compact_codec::publication::{
 };
 use crate::graph_compact_codec::{encode_batch, encode_mutation};
 use crate::graph_compact_contract::GraphOrdinalMutation;
-use crate::graph_store::GraphStore;
+use crate::graph_owner::GraphOwner;
 use crate::historical_graph_fingerprint::GraphHistory;
 use crate::{
     Cva, GraphRelationKind, GraphRelationOrigin, MemoryDraft, Phylactery, SemanticGraphRelationKind,
@@ -157,9 +157,9 @@ fn payloads(container: &mut Container) -> Vec<Vec<u8>> {
 
 fn assert_graph_history_equal(
     before_container: &Container,
-    before_graph: &GraphStore,
+    before_graph: &GraphOwner,
     after_container: &Container,
-    after_graph: &GraphStore,
+    after_graph: &GraphOwner,
 ) {
     let before = GraphHistory::read(before_container, before_graph).unwrap();
     let after = GraphHistory::read(after_container, after_graph).unwrap();
@@ -201,7 +201,7 @@ fn assert_graph_history_equal(
 
 fn accepted_graph_cuts(
     container: &mut Container,
-    graph: &GraphStore,
+    graph: &GraphOwner,
 ) -> Vec<(
     BTreeMap<
         (
@@ -225,8 +225,8 @@ fn accepted_graph_cuts(
         let mutations = graph.decode_stored_mutations(&bytes).unwrap().unwrap();
         for mutation in mutations {
             let relation = crate::SemanticGraphRelation {
-                source: mutation.source,
-                target: mutation.target,
+                source: mutation.source.into(),
+                target: mutation.target.into(),
                 kind: mutation.kind,
                 active: mutation.active,
                 origin: mutation.origin,
@@ -639,7 +639,7 @@ fn native_graph_fresh_rewrite_keeps_baseline_relations_and_accepts_followup_writ
 
 fn append_native_graph_facts(
     container: &mut Container,
-    graph: &GraphStore,
+    graph: &GraphOwner,
     ids: [crate::MemoryId; 3],
     time: i64,
 ) {
@@ -648,7 +648,7 @@ fn append_native_graph_facts(
         container
             .append(&crate::graph_codec::encode_node(
                 crate::graph_codec::GraphNodePayload {
-                    semantic_node: crate::SemanticNodeRef::memory(*id),
+                    semantic_node: crate::SemanticNodeRef::memory(*id).into(),
                     node_id: arcana::NodeId(ordinal as u32),
                 },
             ))

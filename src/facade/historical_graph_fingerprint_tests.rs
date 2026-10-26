@@ -189,8 +189,8 @@ fn native_graph_readers_preserve_every_cut_order_mapping_and_baseline() {
         (
             5,
             vec![GraphMutationPayload {
-                source: SemanticNodeRef::memory(a),
-                target: SemanticNodeRef::memory(c),
+                source: SemanticNodeRef::memory(a).into(),
+                target: SemanticNodeRef::memory(c).into(),
                 kind: SemanticGraphRelationKind::Memory(GraphRelationKind::References),
                 active: true,
                 origin: GraphRelationOrigin::User,
@@ -200,15 +200,15 @@ fn native_graph_readers_preserve_every_cut_order_mapping_and_baseline() {
             6,
             vec![
                 GraphMutationPayload {
-                    source: SemanticNodeRef::memory(b),
-                    target: SemanticNodeRef::memory(c),
+                    source: SemanticNodeRef::memory(b).into(),
+                    target: SemanticNodeRef::memory(c).into(),
                     kind: SemanticGraphRelationKind::Memory(GraphRelationKind::Topical),
                     active: true,
                     origin: GraphRelationOrigin::User,
                 },
                 GraphMutationPayload {
-                    source: SemanticNodeRef::memory(c),
-                    target: SemanticNodeRef::memory(a),
+                    source: SemanticNodeRef::memory(c).into(),
+                    target: SemanticNodeRef::memory(a).into(),
                     kind: SemanticGraphRelationKind::Memory(GraphRelationKind::Factual),
                     active: true,
                     origin: GraphRelationOrigin::Dream,
@@ -377,7 +377,7 @@ fn graph_rewrite_baseline_keeps_isolated_memory_population_at_zero() {
     drop(rewritten);
     fs::remove_dir_all(dir).unwrap();
 }
-fn assert_matches_replay(history: &GraphHistory, store: &GraphStore) {
+fn assert_matches_replay(history: &GraphHistory, store: &crate::graph_owner::GraphOwner) {
     let full = history.at(store.graph_version(), false).unwrap();
     assert_eq!(full.memory_graph_version, store.memory_graph_version());
     let active: BTreeMap<_, _> = full
@@ -608,8 +608,8 @@ fn graph_cuts_preserve_retractions_inert_payloads_and_reopen() {
     cva.container
         .append(&crate::graph_codec::encode_mutation(
             crate::graph_codec::GraphMutationPayload {
-                source: SemanticNodeRef::memory(b),
-                target: SemanticNodeRef::memory(a),
+                source: SemanticNodeRef::memory(b).into(),
+                target: SemanticNodeRef::memory(a).into(),
                 kind: SemanticGraphRelationKind::Memory(GraphRelationKind::Causal),
                 active: true,
                 origin: crate::GraphRelationOrigin::User,
@@ -676,7 +676,7 @@ fn authoritative_graph_cuts_match_replay() {
                 .unwrap();
             std::io::copy(&mut source, &mut destination).unwrap();
             drop(destination);
-            let verify = |container: &Container, store: &GraphStore| {
+            let verify = |container: &Container, store: &crate::graph_owner::GraphOwner| {
                 let head = store.graph_version();
                 let history = GraphHistory::read(container, store).unwrap();
                 let rescanned = GraphHistory::read(container, store).unwrap();

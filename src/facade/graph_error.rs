@@ -75,3 +75,42 @@ impl From<reliquary_container::ContainerError> for GraphError {
         Self::Container(value)
     }
 }
+
+impl From<reliquary_graph::GraphError> for GraphError {
+    fn from(v: reliquary_graph::GraphError) -> Self {
+        use reliquary_graph::GraphError as E;
+        match v {
+            E::Container(v) => Self::Container(v),
+            E::CorruptRecord(v) => Self::CorruptRecord(v),
+            E::UnknownRelationKind(v) => Self::UnknownRelationKind(v),
+            E::Topology(v) => Self::Topology(v),
+            E::MissingMemory(v) => Self::MissingMemory(MemoryId(v)),
+            E::MissingNode(v) => Self::MissingNode(MemoryId(v)),
+            E::MissingEntity(v) => Self::MissingEntity(EntityId(v)),
+            E::UnsupportedSemanticNode(v) => Self::UnsupportedSemanticNode(v.into()),
+            E::RevisionConflict { expected, actual } => Self::RevisionConflict { expected, actual },
+            E::InvalidRelationShape => Self::InvalidRelationShape,
+            E::InvalidRelationOrigin => Self::InvalidRelationOrigin,
+            E::SelfRelation => Self::SelfRelation,
+            E::NodeIdExhausted => Self::NodeIdExhausted,
+            E::GraphVersionExhausted => Self::GraphVersionExhausted,
+            E::MissingFormat => Self::MissingFormat,
+            E::ConflictingFormat => Self::ConflictingFormat,
+            E::InvalidNodeMapping => Self::InvalidNodeMapping,
+            E::DuplicateRelationChange => Self::DuplicateRelationChange,
+            E::InvalidGraphVersion => Self::InvalidGraphVersion,
+        }
+    }
+}
+
+impl From<reliquary_graph::GraphError> for crate::CvaError {
+    fn from(v: reliquary_graph::GraphError) -> Self {
+        GraphError::from(v).into()
+    }
+}
+
+impl From<reliquary_graph::GraphError> for crate::CvaReconcileError {
+    fn from(v: reliquary_graph::GraphError) -> Self {
+        GraphError::from(v).into()
+    }
+}

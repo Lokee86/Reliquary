@@ -9,7 +9,7 @@ const BATCH_V1_MAGIC: &[u8; 8] = b"CVAGBAT1";
 const BATCH_V2_MAGIC: &[u8; 8] = b"CVAGBAT2";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct GraphMutationPayload {
+pub struct GraphMutationPayload {
     pub source: SemanticNodeRef,
     pub target: SemanticNodeRef,
     pub kind: SemanticGraphRelationKind,
@@ -17,12 +17,12 @@ pub(crate) struct GraphMutationPayload {
     pub origin: GraphRelationOrigin,
 }
 
-pub(crate) fn encode_mutation(mutation: GraphMutationPayload) -> Vec<u8> {
+pub fn encode_mutation(mutation: GraphMutationPayload) -> Vec<u8> {
     if let Some((source, target, kind)) = memory_comparison_parts(mutation) {
         let mut out = vec![0_u8; 76];
         out[..8].copy_from_slice(MUTATION_V1_MAGIC);
-        out[8..40].copy_from_slice(&source.0);
-        out[40..72].copy_from_slice(&target.0);
+        out[8..40].copy_from_slice(&source);
+        out[40..72].copy_from_slice(&target);
         out[72..74].copy_from_slice(&kind.code().to_le_bytes());
         out[74] = u8::from(mutation.active);
         out[75] = mutation.origin.code();
@@ -39,7 +39,7 @@ pub(crate) fn encode_mutation(mutation: GraphMutationPayload) -> Vec<u8> {
     out
 }
 
-pub(crate) fn decode_mutation(bytes: &[u8]) -> Result<Option<GraphMutationPayload>, GraphError> {
+pub fn decode_mutation(bytes: &[u8]) -> Result<Option<GraphMutationPayload>, GraphError> {
     if bytes.starts_with(MUTATION_V1_MAGIC) {
         if bytes.len() != 76 {
             return Err(GraphError::CorruptRecord("relationship mutation"));
@@ -55,7 +55,7 @@ pub(crate) fn decode_mutation(bytes: &[u8]) -> Result<Option<GraphMutationPayloa
     Ok(Some(decode_typed_body(bytes, 8)?))
 }
 
-pub(crate) fn encode_batch(mutations: &[GraphMutationPayload]) -> Vec<u8> {
+pub fn encode_batch(mutations: &[GraphMutationPayload]) -> Vec<u8> {
     if mutations
         .iter()
         .all(|mutation| memory_comparison_parts(*mutation).is_some())
@@ -65,8 +65,8 @@ pub(crate) fn encode_batch(mutations: &[GraphMutationPayload]) -> Vec<u8> {
         out.extend_from_slice(&(mutations.len() as u32).to_le_bytes());
         for mutation in mutations {
             let (source, target, kind) = memory_comparison_parts(*mutation).unwrap();
-            out.extend_from_slice(&source.0);
-            out.extend_from_slice(&target.0);
+            out.extend_from_slice(&source);
+            out.extend_from_slice(&target);
             out.extend_from_slice(&kind.code().to_le_bytes());
             out.push(u8::from(mutation.active));
             out.push(mutation.origin.code());
@@ -89,7 +89,7 @@ pub(crate) fn encode_batch(mutations: &[GraphMutationPayload]) -> Vec<u8> {
     out
 }
 
-pub(crate) fn decode_batch(bytes: &[u8]) -> Result<Option<Vec<GraphMutationPayload>>, GraphError> {
+pub fn decode_batch(bytes: &[u8]) -> Result<Option<Vec<GraphMutationPayload>>, GraphError> {
     if bytes.starts_with(BATCH_V1_MAGIC) {
         return decode_memory_comparison_batch(bytes).map(Some);
     }
@@ -140,16 +140,12 @@ fn decode_memory_comparison_body(
     bytes: &[u8],
     offset: usize,
 ) -> Result<GraphMutationPayload, GraphError> {
-    let source = MemoryId(
-        bytes[offset..offset + 32]
-            .try_into()
-            .map_err(|_| GraphError::CorruptRecord("relationship mutation"))?,
-    );
-    let target = MemoryId(
-        bytes[offset + 32..offset + 64]
-            .try_into()
-            .map_err(|_| GraphError::CorruptRecord("relationship mutation"))?,
-    );
+    let source: [u8; 32] = bytes[offset..offset + 32]
+        .try_into()
+        .map_err(|_| GraphError::CorruptRecord("relationship mutation"))?;
+    let target: [u8; 32] = bytes[offset + 32..offset + 64]
+        .try_into()
+        .map_err(|_| GraphError::CorruptRecord("relationship mutation"))?;
     let kind_code = read_u16(bytes, offset + 64)?;
     let kind = GraphRelationKind::from_code(kind_code)
         .ok_or(GraphError::UnknownRelationKind(kind_code))?;

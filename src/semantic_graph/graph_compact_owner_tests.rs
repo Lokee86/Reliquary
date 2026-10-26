@@ -8,19 +8,19 @@ fn encode_mutation(value: GraphOrdinalMutation) -> Vec<u8> {
     .unwrap()
 }
 fn encode_batch(values: &[GraphOrdinalMutation]) -> Result<Vec<u8>, crate::GraphError> {
-    crate::graph_compact_codec::publication::encode(
+    Ok(crate::graph_compact_codec::publication::encode(
         &crate::graph_compact_codec::publication::GraphPublication {
             graph_version: 1,
             transaction: crate::graph_compact_codec::publication::GraphTransaction::Batch(
                 values.to_vec(),
             ),
         },
-    )
+    )?)
 }
 use crate::graph_codec::{GraphVersionPayload, encode_version};
 
 use crate::graph_compact_contract::GraphOrdinalMutation;
-use crate::graph_store::GraphStore;
+use crate::graph_owner::GraphOwner;
 use crate::historical_graph_fingerprint::GraphHistory;
 use crate::{
     Cva, EntityDraft, EntityId, GraphRelationKind, MemoryDraft, MemoryId, Phylactery,
@@ -201,14 +201,18 @@ fn retired_association_history(path: &Path, phy: bool) -> ([u8; 32], [u8; 32]) {
             .unwrap();
         assert_eq!(
             decoded[0].source,
-            SemanticNodeRef::memory(MemoryId(memory_id))
+            SemanticNodeRef::memory(MemoryId(memory_id)).into()
         );
         assert_eq!(
             decoded[0].target,
-            SemanticNodeRef::entity(EntityId(entity_id))
+            SemanticNodeRef::entity(EntityId(entity_id)).into()
         );
         let history = GraphHistory::read(&owner.container, &owner.graph).unwrap();
-        let edge = (decoded[0].source, decoded[0].target, decoded[0].kind);
+        let edge = (
+            decoded[0].source.into(),
+            decoded[0].target.into(),
+            decoded[0].kind,
+        );
         assert!(history.at(1, false).unwrap().states[&edge].active);
         assert!(!history.at(2, false).unwrap().states[&edge].active);
         assert_eq!(
@@ -241,14 +245,18 @@ fn retired_association_history(path: &Path, phy: bool) -> ([u8; 32], [u8; 32]) {
             .unwrap();
         assert_eq!(
             decoded[0].source,
-            SemanticNodeRef::memory(MemoryId(memory_id))
+            SemanticNodeRef::memory(MemoryId(memory_id)).into()
         );
         assert_eq!(
             decoded[0].target,
-            SemanticNodeRef::entity(EntityId(entity_id))
+            SemanticNodeRef::entity(EntityId(entity_id)).into()
         );
         let history = GraphHistory::read(&owner.container, &owner.graph).unwrap();
-        let edge = (decoded[0].source, decoded[0].target, decoded[0].kind);
+        let edge = (
+            decoded[0].source.into(),
+            decoded[0].target.into(),
+            decoded[0].kind,
+        );
         assert!(history.at(1, false).unwrap().states[&edge].active);
         assert!(!history.at(2, false).unwrap().states[&edge].active);
         assert_eq!(
@@ -271,7 +279,7 @@ fn retired_association_history(path: &Path, phy: bool) -> ([u8; 32], [u8; 32]) {
 
 #[test]
 fn compact_mutations_materialize_typed_stable_ids_and_keep_principal_kind_distinct() {
-    let mut graph = GraphStore::empty();
+    let mut graph = GraphOwner::empty();
     let shared = [0x71; 32];
     let memory = SemanticNodeRef::memory(MemoryId(shared));
     let same_bytes_entity = SemanticNodeRef::entity(EntityId(shared));
@@ -290,22 +298,22 @@ fn compact_mutations_materialize_typed_stable_ids_and_keep_principal_kind_distin
     }
     let expected = vec![
         crate::graph_codec::GraphMutationPayload {
-            source: memory,
-            target: same_bytes_entity,
+            source: memory.into(),
+            target: same_bytes_entity.into(),
             kind: SemanticGraphRelationKind::EntityAssociation,
             active: true,
             origin: crate::GraphRelationOrigin::Perception,
         },
         crate::graph_codec::GraphMutationPayload {
-            source: memory,
-            target: principal,
+            source: memory.into(),
+            target: principal.into(),
             kind: SemanticGraphRelationKind::PrincipalAssociation,
             active: false,
             origin: crate::GraphRelationOrigin::Perception,
         },
         crate::graph_codec::GraphMutationPayload {
-            source: memory,
-            target: other_memory,
+            source: memory.into(),
+            target: other_memory.into(),
             kind: SemanticGraphRelationKind::Memory(GraphRelationKind::Factual),
             active: true,
             origin: crate::GraphRelationOrigin::User,

@@ -65,7 +65,7 @@ fn names(source: CommunitySemanticNameSource) -> HashMap<CommunityId, CommunityS
         source,
         name: "Architecture".into(),
         representative_memories: if source == CommunitySemanticNameSource::Dream {
-            vec![MemoryId([1; 32])]
+            vec![[1; 32]]
         } else {
             Vec::new()
         },
@@ -88,10 +88,7 @@ fn snapshot(generation: u64, communities: Vec<Community>) -> CommunitySnapshot {
 fn community(identifier: u8, members: &[u8]) -> Community {
     Community {
         id: id(identifier),
-        members: members
-            .iter()
-            .map(|member| MemoryId([*member; 32]))
-            .collect(),
+        members: members.iter().map(|member| [*member; 32]).collect(),
     }
 }
 

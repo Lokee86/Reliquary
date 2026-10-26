@@ -834,7 +834,7 @@ impl Cva {
                             community_found = true;
                             for community in snapshot.communities {
                                 for memory in community.members {
-                                    memberships.insert(memory, community.id);
+                                    memberships.insert(MemoryId(memory), community.id);
                                 }
                             }
                         }
@@ -874,7 +874,10 @@ impl Cva {
                         else {
                             continue;
                         };
-                        states.insert((source, target, mutation.kind), mutation.active);
+                        states.insert(
+                            (MemoryId(source), MemoryId(target), mutation.kind),
+                            mutation.active,
+                        );
                     }
                     Ok(())
                 })()?;
@@ -994,6 +997,7 @@ impl Cva {
                         else {
                             continue;
                         };
+                        let (source, target) = (MemoryId(source), MemoryId(target));
                         let neighbor = if source == pass.source_id {
                             Some(target)
                         } else if target == pass.source_id {

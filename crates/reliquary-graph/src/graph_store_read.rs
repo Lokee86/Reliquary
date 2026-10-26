@@ -7,15 +7,15 @@ use arcana::storage::InMemoryGraph;
 use arcana::{Edge, GraphDataset, NodeId};
 
 impl GraphStore {
-    pub(crate) fn graph_version(&self) -> u64 {
+    pub fn graph_version(&self) -> u64 {
         self.next_graph_version.saturating_sub(1)
     }
 
-    pub(crate) fn memory_graph_version(&self) -> u64 {
+    pub fn memory_graph_version(&self) -> u64 {
         self.memory_graph_version
     }
 
-    pub(crate) fn stats(&self) -> GraphStats {
+    pub fn stats(&self) -> GraphStats {
         GraphStats {
             nodes: self
                 .nodes
@@ -42,7 +42,7 @@ impl GraphStore {
         }
     }
 
-    pub(crate) fn active_semantic_relations(&self) -> Vec<SemanticGraphRelation> {
+    pub fn active_semantic_relations(&self) -> Vec<SemanticGraphRelation> {
         let mut relations: Vec<_> = self
             .states
             .values()
@@ -53,50 +53,50 @@ impl GraphStore {
         relations
     }
 
-    pub(crate) fn active_relations(&self) -> Vec<GraphRelation> {
+    pub fn active_relations(&self) -> Vec<GraphRelation> {
         self.active_semantic_relations()
             .into_iter()
             .filter_map(memory_relation)
             .collect()
     }
 
-    pub(crate) fn entity_associations_for_memory(&self, memory_id: MemoryId) -> Vec<EntityId> {
+    pub fn entity_associations_for_memory(&self, memory_id: MemoryId) -> Vec<EntityId> {
         self.entities_by_memory
             .get(&memory_id)
             .map(|ids| ids.iter().copied().collect())
             .unwrap_or_default()
     }
 
-    pub(crate) fn memories_for_entity(&self, entity_id: EntityId) -> Vec<MemoryId> {
+    pub fn memories_for_entity(&self, entity_id: EntityId) -> Vec<MemoryId> {
         let mut ids: Vec<_> = self
             .memories_by_entity
             .get(&entity_id)
             .into_iter()
             .flat_map(|ids| ids.iter().copied())
             .collect();
-        ids.sort_by_key(|id| id.0);
+        ids.sort_by_key(|id| *id);
         ids
     }
 
-    pub(crate) fn principal_associations_for_memory(&self, memory_id: MemoryId) -> Vec<EntityId> {
+    pub fn principal_associations_for_memory(&self, memory_id: MemoryId) -> Vec<EntityId> {
         self.principals_by_memory
             .get(&memory_id)
             .map(|ids| ids.iter().copied().collect())
             .unwrap_or_default()
     }
 
-    pub(crate) fn memories_for_principal(&self, entity_id: EntityId) -> Vec<MemoryId> {
+    pub fn memories_for_principal(&self, entity_id: EntityId) -> Vec<MemoryId> {
         let mut ids: Vec<_> = self
             .memories_by_principal
             .get(&entity_id)
             .into_iter()
             .flat_map(|ids| ids.iter().copied())
             .collect();
-        ids.sort_by_key(|id| id.0);
+        ids.sort_by_key(|id| *id);
         ids
     }
 
-    pub(crate) fn relation_state(
+    pub fn relation_state(
         &self,
         source: MemoryId,
         target: MemoryId,
@@ -109,28 +109,35 @@ impl GraphStore {
         })
     }
 
-    pub(crate) fn transaction_global_versions(&self) -> &[u64] {
+    pub fn transaction_global_versions(&self) -> &[u64] {
         &self.transaction_global_versions
     }
 
-    pub(crate) fn node_memory_ids(&self) -> Vec<MemoryId> {
+    pub fn node_memory_ids(&self) -> Vec<MemoryId> {
         self.memory_nodes.clone()
     }
 
-    pub(crate) fn memory_node_count(&self) -> usize {
+    pub fn memory_node_count(&self) -> usize {
         self.memory_nodes.len()
     }
 
-    pub(crate) fn current_memory_node_ids(&self) -> &[MemoryId] {
+    pub fn current_memory_node_ids(&self) -> &[MemoryId] {
         &self.memory_nodes
     }
 
-    #[cfg(test)]
-    pub(crate) fn semantic_nodes(&self) -> Vec<SemanticNodeRef> {
+    pub fn active_stored_relations(&self) -> Vec<SemanticGraphRelation> {
+        self.states
+            .values()
+            .filter(|relation| relation.active)
+            .copied()
+            .collect()
+    }
+
+    pub fn semantic_nodes(&self) -> Vec<SemanticNodeRef> {
         self.nodes.iter().map(|node| node.semantic_node).collect()
     }
 
-    pub(crate) fn node_id(&self, memory_id: MemoryId) -> Result<NodeId, GraphError> {
+    pub fn node_id(&self, memory_id: MemoryId) -> Result<NodeId, GraphError> {
         self.semantic_node_id(SemanticNodeRef::memory(memory_id))
             .map_err(|error| match error {
                 GraphError::UnsupportedSemanticNode(_) => GraphError::MissingNode(memory_id),
@@ -138,17 +145,14 @@ impl GraphStore {
             })
     }
 
-    pub(crate) fn historical_memory_node_id(&self, id: MemoryId) -> Result<NodeId, GraphError> {
+    pub fn historical_memory_node_id(&self, id: MemoryId) -> Result<NodeId, GraphError> {
         self.node_by_semantic
             .get(&SemanticNodeRef::memory(id))
             .copied()
             .ok_or(GraphError::MissingNode(id))
     }
 
-    pub(crate) fn semantic_node_id(
-        &self,
-        semantic_node: SemanticNodeRef,
-    ) -> Result<NodeId, GraphError> {
+    pub fn semantic_node_id(&self, semantic_node: SemanticNodeRef) -> Result<NodeId, GraphError> {
         if self.excluded_nodes.contains(&semantic_node) {
             return Err(GraphError::UnsupportedSemanticNode(semantic_node));
         }
@@ -158,20 +162,14 @@ impl GraphStore {
             .ok_or(GraphError::UnsupportedSemanticNode(semantic_node))
     }
 
-    pub(crate) fn memory_projection_node_id(
-        &self,
-        memory_id: MemoryId,
-    ) -> Result<NodeId, GraphError> {
+    pub fn memory_projection_node_id(&self, memory_id: MemoryId) -> Result<NodeId, GraphError> {
         self.memory_node_by_id
             .get(&memory_id)
             .copied()
             .ok_or(GraphError::MissingNode(memory_id))
     }
 
-    pub(crate) fn memory_projection_memory_id(
-        &self,
-        node_id: NodeId,
-    ) -> Result<MemoryId, GraphError> {
+    pub fn memory_projection_memory_id(&self, node_id: NodeId) -> Result<MemoryId, GraphError> {
         self.memory_nodes
             .get(node_id.0 as usize)
             .copied()
@@ -180,18 +178,18 @@ impl GraphStore {
             })
     }
 
-    pub(crate) fn semantic_node(&self, node_id: NodeId) -> Result<SemanticNodeRef, GraphError> {
+    pub fn semantic_node(&self, node_id: NodeId) -> Result<SemanticNodeRef, GraphError> {
         self.nodes
             .get(node_id.0 as usize)
             .map(|node| node.semantic_node)
             .ok_or_else(|| GraphError::Topology(format!("unknown dense node {}", node_id.0)))
     }
 
-    pub(crate) fn topology(&self) -> &InMemoryGraph {
+    pub fn topology(&self) -> &InMemoryGraph {
         &self.topology
     }
 
-    pub(crate) fn memory_topology(&self) -> &InMemoryGraph {
+    pub fn memory_topology(&self) -> &InMemoryGraph {
         &self.memory_topology
     }
 

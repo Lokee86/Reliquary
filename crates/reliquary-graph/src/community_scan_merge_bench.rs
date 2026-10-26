@@ -151,7 +151,7 @@ fn ordered(left: usize, right: usize) -> (usize, usize) {
 fn memory(index: usize) -> MemoryId {
     let mut bytes = [0_u8; 32];
     bytes[..8].copy_from_slice(&(index as u64).to_le_bytes());
-    MemoryId(bytes)
+    bytes
 }
 
 fn reduction_levels(mut shards: usize) -> usize {

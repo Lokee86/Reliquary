@@ -1,4 +1,4 @@
-use crate::community_store::{CommunityOpenState, CommunityStore};
+use crate::community_owner::{CommunityOwner, CommunityReplay};
 use crate::compatibility_profile_rebuild::CompatibilityProfileOpenState;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::dream_duplicate_index::DuplicateIndex;
@@ -7,8 +7,8 @@ use crate::ego_store::EgoStore;
 use crate::entity_rebuild::EntityOpenState;
 use crate::entity_resolution_store::EntityResolutionStore;
 use crate::entity_store::EntityStore;
-use crate::graph_rebuild::GraphOpenState;
-use crate::graph_store::GraphStore;
+use crate::graph_owner::GraphOwner;
+use crate::graph_replay::GraphReplay;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_rebuild::MemoryOpenState;
 use crate::memory_store::MemoryStore;
@@ -56,8 +56,8 @@ impl Phylactery {
         let rewrite_lineage = crate::rewrite_lineage::RewriteLineageStore::default();
         let memories = MemoryStore::empty();
         let lexical_index = LexicalIndex::default();
-        let mut graph = GraphStore::empty();
-        let communities = CommunityStore::default();
+        let mut graph = GraphOwner::empty();
+        let communities = CommunityOwner::default();
         let processing_epochs = ProcessingEpochStore::default();
         let dream_pairs = DreamPairStore::default();
         let packed_vectors = PackedVectorStore::default();
@@ -121,8 +121,8 @@ impl Phylactery {
         let mut memory_state = MemoryOpenState::new();
         let mut external_publications =
             crate::external_source::publication::ExternalPublicationState::default();
-        let mut graph_state = GraphOpenState::new();
-        let mut community_state = CommunityOpenState::new();
+        let mut graph_state = GraphReplay::new();
+        let mut community_state = CommunityReplay::new();
         let mut packed_state = PackedVectorOpenState::new();
         let mut memory_vector_state = MemoryVectorOpenState::new();
         let mut profile_state = CompatibilityProfileOpenState::new();
@@ -371,7 +371,7 @@ fn validate_global_versions(
     memories: &MemoryStore,
     entities: &EntityStore,
     relationships: &RelationshipStore,
-    graph: &GraphStore,
+    graph: &GraphOwner,
 ) -> Result<(), PhylacteryError> {
     let mut versions: Vec<_> = memories
         .records()

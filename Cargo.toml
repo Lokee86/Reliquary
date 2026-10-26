@@ -94,6 +94,7 @@ path = "examples/entity_jev_resolution_experiment/main.rs"
 required-features = ["entity-calibration"]
 
 [dependencies]
+reliquary-graph = { path = "crates/reliquary-graph" }
 reliquary-echo = { path = "crates/reliquary-echo" }
 reliquary-memory-core = { path = "crates/reliquary-memory-core" }
 reliquary-archive = { path = "crates/reliquary-archive" }
@@ -108,7 +109,6 @@ zeroize = "1"
 reqwest = { version = "=0.12.23", default-features = false, features = ["blocking", "rustls-tls", "json"] }
 base64 = "0.22"
 regex = "1"
-leiden-rs = { version = "0.8.1", default-features = false }
 time = { version = "0.3", features = ["parsing"] }
 tokio = { version = "1", features = ["rt", "rt-multi-thread"] }
 uuid = { version = "1", features = ["v4", "v5", "serde"] }

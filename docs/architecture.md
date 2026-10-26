@@ -83,6 +83,31 @@ and prune facts with cross-owner authorization. Processing epochs and source-tim
 resolution remain above Memory. Opening and historical reads do not repair bytes
 or reinforce Freshness. Persisted identities and publication bytes are unchanged.
 
+## Graph and Community owner crate
+
+`reliquary-graph` owns typed Graph topology, node ordinals, relationship
+transactions, ordered replay, Memory projection and durable derived Community
+snapshots, names and lineage. Its implementation lives in
+`crates/reliquary-graph/src/`; its only Reliquary dependency is
+`reliquary-container`. Arcana supplies runtime topology and Leiden supplies the
+existing deterministic structural clustering kernel.
+
+Graph represents foreign Memory and Entity identities as exact opaque 32-byte
+values. Product lifecycle and facade code retain Memory/Entity existence,
+principal-kind admission and historical rewrite authorization under the held
+owner context. Graph validates intrinsic relation shape, transaction/version
+ordering, ordinal bindings and physical publication. Current and historical
+endpoint admission remain distinct; ordinary replay and historical reads do
+not modify owner bytes.
+
+Community membership and names share the Graph owner's Container stream.
+Community currentness follows the Memory projection watermark, while names
+consume no semantic or global version. Dream retains relation decisions,
+refresh scheduling and inferred naming. Retrieval retains vector routing,
+representative selection and traversal policy in root consumers. This cut
+preserves the existing Graph/Community codecs and does not establish the
+separate CVAFRS07 whole-product recovery gate.
+
 ## Development-format lifecycle
 
 [ADR0042](decisions/0042-minimal-lossless-current-history.md) records the owner-specific compact history architecture. The [six-source oracle](canonical-history-migration-results-2026-10-21.md) now passes every concrete owner history and global ordering point. The six canonical files are promoted; reader and upgrader deletion is implemented, with post-retirement acceptance tracked in the linear plan.

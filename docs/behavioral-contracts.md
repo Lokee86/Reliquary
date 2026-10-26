@@ -10,6 +10,22 @@ window retries and maintenance authorization. Passive current/historical reads
 remain side effect free and allocate no Freshness receipt.
 
 
+## Compiled Graph and Community owner
+
+`reliquary-graph` owns one Graph/Community implementation per REL/PHY owner.
+Its codecs retain exact opaque Memory/Entity identity bytes, ordinal bindings,
+compact transaction grouping and semantic/global clock order. Product callers
+validate current or historical foreign endpoints and principal kinds before
+admitting Graph publication. Invalid endpoints retain their precedence over
+version and duplicate conflicts. Replay validates historical references before
+excluding inactive endpoints from current topology.
+
+Memory-only projection changes determine Community currentness. Deterministic
+scan/merge, exact-membership Community IDs, user-name precedence, ambiguous
+lineage rejection and cumulative Dream-name retention remain unchanged.
+Owner-local codec/derivation tests live with the crate; root Graph, Community,
+Dream, Perception, Import and historical tests protect the composition seam.
+
 ## Ordinary owner opening versus explicit maintenance
 
 Opening a REL or PHY validates and replays accepted owner evidence without

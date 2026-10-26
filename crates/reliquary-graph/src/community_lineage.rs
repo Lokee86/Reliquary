@@ -190,10 +190,7 @@ fn intersection_count(left: &Community, right: &Community) -> usize {
     let mut right_index = 0;
     let mut count = 0;
     while left_index < left.members.len() && right_index < right.members.len() {
-        match left.members[left_index]
-            .0
-            .cmp(&right.members[right_index].0)
-        {
+        match left.members[left_index].cmp(&right.members[right_index]) {
             Ordering::Less => left_index += 1,
             Ordering::Greater => right_index += 1,
             Ordering::Equal => {

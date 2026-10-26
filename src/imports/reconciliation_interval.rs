@@ -263,7 +263,7 @@ pub(super) fn replay_frame(
         let generation = snapshot.generation;
         output
             .communities
-            .publish(&mut output.container, &output.graph, owner, snapshot)
+            .publish(&mut output.container, &output.graph, owner, snapshot.into())
             .map_err(CvaError::from)?;
         coordinates.community.insert(original, generation);
     }

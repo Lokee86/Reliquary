@@ -29,7 +29,7 @@ pub(crate) struct RegionSummary {
     pub(crate) quality: f64,
 }
 
-pub(crate) fn scan_merge_snapshot(
+pub fn scan_merge_snapshot(
     graph: &GraphStore,
     owner_uuid: [u8; 16],
     generation: u64,
@@ -88,7 +88,7 @@ fn make_community(
         .into_iter()
         .map(|node| graph.nodes[node])
         .collect::<Vec<_>>();
-    members.sort_by_key(|member| member.0);
+    members.sort_by_key(|member| *member);
     Community {
         id: community_id(owner_uuid, &members),
         members,

@@ -213,3 +213,60 @@ fn entity(cva: &mut Cva, name: &str) -> EntityId {
     .0
     .id
 }
+
+#[test]
+fn owner_admission_preserves_endpoint_errors_before_conflicts_and_writes_nothing() {
+    let file = path("extracted-owner-admission.cva");
+    let mut cva = Cva::create(&file).unwrap();
+    let ep = episode(&mut cva);
+    let source = memory(&mut cva, &ep, "admission-source");
+    let target = memory(&mut cva, &ep, "admission-target");
+    let missing = MemoryId([0xfe; 32]);
+    cva.sync().unwrap();
+    let before = fs::read(&file).unwrap();
+    let changes = [
+        crate::GraphRelationChange {
+            source,
+            target,
+            kind: GraphRelationKind::Factual,
+            active: true,
+        },
+        crate::GraphRelationChange {
+            source,
+            target,
+            kind: GraphRelationKind::Factual,
+            active: true,
+        },
+        crate::GraphRelationChange {
+            source,
+            target: missing,
+            kind: GraphRelationKind::Factual,
+            active: true,
+        },
+    ];
+    assert!(
+        matches!(cva.set_memory_relations_with_origin(&changes, GraphRelationOrigin::User, 99), Err(GraphError::MissingMemory(id)) if id == missing)
+    );
+    assert!(
+        matches!(cva.set_memory_relation_with_origin(source, missing, GraphRelationKind::Factual, true, GraphRelationOrigin::Perception, 99), Err(GraphError::MissingMemory(id)) if id == missing)
+    );
+    assert!(matches!(
+        cva.set_entity_association(source, EntityId([0xfd; 32]), true, 99),
+        Err(GraphError::MissingEntity(_))
+    ));
+    assert_eq!(cva.graph_version(), 0);
+    assert!(cva.graph_relations().is_empty());
+    assert_eq!(fs::read(&file).unwrap(), before);
+    assert!(
+        cva.set_memory_relation_with_origin(
+            source,
+            target,
+            GraphRelationKind::Factual,
+            true,
+            GraphRelationOrigin::User,
+            0
+        )
+        .unwrap()
+        .is_some()
+    );
+}

@@ -2,6 +2,14 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+Graph and Community record encoding/replay is implemented by
+`crates/reliquary-graph/src/`. The crate owns existing format markers, ordinal
+bindings, compact transactions, snapshots, names and lineage. Product lifecycle
+retains foreign endpoint admission and rewrite-genesis authorization. The crate
+extraction changes source ownership only; the Graph/Community byte layouts and
+accepted history below remain unchanged.
+
+
 Physical framing is implemented by `reliquary-container`, independently of
 semantic owner codecs. Extraction changes no header, frame, publication-envelope
 or grouped-clock bytes. Ordinary inspection/open never truncates an incomplete

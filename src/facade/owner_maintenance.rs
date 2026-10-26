@@ -42,7 +42,7 @@ impl OwnerMaintenanceStore {
     pub(crate) fn validate_source_history(
         &self,
         container: &mut reliquary_container::Container,
-        graph: &crate::graph_store::GraphStore,
+        graph: &crate::graph_owner::GraphOwner,
     ) -> Result<(), String> {
         for manifest in self.manifests.values() {
             if Some(manifest.owner_uuid) != container.owner_uuid()

@@ -1,6 +1,6 @@
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::dream_owner_duplicate::publish_duplicate_pair;
-use crate::graph_store::GraphStore;
+use crate::graph_owner::GraphOwner;
 use crate::memory_store::MemoryStore;
 use crate::{
     DreamEvidenceSide, DreamPairClassification, DreamPairVerification, DreamPublicationError,
@@ -16,7 +16,7 @@ type RelationIdentity = (MemoryId, MemoryId, GraphRelationKind);
 pub(crate) fn publish_dream_pair<R>(
     container: &mut Container,
     memories: &MemoryStore,
-    graph: &mut GraphStore,
+    graph: &mut GraphOwner,
     duplicate_index: &mut DuplicateIndex,
     classification: &DreamPairClassification,
     verification: Option<&DreamPairVerification>,
@@ -82,7 +82,7 @@ where
     }
 }
 
-pub(crate) fn dream_may_change_relation(graph: &GraphStore, change: GraphRelationChange) -> bool {
+pub(crate) fn dream_may_change_relation(graph: &GraphOwner, change: GraphRelationChange) -> bool {
     !graph
         .relation_state(change.source, change.target, change.kind)
         .is_some_and(|state| {

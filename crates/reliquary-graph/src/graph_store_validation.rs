@@ -1,21 +1,19 @@
-use crate::entity_store::EntityStore;
-use crate::memory_store::MemoryStore;
 use crate::{
-    GraphError, GraphRelationChange, GraphRelationOrigin, SemanticGraphRelationChange,
-    SemanticGraphRelationKind, SemanticNodeKind, SemanticNodeRef,
+    GraphAdmission, GraphError, GraphRelationChange, GraphRelationOrigin,
+    SemanticGraphRelationChange, SemanticGraphRelationKind, SemanticNodeKind, SemanticNodeRef,
 };
 
 pub(super) fn validate_memory_change(
-    memories: &MemoryStore,
+    admission: &GraphAdmission,
     change: GraphRelationChange,
     origin: GraphRelationOrigin,
 ) -> Result<(), GraphError> {
     if change.source == change.target {
         return Err(GraphError::SelfRelation);
     }
-    for memory_id in [change.source, change.target] {
-        if !memories.contains_memory(memory_id) {
-            return Err(GraphError::MissingMemory(memory_id));
+    for id in [change.source, change.target] {
+        if !admission.current_memories.contains(&id) {
+            return Err(GraphError::MissingMemory(id));
         }
     }
     if origin == GraphRelationOrigin::Perception {
@@ -25,38 +23,24 @@ pub(super) fn validate_memory_change(
 }
 
 pub(super) fn validate_change(
-    memories: &MemoryStore,
-    entities: &EntityStore,
+    admission: &GraphAdmission,
     change: SemanticGraphRelationChange,
     origin: GraphRelationOrigin,
 ) -> Result<(), GraphError> {
     validate_relation_contract(change.source, change.target, change.kind, origin)?;
-    validate_node(memories, entities, change.source)?;
-    validate_node(memories, entities, change.target)?;
-    if let Some(entity_id) = change.target.as_entity() {
-        let entity = entities
-            .entity(entity_id)
-            .map_err(|_| GraphError::MissingEntity(entity_id))?;
-        match change.kind {
-            SemanticGraphRelationKind::EntityAssociation
-                if entity.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND =>
-            {
-                return Err(GraphError::InvalidRelationShape);
-            }
-            SemanticGraphRelationKind::PrincipalAssociation
-                if entity.kind != crate::entity_principal::PRINCIPAL_ENTITY_KIND =>
-            {
-                return Err(GraphError::InvalidRelationShape);
-            }
-            _ => {}
+    validate_node(admission, change.source)?;
+    validate_node(admission, change.target)?;
+    if let Some(id) = change.target.as_entity() {
+        let principal = admission.principal_entities.contains(&id);
+        if (change.kind == SemanticGraphRelationKind::PrincipalAssociation) != principal {
+            return Err(GraphError::InvalidRelationShape);
         }
     }
     Ok(())
 }
 
 pub(super) fn validate_stored_change(
-    memories: &MemoryStore,
-    entities: &EntityStore,
+    admission: &GraphAdmission,
     relation: crate::SemanticGraphRelation,
 ) -> Result<(), GraphError> {
     validate_relation_contract(
@@ -65,18 +49,11 @@ pub(super) fn validate_stored_change(
         relation.kind,
         relation.origin,
     )?;
-    validate_stored_node(memories, entities, relation.source)?;
-    validate_stored_node(memories, entities, relation.target)?;
+    validate_stored_node(admission, relation.source)?;
+    validate_stored_node(admission, relation.target)?;
     if let Some(id) = relation.target.as_entity() {
-        let entity = entities
-            .records()
-            .iter()
-            .rev()
-            .find(|record| record.id == id)
-            .ok_or(GraphError::MissingEntity(id))?;
-        if (relation.kind == SemanticGraphRelationKind::PrincipalAssociation)
-            != (entity.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND)
-        {
+        let principal = admission.principal_entities.contains(&id);
+        if (relation.kind == SemanticGraphRelationKind::PrincipalAssociation) != principal {
             return Err(GraphError::InvalidRelationShape);
         }
     }
@@ -115,25 +92,24 @@ pub(super) fn validate_relation_contract(
 }
 
 pub(super) fn validate_node(
-    memories: &MemoryStore,
-    entities: &EntityStore,
+    admission: &GraphAdmission,
     node: SemanticNodeRef,
 ) -> Result<(), GraphError> {
     match node.kind {
         SemanticNodeKind::Memory => {
-            let memory_id = node.as_memory().expect("Memory node decodes");
-            if memories.contains_memory(memory_id) {
+            let id = node.as_memory().expect("Memory node decodes");
+            if admission.current_memories.contains(&id) {
                 Ok(())
             } else {
-                Err(GraphError::MissingMemory(memory_id))
+                Err(GraphError::MissingMemory(id))
             }
         }
         SemanticNodeKind::Entity => {
-            let entity_id = node.as_entity().expect("Entity node decodes");
-            if entities.contains(entity_id) {
+            let id = node.as_entity().expect("Entity node decodes");
+            if admission.current_entities.contains(&id) {
                 Ok(())
             } else {
-                Err(GraphError::MissingEntity(entity_id))
+                Err(GraphError::MissingEntity(id))
             }
         }
         SemanticNodeKind::Observation => Err(GraphError::UnsupportedSemanticNode(node)),
@@ -141,27 +117,26 @@ pub(super) fn validate_node(
 }
 
 pub(super) fn validate_stored_node(
-    memories: &MemoryStore,
-    entities: &EntityStore,
+    admission: &GraphAdmission,
     node: SemanticNodeRef,
 ) -> Result<(), GraphError> {
     match node.kind {
         SemanticNodeKind::Entity => {
-            let entity_id = node.as_entity().expect("Entity node decodes");
-            if entities.contains_historical(entity_id) {
+            let id = node.as_entity().expect("Entity node decodes");
+            if admission.historical_entities.contains(&id) {
                 Ok(())
             } else {
-                Err(GraphError::MissingEntity(entity_id))
+                Err(GraphError::MissingEntity(id))
             }
         }
         SemanticNodeKind::Memory => {
-            let memory_id = node.as_memory().expect("Memory node decodes");
-            if memories.contains_historical_memory(memory_id) {
+            let id = node.as_memory().expect("Memory node decodes");
+            if admission.historical_memories.contains(&id) {
                 Ok(())
             } else {
-                Err(GraphError::MissingMemory(memory_id))
+                Err(GraphError::MissingMemory(id))
             }
         }
-        _ => validate_node(memories, entities, node),
+        _ => validate_node(admission, node),
     }
 }

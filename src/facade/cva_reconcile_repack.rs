@@ -157,10 +157,11 @@ pub(crate) fn reconcile_diverged(
                     ))?;
             output.graph.publish_rewrite_baseline(
                 &mut output.container,
+                &output.memories,
                 owner_uuid,
                 genesis.generation,
                 genesis.policy_digest,
-                memories,
+                &memories,
             )?;
         }
         replay_graph_tail(&mut output, &left_graph)?;

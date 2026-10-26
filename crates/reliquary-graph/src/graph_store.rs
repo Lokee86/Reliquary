@@ -1,18 +1,12 @@
-use crate::entity_store::EntityStore;
 use crate::graph_codec::{GraphNodePayload, encode_format, encode_node};
-use crate::memory_store::MemoryStore;
 use crate::{
-    GraphError, GraphNodeRecord, MemoryId, SemanticGraphRelation, SemanticGraphRelationKind,
-    SemanticNodeRef,
+    GraphAdmission, GraphError, GraphNodeRecord, MemoryId, SemanticGraphRelation,
+    SemanticGraphRelationKind, SemanticNodeRef,
 };
 use arcana::storage::InMemoryGraph;
 use arcana::{GraphDataset, NodeId};
 use reliquary_container::Container;
 use std::collections::{BTreeSet, HashMap, HashSet};
-
-#[cfg(test)]
-#[path = "graph_publication_overflow_tests.rs"]
-mod publication_overflow_tests;
 
 #[path = "graph_store_compact.rs"]
 mod compact;
@@ -22,6 +16,14 @@ mod read;
 mod rewrite_baseline;
 #[path = "graph_store_validation.rs"]
 mod validation;
+pub fn validate_relation_contract(
+    source: SemanticNodeRef,
+    target: SemanticNodeRef,
+    kind: SemanticGraphRelationKind,
+    origin: crate::GraphRelationOrigin,
+) -> Result<(), GraphError> {
+    validation::validate_relation_contract(source, target, kind, origin)
+}
 #[path = "graph_store_write.rs"]
 mod write;
 
@@ -32,9 +34,9 @@ struct RelationKey {
     kind: SemanticGraphRelationKind,
 }
 
-pub(crate) struct GraphStore {
+pub struct GraphStore {
     rewrite_baseline_memories: Vec<MemoryId>,
-    rewrite_baseline: Option<([u8; 16], crate::HistoryGenerationId, [u8; 32])>,
+    rewrite_baseline: Option<([u8; 16], [u8; 16], [u8; 32])>,
     nodes: Vec<GraphNodeRecord>,
     node_by_semantic: HashMap<SemanticNodeRef, NodeId>,
     states: HashMap<RelationKey, SemanticGraphRelation>,
@@ -57,7 +59,7 @@ pub(crate) struct GraphStore {
 }
 
 impl GraphStore {
-    pub(crate) fn empty() -> Self {
+    pub fn empty() -> Self {
         Self {
             rewrite_baseline_memories: Vec::new(),
             rewrite_baseline: None,
@@ -82,15 +84,15 @@ impl GraphStore {
         }
     }
 
-    pub(crate) fn initialize(&mut self, container: &mut Container) -> Result<(), GraphError> {
+    pub fn initialize(&mut self, container: &mut Container) -> Result<(), GraphError> {
         self.ensure_format(container)
     }
 
-    pub(crate) fn mark_format_initialized(&mut self) {
+    pub fn mark_format_initialized(&mut self) {
         self.format_initialized = true;
     }
 
-    pub(crate) fn insert_node_rebuilt(&mut self, node: GraphNodeRecord) -> Result<(), GraphError> {
+    pub fn insert_node_rebuilt(&mut self, node: GraphNodeRecord) -> Result<(), GraphError> {
         let expected = u32::try_from(self.nodes.len()).map_err(|_| GraphError::NodeIdExhausted)?;
         if node.node_id != NodeId(expected)
             || self.node_by_semantic.contains_key(&node.semantic_node)
@@ -103,7 +105,7 @@ impl GraphStore {
         Ok(())
     }
 
-    pub(crate) fn insert_transaction_rebuilt(
+    pub fn insert_transaction_rebuilt(
         &mut self,
         relations: &[SemanticGraphRelation],
     ) -> Result<(), GraphError> {
@@ -136,27 +138,23 @@ impl GraphStore {
         Ok(())
     }
 
-    pub(crate) fn finish_rebuild(
-        &mut self,
-        memories: &MemoryStore,
-        entities: &EntityStore,
-    ) -> Result<(), GraphError> {
+    pub fn finish_rebuild(&mut self, admission: &GraphAdmission) -> Result<(), GraphError> {
         for node in &self.nodes {
-            validation::validate_stored_node(memories, entities, node.semantic_node)?;
+            validation::validate_stored_node(admission, node.semantic_node)?;
         }
         for relation in self.states.values().filter(|relation| relation.active) {
-            validation::validate_stored_change(memories, entities, *relation)?;
+            validation::validate_stored_change(admission, *relation)?;
         }
         self.excluded_nodes = self
             .nodes
             .iter()
             .map(|node| node.semantic_node)
-            .filter(|node| validation::validate_node(memories, entities, *node).is_err())
+            .filter(|node| validation::validate_node(admission, *node).is_err())
             .collect();
         self.rebuild_topologies()
     }
 
-    pub(crate) fn exclude_from_current(&mut self, node: SemanticNodeRef) -> Result<(), GraphError> {
+    pub fn exclude_from_current(&mut self, node: SemanticNodeRef) -> Result<(), GraphError> {
         if self.excluded_nodes.insert(node) {
             self.rebuild_topologies()?;
         }
@@ -260,3 +258,7 @@ fn empty_topology() -> InMemoryGraph {
     })
     .expect("empty topology is valid")
 }
+
+#[cfg(test)]
+#[path = "graph_publication_overflow_tests.rs"]
+mod publication_overflow_tests;

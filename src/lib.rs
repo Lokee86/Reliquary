@@ -201,29 +201,16 @@ mod chronos_season;
 mod chronos_time_of_day;
 #[path = "chronos/chronos_vocabulary.rs"]
 mod chronos_vocabulary;
-#[path = "semantic_graph/community_codec.rs"]
-mod community_codec;
-#[path = "semantic_graph/community_error.rs"]
+
+#[path = "facade/community_error.rs"]
 mod community_error;
-#[path = "semantic_graph/community_leiden.rs"]
-mod community_leiden;
-#[path = "semantic_graph/community_lineage.rs"]
-mod community_lineage;
-#[path = "semantic_graph/community_model.rs"]
+
+#[path = "facade/community_model.rs"]
 mod community_model;
 #[cfg(test)]
 #[path = "semantic_graph/community_routing.rs"]
 mod community_routing;
-#[path = "semantic_graph/community_scan_merge.rs"]
-mod community_scan_merge;
-#[path = "semantic_graph/community_scan_merge_plan.rs"]
-mod community_scan_merge_plan;
-#[path = "semantic_graph/community_scan_merge_reduce.rs"]
-mod community_scan_merge_reduce;
-#[path = "semantic_graph/community_scan_merge_workers.rs"]
-mod community_scan_merge_workers;
-#[path = "semantic_graph/community_store.rs"]
-mod community_store;
+
 #[path = "retrieval/compatibility_profile_codec.rs"]
 mod compatibility_profile_codec;
 #[path = "retrieval/compatibility_profile_error.rs"]
@@ -656,31 +643,18 @@ mod entity_zero_bootstrap_calibration_tests;
 mod general_decision;
 #[path = "runtime_inference/general_endpoint.rs"]
 mod general_endpoint;
-#[path = "semantic_graph/graph_codec.rs"]
-mod graph_codec;
-#[path = "semantic_graph/graph_compact_codec.rs"]
-mod graph_compact_codec;
-#[cfg(test)]
-#[path = "semantic_graph/graph_compact_codec_tests.rs"]
-mod graph_compact_codec_tests;
-#[path = "semantic_graph/graph_compact_contract.rs"]
-mod graph_compact_contract;
+
 #[cfg(test)]
 #[path = "semantic_graph/graph_compact_owner_tests.rs"]
 mod graph_compact_owner_tests;
 #[cfg(test)]
 #[path = "semantic_graph/graph_compact_writer_tests.rs"]
 mod graph_compact_writer_tests;
-#[path = "semantic_graph/graph_error.rs"]
+#[path = "facade/graph_error.rs"]
 mod graph_error;
-#[path = "semantic_graph/graph_model.rs"]
+#[path = "facade/graph_model.rs"]
 mod graph_model;
-#[path = "semantic_graph/graph_query.rs"]
-mod graph_query;
-#[path = "semantic_graph/graph_rebuild.rs"]
-mod graph_rebuild;
-#[path = "semantic_graph/graph_store.rs"]
-mod graph_store;
+
 #[path = "runtime_inference/insomnia.rs"]
 mod insomnia;
 #[path = "runtime_inference/interaction_background.rs"]
@@ -894,7 +868,7 @@ mod search_error;
 mod search_model;
 #[path = "retrieval/search_rank.rs"]
 mod search_rank;
-#[path = "semantic_graph/semantic_node_model.rs"]
+#[path = "facade/semantic_node_model.rs"]
 mod semantic_node_model;
 #[path = "retrieval/semantic_search.rs"]
 mod semantic_search;
@@ -1329,9 +1303,7 @@ mod community_end_to_end_grid_bench;
 #[cfg(all(test, feature = "community-benchmarks"))]
 #[path = "semantic_graph/community_lexical_escape_bench.rs"]
 mod community_lexical_escape_bench;
-#[cfg(test)]
-#[path = "semantic_graph/community_lineage_tests.rs"]
-mod community_lineage_tests;
+
 #[cfg(all(test, feature = "community-benchmarks"))]
 #[path = "semantic_graph/community_retrieval_bench.rs"]
 mod community_retrieval_bench;
@@ -1359,12 +1331,7 @@ mod community_routing_score_bench;
 #[cfg(test)]
 #[path = "semantic_graph/community_routing_tests.rs"]
 mod community_routing_tests;
-#[cfg(all(test, feature = "community-benchmarks"))]
-#[path = "semantic_graph/community_scan_merge_bench.rs"]
-mod community_scan_merge_bench;
-#[cfg(test)]
-#[path = "semantic_graph/community_scan_merge_tests.rs"]
-mod community_scan_merge_tests;
+
 #[cfg(all(test, feature = "community-benchmarks"))]
 #[path = "semantic_graph/community_subcentroid_routing.rs"]
 mod community_subcentroid_routing;
@@ -1509,9 +1476,7 @@ mod file_tests;
 #[cfg(test)]
 #[path = "facade/fragment_tests.rs"]
 mod fragment_tests;
-#[cfg(test)]
-#[path = "semantic_graph/graph_codec_tests.rs"]
-mod graph_codec_tests;
+
 #[cfg(test)]
 #[path = "semantic_graph/graph_tests.rs"]
 mod graph_tests;
@@ -1682,3 +1647,17 @@ mod archive_publication_writer_tests;
 #[cfg(test)]
 #[path = "facade/archive_publication_replay_tests.rs"]
 mod archive_publication_replay_tests;
+
+#[path = "facade/community_owner.rs"]
+mod community_owner;
+#[path = "facade/graph_admission.rs"]
+mod graph_admission;
+#[path = "facade/graph_owner.rs"]
+mod graph_owner;
+#[path = "facade/graph_replay.rs"]
+mod graph_replay;
+use reliquary_graph::{community_codec, graph_codec, graph_compact_codec, graph_compact_contract};
+
+#[cfg(test)]
+#[path = "semantic_graph/graph_publication_replay_tests.rs"]
+mod graph_publication_replay_tests;

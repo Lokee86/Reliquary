@@ -6,19 +6,19 @@ const BATCH: &[u8; 8] = b"CVAGCB01";
 const BODY: usize = 12;
 
 #[path = "graph_publication_codec.rs"]
-pub(crate) mod publication;
+pub mod publication;
 
-pub(crate) fn is_compact_record(bytes: &[u8]) -> Result<bool, GraphError> {
+pub fn is_compact_record(bytes: &[u8]) -> Result<bool, GraphError> {
     Ok(decode(bytes)?.is_some())
 }
 
-pub(crate) fn encode_mutation(value: GraphOrdinalMutation) -> Vec<u8> {
+pub fn encode_mutation(value: GraphOrdinalMutation) -> Vec<u8> {
     let mut out = MUTATION.to_vec();
     write_body(&mut out, value);
     out
 }
 
-pub(crate) fn encode_batch(values: &[GraphOrdinalMutation]) -> Result<Vec<u8>, GraphError> {
+pub fn encode_batch(values: &[GraphOrdinalMutation]) -> Result<Vec<u8>, GraphError> {
     let count =
         u32::try_from(values.len()).map_err(|_| corrupt("compact Graph batch too large"))?;
     let mut out = BATCH.to_vec();
@@ -29,7 +29,7 @@ pub(crate) fn encode_batch(values: &[GraphOrdinalMutation]) -> Result<Vec<u8>, G
     Ok(out)
 }
 
-pub(crate) fn decode(bytes: &[u8]) -> Result<Option<Vec<GraphOrdinalMutation>>, GraphError> {
+pub fn decode(bytes: &[u8]) -> Result<Option<Vec<GraphOrdinalMutation>>, GraphError> {
     if bytes.starts_with(b"CVAGCM") {
         if !bytes.starts_with(MUTATION) || bytes.len() != 8 + BODY {
             return Err(corrupt("unsupported or malformed compact Graph mutation"));

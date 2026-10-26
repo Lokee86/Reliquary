@@ -1,11 +1,11 @@
 #[cfg(test)]
-pub(crate) use mutation::decode_mutation;
+pub use mutation::decode_mutation;
 #[path = "graph_codec_mutation.rs"]
 mod mutation;
 
-pub(crate) use mutation::{GraphMutationPayload, encode_batch, encode_mutation};
+pub use mutation::{GraphMutationPayload, encode_batch, encode_mutation};
 
-use crate::{GraphError, MemoryId, SemanticNodeKind, SemanticNodeRef};
+use crate::{GraphError, SemanticNodeKind, SemanticNodeRef};
 use arcana::NodeId;
 use reliquary_container::ObjectRef;
 
@@ -16,26 +16,26 @@ const NODE_V2_MAGIC: &[u8; 8] = b"CVAGNOD2";
 const VERSION_MAGIC: &[u8; 8] = b"CVAGVER1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct GraphNodePayload {
+pub struct GraphNodePayload {
     pub semantic_node: SemanticNodeRef,
     pub node_id: NodeId,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct GraphVersionPayload {
+pub struct GraphVersionPayload {
     pub global_version: u64,
     pub graph_version: u64,
     pub mutation: ObjectRef,
 }
 
-pub(crate) fn encode_format() -> [u8; 12] {
+pub fn encode_format() -> [u8; 12] {
     let mut out = [0_u8; 12];
     out[..8].copy_from_slice(FORMAT_MAGIC);
     out[8..].copy_from_slice(&FORMAT_SCHEMA.to_le_bytes());
     out
 }
 
-pub(crate) fn decode_format(bytes: &[u8]) -> Result<bool, GraphError> {
+pub fn decode_format(bytes: &[u8]) -> Result<bool, GraphError> {
     if !bytes.starts_with(FORMAT_MAGIC) {
         return Ok(false);
     }
@@ -45,11 +45,11 @@ pub(crate) fn decode_format(bytes: &[u8]) -> Result<bool, GraphError> {
     Ok(true)
 }
 
-pub(crate) fn encode_node(node: GraphNodePayload) -> Vec<u8> {
+pub fn encode_node(node: GraphNodePayload) -> Vec<u8> {
     if let Some(memory_id) = node.semantic_node.as_memory() {
         let mut out = vec![0_u8; 44];
         out[..8].copy_from_slice(NODE_V1_MAGIC);
-        out[8..40].copy_from_slice(&memory_id.0);
+        out[8..40].copy_from_slice(&memory_id);
         out[40..44].copy_from_slice(&node.node_id.0.to_le_bytes());
         return out;
     }
@@ -62,13 +62,13 @@ pub(crate) fn encode_node(node: GraphNodePayload) -> Vec<u8> {
     out
 }
 
-pub(crate) fn decode_node(bytes: &[u8]) -> Result<Option<GraphNodePayload>, GraphError> {
+pub fn decode_node(bytes: &[u8]) -> Result<Option<GraphNodePayload>, GraphError> {
     if bytes.starts_with(NODE_V1_MAGIC) {
         if bytes.len() != 44 {
             return Err(GraphError::CorruptRecord("node mapping"));
         }
         return Ok(Some(GraphNodePayload {
-            semantic_node: SemanticNodeRef::memory(MemoryId(bytes[8..40].try_into().unwrap())),
+            semantic_node: SemanticNodeRef::memory(bytes[8..40].try_into().unwrap()),
             node_id: NodeId(read_u32(bytes, 40)?),
         }));
     }
@@ -89,7 +89,7 @@ pub(crate) fn decode_node(bytes: &[u8]) -> Result<Option<GraphNodePayload>, Grap
     }))
 }
 
-pub(crate) fn encode_version(version: GraphVersionPayload) -> [u8; 40] {
+pub fn encode_version(version: GraphVersionPayload) -> [u8; 40] {
     let mut out = [0_u8; 40];
     out[..8].copy_from_slice(VERSION_MAGIC);
     out[8..16].copy_from_slice(&version.global_version.to_le_bytes());

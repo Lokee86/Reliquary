@@ -8,14 +8,14 @@ fn encode_mutation(value: GraphOrdinalMutation) -> Vec<u8> {
     .unwrap()
 }
 fn encode_batch(values: &[GraphOrdinalMutation]) -> Result<Vec<u8>, crate::GraphError> {
-    crate::graph_compact_codec::publication::encode(
+    Ok(crate::graph_compact_codec::publication::encode(
         &crate::graph_compact_codec::publication::GraphPublication {
             graph_version: 1,
             transaction: crate::graph_compact_codec::publication::GraphTransaction::Batch(
                 values.to_vec(),
             ),
         },
-    )
+    )?)
 }
 use crate::graph_codec::{GraphNodePayload, GraphVersionPayload, encode_node, encode_version};
 
@@ -310,7 +310,7 @@ fn compact_graph_semantic_digest_ignores_ordinal_assignment_but_binds_mutation_f
         active: true,
         origin: GraphRelationOrigin::User,
     });
-    let mut reversed = crate::graph_store::GraphStore::empty();
+    let mut reversed = crate::graph_owner::GraphOwner::empty();
     reversed
         .insert_node_rebuilt(crate::graph_model::GraphNodeRecord {
             semantic_node: SemanticNodeRef::memory(b.id),
@@ -420,7 +420,7 @@ fn compact_graph_digest_is_excluded_for_orphan_and_post_watermark_markers() {
     owner
         .container
         .append(&encode_node(GraphNodePayload {
-            semantic_node: SemanticNodeRef::observation([0x77; 32]),
+            semantic_node: SemanticNodeRef::observation([0x77; 32]).into(),
             node_id: NodeId(2),
         }))
         .unwrap();

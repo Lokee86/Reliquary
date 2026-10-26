@@ -129,7 +129,7 @@ fn file_hash(path: &Path) -> [u8; 32] {
 
 fn history_digests(path: &Path) -> Vec<[u8; 32]> {
     let mut container = Container::open(path).unwrap();
-    let graph = crate::graph_store::GraphStore::empty();
+    let graph = crate::graph_owner::GraphOwner::empty();
     (0..=container.latest_version())
         .map(|watermark| {
             crate::owner_maintenance::owner_history_digest(&mut container, watermark, &graph)

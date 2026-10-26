@@ -1,22 +1,21 @@
 use super::{GraphStore, RelationKey, validation};
-use crate::entity_store::EntityStore;
 use crate::graph_codec::{GraphNodePayload, encode_format, encode_node};
 use crate::graph_compact_codec::publication::{self, GraphPublication, GraphTransaction};
 use crate::graph_compact_contract::GraphOrdinalMutation;
-use crate::memory_store::MemoryStore;
 use crate::{
-    EntityId, GraphError, GraphRelation, GraphRelationChange, GraphRelationOrigin, MemoryId,
-    SemanticGraphRelation, SemanticGraphRelationChange, SemanticGraphRelationKind, SemanticNodeRef,
+    EntityId, GraphAdmission, GraphError, GraphRelation, GraphRelationChange, GraphRelationOrigin,
+    MemoryId, SemanticGraphRelation, SemanticGraphRelationChange, SemanticGraphRelationKind,
+    SemanticNodeRef,
 };
 use arcana::NodeId;
 use reliquary_container::Container;
 use std::collections::{HashMap, HashSet};
 
 impl GraphStore {
-    pub(crate) fn set_relation(
+    pub fn set_relation(
         &mut self,
         container: &mut Container,
-        memories: &MemoryStore,
+        admission: &GraphAdmission,
         source: MemoryId,
         target: MemoryId,
         kind: crate::GraphRelationKind,
@@ -25,7 +24,7 @@ impl GraphStore {
     ) -> Result<Option<GraphRelation>, GraphError> {
         self.set_relation_with_origin(
             container,
-            memories,
+            admission,
             source,
             target,
             kind,
@@ -35,10 +34,10 @@ impl GraphStore {
         )
     }
 
-    pub(crate) fn set_relation_with_origin(
+    pub fn set_relation_with_origin(
         &mut self,
         container: &mut Container,
-        memories: &MemoryStore,
+        admission: &GraphAdmission,
         source: MemoryId,
         target: MemoryId,
         kind: crate::GraphRelationKind,
@@ -49,7 +48,7 @@ impl GraphStore {
         Ok(self
             .set_relations_with_origin(
                 container,
-                memories,
+                admission,
                 &[GraphRelationChange {
                     source,
                     target,
@@ -63,32 +62,32 @@ impl GraphStore {
             .next())
     }
 
-    pub(crate) fn set_relations(
+    pub fn set_relations(
         &mut self,
         container: &mut Container,
-        memories: &MemoryStore,
+        admission: &GraphAdmission,
         changes: &[GraphRelationChange],
         expected_graph_version: u64,
     ) -> Result<Vec<GraphRelation>, GraphError> {
         self.set_relations_with_origin(
             container,
-            memories,
+            admission,
             changes,
             GraphRelationOrigin::Dream,
             expected_graph_version,
         )
     }
 
-    pub(crate) fn set_relations_with_origin(
+    pub fn set_relations_with_origin(
         &mut self,
         container: &mut Container,
-        memories: &MemoryStore,
+        admission: &GraphAdmission,
         changes: &[GraphRelationChange],
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
     ) -> Result<Vec<GraphRelation>, GraphError> {
         for change in changes {
-            validation::validate_memory_change(memories, *change, origin)?;
+            validation::validate_memory_change(admission, *change, origin)?;
         }
         let semantic: Vec<_> = changes
             .iter()
@@ -106,11 +105,11 @@ impl GraphStore {
             .collect())
     }
 
-    pub(crate) fn set_entity_association(
+    pub fn set_entity_association(
         &mut self,
         container: &mut Container,
-        memories: &MemoryStore,
-        entities: &EntityStore,
+        admission: &GraphAdmission,
+
         memory_id: MemoryId,
         entity_id: EntityId,
         active: bool,
@@ -119,8 +118,7 @@ impl GraphStore {
         Ok(self
             .set_semantic_relations_with_origin(
                 container,
-                memories,
-                entities,
+                admission,
                 &[SemanticGraphRelationChange::entity_association(
                     memory_id, entity_id, active,
                 )],
@@ -131,11 +129,11 @@ impl GraphStore {
             .next())
     }
 
-    pub(crate) fn set_principal_association(
+    pub fn set_principal_association(
         &mut self,
         container: &mut Container,
-        memories: &MemoryStore,
-        entities: &EntityStore,
+        admission: &GraphAdmission,
+
         memory_id: MemoryId,
         entity_id: EntityId,
         active: bool,
@@ -144,8 +142,7 @@ impl GraphStore {
         Ok(self
             .set_semantic_relations_with_origin(
                 container,
-                memories,
-                entities,
+                admission,
                 &[SemanticGraphRelationChange::principal_association(
                     memory_id, entity_id, active,
                 )],
@@ -156,17 +153,17 @@ impl GraphStore {
             .next())
     }
 
-    pub(crate) fn set_semantic_relations_with_origin(
+    pub fn set_semantic_relations_with_origin(
         &mut self,
         container: &mut Container,
-        memories: &MemoryStore,
-        entities: &EntityStore,
+        admission: &GraphAdmission,
+
         changes: &[SemanticGraphRelationChange],
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
     ) -> Result<Vec<SemanticGraphRelation>, GraphError> {
         for change in changes {
-            validation::validate_change(memories, entities, *change, origin)?;
+            validation::validate_change(admission, *change, origin)?;
         }
         self.publish_semantic_changes(container, changes, origin, expected_graph_version)
     }
@@ -188,11 +185,11 @@ impl GraphStore {
         )
     }
 
-    pub(crate) fn replay_semantic_transaction(
+    pub fn replay_semantic_transaction(
         &mut self,
         container: &mut Container,
-        memories: &MemoryStore,
-        entities: &EntityStore,
+        admission: &GraphAdmission,
+
         changes: &[SemanticGraphRelationChange],
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
@@ -200,8 +197,7 @@ impl GraphStore {
     ) -> Result<Vec<SemanticGraphRelation>, GraphError> {
         self.replay_semantic_transaction_with_postimages(
             container,
-            memories,
-            entities,
+            admission,
             changes,
             origin,
             expected_graph_version,
@@ -210,11 +206,11 @@ impl GraphStore {
         )
     }
 
-    pub(crate) fn replay_import_semantic_transaction(
+    pub fn replay_import_semantic_transaction(
         &mut self,
         container: &mut Container,
-        memories: &MemoryStore,
-        entities: &EntityStore,
+        admission: &GraphAdmission,
+
         changes: &[SemanticGraphRelationChange],
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
@@ -222,8 +218,7 @@ impl GraphStore {
     ) -> Result<Vec<SemanticGraphRelation>, GraphError> {
         self.replay_semantic_transaction_with_postimages(
             container,
-            memories,
-            entities,
+            admission,
             changes,
             origin,
             expected_graph_version,
@@ -236,8 +231,8 @@ impl GraphStore {
     fn replay_semantic_transaction_with_postimages(
         &mut self,
         container: &mut Container,
-        memories: &MemoryStore,
-        entities: &EntityStore,
+        admission: &GraphAdmission,
+
         changes: &[SemanticGraphRelationChange],
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
@@ -245,7 +240,7 @@ impl GraphStore {
         preserve_postimages: bool,
     ) -> Result<Vec<SemanticGraphRelation>, GraphError> {
         for change in changes {
-            validation::validate_change(memories, entities, *change, origin)?;
+            validation::validate_change(admission, *change, origin)?;
         }
         self.publish_semantic_changes_with_shape(
             container,

@@ -64,7 +64,7 @@ fn fixture(
             .container
             .append(&crate::graph_codec::encode_node(
                 crate::graph_codec::GraphNodePayload {
-                    semantic_node: SemanticNodeRef::memory(*id),
+                    semantic_node: SemanticNodeRef::memory(*id).into(),
                     node_id: arcana::NodeId(ordinal as u32),
                 },
             ))
@@ -229,7 +229,7 @@ fn partial_or_full_duplicate_completed_batch(existing_members: usize) {
         base.container
             .append(&crate::graph_codec::encode_node(
                 crate::graph_codec::GraphNodePayload {
-                    semantic_node: SemanticNodeRef::memory(*id),
+                    semantic_node: SemanticNodeRef::memory(*id).into(),
                     node_id: arcana::NodeId(ordinal as u32),
                 },
             ))
@@ -297,8 +297,8 @@ fn partial_or_full_duplicate_completed_batch(existing_members: usize) {
             source_transaction.1[0].target
         ),
         (
-            SemanticNodeRef::memory(ids[0]),
-            SemanticNodeRef::memory(ids[1])
+            reliquary_graph::SemanticNodeRef::memory(ids[0].0),
+            reliquary_graph::SemanticNodeRef::memory(ids[1].0)
         )
     );
     assert_eq!(
@@ -307,8 +307,8 @@ fn partial_or_full_duplicate_completed_batch(existing_members: usize) {
             source_transaction.1[1].target
         ),
         (
-            SemanticNodeRef::memory(ids[1]),
-            SemanticNodeRef::memory(ids[2])
+            reliquary_graph::SemanticNodeRef::memory(ids[1].0),
+            reliquary_graph::SemanticNodeRef::memory(ids[2].0)
         )
     );
     drop(source);

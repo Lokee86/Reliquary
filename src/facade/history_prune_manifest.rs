@@ -146,7 +146,7 @@ impl HistoryPruneManifest {
 pub(crate) fn owner_history_digest(
     container: &mut reliquary_container::Container,
     watermark: u64,
-    graph: &crate::graph_store::GraphStore,
+    graph: &crate::graph_owner::GraphOwner,
 ) -> Result<[u8; 32], String> {
     if watermark > container.latest_version() {
         return Err("history watermark exceeds owner clock".into());

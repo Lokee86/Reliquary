@@ -237,7 +237,7 @@ fn owner_history_digest(container: &mut Container, watermark: u64) -> [u8; 32] {
     crate::owner_maintenance::owner_history_digest(
         container,
         watermark,
-        &crate::graph_store::GraphStore::empty(),
+        &crate::graph_owner::GraphOwner::empty(),
     )
     .unwrap()
 }

@@ -8,7 +8,7 @@ use arcana::traversal::{TraversalError, shortest_path};
 use arcana::{EdgeKind, NodeId};
 
 impl GraphStore {
-    pub(crate) fn semantic_neighbors(
+    pub fn semantic_neighbors(
         &self,
         node: SemanticNodeRef,
         direction: GraphDirection,
@@ -32,7 +32,7 @@ impl GraphStore {
             .collect()
     }
 
-    pub(crate) fn neighbors(
+    pub fn neighbors(
         &self,
         memory_id: MemoryId,
         direction: GraphDirection,
@@ -54,7 +54,7 @@ impl GraphStore {
             .collect()
     }
 
-    pub(crate) fn shortest_path(
+    pub fn shortest_path(
         &self,
         source: MemoryId,
         target: MemoryId,

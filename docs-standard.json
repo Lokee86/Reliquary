@@ -78,7 +78,7 @@
       "docs": ["docs/architecture.md", "docs/storage-format.md", "docs/api.md", "docs/invariants.md", "docs/behavioral-contracts.md"]
     },
     {
-      "paths": ["src/graph_*.rs", "src/cva_graph.rs", "src/community_*.rs", "src/memory_retrieval*.rs", "src/cva_memory_retrieval.rs", "src/phylactery_memory_retrieval.rs"],
+      "paths": ["crates/reliquary-graph/**", "src/facade/graph_owner.rs", "src/facade/graph_replay.rs", "src/facade/community_owner.rs", "src/semantic_graph/**", "src/graph_*.rs", "src/cva_graph.rs", "src/community_*.rs", "src/memory_retrieval*.rs", "src/cva_memory_retrieval.rs", "src/phylactery_memory_retrieval.rs"],
       "docs": ["docs/architecture.md", "docs/storage-format.md", "docs/api.md", "docs/invariants.md", "docs/behavioral-contracts.md"]
     },
     {

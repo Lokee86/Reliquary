@@ -1,4 +1,4 @@
-use crate::graph_store::GraphStore;
+use crate::graph_owner::GraphOwner;
 use crate::memory_retrieval_index::build_subcentroids;
 use crate::memory_retrieval_vectors::load_searchable_memory_vectors;
 use crate::memory_store::MemoryStore;
@@ -14,7 +14,7 @@ use std::collections::HashMap;
 pub(crate) fn build_memory_retrieval_index(
     container: &mut Container,
     memories: &MemoryStore,
-    graph: &GraphStore,
+    graph: &GraphOwner,
     snapshot: Option<&CommunitySnapshot>,
     memory_vectors: &MemoryVectorStore,
     packed_vectors: &PackedVectorStore,

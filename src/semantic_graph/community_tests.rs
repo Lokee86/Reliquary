@@ -1,5 +1,5 @@
 use crate::community_codec::encode_snapshot;
-use crate::community_scan_merge::scan_merge_snapshot;
+use crate::community_owner::scan_merge_snapshot;
 use crate::community_test_support::{edge, member_sets, path, phy_memory, rel_episode, rel_memory};
 use crate::{COMMUNITY_ALGORITHM_VERSION, CommunityError, Cva, GraphRelationKind, Phylactery};
 use std::collections::HashSet;
@@ -225,7 +225,7 @@ fn v1_snapshot_reopens_and_explicit_refresh_upgrades_to_v2() {
     let mut legacy = scan_merge_snapshot(&rel.graph, owner_uuid, 1).unwrap();
     legacy.algorithm_version = 1;
     rel.container
-        .append(&encode_snapshot(&legacy).unwrap())
+        .append(&encode_snapshot(&legacy.clone().into()).unwrap())
         .unwrap();
     rel.sync().unwrap();
     drop(rel);
@@ -257,7 +257,7 @@ fn recorded_coordinates_do_not_uniquely_reconstruct_accepted_membership() {
     let make = |mut members: Vec<crate::MemoryId>| {
         members.sort();
         crate::Community {
-            id: crate::community_store::community_id(owner, &members),
+            id: crate::community_owner::community_id(owner, &members),
             members,
         }
     };
@@ -279,7 +279,7 @@ fn recorded_coordinates_do_not_uniquely_reconstruct_accepted_membership() {
         };
         let mut container = reliquary_container::Container::open(&copy).unwrap();
         container
-            .append(&encode_snapshot(&snapshot).unwrap())
+            .append(&encode_snapshot(&snapshot.clone().into()).unwrap())
             .unwrap();
         container.sync().unwrap();
         drop(container);

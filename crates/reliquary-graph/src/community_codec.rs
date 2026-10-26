@@ -13,7 +13,7 @@ const NAME_HEADER_V1_LEN: usize = 52;
 const NAME_HEADER_V2_LEN: usize = 53;
 const NAME_HEADER_V3_LEN: usize = 85;
 
-pub(crate) fn encode_snapshot(snapshot: &CommunitySnapshot) -> Result<Vec<u8>, CommunityError> {
+pub fn encode_snapshot(snapshot: &CommunitySnapshot) -> Result<Vec<u8>, CommunityError> {
     let member_count = snapshot
         .communities
         .iter()
@@ -51,13 +51,13 @@ pub(crate) fn encode_snapshot(snapshot: &CommunitySnapshot) -> Result<Vec<u8>, C
             u32::try_from(community.members.len()).map_err(|_| CommunityError::SizeOverflow)?;
         out.extend_from_slice(&members.to_le_bytes());
         for member in &community.members {
-            out.extend_from_slice(&member.0);
+            out.extend_from_slice(member);
         }
     }
     Ok(out)
 }
 
-pub(crate) fn decode_snapshot(bytes: &[u8]) -> Result<Option<CommunitySnapshot>, CommunityError> {
+pub fn decode_snapshot(bytes: &[u8]) -> Result<Option<CommunitySnapshot>, CommunityError> {
     if !bytes.starts_with(SNAPSHOT_MAGIC) {
         return Ok(None);
     }
@@ -94,7 +94,7 @@ pub(crate) fn decode_snapshot(bytes: &[u8]) -> Result<Option<CommunitySnapshot>,
             .ok_or(CommunityError::CorruptRecord("community members"))?;
         let members = raw
             .chunks_exact(32)
-            .map(|chunk| MemoryId(chunk.try_into().expect("memory id width")))
+            .map(|chunk| chunk.try_into().expect("memory id width"))
             .collect();
         communities.push(Community { id, members });
         offset = end;
@@ -113,9 +113,7 @@ pub(crate) fn decode_snapshot(bytes: &[u8]) -> Result<Option<CommunitySnapshot>,
     }))
 }
 
-pub(crate) fn encode_semantic_name(
-    record: &CommunitySemanticName,
-) -> Result<Vec<u8>, CommunityError> {
+pub fn encode_semantic_name(record: &CommunitySemanticName) -> Result<Vec<u8>, CommunityError> {
     let representative_bytes = record
         .representative_memories
         .len()
@@ -140,7 +138,7 @@ pub(crate) fn encode_semantic_name(
         .map_err(|_| CommunityError::SizeOverflow)?;
     out.extend_from_slice(&representative_count.to_le_bytes());
     for memory_id in &record.representative_memories {
-        out.extend_from_slice(&memory_id.0);
+        out.extend_from_slice(memory_id);
     }
     let name_len = u32::try_from(record.name.len()).map_err(|_| CommunityError::SizeOverflow)?;
     out.extend_from_slice(&name_len.to_le_bytes());
@@ -148,9 +146,7 @@ pub(crate) fn encode_semantic_name(
     Ok(out)
 }
 
-pub(crate) fn decode_semantic_name(
-    bytes: &[u8],
-) -> Result<Option<CommunitySemanticName>, CommunityError> {
+pub fn decode_semantic_name(bytes: &[u8]) -> Result<Option<CommunitySemanticName>, CommunityError> {
     if !bytes.starts_with(NAME_MAGIC) {
         return Ok(None);
     }
@@ -209,7 +205,7 @@ pub(crate) fn decode_semantic_name(
             ))?;
     let representative_memories = raw_representatives
         .chunks_exact(32)
-        .map(|chunk| MemoryId(chunk.try_into().expect("memory id width")))
+        .map(|chunk| chunk.try_into().expect("memory id width"))
         .collect();
     let name_len = usize::try_from(read_u32(bytes, representatives_end)?)
         .map_err(|_| CommunityError::SizeOverflow)?;

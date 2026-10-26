@@ -55,8 +55,9 @@
     },
     {
       "id": "semantic-graph",
-      "description": "Typed semantic graph authority, Communities, and graph traversal",
+      "description": "Graph/Community durable authority and deterministic structural derivation; root consumer integration and fixtures",
       "paths": [
+        "crates/reliquary-graph/src",
         "src/semantic_graph"
       ]
     },

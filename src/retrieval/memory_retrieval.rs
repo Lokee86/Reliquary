@@ -1,4 +1,4 @@
-use crate::graph_store::GraphStore;
+use crate::graph_owner::GraphOwner;
 use crate::memory_retrieval_index::route_communities;
 use crate::memory_retrieval_traversal::traverse;
 use crate::memory_retrieval_vectors::{exact_memory_scores, validate_query};
@@ -9,7 +9,7 @@ use crate::{
 use std::collections::HashSet;
 
 pub(crate) fn retrieve_memories(
-    graph: &GraphStore,
+    graph: &GraphOwner,
     current_memory_version: u64,
     current_community_generation: Option<u64>,
     current_vector_bindings: usize,
@@ -123,7 +123,7 @@ fn validate_config(config: MemoryRetrievalConfig) -> Result<(), MemoryRetrievalE
 }
 
 fn validate_index(
-    graph: &GraphStore,
+    graph: &GraphOwner,
     current_memory_version: u64,
     current_community_generation: Option<u64>,
     current_vector_bindings: usize,

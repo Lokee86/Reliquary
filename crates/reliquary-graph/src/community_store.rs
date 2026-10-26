@@ -14,28 +14,28 @@ use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
-pub(crate) struct CommunityStore {
+pub struct CommunityStore {
     snapshots: Vec<CommunitySnapshot>,
     semantic_names: HashMap<CommunityId, CommunitySemanticName>,
 }
 
 impl CommunityStore {
-    pub(crate) fn latest(&self) -> Option<&CommunitySnapshot> {
+    pub fn latest(&self) -> Option<&CommunitySnapshot> {
         self.snapshots.last()
     }
 
-    pub(crate) fn contains_snapshot(&self, generation: u64, derived_graph_version: u64) -> bool {
+    pub fn contains_snapshot(&self, generation: u64, derived_graph_version: u64) -> bool {
         self.snapshots.iter().any(|snapshot| {
             snapshot.generation == generation
                 && snapshot.derived_graph_version == derived_graph_version
         })
     }
 
-    pub(crate) fn semantic_name(&self, community_id: CommunityId) -> Option<CommunitySemanticName> {
+    pub fn semantic_name(&self, community_id: CommunityId) -> Option<CommunitySemanticName> {
         resolve_semantic_name(&self.snapshots, &self.semantic_names, community_id)
     }
 
-    pub(crate) fn current_semantic_names(&self, graph: &GraphStore) -> Vec<CommunitySemanticName> {
+    pub fn current_semantic_names(&self, graph: &GraphStore) -> Vec<CommunitySemanticName> {
         let Some(snapshot) = self.latest() else {
             return Vec::new();
         };
@@ -49,11 +49,11 @@ impl CommunityStore {
             .collect()
     }
 
-    pub(crate) fn latest_lineage(&self) -> Option<CommunityLineageTransition> {
+    pub fn latest_lineage(&self) -> Option<CommunityLineageTransition> {
         latest_lineage(&self.snapshots)
     }
 
-    pub(crate) fn next_generation(&self) -> Result<u64, CommunityError> {
+    pub fn next_generation(&self) -> Result<u64, CommunityError> {
         self.latest().map_or(Ok(1), |snapshot| {
             snapshot
                 .generation
@@ -62,7 +62,7 @@ impl CommunityStore {
         })
     }
 
-    pub(crate) fn publish(
+    pub fn publish(
         &mut self,
         container: &mut Container,
         graph: &GraphStore,
@@ -75,7 +75,7 @@ impl CommunityStore {
         Ok(())
     }
 
-    pub(crate) fn publish_semantic_name(
+    pub fn publish_semantic_name(
         &mut self,
         container: &mut Container,
         graph: &GraphStore,
@@ -100,7 +100,7 @@ impl CommunityStore {
         Ok(true)
     }
 
-    pub(crate) fn stats(&self, graph: &GraphStore) -> CommunityStats {
+    pub fn stats(&self, graph: &GraphStore) -> CommunityStats {
         let latest = self.latest();
         CommunityStats {
             generations: latest.map_or(0, |snapshot| snapshot.generation),
@@ -120,12 +120,12 @@ impl CommunityStore {
         }
     }
 
-    pub(crate) fn latest_if_current_graph(&self, graph: &GraphStore) -> Option<&CommunitySnapshot> {
+    pub fn latest_if_current_graph(&self, graph: &GraphStore) -> Option<&CommunitySnapshot> {
         self.latest()
             .filter(|snapshot| snapshot_matches_current_graph(graph, snapshot))
     }
 
-    pub(crate) fn latest_if_live_members(&self, graph: &GraphStore) -> Option<&CommunitySnapshot> {
+    pub fn latest_if_live_members(&self, graph: &GraphStore) -> Option<&CommunitySnapshot> {
         self.latest()
             .filter(|snapshot| snapshot_members_are_live(graph, snapshot))
     }
@@ -154,20 +154,20 @@ impl CommunityStore {
     }
 }
 
-pub(crate) struct CommunityOpenState {
+pub struct CommunityOpenState {
     snapshots: Vec<CommunitySnapshot>,
     semantic_names: Vec<CommunitySemanticName>,
 }
 
 impl CommunityOpenState {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             snapshots: Vec::new(),
             semantic_names: Vec::new(),
         }
     }
 
-    pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), CommunityError> {
+    pub fn ingest(&mut self, payload: &[u8]) -> Result<(), CommunityError> {
         if let Some(snapshot) = decode_snapshot(payload)? {
             self.snapshots.push(snapshot);
         }
@@ -177,7 +177,7 @@ impl CommunityOpenState {
         Ok(())
     }
 
-    pub(crate) fn finish(
+    pub fn finish(
         self,
         graph: &GraphStore,
         owner_uuid: Option<[u8; 16]>,
@@ -211,13 +211,13 @@ impl CommunityOpenState {
     }
 }
 
-pub(crate) fn community_id(owner_uuid: [u8; 16], members: &[MemoryId]) -> CommunityId {
+pub fn community_id(owner_uuid: [u8; 16], members: &[MemoryId]) -> CommunityId {
     let mut hash = Sha256::new();
     hash.update(b"reliquary-community-v1\0");
     hash.update(owner_uuid);
     hash.update((members.len() as u64).to_le_bytes());
     for member in members {
-        hash.update(member.0);
+        hash.update(member);
     }
     CommunityId(hash.finalize().into())
 }
@@ -255,10 +255,10 @@ fn validate_snapshot(
 
         let mut previous_member: Option<[u8; 32]> = None;
         for member in &community.members {
-            if previous_member.is_some_and(|previous| previous >= member.0) {
+            if previous_member.is_some_and(|previous| previous >= *member) {
                 return Err(CommunityError::InvalidSnapshot("member order"));
             }
-            previous_member = Some(member.0);
+            previous_member = Some(*member);
             graph.historical_memory_node_id(*member)?;
             if !seen_members.insert(*member) {
                 return Err(CommunityError::InvalidSnapshot("duplicate member"));
@@ -366,7 +366,7 @@ fn validate_semantic_name(
         ))?;
     let mut previous: Option<[u8; 32]> = None;
     for memory_id in &record.representative_memories {
-        if previous.is_some_and(|previous| previous >= memory_id.0) {
+        if previous.is_some_and(|previous| previous >= *memory_id) {
             return Err(CommunityError::InvalidSemanticName(
                 "representatives must be sorted and unique",
             ));
@@ -376,7 +376,7 @@ fn validate_semantic_name(
                 "representative is not a community member",
             ));
         }
-        previous = Some(memory_id.0);
+        previous = Some(*memory_id);
     }
     Ok(())
 }

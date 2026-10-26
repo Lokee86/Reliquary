@@ -91,8 +91,8 @@ pub(crate) fn read_graph_range(
             changes: mutations
                 .into_iter()
                 .map(|mutation| SemanticGraphRelationChange {
-                    source: mutation.source,
-                    target: mutation.target,
+                    source: mutation.source.into(),
+                    target: mutation.target.into(),
                     kind: mutation.kind,
                     active: mutation.active,
                 })

@@ -1,5 +1,5 @@
 use crate::entity_store::EntityStore;
-use crate::graph_store::GraphStore;
+use crate::graph_owner::GraphOwner;
 use crate::memory_store::MemoryStore;
 use crate::relationship_store::RelationshipStore;
 use crate::vector_generation_store::VectorGenerationStore;
@@ -10,7 +10,7 @@ pub(crate) fn validate_semantic_global_versions(
     memories: &MemoryStore,
     entities: &EntityStore,
     relationships: &RelationshipStore,
-    graph: &GraphStore,
+    graph: &GraphOwner,
     vector_generations: &VectorGenerationStore,
 ) -> Result<(), CvaError> {
     let mut versions: Vec<u64> = archive

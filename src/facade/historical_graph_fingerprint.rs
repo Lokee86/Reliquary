@@ -1,6 +1,6 @@
 //! Accepted Graph publications, independent of physical node ordinals and the
 //! current lifecycle exclusions owned by Memory/Entity.
-use crate::graph_store::GraphStore;
+use crate::graph_owner::GraphOwner;
 use crate::historical_fingerprint::{HistoricalFingerprint, OwnerProjection};
 use crate::{CvaError, SemanticGraphRelation, SemanticGraphRelationKind, SemanticNodeRef};
 use reliquary_container::Container;
@@ -154,14 +154,14 @@ impl GraphHistory {
             .map(|v| v.ok_or_else(|| "missing cached Graph cut".into()))
             .collect()
     }
-    pub(crate) fn use_baseline_from(&mut self, store: &GraphStore) {
+    pub(crate) fn use_baseline_from(&mut self, store: &GraphOwner) {
         self.baseline_memories = store
             .rewrite_baseline_memories()
             .unwrap_or_default()
             .to_vec();
         self.baseline_memories.sort();
     }
-    pub(crate) fn read(container: &Container, store: &GraphStore) -> Result<Self, String> {
+    pub(crate) fn read(container: &Container, store: &GraphOwner) -> Result<Self, String> {
         let scan = container.read_source().map_err(|e| e.to_string())?;
         let objects = container.read_source().map_err(|e| e.to_string())?;
         let mut transactions = Vec::new();
@@ -198,8 +198,8 @@ impl GraphHistory {
                             origin,
                         } = mutation;
                         transaction.push(SemanticGraphRelation {
-                            source,
-                            target,
+                            source: source.into(),
+                            target: target.into(),
                             kind,
                             active,
                             origin,
