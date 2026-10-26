@@ -501,6 +501,8 @@ mod entity_compact_writer_tests;
 #[cfg(test)]
 #[path = "perception/entity_creation_guard_tests.rs"]
 mod entity_creation_guard_tests;
+#[path = "perception/entity_error.rs"]
+mod entity_error;
 #[path = "perception/entity_merge.rs"]
 mod entity_merge;
 #[path = "perception/entity_owner.rs"]
@@ -799,25 +801,25 @@ mod rel_metadata_model;
 mod rel_metadata_store;
 #[path = "perception/relationship_owner.rs"]
 mod relationship_owner;
+#[path = "perception/relationship_product_error.rs"]
+mod relationship_product_error;
+#[path = "perception/relationship_product_model.rs"]
+mod relationship_product_model;
 #[cfg(test)]
-#[path = "perception/relationship_replay_tests.rs"]
-mod relationship_replay_tests;
-#[cfg(test)]
-#[path = "perception/relationship_publication_writer_tests.rs"]
-mod relationship_publication_writer_tests;
-#[cfg(test)]
-#[path = "perception/relationship_publication_replay_tests.rs"]
-mod relationship_publication_replay_tests;
+#[path = "perception/relationship_publication_copy_tests.rs"]
+mod relationship_publication_copy_tests;
 #[cfg(test)]
 #[path = "perception/relationship_publication_prune_tests.rs"]
 mod relationship_publication_prune_tests;
 #[cfg(test)]
-#[path = "perception/relationship_publication_copy_tests.rs"]
-mod relationship_publication_copy_tests;
-#[path = "perception/relationship_product_model.rs"]
-mod relationship_product_model;
-#[path = "perception/relationship_product_error.rs"]
-mod relationship_product_error;
+#[path = "perception/relationship_publication_replay_tests.rs"]
+mod relationship_publication_replay_tests;
+#[cfg(test)]
+#[path = "perception/relationship_publication_writer_tests.rs"]
+mod relationship_publication_writer_tests;
+#[cfg(test)]
+#[path = "perception/relationship_replay_tests.rs"]
+mod relationship_replay_tests;
 #[path = "facade/review_clocks.rs"]
 mod review_clocks;
 #[path = "config_security/runtime_config.rs"]
@@ -1018,12 +1020,7 @@ pub use entity_candidate_model::{
     MAX_ENTITY_CANDIDATE_LEXICAL_MEMORIES, MAX_ENTITY_CANDIDATE_SUPPORT_MEMORIES,
     MAX_ENTITY_CANDIDATE_SURFACE_MATCHES,
 };
-pub use reliquary_perception_store::EntityRef;
-pub use reliquary_perception_store::{
-    Entity, EntityDraft, EntityError, EntityGlobalId, EntityId, EntityMergeOutcome,
-    EntityRetainedRevision, EntityRetentionDescriptor, EntityStats,
-    MAX_ENTITY_ALIASES, MAX_ENTITY_KIND_BYTES, MAX_ENTITY_NAME_BYTES, MAX_ENTITY_SUMMARY_BYTES,
-};
+pub use entity_error::EntityError;
 pub use entity_reconciliation_error::EntityReconciliationError;
 pub use entity_reconciliation_model::{
     DEFAULT_ENTITY_RECONCILIATION_PAIR_LIMIT, DEFAULT_ENTITY_RECONCILIATION_ROUNDS,
@@ -1169,6 +1166,12 @@ pub use reliquary_archive::project_history_model::{
     ProjectRevisionCorrelation, ProjectRevisionRef, RelSemanticCut,
 };
 pub use reliquary_echo::{EchoError, EchoEvent, EchoEventKind};
+pub use reliquary_perception_store::EntityRef;
+pub use reliquary_perception_store::{
+    Entity, EntityDraft, EntityGlobalId, EntityId, EntityMergeOutcome, EntityRetainedRevision,
+    EntityRetentionDescriptor, EntityStats, MAX_ENTITY_ALIASES, MAX_ENTITY_KIND_BYTES,
+    MAX_ENTITY_NAME_BYTES, MAX_ENTITY_SUMMARY_BYTES,
+};
 pub use runtime_host::memory_search::{
     DEFAULT_MEMORY_SEARCH_DEPTH, DEFAULT_MEMORY_SEARCH_RESULTS, MAX_MEMORY_SEARCH_DEPTH,
     MAX_MEMORY_SEARCH_QUERY_BYTES, MAX_MEMORY_SEARCH_RESULTS, MemorySearchItem, MemorySearchLane,

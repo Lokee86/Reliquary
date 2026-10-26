@@ -1,9 +1,9 @@
 //! Product admission and typed identity conversion for the canonical Graph owner.
-use reliquary_perception_store::EntityStore;
 use crate::memory_store::MemoryStore;
 use crate::*;
 use arcana::NodeId;
 use reliquary_container::Container;
+use reliquary_perception_store::EntityStore;
 
 pub(crate) struct GraphOwner {
     pub(crate) inner: reliquary_graph::GraphStore,

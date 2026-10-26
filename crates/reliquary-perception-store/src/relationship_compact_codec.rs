@@ -41,9 +41,7 @@ pub fn is_compact_record(bytes: &[u8]) -> Result<bool, RelationshipError> {
     Ok(false)
 }
 
-pub fn encode_creation(
-    creation: &RelationshipCreation,
-) -> Result<Vec<u8>, RelationshipError> {
+pub fn encode_creation(creation: &RelationshipCreation) -> Result<Vec<u8>, RelationshipError> {
     validate_creation(creation)?;
     let record = &creation.record;
     let mut out = Vec::new();

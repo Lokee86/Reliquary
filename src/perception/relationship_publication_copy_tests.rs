@@ -1,8 +1,4 @@
 //! Relationship envelope history across exact physical copies and semantic rewrites.
-use reliquary_perception_store::relationship_compact_codec::publication::{self, RelationshipPublication};
-use reliquary_perception_store::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
-use reliquary_perception_store::relationship_model::RelationshipRecord;
-use reliquary_perception_store::RelationshipMemoryRef;
 use crate::rewrite::MemorySelection;
 use crate::{
     Cva, EntityId, EntityRef, MemoryDraft, MemoryId, MemoryRef, Phylactery, ProjectFileRef,
@@ -10,6 +6,14 @@ use crate::{
     RelationshipId, RelationshipParticipant, RewriteRequest,
 };
 use reliquary_container::Container;
+use reliquary_perception_store::RelationshipMemoryRef;
+use reliquary_perception_store::relationship_compact_codec::publication::{
+    self, RelationshipPublication,
+};
+use reliquary_perception_store::relationship_compact_contract::{
+    RelationshipCreation, RelationshipDelta,
+};
+use reliquary_perception_store::relationship_model::RelationshipRecord;
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};

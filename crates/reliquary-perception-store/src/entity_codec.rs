@@ -157,9 +157,7 @@ pub fn encode_direct_tombstone(value: DirectEntityTombstone) -> Vec<u8> {
     out
 }
 
-pub fn decode_direct_tombstone(
-    bytes: &[u8],
-) -> Result<Option<DirectEntityTombstone>, EntityError> {
+pub fn decode_direct_tombstone(bytes: &[u8]) -> Result<Option<DirectEntityTombstone>, EntityError> {
     if bytes.len() < 8 || bytes[..8] != DIRECT_TOMBSTONE_MAGIC {
         return Ok(None);
     }

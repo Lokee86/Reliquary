@@ -4,10 +4,8 @@ use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::dream_pair_history::DreamPairStore;
 use crate::ego_store::EgoStore;
-use reliquary_perception_store::EntityOpenState;
 use crate::entity_resolution_boundary::ResolutionAdmission;
 use crate::entity_resolution_store::EntityResolutionStore;
-use reliquary_perception_store::EntityStore;
 use crate::graph_owner::GraphOwner;
 use crate::graph_replay::GraphReplay;
 use crate::lexical_index::LexicalIndex;
@@ -19,10 +17,12 @@ use crate::packed_vector_rebuild::PackedVectorOpenState;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::phylactery_profile_store::PhylacteryProfileStore;
 use crate::processing_epoch_store::ProcessingEpochStore;
-use reliquary_perception_store::relationship_rebuild::RelationshipOpenState;
-use reliquary_perception_store::relationship_store::RelationshipStore;
 use crate::{Phylactery, PhylacteryError};
 use reliquary_container::{Container, ContainerIdentity, FileKind};
+use reliquary_perception_store::EntityOpenState;
+use reliquary_perception_store::EntityStore;
+use reliquary_perception_store::relationship_rebuild::RelationshipOpenState;
+use reliquary_perception_store::relationship_store::RelationshipStore;
 use std::path::Path;
 
 impl Phylactery {

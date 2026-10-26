@@ -42,41 +42,45 @@ pub(crate) fn reliquary_global_cuts_with_positions(
         .last()
         .unwrap_or(0);
 
-    let memory =
-        cva.memories
-            .records()
-            .iter()
-            .filter(|record| record.global_version <= global)
-            .map(|record| record.memory_version)
-            .chain(cva.memories.tombstoned_ids().into_iter().filter_map(|id| {
-                match crate::owner_lifecycle::LifecycleState::from(
-                    cva.memories.lifecycle_state(id).ok()?,
-                ) {
-                    reliquary_perception_store::RelationshipLifecycleState::Tombstoned(
-                        coordinates,
-                    ) if coordinates.global_version? <= global => coordinates.domain_version,
-                    _ => None,
+    let memory = cva
+        .memories
+        .records()
+        .iter()
+        .filter(|record| record.global_version <= global)
+        .map(|record| record.memory_version)
+        .chain(cva.memories.tombstoned_ids().into_iter().filter_map(|id| {
+            match crate::owner_lifecycle::LifecycleState::from(
+                cva.memories.lifecycle_state(id).ok()?,
+            ) {
+                crate::owner_lifecycle::LifecycleState::Tombstoned(coordinates)
+                    if coordinates.global_version? <= global =>
+                {
+                    coordinates.domain_version
                 }
-            }))
-            .max()
-            .unwrap_or(0);
+                _ => None,
+            }
+        }))
+        .max()
+        .unwrap_or(0);
 
-    let entity =
-        cva.entities
-            .records()
-            .iter()
-            .filter(|record| record.global_version <= global)
-            .map(|record| record.entity_version)
-            .chain(cva.entities.records().iter().filter_map(|record| {
-                match cva.entities.lifecycle_state(record.id).ok()? {
-                    reliquary_perception_store::RelationshipLifecycleState::Tombstoned(
-                        coordinates,
-                    ) if coordinates.global_version? <= global => coordinates.domain_version,
-                    _ => None,
+    let entity = cva
+        .entities
+        .records()
+        .iter()
+        .filter(|record| record.global_version <= global)
+        .map(|record| record.entity_version)
+        .chain(cva.entities.records().iter().filter_map(|record| {
+            match cva.entity_lifecycle_state(record.id).ok()? {
+                crate::owner_lifecycle::LifecycleState::Tombstoned(coordinates)
+                    if coordinates.global_version? <= global =>
+                {
+                    coordinates.domain_version
                 }
-            }))
-            .max()
-            .unwrap_or(0);
+                _ => None,
+            }
+        }))
+        .max()
+        .unwrap_or(0);
 
     let relationship = cva
         .relationships
@@ -85,7 +89,7 @@ pub(crate) fn reliquary_global_cuts_with_positions(
         .filter(|record| record.global_version <= global)
         .map(|record| record.relationship_version)
         .chain(cva.relationships.records().iter().filter_map(|record| {
-            match cva.relationships.lifecycle_state(record.id).ok()? {
+            match cva.relationship_lifecycle_state(record.id).ok()? {
                 crate::owner_lifecycle::LifecycleState::Tombstoned(coordinates)
                     if coordinates.global_version? <= global =>
                 {
@@ -180,7 +184,7 @@ pub(crate) fn phylactery_global_cuts_with_positions(
         .filter(|record| record.global_version <= global)
         .map(|record| record.entity_version)
         .chain(phy.entities.records().iter().filter_map(|record| {
-            match phy.entities.lifecycle_state(record.id).ok()? {
+            match phy.entity_lifecycle_state(record.id).ok()? {
                 crate::owner_lifecycle::LifecycleState::Tombstoned(coordinates)
                     if coordinates.global_version? <= global =>
                 {
@@ -199,7 +203,7 @@ pub(crate) fn phylactery_global_cuts_with_positions(
         .filter(|record| record.global_version <= global)
         .map(|record| record.relationship_version)
         .chain(phy.relationships.records().iter().filter_map(|record| {
-            match phy.relationships.lifecycle_state(record.id).ok()? {
+            match phy.relationship_lifecycle_state(record.id).ok()? {
                 crate::owner_lifecycle::LifecycleState::Tombstoned(coordinates)
                     if coordinates.global_version? <= global =>
                 {

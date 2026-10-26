@@ -50,6 +50,12 @@ impl From<EntityError> for EntityResolverError {
     }
 }
 
+impl From<reliquary_perception_store::EntityError> for EntityResolverError {
+    fn from(value: reliquary_perception_store::EntityError) -> Self {
+        Self::Entity(value.into())
+    }
+}
+
 impl From<GraphError> for EntityResolverError {
     fn from(value: GraphError) -> Self {
         Self::Graph(value)

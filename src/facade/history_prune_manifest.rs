@@ -237,8 +237,10 @@ pub(crate) fn owner_history_digest(
             continue;
         }
         if let Some((global, marker, digest)) =
-            reliquary_perception_store::relationship_compact_codec::publication::history_evidence(&raw)
-                .map_err(|error| error.to_string())?
+            reliquary_perception_store::relationship_compact_codec::publication::history_evidence(
+                &raw,
+            )
+            .map_err(|error| error.to_string())?
         {
             if global <= watermark {
                 digest_bytes(&mut hash, &marker);

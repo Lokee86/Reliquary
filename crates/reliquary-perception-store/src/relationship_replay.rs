@@ -194,4 +194,3 @@ fn same_replay_record(left: &RelationshipRecord, right: &RelationshipRecord) -> 
     right.relationship_version = 0;
     left == right
 }
-

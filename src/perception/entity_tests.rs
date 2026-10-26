@@ -172,7 +172,8 @@ fn current_entity_without_global_uuid_can_be_backfilled_once() {
     };
     let body = reliquary_perception_store::entity_compact_codec::publication::encode(
         &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Creation(
-            reliquary_perception_store::entity_compact_contract::EntityCreation::new(record).unwrap(),
+            reliquary_perception_store::entity_compact_contract::EntityCreation::new(record)
+                .unwrap(),
         ),
     )
     .unwrap();

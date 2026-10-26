@@ -154,6 +154,12 @@ impl From<EntityError> for CvaReconcileError {
     }
 }
 
+impl From<reliquary_perception_store::EntityError> for CvaReconcileError {
+    fn from(value: reliquary_perception_store::EntityError) -> Self {
+        Self::Entities(value.into())
+    }
+}
+
 impl From<RelationshipError> for CvaReconcileError {
     fn from(value: RelationshipError) -> Self {
         Self::Relationships(value)

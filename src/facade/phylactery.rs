@@ -4,7 +4,6 @@ use crate::dream_duplicate_index::DuplicateIndex;
 use crate::dream_pair_history::DreamPairStore;
 use crate::ego_store::EgoStore;
 use crate::entity_resolution_store::EntityResolutionStore;
-use reliquary_perception_store::EntityStore;
 use crate::graph_owner::GraphOwner;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
@@ -12,11 +11,12 @@ use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::phylactery_profile_store::PhylacteryProfileStore;
 use crate::processing_epoch_store::ProcessingEpochStore;
-use reliquary_perception_store::relationship_store::RelationshipStore;
 use crate::{
     Memory, MemoryBodyId, MemoryDraft, MemoryError, MemoryId, MemoryStats, PhylacteryError,
 };
 use reliquary_container::Container;
+use reliquary_perception_store::EntityStore;
+use reliquary_perception_store::relationship_store::RelationshipStore;
 
 pub struct Phylactery {
     pub(crate) owner_maintenance: crate::owner_maintenance::OwnerMaintenanceStore,

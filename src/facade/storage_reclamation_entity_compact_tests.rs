@@ -1,19 +1,23 @@
 //! Storage reclamation retains accepted compact Entity history and drops inert carriers.
-fn encode_creation(c: &EntityCreation) -> Result<Vec<u8>, crate::EntityError> {
+fn encode_creation(c: &EntityCreation) -> Result<Vec<u8>, reliquary_perception_store::EntityError> {
     reliquary_perception_store::entity_compact_codec::publication::encode(
-        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Creation(c.clone()),
+        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Creation(
+            c.clone(),
+        ),
     )
 }
-fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, crate::EntityError> {
+fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, reliquary_perception_store::EntityError> {
     reliquary_perception_store::entity_compact_codec::publication::encode(
-        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Delta(d.clone()),
+        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Delta(
+            d.clone(),
+        ),
     )
 }
-use reliquary_perception_store::entity_compact_contract::{EntityCreation, EntityDelta};
-use reliquary_perception_store::entity_model::EntityRecord;
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
 use crate::{Cva, EntityGlobalId, EntityId, Phylactery};
 use reliquary_container::Container;
+use reliquary_perception_store::entity_compact_contract::{EntityCreation, EntityDelta};
+use reliquary_perception_store::entity_model::EntityRecord;
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};

@@ -1,7 +1,10 @@
-use crate::{Cva, EntityRef, MemoryId, Phylactery, Relationship, RelationshipDraft, RelationshipError, RelationshipId, RelationshipStats};
-use reliquary_perception_store::RelationshipStore;
 use crate::memory_store::MemoryStore;
+use crate::{
+    Cva, EntityRef, MemoryId, Phylactery, Relationship, RelationshipDraft, RelationshipError,
+    RelationshipId, RelationshipStats,
+};
 use reliquary_perception_store::EntityStore;
+use reliquary_perception_store::RelationshipStore;
 
 pub(crate) fn validate_historical_local_references(
     store: &RelationshipStore,
@@ -28,7 +31,9 @@ pub(crate) fn validate_historical_local_references(
             if evidence.owner_id == owner_id
                 && !memories.contains_historical_memory(MemoryId(evidence.memory_id))
             {
-                return Err(RelationshipError::MissingLocalMemory(evidence.memory_id));
+                return Err(RelationshipError::MissingLocalMemory(MemoryId(
+                    evidence.memory_id,
+                )));
             }
         }
     }
@@ -53,7 +58,9 @@ fn validate_live_local_references(
     for evidence in &draft.evidence {
         if evidence.owner_id == owner_id && !memories.contains_memory(MemoryId(evidence.memory_id))
         {
-            return Err(RelationshipError::MissingLocalMemory(evidence.memory_id));
+            return Err(RelationshipError::MissingLocalMemory(MemoryId(
+                evidence.memory_id,
+            )));
         }
     }
     Ok(())
@@ -76,7 +83,7 @@ macro_rules! impl_owner {
                 validate_live_local_references(&owner_id, &self.memories, &self.entities, &draft)?;
                 self.relationships.publish(&mut self.container, id, expected_revision, draft)
                     .map(|(value, changed)| (value.into(), changed))
-                    .map_err(Into::into)
+                    .map_err(RelationshipError::from)
             }
 
             pub(crate) fn replay_relationship_revision(
@@ -90,7 +97,7 @@ macro_rules! impl_owner {
                     id,
                     expected_revision,
                     draft.into(),
-                ).map(|(value, changed)| (value.into(), changed)).map_err(Into::into)
+                ).map(|(value, changed)| (value.into(), changed)).map_err(RelationshipError::from)
             }
 
             pub fn relationship(
@@ -99,7 +106,7 @@ macro_rules! impl_owner {
             ) -> Result<Relationship, RelationshipError> {
                 self.relationships.relationship(id)
                     .map(Into::into)
-                    .map_err(Into::into)
+                    .map_err(RelationshipError::from)
             }
 
             pub fn tombstone_relationship(
@@ -119,7 +126,7 @@ macro_rules! impl_owner {
                 &self,
                 id: RelationshipId,
             ) -> Result<crate::RelationshipRetentionDescriptor, RelationshipError> {
-                self.relationships.retention_descriptor(id).map(Into::into).map_err(Into::into)
+                self.relationships.retention_descriptor(id).map(Into::into).map_err(RelationshipError::from)
             }
 
             pub fn historical_relationship_revision(
@@ -163,7 +170,7 @@ macro_rules! impl_owner {
                 &self,
                 id: RelationshipId,
             ) -> Result<crate::owner_lifecycle::LifecycleState, RelationshipError> {
-                Ok(match self.relationships.lifecycle_state(id).map_err(Into::into)? {
+                Ok(match self.relationships.lifecycle_state(id).map_err(RelationshipError::from)? {
                     reliquary_perception_store::RelationshipLifecycleState::Active => crate::owner_lifecycle::LifecycleState::Active,
                     reliquary_perception_store::RelationshipLifecycleState::Tombstoned(c) => crate::owner_lifecycle::LifecycleState::Tombstoned(crate::owner_lifecycle::TombstoneCoordinates { global_version:c.global_version, domain_version:c.domain_version }),
                 })
@@ -174,7 +181,7 @@ macro_rules! impl_owner {
                 id: RelationshipId,
                 revision: u64,
             ) -> Result<Relationship, RelationshipError> {
-                self.relationships.relationship_revision(id, revision).map(Into::into).map_err(Into::into)
+                self.relationships.relationship_revision(id, revision).map(Into::into).map_err(RelationshipError::from)
             }
 
             pub fn relationships(&self) -> Vec<Relationship> {

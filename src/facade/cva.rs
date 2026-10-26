@@ -6,7 +6,6 @@ use crate::dream_duplicate_index::DuplicateIndex;
 use crate::dream_pair_history::DreamPairStore;
 use crate::ego_store::EgoStore;
 use crate::entity_resolution_store::EntityResolutionStore;
-use reliquary_perception_store::EntityStore;
 use crate::graph_owner::GraphOwner;
 use crate::insomnia::store::InsomniaStore;
 use crate::lexical_index::LexicalIndex;
@@ -15,7 +14,6 @@ use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::processing_epoch_store::ProcessingEpochStore;
 use crate::rel_metadata_store::RelMetadataStore;
-use reliquary_perception_store::relationship_store::RelationshipStore;
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::{
     Archive, ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, ConversationMetadata,
@@ -29,6 +27,8 @@ use reliquary_archive::project_file_binding_store::ProjectFileStore;
 use reliquary_archive::project_history_store::ProjectHistoryStore;
 use reliquary_container::{Container, WriteAdmission};
 use reliquary_echo::EchoStore;
+use reliquary_perception_store::EntityStore;
+use reliquary_perception_store::relationship_store::RelationshipStore;
 
 pub struct Cva {
     pub(crate) owner_maintenance: crate::owner_maintenance::OwnerMaintenanceStore,

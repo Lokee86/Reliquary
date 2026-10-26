@@ -1,21 +1,25 @@
 //! Entity publication envelopes remain live during reclamation.
-use reliquary_perception_store::entity_compact_codec::publication::{self, EntityPublication};
 use reliquary_container::publication_envelope::PublicationClock;
-fn encode_creation(c: &EntityCreation) -> Result<Vec<u8>, crate::EntityError> {
+use reliquary_perception_store::entity_compact_codec::publication::{self, EntityPublication};
+fn encode_creation(c: &EntityCreation) -> Result<Vec<u8>, reliquary_perception_store::EntityError> {
     reliquary_perception_store::entity_compact_codec::publication::encode(
-        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Creation(c.clone()),
+        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Creation(
+            c.clone(),
+        ),
     )
 }
-fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, crate::EntityError> {
+fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, reliquary_perception_store::EntityError> {
     reliquary_perception_store::entity_compact_codec::publication::encode(
-        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Delta(d.clone()),
+        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Delta(
+            d.clone(),
+        ),
     )
 }
-use reliquary_perception_store::entity_compact_contract::{EntityCreation, EntityDelta};
-use reliquary_perception_store::entity_model::EntityRecord;
 use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget};
 use crate::{Cva, EntityId, HistoryPruneRequest, Phylactery};
 use reliquary_container::{Container, FileKind};
+use reliquary_perception_store::entity_compact_contract::{EntityCreation, EntityDelta};
+use reliquary_perception_store::entity_model::EntityRecord;
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};

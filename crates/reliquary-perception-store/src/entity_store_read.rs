@@ -16,11 +16,7 @@ impl EntityStore {
             .ok_or(EntityError::MissingEntity)
     }
 
-    pub fn entity_revision(
-        &self,
-        id: EntityId,
-        revision: u64,
-    ) -> Result<Entity, EntityError> {
+    pub fn entity_revision(&self, id: EntityId, revision: u64) -> Result<Entity, EntityError> {
         if self.pruned_revisions.contains(&(id, revision)) {
             return Err(EntityError::PayloadUnavailable(
                 crate::EntityPayloadUnavailable::Pruned,
@@ -38,9 +34,7 @@ impl EntityStore {
         id: EntityId,
     ) -> Result<crate::EntityLifecycleState, EntityError> {
         if let Some(&coordinates) = self.tombstones.get(&id) {
-            return Ok(crate::EntityLifecycleState::Tombstoned(
-                coordinates,
-            ));
+            return Ok(crate::EntityLifecycleState::Tombstoned(coordinates));
         }
         self.current
             .contains_key(&id)
@@ -120,11 +114,7 @@ impl EntityStore {
             .collect()
     }
 
-    pub fn candidates_for_normalized_surface(
-        &self,
-        surface: &str,
-        limit: usize,
-    ) -> Vec<Entity> {
+    pub fn candidates_for_normalized_surface(&self, surface: &str, limit: usize) -> Vec<Entity> {
         let needle = normalized_surface(surface);
         if needle.is_empty() {
             return Vec::new();

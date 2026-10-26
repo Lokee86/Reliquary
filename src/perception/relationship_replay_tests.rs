@@ -1,11 +1,13 @@
 //! Scratch owner replay retry and semantic import-evidence tests.
+use crate::{
+    Cva, EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId, RelationshipParticipant,
+};
+use reliquary_perception_store::RelationshipError;
+use reliquary_perception_store::RelationshipMemoryRef;
 use reliquary_perception_store::relationship_codec::RelationshipTombstone;
 use reliquary_perception_store::relationship_model::RelationshipRecord;
-use reliquary_perception_store::RelationshipMemoryRef;
-use reliquary_perception_store::relationship_store::{RelationshipReplayPublication, RelationshipStore};
-use crate::{
-    Cva, EntityId, EntityRef, MemoryId, MemoryRef, RelationshipError, RelationshipId,
-    RelationshipParticipant,
+use reliquary_perception_store::relationship_store::{
+    RelationshipReplayPublication, RelationshipStore,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -224,7 +226,7 @@ fn exact_coordinate_lookup_and_normalized_evidence_retain_semantics_only() {
         evidence
     );
     let mut changed = relocated.clone();
-    changed.evidence[0].memory_id = MemoryId([0x55; 32]);
+    changed.evidence[0].memory_id = [0x55; 32];
     assert_ne!(
         RelationshipReplayPublication::Record(changed)
             .normalized_import_evidence()

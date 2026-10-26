@@ -66,7 +66,7 @@ fn validate_fields(
         return Err(EntityError::InvalidField("Entity kind"));
     }
     if kind == crate::entity_identity::PRINCIPAL_ENTITY_KIND
-        && !false
+        && !crate::entity_identity::is_phy_principal_id(canonical_name)
     {
         return Err(EntityError::InvalidField("principal Entity identity"));
     }

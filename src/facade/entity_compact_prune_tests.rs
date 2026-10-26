@@ -1,19 +1,21 @@
 //! Authenticated native pruning of Entity publication-envelope histories.
+use reliquary_container::publication_envelope::{self, PublicationEnvelope};
 use reliquary_perception_store::entity_compact_codec::publication::encode;
 use reliquary_perception_store::entity_compact_codec::publication::{self, EntityPublication};
-use reliquary_container::publication_envelope::{self, PublicationEnvelope};
-fn encode_creation(c: &EntityCreation) -> Result<Vec<u8>, crate::EntityError> {
+fn encode_creation(c: &EntityCreation) -> Result<Vec<u8>, reliquary_perception_store::EntityError> {
     encode(&EntityPublication::Creation(c.clone()))
 }
-fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, crate::EntityError> {
+fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, reliquary_perception_store::EntityError> {
     encode(&EntityPublication::Delta(d.clone()))
 }
-use reliquary_perception_store::entity_compact_contract::{EntityCreation, EntityDelta, EntityDescriptionProof};
-use reliquary_perception_store::entity_model::{EntityRecord, EntityRetentionDescriptor};
-use reliquary_perception_store::{EntityReplayPublication, EntityStore};
 use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget, PayloadUnavailable};
 use crate::{Cva, EntityGlobalId, EntityId, HistoryPruneRequest, Phylactery};
 use reliquary_container::Container;
+use reliquary_perception_store::entity_compact_contract::{
+    EntityCreation, EntityDelta, EntityDescriptionProof,
+};
+use reliquary_perception_store::entity_model::{EntityRecord, EntityRetentionDescriptor};
+use reliquary_perception_store::{EntityReplayPublication, EntityStore};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs;

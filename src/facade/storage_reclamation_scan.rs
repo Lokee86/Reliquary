@@ -136,12 +136,16 @@ impl ReclamationScan {
             .map_err(|e| e.to_string())?
             .is_some()
             || (!payload.starts_with(b"CVAETM01")
-                && reliquary_perception_store::entity_compact_codec::publication::decode(payload, 1)
-                    .map_err(|e| e.to_string())?
-                    .is_some())
-            || reliquary_perception_store::relationship_compact_codec::publication::decode(payload, 1)
+                && reliquary_perception_store::entity_compact_codec::publication::decode(
+                    payload, 1,
+                )
                 .map_err(|e| e.to_string())?
-                .is_some()
+                .is_some())
+            || reliquary_perception_store::relationship_compact_codec::publication::decode(
+                payload, 1,
+            )
+            .map_err(|e| e.to_string())?
+            .is_some()
             || (!payload.starts_with(b"CVAAFM")
                 && !payload.starts_with(b"CVAARE")
                 && !payload.starts_with(b"CVACONT1")

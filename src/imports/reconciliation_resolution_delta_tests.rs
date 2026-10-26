@@ -45,7 +45,8 @@ fn entity_resolution_delta_interval_uses_source_postimage_and_destination_eviden
         v.last_attempt_at_ns = 10;
         v.attempt_count = 1;
     }
-    let mut destination_projection = crate::entity_resolution_store::EntityResolutionStore::default();
+    let mut destination_projection =
+        crate::entity_resolution_store::EntityResolutionStore::default();
     let destination_bytes = crate::entity_resolution_codec::delta::encode(
         &crate::entity_resolution_codec::DecodedEntityResolution {
             key: crate::entity_resolution_boundary::store_key(prior.key),
@@ -54,7 +55,8 @@ fn entity_resolution_delta_interval_uses_source_postimage_and_destination_eviden
             status: Some(prior.status.clone()),
         },
         None,
-    ).unwrap();
+    )
+    .unwrap();
     destination_projection.ingest(&destination_bytes).unwrap();
     target.entity_resolutions = destination_projection;
     let chunks = source.container.chunks().unwrap();
@@ -89,6 +91,7 @@ fn entity_resolution_delta_interval_uses_source_postimage_and_destination_eviden
                 updated_at_ns: expected.updated_at_ns,
                 status: Some(expected.status),
             }
-        ).unwrap()
+        )
+        .unwrap()
     );
 }

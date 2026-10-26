@@ -1,11 +1,13 @@
 //! Ordinary Relationship writes use one allocation envelope per publication.
-use reliquary_perception_store::relationship_compact_codec::publication::{self, RelationshipPublication};
 use crate::{
     Cva, EntityId, EntityRef, MemoryId, MemoryRef, Phylactery, RelationshipDraft,
     RelationshipError, RelationshipId,
 };
 use reliquary_container::Container;
 use reliquary_container::publication_envelope::{self, PublicationClock};
+use reliquary_perception_store::relationship_compact_codec::publication::{
+    self, RelationshipPublication,
+};
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;

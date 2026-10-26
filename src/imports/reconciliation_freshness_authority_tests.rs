@@ -168,18 +168,6 @@ fn entity_import_evidence(cva: &Cva, global: u64, local: u64) -> Vec<u8> {
         .unwrap()
 }
 
-fn append_entity_publication(
-    cva: &mut Cva,
-    publication: reliquary_perception_store::entity_compact_codec::publication::EntityPublication,
-    global: u64,
-    local: u64,
-) {
-    let body = reliquary_perception_store::entity_compact_codec::publication::encode(&publication).unwrap();
-    let (appended_global, _) = cva.container.append_publication_envelope(&body).unwrap();
-    assert_eq!(appended_global, global);
-    assert_eq!(cva.entity_version() + 1, local);
-}
-
 #[test]
 fn normalized_same_authority_keeps_accepted_membership_and_content() {
     let memory = MemoryId([0xEE; 32]);
@@ -658,9 +646,8 @@ fn completed_scope_inventory(
             legacy.entity_version,
         ));
 
-        // Step 183 consumes the new envelope format before Step 187 changes
-        // the ordinary writer. Construct candidate publications directly and
-        // admit them through the same rebuilt-store validation used by replay.
+        // Exercise the owner replay seam so it constructs the normalized
+        // physical envelopes and applies each accepted fact to its indexes.
         let previous = cva
             .entities
             .records()
@@ -675,40 +662,36 @@ fn completed_scope_inventory(
         revised.mutation_id = "envelope-entity-revision".into();
         revised.summary = "Accepted envelope revision description".into();
         revised.updated_at_ns = 21;
-        let delta =
-            reliquary_perception_store::entity_compact_contract::EntityDelta::between(&previous, &revised).unwrap();
-        let global = revised.global_version;
-        let local = revised.entity_version;
-        append_entity_publication(
-            &mut cva,
-            reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Delta(delta.clone()),
-            global,
-            local,
-        );
-        let decoded = reliquary_perception_store::entity_compact_apply::apply_delta(&previous, &delta).unwrap();
+        let delta = reliquary_perception_store::entity_compact_contract::EntityDelta::between(
+            &previous, &revised,
+        )
+        .unwrap();
+        let decoded =
+            reliquary_perception_store::entity_compact_apply::apply_delta(&previous, &delta)
+                .unwrap();
         assert_eq!(decoded, revised);
-        cva.entities.insert_rebuilt(decoded).unwrap();
+        cva.entities
+            .replay_publication(
+                &mut cva.container,
+                reliquary_perception_store::EntityReplayPublication::Record(decoded),
+            )
+            .unwrap();
+        let revised = cva.entities.records().last().unwrap();
+        let (global, local) = (revised.global_version, revised.entity_version);
         entity_evidence.push(entity_import_evidence(&cva, global, local));
 
-        let global = cva.container.next_version_candidate();
-        let local = cva.entity_version() + 1;
-        let direct = reliquary_perception_store::entity_codec::DirectEntityTombstone {
-            id: legacy.id,
-            revision: revised.revision + 1,
-        };
-        append_entity_publication(
-            &mut cva,
-            reliquary_perception_store::entity_compact_codec::publication::EntityPublication::DirectTombstone {
-                id: direct.id,
-                revision: direct.revision,
-                entity_version: local,
-            },
-            global,
-            local,
-        );
         cva.entities
-            .insert_direct_tombstone_rebuilt(direct, global, local)
+            .replay_publication(
+                &mut cva.container,
+                reliquary_perception_store::EntityReplayPublication::Tombstone {
+                    id: legacy.id,
+                    revision: revised.revision + 1,
+                    replacement_id: None,
+                },
+            )
             .unwrap();
+        let global = cva.container.next_version_candidate() - 1;
+        let local = cva.entity_version();
         entity_evidence.push(entity_import_evidence(&cva, global, local));
 
         let make_entity = |id: crate::EntityId,
@@ -747,15 +730,17 @@ fn completed_scope_inventory(
             merge_target_global,
             merge_target_local,
         );
-        let creation =
-            reliquary_perception_store::entity_compact_contract::EntityCreation::new(merge_target.clone()).unwrap();
-        append_entity_publication(
-            &mut cva,
-            reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Creation(creation),
-            merge_target_global,
-            merge_target_local,
+        cva.entities
+            .replay_publication(
+                &mut cva.container,
+                reliquary_perception_store::EntityReplayPublication::Record(merge_target),
+            )
+            .unwrap();
+        let merge_target_record = cva.entities.records().last().unwrap();
+        let (merge_target_global, merge_target_local) = (
+            merge_target_record.global_version,
+            merge_target_record.entity_version,
         );
-        cva.entities.insert_rebuilt(merge_target).unwrap();
         entity_evidence.push(entity_import_evidence(
             &cva,
             merge_target_global,
@@ -777,42 +762,35 @@ fn completed_scope_inventory(
             survivor_global,
             survivor_local,
         );
-        let creation =
-            reliquary_perception_store::entity_compact_contract::EntityCreation::new(survivor.clone()).unwrap();
-        append_entity_publication(
-            &mut cva,
-            reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Creation(creation),
-            survivor_global,
-            survivor_local,
+        cva.entities
+            .replay_publication(
+                &mut cva.container,
+                reliquary_perception_store::EntityReplayPublication::Record(survivor),
+            )
+            .unwrap();
+        let survivor_record = cva.entities.records().last().unwrap();
+        let (survivor_global, survivor_local) = (
+            survivor_record.global_version,
+            survivor_record.entity_version,
         );
-        cva.entities.insert_rebuilt(survivor).unwrap();
         entity_evidence.push(entity_import_evidence(
             &cva,
             survivor_global,
             survivor_local,
         ));
 
-        let global = cva.container.next_version_candidate();
-        let local = cva.entity_version() + 1;
-        let merge = reliquary_perception_store::entity_codec::EntityTombstone {
-            id: merge_target_id,
-            revision: 2,
-            replacement_id: survivor_id,
-        };
-        append_entity_publication(
-            &mut cva,
-            reliquary_perception_store::entity_compact_codec::publication::EntityPublication::MergeTombstone {
-                id: merge.id,
-                revision: merge.revision,
-                entity_version: local,
-                replacement_id: merge.replacement_id,
-            },
-            global,
-            local,
-        );
         cva.entities
-            .insert_tombstone_rebuilt(merge, global, local)
+            .replay_publication(
+                &mut cva.container,
+                reliquary_perception_store::EntityReplayPublication::Tombstone {
+                    id: merge_target_id,
+                    revision: 2,
+                    replacement_id: Some(survivor_id),
+                },
+            )
             .unwrap();
+        let global = cva.container.next_version_candidate() - 1;
+        let local = cva.entity_version();
         entity_evidence.push(entity_import_evidence(&cva, global, local));
     }
     let mut relationship_evidence = Vec::new();
@@ -821,35 +799,36 @@ fn completed_scope_inventory(
         // test does not depend on the ordinary writer cutover. The store's
         // rebuilt admission path validates each record and terminal position.
         let id = crate::RelationshipId([0x74; 32]);
-        let make_relationship = |revision: u64,
-                                 global_version: u64,
-                                 relationship_version: u64,
-                                 mutation_id: &str,
-                                 summary: &str|
-         -> reliquary_perception_store::relationship_model::RelationshipRecord {
-            reliquary_perception_store::relationship_model::RelationshipRecord {
-                id,
-                revision,
-                kind: "supports".into(),
-                participants: vec![crate::RelationshipParticipant {
-                    entity: crate::EntityRef {
-                        owner_id: "stable-remote-owner".into(),
-                        entity_id: crate::EntityId([0x75; 32]),
-                    },
-                    role: Some("source".into()),
-                }],
-                evidence: vec![reliquary_perception_store::RelationshipMemoryRef {
-                    owner_id: "stable-remote-memory-owner".into(),
-                    memory_id: [0x76; 32],
-                }],
-                summary: summary.into(),
-                mutation_id: mutation_id.into(),
-                created_at_ns: -12,
-                updated_at_ns: 20 + revision as i64,
-                global_version,
-                relationship_version,
-            }
-        };
+        let make_relationship =
+            |revision: u64,
+             global_version: u64,
+             relationship_version: u64,
+             mutation_id: &str,
+             summary: &str|
+             -> reliquary_perception_store::relationship_model::RelationshipRecord {
+                reliquary_perception_store::relationship_model::RelationshipRecord {
+                    id,
+                    revision,
+                    kind: "supports".into(),
+                    participants: vec![crate::RelationshipParticipant {
+                        entity: crate::EntityRef {
+                            owner_id: "stable-remote-owner".into(),
+                            entity_id: crate::EntityId([0x75; 32]),
+                        },
+                        role: Some("source".into()),
+                    }],
+                    evidence: vec![reliquary_perception_store::RelationshipMemoryRef {
+                        owner_id: "stable-remote-memory-owner".into(),
+                        memory_id: [0x76; 32],
+                    }],
+                    summary: summary.into(),
+                    mutation_id: mutation_id.into(),
+                    created_at_ns: -12,
+                    updated_at_ns: 20 + revision as i64,
+                    global_version,
+                    relationship_version,
+                }
+            };
         let append_relationship = |cva: &mut Cva,
                                   publication: reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication,
                                   expected_global: u64| {
@@ -891,11 +870,12 @@ fn completed_scope_inventory(
             "envelope-relationship-revision",
             "Accepted Relationship revised description",
         );
-        let delta = reliquary_perception_store::relationship_compact_contract::RelationshipDelta::between(
-            &cva.relationships.records().last().unwrap(),
-            &next,
-        )
-        .unwrap();
+        let delta =
+            reliquary_perception_store::relationship_compact_contract::RelationshipDelta::between(
+                &cva.relationships.records().last().unwrap(),
+                &next,
+            )
+            .unwrap();
         let delta_publication =
             reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Delta(
                 delta.clone(),
@@ -919,7 +899,10 @@ fn completed_scope_inventory(
 
         let terminal_global = cva.container.next_version_candidate();
         let terminal_local = cva.relationship_version() + 1;
-        let tombstone = reliquary_perception_store::relationship_codec::RelationshipTombstone { id, revision: 3 };
+        let tombstone = reliquary_perception_store::relationship_codec::RelationshipTombstone {
+            id,
+            revision: 3,
+        };
         append_relationship(
             &mut cva,
             reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Tombstone {
@@ -970,9 +953,11 @@ fn completed_scope_inventory(
         for chunk in chunks.iter().take(epoch.end).skip(epoch.first) {
             let payload = reopened.container.read(*chunk).unwrap();
             envelope_count += usize::from(
-                reliquary_perception_store::entity_compact_codec::publication::coordinates(&payload)
-                    .unwrap()
-                    .is_some(),
+                reliquary_perception_store::entity_compact_codec::publication::coordinates(
+                    &payload,
+                )
+                .unwrap()
+                .is_some(),
             );
         }
         assert_eq!(
@@ -993,9 +978,11 @@ fn completed_scope_inventory(
         for chunk in chunks.iter().take(epoch.end).skip(epoch.first) {
             let payload = reopened.container.read(*chunk).unwrap();
             relationship_envelopes += usize::from(
-                reliquary_perception_store::relationship_compact_codec::publication::coordinates(&payload)
-                    .unwrap()
-                    .is_some(),
+                reliquary_perception_store::relationship_compact_codec::publication::coordinates(
+                    &payload,
+                )
+                .unwrap()
+                .is_some(),
             );
         }
         assert_eq!(

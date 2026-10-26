@@ -260,7 +260,7 @@ fn ordinary_rel_open_does_not_rewrite_retired_entity_resolution() {
         .persist_change(
             &mut rel.container,
             DecodedEntityResolution {
-                key,
+                key: crate::entity_resolution_boundary::store_key(key),
                 revision: 1,
                 updated_at_ns: 30,
                 status: Some(pending_retired_entity(retired.id)),
@@ -311,7 +311,7 @@ fn ordinary_phy_open_does_not_rewrite_retired_entity_resolution() {
         .persist_change(
             &mut phy.container,
             DecodedEntityResolution {
-                key,
+                key: crate::entity_resolution_boundary::store_key(key),
                 revision: 1,
                 updated_at_ns: 30,
                 status: Some(pending_retired_entity(retired.id)),

@@ -86,10 +86,7 @@ pub struct EntityDelta {
 }
 
 impl EntityDelta {
-    pub fn between(
-        previous: &EntityRecord,
-        next: &EntityRecord,
-    ) -> Result<Self, EntityError> {
+    pub fn between(previous: &EntityRecord, next: &EntityRecord) -> Result<Self, EntityError> {
         validate_record(previous)?;
         validate_record(next)?;
         if previous.id != next.id {

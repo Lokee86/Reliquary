@@ -165,20 +165,22 @@ impl Phylactery {
                 }
             }
         }
-        let entity_plan = reliquary_perception_store::entity_description_prune::prepare_description_prune(
-            &self.entities,
-            &mut self.container,
-            &selected_entities,
-            manifest_digest,
-        )?;
+        let entity_plan =
+            reliquary_perception_store::entity_description_prune::prepare_description_prune(
+                &self.entities,
+                &mut self.container,
+                &selected_entities,
+                manifest_digest,
+            )?;
         description_objects.extend(entity_plan.replacements);
         let mut description_discard = entity_plan.discard;
-        let relationship_plan = reliquary_perception_store::relationship_description_prune::prepare_description_prune(
-            &self.relationships,
-            &mut self.container,
-            &selected_relationships,
-            manifest_digest,
-        )?;
+        let relationship_plan =
+            reliquary_perception_store::relationship_description_prune::prepare_description_prune(
+                &self.relationships,
+                &mut self.container,
+                &selected_relationships,
+                manifest_digest,
+            )?;
         description_objects.extend(relationship_plan.replacements);
         description_discard.extend(relationship_plan.discard);
         for object in self.container.chunks()? {
@@ -345,7 +347,10 @@ impl Phylactery {
         }
         for object in self.container.chunks()? {
             let bytes = self.container.read(object)?;
-            let compact = reliquary_perception_store::entity_description_proof::compact_description_proof(&bytes)?;
+            let compact =
+                reliquary_perception_store::entity_description_proof::compact_description_proof(
+                    &bytes,
+                )?;
             let relationship_compact =
                 reliquary_perception_store::relationship_description_proof::compact_description_proof(&bytes)?;
             let payload = if let Some((id, revision, _)) = &relationship_compact {
@@ -441,7 +446,10 @@ impl Phylactery {
             .iter()
             .filter(|record| record.id == id)
         {
-            let raw = reliquary_perception_store::entity_retained_structure::encode_record_structure(original)?;
+            let raw =
+                reliquary_perception_store::entity_retained_structure::encode_record_structure(
+                    original,
+                )?;
             append_part(&mut structure, &raw);
             structure.extend(original.global_version.to_le_bytes());
             structure.extend(original.entity_version.to_le_bytes());

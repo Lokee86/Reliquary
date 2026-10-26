@@ -1,6 +1,6 @@
 //! Relationship-owned retained revision contract; wire and publication stay separate.
 use crate::relationship_model::{RelationshipParticipant, RelationshipRecord};
-use crate::{RelationshipMemoryRef, RelationshipError, RelationshipId};
+use crate::{RelationshipError, RelationshipId, RelationshipMemoryRef};
 use reliquary_container::codec::FieldChange;
 use std::collections::BTreeSet;
 

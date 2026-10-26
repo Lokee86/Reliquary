@@ -328,7 +328,7 @@ fn memory_body_prune_retains_revision_topology_and_rejects_unbound_marker() {
     assert!(matches!(
         reopened.memory_revision(memory.id, 1),
         Err(crate::MemoryError::PayloadUnavailable(
-            PayloadUnavailable::Pruned
+            reliquary_memory_core::MemoryPayloadUnavailable::Pruned
         ))
     ));
     assert!(
@@ -427,7 +427,7 @@ fn entity_relationship_descriptions_prune_with_topology_and_references_intact() 
             .unwrap()
     );
     assert!(matches!(
-        reopened.entities.entity_revision(entity.id, 1),
+        reopened.entity_revision(entity.id, 1),
         Err(crate::EntityError::PayloadUnavailable(
             PayloadUnavailable::Pruned
         ))
@@ -436,9 +436,11 @@ fn entity_relationship_descriptions_prune_with_topology_and_references_intact() 
         reopened
             .relationships
             .relationship_revision(relationship.id, 1),
-        Err(reliquary_perception_store::RelationshipError::PayloadUnavailable(
-            reliquary_perception_store::RelationshipPayloadUnavailable::Pruned
-        ))
+        Err(
+            reliquary_perception_store::RelationshipError::PayloadUnavailable(
+                reliquary_perception_store::RelationshipPayloadUnavailable::Pruned
+            )
+        )
     ));
     assert!(
         !fs::read(&output)

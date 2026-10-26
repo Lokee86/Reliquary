@@ -1,9 +1,9 @@
 //! Ordinary Entity publication writes Entity bodies in publication envelopes for REL and PHY.
-use reliquary_perception_store::entity_compact_codec::publication::{self, EntityPublication};
 use crate::{Cva, EntityDraft, EntityError, EntityId, Phylactery};
 use reliquary_container::Container;
 use reliquary_container::codec::FieldChange;
 use reliquary_container::publication_envelope::decode as decode_publication_envelope;
+use reliquary_perception_store::entity_compact_codec::publication::{self, EntityPublication};
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;

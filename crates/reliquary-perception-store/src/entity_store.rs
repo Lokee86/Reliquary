@@ -326,7 +326,10 @@ impl EntityStore {
         self.retired.insert(tombstone.id, tombstone.replacement_id);
         self.tombstones.insert(
             tombstone.id,
-            crate::EntityTerminalCoordinates { global_version, entity_version },
+            crate::EntityTerminalCoordinates {
+                global_version,
+                entity_version,
+            },
         );
         self.next_entity_version = next_entity_version;
         Ok(())
@@ -346,9 +349,7 @@ impl EntityStore {
             if expected_revision.checked_add(1) != self.revisions.get(&id).copied() {
                 return Err(EntityError::RevisionConflict);
             }
-            return Ok(crate::EntityTerminalOutcome::AlreadyTombstoned(
-                coordinates,
-            ));
+            return Ok(crate::EntityTerminalOutcome::AlreadyTombstoned(coordinates));
         }
         let index = self
             .current
@@ -378,7 +379,10 @@ impl EntityStore {
         let (global_version, _) = container.append_publication_envelope(&body)?;
         self.insert_direct_tombstone_rebuilt(tombstone, global_version, entity_version)?;
         Ok(crate::EntityTerminalOutcome::Published(
-            crate::EntityTerminalCoordinates { global_version, entity_version },
+            crate::EntityTerminalCoordinates {
+                global_version,
+                entity_version,
+            },
         ))
     }
 
@@ -418,7 +422,10 @@ impl EntityStore {
         self.revisions.insert(tombstone.id, tombstone.revision);
         self.tombstones.insert(
             tombstone.id,
-            crate::EntityTerminalCoordinates { global_version, entity_version },
+            crate::EntityTerminalCoordinates {
+                global_version,
+                entity_version,
+            },
         );
         self.next_entity_version = next_entity_version;
         Ok(())

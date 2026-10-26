@@ -1,10 +1,10 @@
 //! Test-only Entity revisions, direct terminals and merge replacement history.
 
 use crate::EntityId;
-use reliquary_perception_store::entity_model::EntityRecord;
-use reliquary_perception_store::EntityStore;
 use crate::historical_fingerprint::{HistoricalFingerprint, OwnerProjection};
 use reliquary_container::Container;
+use reliquary_perception_store::EntityStore;
+use reliquary_perception_store::entity_model::EntityRecord;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -50,7 +50,8 @@ pub(crate) fn entity_cut(
     }
     let mut replacements = BTreeMap::new();
     for id in ids {
-        if let Ok(crate::owner_lifecycle::LifecycleState::Tombstoned(_)) = store.lifecycle_state(id)
+        if let Ok(reliquary_perception_store::EntityLifecycleState::Tombstoned(_)) =
+            store.lifecycle_state(id)
         {
             let descriptor = store.retention_descriptor(id).map_err(|e| e.to_string())?;
             if descriptor.tombstone_entity_version > cut {

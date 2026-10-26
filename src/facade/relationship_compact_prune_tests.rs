@@ -1,16 +1,22 @@
 //! Native compact Relationship description pruning for REL and PHY owners.
 use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget};
 use crate::owner_maintenance::{HistoryPruneManifest, PrunedPayload, RetentionDomain};
-use reliquary_perception_store::relationship_compact_codec::publication::{self, RelationshipPublication};
-use reliquary_perception_store::relationship_compact_codec::{decode_creation, decode_delta, encode_creation};
-use reliquary_perception_store::relationship_compact_contract::{RelationshipCreation, RelationshipDescriptionProof};
-use reliquary_perception_store::relationship_model::RelationshipRecord;
 use crate::{
     Cva, EntityId, EntityRef, HistoryPruneRequest, MemoryId, MemoryRef, Phylactery,
     RelationshipDraft, RelationshipError, RelationshipId, RelationshipParticipant,
 };
 use reliquary_container::Container;
 use reliquary_container::publication_envelope::{self, PublicationEnvelope};
+use reliquary_perception_store::relationship_compact_codec::publication::{
+    self, RelationshipPublication,
+};
+use reliquary_perception_store::relationship_compact_codec::{
+    decode_creation, decode_delta, encode_creation,
+};
+use reliquary_perception_store::relationship_compact_contract::{
+    RelationshipCreation, RelationshipDescriptionProof,
+};
+use reliquary_perception_store::relationship_model::RelationshipRecord;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs;
@@ -353,7 +359,8 @@ fn tampered_relationship_carrier(
             }
             _ => return raw.to_vec(),
         }
-        return reliquary_perception_store::relationship_compact_codec::encode_delta(&delta).unwrap();
+        return reliquary_perception_store::relationship_compact_codec::encode_delta(&delta)
+            .unwrap();
     }
     raw.to_vec()
 }
@@ -534,7 +541,7 @@ fn assert_pruned(
         assert!(matches!(
             owner.relationship_revision(id, record.revision),
             Err(RelationshipError::PayloadUnavailable(
-                PayloadUnavailable::Pruned
+                crate::owner_lifecycle::PayloadUnavailable::Pruned
             ))
         ));
     }
@@ -583,7 +590,7 @@ fn assert_pruned_phy(
         assert!(matches!(
             owner.relationship_revision(id, record.revision),
             Err(RelationshipError::PayloadUnavailable(
-                PayloadUnavailable::Pruned
+                crate::owner_lifecycle::PayloadUnavailable::Pruned
             ))
         ));
     }

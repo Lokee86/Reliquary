@@ -4,21 +4,25 @@ use reliquary_perception_store::entity_codec::{
     DirectEntityTombstone, EntityTombstone, EntityVersion, encode_direct_tombstone,
     encode_tombstone, encode_version,
 };
-fn encode_creation(c: &EntityCreation) -> Result<Vec<u8>, crate::EntityError> {
+fn encode_creation(c: &EntityCreation) -> Result<Vec<u8>, reliquary_perception_store::EntityError> {
     reliquary_perception_store::entity_compact_codec::publication::encode(
-        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Creation(c.clone()),
+        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Creation(
+            c.clone(),
+        ),
     )
 }
-fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, crate::EntityError> {
+fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, reliquary_perception_store::EntityError> {
     reliquary_perception_store::entity_compact_codec::publication::encode(
-        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Delta(d.clone()),
+        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Delta(
+            d.clone(),
+        ),
     )
 }
-use reliquary_perception_store::entity_compact_contract::{EntityCreation, EntityDelta};
-use reliquary_perception_store::entity_model::EntityRecord;
 use crate::owner_lifecycle::{HistoricalPayload, LifecycleState, TombstoneCoordinates};
 use crate::{Cva, EntityError, EntityGlobalId, EntityId};
 use reliquary_container::Container;
+use reliquary_perception_store::entity_compact_contract::{EntityCreation, EntityDelta};
+use reliquary_perception_store::entity_model::EntityRecord;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -394,7 +398,7 @@ fn direct_and_merge_terminal_retries_are_exact_and_cross_form_retries_fail() {
                 replacement_id: Some(EntityId([8; 32])),
             },
         ),
-        Err(EntityError::TerminalTombstone)
+        Err(reliquary_perception_store::EntityError::TerminalTombstone)
     ));
 
     let merge_path = scratch.file("merge-retry.rel");
@@ -438,6 +442,6 @@ fn direct_and_merge_terminal_retries_are_exact_and_cross_form_retries_fail() {
                 replacement_id: None,
             },
         ),
-        Err(EntityError::TerminalTombstone)
+        Err(reliquary_perception_store::EntityError::TerminalTombstone)
     ));
 }

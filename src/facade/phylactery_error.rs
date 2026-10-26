@@ -79,6 +79,12 @@ from_error!(MemoryVectorError, MemoryVectors);
 from_error!(CompatibilityProfileError, CompatibilityProfiles);
 from_error!(EgoError, Ego);
 
+impl From<reliquary_perception_store::EntityError> for PhylacteryError {
+    fn from(value: reliquary_perception_store::EntityError) -> Self {
+        Self::Entities(value.into())
+    }
+}
+
 impl From<reliquary_perception_store::ResolutionError> for PhylacteryError {
     fn from(e: reliquary_perception_store::ResolutionError) -> Self {
         crate::entity_resolution_boundary::memory_error(e).into()

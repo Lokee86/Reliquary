@@ -1,19 +1,20 @@
 //! Relationship reconciliation of owner publication envelopes.
-use reliquary_perception_store::RelationshipMemoryRef;
 use super::{read_relationship_range, replay_relationship_tail};
+use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
+use crate::{Cva, EntityGlobalId, EntityId, EntityRef, RelationshipId, RelationshipParticipant};
+use reliquary_container::Container;
+use reliquary_container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
+use reliquary_perception_store::RelationshipMemoryRef;
 use reliquary_perception_store::entity_compact_codec::publication as entity_publication;
 use reliquary_perception_store::entity_compact_contract::EntityCreation;
 use reliquary_perception_store::entity_model::EntityRecord;
-use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
-use reliquary_perception_store::relationship_compact_codec::publication::{self, RelationshipPublication};
-use reliquary_perception_store::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
-use reliquary_perception_store::relationship_model::RelationshipRecord;
-use crate::{
-    Cva, EntityGlobalId, EntityId, EntityRef, RelationshipId,
-    RelationshipParticipant,
+use reliquary_perception_store::relationship_compact_codec::publication::{
+    self, RelationshipPublication,
 };
-use reliquary_container::Container;
-use reliquary_container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
+use reliquary_perception_store::relationship_compact_contract::{
+    RelationshipCreation, RelationshipDelta,
+};
+use reliquary_perception_store::relationship_model::RelationshipRecord;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -162,7 +163,10 @@ fn relationship_publication_slot(cva: &mut Cva, global: u64, local: u64) -> usiz
         .iter()
         .position(|chunk| {
             let payload = cva.container.read(*chunk).unwrap();
-            reliquary_perception_store::relationship_compact_codec::publication::coordinates(&payload).unwrap()
+            reliquary_perception_store::relationship_compact_codec::publication::coordinates(
+                &payload,
+            )
+            .unwrap()
                 == Some((global, local))
         })
         .expect("accepted Relationship publication slot")

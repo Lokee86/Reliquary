@@ -1,24 +1,32 @@
 //! Relationship publication envelopes remain live during reclamation.
-use reliquary_perception_store::RelationshipMemoryRef;
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
-use reliquary_perception_store::relationship_compact_codec::publication::{self, RelationshipPublication};
 use reliquary_container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
-fn encode_creation(c: &RelationshipCreation) -> Result<Vec<u8>, crate::RelationshipError> {
+use reliquary_perception_store::RelationshipMemoryRef;
+use reliquary_perception_store::relationship_compact_codec::publication::{
+    self, RelationshipPublication,
+};
+fn encode_creation(
+    c: &RelationshipCreation,
+) -> Result<Vec<u8>, reliquary_perception_store::RelationshipError> {
     reliquary_perception_store::relationship_compact_codec::publication::encode(
         &reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Creation(
             c.clone(),
         ),
     )
 }
-fn encode_delta(d: &RelationshipDelta) -> Result<Vec<u8>, crate::RelationshipError> {
+fn encode_delta(
+    d: &RelationshipDelta,
+) -> Result<Vec<u8>, reliquary_perception_store::RelationshipError> {
     reliquary_perception_store::relationship_compact_codec::publication::encode(
         &reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Delta(d.clone()),
     )
 }
-use reliquary_perception_store::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
-use reliquary_perception_store::relationship_model::{RelationshipParticipant, RelationshipRecord};
 use crate::{Cva, EntityId, EntityRef, MemoryId, MemoryRef, Phylactery, RelationshipId};
 use reliquary_container::{Container, FileKind};
+use reliquary_perception_store::relationship_compact_contract::{
+    RelationshipCreation, RelationshipDelta,
+};
+use reliquary_perception_store::relationship_model::{RelationshipParticipant, RelationshipRecord};
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};

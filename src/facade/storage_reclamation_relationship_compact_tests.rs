@@ -1,25 +1,31 @@
 //! Scratch REL/PHY storage reclamation coverage for compact Relationship chains.
-use reliquary_perception_store::RelationshipMemoryRef;
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
-fn encode_creation(c: &RelationshipCreation) -> Result<Vec<u8>, crate::RelationshipError> {
+use reliquary_perception_store::RelationshipMemoryRef;
+fn encode_creation(
+    c: &RelationshipCreation,
+) -> Result<Vec<u8>, reliquary_perception_store::RelationshipError> {
     reliquary_perception_store::relationship_compact_codec::publication::encode(
         &reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Creation(
             c.clone(),
         ),
     )
 }
-fn encode_delta(d: &RelationshipDelta) -> Result<Vec<u8>, crate::RelationshipError> {
+fn encode_delta(
+    d: &RelationshipDelta,
+) -> Result<Vec<u8>, reliquary_perception_store::RelationshipError> {
     reliquary_perception_store::relationship_compact_codec::publication::encode(
         &reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Delta(d.clone()),
     )
 }
-use reliquary_perception_store::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
-use reliquary_perception_store::relationship_model::RelationshipRecord;
 use crate::{
     Cva, EntityId, EntityRef, MemoryId, MemoryRef, Phylactery, RelationshipId,
     RelationshipParticipant,
 };
 use reliquary_container::Container;
+use reliquary_perception_store::relationship_compact_contract::{
+    RelationshipCreation, RelationshipDelta,
+};
+use reliquary_perception_store::relationship_model::RelationshipRecord;
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};

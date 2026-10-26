@@ -1,9 +1,9 @@
 //! Product replay admission after Memory and Entity projections finish.
-use reliquary_perception_store::EntityStore;
 use crate::graph_owner::GraphOwner;
 use crate::memory_store::MemoryStore;
 use crate::{GraphError, SemanticNodeKind};
 use reliquary_container::{ObjectRef, publication_envelope::PublicationEnvelope};
+use reliquary_perception_store::EntityStore;
 pub(crate) struct GraphReplay(reliquary_graph::GraphOpenState);
 impl GraphReplay {
     pub(crate) fn new() -> Self {

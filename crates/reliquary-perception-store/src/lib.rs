@@ -6,18 +6,18 @@ pub use entity_resolution_model::*;
 pub use resolution_error::ResolutionError;
 mod resolution_error;
 
-pub mod relationship_model;
-pub mod relationship_error;
 pub mod relationship_codec;
+pub mod relationship_compact_apply;
 pub mod relationship_compact_codec;
 pub mod relationship_compact_contract;
 pub mod relationship_compact_values;
-pub mod relationship_compact_apply;
-pub mod relationship_rebuild;
-pub mod relationship_store;
-pub mod relationship_retained_structure;
 pub mod relationship_description_proof;
 pub mod relationship_description_prune;
+pub mod relationship_error;
+pub mod relationship_model;
+pub mod relationship_rebuild;
+pub mod relationship_retained_structure;
+pub mod relationship_store;
 
 pub use relationship_error::RelationshipError;
 pub use relationship_model::{
@@ -49,11 +49,15 @@ pub mod entity_retained_structure;
 mod entity_store;
 
 pub use entity_error::{EntityError, EntityPayloadUnavailable};
+#[doc(hidden)]
+pub use entity_identity::{
+    PRINCIPAL_ENTITY_KIND, is_phy_principal_id, principal_entity_global_id, principal_entity_id,
+};
 pub use entity_model::{
-    Entity, EntityDraft, EntityGlobalId, EntityId, EntityMergeOutcome,
-    EntityRetainedRevision, EntityRetentionDescriptor, EntityStats,
-    EntityTerminalCoordinates, EntityTerminalOutcome, EntityLifecycleState, MAX_ENTITY_ALIASES,
-    MAX_ENTITY_KIND_BYTES, MAX_ENTITY_NAME_BYTES, MAX_ENTITY_SUMMARY_BYTES,
+    Entity, EntityDraft, EntityGlobalId, EntityId, EntityLifecycleState, EntityMergeOutcome,
+    EntityRetainedRevision, EntityRetentionDescriptor, EntityStats, EntityTerminalCoordinates,
+    EntityTerminalOutcome, MAX_ENTITY_ALIASES, MAX_ENTITY_KIND_BYTES, MAX_ENTITY_NAME_BYTES,
+    MAX_ENTITY_SUMMARY_BYTES,
 };
 pub use entity_rebuild::EntityOpenState;
 pub use entity_store::{EntityReplayPublication, EntityStore};

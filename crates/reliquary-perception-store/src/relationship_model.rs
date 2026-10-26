@@ -1,5 +1,3 @@
-
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RelationshipTombstoneCoordinates {
     pub global_version: Option<u64>,

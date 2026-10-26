@@ -103,4 +103,7 @@ pub enum EntityTerminalOutcome {
     AlreadyTombstoned(EntityTerminalCoordinates),
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum EntityLifecycleState { Active, Tombstoned(EntityTerminalCoordinates) }
+pub enum EntityLifecycleState {
+    Active,
+    Tombstoned(EntityTerminalCoordinates),
+}

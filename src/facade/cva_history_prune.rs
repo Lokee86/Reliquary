@@ -314,12 +314,13 @@ impl Cva {
                 _ => None,
             })
             .collect::<HashSet<_>>();
-        let entity_plan = reliquary_perception_store::entity_description_prune::prepare_description_prune(
-            &self.entities,
-            &mut self.container,
-            &selected_entities,
-            manifest_digest,
-        )?;
+        let entity_plan =
+            reliquary_perception_store::entity_description_prune::prepare_description_prune(
+                &self.entities,
+                &mut self.container,
+                &selected_entities,
+                manifest_digest,
+            )?;
         let mut description_objects = entity_plan.replacements;
         let mut description_discard = entity_plan.discard;
         let selected_relationships = description_targets
@@ -329,12 +330,13 @@ impl Cva {
                 _ => None,
             })
             .collect::<HashSet<_>>();
-        let relationship_plan = reliquary_perception_store::relationship_description_prune::prepare_description_prune(
-            &self.relationships,
-            &mut self.container,
-            &selected_relationships,
-            manifest_digest,
-        )?;
+        let relationship_plan =
+            reliquary_perception_store::relationship_description_prune::prepare_description_prune(
+                &self.relationships,
+                &mut self.container,
+                &selected_relationships,
+                manifest_digest,
+            )?;
         description_objects.extend(relationship_plan.replacements);
         description_discard.extend(relationship_plan.discard);
         let source_file_bytes = fs::metadata(self.container.path())

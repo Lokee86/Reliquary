@@ -1,11 +1,11 @@
 //! Product admission for foreign Memory evidence. The compiled store owns persistence.
-use reliquary_perception_store::EntityStore;
 use crate::memory_store::MemoryStore;
 use crate::{
     EntityId, EntityResolutionCompaction, EntityResolutionReason, MemoryEntityMentionKey,
     MemoryEntityResolution, MemoryEntityResolutionStatus, MemoryError, MemoryId,
 };
 use reliquary_container::Container;
+use reliquary_perception_store::EntityStore;
 use reliquary_perception_store::entity_resolution_model as wire;
 use reliquary_perception_store::{ResolutionError, entity_resolution_store::EntityResolutionStore};
 
@@ -402,11 +402,21 @@ impl ResolutionAdmission for EntityResolutionStore {
         }
         let count = changes.len();
         for (key, updated_at_ns, status) in changes {
-            let revision = self.get(key).map_or(0, |v| v.revision)
-                .checked_add(1).ok_or(MemoryError::VersionExhausted)?;
-            self.persist_change(c, reliquary_perception_store::entity_resolution_codec::DecodedEntityResolution {
-                key, revision, updated_at_ns, status: Some(status),
-            }).map_err(memory_error)?;
+            let revision = self
+                .get(key)
+                .map_or(0, |v| v.revision)
+                .checked_add(1)
+                .ok_or(MemoryError::VersionExhausted)?;
+            self.persist_change(
+                c,
+                reliquary_perception_store::entity_resolution_codec::DecodedEntityResolution {
+                    key,
+                    revision,
+                    updated_at_ns,
+                    status: Some(status),
+                },
+            )
+            .map_err(memory_error)?;
         }
         Ok(count)
     }

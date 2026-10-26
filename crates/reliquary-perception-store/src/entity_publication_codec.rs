@@ -96,10 +96,7 @@ pub fn encode(publication: &EntityPublication) -> Result<Vec<u8>, EntityError> {
     Ok(out)
 }
 
-pub fn decode(
-    bytes: &[u8],
-    global_version: u64,
-) -> Result<Option<EntityPublication>, EntityError> {
+pub fn decode(bytes: &[u8], global_version: u64) -> Result<Option<EntityPublication>, EntityError> {
     let creation = bytes.starts_with(b"CVAENC");
     let delta = bytes.starts_with(b"CVAEND");
     let direct = bytes.starts_with(b"CVAETD");
@@ -248,9 +245,7 @@ pub fn comparison_carrier(publication: &EntityPublication) -> Result<Vec<u8>, En
     }
 }
 
-pub fn history_evidence(
-    payload: &[u8],
-) -> Result<Option<(u64, Vec<u8>, [u8; 32])>, EntityError> {
+pub fn history_evidence(payload: &[u8]) -> Result<Option<(u64, Vec<u8>, [u8; 32])>, EntityError> {
     let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };

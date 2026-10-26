@@ -105,4 +105,3 @@ impl EntityOpenState {
         Ok(self.store)
     }
 }
-

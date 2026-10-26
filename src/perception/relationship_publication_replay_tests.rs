@@ -1,14 +1,15 @@
 //! Relationship publication-envelope replay and history admission through REL and PHY.
-use reliquary_perception_store::RelationshipMemoryRef;
-use reliquary_perception_store::relationship_compact_codec::publication::{self, RelationshipPublication};
-use reliquary_perception_store::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
-use reliquary_perception_store::relationship_model::RelationshipRecord;
-use crate::{
-    Cva, EntityId, EntityRef, Phylactery, RelationshipId,
-    RelationshipParticipant,
-};
+use crate::{Cva, EntityId, EntityRef, Phylactery, RelationshipId, RelationshipParticipant};
 use reliquary_container::Container;
 use reliquary_container::publication_envelope::{PublicationClock, PublicationEnvelope};
+use reliquary_perception_store::RelationshipMemoryRef;
+use reliquary_perception_store::relationship_compact_codec::publication::{
+    self, RelationshipPublication,
+};
+use reliquary_perception_store::relationship_compact_contract::{
+    RelationshipCreation, RelationshipDelta,
+};
+use reliquary_perception_store::relationship_model::RelationshipRecord;
 use std::fs;
 use std::path::{Path, PathBuf};
 

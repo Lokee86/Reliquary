@@ -1,12 +1,12 @@
 //! Entity reconciliation of owner publication envelopes.
 use super::{read_entity_range, replay_entity_tail};
-use reliquary_perception_store::entity_compact_codec::publication::{self, EntityPublication};
-use reliquary_perception_store::entity_compact_contract::{EntityCreation, EntityDelta};
-use reliquary_perception_store::entity_model::EntityRecord;
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
 use crate::{Cva, EntityGlobalId, EntityId};
 use reliquary_container::Container;
 use reliquary_container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
+use reliquary_perception_store::entity_compact_codec::publication::{self, EntityPublication};
+use reliquary_perception_store::entity_compact_contract::{EntityCreation, EntityDelta};
+use reliquary_perception_store::entity_model::EntityRecord;
 use std::fs;
 use std::path::{Path, PathBuf};
 

@@ -1,17 +1,17 @@
 //! Native pruning of Relationship envelope publications in REL and PHY owners.
-use reliquary_perception_store::RelationshipMemoryRef;
 use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget, PayloadUnavailable};
 use crate::owner_maintenance::owner_history_digest;
-use reliquary_perception_store::relationship_compact_codec::publication::{self, RelationshipPublication};
+use crate::{Cva, EntityId, EntityRef, HistoryPruneRequest, Phylactery, RelationshipId};
+use reliquary_container::publication_envelope;
+use reliquary_container::{Container, FileKind};
+use reliquary_perception_store::RelationshipMemoryRef;
+use reliquary_perception_store::relationship_compact_codec::publication::{
+    self, RelationshipPublication,
+};
 use reliquary_perception_store::relationship_compact_contract::{
     RelationshipCreation, RelationshipDelta, RelationshipDescriptionProof,
 };
 use reliquary_perception_store::relationship_model::{RelationshipParticipant, RelationshipRecord};
-use crate::{
-    Cva, EntityId, EntityRef, HistoryPruneRequest, Phylactery, RelationshipId,
-};
-use reliquary_container::publication_envelope;
-use reliquary_container::{Container, FileKind};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs;

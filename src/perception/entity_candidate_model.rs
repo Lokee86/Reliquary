@@ -99,3 +99,9 @@ impl From<crate::EntityError> for EntityCandidateError {
         Self::Entity(value)
     }
 }
+
+impl From<reliquary_perception_store::EntityError> for EntityCandidateError {
+    fn from(value: reliquary_perception_store::EntityError) -> Self {
+        Self::Entity(value.into())
+    }
+}
