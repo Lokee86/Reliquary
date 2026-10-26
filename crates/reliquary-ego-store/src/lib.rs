@@ -4,7 +4,6 @@ pub mod ego_compact_contract;
 mod ego_error;
 pub mod ego_model;
 pub mod ego_store;
-pub mod owner_lifecycle;
 pub use ego_error::EgoError;
 pub use ego_model::*;
 pub use ego_store::EgoStore;

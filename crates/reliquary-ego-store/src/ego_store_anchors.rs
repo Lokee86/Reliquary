@@ -45,9 +45,15 @@ impl EgoStore {
         text: String,
     ) -> Result<(EgoAnchor, bool), EgoError> {
         validate_anchor_text(&text)?;
-        self.anchor_lifecycle(id)
+        match self
+            .anchor_lifecycle(id)
             .ok_or(EgoError::NotFound("Anchor"))?
-            .require_active(crate::owner_lifecycle::LifecycleTarget::EgoAnchor(id))?;
+        {
+            crate::EgoLifecycleState::Active => {}
+            crate::EgoLifecycleState::Tombstoned { .. } => {
+                return Err(EgoError::TerminalAnchor(id));
+            }
+        }
         let state = self
             .anchors
             .get(&id)

@@ -194,10 +194,7 @@ impl EgoStore {
                     revision,
                 )?;
                 if self.anchors.get(&id).is_some_and(|state| state.deleted) {
-                    return Err(crate::owner_lifecycle::LifecycleError::TerminalTombstone(
-                        crate::owner_lifecycle::LifecycleTarget::EgoAnchor(id),
-                    )
-                    .into());
+                    return Err(EgoError::TerminalAnchor(id));
                 }
                 if deleted {
                     self.anchor_deletions.insert(id, ego_version);
@@ -259,19 +256,13 @@ impl EgoStore {
             revision,
         )?;
         if self.identities.get(&id).is_some_and(|state| state.deleted) {
-            return Err(crate::owner_lifecycle::LifecycleError::TerminalTombstone(
-                crate::owner_lifecycle::LifecycleTarget::EgoIdentity(id),
-            )
-            .into());
+            return Err(EgoError::TerminalIdentity(id));
         }
         if deleted && self.active_identity_id == Some(id) && self.live_identity_count() > 1 {
             return Err(EgoError::ActiveIdentityDeletion);
         }
         if deleted && activate {
-            return Err(crate::owner_lifecycle::LifecycleError::TerminalTombstone(
-                crate::owner_lifecycle::LifecycleTarget::EgoIdentity(id),
-            )
-            .into());
+            return Err(EgoError::TerminalIdentity(id));
         }
         let live_after = self.live_identity_count()
             + usize::from(!deleted && !self.identities.contains_key(&id))
@@ -328,7 +319,10 @@ impl EgoStore {
         let state = self
             .identity_lifecycle(id)
             .ok_or(EgoError::NotFound("Identity"))?;
-        Ok(state.require_active(crate::owner_lifecycle::LifecycleTarget::EgoIdentity(id))?)
+        if matches!(state, crate::EgoLifecycleState::Tombstoned { .. }) {
+            return Err(EgoError::TerminalIdentity(id));
+        }
+        Ok(())
     }
 
     fn live_identity_count(&self) -> usize {

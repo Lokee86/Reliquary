@@ -69,9 +69,7 @@ impl EgoStore {
         self.require_phylactery("Identity is PHY-owned")?;
         validate_text("identity name", &name)?;
         validate_text("identity", &text)?;
-        self.identity_lifecycle(id)
-            .ok_or(EgoError::NotFound("Identity"))?
-            .require_active(crate::owner_lifecycle::LifecycleTarget::EgoIdentity(id))?;
+        self.require_live_identity(id)?;
         let state = self
             .identities
             .get(&id)

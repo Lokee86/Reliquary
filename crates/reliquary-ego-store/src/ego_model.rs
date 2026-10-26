@@ -43,4 +43,11 @@ pub struct EgoWebSynthesis {
     pub text: String,
 }
 
+/// Ego-local lifecycle facts, mapped into the product lifecycle at the root.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EgoLifecycleState {
+    Active,
+    Tombstoned { ego_version: Option<u64> },
+}
+
 pub const MAX_EGO_ANCHOR_CHARS: usize = 2_500;

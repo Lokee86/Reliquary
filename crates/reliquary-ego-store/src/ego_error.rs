@@ -4,7 +4,8 @@ use std::fmt;
 #[derive(Debug)]
 pub enum EgoError {
     Container(ContainerError),
-    Lifecycle(crate::owner_lifecycle::LifecycleError),
+    TerminalIdentity(crate::EgoIdentityId),
+    TerminalAnchor(crate::EgoAnchorId),
     InvalidRecord(String),
     InvalidOwnerRecord(&'static str),
     InvalidSourceMemoryVersion { source: u64, current: u64 },
@@ -16,7 +17,8 @@ pub enum EgoError {
 impl fmt::Display for EgoError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Lifecycle(error) => write!(f, "Ego lifecycle error: {error:?}"),
+            Self::TerminalIdentity(id) => write!(f, "Ego Identity terminal tombstone: {id:?}"),
+            Self::TerminalAnchor(id) => write!(f, "Ego Anchor terminal tombstone: {id:?}"),
             Self::Container(error) => write!(f, "{error}"),
             Self::InvalidRecord(message) => write!(f, "invalid Ego record: {message}"),
             Self::InvalidOwnerRecord(message) => write!(f, "invalid Ego owner record: {message}"),
@@ -42,11 +44,5 @@ impl std::error::Error for EgoError {}
 impl From<ContainerError> for EgoError {
     fn from(value: ContainerError) -> Self {
         Self::Container(value)
-    }
-}
-
-impl From<crate::owner_lifecycle::LifecycleError> for EgoError {
-    fn from(value: crate::owner_lifecycle::LifecycleError) -> Self {
-        Self::Lifecycle(value)
     }
 }

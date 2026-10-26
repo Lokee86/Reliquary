@@ -1,5 +1,8 @@
 use super::EgoStore;
-use crate::{EgoAnchor, EgoAnchorId, EgoIdentity, EgoIdentityId, EgoPersonality, EgoWebSynthesis};
+use crate::{
+    EgoAnchor, EgoAnchorId, EgoIdentity, EgoIdentityId, EgoLifecycleState, EgoPersonality,
+    EgoWebSynthesis,
+};
 
 impl EgoStore {
     pub fn version(&self) -> u64 {
@@ -69,20 +72,14 @@ impl EgoStore {
 }
 
 impl EgoStore {
-    pub fn identity_lifecycle(
-        &self,
-        id: EgoIdentityId,
-    ) -> Option<crate::owner_lifecycle::LifecycleState> {
+    pub fn identity_lifecycle(&self, id: EgoIdentityId) -> Option<EgoLifecycleState> {
         let state = self.identities.get(&id)?;
         Some(lifecycle(
             state.deleted,
             self.identity_deletions.get(&id).copied(),
         ))
     }
-    pub fn anchor_lifecycle(
-        &self,
-        id: EgoAnchorId,
-    ) -> Option<crate::owner_lifecycle::LifecycleState> {
+    pub fn anchor_lifecycle(&self, id: EgoAnchorId) -> Option<EgoLifecycleState> {
         let state = self.anchors.get(&id)?;
         Some(lifecycle(
             state.deleted,
@@ -96,15 +93,12 @@ impl EgoStore {
         self.anchor_history.get(&(id, revision)).cloned()
     }
 }
-fn lifecycle(deleted: bool, version: Option<u64>) -> crate::owner_lifecycle::LifecycleState {
+fn lifecycle(deleted: bool, version: Option<u64>) -> EgoLifecycleState {
     if deleted {
-        crate::owner_lifecycle::LifecycleState::Tombstoned(
-            crate::owner_lifecycle::TombstoneCoordinates {
-                global_version: None,
-                domain_version: version,
-            },
-        )
+        EgoLifecycleState::Tombstoned {
+            ego_version: version,
+        }
     } else {
-        crate::owner_lifecycle::LifecycleState::Active
+        EgoLifecycleState::Active
     }
 }

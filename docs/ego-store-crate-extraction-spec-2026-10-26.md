@@ -1,6 +1,6 @@
 # Ego Store crate extraction — implementation specification
 
-**Status:** Proposed; no Ego Store extraction implemented.
+**Status:** Implemented at `202479e7` and post-extraction boundary review completed on 2026-10-26. Scope-limited verification is recorded in §9; this is not a claim of full-product corpus acceptance.
 **Repository:** `C:\!bin\workspace\Reliquary-crate-first`
 **Branch:** `refactor/crate-first-restart` · pre-spec HEAD `7b75ffbc`
 **Target:** `crates/reliquary-ego-store/` — **seventh compiled owner extraction**, following Perception Store.
@@ -124,3 +124,19 @@ A bounded red intermediate compile interval is acceptable. Do not leave dual liv
 ## 8. Out of scope
 
 No per-REL itemized PHY Memory-Web summary schema, Ego audit/selection/reconciliation model inference, Personality generation, cross-chat or cross-REL context selection, Ego budgeting/injection, Freshness policy, Owner Lifecycle extraction, History/Maintenance redesign, physical Container changes, global clock changes, new feature work, new source-backed inference calls, runtime/host wiring, or supplemental architecture proof machinery.
+
+## 9. Post-extraction integration and boundary review — 2026-10-26
+
+**Standards / architecture:** The compiled `EgoStore` in `reliquary-ego-store` is the sole Ego state/codec owner, with `reliquary-container` its only Reliquary Cargo dependency. Product REL/PHY facades retain owner authority, real Memory watermark admission and public lifecycle vocabulary. The initial extraction unnecessarily copied general `owner_lifecycle` types into the lower crate; review replaced that copy with store-specific `EgoLifecycleState` and terminal Identity/Anchor errors, mapping once at the root product boundary. No additional mutable owner state, physical storage or compatibility codec was introduced.
+
+**Specification / contract:** Existing Identity/Anchor/Personality/text-synthesis model, exact compact codecs, REL/PHY constraints, borrowed singleton accessors, terminal idempotence, current history and public error mapping are retained. Pure Ego value decoding does not import high-level synthesis, Owner Lifecycle, Memory, or Runtime; History/maintenance/reconciliation remain higher-level consumers.
+
+**Executed checks (post-correction):**
+- `cargo test -p reliquary-ego-store --locked --offline`: **27 passed**.
+- `cargo test --lib ego --locked --offline`: **29 passed**, including historical Ego fingerprints, owner lifecycle, maintenance, reconciliation and rewrite cases.
+- `cargo test --manifest-path cli/Cargo.toml --locked --offline`: **32 passed** with CLI's own lockfile.
+- `cargo check --workspace --locked --offline`: passed immediately before the boundary cleanup; post-cleanup root test and CLI compilation also passed.
+- `cargo fmt --all -- --check`: passed after source cleanup.
+- Exact formats and malformed-Ego / Entity-terminal collision were covered by the existing migrated codec/replay tests. No new test suite or graph-proof ledger was added.
+
+**Verification limits:** This targeted review does not certify the unfiltered root suite, costly historical-prefix/performance tests, renewed Arcana/Pitlord scanning, or the separate promoted `CVAFRS07` Freshness/Import corpus gate. External-source runtime failures recorded during the preceding Perception Store extraction were not investigated as part of this Ego-only correction.

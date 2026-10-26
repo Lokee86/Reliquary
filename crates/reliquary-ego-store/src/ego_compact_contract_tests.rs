@@ -1,7 +1,5 @@
 use crate::ego_codec::EgoRecord;
-use crate::ego_compact_contract::{
-    EgoChanges, EgoCreation, EgoDelta, EgoTerminal, is_terminal, revision,
-};
+use crate::ego_compact_contract::{EgoChanges, EgoDelta, EgoTerminal, is_terminal};
 use crate::ego_store::EgoStore;
 use crate::{EgoAnchorId, EgoAnchorPriority, EgoError, EgoIdentityId};
 use reliquary_container::codec::FieldChange;
@@ -212,7 +210,7 @@ fn raw_anchor_terminal_preserves_changed_priority_and_can_be_first_revision() {
     assert!(store.anchor(id).is_none());
     assert!(matches!(
         store.anchor_lifecycle(id),
-        Some(crate::owner_lifecycle::LifecycleState::Tombstoned(_))
+        Some(crate::EgoLifecycleState::Tombstoned { .. })
     ));
 
     let initial_terminal = anchor(

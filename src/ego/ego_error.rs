@@ -57,7 +57,16 @@ impl From<reliquary_ego_store::EgoError> for EgoError {
 
         match value {
             StoreError::Container(error) => Self::Container(error),
-            StoreError::Lifecycle(error) => Self::Lifecycle(error.into()),
+            StoreError::TerminalIdentity(id) => {
+                Self::Lifecycle(crate::owner_lifecycle::LifecycleError::TerminalTombstone(
+                    crate::owner_lifecycle::LifecycleTarget::EgoIdentity(id),
+                ))
+            }
+            StoreError::TerminalAnchor(id) => {
+                Self::Lifecycle(crate::owner_lifecycle::LifecycleError::TerminalTombstone(
+                    crate::owner_lifecycle::LifecycleTarget::EgoAnchor(id),
+                ))
+            }
             StoreError::InvalidRecord(message) => Self::InvalidRecord(message),
             StoreError::InvalidOwnerRecord(message) => Self::InvalidOwnerRecord(message),
             StoreError::InvalidSourceMemoryVersion { source, current } => {
@@ -72,39 +81,14 @@ impl From<reliquary_ego_store::EgoError> for EgoError {
     }
 }
 
-impl From<reliquary_ego_store::owner_lifecycle::LifecycleError>
-    for crate::owner_lifecycle::LifecycleError
-{
-    fn from(value: reliquary_ego_store::owner_lifecycle::LifecycleError) -> Self {
-        use reliquary_ego_store::owner_lifecycle::{
-            LifecycleError as StoreError, LifecycleTarget as StoreTarget,
-        };
-
+impl From<reliquary_ego_store::EgoLifecycleState> for crate::owner_lifecycle::LifecycleState {
+    fn from(value: reliquary_ego_store::EgoLifecycleState) -> Self {
         match value {
-            StoreError::TerminalTombstone(target) => Self::TerminalTombstone(match target {
-                StoreTarget::EgoIdentity(id) => {
-                    crate::owner_lifecycle::LifecycleTarget::EgoIdentity(id)
-                }
-                StoreTarget::EgoAnchor(id) => {
-                    crate::owner_lifecycle::LifecycleTarget::EgoAnchor(id)
-                }
-            }),
-        }
-    }
-}
-
-impl From<reliquary_ego_store::owner_lifecycle::LifecycleState>
-    for crate::owner_lifecycle::LifecycleState
-{
-    fn from(value: reliquary_ego_store::owner_lifecycle::LifecycleState) -> Self {
-        use reliquary_ego_store::owner_lifecycle::LifecycleState as StoreState;
-
-        match value {
-            StoreState::Active => Self::Active,
-            StoreState::Tombstoned(at) => {
+            reliquary_ego_store::EgoLifecycleState::Active => Self::Active,
+            reliquary_ego_store::EgoLifecycleState::Tombstoned { ego_version } => {
                 Self::Tombstoned(crate::owner_lifecycle::TombstoneCoordinates {
-                    global_version: at.global_version,
-                    domain_version: at.domain_version,
+                    global_version: None,
+                    domain_version: ego_version,
                 })
             }
         }
