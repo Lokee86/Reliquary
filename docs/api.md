@@ -15,6 +15,21 @@ lifecycle APIs map owner terminal coordinates into
 `LifecycleState`, `TombstoneOutcome` and historical payload availability.
 
 
+## Perception Store boundary
+
+The root reexports the canonical Entity and Relationship identities from
+`reliquary-perception-store`. Durable Entity, mention-resolution and existing
+Relationship records are independent owner stores backed by Container. Product
+facades retain Memory evidence validation, owner authority and Graph coordination.
+
+`Cva::entity_resolution(key)` and `Phylactery::entity_resolution(key)` return
+`Option<MemoryEntityResolution>` by value. The mention-key parameter and the
+record's key remain Memory Core values; root converts the store's exact foreign
+wire coordinates without keeping another persistent implementation or cache.
+Callers no longer need `.cloned()` and compare against `Some(record)` rather
+than `Some(&record)`. This extraction preserves storage bytes and does not add
+Observation synthesis.
+
 ## Archive source owner
 
 The product `Archive` API is backed by the independently compiled

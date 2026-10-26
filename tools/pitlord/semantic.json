@@ -62,8 +62,15 @@
       ]
     },
     {
+      "id": "perception-store",
+      "description": "Compiled Entity, mention-resolution and transitional Relationship durable stores; no product inference or foreign-owner authority",
+      "paths": [
+        "crates/reliquary-perception-store/src"
+      ]
+    },
+    {
       "id": "perception",
-      "description": "Durable Entity state, admission, candidate routing, resolution state, and resolver processing",
+      "description": "Product Entity admission, candidate routing, resolution decisions, principal workflows and cross-owner coordination",
       "paths": [
         "src/perception"
       ]
@@ -165,6 +172,14 @@
     }
   ],
   "rules": [
+    {
+      "id": "perception-store-no-upward-dependencies",
+      "type": "forbid_dependency",
+      "from_areas": ["perception-store"],
+      "to_areas": ["archive", "memory", "retrieval", "semantic-graph", "perception", "chronos", "ego", "runtime-inference", "config-security", "facade", "context-engine", "project-environment", "staleness", "native-import", "external-source", "history-rewrite", "echo", "freshness"],
+      "relations": ["calls", "imports", "references"],
+      "message": "Perception Store depends only on Container; foreign evidence admission and semantic decisions belong to the product."
+    },
     {
       "id": "reliquary-rust-source-has-one-owner",
       "type": "require_ownership",

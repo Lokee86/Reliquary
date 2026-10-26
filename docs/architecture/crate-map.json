@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "status": "container-archive-memory-core-echo-and-graph-extracted-other-owner-crates-reserved",
+  "status": "container-archive-memory-core-echo-graph-and-perception-store-extracted-other-owner-crates-reserved",
   "primary_crates": [
     "reliquary-archive",
     "reliquary-memory-core",

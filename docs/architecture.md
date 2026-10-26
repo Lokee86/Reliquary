@@ -108,6 +108,28 @@ representative selection and traversal policy in root consumers. This cut
 preserves the existing Graph/Community codecs and does not establish the
 separate CVAFRS07 whole-product recovery gate.
 
+## Perception durable owner crate
+
+`reliquary-perception-store` owns the separate Entity, mention-resolution and
+transitional Relationship stores. Their values, compact codecs, replay,
+retention and indexes live under `crates/reliquary-perception-store/src/`.
+Container is its only Reliquary dependency. This does not extract the Perception
+decision service or introduce Observation synthesis.
+
+Foreign Memory evidence and mention coordinates retain their exact wire values.
+The product boundary converts Memory Core values and validates immutable mention
+binding, current or historical existence, owner authority and principal rules.
+Inference, candidate selection, merge coordination, Graph projection and
+destructive maintenance authorization remain above the store. Ordinary replay
+does not repair owner bytes. Entity and Relationship publication keep their
+existing global and owner-local clocks; resolution metadata remains clock-neutral.
+
+`Cva::entity_resolution` and `Phylactery::entity_resolution` return an owned
+`MemoryEntityResolution` so the public record retains Memory Core's mention key
+without duplicating the store's in-memory projection. Mention-key inputs and
+persisted bytes are unchanged. This return-value adjustment was explicitly
+approved for the extraction.
+
 ## Development-format lifecycle
 
 [ADR0042](decisions/0042-minimal-lossless-current-history.md) records the owner-specific compact history architecture. The [six-source oracle](canonical-history-migration-results-2026-10-21.md) now passes every concrete owner history and global ordering point. The six canonical files are promoted; reader and upgrader deletion is implemented, with post-retirement acceptance tracked in the linear plan.

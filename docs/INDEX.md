@@ -40,6 +40,7 @@
 - [Memory Core crate extraction specification](memory-core-crate-extraction-spec-2026-10-25.md) — third hard-cut extraction: Memory persistence, foreign source identities, grouped publication boundaries, lifecycle/maintenance separation, and behavioral gates.
 - [Memory Core extraction results](memory-core-crate-extraction-results-2026-10-25.md) — corrected grouped replay validation, verified owner/root checks, and explicit corpus gate.
 - [Echo crate extraction specification](echo-crate-extraction-spec-2026-10-26.md) — fourth compiled owner cut: source-keyed execution evidence, CVAECHO1 replay, runtime/Context Engine authority separation and integration gates.
+- [Perception Store crate extraction specification](perception-store-crate-extraction-spec-2026-10-26.md) — sixth compiled owner cut: Entity, mention-resolution and Relationship persistence below Perception service and Owner Lifecycle.
 - [Subsystem documentation](subsystems/INDEX.md) — focused current-state ownership, behavior, lifecycle, failure, and implementation maps.
 - [Architectural invariants](invariants.md) — governing ownership and storage constraints.
 - [Storage format](storage-format.md) — exact current REL/PHY persistent-record format, legacy CVA compatibility, and migration boundary.
@@ -223,6 +224,8 @@
 - [minimal-lossless-history-storage-spec-2026-10-19.md](minimal-lossless-history-storage-spec-2026-10-19.md) - Minimal Lossless History Storage Spec 2026 10 19 documentation.
 - [multiplexing-implementation-plan.md](multiplexing-implementation-plan.md) - Multiplexing Implementation Plan documentation.
 - [native-import.md](native-import.md) - Native Import documentation.
+- [perception-store-crate-extraction-evidence-2026-10-26.md](perception-store-crate-extraction-evidence-2026-10-26.md) - Perception Store Crate Extraction Evidence 2026 10 26 documentation.
+- [perception-store-crate-extraction-spec-2026-10-26.md](perception-store-crate-extraction-spec-2026-10-26.md) - Perception Store Crate Extraction Spec 2026 10 26 documentation.
 - [perception-subsystem-plan.md](perception-subsystem-plan.md) - Perception Subsystem Plan documentation.
 - [publication-envelope-contract-2026-10-20.md](publication-envelope-contract-2026-10-20.md) - Publication Envelope Contract 2026 10 20 documentation.
 - [retained-entity-resolution-contract-2026-10-21.md](retained-entity-resolution-contract-2026-10-21.md) - Retained Entity Resolution Contract 2026 10 21 documentation.
