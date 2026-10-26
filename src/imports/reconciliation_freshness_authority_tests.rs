@@ -367,10 +367,12 @@ fn owner_scope_events_outside_epoch_interval_are_compared_by_normalized_facts() 
     left.container.sync().unwrap();
     right.container.sync().unwrap();
     left.freshness
-        .bind_history_path(&left_path, fs::metadata(&left_path).unwrap().len());
+        .bind_history_source(&left.container, fs::metadata(&left_path).unwrap().len())
+        .unwrap();
     right
         .freshness
-        .bind_history_path(&right_path, fs::metadata(&right_path).unwrap().len());
+        .bind_history_source(&right.container, fs::metadata(&right_path).unwrap().len())
+        .unwrap();
     let requested = BTreeSet::from([id]);
     let left_events = left
         .freshness
@@ -480,7 +482,10 @@ fn completed_scope_inventory(
     )
     .unwrap();
     let start = cva.open_import_epoch().unwrap().clone();
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     // Imported episodes can expose normalized node ids and turn membership
     // that differ from the canned live-episode fixture. Build the response
     // from the claimed episode's actual user turns, as readiness tests do.
@@ -538,7 +543,7 @@ fn completed_scope_inventory(
     let result = cva
         .process_claimed_insomnia_episode(&claim, &extractor, "private", 110, 111)
         .unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     let memory = result
         .created
         .first()
@@ -549,7 +554,10 @@ fn completed_scope_inventory(
     // otherwise inventory cannot reach the accepted-event authority check.
     let pass = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), memory);
     let graph_version = cva.graph_version();
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     cva.begin_initial_dream_pass(
         pass.clone(),
         memory,
@@ -565,11 +573,14 @@ fn completed_scope_inventory(
     crate::dream_freshness::settle_initial_pass(&mut cva, memory, true, 120).unwrap();
     let dream_epoch = cva.dream_eligible_epoch(memory, 120).unwrap().unwrap_or(0);
     assert!(cva.mark_dream_processed(memory, dream_epoch, 120).unwrap());
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
 
     let owner = cva.owner_uuid().unwrap();
     let turn = cva.rel_turn_count();
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     let payload = cva
         .freshness
         .prepare_accepted_use_batch(
@@ -926,7 +937,7 @@ fn completed_scope_inventory(
                 .unwrap(),
         );
     }
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     cva.reconstruct_historical_freshness(Default::default())
         .unwrap();
     cva.complete_native_import(&start.import_id, 200).unwrap();
@@ -1026,7 +1037,7 @@ fn completed_scope_inventory(
 
 #[test]
 fn import_interval_classifier_rejects_malformed_and_foreign_publication_envelopes() {
-    use crate::container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
+    use reliquary_container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
 
     for (name, body, malformed_physical) in [
         (

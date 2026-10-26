@@ -1,6 +1,7 @@
 //! Memory-owned unavailable markers for destructively pruned body chunks.
+use crate::MemoryError;
 use crate::memory_model::MemoryBodyId;
-use crate::{MemoryError, ObjectRef};
+use reliquary_container::ObjectRef;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 
@@ -72,7 +73,7 @@ impl MemoryPruneState {
     pub(crate) fn validate(
         &self,
         store: &super::MemoryStore,
-        container: &mut crate::Container,
+        container: &mut reliquary_container::Container,
         manifests: &std::collections::BTreeMap<
             [u8; 32],
             crate::owner_maintenance::HistoryPruneManifest,

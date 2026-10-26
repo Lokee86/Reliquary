@@ -82,12 +82,17 @@ fn record(revision: u64, global: u64, local: u64, mutation: &str) -> Relationshi
     }
 }
 
-fn append_version(cva: &mut Cva, carrier: crate::ObjectRef, global: u64, _local: u64) {
+fn append_version(
+    cva: &mut Cva,
+    carrier: reliquary_container::ObjectRef,
+    global: u64,
+    _local: u64,
+) {
     let body = cva.container.read(carrier).unwrap();
-    let bytes = crate::container::publication_envelope::encode(
-        crate::container::publication_envelope::PublicationEnvelope {
+    let bytes = reliquary_container::publication_envelope::encode(
+        reliquary_container::publication_envelope::PublicationEnvelope {
             global_version: global,
-            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            clock: reliquary_container::publication_envelope::PublicationClock::BindReserved,
             body: &body,
         },
     )

@@ -1,6 +1,6 @@
 use super::epoch_codec::{ImportEpochRecord, decode, encode_complete, encode_start};
 use super::{ImportComplete, ImportEpochStatus, ImportError, ImportStart};
-use crate::Container;
+use reliquary_container::Container;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::io::Read;
@@ -55,7 +55,6 @@ impl ImportEpochStore {
             return Err(ImportError::Epoch("import epoch owner mismatch"));
         }
         container.append(&encode_start(&start)?)?;
-        container.set_write_admission_closed(true);
         self.open = Some(start.import_id.clone());
         self.starts.insert(start.import_id.clone(), start);
         Ok(())
@@ -98,7 +97,6 @@ impl ImportEpochStore {
         self.completions
             .insert(complete.import_id.clone(), complete);
         self.open = None;
-        container.set_write_admission_closed(false);
         Ok(())
     }
 
@@ -228,14 +226,14 @@ fn watermarks_monotone(pre: super::ImportWatermarks, post: super::ImportWatermar
 }
 
 pub(crate) fn hash_file_prefix(path: &std::path::Path, len: u64) -> Result<String, ImportError> {
-    let mut file = std::fs::File::open(path).map_err(crate::ContainerError::Io)?;
+    let mut file = std::fs::File::open(path).map_err(reliquary_container::ContainerError::Io)?;
     let mut remaining = len;
     let mut hasher = Sha256::new();
     let mut buffer = [0_u8; 64 * 1024];
     while remaining > 0 {
         let take = usize::try_from(remaining.min(buffer.len() as u64)).unwrap();
         file.read_exact(&mut buffer[..take])
-            .map_err(crate::ContainerError::Io)?;
+            .map_err(reliquary_container::ContainerError::Io)?;
         hasher.update(&buffer[..take]);
         remaining -= take as u64;
     }

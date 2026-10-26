@@ -1,5 +1,6 @@
 //! Checkpoint-preserving physical maintenance, without numerical cut conversion.
-use crate::{Container, Cva, CvaError};
+use crate::{Cva, CvaError};
+use reliquary_container::Container;
 use sha2::{Digest, Sha256};
 
 impl Cva {
@@ -57,24 +58,31 @@ impl Cva {
 }
 
 fn historical_owner_evidence_digest(container: &Container) -> Result<[u8; 32], CvaError> {
-    let mut scan = Container::open_read_only_for_scan(container.path())?;
+    let scan = container.read_source()?;
     let mut hash = Sha256::new();
     hash.update(b"reliquary:historical-owner-evidence:v1\0");
-    scan.visit_payloads::<CvaError>(|_, payload| {
-        // These concrete owner families have no relocatable ObjectRef fields.
-        // Insomnia completion includes the native grouped publication proof;
-        // Dream includes publication intents and original first-cycle roots.
-        if payload.starts_with(b"CVAFR")
-            || payload.starts_with(b"CVAFSA")
-            || payload.starts_with(b"CVDREAM")
-            || payload.starts_with(b"CVAINSC")
-            || payload.starts_with(b"CVAIEPS1")
-            || payload.starts_with(b"CVAIEPC1")
-        {
-            hash.update((payload.len() as u64).to_le_bytes());
-            hash.update(payload);
+    (|| -> Result<(), CvaError> {
+        let mut physical_cursor = scan.physical_cursor()?;
+        while let Some(physical_frame) = physical_cursor.next_frame()? {
+            let payload = physical_frame.payload.as_slice();
+            (|| -> Result<(), CvaError> {
+                // These concrete owner families have no relocatable ObjectRef fields.
+                // Insomnia completion includes the native grouped publication proof;
+                // Dream includes publication intents and original first-cycle roots.
+                if payload.starts_with(b"CVAFR")
+                    || payload.starts_with(b"CVAFSA")
+                    || payload.starts_with(b"CVDREAM")
+                    || payload.starts_with(b"CVAINSC")
+                    || payload.starts_with(b"CVAIEPS1")
+                    || payload.starts_with(b"CVAIEPC1")
+                {
+                    hash.update((payload.len() as u64).to_le_bytes());
+                    hash.update(payload);
+                }
+                Ok(())
+            })()?;
         }
         Ok(())
-    })?;
+    })()?;
     Ok(hash.finalize().into())
 }

@@ -1,10 +1,9 @@
 //! Step177 assertions for direct Memory writes in both owner facades.
-use crate::container::publication_envelope;
 use crate::memory_compact_codec::publication::{self, MemoryPublication};
 use crate::owner_lifecycle::TombstoneOutcome;
-use crate::{
-    Container, ContainerError, Cva, Memory, MemoryDraft, MemoryError, MemoryId, Phylactery,
-};
+use crate::{Cva, Memory, MemoryDraft, MemoryError, MemoryId, Phylactery};
+use reliquary_container::Container;
+use reliquary_container::publication_envelope;
 use std::path::{Path, PathBuf};
 
 struct Scratch(PathBuf);
@@ -64,6 +63,7 @@ trait MemoryOwner {
     ) -> Result<(Memory, bool), MemoryError>;
     fn tombstone(&mut self, id: MemoryId, revision: u64) -> Result<TombstoneOutcome, MemoryError>;
     fn memory_version(&self) -> u64;
+    fn physical_container(&self) -> &Container;
 }
 
 impl MemoryOwner for Cva {
@@ -80,6 +80,9 @@ impl MemoryOwner for Cva {
     }
     fn memory_version(&self) -> u64 {
         Cva::memory_version(self)
+    }
+    fn physical_container(&self) -> &Container {
+        &self.container
     }
 }
 
@@ -98,26 +101,32 @@ impl MemoryOwner for Phylactery {
     fn memory_version(&self) -> u64 {
         Phylactery::memory_version(self)
     }
+    fn physical_container(&self) -> &Container {
+        &self.container
+    }
 }
 
 fn file_bytes(path: &Path) -> Vec<u8> {
     std::fs::read(path).unwrap()
 }
 
-fn payloads(path: &Path) -> Vec<Vec<u8>> {
-    let mut container = Container::open(path).unwrap();
+fn payloads_from(container: &Container) -> Vec<Vec<u8>> {
     let mut result = Vec::new();
-    container
-        .visit_payloads::<ContainerError>(|_, payload| {
-            result.push(payload.to_vec());
-            Ok(())
-        })
-        .unwrap();
+    let source = container.read_source().unwrap();
+    let mut cursor = source.physical_cursor().unwrap();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        result.push(frame.payload);
+    }
     result
 }
 
-fn memory_envelopes(path: &Path) -> Vec<Vec<u8>> {
-    payloads(path)
+fn payloads(path: &Path) -> Vec<Vec<u8>> {
+    let container = Container::open_read_only(path).unwrap();
+    payloads_from(&container)
+}
+
+fn memory_envelopes_from(container: &Container) -> Vec<Vec<u8>> {
+    payloads_from(container)
         .into_iter()
         .filter(|payload| {
             publication_envelope::decode(payload)
@@ -132,8 +141,13 @@ fn memory_envelopes(path: &Path) -> Vec<Vec<u8>> {
         .collect()
 }
 
-fn assert_no_legacy_publication_sidecars(path: &Path) {
-    let payloads = payloads(path);
+fn memory_envelopes(path: &Path) -> Vec<Vec<u8>> {
+    let container = Container::open_read_only(path).unwrap();
+    memory_envelopes_from(&container)
+}
+
+fn assert_no_legacy_publication_sidecars_from(container: &Container) {
+    let payloads = payloads_from(container);
     for magic in [
         b"CVAMEMV1".as_slice(),
         b"CVAVERS",
@@ -149,19 +163,24 @@ fn assert_no_legacy_publication_sidecars(path: &Path) {
     }
 }
 
+fn assert_no_legacy_publication_sidecars(path: &Path) {
+    let container = Container::open_read_only(path).unwrap();
+    assert_no_legacy_publication_sidecars_from(&container);
+}
+
 fn exercise_direct_writer(owner: &mut impl MemoryOwner, path: &Path) {
     let (first, created) = owner.publish(None, 0, draft("create", "first")).unwrap();
     assert!(created);
-    assert_eq!(memory_envelopes(path).len(), 1);
+    assert_eq!(memory_envelopes_from(owner.physical_container()).len(), 1);
     assert_eq!(
-        payloads(path)
+        payloads_from(owner.physical_container())
             .iter()
             .filter(|payload| payload.starts_with(b"CVAMBDY1"))
             .count(),
         1,
         "creation writes its immutable body separately"
     );
-    assert_no_legacy_publication_sidecars(path);
+    assert_no_legacy_publication_sidecars_from(owner.physical_container());
 
     let after_creation = file_bytes(path);
     let (retry, created) = owner.publish(None, 0, draft("create", "first")).unwrap();
@@ -179,16 +198,16 @@ fn exercise_direct_writer(owner: &mut impl MemoryOwner, path: &Path) {
     assert!(created);
     assert_eq!(second.revision, 2);
     assert_eq!(owner.memory_version(), 2);
-    assert_eq!(memory_envelopes(path).len(), 2);
+    assert_eq!(memory_envelopes_from(owner.physical_container()).len(), 2);
     assert_eq!(
-        payloads(path)
+        payloads_from(owner.physical_container())
             .iter()
             .filter(|payload| payload.starts_with(b"CVAMBDY1"))
             .count(),
         1,
         "metadata-only delta reuses the immutable body"
     );
-    assert_no_legacy_publication_sidecars(path);
+    assert_no_legacy_publication_sidecars_from(owner.physical_container());
 
     let before_tombstone = file_bytes(path);
     let outcome = owner.tombstone(first.id, second.revision).unwrap();
@@ -196,9 +215,11 @@ fn exercise_direct_writer(owner: &mut impl MemoryOwner, path: &Path) {
         panic!("first terminal write must publish")
     };
     assert_eq!(owner.memory_version(), 3);
-    assert_eq!(memory_envelopes(path).len(), 3);
-    assert_no_legacy_publication_sidecars(path);
-    let terminal_payload = memory_envelopes(path).pop().unwrap();
+    assert_eq!(memory_envelopes_from(owner.physical_container()).len(), 3);
+    assert_no_legacy_publication_sidecars_from(owner.physical_container());
+    let terminal_payload = memory_envelopes_from(owner.physical_container())
+        .pop()
+        .unwrap();
     let envelope = publication_envelope::decode(&terminal_payload)
         .unwrap()
         .unwrap();
@@ -245,7 +266,7 @@ fn direct_rel_and_phy_writes_are_one_envelope_each_and_reopen() {
     let reopened = Phylactery::open(&phy_path).unwrap();
     assert_eq!(reopened.memories.records().len(), 2);
     assert_eq!(reopened.memory_version(), 3);
-    assert_no_legacy_publication_sidecars(&phy_path);
+    assert_no_legacy_publication_sidecars_from(&reopened.container);
 }
 
 fn prepare_two_phy_envelopes(path: &Path) -> (Memory, u64, Option<i64>) {
@@ -261,9 +282,9 @@ fn prepare_two_phy_envelopes(path: &Path) -> (Memory, u64, Option<i64>) {
     phy.sync().unwrap();
     let time = phy.transaction_time_ns(first.global_version);
     let latest = phy.latest_global_version();
-    let payloads = payloads(path);
+    let payloads = payloads_from(&phy.container);
     assert!(payloads.last().unwrap().starts_with(b"CVAPUB01"));
-    assert_eq!(memory_envelopes(path).len(), 2);
+    assert_eq!(memory_envelopes_from(&phy.container).len(), 2);
     (first, latest, time)
 }
 
@@ -279,6 +300,14 @@ fn truncated_final_memory_envelope_recovers_only_prior_state_and_clock() {
     drop(container);
     for retained in start..bytes.len() {
         std::fs::write(&truncated, &bytes[..retained]).unwrap();
+        if retained > start {
+            crate::container_owner_tests::assert_normal_open_requires_repair(
+                &truncated,
+                |p| Phylactery::open(p).map(|_| ()).map_err(|e| e.to_string()),
+                start as u64,
+            );
+            crate::container_owner_tests::repair_incomplete_physical_tail(&truncated, start as u64);
+        }
         let mut recovered = Phylactery::open(&truncated).unwrap();
         assert_eq!(recovered.memories.records().len(), 1, "prefix {retained}");
         assert_eq!(recovered.memory_version(), 1);

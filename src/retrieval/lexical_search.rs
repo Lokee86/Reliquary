@@ -1,7 +1,9 @@
-use crate::lexical_index::MemoryLexicalHit;
 #[cfg(test)]
-use crate::{Archive, Container};
+use crate::Archive;
+use crate::lexical_index::MemoryLexicalHit;
 use crate::{Cva, FileSearchHit, Fragment, MemoryError, Phylactery, SearchError};
+#[cfg(test)]
+use reliquary_container::Container;
 use std::collections::{HashMap, HashSet};
 
 pub(crate) struct LexicalHit {

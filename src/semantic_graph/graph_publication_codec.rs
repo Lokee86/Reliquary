@@ -1,6 +1,7 @@
 //! Current Graph-owned publication bodies; mappings stay with GraphStore.
+use crate::GraphError;
 use crate::graph_compact_contract::GraphOrdinalMutation;
-use crate::{GraphError, ObjectRef};
+use reliquary_container::ObjectRef;
 
 const SINGLE: &[u8; 8] = b"CVAGCM02";
 const BATCH: &[u8; 8] = b"CVAGCB02";
@@ -107,7 +108,7 @@ pub(crate) fn version_at(
     object: ObjectRef,
     payload: &[u8],
 ) -> Result<Option<crate::graph_codec::GraphVersionPayload>, GraphError> {
-    let Some(envelope) = crate::container::publication_envelope::decode(payload)? else {
+    let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };
     let Some(publication) = decode(envelope.body, envelope.global_version)? else {
@@ -122,7 +123,7 @@ pub(crate) fn version_at(
 
 /// Coordinates alone are not semantic admission or ordinal-table authority.
 pub(crate) fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, GraphError> {
-    let Some(envelope) = crate::container::publication_envelope::decode(payload)? else {
+    let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };
     Ok(decode(envelope.body, envelope.global_version)?

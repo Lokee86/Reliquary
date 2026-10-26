@@ -21,7 +21,7 @@ impl Archive {
         let global_version = container
             .latest_version()
             .checked_add(1)
-            .ok_or(crate::ContainerError::VersionExhausted)?;
+            .ok_or(reliquary_container::ContainerError::VersionExhausted)?;
         let tombstone = ConversationTombstone {
             conversation_id: conversation_id.to_owned(),
             closure: self.discover_conversation_tombstone_closure(conversation_id),

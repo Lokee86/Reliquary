@@ -1,4 +1,4 @@
-use crate::ContainerError;
+use reliquary_container::ContainerError;
 use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]

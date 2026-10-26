@@ -32,6 +32,7 @@
 
 - [Operator and integration manual](manual/INDEX.md) — task-oriented workflows for users, operators, and product integrators.
 - [Architecture](architecture.md) — implemented ownership, state, flows, and code map.
+- [Architecture maps](architecture/INDEX.md) — logical DAG and physical crate ownership.
 - [Crate-first target architecture](crate-first-architecture.md) — accepted logical DAG, Echo ownership and crate-first migration policy.
 - [Crate structure and layout specification](crate-first-layout-spec-2026-10-25.md) — 20 primary and 10 supporting crates, physical layering, code/doc crosswalk and completion gates.
 - [Container crate extraction specification](container-crate-extraction-spec-2026-10-25.md) — first hard-cut extraction: physical scanning, writer exclusion, read-only open, clock framing and existing regressions.
@@ -137,7 +138,10 @@
 - [community-routing-validation-2026-08-29.md](community-routing-validation-2026-08-29.md) - Community Routing Validation 2026 08 29 documentation.
 - [community-scan-merge-benchmark-2026-08-27.md](community-scan-merge-benchmark-2026-08-27.md) - Community Scan Merge Benchmark 2026 08 27 documentation.
 - [configuration.md](configuration.md) - Configuration documentation.
+- [container-crate-extraction-spec-2026-10-25.md](container-crate-extraction-spec-2026-10-25.md) - Container Crate Extraction Spec 2026 10 25 documentation.
 - [conversation-index-integration-plan.md](conversation-index-integration-plan.md) - Conversation Index Integration Plan documentation.
+- [crate-first-architecture.md](crate-first-architecture.md) - Crate First Architecture documentation.
+- [crate-first-layout-spec-2026-10-25.md](crate-first-layout-spec-2026-10-25.md) - Crate First Layout Spec 2026 10 25 documentation.
 - [current-limitations.md](current-limitations.md) - Current Limitations documentation.
 - [derived-semantic-nodes-exploration.md](derived-semantic-nodes-exploration.md) - Derived Semantic Nodes Exploration documentation.
 - [development-format-compatibility-retirement-audit-2026-10-19.md](development-format-compatibility-retirement-audit-2026-10-19.md) - Development Format Compatibility Retirement Audit 2026 10 19 documentation.
@@ -228,6 +232,7 @@
 
 <!-- doc-ledger:folders:start -->
 
+- [architecture](architecture/INDEX.md) - Architecture documentation.
 - [decisions](decisions/INDEX.md) - Decisions documentation.
 - [manual](manual/INDEX.md) - Manual documentation.
 - [references](references/INDEX.md) - References documentation.

@@ -104,7 +104,7 @@ pub(crate) fn memory_draft(key: &str, title: &str, content: &str) -> MemoryDraft
 
 fn install_mention(
     memories: &mut crate::memory_store::MemoryStore,
-    container: &mut crate::Container,
+    container: &mut reliquary_container::Container,
     memory_id: MemoryId,
     body_id: crate::MemoryBodyId,
     content: &str,

@@ -3,9 +3,10 @@ use crate::vector_generation_codec::{
 };
 use crate::vector_generation_validation::vector_generation_id;
 use crate::{
-    CompatibilityProfileId, Container, VectorGeneration, VectorGenerationError, VectorGenerationId,
+    CompatibilityProfileId, VectorGeneration, VectorGenerationError, VectorGenerationId,
     VectorGenerationStats,
 };
+use reliquary_container::Container;
 use std::collections::HashMap;
 
 #[derive(Default)]

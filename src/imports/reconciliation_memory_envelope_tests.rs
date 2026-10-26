@@ -54,7 +54,7 @@ fn append_delta(path: &std::path::Path, id: MemoryId) -> (usize, Vec<u8>) {
     ))
     .unwrap();
     drop(owner);
-    let mut container = crate::Container::open(path).unwrap();
+    let mut container = reliquary_container::Container::open(path).unwrap();
     let reserved = container
         .allocate_version_with_transaction_time(Some(-123))
         .unwrap();
@@ -63,10 +63,10 @@ fn append_delta(path: &std::path::Path, id: MemoryId) -> (usize, Vec<u8>) {
         .allocate_version_with_transaction_time(Some(500))
         .unwrap();
     let index = container.chunks().unwrap().len();
-    let framed = crate::container::publication_envelope::encode(
-        crate::container::publication_envelope::PublicationEnvelope {
+    let framed = reliquary_container::publication_envelope::encode(
+        reliquary_container::publication_envelope::PublicationEnvelope {
             global_version: reserved,
-            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            clock: reliquary_container::publication_envelope::PublicationClock::BindReserved,
             body: &body,
         },
     )
@@ -158,7 +158,7 @@ fn envelope_terminal_canonical_evidence_matches_existing_terminal_facts() {
     let f = Fixture::new();
     let path = f.path("terminal.rel");
     let id = base(&path);
-    let mut container = crate::Container::open(&path).unwrap();
+    let mut container = reliquary_container::Container::open(&path).unwrap();
     let body = publication::encode(&MemoryPublication::Tombstone {
         id,
         revision: 2,
@@ -183,7 +183,9 @@ fn envelope_terminal_canonical_evidence_matches_existing_terminal_facts() {
 
 #[test]
 fn import_classifier_rejects_unknown_and_malformed_envelopes() {
-    use crate::container::publication_envelope::{PublicationClock, PublicationEnvelope, encode};
+    use reliquary_container::publication_envelope::{
+        PublicationClock, PublicationEnvelope, encode,
+    };
     let unknown = encode(PublicationEnvelope {
         global_version: 1,
         clock: PublicationClock::BindReserved,

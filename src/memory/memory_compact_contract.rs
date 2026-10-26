@@ -2,7 +2,7 @@
 use crate::memory_model::MemoryRecord;
 use crate::{EpisodeId, MemoryError, MemoryId, MemorySourceRef, MemoryTemporalInference};
 
-pub(crate) use crate::compact_delta::FieldChange as MemoryFieldChange;
+pub(crate) use reliquary_container::codec::FieldChange as MemoryFieldChange;
 
 macro_rules! memory_fields {
     ($($bit:literal => $field:ident: $ty:ty),+ $(,)?) => {
@@ -124,7 +124,7 @@ impl MemoryDelta {
     }
 
     pub(crate) fn validate_mask(mask: u64) -> Result<(), MemoryError> {
-        if !crate::compact_delta::mask_is_known(mask, MEMORY_DELTA_KNOWN_MASK) {
+        if !reliquary_container::codec::mask_is_known(mask, MEMORY_DELTA_KNOWN_MASK) {
             return Err(MemoryError::CorruptRecord("unknown Memory delta field"));
         }
         Ok(())

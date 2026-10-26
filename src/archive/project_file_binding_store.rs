@@ -1,5 +1,6 @@
 use crate::project_file_binding_codec::{decode, encode};
-use crate::{Container, CvaError, FileId, ProjectFileRef};
+use crate::{CvaError, FileId, ProjectFileRef};
+use reliquary_container::Container;
 use std::collections::HashMap;
 
 #[derive(Default)]

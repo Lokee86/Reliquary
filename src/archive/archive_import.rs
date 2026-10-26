@@ -1,5 +1,6 @@
 use crate::imports::ImportReceipt;
-use crate::{Archive, ArchiveError, Container};
+use crate::{Archive, ArchiveError};
+use reliquary_container::Container;
 pub(crate) const IMPORT_MAGIC: &[u8; 8] = b"CVAIMPT1";
 
 pub(crate) fn encode(receipt: &ImportReceipt) -> Result<Vec<u8>, ArchiveError> {

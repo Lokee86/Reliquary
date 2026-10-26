@@ -1,7 +1,7 @@
 use super::*;
-use crate::compact_delta::FieldChange;
 use crate::entity_compact_contract::EntityDescriptionProof;
 use crate::{EntityGlobalId, EntityId};
+use reliquary_container::codec::FieldChange;
 
 fn first() -> EntityRecord {
     EntityRecord {

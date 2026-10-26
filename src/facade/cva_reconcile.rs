@@ -46,8 +46,24 @@ impl Cva {
         right_path: impl AsRef<Path>,
     ) -> Result<CvaComparison, CvaReconcileError> {
         let mut left = Self::open(left_path)?;
-        let mut right = Self::open(right_path)?;
         let left_id = owner_id(&left, "left")?;
+        let right_identity =
+            reliquary_container::Container::inspect_file_identity(right_path.as_ref())
+                .map_err(crate::CvaError::from)?;
+        if left.container.file_identity()? == right_identity && right_identity.is_some() {
+            left.container
+                .validate_alias_identity(right_path.as_ref())
+                .map_err(crate::CvaError::from)?;
+            let count = semantic_chunk_payloads(&mut left)?.len();
+            return Ok(CvaComparison {
+                owner_id: left_id,
+                common_chunk_count: count,
+                left_chunk_count: count,
+                right_chunk_count: count,
+                relation: CvaRelation::Identical,
+            });
+        }
+        let mut right = Self::open(right_path)?;
         let right_id = owner_id(&right, "right")?;
         if left_id != right_id {
             return Err(CvaReconcileError::OwnerMismatch {
@@ -168,9 +184,20 @@ fn classify(common: usize, left: usize, right: usize) -> CvaRelation {
 }
 
 pub(crate) fn copy_and_validate(source: &Path, output: &Path) -> Result<(), CvaReconcileError> {
-    fs::copy(source, output)?;
+    let source = Cva::open(source)?;
+    copy_owner_and_validate(&source, output)
+}
+
+pub(crate) fn copy_owner_and_validate(
+    source: &Cva,
+    output: &Path,
+) -> Result<(), CvaReconcileError> {
+    source
+        .container
+        .validate_alias_identity(source.container.path())
+        .map_err(crate::CvaError::from)?;
+    fs::copy(source.container.path(), output)?;
     let validated = (|| {
-        let source = Cva::open(source)?;
         let reopened = Cva::open(output)?;
         source.validate_historical_import_copy(&reopened)?;
         if !source.archive.activity_history_matches(&reopened.archive) {

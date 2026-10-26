@@ -1,12 +1,13 @@
 //! Relationship publication-envelope replay and history admission through REL and PHY.
-use crate::container::publication_envelope::{PublicationClock, PublicationEnvelope};
 use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
 use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
 use crate::relationship_model::RelationshipRecord;
 use crate::{
-    Container, Cva, EntityId, EntityRef, MemoryId, MemoryRef, Phylactery, RelationshipId,
+    Cva, EntityId, EntityRef, MemoryId, MemoryRef, Phylactery, RelationshipId,
     RelationshipParticipant,
 };
+use reliquary_container::Container;
+use reliquary_container::publication_envelope::{PublicationClock, PublicationEnvelope};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -82,7 +83,7 @@ fn reserve(container: &mut Container, time: i64) -> u64 {
 
 fn append_reserved(container: &mut Container, global: u64, value: &RelationshipPublication) {
     let body = publication::encode(value).unwrap();
-    let bytes = crate::container::publication_envelope::encode(PublicationEnvelope {
+    let bytes = reliquary_container::publication_envelope::encode(PublicationEnvelope {
         global_version: global,
         clock: PublicationClock::BindReserved,
         body: &body,

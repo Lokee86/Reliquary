@@ -88,10 +88,10 @@ fn append_compact(cva: &mut Cva, graph_version: u64, a: MemoryId, b: MemoryId) {
         .container
         .allocate_version_with_transaction_time(Some(20_000 + graph_version as i64))
         .unwrap();
-    let payload = crate::container::publication_envelope::encode(
-        crate::container::publication_envelope::PublicationEnvelope {
+    let payload = reliquary_container::publication_envelope::encode(
+        reliquary_container::publication_envelope::PublicationEnvelope {
             global_version: global,
-            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            clock: reliquary_container::publication_envelope::PublicationClock::BindReserved,
             body: &body,
         },
     )
@@ -337,10 +337,10 @@ fn completed_import_graph_evidence_is_stable_across_independent_current_mapping_
     owner.sync().unwrap();
     drop(owner);
     let (collision_raw, collision) = last_graph_evidence(&right_path);
-    let left_body = crate::container::publication_envelope::decode(&left_raw)
+    let left_body = reliquary_container::publication_envelope::decode(&left_raw)
         .unwrap()
         .unwrap();
-    let collision_body = crate::container::publication_envelope::decode(&collision_raw)
+    let collision_body = reliquary_container::publication_envelope::decode(&collision_raw)
         .unwrap()
         .unwrap();
     assert_eq!(

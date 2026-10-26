@@ -1,6 +1,7 @@
 use crate::memory_codec::{decode_body, decode_format};
 use crate::memory_model::memory_body_id;
-use crate::{Container, MemoryError, MemoryRoutingMetadata, ObjectRef};
+use crate::{MemoryError, MemoryRoutingMetadata};
+use reliquary_container::{Container, ObjectRef};
 
 pub(crate) struct MemoryOpenState {
     store: crate::memory_store::MemoryStore,
@@ -29,7 +30,7 @@ impl MemoryOpenState {
         payload: &[u8],
         latest_global_version: u64,
     ) -> Result<(), MemoryError> {
-        if let Some(envelope) = crate::container::publication_envelope::decode(payload)? {
+        if let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? {
             if !self.ingest_publication_envelope(envelope, latest_global_version)? {
                 return Err(MemoryError::CorruptRecord(
                     "unsupported publication envelope body",
@@ -97,7 +98,7 @@ impl MemoryOpenState {
 
     pub(crate) fn ingest_publication_envelope(
         &mut self,
-        envelope: crate::container::publication_envelope::PublicationEnvelope<'_>,
+        envelope: reliquary_container::publication_envelope::PublicationEnvelope<'_>,
         latest_global_version: u64,
     ) -> Result<bool, MemoryError> {
         use crate::memory_compact_codec::publication::{self, MemoryPublication};

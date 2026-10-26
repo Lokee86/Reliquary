@@ -311,10 +311,10 @@ fn append_ordered_memory_creation(
         ),
     )
     .unwrap();
-    let envelope = crate::container::publication_envelope::encode(
-        crate::container::publication_envelope::PublicationEnvelope {
+    let envelope = reliquary_container::publication_envelope::encode(
+        reliquary_container::publication_envelope::PublicationEnvelope {
             global_version,
-            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            clock: reliquary_container::publication_envelope::PublicationClock::BindReserved,
             body: &body,
         },
     )

@@ -1,8 +1,8 @@
 use super::*;
-use crate::compact_delta::FieldChange;
 use crate::entity_compact_contract::{ENTITY_DELTA_KNOWN_MASK, EntityDescriptionProof};
 use crate::entity_model::EntityRecord;
 use crate::{EntityGlobalId, EntityId};
+use reliquary_container::codec::FieldChange;
 
 #[test]
 fn echo_payload_namespace_is_not_a_compact_entity_family() {

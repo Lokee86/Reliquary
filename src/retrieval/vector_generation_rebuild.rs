@@ -6,7 +6,8 @@ use crate::vector_generation_codec::{
 };
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::vector_generation_validation::{validate_generation_reference, vector_generation_id};
-use crate::{Archive, ObjectRef, VectorGeneration, VectorGenerationError};
+use crate::{Archive, VectorGeneration, VectorGenerationError};
+use reliquary_container::ObjectRef;
 use std::collections::{HashMap, HashSet};
 
 pub(crate) struct VectorGenerationOpenState {

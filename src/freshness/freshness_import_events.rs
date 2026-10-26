@@ -123,13 +123,11 @@ impl FreshnessStore {
         superseded: &BTreeSet<String>,
     ) -> Result<super::ImportSemanticScope, String> {
         let path = self
-            .history_path
+            .history_source
             .as_ref()
             .ok_or("Freshness history unavailable")?;
         let start_prefix = if scope.start_prefix == 0 {
-            crate::Container::open_read_only_for_scan(path)
-                .map_err(|e| e.to_string())?
-                .header_len
+            path.header_len()
         } else {
             scope.start_prefix
         };
@@ -287,7 +285,7 @@ impl FreshnessStore {
     pub(crate) fn event_accepted_through(&self, id: &str, prefix: u64) -> Result<bool, String> {
         let mut found = false;
         let path = self
-            .history_path
+            .history_source
             .as_ref()
             .ok_or("physical Freshness history is unavailable")?;
         super::stream::scan_entries(path, prefix, |_, entry| {
@@ -313,7 +311,7 @@ impl FreshnessStore {
         use sha2::{Digest, Sha256};
         let mut scores = BTreeMap::new();
         let path = self
-            .history_path
+            .history_source
             .as_ref()
             .ok_or("physical Freshness history is unavailable")?;
         super::stream::scan_entries_in_interval(
@@ -407,7 +405,7 @@ impl FreshnessStore {
             .collect();
         let mut selected = BTreeMap::<String, BTreeSet<MemoryId>>::new();
         let path = self
-            .history_path
+            .history_source
             .as_ref()
             .ok_or("physical Freshness history is unavailable")?;
         super::stream::scan_entries_in_interval(
@@ -515,7 +513,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     fn append_accepted(
-        container: &mut crate::Container,
+        container: &mut reliquary_container::Container,
         store: &mut FreshnessStore,
         payload: &[u8],
     ) {
@@ -554,7 +552,7 @@ mod tests {
     }
     #[test]
     fn scoped_event_attribution_uses_finite_physical_interval_at_same_cut() {
-        use crate::Container;
+        use reliquary_container::Container;
 
         let root = std::env::current_dir().unwrap().join(".test-tmp");
         std::fs::create_dir_all(&root).unwrap();
@@ -566,7 +564,7 @@ mod tests {
         let later_recipient = MemoryId([37; 32]);
         let mut container = Container::create(&path).unwrap();
         let mut store = FreshnessStore::new(Some(owner));
-        store.bind_history_path(&path, 0);
+        store.bind_history_source(&container, 0).unwrap();
 
         let policy = super::super::encode_policy(owner, FreshnessPolicy::default_v1());
         append_accepted(&mut container, &mut store, &policy);
@@ -705,10 +703,12 @@ mod tests {
         }
         relocated.sync().unwrap();
         let mut moved = FreshnessStore::new(Some(owner));
-        moved.bind_history_path(
-            &relocated_path,
-            std::fs::metadata(&relocated_path).unwrap().len(),
-        );
+        moved
+            .bind_history_source(
+                &relocated,
+                std::fs::metadata(&relocated_path).unwrap().len(),
+            )
+            .unwrap();
         moved.validate_semantic_import_evidence(&semantic).unwrap();
         drop(relocated);
         std::fs::remove_file(&relocated_path).unwrap();
@@ -757,7 +757,7 @@ mod tests {
 
     #[test]
     fn scoped_fragment_attribution_rejects_mixed_import_and_external_sources() {
-        use crate::Container;
+        use reliquary_container::Container;
 
         let root = std::env::current_dir().unwrap().join(".test-tmp");
         std::fs::create_dir_all(&root).unwrap();
@@ -780,7 +780,7 @@ mod tests {
         );
         let mut container = Container::create(&path).unwrap();
         let mut store = FreshnessStore::new(Some(owner));
-        store.bind_history_path(&path, 0);
+        store.bind_history_source(&container, 0).unwrap();
         let policy = super::super::encode_policy(owner, FreshnessPolicy::default_v1());
         append_accepted(&mut container, &mut store, &policy);
         let birth = store.encode_initialize(owner, recipient, 1, admitted(1));
@@ -791,7 +791,9 @@ mod tests {
             .unwrap();
         append_accepted(&mut container, &mut store, &payload);
         let freeze_prefix = std::fs::metadata(&path).unwrap().len();
-        store.bind_history_path(&path, freeze_prefix);
+        store
+            .bind_history_source(&container, freeze_prefix)
+            .unwrap();
         let scope = ImportEventScope {
             owner,
             import_id: [49; 32],

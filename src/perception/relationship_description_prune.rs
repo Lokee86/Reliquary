@@ -5,7 +5,8 @@ use crate::relationship_compact_contract::{
 };
 use crate::relationship_model::RelationshipRecord;
 use crate::relationship_store::{RelationshipReplayPublication, RelationshipStore};
-use crate::{Container, ObjectRef, RelationshipError, RelationshipId};
+use crate::{RelationshipError, RelationshipId};
+use reliquary_container::{Container, ObjectRef};
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 
@@ -53,7 +54,7 @@ pub(crate) fn prepare_description_prune(
         let Some(publication) = store.retained_publication_at(global, local)? else {
             continue;
         };
-        let envelope = crate::container::publication_envelope::decode(&payload)?
+        let envelope = reliquary_container::publication_envelope::decode(&payload)?
             .ok_or(RelationshipError::InvalidVersion)?;
         let carrier = object;
         match publication {
@@ -86,8 +87,8 @@ pub(crate) fn prepare_description_prune(
                 };
 
                 let body = publication::encode(&replacement_publication)?;
-                let replacement = crate::container::publication_envelope::encode(
-                    crate::container::publication_envelope::PublicationEnvelope {
+                let replacement = reliquary_container::publication_envelope::encode(
+                    reliquary_container::publication_envelope::PublicationEnvelope {
                         body: &body,
                         ..envelope
                     },

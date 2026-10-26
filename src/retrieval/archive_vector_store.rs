@@ -2,8 +2,9 @@ use crate::archive_vector_codec::{decode_object, encode_format, encode_object};
 use crate::packed_vector_store::PackedVectorStore;
 use crate::{
     Archive, ArchiveVectorError, ArchiveVectorId, ArchiveVectorInfo, ArchiveVectorSet,
-    ArchiveVectorStats, Container, FragmentId, ObjectRef, PackedVectorId,
+    ArchiveVectorStats, FragmentId, PackedVectorId,
 };
+use reliquary_container::{Container, ObjectRef};
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 

@@ -1,5 +1,6 @@
 use crate::entity_model::EntityRecord;
-use crate::{EntityError, EntityGlobalId, EntityId, ObjectRef};
+use crate::{EntityError, EntityGlobalId, EntityId};
+use reliquary_container::ObjectRef;
 
 const FORMAT_MAGIC: [u8; 8] = *b"CVAENTF1";
 const RECORD_MAGIC_V1: [u8; 8] = *b"CVAENTR1";

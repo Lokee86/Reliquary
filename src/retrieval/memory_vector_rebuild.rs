@@ -3,7 +3,8 @@ use crate::memory_store::MemoryStore;
 use crate::memory_vector_codec::{decode_format, decode_object};
 use crate::memory_vector_store::{MemoryVectorStore, memory_vector_id, validate_mapping};
 use crate::packed_vector_store::PackedVectorStore;
-use crate::{MemoryBodyId, MemoryVectorError, MemoryVectorInfo, ObjectRef};
+use crate::{MemoryBodyId, MemoryVectorError, MemoryVectorInfo};
+use reliquary_container::ObjectRef;
 
 pub(crate) struct MemoryVectorOpenState {
     records: Vec<PendingMemoryVectors>,

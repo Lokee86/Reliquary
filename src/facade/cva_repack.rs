@@ -1,4 +1,5 @@
-use crate::{ContentId, Cva, CvaError, ObjectRef};
+use crate::{ContentId, Cva, CvaError};
+use reliquary_container::ObjectRef;
 use std::collections::{BTreeMap, HashSet};
 use std::fs;
 use std::path::Path;

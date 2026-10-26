@@ -1,6 +1,5 @@
-use crate::{
-    ArchiveVectorId, CompatibilityProfileId, ObjectRef, VectorGenerationError, VectorGenerationId,
-};
+use crate::{ArchiveVectorId, CompatibilityProfileId, VectorGenerationError, VectorGenerationId};
+use reliquary_container::ObjectRef;
 
 const FORMAT_MAGIC: &[u8; 8] = b"CVAVGFM2";
 const FORMAT_SCHEMA: u32 = 1;

@@ -1,10 +1,11 @@
 //! Test-only projection for the currently persisted Relationship owner. No
 //! Observation store or migration-target decision is introduced here.
 
+use crate::RelationshipId;
 use crate::historical_fingerprint::{HistoricalFingerprint, OwnerProjection};
 use crate::relationship_model::RelationshipRecord;
 use crate::relationship_store::RelationshipStore;
-use crate::{Container, RelationshipId};
+use reliquary_container::Container;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 

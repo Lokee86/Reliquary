@@ -82,7 +82,7 @@ fn tamper_creation_mutation(path: &Path) {
     let mut position = None;
     for object in container.chunks().unwrap() {
         let raw = container.read(object).unwrap();
-        if let Some(envelope) = crate::container::publication_envelope::decode(&raw).unwrap() {
+        if let Some(envelope) = reliquary_container::publication_envelope::decode(&raw).unwrap() {
             if envelope.body.starts_with(b"CVAMC002") {
                 let relative = raw
                     .windows(b"creation".len())

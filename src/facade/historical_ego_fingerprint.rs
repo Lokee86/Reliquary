@@ -6,9 +6,10 @@ use crate::ego_codec::{EgoRecord, record_ego_version};
 use crate::ego_store::EgoStore;
 use crate::historical_fingerprint::{HistoricalFingerprint, OwnerProjection};
 use crate::{
-    Container, CvaError, EgoAnchor, EgoAnchorId, EgoAnchorPriority, EgoIdentity, EgoIdentityId,
+    CvaError, EgoAnchor, EgoAnchorId, EgoAnchorPriority, EgoIdentity, EgoIdentityId,
     EgoPersonality, EgoWebSynthesis,
 };
+use reliquary_container::Container;
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
 
@@ -28,22 +29,28 @@ pub(crate) struct EgoCut {
 
 impl EgoHistory {
     pub(crate) fn read(container: &Container, store: &EgoStore) -> Result<Self, String> {
-        let mut scan =
-            Container::open_read_only_for_scan(container.path()).map_err(|e| e.to_string())?;
+        let scan = container.read_source().map_err(|e| e.to_string())?;
         let mut records = Vec::new();
         let mut replay = store.empty_replay();
-        scan.visit_payloads::<CvaError>(|_, payload| {
-            if let Some(record) = replay.ingest_publication(payload)? {
-                if record_ego_version(&record) != records.len() as u64 + 1 {
-                    return Err(crate::EgoError::InvalidRecord(
-                        "oracle Ego sequence differs".into(),
-                    )
-                    .into());
-                }
-                records.push(record);
+        (|| -> Result<(), CvaError> {
+            let mut physical_cursor = scan.physical_cursor()?;
+            while let Some(physical_frame) = physical_cursor.next_frame()? {
+                let payload = physical_frame.payload.as_slice();
+                (|| -> Result<(), CvaError> {
+                    if let Some(record) = replay.ingest_publication(payload)? {
+                        if record_ego_version(&record) != records.len() as u64 + 1 {
+                            return Err(crate::EgoError::InvalidRecord(
+                                "oracle Ego sequence differs".into(),
+                            )
+                            .into());
+                        }
+                        records.push(record);
+                    }
+                    Ok(())
+                })()?;
             }
             Ok(())
-        })
+        })()
         .map_err(|e| e.to_string())?;
         if records.len() as u64 != store.version() {
             return Err("Ego oracle publication count differs from accepted replay".into());

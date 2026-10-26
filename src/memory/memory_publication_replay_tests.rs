@@ -4,7 +4,7 @@ mod copy;
 mod prune;
 
 use super::*;
-use crate::container::publication_envelope::{PublicationClock, PublicationEnvelope};
+use reliquary_container::publication_envelope::{PublicationClock, PublicationEnvelope};
 use crate::memory_compact_codec::publication::{self, MemoryPublication};
 
 fn append_publication(
@@ -14,7 +14,7 @@ fn append_publication(
     publication: MemoryPublication,
 ) {
     let body = publication::encode(&publication).unwrap();
-    let payload = crate::container::publication_envelope::encode(PublicationEnvelope {
+    let payload = reliquary_container::publication_envelope::encode(PublicationEnvelope {
         global_version: global,
         clock,
         body: &body,
@@ -323,7 +323,7 @@ fn envelope_memory_history_matches_marker_history_at_every_local_cut() {
             let path = test_path("envelope-history-cuts.cva");
             let mut container = Container::create_with_identity_and_uuid(
                 &path,
-                crate::ContainerIdentity {
+                reliquary_container::ContainerIdentity {
                     file_kind: kind,
                     scope: None,
                 },

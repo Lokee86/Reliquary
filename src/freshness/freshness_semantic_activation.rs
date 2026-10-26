@@ -59,7 +59,7 @@ impl FreshnessStore {
 
     pub(crate) fn persist_semantic_activation(
         &mut self,
-        container: &mut crate::Container,
+        container: &mut reliquary_container::Container,
         owner_uuid: [u8; 16],
         activation: Option<SemanticActivation>,
     ) -> Result<(), String> {

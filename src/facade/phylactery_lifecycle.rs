@@ -20,7 +20,8 @@ use crate::phylactery_profile_store::PhylacteryProfileStore;
 use crate::processing_epoch_store::ProcessingEpochStore;
 use crate::relationship_rebuild::RelationshipOpenState;
 use crate::relationship_store::RelationshipStore;
-use crate::{Container, ContainerIdentity, FileKind, Phylactery, PhylacteryError};
+use crate::{Phylactery, PhylacteryError};
+use reliquary_container::{Container, ContainerIdentity, FileKind};
 use std::path::Path;
 
 impl Phylactery {
@@ -102,9 +103,10 @@ impl Phylactery {
     pub fn open(path: impl AsRef<Path>) -> Result<Self, PhylacteryError> {
         let header = Container::open_read_only_for_scan(path.as_ref())?;
         if header.owner_uuid().is_none() {
-            return Err(crate::ContainerError::InvalidIdentity.into());
+            return Err(reliquary_container::ContainerError::InvalidIdentity.into());
         }
-        if header.identity().map(|identity| identity.file_kind) != Some(crate::FileKind::Phylactery)
+        if header.identity().map(|identity| identity.file_kind)
+            != Some(reliquary_container::FileKind::Phylactery)
         {
             return Err(PhylacteryError::InvalidContainerIdentity(
                 "file is not a Phylactery",
@@ -128,52 +130,63 @@ impl Phylactery {
         let mut entity_resolutions = EntityResolutionStore::default();
         let mut relationship_state = RelationshipOpenState::new();
 
-        let container = Container::open_scanned(path, |chunk, payload, latest_global| {
-            if let Some(owner_uuid) = lineage_owner {
-                rewrite_lineage
-                    .ingest(payload, owner_uuid)
-                    .map_err(PhylacteryError::Repack)?;
-            } else if payload.starts_with(crate::rewrite_lineage::REWRITE_GENESIS_MAGIC) {
-                return Err(PhylacteryError::Repack(
-                    "RewriteGenesis requires a versioned owner identity".into(),
-                ));
-            }
-            reject_rel_only_payload(payload)?;
-            owner_maintenance
-                .ingest(payload)
-                .map_err(PhylacteryError::Repack)?;
-            if let Some(envelope) = crate::container::publication_envelope::decode(payload)? {
-                if !memory_state.ingest_publication_envelope(envelope, latest_global)?
-                    && !entity_state.ingest_publication_envelope(envelope, latest_global)?
-                    && !relationship_state.ingest_publication_envelope(envelope, latest_global)?
-                    && !graph_state.ingest_publication_envelope(envelope, latest_global)?
-                {
-                    return Err(crate::MemoryError::CorruptRecord(
-                        "unsupported publication envelope body",
-                    )
-                    .into());
+        let mut container = Container::open_for_replay(path)?;
+        {
+            let mut replay = |chunk, payload: &[u8], latest_global| {
+                if let Some(owner_uuid) = lineage_owner {
+                    rewrite_lineage
+                        .ingest(payload, owner_uuid)
+                        .map_err(PhylacteryError::Repack)?;
+                } else if payload.starts_with(crate::rewrite_lineage::REWRITE_GENESIS_MAGIC) {
+                    return Err(PhylacteryError::Repack(
+                        "RewriteGenesis requires a versioned owner identity".into(),
+                    ));
                 }
-            } else {
-                memory_state.ingest(chunk, payload, latest_global)?;
-                entity_state.ingest(chunk, payload, latest_global)?;
-                graph_state.ingest(chunk, payload, latest_global)?;
-                relationship_state.ingest(chunk, payload, latest_global)?;
+                reject_rel_only_payload(payload)?;
+                owner_maintenance
+                    .ingest(payload)
+                    .map_err(PhylacteryError::Repack)?;
+                if let Some(envelope) = reliquary_container::publication_envelope::decode(payload)?
+                {
+                    if !memory_state.ingest_publication_envelope(envelope, latest_global)?
+                        && !entity_state.ingest_publication_envelope(envelope, latest_global)?
+                        && !relationship_state
+                            .ingest_publication_envelope(envelope, latest_global)?
+                        && !graph_state.ingest_publication_envelope(envelope, latest_global)?
+                    {
+                        return Err(crate::MemoryError::CorruptRecord(
+                            "unsupported publication envelope body",
+                        )
+                        .into());
+                    }
+                } else {
+                    memory_state.ingest(chunk, payload, latest_global)?;
+                    entity_state.ingest(chunk, payload, latest_global)?;
+                    graph_state.ingest(chunk, payload, latest_global)?;
+                    relationship_state.ingest(chunk, payload, latest_global)?;
+                }
+                community_state.ingest(payload)?;
+                packed_state.ingest(chunk, payload)?;
+                memory_vector_state.ingest(chunk, payload)?;
+                profile_state.ingest(chunk, payload)?;
+                phylactery_profile
+                    .ingest(payload)
+                    .map_err(PhylacteryError::Profile)?;
+                processing_epochs.ingest(payload)?;
+
+                dream_pairs.ingest(payload)?;
+                ego.ingest(payload)?;
+
+                entity_resolutions.ingest(payload)?;
+                Ok::<(), PhylacteryError>(())
+            };
+            let mut cursor = container.physical_cursor()?;
+            while let Some(frame) = cursor.next_frame()? {
+                replay(frame.object, &frame.payload, frame.latest_global)?;
             }
-            community_state.ingest(payload)?;
-            packed_state.ingest(chunk, payload)?;
-            memory_vector_state.ingest(chunk, payload)?;
-            profile_state.ingest(chunk, payload)?;
-            phylactery_profile
-                .ingest(payload)
-                .map_err(PhylacteryError::Profile)?;
-            processing_epochs.ingest(payload)?;
-
-            dream_pairs.ingest(payload)?;
-            ego.ingest(payload)?;
-
-            entity_resolutions.ingest(payload)?;
-            Ok::<(), PhylacteryError>(())
-        })?;
+            let state = cursor.finish_open_scan()?;
+            container.accept_replay_scan(state)?;
+        }
         if container.identity()
             != Some(ContainerIdentity {
                 file_kind: FileKind::Phylactery,
@@ -185,7 +198,6 @@ impl Phylactery {
             ));
         }
 
-        let mut container = container;
         let memories = memory_state.finish(&mut container)?;
         let entities = entity_state.finish(&container)?;
         let relationships = relationship_state.finish(&container)?;
@@ -237,19 +249,26 @@ impl Phylactery {
             relationships,
         };
         result.validate_prune_evidence()?;
-        let repaired_entity_resolutions =
-            result.entity_resolutions.repair_retired_entity_references(
-                &mut result.container,
-                &result.memories,
-                &result.entities,
-            )?;
         result
             .entity_resolutions
             .validate(&result.memories, &result.entities)?;
-        if repaired_entity_resolutions > 0 {
-            result.container.sync()?;
-        }
         Ok(result)
+    }
+
+    /// Explicitly canonicalize Entity-resolution references after entity retirement.
+    /// Opening a REL/PHY never performs this durable maintenance automatically.
+    pub fn repair_retired_entity_references(&mut self) -> Result<usize, PhylacteryError> {
+        let repaired = self.entity_resolutions.repair_retired_entity_references(
+            &mut self.container,
+            &self.memories,
+            &self.entities,
+        )?;
+        self.entity_resolutions
+            .validate(&self.memories, &self.entities)?;
+        if repaired > 0 {
+            self.container.sync()?;
+        }
+        Ok(repaired)
     }
 }
 

@@ -1,8 +1,8 @@
 use crate::memory_store::MemoryStore;
 use crate::{
-    Archive, Container, Memory, MemoryDraft, MemoryError, MemoryId, MemorySourceRef,
-    MemoryTemporalInference,
+    Archive, Memory, MemoryDraft, MemoryError, MemoryId, MemorySourceRef, MemoryTemporalInference,
 };
+use reliquary_container::Container;
 
 pub(crate) fn preflight_memory_parts(
     archive: &Archive,

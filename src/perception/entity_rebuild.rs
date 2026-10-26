@@ -1,5 +1,6 @@
+use crate::EntityError;
 use crate::entity_codec::decode_format;
-use crate::{EntityError, ObjectRef};
+use reliquary_container::ObjectRef;
 
 pub(crate) struct EntityOpenState {
     store: crate::entity_store::EntityStore,
@@ -20,7 +21,7 @@ impl EntityOpenState {
         payload: &[u8],
         latest_global_version: u64,
     ) -> Result<(), EntityError> {
-        if let Some(envelope) = crate::container::publication_envelope::decode(payload)? {
+        if let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? {
             self.ingest_publication_envelope(envelope, latest_global_version)?;
             return Ok(());
         }
@@ -36,7 +37,7 @@ impl EntityOpenState {
 
     pub(crate) fn ingest_publication_envelope(
         &mut self,
-        envelope: crate::container::publication_envelope::PublicationEnvelope<'_>,
+        envelope: reliquary_container::publication_envelope::PublicationEnvelope<'_>,
         latest_global_version: u64,
     ) -> Result<bool, EntityError> {
         use crate::entity_compact_codec::publication::{self, EntityPublication};
@@ -98,7 +99,7 @@ impl EntityOpenState {
 
     pub(crate) fn finish(
         self,
-        _container: &crate::Container,
+        _container: &reliquary_container::Container,
     ) -> Result<crate::entity_store::EntityStore, EntityError> {
         // An owner without Entity publications may omit its format marker.
         Ok(self.store)

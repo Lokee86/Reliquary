@@ -95,7 +95,7 @@ impl Phylactery {
 }
 
 fn accept_profile(
-    container: &mut crate::Container,
+    container: &mut reliquary_container::Container,
     profiles: &mut crate::compatibility_profile_store::CompatibilityProfileStore,
     candidate: CompatibilityProfile,
 ) -> Result<CompatibilityProfile, CompatibilityProfileError> {
@@ -107,7 +107,7 @@ fn accept_profile(
 }
 
 fn prepare_batch(
-    container: &mut crate::Container,
+    container: &mut reliquary_container::Container,
     memories: &crate::memory_store::MemoryStore,
     profiles: &crate::compatibility_profile_store::CompatibilityProfileStore,
     memory_vectors: &crate::memory_vector_store::MemoryVectorStore,
@@ -137,7 +137,7 @@ fn prepare_batch(
 }
 
 fn commit_batch(
-    container: &mut crate::Container,
+    container: &mut reliquary_container::Container,
     memories: &crate::memory_store::MemoryStore,
     profiles: &crate::compatibility_profile_store::CompatibilityProfileStore,
     packed_vectors: &mut crate::packed_vector_store::PackedVectorStore,

@@ -104,7 +104,10 @@ fn complete_zero_output_claim(cva: &mut Cva, claim: &crate::InsomniaWork, now_ns
 pub(crate) fn finish_current_import(cva: &mut Cva, now_ns: i64) {
     if let Some(start) = cva.open_import_epoch() {
         let scope = cva.import_epoch_scope().unwrap();
-        cva.container.set_owner_write_scope(true);
+        let import_scope = cva
+            .import_write_admission
+            .as_ref()
+            .map(|admission| admission.enter(&cva.container).unwrap());
         let mut pending = BTreeSet::new();
         for episode_key in &scope.episodes {
             let episode_id = EpisodeId(*episode_key);
@@ -130,7 +133,7 @@ pub(crate) fn finish_current_import(cva: &mut Cva, now_ns: i64) {
             assert!(pending.remove(&claim.episode_id.0));
             complete_zero_output_claim(cva, &claim, now_ns);
         }
-        cva.container.set_owner_write_scope(false);
+        drop(import_scope);
 
         // A revision can reuse source Nodes whose Episode predates this epoch;
         // the exact scope is then empty, but the real no-output settlement still
@@ -231,7 +234,8 @@ fn import_epoch_start_is_durable_and_fences_unrelated_writes() {
         )
     );
     let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        cva.with_import_write_scope(|_| panic!("scope cleanup probe"));
+        cva.with_import_write_scope(|_| panic!("scope cleanup probe"))
+            .unwrap();
     }));
     assert!(panic.is_err());
     assert!(
@@ -396,12 +400,15 @@ fn conflicting_snapshot_rejects_open_lease_then_completed_work_survives_retry() 
     let mut cva = Cva::create(&path).unwrap();
     let mut incoming = input();
     let receipt = cva.import_native(&incoming, 100).unwrap();
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     let claim = cva
         .claim_insomnia_episode("worker", 110, 1000)
         .unwrap()
         .unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     let open_bytes = fs::read(&path).unwrap();
     let open_clocks = current_watermarks(&cva);
     incoming.conversations[0].title = Some("Renamed".into());
@@ -418,9 +425,12 @@ fn conflicting_snapshot_rejects_open_lease_then_completed_work_survives_retry() 
     assert_eq!(current_watermarks(&cva), open_clocks);
     assert_eq!(cva.insomnia_work(claim.episode_id).unwrap(), &claim);
 
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     complete_zero_output_claim(&mut cva, &claim, 140);
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     finish_current_import(&mut cva, 150);
     assert!(cva.open_import_epoch().is_none());
     assert_eq!(
@@ -622,6 +632,7 @@ fn interrupted_import_epoch_resumes_each_durable_phase_without_duplicates() {
             cva.import_epochs
                 .append_start(&mut cva.container, start.clone())
                 .unwrap();
+            cva.refresh_import_write_admission(true).unwrap();
             cva.container.sync().unwrap();
         }
         if cut >= 2 {
@@ -647,7 +658,8 @@ fn interrupted_import_epoch_resumes_each_durable_phase_without_duplicates() {
                         }
                     }
                 }
-            });
+            })
+            .unwrap();
         }
         if cut >= 3 {
             cva.with_import_write_scope(|cva| {
@@ -665,7 +677,8 @@ fn interrupted_import_epoch_resumes_each_durable_phase_without_duplicates() {
                         }
                     }
                 }
-            });
+            })
+            .unwrap();
         }
         if cut >= 4 {
             cva.with_import_write_scope(|cva| {
@@ -673,14 +686,16 @@ fn interrupted_import_epoch_resumes_each_durable_phase_without_duplicates() {
                     cva.queue_insomnia_episode(episode.id, InsomniaPriority::Import, 100)
                         .unwrap();
                 }
-            });
+            })
+            .unwrap();
         }
         if cut >= 5 {
             cva.with_import_write_scope(|cva| {
                 cva.archive
                     .put_import_receipt(&mut cva.container, prepared.receipt.clone())
                     .unwrap();
-            });
+            })
+            .unwrap();
         }
         cva.sync().unwrap();
         drop(cva);
@@ -946,7 +961,8 @@ fn completion_for(
             )
             .unwrap();
         }
-    });
+    })
+    .unwrap();
     cva.reconstruct_historical_freshness(crate::HistoricalReconstructionOptions::default())
         .unwrap();
     let import_id = start
@@ -1035,7 +1051,10 @@ fn completed_epoch_rebuilds_and_completion_retry_is_exact() {
     let start = cva.open_import_epoch().unwrap().clone();
     let complete = completion_for(&mut cva, &start, &receipt, 200);
 
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     cva.import_epochs
         .append_complete(&mut cva.container, complete.clone())
         .unwrap();
@@ -1081,6 +1100,7 @@ fn invalid_source_revision_does_not_open_or_poison_an_epoch() {
         cva.import_epochs
             .append_complete(&mut cva.container, complete)
     })
+    .unwrap()
     .unwrap();
     cva.sync().unwrap();
 

@@ -2,7 +2,7 @@
 
 Reliquary composes the shared Laughing Skull architecture-core Pitlord policy with repository-specific source ownership and static regression rules.
 
-`semantic.json` assigns every authored Rust file under `src/` to exactly one architectural owner. The owners describe current responsibility seams inside the still-single Rust crate; they do not claim that those seams are already separate crates:
+`semantic.json` assigns authored Rust files under `src/` and `crates/reliquary-container/src/` to exactly one architectural owner. Container is independently compiled; the remaining owners describe current responsibility seams inside the root product:
 
 - `freshness`: REL-local scores, admission, immutable receipts, canonical replay and bounded propagation;
 - `container`: physical REL/PHY substrate and global ordering;
@@ -21,7 +21,7 @@ Reliquary composes the shared Laughing Skull architecture-core Pitlord policy wi
 - `staleness`: pure typed clock and review-threshold arithmetic;
 - `facade`: public Reliquary/Cva/Phylactery composition, migration, and reconciliation.
 
-The source tree is physically grouped by the same owners under `src/`. Pitlord owns those directories as coarse regions, with `src/lib.rs` explicitly facade-owned at the crate root. This remains one Rust crate: the directory layout exposes responsibility and makes ownership/dependency analysis cheap without implying a crate split.
+Container owns `crates/reliquary-container/src/`; `compact-codec` identifies its pure value helper. Other source remains grouped under `src/`, with `src/lib.rs` facade-owned. Cargo enforces the extracted physical crate dependency boundary; the remaining reserved crates do not imply completed extraction.
 
 The root policy also prevents the deleted generic `WorkspaceMetadata` / `workspace_type` authority from returning outside the explicit legacy migration compatibility boundary. It intentionally does not encode aspirational dependency direction yet. Dependency/cycle rules should be added only after Arcana evidence shows a boundary is both real and currently satisfied; current cross-owner knots are audit evidence for later extraction work, not reasons to baseline violations into policy.
 

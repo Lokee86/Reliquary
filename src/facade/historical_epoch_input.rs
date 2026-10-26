@@ -47,55 +47,63 @@ pub(super) fn admission_proof_for_scope(
     let mut completed = BTreeSet::new();
     let mut births = BTreeMap::<MemoryId, crate::EpisodeId>::new();
     let mut publications = BTreeMap::<[u8; 32], BTreeSet<[u8; 32]>>::new();
-    let mut scan = crate::Container::open_read_only_for_scan(cva.container.path())?;
-    scan.visit_payloads::<CvaError>(|object, payload| {
-        let location = object.legacy_bytes();
-        let offset = u64::from_le_bytes(location[..8].try_into().unwrap());
-        if offset < scope.marker_end {
-            return Ok(());
-        }
-        let Some(completion) = crate::insomnia::completion::decode_completion(payload)
-            .map_err(|error| fail(&error))?
-        else {
-            return Ok(());
-        };
-        if !scope.episodes.contains(&completion.episode_id.0) {
-            return Ok(());
-        }
-        let episode = cva
-            .episode(completion.episode_id)
-            .ok_or_else(|| fail("scoped import completion lacks Episode"))?;
-        if episode.origin != EpisodeOrigin::Import {
-            return Err(fail("scoped import completion has non-import Episode"));
-        }
-        completed.insert(episode.id.0);
-        publications
-            .entry(episode.id.0)
-            .or_default()
-            .insert(Sha256::digest(payload).into());
-        for id in completion.freshness_birth_memory_ids {
-            let record = completion
-                .records
-                .iter()
-                .find(|r| r.id == id && r.revision == 1)
-                .ok_or_else(|| fail("scoped import birth lacks first revision"))?;
-            if record.source_episode_id != Some(episode.id)
-                || record.global_version <= scope.start.pre.global_version
-                || cva.memories.first_mutation_id(id) != Some(record.mutation_id.as_str())
-            {
-                return Err(fail(
-                    "scoped import birth proof conflicts with Memory history",
-                ));
-            }
-            if births
-                .insert(id, episode.id)
-                .is_some_and(|old| old != episode.id)
-            {
-                return Err(fail("conflicting scoped import birth cohort"));
-            }
+    let scan = cva.container.read_source()?;
+    (|| -> Result<(), CvaError> {
+        let mut physical_cursor = scan.physical_cursor()?;
+        while let Some(physical_frame) = physical_cursor.next_frame()? {
+            let object = physical_frame.object;
+            let payload = physical_frame.payload.as_slice();
+            (|| -> Result<(), CvaError> {
+                let location = object.legacy_bytes();
+                let offset = u64::from_le_bytes(location[..8].try_into().unwrap());
+                if offset < scope.marker_end {
+                    return Ok(());
+                }
+                let Some(completion) = crate::insomnia::completion::decode_completion(payload)
+                    .map_err(|error| fail(&error))?
+                else {
+                    return Ok(());
+                };
+                if !scope.episodes.contains(&completion.episode_id.0) {
+                    return Ok(());
+                }
+                let episode = cva
+                    .episode(completion.episode_id)
+                    .ok_or_else(|| fail("scoped import completion lacks Episode"))?;
+                if episode.origin != EpisodeOrigin::Import {
+                    return Err(fail("scoped import completion has non-import Episode"));
+                }
+                completed.insert(episode.id.0);
+                publications
+                    .entry(episode.id.0)
+                    .or_default()
+                    .insert(Sha256::digest(payload).into());
+                for id in completion.freshness_birth_memory_ids {
+                    let record = completion
+                        .records
+                        .iter()
+                        .find(|r| r.id == id && r.revision == 1)
+                        .ok_or_else(|| fail("scoped import birth lacks first revision"))?;
+                    if record.source_episode_id != Some(episode.id)
+                        || record.global_version <= scope.start.pre.global_version
+                        || cva.memories.first_mutation_id(id) != Some(record.mutation_id.as_str())
+                    {
+                        return Err(fail(
+                            "scoped import birth proof conflicts with Memory history",
+                        ));
+                    }
+                    if births
+                        .insert(id, episode.id)
+                        .is_some_and(|old| old != episode.id)
+                    {
+                        return Err(fail("conflicting scoped import birth cohort"));
+                    }
+                }
+                Ok(())
+            })()?;
         }
         Ok(())
-    })?;
+    })()?;
 
     if births.keys().copied().collect::<BTreeSet<_>>() != scope.cohort
         || completed != scope.episodes

@@ -1,13 +1,14 @@
 //! Memory publication envelopes are live physical publications during reclamation.
-use crate::container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
 use crate::memory_codec::encode_body;
+use reliquary_container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
 fn encode_creation(c: &MemoryCreation) -> Result<Vec<u8>, crate::MemoryError> {
     publication::encode(&MemoryPublication::Creation(c.clone()))
 }
 use crate::memory_compact_codec::publication::{self, MemoryPublication};
 use crate::memory_compact_contract::{MemoryCreation, MemoryDelta};
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id};
-use crate::{Container, Cva, MemoryBodyId, MemoryId, Phylactery};
+use crate::{Cva, MemoryBodyId, MemoryId, Phylactery};
+use reliquary_container::Container;
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};

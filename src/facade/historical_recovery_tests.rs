@@ -55,7 +55,23 @@ fn historical_native_checkpoint_every_container_byte_prefix_reopens_and_retries(
         // Zero bytes, all 1..7-byte frame headers, the complete header,
         // every payload/checksum prefix, and the complete synchronized frame.
         for prefix in 0..=append_len {
-            fs::write(&crashed_path, &complete[..before.len() + prefix]).unwrap();
+            let prefix_bytes = &complete[..before.len() + prefix];
+            fs::write(&crashed_path, prefix_bytes).unwrap();
+            if prefix > 0 && prefix < append_len {
+                crate::container_owner_tests::assert_normal_open_requires_repair(
+                    &crashed_path,
+                    |path| {
+                        Cva::open(path)
+                            .map(|_| ())
+                            .map_err(|error| error.to_string())
+                    },
+                    before.len() as u64,
+                );
+                crate::container_owner_tests::repair_incomplete_physical_tail(
+                    &crashed_path,
+                    before.len() as u64,
+                );
+            }
             let mut reopened = Cva::open(&crashed_path)
                 .unwrap_or_else(|e| panic!("vectors={with_vectors}, prefix={prefix}: {e}"));
             let full = prefix == append_len;
@@ -219,7 +235,23 @@ fn historical_native_due_reopen_and_every_live_use_prefix_preserve_all_recipient
     // The real multi-recipient receipt is one native frame. A torn receipt
     // cannot award only some recipients or become a global suppression key.
     for prefix in 0..=append_len {
-        fs::write(&crashed_path, &complete[..grown.len() + prefix]).unwrap();
+        let prefix_bytes = &complete[..grown.len() + prefix];
+        fs::write(&crashed_path, prefix_bytes).unwrap();
+        if prefix > 0 && prefix < append_len {
+            crate::container_owner_tests::assert_normal_open_requires_repair(
+                &crashed_path,
+                |path| {
+                    Cva::open(path)
+                        .map(|_| ())
+                        .map_err(|error| error.to_string())
+                },
+                grown.len() as u64,
+            );
+            crate::container_owner_tests::repair_incomplete_physical_tail(
+                &crashed_path,
+                grown.len() as u64,
+            );
+        }
         let mut reopened = Cva::open(&crashed_path).unwrap();
         let full = prefix == append_len;
         assert_eq!(

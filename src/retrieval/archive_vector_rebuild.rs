@@ -1,7 +1,8 @@
 use crate::archive_vector_codec::{decode_format, decode_object};
 use crate::archive_vector_store::{ArchiveVectorStore, archive_vector_id, validate_mapping};
 use crate::packed_vector_store::PackedVectorStore;
-use crate::{Archive, ArchiveVectorError, ArchiveVectorInfo, FragmentId, ObjectRef};
+use crate::{Archive, ArchiveVectorError, ArchiveVectorInfo, FragmentId};
+use reliquary_container::ObjectRef;
 
 pub(crate) struct ArchiveVectorOpenState {
     records: Vec<PendingArchiveVectors>,

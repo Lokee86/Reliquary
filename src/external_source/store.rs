@@ -117,7 +117,7 @@ impl ExternalIndexStore {
 
     pub(crate) fn install(
         &mut self,
-        container: &mut crate::Container,
+        container: &mut reliquary_container::Container,
         state: SourceState,
         expected_revision: Option<u64>,
     ) -> Result<(), ExternalSourceError> {

@@ -2,8 +2,8 @@
 #[cfg(test)]
 #[path = "review_clocks_tests.rs"]
 mod tests;
-use crate::staleness::{ClockError, ClockReading, ClockRef, ClockValue};
 use crate::{Cva, Phylactery};
+use reliquary_container::review_clocks::{ClockError, ClockReading, ClockRef, ClockValue};
 
 impl Cva {
     /// Read this REL's authoritative activity or Memory clock.

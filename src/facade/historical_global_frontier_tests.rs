@@ -1,5 +1,5 @@
 use super::frontier_end;
-use crate::Container;
+use reliquary_container::Container;
 use std::path::PathBuf;
 
 struct Fixture(PathBuf);
@@ -73,11 +73,60 @@ fn embedded_version_range_is_atomic_at_its_physical_frame_frontier() {
     // Reopen observes embedded ranges using Container's real version observer.
     let reopened = Container::open(&path).unwrap();
     assert_eq!(reopened.latest_version(), 3);
-    assert_eq!(frontier_end(&reopened, 1).unwrap(), reopened.header_len);
-    assert_eq!(frontier_end(&reopened, 2).unwrap(), reopened.header_len);
+    assert_eq!(frontier_end(&reopened, 1).unwrap(), reopened.header_len());
+    assert_eq!(frontier_end(&reopened, 2).unwrap(), reopened.header_len());
     assert_eq!(
         frontier_end(&reopened, 3).unwrap(),
         following_clock_neutral_end
     );
     assert!(range_end < following_clock_neutral_end);
+}
+
+#[test]
+fn historical_frontier_tracks_direct_allocation_cuts() {
+    let fixture = Fixture::new();
+    let path = fixture.path();
+    let mut container = Container::create(&path).unwrap();
+    let mut ends = vec![file_end(&path)];
+    for tag in 1..=3 {
+        container.append_publication_envelope(&[tag; 8]).unwrap();
+        ends.push(file_end(&path));
+    }
+    container.sync().unwrap();
+    for (cut, expected_end) in ends.into_iter().enumerate() {
+        assert_eq!(frontier_end(&container, cut as u64).unwrap(), expected_end);
+    }
+}
+
+#[test]
+fn historical_frontier_excludes_late_binding_before_head_cut_only() {
+    use reliquary_container::publication_envelope::{
+        PublicationClock, PublicationEnvelope, encode,
+    };
+    let fixture = Fixture::new();
+    let path = fixture.path();
+    let mut container = Container::create(&path).unwrap();
+    let mut ends = vec![file_end(&path)];
+    for global in 1..=3 {
+        container
+            .allocate_version_with_transaction_time(Some(global * 10))
+            .unwrap();
+        ends.push(file_end(&path));
+    }
+    container
+        .append(
+            &encode(PublicationEnvelope {
+                global_version: 2,
+                clock: PublicationClock::BindReserved,
+                body: b"opaque12",
+            })
+            .unwrap(),
+        )
+        .unwrap();
+    container.sync().unwrap();
+    ends[3] = file_end(&path);
+    assert_eq!(container.latest_version(), 3);
+    for (cut, expected_end) in ends.into_iter().enumerate() {
+        assert_eq!(frontier_end(&container, cut as u64).unwrap(), expected_end);
+    }
 }

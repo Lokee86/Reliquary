@@ -9,7 +9,7 @@ pub(crate) fn compact_description_proof(
     bytes: &[u8],
 ) -> Result<Option<(EntityId, u64, EntityDescriptionProof)>, EntityError> {
     use crate::entity_compact_codec::publication::{self, EntityPublication};
-    let envelope = crate::container::publication_envelope::decode(bytes)?;
+    let envelope = reliquary_container::publication_envelope::decode(bytes)?;
     let (body, global) = envelope
         .map(|e| (e.body, e.global_version))
         .unwrap_or((bytes, 1));

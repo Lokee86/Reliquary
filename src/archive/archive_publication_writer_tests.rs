@@ -74,13 +74,13 @@ fn ordinary_writes_emit_one_native_publication_and_retries_append_nothing() {
         .unwrap();
     for version in owner.archive.record_versions().to_vec() {
         let payload = owner.container.read(version.record).unwrap();
-        let envelope = crate::container::publication_envelope::decode(&payload)
+        let envelope = reliquary_container::publication_envelope::decode(&payload)
             .unwrap()
             .expect("native publication");
         assert_eq!(envelope.global_version, version.global_version);
         assert!(matches!(
             envelope.clock,
-            crate::container::publication_envelope::PublicationClock::Allocate { .. }
+            reliquary_container::publication_envelope::PublicationClock::Allocate { .. }
         ));
         let body =
             crate::archive_codec::publication::decode(envelope.body, envelope.global_version)
@@ -119,7 +119,15 @@ fn clock_exhaustion_rejects_before_content_or_publication_append() {
         if local_exhaustion {
             owner.archive.next_archive_version = u64::MAX;
         } else {
-            owner.container.next_version = u64::MAX;
+            let start = owner.container.next_version_candidate();
+            owner
+                .container
+                .commit_embedded_version_range_at(
+                    start,
+                    usize::try_from(u64::MAX - start).unwrap(),
+                    None,
+                )
+                .unwrap();
         }
         let global = owner.latest_global_version();
         assert!(

@@ -1,8 +1,7 @@
 use super::{InsomniaStore, clear_lease};
 use crate::insomnia::codec::encode_work;
-use crate::{
-    Container, EpisodeId, InsomniaError, InsomniaLeaseToken, InsomniaWork, InsomniaWorkState,
-};
+use crate::{EpisodeId, InsomniaError, InsomniaLeaseToken, InsomniaWork, InsomniaWorkState};
+use reliquary_container::Container;
 
 impl InsomniaStore {
     pub(crate) fn fail(

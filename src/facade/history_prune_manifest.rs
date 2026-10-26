@@ -144,7 +144,7 @@ impl HistoryPruneManifest {
 /// normalizing relocatable references. Unpublished payload chunks do not enter
 /// this digest; domain descriptors bind any payload selected for removal.
 pub(crate) fn owner_history_digest(
-    container: &mut crate::Container,
+    container: &mut reliquary_container::Container,
     watermark: u64,
     graph: &crate::graph_store::GraphStore,
 ) -> Result<[u8; 32], String> {
@@ -166,12 +166,17 @@ pub(crate) fn owner_history_digest(
     let objects = container.chunks().map_err(|error| error.to_string())?;
     let normalized = objects
         .iter()
-        .map(|object| (*object, crate::ObjectRef::from_legacy_bytes([0; 16])))
+        .map(|object| {
+            (
+                *object,
+                reliquary_container::ObjectRef::from_legacy_bytes([0; 16]),
+            )
+        })
         .collect::<std::collections::BTreeMap<_, _>>();
     let mut archive_applying = std::collections::HashMap::<u64, [u8; 32]>::new();
     for object in objects {
         let raw = container.read(object).map_err(|error| error.to_string())?;
-        if let Some(envelope) = crate::container::publication_envelope::decode(&raw)
+        if let Some(envelope) = reliquary_container::publication_envelope::decode(&raw)
             .map_err(|error| error.to_string())?
         {
             use crate::archive_codec::publication::{self, ArchivePublication};
@@ -201,7 +206,7 @@ pub(crate) fn owner_history_digest(
                         crate::ArchiveRecordVersion {
                             global_version: envelope.global_version,
                             archive_version: local,
-                            record: crate::ObjectRef::from_legacy_bytes([0; 16]),
+                            record: reliquary_container::ObjectRef::from_legacy_bytes([0; 16]),
                         },
                     );
                     digest_bytes(&mut hash, &marker);
@@ -241,7 +246,7 @@ pub(crate) fn owner_history_digest(
             }
             continue;
         }
-        if let Some(envelope) = crate::container::publication_envelope::decode(&raw)
+        if let Some(envelope) = reliquary_container::publication_envelope::decode(&raw)
             .map_err(|error| error.to_string())?
             && let Some(publication) = crate::graph_compact_codec::publication::decode(
                 envelope.body,
@@ -254,7 +259,7 @@ pub(crate) fn owner_history_digest(
                     crate::graph_codec::encode_version(crate::graph_codec::GraphVersionPayload {
                         global_version: envelope.global_version,
                         graph_version: publication.graph_version,
-                        mutation: crate::ObjectRef::from_legacy_bytes([0; 16]),
+                        mutation: reliquary_container::ObjectRef::from_legacy_bytes([0; 16]),
                     });
                 digest_bytes(&mut hash, &marker);
                 let digest = graph

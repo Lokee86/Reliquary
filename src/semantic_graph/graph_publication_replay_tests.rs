@@ -1,10 +1,10 @@
 use super::*;
-use crate::container::publication_envelope::{PublicationClock, PublicationEnvelope};
 use crate::graph_compact_codec::publication::{self, GraphPublication, GraphTransaction};
 use crate::graph_compact_contract::GraphOrdinalMutation;
 use crate::{
     GraphRelationKind, GraphRelationOrigin, MemoryId, SemanticGraphRelationKind, SemanticNodeRef,
 };
+use reliquary_container::publication_envelope::{PublicationClock, PublicationEnvelope};
 
 fn object(offset: u64, len: u64) -> ObjectRef {
     let mut bytes = [0; 16];

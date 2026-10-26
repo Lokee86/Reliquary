@@ -8,7 +8,9 @@ Describe the implemented typed clock and pure review-threshold arithmetic retain
 
 ## Overview
 
-The staleness module provides owner-qualified clock types and deterministic due-threshold math. It does not own persistence, semantic eligibility, queueing, inference, or Memory Freshness.
+The independent Container crate's `review_clocks` module provides owner-qualified clock types and deterministic due-threshold math. It does not own persistence, semantic eligibility, queueing, inference, or Memory Freshness.
+
+The product preserves its existing public `staleness` module path as a re-export; internal consumers import the compiled physical crate directly.
 
 Supported clock sources are REL activity, owner Memory version, and explicitly sampled Unix nanoseconds.
 
@@ -34,7 +36,8 @@ Ego/Observation or other consumers may use these primitives only under their own
 
 ## Code Map
 
-- `src/staleness/**`
+- `crates/reliquary-container/src/review_clocks.rs`
+- `crates/reliquary-container/src/review_clock_tests.rs`
 - `src/facade/review_clocks.rs`
 - `src/facade/review_clocks_tests.rs`
 

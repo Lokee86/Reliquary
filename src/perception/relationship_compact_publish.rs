@@ -3,7 +3,8 @@ use super::{RelationshipStore, resolve, validate_record};
 use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
 use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
 use crate::relationship_model::RelationshipRecord;
-use crate::{Container, Relationship, RelationshipError};
+use crate::{Relationship, RelationshipError};
+use reliquary_container::Container;
 
 impl RelationshipStore {
     /// Callers resolve drafts and retries; this seam validates admission before

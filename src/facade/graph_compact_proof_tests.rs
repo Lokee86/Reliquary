@@ -22,10 +22,11 @@ use crate::graph_codec::{GraphNodePayload, GraphVersionPayload, encode_node, enc
 use crate::graph_compact_contract::GraphOrdinalMutation;
 use crate::owner_lifecycle::{LifecycleTarget, TombstoneOutcome};
 use crate::{
-    Container, Cva, GraphRelationKind, GraphRelationOrigin, HistoryPruneRequest, MemoryDraft,
-    MemoryId, Phylactery, SemanticGraphRelationKind, SemanticNodeRef,
+    Cva, GraphRelationKind, GraphRelationOrigin, HistoryPruneRequest, MemoryDraft, MemoryId,
+    Phylactery, SemanticGraphRelationKind, SemanticNodeRef,
 };
 use arcana::NodeId;
+use reliquary_container::Container;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -555,42 +556,74 @@ fn native_graph_reclamation_keeps_publication_and_mappings_and_drops_orphan_carr
         };
         assert!(report.unpublished_backing_chunks >= 1);
         assert_eq!(fs::read(&source).unwrap(), before);
-        let graph_frames = |path: &Path| {
-            let mut container = Container::open(path).unwrap();
-            container
-                .chunks()
-                .unwrap()
-                .into_iter()
-                .filter_map(|object| {
-                    let bytes = container.read(object).unwrap();
-                    let native = crate::container::publication_envelope::decode(&bytes)
+        let graph_frames = |container: &Container| {
+            let source = container.read_source().unwrap();
+            let mut cursor = source.physical_cursor().unwrap();
+            let mut frames = Vec::new();
+            while let Some(frame) = cursor.next_frame().unwrap() {
+                let bytes = frame.payload;
+                let native = reliquary_container::publication_envelope::decode(&bytes)
+                    .unwrap()
+                    .is_some_and(|envelope| {
+                        crate::graph_compact_codec::publication::decode(
+                            envelope.body,
+                            envelope.global_version,
+                        )
                         .unwrap()
-                        .is_some_and(|envelope| {
-                            crate::graph_compact_codec::publication::decode(
-                                envelope.body,
-                                envelope.global_version,
-                            )
-                            .unwrap()
-                            .is_some()
-                        });
-                    (native || bytes.starts_with(b"CVAGNODE") || bytes.starts_with(b"CVAGNOD2"))
-                        .then_some(bytes)
-                })
-                .collect::<Vec<_>>()
+                        .is_some()
+                    });
+                if native || bytes.starts_with(b"CVAGNODE") || bytes.starts_with(b"CVAGNOD2") {
+                    frames.push(bytes);
+                }
+            }
+            frames
         };
-        assert_eq!(graph_frames(&source), graph_frames(&output));
-        let mut source_container = Container::open(&source).unwrap();
-        let mut output_container = Container::open(&output).unwrap();
-        let graph = if phy {
-            Phylactery::open(&source).unwrap().graph
-        } else {
-            Cva::open(&source).unwrap().graph
-        };
-        for watermark in 0..=source_container.latest_version() {
+        if phy {
+            let mut source_owner = Phylactery::open(&source).unwrap();
+            let mut output_owner = Phylactery::open(&output).unwrap();
             assert_eq!(
-                super::owner_history_digest(&mut source_container, watermark, &graph).unwrap(),
-                super::owner_history_digest(&mut output_container, watermark, &graph).unwrap()
+                graph_frames(&source_owner.container),
+                graph_frames(&output_owner.container)
             );
+            for watermark in 0..=source_owner.latest_global_version() {
+                assert_eq!(
+                    super::owner_history_digest(
+                        &mut source_owner.container,
+                        watermark,
+                        &source_owner.graph
+                    )
+                    .unwrap(),
+                    super::owner_history_digest(
+                        &mut output_owner.container,
+                        watermark,
+                        &source_owner.graph
+                    )
+                    .unwrap()
+                );
+            }
+        } else {
+            let mut source_owner = Cva::open(&source).unwrap();
+            let mut output_owner = Cva::open(&output).unwrap();
+            assert_eq!(
+                graph_frames(&source_owner.container),
+                graph_frames(&output_owner.container)
+            );
+            for watermark in 0..=source_owner.latest_global_version() {
+                assert_eq!(
+                    super::owner_history_digest(
+                        &mut source_owner.container,
+                        watermark,
+                        &source_owner.graph
+                    )
+                    .unwrap(),
+                    super::owner_history_digest(
+                        &mut output_owner.container,
+                        watermark,
+                        &source_owner.graph
+                    )
+                    .unwrap()
+                );
+            }
         }
     }
 }

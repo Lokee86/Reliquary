@@ -52,9 +52,11 @@ impl Cva {
             };
             self.import_epochs
                 .append_start(&mut self.container, start)?;
+            self.refresh_import_write_admission(true)?;
             self.container.sync()?;
         }
         self.with_import_write_scope(|cva| cva.commit_prepared_import(prepared, now_ns))
+            .map_err(ImportError::from)?
     }
 
     fn commit_prepared_import(
@@ -114,14 +116,26 @@ impl Cva {
     pub(crate) fn with_import_write_scope<T>(
         &mut self,
         operation: impl FnOnce(&mut Self) -> T,
-    ) -> T {
-        self.container.set_owner_write_scope(true);
-        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| operation(self)));
-        self.container.set_owner_write_scope(false);
-        match result {
-            Ok(value) => value,
-            Err(payload) => std::panic::resume_unwind(payload),
+    ) -> Result<T, reliquary_container::ContainerError> {
+        let _scope = self
+            .import_write_admission
+            .as_ref()
+            .ok_or(reliquary_container::ContainerError::WriteAdmissionClosed)?
+            .enter(&self.container)?;
+        Ok(operation(self))
+    }
+
+    pub(crate) fn refresh_import_write_admission(
+        &mut self,
+        open: bool,
+    ) -> Result<(), reliquary_container::ContainerError> {
+        if open && self.import_write_admission.is_none() {
+            self.import_write_admission = Some(self.container.close_write_admission()?);
+        } else if !open && let Some(admission) = self.import_write_admission.as_ref() {
+            admission.reopen(&mut self.container)?;
+            self.import_write_admission = None;
         }
+        Ok(())
     }
 
     pub fn native_import_receipts(&self) -> Vec<ImportReceipt> {

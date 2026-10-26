@@ -2,6 +2,14 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+Physical framing is implemented by `reliquary-container`, independently of
+semantic owner codecs. Extraction changes no header, frame, publication-envelope
+or grouped-clock bytes. Ordinary inspection/open never truncates an incomplete
+tail: it returns a typed repair-required result at the accepted physical prefix.
+Complete malformed clock-bearing frames reject as corruption. Explicit repair
+uses a stable identity/length-bound plan under a held writer lease after higher
+owner approval; read sessions cannot implicitly repair.
+
 
 ## Development-format lifecycle policy
 
@@ -1233,8 +1241,8 @@ Opt-in Freshness stage samples are process-local JSON diagnostics. They are not 
 
 ## Code Map
 
-- `src/container/**`
-- `src/compact_delta.rs`
+- `crates/reliquary-container/src/**`
+- `crates/reliquary-container/src/codec.rs`
 
 ## Related docs
 

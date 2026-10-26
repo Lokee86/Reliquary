@@ -1,6 +1,6 @@
 //! Entity publication envelopes remain live during reclamation.
-use crate::container::publication_envelope::PublicationClock;
 use crate::entity_compact_codec::publication::{self, EntityPublication};
+use reliquary_container::publication_envelope::PublicationClock;
 fn encode_creation(c: &EntityCreation) -> Result<Vec<u8>, crate::EntityError> {
     crate::entity_compact_codec::publication::encode(
         &crate::entity_compact_codec::publication::EntityPublication::Creation(c.clone()),
@@ -14,7 +14,8 @@ fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, crate::EntityError> {
 use crate::entity_compact_contract::{EntityCreation, EntityDelta};
 use crate::entity_model::EntityRecord;
 use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget};
-use crate::{Container, Cva, EntityId, FileKind, HistoryPruneRequest, Phylactery};
+use crate::{Cva, EntityId, HistoryPruneRequest, Phylactery};
+use reliquary_container::{Container, FileKind};
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -172,7 +173,7 @@ fn make_pruned_history(path: &Path, kind: FileKind) -> (Vec<Option<i64>>, Vec<Ve
     let pruned_envelopes = envelope_payloads(path);
     assert_eq!(pruned_envelopes.len(), 3);
     assert!(pruned_envelopes.iter().any(|bytes| {
-        crate::container::publication_envelope::decode(bytes)
+        reliquary_container::publication_envelope::decode(bytes)
             .unwrap()
             .is_some_and(|envelope| {
                 publication::decode(envelope.body, envelope.global_version)
@@ -280,8 +281,8 @@ fn reclamation_scan_and_relocation_validate_entity_publication_envelopes() {
         entity_version: 1,
     };
     let body = publication::encode(&publication).unwrap();
-    let envelope = crate::container::publication_envelope::encode(
-        crate::container::publication_envelope::PublicationEnvelope {
+    let envelope = reliquary_container::publication_envelope::encode(
+        reliquary_container::publication_envelope::PublicationEnvelope {
             global_version: 1,
             clock: PublicationClock::Allocate {
                 transaction_time_ns: Some(7),
@@ -295,12 +296,12 @@ fn reclamation_scan_and_relocation_validate_entity_publication_envelopes() {
         envelope
     );
     let mut scan = super::ReclamationScan::default();
-    let object = crate::ObjectRef::from_legacy_bytes([9; 16]);
+    let object = reliquary_container::ObjectRef::from_legacy_bytes([9; 16]);
     scan.ingest(object, &envelope).unwrap();
 
     let malformed_body = b"CVAETD02truncated";
-    let malformed = crate::container::publication_envelope::encode(
-        crate::container::publication_envelope::PublicationEnvelope {
+    let malformed = reliquary_container::publication_envelope::encode(
+        reliquary_container::publication_envelope::PublicationEnvelope {
             global_version: 1,
             clock: PublicationClock::Allocate {
                 transaction_time_ns: Some(7),
@@ -312,8 +313,8 @@ fn reclamation_scan_and_relocation_validate_entity_publication_envelopes() {
     assert!(scan.ingest(object, &malformed).is_err());
     assert!(super::relocate_payload(&malformed, &Default::default()).is_err());
 
-    let foreign = crate::container::publication_envelope::encode(
-        crate::container::publication_envelope::PublicationEnvelope {
+    let foreign = reliquary_container::publication_envelope::encode(
+        reliquary_container::publication_envelope::PublicationEnvelope {
             global_version: 2,
             clock: PublicationClock::Allocate {
                 transaction_time_ns: None,

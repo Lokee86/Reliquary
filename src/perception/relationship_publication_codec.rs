@@ -177,7 +177,7 @@ fn validate_terminal(revision: u64, relationship_version: u64) -> Result<(), Rel
 
 /// Publication coordinates only; consumers resolve semantic facts in the owner store.
 pub(crate) fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, RelationshipError> {
-    let Some(envelope) = crate::container::publication_envelope::decode(payload)? else {
+    let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };
     let Some(publication) = decode(envelope.body, envelope.global_version)? else {
@@ -215,7 +215,7 @@ pub(crate) fn comparison_carrier(
 pub(crate) fn history_evidence(
     payload: &[u8],
 ) -> Result<Option<(u64, Vec<u8>, [u8; 32])>, RelationshipError> {
-    let Some(envelope) = crate::container::publication_envelope::decode(payload)? else {
+    let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };
     let Some(publication) = decode(envelope.body, envelope.global_version)? else {
@@ -242,7 +242,7 @@ pub(crate) fn history_evidence(
         crate::relationship_codec::encode_version(crate::relationship_codec::RelationshipVersion {
             global_version: envelope.global_version,
             relationship_version: local,
-            record: crate::ObjectRef::from_legacy_bytes([0; 16]),
+            record: reliquary_container::ObjectRef::from_legacy_bytes([0; 16]),
         });
     Ok(Some((envelope.global_version, marker, digest)))
 }

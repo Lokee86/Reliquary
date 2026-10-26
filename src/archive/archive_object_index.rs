@@ -1,5 +1,6 @@
 use crate::archive_lookup::DenseLookup;
-use crate::{ArchiveError, ContentId, Fragment, FragmentId, ObjectRef};
+use crate::{ArchiveError, ContentId, Fragment, FragmentId};
+use reliquary_container::ObjectRef;
 use std::collections::HashMap;
 use std::hash::BuildHasher;
 

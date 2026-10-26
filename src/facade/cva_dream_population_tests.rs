@@ -99,10 +99,10 @@ fn append_ordered_memory_creation(
         ),
     )
     .unwrap();
-    let envelope = crate::container::publication_envelope::encode(
-        crate::container::publication_envelope::PublicationEnvelope {
+    let envelope = reliquary_container::publication_envelope::encode(
+        reliquary_container::publication_envelope::PublicationEnvelope {
             global_version,
-            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            clock: reliquary_container::publication_envelope::PublicationClock::BindReserved,
             body: &body,
         },
     )
@@ -144,7 +144,7 @@ fn physical_boundary_materializes_only_accepted_preceding_births_and_is_read_onl
         .into_iter()
         .find(|chunk| {
             let payload = owner.container.read(*chunk).unwrap();
-            crate::container::publication_envelope::decode(&payload)
+            reliquary_container::publication_envelope::decode(&payload)
                 .unwrap()
                 .is_some_and(|envelope| envelope.global_version == source_global)
         })
@@ -221,7 +221,7 @@ fn replay_birth_after_boundary_is_visible_only_to_later_physical_prefixes() {
         .into_iter()
         .find_map(|chunk| {
             let payload = owner.container.read(chunk).unwrap();
-            crate::container::publication_envelope::decode(&payload)
+            reliquary_container::publication_envelope::decode(&payload)
                 .unwrap()
                 .filter(|envelope| envelope.global_version == source_global)
                 .map(|_| chunk.legacy_offset() + 8 + chunk.legacy_len())

@@ -4,9 +4,8 @@ use super::model::*;
 use super::provenance::ExternalMemoryEvidence;
 use crate::insomnia::completion::InsomniaCompletionBody;
 use crate::memory_model::MemoryRecord;
-use crate::{
-    Container, Memory, MemoryBodyId, MemoryError, MemoryId, MemoryRoutingMetadata, ObjectRef,
-};
+use crate::{Memory, MemoryBodyId, MemoryError, MemoryId, MemoryRoutingMetadata};
+use reliquary_container::{Container, ObjectRef};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 const MAGIC: &[u8; 8] = b"CVAXMEM2";

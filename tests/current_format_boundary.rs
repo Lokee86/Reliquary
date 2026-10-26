@@ -58,61 +58,185 @@ fn current_rel_and_phy_reopen_with_exact_identity_and_writable_state() {
 }
 
 #[test]
+fn owner_open_reports_incomplete_tail_without_repairing_rel_or_phy() {
+    use std::io::Write as _;
+
+    let root = directory();
+    let rel = root.join("incomplete.rel");
+    let phy = root.join("incomplete.phy");
+    drop(Cva::create(&rel).unwrap());
+    drop(Phylactery::create(&phy).unwrap());
+
+    for path in [&rel, &phy] {
+        fs::OpenOptions::new()
+            .append(true)
+            .open(path)
+            .unwrap()
+            .write_all(&[8, 0, 0])
+            .unwrap();
+        let before = fs::read(path).unwrap();
+        if path == &rel {
+            assert!(matches!(
+                Cva::open(path),
+                Err(CvaError::Container(ContainerError::RepairRequired { .. }))
+            ));
+        } else {
+            assert!(matches!(
+                Phylactery::open(path),
+                Err(PhylacteryError::Container(
+                    ContainerError::RepairRequired { .. }
+                ))
+            ));
+        }
+        assert_eq!(
+            fs::read(path).unwrap(),
+            before,
+            "owner open repaired {path:?}"
+        );
+    }
+}
+
+#[test]
+fn second_owner_writer_is_rejected_until_rel_and_phy_session_drop() {
+    let root = directory();
+    let rel_path = root.join("leased.rel");
+    let phy_path = root.join("leased.phy");
+
+    let rel = Cva::create(&rel_path).unwrap();
+    let rel_id = rel.owner_uuid();
+    assert!(matches!(
+        Cva::open(&rel_path),
+        Err(CvaError::Container(ContainerError::WriterConflict))
+    ));
+    drop(rel);
+    assert_eq!(Cva::open(&rel_path).unwrap().owner_uuid(), rel_id);
+
+    let phy = Phylactery::create(&phy_path).unwrap();
+    let phy_id = phy.owner_uuid();
+    assert!(matches!(
+        Phylactery::open(&phy_path),
+        Err(PhylacteryError::Container(ContainerError::WriterConflict))
+    ));
+    drop(phy);
+    assert_eq!(Phylactery::open(&phy_path).unwrap().owner_uuid(), phy_id);
+}
+
+#[test]
 #[ignore = "explicit local promoted six-file corpus admission"]
 fn promoted_canonical_corpus_reopens_after_runtime_retirement() {
     use sha2::{Digest, Sha256};
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let report: serde_json::Value = serde_json::from_slice(
-        &fs::read(repo.join("benchmarks/canonical-history-promotion-2026-10-21.json")).unwrap(),
-    )
-    .unwrap();
-    let root = repo.join("../reliquary-fixtures/local/authoritative");
-    for row in report["fixtures"].as_array().unwrap() {
-        let key = row["fixture"].as_str().unwrap();
-        let path = root.join(key);
+    let source_root = std::env::var_os("RELIQUARY_CURRENT_CORPUS_ROOT")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| repo.join("../reliquary-fixtures/local/authoritative"));
+    let copy_root = directory().join("promoted-current-corpus");
+
+    // These are the current CVAFRS07 promoted hashes and owner heads from the
+    // 2026-10-23 authority markers. The 2026-10-21 manifest pins pre-CVAFRS07
+    // bytes and is not an admission oracle for the current corpus.
+    let fixtures: [(&str, &str, &[u64]); 6] = [
+        (
+            "chatgpt-first14d/project.prj.rel",
+            "a02c8696db754c53a73c896133b06df9828a32923aee610c9f918a16698f76d0",
+            &[18938, 7526, 3348, 150, 0, 7913, 7913, 1, 5857],
+        ),
+        (
+            "chatgpt-first14d/user.phy",
+            "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+            &[1088, 421, 0, 0, 667, 667],
+        ),
+        (
+            "chatgpt-first28d/project.prj.rel",
+            "76c15780bd7cfe7e3083dbff5684e236a8fd2090fb0a82ec3d66529d14307d87",
+            &[52804, 21068, 5727, 671, 0, 25337, 25337, 1, 16465],
+        ),
+        (
+            "chatgpt-first28d/user.phy",
+            "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+            &[2215, 490, 35, 0, 1690, 1637],
+        ),
+        (
+            "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+            "cbc38d055936fc5702a17c4d569557d8c35e8887d1946c5562ba419038de6ee3",
+            &[11725, 3763, 1452, 199, 0, 6309, 6309, 2, 2972],
+        ),
+        (
+            "rhelm-david-r-ellis-pre-relationship/user.phy",
+            "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0",
+            &[5221, 976, 86, 0, 4159, 3889],
+        ),
+    ];
+
+    let mut failures = Vec::new();
+    for (key, expected_hash, expected_heads) in fixtures {
+        let source = source_root.join(key);
+        let path = copy_root.join(key);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let source_bytes = fs::read(&source).unwrap();
+        assert_eq!(
+            format!("{:x}", Sha256::digest(&source_bytes)),
+            expected_hash,
+            "source is not the promoted CVAFRS07 fixture {key}"
+        );
+        fs::copy(&source, &path).unwrap();
         let before = fs::read(&path).unwrap();
         let modified = fs::metadata(&path).unwrap().modified().unwrap();
         assert_eq!(
             format!("{:x}", Sha256::digest(&before)),
-            row["canonical_sha256"].as_str().unwrap()
+            expected_hash,
+            "copied fixture hash {key}"
         );
         let heads = if key.ends_with(".rel") {
-            let owner = Cva::open(&path).unwrap();
-            vec![
-                owner.latest_global_version(),
-                owner.archive_version(),
-                owner.memory_version(),
-                owner.entity_version(),
-                owner.relationship_version(),
-                owner.graph_version(),
-                owner.memory_graph_version(),
-                owner.vector_version(),
-                owner.rel_turn_count(),
-            ]
+            Cva::open(&path)
+                .map(|owner| {
+                    vec![
+                        owner.latest_global_version(),
+                        owner.archive_version(),
+                        owner.memory_version(),
+                        owner.entity_version(),
+                        owner.relationship_version(),
+                        owner.graph_version(),
+                        owner.memory_graph_version(),
+                        owner.vector_version(),
+                        owner.rel_turn_count(),
+                    ]
+                })
+                .map_err(|error| error.to_string())
         } else {
-            let owner = Phylactery::open(&path).unwrap();
-            vec![
-                owner.latest_global_version(),
-                owner.memory_version(),
-                owner.entity_version(),
-                owner.relationship_version(),
-                owner.graph_version(),
-                owner.memory_graph_version(),
-            ]
+            Phylactery::open(&path)
+                .map(|owner| {
+                    vec![
+                        owner.latest_global_version(),
+                        owner.memory_version(),
+                        owner.entity_version(),
+                        owner.relationship_version(),
+                        owner.graph_version(),
+                        owner.memory_graph_version(),
+                    ]
+                })
+                .map_err(|error| error.to_string())
         };
-        assert_eq!(
-            serde_json::to_value(heads).unwrap(),
-            row["heads"],
-            "owner heads {key}"
-        );
+        match heads {
+            Ok(heads) => {
+                assert_eq!(heads, expected_heads, "owner heads {key}");
+                println!("current runtime admitted disposable promoted copy {key}");
+            }
+            Err(error) => {
+                eprintln!("current runtime rejected disposable promoted copy {key}: {error}");
+                failures.push(format!("{key}: {error}"));
+            }
+        }
         assert_eq!(
             fs::read(&path).unwrap(),
             before,
             "open changed canonical bytes {key}"
         );
         assert_eq!(fs::metadata(&path).unwrap().modified().unwrap(), modified);
-        println!("retired runtime admitted promoted {key}");
     }
+    assert!(
+        failures.is_empty(),
+        "promoted corpus admission failures: {failures:#?}"
+    );
 }
 
 #[test]

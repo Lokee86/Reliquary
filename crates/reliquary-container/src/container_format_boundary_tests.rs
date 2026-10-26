@@ -3,11 +3,9 @@ use super::{
 };
 use std::{fs, path::PathBuf};
 fn path() -> PathBuf {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join(".test-tmp")
-        .join(format!("current-container-{}", uuid::Uuid::new_v4()));
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".test-tmp");
     fs::create_dir_all(&root).unwrap();
-    root.join("owner.cva")
+    root.join(format!("current-container-{}.cva", uuid::Uuid::new_v4()))
 }
 #[test]
 fn current_identity_headers_preserve_typed_scope_uuid_and_kind() {

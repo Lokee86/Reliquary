@@ -1,7 +1,8 @@
 use crate::{
-    ArchiveError, CompatibilityProfileError, ContainerError, CvaError, CvaReconcileConflict,
-    EntityError, GraphError, InsomniaError, MemoryError, RelationshipError,
+    ArchiveError, CompatibilityProfileError, CvaError, CvaReconcileConflict, EntityError,
+    GraphError, InsomniaError, MemoryError, RelationshipError,
 };
+use reliquary_container::ContainerError;
 use std::fmt;
 use std::io;
 

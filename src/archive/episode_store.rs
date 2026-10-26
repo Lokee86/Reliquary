@@ -1,6 +1,7 @@
 use crate::archive_codec::ArchiveRecord;
 use crate::episode_model::episode_id;
-use crate::{Archive, ArchiveError, Container, Episode, EpisodeId, Node};
+use crate::{Archive, ArchiveError, Episode, EpisodeId, Node};
+use reliquary_container::Container;
 use std::collections::HashSet;
 
 impl Archive {

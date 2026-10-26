@@ -4,7 +4,8 @@ use crate::memory_compact_contract::{MemoryCreation, MemoryDelta};
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id, memory_id};
 use crate::memory_rebuild::MemoryOpenState;
 use crate::memory_store::MemoryStore;
-use crate::{Container, ContainerIdentity, FileKind, Memory, MemoryDraft, MemoryError, MemoryId};
+use crate::{Memory, MemoryDraft, MemoryError, MemoryId};
+use reliquary_container::{Container, ContainerIdentity, FileKind};
 use std::path::{Path, PathBuf};
 
 struct ScratchFile(PathBuf);

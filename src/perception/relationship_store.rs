@@ -12,9 +12,8 @@ use crate::entity_store::EntityStore;
 use crate::memory_store::MemoryStore;
 use crate::relationship_codec::{RelationshipTombstone, encode_format};
 use crate::relationship_model::RelationshipRecord;
-use crate::{
-    Container, EntityRef, Relationship, RelationshipDraft, RelationshipError, RelationshipId,
-};
+use crate::{EntityRef, Relationship, RelationshipDraft, RelationshipError, RelationshipId};
+use reliquary_container::Container;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeSet, HashMap};
 use validation::normalize_draft;

@@ -1,5 +1,4 @@
 //! Pure Relationship candidate reconstruction regressions.
-use crate::compact_delta::FieldChange;
 use crate::relationship_compact_apply::apply_delta;
 use crate::relationship_compact_contract::{
     RelationshipCollectionChange, RelationshipCreation, RelationshipDelta,
@@ -10,6 +9,7 @@ use crate::{
     EntityId, EntityRef, MemoryId, MemoryRef, RelationshipError, RelationshipId,
     RelationshipParticipant,
 };
+use reliquary_container::codec::FieldChange;
 
 fn participant(owner: &str, id: u8, role: Option<&str>) -> RelationshipParticipant {
     RelationshipParticipant {

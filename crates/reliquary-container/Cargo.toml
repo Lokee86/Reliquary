@@ -6,3 +6,7 @@ publish = false
 
 [lib]
 path = "src/lib.rs"
+
+[dependencies]
+sha2 = "0.10"
+uuid = { version = "1", features = ["v4"] }

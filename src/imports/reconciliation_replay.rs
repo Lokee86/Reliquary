@@ -7,14 +7,14 @@ use std::{collections::BTreeMap, path::Path};
 pub(super) fn replay(
     left: &mut Cva,
     right: &mut Cva,
-    left_path: &Path,
+    _left_path: &Path,
     output_path: &Path,
     comparison: CvaComparison,
     known: BTreeMap<String, CompletedEpoch>,
     epochs: BTreeMap<String, CompletedEpoch>,
     boundary: usize,
 ) -> Result<CvaReconcileResult, CvaReconcileError> {
-    crate::cva_reconcile::copy_and_validate(left_path, output_path)?;
+    crate::cva_reconcile::copy_owner_and_validate(left, output_path)?;
     let mut output = Cva::open(output_path)?;
     let mut cursor = boundary;
     let mut coordinates = super::reconciliation_interval::Coordinates::shared(right, boundary)?;
@@ -50,6 +50,9 @@ pub(super) fn replay(
             .import_epochs
             .append_start(&mut output.container, start.clone())
             .map_err(crate::CvaError::Import)?;
+        output
+            .refresh_import_write_admission(true)
+            .map_err(crate::CvaError::Container)?;
         completions += output.with_import_write_scope(|output| {
             replay_interval(
                 right,
@@ -58,7 +61,7 @@ pub(super) fn replay(
                 epoch.end - 1,
                 &mut coordinates,
             )
-        })?;
+        })??;
         // Native reconstruction freezes the destination input and derives its
         // start binding, byte-prefix digest and canonical pre-start base. Source
         // coordinates or source replacement bytes never authorize publication.
@@ -82,8 +85,11 @@ pub(super) fn replay(
         || coordinates.relationship_revisions != 0
         || coordinates.graph_transactions != 0;
     output.sync()?;
+    let output_archive = output.archive;
+    drop(output.container);
+    drop(output.freshness);
     let reopened = Cva::open(output_path)?;
-    if !output.archive.activity_history_matches(&reopened.archive)
+    if !output_archive.activity_history_matches(&reopened.archive)
         || !reopened
             .archive
             .activity_merge_order_matches(&left.archive, &right.archive)
@@ -91,7 +97,7 @@ pub(super) fn replay(
         return Err(unsupported("reconciled import activity order changed"));
     }
     for id in known.keys() {
-        if output.import_epoch_status(id) != left.import_epoch_status(id) {
+        if reopened.import_epoch_status(id) != left.import_epoch_status(id) {
             return Err(unsupported(
                 "reconciliation changed a retained left import epoch",
             ));
@@ -99,7 +105,8 @@ pub(super) fn replay(
     }
     Ok(CvaReconcileResult {
         comparison,
-        replayed_archive_records: output.archive_version().saturating_sub(before_archive) as usize,
+        replayed_archive_records: reopened.archive_version().saturating_sub(before_archive)
+            as usize,
         replayed_memory_revisions: coordinates.memory_revisions,
         duplicate_memory_revisions: coordinates.duplicate_memory_revisions,
         replayed_entity_revisions: coordinates.entity_revisions,

@@ -5,17 +5,14 @@
 //! open and append validation reason only about the already-accepted prefix.
 
 use super::{JournalEntry, MAGIC, decode};
-use crate::{Container, CvaError};
-use std::path::Path;
-
-const CONTAINER_CHUNK_HEADER_LEN: u64 = 8;
+use reliquary_container::PhysicalReadSource;
 
 pub(crate) fn scan_entries(
-    path: &Path,
+    source: &PhysicalReadSource,
     prefix_end: u64,
     mut visitor: impl FnMut([u8; 16], JournalEntry) -> Result<(), String>,
 ) -> Result<(), String> {
-    scan_entries_impl(path, None, prefix_end, |owner, _, entry| {
+    scan_entries_impl(source, None, prefix_end, |owner, _, entry| {
         visitor(owner, entry)
     })
 }
@@ -24,7 +21,7 @@ pub(crate) fn scan_entries(
 /// through `prefix_end`. Earlier payload bytes are traversed to reach the
 /// interval, but are not decoded as Freshness entries or retained by this scan.
 pub(crate) fn scan_entries_in_interval(
-    path: &Path,
+    source: &PhysicalReadSource,
     prefix_start: u64,
     prefix_end: u64,
     mut visitor: impl FnMut([u8; 16], u64, JournalEntry) -> Result<(), String>,
@@ -33,7 +30,7 @@ pub(crate) fn scan_entries_in_interval(
         return Err("invalid physical Freshness scan interval".into());
     }
     scan_entries_impl(
-        path,
+        source,
         Some(prefix_start),
         prefix_end,
         |owner, frame_end, entry| visitor(owner, frame_end, entry),
@@ -41,7 +38,7 @@ pub(crate) fn scan_entries_in_interval(
 }
 
 fn scan_entries_impl(
-    path: &Path,
+    source: &PhysicalReadSource,
     prefix_start: Option<u64>,
     prefix_end: u64,
     mut visitor: impl FnMut([u8; 16], u64, JournalEntry) -> Result<(), String>,
@@ -55,61 +52,34 @@ fn scan_entries_impl(
     let started = std::time::Instant::now();
     #[cfg(feature = "freshness-performance-trace")]
     let (mut bytes, mut chunks) = (0u64, 0u64);
-    let mut container =
-        Container::open_read_only_for_scan(path).map_err(|error| error.to_string())?;
-    let mut callback_error: Option<String> = None;
-    let mut start_boundary_seen = prefix_start.is_none_or(|start| start == container.header_len);
-
-    container
-        .visit_payloads_through::<CvaError>(prefix_end, |object, payload| {
-            #[cfg(feature = "freshness-performance-trace")]
-            {
-                bytes += payload.len() as u64;
-                chunks += 1;
-            }
-            if callback_error.is_some() {
-                return Ok(());
-            }
-
-            let bytes = object.legacy_bytes();
-            let frame_start = u64::from_le_bytes(bytes[..8].try_into().unwrap());
-            let frame_len = u64::from_le_bytes(bytes[8..].try_into().unwrap());
-            let Some(frame_end) = frame_start
-                .checked_add(CONTAINER_CHUNK_HEADER_LEN)
-                .and_then(|header_end| header_end.checked_add(frame_len))
-            else {
-                callback_error = Some("Freshness physical frame extent overflow".into());
-                return Ok(());
-            };
-            if prefix_start.is_some_and(|start| start == frame_start || start == frame_end) {
-                start_boundary_seen = true;
-            }
-            if prefix_start.is_some_and(|start| frame_end <= start) {
-                return Ok(());
-            }
-
-            if payload.starts_with(super::semantic_settlement::SEMANTIC_SETTLEMENT_MAGIC) {
-                return Ok(());
-            }
-            if payload.starts_with(b"CVAFRS") && payload.get(..8) != Some(MAGIC.as_slice()) {
-                callback_error = Some("unsupported legacy CVAFRS01 Freshness receipt".into());
-                return Ok(());
-            }
-            if payload.get(..8) != Some(MAGIC.as_slice()) {
-                return Ok(());
-            }
-
-            match decode(payload) {
-                Ok((owner, entry)) => {
-                    if let Err(error) = visitor(owner, frame_end, entry) {
-                        callback_error = Some(error);
-                    }
-                }
-                Err(error) => callback_error = Some(error),
-            }
-            Ok(())
-        })
+    let mut start_boundary_seen = prefix_start.is_none_or(|start| start == source.header_len());
+    let mut cursor = source
+        .physical_cursor_through(prefix_end)
         .map_err(|error| error.to_string())?;
+    while let Some(frame) = cursor.next_frame().map_err(|error| error.to_string())? {
+        let payload = frame.payload.as_slice();
+        #[cfg(feature = "freshness-performance-trace")]
+        {
+            bytes += payload.len() as u64;
+            chunks += 1;
+        }
+        if prefix_start.is_some_and(|start| start == frame.offset || start == frame.end) {
+            start_boundary_seen = true;
+        }
+        if prefix_start.is_some_and(|start| frame.end <= start) {
+            continue;
+        }
+        if payload.starts_with(super::semantic_settlement::SEMANTIC_SETTLEMENT_MAGIC) {
+            continue;
+        }
+        if payload.starts_with(b"CVAFRS") && payload.get(..8) != Some(MAGIC.as_slice()) {
+            return Err("unsupported legacy CVAFRS01 Freshness receipt".into());
+        }
+        if payload.get(..8) == Some(MAGIC.as_slice()) {
+            let (owner, entry) = decode(payload)?;
+            visitor(owner, frame.end, entry)?;
+        }
+    }
 
     if !start_boundary_seen {
         return Err("Freshness interval start is not a physical frame boundary".into());
@@ -125,5 +95,5 @@ fn scan_entries_impl(
             ..Default::default()
         },
     );
-    callback_error.map_or(Ok(()), Err)
+    Ok(())
 }

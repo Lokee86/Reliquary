@@ -1,6 +1,7 @@
 use crate::archive_codec::ArchiveRecord;
 use crate::memory_store::MemoryStore;
-use crate::{Archive, ArchiveError, Container, FileId, FileMemoryLink, MemoryId, StoredFile};
+use crate::{Archive, ArchiveError, FileId, FileMemoryLink, MemoryId, StoredFile};
+use reliquary_container::Container;
 
 impl Archive {
     pub(crate) fn link_file_to_memory(

@@ -27,7 +27,10 @@ fn freshness_survives_public_copy_repack_and_reclamation() {
         fixture.path("repacked.rel"),
         fixture.path("reclaimed.rel"),
     ];
+    source.sync().unwrap();
+    drop(source);
     Cva::reconcile(&source_path, &source_path, &copies[0]).unwrap();
+    let mut source = Cva::open(&source_path).unwrap();
     source
         .repack_missing_user_principal(&copies[1], "phy-00000000-0000-0000-0000-000000000123")
         .unwrap();

@@ -1,5 +1,6 @@
+use crate::RelationshipError;
 use crate::relationship_codec::decode_format;
-use crate::{ObjectRef, RelationshipError};
+use reliquary_container::ObjectRef;
 
 pub(crate) struct RelationshipOpenState {
     store: crate::relationship_store::RelationshipStore,
@@ -20,7 +21,7 @@ impl RelationshipOpenState {
         payload: &[u8],
         latest_global_version: u64,
     ) -> Result<(), RelationshipError> {
-        if let Some(envelope) = crate::container::publication_envelope::decode(payload)? {
+        if let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? {
             self.ingest_publication_envelope(envelope, latest_global_version)?;
             return Ok(());
         }
@@ -36,7 +37,7 @@ impl RelationshipOpenState {
 
     pub(crate) fn ingest_publication_envelope(
         &mut self,
-        envelope: crate::container::publication_envelope::PublicationEnvelope<'_>,
+        envelope: reliquary_container::publication_envelope::PublicationEnvelope<'_>,
         latest_global_version: u64,
     ) -> Result<bool, RelationshipError> {
         use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
@@ -82,7 +83,7 @@ impl RelationshipOpenState {
 
     pub(crate) fn finish(
         self,
-        _container: &crate::Container,
+        _container: &reliquary_container::Container,
     ) -> Result<crate::relationship_store::RelationshipStore, RelationshipError> {
         // Unavailability is provisional until REL/PHY file-level validation
         // authenticates the exact terminal descriptor, manifest and history.

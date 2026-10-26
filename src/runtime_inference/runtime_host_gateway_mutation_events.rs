@@ -67,15 +67,7 @@ pub(super) fn commit<T>(
     // Freshness does not have a source watermark in this distribution protocol.
     // Distinguish validation failures (safe to retry) from unknown partial appends.
     let receipt_extent = if family == RelMutationFamily::AcceptedMemoryUse {
-        Some(
-            runtime
-                .cva
-                .container
-                .backing_file()
-                .metadata()
-                .map_err(operation)?
-                .len(),
-        )
+        Some(runtime.cva.container.physical_length().map_err(operation)?)
     } else {
         None
     };
@@ -88,9 +80,8 @@ pub(super) fn commit<T>(
                 runtime
                     .cva
                     .container
-                    .backing_file()
-                    .metadata()
-                    .map(|metadata| metadata.len() != before)
+                    .physical_length()
+                    .map(|length| length != before)
                     .unwrap_or(true)
             });
             if cut(runtime) != before || receipt_may_have_written {

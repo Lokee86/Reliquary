@@ -1,7 +1,8 @@
 use crate::{
-    Container, Cva, CvaError, EpisodeId, GraphRelationKind, MemoryDraft, MemoryError,
-    MemorySourceRef, Phylactery, PhylacteryError, SimulatedEmbeddingEndpoint, VectorNormalization,
+    Cva, CvaError, EpisodeId, GraphRelationKind, MemoryDraft, MemoryError, MemorySourceRef,
+    Phylactery, PhylacteryError, SimulatedEmbeddingEndpoint, VectorNormalization,
 };
+use reliquary_container::Container;
 use std::fs;
 use std::path::PathBuf;
 
@@ -44,7 +45,7 @@ fn phylactery_identity_and_unsourced_memory_reopen() {
     let mut phy = Phylactery::create(&path).unwrap();
     assert_eq!(
         phy.container.identity().unwrap().file_kind,
-        crate::FileKind::Phylactery
+        reliquary_container::FileKind::Phylactery
     );
     let (memory, created) = phy
         .publish_memory(
@@ -243,7 +244,7 @@ fn reliquary_and_phylactery_reject_each_others_file_kind() {
     assert!(matches!(
         Phylactery::open(&legacy_path),
         Err(PhylacteryError::Container(
-            crate::ContainerError::InvalidIdentity
+            reliquary_container::ContainerError::InvalidIdentity
         ))
     ));
 }

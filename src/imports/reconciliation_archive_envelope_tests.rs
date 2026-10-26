@@ -29,7 +29,7 @@ fn archive_envelope_interval_replays_reserved_time_and_normalized_evidence() {
         record: ArchiveRecord::Branch(branch.clone()),
     })
     .unwrap();
-    let mut container = crate::Container::open(&source_path).unwrap();
+    let mut container = reliquary_container::Container::open(&source_path).unwrap();
     let reserved = container
         .allocate_version_with_transaction_time(Some(-123))
         .unwrap();
@@ -37,10 +37,10 @@ fn archive_envelope_interval_replays_reserved_time_and_normalized_evidence() {
         .allocate_version_with_transaction_time(Some(500))
         .unwrap();
     let index = container.chunks().unwrap().len();
-    let payload = crate::container::publication_envelope::encode(
-        crate::container::publication_envelope::PublicationEnvelope {
+    let payload = reliquary_container::publication_envelope::encode(
+        reliquary_container::publication_envelope::PublicationEnvelope {
             global_version: reserved,
-            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            clock: reliquary_container::publication_envelope::PublicationClock::BindReserved,
             body: &body,
         },
     )

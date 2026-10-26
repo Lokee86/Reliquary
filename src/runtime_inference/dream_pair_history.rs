@@ -1,5 +1,6 @@
 use crate::memory_store::MemoryStore;
-use crate::{Container, Cva, MemoryError, MemoryId, Phylactery};
+use crate::{Cva, MemoryError, MemoryId, Phylactery};
+use reliquary_container::Container;
 use std::collections::{HashMap, HashSet};
 
 #[path = "dream_pair_codec.rs"]

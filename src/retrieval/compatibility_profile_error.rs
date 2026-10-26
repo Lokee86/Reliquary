@@ -1,4 +1,5 @@
-use crate::{ContainerError, EmbeddingEndpointError};
+use crate::EmbeddingEndpointError;
+use reliquary_container::ContainerError;
 use std::fmt;
 
 #[derive(Debug)]

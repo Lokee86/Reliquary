@@ -3,7 +3,8 @@ use crate::imports::{
     ImportConversation, ImportMessage, ImportReadinessOwner, ImportReadinessStatus, ImportStart,
     ImportVectorReadiness, ImportWatermarks, NativeImport,
 };
-use crate::{Container, Cva, HistoricalReconstructionOptions};
+use crate::{Cva, HistoricalReconstructionOptions};
+use reliquary_container::Container;
 use sha2::{Digest, Sha256};
 use std::{fs, path::PathBuf};
 
@@ -295,7 +296,8 @@ fn uncertain_completion_append_is_discovered_and_acknowledged_without_duplicate(
     // container but before the owner updated its in-memory epoch store or
     // reported success.
     let payload = super::epoch_codec::encode_complete(&complete).unwrap();
-    cva.with_import_write_scope(|cva| cva.container.append(&payload).unwrap());
+    cva.with_import_write_scope(|cva| cva.container.append(&payload).unwrap())
+        .unwrap();
     let marker_bytes = fs::read(&path).unwrap();
     assert!(cva.open_import_epoch().is_some());
     assert!(
@@ -345,7 +347,8 @@ fn reopen_rejects_completion_with_wrong_settlement_digest_without_rewriting() {
         .historical_freshness_settlement_digest
         .push_str("corrupt");
     let payload = super::epoch_codec::encode_complete(&complete).unwrap();
-    cva.with_import_write_scope(|cva| cva.container.append(&payload).unwrap());
+    cva.with_import_write_scope(|cva| cva.container.append(&payload).unwrap())
+        .unwrap();
     let corrupt_bytes = fs::read(&path).unwrap();
     drop(cva);
 
@@ -370,7 +373,8 @@ fn missing_receipt_stays_pending_without_changing_bytes() {
         pre: watermarks(&cva),
     };
     let start_bytes = super::epoch_codec::encode_start(&start).unwrap();
-    cva.with_import_write_scope(|cva| cva.container.append(&start_bytes).unwrap());
+    // Model an accepted start before the owner has reconstructed its epoch fence.
+    cva.container.append(&start_bytes).unwrap();
     let before_bytes = fs::read(&path).unwrap();
 
     assert_eq!(
@@ -464,18 +468,16 @@ fn reopen_rejects_completion_physically_before_its_settlement() {
         .unwrap()
         .encode();
 
-    let mut scan = Container::open_read_only_for_scan(&path).unwrap();
     let mut settlement_offset = None;
-    scan.visit_payloads::<crate::ContainerError>(|object, payload| {
-        if payload.starts_with(b"CVAFRS06") {
-            settlement_offset = Some(u64::from_le_bytes(
-                object.legacy_bytes()[..8].try_into().unwrap(),
-            ));
+    let source = cva.container.read_source().unwrap();
+    let mut cursor = source.physical_cursor().unwrap();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        if frame.payload.starts_with(b"CVAFRS06") {
+            settlement_offset = Some(frame.offset);
         }
-        Ok(())
-    })
-    .unwrap();
-    drop(scan);
+    }
+    drop(cursor);
+    drop(source);
     drop(cva);
 
     let settlement_offset = settlement_offset.expect("physical scoped settlement frame");

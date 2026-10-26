@@ -1,8 +1,9 @@
 use crate::relationship_model::RelationshipRecord;
 use crate::{
-    EntityId, EntityRef, MemoryId, MemoryRef, ObjectRef, RelationshipError, RelationshipId,
+    EntityId, EntityRef, MemoryId, MemoryRef, RelationshipError, RelationshipId,
     RelationshipParticipant,
 };
+use reliquary_container::ObjectRef;
 
 const FORMAT_MAGIC: [u8; 8] = *b"CVARELF1";
 const RECORD_MAGIC: [u8; 8] = *b"CVARELR1";

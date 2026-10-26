@@ -2,6 +2,48 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Physical Container access
+
+The existing product exports for `Container`, `ContainerIdentity`, `FileKind`,
+`FormatVersion`, `ObjectRef` and `ContainerError` refer to the independently
+compiled `reliquary-container` implementation. Root stores consume the crate
+directly. Ordinary opens preserve bytes and report incomplete final physical
+frames with `ContainerError::RepairRequired`; complete corrupt records reject.
+Concurrent cooperating writers fail with `WriterConflict`, and read-only
+sessions cannot append or repair. Higher owners retain all semantic replay,
+authorization and explicit recovery decisions.
+
+Low-level consumers use `physical_cursor()` or `physical_cursor_through(end)`
+to pull opaque frames with physical positions and the observed global frontier.
+Owner opening uses `open_for_replay` and accepts the complete cursor state only
+after ordered semantic ingestion succeeds. Until then, physical writes are
+blocked; an earlier owner error retains precedence over later frame corruption.
+`read_source()` retains the held file lease for subsequent bounded reads; an
+active cursor fences local mutation. Import closes general physical admission
+and retains a session-bound `WriteAdmission`; its owned `WriteScope` guard
+restores the closed state on normal return or unwind. The token grants no
+semantic permission by itself.
+
+For an explicitly approved recovery, `open_for_repair` acquires writer exclusion
+but blocks ordinary append/allocation. `plan_tail_repair` validates the physical
+prefix and returns opaque identity/length-bound evidence. The higher owner
+validates that prefix and authorizes its loss boundary before calling
+`repair_incomplete_tail`. Repair rechecks the plan and rescans physical clocks;
+the caller then drops the repair session and reopens the semantic owner for
+verification. A complete corrupt record cannot be repaired as an incomplete
+tail.
+
+Ordinary `Cva::open` and `Phylactery::open` validate semantic state but do not
+append Entity-resolution repairs or reclaim stale compaction chunks. REL
+compaction supersession is projected in memory without rewriting the source.
+When a caller explicitly approves canonicalizing retired Entity references,
+`Cva::repair_retired_entity_references()` or
+`Phylactery::repair_retired_entity_references()` returns the number of durable
+revision repairs and synchronizes on change. Storage reclamation remains an
+explicit owner maintenance operation. `ObjectRef` keeps its private fields;
+read-only physical offset and serialized-byte accessors are retained for
+persisted owner codecs and historical queries, but do not grant I/O authority.
+
 ## Ego terminal lifecycle
 
 REL and PHY expose `ego_anchor_lifecycle(id)` and `historical_ego_anchor(id, revision)`. PHY additionally exposes `ego_identity_lifecycle(id)` and `historical_ego_identity(id, revision)`. Lifecycle inspection returns the shared `LifecycleState`; historical getters return an optional retained nondeleted revision, including after deletion. A deletion revision itself has no document payload. Existing `delete_ego_identity`/`delete_ego_anchor` return `true` on publication and `false` on an exact retry using the original expected revision; mismatched revisions reject.

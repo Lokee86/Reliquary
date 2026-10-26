@@ -2714,6 +2714,10 @@ version = "0.1.0"
 [[package]]
 name = "reliquary-container"
 version = "0.1.0"
+dependencies = [
+ "sha2",
+ "uuid",
+]
 
 [[package]]
 name = "reliquary-context-engine"
@@ -2794,6 +2798,7 @@ dependencies = [
  "lodestone-packed",
  "lore",
  "regex",
+ "reliquary-container",
  "reqwest",
  "serde",
  "serde_json",

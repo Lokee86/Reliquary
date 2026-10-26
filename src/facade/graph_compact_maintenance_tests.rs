@@ -7,9 +7,9 @@ use crate::graph_compact_contract::GraphOrdinalMutation;
 use crate::graph_store::GraphStore;
 use crate::historical_graph_fingerprint::GraphHistory;
 use crate::{
-    Container, ContainerError, Cva, GraphRelationKind, GraphRelationOrigin, MemoryDraft,
-    Phylactery, SemanticGraphRelationKind,
+    Cva, GraphRelationKind, GraphRelationOrigin, MemoryDraft, Phylactery, SemanticGraphRelationKind,
 };
+use reliquary_container::Container;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -131,7 +131,7 @@ fn append_graph_publication(
     }
 }
 
-fn graph_refs(container: &mut Container) -> BTreeMap<u64, crate::ObjectRef> {
+fn graph_refs(container: &mut Container) -> BTreeMap<u64, reliquary_container::ObjectRef> {
     container
         .chunks()
         .unwrap()
@@ -147,12 +147,11 @@ fn graph_refs(container: &mut Container) -> BTreeMap<u64, crate::ObjectRef> {
 
 fn payloads(container: &mut Container) -> Vec<Vec<u8>> {
     let mut result = Vec::new();
-    container
-        .visit_payloads::<ContainerError>(|_, payload| {
-            result.push(payload.to_vec());
-            Ok(())
-        })
-        .unwrap();
+    let source = container.read_source().unwrap();
+    let mut cursor = source.physical_cursor().unwrap();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        result.push(frame.payload);
+    }
     result
 }
 
@@ -421,7 +420,7 @@ fn memory_draft(mutation_id: &str) -> MemoryDraft {
 
 fn assert_compact_carriers_and_relocated_markers(
     output: &mut Container,
-    source_refs: &BTreeMap<u64, crate::ObjectRef>,
+    source_refs: &BTreeMap<u64, reliquary_container::ObjectRef>,
     orphan: &[u8],
     expected: &BTreeMap<u64, Vec<u8>>,
 ) {
@@ -436,14 +435,14 @@ fn assert_compact_carriers_and_relocated_markers(
             "published carrier should relocate after orphan removal"
         );
         let stored = output.read(new_ref).unwrap();
-        let body = crate::container::publication_envelope::decode(&stored)
+        let body = reliquary_container::publication_envelope::decode(&stored)
             .unwrap()
             .map(|envelope| envelope.body)
             .unwrap_or(&stored);
         assert_eq!(body, expected_payload.as_slice());
         assert!(output_payloads.iter().any(|payload| {
             payload == expected_payload
-                || crate::container::publication_envelope::decode(payload)
+                || reliquary_container::publication_envelope::decode(payload)
                     .unwrap()
                     .is_some_and(|envelope| envelope.body == expected_payload)
         }));

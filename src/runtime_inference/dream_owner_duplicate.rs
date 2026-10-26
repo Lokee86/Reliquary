@@ -2,9 +2,8 @@ use crate::dream_duplicate_index::{DuplicateIndex, DuplicateTemporalKey};
 use crate::dream_owner_publisher::dream_may_change_relation;
 use crate::graph_store::GraphStore;
 use crate::memory_store::MemoryStore;
-use crate::{
-    Container, DreamPublicationError, DreamPublicationOutcome, GraphRelationKind, Memory, MemoryId,
-};
+use crate::{DreamPublicationError, DreamPublicationOutcome, GraphRelationKind, Memory, MemoryId};
+use reliquary_container::Container;
 use std::collections::{HashMap, HashSet};
 
 pub(crate) fn publish_duplicate_pair<R>(

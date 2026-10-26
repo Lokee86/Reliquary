@@ -23,17 +23,19 @@ use crate::rel_metadata_store::RelMetadataStore;
 use crate::relationship_store::RelationshipStore;
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::{
-    Archive, ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, Container,
-    ConversationMetadata, CvaError, Episode, EpisodeBoundary, EpisodeBuildResult, EpisodeConfig,
-    EpisodeId, EpisodeOrigin, FileId, Fragment, FragmentConfig, FragmentId, Memory, MemoryDraft,
-    MemoryError, MemoryId, MemoryStats, Node, ResolvedTurn, StoredFile,
+    Archive, ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, ConversationMetadata,
+    CvaError, Episode, EpisodeBoundary, EpisodeBuildResult, EpisodeConfig, EpisodeId,
+    EpisodeOrigin, FileId, Fragment, FragmentConfig, FragmentId, Memory, MemoryDraft, MemoryError,
+    MemoryId, MemoryStats, Node, ResolvedTurn, StoredFile,
 };
+use reliquary_container::{Container, WriteAdmission};
 
 pub struct Cva {
     pub(crate) owner_maintenance: crate::owner_maintenance::OwnerMaintenanceStore,
     pub(crate) rewrite_lineage: crate::rewrite_lineage::RewriteLineageStore,
     pub(crate) external_index: crate::external_source::store::ExternalIndexStore,
     pub(crate) container: Container,
+    pub(crate) import_write_admission: Option<WriteAdmission>,
     pub(crate) archive: Archive,
     pub(crate) memories: MemoryStore,
     pub(crate) graph: GraphStore,
@@ -67,7 +69,7 @@ pub struct Cva {
 }
 
 impl Cva {
-    pub fn legacy_scope_kind(&self) -> Option<crate::ReliquaryScopeKind> {
+    pub fn legacy_scope_kind(&self) -> Option<reliquary_container::ReliquaryScopeKind> {
         self.container
             .identity()
             .and_then(|identity| identity.scope)
@@ -79,9 +81,9 @@ impl Cva {
         }
         crate::RelMetadata {
             type_label: self.legacy_scope_kind().map(|scope| match scope {
-                crate::ReliquaryScopeKind::Organization => "Organization".to_owned(),
-                crate::ReliquaryScopeKind::Project => "Project".to_owned(),
-                crate::ReliquaryScopeKind::Connection => "Connection".to_owned(),
+                reliquary_container::ReliquaryScopeKind::Organization => "Organization".to_owned(),
+                reliquary_container::ReliquaryScopeKind::Project => "Project".to_owned(),
+                reliquary_container::ReliquaryScopeKind::Connection => "Connection".to_owned(),
             }),
             dependencies: Vec::new(),
         }

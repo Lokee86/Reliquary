@@ -187,7 +187,9 @@ fn agentic_frozen_fixture_acceptance() {
         {
             corpus_format_limitation(&path, &phase, &message)
         }
-        Err(crate::CvaError::Container(crate::ContainerError::UnsupportedVersion(version))) => {
+        Err(crate::CvaError::Container(
+            reliquary_container::ContainerError::UnsupportedVersion(version),
+        )) => {
             json!({"status":"corpus_limitation","phase":phase,"reason":format!("unsupported container {}.{}",version.major,version.minor),"functional_scenarios_executed":0,"retrieval_calls":0})
         }
         Err(error) => panic!("unexpected fixture open failure: {error}"),
@@ -200,7 +202,7 @@ fn agentic_frozen_fixture_acceptance() {
 }
 
 fn corpus_format_limitation(path: &std::path::Path, phase: &str, message: &str) -> Value {
-    let mut container = crate::Container::open(path).unwrap();
+    let mut container = reliquary_container::Container::open(path).unwrap();
     let chunks = container.chunks().unwrap();
     let count = chunks.len();
     let mut formats = BTreeMap::<String, usize>::new();

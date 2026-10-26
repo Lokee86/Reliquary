@@ -177,4 +177,5 @@ pub fn due_now(policy: ReviewInterval, current: ClockReading) -> Result<ClockRea
 }
 
 #[cfg(test)]
+#[path = "review_clock_tests.rs"]
 mod tests;

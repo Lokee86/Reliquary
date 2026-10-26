@@ -1,7 +1,7 @@
 //! Relationship publication envelopes remain live during reclamation.
-use crate::container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
 use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
+use reliquary_container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
 fn encode_creation(c: &RelationshipCreation) -> Result<Vec<u8>, crate::RelationshipError> {
     crate::relationship_compact_codec::publication::encode(
         &crate::relationship_compact_codec::publication::RelationshipPublication::Creation(
@@ -16,10 +16,8 @@ fn encode_delta(d: &RelationshipDelta) -> Result<Vec<u8>, crate::RelationshipErr
 }
 use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
 use crate::relationship_model::{RelationshipParticipant, RelationshipRecord};
-use crate::{
-    Container, ContainerError, Cva, EntityId, EntityRef, FileKind, MemoryId, MemoryRef, Phylactery,
-    RelationshipId,
-};
+use crate::{Cva, EntityId, EntityRef, MemoryId, MemoryRef, Phylactery, RelationshipId};
+use reliquary_container::{Container, FileKind};
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -264,14 +262,13 @@ fn rel_and_phy_reclamation_preserves_relationship_envelopes_and_discards_orphans
         assert_eq!(history_digests(&output), history_digests(&source));
 
         let payloads = {
-            let mut container = Container::open(&output).unwrap();
+            let container = Container::open_read_only(&output).unwrap();
             let mut values = Vec::new();
-            container
-                .visit_payloads::<ContainerError>(|_, payload| {
-                    values.push(payload.to_vec());
-                    Ok(())
-                })
-                .unwrap();
+            let source = container.read_source().unwrap();
+            let mut cursor = source.physical_cursor().unwrap();
+            while let Some(frame) = cursor.next_frame().unwrap() {
+                values.push(frame.payload);
+            }
             values
         };
         assert!(!payloads.iter().any(|payload| {
@@ -336,7 +333,7 @@ fn reclamation_scan_and_relocation_validate_relationship_publication_envelopes()
         envelope
     );
     let mut scan = super::ReclamationScan::default();
-    let object = crate::ObjectRef::from_legacy_bytes([9; 16]);
+    let object = reliquary_container::ObjectRef::from_legacy_bytes([9; 16]);
     scan.ingest(object, &envelope).unwrap();
 
     let malformed = publication_envelope::encode(PublicationEnvelope {

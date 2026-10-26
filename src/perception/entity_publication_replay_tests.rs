@@ -1,9 +1,10 @@
 //! Entity publication-envelope admission through the REL and PHY facades.
-use crate::container::publication_envelope::{PublicationClock, PublicationEnvelope};
 use crate::entity_compact_codec::publication::{self, EntityPublication};
 use crate::entity_compact_contract::{EntityCreation, EntityDelta};
 use crate::entity_model::EntityRecord;
-use crate::{Container, Cva, EntityGlobalId, EntityId, MemoryDraft, Phylactery};
+use crate::{Cva, EntityGlobalId, EntityId, MemoryDraft, Phylactery};
+use reliquary_container::Container;
+use reliquary_container::publication_envelope::{PublicationClock, PublicationEnvelope};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -77,7 +78,7 @@ fn append_reserved_binding(
     publication: &EntityPublication,
 ) {
     let body = publication::encode(publication).unwrap();
-    let envelope = crate::container::publication_envelope::encode(PublicationEnvelope {
+    let envelope = reliquary_container::publication_envelope::encode(PublicationEnvelope {
         global_version: global,
         clock: PublicationClock::BindReserved,
         body: &body,

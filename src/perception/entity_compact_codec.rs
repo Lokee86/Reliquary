@@ -2,13 +2,13 @@
 #[path = "entity_publication_codec.rs"]
 pub(crate) mod publication;
 use crate::EntityError;
-use crate::compact_delta::FieldChange;
 use crate::entity_compact_contract::{EntityCreation, EntityDelta, EntityDeltaFields};
 use crate::entity_compact_values::{
     EntityValue, read_entity_id, read_fixed, read_i64, read_optional_global_id, read_string,
     read_tag, read_u64, write_optional_global_id, write_string, write_strings, write_tag,
 };
 use crate::entity_model::EntityRecord;
+use reliquary_container::codec::FieldChange;
 use sha2::{Digest, Sha256};
 
 const CREATION_MAGIC: &[u8; 8] = b"CVAENC01";

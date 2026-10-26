@@ -6,7 +6,8 @@ use crate::memory_codec_values::{
     write_optional_id, write_optional_source_ref, write_optional_string, write_string,
 };
 use crate::memory_model::MemoryRecord;
-use crate::{MemoryBodyId, MemoryError, MemoryId, ObjectRef};
+use crate::{MemoryBodyId, MemoryError, MemoryId};
+use reliquary_container::ObjectRef;
 
 const FORMAT_MAGIC: [u8; 8] = *b"CVAMEMF2";
 const BODY_MAGIC: [u8; 8] = *b"CVAMBDY1";

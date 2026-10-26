@@ -1,6 +1,7 @@
 //! Exact Dream Begin authority across physical-prefix and destination changes.
 use crate::dream_begin_codec::{self, BeginPopulation, BeginRecord};
-use crate::{Cva, CvaError, InitialDreamPass, ObjectRef};
+use crate::{Cva, CvaError, InitialDreamPass};
+use reliquary_container::ObjectRef;
 
 impl Cva {
     /// Resolve a source Begin at its own physical boundary, never at EOF.

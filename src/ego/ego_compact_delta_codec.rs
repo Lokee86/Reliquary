@@ -3,9 +3,9 @@ use super::super::scalar::{
     invalid, priority_byte, priority_from_byte, read_array, read_byte, read_string, read_u64,
     write_string, write_u64,
 };
-use crate::compact_delta::FieldChange;
 use crate::ego_compact_contract::{EgoChanges, EgoDelta};
 use crate::{EgoAnchorId, EgoError, EgoIdentityId};
+use reliquary_container::codec::FieldChange;
 
 const MAGIC: &[u8; 8] = b"CVAEDL01";
 

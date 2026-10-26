@@ -1,7 +1,8 @@
 use crate::{
-    ArchiveError, ArchiveVectorError, CompatibilityProfileError, ContainerError,
-    EmbeddingEndpointError, PackedVectorError, ScalarType,
+    ArchiveError, ArchiveVectorError, CompatibilityProfileError, EmbeddingEndpointError,
+    PackedVectorError, ScalarType,
 };
+use reliquary_container::ContainerError;
 use std::fmt;
 
 #[derive(Debug)]

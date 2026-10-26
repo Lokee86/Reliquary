@@ -6,9 +6,8 @@ use crate::conversation_metadata_index::ConversationMetadataIndex;
 use crate::file_index::FileIndex;
 use crate::file_memory_link_index::FileMemoryLinkIndex;
 use crate::source_attachment_index::SourceAttachmentIndex;
-use crate::{
-    ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, Container, Node, ResolvedTurn,
-};
+use crate::{ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, Node, ResolvedTurn};
+use reliquary_container::Container;
 
 #[path = "archive_history_prune.rs"]
 pub(crate) mod history_prune;

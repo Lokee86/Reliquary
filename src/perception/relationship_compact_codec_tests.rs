@@ -1,11 +1,11 @@
 use super::*;
-use crate::compact_delta::FieldChange;
 use crate::relationship_compact_contract::{
     RelationshipCollectionChange, RelationshipCreation, RelationshipDelta, RelationshipDeltaFields,
     RelationshipDescriptionProof,
 };
 use crate::relationship_model::RelationshipRecord;
 use crate::{EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId, RelationshipParticipant};
+use reliquary_container::codec::FieldChange;
 
 fn participant(owner: &str, entity: u8, role: Option<&str>) -> RelationshipParticipant {
     RelationshipParticipant {

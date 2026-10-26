@@ -1,5 +1,6 @@
+use crate::RelMetadata;
 use crate::rel_metadata_codec::{decode_rel_metadata, encode_rel_metadata};
-use crate::{Container, RelMetadata};
+use reliquary_container::Container;
 
 #[derive(Default)]
 pub(crate) struct RelMetadataStore {

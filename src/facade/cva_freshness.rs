@@ -711,24 +711,32 @@ impl Cva {
         &self,
         source: MemoryId,
     ) -> Result<std::collections::BTreeSet<MemoryId>, CvaError> {
-        let mut scan = crate::Container::open_read_only_for_scan(self.container.path())?;
+        let scan = self.container.read_source()?;
         let mut cohort = std::collections::BTreeSet::from([source]);
-        scan.visit_payloads::<CvaError>(|_, payload| {
-            if let Some(publication) = crate::external_source::publication::decode(payload)?
-                && publication.birth_turn.is_some()
-                && publication.records.iter().any(|r| r.id == source)
-            {
-                cohort.extend(publication.records.iter().map(|r| r.id));
-            }
-            if let Some(completion) = crate::insomnia::completion::decode_completion(payload)
-                .map_err(|message| CvaError::Freshness(message.into()))?
-                && completion.freshness_birth_turn.is_some()
-                && completion.freshness_birth_memory_ids.contains(&source)
-            {
-                cohort.extend(completion.freshness_birth_memory_ids);
+        (|| -> Result<(), CvaError> {
+            let mut physical_cursor = scan.physical_cursor()?;
+            while let Some(physical_frame) = physical_cursor.next_frame()? {
+                let payload = physical_frame.payload.as_slice();
+                (|| -> Result<(), CvaError> {
+                    if let Some(publication) = crate::external_source::publication::decode(payload)?
+                        && publication.birth_turn.is_some()
+                        && publication.records.iter().any(|r| r.id == source)
+                    {
+                        cohort.extend(publication.records.iter().map(|r| r.id));
+                    }
+                    if let Some(completion) =
+                        crate::insomnia::completion::decode_completion(payload)
+                            .map_err(|message| CvaError::Freshness(message.into()))?
+                        && completion.freshness_birth_turn.is_some()
+                        && completion.freshness_birth_memory_ids.contains(&source)
+                    {
+                        cohort.extend(completion.freshness_birth_memory_ids);
+                    }
+                    Ok(())
+                })()?;
             }
             Ok(())
-        })?;
+        })()?;
         Ok(cohort)
     }
 
@@ -737,23 +745,32 @@ impl Cva {
         a: MemoryId,
         b: MemoryId,
     ) -> Result<bool, CvaError> {
-        let mut scan = crate::Container::open_read_only_for_scan(self.container.path())?;
+        let scan = self.container.read_source()?;
         let mut same = false;
-        scan.visit_payloads::<CvaError>(|_, payload| {
-            if let Some(publication) = crate::external_source::publication::decode(payload)? {
-                same |= publication.birth_turn.is_some()
-                    && publication.records.iter().any(|r| r.id == a)
-                    && publication.records.iter().any(|r| r.id == b);
-            }
-            if let Some(completion) = crate::insomnia::completion::decode_completion(payload)
-                .map_err(|message| CvaError::Freshness(message.into()))?
-            {
-                same |= completion.freshness_birth_turn.is_some()
-                    && completion.freshness_birth_memory_ids.contains(&a)
-                    && completion.freshness_birth_memory_ids.contains(&b);
+        (|| -> Result<(), CvaError> {
+            let mut physical_cursor = scan.physical_cursor()?;
+            while let Some(physical_frame) = physical_cursor.next_frame()? {
+                let payload = physical_frame.payload.as_slice();
+                (|| -> Result<(), CvaError> {
+                    if let Some(publication) = crate::external_source::publication::decode(payload)?
+                    {
+                        same |= publication.birth_turn.is_some()
+                            && publication.records.iter().any(|r| r.id == a)
+                            && publication.records.iter().any(|r| r.id == b);
+                    }
+                    if let Some(completion) =
+                        crate::insomnia::completion::decode_completion(payload)
+                            .map_err(|message| CvaError::Freshness(message.into()))?
+                    {
+                        same |= completion.freshness_birth_turn.is_some()
+                            && completion.freshness_birth_memory_ids.contains(&a)
+                            && completion.freshness_birth_memory_ids.contains(&b);
+                    }
+                    Ok(())
+                })()?;
             }
             Ok(())
-        })?;
+        })()?;
         Ok(same)
     }
 
@@ -774,8 +791,8 @@ impl Cva {
             .ok_or_else(|| {
                 CvaError::Freshness("Dream acceptance lacks durable graph provenance".into())
             })?;
-        let mut scan = crate::Container::open_read_only_for_scan(self.container.path())?;
-        let mut objects = crate::Container::open_read_only_for_scan(self.container.path())?;
+        let scan = self.container.read_source()?;
+        let objects = self.container.read_source()?;
         let mut states = BTreeMap::new();
         let mut memberships = crate::freshness::CommunityMembership::new();
         let mut community_found = proof.community_generation.is_none();
@@ -791,69 +808,79 @@ impl Cva {
             mut trace_community_matches,
             mut trace_filtered,
         ) = (0_u64, 0_u64, 0_u64, 0_u64, 0_u64, 0_u64, 0_u64);
-        scan.visit_payloads::<CvaError>(|object, payload| {
-            #[cfg(feature = "freshness-performance-trace")]
-            {
-                trace_payload_bytes += payload.len() as u64;
-                trace_chunks += 1;
-            }
-            if let Some(snapshot) = crate::community_codec::decode_snapshot(payload)? {
-                #[cfg(feature = "freshness-performance-trace")]
-                {
-                    trace_communities += 1;
-                }
-                if Some(snapshot.generation) == proof.community_generation
-                    && Some(snapshot.derived_graph_version) == proof.community_graph_version
-                {
+        (|| -> Result<(), CvaError> {
+            let mut physical_cursor = scan.physical_cursor()?;
+            while let Some(physical_frame) = physical_cursor.next_frame()? {
+                let object = physical_frame.object;
+                let payload = physical_frame.payload.as_slice();
+                (|| -> Result<(), CvaError> {
                     #[cfg(feature = "freshness-performance-trace")]
                     {
-                        trace_community_matches += 1;
+                        trace_payload_bytes += payload.len() as u64;
+                        trace_chunks += 1;
                     }
-                    community_found = true;
-                    for community in snapshot.communities {
-                        for memory in community.members {
-                            memberships.insert(memory, community.id);
+                    if let Some(snapshot) = crate::community_codec::decode_snapshot(payload)? {
+                        #[cfg(feature = "freshness-performance-trace")]
+                        {
+                            trace_communities += 1;
+                        }
+                        if Some(snapshot.generation) == proof.community_generation
+                            && Some(snapshot.derived_graph_version) == proof.community_graph_version
+                        {
+                            #[cfg(feature = "freshness-performance-trace")]
+                            {
+                                trace_community_matches += 1;
+                            }
+                            community_found = true;
+                            for community in snapshot.communities {
+                                for memory in community.members {
+                                    memberships.insert(memory, community.id);
+                                }
+                            }
                         }
                     }
-                }
-            }
-            let Some(version) =
-                crate::graph_compact_codec::publication::version_at(object, payload)?
-            else {
-                return Ok(());
-            };
-            if version.graph_version > cut {
-                #[cfg(feature = "freshness-performance-trace")]
-                {
-                    trace_filtered += 1;
-                }
-                return Ok(());
-            }
-            let payload = objects.read(version.mutation)?;
-            #[cfg(feature = "freshness-performance-trace")]
-            {
-                trace_object_bytes += payload.len() as u64;
-            }
-            let mutations = self
-                .graph
-                .decode_stored_mutations(&payload)?
-                .ok_or_else(|| {
-                    CvaError::Freshness("Dream graph snapshot lacks committed mutation".into())
-                })?;
-            #[cfg(feature = "freshness-performance-trace")]
-            {
-                trace_mutations += mutations.len() as u64;
-            }
-            for mutation in mutations {
-                let (Some(source), Some(target)) =
-                    (mutation.source.as_memory(), mutation.target.as_memory())
-                else {
-                    continue;
-                };
-                states.insert((source, target, mutation.kind), mutation.active);
+                    let Some(version) =
+                        crate::graph_compact_codec::publication::version_at(object, payload)?
+                    else {
+                        return Ok(());
+                    };
+                    if version.graph_version > cut {
+                        #[cfg(feature = "freshness-performance-trace")]
+                        {
+                            trace_filtered += 1;
+                        }
+                        return Ok(());
+                    }
+                    let payload = objects.read(version.mutation)?;
+                    #[cfg(feature = "freshness-performance-trace")]
+                    {
+                        trace_object_bytes += payload.len() as u64;
+                    }
+                    let mutations =
+                        self.graph
+                            .decode_stored_mutations(&payload)?
+                            .ok_or_else(|| {
+                                CvaError::Freshness(
+                                    "Dream graph snapshot lacks committed mutation".into(),
+                                )
+                            })?;
+                    #[cfg(feature = "freshness-performance-trace")]
+                    {
+                        trace_mutations += mutations.len() as u64;
+                    }
+                    for mutation in mutations {
+                        let (Some(source), Some(target)) =
+                            (mutation.source.as_memory(), mutation.target.as_memory())
+                        else {
+                            continue;
+                        };
+                        states.insert((source, target, mutation.kind), mutation.active);
+                    }
+                    Ok(())
+                })()?;
             }
             Ok(())
-        })?;
+        })()?;
         #[cfg(feature = "freshness-performance-trace")]
         crate::freshness_trace::record(
             "dream.initial_dream_graph_snapshot",
@@ -896,8 +923,8 @@ impl Cva {
         &self,
         pass: &crate::InitialDreamPass,
     ) -> Result<(std::collections::BTreeSet<MemoryId>, bool), CvaError> {
-        let mut scan = crate::Container::open_read_only_for_scan(self.container.path())?;
-        let mut objects = crate::Container::open_read_only_for_scan(self.container.path())?;
+        let scan = self.container.read_source()?;
+        let objects = self.container.read_source()?;
         let mut roots = std::collections::BTreeSet::new();
         let mut duplicate_origin = false;
         #[cfg(feature = "freshness-performance-trace")]
@@ -910,68 +937,83 @@ impl Cva {
             mut trace_mutations,
             mut trace_filtered,
         ) = (0_u64, 0_u64, 0_u64, 0_u64, 0_u64);
-        scan.visit_payloads::<CvaError>(|object, payload| {
-            #[cfg(feature = "freshness-performance-trace")]
-            {
-                trace_payload_bytes += payload.len() as u64;
-                trace_chunks += 1;
-            }
-            let Some(version) =
-                crate::graph_compact_codec::publication::version_at(object, payload)?
-            else {
-                return Ok(());
-            };
-            let end = self
-                .dream_freshness
-                .accepted_graph_cut(&pass.pass_id)
-                .map(|(graph, _)| graph)
-                .unwrap_or(self.graph_version());
-            if version.graph_version <= pass.graph_version_before || version.graph_version > end {
-                #[cfg(feature = "freshness-performance-trace")]
-                {
-                    trace_filtered += 1;
-                }
-                return Ok(());
-            }
-            let payload = objects.read(version.mutation)?;
-            #[cfg(feature = "freshness-performance-trace")]
-            {
-                trace_object_bytes += payload.len() as u64;
-            }
-            let mutations = self
-                .graph
-                .decode_stored_mutations(&payload)?
-                .ok_or_else(|| {
-                    CvaError::Freshness("committed Dream graph version lacks its mutation".into())
-                })?;
-            #[cfg(feature = "freshness-performance-trace")]
-            {
-                trace_mutations += mutations.len() as u64;
-            }
-            for mutation in mutations {
-                if mutation.origin != crate::GraphRelationOrigin::Dream || !mutation.active {
-                    continue;
-                }
-                let (Some(source), Some(target)) =
-                    (mutation.source.as_memory(), mutation.target.as_memory())
-                else {
-                    continue;
-                };
-                let neighbor = if source == pass.source_id {
-                    Some(target)
-                } else if target == pass.source_id {
-                    Some(source)
-                } else {
-                    None
-                };
-                if let Some(neighbor) = neighbor.filter(|id| pass.preexisting_ids.contains(id)) {
-                    duplicate_origin |=
-                        mutation.kind.code() == crate::GraphRelationKind::DuplicateOf.code();
-                    roots.insert(neighbor);
-                }
+        (|| -> Result<(), CvaError> {
+            let mut physical_cursor = scan.physical_cursor()?;
+            while let Some(physical_frame) = physical_cursor.next_frame()? {
+                let object = physical_frame.object;
+                let payload = physical_frame.payload.as_slice();
+                (|| -> Result<(), CvaError> {
+                    #[cfg(feature = "freshness-performance-trace")]
+                    {
+                        trace_payload_bytes += payload.len() as u64;
+                        trace_chunks += 1;
+                    }
+                    let Some(version) =
+                        crate::graph_compact_codec::publication::version_at(object, payload)?
+                    else {
+                        return Ok(());
+                    };
+                    let end = self
+                        .dream_freshness
+                        .accepted_graph_cut(&pass.pass_id)
+                        .map(|(graph, _)| graph)
+                        .unwrap_or(self.graph_version());
+                    if version.graph_version <= pass.graph_version_before
+                        || version.graph_version > end
+                    {
+                        #[cfg(feature = "freshness-performance-trace")]
+                        {
+                            trace_filtered += 1;
+                        }
+                        return Ok(());
+                    }
+                    let payload = objects.read(version.mutation)?;
+                    #[cfg(feature = "freshness-performance-trace")]
+                    {
+                        trace_object_bytes += payload.len() as u64;
+                    }
+                    let mutations =
+                        self.graph
+                            .decode_stored_mutations(&payload)?
+                            .ok_or_else(|| {
+                                CvaError::Freshness(
+                                    "committed Dream graph version lacks its mutation".into(),
+                                )
+                            })?;
+                    #[cfg(feature = "freshness-performance-trace")]
+                    {
+                        trace_mutations += mutations.len() as u64;
+                    }
+                    for mutation in mutations {
+                        if mutation.origin != crate::GraphRelationOrigin::Dream || !mutation.active
+                        {
+                            continue;
+                        }
+                        let (Some(source), Some(target)) =
+                            (mutation.source.as_memory(), mutation.target.as_memory())
+                        else {
+                            continue;
+                        };
+                        let neighbor = if source == pass.source_id {
+                            Some(target)
+                        } else if target == pass.source_id {
+                            Some(source)
+                        } else {
+                            None
+                        };
+                        if let Some(neighbor) =
+                            neighbor.filter(|id| pass.preexisting_ids.contains(id))
+                        {
+                            duplicate_origin |= mutation.kind.code()
+                                == crate::GraphRelationKind::DuplicateOf.code();
+                            roots.insert(neighbor);
+                        }
+                    }
+                    Ok(())
+                })()?;
             }
             Ok(())
-        })?;
+        })()?;
         #[cfg(feature = "freshness-performance-trace")]
         crate::freshness_trace::record(
             "dream.initial_dream_committed_roots",

@@ -13,7 +13,8 @@ mod validation;
 
 use crate::entity_codec::{DirectEntityTombstone, EntityTombstone, encode_format};
 use crate::entity_model::EntityRecord;
-use crate::{Container, Entity, EntityDraft, EntityError, EntityGlobalId, EntityId};
+use crate::{Entity, EntityDraft, EntityError, EntityGlobalId, EntityId};
+use reliquary_container::Container;
 pub(crate) use replay::EntityReplayPublication;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeSet, HashMap};

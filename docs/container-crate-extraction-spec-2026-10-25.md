@@ -1,18 +1,18 @@
 # Container crate extraction — implementation specification
 
-**Status:** Approved architecture target; extraction not started. 2026-10-25.  
+**Status:** Physical extraction implemented and scoped verification complete. Promoted REL corpus acceptance remains pending the separate CVAFRS07 owner recovery. 2026-10-25.
 **Working branch:** `refactor/crate-first-restart` (from `c43d33c`).  
-**Destination:** `crates/reliquary-container` (currently an intentionally empty Cargo library).
+**Destination:** `crates/reliquary-container` (independently compiled physical library).
 
-## 1. Problem and scope
+## Purpose
 
-The pre-refactor `Container` is physically implemented under the root `reliquary-memory` package, not a separately compiled owner. Its scanning implementation calls a higher-level visitor during open; `container_version.rs` directly invokes Insomnia and External Source completion decoders. Normal `Container::open_scanned` may open writable and truncate a trailing incomplete frame. A separate writer/process may enter the same file without a durable writer lease. These are concrete ownership, replay-order, corruption and isolation problems, **not** reasons to defer the crate split.
+The pre-refactor `Container` was physically implemented under the root `reliquary-memory` package, not a separately compiled owner. Its scanning implementation calls a higher-level visitor during open; `container_version.rs` directly invokes Insomnia and External Source completion decoders. Normal `Container::open_scanned` may open writable and truncate a trailing incomplete frame. A separate writer/process may enter the same file without a durable writer lease. These are concrete ownership, replay-order, corruption and isolation problems, **not** reasons to defer the crate split.
 
 **Deliverable:** one real, independently compiled physical storage library that owns current REL/PHY framing, file identity, opaque physical object references, global/transaction clock transport, bounded read cursors, OS file leases, physical write exclusion and explicit incomplete-tail repair. Existing Archive/Memory/etc. owners and `Cva`/`Phylactery` consume it downward. No durable semantic payload interpretation or application-level authorization moves to Container.
 
 This is the **first implementation extraction**, not a storage redesign or a new functionality phase. Preserve current format bytes and public behavior except the already accepted correction that ordinary open/inspection must not mutate files.
 
-## 2. Governing contracts
+## Related docs
 
 - [Crate layout specification](crate-first-layout-spec-2026-10-25.md), [crate map](architecture/crate-map.json), and [component DAG](architecture/component-dag.json): `container` (logical rank 1) depends only on local `pure-codec` and `review-clocks` (rank 0). Other crates may import Container; **Container cannot import them or the root product**.
 - [ADR 0001](decisions/0001-purpose-built-database-ownership.md): physical container does not own semantic databases, lifecycle, proof or mutation eligibility.
@@ -24,7 +24,7 @@ This is the **first implementation extraction**, not a storage redesign or a new
 
 **Baseline evidence:** `c43d33c` passed 1,942 library tests. Its Container source *does not* yet implement the later exclusive lease and no-mutation-open correction. Do not use green baseline tests alone as acceptance of the target contract.
 
-## 3. Canonical directory and ownership map
+## Overview
 
 ```text
 crates/reliquary-container/
@@ -68,6 +68,8 @@ The library exposes an intentionally **small physical contract** (the list below
 | Explicit incomplete-tail classification/repair plan | Physical accepted-prefix boundary, no spontaneous truncation; repair only under a held writer session **after** higher owner approval |
 | `ContainerError` and physical sync | Stable typed faults for unsupported version, corruption, incomplete tail, writer conflict, stale identity, unsupported locking and unauthorized physical access |
 
+**Ordinary owner-open maintenance correction:** `Cva::open` reconstructs superseded conversation compaction records through `finish_without_reclaim`, preserving the current logical projection while leaving obsolete physical chunks untouched. `Cva::open` and `Phylactery::open` validate Entity-resolution evidence but do not canonicalize it by appending revisions. The explicit `repair_retired_entity_references()` owner operation performs any required durable canonicalization and synchronization; general storage reclamation remains an explicit owner Maintenance action. Regression tests under `src/facade/container_owner_tests.rs` assert exact unchanged REL/PHY bytes during opening of stale-but-valid evidence. The `ObjectRef` fields stay opaque; immutable serialized-byte and offset accessors are intentionally retained for existing owner codecs and historical-prefix calculations, without bypassing Container's extent, session or writer checks.
+
 **Direction:** a higher owner obtains a bounded cursor and **pulls** one physical frame at a time, validates/ingests into its own state, and then advances. No `Container::open_scanned(visitor_that_mutates_owner)` as a cross-crate owner replay API. Do not buffer the complete physical log in a vector just to avoid a callback.
 
 **Admission vs authorization:** a writer lease proves physical exclusion, **not** that a caller may amend a Memory, import, or Archive. Owner Lifecycle and the owning stores decide semantic admissions. Preserve the existing import-fenced write behavior without exporting an unchecked boolean bypass as general public convenience. Use a narrowly held writer/scope capability where justified; do not introduce a generic policy registry, global lock manager, or semantic callbacks. A read session cannot be upgraded to repair implicitly.
@@ -110,8 +112,28 @@ An intermediate red build is allowed while consumers are being switched. Finish 
 
 No new file schema, format upgrade or storage compression; no rewriting Insomnia/External Source business decoders; no semantic import-settlement or historical reconciliation redesign; no additional external provider or host adapter; no preemptive extraction of other 29 crates; no migration of the authoritative fixture originals in place; no old-format runtime fallback; no generic framework of pluggable storage interfaces or permanent alias facades.
 
-## 8. Decisions to check in implementation (non-blocking)
+## Notes
 
 - Select the smallest physical cursor value/lifetime shape that preserves bounded replay and error ordering; the Phase 1 `PhysicalCursor` implementation is candidate code, not automatic final truth.
 - Inspect the three later Container touches (`408d775`, `ccd949f`, `f431401`) for genuine reader/publisher corrections; salvage only those whose behavior is still required. File-level reuse must be proven by compilation and existing tests.
 - The baseline's public `Container` API exists; coordinate semantic owners' public error conversion carefully. Rust visibility changes alone are not an authorization mechanism.
+
+## Implementation result (2026-10-25)
+
+The physical implementation and focused tests now compile in `reliquary-container`, with only `sha2` and `uuid` dependencies. The product consumes that crate directly; the old root physical implementation and cross-crate replay callbacks are removed. Physical opens preserve bytes, explicit repair holds checked exclusion, and owner replay pulls bounded frames before accepting physical clocks. Existing public product re-exports remain supported. Held history sources retain their lease and invalidate receipt-membership hints when physical identity changes, even at an unchanged path and byte length.
+
+Verification includes 62 passing physical tests, 163 passing integration tests, 32 passing CLI tests, locked workspace/CLI checks, formatting, documentation policy and Pitlord policy validation. The final complete root library run passed 1,901 tests with zero failures and five ignored tests, including semantic replay, reconciliation, torn-tail, history and scaling suites. The six-source promoted-corpus gate was explicitly attempted on disposable copies: three PHY copies passed pinned heads; three REL copies rejected the unrecovered CVAFRS07 Freshness format. All six disposable copies retained exact bytes and modification times. Full promoted REL product acceptance remains a separate owner-recovery obligation; authoritative originals were not opened by reconstructed owners or mutated.
+
+Documentation impact:
+- Inspected: architecture, invariants, storage format, maintainer map, limitations, roadmap, crate layout and relevant owner contracts.
+- Updated: current architecture/API/storage contracts, development verification, limitations, ownership/coverage maps, review clocks and crate-first specifications.
+- Not affected: physical format bytes, authoritative corpus originals, other semantic-owner extraction plans and provider behavior.
+- Compliance check: both documentation-policy modes, formatting and Pitlord policy validation pass; link/index verification is recorded in development verification.
+- Known documentation gaps: installed Pitlord lacks its documented `docs` subcommand; refreshed architecture indexing did not finish within the bounded attempt. No enforcement pass is claimed for either unavailable result.
+
+Architecture impact:
+- Standards added or changed: no new standard; existing physical/semantic ownership and nonmutating-open rules are implemented.
+- Ownership or boundary impact: physical framing, transport clocks, leases, cursors and repair move to one independently compiled crate; semantic replay/admission remains above it.
+- Pitlord enforcement impact: source-area ownership and scope mappings now include the physical crate, pure codecs and review clocks; policy validates.
+- Other verification impact: independent crate, process/alias lease tests, root owner tests, integration contracts and detachable CLI verification cover the boundary.
+- Known architectural gaps: CVAFRS07 semantic owner recovery and refreshed graph enforcement remain outside this extraction; no mainline replacement or full corpus acceptance is claimed.

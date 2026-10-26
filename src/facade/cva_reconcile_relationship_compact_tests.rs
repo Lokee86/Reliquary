@@ -1,11 +1,11 @@
 //! Scratch compact Relationship tail tests for facade reconciliation.
 use super::{read_relationship_tail, replay_relationship_tail};
-use crate::container::publication_envelope;
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
 use crate::relationship_codec::{
     RelationshipTombstone, RelationshipVersion, encode_record, encode_tombstone, encode_version,
 };
 use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
+use reliquary_container::publication_envelope;
 fn encode_creation(c: &RelationshipCreation) -> Result<Vec<u8>, crate::RelationshipError> {
     crate::relationship_compact_codec::publication::encode(
         &crate::relationship_compact_codec::publication::RelationshipPublication::Creation(
@@ -21,9 +21,9 @@ fn encode_delta(d: &RelationshipDelta) -> Result<Vec<u8>, crate::RelationshipErr
 use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
 use crate::relationship_model::RelationshipRecord;
 use crate::{
-    Container, Cva, EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId,
-    RelationshipParticipant,
+    Cva, EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId, RelationshipParticipant,
 };
+use reliquary_container::Container;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -97,12 +97,17 @@ fn reserve_tickets(container: &mut Container, times: &[i64]) {
     }
 }
 
-fn append_version(container: &mut Container, carrier: crate::ObjectRef, global: u64, _local: u64) {
+fn append_version(
+    container: &mut Container,
+    carrier: reliquary_container::ObjectRef,
+    global: u64,
+    _local: u64,
+) {
     let body = container.read(carrier).unwrap();
-    let bytes = crate::container::publication_envelope::encode(
-        crate::container::publication_envelope::PublicationEnvelope {
+    let bytes = reliquary_container::publication_envelope::encode(
+        reliquary_container::publication_envelope::PublicationEnvelope {
             global_version: global,
-            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            clock: reliquary_container::publication_envelope::PublicationClock::BindReserved,
             body: &body,
         },
     )

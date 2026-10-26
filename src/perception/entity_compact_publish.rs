@@ -3,7 +3,8 @@ use super::{EntityStore, resolve, validate_record};
 use crate::entity_compact_codec::publication::{self, EntityPublication};
 use crate::entity_compact_contract::{EntityCreation, EntityDelta};
 use crate::entity_model::EntityRecord;
-use crate::{Container, Entity, EntityError};
+use crate::{Entity, EntityError};
+use reliquary_container::Container;
 
 impl EntityStore {
     /// Callers resolve drafts and retries; this seam validates admission before

@@ -1,11 +1,10 @@
-use crate::container::publication_envelope;
 use crate::memory_compact_codec::publication::{self, MemoryPublication};
 use crate::memory_compact_contract::MemoryDelta;
 use crate::memory_model::MemoryRecord;
 use crate::owner_lifecycle::{LifecycleState, TombstoneOutcome};
-use crate::{
-    Container, ContainerError, Cva, Memory, MemoryDraft, MemoryError, MemoryId, Phylactery,
-};
+use crate::{Cva, Memory, MemoryDraft, MemoryError, MemoryId, Phylactery};
+use reliquary_container::Container;
+use reliquary_container::publication_envelope;
 use std::path::{Path, PathBuf};
 
 struct ScratchDirectory(PathBuf);
@@ -68,20 +67,18 @@ fn bytes(path: &Path) -> Vec<u8> {
     std::fs::read(path).unwrap()
 }
 
-fn payloads(path: &Path) -> Vec<Vec<u8>> {
-    let mut container = Container::open(path).unwrap();
+fn payloads(container: &Container) -> Vec<Vec<u8>> {
     let mut result = Vec::new();
-    container
-        .visit_payloads::<ContainerError>(|_, payload| {
-            result.push(payload.to_vec());
-            Ok(())
-        })
-        .unwrap();
+    let source = container.read_source().unwrap();
+    let mut cursor = source.physical_cursor().unwrap();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        result.push(frame.payload);
+    }
     result
 }
 
-fn assert_compact_frames(path: &Path, records: &[MemoryRecord]) {
-    let payloads = payloads(path);
+fn assert_compact_frames(container: &Container, records: &[MemoryRecord]) {
+    let payloads = payloads(container);
     let envelopes: Vec<_> = payloads
         .iter()
         .filter_map(|payload| publication_envelope::decode(payload).unwrap())
@@ -193,7 +190,7 @@ fn rel_writes_compact_creation_and_delta_and_reopens_exact_tombstoned_history() 
     assert_eq!(records[1].body_id, body_id);
     assert_eq!(records[0].revision, 1);
     assert_eq!(records[1].revision, 2);
-    assert_compact_frames(&path, &records);
+    assert_compact_frames(&rel.container, &records);
 
     let tombstone = rel.tombstone_memory(id, second.revision).unwrap();
     let TombstoneOutcome::Published(coordinates) = tombstone else {
@@ -209,7 +206,7 @@ fn rel_writes_compact_creation_and_delta_and_reopens_exact_tombstoned_history() 
     assert_eq!(rel.memory_version(), tombstone_version);
     assert_eq!(bytes(&path), tombstone_bytes);
 
-    let payloads = payloads(&path);
+    let payloads = payloads(&rel.container);
     let envelopes: Vec<_> = payloads
         .iter()
         .filter_map(|payload| publication_envelope::decode(payload).unwrap())
@@ -232,7 +229,7 @@ fn rel_writes_compact_creation_and_delta_and_reopens_exact_tombstoned_history() 
     assert_eq!(tombstones[0].0, id);
     assert_eq!(tombstones[0].1, second.revision + 1);
     assert_eq!(tombstones[0].2, tombstone_version);
-    assert_compact_frames(&path, &records);
+    assert_compact_frames(&rel.container, &records);
     rel.sync().unwrap();
     drop(rel);
 
@@ -298,7 +295,7 @@ fn phy_writes_compact_creation_and_delta_and_reopens_exact_tombstoned_history() 
     assert_eq!(records[1].body_id, body_id);
     assert_eq!(records[0].revision, 1);
     assert_eq!(records[1].revision, 2);
-    assert_compact_frames(&path, &records);
+    assert_compact_frames(&phy.container, &records);
 
     let tombstone = phy.tombstone_memory(id, second.revision).unwrap();
     let TombstoneOutcome::Published(coordinates) = tombstone else {
@@ -314,7 +311,7 @@ fn phy_writes_compact_creation_and_delta_and_reopens_exact_tombstoned_history() 
     assert_eq!(phy.memory_version(), tombstone_version);
     assert_eq!(bytes(&path), tombstone_bytes);
 
-    let payloads = payloads(&path);
+    let payloads = payloads(&phy.container);
     let envelopes: Vec<_> = payloads
         .iter()
         .filter_map(|payload| publication_envelope::decode(payload).unwrap())
@@ -337,7 +334,7 @@ fn phy_writes_compact_creation_and_delta_and_reopens_exact_tombstoned_history() 
     assert_eq!(tombstones[0].0, id);
     assert_eq!(tombstones[0].1, second.revision + 1);
     assert_eq!(tombstones[0].2, tombstone_version);
-    assert_compact_frames(&path, &records);
+    assert_compact_frames(&phy.container, &records);
     phy.sync().unwrap();
     drop(phy);
 

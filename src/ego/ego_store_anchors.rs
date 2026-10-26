@@ -1,7 +1,8 @@
 use super::validation::{check_revision, next_revision};
 use super::{EgoRecord, EgoStore};
 use crate::ego_codec::validate_anchor_text;
-use crate::{Container, EgoAnchor, EgoAnchorId, EgoAnchorPriority, EgoError};
+use crate::{EgoAnchor, EgoAnchorId, EgoAnchorPriority, EgoError};
+use reliquary_container::Container;
 use uuid::Uuid;
 
 impl EgoStore {

@@ -1,9 +1,8 @@
 use crate::archive_history_codec::encode_archive_format;
 use crate::insomnia::codec::encode_format as encode_insomnia_format;
 use crate::memory_codec::encode_format as encode_memory_format;
-use crate::{
-    Branch, Container, Cva, CvaError, PackedVectorError, PackedVectors, ScalarType, VectorSchema,
-};
+use crate::{Branch, Cva, CvaError, PackedVectorError, PackedVectors, ScalarType, VectorSchema};
+use reliquary_container::Container;
 use std::fs;
 use std::path::PathBuf;
 
@@ -92,9 +91,9 @@ fn packed_vector_store_requires_its_format_marker() {
     let path = test_path("missing-format.cva");
     let mut container = Container::create_with_identity(
         &path,
-        crate::ContainerIdentity {
-            file_kind: crate::FileKind::Reliquary,
-            scope: Some(crate::ReliquaryScopeKind::Project),
+        reliquary_container::ContainerIdentity {
+            file_kind: reliquary_container::FileKind::Reliquary,
+            scope: Some(reliquary_container::ReliquaryScopeKind::Project),
         },
     )
     .unwrap();
@@ -144,9 +143,9 @@ fn packed_vector_prune_marker_preserves_identity_and_reports_explicit_unavailabi
     let path = test_path("pruned-marker.cva");
     let mut container = Container::create_with_identity(
         &path,
-        crate::ContainerIdentity {
-            file_kind: crate::FileKind::Reliquary,
-            scope: Some(crate::ReliquaryScopeKind::Project),
+        reliquary_container::ContainerIdentity {
+            file_kind: reliquary_container::FileKind::Reliquary,
+            scope: Some(reliquary_container::ReliquaryScopeKind::Project),
         },
     )
     .unwrap();

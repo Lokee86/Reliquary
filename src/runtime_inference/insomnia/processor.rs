@@ -1,7 +1,8 @@
 use crate::{
-    Archive, Container, Cva, GeneralEndpoint, InsomniaExtractionError, InsomniaExtractor,
-    InsomniaRejection, InsomniaWork, InsomniaWorkState, Memory, MemoryError,
+    Archive, Cva, GeneralEndpoint, InsomniaExtractionError, InsomniaExtractor, InsomniaRejection,
+    InsomniaWork, InsomniaWorkState, Memory, MemoryError,
 };
+use reliquary_container::Container;
 use std::fmt;
 
 #[path = "processor/application.rs"]

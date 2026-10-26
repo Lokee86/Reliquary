@@ -1,7 +1,7 @@
 //! Authenticated native pruning of Entity publication-envelope histories.
-use crate::container::publication_envelope::{self, PublicationEnvelope};
 use crate::entity_compact_codec::publication::encode;
 use crate::entity_compact_codec::publication::{self, EntityPublication};
+use reliquary_container::publication_envelope::{self, PublicationEnvelope};
 fn encode_creation(c: &EntityCreation) -> Result<Vec<u8>, crate::EntityError> {
     encode(&EntityPublication::Creation(c.clone()))
 }
@@ -12,9 +12,8 @@ use crate::entity_compact_contract::{EntityCreation, EntityDelta, EntityDescript
 use crate::entity_model::{EntityRecord, EntityRetentionDescriptor};
 use crate::entity_store::{EntityReplayPublication, EntityStore};
 use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget, PayloadUnavailable};
-use crate::{
-    Container, ContainerError, Cva, EntityGlobalId, EntityId, HistoryPruneRequest, Phylactery,
-};
+use crate::{Cva, EntityGlobalId, EntityId, HistoryPruneRequest, Phylactery};
+use reliquary_container::Container;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs;
@@ -260,21 +259,22 @@ fn contains_bytes(haystack: &[u8], needle: &str) -> bool {
         .any(|window| window == needle.as_bytes())
 }
 
-fn payloads(path: &Path) -> Vec<(crate::ObjectRef, Vec<u8>)> {
-    let mut container = Container::open(path).unwrap();
+fn payloads(container: &Container) -> Vec<(reliquary_container::ObjectRef, Vec<u8>)> {
     let mut values = Vec::new();
-    container
-        .visit_payloads::<ContainerError>(|object, payload| {
-            values.push((object, payload.to_vec()));
-            Ok(())
-        })
-        .unwrap();
+    let source = container.read_source().unwrap();
+    let mut cursor = source.physical_cursor().unwrap();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        values.push((frame.object, frame.payload));
+    }
     values
 }
 
-fn selected_proofs(path: &Path, selected_id: EntityId) -> Vec<(u64, EntityDescriptionProof)> {
+fn selected_proofs(
+    container: &Container,
+    selected_id: EntityId,
+) -> Vec<(u64, EntityDescriptionProof)> {
     let mut proofs = Vec::new();
-    for (_, payload) in payloads(path) {
+    for (_, payload) in payloads(container) {
         let Some(envelope) = publication_envelope::decode(&payload).unwrap() else {
             continue;
         };
@@ -295,11 +295,12 @@ fn selected_proofs(path: &Path, selected_id: EntityId) -> Vec<(u64, EntityDescri
     proofs
 }
 
-fn source_carrier_digests(path: &Path, selected_id: EntityId) -> BTreeMap<u64, [u8; 32]> {
-    let mut container = Container::open(path).unwrap();
+fn source_carrier_digests(container: &Container, selected_id: EntityId) -> BTreeMap<u64, [u8; 32]> {
     let mut versions = BTreeMap::new();
-    for object in container.chunks().unwrap() {
-        let payload = container.read(object).unwrap();
+    let source = container.read_source().unwrap();
+    let mut cursor = source.physical_cursor().unwrap();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        let payload = frame.payload;
         let Some(envelope) = publication_envelope::decode(&payload).unwrap() else {
             continue;
         };
@@ -319,8 +320,7 @@ fn source_carrier_digests(path: &Path, selected_id: EntityId) -> BTreeMap<u64, [
     versions
 }
 
-fn assert_pruned_entity(owner_path: &Path, seed: &Seed, descriptor: &EntityRetentionDescriptor) {
-    let mut owner = Cva::open(owner_path).unwrap();
+fn assert_pruned_entity(owner: &Cva, seed: &Seed, descriptor: &EntityRetentionDescriptor) {
     assert_eq!(
         owner
             .entities
@@ -367,7 +367,7 @@ fn rel_prune_redacts_all_selected_history_preserves_clocks_and_reclaims_authenti
     let seed = seed_entities(&mut rel.entities, &mut rel.container);
     let source_hash = hash_file(&source);
     let expected_source_records = rel.entities.records().to_vec();
-    let original_digests = source_carrier_digests(&source, seed.selected_id);
+    let original_digests = source_carrier_digests(&rel.container, seed.selected_id);
     assert_eq!(original_digests.len(), 3);
 
     let report = rel
@@ -387,7 +387,7 @@ fn rel_prune_redacts_all_selected_history_preserves_clocks_and_reclaims_authenti
         .retention_descriptor(seed.selected_id)
         .unwrap();
     assert_eq!(descriptor, seed.retained);
-    assert_pruned_entity(&output, &seed, &descriptor);
+    assert_pruned_entity(&pruned, &seed, &descriptor);
     assert_eq!(
         descriptor
             .revisions
@@ -430,7 +430,7 @@ fn rel_prune_redacts_all_selected_history_preserves_clocks_and_reclaims_authenti
         &seed.unrelated_record.summary
     ));
 
-    let proofs = selected_proofs(&output, seed.selected_id);
+    let proofs = selected_proofs(&pruned.container, seed.selected_id);
     assert_eq!(proofs.len(), 3);
     for (revision, proof) in &proofs {
         assert_eq!(proof.manifest_digest, report.manifest_digest);
@@ -446,8 +446,11 @@ fn rel_prune_redacts_all_selected_history_preserves_clocks_and_reclaims_authenti
             .unwrap(),
         descriptor
     );
-    assert_eq!(selected_proofs(&reclaimed, seed.selected_id), proofs);
-    assert_pruned_entity(&reclaimed, &seed, &descriptor);
+    assert_eq!(
+        selected_proofs(&after_reclaim.container, seed.selected_id),
+        proofs
+    );
+    assert_pruned_entity(&after_reclaim, &seed, &descriptor);
 }
 
 #[test]
@@ -459,7 +462,7 @@ fn phy_prune_preserves_option_identity_history_and_unrelated_description() {
     let seed = seed_entities(&mut phy.entities, &mut phy.container);
     let source_hash = hash_file(&source);
     let expected_records = phy.entities.records().to_vec();
-    let original_digests = source_carrier_digests(&source, seed.selected_id);
+    let original_digests = source_carrier_digests(&phy.container, seed.selected_id);
     let report = phy
         .prune_tombstoned_history(
             &output,
@@ -502,7 +505,7 @@ fn phy_prune_preserves_option_identity_history_and_unrelated_description() {
     for (global, transaction_time) in &seed.transaction_times {
         assert_eq!(pruned.transaction_time_ns(*global), *transaction_time);
     }
-    let proofs = selected_proofs(&output, seed.selected_id);
+    let proofs = selected_proofs(&pruned.container, seed.selected_id);
     assert_eq!(proofs.len(), 3);
     for (revision, proof) in &proofs {
         assert_eq!(proof.manifest_digest, report.manifest_digest);
@@ -547,7 +550,7 @@ enum ProofTamper {
 
 fn tampered_copy(
     source: &Path,
-    original_source: &Path,
+    original_source: &Container,
     output: &Path,
     selected_id: EntityId,
     tamper: ProofTamper,
@@ -570,22 +573,26 @@ fn tampered_copy(
     let mut replacement = target.1.clone();
     let mut detached_proof = None;
     if matches!(tamper, ProofTamper::DetachedProofCarrier) {
-        let mut original = Container::open(original_source).unwrap();
-        let original_carrier = original
-            .chunks()
-            .unwrap()
-            .into_iter()
-            .find_map(|object| {
-                let payload = original.read(object).unwrap();
-                let envelope = publication_envelope::decode(&payload).ok()??;
-                let publication =
-                    publication::decode(envelope.body, envelope.global_version).ok()??;
-                matches!(&publication, EntityPublication::Creation(creation)
+        let source = original_source.read_source().unwrap();
+        let mut cursor = source.physical_cursor().unwrap();
+        let mut original_carrier = None;
+        while let Some(frame) = cursor.next_frame().unwrap() {
+            let payload = frame.payload;
+            let Some(envelope) = publication_envelope::decode(&payload).unwrap() else {
+                continue;
+            };
+            let publication = publication::decode(envelope.body, envelope.global_version)
+                .unwrap()
+                .unwrap();
+            if matches!(&publication, EntityPublication::Creation(creation)
                     if creation.record.id == selected_id && creation.record.revision == 1
                         && creation.description_proof.is_none())
-                .then_some(payload)
-            })
-            .expect("original source creation envelope");
+            {
+                original_carrier = Some(payload);
+                break;
+            }
+        }
+        let original_carrier = original_carrier.expect("original source creation envelope");
         let pruned_envelope = publication_envelope::decode(&target.1).unwrap().unwrap();
         let accepted_pruned =
             publication::decode(pruned_envelope.body, pruned_envelope.global_version)
@@ -674,7 +681,7 @@ fn rel_open_rejects_rechecksummed_missing_wrong_and_duplicate_compact_descriptio
         ("detached-proof.rel", ProofTamper::DetachedProofCarrier),
     ] {
         let path = scratch.file(name);
-        tampered_copy(&pruned, &source, &path, seed.selected_id, tamper);
+        tampered_copy(&pruned, &rel.container, &path, seed.selected_id, tamper);
         assert!(Cva::open(&path).is_err(), "tampering was accepted: {name}");
     }
 }

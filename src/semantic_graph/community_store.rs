@@ -7,9 +7,9 @@ use crate::graph_store::GraphStore;
 use crate::{
     COMMUNITY_ALGORITHM_VERSION, COMMUNITY_NAMING_CONTRACT_VERSION, CommunityError, CommunityId,
     CommunitySemanticName, CommunitySemanticNameSource, CommunitySnapshot, CommunityStats,
-    Container, DEFAULT_COMMUNITY_NAMING_REPRESENTATIVES, MAX_COMMUNITY_SEMANTIC_NAME_BYTES,
-    MemoryId,
+    DEFAULT_COMMUNITY_NAMING_REPRESENTATIVES, MAX_COMMUNITY_SEMANTIC_NAME_BYTES, MemoryId,
 };
+use reliquary_container::Container;
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 

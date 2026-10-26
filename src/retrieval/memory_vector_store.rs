@@ -3,10 +3,10 @@ use crate::memory_store::MemoryStore;
 use crate::memory_vector_codec::{decode_object, encode_format, encode_object};
 use crate::packed_vector_store::PackedVectorStore;
 use crate::{
-    CompatibilityProfileId, Container, MemoryBodyId, MemoryVectorError, MemoryVectorId,
-    MemoryVectorInfo, MemoryVectorLocation, MemoryVectorSet, MemoryVectorStats, ObjectRef,
-    PackedVectorId, ScalarType,
+    CompatibilityProfileId, MemoryBodyId, MemoryVectorError, MemoryVectorId, MemoryVectorInfo,
+    MemoryVectorLocation, MemoryVectorSet, MemoryVectorStats, PackedVectorId, ScalarType,
 };
+use reliquary_container::{Container, ObjectRef};
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 

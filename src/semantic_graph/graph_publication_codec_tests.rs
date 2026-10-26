@@ -18,17 +18,17 @@ fn row(
 
 #[test]
 fn coordinate_adapter_uses_envelope_self_reference_and_ignores_retired_links() {
-    let object = crate::ObjectRef::from_legacy_bytes([7; 16]);
-    let carrier = crate::ObjectRef::from_legacy_bytes([3; 16]);
+    let object = reliquary_container::ObjectRef::from_legacy_bytes([7; 16]);
+    let carrier = reliquary_container::ObjectRef::from_legacy_bytes([3; 16]);
     let body = encode(&GraphPublication {
         graph_version: 4,
         transaction: GraphTransaction::Single(row(0, 1, true, GraphRelationOrigin::Dream)),
     })
     .unwrap();
-    let framed = crate::container::publication_envelope::encode(
-        crate::container::publication_envelope::PublicationEnvelope {
+    let framed = reliquary_container::publication_envelope::encode(
+        reliquary_container::publication_envelope::PublicationEnvelope {
             global_version: 9,
-            clock: crate::container::publication_envelope::PublicationClock::Allocate {
+            clock: reliquary_container::publication_envelope::PublicationClock::Allocate {
                 transaction_time_ns: None,
             },
             body: &body,

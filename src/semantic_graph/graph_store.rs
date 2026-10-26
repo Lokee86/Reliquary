@@ -2,11 +2,12 @@ use crate::entity_store::EntityStore;
 use crate::graph_codec::{GraphNodePayload, encode_format, encode_node};
 use crate::memory_store::MemoryStore;
 use crate::{
-    Container, GraphError, GraphNodeRecord, MemoryId, SemanticGraphRelation,
-    SemanticGraphRelationKind, SemanticNodeRef,
+    GraphError, GraphNodeRecord, MemoryId, SemanticGraphRelation, SemanticGraphRelationKind,
+    SemanticNodeRef,
 };
 use arcana::storage::InMemoryGraph;
 use arcana::{GraphDataset, NodeId};
+use reliquary_container::Container;
 use std::collections::{BTreeSet, HashMap, HashSet};
 
 #[cfg(test)]

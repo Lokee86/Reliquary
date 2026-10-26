@@ -87,7 +87,7 @@ fn entity_draft(name: &str) -> EntityDraft {
 }
 
 fn append_compact_deactivation(
-    container: &mut crate::Container,
+    container: &mut reliquary_container::Container,
     source: u32,
     target: u32,
     graph_version: u64,

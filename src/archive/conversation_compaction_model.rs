@@ -1,4 +1,4 @@
-use crate::ContainerError;
+use reliquary_container::ContainerError;
 use std::fmt;
 
 pub const MAX_CONVERSATION_COMPACTION_SUMMARY_BYTES: usize = 1_048_576;

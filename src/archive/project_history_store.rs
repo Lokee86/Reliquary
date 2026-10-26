@@ -1,8 +1,9 @@
 use crate::project_history_codec::{decode, encode};
 use crate::{
-    Container, CvaError, ProjectRepositoryManagement, ProjectRevisionCorrelation,
-    ProjectRevisionRef, RelSemanticCut,
+    CvaError, ProjectRepositoryManagement, ProjectRevisionCorrelation, ProjectRevisionRef,
+    RelSemanticCut,
 };
+use reliquary_container::Container;
 
 #[derive(Default)]
 pub(crate) struct ProjectHistoryStore {

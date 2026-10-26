@@ -4,7 +4,8 @@
 use crate::historical_fingerprint::{HistoricalFingerprint, OwnerProjection};
 use crate::memory_model::MemoryRecord;
 use crate::memory_store::MemoryStore;
-use crate::{Container, MemoryId, MemorySourceRef, MemoryTemporalInference};
+use crate::{MemoryId, MemorySourceRef, MemoryTemporalInference};
+use reliquary_container::Container;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 

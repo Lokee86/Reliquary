@@ -81,10 +81,10 @@ fn cached_graph_oracle_matches_original_hash_for_every_mixed_cut() {
 
 #[test]
 fn native_graph_readers_preserve_every_cut_order_mapping_and_baseline() {
-    use crate::container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
     use crate::graph_codec::{GraphMutationPayload, GraphVersionPayload};
     use crate::graph_compact_codec::publication::{self, GraphPublication, GraphTransaction};
     use crate::{GraphRelationOrigin, SemanticGraphRelationKind, SemanticNodeRef};
+    use reliquary_container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
     let dir = scratch();
     let seed = dir.join("seed.rel");
     let source_path = dir.join("source.rel");

@@ -14,9 +14,9 @@ use crate::phylactery_profile_store::PhylacteryProfileStore;
 use crate::processing_epoch_store::ProcessingEpochStore;
 use crate::relationship_store::RelationshipStore;
 use crate::{
-    Container, Memory, MemoryBodyId, MemoryDraft, MemoryError, MemoryId, MemoryStats,
-    PhylacteryError,
+    Memory, MemoryBodyId, MemoryDraft, MemoryError, MemoryId, MemoryStats, PhylacteryError,
 };
+use reliquary_container::Container;
 
 pub struct Phylactery {
     pub(crate) owner_maintenance: crate::owner_maintenance::OwnerMaintenanceStore,

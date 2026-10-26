@@ -1,5 +1,6 @@
 use crate::fragment_store::fragment_id;
-use crate::{Archive, ArchiveError, Container, Fragment, FragmentConfig};
+use crate::{Archive, ArchiveError, Fragment, FragmentConfig};
+use reliquary_container::Container;
 
 impl Archive {
     pub(crate) fn materialize_branch_fragments(

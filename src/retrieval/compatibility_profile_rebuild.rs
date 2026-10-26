@@ -1,6 +1,7 @@
+use crate::CompatibilityProfileError;
 use crate::compatibility_profile_codec::{decode_format, decode_profile, decode_retirement};
 use crate::compatibility_profile_store::CompatibilityProfileStore;
-use crate::{CompatibilityProfileError, ObjectRef};
+use reliquary_container::ObjectRef;
 
 pub(crate) struct CompatibilityProfileOpenState {
     store: CompatibilityProfileStore,

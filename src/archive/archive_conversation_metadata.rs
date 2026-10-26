@@ -1,6 +1,7 @@
 use crate::archive_codec::ArchiveRecord;
 use crate::archive_store::validate_text;
-use crate::{Archive, ArchiveError, Container, ConversationMetadata, ConversationPolicy};
+use crate::{Archive, ArchiveError, ConversationMetadata, ConversationPolicy};
+use reliquary_container::Container;
 
 impl Archive {
     pub(crate) fn put_conversation_metadata(

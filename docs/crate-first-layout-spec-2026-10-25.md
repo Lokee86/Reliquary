@@ -1,10 +1,10 @@
 # Reliquary crate structure and layout — implementation specification
 
-Status: **Target layout specification; production extraction not started** (2026-10-25).  
+Status: **Container extracted; remaining owner crates are reserved targets** (2026-10-25).
 Branch: `refactor/crate-first-restart`; foundation: verified pre-convergence commit `c43d33c`.  
 Scope: correction-only architectural migration; no new semantic, API, storage, or roadmap feature.
 
-## 1. Problem and outcomes
+## Purpose
 
 Reliquary's one-crate implementation places physical storage, durable owner state, semantic services, orchestration, and public facade in the same Rust dependency scope. Rust successfully compiled code that violates the intended domain dependency order. The abandoned dependency-convergence refactor tried to prove those boundaries before moving code across compiled units, producing substantial custom verification infrastructure.
 
@@ -12,7 +12,7 @@ The replacement must yield **separately compiled, coherently owned components wi
 
 This is a specification of **where code belongs and who may call whom**, not 30 rewrite tickets or an instruction to implement any roadmap work.
 
-## 2. Governing documents and precedence
+## Related docs
 
 | Authority | Document or decision | Constraint carried into this specification |
 | --- | --- | --- |
@@ -30,7 +30,7 @@ This is a specification of **where code belongs and who may call whom**, not 30 
 
 Precedence for a conflict: accepted ADR and explicit current durable/behavior contract → this correction-only target DAG and crate map → concrete source/tests → historical execution-plan prose. A surprising change in ownership or an additional edge requires an explicit reviewed amendment; an old phase receipt is not architectural authority.
 
-## 3. Final package layout
+## Overview
 
 One repository and Cargo workspace; no independent repositories, daemon processes, semantic databases, or package-release schedule are created by extraction.
 
@@ -108,7 +108,7 @@ Paths below are *source migration neighborhoods*, not instructions to move every
 
 | Target crate | Intended internal layout / exported capability | Existing production neighborhoods | Canonical documentation |
 | --- | --- | --- | --- |
-| **Container** | framing, file identity, exclusive writer lease, inspection/repair, typed clocks and pure byte codecs; physical errors | `src/container/**`, `src/compact_delta.rs`, clock/framing primitives | [ADR 0001](decisions/0001-purpose-built-database-ownership.md), [Storage format](storage-format.md), [Review clocks](subsystems/review-clocks.md) |
+| **Container** | framing, file identity, exclusive writer lease, inspection/repair, typed clocks and pure byte codecs; physical errors | `crates/reliquary-container/src/**` (extracted from the former root Container, compact-delta and pure review-clock modules) | [ADR 0001](decisions/0001-purpose-built-database-ownership.md), [Storage format](storage-format.md), [Review clocks](subsystems/review-clocks.md) |
 | **Archive** | source conversation, deterministic Episode, fragment, checkpoint, activity/branch history; no Echo | `src/archive/**` except Echo files; Archive-facing source methods in `src/facade/**` | [ADR 0012](decisions/0012-deterministic-episodes-and-insomnia-memory-authority.md), [Architecture](architecture.md) |
 | **Memory Core** | Memory identity, immutable revisions, admitted mutation, lifecycle, provenance, replay | `src/memory/**`; Memory-owned publication/replay extracted from `src/facade/**` | [ADR 0001](decisions/0001-purpose-built-database-ownership.md), [Scope ownership](subsystems/scope-ownership.md) |
 | **Echo** | source-keyed ordered reasoning/commentary/tool/activity evidence, native encoding and scoped reads | `src/archive/echo*.rs` and related archival Echo methods | [ADR 0014](decisions/0014-echo-historical-reasoning-traces.md) |
@@ -209,10 +209,12 @@ At the final integration gate:
 
 **Not accepted by placeholder compilation:** the empty reserved crate targets currently in the workspace establish only file layout. Completion requires real implementations behind independent crate APIs, migrated callers and tests, and deletion of the old monolith copies.
 
-## 8. Out of scope and documentation maintenance
+## Notes
 
 No new Observations, Entity identity redesign, broader Ego synthesis, new cross-REL context machinery, external transcript authority redesign, provider change, fresh storage schema, history checkpoint optimization, release packaging or Warlock/Hermes integration. Existing roadmap and consumer plans continue to own those features.
 
 Update owner documents **as each crate becomes real**: [Architecture](architecture.md), [Maintainer map](maintainer-map.md), [Development](development.md), [Subsystem docs](subsystems/INDEX.md), [Behavioral contracts](behavioral-contracts.md), [Storage format](storage-format.md) where the on-disk contracts are affected, and [Documentation coverage](documentation-coverage.md). Do not wholesale replace the pre-refactor source maps with future-state claims before migration. Preserve the governing ADRs; add an ADR only for a genuinely new, surprising, durable decision (the Echo authority itself is already covered by ADR 0014).
+
+**Implementation status:** `reliquary-container` now owns production physical storage and its tests. The other 29 libraries remain reserved targets. Current-only CVAFRS07 semantic owner recovery and disposable promoted-corpus acceptance remain pending; this extraction is not final product acceptance.
 
 **Specification acceptance:** mapping accounts for all 35 logical components; the 30-library physical DAG is acyclic **and** has no lower-component dependency on any package housing a higher-rank semantic service; every crate has a single responsibility and a checked source/docs crosswalk; scope/corpus gates and non-goals are explicit. Implementation acceptance is a separate future event.

@@ -64,7 +64,10 @@ fn message(id: &str, parent_id: Option<&str>, role: &str, content: &str) -> Impo
 }
 
 fn settle_initial_pass(cva: &mut Cva, id: crate::MemoryId, _now_ns: i64) {
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     let result = (|| {
         let pass = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), id);
         cva.begin_initial_dream_pass(
@@ -80,12 +83,15 @@ fn settle_initial_pass(cva: &mut Cva, id: crate::MemoryId, _now_ns: i64) {
         cva.accept_initial_dream_settlement(&pass, cva.rel_turn_count())?;
         crate::dream_freshness::settle_initial_pass(cva, id, true, 1)
     })();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     result.unwrap();
 }
 
 fn process_import_episode(cva: &mut Cva, now_ns: i64) {
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     let claim = cva
         .claim_insomnia_episode("import-attribution-worker", now_ns, 1_000)
         .unwrap()
@@ -153,7 +159,7 @@ fn process_import_episode(cva: &mut Cva, now_ns: i64) {
     let result = cva
         .process_claimed_insomnia_episode(&claim, &extractor, "private", now_ns, now_ns + 1)
         .unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     assert_eq!(
         result.created.len(),
         1,
@@ -249,7 +255,10 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
         .rev()
         .find_map(|message| message.node_id.clone())
         .unwrap();
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     cva.materialize_path_fragments("c1", "a7", crate::FragmentConfig::default(), true)
         .unwrap();
     cva.materialize_path_fragments(
@@ -271,7 +280,7 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
     )
     .unwrap();
     cva.refresh_communities_leiden().unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
 
     let admission = input::admission_proof_scoped(&mut cva, Some(&scope)).unwrap();
     let recipients: std::collections::BTreeSet<_> = admission.initial.keys().copied().collect();
@@ -427,13 +436,19 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
         .freshness
         .encode_semantic_event(scope.start.owner_uuid, evidence, BTreeMap::from([(old, 3)]))
         .unwrap();
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     cva.container.append(&payload).unwrap();
     cva.container.sync().unwrap();
     cva.freshness.ingest_appended(&payload).unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
 
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     cva.record_accepted_memory_use(
         crate::AcceptedMemoryUseReceipt {
             owner_uuid: cva.owner_uuid().unwrap(),
@@ -444,7 +459,7 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
         280,
     )
     .unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     let affected = cva.freeze_historical_import().unwrap();
     let mut expected_result = scope.cohort.clone();
     expected_result.insert(old);
@@ -486,7 +501,10 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
     assert_eq!(std::fs::read(&path).unwrap(), accepted);
     // Same-cut accepted use after the settlement must apply once, survive reopen,
     // and remain intact on an exact settlement retry.
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     cva.record_accepted_memory_use(
         crate::AcceptedMemoryUseReceipt {
             owner_uuid: cva.owner_uuid().unwrap(),
@@ -504,7 +522,7 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
         Some("a6"),
     )
     .unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     cva.freshness
         .validate_semantic_import_evidence(prepared.settlement.semantic.as_ref().unwrap())
         .unwrap();
@@ -528,10 +546,13 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
     // Scope authentication uses retained source paths after a terminal source.
     // Full Cva reopen of completed Insomnia work under a deleted conversation is
     // a separate owner-lifecycle gap; normal import completion is still fenced.
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     cva.tombstone_conversation(&imported_conversation).unwrap();
     cva.container.sync().unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     cva.validate_semantic_import_scope(
         &prepared.settlement,
         prepared.settlement.semantic.as_ref().unwrap(),

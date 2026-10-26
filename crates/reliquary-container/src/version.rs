@@ -11,7 +11,7 @@ const VERSION_RECORD_V2_LEN: usize = 24;
 impl Container {
     /// Append one physical allocation envelope. The caller owns body admission
     /// and sync; this method assigns only global order and transaction time.
-    pub(crate) fn append_publication_envelope(
+    pub fn append_publication_envelope(
         &mut self,
         body: &[u8],
     ) -> Result<(u64, ObjectRef), ContainerError> {
@@ -40,7 +40,7 @@ impl Container {
         Ok((global_version, object))
     }
 
-    pub(crate) fn allocate_version(&mut self) -> Result<u64, ContainerError> {
+    pub fn allocate_version(&mut self) -> Result<u64, ContainerError> {
         self.require_write_admission()?;
         let transaction_time_ns = match self.next_transaction_time_override.take() {
             Some(value) => value,
@@ -49,11 +49,11 @@ impl Container {
         self.allocate_version_with_transaction_time(transaction_time_ns)
     }
 
-    pub(crate) fn transaction_time_now_ns() -> Result<i64, ContainerError> {
+    pub fn transaction_time_now_ns() -> Result<i64, ContainerError> {
         current_time_ns()
     }
 
-    pub(crate) fn allocate_version_with_transaction_time(
+    pub fn allocate_version_with_transaction_time(
         &mut self,
         transaction_time_ns: Option<i64>,
     ) -> Result<u64, ContainerError> {
@@ -70,25 +70,25 @@ impl Container {
         Ok(version)
     }
 
-    pub(crate) fn set_next_transaction_time_override(&mut self, transaction_time_ns: Option<i64>) {
+    pub fn set_next_transaction_time_override(&mut self, transaction_time_ns: Option<i64>) {
         if self.require_write_admission().is_err() {
             return;
         }
         self.next_transaction_time_override = Some(transaction_time_ns);
     }
 
-    pub(crate) fn clear_next_transaction_time_override(&mut self) {
+    pub fn clear_next_transaction_time_override(&mut self) {
         if self.require_write_admission().is_err() {
             return;
         }
         self.next_transaction_time_override = None;
     }
 
-    pub(crate) fn next_version_candidate(&self) -> u64 {
+    pub fn next_version_candidate(&self) -> u64 {
         self.next_version
     }
 
-    pub(crate) fn commit_embedded_version_range_at(
+    pub fn commit_embedded_version_range_at(
         &mut self,
         start: u64,
         count: usize,
@@ -208,7 +208,7 @@ pub(crate) fn observe_version_payload_state(
         return Ok(());
     }
     if let Some((start, count, transaction_time_ns)) =
-        crate::insomnia::completion::decode_embedded_version_range(payload)
+        crate::container::grouped_clock::insomnia_range(payload)
             .map_err(|_| ContainerError::InvalidVersionRecord)?
     {
         let count = u64::from(count);
@@ -224,7 +224,7 @@ pub(crate) fn observe_version_payload_state(
         }
     }
     if let Some((start, count, transaction_ns)) =
-        crate::external_source::publication::decode_embedded_version_range(payload)
+        crate::container::grouped_clock::external_range(payload)
             .map_err(|_| ContainerError::InvalidVersionRecord)?
     {
         observe_version_range(next_version, start, u64::from(count))?;

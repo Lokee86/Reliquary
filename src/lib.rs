@@ -30,7 +30,6 @@ pub mod freshness;
 #[path = "rewrite.rs"]
 pub mod rewrite;
 pub use rewrite::{RewriteError, RewritePlan, RewriteReport, RewriteRequest};
-mod compact_delta;
 #[path = "freshness/trace.rs"]
 mod freshness_trace;
 #[path = "facade/owner_maintenance.rs"]
@@ -286,12 +285,6 @@ mod configured_decision;
 mod configured_general;
 #[path = "runtime_inference/configured_runtime.rs"]
 mod configured_runtime;
-#[path = "container/container.rs"]
-pub mod container;
-#[path = "container/container_error.rs"]
-mod container_error;
-#[path = "container/container_version.rs"]
-mod container_version;
 #[path = "context_engine.rs"]
 mod context_engine;
 #[path = "archive/conversation_compaction_allocator.rs"]
@@ -1030,7 +1023,7 @@ mod semantic_search_error;
 mod semantic_search_model;
 #[path = "archive/source_attachment_index.rs"]
 mod source_attachment_index;
-pub mod staleness;
+pub use reliquary_container::review_clocks as staleness;
 #[path = "facade/storage_reclamation.rs"]
 mod storage_reclamation;
 #[path = "facade/storage_reclamation_scan.rs"]
@@ -1093,10 +1086,6 @@ pub use configured_runtime::{
     ArchiveVectorBuildReport, ConfiguredInsomniaOptions, ConfiguredInsomniaReport,
     ConfiguredRuntime, ConfiguredRuntimeError, EmbeddingProbeReport, InsomniaTerminalFailure,
 };
-pub use container::{
-    Container, ContainerError, ContainerIdentity, FileKind, FormatVersion, ObjectRef,
-    ReliquaryScopeKind,
-};
 pub use conversation_compaction_model::{
     ConversationCompaction, ConversationCompactionError, MAX_CONVERSATION_COMPACTION_SUMMARY_BYTES,
 };
@@ -1106,6 +1095,10 @@ pub use credential::{Credential, CredentialError, CredentialId, CredentialsConfi
 pub use cva::Cva;
 pub use cva_history_prune::{HistoryPruneReport, HistoryPruneRequest};
 pub use phylactery_profile_model::{MAX_PHYLACTERY_PROFILE_NAME_BYTES, PhylacteryProfile};
+pub use reliquary_container::{
+    Container, ContainerError, ContainerIdentity, FileKind, FormatVersion, ObjectRef,
+    ReliquaryScopeKind,
+};
 pub use runtime_config::RuntimeConfig;
 pub use storage_reclamation::StorageReclamationReport;
 pub type Reliquary = Cva;
@@ -1522,8 +1515,8 @@ mod compatibility_profile_tests;
 #[path = "config_security/config_tests.rs"]
 mod config_tests;
 #[cfg(test)]
-#[path = "container/container_tests.rs"]
-mod container_tests;
+#[path = "facade/container_owner_tests.rs"]
+mod container_owner_tests;
 #[cfg(test)]
 #[path = "archive/conversation_compaction_tests.rs"]
 mod conversation_compaction_tests;
@@ -1770,9 +1763,6 @@ mod semantic_graph_tests;
 #[cfg(test)]
 #[path = "retrieval/semantic_search_tests.rs"]
 mod semantic_search_tests;
-#[cfg(test)]
-#[path = "container/transaction_time_tests.rs"]
-mod transaction_time_tests;
 #[cfg(test)]
 #[path = "archive/turn_ingest_tests.rs"]
 mod turn_ingest_tests;

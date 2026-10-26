@@ -1,8 +1,8 @@
 //! Pure Relationship candidate reconstruction; store admission owns references/publication.
 use crate::RelationshipError;
-use crate::compact_delta::apply_field;
 use crate::relationship_compact_contract::{RelationshipCollectionChange, RelationshipDelta};
 use crate::relationship_model::RelationshipRecord;
+use reliquary_container::codec::apply_field;
 use std::collections::BTreeSet;
 
 pub(crate) fn apply_delta(

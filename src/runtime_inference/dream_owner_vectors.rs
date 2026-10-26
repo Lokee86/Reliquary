@@ -2,9 +2,9 @@ use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::{
-    CompatibilityProfileId, Container, DreamCandidateError, MemoryBodyId, MemoryVectorId,
-    ScalarType,
+    CompatibilityProfileId, DreamCandidateError, MemoryBodyId, MemoryVectorId, ScalarType,
 };
+use reliquary_container::Container;
 use std::collections::HashMap;
 
 pub(crate) fn load_memory_vectors(

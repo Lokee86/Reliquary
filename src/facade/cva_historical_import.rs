@@ -330,7 +330,7 @@ impl Cva {
                 freeze_cut: frozen.cut(),
             };
             let mut history = self.freshness.clone();
-            history.bind_history_path(self.container.path(), replay.freeze_prefix);
+            history.bind_history_source(&self.container, replay.freeze_prefix)?;
             frozen.retained = history
                 .retained_import_scores(
                     &replay,
@@ -364,7 +364,7 @@ impl Cva {
                 freeze_cut: frozen.cut(),
             };
             let mut history = self.freshness.clone();
-            history.bind_history_path(self.container.path(), frozen.source_bytes);
+            history.bind_history_source(&self.container, frozen.source_bytes)?;
             frozen.settlement.semantic = Some(
                 history
                     .semantic_import_evidence(
@@ -423,7 +423,7 @@ impl Cva {
         let payload = settlement.encode();
         let mut staged = self.freshness.clone();
         if prepared.epoch {
-            staged.bind_history_path(self.container.path(), prepared.source_bytes);
+            staged.bind_history_source(&self.container, prepared.source_bytes)?;
             staged.freeze_derived_birth_policy();
         }
         staged
@@ -439,16 +439,19 @@ impl Cva {
         due.configure_initial_decay_carries(staged.initial_decay_carries())
             .map_err(|e| fail(&e.to_string()))?;
         // Admit only the authenticated settlement append; no worker or completion authority.
-        self.container.set_owner_write_scope(prepared.epoch);
-        let append_result = (|| {
+        let mut append = |cva: &mut Cva| {
             staged
-                .persist_policy_if_needed(&mut self.container, settlement.owner)
+                .persist_policy_if_needed(&mut cva.container, settlement.owner)
                 .map_err(CvaError::Freshness)?;
-            self.container.append(&payload)?;
-            self.container.sync()?;
+            cva.container.append(&payload)?;
+            cva.container.sync()?;
             Ok::<(), CvaError>(())
-        })();
-        self.container.set_owner_write_scope(false);
+        };
+        let append_result = if prepared.epoch {
+            self.with_import_write_scope(append)?
+        } else {
+            append(self)
+        };
         append_result?;
         staged
             .ingest_appended(&payload)

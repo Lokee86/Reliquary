@@ -5,8 +5,9 @@ mod mutation;
 
 pub(crate) use mutation::{GraphMutationPayload, encode_batch, encode_mutation};
 
-use crate::{GraphError, MemoryId, ObjectRef, SemanticNodeKind, SemanticNodeRef};
+use crate::{GraphError, MemoryId, SemanticNodeKind, SemanticNodeRef};
 use arcana::NodeId;
+use reliquary_container::ObjectRef;
 
 const FORMAT_MAGIC: &[u8; 8] = b"CVAGFMT1";
 const FORMAT_SCHEMA: u32 = 1;

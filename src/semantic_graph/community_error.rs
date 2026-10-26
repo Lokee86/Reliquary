@@ -1,4 +1,5 @@
-use crate::{ContainerError, GraphError};
+use crate::GraphError;
+use reliquary_container::ContainerError;
 use std::fmt;
 
 #[derive(Debug)]

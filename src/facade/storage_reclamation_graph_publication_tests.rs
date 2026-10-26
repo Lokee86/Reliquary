@@ -1,7 +1,7 @@
-use crate::container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
 use crate::graph_compact_codec::publication::{self, GraphPublication, GraphTransaction};
 use crate::graph_compact_contract::GraphOrdinalMutation;
 use crate::{GraphRelationKind, GraphRelationOrigin, SemanticGraphRelationKind};
+use reliquary_container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
 
 #[test]
 fn native_graph_relocation_and_scan_validate_shape_and_preserve_exact_payload() {
@@ -22,7 +22,7 @@ fn native_graph_relocation_and_scan_validate_shape_and_preserve_exact_payload() 
         })
         .unwrap()
     };
-    let object = crate::ObjectRef::from_legacy_bytes([9; 16]);
+    let object = reliquary_container::ObjectRef::from_legacy_bytes([9; 16]);
     for transaction in [
         GraphTransaction::Single(row),
         GraphTransaction::Batch(vec![row]),

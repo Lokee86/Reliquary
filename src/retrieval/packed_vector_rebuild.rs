@@ -1,6 +1,7 @@
 use crate::packed_vector_codec::{decode_format, decode_object, decode_pruned_marker};
 use crate::packed_vector_store::{PackedVectorStore, packed_vector_id};
-use crate::{ObjectRef, PackedVectorError, PackedVectorInfo};
+use crate::{PackedVectorError, PackedVectorInfo};
+use reliquary_container::ObjectRef;
 
 pub(crate) struct PackedVectorOpenState {
     store: PackedVectorStore,

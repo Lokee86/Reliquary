@@ -1,5 +1,6 @@
 use super::TurnAcceptance;
-use crate::{ArchiveError, ContainerError, Cva, IncomingAttachment, IncomingTurn, Node};
+use crate::{ArchiveError, Cva, IncomingAttachment, IncomingTurn, Node};
+use reliquary_container::ContainerError;
 use std::path::PathBuf;
 
 struct Fixture {
@@ -219,7 +220,15 @@ fn failed_version_publication_installs_neither_node_nor_activity_tick() {
     for ingest in [false, true] {
         let mut fixture = Fixture::new();
         accept(fixture.cva_mut(), turn("first", "user"), ingest).unwrap();
-        fixture.cva_mut().container.next_version = u64::MAX;
+        let container = &mut fixture.cva_mut().container;
+        let start = container.next_version_candidate();
+        container
+            .commit_embedded_version_range_at(
+                start,
+                usize::try_from(u64::MAX - start).unwrap(),
+                None,
+            )
+            .unwrap();
         assert!(matches!(
             accept(fixture.cva_mut(), turn("unpublished", "assistant"), ingest),
             Err(ArchiveError::Container(ContainerError::VersionExhausted))

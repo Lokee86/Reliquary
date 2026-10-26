@@ -1,6 +1,7 @@
+use crate::ConversationCompactionError;
 use crate::conversation_compaction_codec::free_prefix;
 use crate::conversation_compaction_store::{ConversationCompactionStore, StoredCompactionChunk};
-use crate::{Container, ConversationCompactionError, ObjectRef};
+use reliquary_container::{Container, ObjectRef};
 
 const MIN_ALLOC_PAYLOAD: u64 = 256;
 const ALLOC_GRANULARITY: u64 = 256;

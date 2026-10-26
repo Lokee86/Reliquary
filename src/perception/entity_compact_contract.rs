@@ -1,8 +1,8 @@
 //! Entity-owned retained-record contract; wire framing and publication stay separate.
-use crate::compact_delta::FieldChange;
 use crate::entity_model::EntityRecord;
 use crate::entity_store::validate_record;
 use crate::{EntityError, EntityGlobalId, EntityId};
+use reliquary_container::codec::FieldChange;
 
 /// Opaque authenticated maintenance evidence, not an authored description.
 /// File-level replay must still verify the exact manifest authorization.
@@ -137,7 +137,7 @@ impl EntityDelta {
     }
 
     pub(crate) fn validate_mask(mask: u64) -> Result<(), EntityError> {
-        if !crate::compact_delta::mask_is_known(mask, ENTITY_DELTA_KNOWN_MASK) {
+        if !reliquary_container::codec::mask_is_known(mask, ENTITY_DELTA_KNOWN_MASK) {
             return Err(EntityError::CorruptRecord("unknown Entity delta field"));
         }
         Ok(())

@@ -1,6 +1,6 @@
 use super::*;
 use crate::archive_codec::publication::{self, ArchivePublication};
-use crate::container::publication_envelope::{PublicationClock, PublicationEnvelope};
+use reliquary_container::publication_envelope::{PublicationClock, PublicationEnvelope};
 
 #[test]
 fn native_node_and_terminal_prune_only_payload_and_reopen_with_bound_proof() {

@@ -25,6 +25,7 @@ fn append(path: &Path, id: &str, content: &str) {
     )
     .unwrap();
     cva.sync().unwrap();
+    drop(cva);
 }
 
 fn promotion_artifacts(dir: &Path) -> Vec<String> {

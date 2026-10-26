@@ -1,6 +1,7 @@
 //! Fresh-history Memory projection admission, independent of obsolete edges.
 use super::GraphStore;
-use crate::{Container, GraphError, HistoryGenerationId, MemoryId, SemanticNodeRef};
+use crate::{GraphError, HistoryGenerationId, MemoryId, SemanticNodeRef};
+use reliquary_container::Container;
 use sha2::{Digest, Sha256};
 const MAGIC: &[u8; 8] = b"CVAGBL01";
 impl GraphStore {

@@ -2,7 +2,8 @@ use crate::entity_store::EntityStore;
 use crate::graph_codec::{GraphMutationPayload, decode_format, decode_node};
 use crate::graph_store::GraphStore;
 use crate::memory_store::MemoryStore;
-use crate::{GraphError, GraphNodeRecord, ObjectRef, SemanticGraphRelation};
+use crate::{GraphError, GraphNodeRecord, SemanticGraphRelation};
+use reliquary_container::ObjectRef;
 use std::collections::HashSet;
 
 #[cfg(test)]
@@ -30,7 +31,7 @@ impl GraphOpenState {
         payload: &[u8],
         latest_global: u64,
     ) -> Result<(), GraphError> {
-        if let Some(envelope) = crate::container::publication_envelope::decode(payload)? {
+        if let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? {
             self.ingest_publication_envelope(envelope, latest_global)?;
             return Ok(());
         }
@@ -59,7 +60,7 @@ impl GraphOpenState {
 
     pub(crate) fn ingest_publication_envelope(
         &mut self,
-        envelope: crate::container::publication_envelope::PublicationEnvelope<'_>,
+        envelope: reliquary_container::publication_envelope::PublicationEnvelope<'_>,
         latest_global: u64,
     ) -> Result<bool, GraphError> {
         let Some(publication) = crate::graph_compact_codec::publication::decode(

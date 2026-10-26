@@ -205,7 +205,7 @@ fn validate_terminal(revision: u64, entity_version: u64) -> Result<(), EntityErr
 
 /// Publication coordinates only; consumers resolve facts through EntityStore.
 pub(crate) fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, EntityError> {
-    let Some(envelope) = crate::container::publication_envelope::decode(payload)? else {
+    let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };
     let Some(publication) = decode(envelope.body, envelope.global_version)? else {
@@ -251,7 +251,7 @@ pub(crate) fn comparison_carrier(publication: &EntityPublication) -> Result<Vec<
 pub(crate) fn history_evidence(
     payload: &[u8],
 ) -> Result<Option<(u64, Vec<u8>, [u8; 32])>, EntityError> {
-    let Some(envelope) = crate::container::publication_envelope::decode(payload)? else {
+    let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };
     let Some(publication) = decode(envelope.body, envelope.global_version)? else {
@@ -273,7 +273,7 @@ pub(crate) fn history_evidence(
     let marker = crate::entity_codec::encode_version(crate::entity_codec::EntityVersion {
         global_version: envelope.global_version,
         entity_version: local,
-        record: crate::ObjectRef::from_legacy_bytes([0; 16]),
+        record: reliquary_container::ObjectRef::from_legacy_bytes([0; 16]),
     });
     Ok(Some((envelope.global_version, marker, digest)))
 }

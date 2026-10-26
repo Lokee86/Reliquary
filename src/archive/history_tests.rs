@@ -1,4 +1,5 @@
-use crate::{ArchiveError, Branch, Container, Cva, CvaError};
+use crate::{ArchiveError, Branch, Cva, CvaError};
+use reliquary_container::Container;
 use std::fs;
 use std::path::PathBuf;
 
@@ -50,9 +51,9 @@ fn archive_rejects_container_without_archive_format_marker() {
     let path = test_path("unmarked.cva");
     let container = Container::create_with_identity(
         &path,
-        crate::ContainerIdentity {
-            file_kind: crate::FileKind::Reliquary,
-            scope: Some(crate::ReliquaryScopeKind::Project),
+        reliquary_container::ContainerIdentity {
+            file_kind: reliquary_container::FileKind::Reliquary,
+            scope: Some(reliquary_container::ReliquaryScopeKind::Project),
         },
     )
     .unwrap();

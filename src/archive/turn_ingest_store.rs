@@ -2,7 +2,8 @@ use crate::archive_codec::ArchiveRecord;
 use crate::archive_store::{hash_content, validate_text};
 use crate::file_store::build_stored_file;
 use crate::project_file_binding_store::ProjectFileStore;
-use crate::{Archive, ArchiveError, Container, IncomingTurn, IngestedTurn, Node, StoredFile};
+use crate::{Archive, ArchiveError, IncomingTurn, IngestedTurn, Node, StoredFile};
+use reliquary_container::Container;
 use std::collections::HashSet;
 
 impl Archive {

@@ -246,7 +246,7 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
                     pass.graph_version_before = 0;
                     let owner = cva
                         .owner_uuid()
-                        .ok_or(crate::ContainerError::InvalidIdentity)?;
+                        .ok_or(reliquary_container::ContainerError::InvalidIdentity)?;
                     normalized_dream
                         .ingest_materialized_begin(owner, pass.clone())
                         .map_err(crate::CvaError::Freshness)?;
@@ -466,7 +466,7 @@ fn canonical_memory_publication(
     }
 
     // Compare terminal facts using the same established evidence representation.
-    let envelope = crate::container::publication_envelope::decode(payload)?
+    let envelope = reliquary_container::publication_envelope::decode(payload)?
         .ok_or(CvaReconcileError::InvalidMemoryVersionRecord)?;
     if let Some(crate::memory_compact_codec::publication::MemoryPublication::Tombstone {
         id,

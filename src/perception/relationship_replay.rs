@@ -1,6 +1,7 @@
 use super::{RelationshipStore, validate_record};
 use crate::relationship_model::RelationshipRecord;
-use crate::{Container, RelationshipError, RelationshipId, RelationshipRetainedRevision};
+use crate::{RelationshipError, RelationshipId, RelationshipRetainedRevision};
+use reliquary_container::Container;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum RelationshipReplayPublication {

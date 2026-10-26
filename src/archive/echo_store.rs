@@ -1,5 +1,6 @@
 use crate::echo_codec::{decode, encode};
-use crate::{Container, EchoError, EchoEvent};
+use crate::{EchoError, EchoEvent};
+use reliquary_container::Container;
 use std::collections::{BTreeMap, HashMap};
 
 #[derive(Debug, Default)]

@@ -1,6 +1,7 @@
 //! Current-format corpus acceptance against the frozen pre-retirement oracle.
 use crate::historical_fingerprint::HistoricalFingerprint;
-use crate::{Container, Cva, Phylactery};
+use crate::{Cva, Phylactery};
+use reliquary_container::Container;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeSet, fs, path::PathBuf, time::Instant};

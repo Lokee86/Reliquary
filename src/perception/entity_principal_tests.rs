@@ -395,7 +395,7 @@ fn install_phy_mention(
 
 fn install_mention(
     memories: &mut crate::memory_store::MemoryStore,
-    container: &mut crate::Container,
+    container: &mut reliquary_container::Container,
     id: crate::MemoryId,
     body_id: crate::MemoryBodyId,
     content: &str,

@@ -81,7 +81,10 @@ fn process_import_episode(
     count: usize,
     now_ns: i64,
 ) -> crate::InsomniaProcessResult {
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     let claim = cva
         .claim_insomnia_episode("import-readiness-worker", now_ns, 1_000)
         .unwrap()
@@ -150,7 +153,7 @@ fn process_import_episode(
     let result = cva
         .process_claimed_insomnia_episode(&claim, &extractor, "private", now_ns, now_ns + 1)
         .unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     result
 }
 
@@ -174,9 +177,12 @@ fn commit_scoped_settlement(cva: &mut Cva) -> crate::HistoricalReconstructionRep
 fn complete_zero_memory_import_episode(cva: &mut Cva, now_ns: i64) {
     let scope = cva.import_epoch_scope().unwrap();
     assert_eq!(scope.episodes.len(), 1);
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     let result = process_import_episode(cva, 0, now_ns);
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     assert!(result.created.is_empty());
     let work = cva
         .insomnia_work(crate::EpisodeId(*scope.episodes.iter().next().unwrap()))
@@ -207,7 +213,10 @@ fn assert_readiness_pending(
 }
 
 fn settle_initial_dream_pass(cva: &mut Cva, id: crate::MemoryId) {
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     let result = (|| {
         let pass = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), id);
         cva.begin_initial_dream_pass(
@@ -223,7 +232,7 @@ fn settle_initial_dream_pass(cva: &mut Cva, id: crate::MemoryId) {
         cva.accept_initial_dream_settlement(&pass, cva.rel_turn_count())?;
         crate::dream_freshness::settle_initial_pass(cva, id, true, 1)
     })();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     result.unwrap();
 }
 
@@ -258,10 +267,13 @@ fn revise_readiness_memory(
         created_at_ns: current.created_at_ns,
         updated_at_ns: current.updated_at_ns + 1,
     };
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     cva.publish_memory(Some(id), current.revision, draft)
         .unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
 }
 
 #[test]
@@ -379,7 +391,10 @@ fn imported_terminal_insomnia_work_is_failed_and_keeps_completion_neutral() {
     let start = cva.open_import_epoch().unwrap();
     let scope = cva.import_epoch_scope().unwrap();
     let episode = crate::EpisodeId(*scope.episodes.iter().next().unwrap());
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     let claim = cva
         .claim_insomnia_episode("readiness-terminal-worker", 110, 1_000)
         .unwrap()
@@ -393,7 +408,7 @@ fn imported_terminal_insomnia_work_is_failed_and_keeps_completion_neutral() {
         "terminal test failure".into(),
     )
     .unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     assert_eq!(
         cva.insomnia_work(episode).unwrap().state,
         InsomniaWorkState::Terminal
@@ -479,9 +494,12 @@ fn unrelated_processing_insomnia_work_does_not_block_import_completion() {
     assert_eq!(scope.episodes.len(), 1);
     assert!(!scope.episodes.contains(&live_episode.0));
 
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     let result = process_import_episode(&mut cva, 0, 110);
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     assert!(result.created.is_empty());
     assert_eq!(
         cva.insomnia_work(live_episode).unwrap().state,
@@ -539,7 +557,10 @@ fn routed_phy_import_output_is_explicitly_unsupported_for_native_readiness() {
         .unwrap();
     let start = cva.open_import_epoch().unwrap();
 
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     let claim = cva
         .claim_insomnia_episode("routed-import-worker", 110, 1_000)
         .unwrap()
@@ -598,7 +619,7 @@ fn routed_phy_import_output_is_explicitly_unsupported_for_native_readiness() {
     let result = cva
         .process_claimed_insomnia_episode_routed(&mut phy, &claim, &extractor, "private", 110, 111)
         .unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     assert!(result.created.is_empty());
     assert_eq!(result.user_created.len(), 1);
     let scope = cva.import_epoch_scope().unwrap();
@@ -654,7 +675,10 @@ fn imported_insomnia_output_ids_without_memory_publication_evidence_are_rejected
         .iter()
         .next()
         .expect("import source node");
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     let (unrelated, _) = cva
         .publish_memory(
             None,
@@ -699,7 +723,7 @@ fn imported_insomnia_output_ids_without_memory_publication_evidence_are_rejected
         0,
     )
     .unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     let before_bytes = fs::read(&path).unwrap();
     let before_clocks = clocks(&cva);
 
@@ -739,7 +763,10 @@ fn import_born_memory_and_dream_completion_accepts_affected_freshness_result_coh
     };
     let unrelated_key = MemoryEntityMentionKey::new(unrelated, &unrelated_mention);
     let unrelated_body_id = cva.memory_body_id(unrelated).unwrap();
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     cva.memories
         .put_routing_metadata(
             &mut cva.container,
@@ -750,7 +777,7 @@ fn import_born_memory_and_dream_completion_accepts_affected_freshness_result_coh
             },
         )
         .unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
 
     cva.import_native(&attributed_import("readiness/nonzero-memory", true), 200)
         .unwrap();
@@ -777,16 +804,22 @@ fn import_born_memory_and_dream_completion_accepts_affected_freshness_result_coh
         body_id: cva.memory_body_id(imported_memory).unwrap(),
         entity_mentions: vec![mention],
     };
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     cva.memories
         .put_routing_metadata(&mut cva.container, routing)
         .unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
 
     // A real accepted initial Dream proof makes the import-born Memory ready.
     let pass = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), imported_memory);
     let graph_version = cva.graph_version();
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     cva.begin_initial_dream_pass(
         pass.clone(),
         imported_memory,
@@ -817,7 +850,7 @@ fn import_born_memory_and_dream_completion_accepts_affected_freshness_result_coh
         cva.mark_dream_processed(imported_memory, dream_epoch, 220)
             .unwrap()
     );
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     assert!(cva.initial_dream_pass_settled(&pass));
     assert!(cva.dream_was_processed(imported_memory));
 
@@ -835,7 +868,10 @@ fn import_born_memory_and_dream_completion_accepts_affected_freshness_result_coh
 
     // A persisted unresolved owner record remains a blocker until a terminal
     // resolution replaces its exact revision.
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     assert!(
         cva.put_entity_unresolved(
             mention_key,
@@ -848,7 +884,7 @@ fn import_born_memory_and_dream_completion_accepts_affected_freshness_result_coh
         )
         .unwrap()
     );
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     let unresolved = cva.native_import_readiness(&start.import_id).unwrap();
     let blocker = unresolved
         .blocker
@@ -857,18 +893,24 @@ fn import_born_memory_and_dream_completion_accepts_affected_freshness_result_coh
     assert_eq!(blocker.status, ImportReadinessStatus::Pending);
 
     // Persist a terminal owner-authored rejection, then readiness may advance.
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     assert!(
         cva.put_entity_rejected(mention_key, 1, EntityResolutionReason::GenericRole, 230,)
             .unwrap()
     );
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     assert!(matches!(
         &cva.entity_resolution(mention_key).unwrap().status,
         crate::MemoryEntityResolutionStatus::Rejected { .. }
     ));
 
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     assert!(
         cva.put_entity_unresolved(
             unrelated_key,
@@ -881,7 +923,7 @@ fn import_born_memory_and_dream_completion_accepts_affected_freshness_result_coh
         )
         .unwrap()
     );
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
 
     let report = commit_scoped_settlement(&mut cva);
     let settlement = cva.freshness.import_settlement(report.import_id).unwrap();
@@ -895,7 +937,10 @@ fn import_born_memory_and_dream_completion_accepts_affected_freshness_result_coh
     // Unrelated pending Dream and Perception work is outside this import's scope.
     let unrelated_pass =
         crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), unrelated);
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     cva.begin_initial_dream_pass(
         unrelated_pass.clone(),
         unrelated,
@@ -905,7 +950,7 @@ fn import_born_memory_and_dream_completion_accepts_affected_freshness_result_coh
         cva.graph_version(),
     )
     .unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     assert!(!cva.initial_dream_pass_settled(&unrelated_pass));
     assert!(matches!(
         &cva.entity_resolution(unrelated_key).unwrap().status,
@@ -1023,12 +1068,15 @@ fn archived_import_memory_with_existing_pending_dream_pass_stays_blocked() {
 
     // Runtime Dream reuses an existing pending pass before checking whether a
     // new pass could be started for the now-archived source.
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     let pass =
         crate::dream_freshness::begin_initial_pass(&mut cva, imported_memory, std::iter::empty())
             .unwrap()
             .expect("live import birth starts its runtime Dream pass");
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     revise_readiness_memory(
         &mut cva,
         imported_memory,

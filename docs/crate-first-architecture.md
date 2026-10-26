@@ -1,9 +1,9 @@
 # Crate-first Reliquary architecture
 
-Status: **Step 2: target layout established; production extraction not yet started** (2026-10-25).  
+Status: **Container extracted; remaining owner crates are reserved targets** (2026-10-25).
 Starting commit: `c43d33c`. Branch: `refactor/crate-first-restart`.
 
-## Decision
+## Purpose
 
 Retain the accepted dependency-convergence architecture, not its Phase 0–7 execution and evidence system. Extract into independent Rust libraries **as the dependency corrections are made**, rather than first untangling a single monolith. Cargo rejects physical crate dependency cycles; tests protect behavior and data. No bespoke whole-repository dependency-proof framework is a prerequisite.
 
@@ -11,7 +11,7 @@ The authoritative targets are [component-dag.json](architecture/component-dag.js
 
 The original October 21 phase execution ledger is archived in the Step 1 Git bundle, not carried into this new branch. No roadmap features are included. The detailed source, API, directory and document crosswalk is the [crate layout specification](crate-first-layout-spec-2026-10-25.md).
 
-## First-class libraries: 20
+## Overview
 
 | Crate | Domain owned |
 | --- | --- |
@@ -55,7 +55,7 @@ The final physical target separates all necessary rank-2 stores from their highe
 | `reliquary-external-index-store` | Host-derived index state without Gateway authority |
 | `reliquary-owner-lifecycle` | Validated REL/PHY aggregate opening and replay using lower stores only |
 
-This yields **30 libraries plus the existing `reliquary-memory` product package**. The root remains the functional monolith until extraction. To avoid colliding with its Cargo name, the new Memory domain is `reliquary-memory-core`.
+This yields **30 libraries plus the existing `reliquary-memory` product package**. The root retains the semantic owners and consumes the extracted Container through a Cargo dependency. To avoid colliding with its Cargo name, the new Memory domain is `reliquary-memory-core`.
 
 Other folded logical components remain distinct **inside** their crate: `pure-codec` and `review-clocks` in Container, `config-security` in Switchboard and `external-sources` inside Runtime/Gateway pending a separately deferred redesign. The original 35-component logical allowlist remains valid, but actual lower-level authority is now independently enforceable with Cargo.
 
@@ -75,6 +75,14 @@ ADR 0014 says Echo is its own durable owner, although the old source stored `Ech
 
 ## Current acceptance boundary
 
-This step reserves names, build units, dependency permissions, and the adapted DAG **only**. The empty `src/lib.rs` files deliberately export no behavior. Cargo can check the workspace layout now, but **cannot yet prove that the legacy monolith follows these boundaries**. That proof comes naturally as code is moved to the crates, imports go through compiled crate APIs, and the monolithic copies are removed.
+`reliquary-container` now owns the physical implementation and tests; the root consumes it through a real Cargo dependency and pulls bounded frames for owner replay. Ordinary open is nonmutating and writer/repair access is explicit. The remaining libraries still reserve layout only. The restart baseline does not implement promoted CVAFRS07 semantic settlements: current Freshness/Import recovery and all-six disposable-copy corpus admission remain required before product acceptance. See [current limitations](current-limitations.md#crate-first-recovery-boundary).
 
-Next work is a **real Container extraction**, including writer, inspection/repair and clock contracts, while keeping the legacy product functional. No crate is marked implemented until it owns its production implementation and tests.
+## Related docs
+
+- [Architecture](architecture.md) owns current implementation.
+- [Crate layout](crate-first-layout-spec-2026-10-25.md) owns the remaining extraction targets.
+- [Container extraction](container-crate-extraction-spec-2026-10-25.md) owns this bounded cut.
+
+## Notes
+
+Reserved library targets do not claim an implemented ownership boundary.

@@ -1,10 +1,11 @@
-#[cfg(test)]
-use crate::ObjectRef;
 use crate::archive_codec::{ArchiveRecord, decode_record};
 use crate::archive_history_codec::encode_archive_format;
 #[cfg(test)]
 use crate::archive_history_codec::encode_record_version;
-use crate::{Archive, ArchiveError, ArchiveRecordVersion, Branch, Container};
+use crate::{Archive, ArchiveError, ArchiveRecordVersion, Branch};
+use reliquary_container::Container;
+#[cfg(test)]
+use reliquary_container::ObjectRef;
 
 pub(crate) struct PreparedArchivePublication {
     body: Vec<u8>,
@@ -48,7 +49,7 @@ impl Archive {
     ) -> Result<(ArchiveRecord, ArchiveRecordVersion), ArchiveError> {
         use crate::archive_codec::publication::{self, ArchivePublication};
         let payload = container.read(version.record)?;
-        if let Some(envelope) = crate::container::publication_envelope::decode(&payload)? {
+        if let Some(envelope) = reliquary_container::publication_envelope::decode(&payload)? {
             if envelope.global_version != version.global_version {
                 return Err(ArchiveError::InvalidArchiveRecordVersion);
             }
@@ -120,10 +121,10 @@ impl Archive {
         let global_version = container
             .latest_version()
             .checked_add(1)
-            .ok_or(crate::ContainerError::VersionExhausted)?;
+            .ok_or(reliquary_container::ContainerError::VersionExhausted)?;
         global_version
             .checked_add(1)
-            .ok_or(crate::ContainerError::VersionExhausted)?;
+            .ok_or(reliquary_container::ContainerError::VersionExhausted)?;
         let body = crate::archive_codec::publication::encode(
             &crate::archive_codec::publication::ArchivePublication::Record {
                 archive_version,

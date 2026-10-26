@@ -15,6 +15,7 @@ fn reconcile_replays_right_only_entity_association() {
     let mut left_cva = Cva::open(&left).unwrap();
     diverge_archive(&mut left_cva, "left");
     left_cva.sync().unwrap();
+    drop(left_cva);
 
     let mut right_cva = Cva::open(&right).unwrap();
     diverge_archive(&mut right_cva, "right");
@@ -37,6 +38,7 @@ fn reconcile_replays_right_only_entity_association() {
         .set_entity_association(ids[0], entity.id, true, right_cva.graph_version())
         .unwrap();
     right_cva.sync().unwrap();
+    drop(right_cva);
 
     let result = Cva::reconcile(&left, &right, &output).unwrap();
     assert_eq!(result.replayed_entity_revisions, 1);
@@ -72,6 +74,7 @@ fn reconcile_replays_right_only_principal_association_without_exposing_it_generi
     let mut left_cva = Cva::open(&left).unwrap();
     diverge_archive(&mut left_cva, "left-principal");
     left_cva.sync().unwrap();
+    drop(left_cva);
 
     let mut right_cva = Cva::open(&right).unwrap();
     diverge_archive(&mut right_cva, "right-principal");
@@ -96,6 +99,7 @@ fn reconcile_replays_right_only_principal_association_without_exposing_it_generi
         .set_principal_association(ids[0], entity_id, true, right_cva.graph_version())
         .unwrap();
     right_cva.sync().unwrap();
+    drop(right_cva);
 
     let result = Cva::reconcile(&left, &right, &output).unwrap();
     assert_eq!(result.replayed_entity_revisions, 1);

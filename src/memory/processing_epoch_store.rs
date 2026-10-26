@@ -1,6 +1,7 @@
 use crate::memory_store::MemoryStore;
 use crate::processing_epoch_model::{ProcessingEpochState, ProcessingLaneId};
-use crate::{Container, MemoryError, MemoryId};
+use crate::{MemoryError, MemoryId};
+use reliquary_container::Container;
 use std::collections::{BTreeMap, HashMap};
 
 const PROCESSING_EPOCH_MAGIC: [u8; 8] = *b"CVAPEP01";

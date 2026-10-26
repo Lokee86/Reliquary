@@ -3,7 +3,8 @@ use crate::archive::history_prune::PrunedArchiveContent;
 use crate::archive_codec::{ArchiveRecord, decode_record};
 use crate::owner_lifecycle::LifecycleTarget;
 use crate::owner_maintenance::HistoryPruneManifest;
-use crate::{ContentId, Cva, CvaError, ObjectRef};
+use crate::{ContentId, Cva, CvaError};
+use reliquary_container::ObjectRef;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fs;
 use std::path::Path;
@@ -50,11 +51,19 @@ impl Cva {
             ));
         }
         self.validate_historical_import_settlements()?;
-        let source = Cva::open(self.container.path())?;
-        if source.latest_global_version() != self.latest_global_version() {
+        // The held writer lease already excludes cooperating source changes.
+        // Revalidate its identity and complete physical clock prefix without a
+        // second owner session competing for the same file lease.
+        let mut source_head = 0;
+        {
+            let mut cursor = self.container.physical_cursor()?;
+            while let Some(frame) = cursor.next_frame()? {
+                source_head = frame.latest_global;
+            }
+        }
+        if source_head != self.latest_global_version() {
             return Err(prune_error("source changed before prune admission"));
         }
-        drop(source);
         if !self.owner_maintenance.is_empty() {
             return Err(prune_error(
                 "additional pruning of an already pruned owner is unsupported",

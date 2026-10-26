@@ -1,5 +1,6 @@
 use crate::archive_codec::{ArchiveRecord, decode_record, encode_content};
-use crate::{Archive, ArchiveError, Container, ContentId, Node};
+use crate::{Archive, ArchiveError, ContentId, Node};
+use reliquary_container::Container;
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 

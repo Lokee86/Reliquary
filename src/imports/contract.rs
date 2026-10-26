@@ -215,7 +215,7 @@ pub enum ImportError {
     Json(serde_json::Error),
     Archive(crate::ArchiveError),
     Insomnia(crate::InsomniaError),
-    Container(crate::ContainerError),
+    Container(reliquary_container::ContainerError),
     Epoch(&'static str),
 }
 impl fmt::Display for ImportError {
@@ -239,8 +239,8 @@ impl From<crate::InsomniaError> for ImportError {
         Self::Insomnia(e)
     }
 }
-impl From<crate::ContainerError> for ImportError {
-    fn from(e: crate::ContainerError) -> Self {
+impl From<reliquary_container::ContainerError> for ImportError {
+    fn from(e: reliquary_container::ContainerError) -> Self {
         Self::Container(e)
     }
 }

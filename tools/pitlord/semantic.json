@@ -5,7 +5,7 @@
       "id": "compact-codec",
       "description": "Pure field-change and known-mask value mechanics; no semantic owner, clock, persistence or publication authority",
       "paths": [
-        "src/compact_delta.rs"
+        "crates/reliquary-container/src/codec.rs"
       ]
     },
     {
@@ -21,9 +21,14 @@
     },
     {
       "id": "container",
-      "description": "Physical REL/PHY container mechanics and file-global ordering",
+      "description": "Independent physical REL/PHY crate: framing, leases, bounded reads, explicit repair and clocks",
       "paths": [
-        "src/container"
+        "crates/reliquary-container/src"
+      ],
+      "exclude_paths": [
+        "crates/reliquary-container/src/codec.rs",
+        "crates/reliquary-container/src/review_clocks.rs",
+        "crates/reliquary-container/src/review_clock_tests.rs"
       ]
     },
     {
@@ -122,7 +127,8 @@
       "id": "staleness",
       "description": "Pure owner-qualified typed clocks and review-threshold arithmetic; no persistence or scoring authority",
       "paths": [
-        "src/staleness"
+        "crates/reliquary-container/src/review_clocks.rs",
+        "crates/reliquary-container/src/review_clock_tests.rs"
       ]
     },
     {
@@ -154,7 +160,8 @@
       "id": "reliquary-rust-source-has-one-owner",
       "type": "require_ownership",
       "scope_paths": [
-        "src"
+        "src",
+        "crates/reliquary-container/src"
       ],
       "source_kinds": [
         "file"

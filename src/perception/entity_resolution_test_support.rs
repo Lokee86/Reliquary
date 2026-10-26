@@ -86,7 +86,7 @@ fn entity_draft(value: u8) -> EntityDraft {
 
 fn install_mentions(
     memories: &mut crate::memory_store::MemoryStore,
-    container: &mut crate::Container,
+    container: &mut reliquary_container::Container,
     memory_id: MemoryId,
     body_id: crate::MemoryBodyId,
 ) -> Vec<MemoryEntityMentionKey> {

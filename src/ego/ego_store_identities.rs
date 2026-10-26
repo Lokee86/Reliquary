@@ -1,7 +1,8 @@
 use super::validation::{check_revision, next_revision};
 use super::{DEFAULT_IDENTITY_ID, EgoRecord, EgoStore};
 use crate::ego_codec::validate_text;
-use crate::{Container, EgoError, EgoIdentity, EgoIdentityId};
+use crate::{EgoError, EgoIdentity, EgoIdentityId};
+use reliquary_container::Container;
 use uuid::Uuid;
 
 impl EgoStore {

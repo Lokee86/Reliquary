@@ -1,7 +1,7 @@
 //! Relationship-owned retained revision contract; wire and publication stay separate.
-use crate::compact_delta::FieldChange;
 use crate::relationship_model::{RelationshipParticipant, RelationshipRecord};
 use crate::{MemoryRef, RelationshipError, RelationshipId};
+use reliquary_container::codec::FieldChange;
 use std::collections::BTreeSet;
 
 /// Opaque prune evidence. It proves neither selection nor authorization by itself.

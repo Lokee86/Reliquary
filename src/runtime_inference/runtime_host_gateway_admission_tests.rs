@@ -240,7 +240,8 @@ fn authentication_resolves_principal_phy_and_grants_and_rejects_credential_subst
 
 #[test]
 fn legacy_typed_rel_mounts_reuse_uuid_journal_and_distribution_identity() {
-    use crate::{Cva, ReliquaryScopeKind};
+    use crate::Cva;
+    use reliquary_container::ReliquaryScopeKind;
     for scope in [
         None,
         Some(ReliquaryScopeKind::Project),

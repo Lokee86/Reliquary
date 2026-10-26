@@ -1,5 +1,4 @@
 //! Native compact Relationship description pruning for REL and PHY owners.
-use crate::container::publication_envelope::{self, PublicationEnvelope};
 use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget, PayloadUnavailable};
 use crate::owner_maintenance::{HistoryPruneManifest, PrunedPayload, RetentionDomain};
 use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
@@ -7,9 +6,11 @@ use crate::relationship_compact_codec::{decode_creation, decode_delta, encode_cr
 use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDescriptionProof};
 use crate::relationship_model::RelationshipRecord;
 use crate::{
-    Container, Cva, EntityId, EntityRef, HistoryPruneRequest, MemoryId, MemoryRef, Phylactery,
+    Cva, EntityId, EntityRef, HistoryPruneRequest, MemoryId, MemoryRef, Phylactery,
     RelationshipDraft, RelationshipError, RelationshipId, RelationshipParticipant,
 };
+use reliquary_container::Container;
+use reliquary_container::publication_envelope::{self, PublicationEnvelope};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs;

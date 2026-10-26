@@ -84,7 +84,10 @@ fn hex_id(id: &[u8; 32]) -> String {
 fn complete_import_episode(cva: &mut Cva, now_ns: i64) {
     let scope = cva.import_epoch_scope().expect("open import scope");
     assert_eq!(scope.episodes.len(), 1);
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     let claim = cva
         .claim_insomnia_episode("sequential-import-test", now_ns, 1_000)
         .unwrap()
@@ -117,7 +120,7 @@ fn complete_import_episode(cva: &mut Cva, now_ns: i64) {
     let result = cva
         .process_claimed_insomnia_episode(&claim, &extractor, "private", now_ns, now_ns + 1)
         .unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     assert!(result.created.is_empty());
     assert_eq!(
         cva.insomnia_work(EpisodeId(*scope.episodes.iter().next().unwrap()))

@@ -1,5 +1,6 @@
 use crate::archive_codec::ArchiveRecord;
-use crate::{ArchiveVectorId, ContentId, MemoryBodyId, ObjectRef, PackedVectorId};
+use crate::{ArchiveVectorId, ContentId, MemoryBodyId, PackedVectorId};
+use reliquary_container::ObjectRef;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
@@ -59,7 +60,7 @@ impl ReclamationScan {
                 .extend(publication.records.into_iter().map(|r| r.body_id));
             return Ok(());
         }
-        if let Some(envelope) = crate::container::publication_envelope::decode(payload)
+        if let Some(envelope) = reliquary_container::publication_envelope::decode(payload)
             .map_err(|error| error.to_string())?
         {
             let memory = crate::memory_compact_codec::publication::decode(

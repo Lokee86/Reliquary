@@ -1,7 +1,8 @@
 use crate::{
-    CommunityError, CompatibilityProfileError, ContainerError, EgoError, EntityError, GraphError,
-    MemoryError, MemoryVectorError, PackedVectorError, RelationshipError,
+    CommunityError, CompatibilityProfileError, EgoError, EntityError, GraphError, MemoryError,
+    MemoryVectorError, PackedVectorError, RelationshipError,
 };
+use reliquary_container::ContainerError;
 use std::fmt;
 
 #[derive(Debug)]

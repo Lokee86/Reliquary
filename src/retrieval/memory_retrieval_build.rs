@@ -5,9 +5,10 @@ use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::{
-    COMMUNITY_ALGORITHM_VERSION, CommunityId, CommunitySnapshot, CompatibilityProfileId, Container,
-    MemoryId, MemoryRetrievalError, MemoryRetrievalIndex,
+    COMMUNITY_ALGORITHM_VERSION, CommunityId, CommunitySnapshot, CompatibilityProfileId, MemoryId,
+    MemoryRetrievalError, MemoryRetrievalIndex,
 };
+use reliquary_container::Container;
 use std::collections::HashMap;
 
 pub(crate) fn build_memory_retrieval_index(

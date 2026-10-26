@@ -1,8 +1,9 @@
-use crate::compact_delta::FieldChange;
 use crate::ego_codec::{self, EgoRecord, compact};
 use crate::ego_compact_contract::{EgoChanges, EgoCreation, EgoDelta, EgoTerminal};
 use crate::ego_store::EgoStore;
-use crate::{EgoAnchorId, EgoAnchorPriority, EgoError, EgoIdentityId, FormatVersion};
+use crate::{EgoAnchorId, EgoAnchorPriority, EgoError, EgoIdentityId};
+use reliquary_container::FormatVersion;
+use reliquary_container::codec::FieldChange;
 
 fn identity(
     version: u64,

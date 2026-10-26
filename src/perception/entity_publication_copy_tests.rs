@@ -1,14 +1,14 @@
 //! Entity envelope history behavior across native copies and semantic rewrites.
-use crate::container::publication_envelope::{PublicationClock, PublicationEnvelope};
 use crate::entity_compact_codec::publication::{self, EntityPublication};
 use crate::entity_compact_contract::{EntityCreation, EntityDelta};
 use crate::entity_model::EntityRecord;
 use crate::rewrite::MemorySelection;
 use crate::{
-    Container, Cva, EntityGlobalId, EntityId, FileKind, MemoryDraft, MemoryId, Phylactery,
-    ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef,
-    RewriteRequest,
+    Cva, EntityGlobalId, EntityId, MemoryDraft, MemoryId, Phylactery, ProjectFileRef,
+    ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef, RewriteRequest,
 };
+use reliquary_container::publication_envelope::{PublicationClock, PublicationEnvelope};
+use reliquary_container::{Container, FileKind};
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -68,7 +68,7 @@ fn append_reserved(container: &mut Container, value: EntityPublication, time: Op
         .allocate_version_with_transaction_time(time)
         .unwrap();
     let body = publication::encode(&value).unwrap();
-    let envelope = crate::container::publication_envelope::encode(PublicationEnvelope {
+    let envelope = reliquary_container::publication_envelope::encode(PublicationEnvelope {
         global_version: expected,
         clock: PublicationClock::BindReserved,
         body: &body,
@@ -148,17 +148,16 @@ fn write_copy_history(
     (a1.id, b1.id)
 }
 
-fn envelope_payloads(path: &Path) -> Vec<Vec<u8>> {
-    let mut container = Container::open(path).unwrap();
-    container
-        .chunks()
-        .unwrap()
-        .into_iter()
-        .filter_map(|object| {
-            let bytes = container.read(object).unwrap();
-            bytes.starts_with(b"CVAPUB01").then_some(bytes)
-        })
-        .collect()
+fn envelope_payloads(container: &Container) -> Vec<Vec<u8>> {
+    let source = container.read_source().unwrap();
+    let mut cursor = source.physical_cursor().unwrap();
+    let mut payloads = Vec::new();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        if frame.payload.starts_with(b"CVAPUB01") {
+            payloads.push(frame.payload);
+        }
+    }
+    payloads
 }
 
 fn assert_entity_history_equal(
@@ -230,14 +229,14 @@ fn rel_native_attachment_repack_preserves_all_entity_envelope_cuts() {
     let ids = write_copy_history(&mut container, false, true);
     container.sync().unwrap();
     drop(container);
-    let before_envelopes = envelope_payloads(&source_path);
     let mut source = Cva::open_project(&source_path).unwrap();
+    let before_envelopes = envelope_payloads(&source.container);
     let report = source
         .repack_project_backed_attachments(&output_path)
         .unwrap();
     assert_eq!(report.dropped_content_objects, 1);
     let mut output = Cva::open_project(&output_path).unwrap();
-    assert_eq!(envelope_payloads(&output_path), before_envelopes);
+    assert_eq!(envelope_payloads(&output.container), before_envelopes);
     assert_eq!(source.entities.records(), output.entities.records());
     assert_entity_history_equal(
         &source.container,

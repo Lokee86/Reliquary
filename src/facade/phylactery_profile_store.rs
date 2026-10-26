@@ -1,5 +1,6 @@
+use crate::PhylacteryProfile;
 use crate::phylactery_profile_codec::{decode_phylactery_profile, encode_phylactery_profile};
-use crate::{Container, PhylacteryProfile};
+use reliquary_container::Container;
 
 #[derive(Default)]
 pub(crate) struct PhylacteryProfileStore {

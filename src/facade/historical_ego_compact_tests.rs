@@ -229,12 +229,13 @@ fn compact_payloads(records: &[EgoRecord]) -> Vec<Vec<u8>> {
 }
 
 fn write_payloads(path: &PathBuf, compact_frames: bool, records: &[EgoRecord]) {
-    let mut owner = crate::Container::open(path).unwrap();
-    let mut reference = if owner.identity().unwrap().file_kind == crate::FileKind::Phylactery {
-        crate::ego_store::EgoStore::phylactery()
-    } else {
-        crate::ego_store::EgoStore::reliquary()
-    };
+    let mut owner = reliquary_container::Container::open(path).unwrap();
+    let mut reference =
+        if owner.identity().unwrap().file_kind == reliquary_container::FileKind::Phylactery {
+            crate::ego_store::EgoStore::phylactery()
+        } else {
+            crate::ego_store::EgoStore::reliquary()
+        };
     let payloads = if compact_frames {
         compact_payloads(records)
     } else {

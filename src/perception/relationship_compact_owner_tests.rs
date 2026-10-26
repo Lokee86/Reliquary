@@ -60,7 +60,7 @@ fn initial_record() -> RelationshipRecord {
     }
 }
 
-fn append_compact_history(container: &mut crate::Container) -> RelationshipRecord {
+fn append_compact_history(container: &mut reliquary_container::Container) -> RelationshipRecord {
     // Reserve global tickets first, then bind the two owner frames in order
     // 2,1. Their transaction times remain tied to the ticket identities.
     assert_eq!(
@@ -84,10 +84,10 @@ fn append_compact_history(container: &mut crate::Container) -> RelationshipRecor
         ),
     )
     .unwrap();
-    let bytes = crate::container::publication_envelope::encode(
-        crate::container::publication_envelope::PublicationEnvelope {
+    let bytes = reliquary_container::publication_envelope::encode(
+        reliquary_container::publication_envelope::PublicationEnvelope {
             global_version: 2,
-            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            clock: reliquary_container::publication_envelope::PublicationClock::BindReserved,
             body: &body,
         },
     )
@@ -108,10 +108,10 @@ fn append_compact_history(container: &mut crate::Container) -> RelationshipRecor
         &crate::relationship_compact_codec::publication::RelationshipPublication::Delta(delta),
     )
     .unwrap();
-    let bytes = crate::container::publication_envelope::encode(
-        crate::container::publication_envelope::PublicationEnvelope {
+    let bytes = reliquary_container::publication_envelope::encode(
+        reliquary_container::publication_envelope::PublicationEnvelope {
             global_version: 1,
-            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            clock: reliquary_container::publication_envelope::PublicationClock::BindReserved,
             body: &body,
         },
     )

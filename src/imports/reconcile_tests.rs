@@ -113,7 +113,10 @@ fn import_and_finish_with_grouped_memory(cva: &mut Cva, namespace: &str, now_ns:
     cva.import_native(&imported, now_ns).unwrap();
     let start = cva.open_import_epoch().unwrap().clone();
     let scope = cva.import_epoch_scope().unwrap();
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     let mut first = true;
     let mut grouped_memory_id = None;
     while scope.episodes.iter().any(|episode| {
@@ -132,7 +135,11 @@ fn import_and_finish_with_grouped_memory(cva: &mut Cva, namespace: &str, now_ns:
         }
     }
     assert!(!first, "the import contains a processable Episode");
-    cva.container.set_owner_write_scope(true);
+    drop(import_scope);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     let memory_id = grouped_memory_id.expect("nonzero grouped completion Memory");
     let memory = cva.memory(memory_id).unwrap();
     let mention_text = "Insomnia";
@@ -185,7 +192,7 @@ fn import_and_finish_with_grouped_memory(cva: &mut Cva, namespace: &str, now_ns:
         std::collections::BTreeMap::new(),
     )
     .unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     let reconstructed = cva
         .reconstruct_historical_freshness(crate::HistoricalReconstructionOptions::default())
         .unwrap();
@@ -350,6 +357,7 @@ fn divergent_completed_zero_output_epochs_replay_with_destination_watermarks() {
     );
     assert_eq!(fs::read(&merged_path).unwrap(), bytes_before_retry);
 
+    drop(reopened);
     let repeated = Cva::reconcile(&merged_path, &right_path, &repeated_path).unwrap();
     assert!(!repeated.canonical_change_required);
     assert_eq!(fs::read(&repeated_path).unwrap(), bytes_before_retry);
@@ -538,21 +546,21 @@ fn compact_import_dream_population_becomes_explicit_when_destination_has_an_extr
         std::collections::BTreeSet::from([common])
     );
     let mut saw_compact = false;
-    right
-        .container
-        .visit_payloads::<crate::CvaError>(|_, payload| {
-            if payload.starts_with(b"CVDREAM2") {
-                let record = crate::dream_begin_codec::decode(payload).unwrap();
-                if record.source_id == source {
-                    saw_compact = matches!(
-                        record.population,
-                        crate::dream_begin_codec::BeginPopulation::CompactCut { .. }
-                    );
-                }
+    let source_file = right.container.read_source().unwrap();
+    let mut cursor = source_file.physical_cursor().unwrap();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        if frame.payload.starts_with(b"CVDREAM2") {
+            let record = crate::dream_begin_codec::decode(&frame.payload).unwrap();
+            if record.source_id == source {
+                saw_compact = matches!(
+                    record.population,
+                    crate::dream_begin_codec::BeginPopulation::CompactCut { .. }
+                );
             }
-            Ok(())
-        })
-        .unwrap();
+        }
+    }
+    drop(cursor);
+    drop(source_file);
     assert!(saw_compact);
     right.sync().unwrap();
     drop(right);
@@ -568,15 +576,18 @@ fn compact_import_dream_population_becomes_explicit_when_destination_has_an_extr
     assert_eq!(rebased.preexisting_ids, pass.preexisting_ids);
     assert_eq!(rebased.roots, pass.roots);
     let mut saw_exception = false;
-    merged.container.visit_payloads::<crate::CvaError>(|_, payload| {
-        if payload.starts_with(b"CVDREAM2") {
-            let record = crate::dream_begin_codec::decode(payload).unwrap();
+    let source_file = merged.container.read_source().unwrap();
+    let mut cursor = source_file.physical_cursor().unwrap();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        if frame.payload.starts_with(b"CVDREAM2") {
+            let record = crate::dream_begin_codec::decode(&frame.payload).unwrap();
             if record.source_id == source {
                 saw_exception = matches!(record.population, crate::dream_begin_codec::BeginPopulation::ExplicitSet(ref ids) if ids == &pass.preexisting_ids);
             }
         }
-        Ok(())
-    }).unwrap();
+    }
+    drop(cursor);
+    drop(source_file);
     assert!(saw_exception);
     drop(merged);
     let repeated = f.rel("population-repeated.rel");
@@ -741,29 +752,31 @@ fn valid_insomnia_journal_history_is_replayed_with_completed_import() {
     let right_id = right.open_import_epoch().unwrap().import_id.clone();
     let scope = right.import_epoch_scope().unwrap();
     let episode_id = crate::EpisodeId(*scope.episodes.iter().next().unwrap());
-    right.with_import_write_scope(|right| {
-        let claim = right
-            .claim_insomnia_episode("reconcile-journal-test", 210, 1_000)
-            .unwrap()
-            .unwrap();
-        assert_eq!(claim.episode_id, episode_id);
-        right
-            .terminal_insomnia_episode(
-                episode_id,
-                claim.lease_token.unwrap(),
-                210,
-                211,
-                "retry retained journal history".into(),
-            )
-            .unwrap();
-        assert_eq!(
-            right
-                .retry_terminal_insomnia_episode(episode_id, 212)
+    right
+        .with_import_write_scope(|right| {
+            let claim = right
+                .claim_insomnia_episode("reconcile-journal-test", 210, 1_000)
                 .unwrap()
-                .state,
-            crate::InsomniaWorkState::Pending
-        );
-    });
+                .unwrap();
+            assert_eq!(claim.episode_id, episode_id);
+            right
+                .terminal_insomnia_episode(
+                    episode_id,
+                    claim.lease_token.unwrap(),
+                    210,
+                    211,
+                    "retry retained journal history".into(),
+                )
+                .unwrap();
+            assert_eq!(
+                right
+                    .retry_terminal_insomnia_episode(episode_id, 212)
+                    .unwrap()
+                    .state,
+                crate::InsomniaWorkState::Pending
+            );
+        })
+        .unwrap();
     crate::imports::tests::finish_current_import(&mut right, 220);
     assert_eq!(
         right.insomnia_work(episode_id).unwrap().state,
@@ -808,7 +821,10 @@ fn process_import_episode(
     count: usize,
     now_ns: i64,
 ) -> crate::InsomniaProcessResult {
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     let claim = cva
         .claim_insomnia_episode("import-readiness-worker", now_ns, 1_000)
         .unwrap()
@@ -877,6 +893,6 @@ fn process_import_episode(
     let result = cva
         .process_claimed_insomnia_episode(&claim, &extractor, "private", now_ns, now_ns + 1)
         .unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     result
 }

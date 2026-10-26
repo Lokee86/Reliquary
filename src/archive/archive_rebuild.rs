@@ -8,7 +8,8 @@ use crate::episode_index::EpisodeIndex;
 use crate::file_index::FileIndex;
 use crate::file_memory_link_index::FileMemoryLinkIndex;
 use crate::source_attachment_index::SourceAttachmentIndex;
-use crate::{Archive, ArchiveError, ArchiveRecordVersion, ObjectRef};
+use crate::{Archive, ArchiveError, ArchiveRecordVersion};
+use reliquary_container::ObjectRef;
 use std::collections::HashSet;
 
 #[cfg(test)]
@@ -66,7 +67,7 @@ impl ArchiveOpenState {
         payload: &[u8],
         latest_global_version: u64,
     ) -> Result<(), ArchiveError> {
-        if let Some(envelope) = crate::container::publication_envelope::decode(payload)? {
+        if let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? {
             self.ingest_publication_envelope(chunk, envelope, latest_global_version)?;
             return Ok(());
         }
@@ -97,7 +98,7 @@ impl ArchiveOpenState {
     pub(crate) fn ingest_publication_envelope(
         &mut self,
         chunk: ObjectRef,
-        envelope: crate::container::publication_envelope::PublicationEnvelope<'_>,
+        envelope: reliquary_container::publication_envelope::PublicationEnvelope<'_>,
         latest_global_version: u64,
     ) -> Result<bool, ArchiveError> {
         use crate::archive_codec::publication::{self, ArchivePublication};

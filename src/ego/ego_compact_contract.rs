@@ -1,7 +1,7 @@
 //! Ego-owned compact publications. Wire layout and store replay are separate.
-use crate::compact_delta::FieldChange;
 use crate::ego_codec::{EgoRecord, record_ego_version, validate_anchor_text, validate_text};
 use crate::{EgoAnchorId, EgoAnchorPriority, EgoError, EgoIdentityId};
+use reliquary_container::codec::FieldChange;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum EgoDocumentKey {

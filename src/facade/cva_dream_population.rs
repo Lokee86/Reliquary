@@ -1,5 +1,6 @@
 use crate::freshness_dream_journal::DirectBirthPrefix;
-use crate::{Archive, Container, Cva, CvaError, MemoryId};
+use crate::{Archive, Cva, CvaError, MemoryId};
+use reliquary_container::Container;
 use std::collections::{BTreeMap, BTreeSet};
 
 #[cfg(test)]
@@ -74,20 +75,20 @@ impl DreamPopulationPrefix {
         &mut self,
         archive: &Archive,
         memories: &crate::memory_store::MemoryStore,
-        chunk: crate::ObjectRef,
+        chunk: reliquary_container::ObjectRef,
         payload: &[u8],
         global_frontier: u64,
     ) -> Result<(), CvaError> {
-        let body = if let Some(envelope) = crate::container::publication_envelope::decode(payload)?
-        {
-            let _ = self
-                .memory
-                .ingest_publication_envelope(envelope, global_frontier)?;
-            envelope.body
-        } else {
-            self.memory.ingest(chunk, payload, global_frontier)?;
-            payload
-        };
+        let body =
+            if let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? {
+                let _ = self
+                    .memory
+                    .ingest_publication_envelope(envelope, global_frontier)?;
+                envelope.body
+            } else {
+                self.memory.ingest(chunk, payload, global_frontier)?;
+                payload
+            };
 
         self.direct
             .ingest(payload)
@@ -170,9 +171,18 @@ impl DreamPopulationPrefix {
         prefix_end: u64,
     ) -> Result<Self, CvaError> {
         let mut state = Self::new(owner);
-        container.visit_versioned_payloads_through(prefix_end, |chunk, payload, frontier| {
-            state.ingest(archive, memories, chunk, payload, frontier)
-        })?;
+        (|| -> Result<(), CvaError> {
+            let mut physical_cursor = container.physical_cursor_through(prefix_end)?;
+            while let Some(physical_frame) = physical_cursor.next_frame()? {
+                let chunk = physical_frame.object;
+                let payload = physical_frame.payload.as_slice();
+                let frontier = physical_frame.latest_global;
+                (|| -> Result<(), CvaError> {
+                    state.ingest(archive, memories, chunk, payload, frontier)
+                })()?;
+            }
+            Ok(())
+        })()?;
         Ok(state)
     }
 }

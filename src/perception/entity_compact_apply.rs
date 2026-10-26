@@ -1,8 +1,8 @@
 //! Pure Entity candidate reconstruction; store admission owns publication authority.
 use crate::EntityError;
-use crate::compact_delta::apply_field;
 use crate::entity_compact_contract::EntityDelta;
 use crate::entity_model::EntityRecord;
+use reliquary_container::codec::apply_field;
 
 pub(crate) fn apply_delta(
     previous: &EntityRecord,

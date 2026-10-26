@@ -3,10 +3,11 @@ use crate::ego_compact_contract::{EgoCreation, EgoDelta, EgoTerminal};
 use crate::historical_ego_fingerprint::EgoHistory;
 use crate::owner_lifecycle::LifecycleTarget;
 use crate::{
-    Container, Cva, EgoAnchorId, EgoAnchorPriority, EgoIdentityId, HistoryPruneRequest,
-    IncomingAttachment, IncomingTurn, MemoryDraft, Phylactery, ProjectFileRef,
-    ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef,
+    Cva, EgoAnchorId, EgoAnchorPriority, EgoIdentityId, HistoryPruneRequest, IncomingAttachment,
+    IncomingTurn, MemoryDraft, Phylactery, ProjectFileRef, ProjectRepositoryKind,
+    ProjectRepositoryRef, ProjectRevisionRef,
 };
+use reliquary_container::Container;
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};

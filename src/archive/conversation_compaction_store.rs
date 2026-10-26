@@ -1,5 +1,6 @@
 use crate::conversation_compaction_codec::{DecodedCompactionChunk, decode, encode_live};
-use crate::{Container, ConversationCompaction, ConversationCompactionError, ObjectRef};
+use crate::{ConversationCompaction, ConversationCompactionError};
+use reliquary_container::{Container, ObjectRef};
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Debug)]

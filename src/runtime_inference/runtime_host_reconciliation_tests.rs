@@ -38,6 +38,7 @@ fn append(path: &Path, id: &str, content: &str) {
     )
     .unwrap();
     cva.sync().unwrap();
+    drop(cva);
 }
 
 fn seed_archive_vectors(path: &Path) {
@@ -65,6 +66,7 @@ fn seed_archive_vectors(path: &Path) {
     cva.build_archive_vector_generation(profile.id, &endpoint)
         .unwrap();
     cva.sync().unwrap();
+    drop(cva);
 }
 
 #[test]

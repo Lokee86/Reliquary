@@ -46,8 +46,9 @@ fn freshness_grouped_birth_recovers_from_completion_without_appending() {
 }
 use crate::{
     Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, InsomniaExtractor, InsomniaPriority,
-    InsomniaWorkState, ObjectRef, SimulatedGeneralEndpoint,
+    InsomniaWorkState, SimulatedGeneralEndpoint,
 };
+use reliquary_container::ObjectRef;
 use serde_json::{Value, json};
 use std::fs;
 
@@ -352,6 +353,12 @@ fn truncated_completion_is_recovered_for_zero_one_and_many_memories_then_retries
         for (iteration, cut) in cuts.into_iter().enumerate() {
             fs::write(&path, &original[..cut as usize]).unwrap();
 
+            crate::container_owner_tests::assert_normal_open_requires_repair(
+                &path,
+                |p| Cva::open(p).map(|_| ()).map_err(|e| e.to_string()),
+                commit_offset,
+            );
+            crate::container_owner_tests::repair_incomplete_physical_tail(&path, commit_offset);
             let mut reopened = Cva::open(&path).unwrap();
             assert_eq!(reopened.memory_stats().memories, 0);
             assert_eq!(

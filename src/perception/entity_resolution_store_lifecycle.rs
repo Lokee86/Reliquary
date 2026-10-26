@@ -1,9 +1,10 @@
 use super::EntityResolutionStore;
 use crate::memory_store::MemoryStore;
 use crate::{
-    Container, DEFAULT_ENTITY_RESOLUTION_DORMANT_TTL_NS, DEFAULT_ENTITY_RESOLUTION_PENDING_TTL_NS,
+    DEFAULT_ENTITY_RESOLUTION_DORMANT_TTL_NS, DEFAULT_ENTITY_RESOLUTION_PENDING_TTL_NS,
     EntityResolutionCompaction, EntityResolutionDormant, MemoryEntityResolutionStatus, MemoryError,
 };
+use reliquary_container::Container;
 
 impl EntityResolutionStore {
     pub(crate) fn compact(

@@ -277,7 +277,7 @@ fn recorded_coordinates_do_not_uniquely_reconstruct_accepted_membership() {
             quality: 0.0,
             communities,
         };
-        let mut container = crate::Container::open(&copy).unwrap();
+        let mut container = reliquary_container::Container::open(&copy).unwrap();
         container
             .append(&encode_snapshot(&snapshot).unwrap())
             .unwrap();

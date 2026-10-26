@@ -118,9 +118,12 @@ fn later_import_preserves_prestart_accepted_use_without_replacing_live_memory() 
     );
     // Test-only scope permits checking durable receipt idempotency while normal
     // open-epoch admission remains closed until the later completion steps.
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     let retried = cva.record_accepted_memory_use(receipt, 700);
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
     assert_eq!(retried.unwrap(), 0);
     assert_eq!(std::fs::read(&path).unwrap(), settled_bytes);
     assert_eq!(

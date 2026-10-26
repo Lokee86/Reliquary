@@ -1,8 +1,7 @@
 use crate::packed_vector_codec::{decode_object, encode_format, encode_object};
-use crate::{
-    Container, ObjectRef, PackedVectorError, PackedVectorId, PackedVectorInfo, PackedVectorStats,
-};
+use crate::{PackedVectorError, PackedVectorId, PackedVectorInfo, PackedVectorStats};
 use lodestone_packed::{PackedVectors, VectorSchema};
+use reliquary_container::{Container, ObjectRef};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 

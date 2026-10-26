@@ -214,7 +214,7 @@ impl Cva {
             attempt: claim.attempt_count,
             started_at_ns,
             completed_at_ns,
-            transaction_time_ns: crate::Container::transaction_time_now_ns()?,
+            transaction_time_ns: reliquary_container::Container::transaction_time_now_ns()?,
             extractor_model,
             extractor_version,
             rejected_count,

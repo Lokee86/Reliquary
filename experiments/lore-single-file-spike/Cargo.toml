@@ -1,3 +1,5 @@
+[workspace]
+
 [package]
 name = "lore-single-file-spike"
 version = "0.1.0"

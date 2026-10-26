@@ -26,15 +26,21 @@ impl Phylactery {
             ));
         }
         self.container.sync()?;
-        let source = Phylactery::open(self.container.path())?;
-        if source.latest_global_version() != self.latest_global_version()
-            || source.owner_uuid() != self.owner_uuid()
+        // The held writer lease already excludes cooperating source changes.
+        // Revalidate its identity and complete physical clock prefix without a
+        // second owner session competing for the same file lease.
+        let mut source_head = 0;
         {
+            let mut cursor = self.container.physical_cursor()?;
+            while let Some(frame) = cursor.next_frame()? {
+                source_head = frame.latest_global;
+            }
+        }
+        if source_head != self.latest_global_version() {
             return Err(PhylacteryError::Repack(
                 "source changed before prune admission".into(),
             ));
         }
-        drop(source);
         if !self.owner_maintenance.is_empty() {
             return Err(PhylacteryError::Repack(
                 "additional pruning of an already pruned owner is unsupported".into(),
@@ -74,7 +80,8 @@ impl Phylactery {
             ));
         }
 
-        let mut selected_bodies = HashMap::<crate::ObjectRef, (MemoryBodyId, u64)>::new();
+        let mut selected_bodies =
+            HashMap::<reliquary_container::ObjectRef, (MemoryBodyId, u64)>::new();
         let mut descriptors = Vec::new();
         for id in &memories {
             let retained = self.memories.retention_descriptor(*id)?;

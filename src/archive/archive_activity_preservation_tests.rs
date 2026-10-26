@@ -1,7 +1,8 @@
 use crate::{
     Cva, IncomingAttachment, IncomingTurn, ProjectFileRef, ProjectRepositoryKind,
-    ProjectRepositoryRef, ProjectRevisionRef, ReliquaryScopeKind,
+    ProjectRepositoryRef, ProjectRevisionRef,
 };
+use reliquary_container::ReliquaryScopeKind;
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::PathBuf;
@@ -72,7 +73,7 @@ fn orphan(cva: &mut Cva, id: &str) {
 fn repeat(cva: &mut Cva, version: u64) {
     let record = cva.archive.record_version(version).unwrap().record;
     let payload = cva.container.read(record).unwrap();
-    if crate::container::publication_envelope::decode(&payload)
+    if reliquary_container::publication_envelope::decode(&payload)
         .unwrap()
         .is_some()
     {

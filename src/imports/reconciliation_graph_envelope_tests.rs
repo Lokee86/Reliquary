@@ -115,10 +115,10 @@ fn fixture(
         .allocate_version_with_transaction_time(Some(500))
         .unwrap();
     let index = owner.container.chunks().unwrap().len();
-    let payload = crate::container::publication_envelope::encode(
-        crate::container::publication_envelope::PublicationEnvelope {
+    let payload = reliquary_container::publication_envelope::encode(
+        reliquary_container::publication_envelope::PublicationEnvelope {
             global_version: reserved,
-            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            clock: reliquary_container::publication_envelope::PublicationClock::BindReserved,
             body: &body,
         },
     )
@@ -273,7 +273,9 @@ fn partial_or_full_duplicate_completed_batch(existing_members: usize) {
     right
         .import_native(&empty_import("partial-duplicate-epoch"), 100)
         .unwrap();
-    right.with_import_write_scope(|right| append_native_graph_batch(right, rows));
+    right
+        .with_import_write_scope(|right| append_native_graph_batch(right, rows))
+        .unwrap();
     right.sync().unwrap();
     drop(right);
     let mut right = Cva::open(&right_path).unwrap();

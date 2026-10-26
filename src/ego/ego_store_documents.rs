@@ -1,7 +1,8 @@
 use super::validation::{check_revision, next_revision};
 use super::{EgoRecord, EgoStore};
 use crate::ego_codec::validate_text;
-use crate::{Container, EgoError, EgoPersonality, EgoWebSynthesis};
+use crate::{EgoError, EgoPersonality, EgoWebSynthesis};
+use reliquary_container::Container;
 
 impl EgoStore {
     pub(crate) fn put_personality(

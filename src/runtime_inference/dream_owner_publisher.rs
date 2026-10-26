@@ -3,11 +3,12 @@ use crate::dream_owner_duplicate::publish_duplicate_pair;
 use crate::graph_store::GraphStore;
 use crate::memory_store::MemoryStore;
 use crate::{
-    Container, DreamEvidenceSide, DreamPairClassification, DreamPairVerification,
-    DreamPublicationError, DreamPublicationOutcome, DreamRelationDirection, DreamRelationKind,
-    DreamVerificationPolicy, DreamVerificationVerdict, GraphRelationChange, GraphRelationKind,
-    GraphRelationOrigin, Memory, MemoryId,
+    DreamEvidenceSide, DreamPairClassification, DreamPairVerification, DreamPublicationError,
+    DreamPublicationOutcome, DreamRelationDirection, DreamRelationKind, DreamVerificationPolicy,
+    DreamVerificationVerdict, GraphRelationChange, GraphRelationKind, GraphRelationOrigin, Memory,
+    MemoryId,
 };
+use reliquary_container::Container;
 use std::collections::HashSet;
 
 type RelationIdentity = (MemoryId, MemoryId, GraphRelationKind);

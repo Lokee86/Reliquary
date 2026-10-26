@@ -4,9 +4,8 @@ use crate::lexical_search::{LexicalHit, term_counts};
 mod memory;
 #[path = "lexical_index/raw.rs"]
 mod raw;
-use crate::{
-    Archive, ArchiveError, Container, FileSearchHit, Fragment, MemoryError, MemoryId, StoredFile,
-};
+use crate::{Archive, ArchiveError, FileSearchHit, Fragment, MemoryError, MemoryId, StoredFile};
+use reliquary_container::Container;
 use std::collections::HashMap;
 
 #[derive(Default)]

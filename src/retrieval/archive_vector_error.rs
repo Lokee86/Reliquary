@@ -1,4 +1,5 @@
-use crate::{ContainerError, PackedVectorError};
+use crate::PackedVectorError;
+use reliquary_container::ContainerError;
 use std::fmt;
 
 #[derive(Debug)]

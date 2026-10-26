@@ -1,8 +1,8 @@
 //! Pure application of an accepted Memory delta to its prior revision.
 use crate::MemoryError;
-use crate::compact_delta::apply_field;
 use crate::memory_compact_contract::MemoryDelta;
 use crate::memory_model::MemoryRecord;
+use reliquary_container::codec::apply_field;
 
 pub(crate) fn apply_delta(
     previous: &MemoryRecord,

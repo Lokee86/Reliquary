@@ -7,7 +7,8 @@ use crate::archive_codec::{ArchiveRecord, encode_conversation_tombstone};
 use crate::owner_maintenance::{
     HistoryRetentionDescriptor, PrunedPayload, RetentionDomain, RetentionTarget,
 };
-use crate::{Archive, ArchiveError, Container, ContentId, Node};
+use crate::{Archive, ArchiveError, ContentId, Node};
+use reliquary_container::Container;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 
@@ -115,7 +116,7 @@ impl Archive {
         {
             let (record, _) = self.read_publication(container, *version)?;
             let stored = container.read(version.record)?;
-            let raw = if crate::container::publication_envelope::decode(&stored)?.is_some() {
+            let raw = if reliquary_container::publication_envelope::decode(&stored)?.is_some() {
                 crate::archive_codec::publication::comparison_carrier(&record)?
             } else {
                 stored

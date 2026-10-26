@@ -1,5 +1,4 @@
 //! Relationship creation/delta wire codec; publication marker remains owner-managed.
-use crate::compact_delta::FieldChange;
 use crate::relationship_compact_contract::{
     RELATIONSHIP_DELTA_KNOWN_MASK, RelationshipCollectionChange, RelationshipCreation,
     RelationshipDelta, RelationshipDeltaFields,
@@ -14,6 +13,7 @@ use crate::{
     MAX_RELATIONSHIP_EVIDENCE, MAX_RELATIONSHIP_KIND_BYTES, MAX_RELATIONSHIP_PARTICIPANTS,
     MAX_RELATIONSHIP_SUMMARY_BYTES, RelationshipError, RelationshipId,
 };
+use reliquary_container::codec::FieldChange;
 use sha2::{Digest, Sha256};
 
 #[path = "relationship_publication_codec.rs"]

@@ -1,5 +1,18 @@
 # Behavioral Contracts
 
+## Ordinary owner opening versus explicit maintenance
+
+Opening a REL or PHY validates and replays accepted owner evidence without
+reclaiming obsolete compaction bytes or appending Entity-resolution repairs.
+Superseded compaction records are removed from the in-memory visible projection,
+not from the physical file. Stale-but-historical Entity references remain
+readable until the caller explicitly invokes `repair_retired_entity_references()`;
+the latter publishes corrected revisions and synchronizes only when changes
+are required. The focused `container_owner_tests` cases verify unchanged
+ordinary-open bytes for both owner kinds, and independent explicit maintenance.
+Physical incomplete-tail repair also remains an explicit owner-authorized act.
+
+
 Parent index: [Documentation index](INDEX.md)
 
 ## Native import contracts
@@ -192,8 +205,10 @@ P4.6 regressions cover durable full-prefix late join, exact conversation/operati
 | Community performance/routing experiments are opt-in validation, not skipped correctness coverage; the default test suite contains no ignored tests and the experiment modules compile only with the `community-benchmarks` feature | default `cargo test`; `cargo test --features community-benchmarks --no-run` |
 | Runtime-host reconciliation discovers only same-owner sibling RELs, safely promotes strict extensions/divergence, reports semantic conflicts without replacing canonical bytes, detects retired vectors, rebuilds through the configured embedding route, and validates rebuilt state after reopen | `runtime_host_reconciliation_tests::*` |
 | Safe promotion validates/syncs a sibling reconciliation candidate before atomically replacing the canonical CVA, preserves the conflicted source, cleans temporary artifacts, and leaves the canonical bytes unchanged when reconciliation fails | `cva_reconcile_promotion_tests::reconcile_and_promote_replaces_canonical_after_validation`, `cva_reconcile_promotion_tests::failed_reconciliation_never_changes_canonical`, `cva_reconcile_promotion_tests::promotion_rejects_the_same_physical_file` |
+| Ordinary REL/PHY open reports incomplete tails without changing bytes; cooperating second writers reject and release restores access | `tests/current_format_boundary.rs`, Container lease/process tests |
+| Physical snapshots/cursors hold file identity and bound clocks to the consumed prefix; explicit tail repair rechecks identity/length under writer exclusion | `reliquary-container` physical access, clock and repair tests |
 | Opaque chunks retain stable references | `container_tests::append_then_read_chunks` |
-| Global versions survive reopen and current versions retain transaction timestamps; wall-clock lookup returns only a provable contiguous prefix cut, never skipping legacy unknown timestamps or later-timestamped earlier versions after divergent replay | `container_tests::global_versions_survive_reopen`, `container_tests::transaction_times_round_trip_and_resolve_version_cuts`, `container_tests::legacy_versions_reopen_without_fabricated_transaction_time`, `transaction_time_tests::*` |
+| Global versions survive reopen and current versions retain transaction timestamps; wall-clock lookup returns only a provable contiguous prefix cut, never skipping legacy unknown timestamps or later-timestamped earlier versions after divergent replay | `container_tests::global_versions_survive_reopen`, `container_tests::transaction_times_round_trip_and_resolve_version_cuts`, `container_tests::legacy_versions_reopen_without_fabricated_transaction_time`, `container_owner_tests::*` and Container crate clock tests |
 | Truncated/non-CVA files are rejected | `container_tests::*truncated*`, `reject_non_cva_file` |
 | Archive requires current format marker | `history_tests::archive_rejects_container_without_archive_format_marker` |
 | Unrelated conversations share ordering clocks but not ancestry | `history_tests::unrelated_conversations_share_clocks_not_ancestry` |

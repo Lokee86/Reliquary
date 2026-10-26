@@ -1,5 +1,6 @@
 use crate::interaction_stream_codec::{CompactRecord, decode_compact, encode_compact};
-use crate::{Container, CvaError, InteractionStreamRecord, InteractionStreamStatus};
+use crate::{CvaError, InteractionStreamRecord, InteractionStreamStatus};
+use reliquary_container::Container;
 use std::collections::HashMap;
 
 #[derive(Debug, Default)]

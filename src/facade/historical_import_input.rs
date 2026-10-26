@@ -117,43 +117,50 @@ fn admission_proof_legacy(cva: &mut Cva) -> Result<AdmissionProof, CvaError> {
     let mut birth_episodes = BTreeMap::new();
     let mut completed = BTreeSet::new();
     let mut publications = BTreeMap::<[u8; 32], BTreeSet<[u8; 32]>>::new();
-    let mut scan = crate::Container::open_read_only_for_scan(cva.container.path())?;
-    scan.visit_payloads::<CvaError>(|_, payload| {
-        if let Some(completion) =
-            crate::insomnia::completion::decode_completion(payload).map_err(|e| fail(e))?
-        {
-            let episode = cva
-                .episode(completion.episode_id)
-                .ok_or_else(|| fail("import completion lacks Episode"))?;
-            if episode.origin != EpisodeOrigin::Import {
-                return Err(fail("history includes a non-import completion"));
-            }
-            completed.insert(episode.id.0);
-            publications
-                .entry(episode.id.0)
-                .or_default()
-                .insert(Sha256::digest(payload).into());
-            for id in completion.freshness_birth_memory_ids {
-                let record = completion
-                    .records
-                    .iter()
-                    .find(|r| r.id == id && r.revision == 1)
-                    .ok_or_else(|| fail("import birth lacks first revision"))?;
-                if cva.memories.first_mutation_id(id) != Some(record.mutation_id.as_str())
-                    || record.source_episode_id != Some(episode.id)
+    let scan = cva.container.read_source()?;
+    (|| -> Result<(), CvaError> {
+        let mut physical_cursor = scan.physical_cursor()?;
+        while let Some(physical_frame) = physical_cursor.next_frame()? {
+            let payload = physical_frame.payload.as_slice();
+            (|| -> Result<(), CvaError> {
+                if let Some(completion) =
+                    crate::insomnia::completion::decode_completion(payload).map_err(|e| fail(e))?
                 {
-                    return Err(fail("import publication conflicts with Memory birth"));
+                    let episode = cva
+                        .episode(completion.episode_id)
+                        .ok_or_else(|| fail("import completion lacks Episode"))?;
+                    if episode.origin != EpisodeOrigin::Import {
+                        return Err(fail("history includes a non-import completion"));
+                    }
+                    completed.insert(episode.id.0);
+                    publications
+                        .entry(episode.id.0)
+                        .or_default()
+                        .insert(Sha256::digest(payload).into());
+                    for id in completion.freshness_birth_memory_ids {
+                        let record = completion
+                            .records
+                            .iter()
+                            .find(|r| r.id == id && r.revision == 1)
+                            .ok_or_else(|| fail("import birth lacks first revision"))?;
+                        if cva.memories.first_mutation_id(id) != Some(record.mutation_id.as_str())
+                            || record.source_episode_id != Some(episode.id)
+                        {
+                            return Err(fail("import publication conflicts with Memory birth"));
+                        }
+                        if birth_episodes
+                            .insert(id, episode.id)
+                            .is_some_and(|old| old != episode.id)
+                        {
+                            return Err(fail("conflicting import birth cohort"));
+                        }
+                    }
                 }
-                if birth_episodes
-                    .insert(id, episode.id)
-                    .is_some_and(|old| old != episode.id)
-                {
-                    return Err(fail("conflicting import birth cohort"));
-                }
-            }
+                Ok(())
+            })()?;
         }
         Ok(())
-    })?;
+    })()?;
     if ids.is_empty() || birth_episodes.keys().any(|id| !ids.contains(id)) {
         return Err(fail("incomplete native import birth cohort"));
     }
@@ -545,35 +552,45 @@ pub(super) fn validate_settlement(
         ));
     }
     let mut births = BTreeSet::new();
-    let mut scan = crate::Container::open_read_only_for_scan(cva.container.path())?;
-    scan.visit_payloads::<CvaError>(|_, payload| {
-        if let Some(completion) =
-            crate::insomnia::completion::decode_completion(payload).map_err(|e| fail(e))?
-        {
-            for id in completion.freshness_birth_memory_ids {
-                if !cp.cohort.contains(&id) {
-                    continue;
-                }
-                let record = completion
-                    .records
-                    .iter()
-                    .find(|r| r.id == id && r.revision == 1)
-                    .ok_or_else(|| fail("import checkpoint lacks first-publication proof"))?;
-                let episode = cva
-                    .episode(completion.episode_id)
-                    .ok_or_else(|| fail("import checkpoint Episode is unavailable"))?;
-                if record.global_version > cp.global_version
-                    || record.source_episode_id != Some(episode.id)
-                    || episode.origin != EpisodeOrigin::Import
-                    || cva.memories.first_mutation_id(id) != Some(record.mutation_id.as_str())
+    let scan = cva.container.read_source()?;
+    (|| -> Result<(), CvaError> {
+        let mut physical_cursor = scan.physical_cursor()?;
+        while let Some(physical_frame) = physical_cursor.next_frame()? {
+            let payload = physical_frame.payload.as_slice();
+            (|| -> Result<(), CvaError> {
+                if let Some(completion) =
+                    crate::insomnia::completion::decode_completion(payload).map_err(|e| fail(e))?
                 {
-                    return Err(fail("import checkpoint native birth proof conflicts"));
+                    for id in completion.freshness_birth_memory_ids {
+                        if !cp.cohort.contains(&id) {
+                            continue;
+                        }
+                        let record = completion
+                            .records
+                            .iter()
+                            .find(|r| r.id == id && r.revision == 1)
+                            .ok_or_else(|| {
+                                fail("import checkpoint lacks first-publication proof")
+                            })?;
+                        let episode = cva
+                            .episode(completion.episode_id)
+                            .ok_or_else(|| fail("import checkpoint Episode is unavailable"))?;
+                        if record.global_version > cp.global_version
+                            || record.source_episode_id != Some(episode.id)
+                            || episode.origin != EpisodeOrigin::Import
+                            || cva.memories.first_mutation_id(id)
+                                != Some(record.mutation_id.as_str())
+                        {
+                            return Err(fail("import checkpoint native birth proof conflicts"));
+                        }
+                        births.insert(id);
+                    }
                 }
-                births.insert(id);
-            }
+                Ok(())
+            })()?;
         }
         Ok(())
-    })?;
+    })()?;
     for id in cp.cohort.difference(&births) {
         let first = cva.memory_revision(*id, 1)?;
         if first.global_version > cp.global_version

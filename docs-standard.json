@@ -36,7 +36,7 @@
   "required_sections": ["Purpose", "Overview", "Related docs", "Notes"],
   "coverage": [
     {
-      "paths": ["src/**", "examples/**", "cli/src/**"],
+      "paths": ["src/**", "crates/reliquary-container/**", "examples/**", "cli/src/**"],
       "docs": ["docs/documentation-coverage.md"]
     }
   ],
@@ -50,7 +50,7 @@
       "docs": ["docs/architecture.md", "docs/storage-format.md", "docs/api.md", "docs/invariants.md", "docs/behavioral-contracts.md", "docs/maintainer-map.md", "docs/documentation-coverage.md", "docs/current-limitations.md"]
     },
     {
-      "paths": ["src/container*.rs", "src/cva_lifecycle.rs", "src/phylactery_lifecycle.rs", "src/migration*.rs"],
+      "paths": ["crates/reliquary-container/**", "src/facade/cva_lifecycle.rs", "src/facade/phylactery_lifecycle.rs", "tests/current_format_boundary.rs"],
       "docs": ["docs/storage-format.md", "docs/architecture.md", "docs/api.md", "docs/behavioral-contracts.md"]
     },
     {

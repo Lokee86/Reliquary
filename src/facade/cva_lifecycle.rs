@@ -39,7 +39,8 @@ use crate::relationship_rebuild::RelationshipOpenState;
 use crate::relationship_store::RelationshipStore;
 use crate::vector_generation_rebuild::VectorGenerationOpenState;
 use crate::vector_generation_store::VectorGenerationStore;
-use crate::{Archive, Container, Cva, CvaError};
+use crate::{Archive, Cva, CvaError};
+use reliquary_container::Container;
 use std::path::Path;
 
 impl Cva {
@@ -74,8 +75,8 @@ impl Cva {
     fn create_rel(path: impl AsRef<Path>, type_label: Option<&str>) -> Result<Self, CvaError> {
         let container = Container::create_with_identity(
             path,
-            crate::ContainerIdentity {
-                file_kind: crate::FileKind::Reliquary,
+            reliquary_container::ContainerIdentity {
+                file_kind: reliquary_container::FileKind::Reliquary,
                 scope: None,
             },
         )?;
@@ -94,8 +95,8 @@ impl Cva {
     ) -> Result<Self, CvaError> {
         let container = Container::create_with_identity_and_uuid(
             path,
-            crate::ContainerIdentity {
-                file_kind: crate::FileKind::Reliquary,
+            reliquary_container::ContainerIdentity {
+                file_kind: reliquary_container::FileKind::Reliquary,
                 scope: None,
             },
             owner_uuid,
@@ -109,13 +110,13 @@ impl Cva {
 
     pub(crate) fn create_legacy_scope_with_uuid(
         path: impl AsRef<Path>,
-        scope: crate::ReliquaryScopeKind,
+        scope: reliquary_container::ReliquaryScopeKind,
         owner_uuid: [u8; 16],
     ) -> Result<Self, CvaError> {
         let container = Container::create_with_identity_and_uuid(
             path,
-            crate::ContainerIdentity {
-                file_kind: crate::FileKind::Reliquary,
+            reliquary_container::ContainerIdentity {
+                file_kind: reliquary_container::FileKind::Reliquary,
                 scope: Some(scope),
             },
             owner_uuid,
@@ -151,7 +152,7 @@ impl Cva {
         let project_files = ProjectFileStore::default();
         let rel_metadata = RelMetadataStore::default();
         let mut freshness = FreshnessStore::new(container.owner_uuid());
-        freshness.bind_history_path(container.path(), 0);
+        freshness.bind_history_source(&container, 0)?;
         let dream_freshness = DreamFreshnessJournal::new(container.owner_uuid());
         let freshness_due = crate::FreshnessDueDispatcher::default();
         archive.initialize_history_format(&mut container)?;
@@ -171,6 +172,7 @@ impl Cva {
             rewrite_lineage,
             external_index: crate::external_source::store::ExternalIndexStore::default(),
             container,
+            import_write_admission: None,
             archive,
             memories,
             duplicate_index: DuplicateIndex::empty(),
@@ -206,9 +208,10 @@ impl Cva {
     pub fn open(path: impl AsRef<Path>) -> Result<Self, CvaError> {
         let header = Container::open_read_only_for_scan(path.as_ref())?;
         if header.owner_uuid().is_none() {
-            return Err(crate::ContainerError::InvalidIdentity.into());
+            return Err(reliquary_container::ContainerError::InvalidIdentity.into());
         }
-        if header.identity().map(|identity| identity.file_kind) != Some(crate::FileKind::Reliquary)
+        if header.identity().map(|identity| identity.file_kind)
+            != Some(reliquary_container::FileKind::Reliquary)
         {
             return Err(CvaError::InvalidContainerIdentity(
                 "file is not a Reliquary",
@@ -240,14 +243,15 @@ impl Cva {
         let mut project_files = ProjectFileStore::default();
         let mut rel_metadata = RelMetadataStore::default();
         let mut freshness = FreshnessStore::default();
-        freshness.bind_history_path(path.as_ref(), 0);
         let mut dream_freshness = DreamFreshnessJournal::default();
         let mut defer_dream_replay = false;
         let mut processing_epochs = ProcessingEpochStore::default();
         let mut dream_pairs = DreamPairStore::default();
         let mut external_index = crate::external_source::store::ExternalIndexStore::default();
-        let mut container =
-            Container::open_scanned(path.as_ref(), |chunk, payload, latest_global| {
+        let mut container = Container::open_for_replay(path.as_ref())?;
+        freshness.bind_history_source(&container, 0)?;
+        {
+            let mut replay = |chunk, payload: &[u8], latest_global| {
                 if let Some(owner_uuid) = lineage_owner {
                     rewrite_lineage
                         .ingest(payload, owner_uuid)
@@ -269,7 +273,7 @@ impl Cva {
                     }
                     OpenRecordRoute::ContainerVersion => {}
                     OpenRecordRoute::Publication => {
-                        let envelope = crate::container::publication_envelope::decode(payload)?
+                        let envelope = reliquary_container::publication_envelope::decode(payload)?
                             .ok_or(crate::MemoryError::CorruptRecord(
                                 "missing publication envelope",
                             ))?;
@@ -373,16 +377,26 @@ impl Cva {
                     }
                 }
                 Ok::<(), CvaError>(())
-            })?;
+            };
+            let mut cursor = container.physical_cursor()?;
+            while let Some(frame) = cursor.next_frame()? {
+                replay(frame.object, &frame.payload, frame.latest_global)?;
+            }
+            let state = cursor.finish_open_scan()?;
+            container.accept_replay_scan(state)?;
+        }
         if let Some(identity) = container.identity()
-            && identity.file_kind != crate::FileKind::Reliquary
+            && identity.file_kind != reliquary_container::FileKind::Reliquary
         {
             return Err(CvaError::InvalidContainerIdentity(
                 "file is not a Reliquary",
             ));
         }
-        let import_open = import_epochs.open().is_some();
-        container.set_write_admission_closed(import_open);
+        let import_write_admission = if import_epochs.open().is_some() {
+            Some(container.close_write_admission()?)
+        } else {
+            None
+        };
         freshness
             .bind_owner(container.owner_uuid())
             .map_err(CvaError::Freshness)?;
@@ -474,12 +488,11 @@ impl Cva {
                     ));
                 }
             }
-            container.visit_payloads::<CvaError>(|object, payload| {
-                let location = object.legacy_bytes();
-                let end = u64::from_le_bytes(location[..8].try_into().unwrap())
-                    + 8
-                    + u64::from_le_bytes(location[8..].try_into().unwrap());
-                if let Some(completion) = crate::insomnia::completion::decode_completion(payload)
+            let mut cursor = container.physical_cursor()?;
+            while let Some(frame) = cursor.next_frame()? {
+                let payload = frame.payload;
+                let end = frame.end;
+                if let Some(completion) = crate::insomnia::completion::decode_completion(&payload)
                     .map_err(|message| CvaError::Freshness(message.into()))?
                     && let Some(cohort) =
                         Self::validate_insomnia_birth_cohort(&archive, &memories, &completion)?
@@ -491,7 +504,7 @@ impl Cva {
                         dream_freshness.derive_publication_birth(member.id);
                     }
                 }
-                if let Some(publication) = crate::external_source::publication::decode(payload)? {
+                if let Some(publication) = crate::external_source::publication::decode(&payload)? {
                     if let Some(cohort) =
                         Cva::validate_external_birth_cohort(&archive, &memories, &publication)?
                     {
@@ -504,20 +517,18 @@ impl Cva {
                     }
                 }
                 freshness
-                    .ingest_scanned(payload, end)
+                    .ingest_scanned(&payload, end)
                     .map_err(CvaError::Freshness)?;
-                Ok(())
-            })?;
+            }
         } else {
-            container.visit_payloads::<CvaError>(|object, payload| {
-                let location = object.legacy_bytes();
-                let end = u64::from_le_bytes(location[..8].try_into().unwrap())
-                    + 8
-                    + u64::from_le_bytes(location[8..].try_into().unwrap());
+            let mut cursor = container.physical_cursor()?;
+            while let Some(frame) = cursor.next_frame()? {
+                let payload = frame.payload;
+                let end = frame.end;
                 freshness
-                    .ingest_scanned(payload, end)
-                    .map_err(CvaError::Freshness)
-            })?;
+                    .ingest_scanned(&payload, end)
+                    .map_err(CvaError::Freshness)?;
+            }
         }
         freshness.finish_rebuild().map_err(CvaError::Freshness)?;
         if let Some(a) = freshness.semantic_activation() {
@@ -566,7 +577,8 @@ impl Cva {
             &graph,
             &vector_generations,
         )?;
-        let conversation_compactions = compaction_state.finish_unrecovered()?;
+        // Reconstruct the live projection without reclaiming physical chunks on open.
+        let conversation_compactions = compaction_state.finish_without_reclaim()?;
         import_epochs.validate_owner(container.owner_uuid())?;
         import_epochs.validate_receipts(&archive.import_receipts)?;
         let mut result = Self {
@@ -574,6 +586,7 @@ impl Cva {
             rewrite_lineage,
             external_index,
             container,
+            import_write_admission,
             archive,
             memories,
             duplicate_index: DuplicateIndex::empty(),
@@ -606,23 +619,27 @@ impl Cva {
         };
         result.validate_pruned_packed_vectors()?;
         result.validate_pruned_descriptions()?;
-        result
-            .conversation_compactions
-            .recover(&mut result.container)?;
         result.validate_historical_import_settlements()?;
         result.validate_import_completion_settlements()?;
-        let repaired_entity_resolutions =
-            result.entity_resolutions.repair_retired_entity_references(
-                &mut result.container,
-                &result.memories,
-                &result.entities,
-            )?;
         result
             .entity_resolutions
             .validate(&result.memories, &result.entities)?;
-        if repaired_entity_resolutions > 0 {
-            result.container.sync()?;
-        }
         Ok(result)
+    }
+
+    /// Explicitly canonicalize Entity-resolution references after entity retirement.
+    /// Opening a REL/PHY never performs this durable maintenance automatically.
+    pub fn repair_retired_entity_references(&mut self) -> Result<usize, CvaError> {
+        let repaired = self.entity_resolutions.repair_retired_entity_references(
+            &mut self.container,
+            &self.memories,
+            &self.entities,
+        )?;
+        self.entity_resolutions
+            .validate(&self.memories, &self.entities)?;
+        if repaired > 0 {
+            self.container.sync()?;
+        }
+        Ok(repaired)
     }
 }

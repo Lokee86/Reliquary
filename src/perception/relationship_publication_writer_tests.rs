@@ -1,12 +1,14 @@
 //! Ordinary Relationship writes use one allocation envelope per publication.
-use crate::container::publication_envelope::{self, PublicationClock};
 use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
 use crate::{
     Cva, EntityId, EntityRef, MemoryId, MemoryRef, Phylactery, RelationshipDraft,
     RelationshipError, RelationshipId,
 };
+use reliquary_container::Container;
+use reliquary_container::publication_envelope::{self, PublicationClock};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 
 struct Scratch(PathBuf);
 
@@ -63,20 +65,18 @@ fn draft(mutation_id: &str, summary: &str, updated_at_ns: i64) -> RelationshipDr
     }
 }
 
-fn payloads(path: &Path) -> Vec<Vec<u8>> {
-    let mut container = crate::Container::open(path).unwrap();
+fn payloads(container: &Container) -> Vec<Vec<u8>> {
     let mut values = Vec::new();
-    container
-        .visit_payloads::<crate::ContainerError>(|_, payload| {
-            values.push(payload.to_vec());
-            Ok(())
-        })
-        .unwrap();
+    let source = container.read_source().unwrap();
+    let mut cursor = source.physical_cursor().unwrap();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        values.push(frame.payload);
+    }
     values
 }
 
-fn assert_envelope_only_publications(path: &Path, expected: usize) {
-    let values = payloads(path);
+fn assert_envelope_only_publications(container: &Container, expected: usize) {
+    let values = payloads(container);
     let publications = values
         .iter()
         .filter_map(|payload| publication_envelope::decode(payload).unwrap())
@@ -205,7 +205,7 @@ fn assert_writer_contract_rel(path: &Path) {
     assert_eq!(owner.latest_global_version(), terminal_global);
     assert_eq!(owner.relationship_version(), terminal_local);
     owner.sync().unwrap();
-    assert_envelope_only_publications(path, 3);
+    assert_envelope_only_publications(&owner.container, 3);
     let records = owner.relationships.records().to_vec();
     let times = (1..=owner.latest_global_version())
         .map(|global| owner.transaction_time_ns(global))
@@ -301,7 +301,7 @@ fn assert_writer_contract_phy(path: &Path) {
     assert_eq!(owner.container.latest_version(), terminal_global);
     assert_eq!(owner.relationship_version(), terminal_local);
     owner.sync().unwrap();
-    assert_envelope_only_publications(path, 3);
+    assert_envelope_only_publications(&owner.container, 3);
     let records = owner.relationships.records().to_vec();
     let times = (1..=owner.container.latest_version())
         .map(|global| owner.transaction_time_ns(global))
@@ -331,6 +331,7 @@ fn assert_truncated_terminal_recovers_rel(path: &Path) {
     owner
         .publish_relationship(Some(created.id), 1, draft("revise", "updated summary", 11))
         .unwrap();
+    let accepted_end = owner.container.physical_length().unwrap();
     owner.tombstone_relationship(created.id, 2).unwrap();
     owner.sync().unwrap();
     let first_time = owner.transaction_time_ns(1);
@@ -340,6 +341,16 @@ fn assert_truncated_terminal_recovers_rel(path: &Path) {
     let mut bytes = fs::read(path).unwrap();
     bytes.pop();
     fs::write(path, bytes).unwrap();
+    crate::container_owner_tests::assert_normal_open_requires_repair(
+        path,
+        |path| {
+            Cva::open(path)
+                .map(|_| ())
+                .map_err(|error| error.to_string())
+        },
+        accepted_end,
+    );
+    crate::container_owner_tests::repair_incomplete_physical_tail(path, accepted_end);
     let reopened = Cva::open(path).unwrap();
     assert_eq!(reopened.relationship_version(), 2);
     assert_eq!(reopened.latest_global_version(), 2);
@@ -359,6 +370,7 @@ fn assert_truncated_terminal_recovers_phy(path: &Path) {
     owner
         .publish_relationship(Some(created.id), 1, draft("revise", "updated summary", 11))
         .unwrap();
+    let accepted_end = owner.container.physical_length().unwrap();
     owner.tombstone_relationship(created.id, 2).unwrap();
     owner.sync().unwrap();
     let first_time = owner.transaction_time_ns(1);
@@ -368,6 +380,16 @@ fn assert_truncated_terminal_recovers_phy(path: &Path) {
     let mut bytes = fs::read(path).unwrap();
     bytes.pop();
     fs::write(path, bytes).unwrap();
+    crate::container_owner_tests::assert_normal_open_requires_repair(
+        path,
+        |path| {
+            Phylactery::open(path)
+                .map(|_| ())
+                .map_err(|error| error.to_string())
+        },
+        accepted_end,
+    );
+    crate::container_owner_tests::repair_incomplete_physical_tail(path, accepted_end);
     let reopened = Phylactery::open(path).unwrap();
     assert_eq!(reopened.relationship_version(), 2);
     assert_eq!(reopened.container.latest_version(), 2);

@@ -1,9 +1,8 @@
 use super::{
     FreshnessRewriteMode, IdentityPolicy, RewriteError, RewritePlan, RewriteReport, RewriteRequest,
 };
-use crate::{
-    Container, Cva, FileKind, HistoryGenerationId, Memory, MemoryDraft, MemoryId, Phylactery,
-};
+use crate::{Cva, HistoryGenerationId, Memory, MemoryDraft, MemoryId, Phylactery};
+use reliquary_container::{Container, FileKind};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeSet, path::Path};
 use uuid::Uuid;
@@ -14,7 +13,9 @@ pub fn plan_rewrite_file(
 ) -> Result<RewritePlan, RewriteError> {
     let source = source.as_ref();
     let container = Container::open(source).map_err(|error| RewriteError(error.to_string()))?;
-    match container.identity().map(|identity| identity.file_kind) {
+    let kind = container.identity().map(|identity| identity.file_kind);
+    drop(container);
+    match kind {
         Some(FileKind::Reliquary) | None => {
             let mut rel = Cva::open(source).map_err(|error| RewriteError(error.to_string()))?;
             rel.plan_rewrite(request)
@@ -155,7 +156,9 @@ fn validate_emitted(
             "rewritten owner identity did not validate".into(),
         ));
     }
-    match probe.identity().map(|identity| identity.file_kind) {
+    let kind = probe.identity().map(|identity| identity.file_kind);
+    drop(probe);
+    match kind {
         Some(FileKind::Phylactery) => {
             let phy = Phylactery::open(path).map_err(|e| RewriteError(e.to_string()))?;
             let expected_active = plan

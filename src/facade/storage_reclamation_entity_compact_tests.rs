@@ -12,7 +12,8 @@ fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, crate::EntityError> {
 use crate::entity_compact_contract::{EntityCreation, EntityDelta};
 use crate::entity_model::EntityRecord;
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
-use crate::{Container, ContainerError, Cva, EntityGlobalId, EntityId, Phylactery};
+use crate::{Cva, EntityGlobalId, EntityId, Phylactery};
+use reliquary_container::Container;
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -57,10 +58,10 @@ fn record(id: u8, mutation_id: &str, revision: u64, global: u64, local: u64) -> 
 }
 
 fn append_publication(container: &mut Container, payload: &[u8], global: u64, _local: u64) {
-    let bytes = crate::container::publication_envelope::encode(
-        crate::container::publication_envelope::PublicationEnvelope {
+    let bytes = reliquary_container::publication_envelope::encode(
+        reliquary_container::publication_envelope::PublicationEnvelope {
             global_version: global,
-            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            clock: reliquary_container::publication_envelope::PublicationClock::BindReserved,
             body: payload,
         },
     )
@@ -184,24 +185,24 @@ fn file_hash(path: &Path) -> [u8; 32] {
     Sha256::digest(fs::read(path).unwrap()).into()
 }
 
-fn payloads(path: &Path) -> Vec<Vec<u8>> {
-    let mut container = Container::open(path).unwrap();
+fn payloads(container: &Container) -> Vec<Vec<u8>> {
     let mut result = Vec::new();
-    container
-        .visit_payloads::<ContainerError>(|_, payload| {
-            if let Some(envelope) = crate::container::publication_envelope::decode(payload)? {
-                result.push(envelope.body.to_vec());
-            } else {
-                result.push(payload.to_vec());
-            }
-            Ok(())
-        })
-        .unwrap();
+    let source = container.read_source().unwrap();
+    let mut cursor = source.physical_cursor().unwrap();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        if let Some(envelope) =
+            reliquary_container::publication_envelope::decode(&frame.payload).unwrap()
+        {
+            result.push(envelope.body.to_vec());
+        } else {
+            result.push(frame.payload);
+        }
+    }
     result
 }
 
-fn assert_compact_counts(path: &Path) {
-    let payloads = payloads(path);
+fn assert_compact_counts(container: &Container) {
+    let payloads = payloads(container);
     assert_eq!(
         payloads
             .iter()
@@ -296,7 +297,7 @@ fn rel_reclamation_retains_compact_entity_revisions_and_terminals() {
             domain_version: Some(8)
         })
     ));
-    assert_compact_counts(&output);
+    assert_compact_counts(&reopened.container);
 }
 
 #[test]
@@ -338,5 +339,5 @@ fn phy_reclamation_retains_compact_entity_revisions_and_terminals() {
             domain_version: Some(8)
         })
     ));
-    assert_compact_counts(&output);
+    assert_compact_counts(&reopened.container);
 }

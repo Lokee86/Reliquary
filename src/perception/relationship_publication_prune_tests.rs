@@ -1,5 +1,4 @@
 //! Native pruning of Relationship envelope publications in REL and PHY owners.
-use crate::container::publication_envelope;
 use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget, PayloadUnavailable};
 use crate::owner_maintenance::owner_history_digest;
 use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
@@ -8,9 +7,10 @@ use crate::relationship_compact_contract::{
 };
 use crate::relationship_model::{RelationshipParticipant, RelationshipRecord};
 use crate::{
-    Container, Cva, EntityId, EntityRef, FileKind, HistoryPruneRequest, MemoryId, MemoryRef,
-    Phylactery, RelationshipId,
+    Cva, EntityId, EntityRef, HistoryPruneRequest, MemoryId, MemoryRef, Phylactery, RelationshipId,
 };
+use reliquary_container::publication_envelope;
+use reliquary_container::{Container, FileKind};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs;

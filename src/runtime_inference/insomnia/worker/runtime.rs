@@ -6,9 +6,10 @@ use crate::insomnia::store::InsomniaStore;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
 use crate::{
-    Archive, Container, Cva, GeneralEndpoint, InsomniaExtractionError, InsomniaProgressEvent,
+    Archive, Cva, GeneralEndpoint, InsomniaExtractionError, InsomniaProgressEvent,
     InsomniaProgressReporter, InsomniaSemanticStage, InsomniaWork, Phylactery,
 };
+use reliquary_container::Container;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::thread;

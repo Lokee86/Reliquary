@@ -1,6 +1,7 @@
 use crate::archive_codec::ArchiveRecord;
 use crate::archive_store::{hash_content, validate_text};
-use crate::{Archive, ArchiveError, Container, ContentId, FileId, StoredFile};
+use crate::{Archive, ArchiveError, ContentId, FileId, StoredFile};
+use reliquary_container::Container;
 use sha2::{Digest, Sha256};
 
 impl Archive {

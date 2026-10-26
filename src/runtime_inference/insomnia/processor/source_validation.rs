@@ -1,4 +1,5 @@
-use crate::{Archive, Container, InsomniaCandidate};
+use crate::{Archive, InsomniaCandidate};
+use reliquary_container::Container;
 
 pub(super) fn candidate_source_time_ns(
     archive: &Archive,

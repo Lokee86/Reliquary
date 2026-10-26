@@ -1,5 +1,5 @@
 use super::*;
-use crate::container::publication_envelope::PublicationClock;
+use reliquary_container::publication_envelope::PublicationClock;
 use crate::memory_compact_codec::publication::MemoryPublication;
 use crate::{
     ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef, RewriteRequest,

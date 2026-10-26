@@ -1,4 +1,5 @@
-use crate::{Reliquary, ReliquaryScopeKind};
+use crate::Reliquary;
+use reliquary_container::ReliquaryScopeKind;
 use std::fs;
 use std::path::PathBuf;
 

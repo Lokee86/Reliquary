@@ -1,6 +1,7 @@
 //! Archive-owned publication bodies. Physical envelopes supply global order.
 use super::ArchiveRecord;
-use crate::{ArchiveError, ArchiveRecordVersion, ObjectRef};
+use crate::{ArchiveError, ArchiveRecordVersion};
+use reliquary_container::ObjectRef;
 
 const NODE: &[u8; 8] = b"CVANOD02";
 const BRANCH: &[u8; 8] = b"CVABRC02";
@@ -235,7 +236,7 @@ pub(crate) fn version_at(
     object: ObjectRef,
     payload: &[u8],
 ) -> Result<Option<ArchiveRecordVersion>, ArchiveError> {
-    let Some(envelope) = crate::container::publication_envelope::decode(payload)? else {
+    let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };
     let Some(publication) = decode(envelope.body, envelope.global_version)? else {

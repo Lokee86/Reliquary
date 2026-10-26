@@ -1,7 +1,8 @@
 use crate::archive_codec::{ArchiveRecord, decode_record, encode_node};
 use crate::storage_reclamation::relocate_payload;
 use crate::turn_ingest_codec::encode_ingested_turn;
-use crate::{Cva, CvaError, ObjectRef};
+use crate::{Cva, CvaError};
+use reliquary_container::ObjectRef;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
@@ -145,7 +146,7 @@ fn rewrite_missing_user_principal(
     payload: &[u8],
     principal_id: &str,
 ) -> Result<(Vec<u8>, bool, bool), CvaError> {
-    if let Some(envelope) = crate::container::publication_envelope::decode(payload)? {
+    if let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? {
         use crate::archive_codec::publication::{self, ArchivePublication};
         if let Some(mut publication) = publication::decode(envelope.body, envelope.global_version)?
         {
@@ -173,8 +174,8 @@ fn rewrite_missing_user_principal(
                     }
                 }
                 let body = publication::encode(&publication)?;
-                let bytes = crate::container::publication_envelope::encode(
-                    crate::container::publication_envelope::PublicationEnvelope {
+                let bytes = reliquary_container::publication_envelope::encode(
+                    reliquary_container::publication_envelope::PublicationEnvelope {
                         body: &body,
                         ..envelope
                     },
@@ -224,7 +225,9 @@ mod tests {
     #[test]
     fn native_turn_backfill_preserves_publication_clock_and_atomic_bundle() {
         use crate::archive_codec::publication::{self, ArchivePublication};
-        use crate::container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
+        use reliquary_container::publication_envelope::{
+            self, PublicationClock, PublicationEnvelope,
+        };
         let turn = crate::IngestedTurn {
             node: crate::Node {
                 id: "n".into(),

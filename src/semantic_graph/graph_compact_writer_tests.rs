@@ -1,10 +1,10 @@
 use crate::graph_codec::decode_node;
 use crate::graph_compact_codec::publication;
 use crate::{
-    Container, ContainerError, Cva, EntityDraft, GraphRelationChange, GraphRelationKind,
-    GraphRelationOrigin, MemoryDraft, MemoryId, Phylactery, SemanticGraphRelationChange,
-    SemanticGraphRelationKind,
+    Cva, EntityDraft, GraphRelationChange, GraphRelationKind, GraphRelationOrigin, MemoryDraft,
+    MemoryId, Phylactery, SemanticGraphRelationChange, SemanticGraphRelationKind,
 };
+use reliquary_container::Container;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -69,20 +69,27 @@ fn entity_draft(name: &str) -> EntityDraft {
     }
 }
 
-fn payloads(path: &Path) -> Vec<(crate::ObjectRef, Vec<u8>)> {
-    let mut container = Container::open(path).unwrap();
+fn payloads_from(container: &Container) -> Vec<(reliquary_container::ObjectRef, Vec<u8>)> {
     let mut values = Vec::new();
-    container
-        .visit_payloads::<ContainerError>(|object, payload| {
-            values.push((object, payload.to_vec()));
-            Ok(())
-        })
-        .unwrap();
+    let source = container.read_source().unwrap();
+    let mut cursor = source.physical_cursor().unwrap();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        values.push((frame.object, frame.payload));
+    }
     values
 }
 
-fn assert_compact_publications(path: &Path, expected_single: usize, expected_batch: usize) {
-    let values = payloads(path);
+fn payloads(path: &Path) -> Vec<(reliquary_container::ObjectRef, Vec<u8>)> {
+    let container = Container::open_read_only(path).unwrap();
+    payloads_from(&container)
+}
+
+fn assert_compact_publications_from(
+    container: &Container,
+    expected_single: usize,
+    expected_batch: usize,
+) {
+    let values = payloads_from(container);
     let mut mapping_positions = BTreeMap::new();
     let mut compact_single_count = 0;
     let mut compact_batch_count = 0;
@@ -100,7 +107,8 @@ fn assert_compact_publications(path: &Path, expected_single: usize, expected_bat
     }
     let mut publication_count = 0;
     for (index, (_, bytes)) in values.iter().enumerate() {
-        let Some(envelope) = crate::container::publication_envelope::decode(bytes).unwrap() else {
+        let Some(envelope) = reliquary_container::publication_envelope::decode(bytes).unwrap()
+        else {
             continue;
         };
         let Some(publication) =
@@ -129,6 +137,11 @@ fn assert_compact_publications(path: &Path, expected_single: usize, expected_bat
     assert_eq!(compact_single_count, expected_single);
     assert_eq!(compact_batch_count, expected_batch);
     assert_eq!(publication_count, expected_single + expected_batch);
+}
+
+fn assert_compact_publications(path: &Path, expected_single: usize, expected_batch: usize) {
+    let container = Container::open_read_only(path).unwrap();
+    assert_compact_publications_from(&container, expected_single, expected_batch);
 }
 
 fn publish_graph_changes_rel(owner: &mut Cva, ids: [MemoryId; 3]) {
@@ -288,7 +301,7 @@ fn rel_memory_and_typed_entity_single_and_batch_writers_reopen_and_noop_exactly(
             .id
     });
     publish_graph_changes_rel(&mut owner, ids);
-    assert_compact_publications(&path, 2, 2);
+    assert_compact_publications_from(&owner.container, 2, 2);
     owner.sync().unwrap();
     let bytes = fs::read(&path).unwrap();
     let global = owner.latest_global_version();
@@ -362,7 +375,7 @@ fn phy_memory_and_typed_entity_single_and_batch_writers_reopen_and_noop_exactly(
             .id
     });
     publish_graph_changes_phy(&mut owner, ids);
-    assert_compact_publications(&path, 2, 2);
+    assert_compact_publications_from(&owner.container, 2, 2);
     owner.sync().unwrap();
     let bytes = fs::read(&path).unwrap();
     let global = owner.latest_global_version();
@@ -453,7 +466,7 @@ fn fresh_history_rewrite_emits_compact_graph_and_preserves_graph_zero_isolated_b
     let rewritten = Cva::open(&output).unwrap();
     assert_eq!(rewritten.graph_version(), 1);
     assert_eq!(rewritten.semantic_graph_relations().len(), 1);
-    assert_compact_publications(&output, 1, 0);
+    assert_compact_publications_from(&rewritten.container, 1, 0);
     let history = crate::historical_graph_fingerprint::GraphHistory::read(
         &rewritten.container,
         &rewritten.graph,
@@ -504,24 +517,22 @@ fn every_incomplete_native_graph_transaction_envelope_recovers_before_retry() {
     let mut container = Container::open(&complete_path).unwrap();
     let mut envelope_start = None;
     let mut envelope_len = None;
-    container
-        .visit_payloads::<ContainerError>(|object, payload| {
-            if crate::container::publication_envelope::decode(payload)
-                .unwrap()
-                .is_some_and(|envelope| {
-                    publication::decode(envelope.body, envelope.global_version)
-                        .unwrap()
-                        .is_some()
-                })
-            {
-                let reference = object.legacy_bytes();
-                envelope_start =
-                    Some(u64::from_le_bytes(reference[..8].try_into().unwrap()) as usize);
-                envelope_len = Some(payload.len());
-            }
-            Ok(())
-        })
-        .unwrap();
+    let source = container.read_source().unwrap();
+    let mut cursor = source.physical_cursor().unwrap();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        if reliquary_container::publication_envelope::decode(&frame.payload)
+            .unwrap()
+            .is_some_and(|envelope| {
+                publication::decode(envelope.body, envelope.global_version)
+                    .unwrap()
+                    .is_some()
+            })
+        {
+            let reference = frame.object.legacy_bytes();
+            envelope_start = Some(u64::from_le_bytes(reference[..8].try_into().unwrap()) as usize);
+            envelope_len = Some(frame.payload.len());
+        }
+    }
     let start = envelope_start.unwrap();
     let frame_len = 8 + envelope_len.unwrap();
     assert_eq!(start + frame_len, bytes.len());
@@ -529,6 +540,18 @@ fn every_incomplete_native_graph_transaction_envelope_recovers_before_retry() {
     for prefix_len in 0..frame_len {
         let path = scratch.file(&format!("partial-{prefix_len}.rel"));
         fs::write(&path, &bytes[..start + prefix_len]).unwrap();
+        if prefix_len > 0 {
+            crate::container_owner_tests::assert_normal_open_requires_repair(
+                &path,
+                |path| {
+                    Cva::open(path)
+                        .map(|_| ())
+                        .map_err(|error| error.to_string())
+                },
+                start as u64,
+            );
+            crate::container_owner_tests::repair_incomplete_physical_tail(&path, start as u64);
+        }
         let mut reopened = Cva::open(&path).unwrap();
         assert_eq!(reopened.graph_version(), 0, "prefix {prefix_len}");
         assert_eq!(reopened.latest_global_version(), prior_global);

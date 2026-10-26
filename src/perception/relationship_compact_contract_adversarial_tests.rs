@@ -1,5 +1,4 @@
 //! Additional draft adversarial tests; include in the future contract test module.
-use crate::compact_delta::FieldChange;
 use crate::relationship_compact_contract::{
     RELATIONSHIP_DELTA_KNOWN_MASK, RelationshipCollectionChange, RelationshipCreation,
     RelationshipDelta,
@@ -10,6 +9,7 @@ use crate::{
     MAX_RELATIONSHIP_OWNER_ID_BYTES, MAX_RELATIONSHIP_PARTICIPANTS, MAX_RELATIONSHIP_ROLE_BYTES,
     MAX_RELATIONSHIP_SUMMARY_BYTES, MemoryId, MemoryRef, RelationshipError, RelationshipId,
 };
+use reliquary_container::codec::FieldChange;
 
 fn participant(owner: &str, id: u32, role: Option<&str>) -> RelationshipParticipant {
     let mut raw = [0; 32];

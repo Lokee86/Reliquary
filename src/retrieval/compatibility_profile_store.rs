@@ -4,8 +4,9 @@ use crate::compatibility_profile_probe::{
 };
 use crate::{
     CompatibilityProfile, CompatibilityProfileError, CompatibilityProfileId,
-    CompatibilityProfileStats, Container,
+    CompatibilityProfileStats,
 };
+use reliquary_container::Container;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]

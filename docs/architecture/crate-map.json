@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "status": "layout-only-production-code-not-yet-extracted",
+  "status": "container-extracted-other-owner-crates-reserved",
   "primary_crates": [
     "reliquary-archive",
     "reliquary-memory-core",

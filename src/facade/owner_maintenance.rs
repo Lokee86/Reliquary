@@ -41,7 +41,7 @@ impl OwnerMaintenanceStore {
 
     pub(crate) fn validate_source_history(
         &self,
-        container: &mut crate::Container,
+        container: &mut reliquary_container::Container,
         graph: &crate::graph_store::GraphStore,
     ) -> Result<(), String> {
         for manifest in self.manifests.values() {

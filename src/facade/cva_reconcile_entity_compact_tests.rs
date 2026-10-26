@@ -17,7 +17,8 @@ fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, crate::EntityError> {
 use crate::entity_compact_contract::{EntityCreation, EntityDelta};
 use crate::entity_model::EntityRecord;
 use crate::owner_lifecycle::{HistoricalPayload, LifecycleState, TombstoneCoordinates};
-use crate::{Container, Cva, EntityError, EntityGlobalId, EntityId};
+use crate::{Cva, EntityError, EntityGlobalId, EntityId};
+use reliquary_container::Container;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -69,12 +70,17 @@ fn allocate(container: &mut Container, time_ns: i64) -> u64 {
         .unwrap()
 }
 
-fn append_version(container: &mut Container, carrier: crate::ObjectRef, global: u64, _local: u64) {
+fn append_version(
+    container: &mut Container,
+    carrier: reliquary_container::ObjectRef,
+    global: u64,
+    _local: u64,
+) {
     let body = container.read(carrier).unwrap();
-    let bytes = crate::container::publication_envelope::encode(
-        crate::container::publication_envelope::PublicationEnvelope {
+    let bytes = reliquary_container::publication_envelope::encode(
+        reliquary_container::publication_envelope::PublicationEnvelope {
             global_version: global,
-            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            clock: reliquary_container::publication_envelope::PublicationClock::BindReserved,
             body: &body,
         },
     )

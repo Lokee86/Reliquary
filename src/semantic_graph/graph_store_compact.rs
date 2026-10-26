@@ -29,7 +29,7 @@ impl GraphStore {
     ) -> Result<Option<[u8; 32]>, GraphError> {
         use sha2::{Digest, Sha256};
         let (ordinals, magic) =
-            if let Some(envelope) = crate::container::publication_envelope::decode(bytes)? {
+            if let Some(envelope) = reliquary_container::publication_envelope::decode(bytes)? {
                 let Some(publication) = crate::graph_compact_codec::publication::decode(
                     envelope.body,
                     envelope.global_version,
@@ -113,7 +113,7 @@ impl GraphStore {
         &self,
         bytes: &[u8],
     ) -> Result<Option<(bool, Vec<GraphMutationPayload>)>, GraphError> {
-        if let Some(envelope) = crate::container::publication_envelope::decode(bytes)? {
+        if let Some(envelope) = reliquary_container::publication_envelope::decode(bytes)? {
             let Some(publication) = crate::graph_compact_codec::publication::decode(
                 envelope.body,
                 envelope.global_version,

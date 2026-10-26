@@ -1,5 +1,6 @@
 use crate::historical_ego_fingerprint::EgoHistory;
-use crate::{Container, ContainerError, Cva, EgoAnchorPriority, MemoryDraft, Phylactery};
+use crate::{Cva, EgoAnchorPriority, MemoryDraft, Phylactery};
+use reliquary_container::Container;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -24,13 +25,12 @@ impl Drop for Scratch {
 }
 
 fn payloads(container: &Container) -> Vec<Vec<u8>> {
-    let mut scan = Container::open_read_only_for_scan(container.path()).unwrap();
     let mut result = Vec::new();
-    scan.visit_payloads::<ContainerError>(|_, p| {
-        result.push(p.to_vec());
-        Ok(())
-    })
-    .unwrap();
+    let source = container.read_source().unwrap();
+    let mut cursor = source.physical_cursor().unwrap();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        result.push(frame.payload);
+    }
     result
 }
 
@@ -291,6 +291,7 @@ fn public_fresh_history_rewrite_emits_compact_rel_and_phy_ego_state() {
         .put_ego_web_synthesis(0, 0, "REL retained synthesis".into())
         .unwrap();
     rel_source.sync().unwrap();
+    drop(rel_source);
     let request = RewriteRequest {
         include_rel_ego_synthesis: true,
         ..RewriteRequest::default()
@@ -359,6 +360,7 @@ fn public_fresh_history_rewrite_emits_compact_rel_and_phy_ego_state() {
         .put_ego_web_synthesis(0, 0, "derived cache dropped by rewrite".into())
         .unwrap();
     phy_source.sync().unwrap();
+    drop(phy_source);
     rewrite_file(
         phy_source_path.path(),
         phy_output_path.path(),

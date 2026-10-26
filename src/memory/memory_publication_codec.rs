@@ -137,7 +137,7 @@ pub(crate) fn decode(
 pub(crate) fn history_evidence(
     payload: &[u8],
 ) -> Result<Option<(u64, Vec<u8>, Vec<u8>)>, MemoryError> {
-    let Some(envelope) = crate::container::publication_envelope::decode(payload)? else {
+    let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };
     let Some(publication) = decode(envelope.body, envelope.global_version)? else {
@@ -164,7 +164,7 @@ pub(crate) fn history_evidence(
     let marker = crate::memory_codec::encode_version(crate::memory_codec::MemoryVersion {
         global_version: envelope.global_version,
         memory_version: local,
-        record: crate::ObjectRef::from_legacy_bytes([0; 16]),
+        record: reliquary_container::ObjectRef::from_legacy_bytes([0; 16]),
     });
     Ok(Some((envelope.global_version, marker, carrier)))
 }
@@ -172,7 +172,7 @@ pub(crate) fn history_evidence(
 /// Inspect this owner's direct publication coordinates, never inert carriers.
 /// Callers resolving accepted facts must still consult the admitted Memory owner.
 pub(crate) fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, MemoryError> {
-    let Some(envelope) = crate::container::publication_envelope::decode(payload)? else {
+    let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };
     let Some(publication) = decode(envelope.body, envelope.global_version)? else {

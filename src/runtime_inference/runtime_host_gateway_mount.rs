@@ -1,7 +1,6 @@
 //! Gateway file admission is read-only until identity and exclusive execution are established.
 use super::*;
-use crate::{Container, FileKind};
-use std::fs::File;
+use reliquary_container::{Container, FileKind};
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
@@ -21,10 +20,10 @@ pub(super) struct MountedFileIdentity {
 impl MountedFileIdentity {
     pub(super) fn inspect(path: &Path, kind: OwnerKind) -> Result<Self, ReliquaryRuntimeHostError> {
         let canonical_path = std::fs::canonicalize(path).map_err(operation)?;
-        let mut file = File::open(&canonical_path).map_err(operation)?;
-        let (identity, owner_id) = Container::inspect_header(&mut file).map_err(operation)?;
+        let (identity, owner_id, file_identity) =
+            Container::inspect_header(&canonical_path).map_err(operation)?;
         Self::validated(
-            &file,
+            file_identity,
             canonical_path,
             identity.map(|i| i.file_kind),
             owner_id,
@@ -36,7 +35,7 @@ impl MountedFileIdentity {
         kind: OwnerKind,
     ) -> Result<Self, ReliquaryRuntimeHostError> {
         Self::validated(
-            container.backing_file(),
+            container.file_identity().map_err(operation)?,
             std::fs::canonicalize(container.path()).map_err(operation)?,
             container.identity().map(|i| i.file_kind),
             container.owner_id(),
@@ -44,7 +43,7 @@ impl MountedFileIdentity {
         )
     }
     fn validated(
-        file: &File,
+        file_identity: Option<(u64, u64)>,
         canonical_path: PathBuf,
         file_kind: Option<FileKind>,
         owner_id: Option<String>,
@@ -65,8 +64,8 @@ impl MountedFileIdentity {
             OwnerKind::Rel => validate_rel_owner_id(&owner_id)?,
             OwnerKind::Phy => validate_owner_id(&owner_id, "phy-")?,
         }
-        let key = physical_key(file)
-            .map_err(operation)?
+        let key = file_identity
+            .map(|(volume, index)| FileKey::Physical(volume, index))
             .unwrap_or_else(|| FileKey::PathScoped(canonical_path.clone()));
         Ok(Self {
             owner_id,
@@ -149,51 +148,6 @@ impl Drop for MountClaim {
         }
     }
 }
-#[cfg(unix)]
-fn physical_key(file: &File) -> std::io::Result<Option<FileKey>> {
-    use std::os::unix::fs::MetadataExt;
-    let metadata = file.metadata()?;
-    Ok(Some(FileKey::Physical(metadata.dev(), metadata.ino())))
-}
-#[cfg(windows)]
-fn physical_key(file: &File) -> std::io::Result<Option<FileKey>> {
-    use std::os::windows::io::AsRawHandle;
-    // BY_HANDLE_FILE_INFORMATION: thirteen DWORDs, including three FILETIMEs.
-    #[repr(C)]
-    struct Information {
-        attributes: u32,
-        creation: [u32; 2],
-        access: [u32; 2],
-        write: [u32; 2],
-        volume: u32,
-        size_high: u32,
-        size_low: u32,
-        links: u32,
-        index_high: u32,
-        index_low: u32,
-    }
-    #[link(name = "kernel32")]
-    unsafe extern "system" {
-        fn GetFileInformationByHandle(
-            handle: *mut std::ffi::c_void,
-            information: *mut Information,
-        ) -> i32;
-    }
-    let mut information = std::mem::MaybeUninit::<Information>::uninit();
-    // SAFETY: the live File owns this handle and the OS writes this repr(C) structure.
-    if unsafe { GetFileInformationByHandle(file.as_raw_handle(), information.as_mut_ptr()) } == 0 {
-        return Ok(None);
-    }
-    // SAFETY: success initializes every field.
-    let information = unsafe { information.assume_init() };
-    let index = (u64::from(information.index_high) << 32) | u64::from(information.index_low);
-    Ok((index != 0).then_some(FileKey::Physical(u64::from(information.volume), index)))
-}
-#[cfg(not(any(unix, windows)))]
-fn physical_key(_: &File) -> std::io::Result<Option<FileKey>> {
-    Ok(None)
-}
-
 impl GatewayRuntime {
     /// Reuse aliases before opening another mutable owner; reject conflicting UUID copies.
     pub fn mount_rel_path(
@@ -339,7 +293,7 @@ mod tests {
         for prefix in REL_OWNER_PREFIXES {
             let owner_id = format!("{prefix}{uuid}");
             let identity = MountedFileIdentity::validated(
-                &file,
+                Container::inspect_file_identity(&path).unwrap(),
                 PathBuf::from(format!("legacy-{prefix}{uuid}.rel")),
                 Some(FileKind::Reliquary),
                 Some(owner_id.clone()),

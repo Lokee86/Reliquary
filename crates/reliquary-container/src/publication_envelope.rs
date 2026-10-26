@@ -5,7 +5,7 @@ const MAGIC: &[u8; 8] = b"CVAPUB01";
 const PREFIX: &[u8] = b"CVAPUB";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum PublicationClock {
+pub enum PublicationClock {
     Allocate {
         transaction_time_ns: Option<i64>,
     },
@@ -15,13 +15,13 @@ pub(crate) enum PublicationClock {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct PublicationEnvelope<'a> {
+pub struct PublicationEnvelope<'a> {
     pub global_version: u64,
     pub clock: PublicationClock,
     pub body: &'a [u8],
 }
 
-pub(crate) fn encode(envelope: PublicationEnvelope<'_>) -> Result<Vec<u8>, ContainerError> {
+pub fn encode(envelope: PublicationEnvelope<'_>) -> Result<Vec<u8>, ContainerError> {
     validate_body(envelope.global_version, envelope.body)?;
     let (tag, timestamp) = match envelope.clock {
         PublicationClock::Allocate {
@@ -47,7 +47,7 @@ pub(crate) fn encode(envelope: PublicationEnvelope<'_>) -> Result<Vec<u8>, Conta
     Ok(out)
 }
 
-pub(crate) fn decode(payload: &[u8]) -> Result<Option<PublicationEnvelope<'_>>, ContainerError> {
+pub fn decode(payload: &[u8]) -> Result<Option<PublicationEnvelope<'_>>, ContainerError> {
     if !payload.starts_with(PREFIX) {
         return Ok(None);
     }

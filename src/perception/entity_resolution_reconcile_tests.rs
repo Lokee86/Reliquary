@@ -64,6 +64,8 @@ fn divergent_resolution_state_is_not_guessed() {
         .unwrap();
     right_rel.sync().unwrap();
 
+    drop(left_rel);
+    drop(right_rel);
     assert!(matches!(
         Cva::reconcile(&left, &right, &output),
         Err(CvaReconcileError::UnsupportedSemanticOwner(

@@ -176,7 +176,7 @@ fn replay_completion(
     }
 
     let receipt_transaction_time_ns = if completion.transaction_time_ns == 0 {
-        crate::Container::transaction_time_now_ns()?
+        reliquary_container::Container::transaction_time_now_ns()?
     } else {
         completion.transaction_time_ns
     };

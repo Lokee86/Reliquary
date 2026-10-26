@@ -15,91 +15,101 @@ impl Cva {
             return Err(CvaError::Freshness("import base owner mismatch".into()));
         }
         let mut prefix = crate::freshness_storage::FreshnessStore::new(Some(owner));
-        prefix.bind_history_path(self.container.path(), 0);
+        prefix.bind_history_source(&self.container, 0)?;
         prefix.begin_rebuild();
         let mut dream_prefix = crate::freshness_dream_journal::DirectBirthPrefix::new(owner);
         let mut represented = std::collections::BTreeSet::new();
-        let mut scan = crate::Container::open_read_only_for_scan(self.container.path())?;
-        scan.visit_payloads_through::<CvaError>(scope.start_offset, |object, payload| {
-            let location = object.legacy_bytes();
-            let end = u64::from_le_bytes(location[..8].try_into().unwrap())
-                + 8
-                + u64::from_le_bytes(location[8..].try_into().unwrap());
+        let scan = self.container.read_source()?;
+        (|| -> Result<(), CvaError> {
+            let mut physical_cursor = scan.physical_cursor_through(scope.start_offset)?;
+            while let Some(physical_frame) = physical_cursor.next_frame()? {
+                let object = physical_frame.object;
+                let payload = physical_frame.payload.as_slice();
+                (|| -> Result<(), CvaError> {
+                    let location = object.legacy_bytes();
+                    let end = u64::from_le_bytes(location[..8].try_into().unwrap())
+                        + 8
+                        + u64::from_le_bytes(location[8..].try_into().unwrap());
 
-            // Rebuild publication intents only from this physical prefix. This
-            // mirrors reopen ordering and excludes intents created after start.
-            dream_prefix.ingest(payload).map_err(CvaError::Freshness)?;
-            for (id, mutation, turn, admitted) in dream_prefix.pending_initializations() {
-                if represented.contains(&id)
-                    || turn > scope.base_cut
-                    || self.memories.first_mutation_id(id) != Some(mutation.as_str())
-                    || self
-                        .memories
-                        .first_global_version(id)
-                        .is_none_or(|global| global > scope.start.pre.global_version)
-                {
-                    continue;
-                }
-                prefix
-                    .derive_birth(owner, id, turn, admitted)
-                    .map_err(CvaError::Freshness)?;
-                represented.insert(id);
-            }
+                    // Rebuild publication intents only from this physical prefix. This
+                    // mirrors reopen ordering and excludes intents created after start.
+                    dream_prefix.ingest(payload).map_err(CvaError::Freshness)?;
+                    for (id, mutation, turn, admitted) in dream_prefix.pending_initializations() {
+                        if represented.contains(&id)
+                            || turn > scope.base_cut
+                            || self.memories.first_mutation_id(id) != Some(mutation.as_str())
+                            || self
+                                .memories
+                                .first_global_version(id)
+                                .is_none_or(|global| global > scope.start.pre.global_version)
+                        {
+                            continue;
+                        }
+                        prefix
+                            .derive_birth(owner, id, turn, admitted)
+                            .map_err(CvaError::Freshness)?;
+                        represented.insert(id);
+                    }
 
-            // Grouped and external receipts carry their own birth proofs.
-            if let Some(completion) = crate::insomnia::completion::decode_completion(payload)
-                .map_err(|e| CvaError::Freshness(e.into()))?
-                && let Some(turn) = completion.freshness_birth_turn
-            {
-                for id in completion.freshness_birth_memory_ids {
-                    let record = completion
-                        .records
-                        .iter()
-                        .find(|record| record.id == id && record.revision == 1)
-                        .ok_or_else(|| {
-                            CvaError::Freshness(
-                                "grouped birth proof lacks first Memory record".into(),
-                            )
-                        })?;
-                    if record.global_version > scope.start.pre.global_version
-                        || turn > scope.base_cut
-                        || self.memories.first_mutation_id(id) != Some(record.mutation_id.as_str())
+                    // Grouped and external receipts carry their own birth proofs.
+                    if let Some(completion) =
+                        crate::insomnia::completion::decode_completion(payload)
+                            .map_err(|e| CvaError::Freshness(e.into()))?
+                        && let Some(turn) = completion.freshness_birth_turn
                     {
-                        return Err(CvaError::Freshness(
-                            "pre-start grouped birth proof conflicts".into(),
-                        ));
+                        for id in completion.freshness_birth_memory_ids {
+                            let record = completion
+                                .records
+                                .iter()
+                                .find(|record| record.id == id && record.revision == 1)
+                                .ok_or_else(|| {
+                                    CvaError::Freshness(
+                                        "grouped birth proof lacks first Memory record".into(),
+                                    )
+                                })?;
+                            if record.global_version > scope.start.pre.global_version
+                                || turn > scope.base_cut
+                                || self.memories.first_mutation_id(id)
+                                    != Some(record.mutation_id.as_str())
+                            {
+                                return Err(CvaError::Freshness(
+                                    "pre-start grouped birth proof conflicts".into(),
+                                ));
+                            }
+                            prefix
+                                .derive_birth(owner, id, turn, false)
+                                .map_err(CvaError::Freshness)?;
+                            represented.insert(id);
+                        }
+                    }
+                    if let Some(publication) = crate::external_source::publication::decode(payload)?
+                        && let Some(turn) = publication.birth_turn
+                    {
+                        for record in publication.records {
+                            if record.global_version > scope.start.pre.global_version
+                                || turn > scope.base_cut
+                                || self.memories.first_mutation_id(record.id)
+                                    != Some(record.mutation_id.as_str())
+                            {
+                                return Err(CvaError::Freshness(
+                                    "pre-start external birth proof conflicts".into(),
+                                ));
+                            }
+                            prefix
+                                .derive_birth(owner, record.id, turn, false)
+                                .map_err(CvaError::Freshness)?;
+                            represented.insert(record.id);
+                        }
                     }
                     prefix
-                        .derive_birth(owner, id, turn, false)
-                        .map_err(CvaError::Freshness)?;
-                    represented.insert(id);
-                }
+                        .ingest_scanned(payload, end)
+                        .map_err(CvaError::Freshness)
+                })()?;
             }
-            if let Some(publication) = crate::external_source::publication::decode(payload)?
-                && let Some(turn) = publication.birth_turn
-            {
-                for record in publication.records {
-                    if record.global_version > scope.start.pre.global_version
-                        || turn > scope.base_cut
-                        || self.memories.first_mutation_id(record.id)
-                            != Some(record.mutation_id.as_str())
-                    {
-                        return Err(CvaError::Freshness(
-                            "pre-start external birth proof conflicts".into(),
-                        ));
-                    }
-                    prefix
-                        .derive_birth(owner, record.id, turn, false)
-                        .map_err(CvaError::Freshness)?;
-                    represented.insert(record.id);
-                }
-            }
-            prefix
-                .ingest_scanned(payload, end)
-                .map_err(CvaError::Freshness)
-        })?;
+            Ok(())
+        })()?;
 
-        prefix.bind_history_path(self.container.path(), scope.start_offset);
+        prefix.bind_history_source(&self.container, scope.start_offset)?;
         prefix.finish_rebuild().map_err(CvaError::Freshness)?;
         prefix
             .records_at(scope.base_cut)

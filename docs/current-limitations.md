@@ -2,6 +2,25 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Crate-first recovery boundary
+
+The crate-first restart extracts physical Container from the verified pre-refactor
+baseline. The preserved authoritative corpus is newer: its REL settlements use
+CVAFRS07, while the baseline's semantic Freshness/Import owners still implement
+CVAFRS06. Physical extraction neither authorizes a legacy reader nor restores
+those semantic owners. Full product/corpus acceptance requires separately
+recovering the current-only owner implementation and reopening all six promoted
+fixtures on disposable copies. No mainline replacement or authoritative corpus
+mutation is part of this extraction. Older rollout claims below describe their
+original checkpoints, not acceptance of this restarted branch.
+
+The explicit promoted-corpus gate was run against a disposable copy of the
+preserved 2026-10-23 corpus during extraction. All three PHY copies reopen with their pinned owner heads. All three REL copies
+fail in the Freshness owner with `unsupported Freshness prototype format; explicit migration
+is required`. This is the unrecovered CVAFRS07 semantic reader, not a physical
+framing failure. No six-fixture product acceptance is claimed, and adding an
+old-format fallback to Container is not an approved remedy.
+
 The import integration writes CVAFRS06 semantic settlements from a transient physical ImportStart interval, records sparse affected replacements and supports authenticated empty/zero-activity no-ops. Reopen resolves accepted semantic event identity/digests rather than authenticating a physical prefix. Equal-cut accepted-use receipts survive replay by stable accepted-event identity selected from the transient physical interval. The exclusive completion coordinator derives import-attributed Insomnia/Memory/Dream/Perception readiness and typed blockers. `Cva::native_import_readiness(import_id)` provides a read-only report for the current open epoch and rejects unknown, completed and noncurrent IDs. Each nonzero local output is checked against exact retained same-epoch Insomnia completion, revision-1 same-Episode Memory and first-mutation evidence. A previously pending import-owned Dream pass remains a blocker after archival or terminal deletion; archived births without a pending pass do not require a new pass. Pending and terminal-failed work leave the epoch open, and focused reopen cases cover preserved blocker, bytes, clocks and write fence. Production completion append is coordinator-only through an opaque authority; the direct store seam is test-only. Routed PHY Memory refs remain `Memory/Unsupported` because the REL API cannot authenticate external owner state. Vector readiness is `NotRequired` only when there are no source Nodes and no Memory outputs; otherwise it is `SupportedUnavailable`, which does not prove vector coverage. Import schedules no Ego work, and unrelated owner work is excluded. Mounted import/background admission remains unavailable. Explicit bounded endpoint fill uses the offline historical owner operation. Same-cut identity lookup may use bounded scans of the accepted Freshness journal during construction/validation; this is not durable import-prefix authority, and no production performance claim is made for large equal-cut receipt populations.
 
 Completed native import reconciliation may retain the left physical prefix as an output-construction optimization and replays the right divergent intervals in physical order through the Archive, grouped Insomnia/Memory, Entity, Relationship, Graph, Community, Dream, Perception and Freshness owners; the retained prefix is not semantic import authority. Grouped completions retain complete record/body/routing/birth evidence; only destination version and activity coordinates are rebased. Scoped settlements and completion markers are rebuilt through native reconstruction/completion. Exact normalized accepted source evidence deduplicates; conflicting import identity fails closed. Open epochs, external PHY publications, unsupported owner payloads and outstanding source Insomnia work remain refused. Transform validation compares exact epoch markers/statuses and settlement authority.

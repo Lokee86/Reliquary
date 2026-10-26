@@ -5,11 +5,11 @@ use crate::graph_compact_codec::publication::{self, GraphPublication, GraphTrans
 use crate::graph_compact_contract::GraphOrdinalMutation;
 use crate::memory_store::MemoryStore;
 use crate::{
-    Container, EntityId, GraphError, GraphRelation, GraphRelationChange, GraphRelationOrigin,
-    MemoryId, SemanticGraphRelation, SemanticGraphRelationChange, SemanticGraphRelationKind,
-    SemanticNodeRef,
+    EntityId, GraphError, GraphRelation, GraphRelationChange, GraphRelationOrigin, MemoryId,
+    SemanticGraphRelation, SemanticGraphRelationChange, SemanticGraphRelationKind, SemanticNodeRef,
 };
 use arcana::NodeId;
+use reliquary_container::Container;
 use std::collections::{HashMap, HashSet};
 
 impl GraphStore {
@@ -319,10 +319,10 @@ impl GraphStore {
         let global = container
             .latest_version()
             .checked_add(1)
-            .ok_or(crate::ContainerError::VersionExhausted)?;
+            .ok_or(reliquary_container::ContainerError::VersionExhausted)?;
         global
             .checked_add(1)
-            .ok_or(crate::ContainerError::VersionExhausted)?;
+            .ok_or(reliquary_container::ContainerError::VersionExhausted)?;
         let new_nodes = effective
             .iter()
             .flat_map(|change| [change.source, change.target])

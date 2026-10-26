@@ -1,6 +1,5 @@
 //! Relationship reconciliation of owner publication envelopes.
 use super::{read_relationship_range, replay_relationship_tail};
-use crate::container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
 use crate::entity_compact_codec::publication as entity_publication;
 use crate::entity_compact_contract::EntityCreation;
 use crate::entity_model::EntityRecord;
@@ -9,9 +8,11 @@ use crate::relationship_compact_codec::publication::{self, RelationshipPublicati
 use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
 use crate::relationship_model::RelationshipRecord;
 use crate::{
-    Container, Cva, EntityGlobalId, EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId,
+    Cva, EntityGlobalId, EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId,
     RelationshipParticipant,
 };
+use reliquary_container::Container;
+use reliquary_container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
 use std::fs;
 use std::path::{Path, PathBuf};
 

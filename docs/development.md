@@ -20,6 +20,16 @@ The [format-policy amendment](minimal-lossless-history-storage-format-policy-ame
 
 Development uses deterministic local tests plus optional live provider execution. Model-switchboard routing, encrypted credential persistence, auth-header attachment, direct OpenAI-ready embedding/General HTTP transport, ChatGPT/Codex device-code acquisition, and provider-native Codex Responses execution are implemented. Codex OAuth token refresh remains outside the current slice. A separate repo-local CLI exposes current bring-up operations without installation.
 
+## Container extraction verification
+
+Run `cargo check --workspace --locked`, `cargo test -p reliquary-container --locked`, root library/integration tests and workspace formatting. Verify the detachable CLI with its separate lockfile after public Container changes. Physical tests belong to the Container crate; semantic owner replay tests remain at the root. Keep all test scratch, child-process files and caches inside the worktree.
+
+On Windows, a locked default `target` directory or incremental cache can prevent linking. Use a worktree-local `CARGO_TARGET_DIR` and `CARGO_INCREMENTAL=0` for verification when that occurs. Local HTTP tests require loopback access; restricted-network failures are not storage regressions. The installed Pitlord version in this extraction environment does not implement the documented `docs` subcommand; policy validation and both documentation-policy modes remain separately runnable. The architecture refresh was attempted, but indexing did not complete within the bounded run; no refreshed graph-enforcement pass is claimed.
+
+The extraction verification passed all 62 physical-crate tests, 163 integration tests and 32 detachable CLI tests. The final complete root library run passed 1,901 tests with zero failures and five ignored tests, including corrected reconciliation lease lifetimes, torn-tail recovery and the new same-path/length identity-replacement regression. Workspace and CLI locked checks, formatting, Archivist link/index integrity, both documentation-policy modes and Pitlord policy validation passed. The final Freshness source-identity regression additionally covers replacement at an unchanged path and byte length.
+
+The promoted-corpus gate in `tests/current_format_boundary.rs` pins the current CVAFRS07 hashes and copies each source into `.test-tmp` before owner open. Set `RELIQUARY_CURRENT_CORPUS_ROOT` to the preserved current corpus. This gate cannot pass until the distinct current Freshness/Import owner recovery is restored; report that failure separately from Container acceptance. Never open authoritative originals with a reconstructed writer.
+
 ## Retained-owner maintenance and history rewrite
 
 Use `rel repair` or `phy repair` on a disposable source copy to select one or more complete active embedding profiles. `--prune-retired` applies authenticated owner-level payload pruning, and `--reclaim` compacts remaining unreachable storage. Both operations preserve the source file. Use `rel rewrite` or `phy rewrite --dry-run` to inspect a fresh-history selection before execution; the planner binds its result to the frozen source state, and execution refuses source drift or an existing destination. Keep policy JSON with the development fixture or script that produced it so a selective corpus can be recreated deterministically.
@@ -28,9 +38,9 @@ Use `rel repair` or `phy repair` on a disposable source copy to select one or mo
 
 ```text
 Cargo.toml / Cargo.lock              core library package + locked dependencies
-cli/Cargo.toml / cli/Cargo.lock      detachable repo-local CLI package + lockfile
+cli/Cargo.toml / cli/Cargo.lock      explicit standalone workspace + detachable CLI lockfile
 cli/src/*.rs                         interface parsing/prompting/rendering/dispatch over public API
-src/container/                     physical REL/PHY container mechanics + global ordering
+crates/reliquary-container/         physical REL/PHY framing, leases, cursors, repair and clocks
 src/archive/                       Archive/source history, Episodes, files, Echo, repository correlation
 src/external_source/               external canonical references, derived index, provenance/publication
 src/memory/                        authoritative Memory records/revisions/provenance

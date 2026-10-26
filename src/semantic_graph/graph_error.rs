@@ -3,7 +3,7 @@ use std::fmt;
 
 #[derive(Debug)]
 pub enum GraphError {
-    Container(crate::ContainerError),
+    Container(reliquary_container::ContainerError),
     MissingMemory(MemoryId),
     MissingEntity(EntityId),
     MissingNode(MemoryId),
@@ -70,8 +70,8 @@ impl std::error::Error for GraphError {
     }
 }
 
-impl From<crate::ContainerError> for GraphError {
-    fn from(value: crate::ContainerError) -> Self {
+impl From<reliquary_container::ContainerError> for GraphError {
+    fn from(value: reliquary_container::ContainerError) -> Self {
         Self::Container(value)
     }
 }

@@ -1,7 +1,7 @@
-use crate::compact_delta::FieldChange;
 use crate::ego_codec::{EgoRecord, compact};
 use crate::ego_compact_contract::{EgoChanges, EgoDelta};
 use crate::{EgoAnchorId, EgoAnchorPriority, EgoError, EgoIdentityId};
+use reliquary_container::codec::FieldChange;
 
 fn identity(
     version: u64,

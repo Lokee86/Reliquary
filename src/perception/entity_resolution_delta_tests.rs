@@ -104,7 +104,7 @@ fn entity_resolution_delta_malformed_and_conflicts_leave_projection_unchanged() 
 #[test]
 fn entity_resolution_delta_dormant_wake_retarget_terminal_reset_preserve_full_postimages() {
     let root = scratch();
-    let mut container = crate::Container::create(root.join("raw.rel")).unwrap();
+    let mut container = reliquary_container::Container::create(root.join("raw.rel")).unwrap();
     let mut writer = EntityResolutionStore::default();
     let mut legacy = EntityResolutionStore::default();
     let pending = pending();
@@ -157,12 +157,12 @@ fn entity_resolution_delta_dormant_wake_retarget_terminal_reset_preserve_full_po
     let materialized = EntityResolutionStore::materialized_changes(&mut container).unwrap();
     assert_eq!(materialized.len(), 6);
     let mut reopened = EntityResolutionStore::default();
-    container
-        .visit_payloads::<MemoryError>(|_, p| {
-            assert!(delta::is_current(p));
-            reopened.ingest(p)
-        })
-        .unwrap();
+    let source = container.read_source().unwrap();
+    let mut cursor = source.physical_cursor().unwrap();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        assert!(delta::is_current(&frame.payload));
+        reopened.ingest(&frame.payload).unwrap();
+    }
     assert_eq!(reopened.records(), expected);
     let before = fs::read(container.path()).unwrap();
     assert!(

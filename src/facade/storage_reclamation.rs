@@ -1,5 +1,6 @@
 use crate::storage_reclamation_scan::ReclamationScan;
-use crate::{Container, Cva, CvaError, ObjectRef, Phylactery, PhylacteryError};
+use crate::{Cva, CvaError, Phylactery, PhylacteryError};
+use reliquary_container::{Container, ObjectRef};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
@@ -220,7 +221,7 @@ pub(crate) fn relocate_payload(
         version.record = relocated_ref(version.record, relocated, "Vector generation record")?;
         return Ok(crate::vector_generation_codec::encode_version(version).to_vec());
     }
-    if let Some(envelope) = crate::container::publication_envelope::decode(payload)
+    if let Some(envelope) = reliquary_container::publication_envelope::decode(payload)
         .map_err(|error| error.to_string())?
     {
         // These owner bodies contain stable IDs or Graph ordinals, never

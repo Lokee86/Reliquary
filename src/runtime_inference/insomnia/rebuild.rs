@@ -1,5 +1,6 @@
 use super::codec::{InsomniaRecord, decode_format, decode_record};
-use crate::{InsomniaError, ObjectRef};
+use crate::InsomniaError;
+use reliquary_container::ObjectRef;
 
 pub(crate) struct InsomniaOpenState {
     store: super::store::InsomniaStore,

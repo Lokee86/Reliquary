@@ -371,14 +371,12 @@ fn fresh_history_rewrite_discards_old_begin_authority_under_its_existing_policy(
     for id in [root, source] {
         assert_eq!(rewritten.memory(id).unwrap().revision, 1);
     }
-    rewritten
-        .container
-        .visit_payloads::<crate::CvaError>(|_, payload| {
-            assert!(!payload.starts_with(b"CVDREAM2"));
-            assert!(!(payload.starts_with(b"CVDREAM1") && payload.get(24) == Some(&0)));
-            Ok(())
-        })
-        .unwrap();
+    let source = rewritten.container.read_source().unwrap();
+    let mut cursor = source.physical_cursor().unwrap();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        assert!(!frame.payload.starts_with(b"CVDREAM2"));
+        assert!(!(frame.payload.starts_with(b"CVDREAM1") && frame.payload.get(24) == Some(&0)));
+    }
     assert_eq!(fs::read(&path).unwrap(), before);
 }
 

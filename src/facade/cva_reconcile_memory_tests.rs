@@ -88,6 +88,7 @@ fn reconcile_replays_memory_episode_and_completion_together() {
     let mut left_cva = Cva::open(&left).unwrap();
     append(&mut left_cva, "left", "left-c", "left");
     left_cva.sync().unwrap();
+    drop(left_cva);
 
     let mut right_cva = Cva::open(&right).unwrap();
     let episode = seed_episode(&mut right_cva, "c");

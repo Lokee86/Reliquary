@@ -10,10 +10,10 @@ use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::{
-    CompatibilityProfileId, Container, DreamCandidateConfig, DreamCandidateError,
-    DreamCandidateSet, DreamMemoryContext, GraphRelation, MAX_DREAM_CANDIDATE_LIMIT, Memory,
-    MemoryBodyId, MemoryId,
+    CompatibilityProfileId, DreamCandidateConfig, DreamCandidateError, DreamCandidateSet,
+    DreamMemoryContext, GraphRelation, MAX_DREAM_CANDIDATE_LIMIT, Memory, MemoryBodyId, MemoryId,
 };
+use reliquary_container::Container;
 
 pub(crate) fn dream_memory_context<R>(
     container: &mut Container,

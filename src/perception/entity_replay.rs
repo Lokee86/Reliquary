@@ -1,6 +1,7 @@
 use super::{EntityStore, validate_record};
 use crate::entity_model::EntityRecord;
-use crate::{Container, EntityError, EntityId, EntityRetainedRevision};
+use crate::{EntityError, EntityId, EntityRetainedRevision};
+use reliquary_container::Container;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum EntityReplayPublication {

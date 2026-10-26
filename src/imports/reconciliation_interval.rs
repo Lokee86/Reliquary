@@ -5,8 +5,10 @@ use std::collections::BTreeMap;
 
 #[derive(Default)]
 pub(super) struct Coordinates {
-    resolutions:
-        BTreeMap<crate::ObjectRef, crate::entity_resolution_codec::DecodedEntityResolution>,
+    resolutions: BTreeMap<
+        reliquary_container::ObjectRef,
+        crate::entity_resolution_codec::DecodedEntityResolution,
+    >,
     pub memory_revisions: usize,
     pub duplicate_memory_revisions: usize,
     pub entity_revisions: usize,

@@ -61,7 +61,10 @@ fn reopen_preserves_terminal_failed_import_readiness_and_write_fence() {
     let start = cva.open_import_epoch().unwrap();
     let scope = cva.import_epoch_scope().unwrap();
     let episode = crate::EpisodeId(*scope.episodes.iter().next().unwrap());
-    cva.container.set_owner_write_scope(true);
+    let import_scope = cva
+        .import_write_admission
+        .as_ref()
+        .map(|admission| admission.enter(&cva.container).unwrap());
     let claim = cva
         .claim_insomnia_episode("recovery-terminal-worker", 110, 1_000)
         .unwrap()
@@ -75,7 +78,7 @@ fn reopen_preserves_terminal_failed_import_readiness_and_write_fence() {
         "recovery test terminal failure".into(),
     )
     .unwrap();
-    cva.container.set_owner_write_scope(false);
+    drop(import_scope);
 
     let readiness = cva.native_import_readiness(&start.import_id).unwrap();
     let blocker = readiness.blocker.expect("terminal imported Episode");

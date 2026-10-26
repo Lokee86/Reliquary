@@ -1,5 +1,6 @@
 use super::*;
-use crate::{ContainerIdentity, FileKind, imports::ImportWatermarks};
+use crate::imports::ImportWatermarks;
+use reliquary_container::{ContainerIdentity, FileKind};
 use std::{fs, path::Path};
 
 fn start(owner_uuid: [u8; 16], import_key: &str) -> ImportStart {

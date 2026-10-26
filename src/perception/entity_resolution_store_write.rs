@@ -2,10 +2,10 @@ use super::{EntityResolutionStore, validate_status};
 use crate::entity_store::EntityStore;
 use crate::memory_store::MemoryStore;
 use crate::{
-    Container, EntityId, EntityResolutionPending, EntityResolutionReason,
-    MAX_ENTITY_RESOLUTION_CANDIDATES, MemoryEntityMentionKey, MemoryEntityResolutionStatus,
-    MemoryError,
+    EntityId, EntityResolutionPending, EntityResolutionReason, MAX_ENTITY_RESOLUTION_CANDIDATES,
+    MemoryEntityMentionKey, MemoryEntityResolutionStatus, MemoryError,
 };
+use reliquary_container::Container;
 
 impl EntityResolutionStore {
     pub(crate) fn put_resolved(

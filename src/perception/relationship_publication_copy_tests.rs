@@ -4,10 +4,11 @@ use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDel
 use crate::relationship_model::RelationshipRecord;
 use crate::rewrite::MemorySelection;
 use crate::{
-    Container, Cva, EntityId, EntityRef, MemoryDraft, MemoryId, MemoryRef, Phylactery,
-    ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef,
-    RelationshipDraft, RelationshipId, RelationshipParticipant, RewriteRequest,
+    Cva, EntityId, EntityRef, MemoryDraft, MemoryId, MemoryRef, Phylactery, ProjectFileRef,
+    ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef, RelationshipDraft,
+    RelationshipId, RelationshipParticipant, RewriteRequest,
 };
+use reliquary_container::Container;
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -73,23 +74,27 @@ fn append(
     container.read(object).unwrap()
 }
 
-fn envelope_payloads(path: &Path) -> Vec<Vec<u8>> {
-    let mut container = Container::open(path).unwrap();
-    container
-        .chunks()
+fn envelope_payloads(container: &Container) -> Vec<Vec<u8>> {
+    let source = container.read_source().unwrap();
+    let mut cursor = source.physical_cursor().unwrap();
+    let mut payloads = Vec::new();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        let bytes = frame.payload;
+        let Some(envelope) = reliquary_container::publication_envelope::decode(&bytes).unwrap()
+        else {
+            continue;
+        };
+        if crate::relationship_compact_codec::publication::decode(
+            envelope.body,
+            envelope.global_version,
+        )
         .unwrap()
-        .into_iter()
-        .filter_map(|object| {
-            let bytes = container.read(object).unwrap();
-            let envelope = crate::container::publication_envelope::decode(&bytes).unwrap()?;
-            crate::relationship_compact_codec::publication::decode(
-                envelope.body,
-                envelope.global_version,
-            )
-            .unwrap()
-            .map(|_| bytes)
-        })
-        .collect()
+        .is_some()
+        {
+            payloads.push(bytes);
+        }
+    }
+    payloads
 }
 
 fn assert_cuts_equal(left: &Cva, right: &Cva) {
@@ -192,13 +197,13 @@ fn rel_attachment_repack_preserves_exact_relationship_envelopes_cuts_and_termina
         independent_payload,
         terminal_payload,
     ];
-    assert_eq!(envelope_payloads(&source_path), expected_envelopes);
+    assert_eq!(envelope_payloads(&owner.container), expected_envelopes);
     let report = owner
         .repack_project_backed_attachments(&output_path)
         .unwrap();
     assert_eq!(report.dropped_content_objects, 1);
     let mut output = Cva::open_project(&output_path).unwrap();
-    assert_eq!(envelope_payloads(&output_path), expected_envelopes);
+    assert_eq!(envelope_payloads(&output.container), expected_envelopes);
     assert_cuts_equal(&owner, &output);
     assert_eq!(
         owner.relationship_retention_descriptor(first.id).unwrap(),
@@ -254,7 +259,7 @@ fn native_phy_reclaim_preserves_relationship_envelopes_and_every_retained_cut() 
     let report = source.reclaim_storage(&output_path).unwrap();
     let output = Phylactery::open(&output_path).unwrap();
     assert_eq!(report.reclaimed_chunks, 0);
-    assert_eq!(envelope_payloads(&output_path), expected);
+    assert_eq!(envelope_payloads(&output.container), expected);
     assert_eq!(
         source.relationships.records(),
         output.relationships.records()

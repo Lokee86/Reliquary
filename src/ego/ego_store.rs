@@ -13,9 +13,9 @@ mod validation;
 
 use crate::ego_codec::{EgoRecord, decode, record_ego_version};
 use crate::{
-    Container, EgoAnchorId, EgoAnchorPriority, EgoError, EgoIdentityId, EgoPersonality,
-    EgoWebSynthesis,
+    EgoAnchorId, EgoAnchorPriority, EgoError, EgoIdentityId, EgoPersonality, EgoWebSynthesis,
 };
+use reliquary_container::Container;
 use std::collections::BTreeMap;
 
 use validation::validate_record_revision;

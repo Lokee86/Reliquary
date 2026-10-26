@@ -193,8 +193,12 @@ pub(crate) fn reconcile_diverged(
         }
 
         output.sync()?;
+        let output_archive = output.archive;
+        // Release every held file view before semantic reopen verification.
+        drop(output.container);
+        drop(output.freshness);
         let reopened = Cva::open(output_path)?;
-        if !output.archive.activity_history_matches(&reopened.archive)
+        if !output_archive.activity_history_matches(&reopened.archive)
             || !reopened
                 .archive
                 .activity_merge_order_matches(&left.archive, &right.archive)
@@ -206,7 +210,6 @@ pub(crate) fn reconcile_diverged(
             ));
         }
         drop(reopened);
-        drop(output);
         Ok((
             archive_records,
             memory_result,
@@ -244,7 +247,7 @@ pub(crate) fn reconcile_diverged(
         && !processing_epoch_change_required
         && !dream_pair_change_required
     {
-        replace_with_left(left_path, output_path)?;
+        replace_with_left(&left, output_path)?;
     }
 
     Ok(CvaReconcileResult {
@@ -362,9 +365,9 @@ fn replay_profiles(
     Ok(())
 }
 
-fn replace_with_left(left_path: &Path, output_path: &Path) -> Result<(), CvaReconcileError> {
+fn replace_with_left(left: &Cva, output_path: &Path) -> Result<(), CvaReconcileError> {
     fs::remove_file(output_path)?;
-    crate::cva_reconcile::copy_and_validate(left_path, output_path)
+    crate::cva_reconcile::copy_owner_and_validate(left, output_path)
 }
 
 fn has_derived_vector_state(cva: &Cva) -> bool {

@@ -1,4 +1,5 @@
-use crate::{ContainerError, EntityId, MemoryId};
+use crate::{EntityId, MemoryId};
+use reliquary_container::ContainerError;
 use std::fmt;
 
 #[derive(Debug)]

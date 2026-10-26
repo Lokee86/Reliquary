@@ -1,9 +1,10 @@
 //! Test-only Entity revisions, direct terminals and merge replacement history.
 
+use crate::EntityId;
 use crate::entity_model::EntityRecord;
 use crate::entity_store::EntityStore;
 use crate::historical_fingerprint::{HistoricalFingerprint, OwnerProjection};
-use crate::{Container, EntityId};
+use reliquary_container::Container;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 

@@ -1,7 +1,8 @@
 use super::extraction::{InsomniaEvidenceResult, InsomniaEvidenceTurn, InsomniaExtractionError};
 use crate::lexical_index::LexicalIndex;
 use crate::lexical_search::lexical_terms;
-use crate::{Archive, Container, Cva, Episode, Fragment, Node, ResolvedTurn};
+use crate::{Archive, Cva, Episode, Fragment, Node, ResolvedTurn};
+use reliquary_container::Container;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 

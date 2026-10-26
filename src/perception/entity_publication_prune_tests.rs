@@ -1,5 +1,4 @@
 //! Authenticated Entity pruning for envelope publications.
-use crate::container::publication_envelope::{PublicationClock, PublicationEnvelope};
 use crate::entity_codec::{
     DirectEntityTombstone, EntityTombstone, EntityVersion, encode_direct_tombstone,
     encode_tombstone, encode_version,
@@ -9,10 +8,9 @@ use crate::entity_compact_codec::{encode_creation, encode_delta};
 use crate::entity_compact_contract::{EntityCreation, EntityDelta};
 use crate::entity_model::EntityRecord;
 use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget};
-use crate::{
-    Container, ContainerIdentity, Cva, EntityGlobalId, EntityId, FileKind, HistoryPruneRequest,
-    Phylactery,
-};
+use crate::{Cva, EntityGlobalId, EntityId, HistoryPruneRequest, Phylactery};
+use reliquary_container::publication_envelope::{PublicationClock, PublicationEnvelope};
+use reliquary_container::{Container, FileKind};
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -79,7 +77,7 @@ fn reserve(container: &mut Container, time: Option<i64>) -> u64 {
 
 fn append_bound_publication(container: &mut Container, global: u64, value: &EntityPublication) {
     let body = publication::encode(value).unwrap();
-    let raw = crate::container::publication_envelope::encode(PublicationEnvelope {
+    let raw = reliquary_container::publication_envelope::encode(PublicationEnvelope {
         global_version: global,
         clock: PublicationClock::BindReserved,
         body: &body,
@@ -306,7 +304,8 @@ fn mutate_creation_mutation_id_and_reseal(path: &Path, id: EntityId) {
     let mut target = None;
     for object in container.chunks().unwrap() {
         let raw = container.read(object).unwrap();
-        let Some(envelope) = crate::container::publication_envelope::decode(&raw).unwrap() else {
+        let Some(envelope) = reliquary_container::publication_envelope::decode(&raw).unwrap()
+        else {
             continue;
         };
         let Some(EntityPublication::Creation(creation)) =

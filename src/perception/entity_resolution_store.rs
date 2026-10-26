@@ -11,9 +11,10 @@ use crate::entity_resolution_codec::{DecodedEntityResolution, delta};
 use crate::entity_store::EntityStore;
 use crate::memory_store::MemoryStore;
 use crate::{
-    Container, EntityId, MAX_ENTITY_RESOLUTION_CANDIDATES, MemoryEntityMentionKey,
-    MemoryEntityResolution, MemoryEntityResolutionStatus, MemoryError, MemoryId,
+    EntityId, MAX_ENTITY_RESOLUTION_CANDIDATES, MemoryEntityMentionKey, MemoryEntityResolution,
+    MemoryEntityResolutionStatus, MemoryError, MemoryId,
 };
+use reliquary_container::Container;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Default)]
@@ -27,17 +28,27 @@ pub(crate) struct EntityResolutionStore {
 impl EntityResolutionStore {
     pub(crate) fn materialized_changes(
         container: &mut Container,
-    ) -> Result<std::collections::BTreeMap<crate::ObjectRef, DecodedEntityResolution>, MemoryError>
-    {
+    ) -> Result<
+        std::collections::BTreeMap<reliquary_container::ObjectRef, DecodedEntityResolution>,
+        MemoryError,
+    > {
         let mut projection = Self::default();
         let mut changes = std::collections::BTreeMap::new();
-        container.visit_payloads::<MemoryError>(|object, payload| {
-            if let Some(change) = projection.decode(payload)? {
-                projection.apply(change.clone())?;
-                changes.insert(object, change);
+        (|| -> Result<(), MemoryError> {
+            let mut physical_cursor = container.physical_cursor()?;
+            while let Some(physical_frame) = physical_cursor.next_frame()? {
+                let object = physical_frame.object;
+                let payload = physical_frame.payload.as_slice();
+                (|| -> Result<(), MemoryError> {
+                    if let Some(change) = projection.decode(payload)? {
+                        projection.apply(change.clone())?;
+                        changes.insert(object, change);
+                    }
+                    Ok(())
+                })()?;
             }
             Ok(())
-        })?;
+        })()?;
         Ok(changes)
     }
     pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), MemoryError> {
