@@ -37,6 +37,7 @@
 - [Crate structure and layout specification](crate-first-layout-spec-2026-10-25.md) — 20 primary and 10 supporting crates, physical layering, code/doc crosswalk and completion gates.
 - [Container crate extraction specification](container-crate-extraction-spec-2026-10-25.md) — first hard-cut extraction: physical scanning, writer exclusion, read-only open, clock framing and existing regressions.
 - [Archive crate extraction specification](archive-crate-extraction-spec-2026-10-25.md) — second hard-cut extraction: source owner, import receipts, Episodes, durable checkpoints, Echo exclusion and cross-owner dependency cuts.
+- [Memory Core crate extraction specification](memory-core-crate-extraction-spec-2026-10-25.md) — third hard-cut extraction: Memory persistence, foreign source identities, grouped publication boundaries, lifecycle/maintenance separation, and behavioral gates.
 - [Subsystem documentation](subsystems/INDEX.md) — focused current-state ownership, behavior, lifecycle, failure, and implementation maps.
 - [Architectural invariants](invariants.md) — governing ownership and storage constraints.
 - [Storage format](storage-format.md) — exact current REL/PHY persistent-record format, legacy CVA compatibility, and migration boundary.
