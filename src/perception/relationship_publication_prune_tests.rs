@@ -1,5 +1,6 @@
 //! Native pruning of Relationship envelope publications in REL and PHY owners.
-use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget};
+use reliquary_perception_store::RelationshipMemoryRef;
+use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget, PayloadUnavailable};
 use crate::owner_maintenance::owner_history_digest;
 use reliquary_perception_store::relationship_compact_codec::publication::{self, RelationshipPublication};
 use reliquary_perception_store::relationship_compact_contract::{
@@ -7,7 +8,7 @@ use reliquary_perception_store::relationship_compact_contract::{
 };
 use reliquary_perception_store::relationship_model::{RelationshipParticipant, RelationshipRecord};
 use crate::{
-    Cva, EntityId, EntityRef, HistoryPruneRequest, MemoryId, MemoryRef, Phylactery, RelationshipId,
+    Cva, EntityId, EntityRef, HistoryPruneRequest, Phylactery, RelationshipId,
 };
 use reliquary_container::publication_envelope;
 use reliquary_container::{Container, FileKind};
@@ -60,9 +61,9 @@ fn record(
             },
             role: Some("source".into()),
         }],
-        evidence: vec![MemoryRef {
+        evidence: vec![RelationshipMemoryRef {
             owner_id: "memory-owner".into(),
-            memory_id: MemoryId([id.wrapping_add(40); 32]),
+            memory_id: [id.wrapping_add(40); 32],
         }],
         summary: format!("{summary} {}", "p".repeat(900)),
         mutation_id: mutation.into(),
@@ -370,7 +371,7 @@ fn rel_and_phy_envelope_pruning_preserves_history_proofs_and_removes_selected_pl
                 assert!(matches!(
                     owner.relationship_revision(selected, revision),
                     Err(crate::RelationshipError::PayloadUnavailable(
-                        reliquary_perception_store::RelationshipPayloadUnavailable::Pruned
+                        PayloadUnavailable::Pruned
                     ))
                 ));
             }
@@ -401,7 +402,7 @@ fn rel_and_phy_envelope_pruning_preserves_history_proofs_and_removes_selected_pl
                 assert!(matches!(
                     owner.relationship_revision(selected, revision),
                     Err(crate::RelationshipError::PayloadUnavailable(
-                        reliquary_perception_store::RelationshipPayloadUnavailable::Pruned
+                        PayloadUnavailable::Pruned
                     ))
                 ));
             }

@@ -511,7 +511,17 @@ fn assert_pruned(
         assert_eq!(retained.relationship_version, record.relationship_version);
         assert_eq!(retained.kind, record.kind);
         assert_eq!(retained.participants, record.participants);
-        assert_eq!(retained.evidence, record.evidence);
+        assert_eq!(
+            retained.evidence,
+            record
+                .evidence
+                .iter()
+                .map(|r| MemoryRef {
+                    owner_id: r.owner_id.clone(),
+                    memory_id: MemoryId(r.memory_id),
+                })
+                .collect::<Vec<_>>()
+        );
         assert_eq!(retained.created_at_ns, record.created_at_ns);
         assert_eq!(retained.updated_at_ns, record.updated_at_ns);
         assert_eq!(retained.mutation_id, record.mutation_id);
@@ -524,7 +534,7 @@ fn assert_pruned(
         assert!(matches!(
             owner.relationship_revision(id, record.revision),
             Err(RelationshipError::PayloadUnavailable(
-                reliquary_perception_store::RelationshipPayloadUnavailable::Pruned
+                PayloadUnavailable::Pruned
             ))
         ));
     }
@@ -550,7 +560,17 @@ fn assert_pruned_phy(
         assert_eq!(retained.relationship_version, record.relationship_version);
         assert_eq!(retained.kind, record.kind);
         assert_eq!(retained.participants, record.participants);
-        assert_eq!(retained.evidence, record.evidence);
+        assert_eq!(
+            retained.evidence,
+            record
+                .evidence
+                .iter()
+                .map(|r| MemoryRef {
+                    owner_id: r.owner_id.clone(),
+                    memory_id: MemoryId(r.memory_id),
+                })
+                .collect::<Vec<_>>()
+        );
         assert_eq!(retained.created_at_ns, record.created_at_ns);
         assert_eq!(retained.updated_at_ns, record.updated_at_ns);
         assert_eq!(retained.mutation_id, record.mutation_id);
@@ -563,7 +583,7 @@ fn assert_pruned_phy(
         assert!(matches!(
             owner.relationship_revision(id, record.revision),
             Err(RelationshipError::PayloadUnavailable(
-                reliquary_perception_store::RelationshipPayloadUnavailable::Pruned
+                PayloadUnavailable::Pruned
             ))
         ));
     }

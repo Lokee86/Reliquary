@@ -1,8 +1,8 @@
 //! Scratch checks for legacy-wire-compatible retained Relationship structure hashes.
-use reliquary_perception_store::relationship_codec::encode_record;
-use reliquary_perception_store::relationship_model::RelationshipRecord;
-use reliquary_perception_store::relationship_retained_structure::encode_record_structure;
-use crate::{EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId, RelationshipParticipant};
+use crate::relationship_codec::encode_record;
+use crate::relationship_model::RelationshipRecord;
+use crate::relationship_retained_structure::encode_record_structure;
+use crate::{EntityId, EntityRef, RelationshipId, RelationshipMemoryRef, RelationshipParticipant};
 use sha2::{Digest, Sha256};
 
 fn sample() -> RelationshipRecord {
@@ -27,13 +27,13 @@ fn sample() -> RelationshipRecord {
             },
         ],
         evidence: vec![
-            MemoryRef {
+            RelationshipMemoryRef {
                 owner_id: "  mémoire-a  ".into(),
-                memory_id: MemoryId([0x33; 32]),
+                memory_id: [0x33; 32],
             },
-            MemoryRef {
+            RelationshipMemoryRef {
                 owner_id: "遠端-memory".into(),
-                memory_id: MemoryId([0x44; 32]),
+                memory_id: [0x44; 32],
             },
         ],
         summary: "PRIVATE DESCRIPTION THAT MUST NOT LEAK".into(),
@@ -135,7 +135,7 @@ fn retained_structure_hash_input_changes_for_every_preserved_semantic_dimension(
     assert_ne!(bytes(&changed), expected, "evidence owner is retained");
 
     let mut changed = original.clone();
-    changed.evidence[1].memory_id = MemoryId([0x55; 32]);
+    changed.evidence[1].memory_id = [0x55; 32];
     assert_ne!(bytes(&changed), expected, "evidence identity is retained");
 
     let mut changed = original.clone();

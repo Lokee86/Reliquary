@@ -2,6 +2,7 @@
 use reliquary_perception_store::relationship_compact_codec::publication::{self, RelationshipPublication};
 use reliquary_perception_store::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
 use reliquary_perception_store::relationship_model::RelationshipRecord;
+use reliquary_perception_store::RelationshipMemoryRef;
 use crate::rewrite::MemorySelection;
 use crate::{
     Cva, EntityId, EntityRef, MemoryDraft, MemoryId, MemoryRef, Phylactery, ProjectFileRef,
@@ -50,9 +51,9 @@ fn record(id: u8, revision: u64, global: u64, local: u64, mutation: &str) -> Rel
             },
             role: Some("source".into()),
         }],
-        evidence: vec![MemoryRef {
+        evidence: vec![RelationshipMemoryRef {
             owner_id: "remote-memory-owner".into(),
-            memory_id: MemoryId([id.wrapping_add(20); 32]),
+            memory_id: [id.wrapping_add(20); 32],
         }],
         summary: format!("Relationship {id} revision {revision}"),
         mutation_id: mutation.into(),

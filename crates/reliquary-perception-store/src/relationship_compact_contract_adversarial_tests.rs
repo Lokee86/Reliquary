@@ -1,13 +1,13 @@
 //! Additional draft adversarial tests; include in the future contract test module.
-use reliquary_perception_store::relationship_compact_contract::{
+use crate::relationship_compact_contract::{
     RELATIONSHIP_DELTA_KNOWN_MASK, RelationshipCollectionChange, RelationshipCreation,
     RelationshipDelta,
 };
-use reliquary_perception_store::relationship_model::{RelationshipParticipant, RelationshipRecord};
+use crate::relationship_model::{RelationshipParticipant, RelationshipRecord};
 use crate::{
     EntityId, EntityRef, MAX_RELATIONSHIP_EVIDENCE, MAX_RELATIONSHIP_KIND_BYTES,
     MAX_RELATIONSHIP_OWNER_ID_BYTES, MAX_RELATIONSHIP_PARTICIPANTS, MAX_RELATIONSHIP_ROLE_BYTES,
-    MAX_RELATIONSHIP_SUMMARY_BYTES, MemoryId, MemoryRef, RelationshipError, RelationshipId,
+    MAX_RELATIONSHIP_SUMMARY_BYTES, RelationshipError, RelationshipId, RelationshipMemoryRef,
 };
 use reliquary_container::codec::FieldChange;
 
@@ -23,12 +23,12 @@ fn participant(owner: &str, id: u32, role: Option<&str>) -> RelationshipParticip
     }
 }
 
-fn memory(owner: &str, id: u32) -> MemoryRef {
+fn memory(owner: &str, id: u32) -> RelationshipMemoryRef {
     let mut raw = [0; 32];
     raw[..4].copy_from_slice(&id.to_be_bytes());
-    MemoryRef {
+    RelationshipMemoryRef {
         owner_id: owner.into(),
-        memory_id: MemoryId(raw),
+        memory_id: raw,
     }
 }
 
@@ -79,7 +79,7 @@ fn every_mutable_field_mask_derives_exactly_and_role_option_transitions_are_set_
             next.evidence.sort_by(|a, b| {
                 a.owner_id
                     .cmp(&b.owner_id)
-                    .then_with(|| a.memory_id.0.cmp(&b.memory_id.0))
+                    .then_with(|| a.memory_id.cmp(&b.memory_id))
             });
         }
         if mask & (1 << 3) != 0 {
@@ -284,7 +284,7 @@ fn update_time_can_move_backward_but_not_before_creation_and_revision_overflow_r
 
 #[test]
 fn authored_empty_summary_is_distinct_from_explicitly_pruned_summary() {
-    let proof = reliquary_perception_store::relationship_compact_contract::RelationshipDescriptionProof {
+    let proof = crate::relationship_compact_contract::RelationshipDescriptionProof {
         original_carrier_digest: [0xA5; 32],
         manifest_digest: [0x5A; 32],
     };

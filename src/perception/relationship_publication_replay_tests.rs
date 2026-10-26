@@ -1,9 +1,10 @@
 //! Relationship publication-envelope replay and history admission through REL and PHY.
+use reliquary_perception_store::RelationshipMemoryRef;
 use reliquary_perception_store::relationship_compact_codec::publication::{self, RelationshipPublication};
 use reliquary_perception_store::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
 use reliquary_perception_store::relationship_model::RelationshipRecord;
 use crate::{
-    Cva, EntityId, EntityRef, MemoryId, MemoryRef, Phylactery, RelationshipId,
+    Cva, EntityId, EntityRef, Phylactery, RelationshipId,
     RelationshipParticipant,
 };
 use reliquary_container::Container;
@@ -57,9 +58,9 @@ fn record(id: u8, revision: u64, global: u64, local: u64, mutation: &str) -> Rel
                 role: Some("target".into()),
             },
         ],
-        evidence: vec![MemoryRef {
+        evidence: vec![RelationshipMemoryRef {
             owner_id: "project-owner".into(),
-            memory_id: MemoryId([id.wrapping_add(30); 32]),
+            memory_id: [id.wrapping_add(30); 32],
         }],
         summary: format!("relationship revision {revision}"),
         mutation_id: mutation.into(),

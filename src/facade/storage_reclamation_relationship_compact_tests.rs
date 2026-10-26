@@ -1,4 +1,5 @@
 //! Scratch REL/PHY storage reclamation coverage for compact Relationship chains.
+use reliquary_perception_store::RelationshipMemoryRef;
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
 fn encode_creation(c: &RelationshipCreation) -> Result<Vec<u8>, crate::RelationshipError> {
     reliquary_perception_store::relationship_compact_codec::publication::encode(
@@ -69,9 +70,9 @@ fn record(id: u8, revision: u64, global: u64, local: u64, mutation: &str) -> Rel
                 role: None,
             },
         ],
-        evidence: vec![MemoryRef {
+        evidence: vec![RelationshipMemoryRef {
             owner_id: "  external-memory  ".into(),
-            memory_id: MemoryId([id.wrapping_add(3); 32]),
+            memory_id: [id.wrapping_add(3); 32],
         }],
         summary: format!("  relationship {id} revision {revision}  "),
         mutation_id: mutation.into(),
@@ -244,7 +245,17 @@ fn assert_history(
         );
         assert_eq!(value.kind, expected_record.kind);
         assert_eq!(value.participants, expected_record.participants);
-        assert_eq!(value.evidence, expected_record.evidence);
+        assert_eq!(
+            value.evidence,
+            expected_record
+                .evidence
+                .iter()
+                .map(|r| MemoryRef {
+                    owner_id: r.owner_id.clone(),
+                    memory_id: MemoryId(r.memory_id),
+                })
+                .collect::<Vec<_>>()
+        );
         assert_eq!(value.summary, expected_record.summary);
         assert_eq!(value.mutation_id, expected_record.mutation_id);
         assert_eq!(value.created_at_ns, expected_record.created_at_ns);

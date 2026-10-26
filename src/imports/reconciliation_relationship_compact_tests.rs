@@ -1,4 +1,5 @@
 //! Scratch compact Relationship import evidence and replay-interval tests.
+use reliquary_perception_store::RelationshipMemoryRef;
 use reliquary_perception_store::relationship_codec::{
     RelationshipTombstone, RelationshipVersion, encode_record, encode_tombstone, encode_version,
 };
@@ -18,7 +19,7 @@ use reliquary_perception_store::relationship_compact_contract::{RelationshipCrea
 use reliquary_perception_store::relationship_model::RelationshipRecord;
 use reliquary_perception_store::relationship_store::RelationshipReplayPublication;
 use crate::{
-    Cva, EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId, RelationshipParticipant,
+    Cva, EntityId, EntityRef, RelationshipId, RelationshipParticipant,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -69,9 +70,9 @@ fn record(revision: u64, global: u64, local: u64, mutation: &str) -> Relationshi
                 role: None,
             },
         ],
-        evidence: vec![MemoryRef {
+        evidence: vec![RelationshipMemoryRef {
             owner_id: "  source-memory-owner  ".into(),
-            memory_id: MemoryId([0x63; 32]),
+            memory_id: [0x63; 32],
         }],
         summary: "  authored summary  ".into(),
         mutation_id: mutation.into(),
@@ -122,9 +123,9 @@ fn populated_owner(path: &Path, compact: bool) -> Cva {
 
     let mut second = record(2, 2, 2, "shared-revise");
     second.participants[0].role = Some("  revised role  ".into());
-    second.evidence.push(MemoryRef {
+    second.evidence.push(RelationshipMemoryRef {
         owner_id: "second-memory-owner".into(),
-        memory_id: MemoryId([0x64; 32]),
+        memory_id: [0x64; 32],
     });
     second.summary = "  revised summary  ".into();
     second.updated_at_ns = 105;

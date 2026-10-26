@@ -1,12 +1,12 @@
 //! Pure Relationship candidate reconstruction regressions.
-use reliquary_perception_store::relationship_compact_apply::apply_delta;
-use reliquary_perception_store::relationship_compact_contract::{
+use crate::relationship_compact_apply::apply_delta;
+use crate::relationship_compact_contract::{
     RelationshipCollectionChange, RelationshipCreation, RelationshipDelta,
     RelationshipDescriptionProof,
 };
-use reliquary_perception_store::relationship_model::RelationshipRecord;
+use crate::relationship_model::RelationshipRecord;
 use crate::{
-    EntityId, EntityRef, MemoryId, MemoryRef, RelationshipError, RelationshipId,
+    EntityId, EntityRef, RelationshipError, RelationshipId, RelationshipMemoryRef,
     RelationshipParticipant,
 };
 use reliquary_container::codec::FieldChange;
@@ -21,10 +21,10 @@ fn participant(owner: &str, id: u8, role: Option<&str>) -> RelationshipParticipa
     }
 }
 
-fn evidence(owner: &str, id: u8) -> MemoryRef {
-    MemoryRef {
+fn evidence(owner: &str, id: u8) -> RelationshipMemoryRef {
+    RelationshipMemoryRef {
         owner_id: owner.into(),
-        memory_id: MemoryId([id; 32]),
+        memory_id: [id; 32],
     }
 }
 
@@ -73,7 +73,7 @@ fn all_32_mutable_field_masks_reconstruct_the_exact_candidate() {
             candidate.evidence.sort_by(|left, right| {
                 left.owner_id
                     .cmp(&right.owner_id)
-                    .then_with(|| left.memory_id.0.cmp(&right.memory_id.0))
+                    .then_with(|| left.memory_id.cmp(&right.memory_id))
             });
         }
         if mask & 8 != 0 {

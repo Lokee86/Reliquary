@@ -1,4 +1,5 @@
 //! Relationship publication envelopes remain live during reclamation.
+use reliquary_perception_store::RelationshipMemoryRef;
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
 use reliquary_perception_store::relationship_compact_codec::publication::{self, RelationshipPublication};
 use reliquary_container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
@@ -68,9 +69,9 @@ fn record(id: u8, revision: u64, global: u64, local: u64, mutation: &str) -> Rel
                 role: None,
             },
         ],
-        evidence: vec![MemoryRef {
+        evidence: vec![RelationshipMemoryRef {
             owner_id: "  external-memory  ".into(),
-            memory_id: MemoryId([id.wrapping_add(3); 32]),
+            memory_id: [id.wrapping_add(3); 32],
         }],
         summary: format!("  retained relationship {id} revision {revision}  "),
         mutation_id: mutation.into(),
@@ -206,7 +207,17 @@ fn assert_reopened(
         assert_eq!(actual.revision, expected_record.revision);
         assert_eq!(actual.kind, expected_record.kind);
         assert_eq!(actual.participants, expected_record.participants);
-        assert_eq!(actual.evidence, expected_record.evidence);
+        assert_eq!(
+            actual.evidence,
+            expected_record
+                .evidence
+                .iter()
+                .map(|r| MemoryRef {
+                    owner_id: r.owner_id.clone(),
+                    memory_id: MemoryId(r.memory_id),
+                })
+                .collect::<Vec<_>>()
+        );
         assert_eq!(actual.summary, expected_record.summary);
         assert_eq!(actual.mutation_id, expected_record.mutation_id);
         assert_eq!(actual.created_at_ns, expected_record.created_at_ns);

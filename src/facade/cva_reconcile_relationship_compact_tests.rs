@@ -1,4 +1,5 @@
 //! Scratch compact Relationship tail tests for facade reconciliation.
+use reliquary_perception_store::RelationshipMemoryRef;
 use super::{read_relationship_tail, replay_relationship_tail};
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
 use reliquary_perception_store::relationship_codec::{
@@ -21,7 +22,7 @@ fn encode_delta(d: &RelationshipDelta) -> Result<Vec<u8>, crate::RelationshipErr
 use reliquary_perception_store::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
 use reliquary_perception_store::relationship_model::RelationshipRecord;
 use crate::{
-    Cva, EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId, RelationshipParticipant,
+    Cva, EntityId, EntityRef, RelationshipId, RelationshipParticipant,
 };
 use reliquary_container::Container;
 use std::fs;
@@ -73,9 +74,9 @@ fn record(revision: u64, global: u64, local: u64, mutation: &str) -> Relationshi
                 role: None,
             },
         ],
-        evidence: vec![MemoryRef {
+        evidence: vec![RelationshipMemoryRef {
             owner_id: "  external-memory  ".into(),
-            memory_id: MemoryId([0x33; 32]),
+            memory_id: [0x33; 32],
         }],
         summary: "  exact padded description  ".into(),
         mutation_id: mutation.into(),
@@ -128,9 +129,9 @@ fn raw_owner(path: &Path) -> Cva {
 
     let mut second = record(2, 2, 2, "relationship-revise");
     second.participants[0].role = Some("  contributor  ".into());
-    second.evidence.push(MemoryRef {
+    second.evidence.push(RelationshipMemoryRef {
         owner_id: "external-memory-b".into(),
-        memory_id: MemoryId([0x44; 32]),
+        memory_id: [0x44; 32],
     });
     second.summary = "  revised description  ".into();
     second.updated_at_ns = 17;
@@ -160,9 +161,9 @@ fn compact_tail_replays_exact_history_terminal_and_transaction_times() {
     let first = record(1, 1, 1, "relationship-create");
     let mut second = record(2, 2, 2, "relationship-revise");
     second.participants[0].role = Some("  contributor  ".into());
-    second.evidence.push(MemoryRef {
+    second.evidence.push(RelationshipMemoryRef {
         owner_id: "external-memory-b".into(),
-        memory_id: MemoryId([0x44; 32]),
+        memory_id: [0x44; 32],
     });
     second.summary = "  revised description  ".into();
     second.updated_at_ns = 17;
@@ -309,7 +310,7 @@ fn relationship_tail_rejects_pruned_payload_with_typed_unavailability() {
         read_relationship_tail(&mut owner, 0),
         Err(crate::CvaReconcileError::Relationships(
             crate::RelationshipError::PayloadUnavailable(
-                reliquary_perception_store::RelationshipPayloadUnavailable::Pruned
+                crate::owner_lifecycle::PayloadUnavailable::Pruned
             )
         ))
     ));

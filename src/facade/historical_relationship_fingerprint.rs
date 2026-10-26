@@ -3,9 +3,9 @@
 
 use crate::RelationshipId;
 use crate::historical_fingerprint::{HistoricalFingerprint, OwnerProjection};
+use reliquary_container::Container;
 use reliquary_perception_store::relationship_model::RelationshipRecord;
 use reliquary_perception_store::relationship_store::RelationshipStore;
-use reliquary_container::Container;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -50,7 +50,8 @@ pub(crate) fn relationship_cut(
         }
     }
     for id in ids {
-        if let Ok(crate::owner_lifecycle::LifecycleState::Tombstoned(_)) = store.lifecycle_state(id)
+        if let Ok(reliquary_perception_store::RelationshipLifecycleState::Tombstoned(_)) =
+            store.lifecycle_state(id)
         {
             let descriptor = store.retention_descriptor(id).map_err(|e| e.to_string())?;
             if descriptor.tombstone_relationship_version <= cut {
@@ -97,8 +98,8 @@ fn revision_value(
             json!({"owner_id": owner_id, "entity_id": hex(&entity_id.0), "role": role})
         }).collect::<Vec<_>>(),
         "evidence": evidence.iter().map(|r| {
-            let crate::MemoryRef { owner_id, memory_id } = r;
-            json!({"owner_id": owner_id, "memory_id": hex(&memory_id.0)})
+            let reliquary_perception_store::RelationshipMemoryRef { owner_id, memory_id } = r;
+            json!({"owner_id": owner_id, "memory_id": hex(memory_id)})
         }).collect::<Vec<_>>(),
         "summary": (!pruned).then_some(summary), "pruned": pruned,
         "mutation_id": mutation_id, "created_at_ns": created_at_ns, "updated_at_ns": updated_at_ns,

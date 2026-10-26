@@ -1,10 +1,10 @@
 use super::*;
-use reliquary_perception_store::relationship_compact_contract::{
+use crate::relationship_compact_contract::{
     RelationshipCollectionChange, RelationshipCreation, RelationshipDelta, RelationshipDeltaFields,
     RelationshipDescriptionProof,
 };
-use reliquary_perception_store::relationship_model::RelationshipRecord;
-use crate::{EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId, RelationshipParticipant};
+use crate::relationship_model::RelationshipRecord;
+use crate::{EntityId, EntityRef, RelationshipId, RelationshipMemoryRef, RelationshipParticipant};
 use reliquary_container::codec::FieldChange;
 
 fn participant(owner: &str, entity: u8, role: Option<&str>) -> RelationshipParticipant {
@@ -17,10 +17,10 @@ fn participant(owner: &str, entity: u8, role: Option<&str>) -> RelationshipParti
     }
 }
 
-fn memory(owner: &str, id: u8) -> MemoryRef {
-    MemoryRef {
+fn memory(owner: &str, id: u8) -> RelationshipMemoryRef {
+    RelationshipMemoryRef {
         owner_id: owner.into(),
-        memory_id: MemoryId([id; 32]),
+        memory_id: [id; 32],
     }
 }
 
@@ -317,17 +317,17 @@ fn write_test_participant(out: &mut Vec<u8>, value: &RelationshipParticipant) {
     }
 }
 
-fn write_test_memory(out: &mut Vec<u8>, value: &MemoryRef) {
+fn write_test_memory(out: &mut Vec<u8>, value: &RelationshipMemoryRef) {
     write_test_string(out, &value.owner_id);
-    out.extend_from_slice(&value.memory_id.0);
+    out.extend_from_slice(&value.memory_id);
 }
 
 fn malformed_collection_delta(
     participant_mask: bool,
     removed_participants: &[RelationshipParticipant],
     added_participants: &[RelationshipParticipant],
-    removed_evidence: &[MemoryRef],
-    added_evidence: &[MemoryRef],
+    removed_evidence: &[RelationshipMemoryRef],
+    added_evidence: &[RelationshipMemoryRef],
 ) -> Vec<u8> {
     let mut bytes = b"CVARND01".to_vec();
     bytes.extend_from_slice(&[9; 32]);

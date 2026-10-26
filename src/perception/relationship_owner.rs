@@ -76,6 +76,7 @@ macro_rules! impl_owner {
                 validate_live_local_references(&owner_id, &self.memories, &self.entities, &draft)?;
                 self.relationships.publish(&mut self.container, id, expected_revision, draft)
                     .map(|(value, changed)| (value.into(), changed))
+                    .map_err(Into::into)
             }
 
             pub(crate) fn replay_relationship_revision(
@@ -89,7 +90,7 @@ macro_rules! impl_owner {
                     id,
                     expected_revision,
                     draft.into(),
-                ).map(|(value, changed)| (value.into(), changed))
+                ).map(|(value, changed)| (value.into(), changed)).map_err(Into::into)
             }
 
             pub fn relationship(
@@ -98,6 +99,7 @@ macro_rules! impl_owner {
             ) -> Result<Relationship, RelationshipError> {
                 self.relationships.relationship(id)
                     .map(Into::into)
+                    .map_err(Into::into)
             }
 
             pub fn tombstone_relationship(
@@ -117,7 +119,7 @@ macro_rules! impl_owner {
                 &self,
                 id: RelationshipId,
             ) -> Result<crate::RelationshipRetentionDescriptor, RelationshipError> {
-                self.relationships.retention_descriptor(id).map(Into::into)
+                self.relationships.retention_descriptor(id).map(Into::into).map_err(Into::into)
             }
 
             pub fn historical_relationship_revision(
@@ -133,7 +135,7 @@ macro_rules! impl_owner {
             > {
                 let value = match self.relationship_revision(id, revision) {
                     Ok(value) => value,
-                    Err(RelationshipError::PayloadUnavailable(reliquary_perception_store::RelationshipPayloadUnavailable::Pruned)) => {
+                    Err(RelationshipError::PayloadUnavailable(crate::owner_lifecycle::PayloadUnavailable::Pruned)) => {
                         let structure = self
                             .relationship_retention_descriptor(id)?
                             .revisions
@@ -161,7 +163,7 @@ macro_rules! impl_owner {
                 &self,
                 id: RelationshipId,
             ) -> Result<crate::owner_lifecycle::LifecycleState, RelationshipError> {
-                Ok(match self.relationships.lifecycle_state(id)? {
+                Ok(match self.relationships.lifecycle_state(id).map_err(Into::into)? {
                     reliquary_perception_store::RelationshipLifecycleState::Active => crate::owner_lifecycle::LifecycleState::Active,
                     reliquary_perception_store::RelationshipLifecycleState::Tombstoned(c) => crate::owner_lifecycle::LifecycleState::Tombstoned(crate::owner_lifecycle::TombstoneCoordinates { global_version:c.global_version, domain_version:c.domain_version }),
                 })
@@ -172,7 +174,7 @@ macro_rules! impl_owner {
                 id: RelationshipId,
                 revision: u64,
             ) -> Result<Relationship, RelationshipError> {
-                self.relationships.relationship_revision(id, revision).map(Into::into)
+                self.relationships.relationship_revision(id, revision).map(Into::into).map_err(Into::into)
             }
 
             pub fn relationships(&self) -> Vec<Relationship> {

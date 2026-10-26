@@ -91,15 +91,3 @@ impl RelationshipOpenState {
         Ok(self.store)
     }
 }
-
-#[cfg(test)]
-#[path = "relationship_publication_replay_tests.rs"]
-mod publication_replay_tests;
-
-#[cfg(test)]
-#[path = "relationship_publication_prune_tests.rs"]
-mod publication_prune_tests;
-
-#[cfg(test)]
-#[path = "relationship_publication_copy_tests.rs"]
-mod publication_copy_tests;

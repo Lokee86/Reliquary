@@ -1,4 +1,5 @@
 //! Relationship reconciliation of owner publication envelopes.
+use reliquary_perception_store::RelationshipMemoryRef;
 use super::{read_relationship_range, replay_relationship_tail};
 use reliquary_perception_store::entity_compact_codec::publication as entity_publication;
 use reliquary_perception_store::entity_compact_contract::EntityCreation;
@@ -8,7 +9,7 @@ use reliquary_perception_store::relationship_compact_codec::publication::{self, 
 use reliquary_perception_store::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
 use reliquary_perception_store::relationship_model::RelationshipRecord;
 use crate::{
-    Cva, EntityGlobalId, EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId,
+    Cva, EntityGlobalId, EntityId, EntityRef, RelationshipId,
     RelationshipParticipant,
 };
 use reliquary_container::Container;
@@ -62,9 +63,9 @@ fn record(id: u8, revision: u64, global: u64, local: u64, mutation: &str) -> Rel
                 role: Some("target".into()),
             },
         ],
-        evidence: vec![MemoryRef {
+        evidence: vec![RelationshipMemoryRef {
             owner_id: "project-owner".into(),
-            memory_id: MemoryId([id.wrapping_add(30); 32]),
+            memory_id: [id.wrapping_add(30); 32],
         }],
         summary: format!("relationship revision {revision}"),
         mutation_id: mutation.into(),

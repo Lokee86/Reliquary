@@ -1,9 +1,10 @@
 //! Scratch integration coverage for ordinary REL and PHY compact owner reopen.
+use reliquary_perception_store::RelationshipMemoryRef;
 use reliquary_perception_store::relationship_compact_codec::{encode_creation, encode_delta};
 use reliquary_perception_store::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
 use reliquary_perception_store::relationship_model::RelationshipRecord;
 use crate::{
-    Cva, EntityId, EntityRef, MemoryId, MemoryRef, Phylactery, RelationshipId,
+    Cva, EntityId, EntityRef, Phylactery, RelationshipId,
     RelationshipParticipant,
 };
 use std::fs;
@@ -42,13 +43,13 @@ fn initial_record() -> RelationshipRecord {
             },
         ],
         evidence: vec![
-            MemoryRef {
+            RelationshipMemoryRef {
                 owner_id: "  external-memory  ".into(),
-                memory_id: MemoryId([0x33; 32]),
+                memory_id: [0x33; 32],
             },
-            MemoryRef {
+            RelationshipMemoryRef {
                 owner_id: "remote-memory".into(),
-                memory_id: MemoryId([0x44; 32]),
+                memory_id: [0x44; 32],
             },
         ],
         summary: "  original summary  ".into(),

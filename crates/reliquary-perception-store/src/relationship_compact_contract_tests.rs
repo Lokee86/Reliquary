@@ -1,6 +1,6 @@
 //! Contract regressions for exact accepted Relationship history.
 use super::*;
-use crate::{EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId};
+use crate::{EntityId, EntityRef, RelationshipId, RelationshipMemoryRef};
 
 fn entity(owner_id: &str, id: u8, role: Option<&str>) -> RelationshipParticipant {
     RelationshipParticipant {
@@ -12,10 +12,10 @@ fn entity(owner_id: &str, id: u8, role: Option<&str>) -> RelationshipParticipant
     }
 }
 
-fn evidence(owner_id: &str, id: u8) -> MemoryRef {
-    MemoryRef {
+fn evidence(owner_id: &str, id: u8) -> RelationshipMemoryRef {
+    RelationshipMemoryRef {
         owner_id: owner_id.into(),
-        memory_id: MemoryId([id; 32]),
+        memory_id: [id; 32],
     }
 }
 
@@ -81,7 +81,7 @@ fn delta_tracks_scalar_changes_and_exact_sorted_participant_evidence_set_ops() {
     next.evidence.sort_by(|left, right| {
         left.owner_id
             .cmp(&right.owner_id)
-            .then_with(|| left.memory_id.0.cmp(&right.memory_id.0))
+            .then_with(|| left.memory_id.cmp(&right.memory_id))
     });
 
     let delta = RelationshipDelta::between(&previous, &next).unwrap();

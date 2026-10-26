@@ -805,8 +805,19 @@ mod relationship_replay_tests;
 #[cfg(test)]
 #[path = "perception/relationship_publication_writer_tests.rs"]
 mod relationship_publication_writer_tests;
+#[cfg(test)]
+#[path = "perception/relationship_publication_replay_tests.rs"]
+mod relationship_publication_replay_tests;
+#[cfg(test)]
+#[path = "perception/relationship_publication_prune_tests.rs"]
+mod relationship_publication_prune_tests;
+#[cfg(test)]
+#[path = "perception/relationship_publication_copy_tests.rs"]
+mod relationship_publication_copy_tests;
 #[path = "perception/relationship_product_model.rs"]
 mod relationship_product_model;
+#[path = "perception/relationship_product_error.rs"]
+mod relationship_product_error;
 #[path = "facade/review_clocks.rs"]
 mod review_clocks;
 #[path = "config_security/runtime_config.rs"]
@@ -1133,7 +1144,7 @@ pub use project_environment::{ProjectAdoptionSource, ProjectRepositoryMode};
 pub use rel_metadata_model::{
     MAX_REL_DEPENDENCIES, MAX_REL_DEPENDENCY_ID_BYTES, MAX_REL_TYPE_LABEL_BYTES, RelMetadata,
 };
-pub use reliquary_perception_store::RelationshipError;
+pub use relationship_product_error::RelationshipError;
 pub use relationship_product_model::{
     MAX_RELATIONSHIP_EVIDENCE, MAX_RELATIONSHIP_KIND_BYTES, MAX_RELATIONSHIP_OWNER_ID_BYTES,
     MAX_RELATIONSHIP_PARTICIPANTS, MAX_RELATIONSHIP_ROLE_BYTES, MAX_RELATIONSHIP_SUMMARY_BYTES,

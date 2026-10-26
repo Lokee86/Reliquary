@@ -436,7 +436,7 @@ fn entity_relationship_descriptions_prune_with_topology_and_references_intact() 
         reopened
             .relationships
             .relationship_revision(relationship.id, 1),
-        Err(crate::RelationshipError::PayloadUnavailable(
+        Err(reliquary_perception_store::RelationshipError::PayloadUnavailable(
             reliquary_perception_store::RelationshipPayloadUnavailable::Pruned
         ))
     ));

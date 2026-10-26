@@ -159,6 +159,11 @@ impl From<RelationshipError> for CvaReconcileError {
         Self::Relationships(value)
     }
 }
+impl From<reliquary_perception_store::RelationshipError> for CvaReconcileError {
+    fn from(value: reliquary_perception_store::RelationshipError) -> Self {
+        Self::Relationships(value.into())
+    }
+}
 
 impl From<GraphError> for CvaReconcileError {
     fn from(value: GraphError) -> Self {

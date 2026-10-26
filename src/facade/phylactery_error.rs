@@ -67,6 +67,11 @@ from_error!(ContainerError, Container);
 from_error!(MemoryError, Memories);
 from_error!(EntityError, Entities);
 from_error!(RelationshipError, Relationships);
+impl From<reliquary_perception_store::RelationshipError> for PhylacteryError {
+    fn from(value: reliquary_perception_store::RelationshipError) -> Self {
+        Self::Relationships(value.into())
+    }
+}
 from_error!(GraphError, Graph);
 from_error!(CommunityError, Communities);
 from_error!(PackedVectorError, PackedVectors);

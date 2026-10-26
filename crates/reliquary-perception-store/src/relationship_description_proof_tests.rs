@@ -1,21 +1,21 @@
 use super::compact_description_proof;
 fn encode_creation(c: &RelationshipCreation) -> Result<Vec<u8>, crate::RelationshipError> {
-    reliquary_perception_store::relationship_compact_codec::publication::encode(
-        &reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Creation(
+    crate::relationship_compact_codec::publication::encode(
+        &crate::relationship_compact_codec::publication::RelationshipPublication::Creation(
             c.clone(),
         ),
     )
 }
 fn encode_delta(d: &RelationshipDelta) -> Result<Vec<u8>, crate::RelationshipError> {
-    reliquary_perception_store::relationship_compact_codec::publication::encode(
-        &reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Delta(d.clone()),
+    crate::relationship_compact_codec::publication::encode(
+        &crate::relationship_compact_codec::publication::RelationshipPublication::Delta(d.clone()),
     )
 }
-use reliquary_perception_store::relationship_compact_contract::{
+use crate::relationship_compact_contract::{
     RelationshipCreation, RelationshipDelta, RelationshipDescriptionProof,
 };
-use reliquary_perception_store::relationship_model::RelationshipRecord;
-use crate::{EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId, RelationshipParticipant};
+use crate::relationship_model::RelationshipRecord;
+use crate::{EntityId, EntityRef, RelationshipId, RelationshipMemoryRef, RelationshipParticipant};
 
 fn record(revision: u64, mutation_id: &str) -> RelationshipRecord {
     RelationshipRecord {
@@ -29,9 +29,9 @@ fn record(revision: u64, mutation_id: &str) -> RelationshipRecord {
             },
             role: None,
         }],
-        evidence: vec![MemoryRef {
+        evidence: vec![RelationshipMemoryRef {
             owner_id: "external".into(),
-            memory_id: MemoryId([0x33; 32]),
+            memory_id: [0x33; 32],
         }],
         summary: String::new(),
         mutation_id: mutation_id.into(),

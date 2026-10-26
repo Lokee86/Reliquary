@@ -416,7 +416,7 @@ fn rel_memory_tombstone_is_archive_passive_and_surviving_history_reopens() {
                 updated_at_ns: 13,
             },
         ),
-        Err(RelationshipError::MissingLocalMemory(id)) if id == memory.id.0
+        Err(RelationshipError::MissingLocalMemory(id)) if id == memory.id
     ));
 
     rel.sync().unwrap();

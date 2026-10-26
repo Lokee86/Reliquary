@@ -1,36 +1,12 @@
-use crate::{EntityRef, MemoryRef};
-use reliquary_perception_store::{
-    RelationshipMemoryRef, RelationshipParticipant as StoreParticipant,
-};
+use crate::MemoryRef;
+use reliquary_perception_store::RelationshipMemoryRef;
+pub use reliquary_perception_store::RelationshipParticipant;
 
 pub use reliquary_perception_store::{
     MAX_RELATIONSHIP_EVIDENCE, MAX_RELATIONSHIP_KIND_BYTES, MAX_RELATIONSHIP_OWNER_ID_BYTES,
     MAX_RELATIONSHIP_PARTICIPANTS, MAX_RELATIONSHIP_ROLE_BYTES, MAX_RELATIONSHIP_SUMMARY_BYTES,
     RelationshipId, RelationshipStats,
 };
-
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct RelationshipParticipant {
-    pub entity: EntityRef,
-    pub role: Option<String>,
-}
-
-impl From<RelationshipParticipant> for StoreParticipant {
-    fn from(value: RelationshipParticipant) -> Self {
-        Self {
-            entity: value.entity,
-            role: value.role,
-        }
-    }
-}
-impl From<StoreParticipant> for RelationshipParticipant {
-    fn from(value: StoreParticipant) -> Self {
-        Self {
-            entity: value.entity,
-            role: value.role,
-        }
-    }
-}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RelationshipDraft {
@@ -46,7 +22,7 @@ impl From<RelationshipDraft> for reliquary_perception_store::RelationshipDraft {
     fn from(v: RelationshipDraft) -> Self {
         Self {
             kind: v.kind,
-            participants: v.participants.into_iter().map(Into::into).collect(),
+            participants: v.participants,
             evidence: v
                 .evidence
                 .into_iter()
@@ -83,7 +59,7 @@ impl From<reliquary_perception_store::Relationship> for Relationship {
             id: v.id,
             revision: v.revision,
             kind: v.kind,
-            participants: v.participants.into_iter().map(Into::into).collect(),
+            participants: v.participants,
             evidence: v
                 .evidence
                 .into_iter()
@@ -123,7 +99,7 @@ impl From<reliquary_perception_store::RelationshipRetainedRevision>
             global_version: v.global_version,
             relationship_version: v.relationship_version,
             kind: v.kind,
-            participants: v.participants.into_iter().map(Into::into).collect(),
+            participants: v.participants,
             evidence: v
                 .evidence
                 .into_iter()

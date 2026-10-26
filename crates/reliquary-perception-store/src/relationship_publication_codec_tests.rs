@@ -1,9 +1,9 @@
-use reliquary_perception_store::relationship_compact_codec::publication::{RelationshipPublication, decode, encode};
-use reliquary_perception_store::relationship_compact_contract::{
+use crate::relationship_compact_codec::publication::{RelationshipPublication, decode, encode};
+use crate::relationship_compact_contract::{
     RelationshipCreation, RelationshipDelta, RelationshipDescriptionProof,
 };
-use reliquary_perception_store::relationship_model::{RelationshipParticipant, RelationshipRecord};
-use crate::{EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId};
+use crate::relationship_model::{RelationshipParticipant, RelationshipRecord};
+use crate::{EntityId, EntityRef, RelationshipId, RelationshipMemoryRef};
 
 fn participant() -> RelationshipParticipant {
     RelationshipParticipant {
@@ -21,9 +21,9 @@ fn record() -> RelationshipRecord {
         revision: 1,
         kind: "supports".into(),
         participants: vec![participant()],
-        evidence: vec![MemoryRef {
+        evidence: vec![RelationshipMemoryRef {
             owner_id: "owner-b".into(),
-            memory_id: MemoryId([3; 32]),
+            memory_id: [3; 32],
         }],
         summary: "summary".into(),
         mutation_id: "mutation-1".into(),
@@ -74,14 +74,14 @@ fn creation_and_delta_omit_only_global_coordinate() {
         _ => unreachable!(),
     };
     let mut expected_creation =
-        reliquary_perception_store::relationship_compact_codec::encode_creation(&creation).unwrap();
+        crate::relationship_compact_codec::encode_creation(&creation).unwrap();
     expected_creation[..8].copy_from_slice(b"CVARNC02");
     expected_creation.drain(40..48);
     let creation_bytes = encode(&RelationshipPublication::Creation(creation.clone())).unwrap();
     assert_eq!(creation_bytes, expected_creation);
     assert_eq!(
         creation_bytes.len() + 8,
-        reliquary_perception_store::relationship_compact_codec::encode_creation(&creation)
+        crate::relationship_compact_codec::encode_creation(&creation)
             .unwrap()
             .len()
     );
@@ -103,14 +103,14 @@ fn creation_and_delta_omit_only_global_coordinate() {
         RelationshipPublication::Delta(value) => value,
         _ => unreachable!(),
     };
-    let mut expected_delta = reliquary_perception_store::relationship_compact_codec::encode_delta(&delta).unwrap();
+    let mut expected_delta = crate::relationship_compact_codec::encode_delta(&delta).unwrap();
     expected_delta[..8].copy_from_slice(b"CVARND02");
     expected_delta.drain(56..64);
     let delta_bytes = encode(&RelationshipPublication::Delta(delta.clone())).unwrap();
     assert_eq!(delta_bytes, expected_delta);
     assert_eq!(
         delta_bytes.len() + 8,
-        reliquary_perception_store::relationship_compact_codec::encode_delta(&delta)
+        crate::relationship_compact_codec::encode_delta(&delta)
             .unwrap()
             .len()
     );

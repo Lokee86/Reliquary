@@ -838,9 +838,9 @@ fn completed_scope_inventory(
                     },
                     role: Some("source".into()),
                 }],
-                evidence: vec![crate::MemoryRef {
+                evidence: vec![reliquary_perception_store::RelationshipMemoryRef {
                     owner_id: "stable-remote-memory-owner".into(),
-                    memory_id: MemoryId([0x76; 32]),
+                    memory_id: [0x76; 32],
                 }],
                 summary: summary.into(),
                 mutation_id: mutation_id.into(),

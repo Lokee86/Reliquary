@@ -1,6 +1,7 @@
 //! Scratch owner replay retry and semantic import-evidence tests.
 use reliquary_perception_store::relationship_codec::RelationshipTombstone;
 use reliquary_perception_store::relationship_model::RelationshipRecord;
+use reliquary_perception_store::RelationshipMemoryRef;
 use reliquary_perception_store::relationship_store::{RelationshipReplayPublication, RelationshipStore};
 use crate::{
     Cva, EntityId, EntityRef, MemoryId, MemoryRef, RelationshipError, RelationshipId,
@@ -41,9 +42,9 @@ fn record(revision: u64, global: u64, local: u64, mutation: &str) -> Relationshi
                 role: None,
             },
         ],
-        evidence: vec![MemoryRef {
+        evidence: vec![RelationshipMemoryRef {
             owner_id: "  external-memory  ".into(),
-            memory_id: MemoryId([0x33; 32]),
+            memory_id: [0x33; 32],
         }],
         summary: "  exact description  ".into(),
         mutation_id: mutation.into(),
