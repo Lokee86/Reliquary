@@ -40,9 +40,7 @@ pub(crate) fn relationship_cut(
                 record.relationship_version.to_be_bytes(),
                 revision_value(
                     record,
-                    store
-                        .pruned_revisions
-                        .contains(&(record.id, record.revision)),
+                    store.is_revision_pruned(record.id, record.revision),
                     container.transaction_time_ns(record.global_version),
                 ),
             )?;

@@ -277,29 +277,50 @@ fn orphan_compact_relationship_carrier_is_inert_during_tail_replay() {
 
 #[test]
 fn relationship_tail_rejects_pruned_payload_with_typed_unavailability() {
+    use reliquary_perception_store::relationship_compact_codec::publication::{
+        RelationshipPublication, encode,
+    };
+    use reliquary_perception_store::relationship_compact_contract::{
+        RelationshipCreation, RelationshipDescriptionProof,
+    };
     use reliquary_perception_store::relationship_model::RelationshipRetainedRevision;
 
     let scratch = Scratch::new();
     let path = scratch.file("pruned.rel");
     let mut owner = Cva::create(&path).unwrap();
-    let record = record(1, 1, 1, "pruned-create");
-    let carrier = owner
+    let mut retained = record(
+        1,
+        owner.container.next_version_candidate(),
+        owner.relationship_version() + 1,
+        "pruned-create",
+    );
+    retained.summary.clear();
+    let creation = RelationshipCreation::new_pruned(
+        retained.clone(),
+        RelationshipDescriptionProof {
+            original_carrier_digest: [0x31; 32],
+            manifest_digest: [0x32; 32],
+        },
+    )
+    .unwrap();
+    let (global, object) = owner
         .container
-        .append(&encode_creation(&RelationshipCreation::new(record.clone()).unwrap()).unwrap())
+        .append_publication_envelope(&encode(&RelationshipPublication::Creation(creation)).unwrap())
         .unwrap();
-    let global = owner
-        .container
-        .allocate_version_with_transaction_time(Some(20_001))
+    // The proof is deliberately unauthenticated: build the provisional owner
+    // projection directly, then verify the product tail reader rejects it.
+    let mut state = reliquary_perception_store::relationship_rebuild::RelationshipOpenState::new();
+    state
+        .ingest(
+            object,
+            &reliquary_perception_store::relationship_codec::encode_format(),
+            global,
+        )
         .unwrap();
-    append_version(&mut owner.container, carrier, global, 1);
-    let mut retained = record.clone();
-    retained.global_version = global;
-    retained.relationship_version = 1;
-    owner
-        .relationships
-        .insert_rebuilt(retained.clone())
-        .unwrap();
-    owner.relationships.pruned_revisions.insert((record.id, 1));
+    let payload = owner.container.read(object).unwrap();
+    state.ingest(object, &payload, global).unwrap();
+    owner.relationships = state.finish(&owner.container).unwrap();
+    let record = retained;
     assert!(matches!(
         owner
             .relationships

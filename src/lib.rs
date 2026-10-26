@@ -818,8 +818,6 @@ mod relationship_publication_replay_tests;
 #[path = "perception/relationship_publication_writer_tests.rs"]
 mod relationship_publication_writer_tests;
 #[cfg(test)]
-#[path = "perception/relationship_replay_tests.rs"]
-mod relationship_replay_tests;
 #[path = "facade/review_clocks.rs"]
 mod review_clocks;
 #[path = "config_security/runtime_config.rs"]
@@ -1640,3 +1638,6 @@ mod entity_resolution_retained_tests;
 
 #[path = "perception/entity_identity_guard.rs"]
 mod entity_identity_guard;
+#[cfg(test)]
+#[path = "perception/relationship_replay_tests.rs"]
+mod relationship_replay_tests;

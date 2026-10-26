@@ -3,6 +3,10 @@ use crate::relationship_model::RelationshipRecord;
 use crate::{EntityRef, Relationship, RelationshipError, RelationshipId, RelationshipStats};
 
 impl RelationshipStore {
+    pub fn is_revision_pruned(&self, id: crate::RelationshipId, revision: u64) -> bool {
+        self.pruned_revisions.contains(&(id, revision))
+    }
+
     pub fn current_record_for_replay(
         &self,
         id: crate::RelationshipId,

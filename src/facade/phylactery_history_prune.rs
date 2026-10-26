@@ -354,11 +354,7 @@ impl Phylactery {
             let relationship_compact =
                 reliquary_perception_store::relationship_description_proof::compact_description_proof(&bytes)?;
             let payload = if let Some((id, revision, _)) = &relationship_compact {
-                if !self
-                    .relationships
-                    .pruned_revisions
-                    .contains(&(*id, *revision))
-                {
+                if !self.relationships.is_revision_pruned(*id, *revision) {
                     return Err(invalid());
                 }
                 Some(PrunedPayload::RelationshipDescription(id.0, *revision))

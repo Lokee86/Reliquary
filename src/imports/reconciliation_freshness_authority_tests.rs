@@ -829,13 +829,6 @@ fn completed_scope_inventory(
                     relationship_version,
                 }
             };
-        let append_relationship = |cva: &mut Cva,
-                                  publication: reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication,
-                                  expected_global: u64| {
-            let body = reliquary_perception_store::relationship_compact_codec::publication::encode(&publication).unwrap();
-            let (global, _) = cva.container.append_publication_envelope(&body).unwrap();
-            assert_eq!(global, expected_global);
-        };
         let first_global = cva.container.next_version_candidate();
         let first_local = cva.relationship_version() + 1;
         let first = make_relationship(
@@ -845,13 +838,12 @@ fn completed_scope_inventory(
             "envelope-relationship-create",
             "Accepted Relationship creation description",
         );
-        let first_publication =
-            reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Creation(
-                reliquary_perception_store::relationship_compact_contract::RelationshipCreation::new(first.clone())
-                    .unwrap(),
-            );
-        append_relationship(&mut cva, first_publication, first_global);
-        cva.relationships.insert_rebuilt(first).unwrap();
+        cva.relationships
+            .replay_publication(
+                &mut cva.container,
+                reliquary_perception_store::relationship_store::RelationshipReplayPublication::Record(first),
+            )
+            .unwrap();
         relationship_evidence.push(
             cva.relationships
                 .retained_publication_at(first_global, first_local)
@@ -870,24 +862,12 @@ fn completed_scope_inventory(
             "envelope-relationship-revision",
             "Accepted Relationship revised description",
         );
-        let delta =
-            reliquary_perception_store::relationship_compact_contract::RelationshipDelta::between(
-                &cva.relationships.records().last().unwrap(),
-                &next,
+        cva.relationships
+            .replay_publication(
+                &mut cva.container,
+                reliquary_perception_store::relationship_store::RelationshipReplayPublication::Record(next),
             )
             .unwrap();
-        let delta_publication =
-            reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Delta(
-                delta.clone(),
-            );
-        append_relationship(&mut cva, delta_publication, next_global);
-        let applied = reliquary_perception_store::relationship_compact_apply::apply_delta(
-            cva.relationships.records().last().unwrap(),
-            &delta,
-        )
-        .unwrap();
-        assert_eq!(applied, next);
-        cva.relationships.insert_rebuilt(applied).unwrap();
         relationship_evidence.push(
             cva.relationships
                 .retained_publication_at(next_global, next_local)
@@ -899,21 +879,14 @@ fn completed_scope_inventory(
 
         let terminal_global = cva.container.next_version_candidate();
         let terminal_local = cva.relationship_version() + 1;
-        let tombstone = reliquary_perception_store::relationship_codec::RelationshipTombstone {
-            id,
-            revision: 3,
-        };
-        append_relationship(
-            &mut cva,
-            reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Tombstone {
-                id,
-                revision: tombstone.revision,
-                relationship_version: terminal_local,
-            },
-            terminal_global,
-        );
         cva.relationships
-            .insert_tombstone_rebuilt(tombstone, terminal_global, terminal_local)
+            .replay_publication(
+                &mut cva.container,
+                reliquary_perception_store::relationship_store::RelationshipReplayPublication::Tombstone {
+                    id,
+                    revision: 3,
+                },
+            )
             .unwrap();
         relationship_evidence.push(
             cva.relationships

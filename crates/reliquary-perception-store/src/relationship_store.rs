@@ -22,7 +22,7 @@ pub use validation::validate_record;
 
 pub struct RelationshipStore {
     records: Vec<RelationshipRecord>,
-    pub pruned_revisions: BTreeSet<(RelationshipId, u64)>,
+    pub(crate) pruned_revisions: BTreeSet<(RelationshipId, u64)>,
     current: HashMap<RelationshipId, usize>,
     by_mutation: HashMap<String, usize>,
     by_participant: HashMap<EntityRef, BTreeSet<RelationshipId>>,
@@ -127,7 +127,10 @@ impl RelationshipStore {
         Ok((relationship, true))
     }
 
-    pub fn insert_rebuilt(&mut self, record: RelationshipRecord) -> Result<(), RelationshipError> {
+    pub(crate) fn insert_rebuilt(
+        &mut self,
+        record: RelationshipRecord,
+    ) -> Result<(), RelationshipError> {
         if self.tombstones.contains_key(&record.id) {
             return Err(RelationshipError::TerminalTombstone);
         }
@@ -253,7 +256,7 @@ impl RelationshipStore {
         ))
     }
 
-    pub fn insert_tombstone_rebuilt(
+    pub(crate) fn insert_tombstone_rebuilt(
         &mut self,
         tombstone: RelationshipTombstone,
         global_version: u64,
@@ -329,6 +332,9 @@ fn same_draft(value: &Relationship, draft: &RelationshipDraft) -> bool {
         && value.updated_at_ns == draft.updated_at_ns
 }
 
+#[cfg(test)]
+#[path = "relationship_exact_coordinate_tests.rs"]
+mod exact_coordinate_tests;
 #[cfg(test)]
 #[path = "relationship_rebuild_overflow_tests.rs"]
 mod rebuild_overflow_tests;

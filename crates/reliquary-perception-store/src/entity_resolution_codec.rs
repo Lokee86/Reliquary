@@ -93,64 +93,6 @@ fn encode_parts(
     Ok(out)
 }
 
-pub fn decode_resolution(bytes: &[u8]) -> Result<Option<DecodedEntityResolution>, ResolutionError> {
-    if bytes.len() < 8 || bytes[..8] != MAGIC {
-        return Ok(None);
-    }
-    let mut cursor = 8;
-    let memory_id = read_array(bytes, &mut cursor)?;
-    let field = MemoryTextField::from_tag(read_u8(bytes, &mut cursor)?).ok_or(
-        ResolutionError::CorruptRecord("invalid Entity resolution mention field"),
-    )?;
-    let key = MemoryEntityMentionKey {
-        memory_id,
-        field,
-        start_byte: read_u32(bytes, &mut cursor)?,
-        end_byte: read_u32(bytes, &mut cursor)?,
-    };
-    let revision = read_u32(bytes, &mut cursor)?;
-    if revision == 0 {
-        return Err(ResolutionError::CorruptRecord(
-            "invalid Entity resolution revision",
-        ));
-    }
-    let updated_at_ns = read_i64(bytes, &mut cursor)?;
-    let status = match read_u8(bytes, &mut cursor)? {
-        0 => None,
-        1 => Some(MemoryEntityResolutionStatus::Resolved {
-            entity_id: EntityId(read_array(bytes, &mut cursor)?),
-            reason: read_reason(bytes, &mut cursor)?,
-        }),
-        2 => Some(MemoryEntityResolutionStatus::Rejected {
-            reason: read_reason(bytes, &mut cursor)?,
-        }),
-        3 => Some(MemoryEntityResolutionStatus::Pending(read_pending(
-            bytes,
-            &mut cursor,
-        )?)),
-        4 => Some(MemoryEntityResolutionStatus::Dormant(read_dormant(
-            bytes,
-            &mut cursor,
-        )?)),
-        _ => {
-            return Err(ResolutionError::CorruptRecord(
-                "invalid Entity resolution status",
-            ));
-        }
-    };
-    if cursor != bytes.len() {
-        return Err(ResolutionError::CorruptRecord(
-            "Entity resolution trailing bytes",
-        ));
-    }
-    Ok(Some(DecodedEntityResolution {
-        key,
-        revision,
-        updated_at_ns,
-        status,
-    }))
-}
-
 fn write_pending(
     out: &mut Vec<u8>,
     value: &EntityResolutionPending,
@@ -178,38 +120,6 @@ fn write_dormant(
     out.extend_from_slice(&value.attempt_count.to_le_bytes());
     out.extend_from_slice(&value.dormant_at_ns.to_le_bytes());
     Ok(())
-}
-
-fn read_pending(
-    bytes: &[u8],
-    cursor: &mut usize,
-) -> Result<EntityResolutionPending, ResolutionError> {
-    Ok(EntityResolutionPending {
-        candidate_entity_ids: read_candidates(bytes, cursor)?,
-        reason: read_reason(bytes, cursor)?,
-        candidate_set_fingerprint: read_array(bytes, cursor)?,
-        context_fingerprint: read_array(bytes, cursor)?,
-        first_seen_at_ns: read_i64(bytes, cursor)?,
-        last_attempt_at_ns: read_i64(bytes, cursor)?,
-        attempt_count: read_u16(bytes, cursor)?,
-    })
-}
-
-fn read_dormant(
-    bytes: &[u8],
-    cursor: &mut usize,
-) -> Result<EntityResolutionDormant, ResolutionError> {
-    let pending = read_pending(bytes, cursor)?;
-    Ok(EntityResolutionDormant {
-        candidate_entity_ids: pending.candidate_entity_ids,
-        reason: pending.reason,
-        candidate_set_fingerprint: pending.candidate_set_fingerprint,
-        context_fingerprint: pending.context_fingerprint,
-        first_seen_at_ns: pending.first_seen_at_ns,
-        last_attempt_at_ns: pending.last_attempt_at_ns,
-        attempt_count: pending.attempt_count,
-        dormant_at_ns: read_i64(bytes, cursor)?,
-    })
 }
 
 fn write_candidates(out: &mut Vec<u8>, values: &[EntityId]) -> Result<(), ResolutionError> {
