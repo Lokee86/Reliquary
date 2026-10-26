@@ -5,7 +5,7 @@
 use crate::relationship_compact_contract::RelationshipDescriptionProof;
 use crate::{RelationshipError, RelationshipId};
 
-pub(crate) fn compact_description_proof(
+pub fn compact_description_proof(
     bytes: &[u8],
 ) -> Result<Option<(RelationshipId, u64, RelationshipDescriptionProof)>, RelationshipError> {
     use crate::relationship_compact_codec::publication::{self, RelationshipPublication};

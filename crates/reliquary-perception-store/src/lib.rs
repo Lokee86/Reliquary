@@ -6,24 +6,23 @@ pub use entity_resolution_model::*;
 pub use resolution_error::ResolutionError;
 mod resolution_error;
 
-// Transitional Relationship durable owner.
-mod relationship_model;
-mod relationship_error;
-mod relationship_codec;
-mod relationship_publication_codec;
-mod relationship_compact_codec;
-mod relationship_compact_contract;
-mod relationship_compact_values;
-mod relationship_compact_apply;
-mod relationship_compact_publish;
-mod relationship_rebuild;
-mod relationship_replay;
-mod relationship_store;
-mod relationship_store_read;
-mod relationship_store_validation;
-mod relationship_retained_structure;
-mod relationship_description_proof;
-mod relationship_description_prune;
+pub mod relationship_model;
+pub mod relationship_error;
+pub mod relationship_codec;
+pub mod relationship_publication_codec;
+pub mod relationship_compact_codec;
+pub mod relationship_compact_contract;
+pub mod relationship_compact_values;
+pub mod relationship_compact_apply;
+pub mod relationship_compact_publish;
+pub mod relationship_rebuild;
+pub mod relationship_replay;
+pub mod relationship_store;
+pub mod relationship_store_read;
+pub mod relationship_store_validation;
+pub mod relationship_retained_structure;
+pub mod relationship_description_proof;
+pub mod relationship_description_prune;
 
 pub use relationship_model::{
     EntityRef, Relationship, RelationshipDraft, RelationshipId, RelationshipLifecycleState,

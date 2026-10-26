@@ -1,22 +1,22 @@
 //! Scratch compact Relationship import evidence and replay-interval tests.
-use crate::relationship_codec::{
+use reliquary_perception_store::relationship_codec::{
     RelationshipTombstone, RelationshipVersion, encode_record, encode_tombstone, encode_version,
 };
 fn encode_creation(c: &RelationshipCreation) -> Result<Vec<u8>, crate::RelationshipError> {
-    crate::relationship_compact_codec::publication::encode(
-        &crate::relationship_compact_codec::publication::RelationshipPublication::Creation(
+    reliquary_perception_store::relationship_compact_codec::publication::encode(
+        &reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Creation(
             c.clone(),
         ),
     )
 }
 fn encode_delta(d: &RelationshipDelta) -> Result<Vec<u8>, crate::RelationshipError> {
-    crate::relationship_compact_codec::publication::encode(
-        &crate::relationship_compact_codec::publication::RelationshipPublication::Delta(d.clone()),
+    reliquary_perception_store::relationship_compact_codec::publication::encode(
+        &reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Delta(d.clone()),
     )
 }
-use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
-use crate::relationship_model::RelationshipRecord;
-use crate::relationship_store::RelationshipReplayPublication;
+use reliquary_perception_store::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
+use reliquary_perception_store::relationship_model::RelationshipRecord;
+use reliquary_perception_store::relationship_store::RelationshipReplayPublication;
 use crate::{
     Cva, EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId, RelationshipParticipant,
 };
@@ -241,8 +241,8 @@ fn interval_classifier_rejects_unknown_version_malformed_mask_and_terminal() {
 fn interval_classifier_accepts_relationship_terminal_publication() {
     let scratch = Scratch::new();
     let mut cva = Cva::create(scratch.file("terminal-interval.rel")).unwrap();
-    let terminal = crate::relationship_compact_codec::publication::encode(
-        &crate::relationship_compact_codec::publication::RelationshipPublication::Tombstone {
+    let terminal = reliquary_perception_store::relationship_compact_codec::publication::encode(
+        &reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Tombstone {
             id: RelationshipId([0x5C; 32]),
             revision: 2,
             relationship_version: 2,

@@ -1,10 +1,10 @@
 //! Native compact Relationship description pruning for REL and PHY owners.
-use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget, PayloadUnavailable};
+use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget};
 use crate::owner_maintenance::{HistoryPruneManifest, PrunedPayload, RetentionDomain};
-use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
-use crate::relationship_compact_codec::{decode_creation, decode_delta, encode_creation};
-use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDescriptionProof};
-use crate::relationship_model::RelationshipRecord;
+use reliquary_perception_store::relationship_compact_codec::publication::{self, RelationshipPublication};
+use reliquary_perception_store::relationship_compact_codec::{decode_creation, decode_delta, encode_creation};
+use reliquary_perception_store::relationship_compact_contract::{RelationshipCreation, RelationshipDescriptionProof};
+use reliquary_perception_store::relationship_model::RelationshipRecord;
 use crate::{
     Cva, EntityId, EntityRef, HistoryPruneRequest, MemoryId, MemoryRef, Phylactery,
     RelationshipDraft, RelationshipError, RelationshipId, RelationshipParticipant,
@@ -353,7 +353,7 @@ fn tampered_relationship_carrier(
             }
             _ => return raw.to_vec(),
         }
-        return crate::relationship_compact_codec::encode_delta(&delta).unwrap();
+        return reliquary_perception_store::relationship_compact_codec::encode_delta(&delta).unwrap();
     }
     raw.to_vec()
 }
@@ -466,8 +466,8 @@ fn append_selected_orphans(container: &mut Container, record: &RelationshipRecor
     orphan.mutation_id = "unpublished-selected-carrier".into();
     container
         .append(
-            &crate::relationship_compact_codec::publication::encode(
-                &crate::relationship_compact_codec::publication::RelationshipPublication::Creation(
+            &reliquary_perception_store::relationship_compact_codec::publication::encode(
+                &reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Creation(
                     RelationshipCreation::new(orphan.clone()).unwrap(),
                 ),
             )
@@ -482,9 +482,9 @@ fn append_selected_orphans(container: &mut Container, record: &RelationshipRecor
     orphan.mutation_id = "unpublished-selected-delta".into();
     container
         .append(
-            &crate::relationship_compact_codec::publication::encode(
-                &crate::relationship_compact_codec::publication::RelationshipPublication::Delta(
-                    crate::relationship_compact_contract::RelationshipDelta::between(
+            &reliquary_perception_store::relationship_compact_codec::publication::encode(
+                &reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Delta(
+                    reliquary_perception_store::relationship_compact_contract::RelationshipDelta::between(
                         &previous, &orphan,
                     )
                     .unwrap(),
@@ -524,7 +524,7 @@ fn assert_pruned(
         assert!(matches!(
             owner.relationship_revision(id, record.revision),
             Err(RelationshipError::PayloadUnavailable(
-                PayloadUnavailable::Pruned
+                reliquary_perception_store::RelationshipPayloadUnavailable::Pruned
             ))
         ));
     }
@@ -563,7 +563,7 @@ fn assert_pruned_phy(
         assert!(matches!(
             owner.relationship_revision(id, record.revision),
             Err(RelationshipError::PayloadUnavailable(
-                PayloadUnavailable::Pruned
+                reliquary_perception_store::RelationshipPayloadUnavailable::Pruned
             ))
         ));
     }

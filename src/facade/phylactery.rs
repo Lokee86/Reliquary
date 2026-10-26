@@ -12,7 +12,7 @@ use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::phylactery_profile_store::PhylacteryProfileStore;
 use crate::processing_epoch_store::ProcessingEpochStore;
-use crate::relationship_store::RelationshipStore;
+use reliquary_perception_store::relationship_store::RelationshipStore;
 use crate::{
     Memory, MemoryBodyId, MemoryDraft, MemoryError, MemoryId, MemoryStats, PhylacteryError,
 };

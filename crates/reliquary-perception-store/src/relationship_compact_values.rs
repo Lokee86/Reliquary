@@ -5,14 +5,14 @@ use crate::{
     RelationshipError, RelationshipParticipant,
 };
 
-pub(super) fn write_string(out: &mut Vec<u8>, value: &str) -> Result<(), RelationshipError> {
+pub fn write_string(out: &mut Vec<u8>, value: &str) -> Result<(), RelationshipError> {
     let length = u32::try_from(value.len()).map_err(|_| RelationshipError::FieldTooLarge)?;
     out.extend_from_slice(&length.to_le_bytes());
     out.extend_from_slice(value.as_bytes());
     Ok(())
 }
 
-pub(super) fn read_string(bytes: &[u8], cursor: &mut usize) -> Result<String, RelationshipError> {
+pub fn read_string(bytes: &[u8], cursor: &mut usize) -> Result<String, RelationshipError> {
     let length = read_u32(bytes, cursor)? as usize;
     let end = cursor
         .checked_add(length)
@@ -26,7 +26,7 @@ pub(super) fn read_string(bytes: &[u8], cursor: &mut usize) -> Result<String, Re
     String::from_utf8(raw.to_vec()).map_err(|_| RelationshipError::InvalidUtf8)
 }
 
-pub(super) fn write_participants(
+pub fn write_participants(
     out: &mut Vec<u8>,
     values: &[RelationshipParticipant],
 ) -> Result<(), RelationshipError> {
@@ -48,7 +48,7 @@ pub(super) fn write_participants(
     Ok(())
 }
 
-pub(super) fn read_participants(
+pub fn read_participants(
     bytes: &[u8],
     cursor: &mut usize,
 ) -> Result<Vec<RelationshipParticipant>, RelationshipError> {
@@ -82,7 +82,7 @@ pub(super) fn read_participants(
     Ok(values)
 }
 
-pub(super) fn write_evidence(
+pub fn write_evidence(
     out: &mut Vec<u8>,
     values: &[RelationshipMemoryRef],
 ) -> Result<(), RelationshipError> {
@@ -97,7 +97,7 @@ pub(super) fn write_evidence(
     Ok(())
 }
 
-pub(super) fn read_evidence(
+pub fn read_evidence(
     bytes: &[u8],
     cursor: &mut usize,
 ) -> Result<Vec<RelationshipMemoryRef>, RelationshipError> {
@@ -121,13 +121,13 @@ pub(super) fn read_evidence(
     Ok(values)
 }
 
-pub(super) fn write_count(out: &mut Vec<u8>, count: usize) -> Result<(), RelationshipError> {
+pub fn write_count(out: &mut Vec<u8>, count: usize) -> Result<(), RelationshipError> {
     let count = u16::try_from(count).map_err(|_| RelationshipError::FieldTooLarge)?;
     out.extend_from_slice(&count.to_le_bytes());
     Ok(())
 }
 
-pub(super) fn read_count(bytes: &[u8], cursor: &mut usize) -> Result<usize, RelationshipError> {
+pub fn read_count(bytes: &[u8], cursor: &mut usize) -> Result<usize, RelationshipError> {
     Ok(u16::from_le_bytes(read_fixed::<2>(
         bytes,
         cursor,
@@ -135,11 +135,11 @@ pub(super) fn read_count(bytes: &[u8], cursor: &mut usize) -> Result<usize, Rela
     )?) as usize)
 }
 
-pub(super) fn write_tag(out: &mut Vec<u8>, value: bool) {
+pub fn write_tag(out: &mut Vec<u8>, value: bool) {
     out.push(u8::from(value));
 }
 
-pub(super) fn read_tag(
+pub fn read_tag(
     bytes: &[u8],
     cursor: &mut usize,
     error: &'static str,
@@ -156,7 +156,7 @@ pub(super) fn read_tag(
     Ok(value)
 }
 
-pub(super) fn write_proof(
+pub fn write_proof(
     out: &mut Vec<u8>,
     proof: Option<&crate::relationship_compact_contract::RelationshipDescriptionProof>,
 ) {
@@ -170,7 +170,7 @@ pub(super) fn write_proof(
     }
 }
 
-pub(super) fn read_proof(
+pub fn read_proof(
     bytes: &[u8],
     cursor: &mut usize,
 ) -> Result<
@@ -197,7 +197,7 @@ pub(super) fn read_proof(
     }
 }
 
-pub(super) fn read_i64(bytes: &[u8], cursor: &mut usize) -> Result<i64, RelationshipError> {
+pub fn read_i64(bytes: &[u8], cursor: &mut usize) -> Result<i64, RelationshipError> {
     Ok(i64::from_le_bytes(read_fixed::<8>(
         bytes,
         cursor,
@@ -205,7 +205,7 @@ pub(super) fn read_i64(bytes: &[u8], cursor: &mut usize) -> Result<i64, Relation
     )?))
 }
 
-pub(super) fn read_u32(bytes: &[u8], cursor: &mut usize) -> Result<u32, RelationshipError> {
+pub fn read_u32(bytes: &[u8], cursor: &mut usize) -> Result<u32, RelationshipError> {
     Ok(u32::from_le_bytes(read_fixed::<4>(
         bytes,
         cursor,
@@ -213,7 +213,7 @@ pub(super) fn read_u32(bytes: &[u8], cursor: &mut usize) -> Result<u32, Relation
     )?))
 }
 
-pub(super) fn read_u64(bytes: &[u8], cursor: &mut usize) -> Result<u64, RelationshipError> {
+pub fn read_u64(bytes: &[u8], cursor: &mut usize) -> Result<u64, RelationshipError> {
     Ok(u64::from_le_bytes(read_fixed::<8>(
         bytes,
         cursor,
@@ -221,7 +221,7 @@ pub(super) fn read_u64(bytes: &[u8], cursor: &mut usize) -> Result<u64, Relation
     )?))
 }
 
-pub(super) fn read_fixed<const N: usize>(
+pub fn read_fixed<const N: usize>(
     bytes: &[u8],
     cursor: &mut usize,
     error: &'static str,
@@ -236,7 +236,7 @@ pub(super) fn read_fixed<const N: usize>(
     Ok(raw.try_into().unwrap())
 }
 
-pub(super) fn validate_owner_and_role_values(
+pub fn validate_owner_and_role_values(
     participants: &[RelationshipParticipant],
 ) -> Result<(), RelationshipError> {
     for participant in participants {
@@ -258,7 +258,7 @@ pub(super) fn validate_owner_and_role_values(
     Ok(())
 }
 
-pub(super) fn validate_evidence_owners(values: &[RelationshipMemoryRef]) -> Result<(), RelationshipError> {
+pub fn validate_evidence_owners(values: &[RelationshipMemoryRef]) -> Result<(), RelationshipError> {
     for value in values {
         validate_bounded_text(
             &value.owner_id,
@@ -270,7 +270,7 @@ pub(super) fn validate_evidence_owners(values: &[RelationshipMemoryRef]) -> Resu
     Ok(())
 }
 
-pub(super) fn validate_bounded_text(
+pub fn validate_bounded_text(
     value: &str,
     max_bytes: usize,
     nonempty: bool,

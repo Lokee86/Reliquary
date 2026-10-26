@@ -1,25 +1,25 @@
 //! Scratch compact Relationship tail tests for facade reconciliation.
 use super::{read_relationship_tail, replay_relationship_tail};
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
-use crate::relationship_codec::{
+use reliquary_perception_store::relationship_codec::{
     RelationshipTombstone, RelationshipVersion, encode_record, encode_tombstone, encode_version,
 };
-use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
+use reliquary_perception_store::relationship_compact_codec::publication::{self, RelationshipPublication};
 use reliquary_container::publication_envelope;
 fn encode_creation(c: &RelationshipCreation) -> Result<Vec<u8>, crate::RelationshipError> {
-    crate::relationship_compact_codec::publication::encode(
-        &crate::relationship_compact_codec::publication::RelationshipPublication::Creation(
+    reliquary_perception_store::relationship_compact_codec::publication::encode(
+        &reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Creation(
             c.clone(),
         ),
     )
 }
 fn encode_delta(d: &RelationshipDelta) -> Result<Vec<u8>, crate::RelationshipError> {
-    crate::relationship_compact_codec::publication::encode(
-        &crate::relationship_compact_codec::publication::RelationshipPublication::Delta(d.clone()),
+    reliquary_perception_store::relationship_compact_codec::publication::encode(
+        &reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Delta(d.clone()),
     )
 }
-use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
-use crate::relationship_model::RelationshipRecord;
+use reliquary_perception_store::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
+use reliquary_perception_store::relationship_model::RelationshipRecord;
 use crate::{
     Cva, EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId, RelationshipParticipant,
 };
@@ -144,7 +144,7 @@ fn raw_owner(path: &Path) -> Cva {
 
     let tombstone = owner
         .container
-        .append(&crate::relationship_compact_codec::publication::encode(&crate::relationship_compact_codec::publication::RelationshipPublication::Tombstone { id: first.id, revision: 3, relationship_version: 3 }).unwrap())
+        .append(&reliquary_perception_store::relationship_compact_codec::publication::encode(&reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Tombstone { id: first.id, revision: 3, relationship_version: 3 }).unwrap())
         .unwrap();
     append_version(&mut owner.container, tombstone, 3, 3);
     owner
@@ -270,7 +270,7 @@ fn orphan_compact_relationship_carrier_is_inert_during_tail_replay() {
 
 #[test]
 fn relationship_tail_rejects_pruned_payload_with_typed_unavailability() {
-    use crate::relationship_model::RelationshipRetainedRevision;
+    use reliquary_perception_store::relationship_model::RelationshipRetainedRevision;
 
     let scratch = Scratch::new();
     let path = scratch.file("pruned.rel");
@@ -299,7 +299,7 @@ fn relationship_tail_rejects_pruned_payload_with_typed_unavailability() {
             .retained_publication_at(global, 1)
             .unwrap(),
         Some(
-            crate::relationship_store::RelationshipReplayPublication::PrunedRecord {
+            reliquary_perception_store::relationship_store::RelationshipReplayPublication::PrunedRecord {
                 revision: RelationshipRetainedRevision { revision: 1, .. },
                 ..
             }
@@ -309,7 +309,7 @@ fn relationship_tail_rejects_pruned_payload_with_typed_unavailability() {
         read_relationship_tail(&mut owner, 0),
         Err(crate::CvaReconcileError::Relationships(
             crate::RelationshipError::PayloadUnavailable(
-                crate::owner_lifecycle::PayloadUnavailable::Pruned
+                reliquary_perception_store::RelationshipPayloadUnavailable::Pruned
             )
         ))
     ));

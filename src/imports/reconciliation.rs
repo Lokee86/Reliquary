@@ -204,7 +204,7 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
                 owner_evidence.push(publication.normalized_import_evidence()?);
             }
             if let Some((global, local)) =
-                crate::relationship_compact_codec::publication::coordinates(&payload)?
+                reliquary_perception_store::relationship_compact_codec::publication::coordinates(&payload)?
             {
                 let publication = cva
                     .relationships
@@ -401,8 +401,8 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
             || crate::memory_routing_codec::decode(&payload)?.is_some()
             || crate::entity_compact_codec::publication::decode(&payload, 1)?.is_some()
             || crate::entity_compact_codec::publication::coordinates(&payload)?.is_some()
-            || crate::relationship_compact_codec::publication::decode(&payload, 1)?.is_some()
-            || crate::relationship_compact_codec::publication::coordinates(&payload)?.is_some()
+            || reliquary_perception_store::relationship_compact_codec::publication::decode(&payload, 1)?.is_some()
+            || reliquary_perception_store::relationship_compact_codec::publication::coordinates(&payload)?.is_some()
             || crate::entity_resolution_codec::delta::is_current(&payload)
             || ((payload.starts_with(b"CVAGCM") || payload.starts_with(b"CVAGCB"))
                 && crate::graph_compact_codec::publication::decode(&payload, 1)?.is_some())

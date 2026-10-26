@@ -1,7 +1,7 @@
 //! Relationship publication-envelope replay and history admission through REL and PHY.
-use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
-use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
-use crate::relationship_model::RelationshipRecord;
+use reliquary_perception_store::relationship_compact_codec::publication::{self, RelationshipPublication};
+use reliquary_perception_store::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
+use reliquary_perception_store::relationship_model::RelationshipRecord;
 use crate::{
     Cva, EntityId, EntityRef, MemoryId, MemoryRef, Phylactery, RelationshipId,
     RelationshipParticipant,

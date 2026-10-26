@@ -826,8 +826,8 @@ fn completed_scope_inventory(
                                  relationship_version: u64,
                                  mutation_id: &str,
                                  summary: &str|
-         -> crate::relationship_model::RelationshipRecord {
-            crate::relationship_model::RelationshipRecord {
+         -> reliquary_perception_store::relationship_model::RelationshipRecord {
+            reliquary_perception_store::relationship_model::RelationshipRecord {
                 id,
                 revision,
                 kind: "supports".into(),
@@ -851,9 +851,9 @@ fn completed_scope_inventory(
             }
         };
         let append_relationship = |cva: &mut Cva,
-                                  publication: crate::relationship_compact_codec::publication::RelationshipPublication,
+                                  publication: reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication,
                                   expected_global: u64| {
-            let body = crate::relationship_compact_codec::publication::encode(&publication).unwrap();
+            let body = reliquary_perception_store::relationship_compact_codec::publication::encode(&publication).unwrap();
             let (global, _) = cva.container.append_publication_envelope(&body).unwrap();
             assert_eq!(global, expected_global);
         };
@@ -867,8 +867,8 @@ fn completed_scope_inventory(
             "Accepted Relationship creation description",
         );
         let first_publication =
-            crate::relationship_compact_codec::publication::RelationshipPublication::Creation(
-                crate::relationship_compact_contract::RelationshipCreation::new(first.clone())
+            reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Creation(
+                reliquary_perception_store::relationship_compact_contract::RelationshipCreation::new(first.clone())
                     .unwrap(),
             );
         append_relationship(&mut cva, first_publication, first_global);
@@ -891,17 +891,17 @@ fn completed_scope_inventory(
             "envelope-relationship-revision",
             "Accepted Relationship revised description",
         );
-        let delta = crate::relationship_compact_contract::RelationshipDelta::between(
+        let delta = reliquary_perception_store::relationship_compact_contract::RelationshipDelta::between(
             &cva.relationships.records().last().unwrap(),
             &next,
         )
         .unwrap();
         let delta_publication =
-            crate::relationship_compact_codec::publication::RelationshipPublication::Delta(
+            reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Delta(
                 delta.clone(),
             );
         append_relationship(&mut cva, delta_publication, next_global);
-        let applied = crate::relationship_compact_apply::apply_delta(
+        let applied = reliquary_perception_store::relationship_compact_apply::apply_delta(
             cva.relationships.records().last().unwrap(),
             &delta,
         )
@@ -919,10 +919,10 @@ fn completed_scope_inventory(
 
         let terminal_global = cva.container.next_version_candidate();
         let terminal_local = cva.relationship_version() + 1;
-        let tombstone = crate::relationship_codec::RelationshipTombstone { id, revision: 3 };
+        let tombstone = reliquary_perception_store::relationship_codec::RelationshipTombstone { id, revision: 3 };
         append_relationship(
             &mut cva,
-            crate::relationship_compact_codec::publication::RelationshipPublication::Tombstone {
+            reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Tombstone {
                 id,
                 revision: tombstone.revision,
                 relationship_version: terminal_local,
@@ -993,7 +993,7 @@ fn completed_scope_inventory(
         for chunk in chunks.iter().take(epoch.end).skip(epoch.first) {
             let payload = reopened.container.read(*chunk).unwrap();
             relationship_envelopes += usize::from(
-                crate::relationship_compact_codec::publication::coordinates(&payload)
+                reliquary_perception_store::relationship_compact_codec::publication::coordinates(&payload)
                     .unwrap()
                     .is_some(),
             );

@@ -1,6 +1,6 @@
 use super::RelationshipStore;
-use crate::relationship_codec::RelationshipTombstone;
-use crate::relationship_model::{RelationshipParticipant, RelationshipRecord};
+use reliquary_perception_store::relationship_codec::RelationshipTombstone;
+use reliquary_perception_store::relationship_model::{RelationshipParticipant, RelationshipRecord};
 use crate::{EntityId, EntityRef, MemoryId, MemoryRef, RelationshipError, RelationshipId};
 use std::collections::{BTreeSet, HashMap};
 

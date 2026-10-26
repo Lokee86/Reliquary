@@ -3,8 +3,8 @@
 
 use crate::RelationshipId;
 use crate::historical_fingerprint::{HistoricalFingerprint, OwnerProjection};
-use crate::relationship_model::RelationshipRecord;
-use crate::relationship_store::RelationshipStore;
+use reliquary_perception_store::relationship_model::RelationshipRecord;
+use reliquary_perception_store::relationship_store::RelationshipStore;
 use reliquary_container::Container;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};

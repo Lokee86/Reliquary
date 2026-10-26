@@ -15,7 +15,7 @@ use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::processing_epoch_store::ProcessingEpochStore;
 use crate::rel_metadata_store::RelMetadataStore;
-use crate::relationship_store::RelationshipStore;
+use reliquary_perception_store::relationship_store::RelationshipStore;
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::{
     Archive, ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, ConversationMetadata,

@@ -1,7 +1,7 @@
 //! Scratch checks for legacy-wire-compatible retained Relationship structure hashes.
-use crate::relationship_codec::encode_record;
-use crate::relationship_model::RelationshipRecord;
-use crate::relationship_retained_structure::encode_record_structure;
+use reliquary_perception_store::relationship_codec::encode_record;
+use reliquary_perception_store::relationship_model::RelationshipRecord;
+use reliquary_perception_store::relationship_retained_structure::encode_record_structure;
 use crate::{EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId, RelationshipParticipant};
 use sha2::{Digest, Sha256};
 

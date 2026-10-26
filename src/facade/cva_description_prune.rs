@@ -105,7 +105,7 @@ impl Cva {
             .filter(|record| record.id == id)
         {
             let record = original;
-            let raw = crate::relationship_retained_structure::encode_record_structure(record)?;
+            let raw = reliquary_perception_store::relationship_retained_structure::encode_record_structure(record)?;
             bytes.extend((raw.len() as u64).to_le_bytes());
             bytes.extend(raw);
             bytes.extend(record.global_version.to_le_bytes());
@@ -145,7 +145,7 @@ impl Cva {
             let bytes = self.container.read(object)?;
             let compact = crate::entity_description_proof::compact_description_proof(&bytes)?;
             let relationship_compact =
-                crate::relationship_description_proof::compact_description_proof(&bytes)?;
+                reliquary_perception_store::relationship_description_proof::compact_description_proof(&bytes)?;
             let payload = if let Some((id, revision, _)) = &relationship_compact {
                 if !self
                     .relationships

@@ -27,8 +27,8 @@ use crate::packed_vector_rebuild::PackedVectorOpenState;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::processing_epoch_store::ProcessingEpochStore;
 use crate::rel_metadata_store::RelMetadataStore;
-use crate::relationship_rebuild::RelationshipOpenState;
-use crate::relationship_store::RelationshipStore;
+use reliquary_perception_store::relationship_rebuild::RelationshipOpenState;
+use reliquary_perception_store::relationship_store::RelationshipStore;
 use crate::vector_generation_rebuild::VectorGenerationOpenState;
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::{Archive, Cva, CvaError};
@@ -471,7 +471,8 @@ impl Cva {
         )?;
         let entities = entity_state.finish(&container)?;
         let relationships = relationship_state.finish(&container)?;
-        relationships.validate_local_references(
+        crate::relationship_owner::validate_historical_local_references(
+            &relationships,
             container.owner_id().as_deref(),
             &memories,
             &entities,

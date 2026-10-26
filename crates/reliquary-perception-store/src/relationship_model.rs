@@ -108,7 +108,7 @@ pub struct RelationshipRetainedRevision {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct RelationshipRecord {
+pub struct RelationshipRecord {
     pub id: RelationshipId,
     pub revision: u64,
     pub kind: String,

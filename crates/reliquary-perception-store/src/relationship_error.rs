@@ -16,6 +16,7 @@ pub enum RelationshipError {
     PayloadUnavailable(crate::RelationshipPayloadUnavailable),
     MissingLocalEntity(EntityId),
     MissingLocalMemory([u8; 32]),
+    MissingOwnerIdentity,
     RevisionConflict,
     MutationConflict,
     InvalidVersion,

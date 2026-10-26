@@ -4,9 +4,9 @@ use crate::entity_compact_codec::publication as entity_publication;
 use crate::entity_compact_contract::EntityCreation;
 use crate::entity_model::EntityRecord;
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
-use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
-use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
-use crate::relationship_model::RelationshipRecord;
+use reliquary_perception_store::relationship_compact_codec::publication::{self, RelationshipPublication};
+use reliquary_perception_store::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
+use reliquary_perception_store::relationship_model::RelationshipRecord;
 use crate::{
     Cva, EntityGlobalId, EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId,
     RelationshipParticipant,
@@ -161,7 +161,7 @@ fn relationship_publication_slot(cva: &mut Cva, global: u64, local: u64) -> usiz
         .iter()
         .position(|chunk| {
             let payload = cva.container.read(*chunk).unwrap();
-            crate::relationship_compact_codec::publication::coordinates(&payload).unwrap()
+            reliquary_perception_store::relationship_compact_codec::publication::coordinates(&payload).unwrap()
                 == Some((global, local))
         })
         .expect("accepted Relationship publication slot")

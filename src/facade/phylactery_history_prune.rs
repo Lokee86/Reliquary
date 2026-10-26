@@ -173,7 +173,7 @@ impl Phylactery {
         )?;
         description_objects.extend(entity_plan.replacements);
         let mut description_discard = entity_plan.discard;
-        let relationship_plan = crate::relationship_description_prune::prepare_description_prune(
+        let relationship_plan = reliquary_perception_store::relationship_description_prune::prepare_description_prune(
             &self.relationships,
             &mut self.container,
             &selected_relationships,
@@ -347,7 +347,7 @@ impl Phylactery {
             let bytes = self.container.read(object)?;
             let compact = crate::entity_description_proof::compact_description_proof(&bytes)?;
             let relationship_compact =
-                crate::relationship_description_proof::compact_description_proof(&bytes)?;
+                reliquary_perception_store::relationship_description_proof::compact_description_proof(&bytes)?;
             let payload = if let Some((id, revision, _)) = &relationship_compact {
                 if !self
                     .relationships
@@ -487,7 +487,7 @@ impl Phylactery {
             .filter(|record| record.id == id)
         {
             let record = original;
-            let raw = crate::relationship_retained_structure::encode_record_structure(record)?;
+            let raw = reliquary_perception_store::relationship_retained_structure::encode_record_structure(record)?;
             append_part(&mut structure, &raw);
             structure.extend(record.global_version.to_le_bytes());
             structure.extend(record.relationship_version.to_le_bytes());

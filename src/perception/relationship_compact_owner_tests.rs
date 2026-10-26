@@ -1,7 +1,7 @@
 //! Scratch integration coverage for ordinary REL and PHY compact owner reopen.
-use crate::relationship_compact_codec::{encode_creation, encode_delta};
-use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
-use crate::relationship_model::RelationshipRecord;
+use reliquary_perception_store::relationship_compact_codec::{encode_creation, encode_delta};
+use reliquary_perception_store::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
+use reliquary_perception_store::relationship_model::RelationshipRecord;
 use crate::{
     Cva, EntityId, EntityRef, MemoryId, MemoryRef, Phylactery, RelationshipId,
     RelationshipParticipant,
@@ -78,8 +78,8 @@ fn append_compact_history(container: &mut reliquary_container::Container) -> Rel
 
     let first = initial_record();
     let creation = RelationshipCreation::new(first.clone()).unwrap();
-    let body = crate::relationship_compact_codec::publication::encode(
-        &crate::relationship_compact_codec::publication::RelationshipPublication::Creation(
+    let body = reliquary_perception_store::relationship_compact_codec::publication::encode(
+        &reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Creation(
             creation,
         ),
     )
@@ -104,8 +104,8 @@ fn append_compact_history(container: &mut reliquary_container::Container) -> Rel
     // A backwards update time is valid because it still follows creation.
     second.updated_at_ns = 11;
     let delta = RelationshipDelta::between(&first, &second).unwrap();
-    let body = crate::relationship_compact_codec::publication::encode(
-        &crate::relationship_compact_codec::publication::RelationshipPublication::Delta(delta),
+    let body = reliquary_perception_store::relationship_compact_codec::publication::encode(
+        &reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Delta(delta),
     )
     .unwrap();
     let bytes = reliquary_container::publication_envelope::encode(

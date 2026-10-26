@@ -3,7 +3,7 @@
 use crate::RelationshipError;
 use crate::relationship_model::RelationshipRecord;
 
-pub(crate) fn encode_record_structure(
+pub fn encode_record_structure(
     record: &RelationshipRecord,
 ) -> Result<Vec<u8>, RelationshipError> {
     let mut out = b"CVARELR1".to_vec();

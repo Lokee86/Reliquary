@@ -1,7 +1,7 @@
 //! Scratch owner replay retry and semantic import-evidence tests.
-use crate::relationship_codec::RelationshipTombstone;
-use crate::relationship_model::RelationshipRecord;
-use crate::relationship_store::{RelationshipReplayPublication, RelationshipStore};
+use reliquary_perception_store::relationship_codec::RelationshipTombstone;
+use reliquary_perception_store::relationship_model::RelationshipRecord;
+use reliquary_perception_store::relationship_store::{RelationshipReplayPublication, RelationshipStore};
 use crate::{
     Cva, EntityId, EntityRef, MemoryId, MemoryRef, RelationshipError, RelationshipId,
     RelationshipParticipant,
@@ -298,7 +298,7 @@ fn exact_coordinate_lookup_and_normalized_evidence_retain_semantics_only() {
     assert!(matches!(
         store.publication_at(17, 1),
         Err(RelationshipError::PayloadUnavailable(
-            crate::owner_lifecycle::PayloadUnavailable::Pruned
+            reliquary_perception_store::RelationshipPayloadUnavailable::Pruned
         ))
     ));
     let pruned_evidence = RelationshipReplayPublication::PrunedRecord {

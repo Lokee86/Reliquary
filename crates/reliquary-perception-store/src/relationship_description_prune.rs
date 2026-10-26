@@ -10,13 +10,13 @@ use reliquary_container::{Container, ObjectRef};
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 
-pub(crate) struct RelationshipDescriptionPrunePlan {
-    pub(crate) replacements: HashMap<ObjectRef, Vec<u8>>,
-    pub(crate) discard: HashSet<ObjectRef>,
+pub struct RelationshipDescriptionPrunePlan {
+    pub replacements: HashMap<ObjectRef, Vec<u8>>,
+    pub discard: HashSet<ObjectRef>,
 }
 
 /// Prepare redacted carriers without writing to the source container or allocating clocks.
-pub(crate) fn prepare_description_prune(
+pub fn prepare_description_prune(
     store: &RelationshipStore,
     container: &mut Container,
     selected: &HashSet<RelationshipId>,

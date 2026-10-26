@@ -1,11 +1,11 @@
 //! Native pruning of Relationship envelope publications in REL and PHY owners.
-use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget, PayloadUnavailable};
+use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget};
 use crate::owner_maintenance::owner_history_digest;
-use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
-use crate::relationship_compact_contract::{
+use reliquary_perception_store::relationship_compact_codec::publication::{self, RelationshipPublication};
+use reliquary_perception_store::relationship_compact_contract::{
     RelationshipCreation, RelationshipDelta, RelationshipDescriptionProof,
 };
-use crate::relationship_model::{RelationshipParticipant, RelationshipRecord};
+use reliquary_perception_store::relationship_model::{RelationshipParticipant, RelationshipRecord};
 use crate::{
     Cva, EntityId, EntityRef, HistoryPruneRequest, MemoryId, MemoryRef, Phylactery, RelationshipId,
 };
@@ -370,7 +370,7 @@ fn rel_and_phy_envelope_pruning_preserves_history_proofs_and_removes_selected_pl
                 assert!(matches!(
                     owner.relationship_revision(selected, revision),
                     Err(crate::RelationshipError::PayloadUnavailable(
-                        PayloadUnavailable::Pruned
+                        reliquary_perception_store::RelationshipPayloadUnavailable::Pruned
                     ))
                 ));
             }
@@ -401,7 +401,7 @@ fn rel_and_phy_envelope_pruning_preserves_history_proofs_and_removes_selected_pl
                 assert!(matches!(
                     owner.relationship_revision(selected, revision),
                     Err(crate::RelationshipError::PayloadUnavailable(
-                        PayloadUnavailable::Pruned
+                        reliquary_perception_store::RelationshipPayloadUnavailable::Pruned
                     ))
                 ));
             }

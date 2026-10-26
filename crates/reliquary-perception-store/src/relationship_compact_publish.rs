@@ -9,7 +9,7 @@ use reliquary_container::Container;
 impl RelationshipStore {
     /// Callers resolve drafts and retries; this seam validates admission before
     /// writing and owns the allocation envelope for ordinary and replay writes.
-    pub(super) fn persist_compact_revision(
+    pub fn persist_compact_revision(
         &mut self,
         container: &mut Container,
         mut record: RelationshipRecord,

@@ -329,7 +329,7 @@ impl Cva {
                 _ => None,
             })
             .collect::<HashSet<_>>();
-        let relationship_plan = crate::relationship_description_prune::prepare_description_prune(
+        let relationship_plan = reliquary_perception_store::relationship_description_prune::prepare_description_prune(
             &self.relationships,
             &mut self.container,
             &selected_relationships,

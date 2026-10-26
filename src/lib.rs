@@ -825,6 +825,8 @@ mod rel_metadata_model;
 mod rel_metadata_store;
 #[path = "perception/relationship_owner.rs"]
 mod relationship_owner;
+#[path = "perception/relationship_product_model.rs"]
+mod relationship_product_model;
 #[path = "facade/review_clocks.rs"]
 mod review_clocks;
 #[path = "config_security/runtime_config.rs"]
@@ -1027,7 +1029,7 @@ pub use entity_candidate_model::{
 };
 pub use entity_error::EntityError;
 pub use entity_model::{
-    Entity, EntityDraft, EntityGlobalId, EntityId, EntityMergeOutcome, EntityRef,
+    Entity, EntityDraft, EntityGlobalId, EntityId, EntityMergeOutcome,
     EntityRetainedRevision, EntityRetentionDescriptor, EntityStats, MAX_ENTITY_ALIASES,
     MAX_ENTITY_KIND_BYTES, MAX_ENTITY_NAME_BYTES, MAX_ENTITY_SUMMARY_BYTES,
 };
@@ -1151,11 +1153,11 @@ pub use project_environment::{ProjectAdoptionSource, ProjectRepositoryMode};
 pub use rel_metadata_model::{
     MAX_REL_DEPENDENCIES, MAX_REL_DEPENDENCY_ID_BYTES, MAX_REL_TYPE_LABEL_BYTES, RelMetadata,
 };
-pub use reliquary_perception_store::{
+pub use reliquary_perception_store::RelationshipError;
+pub use relationship_product_model::{
     MAX_RELATIONSHIP_EVIDENCE, MAX_RELATIONSHIP_KIND_BYTES, MAX_RELATIONSHIP_OWNER_ID_BYTES,
     MAX_RELATIONSHIP_PARTICIPANTS, MAX_RELATIONSHIP_ROLE_BYTES, MAX_RELATIONSHIP_SUMMARY_BYTES,
-    Relationship, RelationshipDraft, RelationshipError, RelationshipId, RelationshipParticipant,
-    RelationshipMemoryRef,
+    Relationship, RelationshipDraft, RelationshipId, RelationshipParticipant,
     RelationshipRetainedRevision, RelationshipRetentionDescriptor, RelationshipStats,
 };
 pub use reliquary_archive::episode_model::{

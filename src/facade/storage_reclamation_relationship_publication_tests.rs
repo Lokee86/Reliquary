@@ -1,21 +1,21 @@
 //! Relationship publication envelopes remain live during reclamation.
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
-use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
+use reliquary_perception_store::relationship_compact_codec::publication::{self, RelationshipPublication};
 use reliquary_container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
 fn encode_creation(c: &RelationshipCreation) -> Result<Vec<u8>, crate::RelationshipError> {
-    crate::relationship_compact_codec::publication::encode(
-        &crate::relationship_compact_codec::publication::RelationshipPublication::Creation(
+    reliquary_perception_store::relationship_compact_codec::publication::encode(
+        &reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Creation(
             c.clone(),
         ),
     )
 }
 fn encode_delta(d: &RelationshipDelta) -> Result<Vec<u8>, crate::RelationshipError> {
-    crate::relationship_compact_codec::publication::encode(
-        &crate::relationship_compact_codec::publication::RelationshipPublication::Delta(d.clone()),
+    reliquary_perception_store::relationship_compact_codec::publication::encode(
+        &reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Delta(d.clone()),
     )
 }
-use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
-use crate::relationship_model::{RelationshipParticipant, RelationshipRecord};
+use reliquary_perception_store::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
+use reliquary_perception_store::relationship_model::{RelationshipParticipant, RelationshipRecord};
 use crate::{Cva, EntityId, EntityRef, MemoryId, MemoryRef, Phylactery, RelationshipId};
 use reliquary_container::{Container, FileKind};
 use sha2::{Digest, Sha256};

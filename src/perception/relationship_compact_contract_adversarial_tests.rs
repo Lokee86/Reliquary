@@ -1,9 +1,9 @@
 //! Additional draft adversarial tests; include in the future contract test module.
-use crate::relationship_compact_contract::{
+use reliquary_perception_store::relationship_compact_contract::{
     RELATIONSHIP_DELTA_KNOWN_MASK, RelationshipCollectionChange, RelationshipCreation,
     RelationshipDelta,
 };
-use crate::relationship_model::{RelationshipParticipant, RelationshipRecord};
+use reliquary_perception_store::relationship_model::{RelationshipParticipant, RelationshipRecord};
 use crate::{
     EntityId, EntityRef, MAX_RELATIONSHIP_EVIDENCE, MAX_RELATIONSHIP_KIND_BYTES,
     MAX_RELATIONSHIP_OWNER_ID_BYTES, MAX_RELATIONSHIP_PARTICIPANTS, MAX_RELATIONSHIP_ROLE_BYTES,
@@ -284,7 +284,7 @@ fn update_time_can_move_backward_but_not_before_creation_and_revision_overflow_r
 
 #[test]
 fn authored_empty_summary_is_distinct_from_explicitly_pruned_summary() {
-    let proof = crate::relationship_compact_contract::RelationshipDescriptionProof {
+    let proof = reliquary_perception_store::relationship_compact_contract::RelationshipDescriptionProof {
         original_carrier_digest: [0xA5; 32],
         manifest_digest: [0x5A; 32],
     };

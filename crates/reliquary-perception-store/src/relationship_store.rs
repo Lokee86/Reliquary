@@ -1,6 +1,6 @@
 #[path = "relationship_replay.rs"]
 mod replay;
-pub(crate) use replay::RelationshipReplayPublication;
+pub use replay::RelationshipReplayPublication;
 #[path = "relationship_compact_publish.rs"]
 mod compact_publish;
 #[path = "relationship_store_read.rs"]
@@ -18,11 +18,11 @@ use reliquary_container::Container;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeSet, HashMap};
 use validation::normalize_draft;
-pub(crate) use validation::validate_record;
+pub use validation::validate_record;
 
 pub struct RelationshipStore {
     records: Vec<RelationshipRecord>,
-    pub(crate) pruned_revisions: BTreeSet<(RelationshipId, u64)>,
+    pub pruned_revisions: BTreeSet<(RelationshipId, u64)>,
     current: HashMap<RelationshipId, usize>,
     by_mutation: HashMap<String, usize>,
     by_participant: HashMap<EntityRef, BTreeSet<RelationshipId>>,
@@ -50,7 +50,7 @@ impl RelationshipStore {
         Ok(())
     }
 
-    pub(crate) fn publish(
+    pub fn publish(
         &mut self,
         container: &mut Container,
         id: Option<RelationshipId>,
@@ -61,7 +61,7 @@ impl RelationshipStore {
         self.publish_normalized(container, id, expected_revision, draft)
     }
 
-    pub(crate) fn publish_replayed(
+    pub fn publish_replayed(
         &mut self,
         container: &mut Container,
         id: Option<RelationshipId>,
@@ -127,7 +127,7 @@ impl RelationshipStore {
         Ok((relationship, true))
     }
 
-    pub(crate) fn insert_rebuilt(
+    pub fn insert_rebuilt(
         &mut self,
         record: RelationshipRecord,
     ) -> Result<(), RelationshipError> {
@@ -256,7 +256,7 @@ impl RelationshipStore {
         ))
     }
 
-    pub(crate) fn insert_tombstone_rebuilt(
+    pub fn insert_tombstone_rebuilt(
         &mut self,
         tombstone: RelationshipTombstone,
         global_version: u64,

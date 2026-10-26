@@ -63,7 +63,7 @@ fn common(
     memories: &crate::memory_store::MemoryStore,
     external: &crate::external_source::publication::ExternalPublicationState,
     entities: &crate::entity_store::EntityStore,
-    relationships: &crate::relationship_store::RelationshipStore,
+    relationships: &reliquary_perception_store::relationship_store::RelationshipStore,
     graph: &crate::graph_owner::GraphOwner,
     ego: &crate::ego_store::EgoStore,
 ) -> Value {

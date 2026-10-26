@@ -1,20 +1,20 @@
 use super::compact_description_proof;
 fn encode_creation(c: &RelationshipCreation) -> Result<Vec<u8>, crate::RelationshipError> {
-    crate::relationship_compact_codec::publication::encode(
-        &crate::relationship_compact_codec::publication::RelationshipPublication::Creation(
+    reliquary_perception_store::relationship_compact_codec::publication::encode(
+        &reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Creation(
             c.clone(),
         ),
     )
 }
 fn encode_delta(d: &RelationshipDelta) -> Result<Vec<u8>, crate::RelationshipError> {
-    crate::relationship_compact_codec::publication::encode(
-        &crate::relationship_compact_codec::publication::RelationshipPublication::Delta(d.clone()),
+    reliquary_perception_store::relationship_compact_codec::publication::encode(
+        &reliquary_perception_store::relationship_compact_codec::publication::RelationshipPublication::Delta(d.clone()),
     )
 }
-use crate::relationship_compact_contract::{
+use reliquary_perception_store::relationship_compact_contract::{
     RelationshipCreation, RelationshipDelta, RelationshipDescriptionProof,
 };
-use crate::relationship_model::RelationshipRecord;
+use reliquary_perception_store::relationship_model::RelationshipRecord;
 use crate::{EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId, RelationshipParticipant};
 
 fn record(revision: u64, mutation_id: &str) -> RelationshipRecord {

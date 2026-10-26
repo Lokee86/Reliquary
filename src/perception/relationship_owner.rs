@@ -1,7 +1,52 @@
-use crate::{
-    Cva, EntityRef, Phylactery, Relationship, RelationshipDraft, RelationshipError, RelationshipId,
-    RelationshipStats,
-};
+use crate::{Cva, EntityRef, MemoryId, Phylactery, Relationship, RelationshipDraft, RelationshipError, RelationshipId, RelationshipStats};
+use reliquary_perception_store::RelationshipStore;
+use crate::memory_store::MemoryStore;
+use crate::entity_store::EntityStore;
+
+pub(crate) fn validate_historical_local_references(
+    store: &RelationshipStore,
+    owner_id: Option<&str>,
+    memories: &MemoryStore,
+    entities: &EntityStore,
+) -> Result<(), RelationshipError> {
+    let current = store.current();
+    if current.is_empty() { return Ok(()); }
+    let owner_id = owner_id.ok_or(RelationshipError::MissingOwnerIdentity)?;
+    for relationship in current {
+        for participant in &relationship.participants {
+            if participant.entity.owner_id == owner_id
+                && !entities.contains_historical(participant.entity.entity_id) {
+                return Err(RelationshipError::MissingLocalEntity(participant.entity.entity_id));
+            }
+        }
+        for evidence in &relationship.evidence {
+            if evidence.owner_id == owner_id
+                && !memories.contains_historical_memory(MemoryId(evidence.memory_id)) {
+                return Err(RelationshipError::MissingLocalMemory(evidence.memory_id));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn validate_live_local_references(
+    owner_id: &str,
+    memories: &MemoryStore,
+    entities: &EntityStore,
+    draft: &reliquary_perception_store::RelationshipDraft,
+) -> Result<(), RelationshipError> {
+    for participant in &draft.participants {
+        if participant.entity.owner_id == owner_id && !entities.contains(participant.entity.entity_id) {
+            return Err(RelationshipError::MissingLocalEntity(participant.entity.entity_id));
+        }
+    }
+    for evidence in &draft.evidence {
+        if evidence.owner_id == owner_id && !memories.contains_memory(MemoryId(evidence.memory_id)) {
+            return Err(RelationshipError::MissingLocalMemory(evidence.memory_id));
+        }
+    }
+    Ok(())
+}
 
 macro_rules! impl_owner {
     ($owner:ty) => {
@@ -15,15 +60,11 @@ macro_rules! impl_owner {
                 let owner_id = self
                     .owner_id()
                     .ok_or(RelationshipError::MissingOwnerIdentity)?;
-                self.relationships.publish(
-                    &mut self.container,
-                    &owner_id,
-                    &self.memories,
-                    &self.entities,
-                    id,
-                    expected_revision,
-                    draft,
-                )
+                let mut draft: reliquary_perception_store::RelationshipDraft = draft.into();
+                reliquary_perception_store::relationship_store_validation::normalize_draft(&mut draft)?;
+                validate_live_local_references(&owner_id, &self.memories, &self.entities, &draft)?;
+                self.relationships.publish(&mut self.container, id, expected_revision, draft)
+                    .map(|(value, changed)| (value.into(), changed))
             }
 
             pub(crate) fn replay_relationship_revision(
@@ -36,8 +77,8 @@ macro_rules! impl_owner {
                     &mut self.container,
                     id,
                     expected_revision,
-                    draft,
-                )
+                    draft.into(),
+                ).map(|(value, changed)| (value.into(), changed))
             }
 
             pub fn relationship(
@@ -45,6 +86,7 @@ macro_rules! impl_owner {
                 id: RelationshipId,
             ) -> Result<Relationship, RelationshipError> {
                 self.relationships.relationship(id)
+                    .map(Into::into)
             }
 
             pub fn tombstone_relationship(
@@ -52,15 +94,19 @@ macro_rules! impl_owner {
                 id: RelationshipId,
                 expected_revision: u64,
             ) -> Result<crate::owner_lifecycle::TombstoneOutcome, RelationshipError> {
-                self.relationships
-                    .tombstone(&mut self.container, id, expected_revision)
+                Ok(match self.relationships.tombstone(&mut self.container, id, expected_revision)? {
+                    reliquary_perception_store::RelationshipTombstoneOutcome::Published(c) =>
+                        crate::owner_lifecycle::TombstoneOutcome::Published(crate::owner_lifecycle::TombstoneCoordinates { global_version:c.global_version, domain_version:c.domain_version }),
+                    reliquary_perception_store::RelationshipTombstoneOutcome::AlreadyTombstoned(c) =>
+                        crate::owner_lifecycle::TombstoneOutcome::AlreadyTombstoned(crate::owner_lifecycle::TombstoneCoordinates { global_version:c.global_version, domain_version:c.domain_version }),
+                })
             }
 
             pub fn relationship_retention_descriptor(
                 &self,
                 id: RelationshipId,
             ) -> Result<crate::RelationshipRetentionDescriptor, RelationshipError> {
-                self.relationships.retention_descriptor(id)
+                self.relationships.retention_descriptor(id).map(Into::into)
             }
 
             pub fn historical_relationship_revision(
@@ -76,7 +122,7 @@ macro_rules! impl_owner {
             > {
                 let value = match self.relationship_revision(id, revision) {
                     Ok(value) => value,
-                    Err(RelationshipError::PayloadUnavailable(reason)) => {
+                    Err(RelationshipError::PayloadUnavailable(reliquary_perception_store::RelationshipPayloadUnavailable::Pruned)) => {
                         let structure = self
                             .relationship_retention_descriptor(id)?
                             .revisions
@@ -85,7 +131,7 @@ macro_rules! impl_owner {
                             .ok_or(RelationshipError::MissingRelationship)?;
                         return Ok(crate::owner_lifecycle::HistoricalPayload::Pruned {
                             structural_history: structure,
-                            reason,
+                            reason: crate::owner_lifecycle::PayloadUnavailable::Pruned,
                         });
                     }
                     Err(error) => return Err(error),
@@ -104,7 +150,10 @@ macro_rules! impl_owner {
                 &self,
                 id: RelationshipId,
             ) -> Result<crate::owner_lifecycle::LifecycleState, RelationshipError> {
-                self.relationships.lifecycle_state(id)
+                Ok(match self.relationships.lifecycle_state(id)? {
+                    reliquary_perception_store::RelationshipLifecycleState::Active => crate::owner_lifecycle::LifecycleState::Active,
+                    reliquary_perception_store::RelationshipLifecycleState::Tombstoned(c) => crate::owner_lifecycle::LifecycleState::Tombstoned(crate::owner_lifecycle::TombstoneCoordinates { global_version:c.global_version, domain_version:c.domain_version }),
+                })
             }
 
             pub fn relationship_revision(
@@ -112,15 +161,15 @@ macro_rules! impl_owner {
                 id: RelationshipId,
                 revision: u64,
             ) -> Result<Relationship, RelationshipError> {
-                self.relationships.relationship_revision(id, revision)
+                self.relationships.relationship_revision(id, revision).map(Into::into)
             }
 
             pub fn relationships(&self) -> Vec<Relationship> {
-                self.relationships.current()
+                self.relationships.current().into_iter().map(Into::into).collect()
             }
 
             pub fn relationships_for_entity(&self, entity: &EntityRef) -> Vec<Relationship> {
-                self.relationships.for_entity(entity)
+                self.relationships.for_entity(entity).into_iter().map(Into::into).collect()
             }
 
             pub fn relationship_version(&self) -> u64 {

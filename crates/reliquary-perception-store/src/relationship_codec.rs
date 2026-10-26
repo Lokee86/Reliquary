@@ -11,27 +11,27 @@ const VERSION_MAGIC: [u8; 8] = *b"CVARELV1";
 const TOMBSTONE_MAGIC: [u8; 8] = *b"CVARELT1";
 
 #[derive(Clone, Copy, Debug)]
-pub(crate) struct RelationshipTombstone {
+pub struct RelationshipTombstone {
     pub id: RelationshipId,
     pub revision: u64,
 }
 
 #[derive(Clone, Copy, Debug)]
-pub(crate) struct RelationshipVersion {
+pub struct RelationshipVersion {
     pub global_version: u64,
     pub relationship_version: u64,
     pub record: ObjectRef,
 }
 
-pub(crate) fn encode_format() -> [u8; 8] {
+pub fn encode_format() -> [u8; 8] {
     FORMAT_MAGIC
 }
 
-pub(crate) fn decode_format(bytes: &[u8]) -> bool {
+pub fn decode_format(bytes: &[u8]) -> bool {
     bytes == FORMAT_MAGIC
 }
 
-pub(crate) fn encode_record(record: &RelationshipRecord) -> Result<Vec<u8>, RelationshipError> {
+pub fn encode_record(record: &RelationshipRecord) -> Result<Vec<u8>, RelationshipError> {
     let mut out = Vec::with_capacity(256);
     out.extend_from_slice(&RECORD_MAGIC);
     out.extend_from_slice(&record.id.0);
@@ -46,7 +46,7 @@ pub(crate) fn encode_record(record: &RelationshipRecord) -> Result<Vec<u8>, Rela
     Ok(out)
 }
 
-pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<RelationshipRecord>, RelationshipError> {
+pub fn decode_record(bytes: &[u8]) -> Result<Option<RelationshipRecord>, RelationshipError> {
     if bytes.len() < 8 || bytes[..8] != RECORD_MAGIC {
         return Ok(None);
     }
@@ -85,7 +85,7 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<RelationshipRecord>, 
     }))
 }
 
-pub(crate) fn encode_version(version: RelationshipVersion) -> Vec<u8> {
+pub fn encode_version(version: RelationshipVersion) -> Vec<u8> {
     let mut out = Vec::with_capacity(40);
     out.extend_from_slice(&VERSION_MAGIC);
     out.extend_from_slice(&version.global_version.to_le_bytes());
@@ -94,7 +94,7 @@ pub(crate) fn encode_version(version: RelationshipVersion) -> Vec<u8> {
     out
 }
 
-pub(crate) fn encode_tombstone(value: RelationshipTombstone) -> Vec<u8> {
+pub fn encode_tombstone(value: RelationshipTombstone) -> Vec<u8> {
     let mut out = Vec::with_capacity(48);
     out.extend_from_slice(&TOMBSTONE_MAGIC);
     out.extend_from_slice(&value.id.0);
@@ -102,7 +102,7 @@ pub(crate) fn encode_tombstone(value: RelationshipTombstone) -> Vec<u8> {
     out
 }
 
-pub(crate) fn decode_tombstone(
+pub fn decode_tombstone(
     bytes: &[u8],
 ) -> Result<Option<RelationshipTombstone>, RelationshipError> {
     if bytes.len() < 8 || bytes[..8] != TOMBSTONE_MAGIC {

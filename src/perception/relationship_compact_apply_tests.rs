@@ -1,10 +1,10 @@
 //! Pure Relationship candidate reconstruction regressions.
-use crate::relationship_compact_apply::apply_delta;
-use crate::relationship_compact_contract::{
+use reliquary_perception_store::relationship_compact_apply::apply_delta;
+use reliquary_perception_store::relationship_compact_contract::{
     RelationshipCollectionChange, RelationshipCreation, RelationshipDelta,
     RelationshipDescriptionProof,
 };
-use crate::relationship_model::RelationshipRecord;
+use reliquary_perception_store::relationship_model::RelationshipRecord;
 use crate::{
     EntityId, EntityRef, MemoryId, MemoryRef, RelationshipError, RelationshipId,
     RelationshipParticipant,

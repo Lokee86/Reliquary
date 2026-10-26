@@ -17,7 +17,7 @@ use reliquary_container::codec::FieldChange;
 use sha2::{Digest, Sha256};
 
 #[path = "relationship_publication_codec.rs"]
-pub(crate) mod publication;
+pub mod publication;
 
 #[cfg(test)]
 #[path = "relationship_publication_codec_tests.rs"]
@@ -29,7 +29,7 @@ const CREATION_FAMILY: &[u8; 6] = b"CVARNC";
 const DELTA_FAMILY: &[u8; 6] = b"CVARND";
 const CHECKSUM_LEN: usize = 32;
 
-pub(super) fn is_compact_record(bytes: &[u8]) -> Result<bool, RelationshipError> {
+pub fn is_compact_record(bytes: &[u8]) -> Result<bool, RelationshipError> {
     if bytes.starts_with(CREATION_FAMILY) {
         decode_creation(bytes)?;
         return Ok(true);
@@ -41,7 +41,7 @@ pub(super) fn is_compact_record(bytes: &[u8]) -> Result<bool, RelationshipError>
     Ok(false)
 }
 
-pub(super) fn encode_creation(
+pub fn encode_creation(
     creation: &RelationshipCreation,
 ) -> Result<Vec<u8>, RelationshipError> {
     validate_creation(creation)?;
@@ -65,7 +65,7 @@ pub(super) fn encode_creation(
     Ok(out)
 }
 
-pub(super) fn decode_creation(bytes: &[u8]) -> Result<RelationshipCreation, RelationshipError> {
+pub fn decode_creation(bytes: &[u8]) -> Result<RelationshipCreation, RelationshipError> {
     require_magic(bytes, CREATION_MAGIC)?;
     let mut cursor = 8;
     let id = RelationshipId(read_fixed(
@@ -103,7 +103,7 @@ pub(super) fn decode_creation(bytes: &[u8]) -> Result<RelationshipCreation, Rela
     }
 }
 
-pub(super) fn encode_delta(delta: &RelationshipDelta) -> Result<Vec<u8>, RelationshipError> {
+pub fn encode_delta(delta: &RelationshipDelta) -> Result<Vec<u8>, RelationshipError> {
     validate_delta(delta)?;
     let mut out = Vec::new();
     out.extend_from_slice(DELTA_MAGIC);
@@ -123,7 +123,7 @@ pub(super) fn encode_delta(delta: &RelationshipDelta) -> Result<Vec<u8>, Relatio
     Ok(out)
 }
 
-pub(super) fn decode_delta(bytes: &[u8]) -> Result<RelationshipDelta, RelationshipError> {
+pub fn decode_delta(bytes: &[u8]) -> Result<RelationshipDelta, RelationshipError> {
     require_magic(bytes, DELTA_MAGIC)?;
     let mut cursor = 8;
     let id = RelationshipId(read_fixed(

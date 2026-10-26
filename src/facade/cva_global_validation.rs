@@ -1,7 +1,7 @@
 use crate::entity_store::EntityStore;
 use crate::graph_owner::GraphOwner;
 use crate::memory_store::MemoryStore;
-use crate::relationship_store::RelationshipStore;
+use reliquary_perception_store::relationship_store::RelationshipStore;
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::{Archive, CvaError};
 

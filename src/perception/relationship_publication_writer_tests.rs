@@ -1,5 +1,5 @@
 //! Ordinary Relationship writes use one allocation envelope per publication.
-use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
+use reliquary_perception_store::relationship_compact_codec::publication::{self, RelationshipPublication};
 use crate::{
     Cva, EntityId, EntityRef, MemoryId, MemoryRef, Phylactery, RelationshipDraft,
     RelationshipError, RelationshipId,

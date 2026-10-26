@@ -3,7 +3,7 @@ use crate::relationship_model::RelationshipRecord;
 use crate::{EntityRef, Relationship, RelationshipError, RelationshipId, RelationshipStats};
 
 impl RelationshipStore {
-    pub(crate) fn current_record_for_replay(
+    pub fn current_record_for_replay(
         &self,
         id: crate::RelationshipId,
     ) -> Result<&crate::relationship_model::RelationshipRecord, crate::RelationshipError> {
@@ -16,7 +16,7 @@ impl RelationshipStore {
             .ok_or(crate::RelationshipError::MissingRelationship)
     }
 
-    pub(crate) fn relationship_revision(
+    pub fn relationship_revision(
         &self,
         id: RelationshipId,
         revision: u64,
@@ -48,7 +48,7 @@ impl RelationshipStore {
             .ok_or(RelationshipError::MissingRelationship)
     }
 
-    pub(crate) fn retention_descriptor(
+    pub fn retention_descriptor(
         &self,
         id: RelationshipId,
     ) -> Result<crate::relationship_model::RelationshipRetentionDescriptor, RelationshipError> {
@@ -85,7 +85,7 @@ impl RelationshipStore {
             revisions,
         })
     }
-    pub(crate) fn relationship(
+    pub fn relationship(
         &self,
         id: RelationshipId,
     ) -> Result<Relationship, RelationshipError> {
@@ -95,7 +95,7 @@ impl RelationshipStore {
             .ok_or(RelationshipError::MissingRelationship)
     }
 
-    pub(crate) fn current(&self) -> Vec<Relationship> {
+    pub fn current(&self) -> Vec<Relationship> {
         let mut values: Vec<_> = self
             .current
             .values()
@@ -105,7 +105,7 @@ impl RelationshipStore {
         values
     }
 
-    pub(crate) fn for_entity(&self, entity: &EntityRef) -> Vec<Relationship> {
+    pub fn for_entity(&self, entity: &EntityRef) -> Vec<Relationship> {
         self.by_participant
             .get(entity)
             .into_iter()
@@ -115,21 +115,21 @@ impl RelationshipStore {
             .collect()
     }
 
-    pub(crate) fn records(&self) -> &[RelationshipRecord] {
+    pub fn records(&self) -> &[RelationshipRecord] {
         &self.records
     }
 
-    pub(crate) fn tombstone_global_versions(&self) -> impl Iterator<Item = u64> + '_ {
+    pub fn tombstone_global_versions(&self) -> impl Iterator<Item = u64> + '_ {
         self.tombstones
             .values()
             .filter_map(|coordinates| coordinates.global_version)
     }
 
-    pub(crate) fn relationship_version(&self) -> u64 {
+    pub fn relationship_version(&self) -> u64 {
         self.next_relationship_version.saturating_sub(1)
     }
 
-    pub(crate) fn stats(&self) -> RelationshipStats {
+    pub fn stats(&self) -> RelationshipStats {
         RelationshipStats {
             relationships: self.current.len(),
             revisions: self.records.len(),

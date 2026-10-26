@@ -7,7 +7,7 @@ const DELTA: &[u8; 8] = b"CVARND02";
 const TOMBSTONE: &[u8; 8] = b"CVARTD02";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum RelationshipPublication {
+pub enum RelationshipPublication {
     Creation(RelationshipCreation),
     Delta(RelationshipDelta),
     Tombstone {
@@ -17,7 +17,7 @@ pub(crate) enum RelationshipPublication {
     },
 }
 
-pub(crate) fn encode(publication: &RelationshipPublication) -> Result<Vec<u8>, RelationshipError> {
+pub fn encode(publication: &RelationshipPublication) -> Result<Vec<u8>, RelationshipError> {
     let mut out = Vec::new();
     match publication {
         RelationshipPublication::Creation(creation) => {
@@ -69,7 +69,7 @@ pub(crate) fn encode(publication: &RelationshipPublication) -> Result<Vec<u8>, R
     Ok(out)
 }
 
-pub(crate) fn decode(
+pub fn decode(
     bytes: &[u8],
     global_version: u64,
 ) -> Result<Option<RelationshipPublication>, RelationshipError> {
@@ -176,7 +176,7 @@ fn validate_terminal(revision: u64, relationship_version: u64) -> Result<(), Rel
 }
 
 /// Publication coordinates only; consumers resolve semantic facts in the owner store.
-pub(crate) fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, RelationshipError> {
+pub fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, RelationshipError> {
     let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };
@@ -195,7 +195,7 @@ pub(crate) fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, Relation
 }
 
 /// Comparison-only carrier in the established marker-bound representation.
-pub(crate) fn comparison_carrier(
+pub fn comparison_carrier(
     publication: &RelationshipPublication,
 ) -> Result<Vec<u8>, RelationshipError> {
     match publication {
@@ -212,7 +212,7 @@ pub(crate) fn comparison_carrier(
     }
 }
 
-pub(crate) fn history_evidence(
+pub fn history_evidence(
     payload: &[u8],
 ) -> Result<Option<(u64, Vec<u8>, [u8; 32])>, RelationshipError> {
     let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? else {

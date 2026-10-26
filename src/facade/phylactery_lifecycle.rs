@@ -19,8 +19,8 @@ use crate::packed_vector_rebuild::PackedVectorOpenState;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::phylactery_profile_store::PhylacteryProfileStore;
 use crate::processing_epoch_store::ProcessingEpochStore;
-use crate::relationship_rebuild::RelationshipOpenState;
-use crate::relationship_store::RelationshipStore;
+use reliquary_perception_store::relationship_rebuild::RelationshipOpenState;
+use reliquary_perception_store::relationship_store::RelationshipStore;
 use crate::{Phylactery, PhylacteryError};
 use reliquary_container::{Container, ContainerIdentity, FileKind};
 use std::path::Path;
@@ -236,7 +236,8 @@ impl Phylactery {
         let memories = memory_state.finish(&mut container)?;
         let entities = entity_state.finish(&container)?;
         let relationships = relationship_state.finish(&container)?;
-        relationships.validate_local_references(
+        crate::relationship_owner::validate_historical_local_references(
+            &relationships,
             container.owner_id().as_deref(),
             &memories,
             &entities,

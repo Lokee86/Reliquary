@@ -6,7 +6,7 @@ use std::collections::BTreeSet;
 
 /// Opaque prune evidence. It proves neither selection nor authorization by itself.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct RelationshipDescriptionProof {
+pub struct RelationshipDescriptionProof {
     /// SHA-256 of original unpruned record carrier, excluding its publication marker.
     pub original_carrier_digest: [u8; 32],
     /// SHA-256 of the complete canonical encoded CVAHPR01 manifest.
@@ -14,13 +14,13 @@ pub(crate) struct RelationshipDescriptionProof {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct RelationshipCreation {
+pub struct RelationshipCreation {
     pub record: RelationshipRecord,
     pub description_proof: Option<RelationshipDescriptionProof>,
 }
 
 impl RelationshipCreation {
-    pub(crate) fn new(record: RelationshipRecord) -> Result<Self, RelationshipError> {
+    pub fn new(record: RelationshipRecord) -> Result<Self, RelationshipError> {
         if record.revision != 1 || record.global_version == 0 || record.relationship_version == 0 {
             return Err(RelationshipError::InvalidVersion);
         }
@@ -31,7 +31,7 @@ impl RelationshipCreation {
         })
     }
 
-    pub(crate) fn new_pruned(
+    pub fn new_pruned(
         record: RelationshipRecord,
         proof: RelationshipDescriptionProof,
     ) -> Result<Self, RelationshipError> {
@@ -45,13 +45,13 @@ impl RelationshipCreation {
 /// A canonical unordered-set change represented with sorted exact values.
 /// Participant role changes are remove-old-tuple plus add-new-tuple.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct RelationshipCollectionChange<T> {
+pub struct RelationshipCollectionChange<T> {
     pub removed: Vec<T>,
     pub added: Vec<T>,
 }
 
 impl<T: Clone + Ord> RelationshipCollectionChange<T> {
-    pub(crate) fn between(previous: &[T], next: &[T]) -> Self {
+    pub fn between(previous: &[T], next: &[T]) -> Self {
         let previous = previous.iter().cloned().collect::<BTreeSet<_>>();
         let next = next.iter().cloned().collect::<BTreeSet<_>>();
         Self {
@@ -60,11 +60,11 @@ impl<T: Clone + Ord> RelationshipCollectionChange<T> {
         }
     }
 
-    pub(crate) fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.removed.is_empty() && self.added.is_empty()
     }
 
-    pub(crate) fn validate_canonical(&self) -> Result<(), RelationshipError> {
+    pub fn validate_canonical(&self) -> Result<(), RelationshipError> {
         if !strictly_sorted(&self.removed)
             || !strictly_sorted(&self.added)
             || self
@@ -85,7 +85,7 @@ fn strictly_sorted<T: Ord>(values: &[T]) -> bool {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct RelationshipDeltaFields {
+pub struct RelationshipDeltaFields {
     pub kind: FieldChange<String>,
     pub participants: RelationshipCollectionChange<RelationshipParticipant>,
     pub evidence: RelationshipCollectionChange<RelationshipMemoryRef>,
@@ -93,17 +93,17 @@ pub(crate) struct RelationshipDeltaFields {
     pub updated_at_ns: FieldChange<i64>,
 }
 
-pub(crate) const RELATIONSHIP_DELTA_FIELD_ORDER: &[&str] = &[
+pub const RELATIONSHIP_DELTA_FIELD_ORDER: &[&str] = &[
     "kind",
     "participants",
     "evidence",
     "summary",
     "updated_at_ns",
 ];
-pub(crate) const RELATIONSHIP_DELTA_KNOWN_MASK: u64 = 0b1_1111;
+pub const RELATIONSHIP_DELTA_KNOWN_MASK: u64 = 0b1_1111;
 
 impl RelationshipDeltaFields {
-    pub(crate) fn between(previous: &RelationshipRecord, next: &RelationshipRecord) -> Self {
+    pub fn between(previous: &RelationshipRecord, next: &RelationshipRecord) -> Self {
         let RelationshipRecord {
             id: _,
             revision: _,
@@ -129,7 +129,7 @@ impl RelationshipDeltaFields {
         }
     }
 
-    pub(crate) fn mask(&self) -> u64 {
+    pub fn mask(&self) -> u64 {
         u64::from(!matches!(self.kind, FieldChange::Unchanged))
             | (u64::from(!self.participants.is_empty()) << 1)
             | (u64::from(!self.evidence.is_empty()) << 2)
@@ -137,7 +137,7 @@ impl RelationshipDeltaFields {
             | (u64::from(!matches!(self.updated_at_ns, FieldChange::Unchanged)) << 4)
     }
 
-    pub(crate) fn validate_canonical(&self) -> Result<(), RelationshipError> {
+    pub fn validate_canonical(&self) -> Result<(), RelationshipError> {
         if self.participants.removed.len() > crate::MAX_RELATIONSHIP_PARTICIPANTS
             || self.participants.added.len() > crate::MAX_RELATIONSHIP_PARTICIPANTS
             || self.evidence.removed.len() > crate::MAX_RELATIONSHIP_EVIDENCE
@@ -151,7 +151,7 @@ impl RelationshipDeltaFields {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct RelationshipDelta {
+pub struct RelationshipDelta {
     pub id: RelationshipId,
     pub previous_revision: u64,
     pub revision: u64,
@@ -163,7 +163,7 @@ pub(crate) struct RelationshipDelta {
 }
 
 impl RelationshipDelta {
-    pub(crate) fn between(
+    pub fn between(
         previous: &RelationshipRecord,
         next: &RelationshipRecord,
     ) -> Result<Self, RelationshipError> {
@@ -204,7 +204,7 @@ impl RelationshipDelta {
         })
     }
 
-    pub(crate) fn between_pruned(
+    pub fn between_pruned(
         previous: &RelationshipRecord,
         next: &RelationshipRecord,
         proof: RelationshipDescriptionProof,
@@ -215,7 +215,7 @@ impl RelationshipDelta {
         Ok(delta)
     }
 
-    pub(crate) fn validate_mask(mask: u64) -> Result<(), RelationshipError> {
+    pub fn validate_mask(mask: u64) -> Result<(), RelationshipError> {
         if mask & !RELATIONSHIP_DELTA_KNOWN_MASK != 0 {
             return Err(RelationshipError::CorruptRecord(
                 "unknown Relationship delta field",

@@ -1,9 +1,9 @@
 use super::*;
-use crate::relationship_compact_contract::{
+use reliquary_perception_store::relationship_compact_contract::{
     RelationshipCollectionChange, RelationshipCreation, RelationshipDelta, RelationshipDeltaFields,
     RelationshipDescriptionProof,
 };
-use crate::relationship_model::RelationshipRecord;
+use reliquary_perception_store::relationship_model::RelationshipRecord;
 use crate::{EntityId, EntityRef, MemoryId, MemoryRef, RelationshipId, RelationshipParticipant};
 use reliquary_container::codec::FieldChange;
 

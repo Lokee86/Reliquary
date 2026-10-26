@@ -4,7 +4,7 @@ use crate::{RelationshipError, RelationshipId, RelationshipRetainedRevision};
 use reliquary_container::Container;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum RelationshipReplayPublication {
+pub enum RelationshipReplayPublication {
     Record(RelationshipRecord),
     PrunedRecord {
         id: RelationshipId,
@@ -17,7 +17,7 @@ pub(crate) enum RelationshipReplayPublication {
 }
 
 impl RelationshipReplayPublication {
-    pub(crate) fn normalized_import_evidence(&self) -> Result<Vec<u8>, RelationshipError> {
+    pub fn normalized_import_evidence(&self) -> Result<Vec<u8>, RelationshipError> {
         let value = match self {
             Self::Record(record) => serde_json::to_vec(&(
                 "relationship-import-evidence-v1",
@@ -77,7 +77,7 @@ fn memory_evidence(values: &[crate::RelationshipMemoryRef]) -> Vec<(&str, [u8; 3
         .collect()
 }
 impl RelationshipStore {
-    pub(crate) fn publication_at(
+    pub fn publication_at(
         &self,
         global: u64,
         local: u64,
@@ -91,7 +91,7 @@ impl RelationshipStore {
             value => Ok(value),
         }
     }
-    pub(crate) fn retained_publication_at(
+    pub fn retained_publication_at(
         &self,
         global: u64,
         local: u64,
@@ -137,7 +137,7 @@ impl RelationshipStore {
         }
         Ok(None)
     }
-    pub(crate) fn replay_publication(
+    pub fn replay_publication(
         &mut self,
         container: &mut Container,
         publication: RelationshipReplayPublication,

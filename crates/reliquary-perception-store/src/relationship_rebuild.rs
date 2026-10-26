@@ -2,20 +2,20 @@ use crate::RelationshipError;
 use crate::relationship_codec::decode_format;
 use reliquary_container::ObjectRef;
 
-pub(crate) struct RelationshipOpenState {
+pub struct RelationshipOpenState {
     store: crate::relationship_store::RelationshipStore,
     format_seen: bool,
 }
 
 impl RelationshipOpenState {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             store: crate::relationship_store::RelationshipStore::empty(),
             format_seen: false,
         }
     }
 
-    pub(crate) fn ingest(
+    pub fn ingest(
         &mut self,
         _chunk: ObjectRef,
         payload: &[u8],
@@ -35,7 +35,7 @@ impl RelationshipOpenState {
         Ok(())
     }
 
-    pub(crate) fn ingest_publication_envelope(
+    pub fn ingest_publication_envelope(
         &mut self,
         envelope: reliquary_container::publication_envelope::PublicationEnvelope<'_>,
         latest_global_version: u64,
@@ -81,7 +81,7 @@ impl RelationshipOpenState {
         Ok(true)
     }
 
-    pub(crate) fn finish(
+    pub fn finish(
         self,
         _container: &reliquary_container::Container,
     ) -> Result<crate::relationship_store::RelationshipStore, RelationshipError> {

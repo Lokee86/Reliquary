@@ -5,7 +5,7 @@ use crate::relationship_model::RelationshipRecord;
 use reliquary_container::codec::apply_field;
 use std::collections::BTreeSet;
 
-pub(crate) fn apply_delta(
+pub fn apply_delta(
     previous: &RelationshipRecord,
     delta: &RelationshipDelta,
 ) -> Result<RelationshipRecord, RelationshipError> {
