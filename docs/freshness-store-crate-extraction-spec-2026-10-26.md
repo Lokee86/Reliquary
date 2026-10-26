@@ -1,0 +1,132 @@
+# Freshness Store crate extraction — implementation specification
+
+**Status:** Proposed; implementation not started by this specification.
+**Repository / branch:** `C:\!bin\workspace\Reliquary-crate-first` · `refactor/crate-first-restart`
+**Baseline:** `ef6cb354` (Ego Store boundary correction)
+**Target:** `crates/reliquary-freshness-store/` — **eighth compiled owner extraction**.
+**Scope:** Correction-only, one bounded staged hard cut. Preserve source history, current format, API and behavior; **no Freshness policy rewrite or new product features**.
+
+## 1. Problem and intended result
+
+`src/freshness_storage.rs` remains a ~2,500-line root-local store despite the completed Container/Memory/Graph/Perception/Ego extractions. Its accepted score state, event/accepted-use receipts, provisional import effects, semantic settlements, compact rewrite baselines, replay and lookup internals directly reference root `MemoryId`, Archive `FragmentId`, public facade `FreshnessEventProof`/`FreshnessEventCut`, root tracing, and `freshness::score/policy/semantic_policy`. These upward imports prevent Owner Lifecycle and History from opening Freshness without pulling in policy and other higher services.
+
+Extract **one actual compiled `reliquary-freshness-store`**: the canonical owner of admitted **Freshness records, event/receipt identity, accepted effects, scoped settlements and their materialized projections**. The store validates records against pinned existing contracts and reconstructs owner state through Container. It does **not** choose reinforcement recipients, traverse Graph, infer accepted use, authorize source owners, or construct historical events.
+
+**Container owns all physical persistence.** The new store consumes Container append/cursor/replay and preexisting ephemeral scratch assistance; it is **not** another database, journal format, global version authority, file manager, or separate physical backend.
+
+**Required Cargo constraint:** only `reliquary-container` among Reliquary library dependencies; regular external `sha2`, `serde`, `serde_json`, `uuid` only if exercised by moved code. No `reliquary-memory-core`, Archive, Graph, Dream, Freshness service, Import, History, Runtime or product root dependency. The accepted [physical crate map](architecture/crate-map.json) and [component DAG](architecture/component-dag.json) are the authority.
+
+### Expected developer outcome
+
+Owner Lifecycle can open, replay and query Freshness through this lower crate without importing `reliquary-freshness`; History can inspect exact accepted effects without executing live reinforcement; higher services still perform all graph/semantic/history **planning**. There is one source of truth for score record structure and one accepted journal/replay implementation.
+
+## 2. Governing contracts
+
+| Authority | Constraint |
+| --- | --- |
+| [Crate-first architecture](crate-first-architecture.md), [layout specification](crate-first-layout-spec-2026-10-25.md), [dependency map](architecture/crate-map.json) | Rank-2 store below higher Freshness service, Owner Lifecycle, History and Maintenance. No reverse physical edge. Migrate once; delete the displaced root owner. |
+| [ADR 0001](decisions/0001-purpose-built-database-ownership.md), [scope ownership](subsystems/scope-ownership.md) | REL-local owner state, no PHY import of a REL activity clock. Writer admission, physical frames and owner identity remain Container/held REL responsibilities. |
+| [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md), [Freshness subsystem](subsystems/freshness.md) | Score -100..+100; new publication +100; active Web admission; lazy -1/10 accepted REL turns with retained remainder; accepted-use +25, first-cycle Dream +50, community-dependent propagation only from real events. **Store accepts validated effects, not propagation decisions.** |
+| [Live semantic contract](freshness-live-semantic-policy-contract.md) | Existing intrinsic F8 local-only, provenance/keyed receipts, policy version/digest, idempotence and no credit from passive inspection; source matching, embeddings, cosine and candidate planning remain higher. |
+| [ADR 0040](decisions/0040-terminal-tombstones-and-import-epochs.md), [ADR 0041](decisions/0041-semantic-import-boundaries-owner-pruning-history-rewrite.md), [ADR 0042](decisions/0042-minimal-lossless-current-history.md), [storage format](storage-format.md) | Preserve exact current replay, accepted receipts and semantic import-settlement identity/order. No arbitrary historical repair, silent legacy admission, lossy compaction or new physical clock. |
+| [Historical disposition](freshness-historical-production-disposition-2026-10-13.md), [historical manifest](freshness-historical-manifest-policy.md), [semantic maintenance](subsystems/semantic-maintenance.md) | Historical scorer/planner and source/graph authorization stay in higher History/Import coordination. Freshness Store validates and accepts resulting existing sparse owner settlement evidence. |
+| [Ego Store extraction](ego-store-crate-extraction-spec-2026-10-26.md), [Perception Store extraction](perception-store-crate-extraction-spec-2026-10-26.md) | Copy the **ownership pattern**, not a duplicate generic lifecycle vocabulary or compatibility adapter. Existing public signatures remain at product boundary. |
+
+**Current branch vs corpus:** inspected source currently implements `CVAFRS02` journal / `CVAFRS06` semantic settlement, plus other specified current record families. The crate-first plan separately requires **promotion/recovery of `CVAFRS07` current-format semantic Freshness evidence from the preserved refactor and verification against the authoritative six-file corpus**. Do not fabricate `CVAFRS07` encoding in this extraction, revive retired `CVAFRS03/04/05` readers, equate current code with promoted corpus acceptance, or conflate format recovery with Cargo boundary completion.
+
+## 3. Concrete source ownership
+
+The existing `crates/reliquary-freshness-store/Cargo.toml` / `src/lib.rs` are placeholders. They are not implementation evidence.
+
+### Move into `reliquary-freshness-store`
+
+| Existing source | Final responsibility |
+| --- | --- |
+| `src/freshness_storage.rs` | The **one** accepted Freshness journal / `FreshnessStore`: versions, immutable receipts, event membership, bounded recent residency, records/birth/admit indexes, append validation, exact retry, source-cut replay and projection. |
+| `src/freshness/freshness_storage_{stream,rebuild,membership,ordering}.rs` | Reuse existing exact prefix/interval scans, bounded disposable rebuild lookup, negative membership hint, bounded deterministic event ordering. None is a second authoritative persistence layer; scratch files remain disposable and do not change accepted Container history. |
+| `src/freshness/freshness_{import_events,import_settlement,semantic_settlement}.rs` | Concrete accepted event identity/scopes, immutable import attribution **evidence**, current semantic settlement codec / replay / sparse projection. Leave ImportStart/Complete authority and manifest preparation with Import/CVA. |
+| `src/freshness/freshness_{rewrite_baseline,semantic_activation}.rs` | Accepted rewrite baseline / partial decay carry, semantic activation evidence, owner-bound checksums and exact replay; no rewrite or F8 source-selection policy. |
+| Selected **data/math** from `src/freshness/policy.rs` and `score.rs` | One canonical `FreshnessPolicy` default/validation + version constants; `FreshnessRecord`, `FreshnessState`, `FreshnessError`, lazy record arithmetic and initial-decay-carry calculation **needed to interpret/persist scores**. Upper service reuses these definitions, not parallel copies. |
+| The concrete immutable **event proof / cut value shapes** now in `src/facade/cva_freshness.rs` | Canonical `FreshnessEventProof` (`graph_version`, `community_generation`, `community_graph_version`) and `FreshnessEventCut` (`rel_turn`, optional inclusive ID, `graph_version`) **as stored/query facts only**. Root publicly re-exports, checks Graph/Community validity above the store. |
+
+Move owner-local codec/effect tests with these modules; preserve exact byte fixtures. `FreshnessStore` methods may retain `Result<_, String>` where that is the actual internal contract; don't manufacture a broad multi-owner error hierarchy.
+
+### Keep at root / later higher crates
+
+- **Freshness service:** `src/freshness/propagation.rs`, higher `semantic_policy.rs` cosine/curve/candidate reduction, historical `historical_{planner,propagation,scorer,semantic,dream}.rs`; `src/runtime_inference/freshness_access.rs` and Dream/use F8 producers; their output is validated immutable event/effect facts for the store.
+- **Derived scheduling:** `src/freshness_due.rs` / `FreshnessDueDispatcher` and root `cva_freshness_due.rs` decide due notifications, drain limits and owner settlement. Split `score.rs` carefully: keep `FreshnessBoundaryIndex` and `next_state_boundary{_with_policy}` in higher scheduling/value-consumer code unless the exact indexed math is genuinely store-local; preserve the current **public MemoryId-typed** scheduler API. Do not move the dispatcher into the store solely because it uses scores.
+- **Dream owner, not Freshness journal:** `src/freshness_dream_journal.rs`, `src/freshness/dream_begin_codec.rs`, `dream_population_digest.rs`, `src/facade/cva_dream_journal_replay.rs`; their first-pass intent, graph-cut and Begin proof are a **future Dream Store extraction**, not part of this cut. Existing root orchestrator connects its accepted Dream facts to Freshness Store. Do not move or duplicate CVDREAM1/CVDREAM2.
+- **Product/coordination:** `src/facade/cva_freshness.rs`, `cva_reconcile_freshness.rs`, `cva_historical_import.rs`, `historical_manifest.rs`, `historical_import_input.rs`, `historical_freshness_fingerprint.rs`, `historical_freshness_values.rs`, `cva_semantic_{live,source,fragment}.rs`; `src/facade/cva_lifecycle.rs`; Import, Maintenance, Runtime and historical rebuild operations. They own grants, clocks, candidate provenance, stable source proof, cross-owner comparisons and orchestrated writes.
+- **Instrumentation:** `src/freshness/trace.rs` remains optional higher-level operational telemetry. Move only minimal measurements intrinsic to the stored acceptance hot path if feasible without a tracing service dependency or new cross-crate framework; do not change behavior for tracing.
+
+**No service extraction:** `reliquary-freshness` itself is reserved and must not be represented as implemented by this step.
+
+## 4. Exact inverse dependencies to cut
+
+| Current concrete coupling | Required hard-cut contract |
+| --- | --- |
+| `FreshnessStore` and score maps use `crate::MemoryId` from Memory Core | Durable payload stores only stable **32-byte** Memory identities. Define one narrow typed owner-local `FreshnessMemoryId([u8;32])` (or equally minimal internal shape) and direct conversions at the root product boundary. Preserve ordering, hashing, byte layout and `Cva::freshness_record(MemoryId)`; no memory-core Cargo edge, generic IDs crate, second MemoryStore or intrusive public memory-ID replacement. |
+| Semantic `SemanticFragmentEvidence.fragment_id: crate::FragmentId` from Archive | Use exact 32-byte foreign Fragment identity in stored evidence, with root conversion. Source-fragment existence, owner/Node binding and Archive vector proof are **caller-authorized**; the lower store cannot query Archive. `semantic_fragment_event_id` must remain byte-for-byte identical. |
+| Rewrite baseline embeds `HistoryGenerationId` from `src/rewrite_lineage.rs` | Use exactly its existing 16-byte generation value in the store, with root conversion/validation of source-generation ownership; rewrite authorization/generation construction remains Maintenance/Container-adjacent composition. Do not move `RewriteLineageStore` into Freshness Store. |
+| `crate::FreshnessEventProof`, `crate::FreshnessEventCut` defined under `cva_freshness.rs` | Move canonical **value** types to store; retain root exports and Cva API signatures. Graph/Community snapshot/clock availability and authorized historical REL cut checks remain at root. Valid proof fields are not evidence of source authorization by themselves. |
+| `FreshnessStore` imports `crate::freshness::{FreshnessPolicy, FreshnessRecord}` / score math | Relocate once the **persisted numerical value and validation** subset; higher Freshness service re-exports/consumes that same canonical set. Keep propagation, graph candidate ranking, F8 cosine computations, historical scoring and due scheduling higher. No cyclic `reliquary-freshness` edge. |
+| `FreshnessStore` calls `semantic_policy::SEMANTIC_BONUS_CAP` and Activation uses `SemanticPolicy::default().digest()` | Place just the current immutable **persisted semantic-policy identity** (version, canonical descriptor/digest and accepted bonus cap) in a concrete store-level wire contract shared by higher planner through import/re-export, with literal digest golden tests. Leave `SemanticPolicy` candidate matching / cosine / ranking and policy decisions above. No duplicated frozen numerical constants that can drift. |
+| Journal calls root `freshness_trace::measure/record` | Remove upward logging import. Instrument actual caller boundaries in existing root trace path, or move only narrowly required measurement into the lower crate without creating an abstraction layer. Default behavior, prefix-scan work and bounded memory/time must remain the same. |
+| `FreshnessStore` has `ImportEventScope`, `HistoricalImportFreshnessSettlement` and `CVAFRS06` authoring helpers | Store validates exact owner/event/policy/settlement data and appends through caller's Container; Import/CVA constructs authorized source set, epoch token, owner/Archive/Graph cuts, manifest and verified sparse replacement. Never accept a caller-supplied physical offset alone as semantic admission. |
+| `FreshnessDueDispatcher` reads stored records; `DreamFreshnessJournal` supplies pending births and first-cycle proof | Higher product owns both and passes validated, minimal exact facts into the canonical store. No reverse Store→Dream/Graph/Archive dependency, no duplicate volatile journal projection and no new event queue. |
+
+**Validation responsibility must not be lost during conversion.** Root performs foreign owner/identity, Archive accepted-turn, fragment provenance, Graph Community and source eligibility checks **before** creating an accepted event. Store enforces intrinsic record shape, policy pin, recipient score bounds, sorted effects, predecessor consistency, exact idempotent receipt identity, owner UUID, safe prefix scanning and event/settlement replay ordering. Error precedence/no-append behavior must match the existing system.
+
+Avoid wrapping the *entire* root MemoryStore/Cva/GraphOwner as a trait, import callback or general proof carrier. Use finite already accepted facts.
+
+## 5. Immutable format, replay, and performance invariants
+
+**Literal current families observed in source:**
+- `CVAFRS02`: owner-scoped Freshness initialization, Web admission, event/effect postimages, accepted-use receipt and grouped accepted-use batch evidence. Preserve per-entry identity, accepted turn, provenance, `FreshnessEventProof`, exact effects and after-record state.
+- `CVAFRP01`: owner-pinned Freshness policy version/defaults. Preserve successful derived birth before explicit policy persistence; no retroactive policy change once enrolled.
+- `CVAFSA01`: accepted semantic-activation metadata and completion/policy-digest safeguards.
+- `CVAFRB01`: authenticated Freshness rewrite baseline with exact source/destination cuts, retained prior record, decay carry/remainder and generation evidence.
+- `CVAFRS06`: semantic Historical Import Freshness settlement with owner/import/source digests, accepted event identities/digests, sparse recipients, policy identity, completed version cuts and predecessor continuity. No physical-prefix authority survives as a substitute for semantic accepted-event evidence.
+
+Recognized but retired unsupported families fail closed. Do not add a fallback V1 reader or silently coerce unrecognized `CVAFRS` versions; preserve currently legitimate unknown unrelated owner records as non-Freshness. The `CVAFRS07` promotion/corpus gap is a **separate required product recovery** under the existing crate-first recovery contract.
+
+**Scoring:** same bounded score and lazy account position; accepted-turn activity from owner Archive only. Direct creation +100 / no propagation; first active settled Dream admission anchors decay exactly once; accepted-use +25 and Dream +50 originate only from approved upper events; F8 accepted semantic event is local and non-propagating. No score change from passive read, candidate match alone or raw body hydration. No per-turn full-Web rewrite.
+
+**Exactly once:** accepted receipt retry at identical identity/content is a no-op; conflicting duplicate identity rejects without adding state; accepted-use batch effects commit atomically with receipt; replay after any accepted prefix preserves identical records and deduplication; later same-REL-turn accepted receipts do not disappear behind an import settlement. Historical import supersedes only specifically attributed provisional scoring, not unrelated later live activity.
+
+**Memory and CPU:** preserve bounded recent receipts (`RECENT_LIMIT` / byte limit), negative-only receipt membership and exact fallback, finite journal scans and disposable rebuild scratch, bounded external sorting (current `RUN_BYTES`), nonduplicated accepted effect vectors, ordered prefix/incremental replay. Do **not** clone complete `FreshnessStore` or rescan all accepted history for each event/group. Never introduce a persistent parallel history index or another semantic ledger.
+
+**Physical boundary:** append/sync/scan via Container; store replay remains passive (no writes on reopen). Reconciliation, history rewrite, prune/reclaim and import completion retain their existing explicit owners. Existing operational tracing must not force a new cross-crate runtime logger.
+
+## 6. Bounded execution plan
+
+1. **Freeze baseline and inventory only changed neighborhood:** confirm `ef6cb354` or newer, branch, and staged/dirty state. An unrelated long-standing worktree edit to `docs/graph-crate-extraction-evidence-2026-10-26.md` must remain untouched. Use `rg`, manifest/module inspection and direct tests; fresh Arcana scan is not required when old schema/evidence is stale.
+2. **Extract primitive durable contracts first:** move canonical score record/policy and supporting arithmetic (split `score.rs` between value/decay and derived due scheduling), plus immutable event proof/cut values. Identify precise `MemoryId`/`FragmentId`/`HistoryGenerationId` boundary conversions. Preserve public root types and test fixtures.
+3. **Move owner journal and exact codec once:** relocate `freshness_storage.rs` and six relevant storage/index/replay submodules directly into the real crate. Cut root diagnostics import, upper semantic-policy imports and product aliases. Compile with Container, external hash/serde/uuid only as actually needed.
+4. **Move accepted settlements/activation/rewrite baseline:** keep codec and acceptance authority inside the same Freshness Store, but Import/CVA source proof and History authorization outside. Keep actual `CVAFRS06` format and owner-bound replay; avoid introducing `CVAFRS07` here without the separate existing recovery plan.
+5. **Rewire consumers directly:** REL open/rebuild/birth, accepted-use batch, F8 live, Dream first pass, History/historical reconstruction, import/reconcile, root API and detached CLI use one compiled store. Keep `FreshnessDueDispatcher` with the higher product. Delete the old root store, displaced values and `#[path]` declarations. Do not introduce a forwarding `mod freshness_storage` wrapper, duplicate scorer type, compatibility codec or temporary dual-write.
+6. **Integrate:** update manifest/locks, [Rust API](api.md), [architecture](architecture.md), [maintainer map](maintainer-map.md), [Freshness subsystem](subsystems/freshness.md), [current limitations](current-limitations.md) and this spec/evidence after tests. Commit implementation separately from this specification. Do not stage unrelated Graph evidence changes.
+
+A bounded red intermediate build is acceptable during the declared hard cut. It does not authorize ending with broken product integration.
+
+## 7. Existing tests and acceptance gates
+
+Move/split *owner-local* tests only: `src/freshness_storage_tests.rs`, `src/freshness/freshness_effect_storage_contract_tests.rs`, `freshness_semantic_settlement_tests.rs`, `freshness_storage_membership.rs` and ordering tests, `freshness_rewrite_baseline.rs` tests, `policy.rs` and score-record tests. Preserve existing literal vector/round-trip, cutoff and malformed-prefix fixtures; add only narrow tests for changed foreign-ID and immutable policy-descriptor interfaces.
+
+Keep **root cross-owner tests**: `src/facade/cva_freshness_r2_tests.rs`, `freshness_recovery_tests.rs`, `freshness_dream_history_tests.rs`, `cva_semantic_fragment_tests.rs`, `cva_semantic_source_tests.rs`, `historical_import_attribution_tests.rs`, `historical_freshness_fingerprint_tests.rs`, native import/reconciliation, REL owner reopening, rewrite/reclaim, Dream/Graph and accepted-use/host delivery. Historical scorer / propagation / semantic-policy suites stay with the higher service until its own extraction.
+
+**Required correctness checks:**
+1. Literal native byte equivalence for `CVAFRS02`, `CVAFRP01`, `CVAFSA01`, `CVAFRB01`, `CVAFRS06` and all supported root event/fragment/cut types. Unknown versions, truncated bodies, failed checksums, bad owner/digest/sequence reject exactly as before.
+2. Creation, delayed admission, lazy decay with remainder, bounded score, retries, duplicate/conflicting event IDs, grouped accepted-use atomicity, complete reopen on accepted/crash prefixes; rejected changes do not append or mutate projection.
+3. Cross-crate Memory/Fragment/history-generation identities retain exact bytes; source/recipient/Graph proof validated at root; REL accepted turn is never derived from Memory or wall time.
+4. F8 source policy pin/current-only candidate effect semantics and non-propagation, original Dream first-pass delivery; no new implicit accepted-use event from retrieval.
+5. Import scope and sparse semantic settlement exact ordering/identity, superseded event handling, same-turn later live receipts and historical canonical fingerprints; no implicit recovery on passive open.
+6. Rebuild scratch cleans itself; bounded receipt residency/lookup negative-hint behavior, stable event sort and unchanged performance characteristics. No duplicated live store, no hidden higher Cargo dependencies.
+
+**Commands:** `cargo check -p reliquary-freshness-store --locked --offline`, `cargo test -p reliquary-freshness-store --locked --offline`; scoped root Freshness/Dream/semantic source/import/reconciliation/history/maintenance tests; `cargo check --workspace --locked --offline`; `cargo fmt --all -- --check`; `cargo test --manifest-path cli/Cargo.toml --locked --offline` (independent CLI lockfile). Inspect source and Cargo for no displaced root FreshnessStore, no upward imports and no alternative journal. Check actual test execution evidence; don't report old historical tests green without running them.
+
+**Completion means:** real compiled `FreshnessStore` + codecs/replay are in the rank-2 crate and consumed by owner/product; Cargo downward dependency enforced; current wire/score/history behavior protected by focused tests; workspace and CLI integrate; obsolete internal code is removed; changes committed. This does **not** certify unfiltered whole-product tests or the preserved `CVAFRS07` recovery/corpus gate.
+
+## 8. Out of scope
+
+No new Freshness threshold, propagation or candidate selection policy; no PHY Freshness, no new semantic ledger, accepted-use inference, Dream Store extraction, Graph projection redesign, historical reconstruction algorithm rewrite, explicit Import settlement recovery work, History/Maintenance/Owner Lifecycle crate extraction, generic contracts or source-proof framework, automatic inference/corpus migration, new persistent format/clock, or runtime-host delivery redesign.

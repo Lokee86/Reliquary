@@ -42,6 +42,7 @@
 - [Echo crate extraction specification](echo-crate-extraction-spec-2026-10-26.md) — fourth compiled owner cut: source-keyed execution evidence, CVAECHO1 replay, runtime/Context Engine authority separation and integration gates.
 - [Perception Store crate extraction specification](perception-store-crate-extraction-spec-2026-10-26.md) — sixth compiled owner cut: Entity, mention-resolution and Relationship persistence below Perception service and Owner Lifecycle.
 - [Ego Store crate extraction specification](ego-store-crate-extraction-spec-2026-10-26.md) — seventh compiled owner cut: Identity, Personality, Anchor and current text synthesis persistence, distinct from future Ego inference; current implementation ownership is documented in [Ego subsystem](subsystems/ego.md).
+- [Freshness Store crate extraction specification](freshness-store-crate-extraction-spec-2026-10-26.md) — eighth compiled owner cut: durable score records, event/accepted-use journal, exact replay and import settlements below Freshness policy and scheduling.
 - [Subsystem documentation](subsystems/INDEX.md) — focused current-state ownership, behavior, lifecycle, failure, and implementation maps.
 - [Architectural invariants](invariants.md) — governing ownership and storage constraints.
 - [Storage format](storage-format.md) — exact current REL/PHY persistent-record format, legacy CVA compatibility, and migration boundary.
