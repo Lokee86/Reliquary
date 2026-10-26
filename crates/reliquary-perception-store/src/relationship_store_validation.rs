@@ -2,7 +2,7 @@ use crate::relationship_model::RelationshipRecord;
 use crate::{
     EntityRef, MAX_RELATIONSHIP_EVIDENCE, MAX_RELATIONSHIP_KIND_BYTES,
     MAX_RELATIONSHIP_OWNER_ID_BYTES, MAX_RELATIONSHIP_PARTICIPANTS, MAX_RELATIONSHIP_ROLE_BYTES,
-    MAX_RELATIONSHIP_SUMMARY_BYTES, MemoryRef, RelationshipDraft, RelationshipError,
+    MAX_RELATIONSHIP_SUMMARY_BYTES, RelationshipMemoryRef, RelationshipDraft, RelationshipError,
 };
 
 pub(super) fn normalize_draft(draft: &mut RelationshipDraft) -> Result<(), RelationshipError> {
@@ -49,7 +49,7 @@ pub(crate) fn validate_record(record: &RelationshipRecord) -> Result<(), Relatio
 fn validate_fields(
     kind: &str,
     participants: &[crate::RelationshipParticipant],
-    evidence: &[MemoryRef],
+    evidence: &[RelationshipMemoryRef],
     summary: &str,
     mutation_id: &str,
     created_at_ns: i64,
@@ -107,8 +107,8 @@ fn invalid_text(value: &str, max_bytes: usize, require_nonempty: bool) -> bool {
         || value.chars().any(char::is_control)
 }
 
-fn compare_memory_ref(left: &MemoryRef, right: &MemoryRef) -> std::cmp::Ordering {
+fn compare_memory_ref(left: &RelationshipMemoryRef, right: &RelationshipMemoryRef) -> std::cmp::Ordering {
     left.owner_id
         .cmp(&right.owner_id)
-        .then_with(|| left.memory_id.0.cmp(&right.memory_id.0))
+        .then_with(|| left.memory_id.cmp(&right.memory_id))
 }

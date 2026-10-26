@@ -1,7 +1,7 @@
 //! companion value helpers for Relationship compact frames.
 use crate::{
     EntityId, EntityRef, MAX_RELATIONSHIP_EVIDENCE, MAX_RELATIONSHIP_OWNER_ID_BYTES,
-    MAX_RELATIONSHIP_PARTICIPANTS, MAX_RELATIONSHIP_ROLE_BYTES, MemoryId, MemoryRef,
+    MAX_RELATIONSHIP_PARTICIPANTS, MAX_RELATIONSHIP_ROLE_BYTES, RelationshipMemoryRef,
     RelationshipError, RelationshipParticipant,
 };
 
@@ -84,7 +84,7 @@ pub(super) fn read_participants(
 
 pub(super) fn write_evidence(
     out: &mut Vec<u8>,
-    values: &[MemoryRef],
+    values: &[RelationshipMemoryRef],
 ) -> Result<(), RelationshipError> {
     if values.len() > MAX_RELATIONSHIP_EVIDENCE {
         return Err(RelationshipError::FieldTooLarge);
@@ -92,7 +92,7 @@ pub(super) fn write_evidence(
     write_count(out, values.len())?;
     for value in values {
         write_string(out, &value.owner_id)?;
-        out.extend_from_slice(&value.memory_id.0);
+        out.extend_from_slice(&value.memory_id);
     }
     Ok(())
 }
@@ -100,7 +100,7 @@ pub(super) fn write_evidence(
 pub(super) fn read_evidence(
     bytes: &[u8],
     cursor: &mut usize,
-) -> Result<Vec<MemoryRef>, RelationshipError> {
+) -> Result<Vec<RelationshipMemoryRef>, RelationshipError> {
     let count = read_count(bytes, cursor)?;
     if count > MAX_RELATIONSHIP_EVIDENCE {
         return Err(RelationshipError::CorruptRecord(
@@ -109,13 +109,13 @@ pub(super) fn read_evidence(
     }
     let mut values = Vec::with_capacity(count);
     for _ in 0..count {
-        values.push(MemoryRef {
+        values.push(RelationshipMemoryRef {
             owner_id: read_string(bytes, cursor)?,
-            memory_id: MemoryId(read_fixed::<32>(
+            memory_id: read_fixed::<32>(
                 bytes,
                 cursor,
                 "truncated compact Relationship Memory ID",
-            )?),
+            )?,
         });
     }
     Ok(values)
@@ -258,7 +258,7 @@ pub(super) fn validate_owner_and_role_values(
     Ok(())
 }
 
-pub(super) fn validate_evidence_owners(values: &[MemoryRef]) -> Result<(), RelationshipError> {
+pub(super) fn validate_evidence_owners(values: &[RelationshipMemoryRef]) -> Result<(), RelationshipError> {
     for value in values {
         validate_bounded_text(
             &value.owner_id,

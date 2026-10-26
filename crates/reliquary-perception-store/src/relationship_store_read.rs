@@ -23,7 +23,7 @@ impl RelationshipStore {
     ) -> Result<Relationship, RelationshipError> {
         if self.pruned_revisions.contains(&(id, revision)) {
             return Err(RelationshipError::PayloadUnavailable(
-                crate::owner_lifecycle::PayloadUnavailable::Pruned,
+                crate::RelationshipPayloadUnavailable::Pruned,
             ));
         }
         self.records
@@ -33,18 +33,18 @@ impl RelationshipStore {
             .ok_or(RelationshipError::MissingRelationship)
     }
 
-    pub(crate) fn lifecycle_state(
+    pub fn lifecycle_state(
         &self,
         id: RelationshipId,
-    ) -> Result<crate::owner_lifecycle::LifecycleState, RelationshipError> {
+    ) -> Result<crate::RelationshipLifecycleState, RelationshipError> {
         if let Some(&coordinates) = self.tombstones.get(&id) {
-            return Ok(crate::owner_lifecycle::LifecycleState::Tombstoned(
+            return Ok(crate::RelationshipLifecycleState::Tombstoned(
                 coordinates,
             ));
         }
         self.current
             .contains_key(&id)
-            .then_some(crate::owner_lifecycle::LifecycleState::Active)
+            .then_some(crate::RelationshipLifecycleState::Active)
             .ok_or(RelationshipError::MissingRelationship)
     }
 

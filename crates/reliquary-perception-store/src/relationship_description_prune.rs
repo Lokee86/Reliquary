@@ -104,7 +104,7 @@ pub(crate) fn prepare_description_prune(
             }
             RelationshipReplayPublication::PrunedRecord { id, .. } if selected.contains(&id) => {
                 return Err(RelationshipError::PayloadUnavailable(
-                    crate::owner_lifecycle::PayloadUnavailable::Pruned,
+                    crate::RelationshipPayloadUnavailable::Pruned,
                 ));
             }
             _ => {}

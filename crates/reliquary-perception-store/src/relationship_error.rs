@@ -1,4 +1,4 @@
-use crate::{EntityId, MemoryId};
+use crate::EntityId;
 use reliquary_container::ContainerError;
 use std::fmt;
 
@@ -13,10 +13,9 @@ pub enum RelationshipError {
     MissingRelationship,
     TerminalTombstone,
     PayloadRequiredByLiveTarget,
-    PayloadUnavailable(crate::owner_lifecycle::PayloadUnavailable),
+    PayloadUnavailable(crate::RelationshipPayloadUnavailable),
     MissingLocalEntity(EntityId),
-    MissingLocalMemory(MemoryId),
-    MissingOwnerIdentity,
+    MissingLocalMemory([u8; 32]),
     RevisionConflict,
     MutationConflict,
     InvalidVersion,

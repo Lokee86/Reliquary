@@ -1,6 +1,6 @@
 use crate::relationship_model::RelationshipRecord;
 use crate::{
-    EntityId, EntityRef, MemoryId, MemoryRef, RelationshipError, RelationshipId,
+    EntityId, EntityRef, RelationshipMemoryRef, RelationshipError, RelationshipId,
     RelationshipParticipant,
 };
 use reliquary_container::ObjectRef;
@@ -167,22 +167,22 @@ fn read_participants(
     Ok(values)
 }
 
-fn write_evidence(out: &mut Vec<u8>, values: &[MemoryRef]) -> Result<(), RelationshipError> {
+fn write_evidence(out: &mut Vec<u8>, values: &[RelationshipMemoryRef]) -> Result<(), RelationshipError> {
     write_count(out, values.len())?;
     for value in values {
         write_string(out, &value.owner_id)?;
-        out.extend_from_slice(&value.memory_id.0);
+        out.extend_from_slice(&value.memory_id);
     }
     Ok(())
 }
 
-fn read_evidence(bytes: &[u8], cursor: &mut usize) -> Result<Vec<MemoryRef>, RelationshipError> {
+fn read_evidence(bytes: &[u8], cursor: &mut usize) -> Result<Vec<RelationshipMemoryRef>, RelationshipError> {
     let count = read_u16(bytes, cursor)? as usize;
     let mut values = Vec::with_capacity(count);
     for _ in 0..count {
-        values.push(MemoryRef {
+        values.push(RelationshipMemoryRef {
             owner_id: read_string(bytes, cursor)?,
-            memory_id: MemoryId(read_fixed::<32>(bytes, cursor)?),
+            memory_id: read_fixed::<32>(bytes, cursor)?,
         });
     }
     Ok(values)

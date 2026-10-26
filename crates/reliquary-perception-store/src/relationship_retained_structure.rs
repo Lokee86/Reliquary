@@ -27,7 +27,7 @@ pub(crate) fn encode_record_structure(
     write_count(&mut out, record.evidence.len())?;
     for value in &record.evidence {
         write_string(&mut out, &value.owner_id)?;
-        out.extend_from_slice(&value.memory_id.0);
+        out.extend_from_slice(&value.memory_id);
     }
     write_string(&mut out, "")?;
     write_string(&mut out, &record.mutation_id)?;

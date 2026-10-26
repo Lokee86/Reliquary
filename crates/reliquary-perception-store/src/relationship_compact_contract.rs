@@ -1,6 +1,6 @@
 //! Relationship-owned retained revision contract; wire and publication stay separate.
 use crate::relationship_model::{RelationshipParticipant, RelationshipRecord};
-use crate::{MemoryRef, RelationshipError, RelationshipId};
+use crate::{RelationshipMemoryRef, RelationshipError, RelationshipId};
 use reliquary_container::codec::FieldChange;
 use std::collections::BTreeSet;
 
@@ -88,7 +88,7 @@ fn strictly_sorted<T: Ord>(values: &[T]) -> bool {
 pub(crate) struct RelationshipDeltaFields {
     pub kind: FieldChange<String>,
     pub participants: RelationshipCollectionChange<RelationshipParticipant>,
-    pub evidence: RelationshipCollectionChange<MemoryRef>,
+    pub evidence: RelationshipCollectionChange<RelationshipMemoryRef>,
     pub summary: FieldChange<String>,
     pub updated_at_ns: FieldChange<i64>,
 }

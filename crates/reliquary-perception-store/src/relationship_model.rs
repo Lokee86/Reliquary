@@ -1,4 +1,27 @@
-use crate::{EntityRef, MemoryRef};
+use crate::{EntityRef, RelationshipMemoryRef};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RelationshipTombstoneCoordinates {
+    pub global_version: Option<u64>,
+    pub domain_version: Option<u64>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RelationshipTombstoneOutcome {
+    Published(RelationshipTombstoneCoordinates),
+    AlreadyTombstoned(RelationshipTombstoneCoordinates),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RelationshipLifecycleState {
+    Active,
+    Tombstoned(RelationshipTombstoneCoordinates),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RelationshipPayloadUnavailable {
+    Pruned,
+}
 
 pub const MAX_RELATIONSHIP_KIND_BYTES: usize = 128;
 pub const MAX_RELATIONSHIP_ROLE_BYTES: usize = 128;
@@ -11,6 +34,18 @@ pub const MAX_RELATIONSHIP_EVIDENCE: usize = 256;
 pub struct RelationshipId(pub [u8; 32]);
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct EntityRef {
+    pub owner_id: String,
+    pub entity_id: crate::EntityId,
+}
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct RelationshipMemoryRef {
+    pub owner_id: String,
+    pub memory_id: [u8; 32],
+}
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct RelationshipParticipant {
     pub entity: EntityRef,
     pub role: Option<String>,
@@ -20,7 +55,7 @@ pub struct RelationshipParticipant {
 pub struct RelationshipDraft {
     pub kind: String,
     pub participants: Vec<RelationshipParticipant>,
-    pub evidence: Vec<MemoryRef>,
+    pub evidence: Vec<RelationshipMemoryRef>,
     pub summary: String,
     pub mutation_id: String,
     pub created_at_ns: i64,
@@ -33,7 +68,7 @@ pub struct Relationship {
     pub revision: u64,
     pub kind: String,
     pub participants: Vec<RelationshipParticipant>,
-    pub evidence: Vec<MemoryRef>,
+    pub evidence: Vec<RelationshipMemoryRef>,
     pub summary: String,
     pub mutation_id: String,
     pub created_at_ns: i64,
@@ -66,7 +101,7 @@ pub struct RelationshipRetainedRevision {
     pub relationship_version: u64,
     pub kind: String,
     pub participants: Vec<RelationshipParticipant>,
-    pub evidence: Vec<MemoryRef>,
+    pub evidence: Vec<RelationshipMemoryRef>,
     pub created_at_ns: i64,
     pub updated_at_ns: i64,
     pub mutation_id: String,
@@ -78,7 +113,7 @@ pub(crate) struct RelationshipRecord {
     pub revision: u64,
     pub kind: String,
     pub participants: Vec<RelationshipParticipant>,
-    pub evidence: Vec<MemoryRef>,
+    pub evidence: Vec<RelationshipMemoryRef>,
     pub summary: String,
     pub mutation_id: String,
     pub created_at_ns: i64,

@@ -70,10 +70,10 @@ fn participant_evidence(
         })
         .collect()
 }
-fn memory_evidence(values: &[crate::MemoryRef]) -> Vec<(&str, [u8; 32])> {
+fn memory_evidence(values: &[crate::RelationshipMemoryRef]) -> Vec<(&str, [u8; 32])> {
     values
         .iter()
-        .map(|v| (v.owner_id.as_str(), v.memory_id.0))
+        .map(|v| (v.owner_id.as_str(), v.memory_id))
         .collect()
 }
 impl RelationshipStore {
@@ -85,7 +85,7 @@ impl RelationshipStore {
         match self.retained_publication_at(global, local)? {
             Some(RelationshipReplayPublication::PrunedRecord { .. }) => {
                 Err(RelationshipError::PayloadUnavailable(
-                    crate::owner_lifecycle::PayloadUnavailable::Pruned,
+                    crate::RelationshipPayloadUnavailable::Pruned,
                 ))
             }
             value => Ok(value),
@@ -163,7 +163,7 @@ impl RelationshipStore {
             }
             RelationshipReplayPublication::PrunedRecord { .. } => {
                 Err(RelationshipError::PayloadUnavailable(
-                    crate::owner_lifecycle::PayloadUnavailable::Pruned,
+                    crate::RelationshipPayloadUnavailable::Pruned,
                 ))
             }
             RelationshipReplayPublication::Tombstone { id, revision } => {
@@ -178,8 +178,8 @@ impl RelationshipStore {
                     .checked_sub(1)
                     .ok_or(RelationshipError::RevisionConflict)?;
                 match self.tombstone(container, id, expected)? {
-                    crate::owner_lifecycle::TombstoneOutcome::Published(_) => Ok(true),
-                    crate::owner_lifecycle::TombstoneOutcome::AlreadyTombstoned(_) => Ok(false),
+                    crate::RelationshipTombstoneOutcome::Published(_) => Ok(true),
+                    crate::RelationshipTombstoneOutcome::AlreadyTombstoned(_) => Ok(false),
                 }
             }
         }

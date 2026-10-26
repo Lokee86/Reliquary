@@ -823,31 +823,8 @@ mod rel_metadata_codec;
 mod rel_metadata_model;
 #[path = "facade/rel_metadata_store.rs"]
 mod rel_metadata_store;
-#[path = "perception/relationship_codec.rs"]
-mod relationship_codec;
-#[path = "perception/relationship_compact_apply.rs"]
-mod relationship_compact_apply;
-#[path = "perception/relationship_compact_codec.rs"]
-mod relationship_compact_codec;
-#[path = "perception/relationship_compact_contract.rs"]
-mod relationship_compact_contract;
-#[cfg(test)]
-#[path = "perception/relationship_compact_owner_tests.rs"]
-mod relationship_compact_owner_tests;
-#[path = "perception/relationship_compact_values.rs"]
-mod relationship_compact_values;
-#[path = "perception/relationship_error.rs"]
-mod relationship_error;
-#[path = "perception/relationship_model.rs"]
-mod relationship_model;
 #[path = "perception/relationship_owner.rs"]
 mod relationship_owner;
-#[path = "perception/relationship_rebuild.rs"]
-mod relationship_rebuild;
-#[path = "perception/relationship_retained_structure.rs"]
-mod relationship_retained_structure;
-#[path = "perception/relationship_store.rs"]
-mod relationship_store;
 #[path = "facade/review_clocks.rs"]
 mod review_clocks;
 #[path = "config_security/runtime_config.rs"]
@@ -1174,11 +1151,11 @@ pub use project_environment::{ProjectAdoptionSource, ProjectRepositoryMode};
 pub use rel_metadata_model::{
     MAX_REL_DEPENDENCIES, MAX_REL_DEPENDENCY_ID_BYTES, MAX_REL_TYPE_LABEL_BYTES, RelMetadata,
 };
-pub use relationship_error::RelationshipError;
-pub use relationship_model::{
+pub use reliquary_perception_store::{
     MAX_RELATIONSHIP_EVIDENCE, MAX_RELATIONSHIP_KIND_BYTES, MAX_RELATIONSHIP_OWNER_ID_BYTES,
     MAX_RELATIONSHIP_PARTICIPANTS, MAX_RELATIONSHIP_ROLE_BYTES, MAX_RELATIONSHIP_SUMMARY_BYTES,
-    Relationship, RelationshipDraft, RelationshipId, RelationshipParticipant,
+    Relationship, RelationshipDraft, RelationshipError, RelationshipId, RelationshipParticipant,
+    RelationshipMemoryRef,
     RelationshipRetainedRevision, RelationshipRetentionDescriptor, RelationshipStats,
 };
 pub use reliquary_archive::episode_model::{
@@ -1607,12 +1584,6 @@ mod vector_generation_tests;
 #[cfg(test)]
 #[path = "retrieval/vector_generation_validation_tests.rs"]
 mod vector_generation_validation_tests;
-
-#[path = "perception/relationship_description_proof.rs"]
-mod relationship_description_proof;
-
-#[path = "perception/relationship_description_prune.rs"]
-mod relationship_description_prune;
 
 #[cfg(test)]
 #[path = "facade/relationship_compact_prune_tests.rs"]
