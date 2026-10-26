@@ -123,7 +123,7 @@ fn bound_inference(
     MemoryTemporalInference {
         body_id,
         source_time_ns,
-        inference: TemporalInference {
+        inference: (TemporalInference {
             model: "test-model".into(),
             contract_version: CHRONOS_INFERENCE_CONTRACT_VERSION.into(),
             resolutions: vec![TemporalInferenceResolution {
@@ -133,7 +133,8 @@ fn bound_inference(
                 evidence: "biweekly".into(),
                 canonical_expression: "every two weeks".into(),
             }],
-        },
+        })
+        .into(),
     }
 }
 

@@ -34,6 +34,7 @@ pub struct Cva {
     pub(crate) owner_maintenance: crate::owner_maintenance::OwnerMaintenanceStore,
     pub(crate) rewrite_lineage: crate::rewrite_lineage::RewriteLineageStore,
     pub(crate) external_index: crate::external_source::store::ExternalIndexStore,
+    pub(crate) external_publications: crate::external_source::publication::ExternalPublicationState,
     pub(crate) container: Container,
     pub(crate) import_write_admission: Option<WriteAdmission>,
     pub(crate) archive: Archive,
@@ -455,7 +456,7 @@ impl Cva {
         self.graph
             .exclude_from_current(crate::SemanticNodeRef::memory(id))
             .map_err(|_| MemoryError::InvalidField("Memory graph projection"))?;
-        Ok(result)
+        Ok(result.into())
     }
 
     pub fn memory_retention_descriptor(
@@ -484,7 +485,7 @@ impl Cva {
                     .ok_or(MemoryError::MissingMemory)?;
                 return Ok(crate::owner_lifecycle::HistoricalPayload::Pruned {
                     structural_history: structure,
-                    reason,
+                    reason: crate::owner_lifecycle::memory_payload_unavailable(reason),
                 });
             }
             Err(error) => return Err(error),
@@ -503,7 +504,7 @@ impl Cva {
         &self,
         id: MemoryId,
     ) -> Result<crate::owner_lifecycle::LifecycleState, MemoryError> {
-        self.memories.lifecycle_state(id)
+        self.memories.lifecycle_state(id).map(Into::into)
     }
 
     pub fn set_memory_temporal_status(

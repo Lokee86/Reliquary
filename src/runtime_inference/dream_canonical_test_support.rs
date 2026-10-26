@@ -95,7 +95,9 @@ pub(crate) fn publish(
             content_source_node_id: None,
             grounding_source_conversation_id: None,
             grounding_source_node_id: None,
-            source_episode_id: Some(anchor.episode_id),
+            source_episode_id: Some(reliquary_memory_core::SourceEpisodeId(
+                (anchor.episode_id).0,
+            )),
             source_time_ns: None,
             mutation_id: mutation.into(),
             created_at_ns: 1,

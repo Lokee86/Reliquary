@@ -1,9 +1,18 @@
 # Memory Core crate extraction — implementation specification
 
-**Status:** Proposed target; Memory implementation has not been extracted.  
+**Status:** Implemented; Memory Core and its consumers are extracted and locally verified.
 **Branch:** `refactor/crate-first-restart`, pre-extraction HEAD `5318e2a0` (Container and Archive already extracted).  
 **Destination:** `crates/reliquary-memory-core/` (`reliquary-memory` is the existing public product package).  
 **Policy:** correction-only staged hard cut, one semantic Memory owner, no feature or format redesign.
+
+## Purpose
+
+Extract the existing Memory semantic owner across the accepted Cargo boundary.
+
+## Overview
+
+The staged cut below preserves current bytes and behavior while moving one owner
+and its tests into a compiled library.
 
 ## 1. Problem and developer outcome
 
@@ -12,6 +21,10 @@ The durable Memory owner is still in the root `reliquary-memory` package: 42 Rus
 **Target:** `reliquary-memory-core` owns Memory identity, immutable semantic body identity/content, accepted creation/revision/terminal publications, per-owner dense Memory versions, mutation-id idempotency, expected-revision and immutable-body checks, compact current-format codecs, validated replay, retention facts and immutable historical read views. Both REL and PHY use the *same compiled semantic Memory owner*, with separate authorized physical owner sessions. The root `Cva`/`Phylactery` consumes it directly.
 
 **Not the target:** a service for generating Memories, model inference, scoped access policy, Graph/Entity state, Freshness events, embeddings, imported-epoch coordination, or multi-owner rewriting. Cargo must enforce the direction that the monolith did not.
+
+## Related docs
+
+The governing documents and recovery evidence are listed below.
 
 ## 2. Governing plans, decisions and recovery evidence
 
@@ -120,3 +133,22 @@ Update [Architecture](architecture.md), [API](api.md), [Maintainer map](maintain
 No new Memory feature, semantics changes, source authority redesign, Freshness event/score implementation, episodic topic detector, Insomnia model/queue migration, cross-owner lifecycle rewrite, historical Import settlement redesign, semantic temporal inference implementation, schema upgrade, old-format runtime fallback, runtime gateway refactor, or new test-count/proof apparatus.
 
 **Complete** means the real Memory owner and its actual consumers compile and behave through one compiled library. Empty placeholder compilation, stale Arcana evidence and a final list of unexecuted tests are **not** completion evidence.
+
+## Notes
+
+Local extraction verification passed: locked/offline workspace check; 35 Memory
+Core tests; 778 focused product tests (2 fixture-dependent tests ignored); 32 CLI
+tests; workspace/CLI formatting; documentation policy and Archivist index/link
+checks. The final focused run excluded four byte-prefix/scaling stress cases
+that had passed in the preceding integration run. Tests use short repository-local
+temporary paths to avoid Windows path limits.
+
+The source audit confirms one MemoryStore/MemoryOpenState implementation and
+Container as Memory Core's only direct Reliquary dependency. Processing epochs,
+source-time resolution, external receipts and cross-owner maintenance stay above
+Memory. Current publication bytes and the 20-field delta contract are preserved.
+
+The installed Pitlord lacks its `docs` command. Architecture guard self-tests
+passed, but fresh Arcana evidence/its dependent enforcement was not generated.
+Full-product and promoted CVAFRS07 corpus acceptance remain later integration
+gates; neither is implied by these Memory extraction results.

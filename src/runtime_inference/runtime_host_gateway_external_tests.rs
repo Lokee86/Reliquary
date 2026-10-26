@@ -212,6 +212,7 @@ fn external_partial_phy_commit_resumes_frozen_plan_and_missing_receipt_fails_clo
             crate::external_source::publication::publish(
                 &mut p.container,
                 &mut p.memories,
+                &mut p.external_publications,
                 prepared.window,
                 &prepared.user,
                 None,
@@ -237,7 +238,7 @@ fn external_partial_phy_commit_resumes_frozen_plan_and_missing_receipt_fails_clo
     assert_eq!(result.user.len(), 1);
     f.gateway
         .with_phy(&phy, |p| {
-            p.memories.external_windows.clear();
+            p.external_publications.clear_windows();
             Ok(())
         })
         .unwrap();

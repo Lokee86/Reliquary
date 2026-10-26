@@ -108,7 +108,8 @@ impl Cva {
                             && record.global_version <= settlement.global_version
                         {
                             if record.revision != 1
-                                || record.source_episode_id != Some(episode.id)
+                                || record.source_episode_id
+                                    != Some(reliquary_memory_core::SourceEpisodeId((episode.id).0))
                                 || self.memories.first_mutation_id(id)
                                     != Some(record.mutation_id.as_str())
                             {
@@ -326,7 +327,10 @@ impl Cva {
                                 )
                             })?;
                             if record.revision != 1
-                                || record.source_episode_id != Some(completion.episode_id)
+                                || record.source_episode_id
+                                    != Some(reliquary_memory_core::SourceEpisodeId(
+                                        (completion.episode_id).0,
+                                    ))
                                 || self.memories.first_mutation_id(*id)
                                     != Some(record.mutation_id.as_str())
                                 || record.global_version <= start.pre.global_version

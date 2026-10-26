@@ -80,7 +80,7 @@ impl Cva {
             .or_else(|| memory.source_ref.as_ref().map(|r| r.source_episode_id));
         if let Some(id) = episode_id {
             let episode = self
-                .episode(id)
+                .episode(crate::EpisodeId((id).0))
                 .ok_or_else(|| CvaError::Freshness("missing semantic target Episode".into()))?;
             let sources = source
                 .fragment
@@ -91,7 +91,9 @@ impl Cva {
                 });
             for (conversation, node) in &sources {
                 if conversation == &episode.conversation_id
-                    && self.archive.episode_contains_node(id, node)?
+                    && self
+                        .archive
+                        .episode_contains_node(crate::EpisodeId((id).0), node)?
                 {
                     return Ok(true);
                 }

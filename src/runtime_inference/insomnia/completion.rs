@@ -3,14 +3,11 @@ mod compact_retained;
 use crate::EpisodeId;
 use crate::memory_model::MemoryRecord;
 use crate::{MemoryBodyId, MemoryRef, MemoryRoutingMetadata};
+use reliquary_memory_core::{MemoryGroupedBodyEncoding, MemoryGroupedBodySpan};
 
 const COMPLETION_MAGIC_V7: [u8; 8] = *b"CVAINSC7";
 
-#[derive(Clone, Debug)]
-pub(crate) struct InsomniaCompletionBody {
-    pub(crate) id: MemoryBodyId,
-    pub(crate) bytes: Vec<u8>,
-}
+pub(crate) use reliquary_memory_core::MemoryGroupedBody as InsomniaCompletionBody;
 
 #[derive(Clone, Debug)]
 pub(crate) struct InsomniaCompletion {
@@ -179,8 +176,15 @@ pub(crate) fn decode_embedded_version_range(
     )))
 }
 pub(crate) fn decode_completion(bytes: &[u8]) -> Result<Option<InsomniaCompletion>, &'static str> {
+    decode_completion_with_body_spans(bytes)
+        .map(|decoded| decoded.map(|(completion, _)| completion))
+}
+
+pub(crate) fn decode_completion_with_body_spans(
+    bytes: &[u8],
+) -> Result<Option<(InsomniaCompletion, Vec<MemoryGroupedBodySpan>)>, &'static str> {
     if bytes.starts_with(b"CVAINSC8") {
-        return compact_retained::decode(bytes).map(Some);
+        return compact_retained::decode_with_body_spans(bytes).map(Some);
     }
     if !bytes.starts_with(&COMPLETION_MAGIC_V7) {
         return Ok(None);
@@ -190,7 +194,7 @@ pub(crate) fn decode_completion(bytes: &[u8]) -> Result<Option<InsomniaCompletio
         Some(1) => true,
         _ => return Err("invalid completion birth proof flag"),
     };
-    decode_completion_current(bytes, true, has_birth_proof).map(Some)
+    decode_completion_current_with_body_spans(bytes, true, has_birth_proof, 0).map(Some)
 }
 
 fn decode_completion_current(
@@ -198,6 +202,16 @@ fn decode_completion_current(
     has_routing_metadata: bool,
     has_birth_proof: bool,
 ) -> Result<InsomniaCompletion, &'static str> {
+    decode_completion_current_with_body_spans(bytes, has_routing_metadata, has_birth_proof, 0)
+        .map(|(completion, _)| completion)
+}
+
+fn decode_completion_current_with_body_spans(
+    bytes: &[u8],
+    has_routing_metadata: bool,
+    has_birth_proof: bool,
+    source_offset: usize,
+) -> Result<(InsomniaCompletion, Vec<MemoryGroupedBodySpan>), &'static str> {
     if bytes.len() < 96 {
         return Err("short Insomnia current completion");
     }
@@ -226,6 +240,7 @@ fn decode_completion_current(
         return Err("truncated completion body framing");
     }
     let mut bodies = Vec::with_capacity(body_count);
+    let mut body_spans = Vec::with_capacity(body_count);
     for _ in 0..body_count {
         let id_end = cursor
             .checked_add(32)
@@ -240,6 +255,16 @@ fn decode_completion_current(
             .get(cursor..end)
             .ok_or("truncated completion body")?
             .to_vec();
+        body_spans.push(MemoryGroupedBodySpan {
+            id: MemoryBodyId(id_raw.try_into().unwrap()),
+            range: source_offset
+                .checked_add(cursor)
+                .ok_or("completion body offset overflow")?
+                ..source_offset
+                    .checked_add(end)
+                    .ok_or("completion body offset overflow")?,
+            encoding: MemoryGroupedBodyEncoding::Raw,
+        });
         cursor = end;
         bodies.push(InsomniaCompletionBody {
             id: MemoryBodyId(id_raw.try_into().unwrap()),
@@ -280,28 +305,34 @@ fn decode_completion_current(
     if cursor != bytes.len() {
         return Err("Insomnia completion trailing bytes");
     }
-    Ok(InsomniaCompletion {
-        episode_id,
-        attempt,
-        started_at_ns,
-        completed_at_ns,
-        transaction_time_ns,
-        extractor_model,
-        extractor_version,
-        rejected_count,
-        memory_ids,
-        external_memory_refs,
-        global_version_start,
-        bodies,
-        records,
-        routing_metadata,
-        freshness_birth_turn,
-        freshness_policy_version,
-        freshness_birth_memory_ids,
-    })
+    Ok((
+        InsomniaCompletion {
+            episode_id,
+            attempt,
+            started_at_ns,
+            completed_at_ns,
+            transaction_time_ns,
+            extractor_model,
+            extractor_version,
+            rejected_count,
+            memory_ids,
+            external_memory_refs,
+            global_version_start,
+            bodies,
+            records,
+            routing_metadata,
+            freshness_birth_turn,
+            freshness_policy_version,
+            freshness_birth_memory_ids,
+        },
+        body_spans,
+    ))
 }
 
-fn decode_external_compact(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str> {
+fn decode_external_compact_with_body_spans(
+    bytes: &[u8],
+    source_offset: usize,
+) -> Result<(InsomniaCompletion, Vec<MemoryGroupedBodySpan>), &'static str> {
     if bytes.len() < 88 {
         return Err("short Insomnia v3 completion");
     }
@@ -325,6 +356,7 @@ fn decode_external_compact(bytes: &[u8]) -> Result<InsomniaCompletion, &'static 
         return Err("truncated completion body framing");
     }
     let mut bodies = Vec::with_capacity(body_count);
+    let mut body_spans = Vec::with_capacity(body_count);
     for _ in 0..body_count {
         let id_end = cursor
             .checked_add(32)
@@ -339,6 +371,16 @@ fn decode_external_compact(bytes: &[u8]) -> Result<InsomniaCompletion, &'static 
             .get(cursor..end)
             .ok_or("truncated completion body")?
             .to_vec();
+        body_spans.push(MemoryGroupedBodySpan {
+            id: MemoryBodyId(id_raw.try_into().unwrap()),
+            range: source_offset
+                .checked_add(cursor)
+                .ok_or("completion body offset overflow")?
+                ..source_offset
+                    .checked_add(end)
+                    .ok_or("completion body offset overflow")?,
+            encoding: MemoryGroupedBodyEncoding::Raw,
+        });
         cursor = end;
         bodies.push(InsomniaCompletionBody {
             id: MemoryBodyId(id_raw.try_into().unwrap()),
@@ -350,28 +392,34 @@ fn decode_external_compact(bytes: &[u8]) -> Result<InsomniaCompletion, &'static 
     if cursor != bytes.len() {
         return Err("Insomnia completion trailing bytes");
     }
-    Ok(InsomniaCompletion {
-        episode_id,
-        attempt,
-        started_at_ns,
-        completed_at_ns,
-        transaction_time_ns: 0,
-        extractor_model,
-        extractor_version,
-        rejected_count,
-        memory_ids,
-        external_memory_refs,
-        global_version_start,
-        bodies,
-        records,
-        routing_metadata: Vec::new(),
-        freshness_birth_turn: None,
-        freshness_policy_version: None,
-        freshness_birth_memory_ids: Vec::new(),
-    })
+    Ok((
+        InsomniaCompletion {
+            episode_id,
+            attempt,
+            started_at_ns,
+            completed_at_ns,
+            transaction_time_ns: 0,
+            extractor_model,
+            extractor_version,
+            rejected_count,
+            memory_ids,
+            external_memory_refs,
+            global_version_start,
+            bodies,
+            records,
+            routing_metadata: Vec::new(),
+            freshness_birth_turn: None,
+            freshness_policy_version: None,
+            freshness_birth_memory_ids: Vec::new(),
+        },
+        body_spans,
+    ))
 }
 
-fn decode_local_compact(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str> {
+fn decode_local_compact_with_body_spans(
+    bytes: &[u8],
+    source_offset: usize,
+) -> Result<(InsomniaCompletion, Vec<MemoryGroupedBodySpan>), &'static str> {
     if bytes.len() < 84 {
         return Err("short Insomnia v2 completion");
     }
@@ -394,6 +442,7 @@ fn decode_local_compact(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str
         return Err("truncated completion body framing");
     }
     let mut bodies = Vec::with_capacity(body_count);
+    let mut body_spans = Vec::with_capacity(body_count);
     for _ in 0..body_count {
         let id_end = cursor
             .checked_add(32)
@@ -408,6 +457,16 @@ fn decode_local_compact(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str
             .get(cursor..end)
             .ok_or("truncated completion body")?
             .to_vec();
+        body_spans.push(MemoryGroupedBodySpan {
+            id: MemoryBodyId(id_raw.try_into().unwrap()),
+            range: source_offset
+                .checked_add(cursor)
+                .ok_or("completion body offset overflow")?
+                ..source_offset
+                    .checked_add(end)
+                    .ok_or("completion body offset overflow")?,
+            encoding: MemoryGroupedBodyEncoding::Raw,
+        });
         cursor = end;
         bodies.push(InsomniaCompletionBody {
             id: MemoryBodyId(id_raw.try_into().unwrap()),
@@ -429,28 +488,34 @@ fn decode_local_compact(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str
     if cursor != bytes.len() {
         return Err("Insomnia completion trailing bytes");
     }
-    Ok(InsomniaCompletion {
-        episode_id,
-        attempt,
-        started_at_ns,
-        completed_at_ns,
-        transaction_time_ns: 0,
-        extractor_model,
-        extractor_version,
-        rejected_count,
-        memory_ids,
-        external_memory_refs: Vec::new(),
-        global_version_start,
-        bodies,
-        records,
-        routing_metadata: Vec::new(),
-        freshness_birth_turn: None,
-        freshness_policy_version: None,
-        freshness_birth_memory_ids: Vec::new(),
-    })
+    Ok((
+        InsomniaCompletion {
+            episode_id,
+            attempt,
+            started_at_ns,
+            completed_at_ns,
+            transaction_time_ns: 0,
+            extractor_model,
+            extractor_version,
+            rejected_count,
+            memory_ids,
+            external_memory_refs: Vec::new(),
+            global_version_start,
+            bodies,
+            records,
+            routing_metadata: Vec::new(),
+            freshness_birth_turn: None,
+            freshness_policy_version: None,
+            freshness_birth_memory_ids: Vec::new(),
+        },
+        body_spans,
+    ))
 }
 
-fn decode_implicit_range_compact(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str> {
+fn decode_implicit_range_compact_with_body_spans(
+    bytes: &[u8],
+    _source_offset: usize,
+) -> Result<(InsomniaCompletion, Vec<MemoryGroupedBodySpan>), &'static str> {
     if bytes.len() < 72 {
         return Err("short Insomnia completion");
     }
@@ -471,25 +536,28 @@ fn decode_implicit_range_compact(bytes: &[u8]) -> Result<InsomniaCompletion, &'s
         .first()
         .map(|record| record.global_version)
         .unwrap_or(0);
-    Ok(InsomniaCompletion {
-        episode_id,
-        attempt,
-        started_at_ns,
-        completed_at_ns,
-        transaction_time_ns: 0,
-        extractor_model,
-        extractor_version,
-        rejected_count,
-        memory_ids,
-        external_memory_refs: Vec::new(),
-        global_version_start,
-        bodies: Vec::new(),
-        records,
-        routing_metadata: Vec::new(),
-        freshness_birth_turn: None,
-        freshness_policy_version: None,
-        freshness_birth_memory_ids: Vec::new(),
-    })
+    Ok((
+        InsomniaCompletion {
+            episode_id,
+            attempt,
+            started_at_ns,
+            completed_at_ns,
+            transaction_time_ns: 0,
+            extractor_model,
+            extractor_version,
+            rejected_count,
+            memory_ids,
+            external_memory_refs: Vec::new(),
+            global_version_start,
+            bodies: Vec::new(),
+            records,
+            routing_metadata: Vec::new(),
+            freshness_birth_turn: None,
+            freshness_policy_version: None,
+            freshness_birth_memory_ids: Vec::new(),
+        },
+        Vec::new(),
+    ))
 }
 
 fn read_memory_ids(bytes: &[u8], cursor: &mut usize) -> Result<Vec<crate::MemoryId>, &'static str> {

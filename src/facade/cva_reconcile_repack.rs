@@ -26,8 +26,8 @@ pub(crate) fn reconcile_diverged(
         || left.external_index.damaged
         || !right.external_index.sources.is_empty()
         || right.external_index.damaged
-        || !left.memories.external_windows.is_empty()
-        || !right.memories.external_windows.is_empty()
+        || !left.external_publications.is_empty()
+        || !right.external_publications.is_empty()
     {
         return Err(CvaReconcileError::UnsupportedSemanticOwner(
             "external source state in divergent reconciliation",

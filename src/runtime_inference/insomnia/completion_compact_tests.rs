@@ -1,4 +1,7 @@
-use super::completion::{decode_completion, decode_embedded_version_range, encode_completion};
+use super::completion::{
+    decode_completion, decode_completion_with_body_spans, decode_embedded_version_range,
+    encode_completion,
+};
 use super::completion_tests::process;
 use crate::memory_compact_codec::decode_creation;
 use crate::{Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, InsomniaPriority, MemoryId};
@@ -102,6 +105,19 @@ fn grouped_completion_v7_embeds_compact_creation_and_roundtrips_birth_proof() {
     assert_eq!(&payload[..8], b"CVAINSC7");
     assert_eq!(payload[84], 1, "one accepted birth proof is present");
     let decoded = decode_completion(&payload).unwrap().unwrap();
+    let (span_decoded, spans) = decode_completion_with_body_spans(&payload)
+        .unwrap()
+        .unwrap();
+    assert_eq!(span_decoded.records, decoded.records);
+    assert_eq!(spans.len(), span_decoded.bodies.len());
+    for (span, body) in spans.iter().zip(&span_decoded.bodies) {
+        assert_eq!(span.id, body.id);
+        assert_eq!(&payload[span.range.clone()], body.bytes.as_slice());
+        assert_eq!(
+            span.encoding,
+            reliquary_memory_core::MemoryGroupedBodyEncoding::Raw
+        );
+    }
     assert_eq!(decoded.episode_id, episode.id);
     assert_eq!(decoded.records.len(), 1);
     assert_eq!(decoded.records[0].revision, 1);

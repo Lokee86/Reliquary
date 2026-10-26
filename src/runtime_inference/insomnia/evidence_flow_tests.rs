@@ -126,7 +126,10 @@ fn historical_archive_search_can_supply_adopted_assistant_content() {
         result.created[0].content_source_node_id.as_deref(),
         Some("old-a")
     );
-    assert_eq!(result.created[0].source_episode_id, Some(episode.id));
+    assert_eq!(
+        result.created[0].source_episode_id,
+        Some(reliquary_memory_core::SourceEpisodeId(episode.id.0))
+    );
 }
 
 #[test]

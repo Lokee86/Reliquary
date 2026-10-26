@@ -716,37 +716,20 @@ mod master_key;
 mod master_key_entropy;
 #[path = "retrieval/memory_candidate_pool.rs"]
 mod memory_candidate_pool;
-#[path = "memory/memory_codec.rs"]
-mod memory_codec;
-#[path = "memory/memory_codec_scalar.rs"]
-mod memory_codec_scalar;
-#[path = "memory/memory_codec_values.rs"]
-mod memory_codec_values;
-#[path = "memory/memory_compact_apply.rs"]
-mod memory_compact_apply;
-#[path = "memory/memory_compact_codec.rs"]
-mod memory_compact_codec;
-#[path = "memory/memory_compact_contract.rs"]
-mod memory_compact_contract;
+use reliquary_memory_core::memory_codec;
+use reliquary_memory_core::memory_compact_codec;
+use reliquary_memory_core::memory_compact_contract;
 #[cfg(test)]
 #[path = "memory/memory_compact_maintenance_tests.rs"]
 mod memory_compact_maintenance_tests;
 #[cfg(test)]
-#[path = "memory/memory_compact_retry_tests.rs"]
-mod memory_compact_retry_tests;
-#[path = "memory/memory_compact_values.rs"]
-mod memory_compact_values;
-#[cfg(test)]
 #[path = "memory/memory_compact_writer_tests.rs"]
 mod memory_compact_writer_tests;
-#[path = "memory/memory_error.rs"]
-mod memory_error;
-#[path = "memory/memory_model.rs"]
-mod memory_model;
+use reliquary_memory_core::memory_error;
+use reliquary_memory_core::memory_model;
 #[path = "memory/memory_provenance_model.rs"]
 mod memory_provenance_model;
-#[path = "memory/memory_rebuild.rs"]
-mod memory_rebuild;
+use reliquary_memory_core::memory_rebuild;
 #[path = "retrieval/memory_retrieval.rs"]
 mod memory_retrieval;
 #[path = "retrieval/memory_retrieval_build.rs"]
@@ -761,20 +744,13 @@ mod memory_retrieval_model;
 mod memory_retrieval_traversal;
 #[path = "retrieval/memory_retrieval_vectors.rs"]
 mod memory_retrieval_vectors;
-#[path = "memory/memory_routing_codec.rs"]
-mod memory_routing_codec;
-#[path = "memory/memory_routing_model.rs"]
-mod memory_routing_model;
+use reliquary_memory_core::memory_routing_codec;
+use reliquary_memory_core::memory_routing_model;
 #[path = "retrieval/memory_search.rs"]
 mod memory_search;
 #[path = "memory/memory_source_time.rs"]
 mod memory_source_time;
-#[path = "memory/memory_store.rs"]
-mod memory_store;
-#[path = "memory/memory_temporal_codec.rs"]
-mod memory_temporal_codec;
-#[path = "memory/memory_temporal_codec_kind.rs"]
-mod memory_temporal_codec_kind;
+use reliquary_memory_core::memory_store;
 #[path = "retrieval/memory_vector_codec.rs"]
 mod memory_vector_codec;
 #[path = "retrieval/memory_vector_error.rs"]
@@ -809,6 +785,8 @@ pub use multiplexing_journal::{
 mod cva_description_prune;
 #[path = "facade/cva_history_prune.rs"]
 mod cva_history_prune;
+#[path = "facade/memory_history_prune.rs"]
+mod memory_history_prune;
 #[path = "runtime_inference/openai_codex_device_auth.rs"]
 mod openai_codex_device_auth;
 #[path = "runtime_inference/openai_codex_general.rs"]
@@ -1039,6 +1017,7 @@ pub use context_engine::{
     request_context, request_messages,
 };
 pub use cva_error::CvaError;
+pub use cva_file_memory::FileMemoryLink;
 pub use cva_principal_repack::PrincipalBackfillRepackResult;
 pub use cva_reconcile::{CvaComparison, CvaReconcileResult, CvaRelation};
 pub use cva_reconcile_conflict::CvaReconcileConflict;
@@ -1182,7 +1161,7 @@ pub use memory_error::MemoryError;
 pub use memory_model::{
     Memory, MemoryBodyId, MemoryDraft, MemoryId, MemoryRef, MemoryRetainedRevision,
     MemoryRetentionDescriptor, MemoryRevisionId, MemorySourceRef, MemoryStats,
-    MemoryTemporalInference,
+    MemoryTemporalInference, SourceEpisodeId,
 };
 pub use memory_provenance_model::MemoryProvenance;
 pub use memory_retrieval_error::MemoryRetrievalError;
@@ -1242,7 +1221,6 @@ pub use reliquary_archive::episode_model::{
     EpisodeId, EpisodeOrigin,
 };
 pub use reliquary_archive::episode_policy::{DEFAULT_EPISODE_INACTIVITY_NS, EpisodePolicy};
-pub use reliquary_archive::file_memory_link_model::FileMemoryLink;
 pub use reliquary_archive::file_model::{FileId, FileSearchHit, StoredFile};
 pub use reliquary_archive::fragment_model::{
     DEFAULT_FRAGMENT_OVERLAP, DEFAULT_FRAGMENT_TURNS, Fragment, FragmentConfig, FragmentId,
@@ -1561,9 +1539,6 @@ mod lexical_index_tests;
 #[cfg(test)]
 #[path = "config_security/master_key_tests.rs"]
 mod master_key_tests;
-#[cfg(test)]
-#[path = "memory/memory_codec_tests.rs"]
-mod memory_codec_tests;
 #[cfg(test)]
 #[path = "memory/memory_lifecycle_tests.rs"]
 mod memory_lifecycle_tests;

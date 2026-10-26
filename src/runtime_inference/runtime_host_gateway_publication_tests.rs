@@ -276,7 +276,8 @@ fn memory(claim: &RuntimeInsomniaClaim, key: &str, project: bool) -> PreparedMem
         content_source_node_id: None,
         grounding_source_conversation_id: None,
         grounding_source_node_id: None,
-        source_episode_id: project.then_some(claim.episode.id),
+        source_episode_id: project
+            .then_some(reliquary_memory_core::SourceEpisodeId((claim.episode.id).0)),
         source_time_ns: Some(claim.episode.source_through_ns),
         mutation_id: format!("publication:{key}"),
         created_at_ns: claim.episode.source_through_ns,
@@ -307,7 +308,7 @@ fn personal(
         source_ref: MemorySourceRef {
             owner_id: rel.into(),
             principal_id: None,
-            source_episode_id: claim.episode.id,
+            source_episode_id: reliquary_memory_core::SourceEpisodeId((claim.episode.id).0),
             source_node_id: node.into(),
             content_source_conversation_id: Some("conversation-one".into()),
             content_source_node_id: Some(node.into()),

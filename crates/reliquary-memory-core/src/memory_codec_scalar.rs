@@ -1,4 +1,4 @@
-use crate::{EpisodeId, MemoryError};
+use crate::{EpisodeId, MemoryError, SourceEpisodeId};
 
 pub(crate) fn read_i64(bytes: &[u8], cursor: &mut usize) -> Result<i64, MemoryError> {
     let end = cursor.checked_add(8).ok_or(MemoryError::FieldTooLarge)?;
@@ -60,7 +60,7 @@ pub(crate) fn read_optional_episode(
                 .get(*cursor..end)
                 .ok_or(MemoryError::CorruptRecord("truncated optional episode id"))?;
             *cursor = end;
-            Ok(Some(EpisodeId(raw.try_into().unwrap())))
+            Ok(Some(SourceEpisodeId(raw.try_into().unwrap())))
         }
         _ => Err(MemoryError::CorruptRecord(
             "invalid optional episode id flag",

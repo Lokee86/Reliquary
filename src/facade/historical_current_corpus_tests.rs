@@ -61,13 +61,15 @@ fn series(name: &str, head: u64, mut query: impl FnMut(u64) -> HistoricalFingerp
 fn common(
     container: &mut Container,
     memories: &crate::memory_store::MemoryStore,
+    external: &crate::external_source::publication::ExternalPublicationState,
     entities: &crate::entity_store::EntityStore,
     relationships: &crate::relationship_store::RelationshipStore,
     graph: &crate::graph_store::GraphStore,
     ego: &crate::ego_store::EgoStore,
 ) -> Value {
     let memory =
-        crate::historical_memory_fingerprint::MemoryHistory::read(container, memories).unwrap();
+        crate::historical_memory_fingerprint::MemoryHistory::read(container, memories, external)
+            .unwrap();
     let memory = series("Memory", memories.memory_version(), |cut| {
         memory.at(cut).unwrap().fingerprint
     });
@@ -242,6 +244,7 @@ pub(crate) fn rel(owner: &mut Cva, points: &[u64], archive_queries: &[u64]) -> V
     let base = common(
         &mut owner.container,
         &owner.memories,
+        &owner.external_publications,
         &owner.entities,
         &owner.relationships,
         &owner.graph,
@@ -317,6 +320,7 @@ pub(crate) fn phy(owner: &mut Phylactery) -> Value {
     let base = common(
         &mut owner.container,
         &owner.memories,
+        &owner.external_publications,
         &owner.entities,
         &owner.relationships,
         &owner.graph,

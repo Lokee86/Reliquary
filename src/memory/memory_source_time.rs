@@ -17,14 +17,14 @@ pub(crate) fn reliquary_memory_source_timestamp_ns(
     }
     if let (Some(episode_id), Some(node_id)) =
         (memory.source_episode_id, memory.source_node_id.as_deref())
-        && let Some(episode) = archive.historical_episode(episode_id)
+        && let Some(episode) = archive.historical_episode(crate::EpisodeId((episode_id).0))
         && let Some(node) = archive.source_node(&episode.conversation_id, node_id)
     {
         return Some(node.timestamp_ns);
     }
     if let Some(episode_time_ns) = memory
         .source_episode_id
-        .and_then(|id| archive.historical_episode(id))
+        .and_then(|id| archive.historical_episode(crate::EpisodeId((id).0)))
         .map(|episode| episode.source_through_ns)
     {
         return Some(episode_time_ns);

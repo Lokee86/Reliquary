@@ -117,7 +117,7 @@ impl Phylactery {
                 }
                 bodies.push(body);
             }
-            descriptors.push(crate::memory_store::history_prune::descriptor(
+            descriptors.push(crate::memory_history_prune::descriptor(
                 &self.memories,
                 *id,
                 &bodies,
@@ -221,13 +221,11 @@ impl Phylactery {
                 let replacement = if let Some(bytes) = description_objects.get(object) {
                     Some(bytes.clone())
                 } else if let Some((body, length)) = selected_bodies.get(object) {
-                    Some(
-                        crate::memory_store::history_prune::PrunedMemoryBody::encode(
-                            *body,
-                            *length,
-                            manifest_digest,
-                        ),
-                    )
+                    Some(reliquary_memory_core::PrunedMemoryBody::encode(
+                        *body,
+                        *length,
+                        manifest_digest,
+                    ))
                 } else if let Some(id) = packed_by_object.get(object) {
                     Some(packed_markers[id].clone())
                 } else {
@@ -299,8 +297,11 @@ impl Phylactery {
             }
         }
 
-        self.memories
-            .validate_prune_history(&mut self.container, &self.owner_maintenance)?;
+        crate::memory_history_prune::validate_prune_history(
+            &self.memories,
+            &mut self.container,
+            self.owner_maintenance.manifests(),
+        )?;
         let mut authorized = BTreeSet::new();
         let mut seen = BTreeSet::new();
         let manifests = self

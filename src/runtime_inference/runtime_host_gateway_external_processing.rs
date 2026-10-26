@@ -96,8 +96,8 @@ impl GatewayRuntime {
         let receipt = self
             .with_rel(&token, |r| {
                 r.cva
-                    .memories
-                    .external_window(&mut r.cva.container, window)
+                    .external_publications
+                    .window(&mut r.cva.container, &r.cva.memories, window)
                     .map_err(operation)
             })
             .map_err(|_| ExternalSourceError::Storage)?;
@@ -109,8 +109,8 @@ impl GatewayRuntime {
             let private = match &phy {
                 Some(p) => self
                     .with_phy(p, |p| {
-                        p.memories
-                            .external_window(&mut p.container, window)
+                        p.external_publications
+                            .window(&mut p.container, &p.memories, window)
                             .map_err(operation)
                     })
                     .map_err(|_| ExternalSourceError::Unauthorized)?
@@ -214,6 +214,7 @@ impl GatewayRuntime {
                         external::publication::publish(
                             &mut p.container,
                             &mut p.memories,
+                            &mut p.external_publications,
                             window,
                             &prepared.user,
                             None,

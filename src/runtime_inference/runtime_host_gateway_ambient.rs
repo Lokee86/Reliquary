@@ -971,7 +971,7 @@ fn resolve_memory_provenance(
 ) -> Result<MemoryProvenance, ReliquaryRuntimeHostError> {
     let source_episode = match memory.source_episode_id {
         Some(id) => Some(
-            cva.episode(id)
+            cva.episode(crate::EpisodeId((id).0))
                 .cloned()
                 .ok_or_else(|| operation("Memory source Episode is unavailable"))?,
         ),

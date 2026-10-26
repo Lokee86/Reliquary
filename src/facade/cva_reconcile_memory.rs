@@ -218,7 +218,7 @@ fn same_completion(attempt: &InsomniaAttempt, completion: &InsomniaCompletion) -
         && attempt.rejected_count == completion.rejected_count
 }
 
-fn memory_draft(memory: Memory) -> MemoryDraft {
+pub(crate) fn memory_draft(memory: Memory) -> MemoryDraft {
     MemoryDraft {
         category: memory.category,
         memory_type: memory.memory_type,

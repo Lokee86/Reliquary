@@ -31,6 +31,10 @@ pub(crate) fn analyze_memory_temporal(
     if inference.body_id != body_id || inference.source_time_ns != source_timestamp_ns {
         return deterministic;
     }
-    analyze_with_inference(&text, source_timestamp_ns, &inference.inference)
-        .unwrap_or(deterministic)
+    analyze_with_inference(
+        &text,
+        source_timestamp_ns,
+        &inference.inference.clone().into(),
+    )
+    .unwrap_or(deterministic)
 }

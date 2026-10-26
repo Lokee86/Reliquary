@@ -2,26 +2,26 @@
 use crate::memory_model::MemoryRecord;
 use crate::{EpisodeId, MemoryError, MemoryId, MemorySourceRef, MemoryTemporalInference};
 
-pub(crate) use reliquary_container::codec::FieldChange as MemoryFieldChange;
+pub use reliquary_container::codec::FieldChange as MemoryFieldChange;
 
 macro_rules! memory_fields {
     ($($bit:literal => $field:ident: $ty:ty),+ $(,)?) => {
         /// Each bit has exactly one typed value, serialized in ascending order.
         #[derive(Clone, Debug, Eq, PartialEq)]
-        pub(crate) struct MemoryDeltaFields {
+        pub struct MemoryDeltaFields {
             $(pub $field: MemoryFieldChange<$ty>,)+
         }
-        pub(crate) const MEMORY_DELTA_FIELD_ORDER: &[&str] = &[$(stringify!($field)),+];
-        pub(crate) const MEMORY_DELTA_KNOWN_MASK: u64 = 0 $(| (1 << $bit))+;
+        pub const MEMORY_DELTA_FIELD_ORDER: &[&str] = &[$(stringify!($field)),+];
+        pub const MEMORY_DELTA_KNOWN_MASK: u64 = 0 $(| (1 << $bit))+;
         impl MemoryDeltaFields {
-            pub(crate) fn between(previous: &MemoryRecord, next: &MemoryRecord) -> Self {
+            pub fn between(previous: &MemoryRecord, next: &MemoryRecord) -> Self {
                 // Exhaustive pattern: a future record field cannot silently fall
                 // outside this owner contract.
                 let MemoryRecord { id: _, revision: _, body_id: _, mutation_id: _,
                     global_version: _, memory_version: _, $($field: _,)+ } = next;
                 Self { $($field: MemoryFieldChange::between(&previous.$field, &next.$field),)+ }
             }
-            pub(crate) fn mask(&self) -> u64 {
+            pub fn mask(&self) -> u64 {
                 0 $(| if matches!(self.$field, MemoryFieldChange::Unchanged) { 0 } else { 1 << $bit })+
             }
         }
@@ -52,17 +52,17 @@ memory_fields! {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct MemoryCreation {
+pub struct MemoryCreation {
     pub record: MemoryRecord,
 }
 impl MemoryCreation {
-    pub(crate) fn new(record: MemoryRecord) -> Result<Self, MemoryError> {
+    pub fn new(record: MemoryRecord) -> Result<Self, MemoryError> {
         let creation = Self { record };
         creation.validate()?;
         Ok(creation)
     }
 
-    pub(crate) fn validate(&self) -> Result<(), MemoryError> {
+    pub fn validate(&self) -> Result<(), MemoryError> {
         let record = &self.record;
         if record.revision != 1 {
             return Err(MemoryError::RevisionConflict);
@@ -80,7 +80,7 @@ impl MemoryCreation {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct MemoryDelta {
+pub struct MemoryDelta {
     pub id: MemoryId,
     pub previous_revision: u64,
     pub revision: u64,
@@ -90,10 +90,7 @@ pub(crate) struct MemoryDelta {
     pub fields: MemoryDeltaFields,
 }
 impl MemoryDelta {
-    pub(crate) fn between(
-        previous: &MemoryRecord,
-        next: &MemoryRecord,
-    ) -> Result<Self, MemoryError> {
+    pub fn between(previous: &MemoryRecord, next: &MemoryRecord) -> Result<Self, MemoryError> {
         if previous.id != next.id || previous.body_id != next.body_id {
             return Err(MemoryError::SemanticMutation);
         }
@@ -123,7 +120,7 @@ impl MemoryDelta {
         })
     }
 
-    pub(crate) fn validate_mask(mask: u64) -> Result<(), MemoryError> {
+    pub fn validate_mask(mask: u64) -> Result<(), MemoryError> {
         if !reliquary_container::codec::mask_is_known(mask, MEMORY_DELTA_KNOWN_MASK) {
             return Err(MemoryError::CorruptRecord("unknown Memory delta field"));
         }

@@ -38,7 +38,7 @@ impl PreparedMemory {
                     &self.draft.content,
                 ),
                 source_time_ns: self.draft.source_time_ns,
-                inference,
+                inference: inference.into(),
             })
     }
 }

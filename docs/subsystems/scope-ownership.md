@@ -44,8 +44,8 @@ REL and PHY are typed file kinds with durable owner identity. Rewrites/rebuilds 
 ## Code Map
 
 - `src/facade/**`
-- `src/memory/**`
-- `src/memory/**/*.rs`
+- `crates/reliquary-memory-core/src/**`
+- `src/memory/{processing_epoch_*,memory_source_time*}.rs`
 - `src/retrieval/**`
 - `src/retrieval/**/*.rs`
 - `src/semantic_graph/**`
@@ -65,3 +65,9 @@ REL and PHY are typed file kinds with durable owner identity. Rewrites/rebuilds 
 ## Notes
 
 The former scope design plan is retired. ADRs retain rationale; this document owns the current operational scope model.
+
+Memory Core is shared compiled code, with separate REL and PHY owner sessions.
+It owns terminal and retained revision facts; root composition owns source
+permission, cross-owner import and maintenance decisions. External Source window
+receipts remain root-owned. Processing epochs stay at root until Owner Lifecycle
+extraction; they do not allocate Memory revisions.

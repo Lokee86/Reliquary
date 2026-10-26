@@ -143,7 +143,8 @@ fn admission_proof_legacy(cva: &mut Cva) -> Result<AdmissionProof, CvaError> {
                             .find(|r| r.id == id && r.revision == 1)
                             .ok_or_else(|| fail("import birth lacks first revision"))?;
                         if cva.memories.first_mutation_id(id) != Some(record.mutation_id.as_str())
-                            || record.source_episode_id != Some(episode.id)
+                            || record.source_episode_id
+                                != Some(reliquary_memory_core::SourceEpisodeId((episode.id).0))
                         {
                             return Err(fail("import publication conflicts with Memory birth"));
                         }
@@ -246,14 +247,17 @@ fn admission_proof_legacy(cva: &mut Cva) -> Result<AdmissionProof, CvaError> {
         let first = cva.memory_revision(id, 1)?;
         let grouped = birth_episodes.get(&id).copied();
         if memory.source_episode_id != first.source_episode_id
-            || grouped.is_some_and(|episode| memory.source_episode_id != Some(episode))
+            || grouped.is_some_and(|episode| {
+                memory.source_episode_id
+                    != Some(reliquary_memory_core::SourceEpisodeId((episode).0))
+            })
         {
             return Err(fail("import cohort origin rewritten"));
         }
         let episode = memory
             .source_episode_id
             .map(|episode| {
-                cva.episode(episode)
+                cva.episode(crate::EpisodeId((episode).0))
                     .cloned()
                     .ok_or_else(|| fail("missing owner Episode"))
             })
@@ -574,7 +578,8 @@ pub(super) fn validate_settlement(
                             .episode(completion.episode_id)
                             .ok_or_else(|| fail("import checkpoint Episode is unavailable"))?;
                         if record.global_version > cp.global_version
-                            || record.source_episode_id != Some(episode.id)
+                            || record.source_episode_id
+                                != Some(reliquary_memory_core::SourceEpisodeId((episode.id).0))
                             || episode.origin != EpisodeOrigin::Import
                             || cva.memories.first_mutation_id(id)
                                 != Some(record.mutation_id.as_str())

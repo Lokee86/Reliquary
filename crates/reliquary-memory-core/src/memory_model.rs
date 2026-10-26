@@ -1,8 +1,16 @@
-use crate::EpisodeId;
 use crate::memory_routing_model::MemoryRoutingMetadata;
 use sha2::{Digest, Sha256};
 
-pub use reliquary_archive::MemoryId;
+/// Canonical semantic Memory identity. Its 32 byte representation is persisted as-is.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct MemoryId(pub [u8; 32]);
+
+/// Stable foreign reference to an Archive Episode; Memory does not own Episode semantics.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct SourceEpisodeId(pub [u8; 32]);
+
+/// Compatibility name for owner-local source Episode references.
+pub use SourceEpisodeId as EpisodeId;
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct MemoryRef {
@@ -68,7 +76,33 @@ pub struct MemoryRetainedRevision {
 pub struct MemoryTemporalInference {
     pub body_id: MemoryBodyId,
     pub source_time_ns: Option<i64>,
-    pub inference: crate::TemporalInference,
+    pub inference: TemporalInference,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum TemporalIndicationKind {
+    Explicit,
+    Calendar,
+    Relative,
+    Boundary,
+    Recurrence,
+    Duration,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TemporalInferenceResolution {
+    pub start_byte: usize,
+    pub end_byte: usize,
+    pub kind: TemporalIndicationKind,
+    pub evidence: String,
+    pub canonical_expression: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TemporalInference {
+    pub model: String,
+    pub contract_version: String,
+    pub resolutions: Vec<TemporalInferenceResolution>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -137,7 +171,7 @@ pub struct MemoryStats {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct MemoryRecord {
+pub struct MemoryRecord {
     pub id: MemoryId,
     pub revision: u64,
     pub body_id: MemoryBodyId,
@@ -166,7 +200,40 @@ pub(crate) struct MemoryRecord {
     pub memory_version: u64,
 }
 
-pub(crate) fn memory_id(mutation_id: &str) -> MemoryId {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct MemoryTombstoneCoordinates {
+    pub global_version: Option<u64>,
+    pub domain_version: Option<u64>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum MemoryLifecycleState {
+    Active,
+    Tombstoned(MemoryTombstoneCoordinates),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum MemoryTombstoneOutcome {
+    Published(MemoryTombstoneCoordinates),
+    AlreadyTombstoned(MemoryTombstoneCoordinates),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum MemoryPayloadUnavailable {
+    Pruned,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum MemoryHistoricalPayload<T, S> {
+    Available(T),
+    Tombstoned(T),
+    Pruned {
+        structural_history: S,
+        reason: MemoryPayloadUnavailable,
+    },
+}
+
+pub fn memory_id(mutation_id: &str) -> MemoryId {
     let mut hash = Sha256::new();
     hash.update(b"continuity-memory-id\0");
     hash.update((mutation_id.len() as u64).to_le_bytes());
@@ -174,7 +241,7 @@ pub(crate) fn memory_id(mutation_id: &str) -> MemoryId {
     MemoryId(hash.finalize().into())
 }
 
-pub(crate) fn memory_body_bytes(title: &str, content: &str) -> Vec<u8> {
+pub fn memory_body_bytes(title: &str, content: &str) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(16 + title.len() + content.len());
     bytes.extend_from_slice(&(title.len() as u64).to_le_bytes());
     bytes.extend_from_slice(title.as_bytes());
@@ -183,6 +250,6 @@ pub(crate) fn memory_body_bytes(title: &str, content: &str) -> Vec<u8> {
     bytes
 }
 
-pub(crate) fn memory_body_id(title: &str, content: &str) -> MemoryBodyId {
+pub fn memory_body_id(title: &str, content: &str) -> MemoryBodyId {
     MemoryBodyId(Sha256::digest(memory_body_bytes(title, content)).into())
 }

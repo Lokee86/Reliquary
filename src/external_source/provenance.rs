@@ -46,7 +46,7 @@ impl crate::Cva {
             .memories
             .current_body_id(id)
             .map_err(|_| ExternalSourceError::Unavailable)?;
-        Ok(self.memories.external_evidence.get(&(id, body)).cloned())
+        Ok(self.external_publications.evidence(id, body))
     }
 }
 impl crate::Phylactery {
@@ -58,6 +58,6 @@ impl crate::Phylactery {
             .memories
             .current_body_id(id)
             .map_err(|_| ExternalSourceError::Unavailable)?;
-        Ok(self.memories.external_evidence.get(&(id, body)).cloned())
+        Ok(self.external_publications.evidence(id, body))
     }
 }

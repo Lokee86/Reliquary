@@ -1,0 +1,10 @@
+# Generated build and test output is not documentation link authority.
+target/
+cli/target/
+.verification-tmp/
+.test-tmp/
+.t/
+.arcana/
+.lexicon/
+.grimoire/
+.go-cache/

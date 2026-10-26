@@ -110,7 +110,10 @@ fn routed_user_memory_uses_owner_qualified_receipt_and_no_rel_provenance() {
     let source_ref = memory.source_ref.as_ref().unwrap();
     assert_eq!(source_ref.owner_id, source_owner);
     assert_eq!(source_ref.principal_id.as_deref(), Some(SOURCE_PRINCIPAL));
-    assert_eq!(source_ref.source_episode_id, episode.id);
+    assert_eq!(
+        source_ref.source_episode_id,
+        reliquary_memory_core::SourceEpisodeId((episode.id).0)
+    );
     assert_eq!(source_ref.source_node_id, "u0");
     assert!(source_ref.content_source_conversation_id.is_none());
     assert!(source_ref.content_source_node_id.is_none());
@@ -130,7 +133,10 @@ fn routed_user_memory_uses_owner_qualified_receipt_and_no_rel_provenance() {
     let reopened_ref = reopened_memory.source_ref.unwrap();
     assert_eq!(reopened_ref.owner_id, source_owner);
     assert_eq!(reopened_ref.principal_id.as_deref(), Some(SOURCE_PRINCIPAL));
-    assert_eq!(reopened_ref.source_episode_id, episode.id);
+    assert_eq!(
+        reopened_ref.source_episode_id,
+        reliquary_memory_core::SourceEpisodeId((episode.id).0)
+    );
     assert_eq!(reopened_ref.source_node_id, "u0");
 }
 
@@ -180,7 +186,7 @@ fn routed_retry_reuses_phy_memory_after_wording_drift() {
             MemorySourceRef {
                 owner_id: source_owner,
                 principal_id: Some(SOURCE_PRINCIPAL.into()),
-                source_episode_id: episode.id,
+                source_episode_id: reliquary_memory_core::SourceEpisodeId((episode.id).0),
                 source_node_id: candidate.source_node_id.clone(),
                 content_source_conversation_id: candidate.authority_source_conversation_id.clone(),
                 content_source_node_id: candidate.authority_source_node_id.clone(),

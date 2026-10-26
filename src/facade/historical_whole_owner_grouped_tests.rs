@@ -78,7 +78,7 @@ fn whole_owner_cut_inside_grouped_publication_selects_individual_memory_versions
         content_source_node_id: None,
         grounding_source_conversation_id: None,
         grounding_source_node_id: None,
-        source_episode_id: Some(episode.id),
+        source_episode_id: Some(reliquary_memory_core::SourceEpisodeId((episode.id).0)),
         source_time_ns: None,
         mutation_id: name.into(),
         created_at_ns: 3,
@@ -86,7 +86,7 @@ fn whole_owner_cut_inside_grouped_publication_selects_individual_memory_versions
     };
     let batch = cva
         .memories
-        .stage_grouped_insomnia(
+        .stage_grouped(
             &mut cva.container,
             vec![
                 (draft("grouped-one"), None, None),

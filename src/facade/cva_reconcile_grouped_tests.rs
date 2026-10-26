@@ -62,7 +62,7 @@ fn seed_right(cva: &mut Cva) -> (crate::Episode, MemoryDraft) {
         content_source_node_id: None,
         grounding_source_conversation_id: None,
         grounding_source_node_id: None,
-        source_episode_id: Some(episode.id),
+        source_episode_id: Some(reliquary_memory_core::SourceEpisodeId((episode.id).0)),
         source_time_ns: None,
         mutation_id: "grouped-memory".into(),
         created_at_ns: 3,
@@ -116,13 +116,13 @@ fn reconcile_replays_grouped_insomnia_memory_records() {
         content_source_node_id: None,
         grounding_source_conversation_id: None,
         grounding_source_node_id: None,
-        source_episode_id: Some(episode.id),
+        source_episode_id: Some(reliquary_memory_core::SourceEpisodeId((episode.id).0)),
         source_time_ns: None,
         source_ref: None,
         temporal_inference: Some(MemoryTemporalInference {
             body_id,
             source_time_ns: None,
-            inference: TemporalInference {
+            inference: (TemporalInference {
                 model: "chronos-test".into(),
                 contract_version: CHRONOS_INFERENCE_CONTRACT_VERSION.into(),
                 resolutions: vec![TemporalInferenceResolution {
@@ -132,7 +132,8 @@ fn reconcile_replays_grouped_insomnia_memory_records() {
                     evidence: "Keep".into(),
                     canonical_expression: "March 2027".into(),
                 }],
-            },
+            })
+            .into(),
         }),
         mutation_id: draft.mutation_id,
         created_at_ns: 3,

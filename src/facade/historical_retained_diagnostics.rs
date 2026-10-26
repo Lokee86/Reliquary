@@ -88,7 +88,10 @@ pub(super) fn diagnose(cva: &mut Cva) -> Value {
                             .map(|record| record.id),
                     );
                     for first in record.records.iter().filter(|first| first.revision == 1) {
-                        if first.source_episode_id == Some(record.episode_id)
+                        if first.source_episode_id
+                            == Some(reliquary_memory_core::SourceEpisodeId(
+                                (record.episode_id).0,
+                            ))
                             && cva.memories.first_mutation_id(first.id)
                                 == Some(first.mutation_id.as_str())
                         {
@@ -153,7 +156,10 @@ pub(super) fn diagnose(cva: &mut Cva) -> Value {
         {
             let output_count = ids
                 .iter()
-                .filter(|&&id| cva.memory(id).unwrap().source_episode_id == Some(episode.id))
+                .filter(|&&id| {
+                    cva.memory(id).unwrap().source_episode_id
+                        == Some(reliquary_memory_core::SourceEpisodeId((episode.id).0))
+                })
                 .count();
             pending_episodes.push(json!({"episode_id":hex(&episode.id.0),"state":format!("{:?}",cva.insomnia_work(episode.id).unwrap().state),
                 "activity_positions":positions,"current_memory_outputs":output_count}));

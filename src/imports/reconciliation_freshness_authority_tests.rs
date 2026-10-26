@@ -600,28 +600,32 @@ fn completed_scope_inventory(
     cva.container.sync().unwrap();
     cva.freshness.ingest_appended(&payload).unwrap();
     let envelope_evidence = if with_envelope {
-        let previous = cva
+        let current = cva.memory(memory).unwrap();
+        let revision = current.revision;
+        let source_ref = current.source_ref.clone();
+        let temporal = current.temporal_inference.clone();
+        let mut draft = crate::cva_reconcile_memory::memory_draft(current);
+        draft.mutation_id = "completed-import-envelope-revision".into();
+        draft.updated_at_ns += 1;
+        let (published, changed) = cva
+            .memories
+            .publish_with_source_ref_and_temporal_inference(
+                &mut cva.container,
+                Some(memory),
+                revision,
+                draft,
+                source_ref,
+                temporal,
+            )
+            .unwrap();
+        assert!(changed);
+        let mut next = cva
             .memories
             .records()
             .iter()
-            .rev()
-            .find(|record| record.id == memory)
+            .find(|record| record.id == published.id && record.revision == published.revision)
             .unwrap()
             .clone();
-        let mut next = previous.clone();
-        next.revision += 1;
-        next.memory_version = cva.memory_version() + 1;
-        next.global_version = cva.container.next_version_candidate();
-        next.mutation_id = "completed-import-envelope-revision".into();
-        next.updated_at_ns += 1;
-        let delta = crate::memory_compact_contract::MemoryDelta::between(&previous, &next).unwrap();
-        let body = crate::memory_compact_codec::publication::encode(
-            &crate::memory_compact_codec::publication::MemoryPublication::Delta(delta),
-        )
-        .unwrap();
-        let (global, _) = cva.container.append_publication_envelope(&body).unwrap();
-        assert_eq!(global, next.global_version);
-        cva.memories.insert_rebuilt(next.clone()).unwrap();
         next.global_version = 0;
         next.memory_version = 0;
         Some(crate::memory_codec::encode_record(&next).unwrap())

@@ -1,8 +1,10 @@
 use super::prepared::{PreparedApplication, PreparedMemory, PreparedUserMemory, UserPublication};
 use super::source_validation::{candidate_source_time_ns, validate_candidate_sources};
 use super::{InsomniaProcessError, InsomniaProcessResult};
+use crate::MemoryError;
 use crate::freshness_storage::FreshnessStore;
 use crate::insomnia::candidate::hex;
+use crate::insomnia::completion::InsomniaCompletionBody;
 use crate::insomnia::completion::{InsomniaCompletion, encode_completion};
 use crate::insomnia::store::InsomniaStore;
 use crate::memory_model::{memory_body_id, memory_id};
@@ -13,14 +15,93 @@ use crate::{
     MemoryRoutingMetadata, MemorySourceRef, Phylactery,
 };
 use reliquary_container::Container;
+use std::collections::HashSet;
+pub(crate) fn complete_grouped_replay_bodies(
+    memories: &MemoryStore,
+    container: &mut Container,
+    completion: &mut crate::insomnia::completion::InsomniaCompletion,
+) -> Result<(), MemoryError> {
+    let mut present = completion
+        .bodies
+        .iter()
+        .map(|body| body.id)
+        .collect::<HashSet<_>>();
+    if present.len() != completion.bodies.len() {
+        return Err(MemoryError::CorruptRecord(
+            "duplicate grouped completion body identity",
+        ));
+    }
+    for body in &completion.bodies {
+        body.validate()?;
+    }
+    for record in &completion.records {
+        if present.contains(&record.body_id) {
+            continue;
+        }
+        let bytes = memories.body_bytes(container, record.body_id)?;
+
+        present.insert(record.body_id);
+        completion.bodies.push(InsomniaCompletionBody {
+            id: record.body_id,
+            bytes,
+        });
+    }
+    Ok(())
+}
+
+/// Rebase only the storage coordinates of an accepted grouped first
+/// publication. Semantic Memory fields and proof identities remain exact.
+pub(crate) fn rebase_grouped_replay_versions(
+    memories: &MemoryStore,
+    container: &Container,
+    completion: &mut crate::insomnia::completion::InsomniaCompletion,
+) -> Result<(), MemoryError> {
+    if completion.records.is_empty() {
+        completion.global_version_start = container.next_version_candidate();
+        return Ok(());
+    }
+    let mut memory_ids = HashSet::new();
+    let mut mutation_ids = HashSet::new();
+    let global_start = container.next_version_candidate();
+    let memory_start = memories
+        .memory_version()
+        .checked_add(1)
+        .ok_or(MemoryError::VersionExhausted)?;
+    for (index, record) in completion.records.iter_mut().enumerate() {
+        if record.revision != 1
+            || !memory_ids.insert(record.id)
+            || !mutation_ids.insert(record.mutation_id.clone())
+            || memories.contains_historical_memory(record.id)
+            || memories.tombstoned_ids().contains(&record.id)
+            || memories.contains_mutation_id(&record.mutation_id)
+            || memory_id(&record.mutation_id) != record.id
+        {
+            return Err(MemoryError::MutationConflict);
+        }
+        if !completion
+            .bodies
+            .iter()
+            .any(|body| body.id == record.body_id)
+        {
+            return Err(MemoryError::MissingBody);
+        }
+        record.global_version = global_start
+            .checked_add(u64::try_from(index).map_err(|_| MemoryError::VersionExhausted)?)
+            .ok_or(MemoryError::VersionExhausted)?;
+        record.memory_version = memory_start
+            .checked_add(u64::try_from(index).map_err(|_| MemoryError::VersionExhausted)?)
+            .ok_or(MemoryError::VersionExhausted)?;
+    }
+    completion.global_version_start = global_start;
+    Ok(())
+}
 
 impl Cva {
     pub(crate) fn hydrate_grouped_import_completion_bodies(
         &mut self,
         completion: &mut InsomniaCompletion,
     ) -> Result<(), CvaError> {
-        self.memories
-            .complete_grouped_replay_bodies(&mut self.container, completion)
+        complete_grouped_replay_bodies(&self.memories, &mut self.container, completion)
             .map_err(CvaError::Memories)
     }
 
@@ -42,7 +123,11 @@ impl Cva {
             CvaError::Freshness("destination grouped completion Episode is missing".into())
         })?;
         if completion.records.iter().any(|record| {
-            record.revision != 1 || record.source_episode_id != Some(completion.episode_id)
+            record.revision != 1
+                || record.source_episode_id
+                    != Some(reliquary_memory_core::SourceEpisodeId(
+                        (completion.episode_id).0,
+                    ))
         }) {
             return Err(CvaError::Freshness(
                 "grouped import completion does not prove same-Episode first publications".into(),
@@ -100,8 +185,7 @@ impl Cva {
             return Err(CvaError::Insomnia(crate::InsomniaError::InvalidTransition));
         }
 
-        self.memories
-            .rebase_grouped_replay_versions(&self.container, &mut completion)
+        rebase_grouped_replay_versions(&self.memories, &self.container, &mut completion)
             .map_err(CvaError::Memories)?;
 
         let accepted_turn = self.rel_turn_count();
@@ -127,15 +211,14 @@ impl Cva {
         )?;
         self.container.sync()?;
 
-        self.memories
-            .apply_grouped_bodies(completion_chunk, &completion.bodies)
-            .map_err(CvaError::Memories)?;
-        self.memories
-            .apply_grouped_records(&mut self.container, &completion.records)
-            .map_err(CvaError::Memories)?;
-        self.memories
-            .apply_grouped_routing_metadata(&completion.routing_metadata)
-            .map_err(CvaError::Memories)?;
+        apply_completion_memory_batch(
+            &mut self.memories,
+            &self.container,
+            completion_chunk,
+            &payload,
+            &completion,
+        )
+        .map_err(CvaError::Memories)?;
         self.insomnia
             .apply_completion(&completion)
             .map_err(CvaError::Insomnia)?;
@@ -195,7 +278,7 @@ pub(crate) fn prepare_application(
             content_source_node_id: candidate.authority_source_node_id,
             grounding_source_conversation_id: candidate.grounding_source_conversation_id,
             grounding_source_node_id: candidate.grounding_source_node_id,
-            source_episode_id: Some(episode.id),
+            source_episode_id: Some(reliquary_memory_core::SourceEpisodeId((episode.id).0)),
             source_time_ns: Some(source_time_ns),
             mutation_id: format!("insomnia:{}:{}", hex(&episode.id.0), candidate.key),
             created_at_ns: episode.source_through_ns,
@@ -234,7 +317,7 @@ pub(crate) fn prepare_application(
                                 .is_some_and(|source| source == turn.node_id)
                         })
                         .and_then(|turn| turn.principal_id.clone()),
-                    source_episode_id: episode.id,
+                    source_episode_id: reliquary_memory_core::SourceEpisodeId((episode.id).0),
                     source_node_id: draft.source_node_id.clone().ok_or_else(|| {
                         InsomniaProcessError::InvalidCandidate(
                             "user Memory source node is unavailable".into(),
@@ -381,7 +464,7 @@ pub(crate) fn commit_application(
             )
         })
         .collect();
-    let batch = memories.stage_grouped_insomnia(container, project_drafts)?;
+    let batch = memories.stage_grouped(container, project_drafts)?;
     let existing = batch.existing;
     let mut memory_ids: Vec<_> = batch.records.iter().map(|record| record.id).collect();
     memory_ids.extend(existing.iter().map(|memory| memory.id));
@@ -440,9 +523,12 @@ pub(crate) fn commit_application(
         )
         .map_err(crate::InsomniaError::from)?;
     container.sync().map_err(crate::InsomniaError::from)?;
-    memories.apply_grouped_bodies(completion_chunk, &completion.bodies)?;
-    let mut created = memories.apply_grouped_records(container, &completion.records)?;
-    memories.apply_grouped_routing_metadata(&completion.routing_metadata)?;
+    apply_completion_memory_batch(memories, container, completion_chunk, &payload, &completion)?;
+    let mut created = completion
+        .records
+        .iter()
+        .map(|record| memories.memory(container, record.id))
+        .collect::<Result<Vec<_>, _>>()?;
     for memory in &mut created {
         *memory = memories.memory(container, memory.id)?;
     }
@@ -490,4 +576,26 @@ fn same_routed_user_semantics(
         && memory.source_ref.as_ref() == Some(source_ref)
         && memory.mutation_id == draft.mutation_id
         && memory.created_at_ns == draft.created_at_ns
+}
+
+fn apply_completion_memory_batch(
+    memories: &mut MemoryStore,
+    container: &Container,
+    chunk: reliquary_container::ObjectRef,
+    payload: &[u8],
+    completion: &InsomniaCompletion,
+) -> Result<(), MemoryError> {
+    let (_, spans) = crate::insomnia::completion::decode_completion_with_body_spans(payload)
+        .map_err(MemoryError::CorruptRecord)?
+        .ok_or(MemoryError::CorruptRecord("missing grouped completion"))?;
+    memories.apply_grouped_batch(
+        chunk,
+        payload,
+        reliquary_memory_core::MemoryGroupedBatch {
+            records: completion.records.clone(),
+            bodies: spans,
+            routing_metadata: completion.routing_metadata.clone(),
+        },
+        container.latest_version(),
+    )
 }

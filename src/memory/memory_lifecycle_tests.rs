@@ -72,7 +72,7 @@ fn phy_open_rejects_malformed_manifest_and_unbound_prune_marker() {
 
     let unbound = temp_dir.join(format!("unbound-{}.phy", uuid::Uuid::new_v4()));
     let mut phy = Phylactery::create(&unbound).unwrap();
-    let marker = crate::memory_store::history_prune::PrunedMemoryBody::encode(
+    let marker = reliquary_memory_core::PrunedMemoryBody::encode(
         crate::MemoryBodyId([0x91; 32]),
         17,
         [0x92; 32],
@@ -118,9 +118,9 @@ fn phy_open_rejects_checksummed_but_unauthorized_prune_manifest_marker() {
     };
     let digest = manifest.digest().unwrap();
     phy.container
-        .append(
-            &crate::memory_store::history_prune::PrunedMemoryBody::encode(fake_body, 17, digest),
-        )
+        .append(&reliquary_memory_core::PrunedMemoryBody::encode(
+            fake_body, 17, digest,
+        ))
         .unwrap();
     phy.container.append(&manifest.encode().unwrap()).unwrap();
     phy.sync().unwrap();

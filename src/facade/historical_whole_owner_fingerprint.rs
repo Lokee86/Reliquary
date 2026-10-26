@@ -91,6 +91,7 @@ pub(crate) fn whole_owner_at(
     let memory = crate::historical_memory_fingerprint::MemoryHistory::read(
         &mut cva.container,
         &cva.memories,
+        &cva.external_publications,
     )?
     .at(cuts.memory)?;
     let entity = crate::historical_entity_fingerprint::entity_cut(

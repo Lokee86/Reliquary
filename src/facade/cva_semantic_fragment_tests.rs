@@ -24,7 +24,7 @@ fn semantic_fragment_excludes_a_whole_cohort_for_external_grounding_evidence() {
     let mut ids = Vec::new();
     for n in 0..2 {
         let mut draft = live_draft(&format!("grounded-cohort-{n}"));
-        draft.source_episode_id = Some(episode.id);
+        draft.source_episode_id = Some(reliquary_memory_core::SourceEpisodeId(episode.id.0));
         draft.source_node_id = Some("base".into());
         if n == 0 {
             draft.grounding_source_conversation_id = Some("c".into());
@@ -102,7 +102,7 @@ fn semantic_mixed_fragment_availability_excludes_every_source_and_credits_once()
         .find(|e| e.end_node_id == first.id)
         .unwrap();
     let mut cohort_draft = live_draft("earlier-episode-cohort");
-    cohort_draft.source_episode_id = Some(episode.id);
+    cohort_draft.source_episode_id = Some(reliquary_memory_core::SourceEpisodeId(episode.id.0));
     cohort_draft.source_node_id = Some(first.id.clone());
     let cohort = f.cva().publish_memory(None, 0, cohort_draft).unwrap().0;
     let last = f.turn("mixed-last", Some(&first.id), "assistant");

@@ -3,38 +3,64 @@ use crate::memory_compact_codec::publication::{self, MemoryPublication};
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id, memory_id};
 use crate::{
     MAX_MEMORY_ENTITY_MENTIONS, MAX_MEMORY_ROUTING_TEXT_BYTES, Memory, MemoryBodyId, MemoryDraft,
-    MemoryEntityMentionKey, MemoryError, MemoryId, MemoryRoutingMetadata, MemorySourceRef,
-    MemoryStats, MemoryTemporalInference, MemoryTextField,
+    MemoryEntityMentionKey, MemoryError, MemoryId, MemoryLifecycleState, MemoryPayloadUnavailable,
+    MemoryRoutingMetadata, MemorySourceRef, MemoryStats, MemoryTemporalInference, MemoryTextField,
+    MemoryTombstoneCoordinates, MemoryTombstoneOutcome,
 };
 use reliquary_container::{Container, ObjectRef};
 use std::collections::{HashMap, HashSet};
+use std::ops::Range;
 
+#[cfg(test)]
+#[path = "memory_store/grouped_replay_tests.rs"]
+mod grouped_replay_tests;
 #[cfg(test)]
 #[path = "memory_rebuild_overflow_tests.rs"]
 mod rebuild_overflow_tests;
 
 #[path = "memory_store/grouped_publish.rs"]
 mod grouped_publish;
+pub use grouped_publish::{
+    MemoryGroupedBatch, MemoryGroupedBody, MemoryGroupedBodyEncoding, MemoryGroupedBodySpan,
+    PreparedMemoryBatch,
+};
+pub use history_prune::PrunedMemoryBody;
 #[path = "memory_store/history_prune.rs"]
 pub(crate) mod history_prune;
 
-pub(crate) struct MemoryStore {
-    pub(crate) external_evidence:
-        HashMap<(MemoryId, MemoryBodyId), crate::external_source::ExternalMemoryEvidence>,
-    pub(crate) external_windows: HashMap<[u8; 32], Vec<MemoryId>>,
-    bodies: HashMap<MemoryBodyId, ObjectRef>,
+#[derive(Clone)]
+pub struct MemoryStore {
+    bodies: HashMap<MemoryBodyId, BodyLocation>,
     routing_metadata: HashMap<MemoryId, MemoryRoutingMetadata>,
     entity_mentions_by_surface: HashMap<String, HashSet<MemoryEntityMentionKey>>,
     records: Vec<MemoryRecord>,
     current: HashMap<MemoryId, usize>,
     by_mutation: HashMap<String, usize>,
     revisions: HashMap<MemoryId, u64>,
-    tombstones: HashMap<MemoryId, crate::owner_lifecycle::TombstoneCoordinates>,
+    tombstones: HashMap<MemoryId, MemoryTombstoneCoordinates>,
     pub(crate) prune: history_prune::MemoryPruneState,
     next_memory_version: u64,
 }
 
-pub(crate) enum PublishPreflight {
+#[derive(Clone, Debug)]
+enum BodyLocation {
+    Frame(ObjectRef),
+    GroupedFrame {
+        frame: ObjectRef,
+        range: Range<usize>,
+        encoding: grouped_publish::MemoryGroupedBodyEncoding,
+    },
+}
+
+impl BodyLocation {
+    fn frame(&self) -> ObjectRef {
+        match self {
+            Self::Frame(frame) | Self::GroupedFrame { frame, .. } => *frame,
+        }
+    }
+}
+
+pub enum PublishPreflight {
     Retry(Memory),
     New {
         record: MemoryRecord,
@@ -44,10 +70,8 @@ pub(crate) enum PublishPreflight {
 }
 
 impl MemoryStore {
-    pub(crate) fn empty() -> Self {
+    pub fn empty() -> Self {
         Self {
-            external_evidence: HashMap::new(),
-            external_windows: HashMap::new(),
             bodies: HashMap::new(),
             routing_metadata: HashMap::new(),
             entity_mentions_by_surface: HashMap::new(),
@@ -61,12 +85,12 @@ impl MemoryStore {
         }
     }
 
-    pub(crate) fn initialize(&self, container: &mut Container) -> Result<(), MemoryError> {
+    pub fn initialize(&self, container: &mut Container) -> Result<(), MemoryError> {
         container.append(&encode_format())?;
         Ok(())
     }
 
-    pub(crate) fn publish(
+    pub fn publish(
         &mut self,
         container: &mut Container,
         id: Option<MemoryId>,
@@ -83,7 +107,7 @@ impl MemoryStore {
         )
     }
 
-    pub(crate) fn publish_with_source_ref(
+    pub fn publish_with_source_ref(
         &mut self,
         container: &mut Container,
         id: Option<MemoryId>,
@@ -101,7 +125,7 @@ impl MemoryStore {
         )
     }
 
-    pub(crate) fn publish_with_source_ref_and_temporal_inference(
+    pub fn publish_with_source_ref_and_temporal_inference(
         &mut self,
         container: &mut Container,
         id: Option<MemoryId>,
@@ -147,7 +171,7 @@ impl MemoryStore {
             .map(|memory| (memory, true))
     }
 
-    pub(crate) fn preflight_publish(
+    pub fn preflight_publish(
         &self,
         container: &mut Container,
         id: Option<MemoryId>,
@@ -250,6 +274,7 @@ impl MemoryStore {
             global_version: 0,
             memory_version,
         };
+        Self::validate_compact_record(&record)?;
         encode_body(body_id, &bytes)?;
         crate::memory_compact_codec::validate_record_values(&record)?;
         if container.next_version_candidate().checked_add(1).is_none() {
@@ -262,16 +287,12 @@ impl MemoryStore {
         })
     }
 
-    pub(crate) fn memory(
-        &self,
-        container: &mut Container,
-        id: MemoryId,
-    ) -> Result<Memory, MemoryError> {
+    pub fn memory(&self, container: &mut Container, id: MemoryId) -> Result<Memory, MemoryError> {
         let index = self.current.get(&id).ok_or(MemoryError::MissingMemory)?;
         self.resolve_record(container, &self.records[*index])
     }
 
-    pub(crate) fn memory_revision(
+    pub fn memory_revision(
         &self,
         container: &mut Container,
         id: MemoryId,
@@ -285,19 +306,17 @@ impl MemoryStore {
         self.resolve_record(container, record)
     }
 
-    pub(crate) fn tombstone(
+    pub fn tombstone(
         &mut self,
         container: &mut Container,
         id: MemoryId,
         expected_revision: u64,
-    ) -> Result<crate::owner_lifecycle::TombstoneOutcome, MemoryError> {
+    ) -> Result<MemoryTombstoneOutcome, MemoryError> {
         if let Some(&coordinates) = self.tombstones.get(&id) {
             if expected_revision.checked_add(1) != self.revisions.get(&id).copied() {
                 return Err(MemoryError::RevisionConflict);
             }
-            return Ok(crate::owner_lifecycle::TombstoneOutcome::AlreadyTombstoned(
-                coordinates,
-            ));
+            return Ok(MemoryTombstoneOutcome::AlreadyTombstoned(coordinates));
         }
         let index = self
             .current
@@ -324,8 +343,8 @@ impl MemoryStore {
         })?;
         let (global_version, _) = container.append_publication_envelope(&encoded)?;
         self.insert_tombstone_rebuilt(tombstone, global_version, memory_version)?;
-        Ok(crate::owner_lifecycle::TombstoneOutcome::Published(
-            crate::owner_lifecycle::TombstoneCoordinates {
+        Ok(MemoryTombstoneOutcome::Published(
+            MemoryTombstoneCoordinates {
                 global_version: Some(global_version),
                 domain_version: Some(memory_version),
             },
@@ -361,7 +380,7 @@ impl MemoryStore {
         self.revisions.insert(tombstone.id, tombstone.revision);
         self.tombstones.insert(
             tombstone.id,
-            crate::owner_lifecycle::TombstoneCoordinates {
+            MemoryTombstoneCoordinates {
                 global_version: Some(global_version),
                 domain_version: Some(memory_version),
             },
@@ -370,22 +389,17 @@ impl MemoryStore {
         Ok(())
     }
 
-    pub(crate) fn lifecycle_state(
-        &self,
-        id: MemoryId,
-    ) -> Result<crate::owner_lifecycle::LifecycleState, MemoryError> {
+    pub fn lifecycle_state(&self, id: MemoryId) -> Result<MemoryLifecycleState, MemoryError> {
         if let Some(&coordinates) = self.tombstones.get(&id) {
-            return Ok(crate::owner_lifecycle::LifecycleState::Tombstoned(
-                coordinates,
-            ));
+            return Ok(MemoryLifecycleState::Tombstoned(coordinates));
         }
         self.current
             .contains_key(&id)
-            .then_some(crate::owner_lifecycle::LifecycleState::Active)
+            .then_some(MemoryLifecycleState::Active)
             .ok_or(MemoryError::MissingMemory)
     }
 
-    pub(crate) fn retention_descriptor(
+    pub fn retention_descriptor(
         &self,
         id: MemoryId,
     ) -> Result<crate::memory_model::MemoryRetentionDescriptor, MemoryError> {
@@ -443,27 +457,29 @@ impl MemoryStore {
         })
     }
 
-    pub(crate) fn prune_body_chunk(&self, id: crate::MemoryBodyId) -> Option<ObjectRef> {
-        self.bodies.get(&id).copied()
+    pub fn prune_body_chunk(&self, id: crate::MemoryBodyId) -> Option<ObjectRef> {
+        self.bodies.get(&id).map(BodyLocation::frame)
     }
 
-    pub(crate) fn validate_prune_history(
+    pub fn prune_markers(&self) -> impl Iterator<Item = &history_prune::PrunedMemoryBody> {
+        self.prune.markers()
+    }
+
+    pub fn prune_marker(
         &self,
-        container: &mut Container,
-        maintenance: &crate::owner_maintenance::OwnerMaintenanceStore,
-    ) -> Result<(), MemoryError> {
-        self.prune
-            .validate(self, container, maintenance.manifests())
+        id: crate::MemoryBodyId,
+    ) -> Option<&history_prune::PrunedMemoryBody> {
+        self.prune.get(id)
     }
 
-    pub(crate) fn records(&self) -> &[MemoryRecord] {
+    pub fn records(&self) -> &[MemoryRecord] {
         &self.records
     }
 
     /// Resolve an already validated owner publication independently of its
     /// physical legacy/creation/delta carrier. Local versions are ordered even
     /// when terminal records leave gaps in the retained revision array.
-    pub(crate) fn record_at_publication(
+    pub fn record_at_publication(
         &self,
         global_version: u64,
         memory_version: u64,
@@ -480,10 +496,7 @@ impl MemoryStore {
     /// The result is ordered by each identity's first local version and keeps
     /// that revision's exact global coordinate, independently of current
     /// liveness, later revisions, and terminal tombstones.
-    pub(crate) fn first_publication_prefix(
-        &self,
-        cut: u64,
-    ) -> Result<Vec<(MemoryId, u64)>, MemoryError> {
+    pub fn first_publication_prefix(&self, cut: u64) -> Result<Vec<(MemoryId, u64)>, MemoryError> {
         if cut > self.memory_version() {
             return Err(MemoryError::InvalidVersion);
         }
@@ -500,7 +513,7 @@ impl MemoryStore {
             .collect())
     }
 
-    pub(crate) fn current_record_for_replay(
+    pub(super) fn current_record_for_replay(
         &self,
         id: MemoryId,
     ) -> Result<&MemoryRecord, MemoryError> {
@@ -513,64 +526,73 @@ impl MemoryStore {
             .ok_or(MemoryError::MissingMemory)
     }
 
-    pub(crate) fn validate_compact_record(record: &MemoryRecord) -> Result<(), MemoryError> {
+    pub(super) fn validate_compact_record(record: &MemoryRecord) -> Result<(), MemoryError> {
+        validate_record_provenance_shape(record)?;
         if let Some(inference) = &record.temporal_inference {
             validate_temporal_inference_binding(record.body_id, record.source_time_ns, inference)?;
         }
         Ok(())
     }
 
-    pub(crate) fn tombstone_global_versions(&self) -> impl Iterator<Item = u64> + '_ {
+    pub fn tombstone_global_versions(&self) -> impl Iterator<Item = u64> + '_ {
         self.tombstones
             .values()
             .filter_map(|coordinates| coordinates.global_version)
     }
 
-    pub(crate) fn memory_version(&self) -> u64 {
+    pub fn memory_version(&self) -> u64 {
         self.next_memory_version.saturating_sub(1)
     }
 
-    pub(crate) fn contains_memory(&self, id: MemoryId) -> bool {
+    pub fn next_memory_version(&self) -> u64 {
+        self.next_memory_version
+    }
+
+    pub fn contains_mutation_id(&self, mutation_id: &str) -> bool {
+        self.by_mutation.contains_key(mutation_id)
+    }
+
+    pub fn contains_memory(&self, id: MemoryId) -> bool {
         self.current.contains_key(&id)
     }
 
-    pub(crate) fn current_mutation_id(&self, id: MemoryId) -> Option<&str> {
+    pub fn current_mutation_id(&self, id: MemoryId) -> Option<&str> {
         self.current
             .get(&id)
             .map(|index| self.records[*index].mutation_id.as_str())
     }
 
-    pub(crate) fn first_mutation_id(&self, id: MemoryId) -> Option<&str> {
+    pub fn first_mutation_id(&self, id: MemoryId) -> Option<&str> {
         self.records
             .iter()
             .find(|record| record.id == id && record.revision == 1)
             .map(|record| record.mutation_id.as_str())
     }
 
-    pub(crate) fn first_global_version(&self, id: MemoryId) -> Option<u64> {
+    pub fn first_global_version(&self, id: MemoryId) -> Option<u64> {
         self.records
             .iter()
             .find(|record| record.id == id && record.revision == 1)
             .map(|record| record.global_version)
     }
 
-    pub(crate) fn contains_body(&self, id: MemoryBodyId) -> bool {
+    pub fn contains_body(&self, id: MemoryBodyId) -> bool {
         self.bodies.contains_key(&id)
     }
 
-    pub(crate) fn current_ids(&self) -> Vec<MemoryId> {
+    pub fn current_ids(&self) -> Vec<MemoryId> {
         let mut ids: Vec<_> = self.current.keys().copied().collect();
         ids.sort_by_key(|id| id.0);
         ids
     }
 
-    pub(crate) fn tombstoned_ids(&self) -> Vec<MemoryId> {
+    pub fn tombstoned_ids(&self) -> Vec<MemoryId> {
         let mut ids: Vec<_> = self.tombstones.keys().copied().collect();
         ids.sort_by_key(|id| id.0);
         ids
     }
 
-    pub(crate) fn current_body_ids(&self) -> Vec<MemoryBodyId> {
+    pub fn current_body_ids(&self) -> Vec<MemoryBodyId> {
         let mut ids: Vec<_> = self
             .current
             .values()
@@ -581,25 +603,22 @@ impl MemoryStore {
         ids
     }
 
-    pub(crate) fn current_body_id(&self, id: MemoryId) -> Result<MemoryBodyId, MemoryError> {
+    pub fn current_body_id(&self, id: MemoryId) -> Result<MemoryBodyId, MemoryError> {
         let index = self.current.get(&id).ok_or(MemoryError::MissingMemory)?;
         Ok(self.records[*index].body_id)
     }
 
-    pub(crate) fn contains_historical_memory(&self, id: MemoryId) -> bool {
+    pub fn contains_historical_memory(&self, id: MemoryId) -> bool {
         self.revisions.contains_key(&id)
     }
 
-    pub(crate) fn routing_metadata(&self, id: MemoryId) -> Option<&MemoryRoutingMetadata> {
+    pub fn routing_metadata(&self, id: MemoryId) -> Option<&MemoryRoutingMetadata> {
         self.routing_metadata
             .get(&id)
             .filter(|_| self.current.contains_key(&id))
     }
 
-    pub(crate) fn entity_mention_keys_for_surface(
-        &self,
-        surface: &str,
-    ) -> Vec<MemoryEntityMentionKey> {
+    pub fn entity_mention_keys_for_surface(&self, surface: &str) -> Vec<MemoryEntityMentionKey> {
         let normalized = normalize_entity_surface(surface);
         let mut keys: Vec<_> = self
             .entity_mentions_by_surface
@@ -620,7 +639,7 @@ impl MemoryStore {
         keys
     }
 
-    pub(crate) fn validate_entity_mention_key(
+    pub fn validate_entity_mention_key(
         &self,
         key: MemoryEntityMentionKey,
     ) -> Result<(), MemoryError> {
@@ -630,7 +649,7 @@ impl MemoryStore {
         self.validate_historical_entity_mention_key(key)
     }
 
-    pub(crate) fn validate_historical_entity_mention_key(
+    pub fn validate_historical_entity_mention_key(
         &self,
         key: MemoryEntityMentionKey,
     ) -> Result<(), MemoryError> {
@@ -649,7 +668,7 @@ impl MemoryStore {
         }
     }
 
-    pub(crate) fn resolution_source_inactive(&self, id: MemoryId) -> bool {
+    pub fn resolution_source_inactive(&self, id: MemoryId) -> bool {
         self.current
             .get(&id)
             .map(|index| {
@@ -659,7 +678,7 @@ impl MemoryStore {
             .unwrap_or(true)
     }
 
-    pub(crate) fn put_routing_metadata(
+    pub fn put_routing_metadata(
         &mut self,
         container: &mut Container,
         metadata: MemoryRoutingMetadata,
@@ -680,7 +699,7 @@ impl MemoryStore {
         Ok(true)
     }
 
-    pub(crate) fn insert_routing_metadata_rebuilt(
+    pub(super) fn insert_routing_metadata_rebuilt(
         &mut self,
         metadata: MemoryRoutingMetadata,
     ) -> Result<(), MemoryError> {
@@ -706,10 +725,7 @@ impl MemoryStore {
         }
     }
 
-    pub(crate) fn validate_routing_metadata(
-        &self,
-        container: &mut Container,
-    ) -> Result<(), MemoryError> {
+    pub fn validate_routing_metadata(&self, container: &mut Container) -> Result<(), MemoryError> {
         for metadata in self.routing_metadata.values() {
             self.validate_routing_binding(metadata)?;
             self.validate_routing_text(container, metadata)?;
@@ -717,7 +733,7 @@ impl MemoryStore {
         Ok(())
     }
 
-    pub(crate) fn body_embedding_text(
+    pub fn body_embedding_text(
         &self,
         container: &mut Container,
         id: MemoryBodyId,
@@ -727,7 +743,7 @@ impl MemoryStore {
         Ok(format!("{title}\n\n{content}"))
     }
 
-    pub(crate) fn stats(&self) -> MemoryStats {
+    pub fn stats(&self) -> MemoryStats {
         MemoryStats {
             memories: self.current.len(),
             revisions: self.records.len(),
@@ -736,11 +752,11 @@ impl MemoryStore {
         }
     }
 
-    pub(crate) fn insert_body(&mut self, id: MemoryBodyId, chunk: ObjectRef) -> bool {
+    pub(super) fn insert_body(&mut self, id: MemoryBodyId, chunk: ObjectRef) -> bool {
         if self.bodies.contains_key(&id) {
             return false;
         }
-        self.bodies.insert(id, chunk);
+        self.bodies.insert(id, BodyLocation::Frame(chunk));
         true
     }
 
@@ -757,7 +773,8 @@ impl MemoryStore {
         Ok(())
     }
 
-    pub(crate) fn validate_bodies(&self) -> Result<(), MemoryError> {
+    pub(super) fn validate_bodies(&self) -> Result<(), MemoryError> {
+        self.validate_provenance_shape()?;
         for record in &self.records {
             if !self.bodies.contains_key(&record.body_id)
                 && self.prune.get(record.body_id).is_none()
@@ -775,42 +792,9 @@ impl MemoryStore {
         Ok(())
     }
 
-    pub(crate) fn validate_provenance(&self, archive: &crate::Archive) -> Result<(), MemoryError> {
-        let mut episode_nodes: HashMap<_, HashSet<&str>> = HashMap::new();
+    fn validate_provenance_shape(&self) -> Result<(), MemoryError> {
         for record in &self.records {
-            match (record.source_episode_id, record.source_node_id.as_deref()) {
-                (Some(episode_id), Some(node_id)) => {
-                    episode_nodes.entry(episode_id).or_default().insert(node_id);
-                }
-                (None, None) => {}
-                _ => return Err(MemoryError::InvalidProvenance),
-            }
-            match (
-                record.content_source_conversation_id.as_deref(),
-                record.content_source_node_id.as_deref(),
-            ) {
-                (Some(conversation_id), Some(node_id))
-                    if archive.has_node(conversation_id, node_id) => {}
-                (None, None) => {}
-                _ => return Err(MemoryError::InvalidProvenance),
-            }
-            match (
-                record.grounding_source_conversation_id.as_deref(),
-                record.grounding_source_node_id.as_deref(),
-            ) {
-                (Some(conversation_id), Some(node_id))
-                    if archive.has_node(conversation_id, node_id) => {}
-                (None, None) => {}
-                _ => return Err(MemoryError::InvalidProvenance),
-            }
-        }
-        for (episode_id, node_ids) in episode_nodes {
-            if !archive
-                .episode_contains_all_nodes(episode_id, &node_ids)
-                .map_err(|_| MemoryError::InvalidProvenance)?
-            {
-                return Err(MemoryError::InvalidProvenance);
-            }
+            validate_record_provenance_shape(record)?;
         }
         Ok(())
     }
@@ -850,44 +834,43 @@ impl MemoryStore {
         Ok(())
     }
 
-    fn body_bytes(
+    pub fn body_bytes(
         &self,
         container: &mut Container,
         id: MemoryBodyId,
     ) -> Result<Vec<u8>, MemoryError> {
         if self.prune.get(id).is_some() {
             return Err(MemoryError::PayloadUnavailable(
-                crate::owner_lifecycle::PayloadUnavailable::Pruned,
+                MemoryPayloadUnavailable::Pruned,
             ));
         }
-        let chunk = self.bodies.get(&id).ok_or(MemoryError::MissingBody)?;
-        let payload = container.read(*chunk)?;
-        if let Some((stored_id, body)) = decode_body(&payload)? {
-            return if stored_id == id {
-                Ok(body)
-            } else {
-                Err(MemoryError::CorruptBody)
-            };
+        let location = self.bodies.get(&id).ok_or(MemoryError::MissingBody)?;
+        let payload = container.read(location.frame())?;
+        let body = match location {
+            BodyLocation::Frame(_) => {
+                let (stored_id, body) = decode_body(&payload)?.ok_or(MemoryError::CorruptBody)?;
+                if stored_id != id {
+                    return Err(MemoryError::CorruptBody);
+                }
+                body
+            }
+            BodyLocation::GroupedFrame {
+                range, encoding, ..
+            } => {
+                let encoded = payload.get(range.clone()).ok_or(MemoryError::CorruptBody)?;
+                match encoding {
+                    grouped_publish::MemoryGroupedBodyEncoding::Raw => encoded.to_vec(),
+                    grouped_publish::MemoryGroupedBodyEncoding::JsonByteArray => {
+                        serde_json::from_slice(encoded).map_err(|_| MemoryError::CorruptBody)?
+                    }
+                }
+            }
+        };
+        let (title, content) = decode_memory_body(&body)?;
+        if memory_body_id(&title, &content) != id {
+            return Err(MemoryError::CorruptBody);
         }
-        if let Some(completion) = crate::insomnia::completion::decode_completion(&payload)
-            .map_err(MemoryError::CorruptRecord)?
-        {
-            return completion
-                .bodies
-                .into_iter()
-                .find(|body| body.id == id)
-                .map(|body| body.bytes)
-                .ok_or(MemoryError::MissingBody);
-        }
-        if let Some(publication) = crate::external_source::publication::decode(&payload)? {
-            return publication
-                .bodies
-                .into_iter()
-                .find(|b| b.id == id)
-                .map(|b| b.bytes)
-                .ok_or(MemoryError::MissingBody);
-        }
-        Err(MemoryError::CorruptBody)
+        Ok(body)
     }
 
     fn validate_routing_binding(
@@ -958,7 +941,7 @@ impl MemoryStore {
             };
         }
         let chunk = container.append(&encode_body(id, &bytes)?)?;
-        self.bodies.insert(id, chunk);
+        self.bodies.insert(id, BodyLocation::Frame(chunk));
         Ok(id)
     }
 
@@ -1110,6 +1093,33 @@ fn validate_source_ref(source_ref: Option<&MemorySourceRef>) -> Result<(), Memor
     Ok(())
 }
 
+fn validate_record_provenance_shape(record: &MemoryRecord) -> Result<(), MemoryError> {
+    validate_source_ref(record.source_ref.as_ref())?;
+    match (record.source_episode_id, record.source_node_id.as_deref()) {
+        (Some(_), Some(node_id)) if !node_id.trim().is_empty() => {}
+        (None, None) => {}
+        _ => return Err(MemoryError::InvalidProvenance),
+    }
+    for (conversation_id, node_id) in [
+        (
+            record.content_source_conversation_id.as_deref(),
+            record.content_source_node_id.as_deref(),
+        ),
+        (
+            record.grounding_source_conversation_id.as_deref(),
+            record.grounding_source_node_id.as_deref(),
+        ),
+    ] {
+        match (conversation_id, node_id) {
+            (None, None) => {}
+            (Some(conversation_id), Some(node_id))
+                if !conversation_id.trim().is_empty() && !node_id.trim().is_empty() => {}
+            _ => return Err(MemoryError::InvalidProvenance),
+        }
+    }
+    Ok(())
+}
+
 fn same_draft(memory: &Memory, draft: &MemoryDraft) -> bool {
     memory.category == draft.category
         && memory.memory_type == draft.memory_type
@@ -1133,7 +1143,3 @@ fn same_draft(memory: &Memory, draft: &MemoryDraft) -> bool {
         && memory.created_at_ns == draft.created_at_ns
         && memory.updated_at_ns == draft.updated_at_ns
 }
-
-#[cfg(test)]
-#[path = "memory_publication_writer_tests.rs"]
-mod publication_writer_tests;

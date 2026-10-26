@@ -172,7 +172,7 @@ fn phy_owner_relative_mention_is_rejected_without_materializing_entity() {
             MemorySourceRef {
                 owner_id: "rel-00000000-0000-0000-0000-000000000001".into(),
                 principal_id: Some(principal),
-                source_episode_id: EpisodeId([7; 32]),
+                source_episode_id: reliquary_memory_core::SourceEpisodeId((EpisodeId([7; 32])).0),
                 source_node_id: "u1".into(),
                 content_source_conversation_id: None,
                 content_source_node_id: None,
@@ -333,7 +333,7 @@ fn rel_memory(
         .clone();
     let mut draft = memory_draft(content, node);
     draft.source_node_id = Some(node.into());
-    draft.source_episode_id = Some(episode.id);
+    draft.source_episode_id = Some(reliquary_memory_core::SourceEpisodeId((episode.id).0));
     rel.publish_memory(None, 0, draft).unwrap().0
 }
 

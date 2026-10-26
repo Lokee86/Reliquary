@@ -1,27 +1,10 @@
-use crate::{EntityId, MemoryEntityMention, MemoryId, MemoryTextField};
+use crate::{EntityId, MemoryId};
 
 pub const MAX_ENTITY_RESOLUTION_CANDIDATES: usize = 8;
 pub const DEFAULT_ENTITY_RESOLUTION_PENDING_TTL_NS: i64 = 30 * 24 * 60 * 60 * 1_000_000_000;
 pub const DEFAULT_ENTITY_RESOLUTION_DORMANT_TTL_NS: i64 = 180 * 24 * 60 * 60 * 1_000_000_000;
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct MemoryEntityMentionKey {
-    pub memory_id: MemoryId,
-    pub field: MemoryTextField,
-    pub start_byte: u32,
-    pub end_byte: u32,
-}
-
-impl MemoryEntityMentionKey {
-    pub fn new(memory_id: MemoryId, mention: &MemoryEntityMention) -> Self {
-        Self {
-            memory_id,
-            field: mention.field,
-            start_byte: mention.start_byte,
-            end_byte: mention.end_byte,
-        }
-    }
-}
+pub use reliquary_memory_core::MemoryEntityMentionKey;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EntityResolutionReason {

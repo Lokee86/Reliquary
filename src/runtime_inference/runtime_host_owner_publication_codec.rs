@@ -46,7 +46,7 @@ pub(crate) fn freeze_memory(
             MemoryTemporalInference {
                 body_id,
                 source_time_ns: draft.source_time_ns,
-                inference,
+                inference: inference.into(),
             }
         }),
         mutation_id: draft.mutation_id.clone(),
@@ -164,7 +164,9 @@ pub(crate) fn thaw_memory(
         PreparedMemory {
             draft,
             temporal,
-            temporal_inference: record.temporal_inference.map(|value| value.inference),
+            temporal_inference: record
+                .temporal_inference
+                .map(|value| value.inference.into()),
             routing_metadata,
         },
         record.source_ref,

@@ -136,7 +136,10 @@ fn claimed_episode_extracts_and_publishes_authoritative_memory() {
     assert!(result.existing.is_empty());
     assert!(result.rejected.is_empty());
     let memory = &result.created[0];
-    assert_eq!(memory.source_episode_id, Some(episode.id));
+    assert_eq!(
+        memory.source_episode_id,
+        Some(reliquary_memory_core::SourceEpisodeId(episode.id.0))
+    );
     assert_eq!(memory.source_node_id.as_deref(), Some("u0"));
     assert_eq!(memory.temporal_status, "current");
     assert_eq!(
@@ -249,7 +252,10 @@ fn explicit_adoption_can_use_assistant_content_with_user_authority() {
         result.created[0].content_source_conversation_id.as_deref(),
         Some("c1")
     );
-    assert_eq!(result.created[0].source_episode_id, Some(episode.id));
+    assert_eq!(
+        result.created[0].source_episode_id,
+        Some(reliquary_memory_core::SourceEpisodeId(episode.id.0))
+    );
 }
 
 #[test]

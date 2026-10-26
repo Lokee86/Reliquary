@@ -3,14 +3,18 @@ use crate::memory_model::memory_body_id;
 use crate::{MemoryError, MemoryRoutingMetadata};
 use reliquary_container::{Container, ObjectRef};
 
-pub(crate) struct MemoryOpenState {
+pub use crate::memory_store::{
+    MemoryGroupedBatch, MemoryGroupedBody, MemoryGroupedBodyEncoding, MemoryGroupedBodySpan,
+};
+
+pub struct MemoryOpenState {
     store: crate::memory_store::MemoryStore,
     pending_routing_metadata: Vec<MemoryRoutingMetadata>,
     format_seen: bool,
 }
 
 impl MemoryOpenState {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             store: crate::memory_store::MemoryStore::empty(),
             pending_routing_metadata: Vec::new(),
@@ -20,11 +24,11 @@ impl MemoryOpenState {
 
     /// Current accepted Memory-local replay head, including native envelopes.
     /// This can be queried before EOF without finalizing pending physical state.
-    pub(crate) fn memory_version(&self) -> u64 {
+    pub fn memory_version(&self) -> u64 {
         self.store.memory_version()
     }
 
-    pub(crate) fn ingest(
+    pub fn ingest(
         &mut self,
         chunk: ObjectRef,
         payload: &[u8],
@@ -39,40 +43,6 @@ impl MemoryOpenState {
             return Ok(());
         }
         if self.store.prune.ingest(chunk, payload)? {
-            return Ok(());
-        }
-        if let Some(publication) = crate::external_source::publication::decode(payload)? {
-            self.store
-                .apply_grouped_bodies(chunk, &publication.bodies)?;
-            for record in &publication.records {
-                if record.global_version == 0
-                    || record.global_version > latest_global_version
-                    || record.memory_version != self.store.memory_version() + 1
-                {
-                    return Err(MemoryError::InvalidVersion);
-                }
-                self.store.insert_rebuilt(record.clone())?;
-            }
-            self.pending_routing_metadata
-                .extend(publication.routing.clone());
-            self.store.apply_external_publication(&publication)?;
-            return Ok(());
-        }
-        if let Some(completion) = crate::insomnia::completion::decode_completion(payload)
-            .map_err(MemoryError::CorruptRecord)?
-        {
-            self.store.apply_grouped_bodies(chunk, &completion.bodies)?;
-            for record in completion.records {
-                if record.global_version == 0 || record.global_version > latest_global_version {
-                    return Err(MemoryError::InvalidVersion);
-                }
-                if record.memory_version != self.store.memory_version() + 1 {
-                    return Err(MemoryError::InvalidVersion);
-                }
-                self.store.insert_rebuilt(record)?;
-            }
-            self.pending_routing_metadata
-                .extend(completion.routing_metadata);
             return Ok(());
         }
         if decode_format(payload)? {
@@ -96,7 +66,7 @@ impl MemoryOpenState {
         Ok(())
     }
 
-    pub(crate) fn ingest_publication_envelope(
+    pub fn ingest_publication_envelope(
         &mut self,
         envelope: reliquary_container::publication_envelope::PublicationEnvelope<'_>,
         latest_global_version: u64,
@@ -135,7 +105,20 @@ impl MemoryOpenState {
         Ok(true)
     }
 
-    pub(crate) fn finish(
+    /// Apply a fully decoded, typed Memory batch supplied by the owner that
+    /// owns its grouped physical carrier.
+    pub fn ingest_grouped_batch(
+        &mut self,
+        chunk: ObjectRef,
+        payload: &[u8],
+        batch: MemoryGroupedBatch,
+        latest_global_version: u64,
+    ) -> Result<(), MemoryError> {
+        self.store
+            .apply_grouped_batch(chunk, payload, batch, latest_global_version)
+    }
+
+    pub fn finish(
         mut self,
         container: &mut Container,
     ) -> Result<crate::memory_store::MemoryStore, MemoryError> {

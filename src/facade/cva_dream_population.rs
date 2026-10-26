@@ -79,16 +79,45 @@ impl DreamPopulationPrefix {
         payload: &[u8],
         global_frontier: u64,
     ) -> Result<(), CvaError> {
-        let body =
-            if let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? {
-                let _ = self
-                    .memory
-                    .ingest_publication_envelope(envelope, global_frontier)?;
-                envelope.body
+        let body = if let Some(envelope) =
+            reliquary_container::publication_envelope::decode(payload)?
+        {
+            let _ = self
+                .memory
+                .ingest_publication_envelope(envelope, global_frontier)?;
+            envelope.body
+        } else {
+            if let Some((completion, body_spans)) =
+                crate::insomnia::completion::decode_completion_with_body_spans(payload)
+                    .map_err(crate::MemoryError::CorruptRecord)?
+            {
+                self.memory.ingest_grouped_batch(
+                    chunk,
+                    payload,
+                    crate::memory_rebuild::MemoryGroupedBatch::new(
+                        completion.records,
+                        body_spans,
+                        completion.routing_metadata,
+                    ),
+                    global_frontier,
+                )?;
+            } else if let Some(publication) = crate::external_source::publication::decode(payload)?
+            {
+                self.memory.ingest_grouped_batch(
+                    chunk,
+                    payload,
+                    crate::memory_rebuild::MemoryGroupedBatch::new(
+                        publication.records.clone(),
+                        publication.body_spans.clone(),
+                        publication.routing.clone(),
+                    ),
+                    global_frontier,
+                )?;
             } else {
                 self.memory.ingest(chunk, payload, global_frontier)?;
-                payload
-            };
+            }
+            payload
+        };
 
         self.direct
             .ingest(payload)

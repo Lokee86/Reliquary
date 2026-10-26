@@ -11,6 +11,17 @@ uses a stable identity/length-bound plan under a held writer lease after higher
 owner approval; read sessions cannot implicitly repair.
 
 
+## Memory implementation ownership
+
+Memory Core implements `CVAMC002`, `CVAMD002`, `CVAMT002`, `CVAMRTE2` and
+`CVAMPRN1` under `crates/reliquary-memory-core/src/`, preserving the 20-field
+delta order and explicit optional clears inside the existing `CVAPUB01` envelope.
+Insomnia and External Source decode their own complete grouped carriers at the
+root boundary. Memory receives validated body locations and records in physical
+order; it does not decode either service's receipts. The extraction changes no
+wire schema and adds no historical format reader.
+
+
 ## Development-format lifecycle policy
 
 The final normal-runtime contract is canonical V2-only REL/PHY reads and writes. Development encoding changes require temporary offline conversion, exact retained-history/proof/vector verification, separate implementation and canonical-corpus commits, then removal of obsolete readers, dispatch and converter APIs/CLI. Unsupported old input must fail with typed errors before payload dispatch or repair. No enduring compatibility exception is approved for V1, CVAFRS03/04/05 or CVAILEG1/2. Embedding/profile compatibility is independent semantic data.
@@ -52,7 +63,7 @@ The private `entity_compact_codec::publication` codec implements `CVAENC02` crea
 
 ## Compact Memory wire carriers
 
-`src/memory/memory_compact_codec.rs` owns `CVAMC001` creation and `CVAMD001` delta records. Shared Memory-owned value encodings live in `memory_codec_values.rs`; extracting them from the legacy carrier does not change legacy bytes. `memory_compact_values.rs` supplies typed value dispatch only within Memory.
+`crates/reliquary-memory-core/src/memory_compact_codec.rs` owns `CVAMC001` creation and `CVAMD001` delta records. Shared Memory-owned value encodings live in `memory_codec_values.rs`; extracting them from the legacy carrier does not change legacy bytes. `memory_compact_values.rs` supplies typed value dispatch only within Memory.
 
 All integers are little-endian. A creation contains magic (8 bytes), Memory ID (32), immutable body ID (32), global version (u64), Memory version (u64), mutation ID (u32 byte length plus exact UTF-8), then all twenty contract fields in ascending field order. Revision one is implied; no field mask or repeated revision number is stored. Immutable body bytes remain separate.
 

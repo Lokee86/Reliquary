@@ -110,7 +110,11 @@ fn reopen_rejects_file_link_to_missing_memory() {
     let mut cva = Cva::create(&path).unwrap();
     let file_id = ingest_file(&mut cva);
     cva.archive
-        .link_file_to_memory(&mut cva.container, file_id, MemoryId([6; 32]))
+        .link_file_to_memory(
+            &mut cva.container,
+            file_id,
+            reliquary_archive::MemoryId([6; 32]),
+        )
         .unwrap();
     cva.sync().unwrap();
     drop(cva);

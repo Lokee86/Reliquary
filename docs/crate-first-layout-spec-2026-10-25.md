@@ -1,6 +1,6 @@
 # Reliquary crate structure and layout — implementation specification
 
-Status: **Container extracted; remaining owner crates are reserved targets** (2026-10-25).
+Status: **Container, Archive and Memory Core extracted; remaining owner crates are reserved targets** (2026-10-25).
 Branch: `refactor/crate-first-restart`; foundation: verified pre-convergence commit `c43d33c`.  
 Scope: correction-only architectural migration; no new semantic, API, storage, or roadmap feature.
 
@@ -110,7 +110,7 @@ Paths below are *source migration neighborhoods*, not instructions to move every
 | --- | --- | --- | --- |
 | **Container** | framing, file identity, exclusive writer lease, inspection/repair, typed clocks and pure byte codecs; physical errors | `crates/reliquary-container/src/**` (extracted from the former root Container, compact-delta and pure review-clock modules) | [ADR 0001](decisions/0001-purpose-built-database-ownership.md), [Storage format](storage-format.md), [Review clocks](subsystems/review-clocks.md) |
 | **Archive** | source conversation, deterministic Episode, fragment, checkpoint, activity/branch history; no Echo | `src/archive/**` except Echo files; Archive-facing source methods in `src/facade/**` | [ADR 0012](decisions/0012-deterministic-episodes-and-insomnia-memory-authority.md), [Architecture](architecture.md) |
-| **Memory Core** | Memory identity, immutable revisions, admitted mutation, lifecycle, provenance, replay | `src/memory/**`; Memory-owned publication/replay extracted from `src/facade/**` | [ADR 0001](decisions/0001-purpose-built-database-ownership.md), [Scope ownership](subsystems/scope-ownership.md) |
+| **Memory Core** | Memory identity, immutable revisions, admitted mutation, lifecycle, provenance, replay | `crates/reliquary-memory-core/src/**`; source authorization and carrier coordination remain in root | [ADR 0001](decisions/0001-purpose-built-database-ownership.md), [Scope ownership](subsystems/scope-ownership.md) |
 | **Echo** | source-keyed ordered reasoning/commentary/tool/activity evidence, native encoding and scoped reads | `src/archive/echo*.rs` and related archival Echo methods | [ADR 0014](decisions/0014-echo-historical-reasoning-traces.md) |
 | **Graph** | typed relationship topology, accepted edges, Community state/derivation | `src/semantic_graph/**`, `src/facade/cva_graph.rs` owner-facing portion | [Dream](subsystems/dream.md), [Scope ownership](subsystems/scope-ownership.md) |
 | **Perception** | candidate, admission, merge, mention resolution policy and model calls; uses Perception Store | `src/perception/**` excluding durable store/codec; entity resolution in `src/runtime_inference/**` | [Perception](subsystems/perception.md), ADR 0033 |
@@ -215,6 +215,6 @@ No new Observations, Entity identity redesign, broader Ego synthesis, new cross-
 
 Update owner documents **as each crate becomes real**: [Architecture](architecture.md), [Maintainer map](maintainer-map.md), [Development](development.md), [Subsystem docs](subsystems/INDEX.md), [Behavioral contracts](behavioral-contracts.md), [Storage format](storage-format.md) where the on-disk contracts are affected, and [Documentation coverage](documentation-coverage.md). Do not wholesale replace the pre-refactor source maps with future-state claims before migration. Preserve the governing ADRs; add an ADR only for a genuinely new, surprising, durable decision (the Echo authority itself is already covered by ADR 0014).
 
-**Implementation status:** `reliquary-container` now owns production physical storage and its tests. The other 29 libraries remain reserved targets. Current-only CVAFRS07 semantic owner recovery and disposable promoted-corpus acceptance remain pending; this extraction is not final product acceptance.
+**Implementation status:** `reliquary-container`, `reliquary-archive` and `reliquary-memory-core` own their production storage and owner tests. The other 27 libraries remain reserved targets. Current-only CVAFRS07 semantic owner recovery and disposable promoted-corpus acceptance remain pending; this extraction is not final product acceptance.
 
 **Specification acceptance:** mapping accounts for all 35 logical components; the 30-library physical DAG is acyclic **and** has no lower-component dependency on any package housing a higher-rank semantic service; every crate has a single responsibility and a checked source/docs crosswalk; scope/corpus gates and non-goals are explicit. Implementation acceptance is a separate future event.

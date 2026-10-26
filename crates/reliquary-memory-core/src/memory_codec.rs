@@ -16,7 +16,7 @@ const VERSION_MAGIC: [u8; 8] = *b"CVAMEMV1";
 const TOMBSTONE_MAGIC: [u8; 8] = *b"CVAMEMT1";
 
 #[derive(Clone, Copy, Debug)]
-pub(crate) struct MemoryTombstone {
+pub struct MemoryTombstone {
     pub id: MemoryId,
     pub revision: u64,
 }
@@ -27,11 +27,11 @@ pub(crate) struct MemoryVersion {
     pub record: ObjectRef,
 }
 
-pub(crate) fn encode_format() -> Vec<u8> {
+pub fn encode_format() -> Vec<u8> {
     FORMAT_MAGIC.to_vec()
 }
 
-pub(crate) fn decode_format(bytes: &[u8]) -> Result<bool, MemoryError> {
+pub fn decode_format(bytes: &[u8]) -> Result<bool, MemoryError> {
     if bytes.len() >= 8 && bytes[..8] == FORMAT_MAGIC {
         if bytes.len() != 8 {
             return Err(MemoryError::CorruptRecord("memory format trailing bytes"));
@@ -41,7 +41,7 @@ pub(crate) fn decode_format(bytes: &[u8]) -> Result<bool, MemoryError> {
     Ok(false)
 }
 
-pub(crate) fn encode_body(id: MemoryBodyId, body: &[u8]) -> Result<Vec<u8>, MemoryError> {
+pub fn encode_body(id: MemoryBodyId, body: &[u8]) -> Result<Vec<u8>, MemoryError> {
     let len = u32::try_from(body.len()).map_err(|_| MemoryError::FieldTooLarge)?;
     let mut out = Vec::with_capacity(44 + body.len());
     out.extend_from_slice(&BODY_MAGIC);
@@ -51,7 +51,7 @@ pub(crate) fn encode_body(id: MemoryBodyId, body: &[u8]) -> Result<Vec<u8>, Memo
     Ok(out)
 }
 
-pub(crate) fn decode_body(bytes: &[u8]) -> Result<Option<(MemoryBodyId, Vec<u8>)>, MemoryError> {
+pub fn decode_body(bytes: &[u8]) -> Result<Option<(MemoryBodyId, Vec<u8>)>, MemoryError> {
     if bytes.len() < 8 || bytes[..8] != BODY_MAGIC {
         return Ok(None);
     }
@@ -69,7 +69,7 @@ pub(crate) fn decode_body(bytes: &[u8]) -> Result<Option<(MemoryBodyId, Vec<u8>)
     Ok(Some((id, body.to_vec())))
 }
 
-pub(crate) fn encode_record(record: &MemoryRecord) -> Result<Vec<u8>, MemoryError> {
+pub fn encode_record(record: &MemoryRecord) -> Result<Vec<u8>, MemoryError> {
     let mut out = Vec::with_capacity(256);
     out.extend_from_slice(&RECORD_MAGIC_V8);
     out.extend_from_slice(&record.id.0);
@@ -101,7 +101,7 @@ pub(crate) fn encode_record(record: &MemoryRecord) -> Result<Vec<u8>, MemoryErro
 
 /// Decode the fixed full comparison carrier used by current proof/history code.
 /// Physical publication admission uses only native bodies and grouped creations.
-pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<MemoryRecord>, MemoryError> {
+pub fn decode_record(bytes: &[u8]) -> Result<Option<MemoryRecord>, MemoryError> {
     if bytes.len() < 8 {
         return Ok(None);
     }
@@ -182,7 +182,7 @@ pub(crate) fn encode_version(version: MemoryVersion) -> Vec<u8> {
     out
 }
 
-pub(crate) fn encode_tombstone(value: MemoryTombstone) -> Vec<u8> {
+pub fn encode_tombstone(value: MemoryTombstone) -> Vec<u8> {
     let mut out = Vec::with_capacity(48);
     out.extend_from_slice(&TOMBSTONE_MAGIC);
     out.extend_from_slice(&value.id.0);
@@ -190,7 +190,7 @@ pub(crate) fn encode_tombstone(value: MemoryTombstone) -> Vec<u8> {
     out
 }
 
-pub(crate) fn decode_tombstone(bytes: &[u8]) -> Result<Option<MemoryTombstone>, MemoryError> {
+pub fn decode_tombstone(bytes: &[u8]) -> Result<Option<MemoryTombstone>, MemoryError> {
     if bytes.len() < 8 || bytes[..8] != TOMBSTONE_MAGIC {
         return Ok(None);
     }

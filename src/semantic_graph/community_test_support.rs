@@ -66,7 +66,7 @@ pub(crate) fn rel_memory(cva: &mut Cva, episode: &crate::Episode, name: &str) ->
             content_source_node_id: None,
             grounding_source_conversation_id: None,
             grounding_source_node_id: None,
-            source_episode_id: Some(episode.id),
+            source_episode_id: Some(reliquary_memory_core::SourceEpisodeId((episode.id).0)),
             source_time_ns: None,
             mutation_id: format!("community-{name}"),
             created_at_ns: 30,

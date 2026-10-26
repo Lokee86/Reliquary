@@ -287,7 +287,10 @@ impl crate::Cva {
         window: [u8; 32],
         prepared: &[PreparedExternalMemory],
     ) -> Result<Vec<crate::Memory>, crate::MemoryError> {
-        if let Some(existing) = self.memories.external_window(&mut self.container, window)? {
+        if let Some(existing) =
+            self.external_publications
+                .window(&mut self.container, &self.memories, window)?
+        {
             return Ok(existing);
         }
         let turn = self.rel_turn_count();
@@ -308,6 +311,7 @@ impl crate::Cva {
         let results = super::publication::publish(
             &mut self.container,
             &mut self.memories,
+            &mut self.external_publications,
             window,
             prepared,
             birth_turn,

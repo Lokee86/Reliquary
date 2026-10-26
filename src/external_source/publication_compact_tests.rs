@@ -113,6 +113,7 @@ fn sample_publication() -> Publication {
             evidence: evidence(window),
         }],
         routing: Vec::new(),
+        body_spans: Vec::new(),
     }
 }
 
@@ -232,6 +233,13 @@ fn cvaxmem2_uses_compact_creation_bytes_without_redundant_record_coordinates() {
         serde_json::to_value(&publication.bindings).unwrap()
     );
     assert_eq!(decoded.bodies[0].id, publication.bodies[0].id);
+    let body_span = &decoded.body_spans[0];
+    assert_eq!(
+        body_span.encoding,
+        crate::memory_rebuild::MemoryGroupedBodyEncoding::JsonByteArray
+    );
+    let spanned: Vec<u8> = serde_json::from_slice(&bytes[body_span.range.clone()]).unwrap();
+    assert_eq!(spanned, publication.bodies[0].bytes);
 }
 
 #[test]

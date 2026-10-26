@@ -170,6 +170,8 @@ impl Cva {
             owner_maintenance,
             rewrite_lineage,
             external_index: crate::external_source::store::ExternalIndexStore::default(),
+            external_publications:
+                crate::external_source::publication::ExternalPublicationState::default(),
             container,
             import_write_admission: None,
             archive,
@@ -247,6 +249,8 @@ impl Cva {
         let mut processing_epochs = ProcessingEpochStore::default();
         let mut dream_pairs = DreamPairStore::default();
         let mut external_index = crate::external_source::store::ExternalIndexStore::default();
+        let mut external_publications =
+            crate::external_source::publication::ExternalPublicationState::default();
         let mut container = Container::open_for_replay(path.as_ref())?;
         freshness.bind_history_source(&container, 0)?;
         {
@@ -301,7 +305,37 @@ impl Cva {
 
                         external_index.ingest(payload);
                         archive_state.ingest(chunk, payload, latest_global)?;
-                        memory_state.ingest(chunk, payload, latest_global)?;
+                        if let Some((completion, body_spans)) =
+                            crate::insomnia::completion::decode_completion_with_body_spans(payload)
+                                .map_err(crate::MemoryError::CorruptRecord)?
+                        {
+                            memory_state.ingest_grouped_batch(
+                                chunk,
+                                payload,
+                                crate::memory_rebuild::MemoryGroupedBatch::new(
+                                    completion.records,
+                                    body_spans,
+                                    completion.routing_metadata,
+                                ),
+                                latest_global,
+                            )?;
+                        } else if let Some(publication) =
+                            crate::external_source::publication::decode(payload)?
+                        {
+                            memory_state.ingest_grouped_batch(
+                                chunk,
+                                payload,
+                                crate::memory_rebuild::MemoryGroupedBatch::new(
+                                    publication.records.clone(),
+                                    publication.body_spans.clone(),
+                                    publication.routing.clone(),
+                                ),
+                                latest_global,
+                            )?;
+                            external_publications.accept(&publication)?;
+                        } else {
+                            memory_state.ingest(chunk, payload, latest_global)?;
+                        }
                         graph_state.ingest(chunk, payload, latest_global)?;
                         entity_state.ingest(chunk, payload, latest_global)?;
                         relationship_state.ingest(chunk, payload, latest_global)?;
@@ -429,7 +463,11 @@ impl Cva {
             &owner_maintenance,
         )?;
         let memories = memory_state.finish(&mut container)?;
-        memories.validate_prune_history(&mut container, &owner_maintenance)?;
+        crate::memory_history_prune::validate_prune_history(
+            &memories,
+            &mut container,
+            owner_maintenance.manifests(),
+        )?;
         let entities = entity_state.finish(&container)?;
         let relationships = relationship_state.finish(&container)?;
         relationships.validate_local_references(
@@ -439,11 +477,11 @@ impl Cva {
         )?;
 
         ego.validate_memory_version(memories.memory_version())?;
-        memories.validate_provenance(&archive)?;
+        crate::cva_memory_publish::validate_store_provenance(&memories, &archive)?;
         processing_epochs.validate(&memories)?;
         dream_pairs.validate(&memories)?;
         for link in archive.all_file_memory_links() {
-            if !memories.contains_historical_memory(link.memory_id) {
+            if !memories.contains_historical_memory(crate::MemoryId(link.memory_id.0)) {
                 return Err(crate::ArchiveError::MissingFileMemoryTarget.into());
             }
         }
@@ -592,6 +630,7 @@ impl Cva {
             owner_maintenance,
             rewrite_lineage,
             external_index,
+            external_publications,
             container,
             import_write_admission,
             archive,

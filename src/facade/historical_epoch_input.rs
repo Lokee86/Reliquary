@@ -83,7 +83,8 @@ pub(super) fn admission_proof_for_scope(
                         .iter()
                         .find(|r| r.id == id && r.revision == 1)
                         .ok_or_else(|| fail("scoped import birth lacks first revision"))?;
-                    if record.source_episode_id != Some(episode.id)
+                    if record.source_episode_id
+                        != Some(reliquary_memory_core::SourceEpisodeId((episode.id).0))
                         || record.global_version <= scope.start.pre.global_version
                         || cva.memories.first_mutation_id(id) != Some(record.mutation_id.as_str())
                     {
@@ -339,18 +340,21 @@ pub(super) fn admission_proof_for_scope(
             validate_memory_provenance(
                 cva,
                 &memory,
-                memory.source_episode_id.as_ref(),
+                memory
+                    .source_episode_id
+                    .map(|id| crate::EpisodeId(id.0))
+                    .as_ref(),
                 &mut sources,
             )?;
             // Eligibility exclusions use the entire generating Episode, not
             // merely the source Node named by this individual output.
             if let Some(episode_id) = memory.source_episode_id {
                 let conversation = cva
-                    .episode(episode_id)
+                    .episode(crate::EpisodeId((episode_id).0))
                     .ok_or_else(|| fail("missing recipient Episode"))?
                     .conversation_id
                     .clone();
-                for turn in cva.episode_turns(episode_id)? {
+                for turn in cva.episode_turns(crate::EpisodeId((episode_id).0))? {
                     sources.insert((conversation.clone(), turn.node_id));
                 }
             }
@@ -560,7 +564,9 @@ fn validate_memory_provenance(
     necessary: &mut BTreeSet<(String, String)>,
 ) -> Result<(), CvaError> {
     let fail = |message: &str| CvaError::Freshness(message.into());
-    if expected_episode.is_some_and(|expected| memory.source_episode_id != Some(*expected)) {
+    if expected_episode.is_some_and(|expected| {
+        memory.source_episode_id != Some(reliquary_memory_core::SourceEpisodeId((*expected).0))
+    }) {
         return Err(fail(
             "Memory birth Episode conflicts with scoped publication",
         ));
@@ -577,7 +583,7 @@ fn validate_memory_provenance(
             return Err(fail("foreign or conflicting structured Memory provenance"));
         }
         let episode = cva
-            .episode(source.source_episode_id)
+            .episode(crate::EpisodeId((source.source_episode_id).0))
             .cloned()
             .ok_or_else(|| fail("structured Memory source lacks Episode"))?;
         if expected_episode.is_some_and(|expected| *expected != episode.id) {
@@ -598,7 +604,7 @@ fn validate_memory_provenance(
             .source_episode_id
             .ok_or_else(|| fail("declared Memory source Node lacks Episode"))?;
         let episode = cva
-            .episode(episode_id)
+            .episode(crate::EpisodeId((episode_id).0))
             .cloned()
             .ok_or_else(|| fail("declared Memory source Episode is missing"))?;
         necessary.insert((episode.conversation_id, node.clone()));

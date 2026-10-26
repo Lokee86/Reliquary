@@ -13,7 +13,7 @@ const DELTA_MAGIC: &[u8; 8] = b"CVAMD002";
 const TOMBSTONE_MAGIC: &[u8; 8] = b"CVAMT002";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum MemoryPublication {
+pub enum MemoryPublication {
     Creation(MemoryCreation),
     Delta(MemoryDelta),
     Tombstone {
@@ -23,7 +23,7 @@ pub(crate) enum MemoryPublication {
     },
 }
 
-pub(crate) fn encode(publication: &MemoryPublication) -> Result<Vec<u8>, MemoryError> {
+pub fn encode(publication: &MemoryPublication) -> Result<Vec<u8>, MemoryError> {
     let mut out = Vec::new();
     match publication {
         MemoryPublication::Creation(creation) => {
@@ -66,10 +66,7 @@ pub(crate) fn encode(publication: &MemoryPublication) -> Result<Vec<u8>, MemoryE
     Ok(out)
 }
 
-pub(crate) fn decode(
-    bytes: &[u8],
-    global_version: u64,
-) -> Result<Option<MemoryPublication>, MemoryError> {
+pub fn decode(bytes: &[u8], global_version: u64) -> Result<Option<MemoryPublication>, MemoryError> {
     let recognized =
         bytes.starts_with(b"CVAMC") || bytes.starts_with(b"CVAMD") || bytes.starts_with(b"CVAMT");
     if !recognized {
@@ -134,9 +131,7 @@ pub(crate) fn decode(
 
 /// Canonical source-history evidence shared with the existing marker-bound form.
 /// This reconstructs comparison bytes only; it does not persist an old carrier.
-pub(crate) fn history_evidence(
-    payload: &[u8],
-) -> Result<Option<(u64, Vec<u8>, Vec<u8>)>, MemoryError> {
+pub fn history_evidence(payload: &[u8]) -> Result<Option<(u64, Vec<u8>, Vec<u8>)>, MemoryError> {
     let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };
@@ -171,7 +166,7 @@ pub(crate) fn history_evidence(
 
 /// Inspect this owner's direct publication coordinates, never inert carriers.
 /// Callers resolving accepted facts must still consult the admitted Memory owner.
-pub(crate) fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, MemoryError> {
+pub fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, MemoryError> {
     let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };

@@ -6,6 +6,15 @@ An open import epoch cannot resolve as an accepted retry of another import. Attr
 
 Destructive maintenance is authorized by shared owner-maintenance evidence, while Memory, Entity, Relationship, CompatibilityProfile/PackedVector and REL Archive owners retain their own eligibility proofs. Pruning and reclamation operate on separate transformed copies; neither infers destruction from retirement alone. A fresh-history rewrite is distinct: the request/plan explicitly records selected state and closure, execution binds to the frozen source head, and a PreserveOwner result advances history generation. Reconciliation requires matching owner identity and history generation.
 
+## Compiled Memory authority
+
+`reliquary-memory-core` owns semantic Memory admission and history; its only
+Reliquary dependency is Container. Archive source authority, full grouped carrier
+receipts, processing epochs and multi-owner maintenance remain upper concerns.
+REL and PHY use separate owner instances. Persisted Episode references are opaque
+32-byte foreign IDs; Memory never resolves Archive data or invokes Chronos.
+
+
 ## Compact-history acceptance invariant
 
 Physical compaction preserves each owner's exact admitted history, including

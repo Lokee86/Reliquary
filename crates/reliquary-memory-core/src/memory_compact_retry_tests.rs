@@ -1,5 +1,4 @@
-use crate::memory_codec::{MemoryVersion, encode_body, encode_version};
-use crate::memory_compact_codec::{encode_creation, encode_delta};
+use crate::memory_codec::encode_body;
 use crate::memory_compact_contract::{MemoryCreation, MemoryDelta};
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id, memory_id};
 use crate::memory_rebuild::MemoryOpenState;
@@ -228,7 +227,7 @@ fn compact_populated_tombstone_exact_retry_preserves_original_coordinates_and_by
     let (mut container, mut store, id) = compact_populated_owner(scratch.path()).unwrap();
     let records_before = store.records().to_vec();
     let first = store.tombstone(&mut container, id, 2).unwrap();
-    let crate::owner_lifecycle::TombstoneOutcome::Published(coordinates) = first else {
+    let crate::MemoryTombstoneOutcome::Published(coordinates) = first else {
         panic!("first tombstone must publish");
     };
     let before_bytes = bytes(scratch.path());
@@ -239,10 +238,37 @@ fn compact_populated_tombstone_exact_retry_preserves_original_coordinates_and_by
 
     assert_eq!(
         store.tombstone(&mut container, id, 2).unwrap(),
-        crate::owner_lifecycle::TombstoneOutcome::AlreadyTombstoned(coordinates)
+        crate::MemoryTombstoneOutcome::AlreadyTombstoned(coordinates)
     );
     assert_eq!(store.records(), before_records);
     assert_eq!(container.latest_version(), before_global);
     assert_eq!(store.memory_version(), before_memory);
     assert_eq!(bytes(scratch.path()), before_bytes);
+}
+
+#[test]
+fn intrinsic_provenance_pairings_reject_before_standalone_or_grouped_writes() {
+    let scratch = ScratchFile::new();
+    let (mut container, mut store, _) = compact_populated_owner(scratch.path()).unwrap();
+    let before = std::fs::read(scratch.path()).unwrap();
+    let head = store.memory_version();
+    for case in 0..3 {
+        let mut draft = creation_draft();
+        draft.mutation_id = format!("invalid-provenance-{case}");
+        match case {
+            0 => draft.source_episode_id = Some(crate::SourceEpisodeId([9; 32])),
+            1 => draft.content_source_conversation_id = Some("missing-node".into()),
+            _ => draft.grounding_source_node_id = Some("missing-conversation".into()),
+        }
+        assert!(matches!(
+            store.publish(&mut container, None, 0, draft.clone()),
+            Err(MemoryError::InvalidProvenance)
+        ));
+        assert!(matches!(
+            store.stage_grouped(&mut container, vec![(draft, None, None)]),
+            Err(MemoryError::InvalidProvenance)
+        ));
+        assert_eq!(store.memory_version(), head);
+        assert_eq!(std::fs::read(scratch.path()).unwrap(), before);
+    }
 }

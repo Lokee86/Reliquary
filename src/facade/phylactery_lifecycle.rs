@@ -81,6 +81,8 @@ impl Phylactery {
         Ok(Self {
             owner_maintenance,
             rewrite_lineage,
+            external_publications:
+                crate::external_source::publication::ExternalPublicationState::default(),
             container,
             memories,
             lexical_index,
@@ -117,6 +119,8 @@ impl Phylactery {
         let mut owner_maintenance = crate::owner_maintenance::OwnerMaintenanceStore::default();
         let mut rewrite_lineage = crate::rewrite_lineage::RewriteLineageStore::default();
         let mut memory_state = MemoryOpenState::new();
+        let mut external_publications =
+            crate::external_source::publication::ExternalPublicationState::default();
         let mut graph_state = GraphOpenState::new();
         let mut community_state = CommunityOpenState::new();
         let mut packed_state = PackedVectorOpenState::new();
@@ -160,7 +164,37 @@ impl Phylactery {
                         .into());
                     }
                 } else {
-                    memory_state.ingest(chunk, payload, latest_global)?;
+                    if let Some((completion, body_spans)) =
+                        crate::insomnia::completion::decode_completion_with_body_spans(payload)
+                            .map_err(crate::MemoryError::CorruptRecord)?
+                    {
+                        memory_state.ingest_grouped_batch(
+                            chunk,
+                            payload,
+                            crate::memory_rebuild::MemoryGroupedBatch::new(
+                                completion.records,
+                                body_spans,
+                                completion.routing_metadata,
+                            ),
+                            latest_global,
+                        )?;
+                    } else if let Some(publication) =
+                        crate::external_source::publication::decode(payload)?
+                    {
+                        memory_state.ingest_grouped_batch(
+                            chunk,
+                            payload,
+                            crate::memory_rebuild::MemoryGroupedBatch::new(
+                                publication.records.clone(),
+                                publication.body_spans.clone(),
+                                publication.routing.clone(),
+                            ),
+                            latest_global,
+                        )?;
+                        external_publications.accept(&publication)?;
+                    } else {
+                        memory_state.ingest(chunk, payload, latest_global)?;
+                    }
                     entity_state.ingest(chunk, payload, latest_global)?;
                     graph_state.ingest(chunk, payload, latest_global)?;
                     relationship_state.ingest(chunk, payload, latest_global)?;
@@ -231,6 +265,7 @@ impl Phylactery {
         let mut result = Self {
             owner_maintenance,
             rewrite_lineage,
+            external_publications,
             container,
             memories,
             lexical_index,

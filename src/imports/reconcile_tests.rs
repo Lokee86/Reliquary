@@ -396,10 +396,14 @@ fn divergent_completed_grouped_memory_epoch_replays_through_destination_owners()
         .find(|memory| memory.source_episode_id.is_some())
         .expect("grouped import Memory");
     let source_work = right
-        .insomnia_work(source_memory.source_episode_id.unwrap())
+        .insomnia_work(crate::EpisodeId(
+            (source_memory.source_episode_id.unwrap()).0,
+        ))
         .unwrap()
         .clone();
-    let source_attempts = right.insomnia_attempts(source_memory.source_episode_id.unwrap());
+    let source_attempts = right.insomnia_attempts(crate::EpisodeId(
+        (source_memory.source_episode_id.unwrap()).0,
+    ));
     let source_resolution = right
         .entity_resolutions
         .records()
@@ -432,11 +436,15 @@ fn divergent_completed_grouped_memory_epoch_replays_through_destination_owners()
     assert_eq!(replayed, expected_semantics);
     assert_eq!(merged.memory_version(), left_memory_version + 2);
     let replayed_work = merged
-        .insomnia_work(source_memory.source_episode_id.unwrap())
+        .insomnia_work(crate::EpisodeId(
+            (source_memory.source_episode_id.unwrap()).0,
+        ))
         .unwrap();
     assert_eq!(replayed_work, &source_work);
     assert_eq!(
-        merged.insomnia_attempts(source_memory.source_episode_id.unwrap()),
+        merged.insomnia_attempts(crate::EpisodeId(
+            (source_memory.source_episode_id.unwrap()).0
+        )),
         source_attempts
     );
     assert!(merged.freshness.records().contains_key(&source_memory.id));

@@ -328,7 +328,7 @@ fn memory_body_prune_retains_revision_topology_and_rejects_unbound_marker() {
     assert!(matches!(
         reopened.memory_revision(memory.id, 1),
         Err(crate::MemoryError::PayloadUnavailable(
-            PayloadUnavailable::Pruned
+            reliquary_memory_core::MemoryPayloadUnavailable::Pruned
         ))
     ));
     assert!(
@@ -341,7 +341,9 @@ fn memory_body_prune_retains_revision_topology_and_rejects_unbound_marker() {
     let mut bad = Cva::create_project(&forged).unwrap();
     let body = crate::MemoryBodyId([7; 32]);
     bad.container
-        .append(&crate::memory_store::history_prune::PrunedMemoryBody::encode(body, 123, [8; 32]))
+        .append(&reliquary_memory_core::PrunedMemoryBody::encode(
+            body, 123, [8; 32],
+        ))
         .unwrap();
     bad.sync().unwrap();
     drop(bad);

@@ -1,5 +1,15 @@
 # Behavioral Contracts
 
+## Compiled Memory owner
+
+REL and PHY use separate `MemoryStore` instances from `reliquary-memory-core`.
+Memory owns deterministic identity, immutable bodies, mutation retries, revision
+conflicts, dense Memory versions and terminal deletion. Root composition retains
+Archive source validation, full grouped carrier validation, External Source
+window retries and maintenance authorization. Passive current/historical reads
+remain side effect free and allocate no Freshness receipt.
+
+
 ## Ordinary owner opening versus explicit maintenance
 
 Opening a REL or PHY validates and replays accepted owner evidence without

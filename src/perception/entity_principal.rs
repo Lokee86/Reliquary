@@ -194,7 +194,7 @@ impl Phylactery {
 }
 
 fn rel_source_principal(cva: &Cva, memory: &Memory) -> Option<String> {
-    let episode = cva.episode(memory.source_episode_id?)?;
+    let episode = cva.episode(crate::EpisodeId((memory.source_episode_id?).0))?;
     let node_id = memory.source_node_id.as_deref()?;
     cva.archive
         .source_node(&episode.conversation_id, node_id)

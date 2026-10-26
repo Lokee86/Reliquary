@@ -24,7 +24,7 @@ struct ArchiveReplayEntry {
 }
 
 pub(crate) struct FileMemoryLinkReplay {
-    link: FileMemoryLink,
+    link: reliquary_archive::file_memory_link_model::FileMemoryLink,
     transaction_time_ns: Option<i64>,
 }
 
@@ -60,15 +60,17 @@ pub(crate) fn rewrite_archive_conversations(
             conversations.insert(conversation.to_owned());
         }
         if let Some(episode_id) = memory.source_episode_id {
-            let episode = source.historical_episode(episode_id).ok_or(
-                CvaReconcileError::UnsupportedSemanticOwner(
+            let episode = source
+                .historical_episode(crate::EpisodeId((episode_id).0))
+                .ok_or(CvaReconcileError::UnsupportedSemanticOwner(
                     "retained Memory source Episode is unavailable",
-                ),
-            )?;
+                ))?;
             conversations.insert(episode.conversation_id.clone());
         }
         if let Some(source_ref) = &memory.source_ref {
-            if let Some(episode) = source.historical_episode(source_ref.source_episode_id) {
+            if let Some(episode) =
+                source.historical_episode(crate::EpisodeId((source_ref.source_episode_id).0))
+            {
                 conversations.insert(episode.conversation_id.clone());
             }
         }
@@ -146,7 +148,7 @@ pub(crate) fn replay_rewrite_archive(
         }
     }
     tail.file_memory_links.retain(|entry| {
-        let keep = retained_ids.contains(&entry.link.memory_id);
+        let keep = retained_ids.contains(&crate::MemoryId(entry.link.memory_id.0));
         if keep {
             selected_file_ids.insert(entry.link.file_id);
         }
@@ -199,7 +201,7 @@ pub(crate) fn replay_rewrite_file_links(
                 destination.archive.link_file_to_memory(
                     &mut destination.container,
                     link.file_id,
-                    link.memory_id,
+                    reliquary_archive::MemoryId(link.memory_id.0),
                 )?;
             }
         }
@@ -440,7 +442,10 @@ pub(crate) fn replay_file_memory_links(
     let before = destination.archive_version();
     for entry in links {
         with_replayed_transaction_time(destination, entry.transaction_time_ns, |destination| {
-            destination.link_file_to_memory(entry.link.file_id, entry.link.memory_id)
+            destination.link_file_to_memory(
+                entry.link.file_id,
+                crate::MemoryId((entry.link.memory_id).0),
+            )
         })?;
     }
     Ok(destination.archive_version().saturating_sub(before) as usize)

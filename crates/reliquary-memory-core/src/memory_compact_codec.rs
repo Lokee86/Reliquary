@@ -1,6 +1,6 @@
 //! Memory wire value codecs shared by marker-bound carriers and envelope bodies.
 #[path = "memory_publication_codec.rs"]
-pub(crate) mod publication;
+pub mod publication;
 use crate::memory_compact_contract::{
     MEMORY_DELTA_KNOWN_MASK, MemoryCreation, MemoryDelta, MemoryDeltaFields, MemoryFieldChange,
 };
@@ -12,7 +12,7 @@ const CREATION_MAGIC: &[u8; 8] = b"CVAMC001";
 const DELTA_MAGIC: &[u8; 8] = b"CVAMD001";
 
 /// Recognize and structurally validate only this owner's compact carriers.
-pub(crate) fn is_compact_record(bytes: &[u8]) -> Result<bool, MemoryError> {
+pub fn is_compact_record(bytes: &[u8]) -> Result<bool, MemoryError> {
     if bytes.starts_with(b"CVAMC") {
         decode_creation(bytes)?;
         return Ok(true);
@@ -68,13 +68,13 @@ fn require_end(bytes: &[u8], cursor: usize) -> Result<(), MemoryError> {
     Ok(())
 }
 
-pub(crate) fn validate_record_values(record: &MemoryRecord) -> Result<(), MemoryError> {
+pub fn validate_record_values(record: &MemoryRecord) -> Result<(), MemoryError> {
     let mut scratch = Vec::new();
     record.mutation_id.write(&mut scratch)?;
     write_record_fields(record, &mut scratch)
 }
 
-pub(crate) fn encode_creation(creation: &MemoryCreation) -> Result<Vec<u8>, MemoryError> {
+pub fn encode_creation(creation: &MemoryCreation) -> Result<Vec<u8>, MemoryError> {
     creation.validate()?;
     let record = &creation.record;
     let mut out = Vec::new();
@@ -87,7 +87,7 @@ pub(crate) fn encode_creation(creation: &MemoryCreation) -> Result<Vec<u8>, Memo
     write_record_fields(record, &mut out)?;
     Ok(out)
 }
-pub(crate) fn decode_creation(bytes: &[u8]) -> Result<MemoryCreation, MemoryError> {
+pub fn decode_creation(bytes: &[u8]) -> Result<MemoryCreation, MemoryError> {
     let mut cursor = require_magic(bytes, CREATION_MAGIC)?;
     let id = MemoryId(read_id(bytes, &mut cursor)?);
     let body_id = MemoryBodyId(read_id(bytes, &mut cursor)?);
@@ -120,7 +120,7 @@ fn validate_delta_envelope(delta: &MemoryDelta) -> Result<(), MemoryError> {
     }
     Ok(())
 }
-pub(crate) fn encode_delta(delta: &MemoryDelta) -> Result<Vec<u8>, MemoryError> {
+pub fn encode_delta(delta: &MemoryDelta) -> Result<Vec<u8>, MemoryError> {
     validate_delta_envelope(delta)?;
     let mut out = Vec::new();
     out.extend_from_slice(DELTA_MAGIC);
@@ -138,7 +138,7 @@ pub(crate) fn encode_delta(delta: &MemoryDelta) -> Result<Vec<u8>, MemoryError> 
     write_fields(&delta.fields, &mut out)?;
     Ok(out)
 }
-pub(crate) fn decode_delta(bytes: &[u8]) -> Result<MemoryDelta, MemoryError> {
+pub fn decode_delta(bytes: &[u8]) -> Result<MemoryDelta, MemoryError> {
     let mut cursor = require_magic(bytes, DELTA_MAGIC)?;
     let id = MemoryId(read_id(bytes, &mut cursor)?);
     let previous_revision = read_u64(bytes, &mut cursor)?;

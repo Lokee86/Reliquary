@@ -1,7 +1,7 @@
 //! Current CVAINSC7/CVAINSC8 codec acceptance, independent of retired input formats.
 use super::{
-    InsomniaCompletion, InsomniaCompletionBody, decode_completion, decode_embedded_version_range,
-    encode_completion,
+    InsomniaCompletion, InsomniaCompletionBody, decode_completion,
+    decode_completion_with_body_spans, decode_embedded_version_range, encode_completion,
 };
 use crate::memory_model::MemoryRecord;
 use crate::{
@@ -44,12 +44,16 @@ fn fixture_record(index: u8, global_version: u64, memory_version: u64) -> Memory
         content_source_node_id: Some(format!("user-{index}")),
         grounding_source_conversation_id: Some("grounding-conversation".into()),
         grounding_source_node_id: Some(format!("grounding-{index}")),
-        source_episode_id: Some(EpisodeId([index + 40; 32])),
+        source_episode_id: Some(reliquary_memory_core::SourceEpisodeId(
+            (EpisodeId([index + 40; 32])).0,
+        )),
         source_time_ns: Some(700 + index as i64),
         source_ref: Some(MemorySourceRef {
             owner_id: "rel-retained-fixture".into(),
             principal_id: Some("phy-retained-principal".into()),
-            source_episode_id: EpisodeId([index + 40; 32]),
+            source_episode_id: reliquary_memory_core::SourceEpisodeId(
+                (EpisodeId([index + 40; 32])).0,
+            ),
             source_node_id: format!("source-{index}"),
             content_source_conversation_id: Some("content-conversation".into()),
             content_source_node_id: Some(format!("content-{index}")),
@@ -59,7 +63,7 @@ fn fixture_record(index: u8, global_version: u64, memory_version: u64) -> Memory
         temporal_inference: Some(MemoryTemporalInference {
             body_id,
             source_time_ns: Some(700 + index as i64),
-            inference: TemporalInference {
+            inference: (TemporalInference {
                 model: "chronos-retained-test".into(),
                 contract_version: CHRONOS_INFERENCE_CONTRACT_VERSION.into(),
                 resolutions: vec![TemporalInferenceResolution {
@@ -69,7 +73,8 @@ fn fixture_record(index: u8, global_version: u64, memory_version: u64) -> Memory
                     evidence: "biweekly".into(),
                     canonical_expression: "every two weeks".into(),
                 }],
-            },
+            })
+            .into(),
         }),
         mutation_id: format!("retained-record-{index}"),
         created_at_ns: 100 + index as i64,
@@ -259,6 +264,23 @@ fn current_retained_layouts_preserve_all_fields_and_clock_observability() {
             );
         }
         assert!(decode_completion(&bytes[..bytes.len() - 1]).is_err());
+    }
+}
+
+#[test]
+fn grouped_completion_body_spans_are_absolute_for_all_supported_layouts() {
+    for layout in 1..=6 {
+        let bytes = retained_frame(layout, &fixture_completion(layout));
+        let (decoded, spans) = decode_completion_with_body_spans(&bytes).unwrap().unwrap();
+        assert_eq!(spans.len(), decoded.bodies.len());
+        for (span, body) in spans.iter().zip(&decoded.bodies) {
+            assert_eq!(span.id, body.id);
+            assert_eq!(&bytes[span.range.clone()], body.bytes.as_slice());
+            assert_eq!(
+                span.encoding,
+                reliquary_memory_core::MemoryGroupedBodyEncoding::Raw
+            );
+        }
     }
 }
 #[test]

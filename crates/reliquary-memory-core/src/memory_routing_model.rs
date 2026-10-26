@@ -10,14 +10,14 @@ pub enum MemoryTextField {
 }
 
 impl MemoryTextField {
-    pub(crate) fn tag(self) -> u8 {
+    pub fn tag(self) -> u8 {
         match self {
             Self::Title => 1,
             Self::Content => 2,
         }
     }
 
-    pub(crate) fn from_tag(tag: u8) -> Option<Self> {
+    pub fn from_tag(tag: u8) -> Option<Self> {
         match tag {
             1 => Some(Self::Title),
             2 => Some(Self::Content),
@@ -39,4 +39,24 @@ pub struct MemoryRoutingMetadata {
     pub memory_id: MemoryId,
     pub body_id: MemoryBodyId,
     pub entity_mentions: Vec<MemoryEntityMention>,
+}
+
+/// Stable reference to one stored entity mention in a Memory revision's body.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct MemoryEntityMentionKey {
+    pub memory_id: MemoryId,
+    pub field: MemoryTextField,
+    pub start_byte: u32,
+    pub end_byte: u32,
+}
+
+impl MemoryEntityMentionKey {
+    pub fn new(memory_id: MemoryId, mention: &MemoryEntityMention) -> Self {
+        Self {
+            memory_id,
+            field: mention.field,
+            start_byte: mention.start_byte,
+            end_byte: mention.end_byte,
+        }
+    }
 }

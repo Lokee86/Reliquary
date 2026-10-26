@@ -42,6 +42,7 @@
       "id": "memory",
       "description": "Authoritative Memory records, revisions, provenance metadata, and Memory-local state",
       "paths": [
+        "crates/reliquary-memory-core/src",
         "src/memory"
       ]
     },

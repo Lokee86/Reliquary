@@ -221,7 +221,8 @@ impl Cva {
                 };
                 if record.global_version <= start.pre.global_version
                     || record.revision != 1
-                    || record.source_episode_id != Some(id)
+                    || record.source_episode_id
+                        != Some(reliquary_memory_core::SourceEpisodeId((id).0))
                     || !scope.cohort.contains(memory_id)
                     || self.memories.first_mutation_id(*memory_id)
                         != Some(record.mutation_id.as_str())
@@ -243,7 +244,9 @@ impl Cva {
                             Status::ConflictingEvidence,
                         )));
                     }
-                    if current.source_episode_id != Some(id) {
+                    if current.source_episode_id
+                        != Some(reliquary_memory_core::SourceEpisodeId((id).0))
+                    {
                         return Ok(Some(blocker(
                             Owner::Memory,
                             hex(&memory_id.0),

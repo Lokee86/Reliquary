@@ -20,7 +20,9 @@ fn prepared() -> (PreparedMemory, MemorySourceRef) {
         content_source_node_id: Some("turn-1".into()),
         grounding_source_conversation_id: Some("conversation-1".into()),
         grounding_source_node_id: Some("turn-1".into()),
-        source_episode_id: Some(EpisodeId([4; 32])),
+        source_episode_id: Some(reliquary_memory_core::SourceEpisodeId(
+            (EpisodeId([4; 32])).0,
+        )),
         source_time_ns: Some(123),
         mutation_id: "episode-1/candidate-1".into(),
         created_at_ns: 10,
@@ -37,7 +39,7 @@ fn prepared() -> (PreparedMemory, MemorySourceRef) {
     let source_ref = MemorySourceRef {
         owner_id: "rel-00000000-0000-0000-0000-000000000001".into(),
         principal_id: Some("phy-00000000-0000-0000-0000-000000000002".into()),
-        source_episode_id: EpisodeId([4; 32]),
+        source_episode_id: reliquary_memory_core::SourceEpisodeId((EpisodeId([4; 32])).0),
         source_node_id: "turn-1".into(),
         content_source_conversation_id: Some("conversation-1".into()),
         content_source_node_id: Some("turn-1".into()),

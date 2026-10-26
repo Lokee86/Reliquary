@@ -2,6 +2,19 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Memory Core crate boundary
+
+The root product reexports canonical Memory values from `reliquary-memory-core`.
+The crate's `MemoryStore` and `MemoryOpenState` expose Memory admission and replay;
+Archive provenance checks, REL/PHY capabilities and grouped carrier receipts are
+composed by the product. Memory source Episode references carry the exact stable
+32-byte foreign identity. Chronos results become Memory-owned temporal snapshots
+before publication. `MemorySourceRef` retains foreign owner lineage; a PHY does
+not resolve that reference against a different REL Archive during open. Product
+lifecycle APIs map owner terminal coordinates into
+`LifecycleState`, `TombstoneOutcome` and historical payload availability.
+
+
 ## Archive source owner
 
 The product `Archive` API is backed by the independently compiled

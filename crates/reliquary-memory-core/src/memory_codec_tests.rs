@@ -1,9 +1,8 @@
 use crate::memory_codec::{decode_record, encode_record};
 use crate::memory_model::MemoryRecord;
 use crate::{
-    CHRONOS_INFERENCE_CONTRACT_VERSION, EpisodeId, MemoryBodyId, MemoryId, MemorySourceRef,
-    MemoryTemporalInference, TemporalIndicationKind, TemporalInference,
-    TemporalInferenceResolution,
+    EpisodeId, MemoryBodyId, MemoryId, MemorySourceRef, MemoryTemporalInference,
+    TemporalIndicationKind, TemporalInference, TemporalInferenceResolution,
 };
 
 #[test]
@@ -23,9 +22,9 @@ fn memory_record_v8_round_trips_source_reference_principal_and_temporal_status()
     record.temporal_inference = Some(MemoryTemporalInference {
         body_id: record.body_id,
         source_time_ns: record.source_time_ns,
-        inference: TemporalInference {
+        inference: (TemporalInference {
             model: "chronos-test".into(),
-            contract_version: CHRONOS_INFERENCE_CONTRACT_VERSION.into(),
+            contract_version: "chronos-temporal-inference-v1".into(),
             resolutions: vec![TemporalInferenceResolution {
                 start_byte: 0,
                 end_byte: 8,
@@ -33,7 +32,8 @@ fn memory_record_v8_round_trips_source_reference_principal_and_temporal_status()
                 evidence: "biweekly".into(),
                 canonical_expression: "every two weeks".into(),
             }],
-        },
+        })
+        .into(),
     });
     let decoded = decode_record(&encode_record(&record).unwrap())
         .unwrap()

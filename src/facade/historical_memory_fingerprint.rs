@@ -33,7 +33,11 @@ pub(crate) struct MemoryCut {
 }
 
 impl MemoryHistory {
-    pub(crate) fn read(container: &mut Container, store: &MemoryStore) -> Result<Self, String> {
+    pub(crate) fn read(
+        container: &mut Container,
+        store: &MemoryStore,
+        external: &crate::external_source::publication::ExternalPublicationState,
+    ) -> Result<Self, String> {
         let mut history = Self {
             owner: container
                 .owner_uuid()
@@ -49,7 +53,7 @@ impl MemoryHistory {
             if !history.bodies.contains_key(&record.body_id.0)
                 || !history.routing.contains_key(&record.id)
             {
-                if let Some(marker) = store.prune.get(record.body_id) {
+                if let Some(marker) = store.prune_marker(record.body_id) {
                     history.bodies.insert(
                         record.body_id.0,
                         json!({"pruned": {
@@ -74,7 +78,7 @@ impl MemoryHistory {
                     })));
                 }
             }
-            if let Some(evidence) = store.external_evidence.get(&(record.id, record.body_id)) {
+            if let Some(evidence) = external.evidence(record.id, record.body_id) {
                 history.external.insert(
                     record.id,
                     serde_json::to_value(evidence).map_err(|e| e.to_string())?,
@@ -255,7 +259,7 @@ fn temporal_value(value: &MemoryTemporalInference) -> Value {
         source_time_ns,
         inference,
     } = value;
-    let crate::TemporalInference {
+    let reliquary_memory_core::TemporalInference {
         model,
         contract_version,
         resolutions,
@@ -263,15 +267,15 @@ fn temporal_value(value: &MemoryTemporalInference) -> Value {
     json!({"body_id": hex(&body_id.0), "source_time_ns": source_time_ns,
         "model": model, "contract_version": contract_version,
         "resolutions": resolutions.iter().map(|r| {
-            let crate::TemporalInferenceResolution { start_byte, end_byte, kind, evidence, canonical_expression } = r;
+            let reliquary_memory_core::TemporalInferenceResolution { start_byte, end_byte, kind, evidence, canonical_expression } = r;
             json!({"start": start_byte, "end": end_byte, "evidence": evidence,
                 "canonical_expression": canonical_expression, "kind": match kind {
-                    crate::TemporalIndicationKind::Explicit => "explicit",
-                    crate::TemporalIndicationKind::Calendar => "calendar",
-                    crate::TemporalIndicationKind::Relative => "relative",
-                    crate::TemporalIndicationKind::Boundary => "boundary",
-                    crate::TemporalIndicationKind::Recurrence => "recurrence",
-                    crate::TemporalIndicationKind::Duration => "duration",
+                    reliquary_memory_core::TemporalIndicationKind::Explicit => "explicit",
+                    reliquary_memory_core::TemporalIndicationKind::Calendar => "calendar",
+                    reliquary_memory_core::TemporalIndicationKind::Relative => "relative",
+                    reliquary_memory_core::TemporalIndicationKind::Boundary => "boundary",
+                    reliquary_memory_core::TemporalIndicationKind::Recurrence => "recurrence",
+                    reliquary_memory_core::TemporalIndicationKind::Duration => "duration",
                 }})
         }).collect::<Vec<_>>()})
 }

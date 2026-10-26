@@ -38,6 +38,8 @@
 - [Container crate extraction specification](container-crate-extraction-spec-2026-10-25.md) — first hard-cut extraction: physical scanning, writer exclusion, read-only open, clock framing and existing regressions.
 - [Archive crate extraction specification](archive-crate-extraction-spec-2026-10-25.md) — second hard-cut extraction: source owner, import receipts, Episodes, durable checkpoints, Echo exclusion and cross-owner dependency cuts.
 - [Memory Core crate extraction specification](memory-core-crate-extraction-spec-2026-10-25.md) — third hard-cut extraction: Memory persistence, foreign source identities, grouped publication boundaries, lifecycle/maintenance separation, and behavioral gates.
+- [Memory Core extraction results](memory-core-crate-extraction-results-2026-10-25.md) — corrected grouped replay validation, verified owner/root checks, and explicit corpus gate.
+- [Memory Core extraction results](memory-core-crate-extraction-results-2026-10-25.md) — corrected grouped replay validation, verified owner/root checks, and explicit corpus gate.
 - [Subsystem documentation](subsystems/INDEX.md) — focused current-state ownership, behavior, lifecycle, failure, and implementation maps.
 - [Architectural invariants](invariants.md) — governing ownership and storage constraints.
 - [Storage format](storage-format.md) — exact current REL/PHY persistent-record format, legacy CVA compatibility, and migration boundary.
@@ -209,6 +211,7 @@
 - [invariants.md](invariants.md) - Invariants documentation.
 - [latest-offline-converter-coverage-2026-10-21.md](latest-offline-converter-coverage-2026-10-21.md) - Latest Offline Converter Coverage 2026 10 21 documentation.
 - [maintainer-map.md](maintainer-map.md) - Maintainer Map documentation.
+- [memory-core-crate-extraction-spec-2026-10-25.md](memory-core-crate-extraction-spec-2026-10-25.md) - Memory Core Crate Extraction Spec 2026 10 25 documentation.
 - [minimal-lossless-history-storage-execution-2026-10-19.md](minimal-lossless-history-storage-execution-2026-10-19.md) - Minimal Lossless History Storage Execution 2026 10 19 documentation.
 - [minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md) - Minimal Lossless History Storage Format Policy Amendment 2026 10 19 documentation.
 - [minimal-lossless-history-storage-linear-plan-2026-10-19.md](minimal-lossless-history-storage-linear-plan-2026-10-19.md) - Minimal Lossless History Storage Linear Plan 2026 10 19 documentation.

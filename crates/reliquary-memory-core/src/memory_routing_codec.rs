@@ -5,7 +5,7 @@ use crate::{MemoryBodyId, MemoryError, MemoryId};
 
 const ROUTING_MAGIC_V2: [u8; 8] = *b"CVAMRTE2";
 
-pub(crate) fn encode(value: &MemoryRoutingMetadata) -> Result<Vec<u8>, MemoryError> {
+pub fn encode(value: &MemoryRoutingMetadata) -> Result<Vec<u8>, MemoryError> {
     let mention_count =
         u32::try_from(value.entity_mentions.len()).map_err(|_| MemoryError::FieldTooLarge)?;
     let mut out = Vec::with_capacity(96);
@@ -17,7 +17,7 @@ pub(crate) fn encode(value: &MemoryRoutingMetadata) -> Result<Vec<u8>, MemoryErr
     Ok(out)
 }
 
-pub(crate) fn decode(bytes: &[u8]) -> Result<Option<MemoryRoutingMetadata>, MemoryError> {
+pub fn decode(bytes: &[u8]) -> Result<Option<MemoryRoutingMetadata>, MemoryError> {
     if bytes.len() < 8 {
         return Ok(None);
     }

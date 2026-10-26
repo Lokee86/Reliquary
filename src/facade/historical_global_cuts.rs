@@ -49,7 +49,9 @@ pub(crate) fn reliquary_global_cuts_with_positions(
         .filter(|record| record.global_version <= global)
         .map(|record| record.memory_version)
         .chain(cva.memories.tombstoned_ids().into_iter().filter_map(|id| {
-            match cva.memories.lifecycle_state(id).ok()? {
+            match crate::owner_lifecycle::LifecycleState::from(
+                cva.memories.lifecycle_state(id).ok()?,
+            ) {
                 crate::owner_lifecycle::LifecycleState::Tombstoned(coordinates)
                     if coordinates.global_version? <= global =>
                 {
@@ -161,7 +163,9 @@ pub(crate) fn phylactery_global_cuts_with_positions(
         .filter(|record| record.global_version <= global)
         .map(|record| record.memory_version)
         .chain(phy.memories.tombstoned_ids().into_iter().filter_map(|id| {
-            match phy.memories.lifecycle_state(id).ok()? {
+            match crate::owner_lifecycle::LifecycleState::from(
+                phy.memories.lifecycle_state(id).ok()?,
+            ) {
                 crate::owner_lifecycle::LifecycleState::Tombstoned(coordinates)
                     if coordinates.global_version? <= global =>
                 {

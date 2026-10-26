@@ -312,7 +312,7 @@ fn external_memory_provenance_requires_view_grant_for_exact_source_owner() {
     memory.source_ref = Some(MemorySourceRef {
         owner_id: owner_b.clone(),
         principal_id: None,
-        source_episode_id: EpisodeId([4; 32]),
+        source_episode_id: reliquary_memory_core::SourceEpisodeId((EpisodeId([4; 32])).0),
         source_node_id: "prov-node-b".into(),
         content_source_conversation_id: None,
         content_source_node_id: None,

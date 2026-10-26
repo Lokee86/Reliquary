@@ -130,3 +130,41 @@ mod tests {
         assert_ne!(available, pruned);
     }
 }
+
+impl From<reliquary_memory_core::MemoryTombstoneCoordinates> for TombstoneCoordinates {
+    fn from(value: reliquary_memory_core::MemoryTombstoneCoordinates) -> Self {
+        Self {
+            global_version: value.global_version,
+            domain_version: value.domain_version,
+        }
+    }
+}
+impl From<reliquary_memory_core::MemoryLifecycleState> for LifecycleState {
+    fn from(value: reliquary_memory_core::MemoryLifecycleState) -> Self {
+        match value {
+            reliquary_memory_core::MemoryLifecycleState::Active => Self::Active,
+            reliquary_memory_core::MemoryLifecycleState::Tombstoned(at) => {
+                Self::Tombstoned(at.into())
+            }
+        }
+    }
+}
+impl From<reliquary_memory_core::MemoryTombstoneOutcome> for TombstoneOutcome {
+    fn from(value: reliquary_memory_core::MemoryTombstoneOutcome) -> Self {
+        match value {
+            reliquary_memory_core::MemoryTombstoneOutcome::Published(at) => {
+                Self::Published(at.into())
+            }
+            reliquary_memory_core::MemoryTombstoneOutcome::AlreadyTombstoned(at) => {
+                Self::AlreadyTombstoned(at.into())
+            }
+        }
+    }
+}
+pub(crate) fn memory_payload_unavailable(
+    value: reliquary_memory_core::MemoryPayloadUnavailable,
+) -> PayloadUnavailable {
+    match value {
+        reliquary_memory_core::MemoryPayloadUnavailable::Pruned => PayloadUnavailable::Pruned,
+    }
+}

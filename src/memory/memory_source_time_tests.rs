@@ -61,7 +61,7 @@ fn draft(episode: &crate::Episode) -> MemoryDraft {
         content_source_node_id: None,
         grounding_source_conversation_id: None,
         grounding_source_node_id: None,
-        source_episode_id: Some(episode.id),
+        source_episode_id: Some(reliquary_memory_core::SourceEpisodeId((episode.id).0)),
         source_time_ns: Some(5),
         mutation_id: "memory-source-time".into(),
         created_at_ns: 100,

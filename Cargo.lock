@@ -2807,6 +2807,7 @@ dependencies = [
  "regex",
  "reliquary-archive",
  "reliquary-container",
+ "reliquary-memory-core",
  "reqwest",
  "serde",
  "serde_json",
@@ -2820,6 +2821,12 @@ dependencies = [
 [[package]]
 name = "reliquary-memory-core"
 version = "0.1.0"
+dependencies = [
+ "reliquary-container",
+ "serde_json",
+ "sha2",
+ "uuid",
+]
 
 [[package]]
 name = "reliquary-owner-lifecycle"

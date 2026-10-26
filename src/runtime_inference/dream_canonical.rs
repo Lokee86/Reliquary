@@ -215,7 +215,7 @@ fn authority_anchor(cva: &Cva, memory: &Memory) -> Option<(String, String)> {
     let node_id = memory.source_node_id.clone()?;
     let conversation_id = memory
         .source_episode_id
-        .and_then(|id| cva.episode(id))
+        .and_then(|id| cva.episode(crate::EpisodeId((id).0)))
         .map(|episode| episode.conversation_id.clone())?;
     Some((conversation_id, node_id))
 }

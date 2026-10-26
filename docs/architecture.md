@@ -44,6 +44,23 @@ in `src/runtime_inference/`; Echo reasoning/tool evidence stays in `src/echo/`;
 `Cva::search_archive` and query policy stay in Retrieval under `src/retrieval/`.
 Multi-owner maintenance proof and lifecycle composition remain in root facades.
 
+## Memory semantic owner crate
+
+`reliquary-memory-core` owns Memory identity, immutable bodies, revisions,
+mutation admission, dense local clocks, terminal coordinates, retained history,
+routing snapshots and current-format codecs under `crates/reliquary-memory-core/src/`.
+Its only direct Reliquary dependency is `reliquary-container`. REL and PHY hold
+separate instances of this same compiled owner.
+
+The root product validates Archive provenance and source authority, decodes
+Insomnia and External Source carriers in physical order, and passes typed Memory
+batches to the owner. External Source retains its window retry receipts and
+provenance evidence. Chronos supplies validated inference converted to immutable
+Memory snapshots. Root lifecycle and maintenance compose Memory-owned terminal
+and prune facts with cross-owner authorization. Processing epochs and source-time
+resolution remain above Memory. Opening and historical reads do not repair bytes
+or reinforce Freshness. Persisted identities and publication bytes are unchanged.
+
 ## Development-format lifecycle
 
 [ADR0042](decisions/0042-minimal-lossless-current-history.md) records the owner-specific compact history architecture. The [six-source oracle](canonical-history-migration-results-2026-10-21.md) now passes every concrete owner history and global ordering point. The six canonical files are promoted; reader and upgrader deletion is implemented, with post-retirement acceptance tracked in the linear plan.

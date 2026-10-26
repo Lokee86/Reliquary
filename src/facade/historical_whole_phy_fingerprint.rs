@@ -59,6 +59,7 @@ pub(crate) fn whole_owner_at_phy(phy: &mut Phylactery, global: u64) -> Result<Wh
     let memory = crate::historical_memory_fingerprint::MemoryHistory::read(
         &mut phy.container,
         &phy.memories,
+        &phy.external_publications,
     )?
     .at(cuts.memory)?;
     let entity = crate::historical_entity_fingerprint::entity_cut(

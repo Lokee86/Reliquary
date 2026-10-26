@@ -401,8 +401,8 @@ fn corrupt_publication_does_not_claim_embedded_versions_and_empty_receipt_reopen
     drop(cva);
     let mut cva = Cva::open(&path).unwrap();
     assert!(
-        cva.memories
-            .external_window(&mut cva.container, [9; 32])
+        cva.external_publications
+            .window(&mut cva.container, &cva.memories, [9; 32])
             .unwrap()
             .is_some()
     );
@@ -415,6 +415,7 @@ fn corrupt_publication_does_not_claim_embedded_versions_and_empty_receipt_reopen
         bodies: vec![],
         bindings: vec![],
         routing: vec![],
+        body_spans: vec![],
     };
     let mut bytes = publication::encode(&wire).unwrap();
     bytes[16] ^= 1;
@@ -512,6 +513,7 @@ fn shared_insomnia_derives_project_and_user_memories_from_transient_evidence() {
     let user = publication::publish(
         &mut phy.container,
         &mut phy.memories,
+        &mut phy.external_publications,
         prepared.window,
         &prepared.user,
         None,

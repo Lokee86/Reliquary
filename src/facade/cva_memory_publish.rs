@@ -3,6 +3,7 @@ use crate::{
     Archive, Memory, MemoryDraft, MemoryError, MemoryId, MemorySourceRef, MemoryTemporalInference,
 };
 use reliquary_container::Container;
+use std::collections::{HashMap, HashSet};
 
 pub(crate) fn preflight_memory_parts(
     archive: &Archive,
@@ -62,7 +63,7 @@ fn validate_memory_provenance(archive: &Archive, draft: &MemoryDraft) -> Result<
     match (draft.source_episode_id, draft.source_node_id.as_deref()) {
         (Some(episode_id), Some(node_id)) => {
             if !archive
-                .episode_contains_node(episode_id, node_id)
+                .episode_contains_node(crate::EpisodeId((episode_id).0), node_id)
                 .map_err(|_| MemoryError::InvalidProvenance)?
             {
                 return Err(MemoryError::InvalidProvenance);
@@ -86,6 +87,49 @@ fn validate_memory_provenance(archive: &Archive, draft: &MemoryDraft) -> Result<
         (Some(conversation_id), Some(node_id)) if archive.has_node(conversation_id, node_id) => {}
         (None, None) => {}
         _ => return Err(MemoryError::InvalidProvenance),
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_store_provenance(
+    store: &MemoryStore,
+    archive: &crate::Archive,
+) -> Result<(), MemoryError> {
+    let mut episode_nodes: HashMap<_, HashSet<&str>> = HashMap::new();
+    for record in store.records() {
+        match (record.source_episode_id, record.source_node_id.as_deref()) {
+            (Some(episode_id), Some(node_id)) => {
+                episode_nodes.entry(episode_id).or_default().insert(node_id);
+            }
+            (None, None) => {}
+            _ => return Err(MemoryError::InvalidProvenance),
+        }
+        match (
+            record.content_source_conversation_id.as_deref(),
+            record.content_source_node_id.as_deref(),
+        ) {
+            (Some(conversation_id), Some(node_id))
+                if archive.has_node(conversation_id, node_id) => {}
+            (None, None) => {}
+            _ => return Err(MemoryError::InvalidProvenance),
+        }
+        match (
+            record.grounding_source_conversation_id.as_deref(),
+            record.grounding_source_node_id.as_deref(),
+        ) {
+            (Some(conversation_id), Some(node_id))
+                if archive.has_node(conversation_id, node_id) => {}
+            (None, None) => {}
+            _ => return Err(MemoryError::InvalidProvenance),
+        }
+    }
+    for (episode_id, node_ids) in episode_nodes {
+        if !archive
+            .episode_contains_all_nodes(crate::EpisodeId((episode_id).0), &node_ids)
+            .map_err(|_| MemoryError::InvalidProvenance)?
+        {
+            return Err(MemoryError::InvalidProvenance);
+        }
     }
     Ok(())
 }

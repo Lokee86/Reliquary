@@ -224,7 +224,7 @@ impl Cva {
                 selected_bodies.insert(object, (body, bytes.len() as u64));
                 bodies.push(body);
             }
-            memory_descriptors.push(crate::memory_store::history_prune::descriptor(
+            memory_descriptors.push(crate::memory_history_prune::descriptor(
                 &self.memories,
                 *id,
                 &bodies,
@@ -355,7 +355,7 @@ impl Cva {
                     continue;
                 }
                 if let Some((body, length)) = selected_bodies.get(object) {
-                    let marker = crate::memory_store::history_prune::PrunedMemoryBody::encode(
+                    let marker = reliquary_memory_core::PrunedMemoryBody::encode(
                         *body,
                         *length,
                         manifest_digest,
@@ -425,7 +425,7 @@ impl Cva {
                     continue;
                 }
                 if let Some((body, length)) = selected_bodies.get(object) {
-                    let expected = crate::memory_store::history_prune::PrunedMemoryBody::encode(
+                    let expected = reliquary_memory_core::PrunedMemoryBody::encode(
                         *body,
                         *length,
                         manifest_digest,

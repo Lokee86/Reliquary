@@ -105,6 +105,7 @@ fn cvaxmem1(publication: &Publication) -> Vec<u8> {
 
 fn clone_publication(publication: &Publication) -> Publication {
     Publication {
+        body_spans: Vec::new(),
         window: publication.window,
         global_start: publication.global_start,
         transaction_ns: publication.transaction_ns,

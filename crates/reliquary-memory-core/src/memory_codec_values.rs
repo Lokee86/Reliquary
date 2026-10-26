@@ -140,7 +140,7 @@ pub(crate) fn read_optional_source_ref(
             Ok(Some(MemorySourceRef {
                 owner_id,
                 principal_id,
-                source_episode_id: crate::EpisodeId(episode_raw.try_into().unwrap()),
+                source_episode_id: crate::SourceEpisodeId(episode_raw.try_into().unwrap()),
                 source_node_id,
                 content_source_conversation_id,
                 content_source_node_id,

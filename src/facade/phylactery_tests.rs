@@ -130,7 +130,7 @@ fn source_reference_survives_metadata_revision_and_reopen() {
     let source_ref = MemorySourceRef {
         owner_id: "rel-00000000-0000-0000-0000-000000000001".into(),
         principal_id: None,
-        source_episode_id: EpisodeId([9; 32]),
+        source_episode_id: reliquary_memory_core::SourceEpisodeId((EpisodeId([9; 32])).0),
         source_node_id: "u1".into(),
         content_source_conversation_id: None,
         content_source_node_id: None,
@@ -172,7 +172,7 @@ fn temporal_status_backfill_preserves_phy_source_reference() {
     let source_ref = MemorySourceRef {
         owner_id: "rel-00000000-0000-0000-0000-000000000001".into(),
         principal_id: None,
-        source_episode_id: EpisodeId([8; 32]),
+        source_episode_id: reliquary_memory_core::SourceEpisodeId((EpisodeId([8; 32])).0),
         source_node_id: "u1".into(),
         content_source_conversation_id: None,
         content_source_node_id: None,

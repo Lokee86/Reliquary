@@ -696,7 +696,7 @@ fn imported_insomnia_output_ids_without_memory_publication_evidence_are_rejected
                 superseded_by: None,
                 parent_id: None,
                 source_node_id: Some(source_node_id.clone()),
-                source_episode_id: Some(episode),
+                source_episode_id: Some(reliquary_memory_core::SourceEpisodeId((episode).0)),
                 source_time_ns: Some(10),
                 content_source_conversation_id: Some(source_conversation_id.clone()),
                 content_source_node_id: Some(source_node_id.clone()),
