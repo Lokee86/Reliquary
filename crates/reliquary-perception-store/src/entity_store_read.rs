@@ -1,8 +1,6 @@
 use super::{EntityStore, alias_surface_keys, normalize_surface, normalized_surface, resolve};
-use crate::entity_identity_guard::{identity_guard_keys, single_token};
 use crate::entity_model::EntityRecord;
 use crate::{Entity, EntityError, EntityId, EntityStats};
-use std::collections::BTreeSet;
 
 impl EntityStore {
     pub(crate) fn current_record_for_replay(
@@ -160,55 +158,6 @@ impl EntityStore {
             .filter_map(|id| self.current.get(&id))
             .map(|index| resolve(&self.records[*index]))
             .collect()
-    }
-
-    pub fn creation_conflicts(
-        &self,
-        surface: &str,
-        kind: &str,
-        limit: usize,
-    ) -> Vec<Entity> {
-        if kind == "principal" {
-            return Vec::new();
-        }
-        let mut qualifiers = BTreeSet::new();
-        for index in self.current.values() {
-            let entity = resolve(&self.records[*index]);
-            if entity.kind == "programming_language" {
-                for value in std::iter::once(entity.canonical_name.as_str())
-                    .chain(entity.aliases.iter().map(String::as_str))
-                {
-                    if let Some(token) = single_token(value) {
-                        qualifiers.insert(token);
-                    }
-                }
-            }
-        }
-        let wanted = identity_guard_keys(surface, &qualifiers);
-        if wanted.is_empty() {
-            return Vec::new();
-        }
-
-        let mut matches = Vec::new();
-        for index in self.current.values() {
-            let entity = resolve(&self.records[*index]);
-            if entity.kind != kind {
-                continue;
-            }
-            let conflicts = std::iter::once(entity.canonical_name.as_str())
-                .chain(entity.aliases.iter().map(String::as_str))
-                .any(|candidate| {
-                    identity_guard_keys(candidate, &qualifiers)
-                        .iter()
-                        .any(|key| wanted.contains(key))
-                });
-            if conflicts {
-                matches.push(entity);
-            }
-        }
-        matches.sort_by_key(|entity| entity.id);
-        matches.truncate(limit);
-        matches
     }
 
     pub fn records(&self) -> &[EntityRecord] {

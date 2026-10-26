@@ -505,7 +505,6 @@ mod entity_creation_guard_tests;
 mod entity_merge;
 #[path = "perception/entity_owner.rs"]
 mod entity_owner;
-mod entity_ref;
 #[path = "perception/entity_principal.rs"]
 mod entity_principal;
 #[cfg(test)]
@@ -1618,3 +1617,6 @@ mod entity_resolution_owner_format_tests;
 #[cfg(test)]
 #[path = "perception/entity_resolution_retained_tests.rs"]
 mod entity_resolution_retained_tests;
+
+#[path = "perception/entity_identity_guard.rs"]
+mod entity_identity_guard;

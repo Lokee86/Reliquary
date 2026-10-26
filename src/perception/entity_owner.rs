@@ -103,7 +103,7 @@ macro_rules! impl_owner {
             > {
                 let value = match self.entity_revision(id, revision) {
                     Ok(value) => value,
-                    Err(EntityError::PayloadUnavailable(crate::EntityPayloadUnavailable::Pruned)) => {
+                    Err(EntityError::PayloadUnavailable(reliquary_perception_store::EntityPayloadUnavailable::Pruned)) => {
                         let structure = self
                             .entity_retention_descriptor(id)?
                             .revisions
@@ -176,7 +176,7 @@ macro_rules! impl_owner {
                 kind: &str,
                 limit: usize,
             ) -> Vec<Entity> {
-                self.entities.creation_conflicts(surface, kind, limit)
+                crate::entity_identity_guard::creation_conflicts(&self.entities, surface, kind, limit)
             }
 
             pub fn retired_entity_replacement(&self, id: EntityId) -> Option<EntityId> {

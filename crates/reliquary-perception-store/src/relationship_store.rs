@@ -1,12 +1,12 @@
 #[path = "relationship_replay.rs"]
-mod replay;
+pub mod replay;
 pub use replay::RelationshipReplayPublication;
 #[path = "relationship_compact_publish.rs"]
 mod compact_publish;
 #[path = "relationship_store_read.rs"]
 mod read;
 #[path = "relationship_store_validation.rs"]
-mod validation;
+pub mod validation;
 
 use crate::relationship_codec::{RelationshipTombstone, encode_format};
 use crate::relationship_model::RelationshipRecord;

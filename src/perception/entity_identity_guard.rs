@@ -93,3 +93,52 @@ mod tests {
         assert!(!identity_guard_keys("Server devtools", &qualifiers).contains("devtools"));
     }
 }
+
+pub(crate) fn creation_conflicts(
+        store: &reliquary_perception_store::EntityStore,
+        surface: &str,
+        kind: &str,
+        limit: usize,
+    ) -> Vec<crate::Entity> {
+        let current = store.current();
+        if kind == "principal" {
+            return Vec::new();
+        }
+        let mut qualifiers = BTreeSet::new();
+        for entity in &current {
+            if entity.kind == "programming_language" {
+                for value in std::iter::once(entity.canonical_name.as_str())
+                    .chain(entity.aliases.iter().map(String::as_str))
+                {
+                    if let Some(token) = single_token(value) {
+                        qualifiers.insert(token);
+                    }
+                }
+            }
+        }
+        let wanted = identity_guard_keys(surface, &qualifiers);
+        if wanted.is_empty() {
+            return Vec::new();
+        }
+
+        let mut matches = Vec::new();
+        for entity in &current {
+            if entity.kind != kind {
+                continue;
+            }
+            let conflicts = std::iter::once(entity.canonical_name.as_str())
+                .chain(entity.aliases.iter().map(String::as_str))
+                .any(|candidate| {
+                    identity_guard_keys(candidate, &qualifiers)
+                        .iter()
+                        .any(|key| wanted.contains(key))
+                });
+            if conflicts {
+                matches.push(entity.clone());
+            }
+        }
+        matches.sort_by_key(|entity| entity.id);
+        matches.truncate(limit);
+        matches
+    }
+

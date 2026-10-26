@@ -1,12 +1,12 @@
 //! Equivalent accepted records have import evidence independent of disk codecs.
 use super::EntityReplayPublication;
-use reliquary_perception_store::entity_compact_contract::{EntityCreation, EntityDelta};
-use reliquary_perception_store::entity_model::EntityRecord;
+use crate::entity_compact_contract::{EntityCreation, EntityDelta};
+use crate::entity_model::EntityRecord;
 use crate::{EntityGlobalId, EntityId};
 
 fn legacy_payload(record: &EntityRecord) -> Vec<u8> {
     if record.global_id.is_some() {
-        return reliquary_perception_store::entity_codec::encode_record(record).unwrap();
+        return crate::entity_codec::encode_record(record).unwrap();
     }
     let mut bytes = b"CVAENTR1".to_vec();
     bytes.extend(record.id.0);
@@ -52,24 +52,24 @@ fn legacy_and_compact_optional_identity_history_have_identical_import_evidence()
         None,
     ] {
         current.global_id = global_id;
-        let legacy = reliquary_perception_store::entity_codec::decode_record(&legacy_payload(&current))
+        let legacy = crate::entity_codec::decode_record(&legacy_payload(&current))
             .unwrap()
             .unwrap();
         let compact = match &previous {
             None => {
-                let bytes = reliquary_perception_store::entity_compact_codec::encode_creation(
+                let bytes = crate::entity_compact_codec::encode_creation(
                     &EntityCreation::new(current.clone()).unwrap(),
                 )
                 .unwrap();
-                reliquary_perception_store::entity_compact_codec::decode_creation(&bytes)
+                crate::entity_compact_codec::decode_creation(&bytes)
                     .unwrap()
                     .record
             }
             Some(prior) => {
                 let delta = EntityDelta::between(prior, &current).unwrap();
-                let bytes = reliquary_perception_store::entity_compact_codec::encode_delta(&delta).unwrap();
-                let decoded = reliquary_perception_store::entity_compact_codec::decode_delta(&bytes).unwrap();
-                reliquary_perception_store::entity_compact_apply::apply_delta(prior, &decoded).unwrap()
+                let bytes = crate::entity_compact_codec::encode_delta(&delta).unwrap();
+                let decoded = crate::entity_compact_codec::decode_delta(&bytes).unwrap();
+                crate::entity_compact_apply::apply_delta(prior, &decoded).unwrap()
             }
         };
         assert_eq!(
