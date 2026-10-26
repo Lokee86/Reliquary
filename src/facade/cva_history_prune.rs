@@ -1,9 +1,9 @@
 //! Explicit destructive pruning of terminal Archive conversation bodies.
-use crate::archive::history_prune::PrunedArchiveContent;
-use crate::archive_codec::{ArchiveRecord, decode_record};
 use crate::owner_lifecycle::LifecycleTarget;
 use crate::owner_maintenance::HistoryPruneManifest;
 use crate::{ContentId, Cva, CvaError};
+use reliquary_archive::archive::history_prune::PrunedArchiveContent;
+use reliquary_archive::archive_codec::{ArchiveRecord, decode_record};
 use reliquary_container::ObjectRef;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fs;
@@ -233,8 +233,13 @@ impl Cva {
         let mut descriptors = selected
             .iter()
             .map(|id| {
-                self.archive
-                    .retention_descriptor(&mut self.container, id, watermark, &lengths)
+                crate::cva_archive_history_prune::archive_retention_descriptor(
+                    &self.archive,
+                    &mut self.container,
+                    id,
+                    watermark,
+                    &lengths,
+                )
             })
             .collect::<Result<Vec<_>, _>>()?;
         descriptors.extend(memory_descriptors);
@@ -464,8 +469,7 @@ impl Cva {
             }
             for node in self
                 .archive
-                .nodes
-                .iter()
+                .source_nodes()
                 .filter(|node| selected.contains(&node.conversation_id))
             {
                 if !matches!(

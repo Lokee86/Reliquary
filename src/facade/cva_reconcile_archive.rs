@@ -1,10 +1,10 @@
-use crate::archive_codec::ArchiveRecord;
 use crate::cva_reconcile::with_replayed_transaction_time;
 use crate::cva_reconcile_conflict_map::archive_replay_error;
 use crate::{
     ArchiveError, Branch, ConversationMetadata, Cva, CvaReconcileError, Episode, FileMemoryLink,
     Fragment, IncomingAttachment, IncomingTurn, ProjectFileRef, StoredFile,
 };
+use reliquary_archive::archive_codec::ArchiveRecord;
 
 pub(crate) enum ArchiveReplayRecord {
     ImportReceipt(crate::imports::ImportReceipt),
@@ -226,7 +226,9 @@ pub(crate) fn read_archive_range(
 
     for chunk in chunks.iter().take(end_chunk).skip(start_chunk) {
         let payload = cva.container.read(*chunk)?;
-        let Some(version) = crate::archive_codec::publication::version_at(*chunk, &payload)? else {
+        let Some(version) =
+            reliquary_archive::archive_codec::publication::version_at(*chunk, &payload)?
+        else {
             continue;
         };
         let transaction_time_ns = cva.transaction_time_ns(version.global_version);
@@ -423,7 +425,8 @@ fn replay_project_file(
     // Keep that accepted identity instead of allocating a native project FileId.
     destination
         .project_files
-        .put(&mut destination.container, file.id, reference)?;
+        .put(&mut destination.container, file.id, reference)
+        .map_err(crate::CvaError::from)?;
     destination
         .archive
         .register_file(&mut destination.container, file.clone())?;

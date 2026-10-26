@@ -1,4 +1,3 @@
-use crate::archive_history_codec::encode_archive_format;
 use crate::compatibility_profile_codec::encode_format as encode_profile_format;
 use crate::insomnia::codec::encode_format as encode_insomnia_format;
 use crate::memory_codec::encode_format as encode_memory_format;
@@ -8,6 +7,7 @@ use crate::{
     Cva, CvaError, HistoryPruneRequest, MemoryDraft, MemoryError, MemoryVectorError, Phylactery,
     SimulatedEmbeddingEndpoint, VectorNormalization,
 };
+use reliquary_archive::archive_history_codec::encode_archive_format;
 use std::fs;
 use std::path::PathBuf;
 

@@ -1,5 +1,5 @@
 use super::*;
-use crate::archive_codec::{
+use reliquary_archive::archive_codec::{
     ArchiveRecord,
     publication::{self, ArchivePublication},
 };

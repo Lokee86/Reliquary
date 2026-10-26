@@ -34,7 +34,7 @@ impl Cva {
                 )));
             }
         };
-        let Some(receipt) = self.archive.import_receipts.get(&start.import_key).cloned() else {
+        let Some(receipt) = self.archive.import_receipt(&start.import_key).cloned() else {
             return Ok(ImportReadinessReport {
                 import_id: start.import_id,
                 blocker: Some(blocker(Owner::Archive, "import-receipt", Status::Missing)),
@@ -108,14 +108,14 @@ impl Cva {
         if scope.episodes.is_empty() && !scope.source_nodes.is_empty() {
             let mut uncovered = scope.source_nodes.clone();
             let statuses = self.completion_epochs_from_bytes()?.statuses();
-            for (key, prior) in &self.archive.import_receipts {
+            for (key, prior) in self.archive.import_receipts() {
                 if key == &start.import_key || uncovered.is_empty() {
                     continue;
                 }
                 let was_completed = statuses.iter().any(|status| match status {
                     super::ImportEpochStatus::Completed {
                         start: prior_start, ..
-                    } => prior_start.import_key == *key,
+                    } => prior_start.import_key.as_str() == key.as_str(),
                     super::ImportEpochStatus::Open(_) => false,
                 });
                 if !was_completed {

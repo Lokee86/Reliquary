@@ -1,3 +1,4 @@
+pub use reliquary_archive::archive;
 #[path = "runtime_inference/agentic_memory_retrieval.rs"]
 mod agentic_memory_retrieval;
 #[path = "runtime_inference/agentic_memory_retrieval_decision.rs"]
@@ -6,14 +7,18 @@ mod agentic_memory_retrieval_decision;
 mod agentic_memory_retrieval_manifest;
 #[path = "runtime_inference/agentic_memory_retrieval_model.rs"]
 mod agentic_memory_retrieval_model;
+#[path = "facade/cva_archive_history_prune.rs"]
+mod cva_archive_history_prune;
+#[path = "facade/cva_conversation_tombstone.rs"]
+mod cva_conversation_tombstone;
+#[path = "facade/cva_episode_policy.rs"]
+mod cva_episode_policy;
 pub use agentic_memory_retrieval::AgenticMemoryController;
 pub use agentic_memory_retrieval_model::{
     AgenticMemoryAnchorReport, AgenticMemoryContent, AgenticMemoryError,
     AgenticMemoryHandoffConfirmation, AgenticMemoryOperation, AgenticMemoryOutcome,
     AgenticMemoryPayload, AgenticMemoryRelationEvidence, PreparedAgenticMemoryResult,
 };
-#[path = "archive/archive.rs"]
-pub mod archive;
 #[path = "facade/cva_semantic_fragment.rs"]
 mod cva_semantic_fragment;
 #[path = "facade/cva_semantic_live.rs"]
@@ -21,10 +26,6 @@ mod cva_semantic_live;
 #[path = "facade/cva_semantic_source.rs"]
 mod cva_semantic_source;
 pub use cva_semantic_live::SemanticFreshnessReport;
-#[path = "archive/archive_import.rs"]
-mod archive_import;
-#[path = "archive/episode_import.rs"]
-mod episode_import;
 #[path = "freshness/mod.rs"]
 pub mod freshness;
 #[path = "rewrite.rs"]
@@ -114,38 +115,8 @@ mod rewrite_lineage;
 pub use freshness_dream_journal::InitialDreamPass;
 pub use rewrite_lineage::HistoryGenerationId;
 pub use rewrite_lineage::RewriteGenesis;
-#[path = "archive/archive_activity.rs"]
-mod archive_activity;
-#[path = "archive/archive_codec.rs"]
-mod archive_codec;
-#[path = "archive/archive_conversation.rs"]
-mod archive_conversation;
-#[path = "archive/archive_conversation_metadata.rs"]
-mod archive_conversation_metadata;
-#[path = "archive/archive_conversation_tombstone.rs"]
-mod archive_conversation_tombstone;
-#[path = "archive/archive_error.rs"]
-mod archive_error;
-#[path = "archive/archive_history.rs"]
-mod archive_history;
-#[path = "archive/archive_history_codec.rs"]
-mod archive_history_codec;
-#[path = "archive/archive_history_model.rs"]
-mod archive_history_model;
-#[path = "archive/archive_lookup.rs"]
-mod archive_lookup;
-#[path = "archive/archive_model.rs"]
-mod archive_model;
-#[path = "archive/archive_object_index.rs"]
-mod archive_object_index;
-#[path = "archive/archive_rebuild.rs"]
-mod archive_rebuild;
-#[path = "archive/archive_record_index.rs"]
-mod archive_record_index;
-#[path = "archive/archive_search.rs"]
+#[path = "retrieval/archive_search.rs"]
 mod archive_search;
-#[path = "archive/archive_store.rs"]
-mod archive_store;
 #[path = "retrieval/archive_vector_codec.rs"]
 mod archive_vector_codec;
 #[path = "retrieval/archive_vector_error.rs"]
@@ -287,20 +258,6 @@ mod configured_general;
 mod configured_runtime;
 #[path = "context_engine.rs"]
 mod context_engine;
-#[path = "archive/conversation_compaction_allocator.rs"]
-mod conversation_compaction_allocator;
-#[path = "archive/conversation_compaction_codec.rs"]
-mod conversation_compaction_codec;
-#[path = "archive/conversation_compaction_model.rs"]
-mod conversation_compaction_model;
-#[path = "archive/conversation_compaction_store.rs"]
-mod conversation_compaction_store;
-#[path = "archive/conversation_metadata_codec.rs"]
-mod conversation_metadata_codec;
-#[path = "archive/conversation_metadata_index.rs"]
-mod conversation_metadata_index;
-#[path = "archive/conversation_metadata_model.rs"]
-mod conversation_metadata_model;
 #[path = "retrieval/conversation_search.rs"]
 mod conversation_search;
 #[path = "retrieval/conversation_search_model.rs"]
@@ -491,11 +448,11 @@ mod dream_verifier_error;
 mod dream_verifier_model;
 #[path = "runtime_inference/dream_verifier_schema.rs"]
 mod dream_verifier_schema;
-#[path = "archive/echo_codec.rs"]
+#[path = "echo/echo_codec.rs"]
 mod echo_codec;
-#[path = "archive/echo_model.rs"]
+#[path = "echo/echo_model.rs"]
 mod echo_model;
-#[path = "archive/echo_store.rs"]
+#[path = "echo/echo_store.rs"]
 mod echo_store;
 #[path = "ego/ego_codec.rs"]
 mod ego_codec;
@@ -701,38 +658,6 @@ mod entity_zero_bootstrap_calibration_support;
 #[cfg(all(test, feature = "entity-calibration"))]
 #[path = "perception/entity_zero_bootstrap_calibration_tests.rs"]
 mod entity_zero_bootstrap_calibration_tests;
-#[path = "archive/episode_builder.rs"]
-mod episode_builder;
-#[path = "archive/episode_codec.rs"]
-mod episode_codec;
-#[path = "archive/episode_index.rs"]
-mod episode_index;
-#[path = "archive/episode_model.rs"]
-mod episode_model;
-#[path = "archive/episode_policy.rs"]
-mod episode_policy;
-#[path = "archive/episode_store.rs"]
-mod episode_store;
-#[path = "archive/file_index.rs"]
-mod file_index;
-#[path = "archive/file_memory_link_codec.rs"]
-mod file_memory_link_codec;
-#[path = "archive/file_memory_link_index.rs"]
-mod file_memory_link_index;
-#[path = "archive/file_memory_link_model.rs"]
-mod file_memory_link_model;
-#[path = "archive/file_memory_link_store.rs"]
-mod file_memory_link_store;
-#[path = "archive/file_model.rs"]
-mod file_model;
-#[path = "archive/file_store.rs"]
-mod file_store;
-#[path = "archive/fragment_model.rs"]
-mod fragment_model;
-#[path = "archive/fragment_store.rs"]
-mod fragment_store;
-#[path = "archive/fragmenter.rs"]
-mod fragmenter;
 #[path = "runtime_inference/general_decision.rs"]
 mod general_decision;
 #[path = "runtime_inference/general_endpoint.rs"]
@@ -774,19 +699,13 @@ mod interaction_model;
 mod interaction_runtime;
 #[path = "runtime_inference/interaction_session.rs"]
 mod interaction_session;
-#[path = "archive/interaction_stream.rs"]
+#[path = "runtime_inference/interaction_stream.rs"]
 mod interaction_stream;
-#[path = "archive/interaction_stream_codec.rs"]
-mod interaction_stream_codec;
 #[cfg(test)]
-#[path = "archive/interaction_stream_compact_tests.rs"]
+#[path = "runtime_inference/interaction_stream_compact_tests.rs"]
 mod interaction_stream_compact_tests;
-#[path = "archive/interaction_stream_persistence.rs"]
+#[path = "runtime_inference/interaction_stream_persistence.rs"]
 mod interaction_stream_persistence;
-#[path = "archive/interaction_stream_record.rs"]
-mod interaction_stream_record;
-#[path = "archive/interaction_stream_store.rs"]
-mod interaction_stream_store;
 #[path = "retrieval/lexical_index.rs"]
 mod lexical_index;
 #[path = "retrieval/lexical_search.rs"]
@@ -954,16 +873,6 @@ mod processing_epoch_model;
 mod processing_epoch_store;
 #[path = "project_environment.rs"]
 mod project_environment;
-#[path = "archive/project_file_binding_codec.rs"]
-mod project_file_binding_codec;
-#[path = "archive/project_file_binding_store.rs"]
-mod project_file_binding_store;
-#[path = "archive/project_history_codec.rs"]
-mod project_history_codec;
-#[path = "archive/project_history_model.rs"]
-mod project_history_model;
-#[path = "archive/project_history_store.rs"]
-mod project_history_store;
 #[path = "facade/rel_metadata_codec.rs"]
 mod rel_metadata_codec;
 #[path = "facade/rel_metadata_model.rs"]
@@ -1021,8 +930,6 @@ mod semantic_search;
 mod semantic_search_error;
 #[path = "retrieval/semantic_search_model.rs"]
 mod semantic_search_model;
-#[path = "archive/source_attachment_index.rs"]
-mod source_attachment_index;
 pub use reliquary_container::review_clocks as staleness;
 #[path = "facade/storage_reclamation.rs"]
 mod storage_reclamation;
@@ -1031,12 +938,6 @@ mod storage_reclamation_scan;
 #[cfg(test)]
 #[path = "facade/storage_reclamation_tests.rs"]
 mod storage_reclamation_tests;
-#[path = "archive/turn_ingest_codec.rs"]
-mod turn_ingest_codec;
-#[path = "archive/turn_ingest_model.rs"]
-mod turn_ingest_model;
-#[path = "archive/turn_ingest_store.rs"]
-mod turn_ingest_store;
 #[path = "retrieval/vector_generation_codec.rs"]
 mod vector_generation_codec;
 #[path = "retrieval/vector_generation_error.rs"]
@@ -1050,13 +951,6 @@ mod vector_generation_store;
 #[path = "retrieval/vector_generation_validation.rs"]
 mod vector_generation_validation;
 
-pub use archive::Archive;
-pub use archive_error::ArchiveError;
-pub use archive_history_model::ArchiveRecordVersion;
-pub use archive_model::{
-    ArchiveStats, Branch, ContentId, ConversationSummary, ConversationTombstone,
-    ConversationTombstoneClosure, Node, ResolvedTurn,
-};
 pub use archive_search::{
     ArchiveSearchHit, MAX_ARCHIVE_SEARCH_QUERY_BYTES, MAX_ARCHIVE_SEARCH_RESULTS,
 };
@@ -1086,15 +980,24 @@ pub use configured_runtime::{
     ArchiveVectorBuildReport, ConfiguredInsomniaOptions, ConfiguredInsomniaReport,
     ConfiguredRuntime, ConfiguredRuntimeError, EmbeddingProbeReport, InsomniaTerminalFailure,
 };
-pub use conversation_compaction_model::{
-    ConversationCompaction, ConversationCompactionError, MAX_CONVERSATION_COMPACTION_SUMMARY_BYTES,
-};
-pub use conversation_metadata_model::{ConversationMetadata, ConversationPolicy};
 pub use conversation_search_model::ConversationSearchHit;
 pub use credential::{Credential, CredentialError, CredentialId, CredentialsConfig, SecretString};
 pub use cva::Cva;
 pub use cva_history_prune::{HistoryPruneReport, HistoryPruneRequest};
 pub use phylactery_profile_model::{MAX_PHYLACTERY_PROFILE_NAME_BYTES, PhylacteryProfile};
+pub use reliquary_archive::archive::Archive;
+pub use reliquary_archive::archive_error::ArchiveError;
+pub use reliquary_archive::archive_history_model::ArchiveRecordVersion;
+pub use reliquary_archive::archive_model::{
+    ArchiveStats, Branch, ContentId, ConversationSummary, ConversationTombstone,
+    ConversationTombstoneClosure, Node, ResolvedTurn,
+};
+pub use reliquary_archive::conversation_compaction_model::{
+    ConversationCompaction, ConversationCompactionError, MAX_CONVERSATION_COMPACTION_SUMMARY_BYTES,
+};
+pub use reliquary_archive::conversation_metadata_model::{
+    ConversationMetadata, ConversationPolicy,
+};
 pub use reliquary_container::{
     Container, ContainerError, ContainerIdentity, FileKind, FormatVersion, ObjectRef,
     ReliquaryScopeKind,
@@ -1237,16 +1140,6 @@ pub use entity_resolver_schema::{
     ENTITY_RESOLVER_CONTRACT_VERSION, ENTITY_RESOLVER_SYSTEM_PROMPT, entity_admission_schema,
     entity_materialization_schema, entity_resolver_schema,
 };
-pub use episode_model::{
-    DEFAULT_EPISODE_MAX_INPUT_BYTES, Episode, EpisodeBoundary, EpisodeBuildResult, EpisodeConfig,
-    EpisodeId, EpisodeOrigin,
-};
-pub use episode_policy::{DEFAULT_EPISODE_INACTIVITY_NS, EpisodePolicy};
-pub use file_memory_link_model::FileMemoryLink;
-pub use file_model::{FileId, FileSearchHit, StoredFile};
-pub use fragment_model::{
-    DEFAULT_FRAGMENT_OVERLAP, DEFAULT_FRAGMENT_TURNS, Fragment, FragmentConfig, FragmentId,
-};
 pub use general_endpoint::{GeneralEndpoint, GeneralEndpointError, SimulatedGeneralEndpoint};
 pub use graph_error::GraphError;
 pub(crate) use graph_model::GraphNodeRecord;
@@ -1281,10 +1174,6 @@ pub use interaction_model::{
     InteractionAttachment, InteractionRole, InteractionSession, InteractionTurn,
 };
 pub use interaction_runtime::{InteractionCompletion, InteractionReceipt, InteractionRuntime};
-pub use interaction_stream_record::{
-    InteractionStreamRecord, InteractionStreamStatus, InteractionTurnStatus,
-    ResolvedInteractionTurn,
-};
 pub use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
 pub use master_key::{
     JsonMasterKeyStore, MASTER_KEY_BYTES, MasterKey, MasterKeyError, MasterKeyStore,
@@ -1338,10 +1227,6 @@ pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStat
 pub use phylactery::Phylactery;
 pub use phylactery_error::PhylacteryError;
 pub use project_environment::{ProjectAdoptionSource, ProjectRepositoryMode};
-pub use project_history_model::{
-    ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryManagement, ProjectRepositoryRef,
-    ProjectRevisionCorrelation, ProjectRevisionRef, RelSemanticCut,
-};
 pub use rel_metadata_model::{
     MAX_REL_DEPENDENCIES, MAX_REL_DEPENDENCY_ID_BYTES, MAX_REL_TYPE_LABEL_BYTES, RelMetadata,
 };
@@ -1351,6 +1236,24 @@ pub use relationship_model::{
     MAX_RELATIONSHIP_PARTICIPANTS, MAX_RELATIONSHIP_ROLE_BYTES, MAX_RELATIONSHIP_SUMMARY_BYTES,
     Relationship, RelationshipDraft, RelationshipId, RelationshipParticipant,
     RelationshipRetainedRevision, RelationshipRetentionDescriptor, RelationshipStats,
+};
+pub use reliquary_archive::episode_model::{
+    DEFAULT_EPISODE_MAX_INPUT_BYTES, Episode, EpisodeBoundary, EpisodeBuildResult, EpisodeConfig,
+    EpisodeId, EpisodeOrigin,
+};
+pub use reliquary_archive::episode_policy::{DEFAULT_EPISODE_INACTIVITY_NS, EpisodePolicy};
+pub use reliquary_archive::file_memory_link_model::FileMemoryLink;
+pub use reliquary_archive::file_model::{FileId, FileSearchHit, StoredFile};
+pub use reliquary_archive::fragment_model::{
+    DEFAULT_FRAGMENT_OVERLAP, DEFAULT_FRAGMENT_TURNS, Fragment, FragmentConfig, FragmentId,
+};
+pub use reliquary_archive::interaction_stream_record::{
+    InteractionStreamRecord, InteractionStreamStatus, InteractionTurnStatus,
+    ResolvedInteractionTurn,
+};
+pub use reliquary_archive::project_history_model::{
+    ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryManagement, ProjectRepositoryRef,
+    ProjectRevisionCorrelation, ProjectRevisionRef, RelSemanticCut,
 };
 pub use runtime_host::memory_search::{
     DEFAULT_MEMORY_SEARCH_DEPTH, DEFAULT_MEMORY_SEARCH_RESULTS, MAX_MEMORY_SEARCH_DEPTH,
@@ -1379,6 +1282,7 @@ pub use runtime_host::{
     UnsupportedManagementOperation, WorkspaceManagement,
 };
 
+pub use reliquary_archive::turn_ingest_model::{IncomingAttachment, IncomingTurn, IngestedTurn};
 pub use runtime_host::{
     LiveCapability, LiveCheckpoint, LiveCheckpointShape, LiveDiagnostics, LiveGeneratedArtifact,
     LiveGeneration, LiveGenerationStatus, LiveResumeToken, LiveRuntimeAdapter, LiveRuntimeError,
@@ -1393,18 +1297,17 @@ pub use search_model::{
 pub use semantic_node_model::{SemanticNodeKind, SemanticNodeRef};
 pub use semantic_search_error::SemanticSearchError;
 pub use semantic_search_model::{MAX_SEMANTIC_SEARCH_LIMIT, SemanticSearchHit};
-pub use turn_ingest_model::{IncomingAttachment, IncomingTurn, IngestedTurn};
 pub use vector_generation_error::VectorGenerationError;
 pub use vector_generation_model::{VectorGeneration, VectorGenerationId, VectorGenerationStats};
 
 #[cfg(test)]
-#[path = "archive/archive_inventory_tests.rs"]
+#[path = "facade/archive_inventory_tests.rs"]
 mod archive_inventory_tests;
 #[cfg(test)]
-#[path = "archive/archive_search_tests.rs"]
+#[path = "retrieval/archive_search_tests.rs"]
 mod archive_search_tests;
 #[cfg(test)]
-#[path = "archive/archive_tests.rs"]
+#[path = "facade/archive_tests.rs"]
 mod archive_tests;
 #[cfg(test)]
 #[path = "retrieval/archive_vector_tests.rs"]
@@ -1518,16 +1421,16 @@ mod config_tests;
 #[path = "facade/container_owner_tests.rs"]
 mod container_owner_tests;
 #[cfg(test)]
-#[path = "archive/conversation_compaction_tests.rs"]
+#[path = "facade/conversation_compaction_tests.rs"]
 mod conversation_compaction_tests;
 #[cfg(test)]
 #[path = "retrieval/conversation_search_tests.rs"]
 mod conversation_search_tests;
 #[cfg(test)]
-#[path = "archive/conversation_tests.rs"]
+#[path = "facade/conversation_tests.rs"]
 mod conversation_tests;
 #[cfg(test)]
-#[path = "archive/conversation_tombstone_tests.rs"]
+#[path = "facade/conversation_tombstone_tests.rs"]
 mod conversation_tombstone_tests;
 #[cfg(test)]
 #[path = "config_security/credential_tests.rs"]
@@ -1608,7 +1511,7 @@ mod dream_temporal_tests;
 #[path = "runtime_inference/dream_verifier_tests.rs"]
 mod dream_verifier_tests;
 #[cfg(test)]
-#[path = "archive/echo_tests.rs"]
+#[path = "echo/echo_tests.rs"]
 mod echo_tests;
 #[cfg(test)]
 #[path = "ego/ego_tests.rs"]
@@ -1623,16 +1526,16 @@ mod entity_resolution_wake_tests;
 #[path = "perception/entity_tests.rs"]
 mod entity_tests;
 #[cfg(test)]
-#[path = "archive/episode_tests.rs"]
+#[path = "facade/episode_tests.rs"]
 mod episode_tests;
 #[cfg(test)]
-#[path = "archive/file_memory_link_tests.rs"]
+#[path = "facade/file_memory_link_tests.rs"]
 mod file_memory_link_tests;
 #[cfg(test)]
-#[path = "archive/file_tests.rs"]
+#[path = "facade/file_tests.rs"]
 mod file_tests;
 #[cfg(test)]
-#[path = "archive/fragment_tests.rs"]
+#[path = "facade/fragment_tests.rs"]
 mod fragment_tests;
 #[cfg(test)]
 #[path = "semantic_graph/graph_codec_tests.rs"]
@@ -1641,7 +1544,7 @@ mod graph_codec_tests;
 #[path = "semantic_graph/graph_tests.rs"]
 mod graph_tests;
 #[cfg(test)]
-#[path = "archive/history_tests.rs"]
+#[path = "facade/history_tests.rs"]
 mod history_tests;
 #[cfg(test)]
 #[path = "runtime_inference/interaction_background_tests.rs"]
@@ -1716,13 +1619,13 @@ mod processing_epoch_model_tests;
 #[path = "memory/processing_epoch_store_tests.rs"]
 mod processing_epoch_store_tests;
 #[cfg(test)]
-#[path = "archive/project_file_attachment_tests.rs"]
+#[path = "facade/project_file_attachment_tests.rs"]
 mod project_file_attachment_tests;
 #[cfg(test)]
-#[path = "archive/project_history_reconcile_tests.rs"]
+#[path = "facade/project_history_reconcile_tests.rs"]
 mod project_history_reconcile_tests;
 #[cfg(test)]
-#[path = "archive/project_history_tests.rs"]
+#[path = "facade/project_history_tests.rs"]
 mod project_history_tests;
 #[cfg(test)]
 #[path = "perception/relationship_lifecycle_tests.rs"]
@@ -1764,7 +1667,7 @@ mod semantic_graph_tests;
 #[path = "retrieval/semantic_search_tests.rs"]
 mod semantic_search_tests;
 #[cfg(test)]
-#[path = "archive/turn_ingest_tests.rs"]
+#[path = "facade/turn_ingest_tests.rs"]
 mod turn_ingest_tests;
 #[cfg(test)]
 #[path = "retrieval/vector_generation_tests.rs"]
@@ -1790,3 +1693,23 @@ mod ego_current_fixture;
 #[cfg(test)]
 #[path = "facade/dream_current_fixture.rs"]
 mod dream_current_fixture;
+
+#[cfg(test)]
+#[path = "facade/archive_activity_tests.rs"]
+mod archive_activity_tests;
+
+#[cfg(test)]
+#[path = "facade/archive_activity_preservation_tests.rs"]
+mod archive_activity_preservation_tests;
+
+#[cfg(test)]
+#[path = "facade/archive_activity_measurement_tests.rs"]
+mod archive_activity_measurement_tests;
+
+#[cfg(test)]
+#[path = "facade/archive_publication_writer_tests.rs"]
+mod archive_publication_writer_tests;
+
+#[cfg(test)]
+#[path = "facade/archive_publication_replay_tests.rs"]
+mod archive_publication_replay_tests;

@@ -1,19 +1,5 @@
 use crate::{IncomingAttachment, IncomingTurn};
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum InteractionRole {
-    User,
-    Agent,
-}
-
-impl InteractionRole {
-    pub(crate) fn archive_role(self) -> &'static str {
-        match self {
-            Self::User => "user",
-            Self::Agent => "assistant",
-        }
-    }
-}
+pub use reliquary_archive::InteractionRole;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InteractionAttachment {

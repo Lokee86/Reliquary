@@ -128,7 +128,9 @@ pub(crate) fn lexical_candidates_parts(
         let text = archive.fragment_text(container, fragment.id)?;
         let score = lexical_score(&text, &terms);
         if score > 0.0 {
-            let archive_version = archive.fragments.archive_version(fragment.id).unwrap_or(0);
+            let archive_version = archive
+                .source_fragment_archive_version(fragment.id)
+                .unwrap_or(0);
             hits.push((LexicalHit { fragment, score }, archive_version));
         }
     }

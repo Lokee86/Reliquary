@@ -27,28 +27,30 @@ fn rel_reclamation_drops_proven_garbage_and_preserves_published_state() {
     .unwrap();
 
     let orphan = b"unpublished archive content";
-    let orphan_id = crate::archive_store::hash_content(orphan);
+    let orphan_id = reliquary_archive::archive_store::hash_content(orphan);
     rel.container
-        .append(&crate::archive_codec::encode_content(orphan_id, orphan).unwrap())
+        .append(&reliquary_archive::archive_codec::encode_content(orphan_id, orphan).unwrap())
         .unwrap();
     rel.container
         .append(
-            &crate::archive_codec::publication::encode(
-                &crate::archive_codec::publication::ArchivePublication::Record {
+            &reliquary_archive::archive_codec::publication::encode(
+                &reliquary_archive::archive_codec::publication::ArchivePublication::Record {
                     archive_version: 1,
-                    record: crate::archive_codec::ArchiveRecord::Branch(crate::Branch {
-                        id: "staged-only".into(),
-                        conversation_id: "never-published".into(),
-                        leaf_node_id: "missing".into(),
-                        canonical: false,
-                    }),
+                    record: reliquary_archive::archive_codec::ArchiveRecord::Branch(
+                        crate::Branch {
+                            id: "staged-only".into(),
+                            conversation_id: "never-published".into(),
+                            leaf_node_id: "missing".into(),
+                            canonical: false,
+                        },
+                    ),
                 },
             )
             .unwrap(),
         )
         .unwrap();
     rel.container
-        .append(&crate::conversation_compaction_codec::free_prefix())
+        .append(&reliquary_archive::conversation_compaction_codec::free_prefix())
         .unwrap();
 
     let (entity, changed) = rel

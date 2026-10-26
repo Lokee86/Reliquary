@@ -9,7 +9,8 @@ impl Cva {
     pub(crate) fn ingest_turn_with_receipt(
         &mut self,
         turn: IncomingTurn,
-    ) -> Result<crate::archive_activity::TurnAcceptance<IngestedTurn>, ArchiveError> {
+    ) -> Result<reliquary_archive::archive_activity::TurnAcceptance<IngestedTurn>, ArchiveError>
+    {
         let accepted = self
             .archive
             .ingest_turn(&mut self.container, &self.project_files, turn)?;

@@ -114,8 +114,7 @@ fn queued_sequential_turns_capture_current_branch_head_without_provisional_effec
             runtime
                 .cva()
                 .archive()
-                .nodes
-                .get("conversation-one", "sequential-second")
+                .source_node("conversation-one", "sequential-second")
                 .unwrap()
                 .parent_id
                 .as_deref(),

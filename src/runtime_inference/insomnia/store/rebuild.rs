@@ -8,11 +8,11 @@ impl InsomniaStore {
     pub(crate) fn rebuild_schedule(&mut self, archive: &Archive) -> Result<(), InsomniaError> {
         let persisted = std::mem::take(&mut self.work);
         self.state_counts = [0; 5];
-        for episode in archive.episodes.iter() {
-            let priority = priority_for_episode(episode);
-            let work = completion_work(&self.attempts, episode, priority)
-                .or_else(|| persisted_final_work(&persisted, episode, priority))
-                .unwrap_or_else(|| pending_work(episode, priority));
+        for episode in archive.historical_episodes() {
+            let priority = priority_for_episode(&episode);
+            let work = completion_work(&self.attempts, &episode, priority)
+                .or_else(|| persisted_final_work(&persisted, &episode, priority))
+                .unwrap_or_else(|| pending_work(&episode, priority));
             self.insert_work(work);
         }
         self.scheduler.rebuild(archive, &self.work)

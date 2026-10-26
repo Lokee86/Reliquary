@@ -1957,8 +1957,7 @@ fn validate_durable_turn(
     let node = runtime
         .cva()
         .archive()
-        .nodes
-        .get(conversation_id, &turn.node_id)
+        .source_node(conversation_id, &turn.node_id)
         .ok_or_else(|| operation("stable Archive Node is absent from the node index"))?;
     let expected_content_hash = hex(&Sha256::digest(submission.content.as_bytes()));
     if node.id != submission.id.submission_id.as_str()

@@ -1,12 +1,8 @@
-use crate::archive_rebuild::ArchiveOpenState;
 use crate::archive_vector_rebuild::ArchiveVectorOpenState;
 use crate::archive_vector_store::ArchiveVectorStore;
 use crate::community_store::{CommunityOpenState, CommunityStore};
 use crate::compatibility_profile_rebuild::CompatibilityProfileOpenState;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
-use crate::conversation_compaction_store::{
-    ConversationCompactionOpenState, ConversationCompactionStore,
-};
 use crate::cva_global_validation::validate_semantic_global_versions;
 use crate::cva_open_route::{OpenRecordRoute, classify_open_record};
 use crate::dream_duplicate_index::DuplicateIndex;
@@ -16,14 +12,12 @@ use crate::ego_store::EgoStore;
 use crate::entity_rebuild::EntityOpenState;
 use crate::entity_resolution_store::EntityResolutionStore;
 use crate::entity_store::EntityStore;
-use crate::file_memory_link_store::validate_file_memory_targets;
 use crate::freshness_dream_journal::DreamFreshnessJournal;
 use crate::freshness_storage::FreshnessStore;
 use crate::graph_rebuild::GraphOpenState;
 use crate::graph_store::GraphStore;
 use crate::insomnia::rebuild::InsomniaOpenState;
 use crate::insomnia::store::InsomniaStore;
-use crate::interaction_stream_store::InteractionStreamStore;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_rebuild::MemoryOpenState;
 use crate::memory_store::MemoryStore;
@@ -32,14 +26,19 @@ use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_rebuild::PackedVectorOpenState;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::processing_epoch_store::ProcessingEpochStore;
-use crate::project_file_binding_store::ProjectFileStore;
-use crate::project_history_store::ProjectHistoryStore;
 use crate::rel_metadata_store::RelMetadataStore;
 use crate::relationship_rebuild::RelationshipOpenState;
 use crate::relationship_store::RelationshipStore;
 use crate::vector_generation_rebuild::VectorGenerationOpenState;
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::{Archive, Cva, CvaError};
+use reliquary_archive::archive_rebuild::ArchiveOpenState;
+use reliquary_archive::conversation_compaction_store::{
+    ConversationCompactionOpenState, ConversationCompactionStore,
+};
+use reliquary_archive::interaction_stream_store::InteractionStreamStore;
+use reliquary_archive::project_file_binding_store::ProjectFileStore;
+use reliquary_archive::project_history_store::ProjectHistoryStore;
 use reliquary_container::Container;
 use std::path::Path;
 
@@ -423,8 +422,12 @@ impl Cva {
             .map_err(CvaError::Freshness)?;
         let archive = archive_state.finish()?;
         archive.validate_references(&project_files)?;
-        archive.prune.validate_markers(&owner_maintenance)?;
-        archive.validate_prune_history(&mut container, &owner_maintenance)?;
+        crate::cva_archive_history_prune::validate_archive_markers(&archive, &owner_maintenance)?;
+        crate::cva_archive_history_prune::validate_archive_prune_history(
+            &archive,
+            &mut container,
+            &owner_maintenance,
+        )?;
         let memories = memory_state.finish(&mut container)?;
         memories.validate_prune_history(&mut container, &owner_maintenance)?;
         let entities = entity_state.finish(&container)?;
@@ -439,7 +442,11 @@ impl Cva {
         memories.validate_provenance(&archive)?;
         processing_epochs.validate(&memories)?;
         dream_pairs.validate(&memories)?;
-        validate_file_memory_targets(&archive, &memories)?;
+        for link in archive.all_file_memory_links() {
+            if !memories.contains_historical_memory(link.memory_id) {
+                return Err(crate::ArchiveError::MissingFileMemoryTarget.into());
+            }
+        }
         let graph = graph_state.finish(&memories, &entities)?;
         owner_maintenance
             .validate_source_history(&mut container, &graph)
@@ -580,7 +587,7 @@ impl Cva {
         // Reconstruct the live projection without reclaiming physical chunks on open.
         let conversation_compactions = compaction_state.finish_without_reclaim()?;
         import_epochs.validate_owner(container.owner_uuid())?;
-        import_epochs.validate_receipts(&archive.import_receipts)?;
+        import_epochs.validate_receipts(archive.import_receipts())?;
         let mut result = Self {
             owner_maintenance,
             rewrite_lineage,

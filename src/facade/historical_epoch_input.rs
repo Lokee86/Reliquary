@@ -12,13 +12,12 @@ pub(super) fn scoped_corpus_digest(
     for (conversation, id) in source_nodes {
         let node = cva
             .archive
-            .nodes
-            .get(conversation, id)
+            .source_node(conversation, id)
             .ok_or_else(|| fail("missing import-scoped source Node"))?;
         let bytes = cva
             .archive
             .content_bytes(&mut cva.container, node.content_id)?;
-        if crate::archive_store::hash_content(&bytes) != node.content_id {
+        if reliquary_archive::archive_store::hash_content(&bytes) != node.content_id {
             return Err(fail("import-scoped source content proof mismatch"));
         }
         nodes.push(node_binding(node));
@@ -126,8 +125,7 @@ pub(super) fn admission_proof_for_scope(
         }
         let end = cva
             .archive
-            .nodes
-            .get(&episode.conversation_id, &episode.end_node_id)
+            .source_node(&episode.conversation_id, &episode.end_node_id)
             .ok_or_else(|| fail("missing scoped Episode endpoint"))?;
         if end.timestamp_ns != episode.source_through_ns {
             return Err(fail("scoped Episode endpoint timestamp conflict"));
@@ -152,10 +150,11 @@ pub(super) fn admission_proof_for_scope(
             }
             let node = cva
                 .archive
-                .nodes
-                .get(&episode.conversation_id, &turn.node_id)
+                .source_node(&episode.conversation_id, &turn.node_id)
                 .ok_or_else(|| fail("missing scoped Episode path Node"))?;
-            if node.content_id != crate::archive_store::hash_content(turn.content.as_bytes()) {
+            if node.content_id
+                != reliquary_archive::archive_store::hash_content(turn.content.as_bytes())
+            {
                 return Err(fail("scoped Episode retained content binding conflict"));
             }
             path.push(node_binding(node));
@@ -588,8 +587,7 @@ fn validate_memory_provenance(
         }
         let node = cva
             .archive
-            .nodes
-            .get(&episode.conversation_id, &source.source_node_id)
+            .source_node(&episode.conversation_id, &source.source_node_id)
             .ok_or_else(|| fail("missing structured Memory source Node"))?;
         if source.principal_id != node.principal_id {
             return Err(fail("structured Memory source principal conflict"));

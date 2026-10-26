@@ -110,8 +110,7 @@ impl Cva {
                 .ok_or(SemanticSearchError::CorruptMatrix("row binding"))?;
             let fragment = self
                 .archive
-                .fragments
-                .get(fragment_id)
+                .source_fragment(fragment_id)
                 .cloned()
                 .ok_or(SemanticSearchError::MissingFragment)?;
             hits.push(SemanticSearchHit {

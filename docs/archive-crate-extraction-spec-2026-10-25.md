@@ -1,14 +1,24 @@
 # Archive crate extraction — implementation specification
 
-**Status:** Target specification only; extraction not started.  
-**Branch:** `refactor/crate-first-restart`, current HEAD `f5ae61d1` (Container extracted).  
+**Status:** Implemented. Product consumers use the extracted owner; see the [verification record](archive-crate-extraction-results-2026-10-25.md) for checks and remaining acceptance limits.
+
+**Migration base:** `f5ae61d1` (Container extracted); implementation branch `refactor/crate-first-restart`.
+
 **Target:** `crates/reliquary-archive/`. **Migration:** staged hard cut; correction-only, no new product features.
+
+## Purpose
+
+Record the implemented ownership boundary and implementation sequence for the Archive crate extraction.
+
+## Overview
+
+Archive source truth resides in `crates/reliquary-archive/`; root facade consumers call the extracted owner directly. The crate directly depends only on `reliquary-container`, while Runtime, Echo and Retrieval retain their separate owners.
 
 ## 1. Problem and outcome
 
-Archive persists conversations, Nodes, Branches, content, deterministic Episodes, fragments and source history. Its current implementation is scattered across `src/archive/`, root `src/lib.rs` and `src/facade/`. Archive's lower-rank code imports higher-level Import, Memory, Maintenance, Owner Lifecycle and product Runtime values; blindly moving those files would reproduce the monolithic dependency knot as Cargo cycles.
+Archive persists conversations, Nodes, Branches, content, deterministic Episodes, fragments and source history. Its source-truth implementation now lives in `crates/reliquary-archive/src/`; product composition and multi-owner coordination remain in root `src/facade/`. The crate directly depends only on `reliquary-container`. Runtime, Echo and Retrieval code remain in their separate root owner paths.
 
-Deliver one independently compiled Archive **source-truth owner**. After extraction, the product's actual `Cva` uses `reliquary-archive`, Archive depends directly only on `reliquary-container`, and there is only one codec, store and replay implementation. No internal compatibility proxies.
+Deliver one independently compiled Archive **source-truth owner**. The product's actual `Cva` uses `reliquary-archive`; Archive depends directly only on `reliquary-container`. The extraction preserves one codec, store and replay implementation. No internal compatibility proxies.
 
 ## 2. Governing docs and precedence
 
@@ -54,7 +64,7 @@ Keep existing fine-grained implementation files where they remain coherent: `arc
 The current source neighborhood contains **86 Rust files** (61 implementation and 25 named test modules). Treat source location as evidence, not ownership.
 
 **Do not move into Archive:**
-- `echo_{codec,model,store}.rs`, `echo_tests.rs`: later independent `reliquary-echo` extraction.
+- `echo_{codec,model,store}.rs`, `echo_tests.rs`: separate Echo ownership under `src/echo/`; Echo is not part of Archive.
 - `interaction_stream.rs`, `interaction_stream_persistence.rs`: implement `InteractionRuntime` and belong with Runtime/Gateway session orchestration.
 - `archive_search.rs`: implements high-level `Cva::search_archive`, query policy and `SearchError`, therefore Retrieval/product consumer, not Archive.
 - Multi-owner retention descriptor/manifest validation and physical maintenance operations currently mixed into `archive_history_prune.rs`: retain Archive-local marker/immutable-source facts in Archive, move higher-level proof/authorization upward.
@@ -91,11 +101,11 @@ The current source neighborhood contains **86 Rust files** (61 implementation an
 
 A bounded red migration window is acceptable, with local coherent compilation checkpoints. The old main repository is not modified.
 
-1. Confirm current branch, source/test and consumer inventory. Inspect the specific post-baseline changes for useful Archive fixes. Use direct source searches; Arcana only if current/useful. Do not generate architecture proof datasets.
-2. Move core Archive models, codecs, indexes, publications, local versioned replay and `ArchiveOpenState` into the existing crate. Move persisted source `ImportReceipt` DTO definitions *once* out of `imports/contract.rs`; use actual `reliquary-container` dependency. Independently compile.
-3. Move Archive-owned Episode, fragment, file/attachment, source binding, import-receipt, source project correlation, compaction and stream record implementations. Lift cross-owner Memory target validation, retention/manifest policy, project authorization and Runtime calls above Archive. Do not pre-extract another full crate.
-4. Migrate root `Cva` create/open/replay, import, history, retrieval, project and interaction consumers **directly** to the actual crate. Maintain original physical replay order and owner-error precedence; keep existing product exports only where truly public.
-5. Delete displaced `src/archive` owner implementation paths and root `#[path]` declarations. Keep Echo and higher-level runtime/search source in their rightful pending owners. Move existing Archive-local tests to Archive; keep mixed-owner tests at the root seam. Update documented file locations and behavior. Finish as one reviewable implementation commit, not a series of migration-only wrappers.
+1. Inventory and recovery review established the current migration base and preserved the authoritative corpus. Do not modify that corpus in place.
+2. **Implemented:** core Archive models, codecs, indexes, publications, local versioned replay and `ArchiveOpenState` are in `crates/reliquary-archive/`. Persisted source `ImportReceipt` DTOs have one canonical Archive definition.
+3. **Implemented:** Archive-owned Episode, fragment, file/attachment, source binding, source project correlation, compaction and stream record implementations reside in the crate. Cross-owner retention proof, Memory target validation, project authorization and Runtime orchestration remain above Archive.
+4. **Implemented:** root `Cva` create/open/replay, Import, history, retrieval, project and interaction consumers use the crate directly while preserving replay order and owner-error precedence.
+5. **Implemented:** displaced Archive owner paths and root path declarations have been removed. Echo remains under `src/echo/`, interaction runtime under `src/runtime_inference/`, and search policy under `src/retrieval/`. Archive-local tests move with their owner; mixed-owner tests remain at the root seam. Verification and remaining acceptance limits are recorded in the linked results document.
 
 ## 7. Existing test seams and acceptance
 
@@ -119,3 +129,15 @@ Authoritative six-file data must never be mutated in place. Post-baseline `CVAFR
 ## 8. Out of scope
 
 No Echo extraction, Memory or Insomnia changes beyond needed caller wiring, fresh-history schema migration, inferred semantic import settlement, new retrieval ranking, provider/host integrations, Project Environment feature work, rewrite redesign, global transcript search, extra crate extraction, custom compiler graph engine or roadmap features.
+
+## Related docs
+
+- [Architecture](architecture.md)
+- [Maintainer map](maintainer-map.md)
+- [Rust API](api.md)
+- [Storage format](storage-format.md)
+- [Current limitations](current-limitations.md)
+
+## Notes
+
+The migration remains in progress. Do not treat crate-local compilation as product/corpus acceptance; full root integration gates and current CVAFRS07 corpus recovery remain separate obligations.

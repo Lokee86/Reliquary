@@ -28,3 +28,7 @@ __pycache__/
 .verification-tmp/
 /.ddocs/*
 !/.ddocs/config.toml
+
+# Archive owner test fixtures
+crates/reliquary-archive/.test-output/
+.go-cache/

@@ -398,8 +398,7 @@ fn validate_semantic_source(
 
 fn activity_turns(cva: &Cva) -> BTreeMap<u64, (String, String)> {
     cva.archive
-        .nodes
-        .iter()
+        .source_nodes()
         .filter_map(|node| {
             cva.archive
                 .activity_position_for_turn(&node.conversation_id, &node.id)

@@ -417,8 +417,7 @@ fn vector_proof(
         }
         let node = cva
             .archive
-            .nodes
-            .get(&key.conversation_id, &key.node_id)
+            .source_node(&key.conversation_id, &key.node_id)
             .ok_or_else(|| fail("missing historical source"))?;
         sources.push(Value::map([
             ("node", input::node_binding(node)),

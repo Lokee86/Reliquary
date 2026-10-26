@@ -41,10 +41,7 @@ pub enum TombstonePolicy {
     ExplicitCascade(Vec<LifecycleTarget>),
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum PayloadUnavailable {
-    Pruned,
-}
+pub use reliquary_archive::archive_error::ArchivePayloadUnavailable as PayloadUnavailable;
 
 /// Payload availability is independent of lifecycle. A tombstone need not destroy bytes.
 #[derive(Clone, Debug, Eq, PartialEq)]

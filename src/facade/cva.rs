@@ -1,7 +1,6 @@
 use crate::archive_vector_store::ArchiveVectorStore;
 use crate::community_store::CommunityStore;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
-use crate::conversation_compaction_store::ConversationCompactionStore;
 use crate::cva_memory_publish::publish_memory_parts;
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::dream_pair_history::DreamPairStore;
@@ -11,14 +10,11 @@ use crate::entity_resolution_store::EntityResolutionStore;
 use crate::entity_store::EntityStore;
 use crate::graph_store::GraphStore;
 use crate::insomnia::store::InsomniaStore;
-use crate::interaction_stream_store::InteractionStreamStore;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::processing_epoch_store::ProcessingEpochStore;
-use crate::project_file_binding_store::ProjectFileStore;
-use crate::project_history_store::ProjectHistoryStore;
 use crate::rel_metadata_store::RelMetadataStore;
 use crate::relationship_store::RelationshipStore;
 use crate::vector_generation_store::VectorGenerationStore;
@@ -28,6 +24,10 @@ use crate::{
     EpisodeOrigin, FileId, Fragment, FragmentConfig, FragmentId, Memory, MemoryDraft, MemoryError,
     MemoryId, MemoryStats, Node, ResolvedTurn, StoredFile,
 };
+use reliquary_archive::conversation_compaction_store::ConversationCompactionStore;
+use reliquary_archive::interaction_stream_store::InteractionStreamStore;
+use reliquary_archive::project_file_binding_store::ProjectFileStore;
+use reliquary_archive::project_history_store::ProjectHistoryStore;
 use reliquary_container::{Container, WriteAdmission};
 
 pub struct Cva {
@@ -665,7 +665,7 @@ impl Cva {
         &mut self,
         record: crate::InteractionStreamRecord,
     ) -> Result<(), CvaError> {
-        self.interaction_streams.put(&mut self.container, record)
+        Ok(self.interaction_streams.put(&mut self.container, record)?)
     }
 
     pub(crate) fn interaction_stream_record(
@@ -733,12 +733,12 @@ impl Cva {
         repository_management: crate::ProjectRepositoryManagement,
     ) -> Result<(crate::ProjectRevisionCorrelation, bool), CvaError> {
         let rel_cut = self.current_rel_semantic_cut();
-        self.project_history.put(
+        Ok(self.project_history.put(
             &mut self.container,
             rel_cut,
             project_revision,
             repository_management,
-        )
+        )?)
     }
 
     pub fn project_revision_correlations(&self) -> Vec<crate::ProjectRevisionCorrelation> {
@@ -759,7 +759,7 @@ impl Cva {
         let content_hash = reference.content_hash.ok_or_else(|| {
             CvaError::ProjectFile("project-backed attachments require a content hash".into())
         })?;
-        let file = crate::file_store::build_project_stored_file(
+        let file = reliquary_archive::file_store::build_project_stored_file(
             filename,
             mime_type,
             crate::ContentId(content_hash),
@@ -791,7 +791,7 @@ impl Cva {
                 "legacy attachment content hash does not match the project reference".into(),
             ));
         }
-        let legacy = crate::file_store::build_stored_file_from_content_id(
+        let legacy = reliquary_archive::file_store::build_stored_file_from_content_id(
             file.filename.clone(),
             file.mime_type.clone(),
             file.content_id,
@@ -802,8 +802,9 @@ impl Cva {
                 "only legacy embedded attachment identities can be rebound".into(),
             ));
         }
-        self.project_files
-            .put(&mut self.container, file.id, reference)
+        Ok(self
+            .project_files
+            .put(&mut self.container, file.id, reference)?)
     }
 
     pub fn project_file_ref(&self, file_id: crate::FileId) -> Option<crate::ProjectFileRef> {

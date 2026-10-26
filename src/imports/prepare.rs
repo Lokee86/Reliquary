@@ -144,7 +144,7 @@ pub(crate) fn prepare(input: &NativeImport) -> Result<PreparedImport, ImportErro
                 if !artifact_ids.insert(&artifact.id) {
                     return Err(ImportError::Invalid("duplicate artifact key"));
                 }
-                let file = crate::file_store::build_stored_file(
+                let file = reliquary_archive::file_store::build_stored_file(
                     artifact.filename.clone(),
                     artifact.mime_type.clone(),
                     &artifact.bytes,

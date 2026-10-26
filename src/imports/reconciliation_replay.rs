@@ -139,8 +139,8 @@ fn replay_interval(
         let payload = source.container.read(chunk)?;
         let known_episodes: std::collections::HashSet<_> = output
             .archive
-            .episodes
-            .iter()
+            .historical_episodes()
+            .into_iter()
             .map(|episode| episode.id)
             .collect();
         completions += super::reconciliation_interval::replay_frame(
@@ -154,10 +154,9 @@ fn replay_interval(
         // Archive activity must not move a grouped publication's birth cut.
         let episodes: Vec<_> = output
             .archive
-            .episodes
-            .iter()
+            .historical_episodes()
+            .into_iter()
             .filter(|episode| !known_episodes.contains(&episode.id))
-            .cloned()
             .collect();
         for episode in episodes {
             if output.insomnia_work(episode.id).is_none() {

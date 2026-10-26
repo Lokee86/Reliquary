@@ -15,8 +15,7 @@ impl Cva {
         };
         let sources = self
             .archive
-            .nodes
-            .iter()
+            .source_nodes()
             .map(|node| HistoricalSource {
                 key: SourceKey {
                     conversation_id: node.conversation_id.clone(),
@@ -29,8 +28,7 @@ impl Cva {
             .collect();
         let positions = self
             .archive
-            .nodes
-            .iter()
+            .source_nodes()
             .filter(|node| matches!(node.role.as_str(), "user" | "assistant"))
             .map(|node| SourceKey {
                 conversation_id: node.conversation_id.clone(),

@@ -238,7 +238,7 @@ fn global_cut_rejects_a_file_whose_repository_binding_is_only_visible_later() {
         path: "file.txt".into(),
         content_hash: Some([9; 32]),
     };
-    let file = crate::file_store::build_stored_file_from_content_id(
+    let file = reliquary_archive::file_store::build_stored_file_from_content_id(
         "file.txt".into(),
         None,
         crate::ContentId([9; 32]),

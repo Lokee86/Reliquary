@@ -98,7 +98,7 @@ impl Cva {
         node: &crate::Node,
         source_memory_cohort: &std::collections::BTreeSet<crate::MemoryId>,
     ) -> Result<usize, CvaError> {
-        if self.archive.nodes.get(&node.conversation_id, &node.id) != Some(node) {
+        if self.archive.source_node(&node.conversation_id, &node.id) != Some(node) {
             return Err(CvaError::Freshness(
                 "conflicting accepted semantic source".into(),
             ));

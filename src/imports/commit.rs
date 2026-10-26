@@ -18,13 +18,13 @@ impl Cva {
         let import_id = super::epoch_store::import_id(owner_uuid, &prepared.receipt.import_key);
         if let Some(existing) = self
             .archive
-            .import_receipts
-            .get(&prepared.receipt.import_key)
+            .import_receipt(&prepared.receipt.import_key)
+            .cloned()
         {
-            if existing != &prepared.receipt {
+            if existing != prepared.receipt {
                 return Err(ImportError::Invalid("import key collision"));
             }
-            let receipt = existing.clone();
+            let receipt = existing;
             self.container.sync()?;
             return Ok(receipt);
         }
@@ -76,11 +76,9 @@ impl Cva {
                 if let Some(leaf) = &branch.leaf_node_id {
                     // A historical source head may already have a native continuation.
                     // Preserve that head and mutable native canonical metadata.
-                    if self
+                    if !self
                         .archive
-                        .branches
-                        .get(&conversation.conversation_id, &branch.branch_id)
-                        .is_none()
+                        .has_branch(&conversation.conversation_id, &branch.branch_id)
                     {
                         self.append_branch(Branch {
                             id: branch.branch_id.clone(),
@@ -139,7 +137,7 @@ impl Cva {
     }
 
     pub fn native_import_receipts(&self) -> Vec<ImportReceipt> {
-        self.archive.import_receipts.values().cloned().collect()
+        self.archive.all_import_receipts()
     }
 
     pub fn open_import_epoch(&self) -> Option<ImportStart> {

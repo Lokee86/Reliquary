@@ -181,7 +181,7 @@ pub(crate) fn archive_points(owner: &mut Cva) -> Vec<u64> {
     }
 }
 fn archive_prefixes(owner: &mut Cva) -> Vec<String> {
-    use crate::archive_codec::publication::{self, ArchivePublication};
+    use reliquary_archive::archive_codec::publication::{self, ArchivePublication};
     let mut hash = Sha256::new();
     hash.update(b"reliquary:archive-publication-prefix:v1\0");
     hash.update(owner.owner_uuid().unwrap());

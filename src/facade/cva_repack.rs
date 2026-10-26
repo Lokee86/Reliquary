@@ -46,7 +46,8 @@ impl Cva {
 
         let copy_result = (|| {
             for (source_ref, payload) in payloads {
-                if let Some(content_id) = crate::archive_codec::decode_content_id(&payload)?
+                if let Some(content_id) =
+                    reliquary_archive::archive_codec::decode_content_id(&payload)?
                     && removable.contains(&content_id)
                 {
                     dropped_content_objects += 1;
@@ -133,14 +134,14 @@ impl Cva {
         let mut removable = HashSet::new();
         let mut protected = HashSet::new();
 
-        for file in self.archive.files.iter() {
+        for file in self.archive.files().iter() {
             if self.project_files.contains(file.id) {
                 removable.insert(file.content_id);
             } else {
                 protected.insert(file.content_id);
             }
         }
-        for node in self.archive.nodes.iter() {
+        for node in self.archive.source_nodes() {
             protected.insert(node.content_id);
         }
         removable.retain(|content_id| !protected.contains(content_id));

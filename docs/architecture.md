@@ -6,10 +6,10 @@ Parent index: [Documentation index](INDEX.md)
 
 `reliquary-container` is the independently compiled owner of REL/PHY headers,
 opaque object framing, physical publication clocks, OS file leases, bounded
-read sources/cursors, pure typed review clocks and explicit incomplete-tail repair. Its implementation
-and physical tests live under `crates/reliquary-container`; the root product
-depends downward on it. Semantic owner decoding, replay and mutation admission
-remain in the product's concrete stores and lifecycle modules. In particular,
+read sources/cursors, pure typed review clocks and explicit incomplete-tail repair. Its implementation and physical tests live under `crates/reliquary-container`; the root product depends downward on it.
+Semantic decoding and replay remain with each semantic owner, including
+`reliquary-archive`; product lifecycle modules route frames and compose
+cross-owner validation and mutation admission. In particular,
 Container recognizes only the validated grouped physical clock prefix of an
 Insomnia or external publication, not its semantic completion evidence.
 
@@ -27,6 +27,22 @@ obligation: it cannot establish promoted CVAFRS07 product acceptance. See
 [current limitations](current-limitations.md#crate-first-recovery-boundary).
 
 Current runtime settlement, normalization, owner maintenance and rewrite behavior is summarized in [Semantic maintenance and history rewrite](#semantic-maintenance-and-history-rewrite). Historical framing references below describe stable comparison schemas or frozen development evidence; runtime admission is current-only.
+
+## Archive source-truth crate
+
+`reliquary-archive` is the independently compiled semantic source owner for REL
+conversation history. Its codecs, replay, indexes and source records live in
+`crates/reliquary-archive/src/`; its only direct Reliquary dependency is
+`reliquary-container`. The root product depends downward on both crates and
+composes Archive with the other owners. The extraction preserves current Archive
+publication and `CVAPUB01` body bytes, version ordering, source identities and
+error semantics. It does not change the storage format.
+
+Archive owns visible transcript/source facts, Nodes, Branches, Episodes,
+fragments, files and source receipts. Runtime stream/session coordination stays
+in `src/runtime_inference/`; Echo reasoning/tool evidence stays in `src/echo/`;
+`Cva::search_archive` and query policy stay in Retrieval under `src/retrieval/`.
+Multi-owner maintenance proof and lifecycle composition remain in root facades.
 
 ## Development-format lifecycle
 

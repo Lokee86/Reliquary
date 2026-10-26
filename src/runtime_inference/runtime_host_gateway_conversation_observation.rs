@@ -182,9 +182,9 @@ impl GatewayRuntime {
             // Node-derived summaries omit metadata-only conversations.
             ids.extend(
                 cva.archive()
-                    .conversations
-                    .iter()
-                    .map(|m| m.conversation_id.clone()),
+                    .historical_conversation_metadata_records()
+                    .into_iter()
+                    .map(|m| m.conversation_id),
             );
             ids.extend(
                 cva.branches()

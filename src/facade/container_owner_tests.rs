@@ -207,7 +207,8 @@ fn ordinary_rel_open_projects_superseded_compactions_without_reclaiming_bytes() 
         generation: 2,
     };
     let payload =
-        crate::conversation_compaction_codec::encode_live(&record, Some("message-1")).unwrap();
+        reliquary_archive::conversation_compaction_codec::encode_live(&record, Some("message-1"))
+            .unwrap();
     let mut writer = Container::open(&path).unwrap();
     writer.append(&payload).unwrap();
     writer.sync().unwrap();

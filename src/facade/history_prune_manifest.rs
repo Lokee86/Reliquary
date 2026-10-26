@@ -179,7 +179,7 @@ pub(crate) fn owner_history_digest(
         if let Some(envelope) = reliquary_container::publication_envelope::decode(&raw)
             .map_err(|error| error.to_string())?
         {
-            use crate::archive_codec::publication::{self, ArchivePublication};
+            use reliquary_archive::archive_codec::publication::{self, ArchivePublication};
             if let Some(publication) = publication::decode(envelope.body, envelope.global_version)
                 .map_err(|error| error.to_string())?
             {
@@ -202,7 +202,7 @@ pub(crate) fn owner_history_digest(
                             .get(&first_applying_archive_version)
                             .ok_or("Archive repeat proof anchor is not applying history")?,
                     };
-                    let marker = crate::archive_history_codec::encode_record_version(
+                    let marker = reliquary_archive::archive_history_codec::encode_record_version(
                         crate::ArchiveRecordVersion {
                             global_version: envelope.global_version,
                             archive_version: local,

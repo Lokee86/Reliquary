@@ -181,8 +181,7 @@ pub(crate) fn validate_mapping(
     let mut max_archive_version = 0_u64;
     for fragment_id in fragment_ids {
         let archive_version = archive
-            .fragments
-            .archive_version(*fragment_id)
+            .source_fragment_archive_version(*fragment_id)
             .ok_or(ArchiveVectorError::MissingFragment)?;
         max_archive_version = max_archive_version.max(archive_version);
         if !seen.insert(*fragment_id) {

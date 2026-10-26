@@ -11,8 +11,7 @@ pub(super) fn candidate_source_time_ns(
         candidate.authority_source_node_id.as_deref(),
     ) {
         return archive
-            .nodes
-            .get(conversation_id, node_id)
+            .source_node(conversation_id, node_id)
             .map(|node| node.timestamp_ns)
             .ok_or_else(|| {
                 super::InsomniaProcessError::InvalidCandidate(

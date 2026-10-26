@@ -1021,8 +1021,7 @@ fn accepted_turn_outlives_detach_and_keeps_its_admitted_principal() {
                 runtime
                     .cva()
                     .archive()
-                    .nodes
-                    .get("conversation-one", "detached-turn")
+                    .source_node("conversation-one", "detached-turn")
                     .unwrap()
                     .principal_id
                     .as_deref(),

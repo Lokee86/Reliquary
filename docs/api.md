@@ -2,6 +2,17 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Archive source owner
+
+The product `Archive` API is backed by the independently compiled
+`reliquary-archive` crate. That crate owns Archive source records, codecs,
+ordered replay and read APIs, and directly depends only on
+`reliquary-container`. The root `Cva` facade composes Archive with Memory,
+Import and Maintenance. Archive publication bytes and the current storage
+format are preserved by this boundary. Runtime session/stream behavior, Echo
+reasoning evidence and retrieval policy remain in `src/runtime_inference/`,
+`src/echo/` and `src/retrieval/`, respectively.
+
 ## Physical Container access
 
 The existing product exports for `Container`, `ContainerIdentity`, `FileKind`,

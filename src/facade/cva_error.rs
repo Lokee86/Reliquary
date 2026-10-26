@@ -76,6 +76,18 @@ impl fmt::Display for CvaError {
 
 impl std::error::Error for CvaError {}
 
+impl From<reliquary_archive::interaction_stream_store::ArchivePersistenceError> for CvaError {
+    fn from(error: reliquary_archive::interaction_stream_store::ArchivePersistenceError) -> Self {
+        use reliquary_archive::interaction_stream_store::ArchivePersistenceError as ArchiveError;
+        match error {
+            ArchiveError::Container(error) => Self::Container(error),
+            ArchiveError::InteractionStream(error) => Self::InteractionStream(error),
+            ArchiveError::ProjectHistory(error) => Self::ProjectHistory(error),
+            ArchiveError::ProjectFile(error) => Self::ProjectFile(error),
+        }
+    }
+}
+
 macro_rules! from_error {
     ($source:ty, $variant:ident) => {
         impl From<$source> for CvaError {

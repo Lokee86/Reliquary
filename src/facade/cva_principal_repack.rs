@@ -1,7 +1,7 @@
-use crate::archive_codec::{ArchiveRecord, decode_record, encode_node};
 use crate::storage_reclamation::relocate_payload;
-use crate::turn_ingest_codec::encode_ingested_turn;
 use crate::{Cva, CvaError};
+use reliquary_archive::archive_codec::{ArchiveRecord, decode_record, encode_node};
+use reliquary_archive::turn_ingest_codec::encode_ingested_turn;
 use reliquary_container::ObjectRef;
 use std::collections::BTreeMap;
 use std::fs;
@@ -94,11 +94,10 @@ impl Cva {
             ));
         }
 
-        for source in self.archive.nodes.iter() {
+        for source in self.archive.source_nodes() {
             let Some(actual) = reopened
                 .archive
-                .nodes
-                .get(&source.conversation_id, &source.id)
+                .source_node(&source.conversation_id, &source.id)
             else {
                 drop(reopened);
                 let _ = fs::remove_file(output_path);
@@ -147,7 +146,7 @@ fn rewrite_missing_user_principal(
     principal_id: &str,
 ) -> Result<(Vec<u8>, bool, bool), CvaError> {
     if let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? {
-        use crate::archive_codec::publication::{self, ArchivePublication};
+        use reliquary_archive::archive_codec::publication::{self, ArchivePublication};
         if let Some(mut publication) = publication::decode(envelope.body, envelope.global_version)?
         {
             let node = match &mut publication {
@@ -224,7 +223,7 @@ mod tests {
 
     #[test]
     fn native_turn_backfill_preserves_publication_clock_and_atomic_bundle() {
-        use crate::archive_codec::publication::{self, ArchivePublication};
+        use reliquary_archive::archive_codec::publication::{self, ArchivePublication};
         use reliquary_container::publication_envelope::{
             self, PublicationClock, PublicationEnvelope,
         };
@@ -334,8 +333,8 @@ mod tests {
         assert_eq!(result.preserved_user_turns, 0);
 
         let reopened = Cva::open(&output_path).unwrap();
-        let user = reopened.archive.nodes.get("c1", "u1").unwrap();
-        let assistant = reopened.archive.nodes.get("c1", "a1").unwrap();
+        let user = reopened.archive.source_node("c1", "u1").unwrap();
+        let assistant = reopened.archive.source_node("c1", "a1").unwrap();
         assert_eq!(user.principal_id.as_deref(), Some(PRINCIPAL));
         assert_eq!(assistant.principal_id, None);
         assert_eq!(reopened.owner_uuid(), owner);

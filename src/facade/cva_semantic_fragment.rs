@@ -26,8 +26,7 @@ impl Cva {
     ) -> Result<Vec<(String, String)>, CvaError> {
         let fragment = self
             .archive
-            .fragments
-            .get(id)
+            .source_fragment(id)
             .ok_or_else(|| CvaError::Freshness("missing semantic fragment".into()))?;
         let mut sources: Vec<_> = self
             .archive
@@ -111,8 +110,7 @@ impl Cva {
         ))?;
         let fragment = self
             .archive
-            .fragments
-            .get(id)
+            .source_fragment(id)
             .ok_or_else(|| CvaError::Freshness("missing semantic fragment".into()))?
             .clone();
         let nodes = self.archive.fragment_nodes_for(&fragment)?;
@@ -130,8 +128,7 @@ impl Cva {
         let generation = self.vector_generation(generation_id)?;
         if self
             .archive
-            .fragments
-            .archive_version(id)
+            .source_fragment_archive_version(id)
             .is_none_or(|v| v > generation.source_archive_version)
             || self
                 .archive

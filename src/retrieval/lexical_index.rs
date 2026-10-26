@@ -65,7 +65,10 @@ impl LexicalIndex {
         archive: &Archive,
         container: &mut Container,
     ) -> Result<(), ArchiveError> {
-        for fragment in archive.fragments.iter().skip(self.fragments.len()) {
+        for fragment in archive.source_fragments().skip(self.fragments.len()) {
+            let archive_version = archive
+                .source_fragment_archive_version(fragment.id)
+                .unwrap_or_default();
             let text = archive.fragment_text(container, fragment.id)?;
             let counts = term_counts(&text);
             let slot = self.fragments.len();
@@ -77,10 +80,10 @@ impl LexicalIndex {
             }
             self.fragments.push(IndexedFragment {
                 fragment: fragment.clone(),
-                archive_version: archive.fragments.archive_version(fragment.id).unwrap_or(0),
+                archive_version,
             });
         }
-        for file in archive.files.iter().skip(self.files.len()) {
+        for file in archive.source_files().skip(self.files.len()) {
             let counts = term_counts(&file.filename);
             let slot = self.files.len();
             for (term, count) in counts {

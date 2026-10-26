@@ -161,8 +161,7 @@ fn semantic_import_allows_eligible_payload_before_and_after_settlement() {
 
     let imported_conversation = cva
         .archive
-        .nodes
-        .iter()
+        .source_nodes()
         .next()
         .unwrap()
         .conversation_id

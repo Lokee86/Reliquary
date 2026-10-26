@@ -72,7 +72,7 @@ fn exact_source_retries_and_reopen_preserve_selected_evidence_without_writes() {
     let first = ready(
         f.cva()
             .prepare_semantic_fragment(
-                crate::fragment_store::fragment_id("c", "n", "n"),
+                reliquary_archive::fragment_store::fragment_id("c", "n", "n"),
                 generation.id,
             )
             .unwrap(),
@@ -98,7 +98,7 @@ fn exact_source_retries_and_reopen_preserve_selected_evidence_without_writes() {
     let retry = ready(
         f.cva()
             .prepare_semantic_fragment(
-                crate::fragment_store::fragment_id("c", "n", "n"),
+                reliquary_archive::fragment_store::fragment_id("c", "n", "n"),
                 generation.id,
             )
             .unwrap(),
@@ -109,7 +109,7 @@ fn exact_source_retries_and_reopen_preserve_selected_evidence_without_writes() {
         ready(
             f.cva()
                 .prepare_semantic_fragment(
-                    crate::fragment_store::fragment_id("c", "n", "n"),
+                    reliquary_archive::fragment_store::fragment_id("c", "n", "n"),
                     generation.id
                 )
                 .unwrap()
@@ -126,14 +126,20 @@ fn stale_generation_cannot_claim_a_future_source_and_rotation_does_not_rebind() 
     let old = f.generation();
     let pinned = ready(
         f.cva()
-            .prepare_semantic_fragment(crate::fragment_store::fragment_id("c", "a", "a"), old.id)
+            .prepare_semantic_fragment(
+                reliquary_archive::fragment_store::fragment_id("c", "a", "a"),
+                old.id,
+            )
             .unwrap(),
     );
     f.turn("b", Some("a"), "assistant");
     f.fragments("b", 1);
     assert_eq!(
         f.cva()
-            .prepare_semantic_fragment(crate::fragment_store::fragment_id("c", "b", "b"), old.id)
+            .prepare_semantic_fragment(
+                reliquary_archive::fragment_store::fragment_id("c", "b", "b"),
+                old.id
+            )
             .unwrap(),
         SemanticSourceReadiness::Pending
     );
@@ -143,7 +149,7 @@ fn stale_generation_cannot_claim_a_future_source_and_rotation_does_not_rebind() 
         ready(
             f.cva()
                 .prepare_semantic_fragment(
-                    crate::fragment_store::fragment_id("c", "a", "a"),
+                    reliquary_archive::fragment_store::fragment_id("c", "a", "a"),
                     old.id
                 )
                 .unwrap()
@@ -172,7 +178,10 @@ fn missing_fragment_row_stays_pending_independently_of_a_valid_sibling() {
         .unwrap();
     assert_eq!(
         f.cva()
-            .prepare_semantic_fragment(crate::fragment_store::fragment_id("c", "a", "b"), newer.id)
+            .prepare_semantic_fragment(
+                reliquary_archive::fragment_store::fragment_id("c", "a", "b"),
+                newer.id
+            )
             .unwrap(),
         SemanticSourceReadiness::Pending
     );
@@ -351,7 +360,7 @@ fn semantic_evidence_survives_divergent_rebase_twice_merge_and_reclamation() {
     let prepared = ready(
         right
             .prepare_semantic_fragment(
-                crate::fragment_store::fragment_id("c", "base", "right"),
+                reliquary_archive::fragment_store::fragment_id("c", "base", "right"),
                 generation.id,
             )
             .unwrap(),
@@ -642,7 +651,7 @@ fn semantic_live_is_intrinsic_from_rel_origin() {
     f.fragments("old", 1);
     let generation = f.generation();
     let owner = f.cva().owner_uuid().unwrap();
-    let old_fragment = crate::fragment_store::fragment_id("c", "old", "old");
+    let old_fragment = reliquary_archive::fragment_store::fragment_id("c", "old", "old");
     let old_event = crate::freshness_storage::semantic_fragment_event_id(owner, old_fragment);
     assert!(
         f.cva().freshness.contains_event(&old_event).unwrap(),
@@ -664,7 +673,7 @@ fn semantic_live_is_intrinsic_from_rel_origin() {
     let newer = f.generation();
     assert_ne!(newer.id, generation.id);
     assert_eq!(f.cva().semantic_freshness_pending_fragments().unwrap(), 0);
-    let new_fragment = crate::fragment_store::fragment_id("c", "new", "new");
+    let new_fragment = reliquary_archive::fragment_store::fragment_id("c", "new", "new");
     let new_event = crate::freshness_storage::semantic_fragment_event_id(owner, new_fragment);
     assert!(f.cva().freshness.contains_event(&new_event).unwrap());
     assert!(!f.cva().freshness.semantic_activation_seen());
@@ -762,7 +771,7 @@ fn semantic_live_accepted_turn_is_local_exactly_once_and_excludes_async_births()
     let owner = f.cva().owner_uuid().unwrap();
     let id = crate::freshness_storage::semantic_fragment_event_id(
         owner,
-        crate::fragment_store::fragment_id("c", &source.id, &source.id),
+        reliquary_archive::fragment_store::fragment_id("c", &source.id, &source.id),
     );
     let receipt = f.cva().freshness.event_receipt(&id).unwrap().unwrap();
     assert_eq!(
@@ -867,7 +876,7 @@ fn semantic_live_runtime_worker_retries_ready_archive_without_ingest_shortcut() 
     let owner = f.cva().owner_uuid().unwrap();
     let id = crate::freshness_storage::semantic_fragment_event_id(
         owner,
-        crate::fragment_store::fragment_id("c", "worker-live", "worker-live"),
+        reliquary_archive::fragment_store::fragment_id("c", "worker-live", "worker-live"),
     );
     assert_eq!(
         f.cva().freshness.event_receipt(&id).unwrap().unwrap().2,
@@ -924,14 +933,13 @@ fn semantic_release_measurement() {
     let node = f
         .cva()
         .archive
-        .nodes
-        .get("c", "bench-source-0")
+        .source_node("c", "bench-source-0")
         .unwrap()
         .clone();
     let source = ready(
         f.cva()
             .prepare_semantic_fragment(
-                crate::fragment_store::fragment_id("c", &node.id, &node.id),
+                reliquary_archive::fragment_store::fragment_id("c", &node.id, &node.id),
                 generation.id,
             )
             .unwrap(),

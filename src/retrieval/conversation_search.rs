@@ -1,8 +1,8 @@
-use crate::fragmenter::path_fragment_windows;
 use crate::{
     CompatibilityProfileId, ConversationSearchHit, Cva, FragmentConfig, RetrievalConfig,
     SearchError,
 };
+use reliquary_archive::fragmenter::path_fragment_windows;
 
 impl Cva {
     pub fn search_conversation_branch(

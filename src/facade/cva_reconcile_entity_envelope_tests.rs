@@ -251,7 +251,7 @@ fn divergent_reconcile_replays_entity_envelopes_with_reserved_source_times() {
     assert_eq!(result.duplicate_entity_revisions, 0);
     let mut output = Cva::open(&output_path).unwrap();
     assert_eq!(output.entity(base.id).unwrap().revision, 3);
-    assert_eq!(output.archive.nodes.len(), 1);
+    assert_eq!(output.archive.source_node_count(), 1);
     for revision in [2, 3] {
         let mut source = Cva::open(&right_path).unwrap();
         let source_revision = source.entity_revision(base.id, revision).unwrap();

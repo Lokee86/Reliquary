@@ -147,8 +147,7 @@ pub(super) fn turn(source: &Cva, output: &Cva, cut: u64) -> Result<u64, String> 
     }
     let node = source
         .archive
-        .nodes
-        .iter()
+        .source_nodes()
         .find(|node| {
             source.activity_position_for_turn(&node.conversation_id, &node.id) == Some(cut)
         })

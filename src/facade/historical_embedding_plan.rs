@@ -41,14 +41,18 @@ pub(super) fn prepare(
         limits.sources,
         "sources",
     )?;
-    bounded(cva.archive.fragments.len(), limits.fragments, "fragments")?;
-    if cva.archive.fragments.len() == 0 {
+    bounded(
+        cva.archive.source_fragment_count(),
+        limits.fragments,
+        "fragments",
+    )?;
+    if cva.archive.source_fragment_count() == 0 {
         return Err(unsupported(
             "fill requires existing genuine Archive fragments",
         ));
     }
     bounded(
-        cva.archive.nodes.len(),
+        cva.archive.source_node_count(),
         limits.inspections,
         "Archive nodes/ancestry",
     )?;
@@ -124,7 +128,7 @@ pub(super) fn prepare(
         )?;
     }
     let mut metadata = 0usize;
-    for node in cva.archive.nodes.iter() {
+    for node in cva.archive.source_nodes() {
         metadata = add(
             metadata,
             add(
@@ -147,7 +151,7 @@ pub(super) fn prepare(
         )?;
         bounded(metadata, limits.temporary_bytes / 8, "source metadata")?;
     }
-    for fragment in cva.archive.fragments.iter() {
+    for fragment in cva.archive.source_fragments() {
         metadata = add(
             metadata,
             add(
@@ -162,10 +166,10 @@ pub(super) fn prepare(
     }
     // Includes repeated readiness/H1 proof scans; never assume only unique fragments cost work.
     let scan = mul(
-        cva.archive.nodes.len(),
+        cva.archive.source_node_count(),
         add(
-            cva.archive.fragments.len(),
-            limits.missing_rows.min(cva.archive.nodes.len()),
+            cva.archive.source_fragment_count(),
+            limits.missing_rows.min(cva.archive.source_node_count()),
         )?,
     )?;
     bounded(
@@ -181,7 +185,7 @@ pub(super) fn prepare(
     input::required_nodes(cva, cva.rel_turn_count()).map_err(unsupported)?;
     let timeline = cva.historical_freshness_timeline().map_err(unsupported)?;
     report.sources = timeline.activity_order.len();
-    report.fragments = cva.archive.fragments.len();
+    report.fragments = cva.archive.source_fragment_count();
     report.import_id = Some(super::manifest::historical_import_id(
         report.owner_uuid.unwrap(),
         input::corpus_digest(cva, cva.rel_turn_count()).map_err(unsupported)?,

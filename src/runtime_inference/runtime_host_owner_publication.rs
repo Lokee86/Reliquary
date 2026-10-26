@@ -148,8 +148,7 @@ impl PublicationCoordinator {
         for (conversation, node_id) in coordinates {
             let node = cva
                 .archive
-                .nodes
-                .get(&conversation, &node_id)
+                .source_node(&conversation, &node_id)
                 .ok_or_else(|| operation("personal source is absent"))?;
             let actor = match node.role.as_str() {
                 "user" => ActorClass::User,

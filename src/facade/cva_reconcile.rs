@@ -164,7 +164,7 @@ fn semantic_chunk_payloads(cva: &mut Cva) -> Result<Vec<Vec<u8>>, CvaReconcileEr
     let mut payloads = Vec::with_capacity(chunks.len());
     for chunk in chunks {
         let payload = cva.container.read(chunk)?;
-        if !crate::conversation_compaction_codec::is_compaction_payload(&payload) {
+        if !reliquary_archive::conversation_compaction_codec::is_compaction_payload(&payload) {
             payloads.push(payload);
         }
     }

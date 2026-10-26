@@ -1,5 +1,5 @@
-use crate::archive_codec::ArchiveRecord;
 use crate::{ArchiveVectorId, ContentId, MemoryBodyId, PackedVectorId};
+use reliquary_archive::archive_codec::ArchiveRecord;
 use reliquary_container::ObjectRef;
 use std::collections::{HashMap, HashSet};
 
@@ -68,9 +68,11 @@ impl ReclamationScan {
                 envelope.global_version,
             )
             .map_err(|error| error.to_string())?;
-            let archive =
-                crate::archive_codec::publication::decode(envelope.body, envelope.global_version)
-                    .map_err(|error| error.to_string())?;
+            let archive = reliquary_archive::archive_codec::publication::decode(
+                envelope.body,
+                envelope.global_version,
+            )
+            .map_err(|error| error.to_string())?;
             if memory.is_none()
                 && archive.is_none()
                 && crate::entity_compact_codec::publication::decode(
@@ -98,10 +100,12 @@ impl ReclamationScan {
             // right. A compact Memory creation also keeps its immutable
             // body alive; deltas and tombstones do not replace that body.
             self.published_backing.insert(object);
-            if let Some(crate::archive_codec::publication::ArchivePublication::Record {
-                record,
-                ..
-            }) = archive
+            if let Some(
+                reliquary_archive::archive_codec::publication::ArchivePublication::Record {
+                    record,
+                    ..
+                },
+            ) = archive
             {
                 let refs = match record {
                     ArchiveRecord::Node(node) => vec![node.content_id],
@@ -141,7 +145,7 @@ impl ReclamationScan {
             || (!payload.starts_with(b"CVAAFM")
                 && !payload.starts_with(b"CVAARE")
                 && !payload.starts_with(b"CVACONT1")
-                && crate::archive_codec::publication::decode(payload, 1)
+                && reliquary_archive::archive_codec::publication::decode(payload, 1)
                     .map_err(|e| e.to_string())?
                     .is_some())
             || ((payload.starts_with(b"CVAGCM") || payload.starts_with(b"CVAGCB"))
@@ -161,7 +165,8 @@ impl ReclamationScan {
 
         if payload.starts_with(b"CVACONT1") {
             let ArchiveRecord::Content(id, _) =
-                crate::archive_codec::decode_record(payload).map_err(|error| error.to_string())?
+                reliquary_archive::archive_codec::decode_record(payload)
+                    .map_err(|error| error.to_string())?
             else {
                 unreachable!()
             };
@@ -211,11 +216,11 @@ impl ReclamationScan {
             self.packed_vector_chunks.push((object, packed.id));
             return Ok(());
         }
-        if let Some(compaction) = crate::conversation_compaction_codec::decode(payload)
+        if let Some(compaction) = reliquary_archive::conversation_compaction_codec::decode(payload)
             .map_err(|error| error.to_string())?
             && matches!(
                 compaction,
-                crate::conversation_compaction_codec::DecodedCompactionChunk::Free
+                reliquary_archive::conversation_compaction_codec::DecodedCompactionChunk::Free
             )
         {
             self.free_compaction_chunks.insert(object);

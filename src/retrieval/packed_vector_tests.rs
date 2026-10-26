@@ -1,7 +1,7 @@
-use crate::archive_history_codec::encode_archive_format;
 use crate::insomnia::codec::encode_format as encode_insomnia_format;
 use crate::memory_codec::encode_format as encode_memory_format;
 use crate::{Branch, Cva, CvaError, PackedVectorError, PackedVectors, ScalarType, VectorSchema};
+use reliquary_archive::archive_history_codec::encode_archive_format;
 use reliquary_container::Container;
 use std::fs;
 use std::path::PathBuf;

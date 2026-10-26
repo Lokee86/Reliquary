@@ -64,8 +64,8 @@ pub(crate) fn reconcile_import_epochs(
     for (id, epoch) in &right_epochs {
         if let Some(known) = left_epochs.get(id) {
             if !same_authority(known, epoch)
-                || left.archive.import_receipts.get(&known.start.import_key)
-                    != right.archive.import_receipts.get(&epoch.start.import_key)
+                || left.archive.import_receipt(&known.start.import_key)
+                    != right.archive.import_receipt(&epoch.start.import_key)
             {
                 return Err(CvaReconcileError::Conflict(
                     crate::CvaReconcileConflict::ImportEpoch {
@@ -180,11 +180,14 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
             crate::freshness_dream_journal::DreamFreshnessJournal::new(cva.owner_uuid());
         for chunk in cva.container.chunks()?.into_iter().take(end).skip(first) {
             let payload = cva.container.read(chunk)?;
-            if let Some(version) = crate::archive_codec::publication::version_at(chunk, &payload)? {
+            if let Some(version) =
+                reliquary_archive::archive_codec::publication::version_at(chunk, &payload)?
+            {
                 // Retain every accepted source-domain record in interval order,
                 // including unrelated records not named by the import receipt.
                 let (record, _) = cva.archive.read_publication(&mut cva.container, version)?;
-                archive_records.push(crate::archive_codec::publication::import_evidence(record)?);
+                archive_records
+                    .push(reliquary_archive::archive_codec::publication::import_evidence(record)?);
             }
             if let Some((global, local)) =
                 crate::memory_compact_codec::publication::coordinates(&payload)?
@@ -381,12 +384,12 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
             continue;
         }
         if !matches!(
-            crate::archive_codec::decode_record(&payload)?,
-            crate::archive_codec::ArchiveRecord::Other
+            reliquary_archive::archive_codec::decode_record(&payload)?,
+            reliquary_archive::archive_codec::ArchiveRecord::Other
         ) {
             continue;
         }
-        if crate::archive_codec::publication::version_at(chunk, &payload)?.is_some() {
+        if reliquary_archive::archive_codec::publication::version_at(chunk, &payload)?.is_some() {
             continue;
         }
         // Accepted publications are replayed through current owner envelopes.
@@ -435,7 +438,7 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
         }
     }
     // Dropping an outstanding queue/lease/failure would lose owner authority.
-    for episode in cva.archive.episodes.iter() {
+    for episode in cva.archive.historical_episodes() {
         if cva
             .insomnia_work(episode.id)
             .is_some_and(|work| work.state != crate::InsomniaWorkState::Complete)
@@ -554,7 +557,7 @@ fn physical_boundary(cva: &mut Cva, common: usize) -> Result<usize, CvaReconcile
     let mut semantic = 0;
     for (index, chunk) in cva.container.chunks()?.into_iter().enumerate() {
         let payload = cva.container.read(chunk)?;
-        if !crate::conversation_compaction_codec::is_compaction_payload(&payload) {
+        if !reliquary_archive::conversation_compaction_codec::is_compaction_payload(&payload) {
             semantic += 1;
             if semantic == common {
                 return Ok(index + 1);

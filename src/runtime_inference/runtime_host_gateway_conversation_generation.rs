@@ -587,7 +587,7 @@ impl GatewayRuntime {
                     let expected = artifacts
                         .iter()
                         .map(|a| {
-                            crate::file_store::build_stored_file(
+                            reliquary_archive::file_store::build_stored_file(
                                 a.filename.clone(),
                                 a.mime_type.clone(),
                                 &a.bytes,
@@ -664,7 +664,7 @@ impl GatewayRuntime {
                     let expected = artifacts
                         .iter()
                         .map(|a| {
-                            crate::file_store::build_stored_file(
+                            reliquary_archive::file_store::build_stored_file(
                                 a.filename.clone(),
                                 a.mime_type.clone(),
                                 &a.bytes,
@@ -932,8 +932,7 @@ pub(super) fn validate_generation_archive_turn(
     let node = runtime
         .cva()
         .archive()
-        .nodes
-        .get(conversation_id, &generation.generation_id)
+        .source_node(conversation_id, &generation.generation_id)
         .ok_or_else(|| operation("generated Archive node is absent"))?;
     let digest: [u8; 32] = Sha256::digest(content.as_bytes()).into();
     if node.conversation_id != conversation_id

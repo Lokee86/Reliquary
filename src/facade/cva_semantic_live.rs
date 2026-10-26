@@ -139,8 +139,7 @@ impl Cva {
             // Retry that missing evidence; a cut watermark alone is insufficient.
             if pending.iter().all(|(_, id)| {
                 self.archive
-                    .fragments
-                    .archive_version(*id)
+                    .source_fragment_archive_version(*id)
                     .is_some_and(|version| version <= generation.source_archive_version)
                     && set.fragment_ids.contains(id)
             }) {

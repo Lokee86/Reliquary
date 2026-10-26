@@ -33,9 +33,9 @@
     },
     {
       "id": "archive",
-      "description": "Source history, conversations, fragments, episodes, attachments, Echo, and repository correlations",
+      "description": "Archive source history, conversations, fragments, Episodes, source attachments, receipts, durable checkpoints and repository correlations",
       "paths": [
-        "src/archive"
+        "crates/reliquary-archive/src"
       ]
     },
     {
@@ -153,6 +153,13 @@
         "src/rewrite",
         "src/rewrite_lineage.rs"
       ]
+    },
+    {
+      "id": "echo",
+      "description": "Independent historical reasoning and execution evidence pending Echo crate extraction",
+      "paths": [
+        "src/echo"
+      ]
     }
   ],
   "rules": [
@@ -161,7 +168,8 @@
       "type": "require_ownership",
       "scope_paths": [
         "src",
-        "crates/reliquary-container/src"
+        "crates/reliquary-container/src",
+        "crates/reliquary-archive/src"
       ],
       "source_kinds": [
         "file"
@@ -255,6 +263,38 @@
       ],
       "literal": "ingest_turn",
       "message": "Native import adapters normalize supplied bytes only; commit, I/O and queue authority remain outside adapters."
+    },
+    {
+      "id": "archive-source-owner-no-upward-dependencies",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "archive"
+      ],
+      "to_areas": [
+        "freshness",
+        "memory",
+        "retrieval",
+        "semantic-graph",
+        "perception",
+        "chronos",
+        "ego",
+        "runtime-inference",
+        "config-security",
+        "facade",
+        "context-engine",
+        "project-environment",
+        "staleness",
+        "native-import",
+        "external-source",
+        "history-rewrite",
+        "echo"
+      ],
+      "relations": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "message": "Archive source history may depend only on physical Container; cross-owner coordination belongs above Archive."
     }
   ]
 }

@@ -191,8 +191,7 @@ fn two_writers_fork_stale_head_and_only_the_submitter_selection_moves() {
             runtime
                 .cva()
                 .archive()
-                .nodes
-                .get(CONVERSATION, "auto-second")
+                .source_node(CONVERSATION, "auto-second")
                 .unwrap()
                 .parent_id
                 .as_deref(),

@@ -55,8 +55,7 @@ impl Cva {
             .map_err(|e| fail(&e.to_string()))?;
         let receipt = self
             .archive
-            .import_receipts
-            .get(&start.import_key)
+            .import_receipt(&start.import_key)
             .ok_or_else(|| fail("semantic settlement import receipt missing"))?;
         let sources: BTreeSet<_> = receipt
             .conversations
@@ -84,7 +83,10 @@ impl Cva {
                 if let Some(completion) =
                     crate::insomnia::completion::decode_completion(&payload).map_err(|e| fail(e))?
                 {
-                    let Some(episode) = self.archive.episodes.get(completion.episode_id).cloned()
+                    let Some(episode) = self
+                        .archive
+                        .historical_episode(completion.episode_id)
+                        .cloned()
                     else {
                         return Ok(());
                     };
@@ -201,8 +203,7 @@ impl Cva {
     ) -> Result<ImportEpochScope, CvaError> {
         let receipt = self
             .archive
-            .import_receipts
-            .get(&start.import_key)
+            .import_receipt(&start.import_key)
             .ok_or_else(|| {
                 CvaError::Freshness("import Archive construction/receipt is incomplete".into())
             })?;
@@ -258,7 +259,7 @@ impl Cva {
                     return Ok(());
                 }
                 if let Some(version) =
-                    crate::archive_codec::publication::version_at(object, &payload)?
+                    reliquary_archive::archive_codec::publication::version_at(object, &payload)?
                 {
                     let (record, applying) = self
                         .archive
@@ -266,7 +267,9 @@ impl Cva {
                     if applying.archive_version != version.archive_version {
                         return Ok(());
                     }
-                    if let crate::archive_codec::ArchiveRecord::Episode(episode) = record {
+                    if let reliquary_archive::archive_codec::ArchiveRecord::Episode(episode) =
+                        record
+                    {
                         if episode.origin == EpisodeOrigin::Import
                             && episode_matches_source(self, &episode, &source_nodes)?
                         {
@@ -397,8 +400,7 @@ fn episode_matches_source(
         }
         let node = cva
             .archive
-            .nodes
-            .get(&episode.conversation_id, &id)
+            .source_node(&episode.conversation_id, &id)
             .ok_or_else(|| CvaError::Freshness("missing retained import Episode Node".into()))?;
         if id == episode.start_node_id {
             return Ok(true);

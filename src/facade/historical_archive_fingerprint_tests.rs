@@ -57,7 +57,7 @@ fn archive_cuts_agree_with_branch_history_and_ignore_inert_backing() {
     assert_ne!(baseline.sha256, latest.sha256);
     cva.container
         .append(
-            &crate::archive_codec::encode_branch(&Branch {
+            &reliquary_archive::archive_codec::encode_branch(&Branch {
                 id: "inert".into(),
                 conversation_id: "c".into(),
                 leaf_node_id: "a".into(),
@@ -87,7 +87,7 @@ fn archive_fingerprint_survives_object_relocation() {
     cva.archive
         .put_content_bytes(
             &mut cva.container,
-            crate::archive_store::hash_content(orphan),
+            reliquary_archive::archive_store::hash_content(orphan),
             orphan,
         )
         .unwrap();

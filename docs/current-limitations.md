@@ -4,8 +4,8 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Crate-first recovery boundary
 
-The crate-first restart extracts physical Container from the verified pre-refactor
-baseline. The preserved authoritative corpus is newer: its REL settlements use
+The crate-first restart extracts physical Container and Archive source history
+from the verified pre-refactor baseline. The preserved authoritative corpus is newer: its REL settlements use
 CVAFRS07, while the baseline's semantic Freshness/Import owners still implement
 CVAFRS06. Physical extraction neither authorizes a legacy reader nor restores
 those semantic owners. Full product/corpus acceptance requires separately
@@ -248,7 +248,9 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 - Memory authority is independent from embeddings. Memory semantic title/content is immutable across revisions, so metadata-only revisions do not cause embedding regeneration; only a new compatibility profile creates another vector for an existing body.
 
 ## Enforcement limits
-Repository-local Pitlord enforcement assigns every authored Rust source file under `src/` to exactly one architectural owner and blocks reintroduction of the deleted generic `WorkspaceMetadata` / `workspace_type` authority outside the explicit legacy migration decoder. The source tree is physically grouped by those owner directories, so Pitlord can use coarse directory selectors while Reliquary remains one Rust crate. A refreshed post-reorganization audit found no current basis for splitting the core into multiple crates: production import evidence leaves Archive, Chronos, config/security, facade, Memory, Perception, retrieval, runtime/inference, and semantic graph in one strongly connected component; only `container` and `ego` fall outside that SCC. No dependency-direction/cycle rule is therefore being added merely to force an aspirational package DAG. The generated `.lexicon/` and `.arcana/` state is disposable analysis evidence and remains ignored rather than becoming repository authority.
+Repository-local Pitlord enforcement continues to assign authored Rust sources to architectural owners and blocks reintroduction of the deleted generic `WorkspaceMetadata` / `workspace_type` authority outside the explicit legacy migration decoder. The crate-first restart now has independently compiled `reliquary-container` and `reliquary-archive` packages; Archive depends directly only on Container. Echo remains grouped under `src/echo/`, Runtime under `src/runtime_inference/`, and query policy under `src/retrieval/`. Earlier SCC evidence described the pre-extraction layout and is not evidence of the current crate graph. Full current-format product/corpus acceptance remains blocked by the CVAFRS07 recovery boundary described above. The generated `.lexicon/` and `.arcana/` state is disposable analysis evidence and remains ignored rather than becoming repository authority.
+
+The Archive extraction's refreshed graph and graph-dependent documentation ownership checks remain unverified because the local Rust analysis did not complete. Compile, focused behavior and documentation-link results are recorded in [Archive extraction results](archive-crate-extraction-results-2026-10-25.md).
 
 ## P3.6 generation lifecycle scope
 

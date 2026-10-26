@@ -975,8 +975,7 @@ fn recompute_retained_freshness(
         .collect();
     let turns: BTreeMap<_, _> = source
         .archive
-        .nodes
-        .iter()
+        .source_nodes()
         .filter_map(|node| {
             let before = source.activity_position_for_turn(&node.conversation_id, &node.id)?;
             let after = output.activity_position_for_turn(&node.conversation_id, &node.id)?;

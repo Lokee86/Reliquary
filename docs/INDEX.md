@@ -129,6 +129,8 @@
 - [agentic-memory-retrieval-verification-2026-10-16.md](agentic-memory-retrieval-verification-2026-10-16.md) - Agentic Memory Retrieval Verification 2026 10 16 documentation.
 - [api.md](api.md) - Api documentation.
 - [architecture.md](architecture.md) - Architecture documentation.
+- [archive-crate-extraction-results-2026-10-25.md](archive-crate-extraction-results-2026-10-25.md) - Archive Crate Extraction Results 2026 10 25 documentation.
+- [archive-crate-extraction-spec-2026-10-25.md](archive-crate-extraction-spec-2026-10-25.md) - Archive Crate Extraction Spec 2026 10 25 documentation.
 - [archive-vector-generation-reuse-decision-2026-10-21.md](archive-vector-generation-reuse-decision-2026-10-21.md) - Archive Vector Generation Reuse Decision 2026 10 21 documentation.
 - [behavioral-contracts.md](behavioral-contracts.md) - Behavioral Contracts documentation.
 - [canonical-history-migration-results-2026-10-21.md](canonical-history-migration-results-2026-10-21.md) - Canonical History Migration Results 2026 10 21 documentation.

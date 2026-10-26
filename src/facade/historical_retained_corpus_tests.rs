@@ -86,13 +86,11 @@ fn historical_retained_corpus_native_acceptance() {
             }) => {
                 let parent = cva
                     .archive
-                    .nodes
-                    .get(&ancestor.conversation_id, &ancestor.node_id)
+                    .source_node(&ancestor.conversation_id, &ancestor.node_id)
                     .unwrap();
                 let child = cva
                     .archive
-                    .nodes
-                    .get(&descendant.conversation_id, &descendant.node_id)
+                    .source_node(&descendant.conversation_id, &descendant.node_id)
                     .unwrap();
                 json!({"valid":false,"reason":"ancestor timestamp exceeds descendant timestamp",
                     "ancestor_timestamp_ns":parent.timestamp_ns,"descendant_timestamp_ns":child.timestamp_ns,

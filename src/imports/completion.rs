@@ -104,7 +104,7 @@ impl Cva {
         if now_ns < start.started_at_ns {
             return Err(epoch_error("import completion precedes its start"));
         }
-        let Some(receipt) = self.archive.import_receipts.get(&start.import_key).cloned() else {
+        let Some(receipt) = self.archive.import_receipt(&start.import_key).cloned() else {
             return Ok(ImportCompletionOutcome::Pending(
                 ImportCompletionPending::MissingReceipt,
             ));
@@ -228,7 +228,7 @@ impl Cva {
             result?;
         }
         epochs.validate_owner(self.owner_uuid())?;
-        epochs.validate_receipts(&self.archive.import_receipts)?;
+        epochs.validate_receipts(self.archive.import_receipts())?;
         Ok(epochs)
     }
 

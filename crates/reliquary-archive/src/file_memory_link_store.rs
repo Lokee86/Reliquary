@@ -1,0 +1,43 @@
+use crate::archive_codec::ArchiveRecord;
+use crate::{Archive, ArchiveError, FileId, FileMemoryLink, MemoryId, StoredFile};
+use reliquary_container::Container;
+
+impl Archive {
+    pub fn link_file_to_memory(
+        &mut self,
+        container: &mut Container,
+        file_id: FileId,
+        memory_id: MemoryId,
+    ) -> Result<FileMemoryLink, ArchiveError> {
+        if self.files.get(file_id).is_none() {
+            return Err(ArchiveError::MissingFile);
+        }
+        let link = FileMemoryLink { file_id, memory_id };
+        if self.file_memory_links.contains(file_id, memory_id) {
+            return Ok(link);
+        }
+        self.publish_publication(container, ArchiveRecord::FileMemoryLink(link))?;
+        self.file_memory_links.insert(link);
+        Ok(link)
+    }
+
+    pub fn file_memory_links(&self, file_id: FileId) -> Vec<FileMemoryLink> {
+        self.file_memory_links.for_file(file_id).copied().collect()
+    }
+
+    pub fn files_for_memory(&self, memory_id: MemoryId) -> Vec<StoredFile> {
+        self.file_memory_links
+            .for_memory(memory_id)
+            .filter_map(|link| self.files.get(link.file_id).cloned())
+            .collect()
+    }
+
+    pub(crate) fn validate_file_memory_links(&self) -> Result<(), ArchiveError> {
+        for link in self.file_memory_links.iter() {
+            if self.files.get(link.file_id).is_none() {
+                return Err(ArchiveError::MissingFile);
+            }
+        }
+        Ok(())
+    }
+}

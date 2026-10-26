@@ -197,8 +197,7 @@ fn rel_source_principal(cva: &Cva, memory: &Memory) -> Option<String> {
     let episode = cva.episode(memory.source_episode_id?)?;
     let node_id = memory.source_node_id.as_deref()?;
     cva.archive
-        .nodes
-        .get(&episode.conversation_id, node_id)
+        .source_node(&episode.conversation_id, node_id)
         .and_then(|node| node.principal_id.clone())
 }
 

@@ -45,8 +45,7 @@ impl Cva {
         if !self.freshness.import_settlements().is_empty()
             && self
                 .archive
-                .nodes
-                .iter()
+                .source_nodes()
                 .any(|node| node.role == "user" && node.principal_id.as_deref() != Some(principal))
         {
             return Err(CvaError::Repack(

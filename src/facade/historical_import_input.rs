@@ -15,7 +15,7 @@ pub(super) fn required_nodes(
     through: u64,
 ) -> Result<BTreeMap<(String, String), crate::Node>, CvaError> {
     let mut required = BTreeMap::new();
-    for node in cva.archive.nodes.iter().filter(|n| {
+    for node in cva.archive.source_nodes().filter(|n| {
         cva.activity_position_for_turn(&n.conversation_id, &n.id)
             .is_some_and(|p| p <= through)
     }) {
@@ -33,8 +33,7 @@ pub(super) fn required_nodes(
             cursor = match node.parent_id.as_deref() {
                 Some(parent) => Some(
                     cva.archive
-                        .nodes
-                        .get(&node.conversation_id, parent)
+                        .source_node(&node.conversation_id, parent)
                         .cloned()
                         .ok_or_else(|| fail("missing owner-local historical parent"))?,
                 ),
@@ -67,7 +66,7 @@ pub(super) fn corpus_digest(cva: &mut Cva, through: u64) -> Result<[u8; 32], Cva
         let bytes = cva
             .archive
             .content_bytes(&mut cva.container, node.content_id)?;
-        if crate::archive_store::hash_content(&bytes) != node.content_id {
+        if reliquary_archive::archive_store::hash_content(&bytes) != node.content_id {
             return Err(fail("import source content proof mismatch"));
         }
     }
@@ -173,8 +172,7 @@ fn admission_proof_legacy(cva: &mut Cva) -> Result<AdmissionProof, CvaError> {
         }
         let end = cva
             .archive
-            .nodes
-            .get(&episode.conversation_id, &episode.end_node_id)
+            .source_node(&episode.conversation_id, &episode.end_node_id)
             .ok_or_else(|| fail("missing Episode endpoint"))?;
         if end.timestamp_ns != episode.source_through_ns {
             return Err(fail(
@@ -196,10 +194,11 @@ fn admission_proof_legacy(cva: &mut Cva) -> Result<AdmissionProof, CvaError> {
         for turn in turns {
             let node = cva
                 .archive
-                .nodes
-                .get(&episode.conversation_id, &turn.node_id)
+                .source_node(&episode.conversation_id, &turn.node_id)
                 .ok_or_else(|| fail("missing Episode path Node"))?;
-            if node.content_id != crate::archive_store::hash_content(turn.content.as_bytes()) {
+            if node.content_id
+                != reliquary_archive::archive_store::hash_content(turn.content.as_bytes())
+            {
                 return Err(fail("Episode retained content binding conflict"));
             }
             path.push(node_binding(node));
@@ -317,8 +316,7 @@ fn admission_proof_legacy(cva: &mut Cva) -> Result<AdmissionProof, CvaError> {
             }
             let node = cva
                 .archive
-                .nodes
-                .get(
+                .source_node(
                     &episode
                         .as_ref()
                         .ok_or_else(|| fail("structured source lacks Episode"))?

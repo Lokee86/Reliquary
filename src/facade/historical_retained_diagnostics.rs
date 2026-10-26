@@ -8,8 +8,7 @@ pub(super) fn diagnose(cva: &mut Cva) -> Value {
     let mut ancestry_clock_violations = 0;
     for node in cva
         .archive
-        .nodes
-        .iter()
+        .source_nodes()
         .filter(|node| matches!(node.role.as_str(), "user" | "assistant"))
     {
         let mut parent = node.parent_id.as_deref();
@@ -18,7 +17,7 @@ pub(super) fn diagnose(cva: &mut Cva) -> Value {
             if !seen.insert(parent_id) {
                 break;
             }
-            let Some(ancestor) = cva.archive.nodes.get(&node.conversation_id, parent_id) else {
+            let Some(ancestor) = cva.archive.source_node(&node.conversation_id, parent_id) else {
                 break;
             };
             if matches!(ancestor.role.as_str(), "user" | "assistant") {
@@ -113,7 +112,7 @@ pub(super) fn diagnose(cva: &mut Cva) -> Value {
     let mut pending_episodes = Vec::new();
     let mut canonical_path = BTreeSet::new();
     let mut other_path = BTreeSet::new();
-    for branch in cva.archive.branches.iter() {
+    for branch in cva.archive.historical_branches().iter() {
         let positions = if branch.canonical {
             &mut canonical_path
         } else {
@@ -125,7 +124,7 @@ pub(super) fn diagnose(cva: &mut Cva) -> Value {
             if !seen.insert(id) {
                 break;
             }
-            let Some(node) = cva.archive.nodes.get(&branch.conversation_id, id) else {
+            let Some(node) = cva.archive.source_node(&branch.conversation_id, id) else {
                 break;
             };
             if let Some(position) = cva.activity_position_for_turn(&branch.conversation_id, id) {

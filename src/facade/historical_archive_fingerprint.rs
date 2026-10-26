@@ -1,8 +1,8 @@
 //! Canonical decoded Archive publication history and payload at a local cut.
 
-use crate::archive_codec::ArchiveRecord;
 use crate::historical_fingerprint::{HistoricalFingerprint, OwnerProjection};
 use crate::{Branch, ContentId, Cva, Node, StoredFile};
+use reliquary_archive::archive_codec::ArchiveRecord;
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
 
@@ -124,7 +124,7 @@ fn file(
         "project_path": r.revision.repository.project_path, "revision": r.revision.revision,
         "path": r.path, "content_hash": r.content_hash.map(|id| hex(&id)),
     }));
-    if reference.is_none() || cva.archive.contents.contains(value.content_id) {
+    if reference.is_none() || cva.archive.has_content(value.content_id) {
         content(cva, value.content_id, contents)?;
     }
     Ok(
@@ -142,7 +142,7 @@ fn content(
     if contents.contains_key(&id.0) {
         return Ok(());
     }
-    let value = if let Some(marker) = cva.archive.prune.markers().get(&id) {
+    let value = if let Some(marker) = cva.archive.pruned_content_markers().get(&id) {
         json!({"pruned": {"bytes": marker.byte_length, "manifest": hex(&marker.manifest_digest)}})
     } else {
         let bytes = cva

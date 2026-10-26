@@ -260,8 +260,8 @@ fn historical_transform_reclaim_and_attachment_repack_preserve_checkpoint_and_re
             } else {
                 cva.container
                     .append(
-                        &crate::archive_codec::encode_content(
-                            crate::archive_store::hash_content(&bytes),
+                        &reliquary_archive::archive_codec::encode_content(
+                            reliquary_archive::archive_store::hash_content(&bytes),
                             &bytes,
                         )
                         .unwrap(),
@@ -606,8 +606,8 @@ fn native_import_epoch_markers_and_settlement_survive_reopen_reclaim_and_repack(
     let orphan = vec![9; 128 * 1024];
     cva.container
         .append(
-            &crate::archive_codec::encode_content(
-                crate::archive_store::hash_content(&orphan),
+            &reliquary_archive::archive_codec::encode_content(
+                reliquary_archive::archive_store::hash_content(&orphan),
                 &orphan,
             )
             .unwrap(),

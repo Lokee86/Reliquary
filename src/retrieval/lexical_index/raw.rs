@@ -1,5 +1,5 @@
 use super::*;
-use crate::fragment_store::fragment_id;
+use reliquary_archive::fragment_store::fragment_id;
 
 impl LexicalIndex {
     pub(crate) fn ensure_raw_current(
@@ -8,10 +8,8 @@ impl LexicalIndex {
         container: &mut Container,
     ) -> Result<(), ArchiveError> {
         let nodes = archive
-            .nodes
-            .iter()
+            .source_nodes()
             .skip(self.raw_turns.len())
-            .cloned()
             .collect::<Vec<_>>();
         for node in nodes {
             let text = archive.content(container, node.content_id)?;
@@ -25,9 +23,9 @@ impl LexicalIndex {
             self.raw_turns.push(IndexedRawTurn {
                 fragment: Fragment {
                     id: fragment_id(&node.conversation_id, &node.id, &node.id),
-                    conversation_id: node.conversation_id,
+                    conversation_id: node.conversation_id.clone(),
                     start_node_id: node.id.clone(),
-                    end_node_id: node.id,
+                    end_node_id: node.id.clone(),
                 },
                 timestamp_ns: node.timestamp_ns,
             });
