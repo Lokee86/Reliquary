@@ -1,6 +1,6 @@
 use crate::relationship_model::RelationshipRecord;
 use crate::{
-    EntityId, EntityRef, RelationshipMemoryRef, RelationshipError, RelationshipId,
+    EntityId, EntityRef, RelationshipError, RelationshipId, RelationshipMemoryRef,
     RelationshipParticipant,
 };
 use reliquary_container::ObjectRef;
@@ -102,9 +102,7 @@ pub fn encode_tombstone(value: RelationshipTombstone) -> Vec<u8> {
     out
 }
 
-pub fn decode_tombstone(
-    bytes: &[u8],
-) -> Result<Option<RelationshipTombstone>, RelationshipError> {
+pub fn decode_tombstone(bytes: &[u8]) -> Result<Option<RelationshipTombstone>, RelationshipError> {
     if bytes.len() < 8 || bytes[..8] != TOMBSTONE_MAGIC {
         return Ok(None);
     }
@@ -167,7 +165,10 @@ fn read_participants(
     Ok(values)
 }
 
-fn write_evidence(out: &mut Vec<u8>, values: &[RelationshipMemoryRef]) -> Result<(), RelationshipError> {
+fn write_evidence(
+    out: &mut Vec<u8>,
+    values: &[RelationshipMemoryRef],
+) -> Result<(), RelationshipError> {
     write_count(out, values.len())?;
     for value in values {
         write_string(out, &value.owner_id)?;
@@ -176,7 +177,10 @@ fn write_evidence(out: &mut Vec<u8>, values: &[RelationshipMemoryRef]) -> Result
     Ok(())
 }
 
-fn read_evidence(bytes: &[u8], cursor: &mut usize) -> Result<Vec<RelationshipMemoryRef>, RelationshipError> {
+fn read_evidence(
+    bytes: &[u8],
+    cursor: &mut usize,
+) -> Result<Vec<RelationshipMemoryRef>, RelationshipError> {
     let count = read_u16(bytes, cursor)? as usize;
     let mut values = Vec::with_capacity(count);
     for _ in 0..count {

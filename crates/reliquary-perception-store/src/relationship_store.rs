@@ -127,10 +127,7 @@ impl RelationshipStore {
         Ok((relationship, true))
     }
 
-    pub fn insert_rebuilt(
-        &mut self,
-        record: RelationshipRecord,
-    ) -> Result<(), RelationshipError> {
+    pub fn insert_rebuilt(&mut self, record: RelationshipRecord) -> Result<(), RelationshipError> {
         if self.tombstones.contains_key(&record.id) {
             return Err(RelationshipError::TerminalTombstone);
         }
@@ -296,7 +293,6 @@ impl RelationshipStore {
         self.next_relationship_version = next;
         Ok(())
     }
-
 }
 
 fn relationship_id(mutation_id: &str) -> RelationshipId {
@@ -336,7 +332,3 @@ fn same_draft(value: &Relationship, draft: &RelationshipDraft) -> bool {
 #[cfg(test)]
 #[path = "relationship_rebuild_overflow_tests.rs"]
 mod rebuild_overflow_tests;
-
-#[cfg(test)]
-#[path = "relationship_publication_writer_tests.rs"]
-mod publication_writer_tests;

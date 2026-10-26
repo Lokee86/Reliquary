@@ -19,15 +19,15 @@ pub mod relationship_retained_structure;
 pub mod relationship_description_proof;
 pub mod relationship_description_prune;
 
-pub use relationship_model::{
-    EntityRef, Relationship, RelationshipDraft, RelationshipId, RelationshipLifecycleState,
-    RelationshipMemoryRef, RelationshipParticipant, RelationshipPayloadUnavailable,
-    RelationshipRetainedRevision, RelationshipRetentionDescriptor, RelationshipStats,
-    RelationshipTombstoneCoordinates, RelationshipTombstoneOutcome,
-    MAX_RELATIONSHIP_EVIDENCE, MAX_RELATIONSHIP_KIND_BYTES, MAX_RELATIONSHIP_OWNER_ID_BYTES,
-    MAX_RELATIONSHIP_PARTICIPANTS, MAX_RELATIONSHIP_ROLE_BYTES, MAX_RELATIONSHIP_SUMMARY_BYTES,
-};
 pub use relationship_error::RelationshipError;
+pub use relationship_model::{
+    EntityRef, MAX_RELATIONSHIP_EVIDENCE, MAX_RELATIONSHIP_KIND_BYTES,
+    MAX_RELATIONSHIP_OWNER_ID_BYTES, MAX_RELATIONSHIP_PARTICIPANTS, MAX_RELATIONSHIP_ROLE_BYTES,
+    MAX_RELATIONSHIP_SUMMARY_BYTES, Relationship, RelationshipDraft, RelationshipId,
+    RelationshipLifecycleState, RelationshipMemoryRef, RelationshipParticipant,
+    RelationshipPayloadUnavailable, RelationshipRetainedRevision, RelationshipRetentionDescriptor,
+    RelationshipStats, RelationshipTombstoneCoordinates, RelationshipTombstoneOutcome,
+};
 pub use relationship_store::RelationshipStore;
 
 // EntityId is owned and exported by this same crate through the Entity extraction.

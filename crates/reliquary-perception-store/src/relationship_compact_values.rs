@@ -1,8 +1,8 @@
 //! companion value helpers for Relationship compact frames.
 use crate::{
     EntityId, EntityRef, MAX_RELATIONSHIP_EVIDENCE, MAX_RELATIONSHIP_OWNER_ID_BYTES,
-    MAX_RELATIONSHIP_PARTICIPANTS, MAX_RELATIONSHIP_ROLE_BYTES, RelationshipMemoryRef,
-    RelationshipError, RelationshipParticipant,
+    MAX_RELATIONSHIP_PARTICIPANTS, MAX_RELATIONSHIP_ROLE_BYTES, RelationshipError,
+    RelationshipMemoryRef, RelationshipParticipant,
 };
 
 pub fn write_string(out: &mut Vec<u8>, value: &str) -> Result<(), RelationshipError> {
@@ -111,11 +111,7 @@ pub fn read_evidence(
     for _ in 0..count {
         values.push(RelationshipMemoryRef {
             owner_id: read_string(bytes, cursor)?,
-            memory_id: read_fixed::<32>(
-                bytes,
-                cursor,
-                "truncated compact Relationship Memory ID",
-            )?,
+            memory_id: read_fixed::<32>(bytes, cursor, "truncated compact Relationship Memory ID")?,
         });
     }
     Ok(values)

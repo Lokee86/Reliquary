@@ -38,9 +38,7 @@ impl RelationshipStore {
         id: RelationshipId,
     ) -> Result<crate::RelationshipLifecycleState, RelationshipError> {
         if let Some(&coordinates) = self.tombstones.get(&id) {
-            return Ok(crate::RelationshipLifecycleState::Tombstoned(
-                coordinates,
-            ));
+            return Ok(crate::RelationshipLifecycleState::Tombstoned(coordinates));
         }
         self.current
             .contains_key(&id)
@@ -85,10 +83,7 @@ impl RelationshipStore {
             revisions,
         })
     }
-    pub fn relationship(
-        &self,
-        id: RelationshipId,
-    ) -> Result<Relationship, RelationshipError> {
+    pub fn relationship(&self, id: RelationshipId) -> Result<Relationship, RelationshipError> {
         self.current
             .get(&id)
             .map(|index| resolve(&self.records[*index]))

@@ -10,18 +10,24 @@ pub(crate) fn validate_historical_local_references(
     entities: &EntityStore,
 ) -> Result<(), RelationshipError> {
     let current = store.current();
-    if current.is_empty() { return Ok(()); }
+    if current.is_empty() {
+        return Ok(());
+    }
     let owner_id = owner_id.ok_or(RelationshipError::MissingOwnerIdentity)?;
     for relationship in current {
         for participant in &relationship.participants {
             if participant.entity.owner_id == owner_id
-                && !entities.contains_historical(participant.entity.entity_id) {
-                return Err(RelationshipError::MissingLocalEntity(participant.entity.entity_id));
+                && !entities.contains_historical(participant.entity.entity_id)
+            {
+                return Err(RelationshipError::MissingLocalEntity(
+                    participant.entity.entity_id,
+                ));
             }
         }
         for evidence in &relationship.evidence {
             if evidence.owner_id == owner_id
-                && !memories.contains_historical_memory(MemoryId(evidence.memory_id)) {
+                && !memories.contains_historical_memory(MemoryId(evidence.memory_id))
+            {
                 return Err(RelationshipError::MissingLocalMemory(evidence.memory_id));
             }
         }
@@ -36,12 +42,17 @@ fn validate_live_local_references(
     draft: &reliquary_perception_store::RelationshipDraft,
 ) -> Result<(), RelationshipError> {
     for participant in &draft.participants {
-        if participant.entity.owner_id == owner_id && !entities.contains(participant.entity.entity_id) {
-            return Err(RelationshipError::MissingLocalEntity(participant.entity.entity_id));
+        if participant.entity.owner_id == owner_id
+            && !entities.contains(participant.entity.entity_id)
+        {
+            return Err(RelationshipError::MissingLocalEntity(
+                participant.entity.entity_id,
+            ));
         }
     }
     for evidence in &draft.evidence {
-        if evidence.owner_id == owner_id && !memories.contains_memory(MemoryId(evidence.memory_id)) {
+        if evidence.owner_id == owner_id && !memories.contains_memory(MemoryId(evidence.memory_id))
+        {
             return Err(RelationshipError::MissingLocalMemory(evidence.memory_id));
         }
     }

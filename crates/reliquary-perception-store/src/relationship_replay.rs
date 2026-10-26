@@ -195,6 +195,3 @@ fn same_replay_record(left: &RelationshipRecord, right: &RelationshipRecord) -> 
     left == right
 }
 
-#[cfg(test)]
-#[path = "relationship_replay_tests.rs"]
-mod tests;

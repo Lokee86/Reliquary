@@ -799,6 +799,12 @@ mod rel_metadata_model;
 mod rel_metadata_store;
 #[path = "perception/relationship_owner.rs"]
 mod relationship_owner;
+#[cfg(test)]
+#[path = "perception/relationship_replay_tests.rs"]
+mod relationship_replay_tests;
+#[cfg(test)]
+#[path = "perception/relationship_publication_writer_tests.rs"]
+mod relationship_publication_writer_tests;
 #[path = "perception/relationship_product_model.rs"]
 mod relationship_product_model;
 #[path = "facade/review_clocks.rs"]

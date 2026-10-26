@@ -1,7 +1,7 @@
 use super::RelationshipStore;
+use crate::{EntityId, EntityRef, RelationshipError, RelationshipId, RelationshipMemoryRef};
 use reliquary_perception_store::relationship_codec::RelationshipTombstone;
 use reliquary_perception_store::relationship_model::{RelationshipParticipant, RelationshipRecord};
-use crate::{EntityId, EntityRef, MemoryId, MemoryRef, RelationshipError, RelationshipId};
 use std::collections::{BTreeSet, HashMap};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -12,7 +12,7 @@ struct StoreSnapshot {
     by_mutation: HashMap<String, usize>,
     by_participant: HashMap<EntityRef, BTreeSet<RelationshipId>>,
     revisions: HashMap<RelationshipId, u64>,
-    tombstones: HashMap<RelationshipId, crate::owner_lifecycle::TombstoneCoordinates>,
+    tombstones: HashMap<RelationshipId, crate::RelationshipTombstoneCoordinates>,
     next_relationship_version: u64,
 }
 
@@ -41,9 +41,9 @@ fn record(id: u8, revision: u64, global: u64, local: u64, mutation: &str) -> Rel
             },
             role: Some("source".into()),
         }],
-        evidence: vec![MemoryRef {
+        evidence: vec![RelationshipMemoryRef {
             owner_id: "memory-owner".into(),
-            memory_id: MemoryId([id.wrapping_add(2); 32]),
+            memory_id: [id.wrapping_add(2); 32],
         }],
         summary: format!("summary-{id}-{revision}"),
         mutation_id: mutation.into(),
