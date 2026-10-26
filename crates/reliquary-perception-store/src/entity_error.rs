@@ -1,6 +1,9 @@
 use reliquary_container::ContainerError;
 use std::fmt;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EntityPayloadUnavailable { Pruned }
+
 #[derive(Debug)]
 pub enum EntityError {
     Container(ContainerError),
@@ -12,7 +15,7 @@ pub enum EntityError {
     MissingEntity,
     TerminalTombstone,
     PayloadRequiredByLiveTarget,
-    PayloadUnavailable(crate::owner_lifecycle::PayloadUnavailable),
+    PayloadUnavailable(EntityPayloadUnavailable),
     RevisionConflict,
     MutationConflict,
     InvalidVersion,
@@ -20,15 +23,9 @@ pub enum EntityError {
 }
 
 impl fmt::Display for EntityError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "entity error: {self:?}")
-    }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "entity error: {self:?}") }
 }
-
 impl std::error::Error for EntityError {}
-
 impl From<ContainerError> for EntityError {
-    fn from(value: ContainerError) -> Self {
-        Self::Container(value)
-    }
+    fn from(value: ContainerError) -> Self { Self::Container(value) }
 }

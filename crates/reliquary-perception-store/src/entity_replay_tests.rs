@@ -37,7 +37,7 @@ fn retained_lookup_marks_pruned_payload_and_evidence_omits_coordinates_and_text(
     assert!(matches!(
         store.publication_at(3, 1),
         Err(EntityError::PayloadUnavailable(
-            crate::owner_lifecycle::PayloadUnavailable::Pruned
+            crate::EntityPayloadUnavailable::Pruned
         ))
     ));
 

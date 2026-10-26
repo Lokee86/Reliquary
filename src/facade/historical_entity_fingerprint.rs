@@ -1,8 +1,8 @@
 //! Test-only Entity revisions, direct terminals and merge replacement history.
 
 use crate::EntityId;
-use crate::entity_model::EntityRecord;
-use crate::entity_store::EntityStore;
+use reliquary_perception_store::entity_model::EntityRecord;
+use reliquary_perception_store::EntityStore;
 use crate::historical_fingerprint::{HistoricalFingerprint, OwnerProjection};
 use reliquary_container::Container;
 use serde_json::{Value, json};
@@ -42,9 +42,7 @@ pub(crate) fn entity_cut(
             record.entity_version.to_be_bytes(),
             revision_value(
                 record,
-                store
-                    .pruned_revisions
-                    .contains(&(record.id, record.revision)),
+                store.is_revision_pruned(record.id, record.revision),
                 container.transaction_time_ns(record.global_version),
             ),
         )?;

@@ -29,12 +29,12 @@ pub(super) fn normalize_draft(draft: &mut EntityDraft) -> Result<(), EntityError
 }
 
 pub(crate) fn validate_record(record: &EntityRecord) -> Result<(), EntityError> {
-    if record.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND {
-        if record.id != crate::entity_principal::principal_entity_id(&record.canonical_name) {
+    if record.kind == crate::entity_identity::PRINCIPAL_ENTITY_KIND {
+        if record.id != crate::entity_identity::principal_entity_id(&record.canonical_name) {
             return Err(EntityError::InvalidField("principal Entity ID"));
         }
         if record.global_id.is_some_and(|global_id| {
-            global_id != crate::entity_principal::principal_entity_global_id(&record.canonical_name)
+            global_id != crate::entity_identity::principal_entity_global_id(&record.canonical_name)
         }) {
             return Err(EntityError::InvalidField("principal Entity global UUID"));
         }
@@ -65,8 +65,8 @@ fn validate_fields(
     if invalid_text(kind, MAX_ENTITY_KIND_BYTES, true) {
         return Err(EntityError::InvalidField("Entity kind"));
     }
-    if kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND
-        && !crate::entity_principal::is_phy_principal_id(canonical_name)
+    if kind == crate::entity_identity::PRINCIPAL_ENTITY_KIND
+        && !false
     {
         return Err(EntityError::InvalidField("principal Entity identity"));
     }

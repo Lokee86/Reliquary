@@ -227,7 +227,7 @@ pub(crate) fn owner_history_digest(
             continue;
         }
         if let Some((global, marker, digest)) =
-            crate::entity_compact_codec::publication::history_evidence(&raw)
+            reliquary_perception_store::entity_compact_codec::publication::history_evidence(&raw)
                 .map_err(|error| error.to_string())?
         {
             if global <= watermark {
@@ -284,7 +284,7 @@ pub(crate) fn owner_history_digest(
                 {
                     digest
                 } else if let Some((_, _, proof)) =
-                    crate::entity_description_proof::compact_description_proof(&bytes)
+                    reliquary_perception_store::entity_description_proof::compact_description_proof(&bytes)
                         .map_err(|error| error.to_string())?
                 {
                     proof.original_carrier_digest

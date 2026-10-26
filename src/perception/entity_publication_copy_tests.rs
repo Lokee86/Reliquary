@@ -1,7 +1,7 @@
 //! Entity envelope history behavior across native copies and semantic rewrites.
-use crate::entity_compact_codec::publication::{self, EntityPublication};
-use crate::entity_compact_contract::{EntityCreation, EntityDelta};
-use crate::entity_model::EntityRecord;
+use reliquary_perception_store::entity_compact_codec::publication::{self, EntityPublication};
+use reliquary_perception_store::entity_compact_contract::{EntityCreation, EntityDelta};
+use reliquary_perception_store::entity_model::EntityRecord;
 use crate::rewrite::MemorySelection;
 use crate::{
     Cva, EntityGlobalId, EntityId, MemoryDraft, MemoryId, Phylactery, ProjectFileRef,
@@ -162,9 +162,9 @@ fn envelope_payloads(container: &Container) -> Vec<Vec<u8>> {
 
 fn assert_entity_history_equal(
     left_container: &Container,
-    left: &crate::entity_store::EntityStore,
+    left: &reliquary_perception_store::EntityStore,
     right_container: &Container,
-    right: &crate::entity_store::EntityStore,
+    right: &reliquary_perception_store::EntityStore,
 ) {
     assert_eq!(left.entity_version(), right.entity_version());
     for cut in 0..=left.entity_version() {

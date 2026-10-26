@@ -4,7 +4,7 @@ use crate::entity_compact_contract::EntityDelta;
 use crate::entity_model::EntityRecord;
 use reliquary_container::codec::apply_field;
 
-pub(crate) fn apply_delta(
+pub fn apply_delta(
     previous: &EntityRecord,
     delta: &EntityDelta,
 ) -> Result<EntityRecord, EntityError> {

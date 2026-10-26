@@ -2852,6 +2852,7 @@ name = "reliquary-perception-store"
 version = "0.1.0"
 dependencies = [
  "reliquary-container",
+ "serde_json",
  "sha2",
  "uuid",
 ]

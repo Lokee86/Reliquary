@@ -1,5 +1,5 @@
 //! Product admission for foreign Memory evidence. The compiled store owns persistence.
-use crate::entity_store::EntityStore;
+use reliquary_perception_store::EntityStore;
 use crate::memory_store::MemoryStore;
 use crate::{
     EntityId, EntityResolutionCompaction, EntityResolutionReason, MemoryEntityMentionKey,

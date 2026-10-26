@@ -1,16 +1,16 @@
 //! Storage reclamation retains accepted compact Entity history and drops inert carriers.
 fn encode_creation(c: &EntityCreation) -> Result<Vec<u8>, crate::EntityError> {
-    crate::entity_compact_codec::publication::encode(
-        &crate::entity_compact_codec::publication::EntityPublication::Creation(c.clone()),
+    reliquary_perception_store::entity_compact_codec::publication::encode(
+        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Creation(c.clone()),
     )
 }
 fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, crate::EntityError> {
-    crate::entity_compact_codec::publication::encode(
-        &crate::entity_compact_codec::publication::EntityPublication::Delta(d.clone()),
+    reliquary_perception_store::entity_compact_codec::publication::encode(
+        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Delta(d.clone()),
     )
 }
-use crate::entity_compact_contract::{EntityCreation, EntityDelta};
-use crate::entity_model::EntityRecord;
+use reliquary_perception_store::entity_compact_contract::{EntityCreation, EntityDelta};
+use reliquary_perception_store::entity_model::EntityRecord;
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
 use crate::{Cva, EntityGlobalId, EntityId, Phylactery};
 use reliquary_container::Container;
@@ -113,8 +113,8 @@ fn build_history(path: &Path) -> (Vec<EntityRecord>, Vec<Option<i64>>) {
     container
         .allocate_version_with_transaction_time(Some(1_005))
         .unwrap();
-    let body = crate::entity_compact_codec::publication::encode(
-        &crate::entity_compact_codec::publication::EntityPublication::MergeTombstone {
+    let body = reliquary_perception_store::entity_compact_codec::publication::encode(
+        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::MergeTombstone {
             id: a1.id,
             revision: 3,
             entity_version: 5,
@@ -146,8 +146,8 @@ fn build_history(path: &Path) -> (Vec<EntityRecord>, Vec<Option<i64>>) {
     container
         .allocate_version_with_transaction_time(Some(1_008))
         .unwrap();
-    let body = crate::entity_compact_codec::publication::encode(
-        &crate::entity_compact_codec::publication::EntityPublication::DirectTombstone {
+    let body = reliquary_perception_store::entity_compact_codec::publication::encode(
+        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::DirectTombstone {
             id: c1.id,
             revision: 3,
             entity_version: 8,

@@ -9,12 +9,6 @@ pub struct EntityId(pub [u8; 32]);
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct EntityGlobalId(pub [u8; 16]);
 
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct EntityRef {
-    pub owner_id: String,
-    pub entity_id: EntityId,
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EntityDraft {
     pub canonical_name: String,
@@ -83,7 +77,7 @@ pub struct EntityMergeOutcome {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct EntityRecord {
+pub struct EntityRecord {
     pub id: EntityId,
     pub global_id: Option<EntityGlobalId>,
     pub revision: u64,
@@ -97,3 +91,16 @@ pub(crate) struct EntityRecord {
     pub global_version: u64,
     pub entity_version: u64,
 }
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EntityTerminalCoordinates {
+    pub global_version: u64,
+    pub entity_version: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EntityTerminalOutcome {
+    Published(EntityTerminalCoordinates),
+    AlreadyTombstoned(EntityTerminalCoordinates),
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EntityLifecycleState { Active, Tombstoned(EntityTerminalCoordinates) }

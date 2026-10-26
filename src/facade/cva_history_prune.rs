@@ -314,7 +314,7 @@ impl Cva {
                 _ => None,
             })
             .collect::<HashSet<_>>();
-        let entity_plan = crate::entity_description_prune::prepare_description_prune(
+        let entity_plan = reliquary_perception_store::entity_description_prune::prepare_description_prune(
             &self.entities,
             &mut self.container,
             &selected_entities,

@@ -15,13 +15,13 @@ use crate::entity_codec::{DirectEntityTombstone, EntityTombstone, encode_format}
 use crate::entity_model::EntityRecord;
 use crate::{Entity, EntityDraft, EntityError, EntityGlobalId, EntityId};
 use reliquary_container::Container;
-pub(crate) use replay::EntityReplayPublication;
+pub use replay::EntityReplayPublication;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeSet, HashMap};
 use validation::normalize_draft;
 pub(crate) use validation::validate_record;
 
-pub(crate) struct EntityStore {
+pub struct EntityStore {
     records: Vec<EntityRecord>,
     pub(crate) pruned_revisions: BTreeSet<(EntityId, u64)>,
     current: HashMap<EntityId, usize>,
@@ -31,12 +31,12 @@ pub(crate) struct EntityStore {
     by_alias_surface: HashMap<String, BTreeSet<EntityId>>,
     revisions: HashMap<EntityId, u64>,
     retired: HashMap<EntityId, EntityId>,
-    tombstones: HashMap<EntityId, crate::owner_lifecycle::TombstoneCoordinates>,
+    tombstones: HashMap<EntityId, crate::EntityTerminalCoordinates>,
     next_entity_version: u64,
 }
 
 impl EntityStore {
-    pub(crate) fn empty() -> Self {
+    pub fn empty() -> Self {
         Self {
             records: Vec::new(),
             pruned_revisions: BTreeSet::new(),
@@ -52,12 +52,12 @@ impl EntityStore {
         }
     }
 
-    pub(crate) fn initialize(&self, container: &mut Container) -> Result<(), EntityError> {
+    pub fn initialize(&self, container: &mut Container) -> Result<(), EntityError> {
         container.append(&encode_format())?;
         Ok(())
     }
 
-    pub(crate) fn publish(
+    pub fn publish(
         &mut self,
         container: &mut Container,
         id: Option<EntityId>,
@@ -67,7 +67,7 @@ impl EntityStore {
         self.publish_with_global_id(container, id, expected_revision, draft, None)
     }
 
-    pub(crate) fn publish_with_global_id(
+    pub fn publish_with_global_id(
         &mut self,
         container: &mut Container,
         id: Option<EntityId>,
@@ -76,8 +76,8 @@ impl EntityStore {
         requested_global_id: Option<EntityGlobalId>,
     ) -> Result<(Entity, bool), EntityError> {
         normalize_draft(&mut draft)?;
-        let id = if draft.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND {
-            let principal_id = crate::entity_principal::principal_entity_id(&draft.canonical_name);
+        let id = if draft.kind == crate::entity_identity::PRINCIPAL_ENTITY_KIND {
+            let principal_id = crate::entity_identity::principal_entity_id(&draft.canonical_name);
             if id.is_some_and(|id| id != principal_id) {
                 return Err(EntityError::InvalidField("principal Entity ID"));
             }
@@ -115,8 +115,8 @@ impl EntityStore {
                 existing
             }
             None => requested_global_id.unwrap_or_else(|| {
-                if draft.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND {
-                    crate::entity_principal::principal_entity_global_id(&draft.canonical_name)
+                if draft.kind == crate::entity_identity::PRINCIPAL_ENTITY_KIND {
+                    crate::entity_identity::principal_entity_global_id(&draft.canonical_name)
                 } else {
                     EntityGlobalId(*uuid::Uuid::new_v4().as_bytes())
                 }
@@ -232,7 +232,7 @@ impl EntityStore {
         Ok(())
     }
 
-    pub(crate) fn tombstone(
+    pub fn tombstone(
         &mut self,
         container: &mut Container,
         id: EntityId,
@@ -326,30 +326,27 @@ impl EntityStore {
         self.retired.insert(tombstone.id, tombstone.replacement_id);
         self.tombstones.insert(
             tombstone.id,
-            crate::owner_lifecycle::TombstoneCoordinates {
-                global_version: Some(global_version),
-                domain_version: Some(entity_version),
-            },
+            crate::EntityTerminalCoordinates { global_version, entity_version },
         );
         self.next_entity_version = next_entity_version;
         Ok(())
     }
 
-    pub(crate) fn retired_replacement(&self, id: EntityId) -> Option<EntityId> {
+    pub fn retired_replacement(&self, id: EntityId) -> Option<EntityId> {
         self.retired.get(&id).copied()
     }
 
-    pub(crate) fn tombstone_direct(
+    pub fn tombstone_direct(
         &mut self,
         container: &mut Container,
         id: EntityId,
         expected_revision: u64,
-    ) -> Result<crate::owner_lifecycle::TombstoneOutcome, EntityError> {
+    ) -> Result<crate::EntityTerminalOutcome, EntityError> {
         if let Some(&coordinates) = self.tombstones.get(&id) {
             if expected_revision.checked_add(1) != self.revisions.get(&id).copied() {
                 return Err(EntityError::RevisionConflict);
             }
-            return Ok(crate::owner_lifecycle::TombstoneOutcome::AlreadyTombstoned(
+            return Ok(crate::EntityTerminalOutcome::AlreadyTombstoned(
                 coordinates,
             ));
         }
@@ -380,11 +377,8 @@ impl EntityStore {
         )?;
         let (global_version, _) = container.append_publication_envelope(&body)?;
         self.insert_direct_tombstone_rebuilt(tombstone, global_version, entity_version)?;
-        Ok(crate::owner_lifecycle::TombstoneOutcome::Published(
-            crate::owner_lifecycle::TombstoneCoordinates {
-                global_version: Some(global_version),
-                domain_version: Some(entity_version),
-            },
+        Ok(crate::EntityTerminalOutcome::Published(
+            crate::EntityTerminalCoordinates { global_version, entity_version },
         ))
     }
 
@@ -424,16 +418,13 @@ impl EntityStore {
         self.revisions.insert(tombstone.id, tombstone.revision);
         self.tombstones.insert(
             tombstone.id,
-            crate::owner_lifecycle::TombstoneCoordinates {
-                global_version: Some(global_version),
-                domain_version: Some(entity_version),
-            },
+            crate::EntityTerminalCoordinates { global_version, entity_version },
         );
         self.next_entity_version = next_entity_version;
         Ok(())
     }
 
-    pub(crate) fn canonical_active_id(&self, id: EntityId) -> Option<EntityId> {
+    pub fn canonical_active_id(&self, id: EntityId) -> Option<EntityId> {
         if self.current.contains_key(&id) {
             return Some(id);
         }

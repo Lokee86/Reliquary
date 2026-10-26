@@ -4,7 +4,7 @@ use crate::{EntityError, EntityId, EntityRetainedRevision};
 use reliquary_container::Container;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum EntityReplayPublication {
+pub enum EntityReplayPublication {
     Record(EntityRecord),
     PrunedRecord {
         id: EntityId,
@@ -18,7 +18,7 @@ pub(crate) enum EntityReplayPublication {
 }
 
 impl EntityReplayPublication {
-    pub(crate) fn normalized_import_evidence(&self) -> Result<Vec<u8>, EntityError> {
+    pub fn normalized_import_evidence(&self) -> Result<Vec<u8>, EntityError> {
         let value = match self {
             Self::Record(record) => serde_json::to_vec(&(
                 "entity-import-evidence-v1",
@@ -62,20 +62,20 @@ impl EntityReplayPublication {
 }
 
 impl EntityStore {
-    pub(crate) fn publication_at(
+    pub fn publication_at(
         &self,
         global_version: u64,
         entity_version: u64,
     ) -> Result<Option<EntityReplayPublication>, EntityError> {
         match self.retained_publication_at(global_version, entity_version)? {
             Some(EntityReplayPublication::PrunedRecord { .. }) => Err(
-                EntityError::PayloadUnavailable(crate::owner_lifecycle::PayloadUnavailable::Pruned),
+                EntityError::PayloadUnavailable(crate::EntityPayloadUnavailable::Pruned),
             ),
             publication => Ok(publication),
         }
     }
 
-    pub(crate) fn retained_publication_at(
+    pub fn retained_publication_at(
         &self,
         global_version: u64,
         entity_version: u64,
@@ -105,8 +105,8 @@ impl EntityStore {
         }
 
         for (id, coordinates) in &self.tombstones {
-            if coordinates.global_version == Some(global_version)
-                && coordinates.domain_version == Some(entity_version)
+            if coordinates.global_version == global_version
+                && coordinates.entity_version == entity_version
             {
                 let revision = *self.revisions.get(id).ok_or(EntityError::InvalidVersion)?;
                 return Ok(Some(EntityReplayPublication::Tombstone {
@@ -119,7 +119,7 @@ impl EntityStore {
         Ok(None)
     }
 
-    pub(crate) fn replay_publication(
+    pub fn replay_publication(
         &mut self,
         container: &mut Container,
         publication: EntityReplayPublication,
@@ -127,7 +127,7 @@ impl EntityStore {
         match publication {
             EntityReplayPublication::Record(record) => self.replay_record(container, record),
             EntityReplayPublication::PrunedRecord { .. } => Err(EntityError::PayloadUnavailable(
-                crate::owner_lifecycle::PayloadUnavailable::Pruned,
+                crate::EntityPayloadUnavailable::Pruned,
             )),
             EntityReplayPublication::Tombstone {
                 id,
@@ -151,8 +151,8 @@ impl EntityStore {
                         self.tombstone(container, id, expected_revision, replacement_id)
                     }
                     None => match self.tombstone_direct(container, id, expected_revision)? {
-                        crate::owner_lifecycle::TombstoneOutcome::Published(_) => Ok(true),
-                        crate::owner_lifecycle::TombstoneOutcome::AlreadyTombstoned(_) => Ok(false),
+                        crate::EntityTerminalOutcome::Published(_) => Ok(true),
+                        crate::EntityTerminalOutcome::AlreadyTombstoned(_) => Ok(false),
                     },
                 }
             }
@@ -200,9 +200,6 @@ fn same_replay_record(left: &EntityRecord, right: &EntityRecord) -> bool {
 #[cfg(test)]
 #[path = "entity_import_evidence_tests.rs"]
 mod import_evidence_tests;
-#[cfg(test)]
-#[path = "entity_replay_retry_tests.rs"]
-mod retry_tests;
 #[cfg(test)]
 #[path = "entity_replay_tests.rs"]
 mod tests;

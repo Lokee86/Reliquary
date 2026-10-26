@@ -1,4 +1,4 @@
-use crate::entity_store::EntityStore;
+use reliquary_perception_store::EntityStore;
 use crate::graph_owner::GraphOwner;
 use crate::memory_store::MemoryStore;
 use reliquary_perception_store::relationship_store::RelationshipStore;

@@ -8,7 +8,7 @@ const DIRECT: &[u8; 8] = b"CVAETD02";
 const MERGE: &[u8; 8] = b"CVAETM02";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum EntityPublication {
+pub enum EntityPublication {
     Creation(EntityCreation),
     Delta(EntityDelta),
     DirectTombstone {
@@ -24,7 +24,7 @@ pub(crate) enum EntityPublication {
     },
 }
 
-pub(crate) fn encode(publication: &EntityPublication) -> Result<Vec<u8>, EntityError> {
+pub fn encode(publication: &EntityPublication) -> Result<Vec<u8>, EntityError> {
     let mut out = Vec::new();
     match publication {
         EntityPublication::Creation(creation) => {
@@ -96,7 +96,7 @@ pub(crate) fn encode(publication: &EntityPublication) -> Result<Vec<u8>, EntityE
     Ok(out)
 }
 
-pub(crate) fn decode(
+pub fn decode(
     bytes: &[u8],
     global_version: u64,
 ) -> Result<Option<EntityPublication>, EntityError> {
@@ -204,7 +204,7 @@ fn validate_terminal(revision: u64, entity_version: u64) -> Result<(), EntityErr
 }
 
 /// Publication coordinates only; consumers resolve facts through EntityStore.
-pub(crate) fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, EntityError> {
+pub fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, EntityError> {
     let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };
@@ -221,7 +221,7 @@ pub(crate) fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, EntityEr
 }
 
 /// Comparison-only authority in the established marker-bound representation.
-pub(crate) fn comparison_carrier(publication: &EntityPublication) -> Result<Vec<u8>, EntityError> {
+pub fn comparison_carrier(publication: &EntityPublication) -> Result<Vec<u8>, EntityError> {
     match publication {
         EntityPublication::Creation(creation) => super::encode_creation(creation),
         EntityPublication::Delta(delta) => super::encode_delta(delta),
@@ -248,7 +248,7 @@ pub(crate) fn comparison_carrier(publication: &EntityPublication) -> Result<Vec<
     }
 }
 
-pub(crate) fn history_evidence(
+pub fn history_evidence(
     payload: &[u8],
 ) -> Result<Option<(u64, Vec<u8>, [u8; 32])>, EntityError> {
     let Some(envelope) = reliquary_container::publication_envelope::decode(payload)? else {

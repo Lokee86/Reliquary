@@ -15,7 +15,7 @@ struct StoreSnapshot {
     by_alias_surface: HashMap<String, BTreeSet<EntityId>>,
     revisions: HashMap<EntityId, u64>,
     retired: HashMap<EntityId, EntityId>,
-    tombstones: HashMap<EntityId, crate::owner_lifecycle::TombstoneCoordinates>,
+    tombstones: HashMap<EntityId, crate::EntityTerminalCoordinates>,
     next_entity_version: u64,
 }
 

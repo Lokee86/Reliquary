@@ -1,5 +1,5 @@
 //! Product admission and typed identity conversion for the canonical Graph owner.
-use crate::entity_store::EntityStore;
+use reliquary_perception_store::EntityStore;
 use crate::memory_store::MemoryStore;
 use crate::*;
 use arcana::NodeId;

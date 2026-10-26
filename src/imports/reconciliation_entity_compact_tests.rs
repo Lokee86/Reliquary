@@ -1,19 +1,19 @@
 use super::*;
-use crate::entity_codec::{
+use reliquary_perception_store::entity_codec::{
     DirectEntityTombstone, EntityTombstone, encode_direct_tombstone, encode_tombstone,
 };
 fn encode_creation(c: &EntityCreation) -> Result<Vec<u8>, crate::EntityError> {
-    crate::entity_compact_codec::publication::encode(
-        &crate::entity_compact_codec::publication::EntityPublication::Creation(c.clone()),
+    reliquary_perception_store::entity_compact_codec::publication::encode(
+        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Creation(c.clone()),
     )
 }
 fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, crate::EntityError> {
-    crate::entity_compact_codec::publication::encode(
-        &crate::entity_compact_codec::publication::EntityPublication::Delta(d.clone()),
+    reliquary_perception_store::entity_compact_codec::publication::encode(
+        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Delta(d.clone()),
     )
 }
-use crate::entity_compact_contract::{EntityCreation, EntityDelta};
-use crate::entity_model::EntityRecord;
+use reliquary_perception_store::entity_compact_contract::{EntityCreation, EntityDelta};
+use reliquary_perception_store::entity_model::EntityRecord;
 use crate::{Cva, EntityId};
 use std::fs;
 use std::path::PathBuf;

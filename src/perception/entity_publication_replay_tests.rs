@@ -1,7 +1,7 @@
 //! Entity publication-envelope admission through the REL and PHY facades.
-use crate::entity_compact_codec::publication::{self, EntityPublication};
-use crate::entity_compact_contract::{EntityCreation, EntityDelta};
-use crate::entity_model::EntityRecord;
+use reliquary_perception_store::entity_compact_codec::publication::{self, EntityPublication};
+use reliquary_perception_store::entity_compact_contract::{EntityCreation, EntityDelta};
+use reliquary_perception_store::entity_model::EntityRecord;
 use crate::{Cva, EntityGlobalId, EntityId, MemoryDraft, Phylactery};
 use reliquary_container::Container;
 use reliquary_container::publication_envelope::{PublicationClock, PublicationEnvelope};

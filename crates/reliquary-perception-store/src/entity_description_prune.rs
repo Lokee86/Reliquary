@@ -8,13 +8,13 @@ use reliquary_container::{Container, ObjectRef};
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 
-pub(crate) struct EntityDescriptionPrunePlan {
-    pub(crate) replacements: HashMap<ObjectRef, Vec<u8>>,
-    pub(crate) discard: HashSet<ObjectRef>,
+pub struct EntityDescriptionPrunePlan {
+    pub replacements: HashMap<ObjectRef, Vec<u8>>,
+    pub discard: HashSet<ObjectRef>,
 }
 
 /// Prepare redacted carriers without writing to the source container or allocating clocks.
-pub(crate) fn prepare_description_prune(
+pub fn prepare_description_prune(
     store: &EntityStore,
     container: &mut Container,
     selected: &HashSet<EntityId>,
@@ -57,7 +57,7 @@ pub(crate) fn prepare_description_prune(
         let carrier = object;
         match publication {
             EntityReplayPublication::Record(record) if selected.contains(&record.id) => {
-                if record.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND {
+                if record.kind == crate::entity_identity::PRINCIPAL_ENTITY_KIND {
                     return Err(EntityError::PayloadRequiredByLiveTarget);
                 }
                 let body = publication::decode(envelope.body, envelope.global_version)?
@@ -106,7 +106,7 @@ pub(crate) fn prepare_description_prune(
             }
             EntityReplayPublication::PrunedRecord { id, .. } if selected.contains(&id) => {
                 return Err(EntityError::PayloadUnavailable(
-                    crate::owner_lifecycle::PayloadUnavailable::Pruned,
+                    crate::EntityPayloadUnavailable::Pruned,
                 ));
             }
             _ => {}

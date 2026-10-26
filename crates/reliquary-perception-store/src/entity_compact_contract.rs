@@ -7,7 +7,7 @@ use reliquary_container::codec::FieldChange;
 /// Opaque authenticated maintenance evidence, not an authored description.
 /// File-level replay must still verify the exact manifest authorization.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct EntityDescriptionProof {
+pub struct EntityDescriptionProof {
     /// SHA-256 of the original record carrier bytes, before description pruning.
     pub original_carrier_digest: [u8; 32],
     /// SHA-256 of the complete canonical encoded CVAHPR01 manifest.
@@ -16,13 +16,13 @@ pub(crate) struct EntityDescriptionProof {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct EntityCreation {
+pub struct EntityCreation {
     pub record: EntityRecord,
     pub description_proof: Option<EntityDescriptionProof>,
 }
 
 impl EntityCreation {
-    pub(crate) fn new(record: EntityRecord) -> Result<Self, EntityError> {
+    pub fn new(record: EntityRecord) -> Result<Self, EntityError> {
         if record.revision != 1 || record.global_version == 0 || record.entity_version == 0 {
             return Err(EntityError::InvalidVersion);
         }
@@ -33,7 +33,7 @@ impl EntityCreation {
         })
     }
 
-    pub(crate) fn new_pruned(
+    pub fn new_pruned(
         record: EntityRecord,
         proof: EntityDescriptionProof,
     ) -> Result<Self, EntityError> {
@@ -47,17 +47,17 @@ impl EntityCreation {
 macro_rules! entity_fields {
     ($($bit:literal => $field:ident: $ty:ty),+ $(,)?) => {
         #[derive(Clone, Debug, Eq, PartialEq)]
-        pub(crate) struct EntityDeltaFields { $(pub $field: FieldChange<$ty>,)+ }
-        pub(crate) const ENTITY_DELTA_FIELD_ORDER: &[&str] = &[$(stringify!($field)),+];
-        pub(crate) const ENTITY_DELTA_KNOWN_MASK: u64 = 0 $(| (1 << $bit))+;
+        pub struct EntityDeltaFields { $(pub $field: FieldChange<$ty>,)+ }
+        pub const ENTITY_DELTA_FIELD_ORDER: &[&str] = &[$(stringify!($field)),+];
+        pub const ENTITY_DELTA_KNOWN_MASK: u64 = 0 $(| (1 << $bit))+;
         impl EntityDeltaFields {
-            pub(crate) fn between(previous: &EntityRecord, next: &EntityRecord) -> Self {
+            pub fn between(previous: &EntityRecord, next: &EntityRecord) -> Self {
                 // A new record field must receive an explicit owner decision.
                 let EntityRecord { id: _, revision: _, mutation_id: _, created_at_ns: _,
                     global_version: _, entity_version: _, $($field: _,)+ } = next;
                 Self { $($field: FieldChange::between(&previous.$field, &next.$field),)+ }
             }
-            pub(crate) fn mask(&self) -> u64 {
+            pub fn mask(&self) -> u64 {
                 0 $(| if matches!(self.$field, FieldChange::Unchanged) { 0 } else { 1 << $bit })+
             }
         }
@@ -74,7 +74,7 @@ entity_fields! {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct EntityDelta {
+pub struct EntityDelta {
     pub id: EntityId,
     pub previous_revision: u64,
     pub revision: u64,
@@ -86,7 +86,7 @@ pub(crate) struct EntityDelta {
 }
 
 impl EntityDelta {
-    pub(crate) fn between(
+    pub fn between(
         previous: &EntityRecord,
         next: &EntityRecord,
     ) -> Result<Self, EntityError> {
@@ -125,7 +125,7 @@ impl EntityDelta {
         })
     }
 
-    pub(crate) fn between_pruned(
+    pub fn between_pruned(
         previous: &EntityRecord,
         next: &EntityRecord,
         proof: EntityDescriptionProof,
@@ -136,7 +136,7 @@ impl EntityDelta {
         Ok(delta)
     }
 
-    pub(crate) fn validate_mask(mask: u64) -> Result<(), EntityError> {
+    pub fn validate_mask(mask: u64) -> Result<(), EntityError> {
         if !reliquary_container::codec::mask_is_known(mask, ENTITY_DELTA_KNOWN_MASK) {
             return Err(EntityError::CorruptRecord("unknown Entity delta field"));
         }
@@ -145,7 +145,7 @@ impl EntityDelta {
 }
 
 fn validate_pruned_description(record: &EntityRecord) -> Result<(), EntityError> {
-    if record.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND {
+    if record.kind == crate::entity_identity::PRINCIPAL_ENTITY_KIND {
         return Err(EntityError::PayloadRequiredByLiveTarget);
     }
     if record.canonical_name != "[pruned]"

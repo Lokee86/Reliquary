@@ -78,9 +78,8 @@ macro_rules! impl_owner {
                 id: EntityId,
                 expected_revision: u64,
             ) -> Result<crate::owner_lifecycle::TombstoneOutcome, EntityError> {
-                let result =
-                    self.entities
-                        .tombstone_direct(&mut self.container, id, expected_revision)?;
+                let result = self.entities.tombstone_direct(&mut self.container, id, expected_revision)?;
+                let result = map_entity_tombstone(result);
                 self.graph
                     .exclude_from_current(crate::SemanticNodeRef::entity(id))
                     .map_err(|_| EntityError::InvalidField("Entity graph projection"))?;
@@ -104,7 +103,7 @@ macro_rules! impl_owner {
             > {
                 let value = match self.entity_revision(id, revision) {
                     Ok(value) => value,
-                    Err(EntityError::PayloadUnavailable(reason)) => {
+                    Err(EntityError::PayloadUnavailable(crate::EntityPayloadUnavailable::Pruned)) => {
                         let structure = self
                             .entity_retention_descriptor(id)?
                             .revisions
@@ -113,18 +112,14 @@ macro_rules! impl_owner {
                             .ok_or(EntityError::MissingEntity)?;
                         return Ok(crate::owner_lifecycle::HistoricalPayload::Pruned {
                             structural_history: structure,
-                            reason,
+                            reason: crate::owner_lifecycle::PayloadUnavailable::Pruned,
                         });
                     }
                     Err(error) => return Err(error),
                 };
                 Ok(match self.entity_lifecycle_state(id)? {
-                    crate::owner_lifecycle::LifecycleState::Active => {
-                        crate::owner_lifecycle::HistoricalPayload::Available(value)
-                    }
-                    crate::owner_lifecycle::LifecycleState::Tombstoned(_) => {
-                        crate::owner_lifecycle::HistoricalPayload::Tombstoned(value)
-                    }
+                    crate::owner_lifecycle::LifecycleState::Active => crate::owner_lifecycle::HistoricalPayload::Available(value),
+                    crate::owner_lifecycle::LifecycleState::Tombstoned(_) => crate::owner_lifecycle::HistoricalPayload::Tombstoned(value),
                 })
             }
 
@@ -132,7 +127,10 @@ macro_rules! impl_owner {
                 &self,
                 id: EntityId,
             ) -> Result<crate::owner_lifecycle::LifecycleState, EntityError> {
-                self.entities.lifecycle_state(id)
+                Ok(match self.entities.lifecycle_state(id)? {
+                    reliquary_perception_store::EntityLifecycleState::Active => crate::owner_lifecycle::LifecycleState::Active,
+                    reliquary_perception_store::EntityLifecycleState::Tombstoned(coordinates) => crate::owner_lifecycle::LifecycleState::Tombstoned(map_entity_coordinates(coordinates)),
+                })
             }
 
             pub fn entity_revision(
@@ -198,3 +196,17 @@ macro_rules! impl_owner {
 
 impl_owner!(Cva, false);
 impl_owner!(Phylactery, true);
+
+fn map_entity_coordinates(coordinates: reliquary_perception_store::EntityTerminalCoordinates) -> crate::owner_lifecycle::TombstoneCoordinates {
+    crate::owner_lifecycle::TombstoneCoordinates {
+        global_version: Some(coordinates.global_version),
+        domain_version: Some(coordinates.entity_version),
+    }
+}
+
+fn map_entity_tombstone(outcome: reliquary_perception_store::EntityTerminalOutcome) -> crate::owner_lifecycle::TombstoneOutcome {
+    match outcome {
+        reliquary_perception_store::EntityTerminalOutcome::Published(coordinates) => crate::owner_lifecycle::TombstoneOutcome::Published(map_entity_coordinates(coordinates)),
+        reliquary_perception_store::EntityTerminalOutcome::AlreadyTombstoned(coordinates) => crate::owner_lifecycle::TombstoneOutcome::AlreadyTombstoned(map_entity_coordinates(coordinates)),
+    }
+}

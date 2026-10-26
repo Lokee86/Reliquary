@@ -1,12 +1,12 @@
 //! Authenticated Entity pruning for envelope publications.
-use crate::entity_codec::{
+use reliquary_perception_store::entity_codec::{
     DirectEntityTombstone, EntityTombstone, EntityVersion, encode_direct_tombstone,
     encode_tombstone, encode_version,
 };
-use crate::entity_compact_codec::publication::{self, EntityPublication};
-use crate::entity_compact_codec::{encode_creation, encode_delta};
-use crate::entity_compact_contract::{EntityCreation, EntityDelta};
-use crate::entity_model::EntityRecord;
+use reliquary_perception_store::entity_compact_codec::publication::{self, EntityPublication};
+use reliquary_perception_store::entity_compact_codec::{encode_creation, encode_delta};
+use reliquary_perception_store::entity_compact_contract::{EntityCreation, EntityDelta};
+use reliquary_perception_store::entity_model::EntityRecord;
 use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget};
 use crate::{Cva, EntityGlobalId, EntityId, HistoryPruneRequest, Phylactery};
 use reliquary_container::publication_envelope::{PublicationClock, PublicationEnvelope};

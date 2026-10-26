@@ -1,5 +1,5 @@
 //! Product replay admission after Memory and Entity projections finish.
-use crate::entity_store::EntityStore;
+use reliquary_perception_store::EntityStore;
 use crate::graph_owner::GraphOwner;
 use crate::memory_store::MemoryStore;
 use crate::{GraphError, SemanticNodeKind};

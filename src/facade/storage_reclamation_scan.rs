@@ -75,7 +75,7 @@ impl ReclamationScan {
             .map_err(|error| error.to_string())?;
             if memory.is_none()
                 && archive.is_none()
-                && crate::entity_compact_codec::publication::decode(
+                && reliquary_perception_store::entity_compact_codec::publication::decode(
                     envelope.body,
                     envelope.global_version,
                 )
@@ -136,7 +136,7 @@ impl ReclamationScan {
             .map_err(|e| e.to_string())?
             .is_some()
             || (!payload.starts_with(b"CVAETM01")
-                && crate::entity_compact_codec::publication::decode(payload, 1)
+                && reliquary_perception_store::entity_compact_codec::publication::decode(payload, 1)
                     .map_err(|e| e.to_string())?
                     .is_some())
             || reliquary_perception_store::relationship_compact_codec::publication::decode(payload, 1)

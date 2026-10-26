@@ -6,7 +6,7 @@ use crate::dream_duplicate_index::DuplicateIndex;
 use crate::dream_pair_history::DreamPairStore;
 use crate::ego_store::EgoStore;
 use crate::entity_resolution_store::EntityResolutionStore;
-use crate::entity_store::EntityStore;
+use reliquary_perception_store::EntityStore;
 use crate::graph_owner::GraphOwner;
 use crate::insomnia::store::InsomniaStore;
 use crate::lexical_index::LexicalIndex;

@@ -9,7 +9,7 @@ use crate::entity_model::EntityRecord;
 const RECORD_WITHOUT_GLOBAL_ID: &[u8; 8] = b"CVAENTR1";
 const RECORD_WITH_GLOBAL_ID: &[u8; 8] = b"CVAENTR2";
 
-pub(crate) fn encode_record_structure(record: &EntityRecord) -> Result<Vec<u8>, EntityError> {
+pub fn encode_record_structure(record: &EntityRecord) -> Result<Vec<u8>, EntityError> {
     let mut out = Vec::with_capacity(160);
     match record.global_id {
         Some(global_id) => {

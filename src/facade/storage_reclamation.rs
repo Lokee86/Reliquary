@@ -230,7 +230,7 @@ pub(crate) fn relocate_payload(
         if crate::memory_compact_codec::publication::decode(envelope.body, envelope.global_version)
             .map_err(|error| error.to_string())?
             .is_none()
-            && crate::entity_compact_codec::publication::decode(
+            && reliquary_perception_store::entity_compact_codec::publication::decode(
                 envelope.body,
                 envelope.global_version,
             )

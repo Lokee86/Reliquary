@@ -5,7 +5,7 @@
 use crate::entity_compact_contract::EntityDescriptionProof;
 use crate::{EntityError, EntityId};
 
-pub(crate) fn compact_description_proof(
+pub fn compact_description_proof(
     bytes: &[u8],
 ) -> Result<Option<(EntityId, u64, EntityDescriptionProof)>, EntityError> {
     use crate::entity_compact_codec::publication::{self, EntityPublication};

@@ -170,11 +170,11 @@ fn entity_import_evidence(cva: &Cva, global: u64, local: u64) -> Vec<u8> {
 
 fn append_entity_publication(
     cva: &mut Cva,
-    publication: crate::entity_compact_codec::publication::EntityPublication,
+    publication: reliquary_perception_store::entity_compact_codec::publication::EntityPublication,
     global: u64,
     local: u64,
 ) {
-    let body = crate::entity_compact_codec::publication::encode(&publication).unwrap();
+    let body = reliquary_perception_store::entity_compact_codec::publication::encode(&publication).unwrap();
     let (appended_global, _) = cva.container.append_publication_envelope(&body).unwrap();
     assert_eq!(appended_global, global);
     assert_eq!(cva.entity_version() + 1, local);
@@ -676,29 +676,29 @@ fn completed_scope_inventory(
         revised.summary = "Accepted envelope revision description".into();
         revised.updated_at_ns = 21;
         let delta =
-            crate::entity_compact_contract::EntityDelta::between(&previous, &revised).unwrap();
+            reliquary_perception_store::entity_compact_contract::EntityDelta::between(&previous, &revised).unwrap();
         let global = revised.global_version;
         let local = revised.entity_version;
         append_entity_publication(
             &mut cva,
-            crate::entity_compact_codec::publication::EntityPublication::Delta(delta.clone()),
+            reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Delta(delta.clone()),
             global,
             local,
         );
-        let decoded = crate::entity_compact_apply::apply_delta(&previous, &delta).unwrap();
+        let decoded = reliquary_perception_store::entity_compact_apply::apply_delta(&previous, &delta).unwrap();
         assert_eq!(decoded, revised);
         cva.entities.insert_rebuilt(decoded).unwrap();
         entity_evidence.push(entity_import_evidence(&cva, global, local));
 
         let global = cva.container.next_version_candidate();
         let local = cva.entity_version() + 1;
-        let direct = crate::entity_codec::DirectEntityTombstone {
+        let direct = reliquary_perception_store::entity_codec::DirectEntityTombstone {
             id: legacy.id,
             revision: revised.revision + 1,
         };
         append_entity_publication(
             &mut cva,
-            crate::entity_compact_codec::publication::EntityPublication::DirectTombstone {
+            reliquary_perception_store::entity_compact_codec::publication::EntityPublication::DirectTombstone {
                 id: direct.id,
                 revision: direct.revision,
                 entity_version: local,
@@ -716,8 +716,8 @@ fn completed_scope_inventory(
                            draft: EntityDraft,
                            global_version: u64,
                            entity_version: u64|
-         -> crate::entity_model::EntityRecord {
-            crate::entity_model::EntityRecord {
+         -> reliquary_perception_store::entity_model::EntityRecord {
+            reliquary_perception_store::entity_model::EntityRecord {
                 id,
                 global_id: Some(global_id),
                 revision: 1,
@@ -748,10 +748,10 @@ fn completed_scope_inventory(
             merge_target_local,
         );
         let creation =
-            crate::entity_compact_contract::EntityCreation::new(merge_target.clone()).unwrap();
+            reliquary_perception_store::entity_compact_contract::EntityCreation::new(merge_target.clone()).unwrap();
         append_entity_publication(
             &mut cva,
-            crate::entity_compact_codec::publication::EntityPublication::Creation(creation),
+            reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Creation(creation),
             merge_target_global,
             merge_target_local,
         );
@@ -778,10 +778,10 @@ fn completed_scope_inventory(
             survivor_local,
         );
         let creation =
-            crate::entity_compact_contract::EntityCreation::new(survivor.clone()).unwrap();
+            reliquary_perception_store::entity_compact_contract::EntityCreation::new(survivor.clone()).unwrap();
         append_entity_publication(
             &mut cva,
-            crate::entity_compact_codec::publication::EntityPublication::Creation(creation),
+            reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Creation(creation),
             survivor_global,
             survivor_local,
         );
@@ -794,14 +794,14 @@ fn completed_scope_inventory(
 
         let global = cva.container.next_version_candidate();
         let local = cva.entity_version() + 1;
-        let merge = crate::entity_codec::EntityTombstone {
+        let merge = reliquary_perception_store::entity_codec::EntityTombstone {
             id: merge_target_id,
             revision: 2,
             replacement_id: survivor_id,
         };
         append_entity_publication(
             &mut cva,
-            crate::entity_compact_codec::publication::EntityPublication::MergeTombstone {
+            reliquary_perception_store::entity_compact_codec::publication::EntityPublication::MergeTombstone {
                 id: merge.id,
                 revision: merge.revision,
                 entity_version: local,
@@ -970,7 +970,7 @@ fn completed_scope_inventory(
         for chunk in chunks.iter().take(epoch.end).skip(epoch.first) {
             let payload = reopened.container.read(*chunk).unwrap();
             envelope_count += usize::from(
-                crate::entity_compact_codec::publication::coordinates(&payload)
+                reliquary_perception_store::entity_compact_codec::publication::coordinates(&payload)
                     .unwrap()
                     .is_some(),
             );

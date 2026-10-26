@@ -492,46 +492,25 @@ mod entity_candidate_test_support;
 mod entity_candidate_tests;
 #[path = "perception/entity_candidates.rs"]
 mod entity_candidates;
-#[path = "perception/entity_codec.rs"]
-mod entity_codec;
-#[path = "perception/entity_compact_apply.rs"]
-mod entity_compact_apply;
-#[path = "perception/entity_compact_codec.rs"]
-mod entity_compact_codec;
-#[path = "perception/entity_compact_contract.rs"]
-mod entity_compact_contract;
 #[cfg(test)]
 #[path = "facade/entity_compact_prune_tests.rs"]
 mod entity_compact_prune_tests;
-#[path = "perception/entity_compact_values.rs"]
-mod entity_compact_values;
 #[cfg(test)]
 #[path = "perception/entity_compact_writer_tests.rs"]
 mod entity_compact_writer_tests;
 #[cfg(test)]
 #[path = "perception/entity_creation_guard_tests.rs"]
 mod entity_creation_guard_tests;
-#[path = "perception/entity_description_proof.rs"]
-mod entity_description_proof;
-#[path = "perception/entity_description_prune.rs"]
-mod entity_description_prune;
-#[path = "perception/entity_error.rs"]
-mod entity_error;
-#[path = "perception/entity_identity_guard.rs"]
-mod entity_identity_guard;
 #[path = "perception/entity_merge.rs"]
 mod entity_merge;
-#[path = "perception/entity_model.rs"]
-mod entity_model;
 #[path = "perception/entity_owner.rs"]
 mod entity_owner;
+mod entity_ref;
 #[path = "perception/entity_principal.rs"]
 mod entity_principal;
 #[cfg(test)]
 #[path = "perception/entity_principal_tests.rs"]
 mod entity_principal_tests;
-#[path = "perception/entity_rebuild.rs"]
-mod entity_rebuild;
 #[path = "perception/entity_reconciliation.rs"]
 mod entity_reconciliation;
 #[cfg(test)]
@@ -627,10 +606,6 @@ mod entity_resolver_model;
 mod entity_resolver_reason_tests;
 #[path = "perception/entity_resolver_schema.rs"]
 mod entity_resolver_schema;
-#[path = "perception/entity_retained_structure.rs"]
-mod entity_retained_structure;
-#[path = "perception/entity_store.rs"]
-mod entity_store;
 #[cfg(all(test, feature = "entity-calibration"))]
 #[path = "perception/entity_zero_bootstrap_calibration_support.rs"]
 mod entity_zero_bootstrap_calibration_support;
@@ -1027,11 +1002,11 @@ pub use entity_candidate_model::{
     MAX_ENTITY_CANDIDATE_LEXICAL_MEMORIES, MAX_ENTITY_CANDIDATE_SUPPORT_MEMORIES,
     MAX_ENTITY_CANDIDATE_SURFACE_MATCHES,
 };
-pub use entity_error::EntityError;
-pub use entity_model::{
-    Entity, EntityDraft, EntityGlobalId, EntityId, EntityMergeOutcome,
-    EntityRetainedRevision, EntityRetentionDescriptor, EntityStats, MAX_ENTITY_ALIASES,
-    MAX_ENTITY_KIND_BYTES, MAX_ENTITY_NAME_BYTES, MAX_ENTITY_SUMMARY_BYTES,
+pub use reliquary_perception_store::EntityRef;
+pub use reliquary_perception_store::{
+    Entity, EntityDraft, EntityError, EntityGlobalId, EntityId, EntityMergeOutcome,
+    EntityRetainedRevision, EntityRetentionDescriptor, EntityStats,
+    MAX_ENTITY_ALIASES, MAX_ENTITY_KIND_BYTES, MAX_ENTITY_NAME_BYTES, MAX_ENTITY_SUMMARY_BYTES,
 };
 pub use entity_reconciliation_error::EntityReconciliationError;
 pub use entity_reconciliation_model::{

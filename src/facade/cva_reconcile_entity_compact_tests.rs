@@ -1,21 +1,21 @@
 //! Tail reconciliation of compact Entity publications and terminal state.
 use super::{read_entity_tail, replay_entity_tail};
-use crate::entity_codec::{
+use reliquary_perception_store::entity_codec::{
     DirectEntityTombstone, EntityTombstone, EntityVersion, encode_direct_tombstone,
     encode_tombstone, encode_version,
 };
 fn encode_creation(c: &EntityCreation) -> Result<Vec<u8>, crate::EntityError> {
-    crate::entity_compact_codec::publication::encode(
-        &crate::entity_compact_codec::publication::EntityPublication::Creation(c.clone()),
+    reliquary_perception_store::entity_compact_codec::publication::encode(
+        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Creation(c.clone()),
     )
 }
 fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, crate::EntityError> {
-    crate::entity_compact_codec::publication::encode(
-        &crate::entity_compact_codec::publication::EntityPublication::Delta(d.clone()),
+    reliquary_perception_store::entity_compact_codec::publication::encode(
+        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Delta(d.clone()),
     )
 }
-use crate::entity_compact_contract::{EntityCreation, EntityDelta};
-use crate::entity_model::EntityRecord;
+use reliquary_perception_store::entity_compact_contract::{EntityCreation, EntityDelta};
+use reliquary_perception_store::entity_model::EntityRecord;
 use crate::owner_lifecycle::{HistoricalPayload, LifecycleState, TombstoneCoordinates};
 use crate::{Cva, EntityError, EntityGlobalId, EntityId};
 use reliquary_container::Container;
@@ -166,8 +166,8 @@ fn compact_tail_reconciliation_preserves_option_identity_history_terminals_and_t
     let direct_global = allocate(&mut container, 10_006);
     let direct_tombstone = container
         .append(
-            &crate::entity_compact_codec::publication::encode(
-                &crate::entity_compact_codec::publication::EntityPublication::DirectTombstone {
+            &reliquary_perception_store::entity_compact_codec::publication::encode(
+                &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::DirectTombstone {
                     id: direct.id,
                     revision: 2,
                     entity_version: 6,
@@ -193,8 +193,8 @@ fn compact_tail_reconciliation_preserves_option_identity_history_terminals_and_t
     let merge_global = allocate(&mut container, 10_009);
     let merge_tombstone = container
         .append(
-            &crate::entity_compact_codec::publication::encode(
-                &crate::entity_compact_codec::publication::EntityPublication::MergeTombstone {
+            &reliquary_perception_store::entity_compact_codec::publication::encode(
+                &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::MergeTombstone {
                     id: merged.id,
                     revision: 2,
                     replacement_id: survivor.id,
@@ -353,7 +353,7 @@ fn compact_reconciliation_rejects_pruned_payload_without_fabricating_placeholder
 
 #[test]
 fn direct_and_merge_terminal_retries_are_exact_and_cross_form_retries_fail() {
-    use crate::entity_store::EntityReplayPublication;
+    use reliquary_perception_store::EntityReplayPublication;
 
     let scratch = Scratch::new();
     let direct_path = scratch.file("direct-retry.rel");

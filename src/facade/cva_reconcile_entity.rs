@@ -1,6 +1,6 @@
 use crate::cva_reconcile::with_replayed_transaction_time;
-use crate::entity_compact_codec::publication::coordinates;
-use crate::entity_store::EntityReplayPublication;
+use reliquary_perception_store::entity_compact_codec::publication::coordinates;
+use reliquary_perception_store::EntityReplayPublication;
 use crate::{Cva, CvaReconcileError};
 
 pub(crate) struct EntityTail {

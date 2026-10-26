@@ -1,5 +1,5 @@
 use super::EntityReplayPublication;
-use crate::entity_model::EntityRecord;
+use reliquary_perception_store::entity_model::EntityRecord;
 use crate::{Cva, EntityError, EntityGlobalId, EntityId};
 
 #[test]

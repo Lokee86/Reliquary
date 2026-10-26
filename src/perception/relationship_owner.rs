@@ -1,7 +1,7 @@
 use crate::{Cva, EntityRef, MemoryId, Phylactery, Relationship, RelationshipDraft, RelationshipError, RelationshipId, RelationshipStats};
 use reliquary_perception_store::RelationshipStore;
 use crate::memory_store::MemoryStore;
-use crate::entity_store::EntityStore;
+use reliquary_perception_store::EntityStore;
 
 pub(crate) fn validate_historical_local_references(
     store: &RelationshipStore,

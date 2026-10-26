@@ -97,7 +97,6 @@ required-features = ["entity-calibration"]
 [dependencies]
 reliquary-perception-store = { path = "crates/reliquary-perception-store" }
 reliquary-graph = { path = "crates/reliquary-graph" }
-reliquary-perception-store = { path = "crates/reliquary-perception-store" }
 reliquary-echo = { path = "crates/reliquary-echo" }
 reliquary-memory-core = { path = "crates/reliquary-memory-core" }
 reliquary-archive = { path = "crates/reliquary-archive" }

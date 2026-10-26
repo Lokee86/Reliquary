@@ -36,5 +36,30 @@ pub use relationship_error::RelationshipError;
 pub use relationship_store::RelationshipStore;
 
 // EntityId is owned and exported by this same crate through the Entity extraction.
-pub use entity_model::EntityId;
-mod entity_model;
+
+// Entity durable owner.
+
+pub mod entity_codec;
+pub mod entity_compact_apply;
+pub mod entity_compact_codec;
+pub mod entity_compact_contract;
+pub mod entity_compact_values;
+pub mod entity_description_proof;
+pub mod entity_description_prune;
+mod entity_error;
+mod entity_identity;
+mod entity_identity_guard;
+pub mod entity_model;
+mod entity_rebuild;
+pub mod entity_retained_structure;
+mod entity_store;
+
+pub use entity_error::{EntityError, EntityPayloadUnavailable};
+pub use entity_model::{
+    Entity, EntityDraft, EntityGlobalId, EntityId, EntityMergeOutcome,
+    EntityRetainedRevision, EntityRetentionDescriptor, EntityStats,
+    EntityTerminalCoordinates, EntityTerminalOutcome, EntityLifecycleState, MAX_ENTITY_ALIASES,
+    MAX_ENTITY_KIND_BYTES, MAX_ENTITY_NAME_BYTES, MAX_ENTITY_SUMMARY_BYTES,
+};
+pub use entity_rebuild::EntityOpenState;
+pub use entity_store::{EntityReplayPublication, EntityStore};

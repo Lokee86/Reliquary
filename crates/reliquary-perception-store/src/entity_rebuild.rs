@@ -2,20 +2,20 @@ use crate::EntityError;
 use crate::entity_codec::decode_format;
 use reliquary_container::ObjectRef;
 
-pub(crate) struct EntityOpenState {
+pub struct EntityOpenState {
     store: crate::entity_store::EntityStore,
     format_seen: bool,
 }
 
 impl EntityOpenState {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             store: crate::entity_store::EntityStore::empty(),
             format_seen: false,
         }
     }
 
-    pub(crate) fn ingest(
+    pub fn ingest(
         &mut self,
         _chunk: ObjectRef,
         payload: &[u8],
@@ -35,7 +35,7 @@ impl EntityOpenState {
         Ok(())
     }
 
-    pub(crate) fn ingest_publication_envelope(
+    pub fn ingest_publication_envelope(
         &mut self,
         envelope: reliquary_container::publication_envelope::PublicationEnvelope<'_>,
         latest_global_version: u64,
@@ -97,7 +97,7 @@ impl EntityOpenState {
         Ok(true)
     }
 
-    pub(crate) fn finish(
+    pub fn finish(
         self,
         _container: &reliquary_container::Container,
     ) -> Result<crate::entity_store::EntityStore, EntityError> {
@@ -106,14 +106,3 @@ impl EntityOpenState {
     }
 }
 
-#[cfg(test)]
-#[path = "entity_publication_replay_tests.rs"]
-mod publication_tests;
-
-#[cfg(test)]
-#[path = "entity_publication_prune_tests.rs"]
-mod publication_prune_tests;
-
-#[cfg(test)]
-#[path = "entity_publication_copy_tests.rs"]
-mod publication_copy_tests;

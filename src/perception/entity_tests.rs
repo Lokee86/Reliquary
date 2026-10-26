@@ -156,7 +156,7 @@ fn current_entity_without_global_uuid_can_be_backfilled_once() {
     let path = temp_path("entity-global-id-backfill.rel");
     let mut rel = Cva::create_project(&path).unwrap();
     let id = EntityId([7; 32]);
-    let record = crate::entity_model::EntityRecord {
+    let record = reliquary_perception_store::entity_model::EntityRecord {
         id,
         global_id: None,
         revision: 1,
@@ -170,9 +170,9 @@ fn current_entity_without_global_uuid_can_be_backfilled_once() {
         global_version: 1,
         entity_version: 1,
     };
-    let body = crate::entity_compact_codec::publication::encode(
-        &crate::entity_compact_codec::publication::EntityPublication::Creation(
-            crate::entity_compact_contract::EntityCreation::new(record).unwrap(),
+    let body = reliquary_perception_store::entity_compact_codec::publication::encode(
+        &reliquary_perception_store::entity_compact_codec::publication::EntityPublication::Creation(
+            reliquary_perception_store::entity_compact_contract::EntityCreation::new(record).unwrap(),
         ),
     )
     .unwrap();

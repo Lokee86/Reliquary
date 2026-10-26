@@ -1,8 +1,8 @@
 //! Relationship reconciliation of owner publication envelopes.
 use super::{read_relationship_range, replay_relationship_tail};
-use crate::entity_compact_codec::publication as entity_publication;
-use crate::entity_compact_contract::EntityCreation;
-use crate::entity_model::EntityRecord;
+use reliquary_perception_store::entity_compact_codec::publication as entity_publication;
+use reliquary_perception_store::entity_compact_contract::EntityCreation;
+use reliquary_perception_store::entity_model::EntityRecord;
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
 use reliquary_perception_store::relationship_compact_codec::publication::{self, RelationshipPublication};
 use reliquary_perception_store::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};

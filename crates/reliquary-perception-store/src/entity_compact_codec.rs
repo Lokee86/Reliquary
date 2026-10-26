@@ -1,6 +1,6 @@
 //! Compact Entity creation and delta carriers.
 #[path = "entity_publication_codec.rs"]
-pub(crate) mod publication;
+pub mod publication;
 use crate::EntityError;
 use crate::entity_compact_contract::{EntityCreation, EntityDelta, EntityDeltaFields};
 use crate::entity_compact_values::{
@@ -19,7 +19,7 @@ const CHECKSUM_LEN: usize = 32;
 
 /// Recognize and structurally validate only compact Entity carriers.
 /// A recognized family with an unknown version fails closed.
-pub(crate) fn is_compact_record(bytes: &[u8]) -> Result<bool, EntityError> {
+pub fn is_compact_record(bytes: &[u8]) -> Result<bool, EntityError> {
     if bytes.starts_with(CREATION_FAMILY) {
         decode_creation(bytes)?;
         return Ok(true);
@@ -31,7 +31,7 @@ pub(crate) fn is_compact_record(bytes: &[u8]) -> Result<bool, EntityError> {
     Ok(false)
 }
 
-pub(crate) fn encode_creation(creation: &EntityCreation) -> Result<Vec<u8>, EntityError> {
+pub fn encode_creation(creation: &EntityCreation) -> Result<Vec<u8>, EntityError> {
     validate_creation(creation)?;
     let record = &creation.record;
     let mut out = Vec::new();
@@ -54,7 +54,7 @@ pub(crate) fn encode_creation(creation: &EntityCreation) -> Result<Vec<u8>, Enti
     Ok(out)
 }
 
-pub(crate) fn decode_creation(bytes: &[u8]) -> Result<EntityCreation, EntityError> {
+pub fn decode_creation(bytes: &[u8]) -> Result<EntityCreation, EntityError> {
     require_magic(bytes, CREATION_MAGIC)?;
     let mut cursor = 8;
     let id = read_entity_id(bytes, &mut cursor)?;
@@ -91,7 +91,7 @@ pub(crate) fn decode_creation(bytes: &[u8]) -> Result<EntityCreation, EntityErro
     Ok(creation)
 }
 
-pub(crate) fn encode_delta(delta: &EntityDelta) -> Result<Vec<u8>, EntityError> {
+pub fn encode_delta(delta: &EntityDelta) -> Result<Vec<u8>, EntityError> {
     validate_delta_envelope(delta)?;
     EntityDelta::validate_mask(delta.fields.mask())?;
     let mut out = Vec::new();
@@ -115,7 +115,7 @@ pub(crate) fn encode_delta(delta: &EntityDelta) -> Result<Vec<u8>, EntityError> 
     Ok(out)
 }
 
-pub(crate) fn decode_delta(bytes: &[u8]) -> Result<EntityDelta, EntityError> {
+pub fn decode_delta(bytes: &[u8]) -> Result<EntityDelta, EntityError> {
     require_magic(bytes, DELTA_MAGIC)?;
     let mut cursor = 8;
     let id = read_entity_id(bytes, &mut cursor)?;

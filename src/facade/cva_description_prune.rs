@@ -85,7 +85,7 @@ impl Cva {
             .iter()
             .filter(|record| record.id == id)
         {
-            let raw = crate::entity_retained_structure::encode_record_structure(original)?;
+            let raw = reliquary_perception_store::entity_retained_structure::encode_record_structure(original)?;
             bytes.extend((raw.len() as u64).to_le_bytes());
             bytes.extend(raw);
             bytes.extend(original.global_version.to_le_bytes());
@@ -143,7 +143,7 @@ impl Cva {
         let mut seen = std::collections::BTreeSet::new();
         for object in self.container.chunks()? {
             let bytes = self.container.read(object)?;
-            let compact = crate::entity_description_proof::compact_description_proof(&bytes)?;
+            let compact = reliquary_perception_store::entity_description_proof::compact_description_proof(&bytes)?;
             let relationship_compact =
                 reliquary_perception_store::relationship_description_proof::compact_description_proof(&bytes)?;
             let payload = if let Some((id, revision, _)) = &relationship_compact {
@@ -156,7 +156,7 @@ impl Cva {
                 }
                 PrunedPayload::RelationshipDescription(id.0, *revision)
             } else if let Some((id, revision, _)) = &compact {
-                if !self.entities.pruned_revisions.contains(&(*id, *revision)) {
+                if !self.entities.is_revision_pruned(*id, *revision) {
                     return Err(invalid());
                 }
                 PrunedPayload::EntityDescription(id.0, *revision)
