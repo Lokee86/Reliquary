@@ -8,13 +8,13 @@ use super::scalar::{
 };
 use crate::ego_compact_contract::{EgoCreation, EgoTerminal};
 use crate::{EgoAnchorId, EgoError, EgoIdentityId};
-pub(crate) use delta::{decode_delta, encode_delta};
+pub use delta::{decode_delta, encode_delta};
 
 const CREATION_MAGIC: &[u8; 8] = b"CVAECR01";
 const TERMINAL_MAGIC: &[u8; 8] = b"CVAETM01";
 
 /// Fresh-history rewrite emits only first revisions and independent activation.
-pub(crate) fn encode_initial(record: &EgoRecord) -> Result<Vec<u8>, EgoError> {
+pub fn encode_initial(record: &EgoRecord) -> Result<Vec<u8>, EgoError> {
     if let EgoRecord::IdentityActive { ego_version, id } = record {
         crate::ego_compact_contract::validate(record)?;
         Ok(super::encode_activation(*ego_version, *id))
@@ -24,7 +24,7 @@ pub(crate) fn encode_initial(record: &EgoRecord) -> Result<Vec<u8>, EgoError> {
 }
 
 /// Unknown versions in a recognized family are errors, never opaque payloads.
-pub(crate) fn is_compact_record(bytes: &[u8]) -> Result<bool, EgoError> {
+pub fn is_compact_record(bytes: &[u8]) -> Result<bool, EgoError> {
     if bytes.starts_with(b"CVAECR") {
         decode_creation(bytes)?;
     } else if bytes.starts_with(b"CVAEDL") {
@@ -37,14 +37,14 @@ pub(crate) fn is_compact_record(bytes: &[u8]) -> Result<bool, EgoError> {
     Ok(true)
 }
 
-pub(crate) fn encode_creation(creation: &EgoCreation) -> Result<Vec<u8>, EgoError> {
+pub fn encode_creation(creation: &EgoCreation) -> Result<Vec<u8>, EgoError> {
     let creation = EgoCreation::new(creation.record.clone())?;
     let mut out = CREATION_MAGIC.to_vec();
     write_document(&mut out, &creation.record, false)?;
     Ok(out)
 }
 
-pub(crate) fn decode_creation(bytes: &[u8]) -> Result<EgoCreation, EgoError> {
+pub fn decode_creation(bytes: &[u8]) -> Result<EgoCreation, EgoError> {
     require_magic(bytes, CREATION_MAGIC)?;
     let mut cursor = 8;
     let record = read_document(bytes, &mut cursor, false)?;
@@ -52,14 +52,14 @@ pub(crate) fn decode_creation(bytes: &[u8]) -> Result<EgoCreation, EgoError> {
     EgoCreation::new(record)
 }
 
-pub(crate) fn encode_terminal(terminal: &EgoTerminal) -> Result<Vec<u8>, EgoError> {
+pub fn encode_terminal(terminal: &EgoTerminal) -> Result<Vec<u8>, EgoError> {
     EgoTerminal::new(terminal.record.clone())?;
     let mut out = TERMINAL_MAGIC.to_vec();
     write_document(&mut out, &terminal.record, true)?;
     Ok(out)
 }
 
-pub(crate) fn decode_terminal(bytes: &[u8]) -> Result<EgoTerminal, EgoError> {
+pub fn decode_terminal(bytes: &[u8]) -> Result<EgoTerminal, EgoError> {
     require_magic(bytes, TERMINAL_MAGIC)?;
     let mut cursor = 8;
     let record = read_document(bytes, &mut cursor, true)?;

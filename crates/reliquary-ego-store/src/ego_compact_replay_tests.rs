@@ -346,3 +346,57 @@ fn compact_replay_rejects_missing_wrong_terminal_owner_and_sequence_bases() {
     ));
     assert_eq!(rel.version(), 1);
 }
+#[test]
+fn entity_merge_is_not_ego_and_unknown_ego_terminal_is_rejected() {
+    let mut store = EgoStore::reliquary();
+    assert!(
+        store
+            .ingest_publication(b"CVAETM02malformed entity")
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(store.version(), 0);
+    assert!(store.ingest_publication(b"CVAETM03").is_err());
+    assert_eq!(store.version(), 0);
+}
+
+#[test]
+fn rejected_identity_does_not_leave_partial_history() {
+    let mut store = EgoStore::phylactery();
+    let id = EgoIdentityId([77; 16]);
+    let record = EgoRecord::Identity {
+        ego_version: 1,
+        id,
+        revision: 1,
+        deleted: false,
+        activate: false,
+        name: "name".into(),
+        text: "text".into(),
+    };
+    let payload = crate::ego_current_fixture::encode_postimage(&record).unwrap();
+    assert!(store.ingest(&payload).is_err());
+    assert_eq!(store.version(), 0);
+    assert!(store.identity(id).is_none());
+    assert!(store.historical_identity(id, 1).is_none());
+}
+
+#[test]
+fn failed_physical_append_leaves_store_unchanged() {
+    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".test-tmp");
+    std::fs::create_dir_all(&root).unwrap();
+    let path = root.join(format!("ego-{}.cva", uuid::Uuid::new_v4()));
+    drop(reliquary_container::Container::create(&path).unwrap());
+    let before = std::fs::read(&path).unwrap();
+    let mut container = reliquary_container::Container::open_read_only_for_scan(&path).unwrap();
+    let mut store = EgoStore::reliquary();
+    assert!(
+        store
+            .create_anchor(&mut container, EgoAnchorPriority::Normal, "anchor".into())
+            .is_err()
+    );
+    assert_eq!(store.version(), 0);
+    assert!(store.anchors().is_empty());
+    drop(container);
+    assert_eq!(std::fs::read(&path).unwrap(), before);
+    std::fs::remove_file(path).unwrap();
+}

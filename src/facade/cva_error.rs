@@ -122,6 +122,12 @@ from_error!(ConversationCompactionError, ConversationCompactions);
 from_error!(EchoError, Echo);
 from_error!(EgoError, Ego);
 
+impl From<reliquary_ego_store::EgoError> for CvaError {
+    fn from(value: reliquary_ego_store::EgoError) -> Self {
+        Self::Ego(value.into())
+    }
+}
+
 impl From<reliquary_perception_store::EntityError> for CvaError {
     fn from(value: reliquary_perception_store::EntityError) -> Self {
         Self::Entities(value.into())

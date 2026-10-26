@@ -4,14 +4,14 @@ use crate::{EgoAnchorId, EgoAnchorPriority, EgoError, EgoIdentityId};
 use reliquary_container::codec::FieldChange;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum EgoDocumentKey {
+pub enum EgoDocumentKey {
     Identity(EgoIdentityId),
     Anchor(EgoAnchorId),
     Personality,
     Synthesis,
 }
 
-pub(crate) fn document_key(record: &EgoRecord) -> Option<EgoDocumentKey> {
+pub fn document_key(record: &EgoRecord) -> Option<EgoDocumentKey> {
     match record {
         EgoRecord::Identity { id, .. } => Some(EgoDocumentKey::Identity(*id)),
         EgoRecord::Anchor { id, .. } => Some(EgoDocumentKey::Anchor(*id)),
@@ -22,12 +22,12 @@ pub(crate) fn document_key(record: &EgoRecord) -> Option<EgoDocumentKey> {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct EgoCreation {
+pub struct EgoCreation {
     pub record: EgoRecord,
 }
 
 impl EgoCreation {
-    pub(crate) fn new(record: EgoRecord) -> Result<Self, EgoError> {
+    pub fn new(record: EgoRecord) -> Result<Self, EgoError> {
         validate(&record)?;
         if revision(&record) != Some(1) || is_terminal(&record) {
             return Err(invalid("Ego creation needs a live first revision"));
@@ -39,12 +39,12 @@ impl EgoCreation {
 /// A terminal can be the first admitted revision in V1 input. It still consumes
 /// one Ego sequence position; owner replay decides whether its lifecycle is legal.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct EgoTerminal {
+pub struct EgoTerminal {
     pub record: EgoRecord,
 }
 
 impl EgoTerminal {
-    pub(crate) fn new(record: EgoRecord) -> Result<Self, EgoError> {
+    pub fn new(record: EgoRecord) -> Result<Self, EgoError> {
         validate(&record)?;
         if !is_terminal(&record) {
             return Err(invalid("Ego terminal needs a deleted Identity or Anchor"));
@@ -54,7 +54,7 @@ impl EgoTerminal {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum EgoChanges {
+pub enum EgoChanges {
     Identity {
         id: EgoIdentityId,
         // This is publication metadata, not a state field to inherit. A raw
@@ -79,7 +79,7 @@ pub(crate) enum EgoChanges {
 }
 
 impl EgoChanges {
-    pub(crate) fn document_key(&self) -> EgoDocumentKey {
+    pub fn document_key(&self) -> EgoDocumentKey {
         match self {
             Self::Identity { id, .. } => EgoDocumentKey::Identity(*id),
             Self::Anchor { id, .. } => EgoDocumentKey::Anchor(*id),
@@ -90,7 +90,7 @@ impl EgoChanges {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct EgoDelta {
+pub struct EgoDelta {
     pub ego_version: u64,
     pub previous_revision: u64,
     pub revision: u64,
@@ -98,7 +98,7 @@ pub(crate) struct EgoDelta {
 }
 
 impl EgoDelta {
-    pub(crate) fn between(previous: &EgoRecord, next: &EgoRecord) -> Result<Self, EgoError> {
+    pub fn between(previous: &EgoRecord, next: &EgoRecord) -> Result<Self, EgoError> {
         let previous = previous.clone();
         let next = next.clone();
         validate(&previous)?;
@@ -196,7 +196,7 @@ impl EgoDelta {
     }
 }
 
-pub(crate) fn revision(record: &EgoRecord) -> Option<u64> {
+pub fn revision(record: &EgoRecord) -> Option<u64> {
     match record {
         EgoRecord::Identity { revision, .. }
         | EgoRecord::Anchor { revision, .. }
@@ -206,7 +206,7 @@ pub(crate) fn revision(record: &EgoRecord) -> Option<u64> {
     }
 }
 
-pub(crate) fn is_terminal(record: &EgoRecord) -> bool {
+pub fn is_terminal(record: &EgoRecord) -> bool {
     matches!(
         record,
         EgoRecord::Identity { deleted: true, .. } | EgoRecord::Anchor { deleted: true, .. }
@@ -215,7 +215,7 @@ pub(crate) fn is_terminal(record: &EgoRecord) -> bool {
 
 /// Shape validation only. Dense owner sequence, prior document existence,
 /// activation, terminal resurrection and Memory bounds belong to EgoStore.
-pub(crate) fn validate(record: &EgoRecord) -> Result<(), EgoError> {
+pub fn validate(record: &EgoRecord) -> Result<(), EgoError> {
     if record_ego_version(record) == 0 || revision(record) == Some(0) {
         return Err(invalid("zero Ego publication or document revision"));
     }

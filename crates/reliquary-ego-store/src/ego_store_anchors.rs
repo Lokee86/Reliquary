@@ -6,7 +6,7 @@ use reliquary_container::Container;
 use uuid::Uuid;
 
 impl EgoStore {
-    pub(crate) fn create_anchor(
+    pub fn create_anchor(
         &mut self,
         container: &mut Container,
         priority: EgoAnchorPriority,
@@ -36,7 +36,7 @@ impl EgoStore {
         })
     }
 
-    pub(crate) fn update_anchor(
+    pub fn update_anchor(
         &mut self,
         container: &mut Container,
         id: EgoAnchorId,
@@ -78,7 +78,7 @@ impl EgoStore {
         ))
     }
 
-    pub(crate) fn delete_anchor(
+    pub fn delete_anchor(
         &mut self,
         container: &mut Container,
         id: EgoAnchorId,

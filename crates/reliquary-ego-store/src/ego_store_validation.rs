@@ -2,7 +2,7 @@ use super::EgoStore;
 use crate::EgoError;
 
 impl EgoStore {
-    pub(crate) fn validate_memory_version(&self, current: u64) -> Result<(), EgoError> {
+    pub fn validate_memory_version(&self, current: u64) -> Result<(), EgoError> {
         if let Some(personality) = &self.personality {
             validate_source_memory_version(personality.source_memory_version, current)?;
         }
@@ -13,7 +13,7 @@ impl EgoStore {
     }
 }
 
-pub(crate) fn validate_source_memory_version(source: u64, current: u64) -> Result<(), EgoError> {
+pub fn validate_source_memory_version(source: u64, current: u64) -> Result<(), EgoError> {
     if source > current {
         return Err(EgoError::InvalidSourceMemoryVersion { source, current });
     }

@@ -6,3 +6,7 @@ publish = false
 
 [lib]
 path = "src/lib.rs"
+
+[dependencies]
+reliquary-container = { path = "../reliquary-container" }
+uuid = { version = "1", features = ["v4"] }

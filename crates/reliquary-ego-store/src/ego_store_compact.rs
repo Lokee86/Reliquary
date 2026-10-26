@@ -12,10 +12,7 @@ impl EgoStore {
         self.document_predecessor(changes.document_key())
     }
 
-    pub(crate) fn encode_compact_publication(
-        &self,
-        record: &EgoRecord,
-    ) -> Result<Vec<u8>, EgoError> {
+    pub fn encode_compact_publication(&self, record: &EgoRecord) -> Result<Vec<u8>, EgoError> {
         let record = record.clone();
         self.validate_owner_record(&record)?;
         if crate::ego_codec::record_ego_version(&record) != self.next_version()? {

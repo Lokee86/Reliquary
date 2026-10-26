@@ -9,7 +9,7 @@ use reliquary_container::codec::FieldChange;
 
 const MAGIC: &[u8; 8] = b"CVAEDL01";
 
-pub(crate) fn encode_delta(delta: &EgoDelta) -> Result<Vec<u8>, EgoError> {
+pub fn encode_delta(delta: &EgoDelta) -> Result<Vec<u8>, EgoError> {
     validate(delta)?;
     let mut out = MAGIC.to_vec();
     out.push(match &delta.changes {
@@ -59,7 +59,7 @@ pub(crate) fn encode_delta(delta: &EgoDelta) -> Result<Vec<u8>, EgoError> {
     Ok(out)
 }
 
-pub(crate) fn decode_delta(bytes: &[u8]) -> Result<EgoDelta, EgoError> {
+pub fn decode_delta(bytes: &[u8]) -> Result<EgoDelta, EgoError> {
     super::require_magic(bytes, MAGIC)?;
     let mut cursor = 8;
     let kind = read_byte(bytes, &mut cursor)?;

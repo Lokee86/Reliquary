@@ -19,6 +19,8 @@ Implemented Ego records include:
 - anchors with stable IDs, revisions, priority, and bounded text; and
 - Web-synthesis text with revision and source Memory-version watermark.
 
+`reliquary-ego-store` is the compiled semantic owner for Ego values, compact codecs, replay and the `EgoStore` state machine. It depends on `reliquary-container`; it does not own physical framing or file I/O. REL/PHY facades keep product admission, including validation of source Memory watermarks against the live owner, and map store errors to the supported API errors. History and reconciliation use the store replay interface while keeping multi-owner coordination in the root.
+
 Owner stores validate identities, revisions, lifecycle, and compact history on write/reopen.
 
 ## Ownership
@@ -45,9 +47,10 @@ Rewrite/prune/reconciliation must preserve or intentionally select Ego state acc
 
 ## Code Map
 
-- `src/ego/**`
+- `crates/reliquary-ego-store/src/` — canonical values, codecs, lifecycle facts, replay, and state machine
 - `src/facade/cva_ego.rs`
 - `src/facade/phylactery_ego.rs`
+- `src/facade/historical_ego_fingerprint.rs` and root reconciliation consumers — multi-owner projections over store records
 
 ## Related docs
 

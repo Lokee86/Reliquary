@@ -19,10 +19,10 @@ use reliquary_container::Container;
 use std::collections::BTreeMap;
 
 use validation::validate_record_revision;
-pub(crate) use validation::validate_source_memory_version;
+pub use validation::validate_source_memory_version;
 
 /// Stable identity used by the current single-default Identity convenience API.
-pub(crate) const DEFAULT_IDENTITY_ID: EgoIdentityId = EgoIdentityId([0; 16]);
+pub const DEFAULT_IDENTITY_ID: EgoIdentityId = EgoIdentityId([0; 16]);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum EgoOwnerKind {
@@ -48,7 +48,7 @@ struct AnchorState {
     text: String,
 }
 
-pub(crate) struct EgoStore {
+pub struct EgoStore {
     owner_kind: EgoOwnerKind,
     version: u64,
     identities: BTreeMap<EgoIdentityId, IdentityState>,
@@ -65,14 +65,14 @@ pub(crate) struct EgoStore {
 }
 
 impl EgoStore {
-    pub(crate) fn reliquary() -> Self {
+    pub fn reliquary() -> Self {
         Self::new(EgoOwnerKind::Reliquary)
     }
-    pub(crate) fn phylactery() -> Self {
+    pub fn phylactery() -> Self {
         Self::new(EgoOwnerKind::Phylactery)
     }
 
-    pub(crate) fn empty_replay(&self) -> Self {
+    pub fn empty_replay(&self) -> Self {
         Self::new(self.owner_kind)
     }
 
@@ -94,14 +94,11 @@ impl EgoStore {
         }
     }
 
-    pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), EgoError> {
+    pub fn ingest(&mut self, payload: &[u8]) -> Result<(), EgoError> {
         self.ingest_publication(payload).map(|_| ())
     }
 
-    pub(crate) fn ingest_publication(
-        &mut self,
-        payload: &[u8],
-    ) -> Result<Option<EgoRecord>, EgoError> {
+    pub fn ingest_publication(&mut self, payload: &[u8]) -> Result<Option<EgoRecord>, EgoError> {
         // Entity merge bodies use CVAETM02 in the shared physical stream.
         // Bare bodies are unpublished and have no Ego authority.
         if payload.starts_with(b"CVAETM02") {
@@ -267,6 +264,30 @@ impl EgoStore {
             )
             .into());
         }
+        if deleted && self.active_identity_id == Some(id) && self.live_identity_count() > 1 {
+            return Err(EgoError::ActiveIdentityDeletion);
+        }
+        if deleted && activate {
+            return Err(crate::owner_lifecycle::LifecycleError::TerminalTombstone(
+                crate::owner_lifecycle::LifecycleTarget::EgoIdentity(id),
+            )
+            .into());
+        }
+        let live_after = self.live_identity_count()
+            + usize::from(!deleted && !self.identities.contains_key(&id))
+            - usize::from(deleted && self.identities.get(&id).is_some_and(|state| !state.deleted));
+        let active_after = if activate {
+            Some(id)
+        } else if deleted && self.active_identity_id == Some(id) {
+            None
+        } else {
+            self.active_identity_id
+        };
+        if active_after.is_none() && live_after > 0 {
+            return Err(EgoError::InvalidRecord(
+                "PHY contains identities but no active identity".into(),
+            ));
+        }
         if !deleted {
             self.identity_history.insert(
                 (id, revision),
@@ -277,9 +298,6 @@ impl EgoStore {
                     text: text.clone(),
                 },
             );
-        }
-        if deleted && self.active_identity_id == Some(id) && self.live_identity_count() > 1 {
-            return Err(EgoError::ActiveIdentityDeletion);
         }
         self.identities.insert(
             id,

@@ -2752,6 +2752,10 @@ version = "0.1.0"
 [[package]]
 name = "reliquary-ego-store"
 version = "0.1.0"
+dependencies = [
+ "reliquary-container",
+ "uuid",
+]
 
 [[package]]
 name = "reliquary-external-index-store"
@@ -2816,6 +2820,7 @@ dependencies = [
  "reliquary-archive",
  "reliquary-container",
  "reliquary-echo",
+ "reliquary-ego-store",
  "reliquary-graph",
  "reliquary-memory-core",
  "reliquary-perception-store",

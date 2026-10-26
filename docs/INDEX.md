@@ -41,7 +41,7 @@
 - [Memory Core extraction results](memory-core-crate-extraction-results-2026-10-25.md) — corrected grouped replay validation, verified owner/root checks, and explicit corpus gate.
 - [Echo crate extraction specification](echo-crate-extraction-spec-2026-10-26.md) — fourth compiled owner cut: source-keyed execution evidence, CVAECHO1 replay, runtime/Context Engine authority separation and integration gates.
 - [Perception Store crate extraction specification](perception-store-crate-extraction-spec-2026-10-26.md) — sixth compiled owner cut: Entity, mention-resolution and Relationship persistence below Perception service and Owner Lifecycle.
-- [Ego Store crate extraction specification](ego-store-crate-extraction-spec-2026-10-26.md) — seventh compiled owner cut: Identity, Personality, Anchor and current text synthesis persistence, distinct from future Ego inference.
+- [Ego Store crate extraction specification](ego-store-crate-extraction-spec-2026-10-26.md) — seventh compiled owner cut: Identity, Personality, Anchor and current text synthesis persistence, distinct from future Ego inference; current implementation ownership is documented in [Ego subsystem](subsystems/ego.md).
 - [Subsystem documentation](subsystems/INDEX.md) — focused current-state ownership, behavior, lifecycle, failure, and implementation maps.
 - [Architectural invariants](invariants.md) — governing ownership and storage constraints.
 - [Storage format](storage-format.md) — exact current REL/PHY persistent-record format, legacy CVA compatibility, and migration boundary.

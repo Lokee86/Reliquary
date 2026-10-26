@@ -154,7 +154,7 @@ impl Phylactery {
         &self,
         id: EgoAnchorId,
     ) -> Option<crate::owner_lifecycle::LifecycleState> {
-        self.ego.anchor_lifecycle(id)
+        self.ego.anchor_lifecycle(id).map(Into::into)
     }
     pub fn historical_ego_anchor(&self, id: EgoAnchorId, revision: u64) -> Option<EgoAnchor> {
         self.ego.historical_anchor(id, revision)
@@ -166,7 +166,7 @@ impl Phylactery {
         &self,
         id: EgoIdentityId,
     ) -> Option<crate::owner_lifecycle::LifecycleState> {
-        self.ego.identity_lifecycle(id)
+        self.ego.identity_lifecycle(id).map(Into::into)
     }
     pub fn historical_ego_identity(&self, id: EgoIdentityId, revision: u64) -> Option<EgoIdentity> {
         self.ego.historical_identity(id, revision)

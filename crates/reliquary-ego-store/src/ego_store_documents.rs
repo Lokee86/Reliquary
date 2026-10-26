@@ -5,7 +5,7 @@ use crate::{EgoError, EgoPersonality, EgoWebSynthesis};
 use reliquary_container::Container;
 
 impl EgoStore {
-    pub(crate) fn put_personality(
+    pub fn put_personality(
         &mut self,
         container: &mut Container,
         expected_revision: u64,
@@ -39,7 +39,7 @@ impl EgoStore {
         ))
     }
 
-    pub(crate) fn put_synthesis(
+    pub fn put_synthesis(
         &mut self,
         container: &mut Container,
         expected_revision: u64,

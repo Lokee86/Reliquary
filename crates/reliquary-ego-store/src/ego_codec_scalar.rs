@@ -1,13 +1,13 @@
 use crate::{EgoAnchorPriority, EgoError, MAX_EGO_ANCHOR_CHARS};
 
-pub(crate) fn validate_text(kind: &str, text: &str) -> Result<(), EgoError> {
+pub fn validate_text(kind: &str, text: &str) -> Result<(), EgoError> {
     if text.trim().is_empty() {
         return Err(invalid(format!("{kind} text is empty")));
     }
     Ok(())
 }
 
-pub(crate) fn validate_anchor_text(text: &str) -> Result<(), EgoError> {
+pub fn validate_anchor_text(text: &str) -> Result<(), EgoError> {
     validate_text("anchor", text)?;
     let chars = text.chars().count();
     if chars > MAX_EGO_ANCHOR_CHARS {

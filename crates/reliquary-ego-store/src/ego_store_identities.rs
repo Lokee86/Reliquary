@@ -6,7 +6,7 @@ use reliquary_container::Container;
 use uuid::Uuid;
 
 impl EgoStore {
-    pub(crate) fn put_identity(
+    pub fn put_identity(
         &mut self,
         container: &mut Container,
         expected_revision: u64,
@@ -22,7 +22,7 @@ impl EgoStore {
         Ok((identity, true))
     }
 
-    pub(crate) fn create_identity(
+    pub fn create_identity(
         &mut self,
         container: &mut Container,
         name: String,
@@ -58,7 +58,7 @@ impl EgoStore {
         })
     }
 
-    pub(crate) fn update_identity(
+    pub fn update_identity(
         &mut self,
         container: &mut Container,
         id: EgoIdentityId,
@@ -105,7 +105,7 @@ impl EgoStore {
         ))
     }
 
-    pub(crate) fn activate_identity(
+    pub fn activate_identity(
         &mut self,
         container: &mut Container,
         id: EgoIdentityId,
@@ -125,7 +125,7 @@ impl EgoStore {
         Ok(true)
     }
 
-    pub(crate) fn delete_identity(
+    pub fn delete_identity(
         &mut self,
         container: &mut Container,
         id: EgoIdentityId,

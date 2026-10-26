@@ -1,9 +1,9 @@
 //! Current-format test publications from explicit expected postimages.
 //! Full deltas provide a reference for minimal changed-field publications.
-use crate::EgoError;
 use crate::ego_codec::{EgoRecord, compact, record_ego_version};
 use crate::ego_compact_contract::{EgoChanges, EgoCreation, EgoDelta, EgoTerminal, revision};
 use reliquary_container::codec::FieldChange;
+use reliquary_ego_store::EgoError;
 
 pub(crate) fn encode_postimage(record: &EgoRecord) -> Result<Vec<u8>, EgoError> {
     if crate::ego_compact_contract::is_terminal(record) {

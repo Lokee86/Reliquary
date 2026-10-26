@@ -2,19 +2,19 @@ use super::EgoStore;
 use crate::{EgoAnchor, EgoAnchorId, EgoIdentity, EgoIdentityId, EgoPersonality, EgoWebSynthesis};
 
 impl EgoStore {
-    pub(crate) fn version(&self) -> u64 {
+    pub fn version(&self) -> u64 {
         self.version
     }
 
-    pub(crate) fn active_identity(&self) -> Option<EgoIdentity> {
+    pub fn active_identity(&self) -> Option<EgoIdentity> {
         self.active_identity_id.and_then(|id| self.identity(id))
     }
 
-    pub(crate) fn active_identity_id(&self) -> Option<EgoIdentityId> {
+    pub fn active_identity_id(&self) -> Option<EgoIdentityId> {
         self.active_identity_id
     }
 
-    pub(crate) fn identities(&self) -> Vec<EgoIdentity> {
+    pub fn identities(&self) -> Vec<EgoIdentity> {
         self.identities
             .iter()
             .filter(|(_, state)| !state.deleted)
@@ -27,7 +27,7 @@ impl EgoStore {
             .collect()
     }
 
-    pub(crate) fn identity(&self, id: EgoIdentityId) -> Option<EgoIdentity> {
+    pub fn identity(&self, id: EgoIdentityId) -> Option<EgoIdentity> {
         let state = self.identities.get(&id)?;
         (!state.deleted).then(|| EgoIdentity {
             id,
@@ -37,14 +37,14 @@ impl EgoStore {
         })
     }
 
-    pub(crate) fn personality(&self) -> Option<&EgoPersonality> {
+    pub fn personality(&self) -> Option<&EgoPersonality> {
         self.personality.as_ref()
     }
-    pub(crate) fn synthesis(&self) -> Option<&EgoWebSynthesis> {
+    pub fn synthesis(&self) -> Option<&EgoWebSynthesis> {
         self.synthesis.as_ref()
     }
 
-    pub(crate) fn anchors(&self) -> Vec<EgoAnchor> {
+    pub fn anchors(&self) -> Vec<EgoAnchor> {
         self.anchors
             .iter()
             .filter(|(_, state)| !state.deleted)
@@ -57,7 +57,7 @@ impl EgoStore {
             .collect()
     }
 
-    pub(crate) fn anchor(&self, id: EgoAnchorId) -> Option<EgoAnchor> {
+    pub fn anchor(&self, id: EgoAnchorId) -> Option<EgoAnchor> {
         let state = self.anchors.get(&id)?;
         (!state.deleted).then(|| EgoAnchor {
             id,
@@ -69,7 +69,7 @@ impl EgoStore {
 }
 
 impl EgoStore {
-    pub(crate) fn identity_lifecycle(
+    pub fn identity_lifecycle(
         &self,
         id: EgoIdentityId,
     ) -> Option<crate::owner_lifecycle::LifecycleState> {
@@ -79,7 +79,7 @@ impl EgoStore {
             self.identity_deletions.get(&id).copied(),
         ))
     }
-    pub(crate) fn anchor_lifecycle(
+    pub fn anchor_lifecycle(
         &self,
         id: EgoAnchorId,
     ) -> Option<crate::owner_lifecycle::LifecycleState> {
@@ -89,14 +89,10 @@ impl EgoStore {
             self.anchor_deletions.get(&id).copied(),
         ))
     }
-    pub(crate) fn historical_identity(
-        &self,
-        id: EgoIdentityId,
-        revision: u64,
-    ) -> Option<EgoIdentity> {
+    pub fn historical_identity(&self, id: EgoIdentityId, revision: u64) -> Option<EgoIdentity> {
         self.identity_history.get(&(id, revision)).cloned()
     }
-    pub(crate) fn historical_anchor(&self, id: EgoAnchorId, revision: u64) -> Option<EgoAnchor> {
+    pub fn historical_anchor(&self, id: EgoAnchorId, revision: u64) -> Option<EgoAnchor> {
         self.anchor_history.get(&(id, revision)).cloned()
     }
 }

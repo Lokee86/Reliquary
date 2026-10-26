@@ -435,36 +435,19 @@ mod dream_verifier_error;
 mod dream_verifier_model;
 #[path = "runtime_inference/dream_verifier_schema.rs"]
 mod dream_verifier_schema;
-#[path = "ego/ego_codec.rs"]
-mod ego_codec;
-#[path = "ego/ego_compact_apply.rs"]
-mod ego_compact_apply;
-#[path = "ego/ego_compact_contract.rs"]
-mod ego_compact_contract;
-#[cfg(test)]
-#[path = "ego/ego_compact_contract_tests.rs"]
-mod ego_compact_contract_tests;
-#[cfg(test)]
-#[path = "ego/ego_compact_creation_codec_tests.rs"]
-mod ego_compact_creation_codec_tests;
-#[cfg(test)]
-#[path = "ego/ego_compact_delta_codec_tests.rs"]
-mod ego_compact_delta_codec_tests;
+use reliquary_ego_store::ego_codec;
+use reliquary_ego_store::ego_compact_apply;
+use reliquary_ego_store::ego_compact_contract;
 #[cfg(test)]
 #[path = "facade/ego_compact_maintenance_tests.rs"]
 mod ego_compact_maintenance_tests;
-#[cfg(test)]
-#[path = "ego/ego_compact_replay_tests.rs"]
-mod ego_compact_replay_tests;
 #[cfg(test)]
 #[path = "ego/ego_compact_writer_tests.rs"]
 mod ego_compact_writer_tests;
 #[path = "ego/ego_error.rs"]
 mod ego_error;
-#[path = "ego/ego_model.rs"]
-mod ego_model;
-#[path = "ego/ego_store.rs"]
-mod ego_store;
+use reliquary_ego_store::ego_model;
+use reliquary_ego_store::ego_store;
 #[path = "runtime_inference/embedding_endpoint.rs"]
 mod embedding_endpoint;
 #[path = "perception/entity_admission.rs"]

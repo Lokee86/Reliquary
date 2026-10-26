@@ -71,7 +71,7 @@ impl Cva {
         &self,
         id: EgoAnchorId,
     ) -> Option<crate::owner_lifecycle::LifecycleState> {
-        self.ego.anchor_lifecycle(id)
+        self.ego.anchor_lifecycle(id).map(Into::into)
     }
     pub fn historical_ego_anchor(&self, id: EgoAnchorId, revision: u64) -> Option<EgoAnchor> {
         self.ego.historical_anchor(id, revision)

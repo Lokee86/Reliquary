@@ -337,7 +337,7 @@ whole-product acceptance.
 
 ## Ego and Archive publication verification
 
-Compact Ego contracts and materialization live in `src/ego/ego_compact_contract.rs`, `ego_compact_apply.rs`, `ego_compact_codec.rs`, `ego_compact_delta_codec.rs` and `ego_store_compact.rs`. EgoStore retains local document authority. Test fixtures encode canonical deltas against admitted predecessors. Proof inspection does not confuse Ego terminal CVAETM01 with Entity merge CVAETM02.
+`crates/reliquary-ego-store/` owns the canonical Ego values, codecs, compact application and contract, local lifecycle facts, and the single `EgoStore` state machine, including identity/anchor documents, source-watermarked projections, compact replay and historical reads. It depends on Container for physical persistence. Root `facade/cva_ego.rs` and `phylactery_ego.rs` retain product-facing methods, live Memory watermark admission and error mapping; historical fingerprinting and reconciliation remain root multi-owner consumers of the store replay seam. Owner-local compact tests are in the crate where applicable; REL/PHY integration and multi-owner tests remain in root. Proof inspection does not confuse Ego terminal CVAETM01 with Entity merge CVAETM02. Extraction documents the source ownership boundary; no verification or corpus promotion is implied here.
 
 Archive publication framing is owned by `archive_publication_codec`, with field helpers in the existing family codecs. `archive_history` prepares and commits native publications; ArchiveOpenState owns replay and repeated-binding admission. Historical readers, imports, retention proofs, reclamation and principal/attachment copies resolve this representation explicitly. Content backing remains independent from publication metadata.
 
