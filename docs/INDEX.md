@@ -39,7 +39,7 @@
 - [Archive crate extraction specification](archive-crate-extraction-spec-2026-10-25.md) — second hard-cut extraction: source owner, import receipts, Episodes, durable checkpoints, Echo exclusion and cross-owner dependency cuts.
 - [Memory Core crate extraction specification](memory-core-crate-extraction-spec-2026-10-25.md) — third hard-cut extraction: Memory persistence, foreign source identities, grouped publication boundaries, lifecycle/maintenance separation, and behavioral gates.
 - [Memory Core extraction results](memory-core-crate-extraction-results-2026-10-25.md) — corrected grouped replay validation, verified owner/root checks, and explicit corpus gate.
-- [Memory Core extraction results](memory-core-crate-extraction-results-2026-10-25.md) — corrected grouped replay validation, verified owner/root checks, and explicit corpus gate.
+- [Echo crate extraction specification](echo-crate-extraction-spec-2026-10-26.md) — fourth compiled owner cut: source-keyed execution evidence, CVAECHO1 replay, runtime/Context Engine authority separation and integration gates.
 - [Subsystem documentation](subsystems/INDEX.md) — focused current-state ownership, behavior, lifecycle, failure, and implementation maps.
 - [Architectural invariants](invariants.md) — governing ownership and storage constraints.
 - [Storage format](storage-format.md) — exact current REL/PHY persistent-record format, legacy CVA compatibility, and migration boundary.
