@@ -1,6 +1,14 @@
 # Owner Lifecycle crate extraction — specification
 
-**Status:** Specified, implementation not begun (2026-10-27). **Target:** `crates/reliquary-owner-lifecycle`. **Prerequisites:** extracted lower stores integrated and committed, including External Index and the Maintenance Store decision. Correction-only compiled ownership cut.
+**Status:** Production cutover implemented; full acceptance remains unverified (2026-10-27). See [extraction evidence](owner-lifecycle-crate-extraction-evidence-2026-10-27.md). **Target:** `crates/reliquary-owner-lifecycle`. **Prerequisites:** extracted lower stores integrated and committed, including External Index and the Maintenance Store decision. Correction-only compiled ownership cut.
+
+## Purpose
+
+Define the bounded Owner Lifecycle extraction and verification gate.
+
+## Overview
+
+This specification defines the production ownership cut and preserves higher-level proof and policy responsibilities.
 
 ## Intended responsibility
 Owner Lifecycle coordinates **opening, validating and rebuilding one REL/PHY owner from already accepted Container evidence and lower owner-store APIs**. Unlike rank-2 stores, this crate is explicitly a **higher coordinator**: permitted dependencies are `reliquary-container`, `reliquary-archive`, `reliquary-memory-core`, `reliquary-echo`, `reliquary-graph`, and the actual extracted owner-store crates used by the implementation (Perception, Ego, Freshness, Vector, Insomnia, Dream, Import, External Index, Maintenance when real). Do not add a dependency just because the crate map permits it. No semantic processors, runtime gateway, Cva/root product, Import service, History service, Maintenance service or inference endpoints.
@@ -31,3 +39,12 @@ Inventory `src/facade/cva_lifecycle.rs`, `cva_open_route.rs`, `cva_global_valida
 **Acceptance:** Root uses a compiled owner lifecycle path for proven portions, with no forbidden Cargo dependencies, duplicate state, lost validation, replay nondeterminism or changed current wire. An incomplete source cut must be reported as partial, not complete.
 
 **Out of scope:** runtime/gateway extraction, generic DAG/ratchet tooling, repairs, migrations, new schemas, History or semantic service extraction, CVAFRS07 recovery claim absent its own execution.
+
+## Notes
+
+The preserved authoritative REL fixtures require separate CVAFRS07 recovery.
+
+## Related docs
+
+- [Owner Lifecycle extraction evidence](owner-lifecycle-crate-extraction-evidence-2026-10-27.md)
+- [Current limitations](current-limitations.md)

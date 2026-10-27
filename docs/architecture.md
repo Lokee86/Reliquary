@@ -555,6 +555,11 @@ Crate-root Rust modules are composition/publication seams owned by the overall a
 
 - `src/*.rs`
 - `crates/reliquary-maintenance-store/src/**`
+- `crates/reliquary-owner-lifecycle/src/**`
+- `src/facade/cva_lifecycle.rs`
+- `src/facade/phylactery_lifecycle.rs`
+- `src/facade/cva_dream_journal_replay.rs`
+- `src/facade/graph_owner.rs`
 
 ## Related docs
 
@@ -569,3 +574,7 @@ Decision inheritance changes configured endpoint composition only; semantic pers
 The import owner persists current standalone semantic evidence. CVAILEG1/2 runtime validation and transport have been removed after source-validated corpus conversion. Container framing does not interpret import semantics.
 
 Import epoch persistence is owned by `reliquary-import-store`, which depends only on Container among Reliquary crates. The Import coordinator retains receipt authority, readiness and Freshness settlement checks, and alone appends completion markers after those checks. The lower projection validates and replays accepted records without authorizing completion.
+
+### Owner Lifecycle extraction
+
+REL and PHY use `reliquary-owner-lifecycle` for shared core initialization, physical replay, REL interaction/compaction/Echo projection, Graph reconstruction, and cross-owner structural validation. The lifecycle crate accepts a completed scan only after owner callbacks succeed. REL dispatch hints do not authorize records; semantic admission and special Dream, Insomnia, and Import proof handling remain in the product coordinator. Bounded physical traversal leaves cut selection and proof interpretation to its caller.

@@ -268,9 +268,12 @@ fn relation_batch_rejects_duplicate_relationship_identity() {
 fn pre_graph_cva_state_opens_as_empty_graph() {
     let memories = crate::memory_store::MemoryStore::empty();
     let entities = reliquary_perception_store::EntityStore::empty();
-    let graph = crate::graph_replay::GraphReplay::new()
-        .finish(&memories, &entities)
-        .unwrap();
+    let graph = reliquary_owner_lifecycle::finish_graph_replay(
+        reliquary_graph::GraphOpenState::new(),
+        &memories,
+        &entities,
+    )
+    .unwrap();
     assert_eq!(graph.graph_version(), 0);
     assert_eq!(graph.stats().nodes, 0);
 }

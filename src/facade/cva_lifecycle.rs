@@ -1,8 +1,6 @@
 use crate::community_owner::{CommunityOwner, CommunityReplay};
 use crate::compatibility_profile_rebuild::CompatibilityProfileOpenState;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
-use crate::cva_global_validation::validate_semantic_global_versions;
-use crate::cva_open_route::{OpenRecordRoute, classify_open_record};
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::dream_pair_history::DreamPairStore;
 use crate::ego_store::EgoStore;
@@ -11,7 +9,6 @@ use crate::entity_resolution_store::EntityResolutionStore;
 use crate::freshness_dream_journal::DreamFreshnessJournal;
 use crate::freshness_storage::FreshnessStore;
 use crate::graph_owner::GraphOwner;
-use crate::graph_replay::GraphReplay;
 use crate::insomnia::product_adapter::InsomniaStore;
 use crate::insomnia::rebuild::InsomniaOpenState;
 use crate::lexical_index::LexicalIndex;
@@ -33,6 +30,9 @@ use reliquary_archive::project_file_binding_store::ProjectFileStore;
 use reliquary_archive::project_history_store::ProjectHistoryStore;
 use reliquary_container::Container;
 use reliquary_echo::EchoStore;
+use reliquary_owner_lifecycle::{
+    RelCoreReplayError, RelSpecialFrame, ingest_rel_core_frame, replay_open,
+};
 use reliquary_perception_store::EntityOpenState;
 use reliquary_perception_store::EntityStore;
 use reliquary_perception_store::relationship_rebuild::RelationshipOpenState;
@@ -156,10 +156,27 @@ impl Cva {
         let dream_freshness = DreamFreshnessJournal::new(container.owner_uuid());
         let freshness_due = crate::FreshnessDueDispatcher::default();
         archive.initialize_history_format(&mut container)?;
-        memories.initialize(&mut container)?;
-        graph.initialize(&mut container)?;
-        entities.initialize(&mut container)?;
-        relationships.initialize(&mut container)?;
+        reliquary_owner_lifecycle::initialize_core(
+            &mut container,
+            &memories,
+            &mut graph.inner,
+            &entities,
+            &relationships,
+        )
+        .map_err(|error| match error {
+            reliquary_owner_lifecycle::CoreInitializationError::Memory(error) => {
+                CvaError::from(error)
+            }
+            reliquary_owner_lifecycle::CoreInitializationError::Graph(error) => {
+                CvaError::from(crate::GraphError::from(error))
+            }
+            reliquary_owner_lifecycle::CoreInitializationError::Entity(error) => {
+                CvaError::from(error)
+            }
+            reliquary_owner_lifecycle::CoreInitializationError::Relationship(error) => {
+                CvaError::from(crate::RelationshipError::from(error))
+            }
+        })?;
         insomnia.initialize(&mut container)?;
         packed_vectors.initialize(&mut container)?;
         memory_vectors.initialize(&mut container)?;
@@ -208,26 +225,27 @@ impl Cva {
     }
 
     pub fn open(path: impl AsRef<Path>) -> Result<Self, CvaError> {
-        let header = Container::open_read_only_for_scan(path.as_ref())?;
-        if header.owner_uuid().is_none() {
-            return Err(reliquary_container::ContainerError::InvalidIdentity.into());
-        }
-        if header.identity().map(|identity| identity.file_kind)
-            != Some(reliquary_container::FileKind::Reliquary)
-        {
-            return Err(CvaError::InvalidContainerIdentity(
-                "file is not a Reliquary",
-            ));
-        }
-        let lineage_owner = header.owner_uuid();
-        drop(header);
+        let lineage_owner = Some(
+            reliquary_owner_lifecycle::inspect_owner_header(
+                path.as_ref(),
+                reliquary_container::FileKind::Reliquary,
+            )
+            .map_err(|error| match error {
+                reliquary_owner_lifecycle::OwnerHeaderError::Container(error) => {
+                    CvaError::from(error)
+                }
+                reliquary_owner_lifecycle::OwnerHeaderError::WrongKind => {
+                    CvaError::InvalidContainerIdentity("file is not a Reliquary")
+                }
+            })?,
+        );
         let mut owner_maintenance = crate::owner_maintenance::OwnerMaintenanceStore::default();
         let mut rewrite_lineage = crate::rewrite_lineage::RewriteLineageStore::default();
         let mut archive_state = ArchiveOpenState::new();
         let mut memory_state = MemoryOpenState::new();
         let mut insomnia_frame_validation =
             crate::insomnia::rebuild::InsomniaFrameValidation::new();
-        let mut graph_state = GraphReplay::new();
+        let mut graph_state = reliquary_graph::GraphOpenState::new();
         let mut community_state = CommunityReplay::new();
         let mut import_epochs = crate::imports::ImportEpochStore::default();
         let mut packed_state = PackedVectorOpenState::new();
@@ -266,18 +284,22 @@ impl Cva {
                         "RewriteGenesis requires a versioned owner identity".into(),
                     ));
                 }
-                match classify_open_record(payload) {
-                    OpenRecordRoute::Archive => {
-                        archive_state.ingest(chunk, payload, latest_global)?;
-                    }
-                    OpenRecordRoute::Memory => {
-                        memory_state.ingest(chunk, payload, latest_global)?;
-                    }
-                    OpenRecordRoute::Graph => {
-                        graph_state.ingest(chunk, payload, latest_global)?;
-                    }
-                    OpenRecordRoute::ContainerVersion => {}
-                    OpenRecordRoute::Publication => {
+                let special = ingest_rel_core_frame(
+                    chunk,
+                    payload,
+                    latest_global,
+                    &mut archive_state,
+                    &mut memory_state,
+                    &mut graph_state,
+                )
+                .map_err(|error| match error {
+                    RelCoreReplayError::Archive(error) => CvaError::from(error),
+                    RelCoreReplayError::Memory(error) => CvaError::from(error),
+                    RelCoreReplayError::Graph(error) => CvaError::from(error),
+                })?;
+                match special {
+                    None => {}
+                    Some(RelSpecialFrame::Publication) => {
                         let envelope = reliquary_container::publication_envelope::decode(payload)?
                             .ok_or(crate::MemoryError::CorruptRecord(
                                 "missing publication envelope",
@@ -299,7 +321,7 @@ impl Cva {
                             .into());
                         }
                     }
-                    OpenRecordRoute::Fallback => {
+                    Some(RelSpecialFrame::Fallback) => {
                         owner_maintenance
                             .ingest(payload)
                             .map_err(CvaError::Repack)?;
@@ -348,9 +370,24 @@ impl Cva {
                         profile_state.ingest(chunk, payload)?;
                         generation_state.ingest(chunk, payload, latest_global)?;
 
-                        interaction_streams.ingest(payload)?;
-                        compaction_state.ingest(chunk, payload)?;
-                        echo.ingest(payload)?;
+                        reliquary_owner_lifecycle::ingest_rel_evidence(
+                            chunk,
+                            payload,
+                            &mut interaction_streams,
+                            &mut compaction_state,
+                            &mut echo,
+                        )
+                        .map_err(|error| match error {
+                            reliquary_owner_lifecycle::RelEvidenceReplayError::Interaction(
+                                error,
+                            ) => CvaError::from(error),
+                            reliquary_owner_lifecycle::RelEvidenceReplayError::Compaction(
+                                error,
+                            ) => CvaError::from(error),
+                            reliquary_owner_lifecycle::RelEvidenceReplayError::Echo(error) => {
+                                CvaError::from(error)
+                            }
+                        })?;
                         ego.ingest(payload)?;
 
                         entity_resolutions.ingest(payload)?;
@@ -413,12 +450,9 @@ impl Cva {
                 }
                 Ok::<(), CvaError>(())
             };
-            let mut cursor = container.physical_cursor()?;
-            while let Some(frame) = cursor.next_frame()? {
-                replay(frame.object, &frame.payload, frame.latest_global)?;
-            }
-            let state = cursor.finish_open_scan()?;
-            container.accept_replay_scan(state)?;
+            replay_open(&mut container, |frame| {
+                replay(frame.object, &frame.payload, frame.latest_global)
+            })?;
         }
         if let Some(identity) = container.identity()
             && identity.file_kind != reliquary_container::FileKind::Reliquary
@@ -475,23 +509,26 @@ impl Cva {
         )?;
         let entities = entity_state.finish(&container)?;
         let relationships = relationship_state.finish(&container)?;
-        crate::relationship_owner::validate_historical_local_references(
+        reliquary_owner_lifecycle::validate_historical_local_references(
             &relationships,
             container.owner_id().as_deref(),
             &memories,
             &entities,
-        )?;
+        )
+        .map_err(crate::RelationshipError::from)?;
 
         ego.validate_memory_version(memories.memory_version())?;
         crate::cva_memory_publish::validate_store_provenance(&memories, &archive)?;
         processing_epochs.validate(&memories)?;
         dream_pairs.validate(&memories)?;
-        for link in archive.all_file_memory_links() {
-            if !memories.contains_historical_memory(crate::MemoryId(link.memory_id.0)) {
-                return Err(crate::ArchiveError::MissingFileMemoryTarget.into());
-            }
-        }
-        let graph = graph_state.finish(&memories, &entities)?;
+        reliquary_owner_lifecycle::validate_archive_memory_links(&archive, &memories)?;
+        let graph = GraphOwner {
+            inner: reliquary_owner_lifecycle::finish_graph_replay(
+                graph_state,
+                &memories,
+                &entities,
+            )?,
+        };
         crate::owner_maintenance::validate_source_history(
             &owner_maintenance,
             &mut container,
@@ -705,14 +742,25 @@ impl Cva {
             &archive_vectors,
             &compatibility_profiles,
         )?;
-        validate_semantic_global_versions(
-            &archive,
+        let additional_versions = archive
+            .record_versions()
+            .iter()
+            .map(|record| record.global_version)
+            .chain(
+                vector_generations
+                    .generations()
+                    .iter()
+                    .map(|generation| generation.global_version),
+            );
+        if let Some(version) = reliquary_owner_lifecycle::conflicting_global_version(
             &memories,
             &entities,
             &relationships,
-            &graph,
-            &vector_generations,
-        )?;
+            &graph.inner,
+            additional_versions,
+        ) {
+            return Err(CvaError::SemanticGlobalVersionConflict(version));
+        }
         // Reconstruct the live projection without reclaiming physical chunks on open.
         let conversation_compactions = compaction_state.finish_without_reclaim()?;
         import_epochs.validate_owner(container.owner_uuid())?;

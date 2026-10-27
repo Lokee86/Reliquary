@@ -88,3 +88,5 @@ External-source search returns references and derived metadata. Source text is h
 ## Notes
 
 The remaining Hermes adapter work is an integration/release concern. The provider-neutral external-source core described here is implemented.
+
+On reopen, a derived External Index with a missing packed-vector backing is marked for rebuild without rewriting the owner file.

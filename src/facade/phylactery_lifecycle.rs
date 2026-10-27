@@ -7,7 +7,6 @@ use crate::ego_store::EgoStore;
 use crate::entity_resolution_boundary::ResolutionAdmission;
 use crate::entity_resolution_store::EntityResolutionStore;
 use crate::graph_owner::GraphOwner;
-use crate::graph_replay::GraphReplay;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_rebuild::MemoryOpenState;
 use crate::memory_store::MemoryStore;
@@ -70,10 +69,27 @@ impl Phylactery {
         let entity_resolutions = EntityResolutionStore::default();
         let relationships = RelationshipStore::empty();
 
-        memories.initialize(&mut container)?;
-        graph.initialize(&mut container)?;
-        entities.initialize(&mut container)?;
-        relationships.initialize(&mut container)?;
+        reliquary_owner_lifecycle::initialize_core(
+            &mut container,
+            &memories,
+            &mut graph.inner,
+            &entities,
+            &relationships,
+        )
+        .map_err(|error| match error {
+            reliquary_owner_lifecycle::CoreInitializationError::Memory(error) => {
+                PhylacteryError::from(error)
+            }
+            reliquary_owner_lifecycle::CoreInitializationError::Graph(error) => {
+                PhylacteryError::from(crate::GraphError::from(error))
+            }
+            reliquary_owner_lifecycle::CoreInitializationError::Entity(error) => {
+                PhylacteryError::from(error)
+            }
+            reliquary_owner_lifecycle::CoreInitializationError::Relationship(error) => {
+                PhylacteryError::from(crate::RelationshipError::from(error))
+            }
+        })?;
         packed_vectors.initialize(&mut container)?;
         memory_vectors.initialize(&mut container)?;
         compatibility_profiles.initialize(&mut container)?;
@@ -104,25 +120,26 @@ impl Phylactery {
     }
 
     pub fn open(path: impl AsRef<Path>) -> Result<Self, PhylacteryError> {
-        let header = Container::open_read_only_for_scan(path.as_ref())?;
-        if header.owner_uuid().is_none() {
-            return Err(reliquary_container::ContainerError::InvalidIdentity.into());
-        }
-        if header.identity().map(|identity| identity.file_kind)
-            != Some(reliquary_container::FileKind::Phylactery)
-        {
-            return Err(PhylacteryError::InvalidContainerIdentity(
-                "file is not a Phylactery",
-            ));
-        }
-        let lineage_owner = header.owner_uuid();
-        drop(header);
+        let lineage_owner = Some(
+            reliquary_owner_lifecycle::inspect_owner_header(
+                path.as_ref(),
+                reliquary_container::FileKind::Phylactery,
+            )
+            .map_err(|error| match error {
+                reliquary_owner_lifecycle::OwnerHeaderError::Container(error) => {
+                    PhylacteryError::from(error)
+                }
+                reliquary_owner_lifecycle::OwnerHeaderError::WrongKind => {
+                    PhylacteryError::InvalidContainerIdentity("file is not a Phylactery")
+                }
+            })?,
+        );
         let mut owner_maintenance = crate::owner_maintenance::OwnerMaintenanceStore::default();
         let mut rewrite_lineage = crate::rewrite_lineage::RewriteLineageStore::default();
         let mut memory_state = MemoryOpenState::new();
         let mut external_publications =
             crate::external_source::publication::ExternalPublicationState::default();
-        let mut graph_state = GraphReplay::new();
+        let mut graph_state = reliquary_graph::GraphOpenState::new();
         let mut community_state = CommunityReplay::new();
         let mut packed_state = PackedVectorOpenState::new();
         let mut memory_vector_state = MemoryVectorOpenState::new();
@@ -157,7 +174,9 @@ impl Phylactery {
                         && !entity_state.ingest_publication_envelope(envelope, latest_global)?
                         && !relationship_state
                             .ingest_publication_envelope(envelope, latest_global)?
-                        && !graph_state.ingest_publication_envelope(envelope, latest_global)?
+                        && !graph_state
+                            .ingest_publication_envelope(envelope, latest_global)
+                            .map_err(crate::GraphError::from)?
                     {
                         return Err(crate::MemoryError::CorruptRecord(
                             "unsupported publication envelope body",
@@ -197,7 +216,9 @@ impl Phylactery {
                         memory_state.ingest(chunk, payload, latest_global)?;
                     }
                     entity_state.ingest(chunk, payload, latest_global)?;
-                    graph_state.ingest(chunk, payload, latest_global)?;
+                    graph_state
+                        .ingest(chunk, payload, latest_global)
+                        .map_err(crate::GraphError::from)?;
                     relationship_state.ingest(chunk, payload, latest_global)?;
                 }
                 community_state.ingest(payload)?;
@@ -215,12 +236,9 @@ impl Phylactery {
                 entity_resolutions.ingest(payload)?;
                 Ok::<(), PhylacteryError>(())
             };
-            let mut cursor = container.physical_cursor()?;
-            while let Some(frame) = cursor.next_frame()? {
-                replay(frame.object, &frame.payload, frame.latest_global)?;
-            }
-            let state = cursor.finish_open_scan()?;
-            container.accept_replay_scan(state)?;
+            reliquary_owner_lifecycle::replay_open(&mut container, |frame| {
+                replay(frame.object, &frame.payload, frame.latest_global)
+            })?;
         }
         if container.identity()
             != Some(ContainerIdentity {
@@ -236,12 +254,13 @@ impl Phylactery {
         let memories = memory_state.finish(&mut container)?;
         let entities = entity_state.finish(&container)?;
         let relationships = relationship_state.finish(&container)?;
-        crate::relationship_owner::validate_historical_local_references(
+        reliquary_owner_lifecycle::validate_historical_local_references(
             &relationships,
             container.owner_id().as_deref(),
             &memories,
             &entities,
-        )?;
+        )
+        .map_err(crate::RelationshipError::from)?;
         if entities
             .records()
             .iter()
@@ -255,11 +274,26 @@ impl Phylactery {
         validate_phylactery_provenance(&memories)?;
         processing_epochs.validate(&memories)?;
         dream_pairs.validate(&memories)?;
-        let graph = graph_state.finish(&memories, &entities)?;
+        let graph = GraphOwner {
+            inner: reliquary_owner_lifecycle::finish_graph_replay(
+                graph_state,
+                &memories,
+                &entities,
+            )
+            .map_err(crate::GraphError::from)?,
+        };
         graph
             .validate_rewrite_baseline(container.owner_uuid(), rewrite_lineage.rewrite_genesis())?;
         let communities = community_state.finish(&graph, container.owner_uuid())?;
-        validate_global_versions(&memories, &entities, &relationships, &graph)?;
+        if let Some(version) = reliquary_owner_lifecycle::conflicting_global_version(
+            &memories,
+            &entities,
+            &relationships,
+            &graph.inner,
+            std::iter::empty(),
+        ) {
+            return Err(PhylacteryError::SemanticGlobalVersionConflict(version));
+        }
         let packed_vectors = packed_state.finish()?;
         let compatibility_profiles = profile_state.finish()?;
         let memory_vectors =
@@ -367,44 +401,6 @@ fn validate_phylactery_provenance(memories: &MemoryStore) -> Result<(), Phylacte
             || record.grounding_source_node_id.is_some()
     }) {
         return Err(crate::MemoryError::InvalidProvenance.into());
-    }
-    Ok(())
-}
-
-fn validate_global_versions(
-    memories: &MemoryStore,
-    entities: &EntityStore,
-    relationships: &RelationshipStore,
-    graph: &GraphOwner,
-) -> Result<(), PhylacteryError> {
-    let mut versions: Vec<_> = memories
-        .records()
-        .iter()
-        .map(|record| record.global_version)
-        .chain(
-            entities
-                .records()
-                .iter()
-                .map(|record| record.global_version),
-        )
-        .chain(
-            relationships
-                .records()
-                .iter()
-                .map(|record| record.global_version),
-        )
-        .chain(memories.tombstone_global_versions())
-        .chain(entities.tombstone_global_versions())
-        .chain(relationships.tombstone_global_versions())
-        .chain(graph.transaction_global_versions().iter().copied())
-        .collect();
-    versions.sort_unstable();
-    if let Some(version) = versions
-        .windows(2)
-        .find(|pair| pair[0] == pair[1])
-        .map(|pair| pair[0])
-    {
-        return Err(PhylacteryError::SemanticGlobalVersionConflict(version));
     }
     Ok(())
 }

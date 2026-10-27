@@ -19,6 +19,8 @@
 - [Compact derived external index contract](external-index-compact-contract-2026-10-21.md)
 - [External Index Store extraction specification](external-index-store-crate-extraction-spec-2026-10-27.md) — derived snapshot/codec ownership and validation boundary.
 - [Maintenance Store extraction specification](maintenance-store-crate-extraction-spec-2026-10-27.md) — evidence-first durable ownership decision.
+- [Owner Lifecycle extraction evidence](owner-lifecycle-crate-extraction-evidence-2026-10-27.md) — implementation, verification and remaining fixture limits.
+- [Chronos extraction specification](chronos-crate-extraction-spec-2026-10-27.md) — planned Chronos ownership and migration.
 - [Owner Lifecycle extraction specification](owner-lifecycle-crate-extraction-spec-2026-10-27.md) — compiled owner reopen and structural replay coordination.
 - [Compact interaction stream contract](interaction-stream-compact-contract-2026-10-21.md) — frozen checkpoint transitions and exact suffix representation.
 - [Compact publication envelope contract](publication-envelope-contract-2026-10-20.md) — planned physical allocation/reserved-binding format and owner migration gates.
@@ -151,6 +153,7 @@
 - [archive-vector-generation-reuse-decision-2026-10-21.md](archive-vector-generation-reuse-decision-2026-10-21.md) - Archive Vector Generation Reuse Decision 2026 10 21 documentation.
 - [behavioral-contracts.md](behavioral-contracts.md) - Behavioral Contracts documentation.
 - [canonical-history-migration-results-2026-10-21.md](canonical-history-migration-results-2026-10-21.md) - Canonical History Migration Results 2026 10 21 documentation.
+- [chronos-crate-extraction-spec-2026-10-27.md](chronos-crate-extraction-spec-2026-10-27.md) - Chronos Crate Extraction Spec 2026 10 27 documentation.
 - [chronos-subsystem-plan.md](chronos-subsystem-plan.md) - Chronos Subsystem Plan documentation.
 - [cli.md](cli.md) - Cli documentation.
 - [community-history-reconstruction-decision-2026-10-21.md](community-history-reconstruction-decision-2026-10-21.md) - Community History Reconstruction Decision 2026 10 21 documentation.
@@ -250,6 +253,7 @@
 - [minimal-lossless-history-storage-spec-2026-10-19.md](minimal-lossless-history-storage-spec-2026-10-19.md) - Minimal Lossless History Storage Spec 2026 10 19 documentation.
 - [multiplexing-implementation-plan.md](multiplexing-implementation-plan.md) - Multiplexing Implementation Plan documentation.
 - [native-import.md](native-import.md) - Native Import documentation.
+- [owner-lifecycle-crate-extraction-evidence-2026-10-27.md](owner-lifecycle-crate-extraction-evidence-2026-10-27.md) - Owner Lifecycle Crate Extraction Evidence 2026 10 27 documentation.
 - [owner-lifecycle-crate-extraction-spec-2026-10-27.md](owner-lifecycle-crate-extraction-spec-2026-10-27.md) - Owner Lifecycle Crate Extraction Spec 2026 10 27 documentation.
 - [perception-store-crate-extraction-evidence-2026-10-26.md](perception-store-crate-extraction-evidence-2026-10-26.md) - Perception Store Crate Extraction Evidence 2026 10 26 documentation.
 - [perception-store-crate-extraction-spec-2026-10-26.md](perception-store-crate-extraction-spec-2026-10-26.md) - Perception Store Crate Extraction Spec 2026 10 26 documentation.

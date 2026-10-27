@@ -2860,6 +2860,7 @@ dependencies = [
  "reliquary-insomnia-store",
  "reliquary-maintenance-store",
  "reliquary-memory-core",
+ "reliquary-owner-lifecycle",
  "reliquary-perception-store",
  "reliquary-vector-store",
  "reqwest",
@@ -2885,6 +2886,14 @@ dependencies = [
 [[package]]
 name = "reliquary-owner-lifecycle"
 version = "0.1.0"
+dependencies = [
+ "reliquary-archive",
+ "reliquary-container",
+ "reliquary-echo",
+ "reliquary-graph",
+ "reliquary-memory-core",
+ "reliquary-perception-store",
+]
 
 [[package]]
 name = "reliquary-perception"

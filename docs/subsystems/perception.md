@@ -70,3 +70,5 @@ Chronos supplies temporal interpretation primitives. Perception owns any resulti
 ## Notes
 
 This document intentionally stops at implemented behavior. The target Observation/receptor/reconsideration architecture remains in the active plan with enough context to understand the intended continuation.
+
+Owner Lifecycle validates historical local Relationship references against accepted Entity and Memory state and reconstructs Graph admission from those stores during REL and PHY open. Live publication admission remains with the product owner.

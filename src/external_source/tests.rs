@@ -562,6 +562,30 @@ impl Host {
 }
 
 #[test]
+fn missing_external_index_backing_is_invalidated_on_passive_reopen() {
+    let path = path();
+    let host = Host::new("canonical source remains intact");
+    let mut cva = Cva::create(&path).unwrap();
+    rebuild(&mut cva, &host);
+    let mut state = cva.external_index.sources["host:test"].clone();
+    assert!(!state.messages[0].chunks.is_empty());
+    state.messages[0].chunks[0].matrix = [0xfe; 32];
+    cva.container
+        .append(&store::encode(&state).unwrap())
+        .unwrap();
+    cva.container.sync().unwrap();
+    drop(cva);
+    let before = std::fs::read(&path).unwrap();
+    let reopened = Cva::open(&path).unwrap();
+    assert_eq!(
+        reopened.external_index_state("host:test"),
+        Err(ExternalSourceError::RebuildRequired)
+    );
+    drop(reopened);
+    assert_eq!(std::fs::read(&path).unwrap(), before);
+}
+
+#[test]
 fn corrupt_logical_index_reopens_without_losing_semantics_and_rebuild_persists() {
     let path = path();
     let host = Host::new("secret canonical evidence");

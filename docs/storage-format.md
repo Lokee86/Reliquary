@@ -1454,3 +1454,5 @@ The temporary offline V1 upgrader rejects unknown CVA/CVD/PRJ record identities 
 The latest offline conversion now derives standalone `CVAFRS06` from source-validated historical import evidence at its original first settlement slot. It removes duplicate normalization records and `CVAILEG1/2` physical-prefix bridges. The import owner rebinds only the derived `CVAIEPC1` settlement-byte digest; start identity, receipt digest, completion time and watermarks remain literal. This does not change ordinary writers. Focused native completion retry, duplicate normalization removal, initial-history parity and damaged-source refusal pass. Full-suite and authoritative-corpus acceptance remain explicit gates before retirement.
 
 The current epoch record codec and passive projection are owned by `reliquary-import-store`. Completion authorization remains in the higher Import coordinator; these formats and their field order are unchanged by the ownership move.
+
+The Owner Lifecycle extraction changes the owner replay implementation, not the current physical or record formats.

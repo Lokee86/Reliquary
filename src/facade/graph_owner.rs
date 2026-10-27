@@ -14,9 +14,6 @@ impl GraphOwner {
             inner: reliquary_graph::GraphStore::empty(),
         }
     }
-    pub(crate) fn initialize(&mut self, container: &mut Container) -> Result<(), GraphError> {
-        self.inner.initialize(container).map_err(Into::into)
-    }
     pub(crate) fn graph_version(&self) -> u64 {
         self.inner.graph_version()
     }

@@ -289,8 +289,6 @@ mod cva_error;
 mod cva_file_memory;
 #[path = "facade/cva_freshness.rs"]
 mod cva_freshness;
-#[path = "facade/cva_global_validation.rs"]
-mod cva_global_validation;
 #[path = "facade/cva_graph.rs"]
 mod cva_graph;
 #[path = "facade/cva_historical_dream.rs"]
@@ -325,8 +323,6 @@ mod cva_memory_publish;
 mod cva_memory_retrieval;
 #[path = "facade/cva_memory_vectors.rs"]
 mod cva_memory_vectors;
-#[path = "facade/cva_open_route.rs"]
-mod cva_open_route;
 #[path = "facade/cva_packed_vectors.rs"]
 mod cva_packed_vectors;
 #[path = "facade/cva_principal_repack.rs"]
@@ -1601,8 +1597,6 @@ mod community_owner;
 mod graph_admission;
 #[path = "facade/graph_owner.rs"]
 mod graph_owner;
-#[path = "facade/graph_replay.rs"]
-mod graph_replay;
 use reliquary_graph::{community_codec, graph_codec, graph_compact_codec, graph_compact_contract};
 
 #[cfg(test)]
