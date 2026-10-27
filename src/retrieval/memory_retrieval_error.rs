@@ -39,3 +39,9 @@ impl From<PackedVectorError> for MemoryRetrievalError {
         Self::PackedVectors(value)
     }
 }
+
+impl From<reliquary_vector_store::PackedVectorError> for MemoryRetrievalError {
+    fn from(value: reliquary_vector_store::PackedVectorError) -> Self {
+        Self::PackedVectors(value.into())
+    }
+}

@@ -1,273 +1,199 @@
-use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::memory_store::MemoryStore;
-use crate::memory_vector_codec::{decode_object, encode_format, encode_object};
-use crate::packed_vector_store::PackedVectorStore;
 use crate::{
     CompatibilityProfileId, MemoryBodyId, MemoryVectorError, MemoryVectorId, MemoryVectorInfo,
-    MemoryVectorLocation, MemoryVectorSet, MemoryVectorStats, PackedVectorId, ScalarType,
+    MemoryVectorLocation, MemoryVectorSet, MemoryVectorStats, PackedVectorId,
 };
 use reliquary_container::{Container, ObjectRef};
-use sha2::{Digest, Sha256};
-use std::collections::{HashMap, HashSet};
+use reliquary_vector_store::{
+    AcceptedMemoryMapping, MemoryVectorStore as LowerStore, PackedVectorStore,
+};
 
 #[derive(Default)]
 pub(crate) struct MemoryVectorStore {
-    objects: HashMap<MemoryVectorId, MemoryVectorEntry>,
-    bindings: HashMap<(CompatibilityProfileId, MemoryBodyId), MemoryVectorLocation>,
-    profile_binding_counts: HashMap<CompatibilityProfileId, usize>,
+    inner: LowerStore,
 }
-
-#[derive(Clone, Copy)]
-struct MemoryVectorEntry {
-    info: MemoryVectorInfo,
-    chunk: ObjectRef,
-}
-
 impl MemoryVectorStore {
-    pub(crate) fn initialize(&self, container: &mut Container) -> Result<(), MemoryVectorError> {
-        container.append(&encode_format())?;
-        Ok(())
+    pub(crate) fn initialize(&self, c: &mut Container) -> Result<(), MemoryVectorError> {
+        self.inner.initialize(c).map_err(map_error)
     }
-
     pub(crate) fn put(
         &mut self,
-        container: &mut Container,
+        c: &mut Container,
         memories: &MemoryStore,
-        profiles: &CompatibilityProfileStore,
-        packed_vectors: &PackedVectorStore,
-        compatibility_profile_id: CompatibilityProfileId,
-        packed_vector_id: PackedVectorId,
-        memory_body_ids: Vec<MemoryBodyId>,
+        profiles: &crate::compatibility_profile_store::CompatibilityProfileStore,
+        packed: &PackedVectorStore,
+        profile: CompatibilityProfileId,
+        packed_id: PackedVectorId,
+        bodies: Vec<MemoryBodyId>,
     ) -> Result<MemoryVectorId, MemoryVectorError> {
         profiles
-            .get_active(compatibility_profile_id)
+            .get_active(profile)
             .ok_or(MemoryVectorError::MissingProfile)?;
-        validate_mapping(
-            memories,
-            profiles,
-            packed_vectors,
-            compatibility_profile_id,
-            packed_vector_id,
-            &memory_body_ids,
-        )?;
-        if packed_vectors.is_pruned(packed_vector_id) {
-            return Err(crate::PackedVectorError::PayloadUnavailable(
-                crate::owner_lifecycle::PayloadUnavailable::Pruned,
+        validate_mapping(memories, profiles, packed, profile, packed_id, &bodies)?;
+        let rows = u64::try_from(bodies.len()).map_err(|_| MemoryVectorError::SizeOverflow)?;
+        self.inner
+            .put(
+                c,
+                packed,
+                profiles.lower(),
+                AcceptedMemoryMapping {
+                    profile,
+                    packed: packed_id,
+                    packed_rows: rows,
+                    body_ids: bodies
+                        .into_iter()
+                        .map(|x| reliquary_vector_store::MemoryBodyId(x.0))
+                        .collect(),
+                },
             )
-            .into());
-        }
-        let id = memory_vector_id(compatibility_profile_id, packed_vector_id, &memory_body_ids);
-        if let Some(existing) = self.objects.get(&id).copied() {
-            let payload = container.read(existing.chunk)?;
-            let decoded = decode_object(&payload)?.ok_or(MemoryVectorError::MissingObject)?;
-            if decoded.id != id
-                || decoded.compatibility_profile_id != compatibility_profile_id
-                || decoded.packed_vector_id != packed_vector_id
-                || decoded.memory_body_ids != memory_body_ids
-            {
-                return Err(MemoryVectorError::HashCollision);
-            }
-            return Ok(id);
-        }
-        for body_id in &memory_body_ids {
-            if self
-                .bindings
-                .contains_key(&(compatibility_profile_id, *body_id))
-            {
-                return Err(MemoryVectorError::DuplicateBinding);
-            }
-        }
-        let payload = encode_object(
-            id,
-            compatibility_profile_id,
-            packed_vector_id,
-            &memory_body_ids,
-        )?;
-        let chunk = container.append(&payload)?;
-        let info = MemoryVectorInfo {
-            id,
-            compatibility_profile_id,
-            packed_vector_id,
-            rows: u64::try_from(memory_body_ids.len())
-                .map_err(|_| MemoryVectorError::SizeOverflow)?,
-        };
-        self.insert_entry(info, chunk, &memory_body_ids)?;
-        Ok(id)
+            .map(|x| MemoryVectorId(x.0))
+            .map_err(map_error)
     }
-
     pub(crate) fn get(
         &self,
-        container: &mut Container,
+        c: &mut Container,
         id: MemoryVectorId,
     ) -> Result<MemoryVectorSet, MemoryVectorError> {
-        let entry = self
-            .objects
-            .get(&id)
-            .ok_or(MemoryVectorError::MissingObject)?;
-        let payload = container.read(entry.chunk)?;
-        let decoded = decode_object(&payload)?.ok_or(MemoryVectorError::MissingObject)?;
-        if decoded.id != id
-            || memory_vector_id(
-                decoded.compatibility_profile_id,
-                decoded.packed_vector_id,
-                &decoded.memory_body_ids,
-            ) != id
-        {
-            return Err(MemoryVectorError::HashCollision);
-        }
+        let v = self
+            .inner
+            .get(c, reliquary_vector_store::MemoryVectorId(id.0))
+            .map_err(map_error)?;
         Ok(MemoryVectorSet {
-            id,
-            compatibility_profile_id: decoded.compatibility_profile_id,
-            packed_vector_id: decoded.packed_vector_id,
-            memory_body_ids: decoded.memory_body_ids,
+            id: MemoryVectorId(v.id.0),
+            compatibility_profile_id: v.compatibility_profile_id,
+            packed_vector_id: v.packed_vector_id,
+            memory_body_ids: v
+                .memory_body_ids
+                .into_iter()
+                .map(|x| MemoryBodyId(x.0))
+                .collect(),
         })
     }
-
     pub(crate) fn insert_rebuilt(
         &mut self,
         info: MemoryVectorInfo,
         chunk: ObjectRef,
-        body_ids: &[MemoryBodyId],
+        bodies: &[MemoryBodyId],
     ) -> Result<(), MemoryVectorError> {
-        if let Some(existing) = self.objects.get(&info.id) {
-            if existing.info != info {
-                return Err(MemoryVectorError::HashCollision);
-            }
-            return Ok(());
-        }
-        self.insert_entry(info, chunk, body_ids)
-    }
-
-    fn insert_entry(
-        &mut self,
-        info: MemoryVectorInfo,
-        chunk: ObjectRef,
-        body_ids: &[MemoryBodyId],
-    ) -> Result<(), MemoryVectorError> {
-        if body_ids.iter().any(|body_id| {
-            self.bindings
-                .contains_key(&(info.compatibility_profile_id, *body_id))
-        }) {
-            return Err(MemoryVectorError::DuplicateBinding);
-        }
-        for (row, body_id) in body_ids.iter().enumerate() {
-            let key = (info.compatibility_profile_id, *body_id);
-            self.bindings.insert(
-                key,
-                MemoryVectorLocation {
-                    set_id: info.id,
-                    row: u64::try_from(row).map_err(|_| MemoryVectorError::SizeOverflow)?,
+        self.inner
+            .insert_rebuilt(
+                reliquary_vector_store::MemoryVectorInfo {
+                    id: reliquary_vector_store::MemoryVectorId(info.id.0),
+                    compatibility_profile_id: info.compatibility_profile_id,
+                    packed_vector_id: info.packed_vector_id,
+                    rows: info.rows,
                 },
-            );
-        }
-        *self
-            .profile_binding_counts
-            .entry(info.compatibility_profile_id)
-            .or_default() += body_ids.len();
-        self.objects
-            .insert(info.id, MemoryVectorEntry { info, chunk });
-        Ok(())
+                chunk,
+                bodies
+                    .iter()
+                    .map(|x| reliquary_vector_store::MemoryBodyId(x.0))
+                    .collect(),
+            )
+            .map_err(map_error)
     }
-
     pub(crate) fn location(
         &self,
-        profile_id: CompatibilityProfileId,
-        body_id: MemoryBodyId,
+        p: CompatibilityProfileId,
+        b: MemoryBodyId,
     ) -> Option<MemoryVectorLocation> {
-        self.bindings.get(&(profile_id, body_id)).copied()
+        self.inner
+            .location(p, reliquary_vector_store::MemoryBodyId(b.0))
+            .map(|x| MemoryVectorLocation {
+                set_id: MemoryVectorId(x.set_id.0),
+                row: x.row,
+            })
     }
-
     pub(crate) fn missing_body_ids(
         &self,
-        profile_id: CompatibilityProfileId,
-        body_ids: &[MemoryBodyId],
+        p: CompatibilityProfileId,
+        b: &[MemoryBodyId],
     ) -> Vec<MemoryBodyId> {
-        body_ids
-            .iter()
+        b.iter()
             .copied()
-            .filter(|body_id| !self.bindings.contains_key(&(profile_id, *body_id)))
+            .filter(|id| self.location(p, *id).is_none())
             .collect()
     }
-
-    pub(crate) fn binding_count(&self, profile_id: CompatibilityProfileId) -> usize {
-        self.profile_binding_counts
-            .get(&profile_id)
-            .copied()
-            .unwrap_or(0)
+    pub(crate) fn binding_count(&self, p: CompatibilityProfileId) -> usize {
+        self.inner.binding_count(p)
     }
-
     pub(crate) fn has_complete_coverage(
         &self,
-        profile_id: CompatibilityProfileId,
-        body_ids: &[MemoryBodyId],
+        p: CompatibilityProfileId,
+        b: &[MemoryBodyId],
     ) -> bool {
-        body_ids
-            .iter()
-            .all(|body_id| self.bindings.contains_key(&(profile_id, *body_id)))
+        b.iter().all(|id| self.location(p, *id).is_some())
     }
-
     pub(crate) fn infos(&self) -> Vec<MemoryVectorInfo> {
-        let mut infos: Vec<_> = self.objects.values().map(|entry| entry.info).collect();
-        infos.sort_by_key(|info| info.id.0);
-        infos
+        self.inner
+            .infos()
+            .into_iter()
+            .map(|x| MemoryVectorInfo {
+                id: MemoryVectorId(x.id.0),
+                compatibility_profile_id: x.compatibility_profile_id,
+                packed_vector_id: x.packed_vector_id,
+                rows: x.rows,
+            })
+            .collect()
     }
-
     pub(crate) fn stats(&self) -> MemoryVectorStats {
+        let x = self.inner.stats();
         MemoryVectorStats {
-            objects: self.objects.len(),
-            rows: self.objects.values().map(|entry| entry.info.rows).sum(),
-            bindings: self.bindings.len(),
+            objects: x.objects,
+            rows: x.rows,
+            bindings: x.bindings,
         }
     }
 }
-
+fn map_error(e: reliquary_vector_store::MemoryVectorError) -> MemoryVectorError {
+    use reliquary_vector_store::MemoryVectorError as L;
+    match e {
+        L::Container(x) => x.into(),
+        L::PackedVector(x) => x.into(),
+        L::CorruptRecord(x) => MemoryVectorError::CorruptRecord(x),
+        L::MissingFormat => MemoryVectorError::MissingFormat,
+        L::ConflictingFormat => MemoryVectorError::ConflictingFormat,
+        L::MissingObject => MemoryVectorError::MissingObject,
+        L::MissingPackedVector => MemoryVectorError::MissingPackedVector,
+        L::MissingProfile => MemoryVectorError::MissingProfile,
+        L::RowCountMismatch => MemoryVectorError::RowCountMismatch,
+        L::DimensionMismatch => MemoryVectorError::DimensionMismatch,
+        L::UnsupportedScalar(scalar) => MemoryVectorError::UnsupportedScalar(scalar),
+        L::DuplicateMemoryBody => MemoryVectorError::DuplicateMemoryBody,
+        L::DuplicateBinding => MemoryVectorError::DuplicateBinding,
+        L::HashCollision => MemoryVectorError::HashCollision,
+        L::SizeOverflow => MemoryVectorError::SizeOverflow,
+    }
+}
 pub(crate) fn validate_mapping(
     memories: &MemoryStore,
-    profiles: &CompatibilityProfileStore,
-    packed_vectors: &PackedVectorStore,
-    compatibility_profile_id: CompatibilityProfileId,
-    packed_vector_id: PackedVectorId,
-    memory_body_ids: &[MemoryBodyId],
+    profiles: &crate::compatibility_profile_store::CompatibilityProfileStore,
+    packed: &PackedVectorStore,
+    p: CompatibilityProfileId,
+    v: PackedVectorId,
+    b: &[MemoryBodyId],
 ) -> Result<(), MemoryVectorError> {
-    let profile = profiles
-        .get(compatibility_profile_id)
-        .ok_or(MemoryVectorError::MissingProfile)?;
-    let packed = packed_vectors
-        .info(packed_vector_id)
+    let profile = profiles.get(p).ok_or(MemoryVectorError::MissingProfile)?;
+    let packed = packed
+        .info(v)
         .ok_or(MemoryVectorError::MissingPackedVector)?;
-    let rows = u64::try_from(memory_body_ids.len()).map_err(|_| MemoryVectorError::SizeOverflow)?;
+    let rows = u64::try_from(b.len()).map_err(|_| MemoryVectorError::SizeOverflow)?;
     if packed.count != rows {
         return Err(MemoryVectorError::RowCountMismatch);
     }
     if packed.schema.dimensions != profile.dimensions {
         return Err(MemoryVectorError::DimensionMismatch);
     }
-    if packed.schema.scalar != ScalarType::F32 {
+    if packed.schema.scalar != crate::ScalarType::F32 {
         return Err(MemoryVectorError::UnsupportedScalar(packed.schema.scalar));
     }
-    let mut seen = HashSet::with_capacity(memory_body_ids.len());
-    for body_id in memory_body_ids {
-        if !memories.contains_body(*body_id) {
+    let mut seen = std::collections::HashSet::new();
+    for id in b {
+        if !memories.contains_body(*id) {
             return Err(MemoryVectorError::MissingMemoryBody);
         }
-        if !seen.insert(*body_id) {
+        if !seen.insert(*id) {
             return Err(MemoryVectorError::DuplicateMemoryBody);
         }
     }
     Ok(())
-}
-
-pub(crate) fn memory_vector_id(
-    compatibility_profile_id: CompatibilityProfileId,
-    packed_vector_id: PackedVectorId,
-    body_ids: &[MemoryBodyId],
-) -> MemoryVectorId {
-    let mut hash = Sha256::new();
-    hash.update(b"CVA-MEMORY-VECTORS-V1\0");
-    hash.update(compatibility_profile_id.0);
-    hash.update(packed_vector_id.0);
-    for body_id in body_ids {
-        hash.update(body_id.0);
-    }
-    MemoryVectorId(hash.finalize().into())
 }

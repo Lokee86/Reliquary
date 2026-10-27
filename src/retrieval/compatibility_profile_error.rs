@@ -34,3 +34,19 @@ impl From<EmbeddingEndpointError> for CompatibilityProfileError {
         Self::Endpoint(value)
     }
 }
+
+impl From<reliquary_vector_store::ProfileStoreError> for CompatibilityProfileError {
+    fn from(value: reliquary_vector_store::ProfileStoreError) -> Self {
+        use reliquary_vector_store::ProfileStoreError as Store;
+        match value {
+            Store::Container(error) => Self::Container(error),
+            Store::CorruptRecord(record) => Self::CorruptRecord(record),
+            Store::MissingFormat => Self::MissingFormat,
+            Store::ConflictingFormat => Self::ConflictingFormat,
+            Store::MissingProfile => Self::MissingProfile,
+            Store::InvalidProfile(reason) => Self::InvalidProfile(reason),
+            Store::HashCollision => Self::HashCollision,
+            Store::SizeOverflow => Self::SizeOverflow,
+        }
+    }
+}

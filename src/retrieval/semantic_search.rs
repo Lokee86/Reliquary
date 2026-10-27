@@ -62,6 +62,11 @@ impl Cva {
         let binding = self
             .archive_vectors
             .get(&mut self.container, generation.archive_vector_id)?;
+        let fragment_ids: Vec<_> = binding
+            .fragment_ids
+            .into_iter()
+            .map(|id| crate::FragmentId(id.0))
+            .collect();
         let packed = self
             .packed_vectors
             .get(&mut self.container, binding.packed_vector_id)?;
@@ -72,14 +77,13 @@ impl Cva {
         if usize::try_from(schema.dimensions).ok() != Some(query.len()) {
             return Err(SemanticSearchError::InvalidQueryVector);
         }
-        if packed.count() != binding.fragment_ids.len() {
+        if packed.count() != fragment_ids.len() {
             return Err(SemanticSearchError::CorruptMatrix("row binding count"));
         }
         let query_norm = vector_norm(query).ok_or(SemanticSearchError::InvalidQueryVector)?;
         let mut scores = Vec::with_capacity(packed.count());
         for ordinal in 0..packed.count() {
-            let fragment_id = *binding
-                .fragment_ids
+            let fragment_id = *fragment_ids
                 .get(ordinal)
                 .ok_or(SemanticSearchError::CorruptMatrix("row binding"))?;
             if allowed_fragments.is_some_and(|allowed| !allowed.contains(&fragment_id)) {
@@ -104,8 +108,7 @@ impl Cva {
 
         let mut hits = Vec::with_capacity(scores.len());
         for (ordinal, score) in scores {
-            let fragment_id = *binding
-                .fragment_ids
+            let fragment_id = *fragment_ids
                 .get(ordinal)
                 .ok_or(SemanticSearchError::CorruptMatrix("row binding"))?;
             let fragment = self

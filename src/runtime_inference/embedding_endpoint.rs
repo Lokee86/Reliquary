@@ -1,51 +1,6 @@
+pub use reliquary_vector_store::{EmbeddingMode, VectorNormalization};
 use sha2::{Digest, Sha256};
 use std::fmt;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum EmbeddingMode {
-    Query,
-    Document,
-}
-
-impl EmbeddingMode {
-    pub(crate) fn tag(self) -> u8 {
-        match self {
-            Self::Query => 1,
-            Self::Document => 2,
-        }
-    }
-
-    pub(crate) fn from_tag(tag: u8) -> Option<Self> {
-        match tag {
-            1 => Some(Self::Query),
-            2 => Some(Self::Document),
-            _ => None,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum VectorNormalization {
-    None,
-    L2,
-}
-
-impl VectorNormalization {
-    pub(crate) fn tag(self) -> u8 {
-        match self {
-            Self::None => 0,
-            Self::L2 => 1,
-        }
-    }
-
-    pub(crate) fn from_tag(tag: u8) -> Option<Self> {
-        match tag {
-            0 => Some(Self::None),
-            1 => Some(Self::L2),
-            _ => None,
-        }
-    }
-}
 
 #[derive(Debug)]
 pub enum EmbeddingEndpointError {

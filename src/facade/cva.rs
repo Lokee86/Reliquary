@@ -1,4 +1,3 @@
-use crate::archive_vector_store::ArchiveVectorStore;
 use crate::community_owner::CommunityOwner;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::cva_memory_publish::publish_memory_parts;
@@ -11,7 +10,6 @@ use crate::insomnia::store::InsomniaStore;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
-use crate::packed_vector_store::PackedVectorStore;
 use crate::processing_epoch_store::ProcessingEpochStore;
 use crate::rel_metadata_store::RelMetadataStore;
 use crate::vector_generation_store::VectorGenerationStore;
@@ -29,6 +27,8 @@ use reliquary_container::{Container, WriteAdmission};
 use reliquary_echo::EchoStore;
 use reliquary_perception_store::EntityStore;
 use reliquary_perception_store::relationship_store::RelationshipStore;
+use reliquary_vector_store::ArchiveVectorStore;
+use reliquary_vector_store::PackedVectorStore;
 
 pub struct Cva {
     pub(crate) owner_maintenance: crate::owner_maintenance::OwnerMaintenanceStore,

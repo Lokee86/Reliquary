@@ -136,9 +136,9 @@ fn corrupt_packed_vector_bytes_are_rejected_on_reopen() {
 
 #[test]
 fn packed_vector_prune_marker_preserves_identity_and_reports_explicit_unavailability() {
-    use crate::packed_vector_codec::{encode_format, encode_pruned_marker};
-    use crate::packed_vector_rebuild::PackedVectorOpenState;
-    use crate::packed_vector_store::info;
+    use reliquary_vector_store::PackedVectorOpenState;
+    use reliquary_vector_store::codec::{encode_format, encode_pruned_marker};
+    use reliquary_vector_store::info;
 
     let path = test_path("pruned-marker.cva");
     let mut container = Container::create_with_identity(
@@ -150,7 +150,7 @@ fn packed_vector_prune_marker_preserves_identity_and_reports_explicit_unavailabi
     )
     .unwrap();
     let schema = VectorSchema::new(4, ScalarType::I8).unwrap();
-    let id = crate::packed_vector_store::packed_vector_id(schema, &[1, 2, 3, 4]);
+    let id = reliquary_vector_store::packed_vector_id(schema, &[1, 2, 3, 4]);
     let info = info(id, schema, 1, 4).unwrap();
     let marker = encode_pruned_marker(info, [9; 32]).unwrap();
 
@@ -167,8 +167,10 @@ fn packed_vector_prune_marker_preserves_identity_and_reports_explicit_unavailabi
     assert_eq!(store.prune_manifest_digest(id), Some([9; 32]));
     assert!(matches!(
         store.get(&mut container, id),
-        Err(PackedVectorError::PayloadUnavailable(
-            crate::owner_lifecycle::PayloadUnavailable::Pruned
-        ))
+        Err(
+            reliquary_vector_store::PackedVectorError::PayloadUnavailable(
+                reliquary_vector_store::PayloadUnavailable::Pruned
+            )
+        )
     ));
 }

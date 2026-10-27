@@ -141,7 +141,7 @@ impl ExternalIndexStore {
     }
     pub(crate) fn validate_backing(
         &mut self,
-        packed: &crate::packed_vector_store::PackedVectorStore,
+        packed: &reliquary_vector_store::PackedVectorStore,
         profiles: &crate::compatibility_profile_store::CompatibilityProfileStore,
     ) {
         self.sources.retain(|_, s| {

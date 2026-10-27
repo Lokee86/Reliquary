@@ -69,7 +69,7 @@ impl VectorHistory {
                 .archive_vectors
                 .get(&mut cva.container, generation.archive_vector_id)
                 .map_err(|e| e.to_string())?;
-            let crate::ArchiveVectorSet {
+            let reliquary_vector_store::ArchiveVectorRecord {
                 id,
                 packed_vector_id,
                 fragment_ids,

@@ -134,14 +134,10 @@ pub use rewrite_lineage::HistoryGenerationId;
 pub use rewrite_lineage::RewriteGenesis;
 #[path = "retrieval/archive_search.rs"]
 mod archive_search;
-#[path = "retrieval/archive_vector_codec.rs"]
-mod archive_vector_codec;
 #[path = "retrieval/archive_vector_error.rs"]
 mod archive_vector_error;
 #[path = "retrieval/archive_vector_model.rs"]
 mod archive_vector_model;
-#[path = "retrieval/archive_vector_rebuild.rs"]
-mod archive_vector_rebuild;
 #[path = "retrieval/archive_vector_store.rs"]
 mod archive_vector_store;
 #[path = "chronos/chronos.rs"]
@@ -228,8 +224,7 @@ mod community_model;
 #[path = "semantic_graph/community_routing.rs"]
 mod community_routing;
 
-#[path = "retrieval/compatibility_profile_codec.rs"]
-mod compatibility_profile_codec;
+use reliquary_vector_store::profile as compatibility_profile_codec;
 #[path = "retrieval/compatibility_profile_error.rs"]
 mod compatibility_profile_error;
 #[path = "retrieval/compatibility_profile_model.rs"]
@@ -693,8 +688,6 @@ mod memory_search;
 #[path = "memory/memory_source_time.rs"]
 mod memory_source_time;
 use reliquary_memory_core::memory_store;
-#[path = "retrieval/memory_vector_codec.rs"]
-mod memory_vector_codec;
 #[path = "retrieval/memory_vector_error.rs"]
 mod memory_vector_error;
 #[path = "retrieval/memory_vector_model.rs"]
@@ -739,16 +732,8 @@ mod openai_ready_embedding;
 mod openai_ready_embedding_response;
 #[path = "runtime_inference/openai_ready_general.rs"]
 mod openai_ready_general;
-#[path = "retrieval/packed_vector_codec.rs"]
-mod packed_vector_codec;
 #[path = "retrieval/packed_vector_error.rs"]
 mod packed_vector_error;
-#[path = "retrieval/packed_vector_model.rs"]
-mod packed_vector_model;
-#[path = "retrieval/packed_vector_rebuild.rs"]
-mod packed_vector_rebuild;
-#[path = "retrieval/packed_vector_store.rs"]
-mod packed_vector_store;
 #[path = "facade/phylactery.rs"]
 pub mod phylactery;
 #[path = "facade/phylactery_communities.rs"]
@@ -852,8 +837,7 @@ mod storage_reclamation_scan;
 #[cfg(test)]
 #[path = "facade/storage_reclamation_tests.rs"]
 mod storage_reclamation_tests;
-#[path = "retrieval/vector_generation_codec.rs"]
-mod vector_generation_codec;
+pub(crate) use reliquary_vector_store::generation as vector_generation_codec;
 #[path = "retrieval/vector_generation_error.rs"]
 mod vector_generation_error;
 #[path = "retrieval/vector_generation_model.rs"]
@@ -1132,7 +1116,6 @@ pub use openai_ready_embedding::{
 };
 pub use openai_ready_general::OpenAiReadyGeneralEndpoint;
 pub use packed_vector_error::PackedVectorError;
-pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
 pub use phylactery::Phylactery;
 pub use phylactery_error::PhylacteryError;
 pub use project_environment::{ProjectAdoptionSource, ProjectRepositoryMode};
@@ -1170,6 +1153,7 @@ pub use reliquary_perception_store::{
     EntityRetentionDescriptor, EntityStats, MAX_ENTITY_ALIASES, MAX_ENTITY_KIND_BYTES,
     MAX_ENTITY_NAME_BYTES, MAX_ENTITY_SUMMARY_BYTES,
 };
+pub use reliquary_vector_store::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
 pub use runtime_host::memory_search::{
     DEFAULT_MEMORY_SEARCH_DEPTH, DEFAULT_MEMORY_SEARCH_RESULTS, MAX_MEMORY_SEARCH_DEPTH,
     MAX_MEMORY_SEARCH_QUERY_BYTES, MAX_MEMORY_SEARCH_RESULTS, MemorySearchItem, MemorySearchLane,

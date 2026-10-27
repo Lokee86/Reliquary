@@ -1,88 +1,76 @@
-use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::memory_store::MemoryStore;
-use crate::memory_vector_codec::{decode_format, decode_object};
-use crate::memory_vector_store::{MemoryVectorStore, memory_vector_id, validate_mapping};
-use crate::packed_vector_store::PackedVectorStore;
+use crate::memory_vector_store::{MemoryVectorStore, validate_mapping};
 use crate::{MemoryBodyId, MemoryVectorError, MemoryVectorInfo};
 use reliquary_container::ObjectRef;
+use reliquary_vector_store::{
+    CompatibilityProfileStore as LowerProfiles, MemoryVectorOpenState as LowerOpenState,
+    PackedVectorStore,
+};
 
 pub(crate) struct MemoryVectorOpenState {
-    records: Vec<PendingMemoryVectors>,
-    format_seen: bool,
+    inner: LowerOpenState,
 }
-
-struct PendingMemoryVectors {
-    info: MemoryVectorInfo,
-    chunk: ObjectRef,
-    body_ids: Vec<MemoryBodyId>,
-}
-
 impl MemoryVectorOpenState {
     pub(crate) fn new() -> Self {
         Self {
-            records: Vec::new(),
-            format_seen: false,
+            inner: LowerOpenState::new(),
         }
     }
-
     pub(crate) fn ingest(
         &mut self,
         chunk: ObjectRef,
         payload: &[u8],
     ) -> Result<(), MemoryVectorError> {
-        if decode_format(payload)? {
-            if self.format_seen {
-                return Err(MemoryVectorError::ConflictingFormat);
-            }
-            self.format_seen = true;
-            return Ok(());
-        }
-        let Some(decoded) = decode_object(payload)? else {
-            return Ok(());
-        };
-        if memory_vector_id(
-            decoded.compatibility_profile_id,
-            decoded.packed_vector_id,
-            &decoded.memory_body_ids,
-        ) != decoded.id
-        {
-            return Err(MemoryVectorError::HashCollision);
-        }
-        self.records.push(PendingMemoryVectors {
-            info: MemoryVectorInfo {
-                id: decoded.id,
-                compatibility_profile_id: decoded.compatibility_profile_id,
-                packed_vector_id: decoded.packed_vector_id,
-                rows: u64::try_from(decoded.memory_body_ids.len())
-                    .map_err(|_| MemoryVectorError::SizeOverflow)?,
-            },
-            chunk,
-            body_ids: decoded.memory_body_ids,
-        });
-        Ok(())
+        self.inner.ingest(chunk, payload).map_err(map_error)
     }
-
     pub(crate) fn finish(
         self,
         memories: &MemoryStore,
-        profiles: &CompatibilityProfileStore,
-        packed_vectors: &PackedVectorStore,
+        profiles: &crate::compatibility_profile_store::CompatibilityProfileStore,
+        packed: &PackedVectorStore,
     ) -> Result<MemoryVectorStore, MemoryVectorError> {
-        if !self.format_seen {
-            return Err(MemoryVectorError::MissingFormat);
-        }
+        let records = self.inner.finish_records().map_err(map_error)?;
         let mut store = MemoryVectorStore::default();
-        for record in self.records {
+        for r in records {
+            let bodies: Vec<_> = r.bodies.iter().map(|x| MemoryBodyId(x.0)).collect();
+            let info = MemoryVectorInfo {
+                id: crate::MemoryVectorId(r.info.id.0),
+                compatibility_profile_id: r.info.compatibility_profile_id,
+                packed_vector_id: r.info.packed_vector_id,
+                rows: r.info.rows,
+            };
             validate_mapping(
                 memories,
                 profiles,
-                packed_vectors,
-                record.info.compatibility_profile_id,
-                record.info.packed_vector_id,
-                &record.body_ids,
+                packed,
+                info.compatibility_profile_id,
+                info.packed_vector_id,
+                &bodies,
             )?;
-            store.insert_rebuilt(record.info, record.chunk, &record.body_ids)?;
+            reliquary_vector_store::validate_replay_record(packed, profiles.lower(), r.info)
+                .map_err(map_error)?;
+            store.insert_rebuilt(info, r.chunk, &bodies)?;
         }
         Ok(store)
+    }
+}
+fn map_error(e: reliquary_vector_store::MemoryVectorError) -> MemoryVectorError {
+    use reliquary_vector_store::MemoryVectorError as L;
+    match e {
+        L::Container(x) => x.into(),
+        L::PackedVector(x) => x.into(),
+        L::CorruptRecord(x) => MemoryVectorError::CorruptRecord(x),
+        L::MissingFormat => MemoryVectorError::MissingFormat,
+        L::ConflictingFormat => MemoryVectorError::ConflictingFormat,
+        L::MissingObject => MemoryVectorError::MissingObject,
+        L::MissingPackedVector => MemoryVectorError::MissingPackedVector,
+        L::MissingProfile => MemoryVectorError::MissingProfile,
+        L::RowCountMismatch => MemoryVectorError::RowCountMismatch,
+        L::DimensionMismatch => MemoryVectorError::DimensionMismatch,
+        L::UnsupportedScalar(scalar) => MemoryVectorError::UnsupportedScalar(scalar),
+        L::DuplicateMemoryBody => MemoryVectorError::DuplicateMemoryBody,
+        L::DuplicateBinding => MemoryVectorError::DuplicateBinding,
+        L::HashCollision => MemoryVectorError::HashCollision,
+        L::SizeOverflow => MemoryVectorError::SizeOverflow,
     }
 }

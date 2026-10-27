@@ -114,6 +114,17 @@ from_error!(CommunityError, Communities);
 from_error!(InsomniaError, Insomnia);
 from_error!(crate::imports::ImportError, Import);
 from_error!(PackedVectorError, PackedVectors);
+
+impl From<reliquary_vector_store::PackedVectorError> for CvaError {
+    fn from(value: reliquary_vector_store::PackedVectorError) -> Self {
+        Self::PackedVectors(value.into())
+    }
+}
+impl From<reliquary_vector_store::ArchiveVectorError> for CvaError {
+    fn from(value: reliquary_vector_store::ArchiveVectorError) -> Self {
+        Self::ArchiveVectors(value.into())
+    }
+}
 from_error!(MemoryVectorError, MemoryVectors);
 from_error!(ArchiveVectorError, ArchiveVectors);
 from_error!(CompatibilityProfileError, CompatibilityProfiles);

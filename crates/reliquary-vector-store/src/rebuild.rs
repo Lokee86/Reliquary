@@ -1,26 +1,22 @@
-use crate::packed_vector_codec::{decode_format, decode_object, decode_pruned_marker};
-use crate::packed_vector_store::{PackedVectorStore, packed_vector_id};
+use crate::codec::{decode_format, decode_object, decode_pruned_marker};
+use crate::store::{PackedVectorStore, packed_vector_id};
 use crate::{PackedVectorError, PackedVectorInfo};
 use reliquary_container::ObjectRef;
 
-pub(crate) struct PackedVectorOpenState {
+pub struct PackedVectorOpenState {
     store: PackedVectorStore,
     format_seen: bool,
 }
 
 impl PackedVectorOpenState {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             store: PackedVectorStore::default(),
             format_seen: false,
         }
     }
 
-    pub(crate) fn ingest(
-        &mut self,
-        chunk: ObjectRef,
-        payload: &[u8],
-    ) -> Result<(), PackedVectorError> {
+    pub fn ingest(&mut self, chunk: ObjectRef, payload: &[u8]) -> Result<(), PackedVectorError> {
         if decode_format(payload)? {
             if self.format_seen {
                 return Err(PackedVectorError::ConflictingFormat);
@@ -52,7 +48,7 @@ impl PackedVectorOpenState {
         Ok(())
     }
 
-    pub(crate) fn finish(self) -> Result<PackedVectorStore, PackedVectorError> {
+    pub fn finish(self) -> Result<PackedVectorStore, PackedVectorError> {
         if !self.format_seen {
             return Err(PackedVectorError::MissingFormat);
         }

@@ -291,7 +291,7 @@ impl Cva {
         let mut packed_objects = HashMap::new();
         for object in &objects {
             let payload = self.container.read(*object)?;
-            if let Some(decoded) = crate::packed_vector_codec::decode_object(&payload)?
+            if let Some(decoded) = reliquary_vector_store::codec::decode_object(&payload)?
                 && packed_ids.contains(&decoded.id)
                 && packed_objects.insert(decoded.id, *object).is_some()
             {

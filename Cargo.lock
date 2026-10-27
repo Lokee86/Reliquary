@@ -2832,6 +2832,7 @@ dependencies = [
  "reliquary-graph",
  "reliquary-memory-core",
  "reliquary-perception-store",
+ "reliquary-vector-store",
  "reqwest",
  "serde",
  "serde_json",
@@ -2889,6 +2890,11 @@ version = "0.1.0"
 [[package]]
 name = "reliquary-vector-store"
 version = "0.1.0"
+dependencies = [
+ "lodestone-packed",
+ "reliquary-container",
+ "sha2",
+]
 
 [[package]]
 name = "reliquary-vectors"

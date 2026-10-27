@@ -75,6 +75,12 @@ impl From<reliquary_perception_store::RelationshipError> for PhylacteryError {
 from_error!(GraphError, Graph);
 from_error!(CommunityError, Communities);
 from_error!(PackedVectorError, PackedVectors);
+
+impl From<reliquary_vector_store::PackedVectorError> for PhylacteryError {
+    fn from(value: reliquary_vector_store::PackedVectorError) -> Self {
+        Self::PackedVectors(value.into())
+    }
+}
 from_error!(MemoryVectorError, MemoryVectors);
 from_error!(CompatibilityProfileError, CompatibilityProfiles);
 from_error!(EgoError, Ego);

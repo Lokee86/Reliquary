@@ -1,4 +1,4 @@
-use crate::packed_vector_codec::{decode_object, encode_format, encode_object};
+use crate::codec::{decode_object, encode_format, encode_object};
 use crate::{PackedVectorError, PackedVectorId, PackedVectorInfo, PackedVectorStats};
 use lodestone_packed::{PackedVectors, VectorSchema};
 use reliquary_container::{Container, ObjectRef};
@@ -6,7 +6,7 @@ use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 
 #[derive(Default)]
-pub(crate) struct PackedVectorStore {
+pub struct PackedVectorStore {
     objects: HashMap<PackedVectorId, PackedVectorEntry>,
 }
 
@@ -19,12 +19,12 @@ struct PackedVectorEntry {
 }
 
 impl PackedVectorStore {
-    pub(crate) fn initialize(&self, container: &mut Container) -> Result<(), PackedVectorError> {
+    pub fn initialize(&self, container: &mut Container) -> Result<(), PackedVectorError> {
         container.append(&encode_format())?;
         Ok(())
     }
 
-    pub(crate) fn put(
+    pub fn put(
         &mut self,
         container: &mut Container,
         packed: PackedVectors,
@@ -33,7 +33,7 @@ impl PackedVectorStore {
         if let Some(existing) = self.objects.get(&id).copied() {
             let Some(chunk) = existing.chunk else {
                 return Err(PackedVectorError::PayloadUnavailable(
-                    crate::owner_lifecycle::PayloadUnavailable::Pruned,
+                    crate::PayloadUnavailable::Pruned,
                 ));
             };
             let payload = container.read(chunk)?;
@@ -61,7 +61,7 @@ impl PackedVectorStore {
         Ok(id)
     }
 
-    pub(crate) fn get(
+    pub fn get(
         &self,
         container: &mut Container,
         id: PackedVectorId,
@@ -72,7 +72,7 @@ impl PackedVectorStore {
             .ok_or(PackedVectorError::MissingObject)?;
         let Some(chunk) = entry.chunk else {
             return Err(PackedVectorError::PayloadUnavailable(
-                crate::owner_lifecycle::PayloadUnavailable::Pruned,
+                crate::PayloadUnavailable::Pruned,
             ));
         };
         let payload = container.read(chunk)?;
@@ -84,7 +84,7 @@ impl PackedVectorStore {
             .map_err(|_| PackedVectorError::CorruptRecord("packed-vector matrix"))
     }
 
-    pub(crate) fn insert_rebuilt(
+    pub fn insert_rebuilt(
         &mut self,
         info: PackedVectorInfo,
         chunk: ObjectRef,
@@ -107,7 +107,7 @@ impl PackedVectorStore {
         Ok(())
     }
 
-    pub(crate) fn insert_pruned(
+    pub fn insert_pruned(
         &mut self,
         info: PackedVectorInfo,
         marker_chunk: ObjectRef,
@@ -135,23 +135,23 @@ impl PackedVectorStore {
         Ok(())
     }
 
-    pub(crate) fn is_pruned(&self, id: PackedVectorId) -> bool {
+    pub fn is_pruned(&self, id: PackedVectorId) -> bool {
         self.objects
             .get(&id)
             .is_some_and(|entry| entry.chunk.is_none())
     }
 
-    pub(crate) fn prune_manifest_digest(&self, id: PackedVectorId) -> Option<[u8; 32]> {
+    pub fn prune_manifest_digest(&self, id: PackedVectorId) -> Option<[u8; 32]> {
         self.objects
             .get(&id)
             .and_then(|entry| entry.manifest_digest)
     }
 
-    pub(crate) fn marker_chunk(&self, id: PackedVectorId) -> Option<ObjectRef> {
+    pub fn marker_chunk(&self, id: PackedVectorId) -> Option<ObjectRef> {
         self.objects.get(&id).and_then(|entry| entry.marker_chunk)
     }
 
-    pub(crate) fn marker_bytes(
+    pub fn marker_bytes(
         &self,
         id: PackedVectorId,
         manifest_digest: [u8; 32],
@@ -160,16 +160,16 @@ impl PackedVectorStore {
             .objects
             .get(&id)
             .ok_or(PackedVectorError::MissingObject)?;
-        crate::packed_vector_codec::encode_pruned_marker(entry.info, manifest_digest)
+        crate::codec::encode_pruned_marker(entry.info, manifest_digest)
     }
 
-    pub(crate) fn marker_matches(&self, id: PackedVectorId, manifest_digest: [u8; 32]) -> bool {
+    pub fn marker_matches(&self, id: PackedVectorId, manifest_digest: [u8; 32]) -> bool {
         self.objects.get(&id).is_some_and(|entry| {
             self.is_pruned(id) && entry.manifest_digest == Some(manifest_digest)
         })
     }
 
-    pub(crate) fn pruned_ids(&self) -> Vec<PackedVectorId> {
+    pub fn pruned_ids(&self) -> Vec<PackedVectorId> {
         let mut ids: Vec<_> = self
             .objects
             .iter()
@@ -179,17 +179,17 @@ impl PackedVectorStore {
         ids
     }
 
-    pub(crate) fn info(&self, id: PackedVectorId) -> Option<PackedVectorInfo> {
+    pub fn info(&self, id: PackedVectorId) -> Option<PackedVectorInfo> {
         self.objects.get(&id).map(|entry| entry.info)
     }
 
-    pub(crate) fn infos(&self) -> Vec<PackedVectorInfo> {
+    pub fn infos(&self) -> Vec<PackedVectorInfo> {
         let mut infos: Vec<_> = self.objects.values().map(|entry| entry.info).collect();
         infos.sort_by_key(|info| info.id.0);
         infos
     }
 
-    pub(crate) fn stats(&self) -> PackedVectorStats {
+    pub fn stats(&self) -> PackedVectorStats {
         PackedVectorStats {
             objects: self.objects.len(),
             rows: self.objects.values().map(|entry| entry.info.count).sum(),
@@ -203,7 +203,7 @@ impl PackedVectorStore {
     }
 }
 
-pub(crate) fn packed_vector_id(schema: VectorSchema, bytes: &[u8]) -> PackedVectorId {
+pub fn packed_vector_id(schema: VectorSchema, bytes: &[u8]) -> PackedVectorId {
     let mut hash = Sha256::new();
     hash.update(b"CVA-PACKED-VECTOR-V1\0");
     hash.update(schema.dimensions.to_le_bytes());
@@ -212,7 +212,7 @@ pub(crate) fn packed_vector_id(schema: VectorSchema, bytes: &[u8]) -> PackedVect
     PackedVectorId(hash.finalize().into())
 }
 
-pub(crate) fn info(
+pub fn info(
     id: PackedVectorId,
     schema: VectorSchema,
     count: usize,

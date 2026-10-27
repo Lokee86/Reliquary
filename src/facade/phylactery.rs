@@ -8,7 +8,6 @@ use crate::graph_owner::GraphOwner;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
-use crate::packed_vector_store::PackedVectorStore;
 use crate::phylactery_profile_store::PhylacteryProfileStore;
 use crate::processing_epoch_store::ProcessingEpochStore;
 use crate::{
@@ -17,6 +16,7 @@ use crate::{
 use reliquary_container::Container;
 use reliquary_perception_store::EntityStore;
 use reliquary_perception_store::relationship_store::RelationshipStore;
+use reliquary_vector_store::PackedVectorStore;
 
 pub struct Phylactery {
     pub(crate) owner_maintenance: crate::owner_maintenance::OwnerMaintenanceStore,

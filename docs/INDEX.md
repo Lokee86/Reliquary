@@ -43,6 +43,8 @@
 - [Perception Store crate extraction specification](perception-store-crate-extraction-spec-2026-10-26.md) — sixth compiled owner cut: Entity, mention-resolution and Relationship persistence below Perception service and Owner Lifecycle.
 - [Ego Store crate extraction specification](ego-store-crate-extraction-spec-2026-10-26.md) — seventh compiled owner cut: Identity, Personality, Anchor and current text synthesis persistence, distinct from future Ego inference; current implementation ownership is documented in [Ego subsystem](subsystems/ego.md).
 - [Freshness Store crate extraction specification](freshness-store-crate-extraction-spec-2026-10-26.md) — eighth compiled owner cut: durable score records, event/accepted-use journal, exact replay and import settlements below Freshness policy and scheduling.
+- [Vector Store crate extraction specification](vector-store-crate-extraction-spec-2026-10-26.md) — partial compiled vector owner cut, storage boundary, wire invariants and full acceptance matrix.
+- [Vector Store crate extraction evidence](vector-store-crate-extraction-evidence-2026-10-26.md) — current implementation boundary, reported lower-level checks and outstanding root/CLI/corpus gates.
 - [Subsystem documentation](subsystems/INDEX.md) — focused current-state ownership, behavior, lifecycle, failure, and implementation maps.
 - [Architectural invariants](invariants.md) — governing ownership and storage constraints.
 - [Storage format](storage-format.md) — exact current REL/PHY persistent-record format, legacy CVA compatibility, and migration boundary.
@@ -239,6 +241,8 @@
 - [storage-format.md](storage-format.md) - Storage Format documentation.
 - [tombstone-import-history-execution-contract.md](tombstone-import-history-execution-contract.md) - Tombstone Import History Execution Contract documentation.
 - [tombstone-import-history-final-verification-2026-10-18.md](tombstone-import-history-final-verification-2026-10-18.md) - Tombstone Import History Final Verification 2026 10 18 documentation.
+- [vector-store-crate-extraction-evidence-2026-10-26.md](vector-store-crate-extraction-evidence-2026-10-26.md) - Vector Store Crate Extraction Evidence 2026 10 26 documentation.
+- [vector-store-crate-extraction-spec-2026-10-26.md](vector-store-crate-extraction-spec-2026-10-26.md) - Vector Store Crate Extraction Spec 2026 10 26 documentation.
 - [version-history-plan.md](version-history-plan.md) - Version History Plan documentation.
 <!-- doc-ledger:files:end -->
 

@@ -964,7 +964,11 @@ N bytes   semantic name
 
 The current Dream naming contract version is `2`. Dream records carry contract versions `1..=2` and 1–8 sorted unique representative Memory IDs from the named Community. Version `2` uses the four existing Community sub-centroids and targets two representative Memories per sub-centroid. User-authored records carry contract version `0`, source `User`, and zero representative Memory IDs. Directly persisted schema-3 records require `baseline CommunityId == CommunityId`; the baseline marks the exact membership against which the name was authored/generated. Current-name resolution may project that record through deterministic Community lineage without appending another name record. User names follow clear continuation lineage without a material-change cutoff. Dream names follow clear lineage only while the current Community remains at least 0.750 Jaccard-similar to the stored baseline. All records store a trimmed non-empty UTF-8 name no longer than 96 bytes. Latest direct record for one `CommunityId` wins. Historical schema-1 and schema-2 `CVACNAM1` records remain readable and infer their stored Community ID as the baseline. Naming records consume no `CVAVERS1`, Graph version, Community generation, Memory version, or Vector Generation version. Representative IDs record which Memory texts informed Dream; vectors themselves are never persisted in this record or sent as naming evidence.
 
+
+
 ### Packed vectors
+
+The implementation is being consolidated in crates/reliquary-vector-store/; this extraction preserves the existing wire contract and does not certify full root integration. See the [extraction evidence](vector-store-crate-extraction-evidence-2026-10-26.md).
 Format marker:
 ```text
 8 bytes   "CVAPVFM1"

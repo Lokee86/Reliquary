@@ -199,23 +199,29 @@ impl ReclamationScan {
                 .insert(object, generation.archive_vector_id);
             return Ok(());
         }
-        if let Some(vectors) =
-            crate::memory_vector_codec::decode_object(payload).map_err(|error| error.to_string())?
+        if let Some(vectors) = reliquary_vector_store::decode_memory_vector_object(payload)
+            .map_err(|error| error.to_string())?
         {
             self.memory_vector_packed_refs
                 .insert(vectors.packed_vector_id);
-            self.memory_vector_body_refs.extend(vectors.memory_body_ids);
+            self.memory_vector_body_refs.extend(
+                vectors
+                    .memory_body_ids
+                    .into_iter()
+                    .map(|x| MemoryBodyId(x.0)),
+            );
             return Ok(());
         }
-        if let Some(vectors) = crate::archive_vector_codec::decode_object(payload)
-            .map_err(|error| error.to_string())?
+        if let Some((id, packed_vector_id)) =
+            reliquary_vector_store::archive_vector_object_packed_id(payload)
+                .map_err(|error| error.to_string())?
         {
             self.archive_vector_chunks
-                .push((object, vectors.id, vectors.packed_vector_id));
+                .push((object, id, packed_vector_id));
             return Ok(());
         }
-        if let Some(packed) =
-            crate::packed_vector_codec::decode_object(payload).map_err(|error| error.to_string())?
+        if let Some(packed) = reliquary_vector_store::codec::decode_object(payload)
+            .map_err(|error| error.to_string())?
         {
             self.packed_vector_chunks.push((object, packed.id));
             return Ok(());

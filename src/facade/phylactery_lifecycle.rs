@@ -13,8 +13,6 @@ use crate::memory_rebuild::MemoryOpenState;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_rebuild::MemoryVectorOpenState;
 use crate::memory_vector_store::MemoryVectorStore;
-use crate::packed_vector_rebuild::PackedVectorOpenState;
-use crate::packed_vector_store::PackedVectorStore;
 use crate::phylactery_profile_store::PhylacteryProfileStore;
 use crate::processing_epoch_store::ProcessingEpochStore;
 use crate::{Phylactery, PhylacteryError};
@@ -23,6 +21,8 @@ use reliquary_perception_store::EntityOpenState;
 use reliquary_perception_store::EntityStore;
 use reliquary_perception_store::relationship_rebuild::RelationshipOpenState;
 use reliquary_perception_store::relationship_store::RelationshipStore;
+use reliquary_vector_store::PackedVectorOpenState;
+use reliquary_vector_store::PackedVectorStore;
 use std::path::Path;
 
 impl Phylactery {

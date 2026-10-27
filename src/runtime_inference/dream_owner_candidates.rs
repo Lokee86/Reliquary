@@ -8,12 +8,12 @@ use crate::dream_temporal::analyze_memory_temporal;
 use crate::graph_owner::GraphOwner;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
-use crate::packed_vector_store::PackedVectorStore;
 use crate::{
     CompatibilityProfileId, DreamCandidateConfig, DreamCandidateError, DreamCandidateSet,
     DreamMemoryContext, GraphRelation, MAX_DREAM_CANDIDATE_LIMIT, Memory, MemoryBodyId, MemoryId,
 };
 use reliquary_container::Container;
+use reliquary_vector_store::PackedVectorStore;
 
 pub(crate) fn dream_memory_context<R>(
     container: &mut Container,

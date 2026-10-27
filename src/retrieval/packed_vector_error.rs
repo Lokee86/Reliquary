@@ -26,3 +26,21 @@ impl From<ContainerError> for PackedVectorError {
         Self::Container(value)
     }
 }
+
+impl From<reliquary_vector_store::PackedVectorError> for PackedVectorError {
+    fn from(value: reliquary_vector_store::PackedVectorError) -> Self {
+        use reliquary_vector_store::PackedVectorError as StoreError;
+        match value {
+            StoreError::Container(error) => Self::Container(error),
+            StoreError::CorruptRecord(message) => Self::CorruptRecord(message),
+            StoreError::MissingFormat => Self::MissingFormat,
+            StoreError::ConflictingFormat => Self::ConflictingFormat,
+            StoreError::MissingObject => Self::MissingObject,
+            StoreError::PayloadUnavailable(_) => {
+                Self::PayloadUnavailable(crate::owner_lifecycle::PayloadUnavailable::Pruned)
+            }
+            StoreError::HashCollision => Self::HashCollision,
+            StoreError::SizeOverflow => Self::SizeOverflow,
+        }
+    }
+}

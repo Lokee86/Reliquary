@@ -140,7 +140,7 @@ fn commit_batch(
     container: &mut reliquary_container::Container,
     memories: &crate::memory_store::MemoryStore,
     profiles: &crate::compatibility_profile_store::CompatibilityProfileStore,
-    packed_vectors: &mut crate::packed_vector_store::PackedVectorStore,
+    packed_vectors: &mut reliquary_vector_store::PackedVectorStore,
     memory_vectors: &mut crate::memory_vector_store::MemoryVectorStore,
     batch: RuntimeMemoryVectorBatch,
     vectors: Vec<Vec<f32>>,

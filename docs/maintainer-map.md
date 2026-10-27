@@ -25,6 +25,17 @@ Import/CVA owns epoch metadata and identity in `src/imports/epoch_store.rs` and 
 
 `src/imports/epoch_scope.rs` derives the open epoch's transient physical start boundary, receipt source Nodes, complete Import Episode paths and born-Memory cohort. `src/facade/historical_import_base.rs` rebuilds the pre-start Freshness base. `ImportEventScope` in `crates/reliquary-freshness-store/src/freshness_import_events.rs` selects provisional event identities inside finite physical intervals with separate born-source and affected-recipient sets. `crates/reliquary-freshness-store/src/freshness_import_settlement.rs` owns the current ordered settlement model; `crates/reliquary-freshness-store/src/freshness_semantic_settlement.rs` owns the CVAFRS06 canonical semantic codec. The historical Cva adapter prepares and publishes semantic evidence; Freshness replay resolves accepted event identity/digests and same-cut receipt absorption. Completed-import reconciliation also requests the canonical scope's exact accepted event facts through `FreshnessStore::requested_import_event_entries`, expands accepted-use batches and compares coordinate-normalized causal evidence outside as well as inside the epoch interval; `reconciliation_freshness_authority_tests.rs` protects this boundary. `historical_events.rs` keeps generating-Episode/publication-cohort exclusions separate from per-record base proofs. `imports/completion.rs` requires exact receipt/start identity and the SHA-256 of the accepted raw scoped-settlement payload; lifecycle reopen checks settlement-before-completion order. The completion marker is synced before write admission reopens, and uncertain retries rescan physical markers. Regression evidence lives in `historical_import_attribution_tests.rs`, `historical_import_accepted_use_tests.rs`, `historical_import_existing_memory_tests.rs` and `imports/completion_tests.rs`; readiness logic is in `src/imports/readiness.rs`, which ties exact `EpisodeId`, `MemoryId` and `MemoryEntityMentionKey` identities to durable owner state. [Behavioral contracts](behavioral-contracts.md#native-import-contracts) maps the assertions and pending acceptance gates. Mounted completion and routed PHY readiness remain unsupported.
 
+## Vector Store crate extraction (in progress)
+
+The lower-level vector models, codecs and store/replay modules are present in
+`crates/reliquary-vector-store/src/`; the crate has Container as its only direct
+Reliquary dependency. The root facade and its callers still require focused
+vector/retrieval verification and detached CLI verification. The seven crate
+wire tests and `cargo check --workspace --locked --offline` are reported
+passing; do not treat these results as full extraction acceptance. `CVAFRS07`
+and the six-file current-format gate remain unverified. See the [extraction
+evidence](vector-store-crate-extraction-evidence-2026-10-26.md) and
+[specification](vector-store-crate-extraction-spec-2026-10-26.md).
 ## Canonical corpus acceptance
 
 `src/facade/historical_current_corpus_tests.rs` owns the current-only six-file

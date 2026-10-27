@@ -1,11 +1,18 @@
 # Vector Store crate extraction — implementation specification
 
-**Status:** Specified; not implemented.
+**Status:** Partial implementation; full extraction acceptance pending.
 **Repository:** `C:\!bin\workspace\Reliquary-crate-first`
 **Branch:** `refactor/crate-first-restart`
 **Baseline:** committed Freshness Store extraction `310b6664` (confirm HEAD and worktree before implementation).
 **Target:** `crates/reliquary-vector-store/`
 **Scope:** correction-only, one compiled owner-store hard cut. No vector policy, search, embedding, durable-format, or roadmap changes.
+## Purpose
+
+Specify the bounded Vector Store extraction, its ownership boundary, and the evidence required for full acceptance.
+
+## Overview
+
+This specification describes the target lower-level persistence owner and the staged caller, wire-format, replay, and integration checks. The extraction is partially implemented; remaining acceptance is tracked in the companion evidence record.
 
 ## 1. Purpose and result
 
@@ -13,7 +20,7 @@ Extract the real durable Vector Store from the root product into a compiled lowe
 
 **Mandatory direct Reliquary dependency:** only `reliquary-container`. External dependencies are permitted only when actually required by the moved implementation (for example `lodestone_packed`, `sha2`). Do not introduce edges to Archive, Memory Core, Retrieval, Vectors, Owner Lifecycle, Runtime, History, Import or the root package. See `docs/architecture/crate-map.json` and `docs/crate-first-layout-spec-2026-10-25.md`.
 
-The existing `crates/reliquary-vector-store/` is a placeholder, not a completed extraction.
+`crates/reliquary-vector-store/` now contains lower-level implementation modules, but root integration and the acceptance matrix remain incomplete. See the [implementation evidence](vector-store-crate-extraction-evidence-2026-10-26.md).
 
 ## 2. Source ownership — concrete inventory
 
@@ -85,3 +92,15 @@ Intermediate red builds are permitted only within the declared migration; do not
 ## 7. Exclusions
 
 Do not implement `reliquary-vectors` (higher embedding/generation service), Retrieval, Memory/Archive refactors, History, Owner Lifecycle, an upgraded index, new vector format, a profile redesign, query ranking changes, model provider changes, current-format corpus recovery, or broad architecture verification machinery in this extraction.
+
+## Notes
+
+A passing lower-crate or workspace check does not establish full product acceptance. Root focused tests, the detached CLI suite, and CVAFRS07 corpus verification remain separate gates unless recorded as completed in the companion evidence.
+
+## Related docs
+
+- [Implementation evidence](vector-store-crate-extraction-evidence-2026-10-26.md)
+- [Architecture](architecture.md#vector-store-crate-extraction-in-progress)
+- [Maintainer map](maintainer-map.md#vector-store-crate-extraction-in-progress)
+- [Storage format](storage-format.md#packed-vectors)
+- [Crate-first layout specification](crate-first-layout-spec-2026-10-25.md)

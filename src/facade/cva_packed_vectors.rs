@@ -10,14 +10,18 @@ impl Cva {
         &mut self,
         packed: PackedVectors,
     ) -> Result<PackedVectorId, PackedVectorError> {
-        self.packed_vectors.put(&mut self.container, packed)
+        self.packed_vectors
+            .put(&mut self.container, packed)
+            .map_err(Into::into)
     }
 
     pub fn packed_vectors(
         &mut self,
         id: PackedVectorId,
     ) -> Result<PackedVectors, PackedVectorError> {
-        self.packed_vectors.get(&mut self.container, id)
+        self.packed_vectors
+            .get(&mut self.container, id)
+            .map_err(Into::into)
     }
 
     pub fn packed_vector_infos(&self) -> Vec<PackedVectorInfo> {
@@ -92,7 +96,9 @@ impl Cva {
         id: PackedVectorId,
         manifest_digest: [u8; 32],
     ) -> Result<Vec<u8>, PackedVectorError> {
-        self.packed_vectors.marker_bytes(id, manifest_digest)
+        self.packed_vectors
+            .marker_bytes(id, manifest_digest)
+            .map_err(Into::into)
     }
 
     pub(crate) fn packed_vector_retention_descriptor(

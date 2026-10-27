@@ -285,7 +285,7 @@ fn fill_missing(
             }
             let schema = VectorSchema::new(state.dimensions, ScalarType::F32)
                 .map_err(|_| ExternalSourceError::InvalidContract)?;
-            let matrix = crate::packed_vector_store::packed_vector_id(schema, &bytes).0;
+            let matrix = reliquary_vector_store::packed_vector_id(schema, &bytes).0;
             let packed = PackedVectors::from_bytes(schema, bytes)
                 .map_err(|_| ExternalSourceError::InvalidContract)?;
             state.messages[*position].chunks = ranges

@@ -185,7 +185,7 @@ impl Phylactery {
         description_discard.extend(relationship_plan.discard);
         for object in self.container.chunks()? {
             let raw = self.container.read(object)?;
-            if let Some(decoded) = crate::packed_vector_codec::decode_object(&raw)?
+            if let Some(decoded) = reliquary_vector_store::codec::decode_object(&raw)?
                 && packed_ids.contains(&decoded.id)
             {
                 if packed_objects.insert(decoded.id, object).is_some() {

@@ -42,6 +42,8 @@ Maintenance can select retained active profiles, verify completeness for current
 
 Profile retirement is semantic owner state, distinct from deleting arbitrary historical bytes.
 
+Vector persistence is in a partial crate extraction: `reliquary-vector-store` contains wire and store/replay modules, while root lifecycle and cross-owner authorization remain in the product. Root focused vector/retrieval and CLI checks are pending. See the [extraction evidence](../vector-store-crate-extraction-evidence-2026-10-26.md).
+
 ## Rewrite
 
 The rewrite API separates planning from execution. A `RewritePlan` binds source identity/head and policy digest; execution revalidates that source before creating a destination and refuses an already-existing destination.

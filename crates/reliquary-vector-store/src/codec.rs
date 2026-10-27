@@ -10,26 +10,26 @@ const PRUNED_MAGIC: &[u8; 8] = b"CVAPVRN1";
 const PRUNED_LEN: usize = 128;
 
 #[derive(Clone, Copy)]
-pub(crate) struct DecodedPrunedPackedVector {
+pub struct DecodedPrunedPackedVector {
     pub info: crate::PackedVectorInfo,
     pub manifest_digest: [u8; 32],
 }
 
-pub(crate) struct DecodedPackedVector<'a> {
+pub struct DecodedPackedVector<'a> {
     pub id: PackedVectorId,
     pub schema: VectorSchema,
     pub count: u64,
     pub bytes: &'a [u8],
 }
 
-pub(crate) fn encode_format() -> Vec<u8> {
+pub fn encode_format() -> Vec<u8> {
     let mut bytes = Vec::with_capacity(12);
     bytes.extend_from_slice(FORMAT_MAGIC);
     bytes.extend_from_slice(&FORMAT_SCHEMA.to_le_bytes());
     bytes
 }
 
-pub(crate) fn decode_format(bytes: &[u8]) -> Result<bool, PackedVectorError> {
+pub fn decode_format(bytes: &[u8]) -> Result<bool, PackedVectorError> {
     if !bytes.starts_with(FORMAT_MAGIC) {
         return Ok(false);
     }
@@ -41,7 +41,7 @@ pub(crate) fn decode_format(bytes: &[u8]) -> Result<bool, PackedVectorError> {
     Ok(true)
 }
 
-pub(crate) fn encode_pruned_marker(
+pub fn encode_pruned_marker(
     info: crate::PackedVectorInfo,
     manifest_digest: [u8; 32],
 ) -> Result<Vec<u8>, PackedVectorError> {
@@ -69,7 +69,7 @@ pub(crate) fn encode_pruned_marker(
     Ok(bytes)
 }
 
-pub(crate) fn decode_pruned_marker(
+pub fn decode_pruned_marker(
     bytes: &[u8],
 ) -> Result<Option<DecodedPrunedPackedVector>, PackedVectorError> {
     if !bytes.starts_with(PRUNED_MAGIC) {
@@ -113,7 +113,7 @@ pub(crate) fn decode_pruned_marker(
     }))
 }
 
-pub(crate) fn encode_object(
+pub fn encode_object(
     id: PackedVectorId,
     packed: &PackedVectors,
 ) -> Result<Vec<u8>, PackedVectorError> {
@@ -136,9 +136,7 @@ pub(crate) fn encode_object(
     Ok(bytes)
 }
 
-pub(crate) fn decode_object(
-    bytes: &[u8],
-) -> Result<Option<DecodedPackedVector<'_>>, PackedVectorError> {
+pub fn decode_object(bytes: &[u8]) -> Result<Option<DecodedPackedVector<'_>>, PackedVectorError> {
     if !bytes.starts_with(OBJECT_MAGIC) {
         return Ok(None);
     }

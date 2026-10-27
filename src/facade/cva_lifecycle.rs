@@ -1,5 +1,3 @@
-use crate::archive_vector_rebuild::ArchiveVectorOpenState;
-use crate::archive_vector_store::ArchiveVectorStore;
 use crate::community_owner::{CommunityOwner, CommunityReplay};
 use crate::compatibility_profile_rebuild::CompatibilityProfileOpenState;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
@@ -21,8 +19,6 @@ use crate::memory_rebuild::MemoryOpenState;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_rebuild::MemoryVectorOpenState;
 use crate::memory_vector_store::MemoryVectorStore;
-use crate::packed_vector_rebuild::PackedVectorOpenState;
-use crate::packed_vector_store::PackedVectorStore;
 use crate::processing_epoch_store::ProcessingEpochStore;
 use crate::rel_metadata_store::RelMetadataStore;
 use crate::vector_generation_rebuild::VectorGenerationOpenState;
@@ -41,6 +37,10 @@ use reliquary_perception_store::EntityOpenState;
 use reliquary_perception_store::EntityStore;
 use reliquary_perception_store::relationship_rebuild::RelationshipOpenState;
 use reliquary_perception_store::relationship_store::RelationshipStore;
+use reliquary_vector_store::ArchiveVectorOpenState;
+use reliquary_vector_store::ArchiveVectorStore;
+use reliquary_vector_store::PackedVectorOpenState;
+use reliquary_vector_store::PackedVectorStore;
 use std::path::Path;
 
 impl Cva {
@@ -650,7 +650,25 @@ impl Cva {
         external_index.validate_backing(&packed_vectors, &compatibility_profiles);
         let memory_vectors =
             memory_vector_state.finish(&memories, &compatibility_profiles, &packed_vectors)?;
-        let archive_vectors = archive_vector_state.finish(&archive, &packed_vectors)?;
+        let mut archive_vectors = ArchiveVectorStore::default();
+        for record in archive_vector_state.finish()? {
+            let fragment_ids: Vec<_> = record
+                .fragment_ids
+                .iter()
+                .map(|id| crate::FragmentId(id.0))
+                .collect();
+            let (_, max_fragment_archive_version) = crate::archive_vector_store::validate_mapping(
+                &archive,
+                &packed_vectors,
+                record.info.packed_vector_id,
+                &fragment_ids,
+            )?;
+            let mut info = record.info;
+            info.max_fragment_archive_version = max_fragment_archive_version;
+            archive_vectors
+                .insert_rebuilt(info, record.chunk, record.fragment_ids)
+                .map_err(crate::ArchiveVectorError::from)?;
+        }
         let vector_generations = generation_state.finish(
             &archive,
             &packed_vectors,

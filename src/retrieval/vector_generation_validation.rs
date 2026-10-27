@@ -1,11 +1,10 @@
-use crate::archive_vector_store::ArchiveVectorStore;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
-use crate::packed_vector_store::PackedVectorStore;
 use crate::{
     Archive, ArchiveVectorId, CompatibilityProfileId, ScalarType, VectorGeneration,
     VectorGenerationError, VectorGenerationId,
 };
-use sha2::{Digest, Sha256};
+use reliquary_vector_store::ArchiveVectorStore;
+use reliquary_vector_store::PackedVectorStore;
 
 pub(crate) fn validate_generation_reference(
     archive: &Archive,
@@ -53,7 +52,7 @@ pub(crate) fn has_complete_current_coverage(
             &archive
                 .fragments()
                 .iter()
-                .map(|fragment| fragment.id)
+                .map(|fragment| reliquary_vector_store::ArchiveFragmentId(fragment.id.0))
                 .collect::<Vec<_>>(),
         )
 }
@@ -63,10 +62,9 @@ pub(crate) fn vector_generation_id(
     archive_vector_id: ArchiveVectorId,
     source_archive_version: u64,
 ) -> VectorGenerationId {
-    let mut hash = Sha256::new();
-    hash.update(b"CVA-VECTOR-GENERATION-V2\0");
-    hash.update(compatibility_profile_id.0);
-    hash.update(archive_vector_id.0);
-    hash.update(source_archive_version.to_le_bytes());
-    VectorGenerationId(hash.finalize().into())
+    reliquary_vector_store::generation::vector_generation_id(
+        compatibility_profile_id,
+        archive_vector_id,
+        source_archive_version,
+    )
 }

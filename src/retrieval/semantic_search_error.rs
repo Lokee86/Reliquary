@@ -47,8 +47,20 @@ impl From<PackedVectorError> for SemanticSearchError {
     }
 }
 
+impl From<reliquary_vector_store::PackedVectorError> for SemanticSearchError {
+    fn from(value: reliquary_vector_store::PackedVectorError) -> Self {
+        Self::PackedVectors(value.into())
+    }
+}
+
 impl From<ArchiveVectorError> for SemanticSearchError {
     fn from(value: ArchiveVectorError) -> Self {
         Self::ArchiveVectors(value)
+    }
+}
+
+impl From<reliquary_vector_store::ArchiveVectorError> for SemanticSearchError {
+    fn from(value: reliquary_vector_store::ArchiveVectorError) -> Self {
+        Self::ArchiveVectors(value.into())
     }
 }

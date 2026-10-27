@@ -1,47 +1,32 @@
 use crate::CompatibilityProfileError;
-use crate::compatibility_profile_codec::{decode_format, decode_profile, decode_retirement};
-use crate::compatibility_profile_store::CompatibilityProfileStore;
 use reliquary_container::ObjectRef;
 
 pub(crate) struct CompatibilityProfileOpenState {
-    store: CompatibilityProfileStore,
-    format_seen: bool,
+    inner: reliquary_vector_store::CompatibilityProfileOpenState,
 }
 
 impl CompatibilityProfileOpenState {
     pub(crate) fn new() -> Self {
         Self {
-            store: CompatibilityProfileStore::default(),
-            format_seen: false,
+            inner: reliquary_vector_store::CompatibilityProfileOpenState::new(),
         }
     }
-
     pub(crate) fn ingest(
         &mut self,
-        _chunk: ObjectRef,
+        chunk: ObjectRef,
         payload: &[u8],
     ) -> Result<(), CompatibilityProfileError> {
-        if decode_format(payload)? {
-            if self.format_seen {
-                return Err(CompatibilityProfileError::ConflictingFormat);
-            }
-            self.format_seen = true;
-            return Ok(());
-        }
-        if let Some(profile) = decode_profile(payload)? {
-            self.store.insert_rebuilt(profile)?;
-            return Ok(());
-        }
-        if let Some(id) = decode_retirement(payload)? {
-            self.store.retire_rebuilt(id)?;
-        }
-        Ok(())
+        self.inner.ingest(chunk, payload).map_err(Into::into)
     }
-
-    pub(crate) fn finish(self) -> Result<CompatibilityProfileStore, CompatibilityProfileError> {
-        if !self.format_seen {
-            return Err(CompatibilityProfileError::MissingFormat);
-        }
-        Ok(self.store)
+    pub(crate) fn finish(
+        self,
+    ) -> Result<
+        super::compatibility_profile_store::CompatibilityProfileStore,
+        CompatibilityProfileError,
+    > {
+        self.inner
+            .finish()
+            .map(super::compatibility_profile_store::CompatibilityProfileStore::from_store)
+            .map_err(Into::into)
     }
 }

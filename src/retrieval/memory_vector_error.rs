@@ -50,6 +50,12 @@ impl From<PackedVectorError> for MemoryVectorError {
     }
 }
 
+impl From<reliquary_vector_store::PackedVectorError> for MemoryVectorError {
+    fn from(value: reliquary_vector_store::PackedVectorError) -> Self {
+        Self::PackedVector(value.into())
+    }
+}
+
 impl From<CompatibilityProfileError> for MemoryVectorError {
     fn from(value: CompatibilityProfileError) -> Self {
         Self::Profile(value)

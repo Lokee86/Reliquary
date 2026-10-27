@@ -37,3 +37,9 @@ impl From<PackedVectorError> for DreamCandidateError {
         Self::PackedVectors(value)
     }
 }
+
+impl From<reliquary_vector_store::PackedVectorError> for DreamCandidateError {
+    fn from(value: reliquary_vector_store::PackedVectorError) -> Self {
+        Self::PackedVectors(value.into())
+    }
+}

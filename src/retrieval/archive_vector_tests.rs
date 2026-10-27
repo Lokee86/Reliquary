@@ -1,13 +1,13 @@
 use crate::compatibility_profile_codec::encode_format as encode_profile_format;
 use crate::insomnia::codec::encode_format as encode_insomnia_format;
 use crate::memory_codec::encode_format as encode_memory_format;
-use crate::memory_vector_codec::encode_format as encode_memory_vector_format;
-use crate::packed_vector_codec::encode_format as encode_packed_format;
 use crate::{
     ArchiveVectorError, Cva, CvaError, FragmentConfig, FragmentId, PackedVectorId, PackedVectors,
     ScalarType, VectorSchema,
 };
 use reliquary_archive::archive_history_codec::encode_archive_format;
+use reliquary_vector_store::codec::encode_format as encode_packed_format;
+use reliquary_vector_store::encode_memory_vector_format;
 use std::fs;
 use std::path::PathBuf;
 

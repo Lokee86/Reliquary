@@ -130,6 +130,26 @@ without duplicating the store's in-memory projection. Mention-key inputs and
 persisted bytes are unchanged. This return-value adjustment was explicitly
 approved for the extraction.
 
+## Vector Store crate extraction (in progress)
+
+`reliquary-vector-store` contains lower-level vector wire models, codecs and
+store/replay modules under `crates/reliquary-vector-store/src/`. Its direct
+Reliquary dependency is Container; it also depends on the packed-matrix codec
+and SHA-256 implementation used by persisted records. The root product
+continues to own the public REL/PHY facade, cross-owner Archive and Memory
+authorization, embedding/provider work, compatibility policy, search and
+lifecycle integration. This is a partial extraction: root consumers and
+production verification remain pending, so the crate is not yet the sole
+production owner of vector persistence.
+
+The extraction targets the existing packed-vector, Archive-vector,
+Memory-vector, compatibility-profile and vector-generation wire families.
+The crate's seven vector wire tests and workspace check have been reported as
+passing. Root focused vector/retrieval tests and the detached CLI suite are
+pending. `CVAFRS07` and its authoritative six-file corpus gate remain
+unverified and are independent of this work. See the [extraction
+specification](vector-store-crate-extraction-spec-2026-10-26.md) and
+[implementation evidence](vector-store-crate-extraction-evidence-2026-10-26.md).
 ## Development-format lifecycle
 
 [ADR0042](decisions/0042-minimal-lossless-current-history.md) records the owner-specific compact history architecture. The [six-source oracle](canonical-history-migration-results-2026-10-21.md) now passes every concrete owner history and global ordering point. The six canonical files are promoted; reader and upgrader deletion is implemented, with post-retirement acceptance tracked in the linear plan.
