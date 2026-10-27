@@ -56,6 +56,25 @@ Actual newly established first-cycle relationships may emit the +50 Freshness li
 
 Dream work is durable enough that crash/reopen cannot silently accept a partial first-cycle outcome as complete. Import completion and other coordinators may treat outstanding import-owned first passes as blockers even if later lifecycle changes make the Memory inactive.
 
+## Durable first-cycle evidence boundary
+
+The Dream Store support crate now contains the `CVDREAM1` journal and
+`CVDREAM2` Begin record codecs, canonical population digest, and deterministic
+replay projection for passes, roots, intents, births and accepted graph cuts.
+It does not choose or authorize the Memory population: the higher owner
+reconstructs the exact physical prefix and proves the compact Begin digest
+before materializing the Begin for the journal. Freshness validates its
+semantic proof and Graph/Community publication authority above the store.
+Physical replay continues to establish the prefix strictly before Begin.
+
+This storage boundary does not move pair evaluation, duplicate ranking,
+settlement, Graph mutation, Community derivation or Freshness reinforcement
+into the store. The compiled crate integration is complete; see the
+[Dream Store specification](../dream-store-crate-extraction-spec-2026-10-27.md)
+for the boundary and acceptance requirements. Lower, workspace, formatting,
+focused Dream, full library and CLI checks pass. See the
+[implementation evidence](../dream-store-crate-extraction-evidence-2026-10-27.md).
+
 ## Code Map
 
 - `src/runtime_inference/dream*`

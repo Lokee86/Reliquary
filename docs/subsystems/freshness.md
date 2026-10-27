@@ -136,6 +136,7 @@ The retained implementation uses bounded grouped propagation, conservative batch
 
 - [REL activity clock](rel-activity-clock.md)
 - [Dream](dream.md)
+- [Dream Store extraction boundary](../dream-store-crate-extraction-spec-2026-10-27.md)
 - [Agentic Memory retrieval](agentic-memory-retrieval.md)
 - [Live semantic Freshness contract](../freshness-live-semantic-policy-contract.md)
 - [Historical manifest/timeline policy](../freshness-historical-manifest-policy.md)

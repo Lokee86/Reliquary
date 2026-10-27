@@ -1,20 +1,9 @@
 use crate::MemoryId;
-use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
-// The separator ends with one NUL byte.
-const DOMAIN: &[u8] = b"reliquary:dream-population:v1\0";
-
-/// Hash a canonical Dream population set. Authority coordinates such as owner,
-/// source and Memory cut are bound separately and intentionally excluded here.
+/// Hash a canonical Dream population set; population authority remains above the store.
 pub(crate) fn digest(ids: &BTreeSet<MemoryId>) -> [u8; 32] {
-    let mut hash = Sha256::new();
-    hash.update(DOMAIN);
-    hash.update((ids.len() as u64).to_le_bytes());
-    for id in ids {
-        hash.update(id.0);
-    }
-    hash.finalize().into()
+    reliquary_dream_store::population_digest(ids.iter().map(|id| &id.0))
 }
 
 #[cfg(test)]

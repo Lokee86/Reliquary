@@ -53,6 +53,26 @@ returned work value remains valid while the Cva continues processing and
 mutating that episode. This is an intentional API signature change from the
 previous borrowed result.
 
+## Dream Store boundary
+
+`reliquary-dream-store` now contains the `CVDREAM2` Begin codec, canonical
+population digest and `CVDREAM1` journal projection. It uses fixed 32-byte
+Memory identities and an owned graph-cut proof value. The root adapter
+`src/freshness_dream_journal.rs` converts between these values and product
+identities/Freshness proof values. The crate currently declares no direct
+Reliquary crate dependency; its implemented work uses external `sha2` (and an
+optional test-oracle `serde_json` feature).
+
+The caller remains responsible for authenticating the compact Begin
+population against the physical prefix and for authorizing graph/community
+proofs. Replay retains the physical `before_frame` order and prefix-before-
+Begin rule. Dream inference, pair ranking, settlement decisions, Graph edits,
+Community derivation, Memory population selection and Freshness policy remain
+higher-level responsibilities. The compiled lower implementation and root
+adapter are integrated. Lower, workspace, formatting, CLI and full library
+checks pass. See the [Dream Store specification](dream-store-crate-extraction-spec-2026-10-27.md)
+and [implementation evidence](dream-store-crate-extraction-evidence-2026-10-27.md).
+
 ## Archive source owner
 
 The product `Archive` API is backed by the independently compiled

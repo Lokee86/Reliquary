@@ -9,6 +9,19 @@ retains foreign endpoint admission and rewrite-genesis authorization. The crate
 extraction changes source ownership only; the Graph/Community byte layouts and
 accepted history below remain unchanged.
 
+Dream's current first-cycle evidence remains encoded as the owner-bound
+`CVDREAM1` journal family and `CVDREAM2` Begin family. The Dream Store
+extraction preserves those exact formats: canonical population digest input is
+the domain tag `reliquary:dream-population:v1\0`, LE `u64` cardinality and
+sorted raw 32-byte Memory IDs. Compact Begin records carry a Memory-local cut
+and digest; that digest does not authorize the population. The caller must
+reconstruct and prove the physical-prefix population before replay applies an
+owned Begin value. The compiled lower codec/digest/journal projection and root
+adapter are integrated. Lower, focused Dream, workspace, format, CLI and full
+library checks pass.
+See the [Dream Store specification](dream-store-crate-extraction-spec-2026-10-27.md)
+and [implementation evidence](dream-store-crate-extraction-evidence-2026-10-27.md).
+
 
 Physical framing is implemented by `reliquary-container`, independently of
 semantic owner codecs. Extraction changes no header, frame, publication-envelope

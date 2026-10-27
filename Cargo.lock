@@ -2737,6 +2737,10 @@ version = "0.1.0"
 [[package]]
 name = "reliquary-dream-store"
 version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "sha2",
+]
 
 [[package]]
 name = "reliquary-echo"
@@ -2830,6 +2834,7 @@ dependencies = [
  "regex",
  "reliquary-archive",
  "reliquary-container",
+ "reliquary-dream-store",
  "reliquary-echo",
  "reliquary-ego-store",
  "reliquary-freshness-store",

@@ -51,6 +51,20 @@ passing; do not treat these results as full extraction acceptance. `CVAFRS07`
 and the six-file current-format gate remain unverified. See the [extraction
 evidence](vector-store-crate-extraction-evidence-2026-10-26.md) and
 [specification](vector-store-crate-extraction-spec-2026-10-26.md).
+
+## Dream Store crate (compiled integration complete)
+
+`crates/reliquary-dream-store/src/` now contains the `CVDREAM1` journal
+projection, `CVDREAM2` codec and canonical population digest.
+`src/freshness_dream_journal.rs` is the root adapter; root remains responsible
+for physical frame order, prefix-before-Begin reconstruction, owner lifecycle,
+Freshness proof conversion/authorization and History/import coordinate
+mapping. The crate currently has no direct Reliquary dependency. Dream
+semantics and population selection stay higher. Lower, workspace, format, CLI
+and full library checks pass. See the
+[specification](dream-store-crate-extraction-spec-2026-10-27.md) and
+[implementation evidence](dream-store-crate-extraction-evidence-2026-10-27.md).
+
 ## Canonical corpus acceptance
 
 `src/facade/historical_current_corpus_tests.rs` owns the current-only six-file
@@ -112,7 +126,7 @@ and REL Dream proof fingerprints with source-hash verification.
 
 ## Dream population prefix coordination
 
-`src/facade/cva_dream_population.rs` owns the private REL coordination of Memory first-publication metadata, direct Dream birth evidence, and accepted Insomnia/external birth cohorts at a physical boundary. Memory owns identity/local-version reconstruction; each source retains its birth/cohort proof validation; Container supplies a bounded read-only versioned visitor. The coordinator resolves no bodies and does not use current liveness or end-of-file birth indexes. `src/facade/cva_dream_journal_replay.rs` owns current Begin replay binding after source admission, while the Dream journal retains pass identity, roots and settlement semantics. `src/facade/cva_dream_begin_transport.rs` owns source-prefix materialization and exact destination encoding, used by import normalization/replay and ordinary Begin capture. `dream_population_authority_tests.rs`, `dream_population_proof_tests.rs` cover authority, proof parity, transformations and raw-byte measurements. The [population contract](dream-population-contract-2026-10-21.md) defines authority; the [linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) separately tracks compact wire, replay and ordinary writer integration.
+`src/facade/cva_dream_population.rs` owns the private REL coordination of Memory first-publication metadata, direct Dream birth evidence, and accepted Insomnia/external birth cohorts at a physical boundary. Memory owns identity/local-version reconstruction; each source retains its birth/cohort proof validation; Container supplies a bounded read-only versioned visitor. The coordinator resolves no bodies and does not use current liveness or end-of-file birth indexes. `src/facade/cva_dream_journal_replay.rs` binds Begin replay after source admission; `crates/reliquary-dream-store/src/freshness_journal.rs` owns pass identity, roots and settlement projection. `src/facade/cva_dream_begin_transport.rs` owns source-prefix materialization and exact destination encoding, used by import normalization/replay and ordinary Begin capture. `dream_population_authority_tests.rs`, `dream_population_proof_tests.rs` cover authority, proof parity, transformations and raw-byte measurements. The [population contract](dream-population-contract-2026-10-21.md) defines authority; the [linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) separately tracks compact wire, replay and ordinary writer integration.
 
 ## Purpose
 

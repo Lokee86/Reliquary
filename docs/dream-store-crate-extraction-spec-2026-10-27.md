@@ -1,13 +1,13 @@
 # Dream Store crate extraction — implementation specification
 
-**Status:** Specified; implementation not started (2026-10-27).
+**Status:** Compiled integration and final verification complete (2026-10-27). See the [implementation evidence](dream-store-crate-extraction-evidence-2026-10-27.md).
 **Branch:** `refactor/crate-first-restart`. **Baseline:** `d1de3eea` (Insomnia Store extraction); verify actual HEAD before cutting.
 **Target:** `crates/reliquary-dream-store/`.
 **Scope:** One compiled lower-store extraction only, with byte-identical current records, unchanged public behavior and no additional service. Preserve the unrelated working-tree edit in `docs/graph-crate-extraction-evidence-2026-10-26.md`.
 
 ## 1. Ownership result
 
-Dream Store owns **durable Dream first-cycle Begin/journal evidence and its deterministic accepted replay state**, not Dream's inference, pair ranking, semantic settlement, graph editing, community generation, memory population selection or Freshness reinforcement policy. Owner Lifecycle and History must replay its records without importing higher Dream/Freshness services. Its **only direct Reliquary crate dependency is `reliquary-container`**; no root, Memory Core, Graph, Freshness Store, Freshness service, Dream service, Runtime or History dependency. Any external `sha2` dependency is allowed only for the canonical population digest.
+Dream Store owns **durable Dream first-cycle Begin/journal evidence and its deterministic accepted replay state**, not Dream's inference, pair ranking, semantic settlement, graph editing, community generation, memory population selection or Freshness reinforcement policy. Owner Lifecycle and History must replay its records without importing higher Dream/Freshness services. Its direct Reliquary crate dependencies are limited to `reliquary-container`; current implementation declares no direct Reliquary crate dependency. No root, Memory Core, Graph, Freshness Store, Freshness service, Dream service, Runtime or History dependency is allowed. Any external `sha2` dependency is allowed only for the canonical population digest.
 
 This is the support library listed in `docs/crate-first-layout-spec-2026-10-25.md` and `docs/architecture/crate-map.json`, not the later `reliquary-dream` semantic processor.
 

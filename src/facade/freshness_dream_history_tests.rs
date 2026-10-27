@@ -262,6 +262,88 @@ fn direct_birth_prefix_correlates_intent_and_replay_with_memory_first_identity_c
     assert!(rel.direct_birth_ids_at_memory_prefix(&replay, 3).is_err());
 }
 
+#[test]
+fn dream_journal_adapter_rebases_graph_proof_and_rejects_foreign_owner() {
+    let owner = [31; 16];
+    let pass = crate::InitialDreamPass {
+        pass_id: "adapter-graph-proof".into(),
+        source_id: crate::MemoryId([41; 32]),
+        first_revision: 1,
+        turn: 3,
+        accepted_settlement_turn: None,
+        preexisting_ids: BTreeSet::from([crate::MemoryId([42; 32])]),
+        graph_version_before: 2,
+        roots: BTreeSet::new(),
+    };
+    let proof = crate::FreshnessEventProof {
+        graph_version: 6,
+        community_generation: Some(7),
+        community_graph_version: Some(6),
+    };
+
+    let mut source = DreamFreshnessJournal::new(Some(owner));
+    source
+        .ingest_materialized_begin(owner, pass.clone())
+        .unwrap();
+    let source_record = source
+        .accept_graph_payload("adapter-graph-proof", 5, 6, proof)
+        .unwrap();
+    source.ingest(&source_record).unwrap();
+
+    let mut destination = DreamFreshnessJournal::new(Some(owner));
+    destination.ingest_materialized_begin(owner, pass).unwrap();
+    let rebased = destination
+        .replay_payload(
+            &source_record,
+            |turn| Ok(turn + 100),
+            |graph| Ok(graph + 1_000),
+            |mut proof| {
+                proof.graph_version += 1_000;
+                proof.community_generation = proof.community_generation.map(|value| value + 100);
+                proof.community_graph_version =
+                    proof.community_graph_version.map(|value| value + 1_000);
+                Ok(proof)
+            },
+        )
+        .unwrap();
+    destination.ingest(&rebased).unwrap();
+    assert_eq!(
+        destination.accepted_graph_cut("adapter-graph-proof"),
+        Some((
+            1_006,
+            crate::FreshnessEventProof {
+                graph_version: 1_006,
+                community_generation: Some(107),
+                community_graph_version: Some(1_006),
+            }
+        ))
+    );
+    assert_eq!(
+        destination
+            .pending("adapter-graph-proof")
+            .unwrap()
+            .accepted_settlement_turn,
+        Some(105)
+    );
+
+    let conflicting_replay = destination.replay_payload(
+        &source_record,
+        |turn| Ok(turn + 100),
+        |graph| Ok(graph + 2_000),
+        |mut proof| {
+            proof.graph_version += 2_000;
+            proof.community_generation = proof.community_generation.map(|value| value + 200);
+            proof.community_graph_version =
+                proof.community_graph_version.map(|value| value + 2_000);
+            Ok(proof)
+        },
+    );
+    assert_eq!(conflicting_replay.unwrap(), Vec::<u8>::new());
+
+    let mut foreign = DreamFreshnessJournal::new(Some([32; 16]));
+    assert!(foreign.replay_payload(&source_record, Ok, Ok, Ok).is_err());
+}
+
 fn append_ordered_memory_creation(
     rel: &mut Cva,
     id: crate::MemoryId,

@@ -47,6 +47,8 @@
 - [Vector Store crate extraction evidence](vector-store-crate-extraction-evidence-2026-10-26.md) — current implementation boundary, reported lower-level checks and outstanding root/CLI/corpus gates.
 - [Insomnia Store crate extraction specification](insomnia-store-crate-extraction-spec-2026-10-26.md) — lower work/attempt store boundary, accepted Episode/completion seams, persistence lifecycle, and product acceptance matrix.
 - [Insomnia Store crate extraction evidence](insomnia-store-crate-extraction-evidence-2026-10-26.md) — integrated root cutover, verified lower checks, and pending product/CLI/corpus gates.
+- [Dream Store crate extraction specification](dream-store-crate-extraction-spec-2026-10-27.md) — first-cycle journal/Begin ownership, physical population and proof authority seams, replay invariants and product acceptance matrix.
+- [Dream Store crate extraction evidence](dream-store-crate-extraction-evidence-2026-10-27.md) — completed integration verification and separate CVAFRS07 gate status.
 - [Subsystem documentation](subsystems/INDEX.md) — focused current-state ownership, behavior, lifecycle, failure, and implementation maps.
 - [Architectural invariants](invariants.md) — governing ownership and storage constraints.
 - [Storage format](storage-format.md) — exact current REL/PHY persistent-record format, legacy CVA compatibility, and migration boundary.
@@ -222,6 +224,8 @@
 - [insomnia-semantic-validation-2026-08-24.md](insomnia-semantic-validation-2026-08-24.md) - Insomnia Semantic Validation 2026 08 24 documentation.
 - [insomnia-store-crate-extraction-evidence-2026-10-26.md](insomnia-store-crate-extraction-evidence-2026-10-26.md) - Insomnia Store Crate Extraction Evidence 2026 10 26 documentation.
 - [insomnia-store-crate-extraction-spec-2026-10-26.md](insomnia-store-crate-extraction-spec-2026-10-26.md) - Insomnia Store Crate Extraction Spec 2026 10 26 documentation.
+- [dream-store-crate-extraction-spec-2026-10-27.md](dream-store-crate-extraction-spec-2026-10-27.md) - Dream Store Crate Extraction Spec 2026 10 27 documentation.
+- [dream-store-crate-extraction-evidence-2026-10-27.md](dream-store-crate-extraction-evidence-2026-10-27.md) - Dream Store Crate Extraction Evidence 2026 10 27 documentation.
 - [interaction-stream-compact-contract-2026-10-21.md](interaction-stream-compact-contract-2026-10-21.md) - Interaction Stream Compact Contract 2026 10 21 documentation.
 - [invariants.md](invariants.md) - Invariants documentation.
 - [latest-offline-converter-coverage-2026-10-21.md](latest-offline-converter-coverage-2026-10-21.md) - Latest Offline Converter Coverage 2026 10 21 documentation.

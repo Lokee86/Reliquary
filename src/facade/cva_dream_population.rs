@@ -223,26 +223,20 @@ fn direct_birth_ids(
 ) -> BTreeSet<MemoryId> {
     let mut births = BTreeSet::new();
     for (id, mutation) in prefix.pending_intents() {
-        if first.contains_key(id) && memories.first_mutation_id(*id) == Some(mutation.as_str()) {
-            births.insert(*id);
+        if first.contains_key(&id) && memories.first_mutation_id(id) == Some(mutation) {
+            births.insert(id);
         }
     }
     for (id, mutations) in prefix.consumed_intents() {
-        if first.contains_key(id)
+        if first.contains_key(&id)
             && memories
-                .first_mutation_id(*id)
+                .first_mutation_id(id)
                 .is_some_and(|mutation| mutations.contains(mutation))
         {
-            births.insert(*id);
+            births.insert(id);
         }
     }
-    births.extend(
-        prefix
-            .replay_births()
-            .iter()
-            .filter(|id| first.contains_key(id))
-            .copied(),
-    );
+    births.extend(prefix.replay_births().filter(|id| first.contains_key(id)));
     births
 }
 

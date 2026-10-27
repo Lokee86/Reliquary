@@ -6,3 +6,14 @@ publish = false
 
 [lib]
 path = "src/lib.rs"
+
+[dependencies]
+sha2 = "0.10"
+
+[features]
+default = []
+oracle-support = ["dep:serde_json"]
+
+[dependencies.serde_json]
+version = "1"
+optional = true
