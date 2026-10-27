@@ -1,4 +1,5 @@
 use super::*;
+use crate::external_source::store::SourceStatus;
 use crate::{Cva, EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, VectorNormalization};
 use std::sync::Mutex;
 

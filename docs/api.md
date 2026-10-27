@@ -2,6 +2,18 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## External Index Store crate boundary
+
+`reliquary-external-index-store` owns the current `CVAXIDX2` codec and
+disposable source-index state; root reexports the canonical persisted
+`ExternalMessageRef`, `ExternalChunkRef`,
+`ExternalMessageDescriptor` and `ExternalSourceError` types.
+Root-facing `ExternalIndexStatus` retains its public representation.
+Public source-provider, gateway authorization, query and hydration
+contracts do not change. `SourceState` remains borrowed by internal
+index consumers through the same concrete type; no mirror cache is used.
+See [implementation evidence](external-index-store-crate-extraction-evidence-2026-10-27.md).
+
 ## Memory Core crate boundary
 
 The root product reexports canonical Memory values from `reliquary-memory-core`.

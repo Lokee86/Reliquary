@@ -17,6 +17,9 @@
 - [Community history reconstruction decision](community-history-reconstruction-decision-2026-10-21.md)
 - [Compact Entity Resolution history contract](entity-resolution-compact-contract-2026-10-21.md)
 - [Compact derived external index contract](external-index-compact-contract-2026-10-21.md)
+- [External Index Store extraction specification](external-index-store-crate-extraction-spec-2026-10-27.md) — derived snapshot/codec ownership and validation boundary.
+- [Maintenance Store extraction specification](maintenance-store-crate-extraction-spec-2026-10-27.md) — evidence-first durable ownership decision.
+- [Owner Lifecycle extraction specification](owner-lifecycle-crate-extraction-spec-2026-10-27.md) — compiled owner reopen and structural replay coordination.
 - [Compact interaction stream contract](interaction-stream-compact-contract-2026-10-21.md) — frozen checkpoint transitions and exact suffix representation.
 - [Compact publication envelope contract](publication-envelope-contract-2026-10-20.md) — planned physical allocation/reserved-binding format and owner migration gates.
 
@@ -183,6 +186,8 @@
 - [entity-resolution-compact-contract-2026-10-21.md](entity-resolution-compact-contract-2026-10-21.md) - Entity Resolution Compact Contract 2026 10 21 documentation.
 - [entity-resolution-state.md](entity-resolution-state.md) - Entity Resolution State documentation.
 - [external-index-compact-contract-2026-10-21.md](external-index-compact-contract-2026-10-21.md) - External Index Compact Contract 2026 10 21 documentation.
+- [external-index-store-crate-extraction-evidence-2026-10-27.md](external-index-store-crate-extraction-evidence-2026-10-27.md) - External Index Store Crate Extraction Evidence 2026 10 27 documentation.
+- [external-index-store-crate-extraction-spec-2026-10-27.md](external-index-store-crate-extraction-spec-2026-10-27.md) - External Index Store Crate Extraction Spec 2026 10 27 documentation.
 - [freshness-combined-production-review-2026-10-12.md](freshness-combined-production-review-2026-10-12.md) - Freshness Combined Production Review 2026 10 12 documentation.
 - [freshness-core-release-verification-2026-10-03.md](freshness-core-release-verification-2026-10-03.md) - Freshness Core Release Verification 2026 10 03 documentation.
 - [freshness-external-consumption-contract.md](freshness-external-consumption-contract.md) - Freshness External Consumption Contract documentation.
@@ -234,6 +239,7 @@
 - [invariants.md](invariants.md) - Invariants documentation.
 - [latest-offline-converter-coverage-2026-10-21.md](latest-offline-converter-coverage-2026-10-21.md) - Latest Offline Converter Coverage 2026 10 21 documentation.
 - [maintainer-map.md](maintainer-map.md) - Maintainer Map documentation.
+- [maintenance-store-crate-extraction-spec-2026-10-27.md](maintenance-store-crate-extraction-spec-2026-10-27.md) - Maintenance Store Crate Extraction Spec 2026 10 27 documentation.
 - [memory-core-crate-extraction-results-2026-10-25.md](memory-core-crate-extraction-results-2026-10-25.md) - Memory Core Crate Extraction Results 2026 10 25 documentation.
 - [memory-core-crate-extraction-spec-2026-10-25.md](memory-core-crate-extraction-spec-2026-10-25.md) - Memory Core Crate Extraction Spec 2026 10 25 documentation.
 - [minimal-lossless-history-storage-execution-2026-10-19.md](minimal-lossless-history-storage-execution-2026-10-19.md) - Minimal Lossless History Storage Execution 2026 10 19 documentation.
@@ -243,6 +249,7 @@
 - [minimal-lossless-history-storage-spec-2026-10-19.md](minimal-lossless-history-storage-spec-2026-10-19.md) - Minimal Lossless History Storage Spec 2026 10 19 documentation.
 - [multiplexing-implementation-plan.md](multiplexing-implementation-plan.md) - Multiplexing Implementation Plan documentation.
 - [native-import.md](native-import.md) - Native Import documentation.
+- [owner-lifecycle-crate-extraction-spec-2026-10-27.md](owner-lifecycle-crate-extraction-spec-2026-10-27.md) - Owner Lifecycle Crate Extraction Spec 2026 10 27 documentation.
 - [perception-store-crate-extraction-evidence-2026-10-26.md](perception-store-crate-extraction-evidence-2026-10-26.md) - Perception Store Crate Extraction Evidence 2026 10 26 documentation.
 - [perception-store-crate-extraction-spec-2026-10-26.md](perception-store-crate-extraction-spec-2026-10-26.md) - Perception Store Crate Extraction Spec 2026 10 26 documentation.
 - [perception-subsystem-plan.md](perception-subsystem-plan.md) - Perception Subsystem Plan documentation.

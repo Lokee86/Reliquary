@@ -2,6 +2,15 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+External derived index durable state, `CVAXIDX2` codec, and install/CAS
+are owned by `crates/reliquary-external-index-store/src/` (Container is its
+only internal Reliquary dependency). Root `src/external_source/` owns
+provider contracts, embedding/rebuild, hydration and query; root
+`src/facade/cva_lifecycle.rs` checks profile/vector backing and passes
+invalid source namespaces to the lower store. Index loss is disposable,
+not loss of Memory/Archive transcript authority.
+See [the extraction evidence](external-index-store-crate-extraction-evidence-2026-10-27.md).
+
 Container production storage lives in `crates/reliquary-container/src/`; its physical tests move with that crate. Archive source truth lives in `crates/reliquary-archive/src/`, and Echo execution evidence lives in `crates/reliquary-echo/src/`; each crate's only direct Reliquary dependency is Container. The root facade composes semantic owners and retains multi-owner maintenance/lifecycle coordination. Interaction runtime remains under `src/runtime_inference/`, and Archive query policy under `src/retrieval/`. Root lifecycle modules pull frames and route them to semantic owners. `tests/current_format_boundary.rs` protects public REL/PHY no-mutation, writer-exclusion and disposable current-corpus admission. Freshness/Import CVAFRS07 semantic recovery remains separate from the physical extraction.
 
 Freshness Store source ownership and root integration are complete.

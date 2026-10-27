@@ -31,6 +31,15 @@ Derived Memory bodies are legitimate Reliquary semantic objects; they are not co
 
 `ExternalIndexStatus` exposes rebuild/update state without transferring transcript authority.
 
+## External Index Store ownership
+
+The compiled `reliquary-external-index-store` crate owns only derived
+index snapshots, their `CVAXIDX2` codec, CAS revisions, discard/recovery
+and Container-backed append/sync. Root owns provider authorization, index
+preparation, search/hydration and packed-vector/profile backing validation.
+The lower crate depends only on Container among Reliquary crates; no
+canonical transcript bodies are persisted.
+
 ## Durable derived state
 
 The external source store persists rebuildable identity/index state such as source refs, content hashes, chunk ranges, cursor/watermark, vector bindings, and processing status. It does not persist canonical external message bodies.

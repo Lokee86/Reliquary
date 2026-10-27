@@ -2,6 +2,42 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## External Index Store crate
+
+`reliquary-external-index-store` owns disposable `CVAXIDX2` snapshot/discard
+encoding, structurally validated external index rows, per-source CAS state,
+and Container-backed append/sync installation. Container is its only internal
+Reliquary crate dependency. Root `src/external_source/` retains provider
+authorization, feed/rebuild preparation, content hydration and search; root
+lifecycle validates packed-vector/profile backing and supplies invalid
+source namespaces to the lower store. Extracting this index changes no
+external transcript authority, stored bytes or source API.
+See [the extraction evidence](external-index-store-crate-extraction-evidence-2026-10-27.md).
+
+## External Index Store crate
+
+`reliquary-external-index-store` owns disposable `CVAXIDX2` snapshot/discard
+encoding, structurally validated external index rows, per-source CAS state,
+and Container-backed append/sync installation. Container is its only internal
+Reliquary crate dependency. Root `src/external_source/` retains provider
+authorization, feed/rebuild preparation, content hydration and search; root
+lifecycle validates packed-vector/profile backing and supplies invalid
+source namespaces to the lower store. Extracting this index changes no
+external transcript authority, stored bytes or source API.
+See [the extraction evidence](external-index-store-crate-extraction-evidence-2026-10-27.md).
+
+## External Index Store crate
+
+`reliquary-external-index-store` owns disposable `CVAXIDX2` snapshot/discard
+encoding, structurally validated external index rows, per-source CAS state,
+and Container-backed append/sync installation. Container is its only internal
+Reliquary crate dependency. Root `src/external_source/` retains provider
+authorization, feed/rebuild preparation, content hydration and search; root
+lifecycle validates packed-vector/profile backing and supplies invalid
+source namespaces to the lower store. Extracting this index changes no
+external transcript authority, stored bytes or source API.
+See [the extraction evidence](external-index-store-crate-extraction-evidence-2026-10-27.md).
+
 ## Physical Container crate
 
 `reliquary-container` is the independently compiled owner of REL/PHY headers,

@@ -5,6 +5,7 @@ use super::observation::DurableWatermarks;
 use super::{
     GatewayRuntime, OwnerAccessToken, OwnerGrant, OwnerKind, ReliquaryRuntimeHostError, operation,
 };
+use crate::external_source::store::SourceStatus;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum RelMutationFamily {

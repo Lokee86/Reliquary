@@ -1,5 +1,6 @@
 use super::*;
 use crate::external_source::compact_index::{self, Record};
+use crate::external_source::store::SourceStatus;
 use sha2::{Digest, Sha256};
 use std::{fs, path::PathBuf};
 

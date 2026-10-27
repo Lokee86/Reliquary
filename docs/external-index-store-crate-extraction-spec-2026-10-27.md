@@ -1,6 +1,6 @@
 # External Index Store crate extraction — implementation specification
 
-**Status:** Specified; implementation not started (2026-10-27).
+**Status:** Integrated and verified on the extraction branch (2026-10-27); see [implementation evidence](external-index-store-crate-extraction-evidence-2026-10-27.md).
 **Branch:** `refactor/crate-first-restart`. **Baseline:** `d2c00dfe` (Import Store extraction).
 **Target:** `crates/reliquary-external-index-store/`.
 **Scope:** Correction-only extraction of the existing *disposable derived index*, not a new external-source service, provider integration, or Memory/Archive authority.

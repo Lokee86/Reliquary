@@ -2,6 +2,19 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## External derived index ownership
+
+The `CVAXIDX2` snapshot/discard format is unchanged. Its independent,
+non-authoritative index owner is `reliquary-external-index-store`, which
+retains the same kind byte, little-endian length, SHA-256 frame digest and
+snapshot body encoding. A valid snapshot records source metadata, hashed
+message identities, contiguous chunk byte ranges and packed-vector row
+references; no source transcript bodies. A discard or malformed index record
+invalidates this *derived* state rather than canonical Memory/Archive facts.
+The lower store appends and synchronizes before publishing a new CAS state;
+root validates vector/profile backing and external source authorization.
+See [implementation evidence](external-index-store-crate-extraction-evidence-2026-10-27.md).
+
 Graph and Community record encoding/replay is implemented by
 `crates/reliquary-graph/src/`. The crate owns existing format markers, ordinal
 bindings, compact transactions, snapshots, names and lineage. Product lifecycle

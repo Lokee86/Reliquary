@@ -2917,6 +2917,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "reliquary-external-index-store"
+version = "0.1.0"
+dependencies = [
+ "reliquary-container",
+ "serde",
+ "sha2",
+]
+
+[[package]]
 name = "reliquary-freshness-store"
 version = "0.1.0"
 dependencies = [
@@ -2970,6 +2979,7 @@ dependencies = [
  "reliquary-dream-store",
  "reliquary-echo",
  "reliquary-ego-store",
+ "reliquary-external-index-store",
  "reliquary-freshness-store",
  "reliquary-graph",
  "reliquary-import-store",

@@ -655,7 +655,26 @@ impl Cva {
         let lexical_index = LexicalIndex::default();
         let packed_vectors = packed_state.finish()?;
         let compatibility_profiles = profile_state.finish()?;
-        external_index.validate_backing(&packed_vectors, &compatibility_profiles);
+        let invalid_sources: Vec<String> = external_index
+            .sources
+            .iter()
+            .filter_map(|(namespace, s)| {
+                let valid = compatibility_profiles
+                    .get(crate::CompatibilityProfileId(s.profile))
+                    .is_some_and(|p| p.dimensions == s.dimensions)
+                    && s.messages.iter().flat_map(|m| &m.chunks).all(|c| {
+                        packed_vectors
+                            .info(crate::PackedVectorId(c.matrix))
+                            .is_some_and(|i| {
+                                i.schema.dimensions == s.dimensions
+                                    && i.schema.scalar == crate::ScalarType::F32
+                                    && u64::from(c.row) < i.count
+                            })
+                    });
+                (!valid).then(|| namespace.clone())
+            })
+            .collect();
+        external_index.invalidate_sources(&invalid_sources);
         let memory_vectors =
             memory_vector_state.finish(&memories, &compatibility_profiles, &packed_vectors)?;
         let mut archive_vectors = ArchiveVectorStore::default();

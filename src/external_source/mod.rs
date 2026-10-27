@@ -1,5 +1,6 @@
 //! Framework-neutral external canonical transcript integration.
 //! Host text is transient. This lane owns rebuildable index state, not history.
+use crate::external_source::store::SourceStatus;
 pub(crate) mod model;
 pub(crate) mod publication;
 use model::identifier;
