@@ -326,19 +326,11 @@ pub(super) fn replay_frame(
                 .put(&mut output.container, memory, lane, state)?;
         }
     }
-    if let Some(record) = crate::insomnia::codec::decode_record(payload)? {
+    if crate::insomnia::product_adapter::InsomniaStore::is_owner_record(payload)? {
         // These records have no container coordinates. Preserve retries,
         // failures and lease transitions in their accepted physical order.
-        match record {
-            crate::insomnia::codec::InsomniaRecord::Work(work) => {
-                output.container.append(payload)?;
-                output.insomnia.apply_work(work);
-            }
-            crate::insomnia::codec::InsomniaRecord::Attempt(attempt) => {
-                output.container.append(payload)?;
-                output.insomnia.apply_attempt(attempt);
-            }
-        }
+        output.container.append(payload)?;
+        output.insomnia.apply_encoded_record(payload)?;
     }
     if crate::entity_resolution_codec::delta::is_current(payload) {
         let object = *source

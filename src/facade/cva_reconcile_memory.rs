@@ -174,6 +174,13 @@ fn replay_completion(
     {
         return Err(CvaReconcileError::MissingCompletionMemory);
     }
+    if destination
+        .archive
+        .historical_episode(completion.episode_id)
+        .is_none()
+    {
+        return Err(crate::InsomniaError::MissingEpisode.into());
+    }
 
     let receipt_transaction_time_ns = if completion.transaction_time_ns == 0 {
         reliquary_container::Container::transaction_time_now_ns()?
@@ -201,6 +208,10 @@ fn replay_completion(
     };
     let payload =
         encode_completion(&receipt).map_err(CvaReconcileError::InvalidInsomniaCompletion)?;
+    destination
+        .insomnia
+        .preflight_completion(&receipt)
+        .map_err(CvaReconcileError::Insomnia)?;
     destination.container.append(&payload)?;
     destination.insomnia.apply_completion(&receipt)?;
     Ok(true)

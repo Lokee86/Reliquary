@@ -2931,6 +2931,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "reliquary-insomnia-store"
+version = "0.1.0"
+dependencies = [
+ "reliquary-container",
+ "sha2",
+]
+
+[[package]]
 name = "reliquary-memory"
 version = "0.1.0"
 dependencies = [
@@ -2946,6 +2954,7 @@ dependencies = [
  "reliquary-ego-store",
  "reliquary-freshness-store",
  "reliquary-graph",
+ "reliquary-insomnia-store",
  "reliquary-memory-core",
  "reliquary-perception-store",
  "reliquary-vector-store",

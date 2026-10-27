@@ -12,8 +12,6 @@ mod candidate_shape;
 mod candidate_source;
 #[path = "insomnia/candidate_text.rs"]
 mod candidate_text;
-#[path = "insomnia/codec.rs"]
-pub(crate) mod codec;
 #[path = "insomnia/completion.rs"]
 pub(crate) mod completion;
 #[path = "insomnia/contract.rs"]
@@ -40,14 +38,14 @@ mod model;
 mod ownership;
 #[path = "insomnia/processor.rs"]
 mod processor;
+#[path = "insomnia/product_adapter.rs"]
+pub(crate) mod product_adapter;
 #[path = "insomnia/progress.rs"]
 mod progress;
 #[path = "insomnia/rebuild.rs"]
 pub(crate) mod rebuild;
 #[path = "insomnia/runtime_step.rs"]
 pub(crate) mod runtime_step;
-#[path = "insomnia/store.rs"]
-pub(crate) mod store;
 #[path = "insomnia/synthesis.rs"]
 mod synthesis;
 #[path = "insomnia/temporal.rs"]

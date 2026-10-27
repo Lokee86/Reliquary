@@ -130,6 +130,28 @@ without duplicating the store's in-memory projection. Mention-key inputs and
 persisted bytes are unchanged. This return-value adjustment was explicitly
 approved for the extraction.
 
+## Insomnia work owner crate (integration in progress)
+
+`reliquary-insomnia-store` owns Episode-keyed work and attempt values,
+`CVAINSF1`/`CVAINSW1`/`CVAINSA1` codecs, scheduler indexes, deterministic lease
+tokens, transitions, and work reconstruction. Its only direct Reliquary crate
+dependency is `reliquary-container`. The product's
+`src/runtime_inference/insomnia/product_adapter.rs` converts fixed-byte IDs and
+work values to public root types and supplies Archive-authenticated Episode
+ordering and accepted Episode metadata. Archive and Memory validation, full
+`CVAINSC7`/`CVAINSC8` completion decoding and authoring, grouped
+Memory/Freshness validation, processing, and worker policy remain above the
+store.
+
+The Cva facade and owner replay now use the lower store. After Archive and
+Memory reconstruction, the product makes a bounded second physical pass,
+validates each full completion, and supplies its accepted projection in frame
+order. This preserves the existing wire formats and queue persistence
+lifecycle. `Cva::insomnia_work` returns an owned value as the
+approved API adjustment. Focused product and CLI acceptance remain pending;
+see the [extraction specification](insomnia-store-crate-extraction-spec-2026-10-26.md)
+and [implementation evidence](insomnia-store-crate-extraction-evidence-2026-10-26.md).
+
 ## Vector Store crate extraction (in progress)
 
 `reliquary-vector-store` contains lower-level vector wire models, codecs and

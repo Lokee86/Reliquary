@@ -2,7 +2,7 @@ use super::{InsomniaDrainResult, InsomniaWorkerConfig, InsomniaWorkerError};
 use crate::insomnia::evidence::{hydrate_evidence_parts, plan_evidence};
 use crate::insomnia::extraction::{InsomniaExtractionStage, InsomniaExtractor};
 use crate::insomnia::processor::claimed_episode_input_parts;
-use crate::insomnia::store::InsomniaStore;
+use crate::insomnia::product_adapter::InsomniaStore;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
 use crate::{

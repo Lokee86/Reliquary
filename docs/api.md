@@ -46,6 +46,13 @@ the authoritative six-file current-format corpus remain unverified. See the
 [extraction specification](freshness-store-crate-extraction-spec-2026-10-26.md)
 and [implementation evidence](freshness-store-crate-extraction-evidence-2026-10-26.md).
 
+## Insomnia work read
+
+`Cva::insomnia_work(episode_id)` returns an owned `Option<InsomniaWork>`. A
+returned work value remains valid while the Cva continues processing and
+mutating that episode. This is an intentional API signature change from the
+previous borrowed result.
+
 ## Archive source owner
 
 The product `Archive` API is backed by the independently compiled

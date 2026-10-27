@@ -12,8 +12,8 @@ use crate::freshness_dream_journal::DreamFreshnessJournal;
 use crate::freshness_storage::FreshnessStore;
 use crate::graph_owner::GraphOwner;
 use crate::graph_replay::GraphReplay;
+use crate::insomnia::product_adapter::InsomniaStore;
 use crate::insomnia::rebuild::InsomniaOpenState;
-use crate::insomnia::store::InsomniaStore;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_rebuild::MemoryOpenState;
 use crate::memory_store::MemoryStore;
@@ -225,9 +225,10 @@ impl Cva {
         let mut rewrite_lineage = crate::rewrite_lineage::RewriteLineageStore::default();
         let mut archive_state = ArchiveOpenState::new();
         let mut memory_state = MemoryOpenState::new();
+        let mut insomnia_frame_validation =
+            crate::insomnia::rebuild::InsomniaFrameValidation::new();
         let mut graph_state = GraphReplay::new();
         let mut community_state = CommunityReplay::new();
-        let mut insomnia_state = InsomniaOpenState::new();
         let mut import_epochs = crate::imports::ImportEpochStore::default();
         let mut packed_state = PackedVectorOpenState::new();
         let mut memory_vector_state = MemoryVectorOpenState::new();
@@ -341,7 +342,6 @@ impl Cva {
                         entity_state.ingest(chunk, payload, latest_global)?;
                         relationship_state.ingest(chunk, payload, latest_global)?;
                         community_state.ingest(payload)?;
-                        insomnia_state.ingest(chunk, payload)?;
                         packed_state.ingest(chunk, payload)?;
                         memory_vector_state.ingest(chunk, payload)?;
                         archive_vector_state.ingest(chunk, payload)?;
@@ -408,6 +408,7 @@ impl Cva {
                         processing_epochs.ingest(payload)?;
 
                         dream_pairs.ingest(payload)?;
+                        insomnia_frame_validation.ingest(payload)?;
                     }
                 }
                 Ok::<(), CvaError>(())
@@ -497,9 +498,7 @@ impl Cva {
         graph
             .validate_rewrite_baseline(container.owner_uuid(), rewrite_lineage.rewrite_genesis())?;
         let communities = community_state.finish(&graph, container.owner_uuid())?;
-        let mut insomnia = insomnia_state.finish()?;
-        insomnia.validate(&archive, &memories)?;
-        insomnia.rebuild_schedule(&archive)?;
+        insomnia_frame_validation.finish()?;
         if defer_dream_replay {
             dream_freshness = DreamFreshnessJournal::new(container.owner_uuid());
             crate::cva_dream_journal_replay::replay_with_population(
@@ -510,6 +509,10 @@ impl Cva {
             )?;
         }
         freshness.begin_rebuild();
+        // Reconstruct Insomnia only after Archive and Memory have completed
+        // their first-pass validation. This bounded second scan preserves the
+        // accepted physical order without retaining a duplicate receipt log.
+        let mut insomnia_state = InsomniaOpenState::new();
         if let Some(owner) = container.owner_uuid() {
             for (id, mutation, turn, admitted) in dream_freshness.pending_initializations() {
                 if memories.first_mutation_id(id) == Some(mutation.as_str()) {
@@ -547,6 +550,7 @@ impl Cva {
             while let Some(frame) = cursor.next_frame()? {
                 let payload = frame.payload;
                 let end = frame.end;
+                insomnia_state.ingest_authorized(frame.object, &payload, &archive, &memories)?;
                 if let Some(completion) = crate::insomnia::completion::decode_completion(&payload)
                     .map_err(|message| CvaError::Freshness(message.into()))?
                     && let Some(cohort) =
@@ -599,6 +603,7 @@ impl Cva {
             while let Some(frame) = cursor.next_frame()? {
                 let payload = frame.payload;
                 let end = frame.end;
+                insomnia_state.ingest_authorized(frame.object, &payload, &archive, &memories)?;
                 let expected_pass_ids = crate::freshness_storage::HistoricalImportFreshnessSettlement::expected_pass_scope(&payload)
                     .map_err(CvaError::Freshness)?
                     .map(|(settlement_owner, born)| {
@@ -613,6 +618,9 @@ impl Cva {
                     .map_err(CvaError::Freshness)?;
             }
         }
+        let mut insomnia = insomnia_state.finish()?;
+        insomnia.validate(&archive, &memories)?;
+        insomnia.rebuild_schedule(&archive)?;
         freshness.finish_rebuild().map_err(CvaError::Freshness)?;
         if let Some(a) = freshness.semantic_activation() {
             let at = a

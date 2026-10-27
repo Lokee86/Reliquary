@@ -1,5 +1,4 @@
 use crate::compatibility_profile_codec::encode_format as encode_profile_format;
-use crate::insomnia::codec::encode_format as encode_insomnia_format;
 use crate::memory_codec::encode_format as encode_memory_format;
 use crate::owner_lifecycle::LifecycleTarget;
 use crate::{
@@ -7,6 +6,7 @@ use crate::{
     SimulatedEmbeddingEndpoint, VectorNormalization,
 };
 use reliquary_archive::archive_history_codec::encode_archive_format;
+use reliquary_insomnia_store::codec::encode_format as encode_insomnia_format;
 use reliquary_vector_store::codec::encode_format as encode_packed_format;
 use std::fs;
 use std::path::PathBuf;

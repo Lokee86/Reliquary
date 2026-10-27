@@ -398,7 +398,7 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
         }
         // Accepted publications are replayed through current owner envelopes.
         // Unpublished bare native bodies carry no semantic clock.
-        if crate::insomnia::codec::decode_record(&payload)?.is_some()
+        if crate::insomnia::product_adapter::InsomniaStore::is_owner_record(&payload)?
             || crate::memory_codec::decode_body(&payload)?.is_some()
             || crate::memory_compact_codec::publication::decode(&payload, 1)?.is_some()
             || crate::memory_compact_codec::publication::coordinates(&payload)?.is_some()

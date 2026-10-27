@@ -212,3 +212,48 @@ fn final_terminal_outcome_remains_durable() {
             .is_none()
     );
 }
+
+#[test]
+fn owned_work_snapshot_survives_transitions_and_reopen() {
+    let path = test_path("owned-work-snapshot.cva");
+    let mut cva = Cva::create(&path).unwrap();
+    let episode = episode(
+        &mut cva,
+        "owned",
+        "episode",
+        10,
+        EpisodeOrigin::Live,
+        EpisodeBoundary::Inactivity,
+    );
+    cva.queue_insomnia_episode(episode.id, InsomniaPriority::Live, 20)
+        .unwrap();
+    let pending = cva.insomnia_work(episode.id).unwrap();
+    let claim = cva
+        .claim_insomnia_episode("worker", 30, 100)
+        .unwrap()
+        .unwrap();
+    assert_eq!(pending.episode_id, episode.id);
+    assert_eq!(pending.state, InsomniaWorkState::Pending);
+    assert_eq!(cva.insomnia_work(episode.id).unwrap(), claim);
+    cva.complete_insomnia_episode(
+        episode.id,
+        claim.lease_token.unwrap(),
+        30,
+        31,
+        "model".into(),
+        "v1".into(),
+        vec![],
+        0,
+    )
+    .unwrap();
+    assert_eq!(claim.state, InsomniaWorkState::Processing);
+    assert_eq!(pending.state, InsomniaWorkState::Pending);
+    cva.sync().unwrap();
+    drop(cva);
+
+    let reopened = Cva::open(&path).unwrap();
+    let completed = reopened.insomnia_work(episode.id).unwrap();
+    assert_eq!(completed.episode_id, episode.id);
+    assert_eq!(completed.state, InsomniaWorkState::Complete);
+    assert_eq!(pending.state, InsomniaWorkState::Pending);
+}

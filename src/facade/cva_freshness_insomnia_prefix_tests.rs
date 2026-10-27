@@ -107,3 +107,47 @@ fn accepted_insomnia_birth_validation_rejects_bad_proof_facts_and_cohort_rows() 
     incomplete_exact_set.freshness_birth_memory_ids.pop();
     assert!(encode_completion(&incomplete_exact_set).is_err());
 }
+
+#[test]
+fn open_authorizes_completion_before_lower_projection_and_stays_passive_on_rejection() {
+    let (path, mut cva, _) =
+        crate::insomnia::completion_tests::setup("insomnia-deferred-completion-validation.cva");
+    crate::insomnia::completion_tests::process(&mut cva, 0, 110);
+    let payload = completion_payload(&mut cva);
+    let mut invalid = decode_completion(&payload).unwrap().unwrap();
+    invalid.freshness_birth_turn = Some(u64::MAX);
+    let invalid = encode_completion(&invalid).unwrap();
+    cva.container.append(&invalid).unwrap();
+    cva.sync().unwrap();
+    let before = std::fs::read(&path).unwrap();
+    drop(cva);
+
+    assert!(matches!(
+        Cva::open(&path),
+        Err(crate::CvaError::Freshness(_))
+    ));
+    assert_eq!(std::fs::read(&path).unwrap(), before);
+}
+
+#[test]
+fn open_rejects_conflicting_completion_receipts_without_writing() {
+    let (path, mut cva, _) =
+        crate::insomnia::completion_tests::setup("insomnia-conflicting-completion-replay.cva");
+    crate::insomnia::completion_tests::process(&mut cva, 0, 110);
+    let payload = completion_payload(&mut cva);
+    let mut conflicting = decode_completion(&payload).unwrap().unwrap();
+    conflicting.extractor_model = "conflicting-model".into();
+    let conflicting = encode_completion(&conflicting).unwrap();
+    cva.container.append(&conflicting).unwrap();
+    cva.sync().unwrap();
+    let before = std::fs::read(&path).unwrap();
+    drop(cva);
+
+    assert!(matches!(
+        Cva::open(&path),
+        Err(crate::CvaError::Insomnia(
+            crate::InsomniaError::InvalidTransition
+        ))
+    ));
+    assert_eq!(std::fs::read(&path).unwrap(), before);
+}

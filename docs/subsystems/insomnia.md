@@ -16,6 +16,21 @@ Processing is durable and retry-aware. Model calls and evidence gathering occur 
 
 Insomnia work is owner-qualified and Episode/source-bound. The durable queue tracks priority, attempt/lease state, completion, and recovery. Workers use bounded leases and backpressure rather than holding owner locks across model calls.
 
+The compiled `reliquary-insomnia-store` crate owns the durable Episode-keyed
+work/attempt projection, codecs, transitions, deterministic ready/retry/lease
+expiry scheduling, and reopen reconstruction. It depends directly on Container
+among Reliquary crates. The root product authenticates Episodes and completion
+evidence, converts fixed-byte IDs at
+`src/runtime_inference/insomnia/product_adapter.rs`, and retains full grouped
+completion authoring/decoding, Memory/Freshness checks, worker execution, and
+processing policy. After Archive and Memory reconstruction, a bounded second
+physical pass validates full `CVAINSC7`/`CVAINSC8` envelopes and derives the
+narrow lower-store projection in frame order. Grouped Memory evidence and
+Freshness birth proofs remain under their existing higher-level validation.
+The store cutover preserves existing work/attempt/completion bytes and the
+runtime-only versus durable transition boundary. Focused product and CLI
+acceptance are still pending; see the [extraction evidence](../insomnia-store-crate-extraction-evidence-2026-10-26.md).
+
 Ordinary Episode processing may validly produce zero Memories. Explicit-retention semantics are a separate future extension in [the explicit Memory commit plan](../insomnia-explicit-memory-commit-plan.md).
 
 ## Extraction and evidence
@@ -53,6 +68,9 @@ Retryable model/output/publication failures retain durable work identity. Exhaus
 
 ## Code Map
 
+- `crates/reliquary-insomnia-store/src/` — durable work/attempt store, codecs, scheduler and transition values
+- `src/runtime_inference/insomnia/product_adapter.rs` — root identity conversion and Archive-authenticated inputs
+- `src/runtime_inference/insomnia/rebuild.rs` — ordered replay handoff for accepted completion projections
 - `src/runtime_inference/insomnia.rs`
 - `src/runtime_inference/insomnia/**`
 - `src/runtime_inference/insomnia/**/*.rs`

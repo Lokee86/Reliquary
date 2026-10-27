@@ -45,6 +45,8 @@
 - [Freshness Store crate extraction specification](freshness-store-crate-extraction-spec-2026-10-26.md) — eighth compiled owner cut: durable score records, event/accepted-use journal, exact replay and import settlements below Freshness policy and scheduling.
 - [Vector Store crate extraction specification](vector-store-crate-extraction-spec-2026-10-26.md) — partial compiled vector owner cut, storage boundary, wire invariants and full acceptance matrix.
 - [Vector Store crate extraction evidence](vector-store-crate-extraction-evidence-2026-10-26.md) — current implementation boundary, reported lower-level checks and outstanding root/CLI/corpus gates.
+- [Insomnia Store crate extraction specification](insomnia-store-crate-extraction-spec-2026-10-26.md) — lower work/attempt store boundary, accepted Episode/completion seams, persistence lifecycle, and product acceptance matrix.
+- [Insomnia Store crate extraction evidence](insomnia-store-crate-extraction-evidence-2026-10-26.md) — integrated root cutover, verified lower checks, and pending product/CLI/corpus gates.
 - [Subsystem documentation](subsystems/INDEX.md) — focused current-state ownership, behavior, lifecycle, failure, and implementation maps.
 - [Architectural invariants](invariants.md) — governing ownership and storage constraints.
 - [Storage format](storage-format.md) — exact current REL/PHY persistent-record format, legacy CVA compatibility, and migration boundary.
@@ -218,6 +220,8 @@
 - [import-step24-attribution-acceptance-2026-10-17.md](import-step24-attribution-acceptance-2026-10-17.md) - Import Step24 Attribution Acceptance 2026 10 17 documentation.
 - [insomnia-explicit-memory-commit-plan.md](insomnia-explicit-memory-commit-plan.md) - Insomnia Explicit Memory Commit Plan documentation.
 - [insomnia-semantic-validation-2026-08-24.md](insomnia-semantic-validation-2026-08-24.md) - Insomnia Semantic Validation 2026 08 24 documentation.
+- [insomnia-store-crate-extraction-evidence-2026-10-26.md](insomnia-store-crate-extraction-evidence-2026-10-26.md) - Insomnia Store Crate Extraction Evidence 2026 10 26 documentation.
+- [insomnia-store-crate-extraction-spec-2026-10-26.md](insomnia-store-crate-extraction-spec-2026-10-26.md) - Insomnia Store Crate Extraction Spec 2026 10 26 documentation.
 - [interaction-stream-compact-contract-2026-10-21.md](interaction-stream-compact-contract-2026-10-21.md) - Interaction Stream Compact Contract 2026 10 21 documentation.
 - [invariants.md](invariants.md) - Invariants documentation.
 - [latest-offline-converter-coverage-2026-10-21.md](latest-offline-converter-coverage-2026-10-21.md) - Latest Offline Converter Coverage 2026 10 21 documentation.

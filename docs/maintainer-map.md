@@ -25,6 +25,21 @@ Import/CVA owns epoch metadata and identity in `src/imports/epoch_store.rs` and 
 
 `src/imports/epoch_scope.rs` derives the open epoch's transient physical start boundary, receipt source Nodes, complete Import Episode paths and born-Memory cohort. `src/facade/historical_import_base.rs` rebuilds the pre-start Freshness base. `ImportEventScope` in `crates/reliquary-freshness-store/src/freshness_import_events.rs` selects provisional event identities inside finite physical intervals with separate born-source and affected-recipient sets. `crates/reliquary-freshness-store/src/freshness_import_settlement.rs` owns the current ordered settlement model; `crates/reliquary-freshness-store/src/freshness_semantic_settlement.rs` owns the CVAFRS06 canonical semantic codec. The historical Cva adapter prepares and publishes semantic evidence; Freshness replay resolves accepted event identity/digests and same-cut receipt absorption. Completed-import reconciliation also requests the canonical scope's exact accepted event facts through `FreshnessStore::requested_import_event_entries`, expands accepted-use batches and compares coordinate-normalized causal evidence outside as well as inside the epoch interval; `reconciliation_freshness_authority_tests.rs` protects this boundary. `historical_events.rs` keeps generating-Episode/publication-cohort exclusions separate from per-record base proofs. `imports/completion.rs` requires exact receipt/start identity and the SHA-256 of the accepted raw scoped-settlement payload; lifecycle reopen checks settlement-before-completion order. The completion marker is synced before write admission reopens, and uncertain retries rescan physical markers. Regression evidence lives in `historical_import_attribution_tests.rs`, `historical_import_accepted_use_tests.rs`, `historical_import_existing_memory_tests.rs` and `imports/completion_tests.rs`; readiness logic is in `src/imports/readiness.rs`, which ties exact `EpisodeId`, `MemoryId` and `MemoryEntityMentionKey` identities to durable owner state. [Behavioral contracts](behavioral-contracts.md#native-import-contracts) maps the assertions and pending acceptance gates. Mounted completion and routed PHY readiness remain unsupported.
 
+## Insomnia Store extraction (product cutover integrated; acceptance pending)
+
+`crates/reliquary-insomnia-store/src/` owns durable work/attempt values,
+`CVAINSF1`/`CVAINSW1`/`CVAINSA1` codecs, deterministic scheduling and lease
+transitions. Its only direct Reliquary dependency is Container. The product
+boundary and conversion code lives in
+`src/runtime_inference/insomnia/product_adapter.rs`; Archive Episode
+authorization, full `CVAINSC7`/`CVAINSC8` decoding and Memory/Freshness
+validation remain in the root lifecycle and completion modules. The open-state
+adapter is `src/runtime_inference/insomnia/rebuild.rs`, and ordered physical
+frame dispatch remains in `src/facade/cva_lifecycle.rs`. Focused root tests are
+in progress; CLI and full workspace acceptance remain pending. See the
+[specification](insomnia-store-crate-extraction-spec-2026-10-26.md) and
+[implementation evidence](insomnia-store-crate-extraction-evidence-2026-10-26.md).
+
 ## Vector Store crate extraction (in progress)
 
 The lower-level vector models, codecs and store/replay modules are present in

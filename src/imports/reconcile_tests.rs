@@ -273,7 +273,7 @@ fn divergent_completed_zero_output_epochs_replay_with_destination_watermarks() {
         .map(|episode| {
             (
                 episode.id,
-                left.insomnia_work(episode.id).unwrap().clone(),
+                left.insomnia_work(episode.id).unwrap(),
                 left.insomnia_attempts(episode.id),
             )
         })
@@ -300,7 +300,7 @@ fn divergent_completed_zero_output_epochs_replay_with_destination_watermarks() {
     assert_eq!(merged.import_epoch_statuses().len(), 3);
     assert_eq!(merged.freshness.import_settlements().len(), 3);
     for (episode_id, expected_work, expected_attempts) in left_insomnia {
-        assert_eq!(merged.insomnia_work(episode_id), Some(&expected_work));
+        assert_eq!(merged.insomnia_work(episode_id), Some(expected_work));
         assert_eq!(merged.insomnia_attempts(episode_id), expected_attempts);
     }
     assert!(matches!(
@@ -441,7 +441,7 @@ fn divergent_completed_grouped_memory_epoch_replays_through_destination_owners()
             (source_memory.source_episode_id.unwrap()).0,
         ))
         .unwrap();
-    assert_eq!(replayed_work, &source_work);
+    assert_eq!(replayed_work, source_work);
     assert_eq!(
         merged.insomnia_attempts(crate::EpisodeId(
             (source_memory.source_episode_id.unwrap()).0
@@ -812,14 +812,14 @@ fn valid_insomnia_journal_history_is_replayed_with_completed_import() {
         "retained work journal remains in the completed epoch"
     );
     let _ = has_attempt_record; // Terminal failures are retained as work records in this codec.
-    let expected_work = right.insomnia_work(episode_id).unwrap().clone();
+    let expected_work = right.insomnia_work(episode_id).unwrap();
     let expected_attempts = right.insomnia_attempts(episode_id);
     right.sync().unwrap();
     drop(right);
 
     Cva::reconcile(&left_path, &right_path, &merged_path).unwrap();
     let merged = Cva::open(&merged_path).unwrap();
-    assert_eq!(merged.insomnia_work(episode_id), Some(&expected_work));
+    assert_eq!(merged.insomnia_work(episode_id), Some(expected_work));
     assert_eq!(merged.insomnia_attempts(episode_id), expected_attempts);
     assert!(matches!(
         status(&merged, &right_id),

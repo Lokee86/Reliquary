@@ -230,12 +230,12 @@ impl Cva {
         };
         let payload = encode_completion(&completion)
             .map_err(|_| InsomniaError::InvalidField("completion record"))?;
+        self.insomnia.preflight_completion(&completion)?;
         self.container.append(&payload)?;
         self.container.sync()?;
         self.insomnia.apply_completion(&completion)?;
         self.insomnia
             .work(episode_id)
-            .cloned()
             .ok_or(InsomniaError::MissingWork)
     }
 
@@ -286,7 +286,7 @@ impl Cva {
             .retry_terminal(&mut self.container, episode_id, now_ns)
     }
 
-    pub fn insomnia_work(&self, episode_id: EpisodeId) -> Option<&InsomniaWork> {
+    pub fn insomnia_work(&self, episode_id: EpisodeId) -> Option<InsomniaWork> {
         self.insomnia.work(episode_id)
     }
 

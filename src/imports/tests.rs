@@ -415,7 +415,7 @@ fn conflicting_snapshot_rejects_open_lease_then_completed_work_survives_retry() 
     assert!(cva.import_native(&incoming, 120).is_err());
     assert_eq!(fs::read(&path).unwrap(), open_bytes);
     assert_eq!(current_watermarks(&cva), open_clocks);
-    assert_eq!(cva.insomnia_work(claim.episode_id).unwrap(), &claim);
+    assert_eq!(cva.insomnia_work(claim.episode_id).unwrap(), claim);
 
     // The exact A retry remains safe while the lease is active and leaves the
     // byte stream and owner clocks unchanged.
@@ -423,7 +423,7 @@ fn conflicting_snapshot_rejects_open_lease_then_completed_work_survives_retry() 
     assert_eq!(cva.import_native(&original, 130).unwrap(), receipt);
     assert_eq!(fs::read(&path).unwrap(), open_bytes);
     assert_eq!(current_watermarks(&cva), open_clocks);
-    assert_eq!(cva.insomnia_work(claim.episode_id).unwrap(), &claim);
+    assert_eq!(cva.insomnia_work(claim.episode_id).unwrap(), claim);
 
     let import_scope = cva
         .import_write_admission

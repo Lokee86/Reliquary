@@ -6,7 +6,7 @@ use crate::freshness_storage::FreshnessStore;
 use crate::insomnia::candidate::hex;
 use crate::insomnia::completion::InsomniaCompletionBody;
 use crate::insomnia::completion::{InsomniaCompletion, encode_completion};
-use crate::insomnia::store::InsomniaStore;
+use crate::insomnia::product_adapter::InsomniaStore;
 use crate::memory_model::{memory_body_id, memory_id};
 use crate::memory_store::MemoryStore;
 use crate::{
@@ -208,6 +208,9 @@ impl Cva {
         let payload = encode_completion(&completion).map_err(|_| {
             CvaError::Insomnia(crate::InsomniaError::InvalidField("completion record"))
         })?;
+        self.insomnia
+            .preflight_completion(&completion)
+            .map_err(CvaError::Insomnia)?;
         let completion_chunk = self.container.append(&payload)?;
         self.container.commit_embedded_version_range_at(
             completion.global_version_start,
@@ -522,6 +525,7 @@ pub(crate) fn commit_application(
     };
     let payload = encode_completion(&completion)
         .map_err(|_| crate::InsomniaError::InvalidField("completion record"))?;
+    insomnia.preflight_completion(&completion)?;
     let completion_chunk = container
         .append(&payload)
         .map_err(crate::InsomniaError::from)?;

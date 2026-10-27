@@ -6,7 +6,7 @@ use crate::dream_pair_history::DreamPairStore;
 use crate::ego_store::EgoStore;
 use crate::entity_resolution_store::EntityResolutionStore;
 use crate::graph_owner::GraphOwner;
-use crate::insomnia::store::InsomniaStore;
+use crate::insomnia::product_adapter::InsomniaStore;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;

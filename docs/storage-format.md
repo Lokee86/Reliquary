@@ -1134,6 +1134,19 @@ u64       generation payload length
 `VectorGenerationId` is SHA-256 over `"CVA-VECTOR-GENERATION-V2\0"`, compatibility-profile ID, Archive-Vector ID, and source Archive version. Vector versions begin at `1` and are contiguous inside `VectorGenerationStore`. An unversioned generation payload is inert.
 The latest published generation for each compatibility profile is current. Source Archive version may not regress for that profile, exceed current Archive state, or predate any fragment in the referenced Archive-Vector set. Current generation publication requires the referenced packed matrix to use `f32`; packed storage remains generic, but alternate searchable scalar representations are not semantic generation formats until their interpretation is defined.
 ### Insomnia operational records
+The `reliquary-insomnia-store` crate owns the durable work/attempt values,
+codecs, transition projection, and scheduler reconstruction. Its only direct
+Reliquary dependency is Container. The root product authenticates Archive
+Episodes, fully decodes `CVAINSC7`/`CVAINSC8`, validates grouped Memory evidence
+and Freshness birth proofs through the existing owner replay/lifecycle path,
+and supplies the lower store with an accepted completion projection during a
+bounded second physical pass that preserves frame order. Queue, claim, renewal, and
+retryable failure remain runtime-only; terminal work frames and successful
+completion frames retain their existing append order and bytes. This extraction
+changes ownership and the approved `Cva::insomnia_work` return to an owned
+value; it adds no wire format or journal. Focused product and CLI verification
+is still in progress.
+
 Format marker:
 ```text
 8 bytes   "CVAINSF1"

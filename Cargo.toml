@@ -103,6 +103,7 @@ reliquary-echo = { path = "crates/reliquary-echo" }
 reliquary-memory-core = { path = "crates/reliquary-memory-core" }
 reliquary-archive = { path = "crates/reliquary-archive" }
 reliquary-container = { path = "crates/reliquary-container" }
+reliquary-insomnia-store = { path = "crates/reliquary-insomnia-store" }
 reliquary-vector-store = { path = "crates/reliquary-vector-store" }
 arcana = { git = "https://github.com/Lokee86/lexicon-arcana.git", rev = "66b4e96ecf18cc79dfd6b1ea30232bef7c86bba3" }
 lodestone-packed = { git = "https://github.com/Lokee86/lodestone.git", rev = "7b4b3e02b2bd3f3e474fef1a31c8632f8bbea49f" }
