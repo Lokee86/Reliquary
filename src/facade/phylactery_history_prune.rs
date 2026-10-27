@@ -286,9 +286,12 @@ impl Phylactery {
 
     pub(crate) fn validate_prune_evidence(&mut self) -> Result<(), PhylacteryError> {
         let invalid = || PhylacteryError::Repack("PHY prune evidence mismatch".into());
-        self.owner_maintenance
-            .validate_source_history(&mut self.container, &self.graph)
-            .map_err(PhylacteryError::Repack)?;
+        crate::owner_maintenance::validate_source_history(
+            &self.owner_maintenance,
+            &mut self.container,
+            &self.graph,
+        )
+        .map_err(PhylacteryError::Repack)?;
         for manifest in self.owner_maintenance.manifests().values() {
             if manifest
                 .descriptors

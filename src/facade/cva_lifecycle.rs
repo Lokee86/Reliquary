@@ -492,9 +492,12 @@ impl Cva {
             }
         }
         let graph = graph_state.finish(&memories, &entities)?;
-        owner_maintenance
-            .validate_source_history(&mut container, &graph)
-            .map_err(CvaError::Repack)?;
+        crate::owner_maintenance::validate_source_history(
+            &owner_maintenance,
+            &mut container,
+            &graph,
+        )
+        .map_err(CvaError::Repack)?;
         graph
             .validate_rewrite_baseline(container.owner_uuid(), rewrite_lineage.rewrite_genesis())?;
         let communities = community_state.finish(&graph, container.owner_uuid())?;

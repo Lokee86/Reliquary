@@ -38,6 +38,15 @@ source namespaces to the lower store. Extracting this index changes no
 external transcript authority, stored bytes or source API.
 See [the extraction evidence](external-index-store-crate-extraction-evidence-2026-10-27.md).
 
+## Maintenance Store crate
+
+`reliquary-maintenance-store` owns the existing `CVAHPR01` prune manifest
+codec, intrinsic validation and passive digest-indexed replay. REL and PHY
+coordinators retain authorization, cross-owner history fingerprinting and
+transformed-copy construction; Container retains append, sync and physical
+replacement. Reopening validates evidence without mutation. See the
+[extraction evidence](maintenance-store-crate-extraction-evidence-2026-10-27.md).
+
 ## Physical Container crate
 
 `reliquary-container` is the independently compiled owner of REL/PHY headers,
@@ -545,6 +554,7 @@ Protecting tests are the selector matrix, runtime decision integration tests, ge
 Crate-root Rust modules are composition/publication seams owned by the overall architecture; focused subsystem docs additionally own their internal trees.
 
 - `src/*.rs`
+- `crates/reliquary-maintenance-store/src/**`
 
 ## Related docs
 

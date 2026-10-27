@@ -239,6 +239,7 @@
 - [invariants.md](invariants.md) - Invariants documentation.
 - [latest-offline-converter-coverage-2026-10-21.md](latest-offline-converter-coverage-2026-10-21.md) - Latest Offline Converter Coverage 2026 10 21 documentation.
 - [maintainer-map.md](maintainer-map.md) - Maintainer Map documentation.
+- [maintenance-store-crate-extraction-evidence-2026-10-27.md](maintenance-store-crate-extraction-evidence-2026-10-27.md) - Maintenance Store Crate Extraction Evidence 2026 10 27 documentation.
 - [maintenance-store-crate-extraction-spec-2026-10-27.md](maintenance-store-crate-extraction-spec-2026-10-27.md) - Maintenance Store Crate Extraction Spec 2026 10 27 documentation.
 - [memory-core-crate-extraction-results-2026-10-25.md](memory-core-crate-extraction-results-2026-10-25.md) - Memory Core Crate Extraction Results 2026 10 25 documentation.
 - [memory-core-crate-extraction-spec-2026-10-25.md](memory-core-crate-extraction-spec-2026-10-25.md) - Memory Core Crate Extraction Spec 2026 10 25 documentation.

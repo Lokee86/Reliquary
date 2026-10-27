@@ -96,6 +96,7 @@ required-features = ["entity-calibration"]
 
 [dependencies]
 reliquary-external-index-store = { path = "crates/reliquary-external-index-store" }
+reliquary-maintenance-store = { path = "crates/reliquary-maintenance-store" }
 reliquary-import-store = { path = "crates/reliquary-import-store" }
 reliquary-dream-store = { path = "crates/reliquary-dream-store" }
 reliquary-freshness-store = { path = "crates/reliquary-freshness-store" }
