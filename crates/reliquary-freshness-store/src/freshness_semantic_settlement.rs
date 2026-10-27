@@ -1,21 +1,18 @@
 //! Canonical semantic import settlement. Physical coordinates are construction inputs only.
 //! Runtime adoption follows the codec gate in the staged import migration.
 use super::{JournalEntry, Reader, put_bytes, put_event, put_record};
-use crate::{
-    MemoryId,
-    freshness::{FreshnessPolicy, FreshnessRecord},
-};
+use crate::{FreshnessMemoryId, FreshnessPolicy, FreshnessRecord};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub(crate) const SEMANTIC_SETTLEMENT_MAGIC: &[u8; 8] = b"CVAFRS06";
+pub const SEMANTIC_SETTLEMENT_MAGIC: &[u8; 8] = b"CVAFRS06";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct AcceptedImportEventEvidence {
+pub struct AcceptedImportEventEvidence {
     pub event_id: String,
     pub payload_digest: [u8; 32],
     pub accepted_turn: u64,
-    pub affected_recipients: BTreeSet<MemoryId>,
+    pub affected_recipients: BTreeSet<FreshnessMemoryId>,
 }
 
 impl AcceptedImportEventEvidence {
@@ -63,12 +60,12 @@ impl AcceptedImportEventEvidence {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct ImportSemanticScope {
+pub struct ImportSemanticScope {
     pub owner: [u8; 16],
     pub import_id: [u8; 32],
     pub start_evidence_digest: [u8; 32],
-    pub born_memories: BTreeSet<MemoryId>,
-    pub affected_recipients: BTreeSet<MemoryId>,
+    pub born_memories: BTreeSet<FreshnessMemoryId>,
+    pub affected_recipients: BTreeSet<FreshnessMemoryId>,
     pub source_nodes: BTreeSet<(String, String)>,
     pub base_cut: u64,
     pub settlement_cut: u64,
@@ -79,7 +76,7 @@ pub(crate) struct ImportSemanticScope {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct SemanticImportFreshnessSettlement {
+pub struct SemanticImportFreshnessSettlement {
     pub scope: ImportSemanticScope,
     pub corpus_digest: [u8; 32],
     pub manifest_digest: [u8; 32],
@@ -88,8 +85,8 @@ pub(crate) struct SemanticImportFreshnessSettlement {
     pub archive_version: u64,
     pub graph_version: u64,
     pub memory_graph_version: u64,
-    pub cohort: BTreeSet<MemoryId>,
-    pub records: BTreeMap<MemoryId, FreshnessRecord>,
+    pub cohort: BTreeSet<FreshnessMemoryId>,
+    pub records: BTreeMap<FreshnessMemoryId, FreshnessRecord>,
 }
 
 fn count(out: &mut Vec<u8>, value: usize) -> Result<(), String> {
@@ -104,7 +101,7 @@ fn text(out: &mut Vec<u8>, value: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn ids(out: &mut Vec<u8>, values: &BTreeSet<MemoryId>) -> Result<(), String> {
+fn ids(out: &mut Vec<u8>, values: &BTreeSet<FreshnessMemoryId>) -> Result<(), String> {
     count(out, values.len())?;
     for id in values {
         out.extend(id.0);
@@ -132,16 +129,16 @@ fn read_count(r: &mut Reader<'_>, minimum_bytes: usize) -> Result<u32, String> {
     Ok(count)
 }
 
-fn read_ids(r: &mut Reader<'_>) -> Result<BTreeSet<MemoryId>, String> {
+fn read_ids(r: &mut Reader<'_>) -> Result<BTreeSet<FreshnessMemoryId>, String> {
     let mut values = BTreeSet::new();
     for _ in 0..read_count(r, 32)? {
-        insert_ordered(&mut values, MemoryId(r.array()?))?;
+        insert_ordered(&mut values, FreshnessMemoryId(r.array()?))?;
     }
     Ok(values)
 }
 
 impl SemanticImportFreshnessSettlement {
-    pub(crate) fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> Result<(), String> {
         let scope = &self.scope;
         if scope.owner == [0; 16]
             || scope.import_id == [0; 32]
@@ -203,7 +200,7 @@ impl SemanticImportFreshnessSettlement {
         Ok(())
     }
 
-    pub(crate) fn encode(&self) -> Result<Vec<u8>, String> {
+    pub fn encode(&self) -> Result<Vec<u8>, String> {
         self.validate()?;
         let s = &self.scope;
         let mut out = SEMANTIC_SETTLEMENT_MAGIC.to_vec();
@@ -214,10 +211,8 @@ impl SemanticImportFreshnessSettlement {
             self.corpus_digest,
             self.manifest_digest,
             self.input_digest,
-            crate::freshness::historical_planner::HISTORICAL_POLICY_DIGEST,
-            crate::freshness::semantic_policy::SemanticPolicy::default()
-                .digest()
-                .map_err(|e| e.to_string())?,
+            crate::HISTORICAL_POLICY_DIGEST,
+            crate::SEMANTIC_POLICY_DIGEST,
         ] {
             out.extend(digest);
         }
@@ -261,7 +256,7 @@ impl SemanticImportFreshnessSettlement {
         Ok(out)
     }
 
-    pub(crate) fn decode(payload: &[u8]) -> Result<Self, String> {
+    pub fn decode(payload: &[u8]) -> Result<Self, String> {
         if payload.len() < 40 || !payload.starts_with(SEMANTIC_SETTLEMENT_MAGIC) {
             return Err("invalid semantic import settlement framing".into());
         }
@@ -281,11 +276,8 @@ impl SemanticImportFreshnessSettlement {
         let corpus_digest = r.array()?;
         let manifest_digest = r.array()?;
         let input_digest = r.array()?;
-        if r.array::<32>()? != crate::freshness::historical_planner::HISTORICAL_POLICY_DIGEST
-            || r.array::<32>()?
-                != crate::freshness::semantic_policy::SemanticPolicy::default()
-                    .digest()
-                    .map_err(|e| e.to_string())?
+        if r.array::<32>()? != crate::HISTORICAL_POLICY_DIGEST
+            || r.array::<32>()? != crate::SEMANTIC_POLICY_DIGEST
         {
             return Err("unsupported semantic import policy".into());
         }
@@ -329,7 +321,7 @@ impl SemanticImportFreshnessSettlement {
         let cohort = read_ids(&mut r)?;
         let mut records = BTreeMap::new();
         for _ in 0..read_count(&mut r, 36)? {
-            let id = MemoryId(r.array()?);
+            let id = FreshnessMemoryId(r.array()?);
             if records.last_key_value().is_some_and(|(old, _)| *old >= id) {
                 return Err("unordered or duplicate semantic import record".into());
             }

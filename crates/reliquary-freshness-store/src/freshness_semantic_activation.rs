@@ -1,11 +1,11 @@
 use super::FreshnessStore;
 use serde::{Deserialize, Serialize};
 
-pub(crate) const ACTIVATION_MAGIC: &[u8; 8] = b"CVAFSA01";
+pub const ACTIVATION_MAGIC: &[u8; 8] = b"CVAFSA01";
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct SemanticActivation {
+pub struct SemanticActivation {
     pub owner_uuid: [u8; 16],
     pub boundary: Option<(String, String)>,
     pub accepted_turn: u64,
@@ -21,29 +21,28 @@ struct ActivationRecord {
 }
 
 impl FreshnessStore {
-    pub(crate) fn semantic_activation(&self) -> Option<&SemanticActivation> {
+    pub fn semantic_activation(&self) -> Option<&SemanticActivation> {
         self.semantic_activation.as_ref()
     }
 
-    pub(crate) fn semantic_activation_seen(&self) -> bool {
+    pub fn semantic_activation_seen(&self) -> bool {
         self.semantic_activation_seen
     }
 
-    pub(crate) fn birth_turn(&self, id: crate::MemoryId) -> Option<u64> {
+    pub fn birth_turn(&self, id: crate::FreshnessMemoryId) -> Option<u64> {
         self.births.get(&id).map(|(turn, _)| *turn)
     }
 
-    pub(crate) fn ingest_semantic_activation(&mut self, payload: &[u8]) -> Result<(), String> {
+    pub fn ingest_semantic_activation(&mut self, payload: &[u8]) -> Result<(), String> {
         let record: ActivationRecord = serde_json::from_slice(&payload[8..])
             .map_err(|e| format!("invalid semantic activation: {e}"))?;
         if self.owner_uuid != Some(record.owner_uuid) {
             return Err("semantic activation belongs to another owner".into());
         }
         if let Some(a) = &record.activation {
-            let policy = crate::freshness::semantic_policy::SemanticPolicy::default();
             if a.owner_uuid != record.owner_uuid
-                || a.policy_version != policy.version
-                || a.policy_digest != policy.digest().map_err(|e| e.to_string())?
+                || a.policy_version != crate::SEMANTIC_POLICY_VERSION
+                || a.policy_digest != crate::SEMANTIC_POLICY_DIGEST
                 || (a.accepted_turn == 0) != a.boundary.is_none()
             {
                 return Err("unsupported semantic activation evidence".into());
@@ -57,7 +56,7 @@ impl FreshnessStore {
         Ok(())
     }
 
-    pub(crate) fn persist_semantic_activation(
+    pub fn persist_semantic_activation(
         &mut self,
         container: &mut reliquary_container::Container,
         owner_uuid: [u8; 16],

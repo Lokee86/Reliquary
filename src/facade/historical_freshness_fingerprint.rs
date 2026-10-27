@@ -108,7 +108,10 @@ fn project(
     }
     Ok(FreshnessCut {
         fingerprint: projection.fingerprint()?,
-        records,
+        records: records
+            .into_iter()
+            .map(|(id, record)| (crate::from_freshness_id(id), record))
+            .collect(),
     })
 }
 

@@ -8,9 +8,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 enum ReplayKind {
-    RewriteBaseline(crate::MemoryId),
-    Initialize(crate::MemoryId),
-    Admit(crate::MemoryId),
+    RewriteBaseline(reliquary_freshness_store::FreshnessMemoryId),
+    Initialize(reliquary_freshness_store::FreshnessMemoryId),
+    Admit(reliquary_freshness_store::FreshnessMemoryId),
     Event(String),
     AcceptedUse(String),
 }
@@ -448,7 +448,7 @@ fn rebase_turn(
         ))
 }
 
-fn hex_id(id: crate::MemoryId) -> String {
+fn hex_id(id: reliquary_freshness_store::FreshnessMemoryId) -> String {
     id.0.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
@@ -652,9 +652,13 @@ fn replay_entry(
             memory_id,
             admitted_at_birth,
             ..
-        } => output.freshness_replay_initialize(memory_id, destination_turn, admitted_at_birth)?,
+        } => output.freshness_replay_initialize(
+            crate::from_freshness_id(memory_id),
+            destination_turn,
+            admitted_at_birth,
+        )?,
         FreshnessReplayEntry::Admit { memory_id, .. } => {
-            output.freshness_replay_admit(memory_id, destination_turn)?
+            output.freshness_replay_admit(crate::from_freshness_id(memory_id), destination_turn)?
         }
         FreshnessReplayEntry::Event {
             event_id,
@@ -669,13 +673,23 @@ fn replay_entry(
             }
             if let Some(mut evidence) = semantic {
                 evidence.accepted_turn = destination_turn;
-                output.freshness_replay_semantic_event(event_id, evidence, effects)?;
+                output.freshness_replay_semantic_event(
+                    event_id,
+                    evidence,
+                    effects
+                        .into_iter()
+                        .map(|(id, amount)| (crate::from_freshness_id(id), amount))
+                        .collect(),
+                )?;
             } else {
                 output.freshness_replay_event(
                     event_id,
                     destination_turn,
                     proof,
-                    effects,
+                    effects
+                        .into_iter()
+                        .map(|(id, amount)| (crate::from_freshness_id(id), amount))
+                        .collect(),
                     provenance,
                 )?;
             }
@@ -688,7 +702,7 @@ fn replay_entry(
         } => output.freshness_replay_accepted_use_receipt(
             use_id,
             destination_turn,
-            sources,
+            sources.into_iter().map(crate::from_freshness_id).collect(),
             policy_version,
         )?,
     }

@@ -66,7 +66,12 @@ fn later_import_preserves_prestart_accepted_use_without_replacing_live_memory() 
         !frozen.settlement.cohort.is_empty(),
         "exercise a real import birth"
     );
-    assert!(!frozen.settlement.cohort.contains(&old));
+    assert!(
+        !frozen
+            .settlement
+            .cohort
+            .contains(&reliquary_freshness_store::FreshnessMemoryId(old.0))
+    );
     assert!(frozen.settlement.superseded.is_empty());
     let prepared = frozen.prepare_native().unwrap();
     assert!(!prepared.records().contains_key(&old));

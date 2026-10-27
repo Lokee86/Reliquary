@@ -162,7 +162,13 @@ impl Fixture {
                         .unwrap()
                         .len(),
                     runtime.cva.rel_turn_count(),
-                    runtime.cva.freshness.records().clone(),
+                    runtime
+                        .cva
+                        .freshness
+                        .records()
+                        .iter()
+                        .map(|(id, record)| (crate::from_freshness_id(*id), *record))
+                        .collect(),
                 ))
             })
             .unwrap()

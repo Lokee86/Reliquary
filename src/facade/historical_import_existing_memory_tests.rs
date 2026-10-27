@@ -121,8 +121,18 @@ fn native_import_dream_effect_updates_only_eligible_preexisting_memory() {
     let base = cva.historical_import_base(&scope).unwrap();
     assert_eq!(frozen.initial_records()[&old], base[&old]);
     assert!(!frozen.initial_records().contains_key(&unrelated));
-    assert!(prepared.settlement.cohort.contains(&old));
-    assert!(!prepared.settlement.cohort.contains(&unrelated));
+    assert!(
+        prepared
+            .settlement
+            .cohort
+            .contains(&reliquary_freshness_store::FreshnessMemoryId(old.0))
+    );
+    assert!(
+        !prepared
+            .settlement
+            .cohort
+            .contains(&reliquary_freshness_store::FreshnessMemoryId(unrelated.0))
+    );
     assert!(prepared.records().contains_key(&old));
     assert!(!prepared.records().contains_key(&unrelated));
     assert_eq!(base[&old], old_before);
@@ -158,7 +168,7 @@ fn native_import_dream_effect_updates_only_eligible_preexisting_memory() {
             .settle_with_policy(prepared.settlement.settlement_cut, &policy)
             .unwrap();
     }
-    assert_eq!(prepared.records(), &expected);
+    assert_eq!(prepared.records(), expected);
     assert_ne!(expected[&old], counterfactual[&old]);
     assert!(expected[&old].score < 100);
     assert_eq!(expected[&old].admitted_at_turn, old_before.admitted_at_turn);

@@ -1,37 +1,37 @@
-use crate::freshness::{FreshnessPolicy, FreshnessRecord};
-use crate::{FreshnessEventProof, MemoryId};
+use crate::{FreshnessEventProof, FreshnessMemoryId};
+use crate::{FreshnessPolicy, FreshnessRecord};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 const MAGIC: &[u8; 8] = b"CVAFRS02";
 const POLICY_MAGIC: &[u8; 8] = b"CVAFRP01";
 
-#[cfg(test)]
-#[path = "freshness/historical_oracle.rs"]
+#[cfg(feature = "oracle-support")]
+#[path = "historical_oracle.rs"]
 mod historical_oracle;
-#[cfg(test)]
-pub(crate) use historical_oracle::FreshnessOracleState;
+#[cfg(feature = "oracle-support")]
+pub use historical_oracle::FreshnessOracleState;
 
 #[cfg(test)]
-#[path = "freshness/freshness_effect_storage_contract_tests.rs"]
+#[path = "effect_storage_contract_tests.rs"]
 mod effect_storage_contract_tests;
 #[cfg(test)]
-#[path = "freshness_storage_tests.rs"]
+#[path = "storage_tests.rs"]
 mod tests;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct FreshnessEventProvenance {
-    pub(crate) producer_kind: u8,
-    pub(crate) source_id: String,
-    pub(crate) origin_owner: [u8; 16],
-    pub(crate) accepted_turn: u64,
-    pub(crate) policy_version: u64,
+pub struct FreshnessEventProvenance {
+    pub producer_kind: u8,
+    pub source_id: String,
+    pub origin_owner: [u8; 16],
+    pub accepted_turn: u64,
+    pub policy_version: u64,
 }
 
-pub(crate) const SEMANTIC_EVENT_PRODUCER_KIND: u8 = 3;
-pub(crate) const SEMANTIC_FRAGMENT_PRODUCER_KIND: u8 = 4;
+pub const SEMANTIC_EVENT_PRODUCER_KIND: u8 = 3;
+pub const SEMANTIC_FRAGMENT_PRODUCER_KIND: u8 = 4;
 
-pub(crate) fn is_semantic_producer(kind: u8) -> bool {
+pub fn is_semantic_producer(kind: u8) -> bool {
     matches!(
         kind,
         SEMANTIC_EVENT_PRODUCER_KIND | SEMANTIC_FRAGMENT_PRODUCER_KIND
@@ -39,36 +39,36 @@ pub(crate) fn is_semantic_producer(kind: u8) -> bool {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct SemanticFragmentEvidence {
-    pub(crate) fragment_id: crate::FragmentId,
+pub struct SemanticFragmentEvidence {
+    pub fragment_id: crate::FreshnessFragmentId,
     // Canonical source-key order; includes every represented Node, including non-activity context.
-    pub(crate) sources: Vec<(String, String)>,
+    pub sources: Vec<(String, String)>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct SemanticEventEvidence {
-    pub(crate) owner_uuid: [u8; 16],
-    pub(crate) fragment: Option<SemanticFragmentEvidence>,
-    pub(crate) conversation_id: String,
-    pub(crate) node_id: String,
-    pub(crate) accepted_turn: u64,
-    pub(crate) base_policy_digest: [u8; 32],
-    pub(crate) semantic_policy_version: u16,
-    pub(crate) semantic_policy_digest: [u8; 32],
-    pub(crate) compatibility_profile_id: [u8; 32],
-    pub(crate) source_evidence_digest: [u8; 32],
-    pub(crate) target_evidence_digest: [u8; 32],
+pub struct SemanticEventEvidence {
+    pub owner_uuid: [u8; 16],
+    pub fragment: Option<SemanticFragmentEvidence>,
+    pub conversation_id: String,
+    pub node_id: String,
+    pub accepted_turn: u64,
+    pub base_policy_digest: [u8; 32],
+    pub semantic_policy_version: u16,
+    pub semantic_policy_digest: [u8; 32],
+    pub compatibility_profile_id: [u8; 32],
+    pub source_evidence_digest: [u8; 32],
+    pub target_evidence_digest: [u8; 32],
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum JournalEntry {
     Initialize {
-        memory_id: MemoryId,
+        memory_id: FreshnessMemoryId,
         turn: u64,
         record: FreshnessRecord,
     },
     Admit {
-        memory_id: MemoryId,
+        memory_id: FreshnessMemoryId,
         record: FreshnessRecord,
     },
     Event {
@@ -76,43 +76,43 @@ enum JournalEntry {
         turn: u64,
         provenance: FreshnessEventProvenance,
         proof: FreshnessEventProof,
-        effects: BTreeMap<MemoryId, i16>,
-        records: BTreeMap<MemoryId, FreshnessRecord>,
+        effects: BTreeMap<FreshnessMemoryId, i16>,
+        records: BTreeMap<FreshnessMemoryId, FreshnessRecord>,
         semantic: Option<SemanticEventEvidence>,
     },
     AcceptedUseReceipt {
         use_id: String,
         turn: u64,
-        sources: Vec<MemoryId>,
+        sources: Vec<FreshnessMemoryId>,
         policy_version: u64,
     },
     AcceptedUseBatch {
         use_id: String,
         turn: u64,
-        sources: Vec<MemoryId>,
+        sources: Vec<FreshnessMemoryId>,
         policy_version: u64,
         events: Vec<JournalEntry>,
     },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum FreshnessReplayEntry {
+pub enum FreshnessReplayEntry {
     RewriteBaseline {
         baseline: FreshnessRewriteBaseline,
     },
     Initialize {
-        memory_id: MemoryId,
+        memory_id: FreshnessMemoryId,
         source_turn: u64,
         admitted_at_birth: bool,
     },
     Admit {
-        memory_id: MemoryId,
+        memory_id: FreshnessMemoryId,
         source_turn: u64,
     },
     Event {
         event_id: String,
         source_turn: u64,
-        effects: BTreeMap<MemoryId, i16>,
+        effects: BTreeMap<FreshnessMemoryId, i16>,
         proof: FreshnessEventProof,
         provenance: Option<FreshnessEventProvenance>,
         semantic: Option<SemanticEventEvidence>,
@@ -120,19 +120,19 @@ pub(crate) enum FreshnessReplayEntry {
     AcceptedUseReceipt {
         use_id: String,
         source_turn: u64,
-        sources: Vec<MemoryId>,
+        sources: Vec<FreshnessMemoryId>,
         policy_version: u64,
     },
 }
 
-fn hex_id(id: &MemoryId) -> String {
+fn hex_id(id: &FreshnessMemoryId) -> String {
     id.0.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 impl FreshnessReplayEntry {
     /// Decode one accepted journal frame without consulting the current
     /// projection or flattening an import settlement into live events.
-    pub(crate) fn from_payload(payload: &[u8]) -> Result<Vec<Self>, String> {
+    pub fn from_payload(payload: &[u8]) -> Result<Vec<Self>, String> {
         if payload.get(..8) != Some(MAGIC.as_slice()) {
             return Ok(Vec::new());
         }
@@ -204,7 +204,7 @@ impl FreshnessReplayEntry {
         collect(entry, &mut out);
         Ok(out)
     }
-    pub(crate) fn source_turn(&self) -> u64 {
+    pub fn source_turn(&self) -> u64 {
         match self {
             Self::RewriteBaseline { baseline } => baseline.destination_cut,
             Self::Initialize { source_turn, .. }
@@ -216,9 +216,9 @@ impl FreshnessReplayEntry {
 }
 
 #[derive(Clone, Debug, Default)]
-pub(crate) struct FreshnessStore {
+pub struct FreshnessStore {
     import_settlements: Vec<HistoricalImportFreshnessSettlement>,
-    pub(crate) rewrite_baselines: BTreeMap<MemoryId, rewrite_baseline::FreshnessRewriteBaseline>,
+    pub rewrite_baselines: BTreeMap<FreshnessMemoryId, rewrite_baseline::FreshnessRewriteBaseline>,
     owner_uuid: Option<[u8; 16]>,
     policy: FreshnessPolicy,
     policy_persisted: bool,
@@ -229,9 +229,9 @@ pub(crate) struct FreshnessStore {
     // Derived birth proofs can populate the in-memory projection on ordinary
     // reopen without having written a standalone owner policy chunk yet.
     durable_policy_seen: bool,
-    records: BTreeMap<MemoryId, FreshnessRecord>,
-    births: BTreeMap<MemoryId, (u64, FreshnessRecord)>,
-    admissions: BTreeMap<MemoryId, FreshnessRecord>,
+    records: BTreeMap<FreshnessMemoryId, FreshnessRecord>,
+    births: BTreeMap<FreshnessMemoryId, (u64, FreshnessRecord)>,
+    admissions: BTreeMap<FreshnessMemoryId, FreshnessRecord>,
     recent: std::collections::VecDeque<(JournalEntry, usize)>,
     recent_bytes: usize,
     receipt_membership: membership::ReceiptMembership,
@@ -241,38 +241,42 @@ pub(crate) struct FreshnessStore {
     rebuild_receipts: Option<std::sync::Arc<rebuild::RebuildReceipts>>,
 }
 
+#[inline]
+fn measure<T>(_: &'static str, operation: impl FnOnce() -> T) -> T {
+    operation()
+}
+
 const RECENT_LIMIT: usize = 128;
 const RECENT_BYTES: usize = 256 * 1024;
-#[path = "freshness/freshness_semantic_activation.rs"]
+#[path = "freshness_semantic_activation.rs"]
 mod activation;
-#[path = "freshness/freshness_import_events.rs"]
+#[path = "freshness_import_events.rs"]
 mod import_events_storage;
-pub(crate) use import_events_storage::ImportEventScope;
-#[path = "freshness/freshness_import_settlement.rs"]
+pub use import_events_storage::ImportEventScope;
+#[path = "freshness_import_settlement.rs"]
 mod import_settlement_storage;
-#[path = "freshness/freshness_semantic_settlement.rs"]
+#[path = "freshness_semantic_settlement.rs"]
 mod semantic_settlement;
-pub(crate) use semantic_settlement::{AcceptedImportEventEvidence, ImportSemanticScope};
-#[path = "freshness/freshness_rewrite_baseline.rs"]
+pub use semantic_settlement::{AcceptedImportEventEvidence, ImportSemanticScope};
+#[path = "freshness_rewrite_baseline.rs"]
 mod rewrite_baseline;
-pub(crate) use import_settlement_storage::{
+pub use import_settlement_storage::{
     HistoricalImportFreshnessScope, HistoricalImportFreshnessSettlement,
 };
-pub(crate) use rewrite_baseline::{
-    BASELINE_MAGIC as REWRITE_BASELINE_MAGIC, FreshnessRewriteBaseline,
-};
-#[path = "freshness/freshness_storage_membership.rs"]
+pub use rewrite_baseline::{BASELINE_MAGIC as REWRITE_BASELINE_MAGIC, FreshnessRewriteBaseline};
+#[path = "freshness_storage_membership.rs"]
 mod membership;
-#[path = "freshness/freshness_storage_ordering.rs"]
+#[path = "freshness_storage_ordering.rs"]
 mod ordering;
-#[path = "freshness/freshness_storage_rebuild.rs"]
+#[path = "freshness_storage_rebuild.rs"]
 mod rebuild;
-#[path = "freshness/freshness_storage_stream.rs"]
+#[path = "freshness_storage_stream.rs"]
 mod stream;
-pub(crate) use activation::SemanticActivation;
+pub use activation::SemanticActivation;
+pub use import_events_storage::ImportEventEvidence;
 
 impl FreshnessStore {
-    pub(crate) fn new(owner_uuid: Option<[u8; 16]>) -> Self {
+    pub fn new(owner_uuid: Option<[u8; 16]>) -> Self {
         Self {
             owner_uuid,
             receipt_membership: membership::ReceiptMembership::empty_complete(),
@@ -280,7 +284,7 @@ impl FreshnessStore {
             ..Self::default()
         }
     }
-    pub(crate) fn bind_history_source(
+    pub fn bind_history_source(
         &mut self,
         container: &reliquary_container::Container,
         limit: u64,
@@ -299,11 +303,11 @@ impl FreshnessStore {
         self.history_limit = limit;
         Ok(())
     }
-    pub(crate) fn begin_rebuild(&mut self) {
+    pub fn begin_rebuild(&mut self) {
         self.receipt_membership.invalidate();
         self.rebuild_receipts = Some(std::sync::Arc::new(rebuild::RebuildReceipts::new()));
     }
-    pub(crate) fn finish_rebuild(&mut self) -> Result<(), String> {
+    pub fn finish_rebuild(&mut self) -> Result<(), String> {
         let records = self.canonical_projection(u64::MAX, None, u64::MAX, &[])?;
         // A negative hint is safe only after the complete accepted prefix has
         // been scanned. Stage both derived outputs before changing live state.
@@ -325,16 +329,13 @@ impl FreshnessStore {
         self.receipt_membership = membership;
         Ok(())
     }
-    pub(crate) fn policy(&self) -> FreshnessPolicy {
+    pub fn policy(&self) -> FreshnessPolicy {
         self.policy
     }
-    pub(crate) fn freeze_derived_birth_policy(&mut self) {
+    pub fn freeze_derived_birth_policy(&mut self) {
         self.policy_persisted = true;
     }
-    pub(crate) fn set_policy_before_enrollment(
-        &mut self,
-        policy: FreshnessPolicy,
-    ) -> Result<(), String> {
+    pub fn set_policy_before_enrollment(&mut self, policy: FreshnessPolicy) -> Result<(), String> {
         policy.validate().map_err(|e| e.to_string())?;
         if self.policy_persisted || !self.records.is_empty() || !self.recent.is_empty() {
             return if self.policy == policy {
@@ -346,7 +347,7 @@ impl FreshnessStore {
         self.policy = policy;
         Ok(())
     }
-    pub(crate) fn persist_policy_if_needed(
+    pub fn persist_policy_if_needed(
         &mut self,
         container: &mut reliquary_container::Container,
         owner: [u8; 16],
@@ -359,7 +360,14 @@ impl FreshnessStore {
         container.sync().map_err(|e| e.to_string())?;
         self.ingest_appended(&payload)
     }
-    pub(crate) fn ingest_appended(&mut self, payload: &[u8]) -> Result<(), String> {
+    pub fn ingest_appended(&mut self, payload: &[u8]) -> Result<(), String> {
+        self.ingest_appended_with_expected_pass_ids(payload, None)
+    }
+    pub fn ingest_appended_with_expected_pass_ids(
+        &mut self,
+        payload: &[u8],
+        expected_pass_ids: Option<&BTreeSet<String>>,
+    ) -> Result<(), String> {
         let path = self
             .history_source
             .as_ref()
@@ -370,7 +378,7 @@ impl FreshnessStore {
             .ok_or("Freshness appended payload has invalid extent")?;
         let previous = self.history_limit;
         self.history_limit = before;
-        match self.ingest(payload) {
+        match self.ingest_with_expected_pass_ids(payload, expected_pass_ids) {
             Ok(()) => {
                 self.history_limit = end;
                 if payload.starts_with(POLICY_MAGIC) {
@@ -384,8 +392,16 @@ impl FreshnessStore {
             }
         }
     }
-    pub(crate) fn ingest_scanned(&mut self, payload: &[u8], end: u64) -> Result<(), String> {
-        self.ingest(payload)?;
+    pub fn ingest_scanned(&mut self, payload: &[u8], end: u64) -> Result<(), String> {
+        self.ingest_scanned_with_expected_pass_ids(payload, end, None)
+    }
+    pub fn ingest_scanned_with_expected_pass_ids(
+        &mut self,
+        payload: &[u8],
+        end: u64,
+        expected_pass_ids: Option<&BTreeSet<String>>,
+    ) -> Result<(), String> {
+        self.ingest_with_expected_pass_ids(payload, expected_pass_ids)?;
         self.history_limit = end;
         if payload.starts_with(POLICY_MAGIC) {
             self.durable_policy_seen = true;
@@ -396,7 +412,7 @@ impl FreshnessStore {
     /// A derived birth is intentionally visible after read-only reopen, but it
     /// cannot authorize consuming its publication intent until its own durable
     /// initialization has been written. Scan the owner journal only on recovery.
-    pub(crate) fn has_durable_birth(&self, id: MemoryId) -> Result<bool, String> {
+    pub fn has_durable_birth(&self, id: FreshnessMemoryId) -> Result<bool, String> {
         let mut found = false;
         self.scan_entries(|entry| {
             if let JournalEntry::Initialize { memory_id, .. } = entry {
@@ -430,7 +446,7 @@ impl FreshnessStore {
     }
 
     fn find_event(&self, id: &str) -> Result<Option<JournalEntry>, String> {
-        crate::freshness_trace::measure("freshness.lookup.event", || {
+        measure("freshness.lookup.event", || {
             for (entry, _) in self.recent.iter().rev() {
                 if let Some(event) = event_in(entry, id) {
                     return Ok(Some(event.clone()));
@@ -459,7 +475,7 @@ impl FreshnessStore {
         })
     }
     fn find_use(&self, id: &str) -> Result<Option<JournalEntry>, String> {
-        crate::freshness_trace::measure("freshness.lookup.use", || {
+        measure("freshness.lookup.use", || {
             for (entry, _) in self.recent.iter().rev() {
                 if use_fields(entry).is_some_and(|(key, _, _, _)| key == id) {
                     return Ok(Some(entry.clone()));
@@ -488,7 +504,7 @@ impl FreshnessStore {
         })
     }
     fn remember(&mut self, entry: JournalEntry) -> Result<(), String> {
-        crate::freshness_trace::measure("freshness.receipt.remember", || {
+        measure("freshness.receipt.remember", || {
             if let Some(index) = &self.rebuild_receipts {
                 index.remember(&entry)?;
             }
@@ -518,17 +534,34 @@ impl FreshnessStore {
             Ok(())
         })
     }
-    #[cfg(test)]
-    pub(crate) fn recent_receipt_stats(&self) -> (usize, usize) {
+    #[cfg(any(test, feature = "oracle-support"))]
+    pub fn recent_receipt_stats(&self) -> (usize, usize) {
         (self.recent.len(), self.recent_bytes)
     }
 
-    pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), String> {
+    /// Isolates bulk payload-fixture preparation from durable-history lookup.
+    /// Available only to crate tests and the product's oracle-support test feature.
+    #[cfg(any(test, feature = "oracle-support"))]
+    pub fn reset_ephemeral_receipt_fixture_state(&mut self) {
+        self.history_source = None;
+        self.recent.clear();
+        self.recent_bytes = 0;
+    }
+
+    pub fn ingest(&mut self, payload: &[u8]) -> Result<(), String> {
+        self.ingest_with_expected_pass_ids(payload, None)
+    }
+    pub fn ingest_with_expected_pass_ids(
+        &mut self,
+        payload: &[u8],
+        expected_pass_ids: Option<&BTreeSet<String>>,
+    ) -> Result<(), String> {
         if payload.starts_with(rewrite_baseline::BASELINE_MAGIC) {
             return self.ingest_rewrite_baseline(payload);
         }
         if payload.starts_with(semantic_settlement::SEMANTIC_SETTLEMENT_MAGIC) {
-            return self.ingest_import_settlement(payload);
+            return self
+                .ingest_import_settlement_with_expected_pass_ids(payload, expected_pass_ids);
         }
         if payload.starts_with(activation::ACTIVATION_MAGIC) {
             return self.ingest_semantic_activation(payload);
@@ -558,8 +591,7 @@ impl FreshnessStore {
         if payload.get(..8) != Some(MAGIC.as_slice()) {
             return Ok(());
         }
-        let (owner, entry) =
-            crate::freshness_trace::measure("freshness.payload.decode", || decode(payload))?;
+        let (owner, entry) = measure("freshness.payload.decode", || decode(payload))?;
         if self.owner_uuid.is_some_and(|id| id != owner) {
             return Err("Freshness metadata belongs to another durable owner".into());
         }
@@ -723,10 +755,9 @@ impl FreshnessStore {
                     }
                     self.validate_event_entry(owner, event)?;
                 }
-                let projected =
-                    crate::freshness_trace::measure("freshness.use.ingest_projection", || {
-                        self.project_with_events(events)
-                    })?;
+                let projected = measure("freshness.use.ingest_projection", || {
+                    self.project_with_events(events)
+                })?;
                 self.records = projected;
                 for event in events {
                     let key = event_sort_key(event);
@@ -782,7 +813,7 @@ impl FreshnessStore {
         Ok(())
     }
 
-    pub(crate) fn ingest_rewrite_baseline(&mut self, payload: &[u8]) -> Result<(), String> {
+    pub fn ingest_rewrite_baseline(&mut self, payload: &[u8]) -> Result<(), String> {
         if !self.policy_persisted {
             return Err(
                 "Freshness rewrite baseline appeared before its pinned owner policy".into(),
@@ -831,7 +862,7 @@ impl FreshnessStore {
         Ok(())
     }
     fn validate_event_entry(&self, owner: [u8; 16], event: &JournalEntry) -> Result<(), String> {
-        crate::freshness_trace::measure("freshness.event.validation", || {
+        measure("freshness.event.validation", || {
             let JournalEntry::Event {
                 event_id,
                 turn,
@@ -859,7 +890,7 @@ impl FreshnessStore {
                 // can move it in either direction. Local producers validate exact
                 // equality before committing a new source event.
                 || !(1..=SEMANTIC_FRAGMENT_PRODUCER_KIND).contains(&provenance.producer_kind)
-                || provenance.policy_version != crate::freshness::FRESHNESS_POLICY_VERSION as u64
+                || provenance.policy_version != crate::FRESHNESS_POLICY_VERSION as u64
             {
                 return Err("invalid Freshness event source provenance".into());
             }
@@ -881,10 +912,9 @@ impl FreshnessStore {
                     || *event_id != evidence.event_id()
                     || provenance.source_id != *event_id
                     || provenance.accepted_turn != *turn
-                    || effects.values().any(|amount| {
-                        !(1..=crate::freshness::semantic_policy::SEMANTIC_BONUS_CAP)
-                            .contains(amount)
-                    })
+                    || effects
+                        .values()
+                        .any(|amount| !(1..=crate::SEMANTIC_BONUS_CAP).contains(amount))
                     || effects.keys().any(|id| {
                         !self.births.get(id).is_some_and(|(birth, _)| {
                             if evidence.fragment.is_some() {
@@ -924,7 +954,7 @@ impl FreshnessStore {
                     }
                     if !self
                         .births
-                        .get(&MemoryId(source))
+                        .get(&FreshnessMemoryId(source))
                         .is_some_and(|(birth, _)| birth <= turn)
                         || !effects
                             .values()
@@ -966,8 +996,8 @@ impl FreshnessStore {
     fn project_with_events(
         &self,
         events: &[JournalEntry],
-    ) -> Result<BTreeMap<MemoryId, FreshnessRecord>, String> {
-        crate::freshness_trace::measure("freshness.projection", || {
+    ) -> Result<BTreeMap<FreshnessMemoryId, FreshnessRecord>, String> {
+        measure("freshness.projection", || {
             // Validated receipts are replayed once after the accepted owner scan.
             if self.rebuild_receipts.is_some() {
                 return Ok(self.records.clone());
@@ -1012,8 +1042,8 @@ impl FreshnessStore {
         before: Option<(&str, bool)>,
         graph: u64,
         extra: &[JournalEntry],
-    ) -> Result<BTreeMap<MemoryId, FreshnessRecord>, String> {
-        crate::freshness_trace::measure("freshness.projection.canonical", || {
+    ) -> Result<BTreeMap<FreshnessMemoryId, FreshnessRecord>, String> {
+        measure("freshness.projection.canonical", || {
             if self.import_settlements.iter().any(|settlement| {
                 !settlement.records.is_empty()
                     && through >= settlement.settlement_cut
@@ -1129,12 +1159,12 @@ impl FreshnessStore {
             Ok(projected)
         })
     }
-    pub(crate) fn prepare_event_postimages_for(
+    pub fn prepare_event_postimages_for(
         &self,
         id: &str,
         turn: u64,
-        effects: &BTreeMap<MemoryId, i16>,
-    ) -> Result<BTreeMap<MemoryId, FreshnessRecord>, String> {
+        effects: &BTreeMap<FreshnessMemoryId, i16>,
+    ) -> Result<BTreeMap<FreshnessMemoryId, FreshnessRecord>, String> {
         let in_order = self
             .latest_event
             .as_ref()
@@ -1169,13 +1199,13 @@ impl FreshnessStore {
         }
         Ok(result)
     }
-    pub(crate) fn validate_event_payload(
+    pub fn validate_event_payload(
         &self,
         id: &str,
         turn: u64,
         proof: FreshnessEventProof,
-        effects: &BTreeMap<MemoryId, i16>,
-        records: &BTreeMap<MemoryId, FreshnessRecord>,
+        effects: &BTreeMap<FreshnessMemoryId, i16>,
+        records: &BTreeMap<FreshnessMemoryId, FreshnessRecord>,
     ) -> Result<(), String> {
         if self.contains_event(id)? {
             return Err("Freshness event identity already exists".into());
@@ -1189,12 +1219,21 @@ impl FreshnessStore {
         }
         Ok(())
     }
-    pub(crate) fn resolve_accepted_use(
+    pub fn resolve_accepted_use(
         &self,
         id: &str,
         turn: u64,
-        sources: &[MemoryId],
-    ) -> Result<Option<Vec<(String, BTreeMap<MemoryId, i16>, FreshnessEventProof)>>, String> {
+        sources: &[FreshnessMemoryId],
+    ) -> Result<
+        Option<
+            Vec<(
+                String,
+                BTreeMap<FreshnessMemoryId, i16>,
+                FreshnessEventProof,
+            )>,
+        >,
+        String,
+    > {
         let Some(receipt) = self.find_use(id)? else {
             return Ok(None);
         };
@@ -1204,7 +1243,7 @@ impl FreshnessStore {
         canonical.dedup();
         if stored_turn != turn
             || stored_sources != canonical.as_slice()
-            || version != crate::freshness::FRESHNESS_POLICY_VERSION as u64
+            || version != crate::FRESHNESS_POLICY_VERSION as u64
         {
             return Err("accepted-use identity collides with a different durable receipt".into());
         }
@@ -1233,7 +1272,7 @@ impl FreshnessStore {
         }
         Ok(Some(out))
     }
-    pub(crate) fn bind_owner(&mut self, owner: Option<[u8; 16]>) -> Result<(), String> {
+    pub fn bind_owner(&mut self, owner: Option<[u8; 16]>) -> Result<(), String> {
         match (self.owner_uuid, owner) {
             (Some(stored), Some(actual)) if stored == actual => Ok(()),
             (None, None) if self.records.is_empty() => Ok(()),
@@ -1244,10 +1283,10 @@ impl FreshnessStore {
             _ => Err("Freshness journal owner does not match containing Reliquary".into()),
         }
     }
-    pub(crate) fn derive_birth(
+    pub fn derive_birth(
         &mut self,
         owner: [u8; 16],
-        id: MemoryId,
+        id: FreshnessMemoryId,
         turn: u64,
         admitted: bool,
     ) -> Result<(), String> {
@@ -1263,19 +1302,19 @@ impl FreshnessStore {
         }
         self.ingest(&self.encode_initialize(owner, id, turn, record))
     }
-    pub(crate) fn records(&self) -> &BTreeMap<MemoryId, FreshnessRecord> {
+    pub fn records(&self) -> &BTreeMap<FreshnessMemoryId, FreshnessRecord> {
         &self.records
     }
-    pub(crate) fn has_any(&self) -> bool {
+    pub fn has_any(&self) -> bool {
         self.policy_persisted || !self.records.is_empty()
     }
-    pub(crate) fn contains_event(&self, id: &str) -> Result<bool, String> {
+    pub fn contains_event(&self, id: &str) -> Result<bool, String> {
         Ok(self.find_event(id)?.is_some())
     }
-    pub(crate) fn event_receipt(
+    pub fn event_receipt(
         &self,
         id: &str,
-    ) -> Result<Option<(u64, FreshnessEventProof, BTreeMap<MemoryId, i16>)>, String> {
+    ) -> Result<Option<(u64, FreshnessEventProof, BTreeMap<FreshnessMemoryId, i16>)>, String> {
         Ok(self.find_event(id)?.map(|event| {
             let JournalEntry::Event {
                 turn,
@@ -1289,28 +1328,28 @@ impl FreshnessStore {
             (turn, proof, effects)
         }))
     }
-    pub(crate) fn event_matches(
+    pub fn event_matches(
         &self,
         id: &str,
         turn: u64,
         proof: FreshnessEventProof,
-        effects: &BTreeMap<MemoryId, i16>,
+        effects: &BTreeMap<FreshnessMemoryId, i16>,
     ) -> Result<bool, String> {
         self.event_matches_with_provenance(id, turn, proof, effects, None)
     }
-    pub(crate) fn event_matches_with_provenance(
+    pub fn event_matches_with_provenance(
         &self,
         id: &str,
         turn: u64,
         proof: FreshnessEventProof,
-        effects: &BTreeMap<MemoryId, i16>,
+        effects: &BTreeMap<FreshnessMemoryId, i16>,
         provenance: Option<&FreshnessEventProvenance>,
     ) -> Result<bool, String> {
         Ok(
             matches!(self.find_event(id)?,Some(JournalEntry::Event{turn:t,proof:p,effects:e,provenance:v,..}) if t==turn && p==proof && &e==effects && provenance.is_none_or(|expected|expected==&v)),
         )
     }
-    pub(crate) fn event_has_accepted_provenance(&self, id: &str) -> Result<bool, String> {
+    pub fn event_has_accepted_provenance(&self, id: &str) -> Result<bool, String> {
         let Some(JournalEntry::Event {
             turn,
             provenance,
@@ -1325,7 +1364,7 @@ impl FreshnessStore {
         };
         if provenance.producer_kind != 2
             || provenance.origin_owner != owner
-            || provenance.policy_version != crate::freshness::FRESHNESS_POLICY_VERSION as u64
+            || provenance.policy_version != crate::FRESHNESS_POLICY_VERSION as u64
         {
             return Ok(false);
         }
@@ -1340,21 +1379,21 @@ impl FreshnessStore {
                     && effects.get(source) == Some(&self.policy.access_principal)
             }))
     }
-    pub(crate) fn record_at(
+    pub fn record_at(
         &self,
-        id: MemoryId,
+        id: FreshnessMemoryId,
         turn: u64,
     ) -> Result<Option<FreshnessRecord>, String> {
         Ok(self.records_at(turn)?.get(&id).copied())
     }
-    pub(crate) fn record_at_cut(
+    pub fn record_at_cut(
         &self,
-        id: MemoryId,
+        id: FreshnessMemoryId,
         cut: &crate::FreshnessEventCut,
     ) -> Result<Option<FreshnessRecord>, String> {
         Ok(self.records_at_cut(cut)?.get(&id).copied())
     }
-    pub(crate) fn initial_decay_carries(&self) -> Vec<(MemoryId, u64)> {
+    pub fn initial_decay_carries(&self) -> Vec<(FreshnessMemoryId, u64)> {
         self.rewrite_baselines
             .keys()
             .copied()
@@ -1362,7 +1401,7 @@ impl FreshnessStore {
             .filter(|(_, c)| *c != 0)
             .collect()
     }
-    pub(crate) fn initial_decay_carry(&self, id: MemoryId) -> u64 {
+    pub fn initial_decay_carry(&self, id: FreshnessMemoryId) -> u64 {
         self.rewrite_baselines
             .get(&id)
             .filter(|_| {
@@ -1374,7 +1413,7 @@ impl FreshnessStore {
     }
     fn settle_record_for(
         &self,
-        id: MemoryId,
+        id: FreshnessMemoryId,
         record: &mut FreshnessRecord,
         turn: u64,
     ) -> Result<(), String> {
@@ -1382,13 +1421,13 @@ impl FreshnessStore {
             .rewrite_baselines
             .get(&id)
             .map_or(0, |b| b.decay_remainder.saturating_sub(b.destination_cut));
-        crate::freshness::settle_with_initial_decay_carry(record, turn, carry, &self.policy)
+        crate::settle_with_initial_decay_carry(record, turn, carry, &self.policy)
             .map(|_| ())
             .map_err(|e| e.to_string())
     }
-    pub(crate) fn current_rewrite_record(
+    pub fn current_rewrite_record(
         &self,
-        id: MemoryId,
+        id: FreshnessMemoryId,
         turn: u64,
     ) -> Option<FreshnessRecord> {
         let mut record = *self.records.get(&id)?;
@@ -1397,20 +1436,20 @@ impl FreshnessStore {
         }
         Some(record)
     }
-    pub(crate) fn records_at(
+    pub fn records_at(
         &self,
         turn: u64,
-    ) -> Result<BTreeMap<MemoryId, FreshnessRecord>, String> {
+    ) -> Result<BTreeMap<FreshnessMemoryId, FreshnessRecord>, String> {
         self.records_at_cut(&crate::FreshnessEventCut {
             rel_turn: turn,
             event_id_inclusive: None,
             graph_version: u64::MAX,
         })
     }
-    pub(crate) fn records_at_cut(
+    pub fn records_at_cut(
         &self,
         cut: &crate::FreshnessEventCut,
-    ) -> Result<BTreeMap<MemoryId, FreshnessRecord>, String> {
+    ) -> Result<BTreeMap<FreshnessMemoryId, FreshnessRecord>, String> {
         let mut out = self.canonical_projection(
             cut.rel_turn,
             cut.event_id_inclusive.as_deref().map(|id| (id, true)),
@@ -1422,7 +1461,7 @@ impl FreshnessStore {
         }
         Ok(out)
     }
-    pub(crate) fn replay_entries(&self) -> Result<Vec<FreshnessReplayEntry>, String> {
+    pub fn replay_entries(&self) -> Result<Vec<FreshnessReplayEntry>, String> {
         if !self.import_settlements.is_empty() {
             return Err(
                 "historical import settlement conversion/reconciliation is unsupported".into(),
@@ -1432,7 +1471,7 @@ impl FreshnessStore {
     }
     /// Accepted enrollment and journal evidence, without flattening settled
     /// historical projections into invented events.
-    pub(crate) fn retained_history_entries(&self) -> Result<Vec<FreshnessReplayEntry>, String> {
+    pub fn retained_history_entries(&self) -> Result<Vec<FreshnessReplayEntry>, String> {
         let mut out = Vec::new();
         for baseline in self.rewrite_baselines.values() {
             out.push(FreshnessReplayEntry::RewriteBaseline {
@@ -1493,35 +1532,31 @@ impl FreshnessStore {
     fn validate_use_identity(
         &self,
         id: &str,
-        sources: &[MemoryId],
+        sources: &[FreshnessMemoryId],
         version: u64,
     ) -> Result<(), String> {
-        crate::freshness_trace::measure("freshness.use.validation", || {
+        measure("freshness.use.validation", || {
             if id.trim().is_empty()
                 || sources.is_empty()
                 || sources.windows(2).any(|p| p[0] >= p[1])
-                || version != crate::freshness::FRESHNESS_POLICY_VERSION as u64
+                || version != crate::FRESHNESS_POLICY_VERSION as u64
             {
                 return Err("invalid accepted-use identity or policy".into());
             }
             Ok(())
         })
     }
-    pub(crate) fn prepare_accepted_use_batch(
+    pub fn prepare_accepted_use_batch(
         &self,
         owner: [u8; 16],
         use_id: String,
         turn: u64,
-        sources: Vec<MemoryId>,
+        sources: Vec<FreshnessMemoryId>,
         proof: FreshnessEventProof,
-        effects: Vec<BTreeMap<MemoryId, i16>>,
+        effects: Vec<BTreeMap<FreshnessMemoryId, i16>>,
     ) -> Result<Vec<u8>, String> {
-        crate::freshness_trace::measure("freshness.use.prepare", || {
-            self.validate_use_identity(
-                &use_id,
-                &sources,
-                crate::freshness::FRESHNESS_POLICY_VERSION as u64,
-            )?;
+        measure("freshness.use.prepare", || {
+            self.validate_use_identity(&use_id, &sources, crate::FRESHNESS_POLICY_VERSION as u64)?;
             if self.owner_uuid != Some(owner) || effects.len() != sources.len() {
                 return Err("accepted-use owner/source count mismatch".into());
             }
@@ -1545,7 +1580,7 @@ impl FreshnessStore {
                     source_id: use_id.clone(),
                     origin_owner: owner,
                     accepted_turn: turn,
-                    policy_version: crate::freshness::FRESHNESS_POLICY_VERSION as u64,
+                    policy_version: crate::FRESHNESS_POLICY_VERSION as u64,
                 };
                 let event = JournalEntry::Event {
                     event_id,
@@ -1559,7 +1594,7 @@ impl FreshnessStore {
                 self.validate_event_entry(owner, &event)?;
                 events.push(event);
             }
-            crate::freshness_trace::measure("freshness.use.preappend_projection", || {
+            measure("freshness.use.preappend_projection", || {
                 self.project_with_events(&events)
             })?;
             Ok(encode(
@@ -1568,16 +1603,16 @@ impl FreshnessStore {
                     use_id,
                     turn,
                     sources,
-                    policy_version: crate::freshness::FRESHNESS_POLICY_VERSION as u64,
+                    policy_version: crate::FRESHNESS_POLICY_VERSION as u64,
                     events,
                 },
             ))
         })
     }
-    pub(crate) fn encode_initialize(
+    pub fn encode_initialize(
         &self,
         owner: [u8; 16],
-        id: MemoryId,
+        id: FreshnessMemoryId,
         turn: u64,
         record: FreshnessRecord,
     ) -> Vec<u8> {
@@ -1590,10 +1625,10 @@ impl FreshnessStore {
             },
         )
     }
-    pub(crate) fn encode_admit(
+    pub fn encode_admit(
         &self,
         owner: [u8; 16],
-        id: MemoryId,
+        id: FreshnessMemoryId,
         record: FreshnessRecord,
     ) -> Vec<u8> {
         encode(
@@ -1604,7 +1639,7 @@ impl FreshnessStore {
             },
         )
     }
-    pub(crate) fn validate_semantic_preappend(
+    pub fn validate_semantic_preappend(
         &self,
         owner: [u8; 16],
         payload: &[u8],
@@ -1616,11 +1651,11 @@ impl FreshnessStore {
         staged.ingest(payload)
     }
 
-    pub(crate) fn encode_semantic_event(
+    pub fn encode_semantic_event(
         &self,
         owner: [u8; 16],
         evidence: SemanticEventEvidence,
-        effects: BTreeMap<MemoryId, i16>,
+        effects: BTreeMap<FreshnessMemoryId, i16>,
     ) -> Result<Vec<u8>, String> {
         if evidence.owner_uuid != owner {
             return Err("semantic evidence owner mismatch".into());
@@ -1635,7 +1670,7 @@ impl FreshnessStore {
             source_id: event_id.clone(),
             origin_owner: owner,
             accepted_turn: evidence.accepted_turn,
-            policy_version: crate::freshness::FRESHNESS_POLICY_VERSION as u64,
+            policy_version: crate::FRESHNESS_POLICY_VERSION as u64,
         };
         let entry = JournalEntry::Event {
             event_id,
@@ -1654,11 +1689,11 @@ impl FreshnessStore {
         Ok(encode(owner, &entry))
     }
 
-    pub(crate) fn semantic_event_matches(
+    pub fn semantic_event_matches(
         &self,
         id: &str,
         evidence: &SemanticEventEvidence,
-        effects: &BTreeMap<MemoryId, i16>,
+        effects: &BTreeMap<FreshnessMemoryId, i16>,
     ) -> Result<bool, String> {
         Ok(matches!(
             self.find_event(id)?,
@@ -1671,21 +1706,21 @@ impl FreshnessStore {
         ))
     }
 
-    pub(crate) fn encode_event(
+    pub fn encode_event(
         &self,
         owner: [u8; 16],
         event_id: String,
         turn: u64,
         proof: FreshnessEventProof,
-        effects: BTreeMap<MemoryId, i16>,
-        records: BTreeMap<MemoryId, FreshnessRecord>,
+        effects: BTreeMap<FreshnessMemoryId, i16>,
+        records: BTreeMap<FreshnessMemoryId, FreshnessRecord>,
     ) -> Vec<u8> {
         let provenance = FreshnessEventProvenance {
             producer_kind: 1,
             source_id: event_id.clone(),
             origin_owner: owner,
             accepted_turn: turn,
-            policy_version: crate::freshness::FRESHNESS_POLICY_VERSION as u64,
+            policy_version: crate::FRESHNESS_POLICY_VERSION as u64,
         };
         encode(
             owner,
@@ -1700,14 +1735,14 @@ impl FreshnessStore {
             },
         )
     }
-    pub(crate) fn encode_event_with_provenance(
+    pub fn encode_event_with_provenance(
         &self,
         owner: [u8; 16],
         event_id: String,
         turn: u64,
         proof: FreshnessEventProof,
-        effects: BTreeMap<MemoryId, i16>,
-        records: BTreeMap<MemoryId, FreshnessRecord>,
+        effects: BTreeMap<FreshnessMemoryId, i16>,
+        records: BTreeMap<FreshnessMemoryId, FreshnessRecord>,
         provenance: Option<FreshnessEventProvenance>,
     ) -> Result<Vec<u8>, String> {
         let provenance = provenance.unwrap_or_else(|| FreshnessEventProvenance {
@@ -1715,7 +1750,7 @@ impl FreshnessStore {
             source_id: event_id.clone(),
             origin_owner: owner,
             accepted_turn: turn,
-            policy_version: crate::freshness::FRESHNESS_POLICY_VERSION as u64,
+            policy_version: crate::FRESHNESS_POLICY_VERSION as u64,
         });
         let entry = JournalEntry::Event {
             event_id,
@@ -1744,12 +1779,12 @@ impl FreshnessStore {
         Ok(encode(owner, &entry))
     }
 
-    pub(crate) fn encode_accepted_use_receipt(
+    pub fn encode_accepted_use_receipt(
         &self,
         owner: [u8; 16],
         use_id: String,
         turn: u64,
-        sources: Vec<MemoryId>,
+        sources: Vec<FreshnessMemoryId>,
         policy_version: u64,
     ) -> Vec<u8> {
         encode(
@@ -1764,7 +1799,7 @@ impl FreshnessStore {
     }
 }
 fn encode(owner: [u8; 16], entry: &JournalEntry) -> Vec<u8> {
-    crate::freshness_trace::measure("freshness.payload.encode", || {
+    measure("freshness.payload.encode", || {
         let mut out = Vec::new();
         out.extend_from_slice(MAGIC);
         out.extend_from_slice(&owner);
@@ -1861,36 +1896,6 @@ fn encode(owner: [u8; 16], entry: &JournalEntry) -> Vec<u8> {
                 }
             }
         }
-        #[cfg(feature = "freshness-performance-trace")]
-        {
-            let (event_count, effect_count) = match entry {
-                JournalEntry::Event { effects, .. } => (1, effects.len()),
-                JournalEntry::AcceptedUseBatch { events, .. } => (
-                    events.len(),
-                    events
-                        .iter()
-                        .map(|event| {
-                            if let JournalEntry::Event { effects, .. } = event {
-                                effects.len()
-                            } else {
-                                0
-                            }
-                        })
-                        .sum(),
-                ),
-                _ => (0, 0),
-            };
-            crate::freshness_trace::record(
-                "freshness.payload.shape",
-                0,
-                crate::freshness_trace::Counts {
-                    payload_bytes: Some(out.len() as u64),
-                    event_count: Some(event_count as u64),
-                    effect_count: Some(effect_count as u64),
-                    ..Default::default()
-                },
-            );
-        }
         out
     })
 }
@@ -1901,8 +1906,8 @@ fn put_event(
     turn: u64,
     provenance: &FreshnessEventProvenance,
     proof: FreshnessEventProof,
-    effects: &BTreeMap<MemoryId, i16>,
-    records: &BTreeMap<MemoryId, FreshnessRecord>,
+    effects: &BTreeMap<FreshnessMemoryId, i16>,
+    records: &BTreeMap<FreshnessMemoryId, FreshnessRecord>,
     semantic: Option<&SemanticEventEvidence>,
 ) {
     put_bytes(out, event_id.as_bytes());
@@ -1988,7 +1993,7 @@ fn decode(payload: &[u8]) -> Result<([u8; 16], JournalEntry), String> {
     let kind = r.u8()?;
     let entry = match kind {
         0 | 1 => {
-            let id = MemoryId(r.array::<32>()?);
+            let id = FreshnessMemoryId(r.array::<32>()?);
             let turn = if kind == 0 { Some(r.u64()?) } else { None };
             let record = r.record()?;
             if kind == 0 {
@@ -2016,7 +2021,7 @@ fn decode(payload: &[u8]) -> Result<([u8; 16], JournalEntry), String> {
             }
             let mut sources = Vec::with_capacity(source_count);
             for _ in 0..source_count {
-                sources.push(MemoryId(r.array()?));
+                sources.push(FreshnessMemoryId(r.array()?));
             }
             if kind == 4 {
                 JournalEntry::AcceptedUseReceipt {
@@ -2055,7 +2060,7 @@ fn encode_policy(owner: [u8; 16], policy: FreshnessPolicy) -> Vec<u8> {
     let mut out = Vec::with_capacity(34);
     out.extend_from_slice(POLICY_MAGIC);
     out.extend_from_slice(&owner);
-    out.extend_from_slice(&crate::freshness::FRESHNESS_POLICY_VERSION.to_le_bytes());
+    out.extend_from_slice(&crate::FRESHNESS_POLICY_VERSION.to_le_bytes());
     out.extend_from_slice(&policy.decay_turns_per_point.to_le_bytes());
     for value in [
         policy.access_principal,
@@ -2078,7 +2083,7 @@ fn decode_policy(payload: &[u8]) -> Result<([u8; 16], FreshnessPolicy), String> 
     };
     let owner = r.array::<16>()?;
     let version = u16::from_le_bytes(r.array()?);
-    if version != crate::freshness::FRESHNESS_POLICY_VERSION {
+    if version != crate::FRESHNESS_POLICY_VERSION {
         return Err("unsupported Freshness policy version".into());
     }
     let policy = FreshnessPolicy {
@@ -2149,7 +2154,7 @@ impl Reader<'_> {
         let policy_version = self.u64()?;
         if !(1..=SEMANTIC_FRAGMENT_PRODUCER_KIND).contains(&producer_kind)
             || source_id.is_empty()
-            || policy_version != crate::freshness::FRESHNESS_POLICY_VERSION as u64
+            || policy_version != crate::FRESHNESS_POLICY_VERSION as u64
         {
             return Err("invalid Freshness event provenance".into());
         }
@@ -2184,7 +2189,7 @@ impl Reader<'_> {
         let mut effects = BTreeMap::new();
         let records = BTreeMap::new();
         for _ in 0..count {
-            let id = MemoryId(self.array()?);
+            let id = FreshnessMemoryId(self.array()?);
             let amount = self.i16()?;
             if effects.insert(id, amount).is_some() {
                 return Err("duplicate Memory in Freshness event batch".into());
@@ -2206,7 +2211,7 @@ impl Reader<'_> {
     fn semantic_evidence(&mut self, producer_kind: u8) -> Result<SemanticEventEvidence, String> {
         let owner_uuid = self.array()?;
         let fragment = if producer_kind == SEMANTIC_FRAGMENT_PRODUCER_KIND {
-            let fragment_id = crate::FragmentId(self.array()?);
+            let fragment_id = crate::FreshnessFragmentId(self.array()?);
             let count = self.u32()? as usize;
             if count == 0 || count > self.bytes.len().saturating_sub(self.at) / 8 {
                 return Err("invalid semantic fragment source count".into());
@@ -2291,7 +2296,7 @@ fn validate_semantic_evidence(
 }
 
 impl SemanticEventEvidence {
-    pub(crate) fn event_id(&self) -> String {
+    pub fn event_id(&self) -> String {
         match &self.fragment {
             Some(fragment) => semantic_fragment_event_id(self.owner_uuid, fragment.fragment_id),
             None => semantic_live_event_id(self.owner_uuid, &self.conversation_id, &self.node_id),
@@ -2299,7 +2304,7 @@ impl SemanticEventEvidence {
     }
 }
 
-pub(crate) fn semantic_fragment_event_id(owner: [u8; 16], fragment: crate::FragmentId) -> String {
+pub fn semantic_fragment_event_id(owner: [u8; 16], fragment: crate::FreshnessFragmentId) -> String {
     let mut hash = Sha256::new();
     // Fixed accepted policy domain; profile/configuration rotation is evidence only.
     hash.update(b"reliquary:freshness:semantic-fragment:v1\0");
@@ -2308,11 +2313,7 @@ pub(crate) fn semantic_fragment_event_id(owner: [u8; 16], fragment: crate::Fragm
     format!("semantic-fragment-v1:{:x}", hash.finalize())
 }
 
-pub(crate) fn semantic_live_event_id(
-    owner: [u8; 16],
-    conversation_id: &str,
-    node_id: &str,
-) -> String {
+pub fn semantic_live_event_id(owner: [u8; 16], conversation_id: &str, node_id: &str) -> String {
     let mut hash = Sha256::new();
     hash.update(b"reliquary:freshness:semantic-live:v1\0");
     hash.update(owner);
@@ -2334,7 +2335,7 @@ fn hex_bytes(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
-fn accepted_event_id(owner: [u8; 16], use_id: &str, source: MemoryId) -> String {
+fn accepted_event_id(owner: [u8; 16], use_id: &str, source: FreshnessMemoryId) -> String {
     let owner: String = owner.iter().map(|byte| format!("{byte:02x}")).collect();
     let use_id: String = use_id
         .as_bytes()
@@ -2418,7 +2419,7 @@ fn for_each_event(
         _ => Ok(()),
     }
 }
-fn use_fields(entry: &JournalEntry) -> Option<(&str, u64, &[MemoryId], u64)> {
+fn use_fields(entry: &JournalEntry) -> Option<(&str, u64, &[FreshnessMemoryId], u64)> {
     match entry {
         JournalEntry::AcceptedUseBatch {
             use_id,
@@ -2482,13 +2483,15 @@ fn receipt_bytes(entry: &JournalEntry) -> usize {
             ..
         } => {
             256 + use_id.capacity()
-                + sources.capacity() * std::mem::size_of::<MemoryId>()
+                + sources.capacity() * std::mem::size_of::<FreshnessMemoryId>()
                 + events.capacity() * std::mem::size_of::<JournalEntry>()
                 + events.iter().map(receipt_bytes).sum::<usize>()
         }
         JournalEntry::AcceptedUseReceipt {
             use_id, sources, ..
-        } => 256 + use_id.capacity() + sources.capacity() * std::mem::size_of::<MemoryId>(),
+        } => {
+            256 + use_id.capacity() + sources.capacity() * std::mem::size_of::<FreshnessMemoryId>()
+        }
         _ => 256,
     }
 }

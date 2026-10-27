@@ -7,7 +7,11 @@ fn reconstruct(cva: &mut Cva) -> HistoricalReconstructionReport {
         .unwrap()
 }
 fn projection(cva: &Cva) -> BTreeMap<MemoryId, FreshnessRecord> {
-    cva.freshness.records().clone()
+    cva.freshness
+        .records()
+        .iter()
+        .map(|(&id, &record)| (crate::from_freshness_id(id), record))
+        .collect()
 }
 fn clocks(cva: &Cva) -> (u64, u64, u64, u64, u64) {
     (

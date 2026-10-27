@@ -712,18 +712,32 @@ pub(super) fn build_with_fill(
         frozen.bind_history_source(&cva.container, freeze_prefix)?;
         Some(
             frozen
-                .import_event_evidence_in_scope(&crate::freshness_storage::ImportEventScope {
-                    owner,
-                    import_id,
-                    start_evidence_digest: scope.start_digest,
-                    born_memories: scope.cohort.clone(),
-                    affected_recipients: replacement_ids.clone(),
-                    source_nodes: scope.source_nodes.clone(),
-                    start_prefix: scope.marker_end,
-                    freeze_prefix,
-                    base_cut: scope.base_cut,
-                    freeze_cut: cva.rel_turn_count(),
-                })
+                .import_event_evidence_in_scope(
+                    &crate::freshness_storage::ImportEventScope {
+                        owner,
+                        import_id,
+                        start_evidence_digest: scope.start_digest,
+                        born_memories: scope
+                            .cohort
+                            .iter()
+                            .map(|id| reliquary_freshness_store::FreshnessMemoryId(id.0))
+                            .collect(),
+                        affected_recipients: replacement_ids
+                            .iter()
+                            .map(|id| reliquary_freshness_store::FreshnessMemoryId(id.0))
+                            .collect(),
+                        source_nodes: scope.source_nodes.clone(),
+                        start_prefix: scope.marker_end,
+                        freeze_prefix,
+                        base_cut: scope.base_cut,
+                        freeze_cut: cva.rel_turn_count(),
+                    },
+                    &scope
+                        .cohort
+                        .iter()
+                        .map(|id| crate::dream_freshness::initial_pass_id(owner, *id))
+                        .collect(),
+                )
                 .map_err(CvaError::Freshness)?,
         )
     } else {
@@ -733,7 +747,14 @@ pub(super) fn build_with_fill(
         evidence.event_ids.clone()
     } else {
         cva.freshness
-            .provisional_import_events(&replacement_ids, 0, cva.rel_turn_count())
+            .provisional_import_events(
+                &replacement_ids
+                    .iter()
+                    .map(|id| reliquary_freshness_store::FreshnessMemoryId(id.0))
+                    .collect(),
+                0,
+                cva.rel_turn_count(),
+            )
             .map_err(CvaError::Freshness)?
     };
     let mut manifest_cohort = if scope.is_some() {
@@ -742,7 +763,7 @@ pub(super) fn build_with_fill(
         owner_ids.clone()
     };
     if let Some(evidence) = &scoped_event_evidence {
-        manifest_cohort.extend(evidence.affected_recipients.iter().copied());
+        manifest_cohort.extend(evidence.affected_recipients.iter().map(|id| MemoryId(id.0)));
     }
     let mut untouched = Vec::new();
     let base_recipient_records = if scope.is_some() {

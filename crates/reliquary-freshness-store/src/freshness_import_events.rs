@@ -1,6 +1,6 @@
 //! Import-epoch-scoped provisional Freshness event attribution.
 use super::{FreshnessStore, JournalEntry, for_each_event};
-use crate::MemoryId;
+use crate::FreshnessMemoryId;
 use std::collections::{BTreeMap, BTreeSet};
 
 /// Physical and semantic boundary for provisional events attributed to one import.
@@ -8,17 +8,17 @@ use std::collections::{BTreeMap, BTreeSet};
 /// and freeze; activity cuts alone cannot distinguish receipts at the same turn.
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct ImportEventScope {
+pub struct ImportEventScope {
     pub owner: [u8; 16],
     pub import_id: [u8; 32],
     pub start_evidence_digest: [u8; 32],
     /// Memories born in this ImportEpoch; only these authorize initial-pass IDs.
     #[serde(with = "scope_memory_ids")]
-    pub born_memories: BTreeSet<MemoryId>,
+    pub born_memories: BTreeSet<FreshnessMemoryId>,
     /// Authenticated eligible effect population, including pre-existing Memories.
     /// Selection derives the smaller affected set from actual event effects.
     #[serde(with = "scope_memory_ids")]
-    pub affected_recipients: BTreeSet<MemoryId>,
+    pub affected_recipients: BTreeSet<FreshnessMemoryId>,
     pub source_nodes: BTreeSet<(String, String)>,
     pub start_prefix: u64,
     pub freeze_prefix: u64,
@@ -30,7 +30,7 @@ mod scope_memory_ids {
     use super::*;
     use serde::{Deserialize, Serialize};
     pub(super) fn serialize<S: serde::Serializer>(
-        ids: &BTreeSet<MemoryId>,
+        ids: &BTreeSet<FreshnessMemoryId>,
         serializer: S,
     ) -> Result<S::Ok, S::Error> {
         ids.iter()
@@ -40,28 +40,28 @@ mod scope_memory_ids {
     }
     pub(super) fn deserialize<'de, D: serde::Deserializer<'de>>(
         deserializer: D,
-    ) -> Result<BTreeSet<MemoryId>, D::Error> {
+    ) -> Result<BTreeSet<FreshnessMemoryId>, D::Error> {
         let ids = Vec::<[u8; 32]>::deserialize(deserializer)?;
         if ids.windows(2).any(|pair| pair[0] >= pair[1]) {
             return Err(serde::de::Error::custom(
                 "unordered import scope Memory IDs",
             ));
         }
-        Ok(ids.into_iter().map(MemoryId).collect())
+        Ok(ids.into_iter().map(FreshnessMemoryId).collect())
     }
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub(crate) struct ImportEventEvidence {
+pub struct ImportEventEvidence {
     pub event_ids: BTreeSet<String>,
-    pub affected_recipients: BTreeSet<MemoryId>,
+    pub affected_recipients: BTreeSet<FreshnessMemoryId>,
 }
 
 impl FreshnessStore {
     /// Read exact owner-side event facts for a bounded accepted-event identity set.
     /// Batch journals are expanded by `for_each_event`; settled projections are
     /// never substituted for the immutable event receipts.
-    pub(crate) fn requested_import_event_entries(
+    pub fn requested_import_event_entries(
         &self,
         requested: &BTreeSet<String>,
     ) -> Result<BTreeMap<String, super::FreshnessReplayEntry>, String> {
@@ -109,17 +109,17 @@ impl FreshnessStore {
         Ok(found)
     }
 
-    pub(crate) fn refresh_projection_at(&mut self, cut: u64) -> Result<(), String> {
+    pub fn refresh_projection_at(&mut self, cut: u64) -> Result<(), String> {
         self.records = self.records_at(cut)?;
         Ok(())
     }
 
     /// Freeze exact immutable receipts once. Physical coordinates never enter
     /// the returned semantic authority.
-    pub(crate) fn semantic_import_evidence(
+    pub fn semantic_import_evidence(
         &self,
         scope: &ImportEventScope,
-        cohort: &BTreeSet<MemoryId>,
+        cohort: &BTreeSet<FreshnessMemoryId>,
         superseded: &BTreeSet<String>,
     ) -> Result<super::ImportSemanticScope, String> {
         let path = self
@@ -204,9 +204,10 @@ impl FreshnessStore {
         })
     }
 
-    pub(crate) fn validate_semantic_import_evidence(
+    pub fn validate_semantic_import_evidence(
         &self,
         scope: &super::ImportSemanticScope,
+        expected_initial_pass_ids: &BTreeSet<String>,
     ) -> Result<(), String> {
         if self.owner_uuid != Some(scope.owner) {
             return Err("semantic import owner mismatch".into());
@@ -234,11 +235,10 @@ impl FreshnessStore {
         }
         // Supersession is limited to exact import births/source receipts, never
         // arbitrary accepted-use identities.
-        let passes: BTreeSet<_> = scope
-            .born_memories
-            .iter()
-            .map(|id| crate::dream_freshness::initial_pass_id(scope.owner, *id))
-            .collect();
+        if expected_initial_pass_ids.len() != scope.born_memories.len() {
+            return Err("expected import initial-pass IDs do not cover born memories".into());
+        }
+        let passes = expected_initial_pass_ids;
         self.scan_entries(|entry| {
             for_each_event(&entry, &mut |event| {
                 if let JournalEntry::Event {
@@ -282,7 +282,7 @@ impl FreshnessStore {
 
     /// Exact accepted identity lookup against a finite physical prefix. This
     /// trades a scan for bounded memory rather than retaining every old ID.
-    pub(crate) fn event_accepted_through(&self, id: &str, prefix: u64) -> Result<bool, String> {
+    pub fn event_accepted_through(&self, id: &str, prefix: u64) -> Result<bool, String> {
         let mut found = false;
         let path = self
             .history_source
@@ -301,13 +301,12 @@ impl FreshnessStore {
 
     /// Legitimate receipts accepted during the frozen interval remain part of
     /// affected records; only exact import-attributed identities are replaced.
-    pub(crate) fn retained_import_scores(
+    pub fn retained_import_scores(
         &self,
         scope: &ImportEventScope,
-        recipients: &BTreeSet<MemoryId>,
+        recipients: &BTreeSet<FreshnessMemoryId>,
         superseded: &BTreeSet<String>,
-    ) -> Result<Vec<crate::freshness::historical_scorer::HistoricalScoreEvent>, String> {
-        use crate::freshness::historical_scorer::HistoricalScoreEvent;
+    ) -> Result<Vec<crate::RetainedFreshnessContribution>, String> {
         use sha2::{Digest, Sha256};
         let mut scores = BTreeMap::new();
         let path = self
@@ -348,8 +347,8 @@ impl FreshnessStore {
                     .into();
                     for (id, amount) in effects {
                         if recipients.contains(id) {
-                            let score = HistoricalScoreEvent {
-                                recipient: *id,
+                            let score = crate::RetainedFreshnessContribution {
+                                recipient: crate::FreshnessMemoryId(id.0),
                                 position: *turn,
                                 event_id: digest,
                                 amount: *amount,
@@ -374,16 +373,20 @@ impl FreshnessStore {
     ///
     /// Construction turns this transient physical selection into standalone
     /// semantic event evidence authenticated against the durable import start.
-    pub(crate) fn import_events_in_scope(
+    pub fn import_events_in_scope(
         &self,
         scope: &ImportEventScope,
+        expected_initial_pass_ids: &BTreeSet<String>,
     ) -> Result<BTreeSet<String>, String> {
-        Ok(self.import_event_evidence_in_scope(scope)?.event_ids)
+        Ok(self
+            .import_event_evidence_in_scope(scope, expected_initial_pass_ids)?
+            .event_ids)
     }
 
-    pub(crate) fn import_event_evidence_in_scope(
+    pub fn import_event_evidence_in_scope(
         &self,
         scope: &ImportEventScope,
+        expected_initial_pass_ids: &BTreeSet<String>,
     ) -> Result<ImportEventEvidence, String> {
         if scope.owner == [0; 16]
             || scope.import_id == [0; 32]
@@ -398,12 +401,11 @@ impl FreshnessStore {
         if self.owner_uuid != Some(scope.owner) {
             return Err("import event scope owner mismatch".into());
         }
-        let imported_passes: BTreeSet<_> = scope
-            .born_memories
-            .iter()
-            .map(|id| crate::dream_freshness::initial_pass_id(scope.owner, *id))
-            .collect();
-        let mut selected = BTreeMap::<String, BTreeSet<MemoryId>>::new();
+        if expected_initial_pass_ids.len() != scope.born_memories.len() {
+            return Err("expected import initial-pass IDs do not cover born memories".into());
+        }
+        let imported_passes = expected_initial_pass_ids;
+        let mut selected = BTreeMap::<String, BTreeSet<FreshnessMemoryId>>::new();
         let path = self
             .history_source
             .as_ref()
@@ -509,7 +511,7 @@ impl FreshnessStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::freshness::{FreshnessPolicy, FreshnessRecord};
+    use crate::{FreshnessPolicy, FreshnessRecord};
     use std::collections::BTreeMap;
 
     fn append_accepted(
@@ -540,11 +542,9 @@ mod tests {
             conversation_id: source.0,
             node_id: source.1,
             accepted_turn: turn,
-            base_policy_digest: crate::freshness::historical_planner::HISTORICAL_POLICY_DIGEST,
-            semantic_policy_version: crate::freshness::semantic_policy::SEMANTIC_POLICY_VERSION,
-            semantic_policy_digest: crate::freshness::semantic_policy::SemanticPolicy::default()
-                .digest()
-                .unwrap(),
+            base_policy_digest: crate::HISTORICAL_POLICY_DIGEST,
+            semantic_policy_version: crate::SEMANTIC_POLICY_VERSION,
+            semantic_policy_digest: crate::SEMANTIC_POLICY_DIGEST,
             compatibility_profile_id: [38; 32],
             source_evidence_digest: [39; 32],
             target_evidence_digest: [40; 32],
@@ -558,10 +558,10 @@ mod tests {
         std::fs::create_dir_all(&root).unwrap();
         let path = root.join(format!("import-event-scope-{}.rel", uuid::Uuid::new_v4()));
         let owner = [31; 16];
-        let imported = MemoryId([32; 32]);
-        let existing_recipient = MemoryId([35; 32]);
-        let unrelated_born = MemoryId([36; 32]);
-        let later_recipient = MemoryId([37; 32]);
+        let imported = FreshnessMemoryId([32; 32]);
+        let existing_recipient = FreshnessMemoryId([35; 32]);
+        let unrelated_born = FreshnessMemoryId([36; 32]);
+        let later_recipient = FreshnessMemoryId([37; 32]);
         let mut container = Container::create(&path).unwrap();
         let mut store = FreshnessStore::new(Some(owner));
         store.bind_history_source(&container, 0).unwrap();
@@ -592,7 +592,15 @@ mod tests {
         let imported_birth = store.encode_initialize(owner, imported, 100, admitted(100));
         append_accepted(&mut container, &mut store, &imported_birth);
 
-        let unrelated_live_id = crate::dream_freshness::initial_pass_id(owner, unrelated_born);
+        let unrelated_live_id = format!(
+            "dream-initial:{}:{}",
+            owner.iter().map(|b| format!("{b:02x}")).collect::<String>(),
+            unrelated_born
+                .0
+                .iter()
+                .map(|b| format!("{b:02x}"))
+                .collect::<String>()
+        );
         let unrelated_live = store.encode_event(
             owner,
             unrelated_live_id,
@@ -607,7 +615,15 @@ mod tests {
         );
         append_accepted(&mut container, &mut store, &unrelated_live);
 
-        let import_event_id = crate::dream_freshness::initial_pass_id(owner, imported);
+        let import_event_id = format!(
+            "dream-initial:{}:{}",
+            owner.iter().map(|b| format!("{b:02x}")).collect::<String>(),
+            imported
+                .0
+                .iter()
+                .map(|b| format!("{b:02x}"))
+                .collect::<String>()
+        );
         let import_event = store.encode_event(
             owner,
             import_event_id.clone(),
@@ -645,7 +661,36 @@ mod tests {
             base_cut: 100,
             freeze_cut: 100,
         };
-        let evidence = store.import_event_evidence_in_scope(&scope).unwrap();
+        let expected_passes = BTreeSet::from([format!(
+            "dream-initial:{}:{}",
+            owner.iter().map(|b| format!("{b:02x}")).collect::<String>(),
+            imported
+                .0
+                .iter()
+                .map(|b| format!("{b:02x}"))
+                .collect::<String>()
+        )]);
+        assert!(
+            store
+                .import_event_evidence_in_scope(&scope, &BTreeSet::new())
+                .unwrap_err()
+                .contains("do not cover born memories")
+        );
+        assert!(
+            store
+                .import_event_evidence_in_scope(
+                    &ImportEventScope {
+                        owner: [99; 16],
+                        ..scope.clone()
+                    },
+                    &expected_passes,
+                )
+                .unwrap_err()
+                .contains("owner mismatch")
+        );
+        let evidence = store
+            .import_event_evidence_in_scope(&scope, &expected_passes)
+            .unwrap();
         assert_eq!(
             evidence.event_ids,
             BTreeSet::from([import_event_id.clone()])
@@ -662,7 +707,16 @@ mod tests {
             2,
             "include retained live and provisional, exclude pre-start replay"
         );
-        store.validate_semantic_import_evidence(&semantic).unwrap();
+        store
+            .validate_semantic_import_evidence(&semantic, &expected_passes)
+            .unwrap();
+        let altered_passes = BTreeSet::from(["same-cardinality-but-wrong-pass-id".to_owned()]);
+        assert!(
+            store
+                .validate_semantic_import_evidence(&semantic, &altered_passes)
+                .unwrap_err()
+                .contains("outside import semantic source/cohort")
+        );
         let mut changed = semantic.clone();
         changed
             .accepted_events
@@ -672,7 +726,7 @@ mod tests {
             .payload_digest[0] ^= 1;
         assert!(
             store
-                .validate_semantic_import_evidence(&changed)
+                .validate_semantic_import_evidence(&changed, &expected_passes)
                 .unwrap_err()
                 .contains("mismatch")
         );
@@ -682,7 +736,7 @@ mod tests {
         missing.accepted_events.insert(item.event_id.clone(), item);
         assert!(
             store
-                .validate_semantic_import_evidence(&missing)
+                .validate_semantic_import_evidence(&missing, &expected_passes)
                 .unwrap_err()
                 .contains("missing")
         );
@@ -690,9 +744,9 @@ mod tests {
         wrong_cohort.born_memories.clear();
         assert!(
             store
-                .validate_semantic_import_evidence(&wrong_cohort)
+                .validate_semantic_import_evidence(&wrong_cohort, &expected_passes)
                 .unwrap_err()
-                .contains("source/cohort")
+                .contains("initial-pass IDs")
         );
 
         let relocated_path = path.with_extension("relocated.rel");
@@ -709,7 +763,9 @@ mod tests {
                 std::fs::metadata(&relocated_path).unwrap().len(),
             )
             .unwrap();
-        moved.validate_semantic_import_evidence(&semantic).unwrap();
+        moved
+            .validate_semantic_import_evidence(&semantic, &expected_passes)
+            .unwrap();
         drop(relocated);
         std::fs::remove_file(&relocated_path).unwrap();
         assert_eq!(
@@ -718,36 +774,48 @@ mod tests {
         );
         assert!(
             store
-                .import_event_evidence_in_scope(&ImportEventScope {
-                    start_prefix: start_prefix + 1,
-                    ..scope.clone()
-                })
+                .import_event_evidence_in_scope(
+                    &ImportEventScope {
+                        start_prefix: start_prefix + 1,
+                        ..scope.clone()
+                    },
+                    &expected_passes
+                )
                 .unwrap_err()
                 .contains("physical frame boundary")
         );
         assert_eq!(
             store
-                .import_event_evidence_in_scope(&ImportEventScope {
-                    start_prefix: freeze_prefix,
-                    ..scope.clone()
-                })
+                .import_event_evidence_in_scope(
+                    &ImportEventScope {
+                        start_prefix: freeze_prefix,
+                        ..scope.clone()
+                    },
+                    &expected_passes
+                )
                 .unwrap(),
             ImportEventEvidence::default()
         );
         assert!(
             store
-                .import_events_in_scope(&ImportEventScope {
-                    freeze_prefix: u64::MAX,
-                    ..scope.clone()
-                })
+                .import_events_in_scope(
+                    &ImportEventScope {
+                        freeze_prefix: u64::MAX,
+                        ..scope.clone()
+                    },
+                    &expected_passes
+                )
                 .is_err()
         );
         assert!(
             store
-                .import_events_in_scope(&ImportEventScope {
-                    freeze_prefix: freeze_prefix + 1,
-                    ..scope
-                })
+                .import_events_in_scope(
+                    &ImportEventScope {
+                        freeze_prefix: freeze_prefix + 1,
+                        ..scope
+                    },
+                    &expected_passes
+                )
                 .is_err()
         );
 
@@ -766,14 +834,14 @@ mod tests {
             uuid::Uuid::new_v4()
         ));
         let owner = [41; 16];
-        let recipient = MemoryId([42; 32]);
+        let recipient = FreshnessMemoryId([42; 32]);
         let import_source = ("import-conversation".into(), "import-node".into());
         let external_source = ("older-conversation".into(), "older-node".into());
         let evidence = semantic_evidence(
             owner,
             import_source.clone(),
             Some(super::super::SemanticFragmentEvidence {
-                fragment_id: crate::FragmentId([43; 32]),
+                fragment_id: crate::FreshnessFragmentId([43; 32]),
                 sources: vec![import_source.clone(), external_source],
             }),
             100,
@@ -806,8 +874,99 @@ mod tests {
             base_cut: 100,
             freeze_cut: 100,
         };
-        assert!(store.import_events_in_scope(&scope).is_err());
+        assert!(
+            store
+                .import_events_in_scope(&scope, &BTreeSet::new())
+                .is_err()
+        );
 
+        drop(container);
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn scoped_birth_attribution_rejects_conflicting_duplicate_event_effects() {
+        use reliquary_container::Container;
+
+        let root = std::env::current_dir().unwrap().join(".test-tmp");
+        std::fs::create_dir_all(&root).unwrap();
+        let path = root.join(format!(
+            "import-event-conflict-{}.rel",
+            uuid::Uuid::new_v4()
+        ));
+        let owner = [91; 16];
+        let born = FreshnessMemoryId([92; 32]);
+        let first_recipient = FreshnessMemoryId([93; 32]);
+        let second_recipient = FreshnessMemoryId([94; 32]);
+        let mut container = Container::create(&path).unwrap();
+        let mut store = FreshnessStore::new(Some(owner));
+        store.bind_history_source(&container, 0).unwrap();
+        let policy = super::super::encode_policy(owner, FreshnessPolicy::default_v1());
+        append_accepted(&mut container, &mut store, &policy);
+        for id in [first_recipient, second_recipient] {
+            let payload = store.encode_initialize(owner, id, 1, admitted(1));
+            append_accepted(&mut container, &mut store, &payload);
+        }
+        let start_prefix = std::fs::metadata(&path).unwrap().len();
+        let birth = store.encode_initialize(owner, born, 10, admitted(10));
+        append_accepted(&mut container, &mut store, &birth);
+        let event_id = format!(
+            "dream-initial:{}:{}",
+            owner.iter().map(|b| format!("{b:02x}")).collect::<String>(),
+            born.0
+                .iter()
+                .map(|b| format!("{b:02x}"))
+                .collect::<String>()
+        );
+        let proof = crate::FreshnessEventProof {
+            graph_version: 0,
+            community_generation: None,
+            community_graph_version: None,
+        };
+        let first = store.encode_event(
+            owner,
+            event_id.clone(),
+            10,
+            proof,
+            BTreeMap::from([(first_recipient, 50)]),
+            BTreeMap::new(),
+        );
+        append_accepted(&mut container, &mut store, &first);
+        let conflicting = store.encode_event(
+            owner,
+            event_id.clone(),
+            10,
+            proof,
+            BTreeMap::from([(second_recipient, 50)]),
+            BTreeMap::new(),
+        );
+        // Simulate conflicting accepted journal evidence. Normal admission
+        // rejects this duplicate, but replay attribution must also fail closed.
+        container.append(&conflicting).unwrap();
+        container.sync().unwrap();
+        let freeze_prefix = std::fs::metadata(&path).unwrap().len();
+        store
+            .bind_history_source(&container, freeze_prefix)
+            .unwrap();
+        let scope = ImportEventScope {
+            owner,
+            import_id: [95; 32],
+            start_evidence_digest: [96; 32],
+            born_memories: BTreeSet::from([born]),
+            affected_recipients: BTreeSet::from([first_recipient, second_recipient]),
+            source_nodes: BTreeSet::new(),
+            start_prefix,
+            freeze_prefix,
+            base_cut: 10,
+            freeze_cut: 10,
+        };
+        let expected_passes = BTreeSet::from([event_id]);
+        assert!(
+            store
+                .import_event_evidence_in_scope(&scope, &expected_passes)
+                .unwrap_err()
+                .contains("conflicting provisional import event identity")
+        );
         drop(container);
         std::fs::remove_file(path).unwrap();
     }

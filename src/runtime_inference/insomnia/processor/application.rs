@@ -195,7 +195,12 @@ impl Cva {
         if let Some(owner) = owner {
             for record in &completion.records {
                 freshness_after
-                    .derive_birth(owner, record.id, accepted_turn, false)
+                    .derive_birth(
+                        owner,
+                        crate::to_freshness_id(record.id),
+                        accepted_turn,
+                        false,
+                    )
                     .map_err(CvaError::Freshness)?;
             }
         }
@@ -484,7 +489,12 @@ pub(crate) fn commit_application(
     if let Some(owner) = owner_uuid {
         for record in batch.records.iter().filter(|record| record.revision == 1) {
             freshness_after
-                .derive_birth(owner, record.id, accepted_rel_turn, false)
+                .derive_birth(
+                    owner,
+                    crate::to_freshness_id(record.id),
+                    accepted_rel_turn,
+                    false,
+                )
                 .map_err(|error| {
                     crate::InsomniaProcessError::Memory(crate::MemoryError::Freshness(error))
                 })?;

@@ -2,39 +2,36 @@
 //!
 //! A baseline is semantic owner state, not a synthetic access or Dream event.
 
-use crate::{
-    HistoryGenerationId, MemoryId,
-    freshness::{FreshnessPolicy, FreshnessRecord},
-};
+use crate::{FreshnessHistoryGeneration, FreshnessMemoryId, FreshnessPolicy, FreshnessRecord};
 use sha2::{Digest, Sha256};
 
-pub(crate) const BASELINE_MAGIC: &[u8; 8] = b"CVAFRB01";
+pub const BASELINE_MAGIC: &[u8; 8] = b"CVAFRB01";
 const CHECKSUM_LEN: usize = 32;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct FreshnessRewriteBaseline {
-    pub(crate) owner_uuid: [u8; 16],
-    pub(crate) history_generation: HistoryGenerationId,
-    pub(crate) memory_id: MemoryId,
-    pub(crate) source_cut: u64,
-    pub(crate) source_initial_decay_carry: u64,
-    pub(crate) destination_cut: u64,
+pub struct FreshnessRewriteBaseline {
+    pub owner_uuid: [u8; 16],
+    pub history_generation: FreshnessHistoryGeneration,
+    pub memory_id: FreshnessMemoryId,
+    pub source_cut: u64,
+    pub source_initial_decay_carry: u64,
+    pub destination_cut: u64,
     /// Original materialized source record, retained as provenance evidence.
-    pub(crate) source_record: FreshnessRecord,
+    pub source_record: FreshnessRecord,
     /// Source record settled at `source_cut`; this is the effective state preserved.
-    pub(crate) effective_record: FreshnessRecord,
+    pub effective_record: FreshnessRecord,
     /// Rebased score and clock anchors in the destination activity domain.
-    pub(crate) destination_record: FreshnessRecord,
+    pub destination_record: FreshnessRecord,
     /// Unconsumed fraction of the decay interval at the source cut.
-    pub(crate) decay_remainder: u64,
-    pub(crate) policy_digest: [u8; 32],
+    pub decay_remainder: u64,
+    pub policy_digest: [u8; 32],
 }
 
 impl FreshnessRewriteBaseline {
-    pub(crate) fn preserve_effective(
+    pub fn preserve_effective(
         owner_uuid: [u8; 16],
-        history_generation: HistoryGenerationId,
-        memory_id: MemoryId,
+        history_generation: FreshnessHistoryGeneration,
+        memory_id: FreshnessMemoryId,
         source_cut: u64,
         destination_cut: u64,
         source_record: FreshnessRecord,
@@ -54,10 +51,10 @@ impl FreshnessRewriteBaseline {
         )
     }
 
-    pub(crate) fn preserve_effective_with_carry(
+    pub fn preserve_effective_with_carry(
         owner_uuid: [u8; 16],
-        history_generation: HistoryGenerationId,
-        memory_id: MemoryId,
+        history_generation: FreshnessHistoryGeneration,
+        memory_id: FreshnessMemoryId,
         source_cut: u64,
         destination_cut: u64,
         source_record: FreshnessRecord,
@@ -66,14 +63,14 @@ impl FreshnessRewriteBaseline {
         source_initial_decay_carry: u64,
     ) -> Result<Self, String> {
         policy.validate().map_err(|error| error.to_string())?;
-        if owner_uuid == [0; 16] || history_generation == HistoryGenerationId::ZERO {
+        if owner_uuid == [0; 16] || history_generation == FreshnessHistoryGeneration::ZERO {
             return Err("Freshness rewrite baseline owner and generation must be nonzero".into());
         }
         if policy_digest == [0; 32] {
             return Err("Freshness rewrite baseline policy digest must be nonzero".into());
         }
         let mut effective_record = source_record;
-        crate::freshness::settle_with_initial_decay_carry(
+        crate::settle_with_initial_decay_carry(
             &mut effective_record,
             source_cut,
             source_initial_decay_carry,
@@ -106,9 +103,10 @@ impl FreshnessRewriteBaseline {
         Ok(result)
     }
 
-    pub(crate) fn validate(&self, policy: &FreshnessPolicy) -> Result<(), String> {
+    pub fn validate(&self, policy: &FreshnessPolicy) -> Result<(), String> {
         policy.validate().map_err(|error| error.to_string())?;
-        if self.owner_uuid == [0; 16] || self.history_generation == HistoryGenerationId::ZERO {
+        if self.owner_uuid == [0; 16] || self.history_generation == FreshnessHistoryGeneration::ZERO
+        {
             return Err("Freshness rewrite baseline owner and generation must be nonzero".into());
         }
         if self.policy_digest == [0; 32] {
@@ -118,7 +116,7 @@ impl FreshnessRewriteBaseline {
         if self.source_initial_decay_carry >= policy.decay_turns_per_point {
             return Err("invalid inherited Freshness decay carry".into());
         }
-        crate::freshness::settle_with_initial_decay_carry(
+        crate::settle_with_initial_decay_carry(
             &mut expected_effective,
             self.source_cut,
             self.source_initial_decay_carry,
@@ -186,7 +184,7 @@ impl FreshnessRewriteBaseline {
         Ok(())
     }
 
-    pub(crate) fn encode(&self) -> Result<Vec<u8>, String> {
+    pub fn encode(&self) -> Result<Vec<u8>, String> {
         let mut out = BASELINE_MAGIC.to_vec();
         out.extend_from_slice(&self.owner_uuid);
         out.extend_from_slice(self.history_generation.as_bytes());
@@ -204,7 +202,7 @@ impl FreshnessRewriteBaseline {
         Ok(out)
     }
 
-    pub(crate) fn decode(payload: &[u8], policy: &FreshnessPolicy) -> Result<Self, String> {
+    pub fn decode(payload: &[u8], policy: &FreshnessPolicy) -> Result<Self, String> {
         if payload.len() < 8 + 16 + 16 + 32 + 8 + 8 + 8 + 4 * 3 + 8 + 32 + CHECKSUM_LEN {
             return Err("truncated Freshness rewrite baseline".into());
         }
@@ -220,8 +218,8 @@ impl FreshnessRewriteBaseline {
             offset: 0,
         };
         let owner_uuid = reader.array::<16>()?;
-        let history_generation = HistoryGenerationId::from_bytes(reader.array::<16>()?);
-        let memory_id = MemoryId(reader.array::<32>()?);
+        let history_generation = FreshnessHistoryGeneration::from_bytes(reader.array::<16>()?);
+        let memory_id = FreshnessMemoryId(reader.array::<32>()?);
         let source_cut = reader.u64()?;
         let source_initial_decay_carry = reader.u64()?;
         let destination_cut = reader.u64()?;
@@ -274,8 +272,8 @@ mod tests {
         source.score = 73;
         FreshnessRewriteBaseline::preserve_effective(
             [1; 16],
-            HistoryGenerationId([2; 16]),
-            MemoryId([3; 32]),
+            FreshnessHistoryGeneration([2; 16]),
+            FreshnessMemoryId([3; 32]),
             28,
             4,
             source,
@@ -307,12 +305,12 @@ mod tests {
             b
         );
         let mut r = b.destination_record;
-        crate::freshness::settle_with_initial_decay_carry(&mut r, 6, 3, &policy).unwrap();
+        crate::settle_with_initial_decay_carry(&mut r, 6, 3, &policy).unwrap();
         assert_eq!(r.score, 71);
-        crate::freshness::settle_with_initial_decay_carry(&mut r, 7, 3, &policy).unwrap();
+        crate::settle_with_initial_decay_carry(&mut r, 7, 3, &policy).unwrap();
         assert_eq!(r.score, 70);
         assert_eq!(r.accounted_turn, Some(7));
-        crate::freshness::settle_with_initial_decay_carry(&mut r, 17, 3, &policy).unwrap();
+        crate::settle_with_initial_decay_carry(&mut r, 17, 3, &policy).unwrap();
         assert_eq!(r.score, 69);
         let again = FreshnessRewriteBaseline::preserve_effective_with_carry(
             b.owner_uuid,
@@ -377,8 +375,8 @@ mod tests {
     fn preserves_unadmitted_state_without_inventing_a_clock() {
         let baseline = FreshnessRewriteBaseline::preserve_effective(
             [1; 16],
-            HistoryGenerationId([2; 16]),
-            MemoryId([3; 32]),
+            FreshnessHistoryGeneration([2; 16]),
+            FreshnessMemoryId([3; 32]),
             9,
             0,
             FreshnessRecord::created(),

@@ -113,7 +113,7 @@ fn historical_native_semantic_source_cohort_is_excluded_before_roots_and_reopen(
     drop(reopened);
     let reopened = Cva::open(&path).unwrap();
     for (id, record) in prepared.records() {
-        assert_eq!(reopened.freshness_record(*id), Some(*record));
+        assert_eq!(reopened.freshness_record(id), Some(record));
     }
 }
 pub(super) fn linked_source(cva: &mut Cva, target: MemoryId, duplicate: bool) -> MemoryId {
@@ -250,7 +250,7 @@ fn historical_native_actual_dream_no_link_duplicate_authority_and_event_order() 
         drop(reopened);
         let reopened = Cva::open(&path).unwrap();
         for (id, record) in prepared.records() {
-            assert_eq!(reopened.freshness_record(*id), Some(*record));
+            assert_eq!(reopened.freshness_record(id), Some(record));
         }
     }
 }

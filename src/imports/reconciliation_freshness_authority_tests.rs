@@ -36,7 +36,7 @@ fn event(id: &str, turn: u64, graph: u64, memory: MemoryId) -> FreshnessReplayEn
     FreshnessReplayEntry::Event {
         event_id: id.into(),
         source_turn: turn,
-        effects: BTreeMap::from([(memory, 3)]),
+        effects: BTreeMap::from([(reliquary_freshness_store::FreshnessMemoryId(memory.0), 3)]),
         proof: FreshnessEventProof {
             graph_version: graph,
             community_generation: Some(graph + 10),
@@ -192,7 +192,7 @@ fn normalized_same_authority_keeps_accepted_membership_and_content() {
     let FreshnessReplayEntry::Event { effects, .. } = &mut changed_effect else {
         unreachable!()
     };
-    effects.insert(memory, 4);
+    effects.insert(reliquary_freshness_store::FreshnessMemoryId(memory.0), 4);
     let changed_causal_facts = completed_epoch(
         vec![canonical],
         BTreeMap::from([("accepted-id".to_string(), changed_effect)]),
@@ -243,13 +243,16 @@ fn owner_requested_event_scan_expands_batches_and_fails_closed() {
             owner,
             "batch-use".into(),
             1,
-            vec![memory],
+            vec![reliquary_freshness_store::FreshnessMemoryId(memory.0)],
             FreshnessEventProof {
                 graph_version: cva.graph_version(),
                 community_generation: None,
                 community_graph_version: None,
             },
-            vec![BTreeMap::from([(memory, 25)])],
+            vec![BTreeMap::from([(
+                reliquary_freshness_store::FreshnessMemoryId(memory.0),
+                25,
+            )])],
         )
         .unwrap();
     let decoded = FreshnessReplayEntry::from_payload(&batch).unwrap();
@@ -335,7 +338,7 @@ fn owner_scope_events_outside_epoch_interval_are_compared_by_normalized_facts() 
             community_generation: None,
             community_graph_version: None,
         },
-        BTreeMap::from([(memory, 3)]),
+        BTreeMap::from([(reliquary_freshness_store::FreshnessMemoryId(memory.0), 3)]),
         BTreeMap::new(),
     );
     let right_payload = right.freshness.encode_event(
@@ -347,7 +350,7 @@ fn owner_scope_events_outside_epoch_interval_are_compared_by_normalized_facts() 
             community_generation: None,
             community_graph_version: None,
         },
-        BTreeMap::from([(memory, 4)]),
+        BTreeMap::from([(reliquary_freshness_store::FreshnessMemoryId(memory.0), 4)]),
         BTreeMap::new(),
     );
     left.container.append(&left_payload).unwrap();
@@ -575,13 +578,16 @@ fn completed_scope_inventory(
             owner,
             "authority-use-in-import".into(),
             turn,
-            vec![memory],
+            vec![reliquary_freshness_store::FreshnessMemoryId(memory.0)],
             FreshnessEventProof {
                 graph_version: cva.graph_version(),
                 community_generation: None,
                 community_graph_version: None,
             },
-            vec![BTreeMap::from([(memory, 25)])],
+            vec![BTreeMap::from([(
+                reliquary_freshness_store::FreshnessMemoryId(memory.0),
+                25,
+            )])],
         )
         .unwrap();
     cva.container.append(&payload).unwrap();

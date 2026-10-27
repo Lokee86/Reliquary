@@ -108,8 +108,25 @@ mod dream_begin_codec;
 mod dream_population_digest;
 #[path = "freshness_dream_journal.rs"]
 mod freshness_dream_journal;
-#[path = "freshness_storage.rs"]
-mod freshness_storage;
+use reliquary_freshness_store as freshness_storage;
+// Foreign identities cross the Freshness owner boundary as their unchanged bytes.
+fn to_freshness_id(id: MemoryId) -> reliquary_freshness_store::FreshnessMemoryId {
+    reliquary_freshness_store::FreshnessMemoryId(id.0)
+}
+
+fn from_freshness_id(id: reliquary_freshness_store::FreshnessMemoryId) -> MemoryId {
+    MemoryId(id.0)
+}
+
+fn to_freshness_effects(
+    effects: &std::collections::BTreeMap<MemoryId, i16>,
+) -> std::collections::BTreeMap<reliquary_freshness_store::FreshnessMemoryId, i16> {
+    effects
+        .iter()
+        .map(|(id, amount)| (to_freshness_id(*id), *amount))
+        .collect()
+}
+
 #[path = "rewrite_lineage.rs"]
 mod rewrite_lineage;
 pub use freshness_dream_journal::InitialDreamPass;

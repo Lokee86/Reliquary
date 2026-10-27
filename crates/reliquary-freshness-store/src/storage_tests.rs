@@ -1,4 +1,5 @@
 use super::*;
+use crate::{FreshnessFragmentId as FragmentId, FreshnessMemoryId as MemoryId};
 
 #[test]
 fn accepted_prefix_ignores_partial_tail_and_rejects_unsupported_records() {
@@ -305,7 +306,7 @@ fn semantic_event_identity_is_exact_and_stable() {
 #[test]
 fn semantic_fragment_codec_pins_all_sources_and_reembedding_cannot_award_again() {
     let owner = [7; 16];
-    let fragment_id = crate::FragmentId([8; 32]);
+    let fragment_id = FragmentId([8; 32]);
     let mut evidence = semantic_evidence(owner, "c", "later", 12);
     evidence.fragment = Some(SemanticFragmentEvidence {
         fragment_id,
@@ -318,10 +319,7 @@ fn semantic_fragment_codec_pins_all_sources_and_reembedding_cannot_award_again()
     );
     assert_eq!(id, semantic_fragment_event_id(owner, fragment_id));
     assert_ne!(id, semantic_fragment_event_id([9; 16], fragment_id));
-    assert_ne!(
-        id,
-        semantic_fragment_event_id(owner, crate::FragmentId([9; 32]))
-    );
+    assert_ne!(id, semantic_fragment_event_id(owner, FragmentId([9; 32])));
     let store = enrolled();
     let effects = BTreeMap::from([(MemoryId([1; 32]), 4)]);
     let payload = store
@@ -338,10 +336,7 @@ fn semantic_fragment_codec_pins_all_sources_and_reembedding_cannot_award_again()
     };
     assert_eq!(semantic, Some(evidence.clone()));
     assert_eq!(provenance.producer_kind, SEMANTIC_FRAGMENT_PRODUCER_KIND);
-    assert_eq!(
-        crate::storage_reclamation::relocate_payload(&payload, &BTreeMap::new()).unwrap(),
-        payload
-    );
+    assert_eq!(encode(owner, &decode(&payload).unwrap().1), payload);
     let mut replay = enrolled();
     replay.ingest(&payload).unwrap();
     replay.ingest(&payload).unwrap();
@@ -372,7 +367,7 @@ fn semantic_fragment_codec_rejects_noncanonical_or_missing_sources() {
         vec![("c".into(), "later".into()), ("c".into(), "later".into())],
     ] {
         evidence.fragment = Some(SemanticFragmentEvidence {
-            fragment_id: crate::FragmentId([8; 32]),
+            fragment_id: FragmentId([8; 32]),
             sources,
         });
         assert!(
@@ -393,10 +388,7 @@ fn semantic_event_round_trips_retries_and_rejects_identity_conflicts() {
         .encode_semantic_event(owner, evidence.clone(), effects.clone())
         .unwrap();
     // Physical copy/repack/reclamation must retain semantic evidence verbatim.
-    assert_eq!(
-        crate::storage_reclamation::relocate_payload(&payload, &BTreeMap::new()).unwrap(),
-        payload
-    );
+    assert_eq!(encode(owner, &decode(&payload).unwrap().1), payload);
     let (_, decoded) = decode(&payload).unwrap();
     let JournalEntry::Event {
         provenance,
@@ -552,7 +544,7 @@ fn source_provenance_and_postimages_are_validated_before_projection() {
         source_id: event_id.clone(),
         origin_owner: owner,
         accepted_turn: turn,
-        policy_version: crate::freshness::FRESHNESS_POLICY_VERSION as u64,
+        policy_version: crate::FRESHNESS_POLICY_VERSION as u64,
     };
     let valid = JournalEntry::Event {
         event_id: event_id.clone(),
@@ -695,7 +687,7 @@ fn accepted_use_source_identity_must_match_principal_event() {
             source_id: use_id.into(),
             origin_owner: owner,
             accepted_turn: 5,
-            policy_version: crate::freshness::FRESHNESS_POLICY_VERSION as u64,
+            policy_version: crate::FRESHNESS_POLICY_VERSION as u64,
         },
         proof: FreshnessEventProof {
             graph_version: 0,
@@ -780,137 +772,6 @@ fn truncated_and_trailing_batches_leave_projection_unchanged() {
     assert!(attempt.ingest(&trailing).is_err());
     assert_eq!(attempt.records, store.records);
     assert_eq!(attempt.recent, store.recent);
-}
-
-fn draft(key: &str, lifecycle: &str, content: &str) -> crate::MemoryDraft {
-    crate::MemoryDraft {
-        category: "fact".into(),
-        memory_type: "project".into(),
-        authority_kind: "direct".into(),
-        temporal_status: "current".into(),
-        title: key.into(),
-        content: content.into(),
-        scope: "project".into(),
-        lifecycle_state: lifecycle.into(),
-        archived: false,
-        superseded_by: None,
-        parent_id: None,
-        source_node_id: None,
-        content_source_conversation_id: None,
-        content_source_node_id: None,
-        grounding_source_conversation_id: None,
-        grounding_source_node_id: None,
-        source_episode_id: None,
-        source_time_ns: Some(0),
-        mutation_id: key.into(),
-        created_at_ns: 1,
-        updated_at_ns: 1,
-    }
-}
-
-fn publish(rel: &mut crate::Cva, key: &str, lifecycle: &str, content: &str) -> MemoryId {
-    let (memory, changed) = rel
-        .publish_memory(None, 0, draft(key, lifecycle, content))
-        .unwrap();
-    assert!(changed);
-    memory.id
-}
-
-fn turns(rel: &mut crate::Cva, from: usize, to: usize) {
-    for n in from..to {
-        rel.append_node(
-            format!("freshness-turn-{n}"),
-            "conversation".into(),
-            None,
-            if n % 2 == 0 { "user" } else { "assistant" }.into(),
-            n as i64,
-            "accepted owner activity",
-        )
-        .unwrap();
-    }
-}
-
-#[test]
-fn long_owner_reopen_keeps_finite_receipts_and_exact_evicted_retry() {
-    use std::time::Instant;
-    let path = std::env::temp_dir().join(format!("freshness-cold-{}.rel", uuid::Uuid::new_v4()));
-    let mut rel = crate::Cva::create(&path).unwrap();
-    let source = publish(&mut rel, "cold-source", "knowledge", "Source.");
-    turns(&mut rel, 0, 1000);
-    let owner = rel.owner_uuid().unwrap();
-    let proof = FreshnessEventProof {
-        graph_version: rel.memory_graph_version(),
-        community_generation: None,
-        community_graph_version: None,
-    };
-    // Construct prevalidated receipts without benchmarking repeated public writes.
-    let mut frozen = rel.freshness.clone();
-    frozen.history_source = None;
-    frozen.recent.clear();
-    frozen.recent_bytes = 0;
-    for n in (0..20000).rev() {
-        let payload = frozen
-            .prepare_accepted_use_batch(
-                owner,
-                format!("cold-{n:08}"),
-                1000,
-                vec![source],
-                proof,
-                vec![BTreeMap::from([(source, 25)])],
-            )
-            .unwrap();
-        rel.container.append(&payload).unwrap();
-    }
-    rel.sync().unwrap();
-    drop(rel);
-    let original = std::fs::read(&path).unwrap();
-    for reopen in 0..2 {
-        let start = Instant::now();
-        let mut rel = crate::Cva::open(&path).unwrap();
-        let open_ms = start.elapsed().as_millis();
-        assert_eq!(rel.freshness_record(source).unwrap().score, 100);
-        assert!(rel.freshness.rebuild_receipts.is_none());
-        let (count, bytes) = rel.freshness.recent_receipt_stats();
-        assert!(count <= RECENT_LIMIT && bytes <= RECENT_BYTES);
-        let retry = Instant::now();
-        assert_eq!(
-            rel.record_accepted_memory_use(
-                crate::AcceptedMemoryUseReceipt {
-                    owner_uuid: owner,
-                    accepted_turn: 1000,
-                    use_id: "cold-00019999".into(),
-                    memories: vec![source]
-                },
-                4
-            )
-            .unwrap(),
-            0
-        );
-        let retry_ms = retry.elapsed().as_millis();
-        assert!(
-            rel.record_accepted_memory_use(
-                crate::AcceptedMemoryUseReceipt {
-                    owner_uuid: owner,
-                    accepted_turn: 999,
-                    use_id: "cold-00019999".into(),
-                    memories: vec![source]
-                },
-                1
-            )
-            .is_err()
-        );
-        let cut = Instant::now();
-        assert_eq!(
-            rel.freshness_record_at(source, 999).unwrap().unwrap().score,
-            1
-        );
-        let cut_ms = cut.elapsed().as_millis();
-        eprintln!(
-            "owner_history=20000 reopen={reopen} open_ms={open_ms} evicted_retry_ms={retry_ms} historical_ms={cut_ms} resident_count={count} resident_bytes={bytes}"
-        );
-        assert_eq!(std::fs::read(&path).unwrap(), original);
-    }
-    std::fs::remove_file(path).unwrap();
 }
 
 #[test]
@@ -1068,7 +929,7 @@ fn semantic_source_models_cannot_mix_or_recredit_previous_turn_history() {
     let previous = semantic_evidence(owner, "c", "later", 12);
     let mut fragment = previous.clone();
     fragment.fragment = Some(SemanticFragmentEvidence {
-        fragment_id: crate::FragmentId([8; 32]),
+        fragment_id: FragmentId([8; 32]),
         sources: vec![("c".into(), "later".into())],
     });
     for (first, second) in [(previous.clone(), fragment.clone()), (fragment, previous)] {
@@ -1098,7 +959,7 @@ fn semantic_fragment_codec_requires_strictly_earlier_birth() {
         .unwrap();
     let mut evidence = semantic_evidence(owner, "c", "later", 12);
     evidence.fragment = Some(SemanticFragmentEvidence {
-        fragment_id: crate::FragmentId([8; 32]),
+        fragment_id: FragmentId([8; 32]),
         sources: vec![("c".into(), "later".into())],
     });
     assert!(

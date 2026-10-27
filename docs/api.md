@@ -30,6 +30,22 @@ Callers no longer need `.cloned()` and compare against `Some(record)` rather
 than `Some(&record)`. This extraction preserves storage bytes and does not add
 Observation synthesis.
 
+## Freshness Store boundary
+
+`reliquary-freshness-store` is the compiled owner of Freshness policy and score
+values, durable records, accepted event and use receipts, semantic/import
+settlements, rewrite baselines, and replay. It depends on Container for physical
+history. Root facades retain the public `MemoryId` API and explicitly convert
+Memory, Fragment, and history-generation bytes at product boundaries. Candidate
+selection, graph propagation, semantic planning, historical event construction,
+and owner authorization remain in higher-level services.
+
+The source ownership and root integration are complete. This does not establish
+the separate promoted CVAFRS07 recovery gate: recovery and verification against
+the authoritative six-file current-format corpus remain unverified. See the
+[extraction specification](freshness-store-crate-extraction-spec-2026-10-26.md)
+and [implementation evidence](freshness-store-crate-extraction-evidence-2026-10-26.md).
+
 ## Archive source owner
 
 The product `Archive` API is backed by the independently compiled

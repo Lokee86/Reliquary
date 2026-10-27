@@ -46,7 +46,12 @@ impl Cva {
                             continue;
                         }
                         prefix
-                            .derive_birth(owner, id, turn, admitted)
+                            .derive_birth(
+                                owner,
+                                reliquary_freshness_store::FreshnessMemoryId(id.0),
+                                turn,
+                                admitted,
+                            )
                             .map_err(CvaError::Freshness)?;
                         represented.insert(id);
                     }
@@ -77,7 +82,12 @@ impl Cva {
                                 ));
                             }
                             prefix
-                                .derive_birth(owner, id, turn, false)
+                                .derive_birth(
+                                    owner,
+                                    reliquary_freshness_store::FreshnessMemoryId(id.0),
+                                    turn,
+                                    false,
+                                )
                                 .map_err(CvaError::Freshness)?;
                             represented.insert(id);
                         }
@@ -96,13 +106,27 @@ impl Cva {
                                 ));
                             }
                             prefix
-                                .derive_birth(owner, record.id, turn, false)
+                                .derive_birth(
+                                    owner,
+                                    reliquary_freshness_store::FreshnessMemoryId(record.id.0),
+                                    turn,
+                                    false,
+                                )
                                 .map_err(CvaError::Freshness)?;
                             represented.insert(record.id);
                         }
                     }
+                    let expected_pass_ids = crate::freshness_storage::HistoricalImportFreshnessSettlement::expected_pass_scope(payload)
+                        .map_err(CvaError::Freshness)?
+                        .map(|(settlement_owner, born)| {
+                            born.into_iter().map(|id| crate::dream_freshness::initial_pass_id(settlement_owner, MemoryId(id.0))).collect()
+                        });
                     prefix
-                        .ingest_scanned(payload, end)
+                        .ingest_scanned_with_expected_pass_ids(
+                            payload,
+                            end,
+                            expected_pass_ids.as_ref(),
+                        )
                         .map_err(CvaError::Freshness)
                 })()?;
             }
@@ -113,6 +137,12 @@ impl Cva {
         prefix.finish_rebuild().map_err(CvaError::Freshness)?;
         prefix
             .records_at(scope.base_cut)
+            .map(|records| {
+                records
+                    .into_iter()
+                    .map(|(id, record)| (MemoryId(id.0), record))
+                    .collect()
+            })
             .map_err(CvaError::Freshness)
     }
 }
@@ -135,13 +165,16 @@ mod tests {
                 owner,
                 id.to_owned(),
                 turn,
-                vec![memory],
+                vec![reliquary_freshness_store::FreshnessMemoryId(memory.0)],
                 FreshnessEventProof {
                     graph_version: cva.graph_version(),
                     community_generation: None,
                     community_graph_version: None,
                 },
-                vec![BTreeMap::from([(memory, 25)])],
+                vec![BTreeMap::from([(
+                    reliquary_freshness_store::FreshnessMemoryId(memory.0),
+                    25,
+                )])],
             )
             .unwrap();
         cva.container.append(&payload).unwrap();
@@ -174,7 +207,11 @@ mod tests {
         }
         let cut = cva.rel_turn_count();
         accepted_use(&mut cva, memory, "a-before-start", cut);
-        let expected = cva.freshness.record_at(memory, cut).unwrap().unwrap();
+        let expected = cva
+            .freshness
+            .record_at(reliquary_freshness_store::FreshnessMemoryId(memory.0), cut)
+            .unwrap()
+            .unwrap();
         let start_offset = std::fs::metadata(&path).unwrap().len();
         cva.container.append(b"ImportStart test boundary").unwrap();
         cva.container.sync().unwrap();
@@ -207,7 +244,10 @@ mod tests {
         assert_eq!(base.get(&memory), Some(&expected));
         assert_ne!(
             base.get(&memory),
-            cva.freshness.records_at(cut).unwrap().get(&memory)
+            cva.freshness
+                .records_at(cut)
+                .unwrap()
+                .get(&reliquary_freshness_store::FreshnessMemoryId(memory.0))
         );
 
         drop(cva);

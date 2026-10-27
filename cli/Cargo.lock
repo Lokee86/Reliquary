@@ -2910,6 +2910,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "reliquary-freshness-store"
+version = "0.1.0"
+dependencies = [
+ "reliquary-container",
+ "serde",
+ "serde_json",
+ "sha2",
+ "uuid",
+]
+
+[[package]]
 name = "reliquary-graph"
 version = "0.1.0"
 dependencies = [
@@ -2933,6 +2944,7 @@ dependencies = [
  "reliquary-container",
  "reliquary-echo",
  "reliquary-ego-store",
+ "reliquary-freshness-store",
  "reliquary-graph",
  "reliquary-memory-core",
  "reliquary-perception-store",

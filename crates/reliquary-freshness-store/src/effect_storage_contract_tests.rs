@@ -1,5 +1,6 @@
 //! Contract checks for the existing effects-only CVAFRS02 event payload.
 use super::*;
+use crate::FreshnessMemoryId as MemoryId;
 use std::collections::BTreeMap;
 
 fn fixture_store() -> (FreshnessStore, [u8; 16], MemoryId, MemoryId) {
@@ -43,7 +44,7 @@ fn expected_semantic_frame(
     push_bytes(&mut out, source.as_bytes());
     out.extend_from_slice(&owner); // origin owner
     out.extend_from_slice(&turn.to_le_bytes()); // provenance accepted turn
-    out.extend_from_slice(&(crate::freshness::FRESHNESS_POLICY_VERSION as u64).to_le_bytes());
+    out.extend_from_slice(&(crate::FRESHNESS_POLICY_VERSION as u64).to_le_bytes());
     out.extend_from_slice(&evidence.owner_uuid);
     push_bytes(&mut out, evidence.conversation_id.as_bytes());
     push_bytes(&mut out, evidence.node_id.as_bytes());
@@ -119,7 +120,7 @@ fn literal_event_wire_preserves_accepted_fields_and_omits_all_postimages() {
             source_id: event_id.clone(),
             origin_owner: owner,
             accepted_turn: turn,
-            policy_version: crate::freshness::FRESHNESS_POLICY_VERSION as u64,
+            policy_version: crate::FRESHNESS_POLICY_VERSION as u64,
         }
     );
     assert_eq!(
@@ -176,7 +177,7 @@ fn effect_only_replay_recomputes_exact_projection_and_preappend_rejects_forged_p
         source_id: id.clone(),
         origin_owner: owner,
         accepted_turn: turn,
-        policy_version: crate::freshness::FRESHNESS_POLICY_VERSION as u64,
+        policy_version: crate::FRESHNESS_POLICY_VERSION as u64,
     };
     let payload = store
         .encode_event_with_provenance(

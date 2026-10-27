@@ -1,11 +1,12 @@
 //! Pure semantic serializers for Freshness historical fingerprint rows.
+use crate::FreshnessEventProof;
 use crate::freshness::{FreshnessPolicy, FreshnessRecord};
 use crate::freshness_storage::{
     AcceptedImportEventEvidence, FreshnessEventProvenance, FreshnessReplayEntry,
     FreshnessRewriteBaseline, HistoricalImportFreshnessSettlement, ImportEventScope,
     ImportSemanticScope, SemanticEventEvidence, SemanticFragmentEvidence,
 };
-use crate::{FreshnessEventProof, MemoryId};
+use reliquary_freshness_store::FreshnessMemoryId;
 use serde_json::{Value, json};
 
 pub(super) fn entry_value(entry: &FreshnessReplayEntry) -> (String, Vec<u8>, Value) {
@@ -315,6 +316,6 @@ fn accepted_event_value(evidence: &AcceptedImportEventEvidence) -> Value {
     })
 }
 
-fn memory_ids(ids: &std::collections::BTreeSet<MemoryId>) -> Vec<[u8; 32]> {
+fn memory_ids(ids: &std::collections::BTreeSet<FreshnessMemoryId>) -> Vec<[u8; 32]> {
     ids.iter().map(|id| id.0).collect()
 }

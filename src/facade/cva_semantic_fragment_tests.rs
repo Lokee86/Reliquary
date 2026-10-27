@@ -152,11 +152,14 @@ fn semantic_mixed_fragment_availability_excludes_every_source_and_credits_once()
     assert_eq!(prepared.activity_position, 103);
     assert_eq!(prepared.vectors.len(), 1);
     assert_eq!(prepared.fragment.as_ref().unwrap().sources.len(), 2);
-    let id = crate::freshness_storage::semantic_fragment_event_id(prepared.owner_uuid, fragment.id);
+    let id = reliquary_freshness_store::semantic_fragment_event_id(
+        prepared.owner_uuid,
+        reliquary_freshness_store::FreshnessFragmentId(fragment.id.0),
+    );
     let receipt = f.cva().freshness.event_receipt(&id).unwrap().unwrap();
     assert_eq!(
         receipt.2,
-        std::collections::BTreeMap::from([(target.id, 10)])
+        std::collections::BTreeMap::from([(crate::to_freshness_id(target.id), 10)])
     );
     assert_eq!(
         f.cva()
@@ -239,7 +242,7 @@ fn semantic_overlap_and_nonactivity_context_do_not_repeat_fragment_credit() {
     assert_eq!(
         events
             .iter()
-            .filter(|e| e.fragment.as_ref().unwrap().fragment_id == mixed.id)
+            .filter(|e| e.fragment.as_ref().unwrap().fragment_id.0 == mixed.id.0)
             .count(),
         1
     );

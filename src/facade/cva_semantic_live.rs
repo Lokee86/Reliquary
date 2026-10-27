@@ -5,6 +5,7 @@
 //! a lower-bound watermark so already-accounted fragments are never credited again.
 use crate::freshness_storage::SemanticActivation;
 use crate::{Cva, CvaError, VectorGenerationId};
+use reliquary_freshness_store::FreshnessFragmentId;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct SemanticFreshnessReport {
@@ -45,9 +46,9 @@ impl Cva {
             if at > floor
                 && !self
                     .freshness
-                    .contains_event(&crate::freshness_storage::semantic_fragment_event_id(
+                    .contains_event(&reliquary_freshness_store::semantic_fragment_event_id(
                         owner,
-                        fragment.id,
+                        FreshnessFragmentId(fragment.id.0),
                     ))
                     .map_err(CvaError::Freshness)?
             {
@@ -57,7 +58,10 @@ impl Cva {
         pending.sort_by_key(|(at, id)| {
             (
                 *at,
-                crate::freshness_storage::semantic_fragment_event_id(owner, *id),
+                reliquary_freshness_store::semantic_fragment_event_id(
+                    owner,
+                    FreshnessFragmentId(id.0),
+                ),
             )
         });
         Ok(pending)

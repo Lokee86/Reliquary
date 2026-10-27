@@ -1,6 +1,7 @@
 //! Shared fragment-local semantic search and Freshness acceptance.
 use crate::freshness::semantic_policy::{SemanticPolicy, cosine_similarity};
 use crate::{Cva, CvaError, FragmentId, Node, VectorGeneration};
+use reliquary_freshness_store::{FreshnessFragmentId, FreshnessMemoryId};
 use sha2::{Digest, Sha256};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -13,7 +14,7 @@ pub(crate) struct SemanticSourceVector {
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct AcceptedSemanticSource {
     pub owner_uuid: [u8; 16],
-    pub fragment: Option<crate::freshness_storage::SemanticFragmentEvidence>,
+    pub fragment: Option<reliquary_freshness_store::SemanticFragmentEvidence>,
     pub node: Node,
     pub activity_position: u64,
     pub generation: VectorGeneration,
@@ -35,7 +36,7 @@ impl Cva {
     pub(crate) fn freshness_replay_semantic_event(
         &mut self,
         event_id: String,
-        evidence: crate::freshness_storage::SemanticEventEvidence,
+        evidence: reliquary_freshness_store::SemanticEventEvidence,
         effects: std::collections::BTreeMap<crate::MemoryId, i16>,
     ) -> Result<(), CvaError> {
         let owner = self.owner_uuid().ok_or(CvaError::InvalidContainerIdentity(
@@ -55,6 +56,10 @@ impl Cva {
                 "unsupported or conflicting semantic replay evidence".into(),
             ));
         }
+        let store_effects = effects
+            .iter()
+            .map(|(id, amount)| (FreshnessMemoryId(id.0), *amount))
+            .collect::<std::collections::BTreeMap<_, _>>();
         if self
             .freshness
             .contains_event(&event_id)
@@ -62,7 +67,7 @@ impl Cva {
         {
             return if self
                 .freshness
-                .semantic_event_matches(&event_id, &evidence, &effects)
+                .semantic_event_matches(&event_id, &evidence, &store_effects)
                 .map_err(CvaError::Freshness)?
             {
                 Ok(())
@@ -74,7 +79,7 @@ impl Cva {
         }
         let payload = self
             .freshness
-            .encode_semantic_event(owner, evidence.clone(), effects.clone())
+            .encode_semantic_event(owner, evidence.clone(), store_effects)
             .map_err(CvaError::Freshness)?;
         self.freshness
             .validate_semantic_preappend(owner, &payload)
@@ -125,10 +130,10 @@ impl Cva {
             if !keys.contains(&(node.conversation_id.clone(), node.id.clone())) {
                 continue;
             }
-            let id = crate::freshness_storage::semantic_fragment_event_id(
+            let id = reliquary_freshness_store::semantic_fragment_event_id(
                 self.owner_uuid()
                     .ok_or(CvaError::InvalidContainerIdentity("semantic owner"))?,
-                fragment.id,
+                FreshnessFragmentId(fragment.id.0),
             );
             if self
                 .freshness
@@ -165,16 +170,16 @@ impl Cva {
             .fragment
             .as_ref()
             .ok_or_else(|| CvaError::Freshness("live semantic source must be a fragment".into()))?;
-        if self.semantic_fragment_sources(fragment.fragment_id)? != fragment.sources
-            || self.semantic_fragment_position(fragment.fragment_id)?
-                != Some(source.activity_position)
+        let fragment_id = FragmentId(fragment.fragment_id.0);
+        if self.semantic_fragment_sources(fragment_id)? != fragment.sources
+            || self.semantic_fragment_position(fragment_id)? != Some(source.activity_position)
         {
             return Err(CvaError::Freshness(
                 "conflicting semantic fragment availability".into(),
             ));
         }
         {
-            let id = crate::freshness_storage::semantic_fragment_event_id(
+            let id = reliquary_freshness_store::semantic_fragment_event_id(
                 source.owner_uuid,
                 fragment.fragment_id,
             );
@@ -192,7 +197,7 @@ impl Cva {
             .iter()
             .map(|effect| (effect.memory_id, effect.bonus))
             .collect::<std::collections::BTreeMap<_, _>>();
-        let evidence = crate::freshness_storage::SemanticEventEvidence {
+        let evidence = reliquary_freshness_store::SemanticEventEvidence {
             fragment: source.fragment.clone(),
             owner_uuid: source.owner_uuid,
             conversation_id: source.node.conversation_id.clone(),
@@ -205,9 +210,13 @@ impl Cva {
             source_evidence_digest: source.source_digest,
             target_evidence_digest: search.target_evidence_digest,
         };
+        let store_effects = effects
+            .iter()
+            .map(|(id, amount)| (FreshnessMemoryId(id.0), *amount))
+            .collect::<std::collections::BTreeMap<_, _>>();
         let payload = self
             .freshness
-            .encode_semantic_event(source.owner_uuid, evidence, effects.clone())
+            .encode_semantic_event(source.owner_uuid, evidence, store_effects)
             .map_err(CvaError::Freshness)?;
         // Validate canonical projection and identity before durable append.
         // A rejected late event must not poison the accepted journal prefix.
@@ -381,9 +390,9 @@ impl Cva {
                 admitted_at_turn: self
                     .freshness
                     .records()
-                    .get(id)
+                    .get(&FreshnessMemoryId(id.0))
                     .and_then(|r| r.admitted_at_turn),
-                birth_turn: self.freshness.birth_turn(*id),
+                birth_turn: self.freshness.birth_turn(FreshnessMemoryId(id.0)),
                 vector,
             };
             let (effects, eligible, excluded) =

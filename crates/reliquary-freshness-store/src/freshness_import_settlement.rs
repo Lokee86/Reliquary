@@ -1,13 +1,10 @@
 //! Ordered sparse current semantic Historical Freshness settlements.
 use super::{FreshnessStore, JournalEntry, for_each_event};
-use crate::{
-    MemoryId,
-    freshness::{FreshnessPolicy, FreshnessRecord},
-};
+use crate::{FreshnessMemoryId, FreshnessPolicy, FreshnessRecord};
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct HistoricalImportFreshnessScope {
+pub struct HistoricalImportFreshnessScope {
     pub owner: [u8; 16],
     pub import_id: [u8; 32],
     pub start_evidence_digest: [u8; 32],
@@ -15,17 +12,17 @@ pub(crate) struct HistoricalImportFreshnessScope {
     pub settlement_cut: u64,
 }
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct ImportScopeIdentity {
+pub struct ImportScopeIdentity {
     pub owner: [u8; 16],
     pub import_id: [u8; 32],
     pub start_evidence_digest: [u8; 32],
     pub base_cut: u64,
-    pub born_memories: BTreeSet<MemoryId>,
-    pub affected_recipients: BTreeSet<MemoryId>,
+    pub born_memories: BTreeSet<FreshnessMemoryId>,
+    pub affected_recipients: BTreeSet<FreshnessMemoryId>,
     pub source_nodes: BTreeSet<(String, String)>,
 }
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct HistoricalImportFreshnessSettlement {
+pub struct HistoricalImportFreshnessSettlement {
     /// Transient construction scope; accepted on-disk authority is semantic only.
     pub epoch: Option<super::ImportEventScope>,
     pub semantic: Option<super::semantic_settlement::ImportSemanticScope>,
@@ -36,7 +33,7 @@ pub(crate) struct HistoricalImportFreshnessSettlement {
     pub corpus_digest: [u8; 32],
     pub manifest_digest: [u8; 32],
     pub input_digest: [u8; 32],
-    pub cohort: BTreeSet<MemoryId>,
+    pub cohort: BTreeSet<FreshnessMemoryId>,
     pub base_cut: u64,
     pub settlement_cut: u64,
     pub global_version: u64,
@@ -44,12 +41,27 @@ pub(crate) struct HistoricalImportFreshnessSettlement {
     pub archive_version: u64,
     pub graph_version: u64,
     pub memory_graph_version: u64,
-    pub records: BTreeMap<MemoryId, FreshnessRecord>,
+    pub records: BTreeMap<FreshnessMemoryId, FreshnessRecord>,
     pub superseded: BTreeSet<String>,
 }
 
 impl HistoricalImportFreshnessSettlement {
-    pub(crate) fn encode(&self) -> Vec<u8> {
+    /// Decode the settlement owner and born-memory set needed by
+    /// the higher Dream owner to authenticate initial-pass IDs before replay.
+    pub fn expected_pass_scope(
+        payload: &[u8],
+    ) -> Result<Option<([u8; 16], BTreeSet<FreshnessMemoryId>)>, String> {
+        if !payload.starts_with(super::semantic_settlement::SEMANTIC_SETTLEMENT_MAGIC) {
+            return Ok(None);
+        }
+        let settlement = Self::decode(payload)?;
+        let born = settlement
+            .semantic
+            .ok_or("accepted settlement lacks semantic authority")?
+            .born_memories;
+        Ok(Some((settlement.owner, born)))
+    }
+    pub fn encode(&self) -> Vec<u8> {
         let scope = self
             .semantic
             .as_ref()
@@ -58,12 +70,12 @@ impl HistoricalImportFreshnessSettlement {
             .encode()
             .expect("validated semantic settlement")
     }
-    pub(crate) fn decode(payload: &[u8]) -> Result<Self, String> {
+    pub fn decode(payload: &[u8]) -> Result<Self, String> {
         let value = super::semantic_settlement::SemanticImportFreshnessSettlement::decode(payload)?;
         Ok(Self::from_semantic(value))
     }
 
-    pub(crate) fn as_semantic(
+    pub fn as_semantic(
         &self,
         scope: super::semantic_settlement::ImportSemanticScope,
     ) -> super::semantic_settlement::SemanticImportFreshnessSettlement {
@@ -80,7 +92,7 @@ impl HistoricalImportFreshnessSettlement {
             records: self.records.clone(),
         }
     }
-    pub(crate) fn from_semantic(
+    pub fn from_semantic(
         value: super::semantic_settlement::SemanticImportFreshnessSettlement,
     ) -> Self {
         let scope = value.scope;
@@ -106,7 +118,7 @@ impl HistoricalImportFreshnessSettlement {
             records: value.records,
         }
     }
-    pub(crate) fn scope_identity(&self) -> Option<ImportScopeIdentity> {
+    pub fn scope_identity(&self) -> Option<ImportScopeIdentity> {
         if let Some(scope) = &self.semantic {
             return Some(ImportScopeIdentity {
                 owner: scope.owner,
@@ -128,22 +140,22 @@ impl HistoricalImportFreshnessSettlement {
             source_nodes: scope.source_nodes.clone(),
         })
     }
-    pub(crate) fn is_scoped(&self) -> bool {
+    pub fn is_scoped(&self) -> bool {
         self.semantic.is_some() || self.epoch.is_some()
     }
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn from_import_scope(
+    pub fn from_import_scope(
         scope: HistoricalImportFreshnessScope,
         corpus_digest: [u8; 32],
         manifest_digest: [u8; 32],
         input_digest: [u8; 32],
-        cohort: BTreeSet<MemoryId>,
+        cohort: BTreeSet<FreshnessMemoryId>,
         global_version: u64,
         input_bytes: u64,
         archive_version: u64,
         graph_version: u64,
         memory_graph_version: u64,
-        records: BTreeMap<MemoryId, FreshnessRecord>,
+        records: BTreeMap<FreshnessMemoryId, FreshnessRecord>,
         superseded: BTreeSet<String>,
     ) -> Self {
         Self {
@@ -169,7 +181,7 @@ impl HistoricalImportFreshnessSettlement {
         }
     }
 
-    pub(crate) fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> Result<(), String> {
         if let Some(scope) = &self.semantic {
             if self.epoch.is_some()
                 || self.epoch_prefix_digest != [0; 32]
@@ -268,10 +280,10 @@ impl FreshnessStore {
         }
         Err("accepted settlement lacks semantic authority".into())
     }
-    pub(crate) fn import_settlements(&self) -> &[HistoricalImportFreshnessSettlement] {
+    pub fn import_settlements(&self) -> &[HistoricalImportFreshnessSettlement] {
         &self.import_settlements
     }
-    pub(crate) fn import_settlement(
+    pub fn import_settlement(
         &self,
         import_id: [u8; 32],
     ) -> Option<&HistoricalImportFreshnessSettlement> {
@@ -279,12 +291,12 @@ impl FreshnessStore {
             .iter()
             .find(|settlement| settlement.import_id == import_id)
     }
-    pub(crate) fn latest_import_settlement(&self) -> Option<&HistoricalImportFreshnessSettlement> {
+    pub fn latest_import_settlement(&self) -> Option<&HistoricalImportFreshnessSettlement> {
         self.import_settlements.last()
     }
-    pub(crate) fn provisional_import_events(
+    pub fn provisional_import_events(
         &self,
-        affected: &BTreeSet<MemoryId>,
+        affected: &BTreeSet<FreshnessMemoryId>,
         base_cut: u64,
         settlement_cut: u64,
     ) -> Result<BTreeSet<String>, String> {
@@ -318,7 +330,19 @@ impl FreshnessStore {
         })?;
         Ok(ids)
     }
-    pub(crate) fn ingest_import_settlement(&mut self, payload: &[u8]) -> Result<(), String> {
+    pub fn ingest_import_settlement(
+        &mut self,
+        payload: &[u8],
+        expected_pass_ids: &BTreeSet<String>,
+    ) -> Result<(), String> {
+        self.ingest_import_settlement_with_expected_pass_ids(payload, Some(expected_pass_ids))
+    }
+
+    pub(super) fn ingest_import_settlement_with_expected_pass_ids(
+        &mut self,
+        payload: &[u8],
+        expected_pass_ids: Option<&BTreeSet<String>>,
+    ) -> Result<(), String> {
         let settlement = HistoricalImportFreshnessSettlement::decode(payload)?;
         if self.owner_uuid != Some(settlement.owner)
             || self.policy != FreshnessPolicy::default_v1()
@@ -327,7 +351,10 @@ impl FreshnessStore {
             return Err("import settlement owner/base policy mismatch".into());
         }
         if let Some(scope) = &settlement.semantic {
-            self.validate_semantic_import_evidence(scope)?;
+            self.validate_semantic_import_evidence(
+                scope,
+                expected_pass_ids.ok_or("semantic settlement requires expected Dream pass IDs")?,
+            )?;
         }
         if let Some(old) = self.import_settlement(settlement.import_id) {
             return if old == &settlement {

@@ -144,7 +144,7 @@ fn physical_import_base_includes_prior_settlement_after_its_frozen_input_prefix(
     assert!(scope.start_offset > prepared.source_bytes);
     assert_eq!(
         cva.historical_import_base(&scope).unwrap(),
-        prepared.settlement.records
+        prepared.records()
     );
     drop(cva);
     fs::remove_file(path).unwrap();

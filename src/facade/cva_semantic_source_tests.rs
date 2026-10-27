@@ -59,6 +59,129 @@ fn ready(outcome: SemanticSourceReadiness) -> AcceptedSemanticSource {
 }
 
 #[test]
+fn owner_reopen_keeps_bounded_receipts_and_exact_evicted_retry() {
+    use reliquary_freshness_store::FreshnessMemoryId;
+
+    let mut fixture = Fixture::new();
+    let (memory, changed) = fixture
+        .cva()
+        .publish_memory(None, 0, live_draft("cold-source"))
+        .unwrap();
+    assert!(changed);
+    for n in 0..1000 {
+        fixture.turn(&format!("cold-turn-{n}"), None, "user");
+    }
+    let owner = fixture.cva().owner_uuid().unwrap();
+    let proof = crate::FreshnessEventProof {
+        graph_version: fixture.cva().memory_graph_version(),
+        community_generation: None,
+        community_graph_version: None,
+    };
+    let mut frozen = fixture.cva().freshness.clone();
+    frozen.reset_ephemeral_receipt_fixture_state();
+    for n in (0..20_000).rev() {
+        let payload = frozen
+            .prepare_accepted_use_batch(
+                owner,
+                format!("cold-{n:08}"),
+                1000,
+                vec![FreshnessMemoryId(memory.id.0)],
+                proof,
+                vec![std::collections::BTreeMap::from([(
+                    FreshnessMemoryId(memory.id.0),
+                    25,
+                )])],
+            )
+            .unwrap();
+        fixture.cva().container.append(&payload).unwrap();
+    }
+    fixture.cva().sync().unwrap();
+    let path = fixture.path.clone();
+    let original = std::fs::read(&path).unwrap();
+    for reopen in 0..2 {
+        let open_start = std::time::Instant::now();
+        drop(fixture.cva.take());
+        fixture.cva = Some(Cva::open(&path).unwrap());
+        let open_ms = open_start.elapsed().as_millis();
+
+        let (count, bytes) = fixture.cva().freshness.recent_receipt_stats();
+        assert!(count <= 128 && bytes <= 256 * 1024);
+        let retry_start = std::time::Instant::now();
+        assert_eq!(
+            fixture
+                .cva()
+                .record_accepted_memory_use(
+                    crate::AcceptedMemoryUseReceipt {
+                        owner_uuid: owner,
+                        accepted_turn: 1000,
+                        use_id: "cold-00019999".into(),
+                        memories: vec![memory.id],
+                    },
+                    1,
+                )
+                .unwrap(),
+            0
+        );
+        let retry_ms = retry_start.elapsed().as_millis();
+        assert!(
+            fixture
+                .cva()
+                .record_accepted_memory_use(
+                    crate::AcceptedMemoryUseReceipt {
+                        owner_uuid: owner,
+                        accepted_turn: 999,
+                        use_id: "cold-00019999".into(),
+                        memories: vec![memory.id],
+                    },
+                    1,
+                )
+                .is_err()
+        );
+        let historical_start = std::time::Instant::now();
+        assert_eq!(
+            fixture
+                .cva()
+                .freshness_record_at(memory.id, 999)
+                .unwrap()
+                .unwrap()
+                .score,
+            1
+        );
+        let historical_ms = historical_start.elapsed().as_millis();
+        eprintln!(
+            "owner_history=20000 reopen={reopen} open_ms={open_ms} evicted_retry_ms={retry_ms} historical_ms={historical_ms} resident_count={count} resident_bytes={bytes}"
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), original);
+    }
+}
+
+#[test]
+fn semantic_event_frame_relocates_byte_for_byte() {
+    let owner = [0x21; 16];
+    let store = reliquary_freshness_store::FreshnessStore::new(Some(owner));
+    let evidence = reliquary_freshness_store::SemanticEventEvidence {
+        owner_uuid: owner,
+        fragment: None,
+        conversation_id: "relocation-conversation".into(),
+        node_id: "relocation-node".into(),
+        accepted_turn: 1,
+        base_policy_digest: [1; 32],
+        semantic_policy_version: 1,
+        semantic_policy_digest: [2; 32],
+        compatibility_profile_id: [3; 32],
+        source_evidence_digest: [4; 32],
+        target_evidence_digest: [5; 32],
+    };
+    let payload = store
+        .encode_semantic_event(owner, evidence, std::collections::BTreeMap::new())
+        .unwrap();
+    assert_eq!(
+        crate::storage_reclamation::relocate_payload(&payload, &Default::default()).unwrap(),
+        payload
+    );
+}
+
+#[test]
 fn exact_source_retries_and_reopen_preserve_selected_evidence_without_writes() {
     let mut f = Fixture::new();
     f.turn("n", None, "assistant");
@@ -366,11 +489,11 @@ fn semantic_evidence_survives_divergent_rebase_twice_merge_and_reclamation() {
             .unwrap(),
     );
     let effects = std::collections::BTreeMap::from([(target.id, 3)]);
-    let event_id = crate::freshness_storage::semantic_fragment_event_id(
+    let event_id = reliquary_freshness_store::semantic_fragment_event_id(
         prepared.owner_uuid,
         prepared.fragment.as_ref().unwrap().fragment_id,
     );
-    let evidence = crate::freshness_storage::SemanticEventEvidence {
+    let evidence = reliquary_freshness_store::SemanticEventEvidence {
         fragment: prepared.fragment.clone(),
         owner_uuid: prepared.owner_uuid,
         conversation_id: "c".into(),
@@ -652,7 +775,10 @@ fn semantic_live_is_intrinsic_from_rel_origin() {
     let generation = f.generation();
     let owner = f.cva().owner_uuid().unwrap();
     let old_fragment = reliquary_archive::fragment_store::fragment_id("c", "old", "old");
-    let old_event = crate::freshness_storage::semantic_fragment_event_id(owner, old_fragment);
+    let old_event = reliquary_freshness_store::semantic_fragment_event_id(
+        owner,
+        reliquary_freshness_store::FreshnessFragmentId(old_fragment.0),
+    );
     assert!(
         f.cva().freshness.contains_event(&old_event).unwrap(),
         "publishing a usable generation must run intrinsic F8"
@@ -674,7 +800,10 @@ fn semantic_live_is_intrinsic_from_rel_origin() {
     assert_ne!(newer.id, generation.id);
     assert_eq!(f.cva().semantic_freshness_pending_fragments().unwrap(), 0);
     let new_fragment = reliquary_archive::fragment_store::fragment_id("c", "new", "new");
-    let new_event = crate::freshness_storage::semantic_fragment_event_id(owner, new_fragment);
+    let new_event = reliquary_freshness_store::semantic_fragment_event_id(
+        owner,
+        reliquary_freshness_store::FreshnessFragmentId(new_fragment.0),
+    );
     assert!(f.cva().freshness.contains_event(&new_event).unwrap());
     assert!(!f.cva().freshness.semantic_activation_seen());
 }
@@ -769,14 +898,16 @@ fn semantic_live_accepted_turn_is_local_exactly_once_and_excludes_async_births()
     );
     assert_eq!(f.cva().freshness_record(cohort.id).unwrap().score, 100);
     let owner = f.cva().owner_uuid().unwrap();
-    let id = crate::freshness_storage::semantic_fragment_event_id(
+    let id = reliquary_freshness_store::semantic_fragment_event_id(
         owner,
-        reliquary_archive::fragment_store::fragment_id("c", &source.id, &source.id),
+        reliquary_freshness_store::FreshnessFragmentId(
+            reliquary_archive::fragment_store::fragment_id("c", &source.id, &source.id).0,
+        ),
     );
     let receipt = f.cva().freshness.event_receipt(&id).unwrap().unwrap();
     assert_eq!(
         receipt.2,
-        std::collections::BTreeMap::from([(target.id, 10)])
+        std::collections::BTreeMap::from([(crate::to_freshness_id(target.id), 10)])
     );
     let before = f.cva().latest_global_version();
     let generation = f.cva().current_vector_generation(profile.id).unwrap();
@@ -874,13 +1005,15 @@ fn semantic_live_runtime_worker_retries_ready_archive_without_ingest_shortcut() 
     f.cva = Some(Cva::open(&f.path).unwrap());
     std::fs::remove_dir_all(state).unwrap();
     let owner = f.cva().owner_uuid().unwrap();
-    let id = crate::freshness_storage::semantic_fragment_event_id(
+    let id = reliquary_freshness_store::semantic_fragment_event_id(
         owner,
-        reliquary_archive::fragment_store::fragment_id("c", "worker-live", "worker-live"),
+        reliquary_freshness_store::FreshnessFragmentId(
+            reliquary_archive::fragment_store::fragment_id("c", "worker-live", "worker-live").0,
+        ),
     );
     assert_eq!(
         f.cva().freshness.event_receipt(&id).unwrap().unwrap().2,
-        std::collections::BTreeMap::from([(target.id, 10)])
+        std::collections::BTreeMap::from([(crate::to_freshness_id(target.id), 10)])
     );
 }
 

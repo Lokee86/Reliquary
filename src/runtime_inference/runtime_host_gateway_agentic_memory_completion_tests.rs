@@ -178,7 +178,14 @@ fn agentic_completion_records_existing_receipt_once_and_exact_retry_does_not_app
                     runtime
                         .cva
                         .freshness
-                        .resolve_accepted_use(&use_id, cut, &ids)
+                        .resolve_accepted_use(
+                            &use_id,
+                            cut,
+                            &ids.iter()
+                                .copied()
+                                .map(crate::to_freshness_id)
+                                .collect::<Vec<_>>(),
+                        )
                         .map_err(operation)?
                         .is_some(),
                     std::fs::metadata(runtime.cva.container.path())

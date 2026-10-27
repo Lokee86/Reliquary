@@ -9,21 +9,7 @@ mod graph_compact_tests;
 #[path = "cva_freshness_r2_tests.rs"]
 mod r2_tests;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct FreshnessEventProof {
-    pub graph_version: u64,
-    pub community_generation: Option<u64>,
-    pub community_graph_version: Option<u64>,
-}
-
-/// A precise inclusive cut through the canonical Freshness ledger.
-/// Events at the same REL turn are ordered by their stable event identity.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct FreshnessEventCut {
-    pub rel_turn: u64,
-    pub event_id_inclusive: Option<String>,
-    pub graph_version: u64,
-}
+pub use reliquary_freshness_store::{FreshnessEventCut, FreshnessEventProof};
 
 impl Cva {
     pub fn freshness_policy(&self) -> crate::freshness::FreshnessPolicy {
@@ -115,7 +101,7 @@ impl Cva {
     /// Returns the owner-local durable record, including an explicit Web-admission anchor.
     pub fn freshness_record(&self, id: MemoryId) -> Option<FreshnessRecord> {
         self.freshness
-            .current_rewrite_record(id, self.rel_turn_count())
+            .current_rewrite_record(crate::to_freshness_id(id), self.rel_turn_count())
     }
 
     pub fn freshness_record_at_cut(
@@ -135,7 +121,7 @@ impl Cva {
             ));
         }
         self.freshness
-            .record_at_cut(id, cut)
+            .record_at_cut(crate::to_freshness_id(id), cut)
             .map_err(CvaError::Freshness)
     }
 
@@ -150,7 +136,7 @@ impl Cva {
             ));
         }
         self.freshness
-            .record_at(id, turn)
+            .record_at(crate::to_freshness_id(id), turn)
             .map_err(CvaError::Freshness)
     }
 
@@ -164,7 +150,15 @@ impl Cva {
                 "Freshness cut is beyond the REL activity head".into(),
             ));
         }
-        self.freshness.records_at(turn).map_err(CvaError::Freshness)
+        self.freshness
+            .records_at(turn)
+            .map(|records| {
+                records
+                    .into_iter()
+                    .map(|(id, record)| (crate::from_freshness_id(id), record))
+                    .collect()
+            })
+            .map_err(CvaError::Freshness)
     }
 
     /// Explicit, one-time baseline for an active legacy Memory with no accepted
@@ -178,7 +172,11 @@ impl Cva {
                 "a proven first publication cannot be re-enrolled as a legacy baseline".into(),
             ));
         }
-        if self.freshness.records().contains_key(&id) {
+        if self
+            .freshness
+            .records()
+            .contains_key(&crate::to_freshness_id(id))
+        {
             return Ok(false);
         }
         let memory = self.memory(id)?;
@@ -199,7 +197,9 @@ impl Cva {
         self.freshness
             .persist_policy_if_needed(&mut self.container, owner)
             .map_err(CvaError::Freshness)?;
-        let payload = self.freshness.encode_initialize(owner, id, turn, record);
+        let payload =
+            self.freshness
+                .encode_initialize(owner, crate::to_freshness_id(id), turn, record);
         self.container.append(&payload)?;
         self.container.sync()?;
         self.freshness
@@ -214,7 +214,11 @@ impl Cva {
     pub fn freshness_initialize(&mut self, id: MemoryId) -> Result<bool, CvaError> {
         self.require_freshness_memory(id)?;
         let intent = self.dream_freshness.pending_initialization(id);
-        if self.freshness.records().contains_key(&id) {
+        if self
+            .freshness
+            .records()
+            .contains_key(&crate::to_freshness_id(id))
+        {
             if let Some((mutation_id, turn, admit_at_birth)) = intent {
                 if self.memories.first_mutation_id(id) != Some(mutation_id.as_str()) {
                     return Err(CvaError::Freshness(
@@ -227,7 +231,7 @@ impl Cva {
                 // proof, or a second reopen would silently lose the score.
                 if !self
                     .freshness
-                    .has_durable_birth(id)
+                    .has_durable_birth(crate::to_freshness_id(id))
                     .map_err(CvaError::Freshness)?
                 {
                     self.persist_accepted_freshness_birth(id, turn, admit_at_birth)?;
@@ -275,7 +279,9 @@ impl Cva {
         self.freshness
             .persist_policy_if_needed(&mut self.container, owner)
             .map_err(CvaError::Freshness)?;
-        let payload = self.freshness.encode_initialize(owner, id, turn, record);
+        let payload =
+            self.freshness
+                .encode_initialize(owner, crate::to_freshness_id(id), turn, record);
         self.container.append(&payload)?;
         self.container.sync()?;
         self.freshness
@@ -307,12 +313,16 @@ impl Cva {
                 "admission turn exceeds accepted owner REL activity".into(),
             ));
         }
-        if !self.freshness.records().contains_key(&id) {
+        if !self
+            .freshness
+            .records()
+            .contains_key(&crate::to_freshness_id(id))
+        {
             return Err(CvaError::Freshness(
                 "Memory must be explicitly enrolled before admission".into(),
             ));
         }
-        let current = self.freshness.records()[&id];
+        let current = self.freshness.records()[&crate::to_freshness_id(id)];
         let mut admitted = current;
         if !admitted
             .admit(turn)
@@ -326,7 +336,9 @@ impl Cva {
         self.freshness
             .persist_policy_if_needed(&mut self.container, owner)
             .map_err(CvaError::Freshness)?;
-        let payload = self.freshness.encode_admit(owner, id, admitted);
+        let payload = self
+            .freshness
+            .encode_admit(owner, crate::to_freshness_id(id), admitted);
         self.container.append(&payload)?;
         self.container.sync()?;
         self.freshness
@@ -387,6 +399,7 @@ impl Cva {
     ) -> Result<bool, CvaError> {
         let event_id = event_id.into();
         self.validate_initial_dream_event_identity(&event_id, turn, proof, &effects)?;
+        let store_effects = crate::to_freshness_effects(&effects);
         if self
             .freshness
             .contains_event(&event_id)
@@ -394,7 +407,7 @@ impl Cva {
         {
             return if self
                 .freshness
-                .event_matches(&event_id, turn, proof, &effects)
+                .event_matches(&event_id, turn, proof, &store_effects)
                 .map_err(CvaError::Freshness)?
             {
                 Ok(false)
@@ -437,20 +450,24 @@ impl Cva {
                     "event effect exceeds the pinned positive principal bound".into(),
                 ));
             }
-            let _record = *self.freshness.records().get(id).ok_or_else(|| {
-                CvaError::Freshness(format!("Memory {:?} has no Freshness enrollment", id))
-            })?;
+            let _record = *self
+                .freshness
+                .records()
+                .get(&crate::to_freshness_id(*id))
+                .ok_or_else(|| {
+                    CvaError::Freshness(format!("Memory {:?} has no Freshness enrollment", id))
+                })?;
         }
         let postimages = self
             .freshness
-            .prepare_event_postimages_for(&event_id, turn, &effects)
+            .prepare_event_postimages_for(&event_id, turn, &store_effects)
             .map_err(CvaError::Freshness)?;
         self.freshness
-            .validate_event_payload(&event_id, turn, proof, &effects, &postimages)
+            .validate_event_payload(&event_id, turn, proof, &store_effects, &postimages)
             .map_err(CvaError::Freshness)?;
-        let payload = self
-            .freshness
-            .encode_event(owner, event_id, turn, proof, effects, postimages);
+        let payload =
+            self.freshness
+                .encode_event(owner, event_id, turn, proof, store_effects, postimages);
         self.freshness
             .persist_policy_if_needed(&mut self.container, owner)
             .map_err(CvaError::Freshness)?;
@@ -660,10 +677,11 @@ impl Cva {
         if !effects.is_empty() {
             self.validate_initial_dream_event_identity(pass_id, turn, proof, &effects)?;
         }
+        let store_effects = crate::to_freshness_effects(&effects);
         if !effects.is_empty()
             && !self
                 .freshness
-                .event_matches(pass_id, turn, proof, &effects)
+                .event_matches(pass_id, turn, proof, &store_effects)
                 .map_err(CvaError::Freshness)?
         {
             if self
@@ -677,10 +695,10 @@ impl Cva {
             }
             let postimages = self
                 .freshness
-                .prepare_event_postimages_for(pass_id, turn, &effects)
+                .prepare_event_postimages_for(pass_id, turn, &store_effects)
                 .map_err(CvaError::Freshness)?;
             self.freshness
-                .validate_event_payload(pass_id, turn, proof, &effects, &postimages)
+                .validate_event_payload(pass_id, turn, proof, &store_effects, &postimages)
                 .map_err(CvaError::Freshness)?;
         }
         if active_admission {
@@ -1078,7 +1096,11 @@ impl Cva {
         admitted_at_birth: bool,
     ) -> Result<(), CvaError> {
         self.require_freshness_memory(id)?;
-        if self.freshness.records().contains_key(&id) {
+        if self
+            .freshness
+            .records()
+            .contains_key(&crate::to_freshness_id(id))
+        {
             return Ok(());
         }
         if destination_turn > self.archive.rel_turn_count() {
@@ -1098,9 +1120,12 @@ impl Cva {
                 .admit(destination_turn)
                 .map_err(|error| CvaError::Freshness(error.to_string()))?;
         }
-        let payload = self
-            .freshness
-            .encode_initialize(owner, id, destination_turn, record);
+        let payload = self.freshness.encode_initialize(
+            owner,
+            crate::to_freshness_id(id),
+            destination_turn,
+            record,
+        );
         self.container.append(&payload)?;
         self.container.sync()?;
         self.freshness
@@ -1125,6 +1150,7 @@ impl Cva {
         effects: BTreeMap<MemoryId, i16>,
         provenance: Option<crate::freshness_storage::FreshnessEventProvenance>,
     ) -> Result<(), CvaError> {
+        let store_effects = crate::to_freshness_effects(&effects);
         if destination_turn > self.archive.rel_turn_count() {
             return Err(CvaError::Freshness(
                 "replay event turn exceeds destination REL activity".into(),
@@ -1141,7 +1167,7 @@ impl Cva {
                     &event_id,
                     destination_turn,
                     proof,
-                    &effects,
+                    &store_effects,
                     provenance.as_ref(),
                 )
                 .map_err(CvaError::Freshness)?
@@ -1163,16 +1189,26 @@ impl Cva {
                     "replayed event effect exceeds principal bound".into(),
                 ));
             }
-            let _ = self.freshness.records().get(id).ok_or_else(|| {
-                CvaError::Freshness(format!("Memory {:?} has no Freshness enrollment", id))
-            })?;
+            let _ = self
+                .freshness
+                .records()
+                .get(&crate::to_freshness_id(*id))
+                .ok_or_else(|| {
+                    CvaError::Freshness(format!("Memory {:?} has no Freshness enrollment", id))
+                })?;
         }
         let postimages = self
             .freshness
-            .prepare_event_postimages_for(&event_id, destination_turn, &effects)
+            .prepare_event_postimages_for(&event_id, destination_turn, &store_effects)
             .map_err(CvaError::Freshness)?;
         self.freshness
-            .validate_event_payload(&event_id, destination_turn, proof, &effects, &postimages)
+            .validate_event_payload(
+                &event_id,
+                destination_turn,
+                proof,
+                &store_effects,
+                &postimages,
+            )
             .map_err(CvaError::Freshness)?;
         let payload = self
             .freshness
@@ -1181,7 +1217,7 @@ impl Cva {
                 event_id,
                 destination_turn,
                 proof,
-                effects.clone(),
+                store_effects,
                 postimages,
                 provenance,
             )
@@ -1202,9 +1238,14 @@ impl Cva {
         sources: Vec<MemoryId>,
         policy_version: u64,
     ) -> Result<(), CvaError> {
+        let store_sources: Vec<_> = sources
+            .iter()
+            .copied()
+            .map(crate::to_freshness_id)
+            .collect();
         if self
             .freshness
-            .resolve_accepted_use(&use_id, turn, &sources)
+            .resolve_accepted_use(&use_id, turn, &store_sources)
             .map_err(CvaError::Freshness)?
             .is_some()
         {
@@ -1217,7 +1258,7 @@ impl Cva {
             owner,
             use_id,
             turn,
-            sources,
+            store_sources,
             policy_version,
         );
         self.container.append(&payload)?;

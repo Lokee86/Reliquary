@@ -1,10 +1,26 @@
 # Freshness Store crate extraction — implementation specification
 
-**Status:** Proposed, implementation blocked at first attempted crate check and restored to the clean pre-implementation baseline (2026-10-26). No implementation commit. The restart boundary corrections in §6A are mandatory.
+**Status:** Owner journal and product boundary migrated (2026-10-26); scoped acceptance checks passed. Unfiltered repository and architecture-tool checks are recorded separately in the evidence. The CVAFRS07 six-file corpus gate remains unverified. See [implementation evidence](freshness-store-crate-extraction-evidence-2026-10-26.md).
 **Repository / branch:** `C:\!bin\workspace\Reliquary-crate-first` · `refactor/crate-first-restart`
 **Baseline:** `ef6cb354` (Ego Store boundary correction)
 **Target:** `crates/reliquary-freshness-store/` — **eighth compiled owner extraction**.
 **Scope:** Correction-only, one bounded staged hard cut. Preserve source history, current format, API and behavior; **no Freshness policy rewrite or new product features**.
+
+## Purpose
+
+Define the bounded Freshness Store extraction and its acceptance gates.
+
+## Overview
+
+The following specification records the starting boundary and required hard cut.
+
+## Notes
+
+CVAFRS07 recovery and authoritative corpus verification remain separate gates.
+
+## Related docs
+
+See [implementation evidence](freshness-store-crate-extraction-evidence-2026-10-26.md) and the governing contracts below.
 
 ## 1. Problem and intended result
 

@@ -9,7 +9,6 @@ use crate::{
 };
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
-#[cfg(test)]
 use std::collections::BTreeSet;
 use std::io::Read;
 #[path = "historical_embedding.rs"]
@@ -166,6 +165,9 @@ impl FrozenHistoricalImport {
                 &FreshnessPolicy::default_v1(),
             )
             .map_err(|e| CvaError::Freshness(e.to_string()))?
+            .into_iter()
+            .map(|(id, record)| (reliquary_freshness_store::FreshnessMemoryId(id.0), record))
+            .collect()
         };
         settlement.validate().map_err(CvaError::Freshness)?;
         Ok(PreparedHistoricalImport {
@@ -177,8 +179,12 @@ impl FrozenHistoricalImport {
     }
 }
 impl PreparedHistoricalImport {
-    fn records(&self) -> &BTreeMap<MemoryId, FreshnessRecord> {
-        &self.settlement.records
+    fn records(&self) -> BTreeMap<MemoryId, FreshnessRecord> {
+        self.settlement
+            .records
+            .iter()
+            .map(|(&id, &record)| (MemoryId(id.0), record))
+            .collect()
     }
 }
 fn fail(message: &str) -> CvaError {
@@ -241,7 +247,7 @@ impl Cva {
                 if let Some(at) = record.admitted_at_turn {
                     birth.admit(at).map_err(|e| fail(&e.to_string()))?;
                 }
-                initial.insert(*id, birth);
+                initial.insert(MemoryId(id.0), birth);
             }
             return Ok(FrozenHistoricalImport {
                 source_bytes: 0,
@@ -272,7 +278,10 @@ impl Cva {
             manifest.corpus_digest,
             manifest.digest,
             manifest.digest,
-            cohort,
+            cohort
+                .into_iter()
+                .map(|id| reliquary_freshness_store::FreshnessMemoryId(id.0))
+                .collect(),
             self.latest_global_version(),
             manifest.input_bytes,
             self.archive_version(),
@@ -298,10 +307,16 @@ impl Cva {
                 .native_scores()?
                 .into_iter()
                 .map(|event| event.recipient);
-            frozen.settlement.cohort.extend(affected);
             frozen
-                .initial
-                .retain(|id, _| frozen.settlement.cohort.contains(id));
+                .settlement
+                .cohort
+                .extend(affected.map(|id| reliquary_freshness_store::FreshnessMemoryId(id.0)));
+            frozen.initial.retain(|id, _| {
+                frozen
+                    .settlement
+                    .cohort
+                    .contains(&reliquary_freshness_store::FreshnessMemoryId(id.0))
+            });
             let mut binding = Sha256::new();
             binding.update(b"import-epoch-result-cohort-v1");
             binding.update(frozen.settlement.manifest_digest);
@@ -314,14 +329,18 @@ impl Cva {
                 owner,
                 import_id: frozen.settlement.import_id,
                 start_evidence_digest: scope.start_digest,
-                born_memories: scope.cohort,
+                born_memories: scope
+                    .cohort
+                    .into_iter()
+                    .map(|id| reliquary_freshness_store::FreshnessMemoryId(id.0))
+                    .collect(),
                 affected_recipients: frozen
                     .propagation
                     .as_ref()
                     .unwrap()
                     .availability
                     .keys()
-                    .copied()
+                    .map(|id| reliquary_freshness_store::FreshnessMemoryId(id.0))
                     .collect(),
                 source_nodes: scope.source_nodes,
                 start_prefix: scope.start_offset,
@@ -334,15 +353,35 @@ impl Cva {
             frozen.retained = history
                 .retained_import_scores(
                     &replay,
-                    &frozen.settlement.cohort,
+                    &frozen
+                        .settlement
+                        .cohort
+                        .iter()
+                        .map(|id| reliquary_freshness_store::FreshnessMemoryId(id.0))
+                        .collect(),
                     &frozen.settlement.superseded,
                 )
-                .map_err(CvaError::Freshness)?;
+                .map_err(CvaError::Freshness)?
+                .into_iter()
+                .map(
+                    |value| crate::freshness::historical_scorer::HistoricalScoreEvent {
+                        recipient: MemoryId(value.recipient.0),
+                        position: value.position,
+                        event_id: value.event_id,
+                        amount: value.amount,
+                    },
+                )
+                .collect();
             frozen.settlement.semantic = Some(
                 history
                     .semantic_import_evidence(
                         &replay,
-                        &frozen.settlement.cohort,
+                        &frozen
+                            .settlement
+                            .cohort
+                            .iter()
+                            .map(|id| reliquary_freshness_store::FreshnessMemoryId(id.0))
+                            .collect(),
                         &frozen.settlement.superseded,
                     )
                     .map_err(CvaError::Freshness)?,
@@ -355,8 +394,18 @@ impl Cva {
                 owner,
                 import_id: frozen.settlement.import_id,
                 start_evidence_digest: frozen.settlement.start_evidence_digest,
-                born_memories: frozen.settlement.cohort.clone(),
-                affected_recipients: frozen.settlement.cohort.clone(),
+                born_memories: frozen
+                    .settlement
+                    .cohort
+                    .iter()
+                    .map(|id| reliquary_freshness_store::FreshnessMemoryId(id.0))
+                    .collect(),
+                affected_recipients: frozen
+                    .settlement
+                    .cohort
+                    .iter()
+                    .map(|id| reliquary_freshness_store::FreshnessMemoryId(id.0))
+                    .collect(),
                 source_nodes,
                 start_prefix: 0,
                 freeze_prefix: frozen.source_bytes,
@@ -369,7 +418,12 @@ impl Cva {
                 history
                     .semantic_import_evidence(
                         &replay,
-                        &frozen.settlement.cohort,
+                        &frozen
+                            .settlement
+                            .cohort
+                            .iter()
+                            .map(|id| reliquary_freshness_store::FreshnessMemoryId(id.0))
+                            .collect(),
                         &frozen.settlement.superseded,
                     )
                     .map_err(CvaError::Freshness)?,
@@ -426,18 +480,31 @@ impl Cva {
             staged.bind_history_source(&self.container, prepared.source_bytes)?;
             staged.freeze_derived_birth_policy();
         }
+        let expected_pass_ids: BTreeSet<String> = settlement
+            .semantic
+            .as_ref()
+            .ok_or_else(|| fail("accepted settlement lacks semantic authority"))?
+            .born_memories
+            .iter()
+            .map(|id| crate::dream_freshness::initial_pass_id(settlement.owner, MemoryId(id.0)))
+            .collect();
         staged
-            .ingest_import_settlement(&payload)
+            .ingest_import_settlement(&payload, &expected_pass_ids)
             .map_err(CvaError::Freshness)?;
         let mut due = crate::FreshnessDueDispatcher::default();
         due.rebuild(
-            staged.records().iter().map(|(&id, &r)| (id, r)),
+            staged.records().iter().map(|(&id, &r)| (MemoryId(id.0), r)),
             settlement.settlement_cut,
             &self.freshness_policy(),
         )
         .map_err(|e| fail(&e.to_string()))?;
-        due.configure_initial_decay_carries(staged.initial_decay_carries())
-            .map_err(|e| fail(&e.to_string()))?;
+        due.configure_initial_decay_carries(
+            staged
+                .initial_decay_carries()
+                .into_iter()
+                .map(|(id, carry)| (MemoryId(id.0), carry)),
+        )
+        .map_err(|e| fail(&e.to_string()))?;
         // Admit only the authenticated settlement append; no worker or completion authority.
         let mut append = |cva: &mut Cva| {
             staged
@@ -454,7 +521,7 @@ impl Cva {
         };
         append_result?;
         staged
-            .ingest_appended(&payload)
+            .ingest_appended_with_expected_pass_ids(&payload, Some(&expected_pass_ids))
             .map_err(CvaError::Freshness)?;
         self.freshness = staged;
         self.freshness_due = due;

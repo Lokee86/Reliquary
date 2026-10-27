@@ -130,7 +130,8 @@ fn add_accepted_initial_event(
                 ..
             } if source_turn == turn
                 && event_proof == proof
-                && effects.get(&target) == Some(&amount) =>
+                && effects.get(&reliquary_freshness_store::FreshnessMemoryId(target.0))
+                    == Some(&amount) =>
             {
                 Some(event_id)
             }

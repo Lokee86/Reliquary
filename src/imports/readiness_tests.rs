@@ -292,7 +292,14 @@ fn nonempty_zero_output_import_completes_with_exact_scoped_settlement() {
     complete_zero_memory_import_episode(&mut cva, 110);
     let report = commit_scoped_settlement(&mut cva);
     let settlement = cva.freshness.import_settlement(report.import_id).unwrap();
-    assert_eq!(settlement.cohort, scope.cohort);
+    assert_eq!(
+        settlement.cohort,
+        scope
+            .cohort
+            .iter()
+            .map(|id| reliquary_freshness_store::FreshnessMemoryId(id.0))
+            .collect()
+    );
     assert_eq!(
         settlement.semantic.as_ref().unwrap().source_nodes,
         scope.source_nodes
@@ -927,9 +934,17 @@ fn import_born_memory_and_dream_completion_accepts_affected_freshness_result_coh
 
     let report = commit_scoped_settlement(&mut cva);
     let settlement = cva.freshness.import_settlement(report.import_id).unwrap();
-    assert!(settlement.cohort.contains(&imported_memory));
     assert!(
-        settlement.cohort.contains(&old),
+        settlement
+            .cohort
+            .contains(&reliquary_freshness_store::FreshnessMemoryId(
+                imported_memory.0
+            ))
+    );
+    assert!(
+        settlement
+            .cohort
+            .contains(&reliquary_freshness_store::FreshnessMemoryId(old.0)),
         "the import's real Dream effect updates a pre-existing eligible recipient"
     );
     assert!(!scope.cohort.contains(&old));

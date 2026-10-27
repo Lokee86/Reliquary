@@ -347,7 +347,12 @@ impl Cva {
                 || epoch.start_evidence_digest != scope.start_digest
                 || epoch.base_cut != scope.base_cut
                 || epoch.source_nodes != scope.source_nodes
-                || epoch.born_memories != scope.cohort
+                || epoch.born_memories
+                    != scope
+                        .cohort
+                        .iter()
+                        .map(|id| reliquary_freshness_store::FreshnessMemoryId(id.0))
+                        .collect()
             {
                 return Ok(Some(blocker(
                     Owner::Freshness,

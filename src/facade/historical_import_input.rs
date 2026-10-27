@@ -525,7 +525,14 @@ pub(super) fn validate_settlement(
         cp.validate().map_err(CvaError::Freshness)?;
         cva.validate_semantic_import_scope(cp, scope)?;
         cva.freshness
-            .validate_semantic_import_evidence(scope)
+            .validate_semantic_import_evidence(
+                scope,
+                &scope
+                    .born_memories
+                    .iter()
+                    .map(|id| crate::dream_freshness::initial_pass_id(cp.owner, MemoryId(id.0)))
+                    .collect(),
+            )
             .map_err(CvaError::Freshness)?;
         let import_id: String = cp
             .import_id
@@ -539,6 +546,7 @@ pub(super) fn validate_settlement(
         // cohort and birth-proof requirements as its persisted predecessors.
     }
 
+    let settlement_cohort: BTreeSet<MemoryId> = cp.cohort.iter().map(|id| MemoryId(id.0)).collect();
     let original: BTreeSet<_> = cva
         .memory_ids()
         .into_iter()
@@ -548,7 +556,7 @@ pub(super) fn validate_settlement(
                 .is_some_and(|version| version <= cp.global_version)
         })
         .collect();
-    if original != cp.cohort {
+    if original != settlement_cohort {
         return Err(fail(
             "import checkpoint cohort differs from its accepted Memory prefix",
         ));
@@ -564,7 +572,7 @@ pub(super) fn validate_settlement(
                     crate::insomnia::completion::decode_completion(payload).map_err(|e| fail(e))?
                 {
                     for id in completion.freshness_birth_memory_ids {
-                        if !cp.cohort.contains(&id) {
+                        if !settlement_cohort.contains(&id) {
                             continue;
                         }
                         let record = completion
@@ -594,7 +602,7 @@ pub(super) fn validate_settlement(
         }
         Ok(())
     })()?;
-    for id in cp.cohort.difference(&births) {
+    for id in settlement_cohort.difference(&births) {
         let first = cva.memory_revision(*id, 1)?;
         if first.global_version > cp.global_version
             || !cva.freshness_is_publication_birth(*id)
@@ -606,7 +614,7 @@ pub(super) fn validate_settlement(
             ));
         }
     }
-    if !births.is_subset(&cp.cohort) {
+    if !births.is_subset(&settlement_cohort) {
         return Err(fail(
             "import checkpoint does not cover a proven native import",
         ));

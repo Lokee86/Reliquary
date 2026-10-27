@@ -3,16 +3,16 @@ use super::{
     FreshnessReplayEntry, FreshnessStore, HistoricalImportFreshnessSettlement, JournalEntry,
     ordering,
 };
-use crate::freshness::{FreshnessPolicy, FreshnessRecord};
-use crate::{FreshnessEventCut, MemoryId};
+use crate::{FreshnessEventCut, FreshnessMemoryId};
+use crate::{FreshnessPolicy, FreshnessRecord};
 use std::collections::BTreeMap;
 
-pub(crate) struct FreshnessOracleState {
-    pub(crate) policy: FreshnessPolicy,
-    pub(crate) records: BTreeMap<MemoryId, FreshnessRecord>,
-    pub(crate) entries: Vec<FreshnessReplayEntry>,
-    pub(crate) settlements: Vec<HistoricalImportFreshnessSettlement>,
-    pub(crate) activation: serde_json::Value,
+pub struct FreshnessOracleState {
+    pub policy: FreshnessPolicy,
+    pub records: BTreeMap<FreshnessMemoryId, FreshnessRecord>,
+    pub entries: Vec<FreshnessReplayEntry>,
+    pub settlements: Vec<HistoricalImportFreshnessSettlement>,
+    pub activation: serde_json::Value,
 }
 
 impl FreshnessStore {
@@ -20,7 +20,7 @@ impl FreshnessStore {
     /// the existing in-memory scan path for repeated cuts. Never publish from
     /// this disposable clone. Semantic scope reconstruction explicitly rebinds
     /// its own original physical prefix and therefore bypasses this cache.
-    pub(crate) fn with_cached_oracle_journal(&self) -> Result<Self, String> {
+    pub fn with_cached_oracle_journal(&self) -> Result<Self, String> {
         let mut entries = std::collections::VecDeque::new();
         self.scan_entries(|entry| {
             entries.push_back((entry, 0));
@@ -33,7 +33,7 @@ impl FreshnessStore {
         Ok(cached)
     }
 
-    pub(crate) fn historical_oracle_state(
+    pub fn historical_oracle_state(
         &self,
         cut: &FreshnessEventCut,
     ) -> Result<FreshnessOracleState, String> {

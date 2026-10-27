@@ -30,7 +30,7 @@ mod tests {
                 community_generation: None,
                 community_graph_version: None,
             },
-            effects: std::collections::BTreeMap::from([(crate::MemoryId([1; 32]), 25)]),
+            effects: std::collections::BTreeMap::from([(crate::FreshnessMemoryId([1; 32]), 25)]),
             records: std::collections::BTreeMap::new(),
             semantic: None,
         }

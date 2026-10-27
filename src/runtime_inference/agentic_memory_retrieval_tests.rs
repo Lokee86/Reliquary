@@ -239,9 +239,12 @@ fn freshness_order_is_complete_passive_neutral_and_owner_qualified() {
             admitted_at_turn: Some(birth_turn),
             accounted_turn: Some(birth_turn),
         };
-        let payload = first
-            .freshness
-            .encode_initialize(owner_uuid, id, birth_turn, record);
+        let payload = first.freshness.encode_initialize(
+            owner_uuid,
+            crate::to_freshness_id(id),
+            birth_turn,
+            record,
+        );
         first.freshness.ingest(&payload).unwrap();
     }
     first.sync().unwrap();

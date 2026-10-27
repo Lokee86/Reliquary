@@ -300,7 +300,9 @@ impl crate::Cva {
                 after
                     .derive_birth(
                         owner,
-                        crate::memory_model::memory_id(&m.draft.mutation_id),
+                        crate::to_freshness_id(crate::memory_model::memory_id(
+                            &m.draft.mutation_id,
+                        )),
                         turn,
                         false,
                     )

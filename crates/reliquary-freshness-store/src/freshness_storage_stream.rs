@@ -48,21 +48,12 @@ fn scan_entries_impl(
     if prefix_end == 0 && prefix_start.is_none() {
         return Ok(());
     }
-    #[cfg(feature = "freshness-performance-trace")]
-    let started = std::time::Instant::now();
-    #[cfg(feature = "freshness-performance-trace")]
-    let (mut bytes, mut chunks) = (0u64, 0u64);
     let mut start_boundary_seen = prefix_start.is_none_or(|start| start == source.header_len());
     let mut cursor = source
         .physical_cursor_through(prefix_end)
         .map_err(|error| error.to_string())?;
     while let Some(frame) = cursor.next_frame().map_err(|error| error.to_string())? {
         let payload = frame.payload.as_slice();
-        #[cfg(feature = "freshness-performance-trace")]
-        {
-            bytes += payload.len() as u64;
-            chunks += 1;
-        }
         if prefix_start.is_some_and(|start| start == frame.offset || start == frame.end) {
             start_boundary_seen = true;
         }
@@ -85,15 +76,5 @@ fn scan_entries_impl(
         return Err("Freshness interval start is not a physical frame boundary".into());
     }
 
-    #[cfg(feature = "freshness-performance-trace")]
-    crate::freshness_trace::record(
-        "freshness.history.scan",
-        started.elapsed().as_nanos(),
-        crate::freshness_trace::Counts {
-            payload_bytes: Some(bytes),
-            chunks_visited: Some(chunks),
-            ..Default::default()
-        },
-    );
     Ok(())
 }

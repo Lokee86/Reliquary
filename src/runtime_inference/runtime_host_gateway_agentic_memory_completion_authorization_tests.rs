@@ -61,7 +61,16 @@ fn state_from_cva(cva: &crate::Cva, probe: &ReceiptProbe) -> Result<OwnerState, 
         freshness_records: format!("{:?}", cva.freshness.records()),
         receipt_exists: cva
             .freshness
-            .resolve_accepted_use(&probe.use_id, probe.accepted_turn, &probe.memory_ids)?
+            .resolve_accepted_use(
+                &probe.use_id,
+                probe.accepted_turn,
+                &probe
+                    .memory_ids
+                    .iter()
+                    .copied()
+                    .map(crate::to_freshness_id)
+                    .collect::<Vec<_>>(),
+            )?
             .is_some(),
     })
 }

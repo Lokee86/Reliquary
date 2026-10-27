@@ -168,6 +168,7 @@
 - [ego-cross-chat-context-plan.md](ego-cross-chat-context-plan.md) - Ego Cross Chat Context Plan documentation.
 - [ego-cross-rel-summary-inclusion-plan.md](ego-cross-rel-summary-inclusion-plan.md) - Ego Cross Rel Summary Inclusion Plan documentation.
 - [ego-status-decision-inventory-2026-10-14.md](ego-status-decision-inventory-2026-10-14.md) - Ego Status Decision Inventory 2026 10 14 documentation.
+- [ego-store-crate-extraction-spec-2026-10-26.md](ego-store-crate-extraction-spec-2026-10-26.md) - Ego Store Crate Extraction Spec 2026 10 26 documentation.
 - [ego-web-synthesis-plan.md](ego-web-synthesis-plan.md) - Ego Web Synthesis Plan documentation.
 - [entity-resolution-compact-contract-2026-10-21.md](entity-resolution-compact-contract-2026-10-21.md) - Entity Resolution Compact Contract 2026 10 21 documentation.
 - [entity-resolution-state.md](entity-resolution-state.md) - Entity Resolution State documentation.
@@ -208,6 +209,8 @@
 - [freshness-semantic-historical-baseline-2026-10-11.md](freshness-semantic-historical-baseline-2026-10-11.md) - Freshness Semantic Historical Baseline 2026 10 11 documentation.
 - [freshness-semantic-policy-module-2026-10-11.md](freshness-semantic-policy-module-2026-10-11.md) - Freshness Semantic Policy Module 2026 10 11 documentation.
 - [freshness-semantic-release-verification-2026-10-12.md](freshness-semantic-release-verification-2026-10-12.md) - Freshness Semantic Release Verification 2026 10 12 documentation.
+- [freshness-store-crate-extraction-evidence-2026-10-26.md](freshness-store-crate-extraction-evidence-2026-10-26.md) - Freshness Store Crate Extraction Evidence 2026 10 26 documentation.
+- [freshness-store-crate-extraction-spec-2026-10-26.md](freshness-store-crate-extraction-spec-2026-10-26.md) - Freshness Store Crate Extraction Spec 2026 10 26 documentation.
 - [graph-crate-extraction-evidence-2026-10-26.md](graph-crate-extraction-evidence-2026-10-26.md) - Graph Crate Extraction Evidence 2026 10 26 documentation.
 - [graph-crate-extraction-spec-2026-10-26.md](graph-crate-extraction-spec-2026-10-26.md) - Graph Crate Extraction Spec 2026 10 26 documentation.
 - [import-step24-attribution-acceptance-2026-10-17.md](import-step24-attribution-acceptance-2026-10-17.md) - Import Step24 Attribution Acceptance 2026 10 17 documentation.

@@ -448,7 +448,9 @@ fn divergent_completed_grouped_memory_epoch_replays_through_destination_owners()
         )),
         source_attempts
     );
-    assert!(merged.freshness.records().contains_key(&source_memory.id));
+    assert!(merged.freshness.records().contains_key(
+        &reliquary_freshness_store::FreshnessMemoryId(source_memory.id.0)
+    ));
     assert!(
         merged
             .dream_freshness

@@ -266,7 +266,15 @@ fn multi_owner_completion_groups_exact_owner_receipts_and_exact_retry_is_durable
                     runtime
                         .cva
                         .freshness
-                        .resolve_accepted_use(&use_id, *cut, memories)
+                        .resolve_accepted_use(
+                            &use_id,
+                            *cut,
+                            &memories
+                                .iter()
+                                .copied()
+                                .map(crate::to_freshness_id)
+                                .collect::<Vec<_>>(),
+                        )
                         .map(|receipt| receipt.is_some())
                         .map_err(operation)
                 })
@@ -416,7 +424,15 @@ fn partial_receipt_failure_keeps_selection_and_exact_retry_finishes_all_owners()
                 runtime
                     .cva
                     .freshness
-                    .resolve_accepted_use(&use_id, accepted_turn, &delivered)
+                    .resolve_accepted_use(
+                        &use_id,
+                        accepted_turn,
+                        &delivered
+                            .iter()
+                            .copied()
+                            .map(crate::to_freshness_id)
+                            .collect::<Vec<_>>(),
+                    )
                     .map(|receipt| receipt.is_some())
                     .map_err(operation)
             })

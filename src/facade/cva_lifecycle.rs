@@ -442,7 +442,10 @@ impl Cva {
             })?;
             for baseline in freshness.rewrite_baselines.values() {
                 if baseline.owner_uuid != genesis.destination_owner
-                    || baseline.history_generation != genesis.generation
+                    || baseline.history_generation
+                        != reliquary_freshness_store::FreshnessHistoryGeneration(
+                            genesis.generation.0,
+                        )
                     || baseline.policy_digest != genesis.policy_digest
                     || Some(baseline.owner_uuid) != container.owner_uuid()
                 {
@@ -527,7 +530,12 @@ impl Cva {
                         ));
                     }
                     freshness
-                        .derive_birth(owner, id, turn, admitted)
+                        .derive_birth(
+                            owner,
+                            reliquary_freshness_store::FreshnessMemoryId(id.0),
+                            turn,
+                            admitted,
+                        )
                         .map_err(CvaError::Freshness)?;
                 } else if memories.contains_memory(id) {
                     return Err(CvaError::Freshness(
@@ -546,7 +554,12 @@ impl Cva {
                 {
                     for member in cohort.members {
                         freshness
-                            .derive_birth(owner, member.id, cohort.turn, false)
+                            .derive_birth(
+                                owner,
+                                reliquary_freshness_store::FreshnessMemoryId(member.id.0),
+                                cohort.turn,
+                                false,
+                            )
                             .map_err(CvaError::Freshness)?;
                         dream_freshness.derive_publication_birth(member.id);
                     }
@@ -557,14 +570,28 @@ impl Cva {
                     {
                         for member in cohort.members {
                             freshness
-                                .derive_birth(owner, member.id, cohort.turn, false)
+                                .derive_birth(
+                                    owner,
+                                    reliquary_freshness_store::FreshnessMemoryId(member.id.0),
+                                    cohort.turn,
+                                    false,
+                                )
                                 .map_err(CvaError::Freshness)?;
                             dream_freshness.derive_publication_birth(member.id);
                         }
                     }
                 }
+                let expected_pass_ids = crate::freshness_storage::HistoricalImportFreshnessSettlement::expected_pass_scope(&payload)
+                    .map_err(CvaError::Freshness)?
+                    .map(|(settlement_owner, born)| {
+                        born.into_iter().map(|id| crate::dream_freshness::initial_pass_id(settlement_owner, crate::MemoryId(id.0))).collect()
+                    });
                 freshness
-                    .ingest_scanned(&payload, end)
+                    .ingest_scanned_with_expected_pass_ids(
+                        &payload,
+                        end,
+                        expected_pass_ids.as_ref(),
+                    )
                     .map_err(CvaError::Freshness)?;
             }
         } else {
@@ -572,8 +599,17 @@ impl Cva {
             while let Some(frame) = cursor.next_frame()? {
                 let payload = frame.payload;
                 let end = frame.end;
+                let expected_pass_ids = crate::freshness_storage::HistoricalImportFreshnessSettlement::expected_pass_scope(&payload)
+                    .map_err(CvaError::Freshness)?
+                    .map(|(settlement_owner, born)| {
+                        born.into_iter().map(|id| crate::dream_freshness::initial_pass_id(settlement_owner, crate::MemoryId(id.0))).collect()
+                    });
                 freshness
-                    .ingest_scanned(&payload, end)
+                    .ingest_scanned_with_expected_pass_ids(
+                        &payload,
+                        end,
+                        expected_pass_ids.as_ref(),
+                    )
                     .map_err(CvaError::Freshness)?;
             }
         }
@@ -595,13 +631,18 @@ impl Cva {
                 freshness
                     .records()
                     .iter()
-                    .map(|(id, record)| (*id, *record)),
+                    .map(|(id, record)| (crate::MemoryId(id.0), *record)),
                 archive.rel_turn_count(),
                 &freshness.policy(),
             )
             .map_err(|error| CvaError::Freshness(error.to_string()))?;
         freshness_due
-            .configure_initial_decay_carries(freshness.initial_decay_carries())
+            .configure_initial_decay_carries(
+                freshness
+                    .initial_decay_carries()
+                    .into_iter()
+                    .map(|(id, carry)| (crate::MemoryId(id.0), carry)),
+            )
             .map_err(|error| CvaError::Freshness(error.to_string()))?;
         let lexical_index = LexicalIndex::default();
         let packed_vectors = packed_state.finish()?;

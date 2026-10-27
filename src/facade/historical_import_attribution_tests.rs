@@ -399,18 +399,34 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
     // below expands only the affected result set before settlement publication.
     let frozen = cva.freeze_historical_import().unwrap();
     let prepared = frozen.prepare_native().unwrap();
-    assert_eq!(prepared.settlement.cohort, scope.cohort);
+    assert_eq!(
+        prepared.settlement.cohort,
+        scope
+            .cohort
+            .iter()
+            .map(|id| reliquary_freshness_store::FreshnessMemoryId(id.0))
+            .collect()
+    );
     assert_eq!(
         prepared.settlement.start_evidence_digest,
         scope.start_digest
     );
     assert!(
-        !prepared.settlement.cohort.contains(&old),
+        !prepared
+            .settlement
+            .cohort
+            .contains(&reliquary_freshness_store::FreshnessMemoryId(old.0)),
         "an unrelated pre-start recipient is not an import effect recipient"
     );
     let frozen_recipients: std::collections::BTreeSet<_> =
         frozen.initial_records().keys().copied().collect();
-    assert_eq!(frozen_recipients, prepared.settlement.cohort);
+    assert_eq!(
+        frozen_recipients
+            .iter()
+            .map(|id| reliquary_freshness_store::FreshnessMemoryId(id.0))
+            .collect::<std::collections::BTreeSet<_>>(),
+        prepared.settlement.cohort
+    );
     assert!(cva.freshness.import_settlements().is_empty());
 
     // A provisional import-source effect on an existing recipient belongs to
@@ -434,7 +450,11 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
     let event_id = evidence.event_id();
     let payload = cva
         .freshness
-        .encode_semantic_event(scope.start.owner_uuid, evidence, BTreeMap::from([(old, 3)]))
+        .encode_semantic_event(
+            scope.start.owner_uuid,
+            evidence,
+            BTreeMap::from([(reliquary_freshness_store::FreshnessMemoryId(old.0), 3)]),
+        )
         .unwrap();
     let import_scope = cva
         .import_write_admission
@@ -463,7 +483,13 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
     let affected = cva.freeze_historical_import().unwrap();
     let mut expected_result = scope.cohort.clone();
     expected_result.insert(old);
-    assert_eq!(affected.settlement.cohort, expected_result);
+    assert_eq!(
+        affected.settlement.cohort,
+        expected_result
+            .iter()
+            .map(|id| reliquary_freshness_store::FreshnessMemoryId(id.0))
+            .collect()
+    );
     assert_eq!(
         affected.settlement.superseded,
         std::collections::BTreeSet::from([event_id])
@@ -492,7 +518,7 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
     assert_eq!(
         cva.freshness
             .records_at(prepared.settlement.settlement_cut)
-            .unwrap()[&old],
+            .unwrap()[&reliquary_freshness_store::FreshnessMemoryId(old.0)],
         prepared.records()[&old]
     );
     assert!(cva.open_import_epoch().is_some());
@@ -524,7 +550,23 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
     .unwrap();
     drop(import_scope);
     cva.freshness
-        .validate_semantic_import_evidence(prepared.settlement.semantic.as_ref().unwrap())
+        .validate_semantic_import_evidence(
+            prepared.settlement.semantic.as_ref().unwrap(),
+            &prepared
+                .settlement
+                .semantic
+                .as_ref()
+                .unwrap()
+                .born_memories
+                .iter()
+                .map(|id| {
+                    crate::dream_freshness::initial_pass_id(
+                        prepared.settlement.owner,
+                        MemoryId(id.0),
+                    )
+                })
+                .collect(),
+        )
         .unwrap();
     let after_use = cva.freshness.records_at(cva.rel_turn_count()).unwrap();
     drop(cva);

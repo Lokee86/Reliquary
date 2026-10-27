@@ -95,6 +95,7 @@ path = "examples/entity_jev_resolution_experiment/main.rs"
 required-features = ["entity-calibration"]
 
 [dependencies]
+reliquary-freshness-store = { path = "crates/reliquary-freshness-store" }
 reliquary-ego-store = { path = "crates/reliquary-ego-store" }
 reliquary-perception-store = { path = "crates/reliquary-perception-store" }
 reliquary-graph = { path = "crates/reliquary-graph" }
@@ -118,6 +119,7 @@ uuid = { version = "1", features = ["v4", "v5", "serde"] }
 serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
+reliquary-freshness-store = { path = "crates/reliquary-freshness-store", features = ["oracle-support"] }
 
 # Lore pins a patched quinn-proto in its workspace. Dependency workspace patches
 # do not propagate, so Reliquary vendors the exact copy from Lore c49390b.

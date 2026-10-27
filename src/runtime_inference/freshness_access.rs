@@ -69,9 +69,14 @@ impl Cva {
             let unique: BTreeSet<_> = receipt.memories.into_iter().collect();
             unique.into_iter().collect::<Vec<_>>()
         });
+        let store_memories: Vec<_> = memories
+            .iter()
+            .copied()
+            .map(crate::to_freshness_id)
+            .collect();
         if crate::freshness_trace::measure("accepted_use.exact_retry_lookup", || {
             self.freshness
-                .resolve_accepted_use(&receipt.use_id, receipt.accepted_turn, &memories)
+                .resolve_accepted_use(&receipt.use_id, receipt.accepted_turn, &store_memories)
                 .map_err(crate::CvaError::Freshness)
         })?
         .is_some()
@@ -180,9 +185,9 @@ impl Cva {
                     receipt.owner_uuid,
                     receipt.use_id,
                     receipt.accepted_turn,
-                    memories,
+                    store_memories,
                     graph_proof,
-                    outcomes,
+                    outcomes.iter().map(crate::to_freshness_effects).collect(),
                 )
             })
             .map_err(crate::CvaError::Freshness)?;

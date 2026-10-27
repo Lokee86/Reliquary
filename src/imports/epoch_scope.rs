@@ -123,7 +123,12 @@ impl Cva {
             })();
             result?;
         }
-        if births != scope.born_memories {
+        if births
+            .iter()
+            .map(|id| reliquary_freshness_store::FreshnessMemoryId(id.0))
+            .collect::<BTreeSet<_>>()
+            != scope.born_memories
+        {
             return Err(fail("semantic import birth cohort mismatch"));
         }
         Ok(())
@@ -174,7 +179,12 @@ impl Cva {
             || scope.start_digest != replay.start_evidence_digest
             || scope.base_cut != replay.base_cut
             || scope.source_nodes != replay.source_nodes
-            || scope.cohort != replay.born_memories
+            || scope
+                .cohort
+                .iter()
+                .map(|id| reliquary_freshness_store::FreshnessMemoryId(id.0))
+                .collect::<BTreeSet<_>>()
+                != replay.born_memories
         {
             return Err(CvaError::Freshness(
                 "import settlement source/cohort evidence mismatch".into(),

@@ -12,11 +12,10 @@ use sha2::{Digest, Sha256};
 
 use crate::MemoryId;
 
-pub const SEMANTIC_POLICY_VERSION: u16 = 1;
+pub use reliquary_freshness_store::{SEMANTIC_BONUS_CAP, SEMANTIC_POLICY_VERSION};
 pub const SEMANTIC_NUMERICAL_REVISION: u16 = 1;
 pub const SEMANTIC_ELIGIBILITY_REVISION: u16 = 1;
 pub const SEMANTIC_THRESHOLD: f64 = 0.75;
-pub const SEMANTIC_BONUS_CAP: i16 = 10;
 pub const SEMANTIC_CANDIDATE_LIMIT: usize = 64;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -472,6 +471,17 @@ mod tests {
                 0xbf, 0xab, 0x55, 0x67, 0xad, 0x29, 0x98, 0xbe, 0x0e, 0x21, 0xe0, 0x7c, 0x48, 0x95,
                 0xab, 0x1d, 0x26, 0x1f,
             ]
+        );
+    }
+}
+
+#[cfg(test)]
+mod store_wire_identity_test {
+    #[test]
+    fn default_policy_digest_matches_store_identity() {
+        assert_eq!(
+            super::SemanticPolicy::default().digest().unwrap(),
+            reliquary_freshness_store::SEMANTIC_POLICY_DIGEST
         );
     }
 }

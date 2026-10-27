@@ -234,10 +234,12 @@ fn emit_rel(
             let source_record = source
                 .freshness
                 .records()
-                .get(&memory.id)
+                .get(&crate::to_freshness_id(memory.id))
                 .copied()
                 .unwrap_or_else(crate::FreshnessRecord::created);
-            let source_carry = source.freshness.initial_decay_carry(memory.id);
+            let source_carry = source
+                .freshness
+                .initial_decay_carry(crate::to_freshness_id(memory.id));
             effective.push((memory.id, source_record, source_carry));
         }
     }
@@ -726,8 +728,8 @@ fn emit_memories_rel(
             let baseline =
                 crate::freshness_storage::FreshnessRewriteBaseline::preserve_effective_with_carry(
                     owner,
-                    generation,
-                    id,
+                    crate::freshness_storage::FreshnessHistoryGeneration(generation.0),
+                    crate::to_freshness_id(id),
                     source_cut,
                     destination_cut,
                     source_record,
@@ -1007,7 +1009,7 @@ fn recompute_retained_freshness(
                 ..
             }
             | E::Admit { memory_id, .. } => {
-                if let Some(record) = records.get_mut(&memory_id) {
+                if let Some(record) = records.get_mut(&crate::from_freshness_id(memory_id)) {
                     record
                         .admit(turn)
                         .map_err(|e| RewriteError(e.to_string()))?;
@@ -1025,7 +1027,7 @@ fn recompute_retained_freshness(
                     continue;
                 }
                 for (id, delta) in effects {
-                    if let Some(record) = records.get_mut(&id) {
+                    if let Some(record) = records.get_mut(&crate::from_freshness_id(id)) {
                         record
                             .reinforce_with_policy(delta, turn, &policy)
                             .map_err(|e| RewriteError(e.to_string()))?;

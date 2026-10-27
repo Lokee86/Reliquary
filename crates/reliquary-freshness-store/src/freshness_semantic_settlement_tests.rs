@@ -1,5 +1,5 @@
 use super::*;
-use crate::{FreshnessEventProof, freshness::FreshnessRecord};
+use crate::{FreshnessEventProof, FreshnessMemoryId as MemoryId, FreshnessRecord};
 use std::collections::{BTreeMap, BTreeSet};
 
 fn id(byte: u8) -> MemoryId {

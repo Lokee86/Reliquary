@@ -3,8 +3,10 @@ use crate::cva_semantic_source::{
     AcceptedSemanticSource, SemanticSourceReadiness, SemanticSourceVector,
 };
 use crate::freshness::semantic_policy::{SemanticPolicy, cosine_similarity};
-use crate::freshness_storage::{SemanticEventEvidence, SemanticFragmentEvidence};
 use crate::{Cva, CvaError, FragmentId, VectorGenerationId};
+use reliquary_freshness_store::{
+    FreshnessFragmentId, SemanticEventEvidence, SemanticFragmentEvidence,
+};
 use sha2::{Digest, Sha256};
 
 impl AcceptedSemanticSource {
@@ -54,12 +56,13 @@ impl Cva {
         evidence: &SemanticEventEvidence,
     ) -> Result<u64, CvaError> {
         if let Some(fragment) = &evidence.fragment {
-            if self.semantic_fragment_sources(fragment.fragment_id)? != fragment.sources {
+            let fragment_id = FragmentId(fragment.fragment_id.0);
+            if self.semantic_fragment_sources(fragment_id)? != fragment.sources {
                 return Err(CvaError::Freshness(
                     "conflicting semantic fragment sources".into(),
                 ));
             }
-            self.semantic_fragment_position(fragment.fragment_id)?
+            self.semantic_fragment_position(fragment_id)?
                 .ok_or_else(|| CvaError::Freshness("fragment has no accepted activity".into()))
         } else {
             self.activity_position_for_turn(&evidence.conversation_id, &evidence.node_id)
@@ -186,7 +189,7 @@ impl Cva {
         Ok(SemanticSourceReadiness::Ready(AcceptedSemanticSource {
             owner_uuid,
             fragment: Some(SemanticFragmentEvidence {
-                fragment_id: id,
+                fragment_id: FreshnessFragmentId(id.0),
                 sources: self.semantic_fragment_sources(id)?,
             }),
             node,
