@@ -1,6 +1,6 @@
 # Import Store crate extraction — implementation specification
 
-**Status:** Specified, implementation not started (2026-10-27).
+**Status:** Implemented; verification and known gaps are recorded in [extraction evidence](import-store-crate-extraction-evidence-2026-10-27.md) (2026-10-27).
 **Branch:** `refactor/crate-first-restart`. **Reference HEAD at specification:** `8d474279`.
 **Target:** `crates/reliquary-import-store/`.
 **Prerequisite:** Integrate and commit the in-progress Dream Store work before beginning this implementation. Do not mix its uncommitted changes with this extraction.

@@ -333,3 +333,5 @@ Memory replay preserves stable IDs and mutation IDs and uses ordinary expected-r
 ## Notes
 
 Decision inheritance changes configured endpoint composition only; semantic persistence and owner lifecycle are unchanged.
+
+Import epoch values exposed through `imports` are the canonical `reliquary-import-store` values. The Cva epoch inspection methods continue to return owned values; completion remains an exclusive Cva coordinator operation.

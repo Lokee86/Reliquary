@@ -95,6 +95,7 @@ path = "examples/entity_jev_resolution_experiment/main.rs"
 required-features = ["entity-calibration"]
 
 [dependencies]
+reliquary-import-store = { path = "crates/reliquary-import-store" }
 reliquary-dream-store = { path = "crates/reliquary-dream-store" }
 reliquary-freshness-store = { path = "crates/reliquary-freshness-store" }
 reliquary-ego-store = { path = "crates/reliquary-ego-store" }

@@ -110,3 +110,5 @@ The supported native import contract does not imply mounted F5 integration, prov
 ## Historical production scope
 
 The [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md) marks H1–H8 complete and merge-ready as supported explicit, offline/exclusive single-owner REL reconstruction. Historical reconstruction intentionally remains an offline/backfill operation rather than automatic or mounted migration. Live F8 is intrinsic REL behavior with no activation switch. PHY Freshness remains outside this release.
+
+The durable epoch projection is supplied by `reliquary-import-store`. The Import coordinator derives Archive receipt digests, evaluates readiness and validates the historical Freshness settlement before writing a completion record. Storage validation by itself does not authorize completion.

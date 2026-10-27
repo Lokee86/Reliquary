@@ -521,3 +521,5 @@ Crate-root Rust modules are composition/publication seams owned by the overall a
 Decision inheritance changes configured endpoint composition only; semantic persistence and owner lifecycle are unchanged.
 
 The import owner persists current standalone semantic evidence. CVAILEG1/2 runtime validation and transport have been removed after source-validated corpus conversion. Container framing does not interpret import semantics.
+
+Import epoch persistence is owned by `reliquary-import-store`, which depends only on Container among Reliquary crates. The Import coordinator retains receipt authority, readiness and Freshness settlement checks, and alone appends completion markers after those checks. The lower projection validates and replays accepted records without authorizing completion.

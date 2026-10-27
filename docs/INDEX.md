@@ -49,6 +49,8 @@
 - [Insomnia Store crate extraction evidence](insomnia-store-crate-extraction-evidence-2026-10-26.md) — integrated root cutover, verified lower checks, and pending product/CLI/corpus gates.
 - [Dream Store crate extraction specification](dream-store-crate-extraction-spec-2026-10-27.md) — first-cycle journal/Begin ownership, physical population and proof authority seams, replay invariants and product acceptance matrix.
 - [Dream Store crate extraction evidence](dream-store-crate-extraction-evidence-2026-10-27.md) — completed integration verification and separate CVAFRS07 gate status.
+- [Import Store crate extraction specification](import-store-crate-extraction-spec-2026-10-27.md) — durable epoch ownership and completion authority boundary.
+- [Import Store crate extraction evidence](import-store-crate-extraction-evidence-2026-10-27.md) — API inventory and verification.
 - [Subsystem documentation](subsystems/INDEX.md) — focused current-state ownership, behavior, lifecycle, failure, and implementation maps.
 - [Architectural invariants](invariants.md) — governing ownership and storage constraints.
 - [Storage format](storage-format.md) — exact current REL/PHY persistent-record format, legacy CVA compatibility, and migration boundary.
@@ -170,6 +172,8 @@
 - [domain-tombstone-convergence-split-2026-10-17.md](domain-tombstone-convergence-split-2026-10-17.md) - Domain Tombstone Convergence Split 2026 10 17 documentation.
 - [dream-classifier-v2-design.md](dream-classifier-v2-design.md) - Dream Classifier V2 Design documentation.
 - [dream-population-contract-2026-10-21.md](dream-population-contract-2026-10-21.md) - Dream Population Contract 2026 10 21 documentation.
+- [dream-store-crate-extraction-evidence-2026-10-27.md](dream-store-crate-extraction-evidence-2026-10-27.md) - Dream Store Crate Extraction Evidence 2026 10 27 documentation.
+- [dream-store-crate-extraction-spec-2026-10-27.md](dream-store-crate-extraction-spec-2026-10-27.md) - Dream Store Crate Extraction Spec 2026 10 27 documentation.
 - [echo-crate-extraction-spec-2026-10-26.md](echo-crate-extraction-spec-2026-10-26.md) - Echo Crate Extraction Spec 2026 10 26 documentation.
 - [ego-cross-chat-context-plan.md](ego-cross-chat-context-plan.md) - Ego Cross Chat Context Plan documentation.
 - [ego-cross-rel-summary-inclusion-plan.md](ego-cross-rel-summary-inclusion-plan.md) - Ego Cross Rel Summary Inclusion Plan documentation.
@@ -220,12 +224,12 @@
 - [graph-crate-extraction-evidence-2026-10-26.md](graph-crate-extraction-evidence-2026-10-26.md) - Graph Crate Extraction Evidence 2026 10 26 documentation.
 - [graph-crate-extraction-spec-2026-10-26.md](graph-crate-extraction-spec-2026-10-26.md) - Graph Crate Extraction Spec 2026 10 26 documentation.
 - [import-step24-attribution-acceptance-2026-10-17.md](import-step24-attribution-acceptance-2026-10-17.md) - Import Step24 Attribution Acceptance 2026 10 17 documentation.
+- [import-store-crate-extraction-evidence-2026-10-27.md](import-store-crate-extraction-evidence-2026-10-27.md) - Import Store Crate Extraction Evidence 2026 10 27 documentation.
+- [import-store-crate-extraction-spec-2026-10-27.md](import-store-crate-extraction-spec-2026-10-27.md) - Import Store Crate Extraction Spec 2026 10 27 documentation.
 - [insomnia-explicit-memory-commit-plan.md](insomnia-explicit-memory-commit-plan.md) - Insomnia Explicit Memory Commit Plan documentation.
 - [insomnia-semantic-validation-2026-08-24.md](insomnia-semantic-validation-2026-08-24.md) - Insomnia Semantic Validation 2026 08 24 documentation.
 - [insomnia-store-crate-extraction-evidence-2026-10-26.md](insomnia-store-crate-extraction-evidence-2026-10-26.md) - Insomnia Store Crate Extraction Evidence 2026 10 26 documentation.
 - [insomnia-store-crate-extraction-spec-2026-10-26.md](insomnia-store-crate-extraction-spec-2026-10-26.md) - Insomnia Store Crate Extraction Spec 2026 10 26 documentation.
-- [dream-store-crate-extraction-spec-2026-10-27.md](dream-store-crate-extraction-spec-2026-10-27.md) - Dream Store Crate Extraction Spec 2026 10 27 documentation.
-- [dream-store-crate-extraction-evidence-2026-10-27.md](dream-store-crate-extraction-evidence-2026-10-27.md) - Dream Store Crate Extraction Evidence 2026 10 27 documentation.
 - [interaction-stream-compact-contract-2026-10-21.md](interaction-stream-compact-contract-2026-10-21.md) - Interaction Stream Compact Contract 2026 10 21 documentation.
 - [invariants.md](invariants.md) - Invariants documentation.
 - [latest-offline-converter-coverage-2026-10-21.md](latest-offline-converter-coverage-2026-10-21.md) - Latest Offline Converter Coverage 2026 10 21 documentation.

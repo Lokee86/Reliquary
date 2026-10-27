@@ -1,8 +1,7 @@
 //! Exclusive import completion composition; stores retain their own evidence.
 
-/// Unforgeable authority for appending an import completion marker.
-/// Its private field confines construction to this coordinator module.
-pub(super) struct CompletionAuthority {
+/// Authority confined to the completion coordinator.
+struct CompletionAuthority {
     _private: (),
 }
 
@@ -14,6 +13,20 @@ use crate::freshness_storage::HistoricalImportFreshnessSettlement;
 use crate::{Cva, CvaError};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
+
+fn append_authorized_complete(
+    epochs: &mut ImportEpochStore,
+    container: &mut reliquary_container::Container,
+    complete: &ImportComplete,
+    _authority: CompletionAuthority,
+) -> Result<(), ImportError> {
+    if epochs.check_complete(complete)? {
+        let bytes = epoch_codec::encode_complete(complete)?;
+        container.append(&bytes)?;
+        epochs.ingest(&bytes)?;
+    }
+    Ok(())
+}
 
 fn epoch_error(message: &'static str) -> CvaError {
     CvaError::Import(ImportError::Epoch(message))
@@ -149,9 +162,10 @@ impl Cva {
             historical_freshness_settlement_digest: settlement_digest(&settlement),
         };
         let result = self.with_import_write_scope(|cva| {
-            epochs.append_complete_coordinated(
+            append_authorized_complete(
+                &mut epochs,
                 &mut cva.container,
-                complete.clone(),
+                &complete,
                 CompletionAuthority { _private: () },
             )
         })?;
