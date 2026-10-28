@@ -1,26 +1,26 @@
 use crate::compatibility_vector::{cosine, validate_vectors};
 use crate::{
     COMPATIBILITY_MIN_COSINE, COMPATIBILITY_POLICY_VERSION, COMPATIBILITY_PROBE_SUITE_VERSION,
-    CompatibilityProbeReference, CompatibilityProfile, CompatibilityProfileError,
-    CompatibilityProfileId, CompatibilityReport, EmbeddingEndpoint, EmbeddingMode,
+    CompatibilityProbeReference, CompatibilityProfile, CompatibilityProfileId, CompatibilityReport,
+    EmbeddingEndpoint, EmbeddingMode, ProbeError,
 };
-pub(crate) use reliquary_vector_store::profile::compatibility_profile_id;
+pub use reliquary_vector_store::profile::compatibility_profile_id;
 
-pub(crate) const QUERY_PROBES: [&str; 2] = [
+pub const QUERY_PROBES: [&str; 2] = [
     "continuity compatibility query: cedar river glass",
     "continuity compatibility query: violet engine station",
 ];
-pub(crate) const DOCUMENT_PROBES: [&str; 2] = [
+pub const DOCUMENT_PROBES: [&str; 2] = [
     "continuity compatibility document: quiet harbor satellite",
     "continuity compatibility document: copper lantern winter",
 ];
 
-pub(crate) fn profile_from_endpoint(
+pub fn profile_from_endpoint(
     endpoint: &impl EmbeddingEndpoint,
-) -> Result<CompatibilityProfile, CompatibilityProfileError> {
+) -> Result<CompatibilityProfile, ProbeError> {
     let dimensions = endpoint.dimensions();
     if dimensions == 0 {
-        return Err(CompatibilityProfileError::InvalidProfile("zero dimensions"));
+        return Err(ProbeError::InvalidProfile("zero dimensions"));
     }
     let normalization = endpoint.normalization();
     let mut references = Vec::with_capacity(QUERY_PROBES.len() + DOCUMENT_PROBES.len());
@@ -52,15 +52,15 @@ pub(crate) fn profile_from_endpoint(
     Ok(profile)
 }
 
-pub(crate) fn verify_endpoint(
+pub fn verify_endpoint(
     profile: &CompatibilityProfile,
     endpoint: &impl EmbeddingEndpoint,
-) -> Result<CompatibilityReport, CompatibilityProfileError> {
+) -> Result<CompatibilityReport, ProbeError> {
     let observed = profile_from_endpoint(endpoint)?;
     Ok(compare_profiles(profile, &observed))
 }
 
-pub(crate) fn compare_profiles(
+pub fn compare_profiles(
     expected: &CompatibilityProfile,
     observed: &CompatibilityProfile,
 ) -> CompatibilityReport {
@@ -96,10 +96,10 @@ pub(crate) fn compare_profiles(
     }
 }
 
-pub(crate) fn validate_embedding_batch(
+pub fn validate_embedding_batch(
     profile: &CompatibilityProfile,
     vectors: &[Vec<f32>],
     expected: usize,
-) -> Result<(), CompatibilityProfileError> {
+) -> Result<(), ProbeError> {
     validate_vectors(profile.dimensions, profile.normalization, vectors, expected)
 }

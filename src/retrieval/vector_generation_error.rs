@@ -73,3 +73,9 @@ from_error!(PackedVectorError, PackedVectors);
 from_error!(ArchiveVectorError, ArchiveVectors);
 from_error!(CompatibilityProfileError, Profile);
 from_error!(EmbeddingEndpointError, Endpoint);
+
+impl From<reliquary_vectors::ProbeError> for VectorGenerationError {
+    fn from(error: reliquary_vectors::ProbeError) -> Self {
+        Self::Profile(error.into())
+    }
+}

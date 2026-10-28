@@ -1,12 +1,11 @@
-use crate::compatibility_profile_probe::{validate_embedding_batch, verify_endpoint};
 use crate::vector_generation_validation::{
     has_complete_current_coverage, validate_generation_reference, vector_generation_id,
 };
 use crate::{
     CompatibilityProfile, CompatibilityProfileId, Cva, EmbeddingEndpoint, EmbeddingMode,
-    PackedVectors, ScalarType, VectorGeneration, VectorGenerationError, VectorGenerationId,
-    VectorGenerationStats, VectorSchema,
+    VectorGeneration, VectorGenerationError, VectorGenerationId, VectorGenerationStats,
 };
+use reliquary_vectors::compatibility_profile_probe::verify_endpoint;
 
 impl Cva {
     pub fn build_archive_vector_generation(
@@ -43,25 +42,17 @@ impl Cva {
             texts.push(self.fragment_text(*fragment_id)?);
         }
         let vectors = endpoint.embed(EmbeddingMode::Document, &texts)?;
-        validate_embedding_batch(&profile, &vectors, texts.len())?;
-        let schema = VectorSchema::new(profile.dimensions, ScalarType::F32)
-            .map_err(|_| VectorGenerationError::InvalidEmbeddingMatrix)?;
-        let row_bytes = usize::try_from(profile.dimensions)
-            .ok()
-            .and_then(|dimensions| dimensions.checked_mul(4))
-            .ok_or(VectorGenerationError::InvalidEmbeddingMatrix)?;
-        let capacity = vectors
-            .len()
-            .checked_mul(row_bytes)
-            .ok_or(VectorGenerationError::InvalidEmbeddingMatrix)?;
-        let mut bytes = Vec::with_capacity(capacity);
-        for vector in vectors {
-            for value in vector {
-                bytes.extend_from_slice(&value.to_le_bytes());
-            }
-        }
-        let packed = PackedVectors::from_bytes(schema, bytes)
-            .map_err(|_| VectorGenerationError::InvalidEmbeddingMatrix)?;
+        let packed = reliquary_vectors::pack_embedding_batch(&profile, vectors, texts.len())
+            .map_err(|error| match error {
+                reliquary_vectors::BatchPackingError::Validation(error) => {
+                    VectorGenerationError::Profile(error.into())
+                }
+                reliquary_vectors::BatchPackingError::InvalidMatrix
+                | reliquary_vectors::BatchPackingError::Schema(_)
+                | reliquary_vectors::BatchPackingError::Packed(_) => {
+                    VectorGenerationError::InvalidEmbeddingMatrix
+                }
+            })?;
         let packed_id = self.put_packed_vectors(packed)?;
         let archive_vector_id = self.put_archive_vectors(packed_id, fragment_ids)?;
         self.publish_vector_generation(

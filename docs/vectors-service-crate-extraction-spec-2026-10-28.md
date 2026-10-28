@@ -1,9 +1,9 @@
 # Vectors service crate extraction — implementation specification
 
-**Status:** Specified, not implemented (2026-10-28).
+**Status:** Implemented and product-tested (2026-10-28); documentation and architecture tooling limitations are recorded in the evidence.
 **Repository / branch:** `Reliquary-crate-first` · `refactor/crate-first-restart`.
-**Specification baseline:** `0cfba254` (Freshness service extraction specified). Freshness extraction is concurrently in progress in the working tree; **do not modify, stage, reset or merge its uncommitted work**.
-**Target:** `crates/reliquary-vectors/` — currently a placeholder.
+**Integration baseline:** `a2313af7` (Freshness service extraction committed). Vectors implementation and root consumer rewiring are integrated separately from unrelated changes.
+**Target:** `crates/reliquary-vectors/` — service sources and consumer rewiring are implemented.
 **Scope:** Behavior-preserving, compiled service hard cut after the established Vector Store owner extraction. No new embedding model, provider, numerical policy, persisted schema, search strategy, REL/PHY authority or release feature.
 
 ## Purpose
@@ -12,7 +12,7 @@ Turn the root-owned model-embedding and compatibility policy into an independent
 
 This is **not** a second Vector Store. The previous extraction implemented `reliquary-vector-store` with Container-backed packed/profile/Archive/Memory/generation codecs, replay and store APIs. Its documented architecture and corpus qualifications remain in [the Store spec](vector-store-crate-extraction-spec-2026-10-26.md) and [evidence](vector-store-crate-extraction-evidence-2026-10-26.md).
 
-## Overview and expected developer outcomes
+## Overview
 
 The final `reliquary-vectors` crate should let a developer change compatibility evaluation, embedding response validation or pure f32 packing without modifying Container, Store, Archive, Memory Core, Retrieval or Runtime. Existing REL/PHY methods and Switchboard endpoints should use its narrow interface. Changes requiring owner-side writes remain in explicit higher coordinators.
 
@@ -88,7 +88,7 @@ An intentional, bounded red integration window is permitted between the first co
 5. **V5 — Rewire real consumers; delete displaced algorithms.** Update Cva/Phylactery, configured/runtime vector workers, F8, historical embedding, Retrieval/Dream query-vector consumers and root `pub use` to import the service. Keep `validate_generation_reference` at the Root foreign-owner admission boundary. Remove the old root embedding trait implementation, probe/cosine engine, and actual copied packing logic; preserve pure local error mapping only where Root owns the error type. Prove no upward crate dependency, dual provider invocation or durable writer. Do not fold Retrieval, external host indexing or runtime scheduling into this crate.
 6. **V6 — Product verification, documentation and commit.** Verify focused lower tests, related Root/CLI coverage, workspace compile/format, links and public examples. Update current code maps and store/service distinctions in owner docs. Record genuine outcomes; stage/commit only this extraction after the active Freshness work is separately integrated. Do not stage uncommitted Freshness changes or unrelated Graph evidence.
 
-This spec is implementable independently of Freshness's unfinished service cut, but its **integration baseline must be refreshed after Freshness commits**. No implementation agent may absorb another agent's working tree as part of a Vectors commit.
+Freshness is now committed at `a2313af7`, establishing the integration baseline for this extraction. The Vectors source cut and root consumer rewire are implemented; verification and remaining tooling limitations are recorded in the evidence.
 
 ## Verification and completion gates
 

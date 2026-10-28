@@ -18,7 +18,7 @@ fn verify(
 ) -> Result<(), ExternalSourceError> {
     if profile.dimensions == 0
         || profile.dimensions > 4096
-        || !crate::compatibility_profile_probe::verify_endpoint(profile, endpoint)
+        || !reliquary_vectors::compatibility_profile_probe::verify_endpoint(profile, endpoint)
             .map_err(|_| ExternalSourceError::Unavailable)?
             .compatible
     {

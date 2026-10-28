@@ -42,7 +42,7 @@ Maintenance can select retained active profiles, verify completeness for current
 
 Profile retirement is semantic owner state, distinct from deleting arbitrary historical bytes.
 
-Vector persistence is in a partial crate extraction: `reliquary-vector-store` contains wire and store/replay modules, while root lifecycle and cross-owner authorization remain in the product. Root focused vector/retrieval and CLI checks are pending. See the [extraction evidence](../vector-store-crate-extraction-evidence-2026-10-26.md).
+Vector persistence remains owned by `reliquary-vector-store`, including packed payloads, compatibility profiles, Archive/Memory bindings, vector generations and replay. The Vectors service cut is integrated: `reliquary-vectors` now contains the embedding endpoint contract and Switchboard adapter, deterministic compatibility probes and vector validation, plus pure F32 batch packing. Switchboard retains provider transport, route and credential policy. Root Cva/Phylactery coordinators retain owner authorization, source validation, transactions and publication; Retrieval retains candidate selection and ranking; Freshness retains F8 effect policy and evaluation. Root consumers use the service and the displaced algorithms have been removed; remaining documentation and architecture tooling limitations are recorded in the evidence. See the [Vectors extraction evidence](../vectors-service-crate-extraction-evidence-2026-10-28.md) and the [Vector Store extraction evidence](../vector-store-crate-extraction-evidence-2026-10-26.md).
 
 ## Rewrite
 

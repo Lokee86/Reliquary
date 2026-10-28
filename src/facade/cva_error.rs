@@ -150,3 +150,9 @@ impl From<reliquary_perception_store::ResolutionError> for CvaError {
         crate::entity_resolution_boundary::memory_error(e).into()
     }
 }
+
+impl From<reliquary_vectors::ProbeError> for CvaError {
+    fn from(error: reliquary_vectors::ProbeError) -> Self {
+        Self::CompatibilityProfiles(error.into())
+    }
+}

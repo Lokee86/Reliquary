@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "status": "container-archive-memory-core-echo-graph-and-perception-store-extracted-other-owner-crates-reserved",
+  "status": "container-archive-memory-core-echo-graph-perception-store-and-freshness-extracted-vectors-service-in-progress",
   "primary_crates": [
     "reliquary-archive",
     "reliquary-memory-core",
@@ -286,6 +286,7 @@
     "Physical layering also requires that a lower logical component never depend on a crate containing a higher-rank service",
     "Allowed edges are a maximum, not preinstalled Cargo dependencies; add path dependencies only when used",
     "Independent low-ranked owner stores are required for Ego, Freshness, Vectors, Insomnia, Dream, Perception, Import, Maintenance and derived External Index",
+    "Vectors service extraction is in progress after Freshness integration; direct-dependency entries remain maximum permissions and do not describe a completed implementation",
     "Owner Lifecycle consumes lower store APIs only, never semantic processors",
     "Legacy root remains a working product host until services are extracted"
   ]

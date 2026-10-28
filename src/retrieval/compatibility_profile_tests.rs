@@ -1,6 +1,8 @@
 use crate::compatibility_profile_codec::encode_profile;
-use crate::compatibility_profile_probe::{compatibility_profile_id, profile_from_endpoint};
 use crate::{COMPATIBILITY_MIN_COSINE, Cva, SimulatedEmbeddingEndpoint, VectorNormalization};
+use reliquary_vectors::compatibility_profile_probe::{
+    compatibility_profile_id, profile_from_endpoint,
+};
 use std::fs;
 use std::path::PathBuf;
 

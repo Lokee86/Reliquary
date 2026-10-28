@@ -177,12 +177,15 @@ impl Cva {
         batch: SemanticArchiveBatch,
         vectors: Vec<Vec<f32>>,
     ) -> Result<(), CvaError> {
-        crate::compatibility_profile_probe::validate_embedding_batch(
+        reliquary_vectors::compatibility_profile_probe::validate_embedding_batch(
             &batch.profile,
             &vectors,
             batch.texts.len(),
         )
-        .map_err(|e| CvaError::Freshness(e.to_string()))?;
+        .map_err(|e| {
+            let e: crate::CompatibilityProfileError = e.into();
+            CvaError::Freshness(e.to_string())
+        })?;
         // A newer retained generation can win while provider I/O is in flight.
         if self
             .current_vector_generation(batch.profile.id)
@@ -190,15 +193,21 @@ impl Cva {
         {
             return Ok(());
         }
-        let schema = crate::VectorSchema::new(batch.profile.dimensions, crate::ScalarType::F32)
-            .map_err(|e| CvaError::Freshness(e.to_string()))?;
-        let bytes = vectors
-            .into_iter()
-            .flatten()
-            .flat_map(f32::to_le_bytes)
-            .collect();
-        let packed = crate::PackedVectors::from_bytes(schema, bytes)
-            .map_err(|e| CvaError::Freshness(e.to_string()))?;
+        let packed =
+            reliquary_vectors::pack_embedding_batch(&batch.profile, vectors, batch.texts.len())
+                .map_err(|error| match error {
+                    reliquary_vectors::BatchPackingError::Validation(error) => {
+                        let error: crate::CompatibilityProfileError = error.into();
+                        CvaError::Freshness(error.to_string())
+                    }
+                    reliquary_vectors::BatchPackingError::Schema(message)
+                    | reliquary_vectors::BatchPackingError::Packed(message) => {
+                        CvaError::Freshness(message)
+                    }
+                    reliquary_vectors::BatchPackingError::InvalidMatrix => {
+                        CvaError::Freshness("size overflow".into())
+                    }
+                })?;
         let packed_id = self.put_packed_vectors(packed)?;
         let archive_id = self.put_archive_vectors(packed_id, batch.fragment_ids)?;
         self.publish_vector_generation(batch.profile.id, archive_id, batch.archive_version)?;

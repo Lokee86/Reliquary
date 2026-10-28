@@ -27,6 +27,7 @@
 - [Switchboard crate extraction specification](switchboard-crate-extraction-spec-2026-10-27.md) — target ownership and dependency gates; current boundaries are described in [Model and provider runtime](subsystems/model-runtime.md), with verification tracked separately.
 - [Freshness service crate extraction specification](freshness-service-crate-extraction-spec-2026-10-28.md) — deterministic service ownership, pure historical/F8 evaluation, due scheduling and staged root hard cut.
 - [Vectors service crate extraction specification](vectors-service-crate-extraction-spec-2026-10-28.md) — model embedding, compatibility verification, pure F32 packing, and root/Vector Store separation.
+- [Vectors service crate extraction evidence](vectors-service-crate-extraction-evidence-2026-10-28.md) — current source cut and integration status; verification remains in progress.
 - [Retrieval service crate extraction specification](retrieval-service-crate-extraction-spec-2026-10-28.md) — passive lexical/semantic/hybrid engine, Community-routed Memory retrieval, agentic candidate ordering and strict owner boundaries.
 - [Owner Lifecycle extraction specification](owner-lifecycle-crate-extraction-spec-2026-10-27.md) — compiled owner reopen and structural replay coordination.
 - [Compact interaction stream contract](interaction-stream-compact-contract-2026-10-21.md) — frozen checkpoint transitions and exact suffix representation.
@@ -282,6 +283,7 @@
 - [tombstone-import-history-final-verification-2026-10-18.md](tombstone-import-history-final-verification-2026-10-18.md) - Tombstone Import History Final Verification 2026 10 18 documentation.
 - [vector-store-crate-extraction-evidence-2026-10-26.md](vector-store-crate-extraction-evidence-2026-10-26.md) - Vector Store Crate Extraction Evidence 2026 10 26 documentation.
 - [vector-store-crate-extraction-spec-2026-10-26.md](vector-store-crate-extraction-spec-2026-10-26.md) - Vector Store Crate Extraction Spec 2026 10 26 documentation.
+- [vectors-service-crate-extraction-evidence-2026-10-28.md](vectors-service-crate-extraction-evidence-2026-10-28.md) - Vectors Service Crate Extraction Evidence 2026 10 28 documentation.
 - [vectors-service-crate-extraction-spec-2026-10-28.md](vectors-service-crate-extraction-spec-2026-10-28.md) - Vectors Service Crate Extraction Spec 2026 10 28 documentation.
 - [version-history-plan.md](version-history-plan.md) - Version History Plan documentation.
 <!-- doc-ledger:files:end -->

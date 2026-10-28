@@ -1,10 +1,9 @@
-use crate::compatibility_profile_probe::{validate_embedding_batch, verify_endpoint};
 use crate::{
     CompatibilityProfileId, EmbeddingEndpoint, EmbeddingMode, MemoryBodyId,
     MemoryVectorBuildResult, MemoryVectorError, MemoryVectorId, MemoryVectorInfo,
-    MemoryVectorLocation, MemoryVectorSet, MemoryVectorStats, PackedVectorId, PackedVectors,
-    Phylactery, ScalarType, VectorSchema,
+    MemoryVectorLocation, MemoryVectorSet, MemoryVectorStats, PackedVectorId, Phylactery,
 };
+use reliquary_vectors::compatibility_profile_probe::verify_endpoint;
 
 impl Phylactery {
     pub fn put_memory_vectors(
@@ -86,25 +85,17 @@ impl Phylactery {
             );
         }
         let vectors = endpoint.embed(EmbeddingMode::Document, &texts)?;
-        validate_embedding_batch(&profile, &vectors, texts.len())?;
-        let schema = VectorSchema::new(profile.dimensions, ScalarType::F32)
-            .map_err(|_| MemoryVectorError::InvalidEmbeddingMatrix)?;
-        let row_bytes = usize::try_from(profile.dimensions)
-            .ok()
-            .and_then(|dimensions| dimensions.checked_mul(4))
-            .ok_or(MemoryVectorError::InvalidEmbeddingMatrix)?;
-        let capacity = vectors
-            .len()
-            .checked_mul(row_bytes)
-            .ok_or(MemoryVectorError::InvalidEmbeddingMatrix)?;
-        let mut bytes = Vec::with_capacity(capacity);
-        for vector in vectors {
-            for value in vector {
-                bytes.extend_from_slice(&value.to_le_bytes());
-            }
-        }
-        let packed = PackedVectors::from_bytes(schema, bytes)
-            .map_err(|_| MemoryVectorError::InvalidEmbeddingMatrix)?;
+        let packed = reliquary_vectors::pack_embedding_batch(&profile, vectors, texts.len())
+            .map_err(|error| match error {
+                reliquary_vectors::BatchPackingError::Validation(error) => {
+                    MemoryVectorError::Profile(error.into())
+                }
+                reliquary_vectors::BatchPackingError::InvalidMatrix
+                | reliquary_vectors::BatchPackingError::Schema(_)
+                | reliquary_vectors::BatchPackingError::Packed(_) => {
+                    MemoryVectorError::InvalidEmbeddingMatrix
+                }
+            })?;
         let packed_vector_id = self.put_packed_vectors(packed)?;
         let set_id =
             self.put_memory_vectors(compatibility_profile_id, packed_vector_id, missing.clone())?;

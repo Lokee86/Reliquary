@@ -1,8 +1,8 @@
-use crate::compatibility_profile_probe::{validate_embedding_batch, verify_endpoint};
 use crate::{
     CompatibilityProfileId, Cva, EmbeddingEndpoint, EmbeddingMode, FragmentId,
     MAX_SEMANTIC_SEARCH_LIMIT, ScalarType, SemanticSearchError, SemanticSearchHit,
 };
+use reliquary_vectors::compatibility_profile_probe::{validate_embedding_batch, verify_endpoint};
 use std::collections::HashSet;
 
 impl Cva {

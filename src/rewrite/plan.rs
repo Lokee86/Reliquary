@@ -1,8 +1,5 @@
 use super::model::*;
-use crate::{
-    Cva, HistoryGenerationId, MemoryId, Phylactery,
-    compatibility_profile_model::CompatibilityProfileId,
-};
+use crate::{CompatibilityProfileId, Cva, HistoryGenerationId, MemoryId, Phylactery};
 use sha2::{Digest, Sha256};
 use std::fmt;
 

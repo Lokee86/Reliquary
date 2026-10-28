@@ -50,3 +50,13 @@ impl From<reliquary_vector_store::ProfileStoreError> for CompatibilityProfileErr
         }
     }
 }
+
+impl From<reliquary_vectors::ProbeError> for CompatibilityProfileError {
+    fn from(value: reliquary_vectors::ProbeError) -> Self {
+        match value {
+            reliquary_vectors::ProbeError::Endpoint(error) => Self::Endpoint(error),
+            reliquary_vectors::ProbeError::InvalidProfile(reason) => Self::InvalidProfile(reason),
+            reliquary_vectors::ProbeError::SizeOverflow => Self::SizeOverflow,
+        }
+    }
+}

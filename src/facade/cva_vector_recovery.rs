@@ -1,7 +1,7 @@
-use crate::compatibility_profile_probe::profile_from_endpoint;
 use crate::{
     CompatibilityProfileId, Cva, CvaError, EmbeddingEndpoint, EmbeddingMode, MemoryVectorError,
 };
+use reliquary_vectors::compatibility_profile_probe::profile_from_endpoint;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DerivedVectorRecovery {

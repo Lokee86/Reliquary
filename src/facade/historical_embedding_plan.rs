@@ -216,9 +216,9 @@ pub(super) fn prepare(
     }
     report.reused_rows = rows.len();
     let mut missing = Vec::new();
-    let mut planned_bytes = crate::compatibility_profile_probe::QUERY_PROBES
+    let mut planned_bytes = reliquary_vectors::compatibility_profile_probe::QUERY_PROBES
         .iter()
-        .chain(crate::compatibility_profile_probe::DOCUMENT_PROBES.iter())
+        .chain(reliquary_vectors::compatibility_profile_probe::DOCUMENT_PROBES.iter())
         .map(|s| s.len())
         .sum::<usize>();
     bounded(planned_bytes, limits.text_bytes, "probe text bytes")?;

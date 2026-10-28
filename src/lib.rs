@@ -174,16 +174,10 @@ mod community_routing;
 use reliquary_vector_store::profile as compatibility_profile_codec;
 #[path = "retrieval/compatibility_profile_error.rs"]
 mod compatibility_profile_error;
-#[path = "retrieval/compatibility_profile_model.rs"]
-mod compatibility_profile_model;
-#[path = "retrieval/compatibility_profile_probe.rs"]
-mod compatibility_profile_probe;
 #[path = "retrieval/compatibility_profile_rebuild.rs"]
 mod compatibility_profile_rebuild;
 #[path = "retrieval/compatibility_profile_store.rs"]
 mod compatibility_profile_store;
-#[path = "retrieval/compatibility_vector.rs"]
-mod compatibility_vector;
 #[path = "config_security/config.rs"]
 pub mod config;
 #[path = "config_security/config_codec.rs"]
@@ -389,8 +383,6 @@ mod ego_compact_writer_tests;
 mod ego_error;
 use reliquary_ego_store::ego_model;
 use reliquary_ego_store::ego_store;
-#[path = "runtime_inference/embedding_endpoint.rs"]
-mod embedding_endpoint;
 #[path = "perception/entity_admission.rs"]
 mod entity_admission;
 #[path = "perception/entity_audit.rs"]
@@ -770,11 +762,6 @@ pub use community_model::{
     DREAM_COMMUNITY_NAME_RETAIN_JACCARD_PERMILLE, MAX_COMMUNITY_SEMANTIC_NAME_BYTES,
 };
 pub use compatibility_profile_error::CompatibilityProfileError;
-pub use compatibility_profile_model::{
-    COMPATIBILITY_MIN_COSINE, COMPATIBILITY_POLICY_VERSION, COMPATIBILITY_PROBE_SUITE_VERSION,
-    CompatibilityProbeReference, CompatibilityProfile, CompatibilityProfileId,
-    CompatibilityProfileStats, CompatibilityReport,
-};
 pub use config::ReliquaryConfig;
 pub use config_error::ConfigError;
 pub use configured_runtime::{
@@ -806,6 +793,11 @@ pub use reliquary_switchboard::ConfiguredDecisionEndpoint;
 pub use reliquary_switchboard::ConfiguredGeneralEndpoint;
 pub use reliquary_switchboard::{
     Credential, CredentialError, CredentialId, CredentialsConfig, SecretString,
+};
+pub use reliquary_vectors::{
+    COMPATIBILITY_MIN_COSINE, COMPATIBILITY_POLICY_VERSION, COMPATIBILITY_PROBE_SUITE_VERSION,
+    CompatibilityProbeReference, CompatibilityProfile, CompatibilityProfileId,
+    CompatibilityProfileStats, CompatibilityReport,
 };
 pub use runtime_config::RuntimeConfig;
 pub use storage_reclamation::StorageReclamationReport;
@@ -869,10 +861,6 @@ pub use ego_error::EgoError;
 pub use ego_model::{
     EgoAnchor, EgoAnchorId, EgoAnchorPriority, EgoIdentity, EgoIdentityId, EgoPersonality,
     EgoWebSynthesis, MAX_EGO_ANCHOR_CHARS,
-};
-pub use embedding_endpoint::{
-    EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, SimulatedEmbeddingEndpoint,
-    VectorNormalization,
 };
 pub use entity_admission::MAX_ENTITY_ADMISSION_CONTEXT_MEMORIES;
 pub use entity_audit_model::{
@@ -1044,6 +1032,10 @@ pub use reliquary_switchboard::{
     OPENAI_CODEX_COMPAT_VERSION, OPENAI_CODEX_RESPONSES_URL, OpenAiCodexGeneralEndpoint,
 };
 pub use reliquary_vector_store::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
+pub use reliquary_vectors::{
+    EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, SimulatedEmbeddingEndpoint,
+    VectorNormalization,
+};
 pub use runtime_host::memory_search::{
     DEFAULT_MEMORY_SEARCH_DEPTH, DEFAULT_MEMORY_SEARCH_RESULTS, MAX_MEMORY_SEARCH_DEPTH,
     MAX_MEMORY_SEARCH_QUERY_BYTES, MAX_MEMORY_SEARCH_RESULTS, MemorySearchItem, MemorySearchLane,

@@ -201,10 +201,13 @@ pub(super) fn fill<E: EmbeddingEndpoint>(
             report: &cell,
             limits,
         };
-        let compatibility =
-            crate::compatibility_profile_probe::verify_endpoint(&plan.profile, &provider);
+        let compatibility = reliquary_vectors::compatibility_profile_probe::verify_endpoint(
+            &plan.profile,
+            &provider,
+        );
         report = cell.borrow().clone();
         let compatibility = compatibility.map_err(|e| {
+            let e: crate::CompatibilityProfileError = e.into();
             if matches!(
                 e,
                 crate::CompatibilityProfileError::Endpoint(
@@ -236,12 +239,15 @@ pub(super) fn fill<E: EmbeddingEndpoint>(
                 }
             })?;
             check_cancel(cancel)?;
-            crate::compatibility_profile_probe::validate_embedding_batch(
+            reliquary_vectors::compatibility_profile_probe::validate_embedding_batch(
                 &plan.profile,
                 &vectors,
                 batch.len(),
             )
-            .map_err(|e| (HistoricalEmbeddingDisposition::InvalidOutput, e.to_string()))?;
+            .map_err(|e| {
+                let e: crate::CompatibilityProfileError = e.into();
+                (HistoricalEmbeddingDisposition::InvalidOutput, e.to_string())
+            })?;
             if vectors
                 .iter()
                 .any(|v| crate::freshness::semantic_policy::cosine_similarity(v, v).is_err())

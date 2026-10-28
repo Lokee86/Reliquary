@@ -36,8 +36,12 @@ pub(super) fn archive_generation_without_live<E: EmbeddingEndpoint>(
         .map(|id| cva.fragment_text(*id).unwrap())
         .collect();
     let vectors = endpoint.embed(EmbeddingMode::Document, &texts).unwrap();
-    crate::compatibility_profile_probe::validate_embedding_batch(&profile, &vectors, texts.len())
-        .unwrap();
+    reliquary_vectors::compatibility_profile_probe::validate_embedding_batch(
+        &profile,
+        &vectors,
+        texts.len(),
+    )
+    .unwrap();
     let schema = crate::VectorSchema::new(profile.dimensions, crate::ScalarType::F32).unwrap();
     let bytes = vectors
         .into_iter()

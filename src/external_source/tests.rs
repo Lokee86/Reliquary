@@ -132,7 +132,8 @@ fn path() -> std::path::PathBuf {
     std::env::temp_dir().join(format!("external-{}.cva", uuid::Uuid::new_v4()))
 }
 fn rebuild(cva: &mut Cva, host: &Host) -> ExternalIndexStatus {
-    let profile = crate::compatibility_profile_probe::profile_from_endpoint(&Endpoint).unwrap();
+    let profile =
+        reliquary_vectors::compatibility_profile_probe::profile_from_endpoint(&Endpoint).unwrap();
     let old = cva
         .external_index
         .sources

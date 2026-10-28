@@ -1,9 +1,9 @@
-use crate::compatibility_profile_probe::compare_profiles;
 use crate::{
     CompatibilityProfile, CompatibilityProfileError, CompatibilityProfileId,
     CompatibilityProfileStats,
 };
 use reliquary_container::Container;
+use reliquary_vectors::compatibility_profile_probe::compare_profiles;
 
 /// Root-side adapter for provider compatibility decisions. Persisted profile state
 /// is held exclusively by reliquary-vector-store.

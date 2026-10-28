@@ -143,10 +143,12 @@ impl EmbeddingEndpoint for SimulatedEmbeddingEndpoint {
 }
 
 /// Project the provider route's normalization into vector semantics.
-pub(crate) fn vector_normalization(value: crate::EmbeddingNormalization) -> VectorNormalization {
+pub(crate) fn vector_normalization(
+    value: reliquary_switchboard::EmbeddingNormalization,
+) -> VectorNormalization {
     match value {
-        crate::EmbeddingNormalization::None => VectorNormalization::None,
-        crate::EmbeddingNormalization::L2 => VectorNormalization::L2,
+        reliquary_switchboard::EmbeddingNormalization::None => VectorNormalization::None,
+        reliquary_switchboard::EmbeddingNormalization::L2 => VectorNormalization::L2,
     }
 }
 
@@ -180,5 +182,30 @@ fn provider_mode(mode: EmbeddingMode) -> reliquary_switchboard::EmbeddingMode {
     match mode {
         EmbeddingMode::Query => reliquary_switchboard::EmbeddingMode::Query,
         EmbeddingMode::Document => reliquary_switchboard::EmbeddingMode::Document,
+    }
+}
+
+#[cfg(test)]
+mod adapter_tests {
+    use super::*;
+
+    #[test]
+    fn provider_conversions_preserve_mode_and_normalization() {
+        assert!(matches!(
+            provider_mode(EmbeddingMode::Query),
+            reliquary_switchboard::EmbeddingMode::Query
+        ));
+        assert!(matches!(
+            provider_mode(EmbeddingMode::Document),
+            reliquary_switchboard::EmbeddingMode::Document
+        ));
+        assert_eq!(
+            vector_normalization(reliquary_switchboard::EmbeddingNormalization::None),
+            VectorNormalization::None
+        );
+        assert_eq!(
+            vector_normalization(reliquary_switchboard::EmbeddingNormalization::L2),
+            VectorNormalization::L2
+        );
     }
 }

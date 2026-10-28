@@ -3020,6 +3020,7 @@ dependencies = [
  "reliquary-perception-store",
  "reliquary-switchboard",
  "reliquary-vector-store",
+ "reliquary-vectors",
  "reqwest",
  "serde",
  "serde_json",
@@ -3078,6 +3079,16 @@ version = "0.1.0"
 dependencies = [
  "lodestone-packed",
  "reliquary-container",
+ "sha2",
+]
+
+[[package]]
+name = "reliquary-vectors"
+version = "0.1.0"
+dependencies = [
+ "lodestone-packed",
+ "reliquary-switchboard",
+ "reliquary-vector-store",
  "sha2",
 ]
 

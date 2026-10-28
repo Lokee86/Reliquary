@@ -1,8 +1,8 @@
-use crate::compatibility_profile_probe::validate_embedding_batch;
 use crate::{
     CompatibilityProfile, CompatibilityProfileError, CompatibilityProfileId, Cva, MemoryBodyId,
-    MemoryVectorError, PackedVectors, Phylactery, ScalarType, VectorSchema,
+    MemoryVectorError, Phylactery,
 };
+use reliquary_vectors::compatibility_profile_probe::validate_embedding_batch;
 
 pub(crate) struct RuntimeMemoryVectorBatch {
     pub(crate) profile: CompatibilityProfile,
@@ -160,24 +160,18 @@ fn commit_batch(
     if body_ids.is_empty() {
         return Ok(0);
     }
-    let schema = VectorSchema::new(batch.profile.dimensions, ScalarType::F32)
-        .map_err(|_| MemoryVectorError::InvalidEmbeddingMatrix)?;
-    let row_bytes = usize::try_from(batch.profile.dimensions)
-        .ok()
-        .and_then(|dimensions| dimensions.checked_mul(4))
-        .ok_or(MemoryVectorError::InvalidEmbeddingMatrix)?;
-    let capacity = pending_vectors
-        .len()
-        .checked_mul(row_bytes)
-        .ok_or(MemoryVectorError::InvalidEmbeddingMatrix)?;
-    let mut bytes = Vec::with_capacity(capacity);
-    for vector in pending_vectors {
-        for value in vector {
-            bytes.extend_from_slice(&value.to_le_bytes());
-        }
-    }
-    let packed = PackedVectors::from_bytes(schema, bytes)
-        .map_err(|_| MemoryVectorError::InvalidEmbeddingMatrix)?;
+    let packed =
+        reliquary_vectors::pack_embedding_batch(&batch.profile, pending_vectors, body_ids.len())
+            .map_err(|error| match error {
+                reliquary_vectors::BatchPackingError::Validation(error) => {
+                    MemoryVectorError::Profile(error.into())
+                }
+                reliquary_vectors::BatchPackingError::InvalidMatrix
+                | reliquary_vectors::BatchPackingError::Schema(_)
+                | reliquary_vectors::BatchPackingError::Packed(_) => {
+                    MemoryVectorError::InvalidEmbeddingMatrix
+                }
+            })?;
     let packed_vector_id = packed_vectors.put(container, packed)?;
     memory_vectors.put(
         container,

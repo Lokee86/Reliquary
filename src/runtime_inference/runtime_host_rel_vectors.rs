@@ -2,11 +2,11 @@ use super::{
     RelShared, ReliquaryRuntimeHostError, VECTOR_RETRY_POLL, notify_work, operation, stopped,
     wait_for_work, wait_for_work_timeout,
 };
-use crate::compatibility_profile_probe::profile_from_endpoint;
 use crate::{
     CompatibilityProfile, EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode,
     VectorNormalization,
 };
+use reliquary_vectors::compatibility_profile_probe::profile_from_endpoint;
 use std::sync::Arc;
 
 #[derive(Clone)]

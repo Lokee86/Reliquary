@@ -64,3 +64,9 @@ impl From<reliquary_vector_store::ArchiveVectorError> for SemanticSearchError {
         Self::ArchiveVectors(value.into())
     }
 }
+
+impl From<reliquary_vectors::ProbeError> for SemanticSearchError {
+    fn from(error: reliquary_vectors::ProbeError) -> Self {
+        Self::Profile(error.into())
+    }
+}

@@ -6,3 +6,9 @@ publish = false
 
 [lib]
 path = "src/lib.rs"
+
+[dependencies]
+lodestone-packed = { git = "https://github.com/Lokee86/lodestone.git", rev = "7b4b3e02b2bd3f3e474fef1a31c8632f8bbea49f" }
+reliquary-switchboard = { path = "../reliquary-switchboard" }
+reliquary-vector-store = { path = "../reliquary-vector-store" }
+sha2 = "0.10"

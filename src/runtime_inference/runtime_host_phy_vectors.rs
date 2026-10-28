@@ -1,6 +1,6 @@
 use super::{WorkerShared, operation};
-use crate::compatibility_profile_probe::profile_from_endpoint;
 use crate::{EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, VectorNormalization};
+use reliquary_vectors::compatibility_profile_probe::profile_from_endpoint;
 use std::sync::Arc;
 use std::time::Duration;
 

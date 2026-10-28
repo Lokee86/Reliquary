@@ -1,5 +1,5 @@
-use crate::compatibility_vector::cosine;
 use crate::{CommunityId, CommunitySnapshot, MemoryId};
+use reliquary_vectors::compatibility_vector::cosine;
 use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq)]

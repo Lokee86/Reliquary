@@ -73,3 +73,9 @@ impl From<EmbeddingEndpointError> for MemoryVectorError {
         Self::Endpoint(value)
     }
 }
+
+impl From<reliquary_vectors::ProbeError> for MemoryVectorError {
+    fn from(error: reliquary_vectors::ProbeError) -> Self {
+        Self::Profile(error.into())
+    }
+}

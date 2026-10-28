@@ -1,6 +1,6 @@
 # Crate-first Reliquary architecture
 
-Status: **Container, Archive, Memory Core, and Echo owner crates extracted; remaining owner crates are reserved targets** (2026-10-26).
+Status: **Container, Archive, Memory Core, Echo, and Freshness owner/service crates extracted; Vectors service extraction is integrated with tooling limitations recorded in its evidence** (2026-10-28).
 Starting commit: `c43d33c`. Branch: `refactor/crate-first-restart`.
 
 ## Purpose
@@ -28,7 +28,7 @@ The original October 21 phase execution ledger is archived in the Step 1 Git bun
 | `reliquary-ego` | Identity, Personality, Anchors and summary synthesis; durable Ego state is lower-owned |
 | `reliquary-retrieval` | Passive/semantic/agentic search and evidence selection |
 | `reliquary-context-engine` | Token budgeting, compaction and final model-facing context |
-| `reliquary-vectors` | Embedding generation and compatibility decisions over a separate Vector Store |
+| `reliquary-vectors` | Embedding execution contracts, compatibility probes and validation, and pure packed-vector assembly over the separate Vector Store; source cut and root rewire integrated; tooling limitations are recorded in the evidence |
 | `reliquary-history` | Nonmutating historical reconstruction |
 | `reliquary-switchboard` | Provider transport, routes and related config/security contracts |
 | `reliquary-project-environment` | Validated Lore/Git path and project authority |

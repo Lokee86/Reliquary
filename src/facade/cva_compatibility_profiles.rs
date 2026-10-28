@@ -1,8 +1,8 @@
-use crate::compatibility_profile_probe::{profile_from_endpoint, verify_endpoint};
 use crate::{
     CompatibilityProfile, CompatibilityProfileError, CompatibilityProfileId,
     CompatibilityProfileStats, CompatibilityReport, Cva, EmbeddingEndpoint,
 };
+use reliquary_vectors::compatibility_profile_probe::{profile_from_endpoint, verify_endpoint};
 
 impl Cva {
     pub fn establish_compatibility_profile(
@@ -85,6 +85,6 @@ impl Cva {
             .compatibility_profiles
             .get(id)
             .ok_or(CompatibilityProfileError::MissingProfile)?;
-        verify_endpoint(profile, endpoint)
+        verify_endpoint(profile, endpoint).map_err(Into::into)
     }
 }

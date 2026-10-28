@@ -1,23 +1,18 @@
-use crate::{CompatibilityProfileError, VectorNormalization};
+use crate::{ProbeError, VectorNormalization};
 
-pub(crate) fn validate_vectors(
+pub fn validate_vectors(
     dimensions: u32,
     normalization: VectorNormalization,
     vectors: &[Vec<f32>],
     expected: usize,
-) -> Result<(), CompatibilityProfileError> {
+) -> Result<(), ProbeError> {
     if vectors.len() != expected {
-        return Err(CompatibilityProfileError::InvalidProfile(
-            "embedding count mismatch",
-        ));
+        return Err(ProbeError::InvalidProfile("embedding count mismatch"));
     }
-    let dimensions =
-        usize::try_from(dimensions).map_err(|_| CompatibilityProfileError::SizeOverflow)?;
+    let dimensions = usize::try_from(dimensions).map_err(|_| ProbeError::SizeOverflow)?;
     for vector in vectors {
         if vector.len() != dimensions || vector.iter().any(|value| !value.is_finite()) {
-            return Err(CompatibilityProfileError::InvalidProfile(
-                "invalid embedding vector",
-            ));
+            return Err(ProbeError::InvalidProfile("invalid embedding vector"));
         }
         if normalization == VectorNormalization::L2 {
             let norm = vector
@@ -26,16 +21,14 @@ pub(crate) fn validate_vectors(
                 .sum::<f64>()
                 .sqrt();
             if (norm - 1.0).abs() > 1e-4 {
-                return Err(CompatibilityProfileError::InvalidProfile(
-                    "embedding not normalized",
-                ));
+                return Err(ProbeError::InvalidProfile("embedding not normalized"));
             }
         }
     }
     Ok(())
 }
 
-pub(crate) fn cosine(left: &[f32], right: &[f32]) -> Option<f64> {
+pub fn cosine(left: &[f32], right: &[f32]) -> Option<f64> {
     if left.is_empty() || left.len() != right.len() {
         return None;
     }

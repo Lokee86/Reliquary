@@ -1,8 +1,8 @@
-use crate::compatibility_profile_probe::{profile_from_endpoint, verify_endpoint};
 use crate::{
     CompatibilityProfile, CompatibilityProfileError, CompatibilityProfileId,
     CompatibilityProfileStats, CompatibilityReport, EmbeddingEndpoint, Phylactery,
 };
+use reliquary_vectors::compatibility_profile_probe::{profile_from_endpoint, verify_endpoint};
 
 impl Phylactery {
     pub fn establish_compatibility_profile(
@@ -74,6 +74,6 @@ impl Phylactery {
             .compatibility_profiles
             .get(id)
             .ok_or(CompatibilityProfileError::MissingProfile)?;
-        verify_endpoint(profile, endpoint)
+        verify_endpoint(profile, endpoint).map_err(Into::into)
     }
 }

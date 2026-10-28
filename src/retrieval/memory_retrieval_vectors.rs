@@ -73,7 +73,7 @@ pub(crate) fn exact_memory_scores(
         let vector = vectors.get(id).ok_or(MemoryRetrievalError::CorruptVector(
             "missing candidate vector",
         ))?;
-        let score = crate::compatibility_vector::cosine(query, vector)
+        let score = reliquary_vectors::compatibility_vector::cosine(query, vector)
             .ok_or(MemoryRetrievalError::InvalidQueryVector)?;
         ranked.push(crate::MemoryRetrievalHit {
             memory_id: *id,
@@ -134,7 +134,7 @@ pub(crate) fn load_searchable_memory_vectors(
         searchable.insert(id);
         let body_id = memories.current_body_id(id)?;
         if let Some(vector) = by_body.get(&body_id) {
-            if crate::compatibility_vector::cosine(vector, vector).is_none() {
+            if reliquary_vectors::compatibility_vector::cosine(vector, vector).is_none() {
                 return Err(MemoryRetrievalError::CorruptVector("invalid stored vector"));
             }
             vectors.insert(id, vector.clone());

@@ -86,7 +86,7 @@ impl GatewayRuntime {
             self.with_rel(&token, |r| r.cva.external_profile(old).map_err(operation))
                 .map_err(|_| ExternalSourceError::RebuildRequired)?
         } else {
-            crate::compatibility_profile_probe::profile_from_endpoint(endpoint)
+            reliquary_vectors::compatibility_profile_probe::profile_from_endpoint(endpoint)
                 .map_err(|_| ExternalSourceError::Unavailable)?
         };
         let prepared = external::index::prepare_rebuild(
