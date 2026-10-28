@@ -104,11 +104,7 @@
     ],
     "reliquary-insomnia": [
       "reliquary-archive",
-      "reliquary-chronos",
-      "reliquary-freshness",
-      "reliquary-insomnia-store",
       "reliquary-memory-core",
-      "reliquary-entity-resolution",
       "reliquary-switchboard"
     ],
     "reliquary-dream": [

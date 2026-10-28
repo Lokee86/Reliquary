@@ -153,7 +153,7 @@ fn routed_retry_reuses_phy_memory_after_wording_drift() {
     let candidate = &extraction.candidates[0];
     let mutation_id = format!(
         "insomnia:{}:{}",
-        super::candidate::hex(&episode.id.0),
+        reliquary_insomnia::hex(&episode.id.0),
         candidate.key
     );
     let (prewritten, _) = phy

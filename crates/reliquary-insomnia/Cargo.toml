@@ -6,3 +6,10 @@ publish = false
 
 [lib]
 path = "src/lib.rs"
+
+[dependencies]
+serde_json = "1"
+reliquary-archive = { path = "../reliquary-archive" }
+reliquary-memory-core = { path = "../reliquary-memory-core" }
+reliquary-switchboard = { path = "../reliquary-switchboard" }
+sha2 = "0.10"

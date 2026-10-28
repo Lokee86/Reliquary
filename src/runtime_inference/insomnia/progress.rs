@@ -1,35 +1,7 @@
 use crate::EpisodeId;
+pub use reliquary_insomnia::InsomniaSemanticStage;
 
 pub const DEFAULT_INSOMNIA_PROGRESS_INTERVAL_SECS: u64 = 10;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum InsomniaSemanticStage {
-    Ledger,
-    LedgerTurnRepair,
-    LedgerFieldRepair,
-    Evidence,
-    Metadata,
-    Ownership,
-    Wording,
-    Enrichment,
-    Persistence,
-}
-
-impl InsomniaSemanticStage {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Ledger => "ledger",
-            Self::LedgerTurnRepair => "ledger_turn_repair",
-            Self::LedgerFieldRepair => "ledger_field_repair",
-            Self::Evidence => "evidence",
-            Self::Metadata => "metadata",
-            Self::Ownership => "ownership",
-            Self::Wording => "wording",
-            Self::Enrichment => "enrichment",
-            Self::Persistence => "persistence",
-        }
-    }
-}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum InsomniaProgressEvent {

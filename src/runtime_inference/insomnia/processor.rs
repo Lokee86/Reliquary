@@ -94,7 +94,8 @@ impl Cva {
         completed_at_ns: i64,
     ) -> Result<InsomniaProcessResult, InsomniaProcessError> {
         let (episode, turns) = self.claimed_episode_input(claim, scope)?;
-        let extraction = extractor.extract_with_evidence(self, &episode, &turns)?;
+        let extraction =
+            super::extraction::extract_with_evidence(self, extractor, &episode, &turns)?;
         let mut prepared = prepare_application(
             &self.archive,
             &mut self.container,
@@ -133,7 +134,8 @@ impl Cva {
         completed_at_ns: i64,
     ) -> Result<InsomniaProcessResult, InsomniaProcessError> {
         let (episode, turns) = self.claimed_episode_input(claim, scope)?;
-        let extraction = extractor.extract_with_evidence(self, &episode, &turns)?;
+        let extraction =
+            super::extraction::extract_with_evidence(self, extractor, &episode, &turns)?;
         let mut prepared = prepare_application(
             &self.archive,
             &mut self.container,

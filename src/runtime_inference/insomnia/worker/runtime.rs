@@ -310,12 +310,12 @@ fn run_extraction<E: GeneralEndpoint>(
     match extractor.start_with_stage_reporter(episode, turns, stage_reporter)? {
         InsomniaExtractionStage::Complete(extraction) => Ok(extraction),
         InsomniaExtractionStage::Evidence(round) => {
-            stage_reporter(InsomniaSemanticStage::Evidence, round.requests.len());
+            stage_reporter(InsomniaSemanticStage::Evidence, round.requests().len());
             let plans = plan_evidence(
                 shared.archive,
                 shared.lexical_index,
                 episode,
-                &round.requests,
+                round.requests(),
             );
             let (results, evidence_turns) = {
                 let mut container = shared.container.lock().map_err(|_| {

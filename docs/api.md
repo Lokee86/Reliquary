@@ -70,6 +70,21 @@ returned work value remains valid while the Cva continues processing and
 mutating that episode. This is an intentional API signature change from the
 previous borrowed result.
 
+## Insomnia extraction service
+
+The root product reexports the canonical types from `reliquary-insomnia`,
+including `InsomniaExtractor`, candidate/output values, errors, schema and
+contract constants. `InsomniaExtractor::start` evaluates authorized immutable
+Episode turns and returns either a completed extraction or an opaque
+`InsomniaEvidenceRound`. Root reads its immutable `requests()` slice, performs
+Archive search and hydration, then supplies the bounded results to
+`finish_evidence` (one round only). The service checks request/result ordering,
+turn identity consistency, the 64-turn and 128 KiB limits, and rejects turns
+outside the supplied response set. `extract_external_input` evaluates only its
+already-authorized window and rejects Archive requests. Public product
+processing and drain APIs remain on Root because they authenticate owners,
+publish Memory/Freshness state, and schedule workers.
+
 ## Dream Store boundary
 
 `reliquary-dream-store` now contains the `CVDREAM2` Begin codec, canonical

@@ -1,9 +1,9 @@
 # Insomnia service crate extraction — implementation specification
 
-**Status:** Approved extraction target; **not implemented** (2026-10-28).
+**Status:** Evaluator extraction and Root evidence coordinator integrated; remaining verification is recorded in the companion evidence (2026-10-28).
 **Repository / branch:** `C:\!bin\workspace\Reliquary-crate-first` / `refactor/crate-first-restart`.
 **Baseline:** Entity Resolution service integration `3cda7eb5`; verify the actual HEAD and status before starting implementation. The pre-existing modification to `docs/graph-crate-extraction-evidence-2026-10-26.md` is unrelated: do not change or stage it.
-**Canonical target:** `crates/reliquary-insomnia/`, package `reliquary-insomnia` (currently a placeholder).
+**Canonical target:** `crates/reliquary-insomnia/`, package `reliquary-insomnia`.
 **Scope:** Extract the **existing** Episode-to-Memory semantic processing service. `reliquary-insomnia-store` already owns its durable work/attempt state; this is not a second store extraction.
 
 ## Purpose

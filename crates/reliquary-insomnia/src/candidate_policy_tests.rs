@@ -1,4 +1,4 @@
-use super::candidate_policy::validate_semantic_authority;
+use crate::validate_semantic_authority;
 
 #[test]
 fn authority_and_grounding_sources_have_distinct_roles() {

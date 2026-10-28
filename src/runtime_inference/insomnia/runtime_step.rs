@@ -67,7 +67,7 @@ impl Cva {
             &self.archive,
             &self.lexical_index,
             &claim.episode,
-            &round.requests,
+            round.requests(),
         );
         hydrate_evidence_parts(&self.archive, &mut self.container, &plans)
     }

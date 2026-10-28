@@ -2,7 +2,7 @@ use super::candidate_receipt_policy::violates_execution_receipt_policy;
 use super::candidate_text::{informative_tokens, normalize};
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn validate_semantic_authority(
+pub fn validate_semantic_authority(
     authority_kind: &str,
     category: &str,
     title: &str,

@@ -3,7 +3,6 @@ use super::source_validation::{candidate_source_time_ns, validate_candidate_sour
 use super::{InsomniaProcessError, InsomniaProcessResult};
 use crate::MemoryError;
 use crate::freshness_storage::FreshnessStore;
-use crate::insomnia::candidate::hex;
 use crate::insomnia::completion::InsomniaCompletionBody;
 use crate::insomnia::completion::{InsomniaCompletion, encode_completion};
 use crate::insomnia::product_adapter::InsomniaStore;
@@ -15,6 +14,7 @@ use crate::{
     MemoryRoutingMetadata, MemorySourceRef, Phylactery,
 };
 use reliquary_container::Container;
+use reliquary_insomnia::hex;
 use std::collections::HashSet;
 pub(crate) fn complete_grouped_replay_bodies(
     memories: &MemoryStore,

@@ -2839,6 +2839,13 @@ dependencies = [
 [[package]]
 name = "reliquary-insomnia"
 version = "0.1.0"
+dependencies = [
+ "reliquary-archive",
+ "reliquary-memory-core",
+ "reliquary-switchboard",
+ "serde_json",
+ "sha2",
+]
 
 [[package]]
 name = "reliquary-insomnia-store"
@@ -2883,6 +2890,7 @@ dependencies = [
  "reliquary-freshness-store",
  "reliquary-graph",
  "reliquary-import-store",
+ "reliquary-insomnia",
  "reliquary-insomnia-store",
  "reliquary-maintenance-store",
  "reliquary-memory-core",

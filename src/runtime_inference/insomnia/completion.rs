@@ -125,7 +125,7 @@ pub(crate) fn encode_completion(value: &InsomniaCompletion) -> Result<Vec<u8>, &
         out.extend_from_slice(&len.to_le_bytes());
         out.extend_from_slice(&encoded);
     }
-    if value.routing_metadata.len() > super::contract::MAX_INSOMNIA_CANDIDATES {
+    if value.routing_metadata.len() > reliquary_insomnia::MAX_INSOMNIA_CANDIDATES {
         return Err("too many completion routing metadata records");
     }
     let routing_count = u32::try_from(value.routing_metadata.len())
@@ -653,7 +653,7 @@ fn read_routing_metadata(
     cursor: &mut usize,
 ) -> Result<Vec<MemoryRoutingMetadata>, &'static str> {
     let count = read_u32(bytes, cursor)? as usize;
-    if count > super::contract::MAX_INSOMNIA_CANDIDATES {
+    if count > reliquary_insomnia::MAX_INSOMNIA_CANDIDATES {
         return Err("too many completion routing metadata records");
     }
     let mut values = Vec::with_capacity(count);

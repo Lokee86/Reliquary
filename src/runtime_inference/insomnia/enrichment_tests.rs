@@ -1,7 +1,7 @@
-use super::enrichment::enrich;
 use super::extraction::{InsomniaCandidate, InsomniaRoutingMetadata};
-use super::ownership::InsomniaOwnership;
 use crate::{MemoryTextField, SimulatedGeneralEndpoint};
+use reliquary_insomnia::InsomniaOwnership;
+use reliquary_insomnia::enrich;
 use serde_json::json;
 
 #[test]

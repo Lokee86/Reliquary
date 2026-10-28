@@ -1,4 +1,3 @@
-use super::candidate_policy::validate_semantic_authority;
 use super::candidate_shape::validate_candidate_shape;
 use super::candidate_source::{RawSource, optional, parse_source, required_string, trim_source};
 use super::contract::MAX_INSOMNIA_CANDIDATES;
@@ -7,6 +6,7 @@ use super::ownership::InsomniaOwnership;
 #[cfg(test)]
 use crate::EpisodeId;
 use crate::ResolvedTurn;
+use crate::validate_semantic_authority;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
@@ -204,7 +204,7 @@ fn candidate_key(
     format!("claim-{}", hex(&hash.finalize()[..16]))
 }
 
-pub(crate) fn hex(bytes: &[u8]) -> String {
+pub fn hex(bytes: &[u8]) -> String {
     const HEX: &[u8; 16] = b"0123456789abcdef";
     let mut result = String::with_capacity(bytes.len() * 2);
     for byte in bytes {

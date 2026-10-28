@@ -1,21 +1,7 @@
 #[path = "insomnia/backpressure.rs"]
 pub(crate) mod backpressure;
-#[path = "insomnia/candidate.rs"]
-mod candidate;
-#[path = "insomnia/candidate_policy.rs"]
-mod candidate_policy;
-#[path = "insomnia/candidate_receipt_policy.rs"]
-mod candidate_receipt_policy;
-#[path = "insomnia/candidate_shape.rs"]
-mod candidate_shape;
-#[path = "insomnia/candidate_source.rs"]
-mod candidate_source;
-#[path = "insomnia/candidate_text.rs"]
-mod candidate_text;
 #[path = "insomnia/completion.rs"]
 pub(crate) mod completion;
-#[path = "insomnia/contract.rs"]
-mod contract;
 #[path = "insomnia/cva.rs"]
 mod cva;
 #[path = "insomnia/enrichment.rs"]
@@ -26,16 +12,8 @@ mod error;
 mod evidence;
 #[path = "insomnia/extraction.rs"]
 mod extraction;
-#[path = "insomnia/input.rs"]
-mod input;
-#[path = "insomnia/ledger.rs"]
-mod ledger;
-#[path = "insomnia/metadata.rs"]
-mod metadata;
 #[path = "insomnia/model.rs"]
 mod model;
-#[path = "insomnia/ownership.rs"]
-mod ownership;
 #[path = "insomnia/processor.rs"]
 mod processor;
 #[path = "insomnia/product_adapter.rs"]
@@ -46,39 +24,33 @@ mod progress;
 pub(crate) mod rebuild;
 #[path = "insomnia/runtime_step.rs"]
 pub(crate) mod runtime_step;
-#[path = "insomnia/synthesis.rs"]
-mod synthesis;
 #[path = "insomnia/temporal.rs"]
 pub(crate) mod temporal;
 #[path = "insomnia/worker.rs"]
 mod worker;
 
 pub use backpressure::DEFAULT_INSOMNIA_BACKPRESSURE_DELAY_NS;
-pub use contract::{
-    INSOMNIA_EXTRACTOR_CONTRACT_VERSION, INSOMNIA_SYSTEM_PROMPT, MAX_INSOMNIA_CANDIDATES,
-    insomnia_schema,
-};
 pub use error::InsomniaError;
-pub use evidence::{
-    MAX_INSOMNIA_EVIDENCE_BYTES, MAX_INSOMNIA_EVIDENCE_REQUESTS, MAX_INSOMNIA_EVIDENCE_TURNS,
-};
-pub use extraction::{
-    InsomniaCandidate, InsomniaEvidenceResult, InsomniaEvidenceTurn, InsomniaExtraction,
-    InsomniaExtractionError, InsomniaExtractor, InsomniaRejection, InsomniaRoutingMetadata,
-};
-pub(crate) use extraction::{InsomniaEvidenceRound, InsomniaExtractionStage};
 pub use model::{
     EpisodeSchedulingResult, InsomniaAttempt, InsomniaLeaseToken, InsomniaPriority, InsomniaStats,
     InsomniaWork, InsomniaWorkState,
 };
-pub use ownership::{INSOMNIA_OWNERSHIP_SYSTEM_PROMPT, InsomniaOwnership};
 pub use processor::{InsomniaProcessError, InsomniaProcessResult};
 pub(crate) use processor::{
     PreparedApplication, PreparedMemory, PreparedUserMemory, UserPublication,
 };
 pub use progress::{
     DEFAULT_INSOMNIA_PROGRESS_INTERVAL_SECS, InsomniaProgressEvent, InsomniaProgressReporter,
-    InsomniaSemanticStage,
+};
+pub use reliquary_insomnia::{
+    INSOMNIA_EXTRACTOR_CONTRACT_VERSION, INSOMNIA_OWNERSHIP_SYSTEM_PROMPT, INSOMNIA_SYSTEM_PROMPT,
+    InsomniaCandidate, InsomniaEvidenceResult, InsomniaEvidenceRound, InsomniaEvidenceTurn,
+    InsomniaExtraction, InsomniaExtractionError, InsomniaExtractionStage, InsomniaExtractor,
+    InsomniaOwnership, InsomniaRejection, InsomniaRoutingMetadata, InsomniaSemanticStage,
+    MAX_INSOMNIA_CANDIDATES, insomnia_schema,
+};
+pub use reliquary_insomnia::{
+    MAX_INSOMNIA_EVIDENCE_BYTES, MAX_INSOMNIA_EVIDENCE_REQUESTS, MAX_INSOMNIA_EVIDENCE_TURNS,
 };
 pub(crate) use runtime_step::RuntimeInsomniaClaim;
 pub use worker::{
@@ -95,12 +67,6 @@ pub fn enrich_entity_calibration(
     enrichment::enrich(endpoint, candidates)
 }
 
-#[cfg(test)]
-#[path = "insomnia/candidate_policy_tests.rs"]
-mod candidate_policy_tests;
-#[cfg(test)]
-#[path = "insomnia/candidate_receipt_policy_tests.rs"]
-mod candidate_receipt_policy_tests;
 #[cfg(test)]
 #[path = "insomnia/completion_tests.rs"]
 pub(crate) mod completion_tests;

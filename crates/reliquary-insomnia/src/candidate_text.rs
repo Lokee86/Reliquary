@@ -1,4 +1,4 @@
-pub(super) fn informative_tokens(value: &str) -> usize {
+pub(crate) fn informative_tokens(value: &str) -> usize {
     normalize(value)
         .split_whitespace()
         .filter(|word| {
@@ -36,7 +36,7 @@ pub(super) fn informative_tokens(value: &str) -> usize {
         .count()
 }
 
-pub(super) fn normalize(value: &str) -> String {
+pub(crate) fn normalize(value: &str) -> String {
     value
         .to_lowercase()
         .chars()

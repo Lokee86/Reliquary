@@ -671,42 +671,22 @@
       "id": "insomnia",
       "rank": 8,
       "kind": "service",
-      "responsibility": "Episode-to-Memory extraction and durable publication",
+      "responsibility": "Pure Episode-to-Memory extraction and bounded evidence requests; Root authorizes evidence and publishes",
       "depends_on": [
-        {
-          "to": "insomnia-store",
-          "mode": "write",
-          "why": "queue and completion"
-        },
         {
           "to": "archive-store",
           "mode": "read",
-          "why": "Episode source"
+          "why": "canonical Episode and turn value types only; no store access"
         },
         {
           "to": "memory-store",
-          "mode": "write",
-          "why": "Memory publication"
-        },
-        {
-          "to": "perception",
-          "mode": "invoke",
-          "why": "mention routing"
-        },
-        {
-          "to": "chronos",
-          "mode": "invoke",
-          "why": "temporal metadata"
+          "mode": "read",
+          "why": "canonical mention value types only; no store access"
         },
         {
           "to": "switchboard",
           "mode": "invoke",
           "why": "extraction model"
-        },
-        {
-          "to": "freshness",
-          "mode": "invoke",
-          "why": "birth effect"
         }
       ]
     },

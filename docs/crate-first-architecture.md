@@ -1,6 +1,6 @@
 # Crate-first Reliquary architecture
 
-Status: **Container, Archive, Memory Core, Echo, and Freshness owner/service crates extracted; Vectors service extraction is integrated with tooling limitations recorded in its evidence** (2026-10-28).
+Status: **Container, Archive, Memory Core, Echo, Freshness, Insomnia, and Vectors service/owner cuts are integrated; remaining gates are tracked in their evidence** (2026-10-28).
 Starting commit: `c43d33c`. Branch: `refactor/crate-first-restart`.
 
 ## Purpose
@@ -22,7 +22,7 @@ The original October 21 phase execution ledger is archived in the Step 1 Git bun
 | `reliquary-graph` | Memory associations, semantic topology and Communities |
 | `reliquary-entity-resolution` | Entity/mention semantics and resolution/admission |
 | `reliquary-freshness` | Deterministic reinforcement, propagation, historical scoring and derived due scheduling; consumes Freshness Store, Memory Core and Graph |
-| `reliquary-insomnia` | Memory extraction and processing over an independent durable work store |
+| `reliquary-insomnia` | Immutable Episode-to-Memory evaluator, ledger/candidate policy and bounded evidence contract; Root owns authorized reads and publication |
 | `reliquary-dream` | Association, duplicate and Community synthesis; Dream journal is lower-owned |
 | `reliquary-chronos` | Temporal reasoning |
 | `reliquary-ego` | Identity, Personality, Anchors and summary synthesis; durable Ego state is lower-owned |
@@ -64,6 +64,15 @@ does not own durable records, event receipts or replay, which remain in
 authorization, I/O and acceptance orchestration. Final verification gates
 remain pending. See the [service extraction
 specification](freshness-service-crate-extraction-spec-2026-10-28.md).
+
+The `reliquary-insomnia` evaluator cut is integrated. The service owns the
+immutable extraction input, authority ledger and repair, candidate policy,
+fixed-group inference stages, enrichment and evidence-response validation.
+Root retains owner authorization, Archive evidence hydration, temporal/source
+binding, publication and scheduling; durable queue/attempt state remains in
+`reliquary-insomnia-store`. The service directly depends only on Archive,
+Memory Core and Switchboard. See its [extraction evidence
+record](insomnia-service-crate-extraction-evidence-2026-10-28.md).
 
 This yields **30 libraries plus the existing `reliquary-memory` product package**. The root retains the semantic owners and consumes the extracted Container through a Cargo dependency. To avoid colliding with its Cargo name, the new Memory domain is `reliquary-memory-core`.
 

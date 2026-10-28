@@ -113,6 +113,7 @@ reliquary-memory-core = { path = "crates/reliquary-memory-core" }
 reliquary-archive = { path = "crates/reliquary-archive" }
 reliquary-container = { path = "crates/reliquary-container" }
 reliquary-insomnia-store = { path = "crates/reliquary-insomnia-store" }
+reliquary-insomnia = { path = "crates/reliquary-insomnia" }
 reliquary-vector-store = { path = "crates/reliquary-vector-store" }
 reliquary-vectors = { path = "crates/reliquary-vectors" }
 reliquary-retrieval = { path = "crates/reliquary-retrieval" }

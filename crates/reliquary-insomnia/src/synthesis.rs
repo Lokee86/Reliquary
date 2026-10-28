@@ -8,7 +8,7 @@ use super::ownership::InsomniaOwnership;
 use crate::ResolvedTurn;
 use serde_json::{Map, Value, json};
 
-pub(super) const SYNTHESIS_SYSTEM_PROMPT: &str = r#"You are the wording pass for Reliquary Insomnia.
+pub const SYNTHESIS_SYSTEM_PROMPT: &str = r#"You are the wording pass for Reliquary Insomnia.
 You receive one authoritative conversation episode plus deterministic synthesis groups built from a validated authority/disposition ledger. Every group already has final semantic ownership: source, authority kind, category, type, lifecycle, assistant-authority provenance, grounding provenance, and retained propositions.
 
 Your ONLY job is to write one concise durable Memory title and content body for every supplied group.

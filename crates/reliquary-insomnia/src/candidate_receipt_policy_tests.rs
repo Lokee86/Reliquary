@@ -1,4 +1,4 @@
-use super::candidate_policy::validate_semantic_authority;
+use crate::validate_semantic_authority;
 
 #[test]
 fn execution_receipts_require_progress_free_resulting_state() {

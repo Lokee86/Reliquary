@@ -218,7 +218,33 @@ without duplicating the store's in-memory projection. Mention-key inputs and
 persisted bytes are unchanged. This return-value adjustment was explicitly
 approved for the extraction.
 
-## Insomnia work owner crate (integration in progress)
+## Insomnia extraction and work crates
+
+`reliquary-insomnia` owns the existing Episode-to-Memory evaluator: v3-4
+contract and authority ledger, fixed groups, metadata/ownership/wording stages,
+candidate and provenance validation, Entity-mention enrichment, and immutable
+evidence-round state. It depends directly on Archive, Memory Core and
+Switchboard for canonical input values and endpoint contracts. The service does
+not depend on the product, Container, Runtime/Gateway, Insomnia Store, or other
+policy services, and owns no durable queue, Archive access, publication, or
+scheduling.
+
+Root authenticates Episode source facts and configured routes, resolves and
+hydrates the service's bounded evidence requests, performs source/owner and
+Chronos checks, publishes the accepted Memory/Freshness effects, and coordinates
+REL/PHY workers. Root public extraction and processing paths reexport or adapt
+the service API. The evidence response boundary validates count, identity,
+request/result correspondence and the 64-turn/128 KiB ceilings before the final
+ledger pass. The [Insomnia extraction evidence](insomnia-service-crate-extraction-evidence-2026-10-28.md)
+records the checks run and remaining verification status.
+
+`reliquary-insomnia-store` remains the durable Episode-keyed work and attempt
+owner, with its existing codecs, scheduler indexes, lease transitions and
+reconstruction. Its only direct Reliquary dependency is Container. Root
+continues to author and validate full completion records and converts lower
+store values at `src/runtime_inference/insomnia/product_adapter.rs`.
+
+## Insomnia work store crate (product cutover integrated)
 
 `reliquary-insomnia-store` owns Episode-keyed work and attempt values,
 `CVAINSF1`/`CVAINSW1`/`CVAINSA1` codecs, scheduler indexes, deterministic lease
@@ -226,10 +252,11 @@ tokens, transitions, and work reconstruction. Its only direct Reliquary crate
 dependency is `reliquary-container`. The product's
 `src/runtime_inference/insomnia/product_adapter.rs` converts fixed-byte IDs and
 work values to public root types and supplies Archive-authenticated Episode
-ordering and accepted Episode metadata. Archive and Memory validation, full
-`CVAINSC7`/`CVAINSC8` completion decoding and authoring, grouped
-Memory/Freshness validation, processing, and worker policy remain above the
-store.
+ordering and accepted Episode metadata. The separate `reliquary-insomnia`
+service owns evaluator policy and model stages; Root retains Archive and
+Memory authorization, full `CVAINSC7`/`CVAINSC8` completion decoding and
+authoring, grouped Memory/Freshness validation, temporal binding, and worker
+policy.
 
 The Cva facade and owner replay now use the lower store. After Archive and
 Memory reconstruction, the product makes a bounded second physical pass,

@@ -1,9 +1,8 @@
-use super::ledger;
-use super::synthesis::SYNTHESIS_SYSTEM_PROMPT;
 use crate::{
     Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, INSOMNIA_SYSTEM_PROMPT, InsomniaExtractor,
     InsomniaPriority, InsomniaWorkState, SimulatedGeneralEndpoint,
 };
+use reliquary_insomnia::{SYNTHESIS_SYSTEM_PROMPT, ledger_schema};
 use serde_json::{Value, json};
 use std::fs;
 use std::path::PathBuf;
@@ -299,7 +298,7 @@ fn authority_kind_is_required_and_preserved_by_structured_selection() {
     );
     let episode = queue_episode(&mut cva, "u0");
     let turns = cva.episode_turns(episode.id).unwrap();
-    let schema = ledger::schema(&turns, &[], true);
+    let schema = ledger_schema(&turns, &[], true);
     let clause = &schema["properties"]["turns"]["properties"]["u0"]["items"];
     assert_eq!(
         clause["properties"]["authority_kind"]["enum"],

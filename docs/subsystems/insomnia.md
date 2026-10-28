@@ -8,9 +8,19 @@ Describe the implemented Episode-to-Memory processing subsystem, including durab
 
 ## Overview
 
-Insomnia converts accepted conversational/source evidence into candidate Memories and publishes accepted semantic results through the owning REL or PHY boundaries. It is the semantic author for extracted Memory propositions; callers may request processing, but they do not supply authoritative Memory bodies.
+Insomnia converts accepted conversational/source evidence into candidate Memories. Root publishes accepted semantic results through the owning REL or PHY boundaries. Insomnia is the semantic author for extracted Memory propositions; callers may request processing, but they do not supply authoritative Memory bodies.
 
 Processing is durable and retry-aware. Model calls and evidence gathering occur outside mutable owner locks; publication revalidates source/work identity before commit.
+
+The compiled `reliquary-insomnia` service owns immutable Episode input encoding,
+the v3-4 authority ledger and repair rules, fixed synthesis groups, metadata,
+ownership and wording stages, candidate/provenance validation, Entity-mention
+enrichment, and the one-round evidence request/response contract. It accepts
+prepared Episode turns and configured Switchboard endpoints; it does not read
+owner stores or schedule work. Root authenticates and hydrates requested Archive
+evidence, selects configured routes, binds temporal/source facts, publishes
+Memories and completion receipts, and coordinates workers. The service crate
+reexports canonical Archive, Memory Core and Switchboard values for its boundary.
 
 ## Work and scheduling
 
@@ -35,7 +45,7 @@ Ordinary Episode processing may validly produce zero Memories. Explicit-retentio
 
 ## Extraction and evidence
 
-The extractor receives bounded source evidence, produces structured candidates, and records exact provenance roles. Additional evidence requests are bounded by turn count, request count, and byte budget.
+The service extractor receives bounded source evidence, produces structured candidates, and records exact provenance roles. Additional evidence requests are bounded to four requests, 64 turns, and 128 KiB. Root performs Archive search, authorization, selection and hydration; `finish_evidence` validates that response shapes match the original request set and that all returned turns belong to the supplied authorized evidence set. External-derived input is source-only and cannot request Archive fallback.
 
 Candidate text, category/metadata, ownership, and provenance are validated independently. Grounding evidence cannot silently become semantic authority.
 
@@ -68,12 +78,14 @@ Retryable model/output/publication failures retain durable work identity. Exhaus
 
 ## Code Map
 
+- `crates/reliquary-insomnia/src/` — extraction contract, ledger, candidate policy, inference stages and bounded evidence response validation
 - `crates/reliquary-insomnia-store/src/` — durable work/attempt store, codecs, scheduler and transition values
 - `src/runtime_inference/insomnia/product_adapter.rs` — root identity conversion and Archive-authenticated inputs
+- `src/runtime_inference/insomnia/extraction.rs` — Root evidence lookup/hydration coordinator over service `start` and `finish_evidence`
 - `src/runtime_inference/insomnia/rebuild.rs` — ordered replay handoff for accepted completion projections
 - `src/runtime_inference/insomnia.rs`
-- `src/runtime_inference/insomnia/**`
-- `src/runtime_inference/insomnia/**/*.rs`
+- `src/runtime_inference/insomnia/processor/**` — owner validation and publication
+- `src/runtime_inference/insomnia/worker/**` — bounded scheduling and runtime execution
 - `src/runtime_inference/insomnia/worker/runtime/*.rs`
 - `src/runtime_inference/runtime_host_rel_insomnia.rs`
 

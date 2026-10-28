@@ -3,57 +3,16 @@ use crate::lexical_index::LexicalIndex;
 use crate::lexical_search::lexical_terms;
 use crate::{Archive, Cva, Episode, Fragment, Node, ResolvedTurn};
 use reliquary_container::Container;
+pub use reliquary_insomnia::{
+    EvidenceRequest, MAX_INSOMNIA_EVIDENCE_BYTES, MAX_INSOMNIA_EVIDENCE_REQUESTS,
+    MAX_INSOMNIA_EVIDENCE_TURNS, parse_evidence_requests,
+};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 
-pub const MAX_INSOMNIA_EVIDENCE_REQUESTS: usize = 4;
-pub const MAX_INSOMNIA_EVIDENCE_TURNS: usize = 64;
-pub const MAX_INSOMNIA_EVIDENCE_BYTES: usize = 128 << 10;
 const MAX_RANGE_NODES: usize = 64;
 const MAX_SEARCH_RESULTS: usize = 5;
 const DEFAULT_SEARCH_RESULTS: usize = 3;
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct EvidenceRequest {
-    pub kind: String,
-    pub conversation_id: String,
-    pub node_id: String,
-    pub start_node_id: String,
-    pub end_node_id: String,
-    pub query: String,
-    pub limit: usize,
-}
-
-pub(crate) fn parse_evidence_requests(
-    value: &Value,
-) -> Result<Vec<EvidenceRequest>, InsomniaExtractionError> {
-    let Some(requests) = value.get("evidence_requests") else {
-        return Ok(Vec::new());
-    };
-    let requests = requests.as_array().ok_or_else(|| {
-        InsomniaExtractionError::InvalidOutput("evidence_requests must be an array".into())
-    })?;
-    if requests.len() > MAX_INSOMNIA_EVIDENCE_REQUESTS {
-        return Err(InsomniaExtractionError::InvalidOutput(format!(
-            "{} evidence requests exceeds maximum {}",
-            requests.len(),
-            MAX_INSOMNIA_EVIDENCE_REQUESTS
-        )));
-    }
-    requests.iter().map(parse_request).collect()
-}
-
-fn parse_request(value: &Value) -> Result<EvidenceRequest, InsomniaExtractionError> {
-    Ok(EvidenceRequest {
-        kind: string_field(value, "kind")?.trim().to_lowercase(),
-        conversation_id: optional_string(value, "conversation_id")?,
-        node_id: optional_string(value, "node_id")?,
-        start_node_id: optional_string(value, "start_node_id")?,
-        end_node_id: optional_string(value, "end_node_id")?,
-        query: optional_string(value, "query")?,
-        limit: optional_usize(value, "limit")?,
-    })
-}
 
 pub(crate) fn resolve_evidence(
     cva: &mut Cva,
@@ -303,39 +262,6 @@ fn hydrate_search(
         );
     }
     Ok(turns)
-}
-
-fn string_field(value: &Value, field: &str) -> Result<String, InsomniaExtractionError> {
-    value
-        .get(field)
-        .and_then(Value::as_str)
-        .map(str::to_owned)
-        .ok_or_else(|| {
-            InsomniaExtractionError::InvalidOutput(format!("missing string field {field}"))
-        })
-}
-
-fn optional_string(value: &Value, field: &str) -> Result<String, InsomniaExtractionError> {
-    match value.get(field) {
-        None | Some(Value::Null) => Ok(String::new()),
-        Some(value) => value.as_str().map(str::to_owned).ok_or_else(|| {
-            InsomniaExtractionError::InvalidOutput(format!("{field} must be a string"))
-        }),
-    }
-}
-
-fn optional_usize(value: &Value, field: &str) -> Result<usize, InsomniaExtractionError> {
-    match value.get(field) {
-        None | Some(Value::Null) => Ok(0),
-        Some(value) => value
-            .as_u64()
-            .and_then(|value| usize::try_from(value).ok())
-            .ok_or_else(|| {
-                InsomniaExtractionError::InvalidOutput(format!(
-                    "{field} must be a non-negative integer"
-                ))
-            }),
-    }
 }
 
 fn to_evidence_turn(conversation_id: &str, turn: ResolvedTurn) -> InsomniaEvidenceTurn {

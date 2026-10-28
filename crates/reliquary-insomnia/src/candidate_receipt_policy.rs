@@ -1,6 +1,6 @@
 use super::candidate_text::normalize;
 
-pub(super) fn violates_execution_receipt_policy(title: &str, content: &str) -> bool {
+pub(crate) fn violates_execution_receipt_policy(title: &str, content: &str) -> bool {
     let combined = format!(" {} {} ", normalize(title), normalize(content));
     if has_numbered_progress(&combined) {
         return true;
