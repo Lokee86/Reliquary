@@ -298,6 +298,59 @@ mod tests {
     }
 
     #[test]
+    fn qualified_or_competing_local_definitions_are_not_deterministically_resolved() {
+        for text in [
+            "Review biweekly (every two weeks), but actually twice weekly.",
+            "Review biweekly (twice weekly), but actually every two weeks.",
+            "Review biweekly (every two weeks) — or twice weekly.",
+            "Review biweekly, meaning every two weeks (twice weekly).",
+            "Review biweekly (every two weeks), also known as twice weekly.",
+            "Review biweekly (twice weekly), unless every two weeks.",
+            "Review bimonthly (twice monthly), but actually every two months.",
+        ] {
+            let choices = assess_choices(text, None);
+            assert_eq!(
+                choices.assessment.resolution.status,
+                crate::TemporalResolutionStatus::Unresolved,
+                "{text}"
+            );
+            assert!(choices.sets.is_empty(), "{text}");
+            assert!(
+                crate::chronos::analyze(text, None).patterns.is_empty(),
+                "blocked clause leaked temporal claims: {text}"
+            );
+        }
+    }
+
+    #[test]
+    fn qualifications_do_not_erase_independent_or_ordinary_definitions() {
+        for text in [
+            "Review biweekly (every two weeks). Audit twice weekly.",
+            "Review biweekly (every two weeks); audit twice weekly.",
+            "Review biweekly (every two weeks), and share notes.",
+        ] {
+            let choices = assess_choices(text, None);
+            assert_eq!(
+                choices.assessment.resolution.status,
+                crate::TemporalResolutionStatus::FullyResolved,
+                "{text}"
+            );
+        }
+        let text =
+            "Review biweekly (every two weeks), but actually twice weekly; audit every Monday.";
+        let analysis = crate::chronos::analyze(text, None);
+        assert_eq!(analysis.patterns.len(), 1);
+        assert_eq!(
+            analysis.patterns[0].weekday,
+            Some(crate::TemporalWeekday::Monday)
+        );
+        assert_eq!(
+            assess_choices(text, None).assessment.resolution.status,
+            crate::TemporalResolutionStatus::Unresolved
+        );
+    }
+
+    #[test]
     fn independent_recurrence_does_not_resolve_ambiguous_term() {
         let choices = assess_choices("Review biweekly. Audit every two weeks.", None);
         assert_eq!(choices.sets.len(), 1);

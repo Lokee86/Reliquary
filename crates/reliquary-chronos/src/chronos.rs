@@ -51,8 +51,21 @@ fn analyze_detected(
     reference_timestamp_ns: Option<i64>,
     detected: &crate::chronos_detection::DetectedTemporalText,
 ) -> TemporalAnalysis {
-    let mut analysis = crate::chronos_parser::parse_temporal(text, reference_timestamp_ns);
-    let Some(normalized_text) = detected.normalized_text.as_deref() else {
+    // A blocked local definition is not an asserted recurrence, even if the
+    // general parser recognizes words inside it. Dream consumes analyze directly,
+    // so resolution status alone cannot keep contradictory claims out.
+    let masked = crate::chronos_resolution::mask_blocked_definition_clauses(
+        text,
+        reference_timestamp_ns,
+        &detected.detection,
+    );
+    let masked_detected = masked
+        .as_deref()
+        .map(crate::chronos_detection::detect_and_normalize);
+    let parse_text = masked.as_deref().unwrap_or(text);
+    let parse_detected = masked_detected.as_ref().unwrap_or(detected);
+    let mut analysis = crate::chronos_parser::parse_temporal(parse_text, reference_timestamp_ns);
+    let Some(normalized_text) = parse_detected.normalized_text.as_deref() else {
         crate::chronos_resolution::apply_explicit_definitions(
             text,
             reference_timestamp_ns,
@@ -65,28 +78,28 @@ fn analyze_detected(
     let mut corrected =
         crate::chronos_parser::parse_temporal(normalized_text, reference_timestamp_ns);
     for anchor in &mut corrected.anchors {
-        anchor.evidence = detected.restore_evidence(text, &anchor.evidence);
+        anchor.evidence = parse_detected.restore_evidence(parse_text, &anchor.evidence);
     }
     for time_of_day in &mut corrected.times_of_day {
-        time_of_day.evidence = detected.restore_evidence(text, &time_of_day.evidence);
+        time_of_day.evidence = parse_detected.restore_evidence(parse_text, &time_of_day.evidence);
     }
     for duration in &mut corrected.durations {
-        duration.evidence = detected.restore_evidence(text, &duration.evidence);
+        duration.evidence = parse_detected.restore_evidence(parse_text, &duration.evidence);
     }
     for duration in &mut corrected.duration_ranges {
-        duration.evidence = detected.restore_evidence(text, &duration.evidence);
+        duration.evidence = parse_detected.restore_evidence(parse_text, &duration.evidence);
     }
     for duration in &mut corrected.approximate_durations {
-        duration.evidence = detected.restore_evidence(text, &duration.evidence);
+        duration.evidence = parse_detected.restore_evidence(parse_text, &duration.evidence);
     }
     for relation in &mut corrected.event_relations {
-        relation.evidence = detected.restore_evidence(text, &relation.evidence);
+        relation.evidence = parse_detected.restore_evidence(parse_text, &relation.evidence);
     }
     for interval in &mut corrected.intervals {
-        interval.evidence = detected.restore_evidence(text, &interval.evidence);
+        interval.evidence = parse_detected.restore_evidence(parse_text, &interval.evidence);
     }
     for pattern in &mut corrected.patterns {
-        pattern.evidence = detected.restore_evidence(text, &pattern.evidence);
+        pattern.evidence = parse_detected.restore_evidence(parse_text, &pattern.evidence);
     }
     crate::chronos_parser::merge_temporal_analysis(&mut analysis, corrected);
     crate::chronos_resolution::apply_explicit_definitions(

@@ -68,35 +68,13 @@ pub(crate) fn explicit_definition_outcome(
     if parenthetical && !tail.starts_with(')') {
         return ExplicitDefinitionOutcome::Blocked;
     }
-    if parenthetical {
-        let remainder = local[whole.end()..].trim_start();
-        let remainder_lower = remainder.to_ascii_lowercase();
-        let continuation = remainder_lower.trim_start_matches(',').trim_start();
-        if remainder.starts_with('(')
-            || remainder_lower.starts_with("or ")
-            || remainder_lower.starts_with(", or ")
-            || remainder_lower.starts_with("and every ")
-            || remainder_lower.starts_with("and twice ")
-            || remainder_lower.starts_with(", and every ")
-            || remainder_lower.starts_with(", and twice ")
-            || remainder_lower.starts_with(", meaning ")
-            || remainder_lower.starts_with(", i.e.")
-            || remainder_lower.starts_with(", that is ")
-            || [
-                "not ",
-                "never ",
-                "maybe ",
-                "perhaps ",
-                "possibly ",
-                "might ",
-                "if ",
-                "but not ",
-            ]
-            .iter()
-            .any(|prefix| continuation.starts_with(prefix))
-        {
-            return ExplicitDefinitionOutcome::Blocked;
-        }
+    // An exact definition is not authoritative if its same-clause continuation
+    // qualifies it or states another cadence. This applies to comma definitions
+    // as well as parentheses; checking a few leading words is not sufficient.
+    if unsafe_definition_continuation(&local[whole.end()..])
+        || (local_end < text.len() && !local[whole.end()..].contains(['.', ';', '\n', '\r']))
+    {
+        return ExplicitDefinitionOutcome::Blocked;
     }
     let lower = local[term.end()..phrase.end()].to_ascii_lowercase();
     let mut prefix_start = indication.start_byte.saturating_sub(128);
@@ -175,6 +153,80 @@ pub(crate) fn explicit_definition_outcome(
         },
         None => ExplicitDefinitionOutcome::Blocked,
     }
+}
+
+static QUALIFIED_CONTINUATION: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"(?i)\b(?:or|unless|except|otherwise|instead|rather|but|however|actually|alternatively|maybe|perhaps|possibly|might|if|hypothetically|not|never|meaning|known\s+as|that\s+is)\b",
+    )
+    .expect("valid definition qualification regex")
+});
+
+fn unsafe_definition_continuation(remainder: &str) -> bool {
+    let same_clause = remainder
+        .split([';', '\n', '\r', '.'])
+        .next()
+        .unwrap_or("")
+        .trim();
+    if same_clause.is_empty() {
+        return false;
+    }
+    // A second parenthetical can redefine the same source term. Do not
+    // guess that it is unrelated when no span-grounded grammar proves that.
+    same_clause.contains(['(', ')'])
+        || QUALIFIED_CONTINUATION.is_match(same_clause)
+        || !crate::chronos_parser::parse_temporal(same_clause, None)
+            .patterns
+            .is_empty()
+}
+
+/// Prevent an unproven contradictory definition from being published through
+/// `analyze` (which Dream uses without inspecting `assess` status). Mask only
+/// the affected source clause, preserving UTF-8 byte offsets and unrelated
+/// clauses; leave original text and detection untouched for resolution.
+pub(crate) fn mask_blocked_definition_clauses(
+    text: &str,
+    reference_timestamp_ns: Option<i64>,
+    detection: &TemporalDetection,
+) -> Option<String> {
+    let mut starts = Vec::new();
+    for indication in &detection.indications {
+        if explicit_definition_outcome(text, indication, reference_timestamp_ns)
+            == ExplicitDefinitionOutcome::Blocked
+        {
+            starts.push(indication.start_byte);
+        }
+    }
+    if starts.is_empty() {
+        return None;
+    }
+
+    let mut masked = text.as_bytes().to_vec();
+    for start in starts {
+        let mut end = text.len();
+        for (offset, ch) in text[start..].char_indices() {
+            let pos = start + offset;
+            // Bound masking to the same local window as definition recognition.
+            if offset >= 512 {
+                end = pos;
+                break;
+            }
+            if matches!(ch, ';' | '\n' | '\r') || (ch == '.' && !abbreviation_dot(text, pos)) {
+                end = pos;
+                break;
+            }
+        }
+        masked[start..end].fill(b' ');
+    }
+    Some(String::from_utf8(masked).expect("replacing complete UTF-8 character spans with ASCII"))
+}
+
+fn abbreviation_dot(text: &str, dot: usize) -> bool {
+    text.get(dot.saturating_sub(1)..dot.saturating_add(3))
+        .is_some_and(|v| v.eq_ignore_ascii_case("i.e."))
+        || text
+            .get(dot.saturating_sub(3)..dot.saturating_add(1))
+            .is_some_and(|v| v.eq_ignore_ascii_case("i.e."))
 }
 
 fn same_recurrence(left: &TemporalAnalysis, right: &TemporalAnalysis) -> bool {

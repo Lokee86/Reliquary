@@ -43,7 +43,7 @@ Current deterministic support includes absolute calendar expressions, relative d
 
 Ambiguous locale-dependent forms remain unresolved rather than inheriting machine locale. Bounded typo normalization preserves original evidence spans. Calendar month/year arithmetic uses calendar-aware clamping rather than fixed-duration substitution.
 
-For `biweekly` and `bimonthly`, a supported, explicit local definition is bound to the exact source occurrence and resolved through the existing recurrence grammar. Negated, uncertain, conflicting, or incomplete definitions do not establish a deterministic meaning. Unrelated recurrence expressions do not define the ambiguous term. This interpretation is shared by analysis and assessment, including when no decision endpoint is configured.
+For `biweekly` and `bimonthly`, a supported, explicit local definition is bound to the exact source occurrence and resolved through the existing recurrence grammar. Negated, uncertain, conflicting, or incomplete definitions do not establish a deterministic meaning. Contradictory or conditional same-clause continuations (for example, `but actually` or `unless`) block proof. Blocked source clauses are excluded from deterministic analysis so Dream does not receive contradictory recurrence patterns without inspecting assessment status. Independent clauses and their recurrence evidence remain available. Unrelated recurrence expressions do not define the ambiguous term. This interpretation is shared by analysis and assessment, including when no decision endpoint is configured.
 
 ## Candidate selection
 
