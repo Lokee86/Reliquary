@@ -142,78 +142,30 @@ mod archive_vector_model;
 mod archive_vector_store;
 #[path = "chronos/chronos.rs"]
 pub mod chronos;
-#[path = "chronos/chronos_absolute.rs"]
-mod chronos_absolute;
-#[path = "chronos/chronos_absolute_calendar.rs"]
-mod chronos_absolute_calendar;
-#[path = "chronos/chronos_boundary.rs"]
-mod chronos_boundary;
-#[path = "chronos/chronos_boundary_endpoint.rs"]
-mod chronos_boundary_endpoint;
-#[path = "chronos/chronos_calendar.rs"]
-mod chronos_calendar;
-#[path = "chronos/chronos_detection.rs"]
-mod chronos_detection;
-#[path = "chronos/chronos_detection_context.rs"]
-mod chronos_detection_context;
-#[path = "chronos/chronos_detection_explicit.rs"]
-mod chronos_detection_explicit;
-#[path = "chronos/chronos_detection_model.rs"]
-mod chronos_detection_model;
-#[path = "chronos/chronos_duration.rs"]
-mod chronos_duration;
-#[path = "chronos/chronos_edit_distance.rs"]
-mod chronos_edit_distance;
-#[path = "chronos/chronos_event_relative.rs"]
-mod chronos_event_relative;
-#[path = "chronos/chronos_fuzzy.rs"]
-mod chronos_fuzzy;
-#[path = "chronos/chronos_inference.rs"]
-mod chronos_inference;
-#[path = "chronos/chronos_inference_apply.rs"]
-mod chronos_inference_apply;
+#[path = "chronos/chronos_disambiguator.rs"]
+mod chronos_disambiguator;
+pub use chronos_disambiguator::{TemporalDecisionError, TemporalDisambiguator};
 #[path = "chronos/chronos_inference_error.rs"]
 mod chronos_inference_error;
-#[path = "chronos/chronos_inference_model.rs"]
-mod chronos_inference_model;
-#[path = "chronos/chronos_inference_verify.rs"]
-mod chronos_inference_verify;
-#[path = "chronos/chronos_loose_calendar.rs"]
-mod chronos_loose_calendar;
-#[path = "chronos/chronos_loose_explicit.rs"]
-mod chronos_loose_explicit;
-#[path = "chronos/chronos_loose_relative.rs"]
-mod chronos_loose_relative;
-#[path = "chronos/chronos_match.rs"]
-mod chronos_match;
-#[path = "chronos/chronos_model.rs"]
-mod chronos_model;
-#[path = "chronos/chronos_normalize.rs"]
-mod chronos_normalize;
-#[path = "chronos/chronos_number.rs"]
-mod chronos_number;
-#[path = "chronos/chronos_parser.rs"]
-mod chronos_parser;
-#[path = "chronos/chronos_processing_epoch.rs"]
-mod chronos_processing_epoch;
-#[path = "chronos/chronos_recurrence.rs"]
-mod chronos_recurrence;
-#[path = "chronos/chronos_recurrence_interval.rs"]
-mod chronos_recurrence_interval;
-#[path = "chronos/chronos_relative.rs"]
-mod chronos_relative;
-#[path = "chronos/chronos_relative_offset.rs"]
-mod chronos_relative_offset;
-#[path = "chronos/chronos_resolution.rs"]
-mod chronos_resolution;
-#[path = "chronos/chronos_resolution_model.rs"]
-mod chronos_resolution_model;
-#[path = "chronos/chronos_season.rs"]
-mod chronos_season;
-#[path = "chronos/chronos_time_of_day.rs"]
-mod chronos_time_of_day;
-#[path = "chronos/chronos_vocabulary.rs"]
-mod chronos_vocabulary;
+#[path = "chronos/memory_conversion.rs"]
+mod memory_temporal_conversion;
+pub(crate) use reliquary_chronos::chronos_processing_epoch;
+pub use reliquary_chronos::{
+    TemporalAnalysis, TemporalAnchor, TemporalApproximateDuration, TemporalAssessment,
+    TemporalClockPrecision, TemporalDetection, TemporalDuration, TemporalDurationApproximation,
+    TemporalDurationRange, TemporalDurationUnit, TemporalEventDirection, TemporalEventRelation,
+    TemporalFrequency, TemporalGranularity, TemporalIndication, TemporalIndicationKind,
+    TemporalInference, TemporalInferenceResolution, TemporalInterval, TemporalMatch,
+    TemporalMatchKind, TemporalOrigin, TemporalPattern, TemporalResolution,
+    TemporalResolutionStatus, TemporalTimeOfDay, TemporalWeekday,
+};
+pub use reliquary_chronos::{
+    TemporalAnalysis as DreamTemporalAnalysis, TemporalAnchor as DreamTemporalAnchor,
+    TemporalFrequency as DreamTemporalFrequency, TemporalGranularity as DreamTemporalGranularity,
+    TemporalMatch as DreamTemporalMatch, TemporalMatchKind as DreamTemporalMatchKind,
+    TemporalOrigin as DreamTemporalOrigin, TemporalPattern as DreamTemporalPattern,
+    TemporalWeekday as DreamTemporalWeekday,
+};
 
 #[path = "facade/community_error.rs"]
 mod community_error;
@@ -899,29 +851,7 @@ pub use reliquary_container::{
 pub use runtime_config::RuntimeConfig;
 pub use storage_reclamation::StorageReclamationReport;
 pub type Reliquary = Cva;
-pub use chronos_detection_model::{TemporalDetection, TemporalIndication, TemporalIndicationKind};
-pub use chronos_inference::{
-    CHRONOS_INFERENCE_CONTRACT_VERSION, CHRONOS_INFERENCE_SYSTEM_PROMPT, TemporalInferencer,
-};
 pub use chronos_inference_error::TemporalInferenceError;
-pub use chronos_inference_model::{TemporalInference, TemporalInferenceResolution};
-pub use chronos_model::{
-    TemporalAnalysis, TemporalAnchor, TemporalApproximateDuration, TemporalClockPrecision,
-    TemporalDuration, TemporalDurationApproximation, TemporalDurationRange, TemporalDurationUnit,
-    TemporalEventDirection, TemporalEventRelation, TemporalFrequency, TemporalGranularity,
-    TemporalInterval, TemporalMatch, TemporalMatchKind, TemporalOrigin, TemporalPattern,
-    TemporalTimeOfDay, TemporalWeekday,
-};
-pub use chronos_model::{
-    TemporalAnalysis as DreamTemporalAnalysis, TemporalAnchor as DreamTemporalAnchor,
-    TemporalFrequency as DreamTemporalFrequency, TemporalGranularity as DreamTemporalGranularity,
-    TemporalMatch as DreamTemporalMatch, TemporalMatchKind as DreamTemporalMatchKind,
-    TemporalOrigin as DreamTemporalOrigin, TemporalPattern as DreamTemporalPattern,
-    TemporalWeekday as DreamTemporalWeekday,
-};
-pub use chronos_resolution_model::{
-    TemporalAssessment, TemporalResolution, TemporalResolutionStatus,
-};
 pub use context_engine::{
     COMPACTED_CONTEXT_INSTRUCTIONS, COMPACTION_INPUT_PERCENT, COMPACTION_TARGET_OF_TRIGGER_PERCENT,
     CompactionBudget, CompactionCheckpoint, CompactionError, CompactionPlan, ContextEvidence,
@@ -1142,6 +1072,7 @@ pub use reliquary_archive::project_history_model::{
     ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryManagement, ProjectRepositoryRef,
     ProjectRevisionCorrelation, ProjectRevisionRef, RelSemanticCut,
 };
+pub use reliquary_chronos::CHRONOS_INFERENCE_CONTRACT_VERSION;
 pub use reliquary_echo::{EchoError, EchoEvent, EchoEventKind};
 pub use reliquary_perception_store::EntityRef;
 pub use reliquary_perception_store::{
@@ -1208,41 +1139,6 @@ mod archive_tests;
 #[path = "retrieval/archive_vector_tests.rs"]
 mod archive_vector_tests;
 #[cfg(test)]
-#[path = "chronos/chronos_boundary_tests.rs"]
-mod chronos_boundary_tests;
-#[cfg(test)]
-#[path = "chronos/chronos_calendar_language_tests.rs"]
-mod chronos_calendar_language_tests;
-#[cfg(test)]
-#[path = "chronos/chronos_detection_tests.rs"]
-mod chronos_detection_tests;
-#[cfg(test)]
-#[path = "chronos/chronos_duration_recurrence_tests.rs"]
-mod chronos_duration_recurrence_tests;
-#[cfg(test)]
-#[path = "chronos/chronos_duration_uncertainty_tests.rs"]
-mod chronos_duration_uncertainty_tests;
-#[cfg(test)]
-#[path = "chronos/chronos_event_relative_tests.rs"]
-mod chronos_event_relative_tests;
-#[cfg(test)]
-#[path = "chronos/chronos_inference_tests.rs"]
-mod chronos_inference_tests;
-#[cfg(test)]
-#[path = "chronos/chronos_processing_epoch_tests.rs"]
-mod chronos_processing_epoch_tests;
-#[cfg(test)]
-#[path = "chronos/chronos_relative_tests.rs"]
-mod chronos_relative_tests;
-#[cfg(test)]
-#[path = "chronos/chronos_resolution_tests.rs"]
-mod chronos_resolution_tests;
-#[cfg(test)]
-#[path = "chronos/chronos_tests.rs"]
-mod chronos_tests;
-#[cfg(test)]
-#[path = "chronos/chronos_time_of_day_tests.rs"]
-mod chronos_time_of_day_tests;
 #[cfg(all(test, feature = "community-benchmarks"))]
 #[path = "semantic_graph/community_end_to_end_bench.rs"]
 mod community_end_to_end_bench;

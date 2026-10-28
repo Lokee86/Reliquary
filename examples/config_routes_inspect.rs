@@ -10,7 +10,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ("entity_extraction", c.models.entity_extraction.as_ref()),
         ("entity_resolution", c.models.entity_resolution.as_ref()),
         ("dream", c.models.dream.as_ref()),
-        ("chronos", c.models.chronos.as_ref()),
     ] {
         match route {
             Some(r) => println!(

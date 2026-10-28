@@ -3,91 +3,34 @@ use crate::{
     TemporalInferenceError, TemporalMatch,
 };
 
-/// Detect possible world-time material without requiring that Chronos can already parse it.
 pub fn detect(text: &str) -> TemporalDetection {
-    crate::chronos_detection::detect_and_normalize(text).detection
+    reliquary_chronos::chronos::detect(text)
 }
 
-/// Deterministically analyze temporal language against an optional authoritative reference time.
-///
-/// Chronos does not choose the reference chronology. Consumers such as Dream and Insomnia resolve
-/// their authoritative source/reference time and pass it through this shared boundary.
 pub fn analyze(text: &str, reference_timestamp_ns: Option<i64>) -> TemporalAnalysis {
-    let detected = crate::chronos_detection::detect_and_normalize(text);
-    analyze_detected(text, reference_timestamp_ns, &detected)
+    reliquary_chronos::chronos::analyze(text, reference_timestamp_ns)
 }
 
-/// Detect and deterministically analyze temporal material, then report whether any detected
-/// temporal evidence remains unresolved and is therefore eligible for bounded inference.
 pub fn assess(text: &str, reference_timestamp_ns: Option<i64>) -> TemporalAssessment {
-    let detected = crate::chronos_detection::detect_and_normalize(text);
-    let analysis = analyze_detected(text, reference_timestamp_ns, &detected);
-    let detection = detected.detection.clone();
-    let resolution = crate::chronos_resolution::assess_resolution(text, &detection, &analysis);
-    TemporalAssessment {
-        detection,
-        analysis,
-        resolution,
-    }
+    reliquary_chronos::chronos::assess(text, reference_timestamp_ns)
 }
 
-/// Rehydrate a verified bounded inference by deterministically re-parsing its canonical
-/// expressions and merging them into ordinary derived Chronos analysis.
 pub fn analyze_with_inference(
     text: &str,
     reference_timestamp_ns: Option<i64>,
     inference: &TemporalInference,
 ) -> Result<TemporalAnalysis, TemporalInferenceError> {
-    crate::chronos_inference_apply::apply_inference(
-        analyze(text, reference_timestamp_ns),
-        inference,
-        reference_timestamp_ns,
-    )
-}
-
-fn analyze_detected(
-    text: &str,
-    reference_timestamp_ns: Option<i64>,
-    detected: &crate::chronos_detection::DetectedTemporalText,
-) -> TemporalAnalysis {
-    let mut analysis = crate::chronos_parser::parse_temporal(text, reference_timestamp_ns);
-    let Some(normalized_text) = detected.normalized_text.as_deref() else {
-        return analysis;
-    };
-
-    let mut corrected =
-        crate::chronos_parser::parse_temporal(normalized_text, reference_timestamp_ns);
-    for anchor in &mut corrected.anchors {
-        anchor.evidence = detected.restore_evidence(text, &anchor.evidence);
-    }
-    for time_of_day in &mut corrected.times_of_day {
-        time_of_day.evidence = detected.restore_evidence(text, &time_of_day.evidence);
-    }
-    for duration in &mut corrected.durations {
-        duration.evidence = detected.restore_evidence(text, &duration.evidence);
-    }
-    for duration in &mut corrected.duration_ranges {
-        duration.evidence = detected.restore_evidence(text, &duration.evidence);
-    }
-    for duration in &mut corrected.approximate_durations {
-        duration.evidence = detected.restore_evidence(text, &duration.evidence);
-    }
-    for relation in &mut corrected.event_relations {
-        relation.evidence = detected.restore_evidence(text, &relation.evidence);
-    }
-    for interval in &mut corrected.intervals {
-        interval.evidence = detected.restore_evidence(text, &interval.evidence);
-    }
-    for pattern in &mut corrected.patterns {
-        pattern.evidence = detected.restore_evidence(text, &pattern.evidence);
-    }
-    crate::chronos_parser::merge_temporal_analysis(&mut analysis, corrected);
-    analysis
+    reliquary_chronos::chronos::analyze_with_inference(text, reference_timestamp_ns, inference)
+        .map_err(|error| match error {
+            reliquary_chronos::TemporalInferenceError::InvalidOutput(message) => {
+                TemporalInferenceError::InvalidOutput(message)
+            }
+        })
 }
 
 pub(crate) fn temporal_matches(
     source: &TemporalAnalysis,
     candidate: &TemporalAnalysis,
 ) -> (Vec<TemporalMatch>, f64) {
-    crate::chronos_match::temporal_matches(source, candidate)
+    reliquary_chronos::chronos::temporal_matches(source, candidate)
 }

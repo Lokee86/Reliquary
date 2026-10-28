@@ -34,7 +34,7 @@ pub(crate) fn analyze_memory_temporal(
     analyze_with_inference(
         &text,
         source_timestamp_ns,
-        &inference.inference.clone().into(),
+        &crate::memory_temporal_conversion::from_memory_inference(inference.inference.clone()),
     )
     .unwrap_or(deterministic)
 }

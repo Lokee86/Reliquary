@@ -11,7 +11,6 @@ pub(crate) const GENERAL_DECISION_MODEL_KEY: &str = "models.general_decision";
 pub(crate) const ENTITY_RESOLUTION_DECISION_MODEL_KEY: &str = "models.entity_resolution_decision";
 pub(crate) const MEMORY_RETRIEVAL_DECISION_MODEL_KEY: &str = "models.memory_retrieval_decision";
 pub(crate) const ENTITY_RESOLUTION_MODEL_KEY: &str = "models.entity_resolution";
-pub(crate) const CHRONOS_MODEL_KEY: &str = "models.chronos";
 pub(crate) const DREAM_MODEL_KEY: &str = "models.dream";
 pub(crate) const EMBEDDING_MODEL_KEY: &str = "models.embedding";
 pub(crate) const GENERAL_MODEL_SCHEMA_V3: u16 = 3;

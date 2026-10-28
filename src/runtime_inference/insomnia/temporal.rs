@@ -1,6 +1,7 @@
 use crate::insomnia::processor::PreparedApplication;
 use crate::{
-    GeneralEndpoint, InsomniaExtractionError, MemoryDraft, TemporalAssessment, TemporalInferencer,
+    DecisionEndpoint, InsomniaExtractionError, MemoryDraft, TemporalAssessment,
+    TemporalDecisionError, TemporalDisambiguator,
 };
 
 pub(crate) fn assess_draft(draft: &MemoryDraft) -> TemporalAssessment {
@@ -8,10 +9,13 @@ pub(crate) fn assess_draft(draft: &MemoryDraft) -> TemporalAssessment {
 }
 
 pub(crate) fn infer_prepared(
-    endpoint: &dyn GeneralEndpoint,
+    endpoint: Option<&dyn DecisionEndpoint>,
     prepared: &mut PreparedApplication,
 ) -> Result<usize, InsomniaExtractionError> {
-    let inferencer = TemporalInferencer::new(endpoint);
+    let Some(endpoint) = endpoint else {
+        return Ok(0);
+    };
+    let inferencer = TemporalDisambiguator::new(endpoint);
     let mut inferred = 0;
     for memory in &mut prepared.project_drafts {
         inferred += infer_memory(&inferencer, memory)?;
@@ -22,20 +26,22 @@ pub(crate) fn infer_prepared(
     Ok(inferred)
 }
 
-pub(crate) fn infer_memory<E: GeneralEndpoint>(
-    inferencer: &TemporalInferencer<E>,
+pub(crate) fn infer_memory<E: DecisionEndpoint>(
+    inferencer: &TemporalDisambiguator<E>,
     prepared: &mut crate::insomnia::processor::PreparedMemory,
 ) -> Result<usize, InsomniaExtractionError> {
     if !prepared.temporal.resolution.needs_inference() {
         return Ok(0);
     }
     prepared.temporal_inference = inferencer
-        .infer(
+        .select(
             &semantic_text(&prepared.draft),
             prepared.draft.source_time_ns,
-            &prepared.temporal,
         )
-        .map_err(InsomniaExtractionError::from)?;
+        .map_err(|error| match error {
+            TemporalDecisionError::Endpoint(e) => InsomniaExtractionError::Decision(e),
+            TemporalDecisionError::InvalidOutput(e) => InsomniaExtractionError::InvalidOutput(e),
+        })?;
     Ok(usize::from(prepared.temporal_inference.is_some()))
 }
 

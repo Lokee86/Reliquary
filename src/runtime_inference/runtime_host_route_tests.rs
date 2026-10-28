@@ -26,7 +26,7 @@ fn runtime_routes_keep_inference_capabilities_separate() {
         Some(endpoint("entity-resolution")),
     )
     .with_entity_resolution_decision(Some(decision_endpoint("entity-decision")))
-    .with_chronos(Some(endpoint("chronos")));
+    .with_temporal_decision(Some(decision_endpoint("chronos")));
 
     assert_eq!(routes.insomnia().unwrap().model(), "insomnia");
     assert_eq!(routes.insomnia_metadata().unwrap().model(), "metadata");
@@ -43,7 +43,7 @@ fn runtime_routes_keep_inference_capabilities_separate() {
         routes.entity_resolution().unwrap().model(),
         "entity-resolution"
     );
-    assert_eq!(routes.chronos().unwrap().model(), "chronos");
+    assert_eq!(routes.temporal_decision().unwrap().model(), "chronos");
     assert_eq!(routes.dream().unwrap().model(), "dream");
 }
 
@@ -58,5 +58,5 @@ fn dedicated_routes_do_not_fall_back_to_other_capabilities() {
     assert!(routes.entity_extraction().is_none());
     assert!(routes.entity_resolution_decision().is_none());
     assert!(routes.entity_resolution().is_none());
-    assert!(routes.chronos().is_none());
+    assert!(routes.temporal_decision().is_none());
 }

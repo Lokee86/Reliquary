@@ -120,7 +120,9 @@ pub(crate) fn prepare<E: GeneralEndpoint>(
         .map_err(|_| ExternalSourceError::Unavailable)?;
     let mut project = Vec::new();
     let mut user = Vec::new();
-    let inferencer = crate::TemporalInferencer::new(extractor.temporal_endpoint());
+    let inferencer = extractor
+        .temporal_endpoint()
+        .map(crate::TemporalDisambiguator::new);
     let through = expected.iter().map(|d| d.timestamp_ns).max().unwrap();
     for candidate in extraction.candidates {
         let authority = evidence_chunk(
@@ -209,8 +211,10 @@ pub(crate) fn prepare<E: GeneralEndpoint>(
             temporal_inference: None,
             routing_metadata: routing,
         };
-        crate::insomnia::temporal::infer_memory(&inferencer, &mut prepared)
-            .map_err(|_| ExternalSourceError::Unavailable)?;
+        if let Some(inferencer) = &inferencer {
+            crate::insomnia::temporal::infer_memory(inferencer, &mut prepared)
+                .map_err(|_| ExternalSourceError::Unavailable)?;
+        }
         let temporal = prepared.bound_temporal_inference();
         let evidence = ExternalMemoryEvidence {
             source_owner_id: owner.to_owned(),

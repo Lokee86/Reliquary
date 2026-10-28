@@ -77,8 +77,9 @@
     },
     {
       "id": "chronos",
-      "description": "Shared deterministic/inference-assisted temporal semantics",
+      "description": "Shared deterministic temporal semantics and bounded candidate selection",
       "paths": [
+        "crates/reliquary-chronos/src",
         "src/chronos"
       ]
     },

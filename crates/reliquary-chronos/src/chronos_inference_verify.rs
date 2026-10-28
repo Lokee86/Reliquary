@@ -2,7 +2,7 @@ use crate::{
     TemporalAnalysis, TemporalIndicationKind, TemporalInferenceError, TemporalResolutionStatus,
 };
 
-pub(crate) fn verify_canonical_expression(
+pub fn verify_canonical_expression(
     expression: &str,
     kind: TemporalIndicationKind,
     reference_timestamp_ns: Option<i64>,

@@ -123,25 +123,6 @@ impl ConfiguredGeneralEndpoint {
         }
     }
 
-    pub fn from_chronos_switchboard(
-        switchboard: &ModelSwitchboard,
-    ) -> Result<Self, GeneralEndpointError> {
-        let provider = switchboard
-            .chronos()
-            .ok_or(GeneralEndpointError::InvalidConfiguration(
-                "Chronos route is not configured",
-            ))?
-            .provider;
-        match provider {
-            ModelProvider::OpenAiCodex => Ok(Self::OpenAiCodex(
-                OpenAiCodexGeneralEndpoint::from_chronos_switchboard(switchboard)?,
-            )),
-            ModelProvider::OpenAiReady => Ok(Self::OpenAiReady(
-                OpenAiReadyGeneralEndpoint::from_chronos_switchboard(switchboard)?,
-            )),
-        }
-    }
-
     pub fn from_dream_switchboard(
         switchboard: &ModelSwitchboard,
     ) -> Result<Self, GeneralEndpointError> {

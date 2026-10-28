@@ -122,7 +122,7 @@ fn reconcile_replays_grouped_insomnia_memory_records() {
         temporal_inference: Some(MemoryTemporalInference {
             body_id,
             source_time_ns: None,
-            inference: (TemporalInference {
+            inference: crate::memory_temporal_conversion::to_memory_inference(TemporalInference {
                 model: "chronos-test".into(),
                 contract_version: CHRONOS_INFERENCE_CONTRACT_VERSION.into(),
                 resolutions: vec![TemporalInferenceResolution {
@@ -132,8 +132,7 @@ fn reconcile_replays_grouped_insomnia_memory_records() {
                     evidence: "Keep".into(),
                     canonical_expression: "March 2027".into(),
                 }],
-            })
-            .into(),
+            }),
         }),
         mutation_id: draft.mutation_id,
         created_at_ns: 3,

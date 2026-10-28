@@ -63,7 +63,7 @@ fn fixture_record(index: u8, global_version: u64, memory_version: u64) -> Memory
         temporal_inference: Some(MemoryTemporalInference {
             body_id,
             source_time_ns: Some(700 + index as i64),
-            inference: (TemporalInference {
+            inference: crate::memory_temporal_conversion::to_memory_inference(TemporalInference {
                 model: "chronos-retained-test".into(),
                 contract_version: CHRONOS_INFERENCE_CONTRACT_VERSION.into(),
                 resolutions: vec![TemporalInferenceResolution {
@@ -73,8 +73,7 @@ fn fixture_record(index: u8, global_version: u64, memory_version: u64) -> Memory
                     evidence: "biweekly".into(),
                     canonical_expression: "every two weeks".into(),
                 }],
-            })
-            .into(),
+            }),
         }),
         mutation_id: format!("retained-record-{index}"),
         created_at_ns: 100 + index as i64,

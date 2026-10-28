@@ -9,6 +9,7 @@ use std::sync::Arc;
 pub(super) enum DecisionConsumer {
     EntityResolution,
     MemoryRetrieval,
+    Chronos,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -26,6 +27,7 @@ pub(super) fn select_route<'a>(
     let operation_specific = match consumer {
         DecisionConsumer::EntityResolution => config.entity_resolution_decision.as_ref(),
         DecisionConsumer::MemoryRetrieval => config.memory_retrieval_decision.as_ref(),
+        DecisionConsumer::Chronos => None,
     };
     if let Some(endpoint) = operation_specific {
         return DecisionRouteSelection::Dedicated(endpoint);
@@ -55,6 +57,11 @@ pub(super) fn construct_decision_service(
                     switchboard.memory_retrieval_decision_auth(),
                     "Memory retrieval decision route is not configured",
                 ),
+                DecisionConsumer::Chronos => {
+                    return Err(DecisionEndpointError::InvalidConfiguration(
+                        "Chronos has no dedicated route",
+                    ));
+                }
             };
             (Some(endpoint), auth, route)
         }
@@ -150,6 +157,7 @@ mod tests {
                         config.memory_retrieval_decision =
                             (mask & 4 != 0).then(|| decision("memory"));
                     }
+                    DecisionConsumer::Chronos => unreachable!(),
                 }
                 let expected = if mask & 4 != 0 {
                     "dedicated"
@@ -163,6 +171,19 @@ mod tests {
                 assert_eq!(selected_kind(&config, consumer), expected, "mask={mask}");
             }
         }
+    }
+
+    #[test]
+    fn chronos_uses_shared_then_general_then_unavailable() {
+        let mut config = ModelSwitchboardConfig::default();
+        assert_eq!(
+            selected_kind(&config, DecisionConsumer::Chronos),
+            "unavailable"
+        );
+        config.general = Some(general("general"));
+        assert_eq!(selected_kind(&config, DecisionConsumer::Chronos), "general");
+        config.general_decision = Some(decision("shared"));
+        assert_eq!(selected_kind(&config, DecisionConsumer::Chronos), "shared");
     }
 
     #[test]

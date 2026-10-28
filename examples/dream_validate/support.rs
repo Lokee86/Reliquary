@@ -175,6 +175,7 @@ pub fn recurring_case() -> (
     DreamRelationDirection,
 ) {
     let pattern = DreamTemporalPattern {
+        occurrences_per_period: 1,
         frequency: DreamTemporalFrequency::Weekly,
         interval: 1,
         weekday: Some(DreamTemporalWeekday::Tuesday),

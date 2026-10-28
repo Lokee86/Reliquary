@@ -2873,6 +2873,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "reliquary-chronos"
+version = "0.1.0"
+dependencies = [
+ "regex",
+ "serde_json",
+ "time",
+]
+
+[[package]]
 name = "reliquary-cli"
 version = "0.1.0"
 dependencies = [
@@ -2984,6 +2993,7 @@ dependencies = [
  "lore",
  "regex",
  "reliquary-archive",
+ "reliquary-chronos",
  "reliquary-container",
  "reliquary-dream-store",
  "reliquary-echo",

@@ -84,6 +84,8 @@ pub struct TemporalAnchor {
 pub struct TemporalPattern {
     pub frequency: TemporalFrequency,
     pub interval: u16,
+    /// Number of occurrences in each recurrence period.
+    pub occurrences_per_period: u16,
     pub weekday: Option<TemporalWeekday>,
     pub month_day: Option<u8>,
     pub month: Option<u8>,

@@ -1,7 +1,7 @@
 use super::processor::{PreparedApplication, PreparedMemory};
 use super::temporal::{assess_draft, infer_prepared};
 use crate::{
-    GeneralEndpoint, GeneralEndpointError, MemoryDraft, TemporalIndicationKind,
+    DecisionEndpoint, DecisionEndpointError, MemoryDraft, TemporalIndicationKind,
     TemporalResolutionStatus,
 };
 use serde_json::{Value, json};
@@ -70,7 +70,7 @@ fn insomnia_temporal_inference_is_called_only_for_unresolved_prepared_memories()
         Some(timestamp_ns(2026, Month::September, 16)),
     );
     let endpoint = CountingEndpoint::new(json!({
-        "resolutions": [{"id":"u000","canonical_expression":"every two weeks"}]
+        "answers": {"u000": {"type":"choice", "choice":"u000c00"}}
     }));
     let mut prepared = PreparedApplication {
         project_drafts: vec![
@@ -92,7 +92,7 @@ fn insomnia_temporal_inference_is_called_only_for_unresolved_prepared_memories()
         model: "extractor".into(),
     };
 
-    assert_eq!(infer_prepared(&endpoint, &mut prepared).unwrap(), 1);
+    assert_eq!(infer_prepared(Some(&endpoint), &mut prepared).unwrap(), 1);
     assert_eq!(endpoint.calls.load(Ordering::SeqCst), 1);
     assert!(prepared.project_drafts[0].temporal_inference.is_none());
     assert!(prepared.project_drafts[1].temporal_inference.is_some());
@@ -112,18 +112,12 @@ impl CountingEndpoint {
     }
 }
 
-impl GeneralEndpoint for CountingEndpoint {
+impl DecisionEndpoint for CountingEndpoint {
     fn model(&self) -> &str {
         "chronos-test"
     }
 
-    fn complete_json(
-        &self,
-        _system_prompt: &str,
-        _user_payload: &str,
-        _schema_name: &str,
-        _schema: &Value,
-    ) -> Result<Value, GeneralEndpointError> {
+    fn evaluate(&self, _state: &Value, _questions: &Value) -> Result<Value, DecisionEndpointError> {
         self.calls.fetch_add(1, Ordering::SeqCst);
         Ok(self.response.clone())
     }

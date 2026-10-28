@@ -37,7 +37,10 @@ fn freeze_memory(m: &PreparedExternalMemory) -> Result<FrozenMemory, ExternalSou
     let memory = crate::insomnia::PreparedMemory {
         draft: m.draft.clone(),
         temporal: crate::insomnia::temporal::assess_draft(&m.draft),
-        temporal_inference: m.temporal.as_ref().map(|t| t.inference.clone().into()),
+        temporal_inference: m
+            .temporal
+            .as_ref()
+            .map(|t| crate::memory_temporal_conversion::from_memory_inference(t.inference.clone())),
         routing_metadata: m.routing.clone(),
     };
     Ok(FrozenMemory {

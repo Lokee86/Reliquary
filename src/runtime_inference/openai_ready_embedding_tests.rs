@@ -41,7 +41,6 @@ fn live_endpoint_is_constructed_from_validated_switchboard() {
         entity_resolution_decision: None,
         memory_retrieval_decision: None,
         entity_resolution: None,
-        chronos: None,
         dream: None,
         embedding: Some(EmbeddingModelEndpoint {
             provider: ModelProvider::OpenAiReady,
@@ -72,7 +71,6 @@ fn zero_batching_limits_are_rejected() {
         entity_resolution_decision: None,
         memory_retrieval_decision: None,
         entity_resolution: None,
-        chronos: None,
         dream: None,
         embedding: Some(EmbeddingModelEndpoint {
             provider: ModelProvider::OpenAiReady,

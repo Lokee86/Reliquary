@@ -130,3 +130,15 @@ fn runtime_backpressure_ignores_normal_attempt_budget() {
     let work = cva.insomnia_work(claim.work.episode_id).unwrap();
     assert!(work.retry_after_ns.unwrap() > work.updated_at_ns);
 }
+
+#[test]
+fn decision_backpressure_preserves_retry_delay() {
+    let error = InsomniaExtractionError::Decision(crate::DecisionEndpointError::Backpressure {
+        message: "HTTP 429".into(),
+        retry_after: Some(Duration::from_secs(120)),
+    });
+    assert_eq!(
+        crate::insomnia::backpressure::retry_after_ns(&error),
+        Some(120_000_000_000)
+    );
+}

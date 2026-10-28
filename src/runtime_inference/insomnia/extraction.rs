@@ -83,6 +83,7 @@ pub(crate) struct InsomniaEvidenceRound {
 pub enum InsomniaExtractionError {
     Endpoint(GeneralEndpointError),
     InvalidOutput(String),
+    Decision(crate::DecisionEndpointError),
 }
 
 impl fmt::Display for InsomniaExtractionError {
@@ -90,6 +91,7 @@ impl fmt::Display for InsomniaExtractionError {
         match self {
             Self::Endpoint(error) => write!(f, "{error}"),
             Self::InvalidOutput(message) => write!(f, "invalid Insomnia extraction: {message}"),
+            Self::Decision(error) => write!(f, "{error}"),
         }
     }
 }
@@ -105,7 +107,6 @@ impl From<GeneralEndpointError> for InsomniaExtractionError {
 impl From<crate::TemporalInferenceError> for InsomniaExtractionError {
     fn from(value: crate::TemporalInferenceError) -> Self {
         match value {
-            crate::TemporalInferenceError::Endpoint(error) => Self::Endpoint(error),
             crate::TemporalInferenceError::InvalidOutput(message) => {
                 Self::InvalidOutput(format!("Chronos temporal inference: {message}"))
             }
@@ -118,7 +119,7 @@ pub struct InsomniaExtractor<E> {
     metadata_endpoint: Option<Arc<dyn GeneralEndpoint>>,
     enrichment_endpoint: Option<Arc<dyn GeneralEndpoint>>,
     ownership_endpoint: Option<Arc<dyn GeneralEndpoint>>,
-    temporal_endpoint: Option<Arc<dyn GeneralEndpoint>>,
+    temporal_endpoint: Option<Arc<dyn crate::DecisionEndpoint>>,
 }
 
 impl<E: GeneralEndpoint> InsomniaExtractor<E> {
@@ -156,16 +157,13 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
         self
     }
 
-    pub fn with_temporal_endpoint<T>(mut self, endpoint: T) -> Self
-    where
-        T: GeneralEndpoint + 'static,
-    {
-        self.temporal_endpoint = Some(Arc::new(endpoint));
+    pub fn with_temporal_decision(mut self, endpoint: Arc<dyn crate::DecisionEndpoint>) -> Self {
+        self.temporal_endpoint = Some(endpoint);
         self
     }
 
-    pub(crate) fn temporal_endpoint(&self) -> &dyn GeneralEndpoint {
-        self.temporal_endpoint.as_deref().unwrap_or(&self.endpoint)
+    pub(crate) fn temporal_endpoint(&self) -> Option<&dyn crate::DecisionEndpoint> {
+        self.temporal_endpoint.as_deref()
     }
 
     pub fn model(&self) -> &str {

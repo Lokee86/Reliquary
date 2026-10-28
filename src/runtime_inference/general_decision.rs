@@ -199,7 +199,22 @@ fn validate_choice_answers(
 }
 
 fn map_general_error(error: GeneralEndpointError) -> DecisionEndpointError {
-    DecisionEndpointError::Failure(error.to_string())
+    match error {
+        GeneralEndpointError::Backpressure {
+            message,
+            retry_after,
+        } => DecisionEndpointError::Backpressure {
+            message,
+            retry_after,
+        },
+        GeneralEndpointError::InvalidResponse(message) => {
+            DecisionEndpointError::InvalidResponse(message)
+        }
+        GeneralEndpointError::InvalidConfiguration(message) => {
+            DecisionEndpointError::InvalidConfiguration(message)
+        }
+        GeneralEndpointError::Failure(message) => DecisionEndpointError::Failure(message),
+    }
 }
 
 fn invalid(message: &'static str) -> DecisionEndpointError {

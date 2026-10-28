@@ -38,7 +38,7 @@ impl PreparedMemory {
                     &self.draft.content,
                 ),
                 source_time_ns: self.draft.source_time_ns,
-                inference: inference.into(),
+                inference: crate::memory_temporal_conversion::to_memory_inference(inference),
             })
     }
 }

@@ -274,7 +274,10 @@ pub(super) fn terminal_claim(
 fn retryable(error: &InsomniaExtractionError) -> bool {
     matches!(
         error,
-        InsomniaExtractionError::InvalidOutput(_)
+        InsomniaExtractionError::Decision(
+            crate::DecisionEndpointError::Failure(_)
+                | crate::DecisionEndpointError::InvalidResponse(_)
+        ) | InsomniaExtractionError::InvalidOutput(_)
             | InsomniaExtractionError::Endpoint(GeneralEndpointError::Failure(_))
             | InsomniaExtractionError::Endpoint(GeneralEndpointError::InvalidResponse(_))
     )

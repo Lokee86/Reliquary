@@ -80,6 +80,7 @@ fn classify_anchor_match(
 fn same_pattern(left: &TemporalPattern, right: &TemporalPattern) -> bool {
     left.frequency == right.frequency
         && left.interval == right.interval
+        && left.occurrences_per_period == right.occurrences_per_period
         && left.weekday == right.weekday
         && left.month_day == right.month_day
         && left.month == right.month

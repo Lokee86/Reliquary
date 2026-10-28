@@ -1,9 +1,17 @@
 # Chronos crate extraction and deterministic-choice redesign — implementation specification
 
-**Status:** Revised specification, not implemented (2026-10-27).
+**Status:** Implementation and regression checks completed; architecture enforcement remains under verification (2026-10-27).
 **Branch:** `refactor/crate-first-restart`. **Baseline:** `8943749d` (Owner Lifecycle extraction committed).
 **Target:** `crates/reliquary-chronos/`. **Scope:** one combined delivery with **two independent acceptance gates**: (A) behavior-preserving crate extraction, then (B) deterministic candidate generation and decision-model selection.
 **Migration policy:** staged hard cut. One canonical implementation at each integrated gate; no legacy runtime readers, duplicate parsers or compatibility adapters. Preserve unrelated Graph evidence worktree changes.
+
+## Purpose
+
+Define the staged extraction and deterministic-choice redesign for Chronos.
+
+## Overview
+
+The implementation is accepted only after the extraction and redesign gates below.
 
 ## Problem and desired outcome
 
@@ -101,3 +109,12 @@ Replace the old `TemporalInferencer<E: GeneralEndpoint>` public entry with a cle
 ## Out of scope
 
 Expanding the temporal grammar beyond bounded explicit ambiguity enumeration, general-purpose NLP, Perception Observation synthesis, timezone or locale guessing, proprietary new model route, new storage layer, cache, arbitrary rescheduling, open-ended language fallback, and bespoke architecture-proof infrastructure.
+
+## Related docs
+
+- [Chronos subsystem](subsystems/chronos.md)
+- [Extraction evidence](chronos-crate-extraction-evidence-2026-10-27.md)
+
+## Notes
+
+This specification records the intended migration; the evidence records verified results.

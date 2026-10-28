@@ -32,7 +32,7 @@ semantic text + authoritative reference chronology
   -> TemporalAssessment
        no material -> stop
        fully resolved -> return derived products
-       unresolved residue -> optional bounded inference
+       unresolved residue -> deterministic candidate sets -> selection or abstention
 ```
 
 `chronos::detect` preserves original indication spans even when parsing fails. `chronos::analyze` returns deterministic products. `chronos::assess` combines detection, analysis, resolution status, and the exact unresolved indications eligible for inference. `analyze_with_inference` accepts only already-verified inference results.
@@ -43,11 +43,11 @@ Current deterministic support includes absolute calendar expressions, relative d
 
 Ambiguous locale-dependent forms remain unresolved rather than inheriting machine locale. Bounded typo normalization preserves original evidence spans. Calendar month/year arithmetic uses calendar-aware clamping rather than fixed-duration substitution.
 
-## Inference fallback
+## Candidate selection
 
-Inference is allowed only for detected unresolved material that a consumer actually needs resolved. The model receives the unresolved indications plus deterministic evidence, not a request to regenerate already-known temporal facts.
+The lower `reliquary-chronos` crate enumerates supported alternatives for unresolved indications. Currently `biweekly` offers every two weeks and twice weekly, represented by distinct derived occurrence counts without inventing weekdays. Unsupported expressions remain unresolved. A shared decision endpoint receives the original text, reference time, resolved evidence and locally enumerated choices. It may select an ID or abstain; Chronos reparses and revalidates every selection. Invalid, missing, extra or unknown answers fail closed.
 
-Every non-empty model answer must be a canonical expression that Chronos can parse deterministically as the same indication kind. Invalid, unknown, extra, or mismatched output is rejected.
+Configured selection uses `models.general_decision`, then `models.general` through the constrained decision adapter. If neither exists, no decision is made. The former dedicated `models.chronos` route is rejected. Candidate sets and model responses are not stored.
 
 Deterministic products remain derived. Only a consumer that needs a nondeterministic conclusion may persist it, bound to the exact semantic body and authoritative reference time.
 
@@ -75,7 +75,8 @@ Perception currently owns Observation semantics and is the future consumer for b
 
 ## Code Map
 
-- `src/chronos/**`
+- `crates/reliquary-chronos/src/**` (temporal semantics and candidate validation)
+- `src/chronos/**` (decision transport and Memory boundary)
 - `src/runtime_inference/insomnia/*temporal*`
 - `src/runtime_inference/configured_runtime*`
 - `src/runtime_inference/model_switchboard*`

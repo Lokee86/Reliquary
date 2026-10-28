@@ -153,6 +153,7 @@ pub(crate) fn patterns(values: &mut Vec<TemporalPattern>) {
         (
             left.frequency,
             left.interval,
+            left.occurrences_per_period,
             left.weekday,
             left.month_day,
             left.month,
@@ -161,6 +162,7 @@ pub(crate) fn patterns(values: &mut Vec<TemporalPattern>) {
             .cmp(&(
                 right.frequency,
                 right.interval,
+                right.occurrences_per_period,
                 right.weekday,
                 right.month_day,
                 right.month,
@@ -170,6 +172,7 @@ pub(crate) fn patterns(values: &mut Vec<TemporalPattern>) {
     values.dedup_by(|left, right| {
         left.frequency == right.frequency
             && left.interval == right.interval
+            && left.occurrences_per_period == right.occurrences_per_period
             && left.weekday == right.weekday
             && left.month_day == right.month_day
             && left.month == right.month

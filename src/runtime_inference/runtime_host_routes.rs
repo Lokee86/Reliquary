@@ -10,7 +10,7 @@ pub struct ReliquaryRuntimeRoutes {
     entity_resolution_decision: Option<Arc<dyn DecisionEndpoint>>,
     memory_retrieval_decision: Option<Arc<dyn DecisionEndpoint>>,
     entity_resolution: Option<Arc<dyn GeneralEndpoint>>,
-    chronos: Option<Arc<dyn GeneralEndpoint>>,
+    temporal_decision: Option<Arc<dyn DecisionEndpoint>>,
     dream: Option<Arc<dyn GeneralEndpoint>>,
     embedding: Option<Arc<dyn EmbeddingEndpoint + Send + Sync>>,
 }
@@ -31,7 +31,7 @@ impl ReliquaryRuntimeRoutes {
             entity_resolution_decision: None,
             memory_retrieval_decision: None,
             entity_resolution: None,
-            chronos: None,
+            temporal_decision: None,
             dream,
             embedding,
         }
@@ -91,13 +91,12 @@ impl ReliquaryRuntimeRoutes {
         self.entity_resolution.clone()
     }
 
-    pub fn with_chronos(mut self, endpoint: Option<Arc<dyn GeneralEndpoint>>) -> Self {
-        self.chronos = endpoint;
+    pub fn with_temporal_decision(mut self, endpoint: Option<Arc<dyn DecisionEndpoint>>) -> Self {
+        self.temporal_decision = endpoint;
         self
     }
-
-    pub(crate) fn chronos(&self) -> Option<Arc<dyn GeneralEndpoint>> {
-        self.chronos.clone()
+    pub(crate) fn temporal_decision(&self) -> Option<Arc<dyn DecisionEndpoint>> {
+        self.temporal_decision.clone()
     }
 
     pub(crate) fn dream(&self) -> Option<Arc<dyn GeneralEndpoint>> {

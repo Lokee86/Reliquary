@@ -113,22 +113,6 @@ impl OpenAiCodexGeneralEndpoint {
         Self::from_route(route, auth)
     }
 
-    pub fn from_chronos_switchboard(
-        switchboard: &ModelSwitchboard,
-    ) -> Result<Self, GeneralEndpointError> {
-        let route = switchboard
-            .chronos()
-            .ok_or(GeneralEndpointError::InvalidConfiguration(
-                "Chronos route is not configured",
-            ))?;
-        let auth = switchboard
-            .chronos_auth()
-            .ok_or(GeneralEndpointError::InvalidConfiguration(
-                "Chronos auth is missing",
-            ))?;
-        Self::from_route(route, auth)
-    }
-
     pub fn from_dream_switchboard(
         switchboard: &ModelSwitchboard,
     ) -> Result<Self, GeneralEndpointError> {

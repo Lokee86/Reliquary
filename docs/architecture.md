@@ -128,6 +128,10 @@ and prune facts with cross-owner authorization. Processing epochs and source-tim
 resolution remain above Memory. Opening and historical reads do not repair bytes
 or reinforce Freshness. Persisted identities and publication bytes are unchanged.
 
+## Chronos temporal crate
+
+`reliquary-chronos` owns deterministic temporal detection, parsing, matching and bounded candidate validation. It receives authoritative source time from consumers and has no Reliquary crate dependencies. The root decision adapter chooses among locally enumerated IDs or abstains through the shared decision route; Memory owns the existing body- and reference-bound persisted inference snapshot. Dream and Insomnia consume the same derived products, and historical replay makes no model calls.
+
 ## Graph and Community owner crate
 
 `reliquary-graph` owns typed Graph topology, node ordinals, relationship

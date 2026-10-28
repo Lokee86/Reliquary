@@ -106,13 +106,13 @@ impl ConfiguredRuntime {
             .transpose()
             .map_err(operation)?
             .map(|endpoint| Arc::new(endpoint) as Arc<dyn crate::GeneralEndpoint>);
-        let chronos = config
-            .chronos
-            .as_ref()
-            .map(|_| ConfiguredGeneralEndpoint::from_chronos_switchboard(&self.switchboard))
-            .transpose()
-            .map_err(operation)?
-            .map(|endpoint| Arc::new(endpoint) as Arc<dyn crate::GeneralEndpoint>);
+        let temporal_decision = decision::construct_decision_endpoint(
+            &self.switchboard,
+            decision::select_route(config, decision::DecisionConsumer::Chronos),
+            decision::DecisionConsumer::Chronos,
+            general.clone(),
+        )
+        .map_err(operation)?;
         let dream = config
             .dream
             .as_ref()
@@ -132,7 +132,7 @@ impl ConfiguredRuntime {
                 .with_entity_routes(entity_extraction, entity_resolution)
                 .with_entity_resolution_decision(entity_resolution_decision)
                 .with_memory_retrieval_decision(memory_retrieval_decision)
-                .with_chronos(chronos),
+                .with_temporal_decision(temporal_decision),
         )
     }
 }

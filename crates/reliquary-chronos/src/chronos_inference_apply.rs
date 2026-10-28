@@ -1,6 +1,7 @@
 use crate::{TemporalAnalysis, TemporalInference, TemporalInferenceError};
 
 pub(crate) fn apply_inference(
+    text: &str,
     mut analysis: TemporalAnalysis,
     inference: &TemporalInference,
     reference_timestamp_ns: Option<i64>,
@@ -10,7 +11,22 @@ pub(crate) fn apply_inference(
             "unsupported persisted inference contract version".into(),
         ));
     }
+    let detection = crate::chronos::detect(text);
+    let mut seen = std::collections::HashSet::new();
     for resolution in &inference.resolutions {
+        if text.get(resolution.start_byte..resolution.end_byte)
+            != Some(resolution.evidence.as_str())
+            || !detection.indications.iter().any(|indication| {
+                indication.start_byte == resolution.start_byte
+                    && indication.end_byte == resolution.end_byte
+                    && indication.kind == resolution.kind
+            })
+            || !seen.insert((resolution.start_byte, resolution.end_byte, resolution.kind))
+        {
+            return Err(TemporalInferenceError::InvalidOutput(
+                "persisted inference does not match a unique source indication".into(),
+            ));
+        }
         let mut inferred = crate::chronos_inference_verify::verify_canonical_expression(
             &resolution.canonical_expression,
             resolution.kind,

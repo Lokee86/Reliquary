@@ -95,6 +95,7 @@ path = "examples/entity_jev_resolution_experiment/main.rs"
 required-features = ["entity-calibration"]
 
 [dependencies]
+reliquary-chronos = { path = "crates/reliquary-chronos" }
 reliquary-owner-lifecycle = { path = "crates/reliquary-owner-lifecycle" }
 reliquary-external-index-store = { path = "crates/reliquary-external-index-store" }
 reliquary-maintenance-store = { path = "crates/reliquary-maintenance-store" }

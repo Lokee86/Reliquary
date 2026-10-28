@@ -73,9 +73,21 @@ impl DecisionEndpoint for ConfiguredDecisionEndpoint {
             .send()
             .map_err(|error| DecisionEndpointError::Failure(error.to_string()))?;
         let status = response.status();
+        let retry_after = response
+            .headers()
+            .get(reqwest::header::RETRY_AFTER)
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| value.parse::<u64>().ok())
+            .map(Duration::from_secs);
         let body = response
             .text()
             .map_err(|error| DecisionEndpointError::Failure(error.to_string()))?;
+        if status.as_u16() == 429 {
+            return Err(DecisionEndpointError::Backpressure {
+                message: format!("HTTP {status}: {body}"),
+                retry_after,
+            });
+        }
         if !status.is_success() {
             return Err(DecisionEndpointError::Failure(format!(
                 "HTTP {status}: {body}"

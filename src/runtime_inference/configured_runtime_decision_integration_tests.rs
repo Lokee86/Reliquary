@@ -243,6 +243,53 @@ fn direct_response(consumer: Consumer) -> Value {
     }
 }
 
+#[test]
+fn temporal_selection_uses_shared_or_general_configured_route() {
+    for tier in [Tier::Shared, Tier::General] {
+        let selected = json!({"answers":{"u000":{"type":"choice","choice":"u000c00"}}});
+        let response = if matches!(tier, Tier::General) {
+            general_response_content(selected)
+        } else {
+            selected
+        };
+        let server = test_server(200, response, Duration::from_millis(50));
+        let routes = runtime(&server, Consumer::EntityResolution, tier)
+            .runtime_routes()
+            .unwrap();
+        let endpoint = routes.temporal_decision().unwrap();
+        let inference = crate::TemporalDisambiguator::new(endpoint.as_ref())
+            .select("biweekly", None)
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            inference.resolutions[0].canonical_expression,
+            "every two weeks"
+        );
+        let requests = server.requests.join().unwrap();
+        assert_eq!(requests.len(), 1);
+        let path = if matches!(tier, Tier::Shared) {
+            "/shared"
+        } else {
+            "/chat/completions"
+        };
+        assert!(requests[0].starts_with(&format!("POST {path} ")));
+    }
+    let runtime = ConfiguredRuntime {
+        switchboard: ModelSwitchboard::new(
+            ModelSwitchboardConfig::default(),
+            CredentialsConfig::default(),
+        )
+        .unwrap(),
+    };
+    assert!(
+        runtime
+            .runtime_routes()
+            .unwrap()
+            .temporal_decision()
+            .is_none()
+    );
+}
+
 fn assert_request(request: &str, consumer: Consumer, tier: Tier) {
     let (headers, body) = request.split_once("\r\n\r\n").unwrap();
     let path = match tier {

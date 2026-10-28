@@ -8,12 +8,12 @@ use crate::config_object::{
 };
 use crate::model_switchboard::validate_switchboard;
 use crate::model_switchboard_codec::{
-    CHRONOS_MODEL_KEY, DECISION_MODEL_SCHEMA_V1, DREAM_MODEL_KEY, EMBEDDING_MODEL_KEY,
-    EMBEDDING_MODEL_SCHEMA_V2, ENTITY_EXTRACTION_MODEL_KEY, ENTITY_RESOLUTION_DECISION_MODEL_KEY,
-    ENTITY_RESOLUTION_MODEL_KEY, GENERAL_DECISION_MODEL_KEY, GENERAL_MODEL_KEY,
-    GENERAL_MODEL_SCHEMA_V3, INSOMNIA_METADATA_MODEL_KEY, INSOMNIA_MODEL_KEY,
-    MEMORY_RETRIEVAL_DECISION_MODEL_KEY, decode_decision, decode_embedding, decode_general_v2,
-    decode_general_v3, encode_decision, encode_embedding, encode_general,
+    DECISION_MODEL_SCHEMA_V1, DREAM_MODEL_KEY, EMBEDDING_MODEL_KEY, EMBEDDING_MODEL_SCHEMA_V2,
+    ENTITY_EXTRACTION_MODEL_KEY, ENTITY_RESOLUTION_DECISION_MODEL_KEY, ENTITY_RESOLUTION_MODEL_KEY,
+    GENERAL_DECISION_MODEL_KEY, GENERAL_MODEL_KEY, GENERAL_MODEL_SCHEMA_V3,
+    INSOMNIA_METADATA_MODEL_KEY, INSOMNIA_MODEL_KEY, MEMORY_RETRIEVAL_DECISION_MODEL_KEY,
+    decode_decision, decode_embedding, decode_general_v2, decode_general_v3, encode_decision,
+    encode_embedding, encode_general,
 };
 use crate::{
     ConfigError, CredentialsConfig, FragmentConfig, JsonMasterKeyStore, MasterKey, MasterKeyError,
@@ -95,10 +95,9 @@ impl ReliquaryConfig {
             Some(object) => Some(decode_known_general(object)?),
             None => None,
         };
-        let chronos = match objects.remove(CHRONOS_MODEL_KEY) {
-            Some(object) => Some(decode_known_general(object)?),
-            None => None,
-        };
+        if objects.contains_key("models.chronos") {
+            return Err(ConfigError::InvalidModelSwitchboard);
+        }
         let dream = match objects.remove(DREAM_MODEL_KEY) {
             Some(object) => Some(decode_known_general(object)?),
             None => None,
@@ -116,7 +115,6 @@ impl ReliquaryConfig {
             entity_resolution_decision,
             memory_retrieval_decision,
             entity_resolution,
-            chronos,
             dream,
             embedding,
         };
@@ -221,12 +219,6 @@ impl ReliquaryConfig {
         if let Some(endpoint) = &self.models.entity_resolution {
             objects.insert(
                 ENTITY_RESOLUTION_MODEL_KEY.to_owned(),
-                general_model_object(encode_general(endpoint)?),
-            );
-        }
-        if let Some(endpoint) = &self.models.chronos {
-            objects.insert(
-                CHRONOS_MODEL_KEY.to_owned(),
                 general_model_object(encode_general(endpoint)?),
             );
         }

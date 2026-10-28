@@ -81,6 +81,25 @@ fn unknown_objects_survive_known_config_replacement() {
 }
 
 #[test]
+fn retired_chronos_route_is_rejected_instead_of_preserved_as_unknown() {
+    let path = test_path("old-chronos.cfg");
+    let mut objects = BTreeMap::new();
+    objects.insert(
+        "models.chronos".into(),
+        RawConfigObject {
+            schema: 1,
+            flags: 0,
+            payload: Vec::new(),
+        },
+    );
+    fs::write(&path, encode_config(&objects).unwrap()).unwrap();
+    assert!(matches!(
+        ReliquaryConfig::open(&path),
+        Err(crate::ConfigError::InvalidModelSwitchboard)
+    ));
+}
+
+#[test]
 fn runtime_dream_concurrency_round_trips() {
     let path = test_path("runtime.cfg");
     let mut config = ReliquaryConfig::new(&path);

@@ -127,6 +127,7 @@ pub(crate) fn merge_temporal_analysis(base: &mut TemporalAnalysis, mut extra: Te
         !base.patterns.iter().any(|existing| {
             existing.frequency == candidate.frequency
                 && existing.interval == candidate.interval
+                && existing.occurrences_per_period == candidate.occurrences_per_period
                 && existing.weekday == candidate.weekday
                 && existing.month_day == candidate.month_day
                 && existing.month == candidate.month

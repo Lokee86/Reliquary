@@ -20,7 +20,8 @@
 - [External Index Store extraction specification](external-index-store-crate-extraction-spec-2026-10-27.md) — derived snapshot/codec ownership and validation boundary.
 - [Maintenance Store extraction specification](maintenance-store-crate-extraction-spec-2026-10-27.md) — evidence-first durable ownership decision.
 - [Owner Lifecycle extraction evidence](owner-lifecycle-crate-extraction-evidence-2026-10-27.md) — implementation, verification and remaining fixture limits.
-- [Chronos extraction specification](chronos-crate-extraction-spec-2026-10-27.md) — planned Chronos ownership and migration.
+- [Chronos extraction evidence](chronos-crate-extraction-evidence-2026-10-27.md) — extraction baseline and verification.
+- [Chronos extraction specification](chronos-crate-extraction-spec-2026-10-27.md) — Chronos ownership and staged migration.
 - [Owner Lifecycle extraction specification](owner-lifecycle-crate-extraction-spec-2026-10-27.md) — compiled owner reopen and structural replay coordination.
 - [Compact interaction stream contract](interaction-stream-compact-contract-2026-10-21.md) — frozen checkpoint transitions and exact suffix representation.
 - [Compact publication envelope contract](publication-envelope-contract-2026-10-20.md) — planned physical allocation/reserved-binding format and owner migration gates.
@@ -153,6 +154,7 @@
 - [archive-vector-generation-reuse-decision-2026-10-21.md](archive-vector-generation-reuse-decision-2026-10-21.md) - Archive Vector Generation Reuse Decision 2026 10 21 documentation.
 - [behavioral-contracts.md](behavioral-contracts.md) - Behavioral Contracts documentation.
 - [canonical-history-migration-results-2026-10-21.md](canonical-history-migration-results-2026-10-21.md) - Canonical History Migration Results 2026 10 21 documentation.
+- [chronos-crate-extraction-evidence-2026-10-27.md](chronos-crate-extraction-evidence-2026-10-27.md) - Chronos Crate Extraction Evidence 2026 10 27 documentation.
 - [chronos-crate-extraction-spec-2026-10-27.md](chronos-crate-extraction-spec-2026-10-27.md) - Chronos Crate Extraction Spec 2026 10 27 documentation.
 - [chronos-subsystem-plan.md](chronos-subsystem-plan.md) - Chronos Subsystem Plan documentation.
 - [cli.md](cli.md) - Cli documentation.

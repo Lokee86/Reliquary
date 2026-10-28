@@ -69,8 +69,8 @@ pub(super) fn worker_loop(
             if let Some(ownership) = routes.insomnia_ownership() {
                 extractor = extractor.with_ownership_endpoint(SharedGeneralEndpoint(ownership));
             }
-            if let Some(temporal) = routes.chronos() {
-                extractor = extractor.with_temporal_endpoint(SharedGeneralEndpoint(temporal));
+            if let Some(temporal) = routes.temporal_decision() {
+                extractor = extractor.with_temporal_decision(temporal);
             }
             extractor
         });

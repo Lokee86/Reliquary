@@ -6,6 +6,10 @@ use std::sync::Mutex;
 pub enum DecisionEndpointError {
     InvalidConfiguration(&'static str),
     Failure(String),
+    Backpressure {
+        message: String,
+        retry_after: Option<std::time::Duration>,
+    },
     InvalidResponse(&'static str),
 }
 
@@ -16,6 +20,9 @@ impl fmt::Display for DecisionEndpointError {
                 write!(f, "decision endpoint configuration: {message}")
             }
             Self::Failure(message) => write!(f, "decision endpoint failure: {message}"),
+            Self::Backpressure { message, .. } => {
+                write!(f, "decision endpoint backpressure: {message}")
+            }
             Self::InvalidResponse(message) => write!(f, "decision endpoint response: {message}"),
         }
     }

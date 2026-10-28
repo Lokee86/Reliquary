@@ -153,6 +153,7 @@ fn pattern(
     TemporalPattern {
         frequency,
         interval,
+        occurrences_per_period: 1,
         weekday,
         month_day: None,
         month: None,
