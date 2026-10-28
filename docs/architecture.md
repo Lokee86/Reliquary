@@ -132,6 +132,27 @@ or reinforce Freshness. Persisted identities and publication bytes are unchanged
 
 `reliquary-chronos` owns deterministic temporal detection, parsing, matching and bounded candidate validation. It receives authoritative source time from consumers and has no Reliquary crate dependencies. The root decision adapter chooses among locally enumerated IDs or abstains through the shared decision route; Memory owns the existing body- and reference-bound persisted inference snapshot. Dream and Insomnia consume the same derived products, and historical replay makes no model calls.
 
+## Switchboard model runtime crate
+
+`reliquary-switchboard` owns canonical model route identity and selection,
+General and Decision contracts, configured endpoint adapters, OpenAI-ready and
+Codex provider transports, device authorization and token refresh, credentials,
+master-key handling, and low-level `reliquary.cfg` document framing and file
+replacement. It has no direct Reliquary crate dependencies. Provider and
+credential security types have one lower owner; the root product reexports
+them and composes them with semantic services.
+
+The product retains `ReliquaryConfig`'s public fields and validates product
+objects such as Fragment, Retrieval and Runtime configuration. It supplies
+those domain payloads to Switchboard's raw document boundary, while Switchboard
+owns model and credential object codecs. Route selection is canonical in the
+lower crate; `ConfiguredRuntime` and Gateway retain product runtime assembly
+and semantic authorization. The vector-specific normalization projection
+remains at the product boundary through one explicit adapter, avoiding a
+Switchboard dependency on Vector Store or a second normalization authority.
+This cut preserves current config framing and endpoint behavior; verification
+results belong in the separate extraction evidence record.
+
 ## Graph and Community owner crate
 
 `reliquary-graph` owns typed Graph topology, node ordinals, relationship
@@ -526,11 +547,14 @@ Reliquary's Project Environment owns repository discovery, Lore/Git integration 
 ### Repo-local CLI
 `cli/` is a separate, non-installed Cargo package that depends only on the public library API. It owns argument parsing, secret prompting, human-readable rendering, and explicit operator command dispatch only; it owns no CVA/config/auth/retrieval or configured-runtime semantics and can be removed or detached without changing the core package. `ConfiguredRuntime` is the library-owned seam for configured finite Insomnia/vector execution, while library constants own defaults exposed by optional CLI flags.
 ### Model switchboard
+The compiled `reliquary-switchboard` crate is the canonical owner for the
+model/configuration infrastructure described below. It has no internal
+Reliquary crate dependencies; the root facade reexports its public types.
 `ModelSwitchboardConfig` owns machine-local endpoint selection for explicit model capabilities. The current capabilities are `General`, `Insomnia`, `InsomniaMetadata`, `Dream`, and `Embedding`; the providers are `OpenAiCodex` and `OpenAiReady`. Main Insomnia and Dream may each have dedicated routes and otherwise resolve to General. Fixed-group metadata classification remains optional and uses `InsomniaMetadata` only when configured. Post-wording **Entity-mention enrichment** is required by the configured/runtime-host Insomnia workflow: it uses the metadata route when present and otherwise falls back to effective main Insomnia. Lexical Memory routing is deterministic and therefore uses no model route. When owner routing is enabled, ownership classification likewise prefers the metadata route and otherwise falls back to effective main Insomnia. Each configured route carries a stable `CredentialId`. `ModelCapability::route_key()` is the canonical external capability-key vocabulary used by host adapters.
 
 `ReliquaryRuntimeRoutes` is the long-lived host boundary. A host may supply exact provider-adapter endpoints for General, Insomnia, Insomnia metadata, Dream, and Embedding, but Reliquary applies capability fallback and chooses which endpoint each background worker uses. `GatewayRuntime` therefore never receives or mutates a single generic inference endpoint: Insomnia uses effective main + optional metadata/ownership routes, Dream uses its effective Dream route, and vector workers use the embedding route. `ConfiguredRuntime::runtime_routes()` builds the same route bundle from `reliquary.cfg`, so the standalone configured path and embedded hosts share the same runtime composition rules.
 
-`CredentialsConfig` owns decrypted in-memory credentials loaded from encrypted `credential.<id>` config objects. Constructing `ModelSwitchboard` validates that every selected route resolves to a credential of the provider's required auth kind. The switchboard can then produce request auth: bearer API key for `OpenAiReady`, or bearer ChatGPT access token plus optional `ChatGPT-Account-ID` for `OpenAiCodex`. `OpenAiReadyEmbeddingEndpoint` consumes the validated embedding route/auth, performs direct OpenAI-compatible HTTP embedding requests, preserves input order across concurrent batches, and normalizes output according to the declared route contract. `OpenAiReadyGeneralEndpoint` uses strict JSON-schema `response_format` for ordinary General/Insomnia OpenAI-compatible calls, while its dedicated Dream constructor forces exactly one named function/tool call whose parameters are the requested schema and accepts only that function's JSON arguments. This keeps Dream's post-model relation/direction/evidence validation strict even on providers that do not reliably honor `response_format` schema shape. Provider/model/URL/credential choices remain routing policy and do not enter Compatibility Profile identity or decide vector compatibility.
+`CredentialsConfig` owns decrypted in-memory credentials loaded from encrypted `credential.<id>` config objects. Constructing `ModelSwitchboard` validates that every selected route resolves to a credential of the provider's required auth kind. Switchboard produces request auth: bearer API key for `OpenAiReady`, or bearer ChatGPT access token plus optional `ChatGPT-Account-ID` for `OpenAiCodex`. Its provider endpoints implement General, Decision and embedding transport, including structured output and Codex Responses/device-auth flows. The product-facing embedding adapter performs the explicit vector normalization conversion. Provider/model/URL/credential choices remain routing policy and do not enter Compatibility Profile identity or decide vector compatibility.
 ### Master key
 `MasterKeyStore` owns retrieval/creation of the 256-bit key that protects credential objects. The current `JsonMasterKeyStore` is a temporary implementation that stores plaintext `reliquary.master-key.json` beside `reliquary.cfg`; production storage will move behind the same ownership boundary to the operating-system credential store. Credential ciphertext uses AES-256-GCM with fresh nonces and object-key-bound authenticated data. The master key is machine-local and is never CVA semantic state.
 ### Container

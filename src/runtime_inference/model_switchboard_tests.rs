@@ -2,7 +2,7 @@ use crate::{
     ConfiguredDecisionEndpoint, ConfiguredGeneralEndpoint, CredentialId, CredentialsConfig,
     DecisionEndpoint, DecisionModelEndpoint, EmbeddingModelEndpoint, GeneralEndpoint,
     GeneralModelEndpoint, ModelAuthKind, ModelCapability, ModelProvider, ModelSwitchboard,
-    ModelSwitchboardConfig, ReliquaryConfig, VectorNormalization,
+    ModelSwitchboardConfig, ReliquaryConfig,
 };
 use std::collections::BTreeMap;
 use std::fs;
@@ -243,7 +243,7 @@ fn invalid_provider_routes_are_rejected() {
             url: None,
             credential_id: id("codex"),
             dimensions: 1024,
-            normalization: VectorNormalization::L2,
+            normalization: crate::EmbeddingNormalization::L2,
         }),
     };
     assert!(ModelSwitchboard::new(codex_embedding, CredentialsConfig::default()).is_err());
@@ -358,12 +358,13 @@ fn configured_dream_endpoint_uses_dedicated_route() {
 
 #[test]
 fn legacy_general_schema_decodes_without_reasoning() {
-    let mut bytes = vec![ModelProvider::OpenAiCodex.tag(), 0, 0, 0];
+    let mut bytes = vec![1, 0, 0, 0];
     for value in ["legacy-codex", "", "codex"] {
         bytes.extend_from_slice(&(value.len() as u32).to_le_bytes());
         bytes.extend_from_slice(value.as_bytes());
     }
-    let endpoint = crate::model_switchboard_codec::decode_general_v2(&bytes).unwrap();
+    let endpoint =
+        reliquary_switchboard::model_switchboard_codec::decode_general_v2(&bytes).unwrap();
     assert_eq!(endpoint.provider, ModelProvider::OpenAiCodex);
     assert_eq!(endpoint.model, "legacy-codex");
     assert_eq!(endpoint.reasoning_effort, None);
@@ -588,7 +589,7 @@ fn configured_models() -> ModelSwitchboardConfig {
             url: Some("https://example.test/v1/embeddings".into()),
             credential_id: id("ready"),
             dimensions: 1024,
-            normalization: VectorNormalization::L2,
+            normalization: crate::EmbeddingNormalization::L2,
         }),
     }
 }

@@ -17,6 +17,7 @@ See [implementation evidence](external-index-store-crate-extraction-evidence-202
 ## Memory Core crate boundary
 
 The root product reexports canonical Memory values from `reliquary-memory-core`.
+
 The crate's `MemoryStore` and `MemoryOpenState` expose Memory admission and replay;
 Archive provenance checks, REL/PHY capabilities and grouped carrier receipts are
 composed by the product. Memory source Episode references carry the exact stable
@@ -218,10 +219,23 @@ Vector storage implementation is partially extracted to `reliquary-vector-store`
 
 Only ConversationExecution is eligible for Host authority. Insomnia/Dream/Embedding/ProjectEnvironment lack executable host result paths and retain their existing Native implementation, regardless of enum declarations or advertised queue guarantees. Native work with no configured endpoint remains pending. Existing durable host status/cancel/reconciliation remains authoritative for unresolved operations; the [B capability ledger](multiplexing-implementation-plan.md) supplies the C/D handoff.
 
-### Local configuration
-`ReliquaryConfig::new(path)` creates an in-memory default config, `ReliquaryConfig::open(path)` loads `reliquary.cfg`, and `save()` validates and atomically replaces the current file. Public fields are `fragments: FragmentConfig`, `retrieval: RetrievalConfig`, `models: ModelSwitchboardConfig`, and `credentials: CredentialsConfig`; `path()` reports the configured path. `validate_runtime()` verifies model-route and credential compatibility without executing a provider request. `load_or_create_master_key()` generates or reloads a 256-bit local master key from temporary sibling `reliquary.master-key.json`. Credential objects are encrypted/decrypted automatically on save/open. Unknown framed objects are preserved across saves, except the retired `models.chronos` object, which is rejected. Configuration is separate from `.rel` and has no semantic history.
+## Switchboard crate boundary
 
-`ConfiguredRuntime::open(config_path)` is the high-level configured execution seam for operator/runtime adapters. It owns `ModelSwitchboard` construction and configured provider endpoint composition. `runtime_routes()` returns a `ReliquaryRuntimeRoutes` bundle containing the exact configured General/Insomnia/Insomnia-metadata/decision/Dream/Embedding endpoints; the bundle owns effective fallback semantics for Gateway-owned REL/PHY workers. `run_insomnia_files` owns the finite REL/optional-PHY Insomnia workflow, including ownership-route fallback, queue finalization, publication, Memory-vector completion, sync, and reporting. `probe_embedding` and `build_archive_vectors` own configured live embedding execution. Adapters should pass operator options or exact provider adapters into these library surfaces rather than reconstructing semantic workflow routing.
+The root facade reexports canonical route, credential, endpoint-contract and
+provider types from `reliquary-switchboard`. Switchboard owns model selection,
+request authentication and provider transport, plus low-level config-document
+framing and credential security. It has no internal Reliquary dependencies.
+`ReliquaryConfig` remains the product wrapper for Fragment, Retrieval and
+Runtime fields; `ConfiguredRuntime` remains the product composition seam. The
+root embedding adapter converts `EmbeddingNormalization` to the Vector Store
+`VectorNormalization` value at the explicit boundary. `ModelSwitchboard::new`
+returns the lower `ModelConfigError`; the product config wrapper maps it to
+`ConfigError`.
+
+### Local configuration
+`ReliquaryConfig::new(path)` creates an in-memory default config, `ReliquaryConfig::open(path)` loads `reliquary.cfg`, and `save()` validates and atomically replaces the current file through Switchboard's low-level document API. Public fields are `fragments: FragmentConfig`, `retrieval: RetrievalConfig`, `models: ModelSwitchboardConfig`, and `credentials: CredentialsConfig`; `path()` reports the configured path. `validate_runtime()` verifies model-route and credential compatibility without executing a provider request. `load_or_create_master_key()` generates or reloads a 256-bit local master key through Switchboard's key store. Credential objects are encrypted/decrypted automatically on save/open. Unknown framed objects are preserved across saves, except the retired `models.chronos` object, which is rejected. Configuration is separate from `.rel` and has no semantic history.
+
+`ConfiguredRuntime::open(config_path)` is the high-level configured execution seam for operator/runtime adapters. It composes Switchboard's `ModelSwitchboard` and configured provider endpoint types. `runtime_routes()` returns a `ReliquaryRuntimeRoutes` bundle containing the exact configured General/Insomnia/Insomnia-metadata/decision/Dream/Embedding endpoints; product route composition supplies effective fallback semantics for Gateway-owned REL/PHY workers. `run_insomnia_files` owns the finite REL/optional-PHY Insomnia workflow, including ownership-route fallback, queue finalization, publication, Memory-vector completion, sync, and reporting. `probe_embedding` and `build_archive_vectors` own configured live embedding execution. Adapters should pass operator options or exact provider adapters into these library surfaces rather than reconstructing semantic workflow routing.
 
 `ReliquaryRuntimeRoutes::new(...)` accepts exact host-provided endpoints. Effective main Insomnia is `insomnia ?? general`; `with_temporal_decision(...)` supplies the temporal choice endpoint; configured routing selects General Decision, then General, or leaves ambiguity unresolved; effective Dream is `dream ?? general`; fixed-group metadata classification is optional; ownership classification is `insomnia_metadata ?? effective_insomnia`; and post-wording **Entity-mention enrichment** uses `insomnia_metadata ?? effective_insomnia`. Lexical Memory routing is deterministic and uses no model route. Embedding has no fallback. `ModelCapability::route_key()` exposes the canonical external keys for hosts with their own generic configuration stores. There is no separately persisted ownership or enrichment route yet.
 ### REL activity reads
@@ -332,9 +346,9 @@ Memory replay preserves stable IDs and mutation IDs and uses ordinary expected-r
 
 ## Configured decision routes
 
-`ModelSwitchboardConfig::general_decision: Option<DecisionModelEndpoint>` configures a shared decision service. `ModelSwitchboard::general_decision()` and `general_decision_auth()` expose only that configured field and its resolved API-key auth; they do not perform inheritance. `ConfiguredRuntime::runtime_routes()` supplies each consumer's effective `Arc<dyn DecisionEndpoint>` using specialized → shared → General precedence. Absence of all three retains the existing unavailable-route policy.
+`ModelSwitchboardConfig::general_decision: Option<DecisionModelEndpoint>` configures a shared decision service. The canonical selector and General adapter live in Switchboard; `ConfiguredRuntime::runtime_routes()` supplies each consumer's effective `Arc<dyn DecisionEndpoint>` using specialized → shared → General precedence. Absence of all three retains the existing unavailable-route policy.
 
-`with_entity_resolution_decision(...)` and `with_memory_retrieval_decision(...)` still accept exact host-injected endpoints. The reusable General adapter and canonical selector are private implementation details. General choice answers never include manufactured confidence; Entity's independent generative resolver and its route requirement are preserved. Retrieval's top-level versioned approval and query-rewrite contracts remain unchanged. Runtime errors never select another decision tier.
+`with_entity_resolution_decision(...)` and `with_memory_retrieval_decision(...)` still accept exact host-injected endpoints. The reusable General adapter and canonical selector are provided by Switchboard for product composition. General choice answers never include manufactured confidence; Entity's independent generative resolver and its route requirement are preserved. Retrieval's top-level versioned approval and query-rewrite contracts remain unchanged. Runtime errors never select another decision tier.
 
 ## Related docs
 

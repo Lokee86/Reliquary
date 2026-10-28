@@ -1,13 +1,16 @@
 use crate::config_codec::{RawConfigObject, decode_config, encode_config};
-use crate::config_credentials::{insert_credentials, load_credentials, master_key_path};
 use crate::config_io::{read_config_file, replace_config_file};
 use crate::config_object::{
     FRAGMENT_KEY, OBJECT_FLAGS_NONE, OBJECT_SCHEMA_V1, RETRIEVAL_KEY, RUNTIME_KEY,
     decode_fragments, decode_retrieval, decode_runtime, encode_fragments, encode_retrieval,
     encode_runtime, validate_fragments, validate_retrieval, validate_runtime,
 };
-use crate::model_switchboard::validate_switchboard;
-use crate::model_switchboard_codec::{
+use crate::{
+    ConfigError, CredentialsConfig, FragmentConfig, JsonMasterKeyStore, MasterKey, MasterKeyError,
+    MasterKeyStore, ModelSwitchboardConfig, RetrievalConfig, RuntimeConfig,
+};
+use reliquary_switchboard::model_switchboard::validate_switchboard;
+use reliquary_switchboard::model_switchboard_codec::{
     DECISION_MODEL_SCHEMA_V1, DREAM_MODEL_KEY, EMBEDDING_MODEL_KEY, EMBEDDING_MODEL_SCHEMA_V2,
     ENTITY_EXTRACTION_MODEL_KEY, ENTITY_RESOLUTION_DECISION_MODEL_KEY, ENTITY_RESOLUTION_MODEL_KEY,
     GENERAL_DECISION_MODEL_KEY, GENERAL_MODEL_KEY, GENERAL_MODEL_SCHEMA_V3,
@@ -15,10 +18,7 @@ use crate::model_switchboard_codec::{
     decode_decision, decode_embedding, decode_general_v2, decode_general_v3, encode_decision,
     encode_embedding, encode_general,
 };
-use crate::{
-    ConfigError, CredentialsConfig, FragmentConfig, JsonMasterKeyStore, MasterKey, MasterKeyError,
-    MasterKeyStore, ModelSwitchboardConfig, RetrievalConfig, RuntimeConfig,
-};
+use reliquary_switchboard::{insert_credentials, load_credentials, master_key_path};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -262,8 +262,8 @@ fn decode_known_general(
         return Err(ConfigError::InvalidObject);
     }
     match object.schema {
-        2 => decode_general_v2(&object.payload),
-        GENERAL_MODEL_SCHEMA_V3 => decode_general_v3(&object.payload),
+        2 => Ok(decode_general_v2(&object.payload)?),
+        GENERAL_MODEL_SCHEMA_V3 => Ok(decode_general_v3(&object.payload)?),
         _ => Err(ConfigError::InvalidObject),
     }
 }
@@ -274,7 +274,7 @@ fn decode_known_decision(
     if object.schema != DECISION_MODEL_SCHEMA_V1 || object.flags != OBJECT_FLAGS_NONE {
         return Err(ConfigError::InvalidObject);
     }
-    decode_decision(&object.payload)
+    Ok(decode_decision(&object.payload)?)
 }
 
 fn decode_known_embedding(
@@ -283,7 +283,7 @@ fn decode_known_embedding(
     if object.schema != EMBEDDING_MODEL_SCHEMA_V2 || object.flags != OBJECT_FLAGS_NONE {
         return Err(ConfigError::InvalidObject);
     }
-    decode_embedding(&object.payload)
+    Ok(decode_embedding(&object.payload)?)
 }
 
 fn general_model_object(payload: Vec<u8>) -> RawConfigObject {

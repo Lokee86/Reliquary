@@ -1,5 +1,7 @@
 use crate::model_auth::{resolve_api_key_auth, resolve_auth, validate_credentials};
-use crate::{ConfigError, CredentialId, CredentialsConfig, ModelRequestAuth, VectorNormalization};
+use crate::{
+    CredentialId, CredentialsConfig, EmbeddingNormalization, ModelConfigError, ModelRequestAuth,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ModelProvider {
@@ -32,11 +34,7 @@ impl ModelCapability {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ModelAuthKind {
-    ChatGptDeviceCode,
-    ApiKey,
-}
+pub use crate::ModelAuthKind;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ModelReasoningEffort {
@@ -151,7 +149,7 @@ pub struct EmbeddingModelEndpoint {
     pub url: Option<String>,
     pub credential_id: CredentialId,
     pub dimensions: u32,
-    pub normalization: VectorNormalization,
+    pub normalization: EmbeddingNormalization,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -178,7 +176,7 @@ impl ModelSwitchboard {
     pub fn new(
         config: ModelSwitchboardConfig,
         credentials: CredentialsConfig,
-    ) -> Result<Self, ConfigError> {
+    ) -> Result<Self, ModelConfigError> {
         validate_switchboard(&config)?;
         validate_credentials(&config, &credentials)?;
         Ok(Self {
@@ -324,7 +322,7 @@ impl ModelSwitchboard {
     }
 }
 
-pub(crate) fn validate_switchboard(config: &ModelSwitchboardConfig) -> Result<(), ConfigError> {
+pub fn validate_switchboard(config: &ModelSwitchboardConfig) -> Result<(), ModelConfigError> {
     if let Some(endpoint) = &config.general {
         validate_general_endpoint(endpoint)?;
     }
@@ -339,17 +337,17 @@ pub(crate) fn validate_switchboard(config: &ModelSwitchboardConfig) -> Result<()
     }
     if let Some(endpoint) = &config.general_decision {
         if endpoint.model.trim().is_empty() || !valid_http_endpoint_url(&endpoint.url) {
-            return Err(ConfigError::InvalidModelSwitchboard);
+            return Err(ModelConfigError::InvalidModelSwitchboard);
         }
     }
     if let Some(endpoint) = &config.entity_resolution_decision {
         if endpoint.model.trim().is_empty() || !valid_url(&endpoint.url) {
-            return Err(ConfigError::InvalidModelSwitchboard);
+            return Err(ModelConfigError::InvalidModelSwitchboard);
         }
     }
     if let Some(endpoint) = &config.memory_retrieval_decision {
         if endpoint.model.trim().is_empty() || !valid_http_endpoint_url(&endpoint.url) {
-            return Err(ConfigError::InvalidModelSwitchboard);
+            return Err(ModelConfigError::InvalidModelSwitchboard);
         }
     }
     if let Some(endpoint) = &config.entity_resolution {
@@ -360,14 +358,14 @@ pub(crate) fn validate_switchboard(config: &ModelSwitchboardConfig) -> Result<()
     }
     if let Some(endpoint) = &config.embedding {
         if !endpoint.provider.supports(ModelCapability::Embedding) || endpoint.dimensions == 0 {
-            return Err(ConfigError::InvalidModelSwitchboard);
+            return Err(ModelConfigError::InvalidModelSwitchboard);
         }
         validate_endpoint(endpoint.provider, &endpoint.model, endpoint.url.as_deref())?;
     }
     Ok(())
 }
 
-fn validate_general_endpoint(endpoint: &GeneralModelEndpoint) -> Result<(), ConfigError> {
+fn validate_general_endpoint(endpoint: &GeneralModelEndpoint) -> Result<(), ModelConfigError> {
     validate_endpoint(endpoint.provider, &endpoint.model, endpoint.url.as_deref())
 }
 
@@ -375,15 +373,17 @@ fn validate_endpoint(
     provider: ModelProvider,
     model: &str,
     url: Option<&str>,
-) -> Result<(), ConfigError> {
+) -> Result<(), ModelConfigError> {
     if model.trim().is_empty() {
-        return Err(ConfigError::InvalidModelSwitchboard);
+        return Err(ModelConfigError::InvalidModelSwitchboard);
     }
     match provider {
-        ModelProvider::OpenAiCodex if url.is_some() => Err(ConfigError::InvalidModelSwitchboard),
+        ModelProvider::OpenAiCodex if url.is_some() => {
+            Err(ModelConfigError::InvalidModelSwitchboard)
+        }
         ModelProvider::OpenAiReady => match url {
             Some(url) if valid_url(url) => Ok(()),
-            _ => Err(ConfigError::InvalidModelSwitchboard),
+            _ => Err(ModelConfigError::InvalidModelSwitchboard),
         },
         ModelProvider::OpenAiCodex => Ok(()),
     }

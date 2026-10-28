@@ -1,11 +1,11 @@
-use crate::{EmbeddingEndpointError, VectorNormalization};
+use crate::{EmbeddingEndpointError, EmbeddingNormalization};
 use serde_json::Value;
 
 pub(crate) fn decode_response(
     bytes: &[u8],
     expected: usize,
     dimensions: u32,
-    normalization: VectorNormalization,
+    normalization: EmbeddingNormalization,
 ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
     let value: Value = serde_json::from_slice(bytes)
         .map_err(|_| EmbeddingEndpointError::InvalidResponse("invalid JSON response"))?;
@@ -63,9 +63,9 @@ pub(crate) fn decode_response(
 
 fn normalize(
     vector: &mut [f32],
-    normalization: VectorNormalization,
+    normalization: EmbeddingNormalization,
 ) -> Result<(), EmbeddingEndpointError> {
-    if normalization == VectorNormalization::None {
+    if normalization == EmbeddingNormalization::None {
         return Ok(());
     }
     let norm = vector

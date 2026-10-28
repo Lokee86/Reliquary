@@ -4,12 +4,12 @@ use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-pub(crate) struct GeneralDecisionEndpoint {
+pub struct GeneralDecisionEndpoint {
     general: Arc<dyn GeneralEndpoint>,
 }
 
 impl GeneralDecisionEndpoint {
-    pub(crate) fn new(general: Arc<dyn GeneralEndpoint>) -> Self {
+    pub fn new(general: Arc<dyn GeneralEndpoint>) -> Self {
         Self { general }
     }
 }

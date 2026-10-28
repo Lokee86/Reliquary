@@ -8,7 +8,7 @@ Describe current model endpoint abstraction, route selection, authentication, an
 
 ## Overview
 
-Reliquary separates semantic operation ownership from model transport. Semantic subsystems request General, Decision, Embedding, or named capability routes; the runtime resolves configured endpoints and credentials and executes provider-specific transport without making the provider a semantic owner.
+Reliquary separates semantic operation ownership from model transport. `reliquary-switchboard` is the independently compiled, no-internal-Reliquary-dependency owner of model routes, credentials, General/Decision contracts, provider transports, and low-level config-document I/O. The root product reexports its canonical types and composes endpoints with semantic services; Switchboard does not own prompts, decision criteria, or storage authority.
 
 ## Endpoint classes
 
@@ -42,7 +42,7 @@ OpenAI-ready API-key and Codex/ChatGPT OAuth paths validate the credential kind 
 
 ## Provider transports
 
-Current source contains OpenAI-ready General/Embedding transport and Codex General/device-auth support. Provider-specific response parsing remains below the endpoint interfaces.
+`crates/reliquary-switchboard/src/` contains OpenAI-ready General and Embedding transport and Codex Responses, device-auth and refresh support. Provider-specific response parsing remains below endpoint interfaces. The product retains a single adapter for vector normalization.
 
 Provider retries or remote operation recovery must not change semantic operation identity.
 
@@ -56,12 +56,10 @@ Provider retries or remote operation recovery must not change semantic operation
 
 ## Code Map
 
-- `src/runtime_inference/configured_*.rs`
-- `src/runtime_inference/*endpoint.rs`
-- `src/runtime_inference/model_auth.rs`
-- `src/runtime_inference/model_switchboard*.rs`
-- `src/runtime_inference/openai_*.rs`
-- `src/runtime_inference/openai_*/**`
+- `crates/reliquary-switchboard/src/**` — routes, contracts, credentials, config document, and provider transports
+- `src/config_security/config.rs`, `config_object.rs`, `runtime_config.rs` — product config wrapper and domain payload validation
+- `src/runtime_inference/configured_runtime*.rs` — product runtime composition
+- `src/runtime_inference/embedding_endpoint.rs` — vector normalization boundary adapter
 - `src/runtime_inference/runtime_vector_step.rs`
 
 ## Related docs

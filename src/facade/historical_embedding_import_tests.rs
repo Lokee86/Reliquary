@@ -190,7 +190,7 @@ fn historical_embedding_native_import_configured_runtime_and_intrinsic_live_f8()
         url: Some(url),
         credential_id: credential,
         dimensions: 2,
-        normalization: VectorNormalization::L2,
+        normalization: crate::EmbeddingNormalization::L2,
     });
     config.save().unwrap();
     let runtime = crate::ConfiguredRuntime::open(&config_path).unwrap();

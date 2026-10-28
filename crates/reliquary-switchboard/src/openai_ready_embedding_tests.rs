@@ -1,7 +1,7 @@
 use crate::openai_ready_embedding_response::decode_response;
 use crate::{
-    CredentialId, CredentialsConfig, EmbeddingEndpoint, EmbeddingModelEndpoint, ModelProvider,
-    ModelSwitchboard, ModelSwitchboardConfig, OpenAiReadyEmbeddingEndpoint, VectorNormalization,
+    CredentialId, CredentialsConfig, EmbeddingModelEndpoint, EmbeddingNormalization, ModelProvider,
+    ModelSwitchboard, ModelSwitchboardConfig, OpenAiReadyEmbeddingEndpoint,
 };
 
 #[test]
@@ -12,7 +12,7 @@ fn indexed_response_is_reordered_and_l2_normalized() {
             {"index": 0, "embedding": [3.0, 4.0]}
         ]
     }"#;
-    let vectors = decode_response(response, 2, 2, VectorNormalization::L2).unwrap();
+    let vectors = decode_response(response, 2, 2, EmbeddingNormalization::L2).unwrap();
     assert!((vectors[0][0] - 0.6).abs() < 1e-6);
     assert!((vectors[0][1] - 0.8).abs() < 1e-6);
     assert!((vectors[1][0] - 0.0).abs() < 1e-6);
@@ -22,7 +22,7 @@ fn indexed_response_is_reordered_and_l2_normalized() {
 #[test]
 fn response_dimension_mismatch_is_rejected() {
     let response = br#"{"data":[{"index":0,"embedding":[1.0]}]}"#;
-    assert!(decode_response(response, 1, 2, VectorNormalization::None).is_err());
+    assert!(decode_response(response, 1, 2, EmbeddingNormalization::None).is_err());
 }
 
 #[test]
@@ -48,13 +48,16 @@ fn live_endpoint_is_constructed_from_validated_switchboard() {
             url: Some("https://openrouter.ai/api/v1/embeddings".into()),
             credential_id: id,
             dimensions: 1024,
-            normalization: VectorNormalization::L2,
+            normalization: EmbeddingNormalization::L2,
         }),
     };
     let switchboard = ModelSwitchboard::new(config, credentials).unwrap();
     let endpoint = OpenAiReadyEmbeddingEndpoint::from_switchboard(&switchboard).unwrap();
-    assert_eq!(endpoint.dimensions(), 1024);
-    assert_eq!(endpoint.normalization(), VectorNormalization::L2);
+    assert_eq!(endpoint.provider_dimensions(), 1024);
+    assert_eq!(
+        endpoint.provider_normalization(),
+        EmbeddingNormalization::L2
+    );
 }
 
 #[test]
@@ -78,7 +81,7 @@ fn zero_batching_limits_are_rejected() {
             url: Some("https://example.invalid/embeddings".into()),
             credential_id: id,
             dimensions: 8,
-            normalization: VectorNormalization::None,
+            normalization: EmbeddingNormalization::None,
         }),
     };
     let switchboard = ModelSwitchboard::new(config, credentials).unwrap();
@@ -99,7 +102,7 @@ fn bounded_endpoint(url: String) -> OpenAiReadyEmbeddingEndpoint {
             url: Some(url),
             credential_id: id,
             dimensions: 2,
-            normalization: VectorNormalization::L2,
+            normalization: EmbeddingNormalization::L2,
         }),
         ..Default::default()
     };
@@ -126,7 +129,7 @@ fn historical_embedding_transport_does_not_follow_redirect_or_retry() {
         write!(stream, "HTTP/1.1 302 Found\r\nLocation: {location}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").unwrap();
     });
     let error = endpoint
-        .embed_bounded(crate::EmbeddingMode::Document, &["source".into()], 4096)
+        .embed_bounded_provider(crate::EmbeddingMode::Document, &["source".into()], 4096)
         .unwrap_err();
     assert!(error.to_string().contains("HTTP 302"));
     server.join().unwrap();
@@ -189,7 +192,7 @@ fn historical_embedding_transport_bounds_response_and_bypasses_batch_fanout() {
             .unwrap();
             let _ = stream.write_all(&body);
         });
-        let result = endpoint.embed_bounded(
+        let result = endpoint.embed_bounded_provider(
             crate::EmbeddingMode::Document,
             &vec!["source".into(); 16],
             4096,

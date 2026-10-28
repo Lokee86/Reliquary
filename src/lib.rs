@@ -193,18 +193,12 @@ mod compatibility_vector;
 pub mod config;
 #[path = "config_security/config_codec.rs"]
 mod config_codec;
-#[path = "config_security/config_credentials.rs"]
-mod config_credentials;
 #[path = "config_security/config_error.rs"]
 mod config_error;
 #[path = "config_security/config_io.rs"]
 mod config_io;
 #[path = "config_security/config_object.rs"]
 mod config_object;
-#[path = "runtime_inference/configured_decision.rs"]
-mod configured_decision;
-#[path = "runtime_inference/configured_general.rs"]
-mod configured_general;
 #[path = "runtime_inference/configured_runtime.rs"]
 mod configured_runtime;
 #[path = "context_engine.rs"]
@@ -213,12 +207,6 @@ mod context_engine;
 mod conversation_search;
 #[path = "retrieval/conversation_search_model.rs"]
 mod conversation_search_model;
-#[path = "config_security/credential.rs"]
-mod credential;
-#[path = "config_security/credential_codec.rs"]
-mod credential_codec;
-#[path = "config_security/credential_crypto.rs"]
-mod credential_crypto;
 #[path = "facade/cva.rs"]
 pub mod cva;
 #[path = "facade/cva_activity.rs"]
@@ -313,8 +301,6 @@ mod cva_turn_ingest;
 mod cva_vector_generations;
 #[path = "facade/cva_vector_recovery.rs"]
 mod cva_vector_recovery;
-#[path = "runtime_inference/decision_endpoint.rs"]
-mod decision_endpoint;
 #[path = "runtime_inference/dream_candidate_error.rs"]
 mod dream_candidate_error;
 #[path = "runtime_inference/dream_candidate_model.rs"]
@@ -556,10 +542,6 @@ mod entity_zero_bootstrap_calibration_support;
 #[cfg(all(test, feature = "entity-calibration"))]
 #[path = "perception/entity_zero_bootstrap_calibration_tests.rs"]
 mod entity_zero_bootstrap_calibration_tests;
-#[path = "runtime_inference/general_decision.rs"]
-mod general_decision;
-#[path = "runtime_inference/general_endpoint.rs"]
-mod general_endpoint;
 
 #[cfg(test)]
 #[path = "semantic_graph/graph_compact_owner_tests.rs"]
@@ -595,10 +577,6 @@ mod interaction_stream_persistence;
 mod lexical_index;
 #[path = "retrieval/lexical_search.rs"]
 mod lexical_search;
-#[path = "config_security/master_key.rs"]
-mod master_key;
-#[path = "config_security/master_key_entropy.rs"]
-mod master_key_entropy;
 #[path = "retrieval/memory_candidate_pool.rs"]
 mod memory_candidate_pool;
 use reliquary_memory_core::memory_codec;
@@ -644,12 +622,6 @@ mod memory_vector_model;
 mod memory_vector_rebuild;
 #[path = "retrieval/memory_vector_store.rs"]
 mod memory_vector_store;
-#[path = "runtime_inference/model_auth.rs"]
-mod model_auth;
-#[path = "runtime_inference/model_switchboard.rs"]
-mod model_switchboard;
-#[path = "runtime_inference/model_switchboard_codec.rs"]
-mod model_switchboard_codec;
 #[path = "runtime_inference/multiplexing_journal.rs"]
 mod multiplexing_journal;
 pub use multiplexing_journal::{
@@ -670,16 +642,6 @@ mod cva_description_prune;
 mod cva_history_prune;
 #[path = "facade/memory_history_prune.rs"]
 mod memory_history_prune;
-#[path = "runtime_inference/openai_codex_device_auth.rs"]
-mod openai_codex_device_auth;
-#[path = "runtime_inference/openai_codex_general.rs"]
-mod openai_codex_general;
-#[path = "runtime_inference/openai_ready_embedding.rs"]
-mod openai_ready_embedding;
-#[path = "runtime_inference/openai_ready_embedding_response.rs"]
-mod openai_ready_embedding_response;
-#[path = "runtime_inference/openai_ready_general.rs"]
-mod openai_ready_general;
 #[path = "retrieval/packed_vector_error.rs"]
 mod packed_vector_error;
 #[path = "facade/phylactery.rs"]
@@ -820,14 +782,11 @@ pub use compatibility_profile_model::{
 };
 pub use config::ReliquaryConfig;
 pub use config_error::ConfigError;
-pub use configured_decision::ConfiguredDecisionEndpoint;
-pub use configured_general::ConfiguredGeneralEndpoint;
 pub use configured_runtime::{
     ArchiveVectorBuildReport, ConfiguredInsomniaOptions, ConfiguredInsomniaReport,
     ConfiguredRuntime, ConfiguredRuntimeError, EmbeddingProbeReport, InsomniaTerminalFailure,
 };
 pub use conversation_search_model::ConversationSearchHit;
-pub use credential::{Credential, CredentialError, CredentialId, CredentialsConfig, SecretString};
 pub use cva::Cva;
 pub use cva_history_prune::{HistoryPruneReport, HistoryPruneRequest};
 pub use phylactery_profile_model::{MAX_PHYLACTERY_PROFILE_NAME_BYTES, PhylacteryProfile};
@@ -847,6 +806,11 @@ pub use reliquary_archive::conversation_metadata_model::{
 pub use reliquary_container::{
     Container, ContainerError, ContainerIdentity, FileKind, FormatVersion, ObjectRef,
     ReliquaryScopeKind,
+};
+pub use reliquary_switchboard::ConfiguredDecisionEndpoint;
+pub use reliquary_switchboard::ConfiguredGeneralEndpoint;
+pub use reliquary_switchboard::{
+    Credential, CredentialError, CredentialId, CredentialsConfig, SecretString,
 };
 pub use runtime_config::RuntimeConfig;
 pub use storage_reclamation::StorageReclamationReport;
@@ -870,7 +834,6 @@ pub use cva_reconcile_conflict::CvaReconcileConflict;
 pub use cva_reconcile_error::CvaReconcileError;
 pub use cva_repack::ProjectAttachmentRepackResult;
 pub use cva_vector_recovery::DerivedVectorRecovery;
-pub use decision_endpoint::{DecisionEndpoint, DecisionEndpointError, SimulatedDecisionEndpoint};
 pub use dream_candidate_error::DreamCandidateError;
 pub use dream_candidate_model::{
     DEFAULT_DREAM_CANDIDATE_LIMIT, DEFAULT_DREAM_LEXICAL_LIMIT, DEFAULT_DREAM_PRIOR_SEMANTIC_QUOTA,
@@ -959,7 +922,6 @@ pub use entity_resolver_schema::{
     ENTITY_RESOLVER_CONTRACT_VERSION, ENTITY_RESOLVER_SYSTEM_PROMPT, entity_admission_schema,
     entity_materialization_schema, entity_resolver_schema,
 };
-pub use general_endpoint::{GeneralEndpoint, GeneralEndpointError, SimulatedGeneralEndpoint};
 pub use graph_error::GraphError;
 pub(crate) use graph_model::GraphNodeRecord;
 pub use graph_model::{
@@ -994,9 +956,6 @@ pub use interaction_model::{
 };
 pub use interaction_runtime::{InteractionCompletion, InteractionReceipt, InteractionRuntime};
 pub use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
-pub use master_key::{
-    JsonMasterKeyStore, MASTER_KEY_BYTES, MasterKey, MasterKeyError, MasterKeyStore,
-};
 pub use memory_error::MemoryError;
 pub use memory_model::{
     Memory, MemoryBodyId, MemoryDraft, MemoryId, MemoryRef, MemoryRetainedRevision,
@@ -1024,23 +983,6 @@ pub use memory_vector_model::{
     MemoryVectorBuildResult, MemoryVectorId, MemoryVectorInfo, MemoryVectorLocation,
     MemoryVectorSet, MemoryVectorStats,
 };
-pub use model_auth::ModelRequestAuth;
-pub use model_switchboard::{
-    DecisionModelEndpoint, EmbeddingModelEndpoint, GeneralModelEndpoint, ModelAuthKind,
-    ModelCapability, ModelProvider, ModelReasoningEffort, ModelSwitchboard, ModelSwitchboardConfig,
-};
-pub use openai_codex_device_auth::{
-    OPENAI_CODEX_AUTH_ISSUER, OPENAI_CODEX_DEVICE_LOGIN_TIMEOUT_SECS, OPENAI_CODEX_OAUTH_CLIENT_ID,
-    OpenAiCodexDeviceAuth, OpenAiCodexDeviceAuthError, OpenAiCodexDeviceCode,
-};
-pub use openai_codex_general::{
-    OPENAI_CODEX_COMPAT_VERSION, OPENAI_CODEX_RESPONSES_URL, OpenAiCodexGeneralEndpoint,
-};
-pub use openai_ready_embedding::{
-    DEFAULT_REMOTE_EMBEDDING_BATCH_SIZE, DEFAULT_REMOTE_EMBEDDING_CONCURRENCY,
-    OpenAiReadyEmbeddingEndpoint,
-};
-pub use openai_ready_general::OpenAiReadyGeneralEndpoint;
 pub use packed_vector_error::PackedVectorError;
 pub use phylactery::Phylactery;
 pub use phylactery_error::PhylacteryError;
@@ -1079,6 +1021,32 @@ pub use reliquary_perception_store::{
     Entity, EntityDraft, EntityGlobalId, EntityId, EntityMergeOutcome, EntityRetainedRevision,
     EntityRetentionDescriptor, EntityStats, MAX_ENTITY_ALIASES, MAX_ENTITY_KIND_BYTES,
     MAX_ENTITY_NAME_BYTES, MAX_ENTITY_SUMMARY_BYTES,
+};
+pub use reliquary_switchboard::OpenAiReadyGeneralEndpoint;
+pub use reliquary_switchboard::{
+    DEFAULT_REMOTE_EMBEDDING_BATCH_SIZE, DEFAULT_REMOTE_EMBEDDING_CONCURRENCY,
+    OpenAiReadyEmbeddingEndpoint,
+};
+pub use reliquary_switchboard::{
+    DecisionEndpoint, DecisionEndpointError, SimulatedDecisionEndpoint,
+};
+pub use reliquary_switchboard::{
+    DecisionModelEndpoint, EmbeddingModelEndpoint, GeneralModelEndpoint, ModelAuthKind,
+    ModelCapability, ModelProvider, ModelReasoningEffort, ModelSwitchboard, ModelSwitchboardConfig,
+};
+pub use reliquary_switchboard::{EmbeddingNormalization, ModelConfigError, ModelRequestAuth};
+pub use reliquary_switchboard::{
+    GeneralDecisionEndpoint, GeneralEndpoint, GeneralEndpointError, SimulatedGeneralEndpoint,
+};
+pub use reliquary_switchboard::{
+    JsonMasterKeyStore, MASTER_KEY_BYTES, MasterKey, MasterKeyError, MasterKeyStore,
+};
+pub use reliquary_switchboard::{
+    OPENAI_CODEX_AUTH_ISSUER, OPENAI_CODEX_DEVICE_LOGIN_TIMEOUT_SECS, OPENAI_CODEX_OAUTH_CLIENT_ID,
+    OpenAiCodexDeviceAuth, OpenAiCodexDeviceAuthError, OpenAiCodexDeviceCode,
+};
+pub use reliquary_switchboard::{
+    OPENAI_CODEX_COMPAT_VERSION, OPENAI_CODEX_RESPONSES_URL, OpenAiCodexGeneralEndpoint,
 };
 pub use reliquary_vector_store::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
 pub use runtime_host::memory_search::{
@@ -1341,9 +1309,6 @@ mod interaction_session_tests;
 #[path = "retrieval/lexical_index_tests.rs"]
 mod lexical_index_tests;
 #[cfg(test)]
-#[path = "config_security/master_key_tests.rs"]
-mod master_key_tests;
-#[cfg(test)]
 #[path = "memory/memory_lifecycle_tests.rs"]
 mod memory_lifecycle_tests;
 #[cfg(test)]
@@ -1370,18 +1335,6 @@ mod memory_vector_tests;
 #[cfg(test)]
 #[path = "runtime_inference/model_switchboard_tests.rs"]
 mod model_switchboard_tests;
-#[cfg(test)]
-#[path = "runtime_inference/openai_codex_device_auth_tests.rs"]
-mod openai_codex_device_auth_tests;
-#[cfg(test)]
-#[path = "runtime_inference/openai_codex_general_tests.rs"]
-mod openai_codex_general_tests;
-#[cfg(test)]
-#[path = "runtime_inference/openai_ready_embedding_tests.rs"]
-mod openai_ready_embedding_tests;
-#[cfg(test)]
-#[path = "runtime_inference/openai_ready_general_tests.rs"]
-mod openai_ready_general_tests;
 #[cfg(test)]
 #[path = "retrieval/packed_vector_tests.rs"]
 mod packed_vector_tests;

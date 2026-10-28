@@ -23,7 +23,8 @@
 - [Chronos extraction evidence](chronos-crate-extraction-evidence-2026-10-27.md) — extraction baseline and verification.
 - [Chronos extraction specification](chronos-crate-extraction-spec-2026-10-27.md) — Chronos ownership and staged migration.
 - [Chronos explicit-definition correction specification](chronos-explicit-definition-resolution-spec-2026-10-27.md) — source-span-grounded deterministic clarification, model exclusion and replay acceptance.
-- [Switchboard crate extraction specification](switchboard-crate-extraction-spec-2026-10-27.md) — model routing, provider transport, credential security, config-file ownership and dependency gates.
+- [Switchboard extraction evidence](switchboard-crate-extraction-evidence-2026-10-27.md) - ownership and verification results.
+- [Switchboard crate extraction specification](switchboard-crate-extraction-spec-2026-10-27.md) — target ownership and dependency gates; current boundaries are described in [Model and provider runtime](subsystems/model-runtime.md), with verification tracked separately.
 - [Owner Lifecycle extraction specification](owner-lifecycle-crate-extraction-spec-2026-10-27.md) — compiled owner reopen and structural replay coordination.
 - [Compact interaction stream contract](interaction-stream-compact-contract-2026-10-21.md) — frozen checkpoint transitions and exact suffix representation.
 - [Compact publication envelope contract](publication-envelope-contract-2026-10-20.md) — planned physical allocation/reserved-binding format and owner migration gates.
@@ -268,6 +269,7 @@
 - [roadmap.md](roadmap.md) - Roadmap documentation.
 - [semantic-import-pruning-history-rewrite-evidence-2026-10-18.md](semantic-import-pruning-history-rewrite-evidence-2026-10-18.md) - Semantic Import Pruning History Rewrite Evidence 2026 10 18 documentation.
 - [storage-format.md](storage-format.md) - Storage Format documentation.
+- [switchboard-crate-extraction-evidence-2026-10-27.md](switchboard-crate-extraction-evidence-2026-10-27.md) - Switchboard Crate Extraction Evidence 2026 10 27 documentation.
 - [switchboard-crate-extraction-spec-2026-10-27.md](switchboard-crate-extraction-spec-2026-10-27.md) - Switchboard Crate Extraction Spec 2026 10 27 documentation.
 - [tombstone-import-history-execution-contract.md](tombstone-import-history-execution-contract.md) - Tombstone Import History Execution Contract documentation.
 - [tombstone-import-history-final-verification-2026-10-18.md](tombstone-import-history-final-verification-2026-10-18.md) - Tombstone Import History Final Verification 2026 10 18 documentation.

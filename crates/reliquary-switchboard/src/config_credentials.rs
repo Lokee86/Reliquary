@@ -1,15 +1,18 @@
-use crate::config_codec::RawConfigObject;
+use crate::ConfigObject as RawConfigObject;
 use crate::credential_codec::{
     decode_credential_object, encode_credential_object, id_from_object_key, object_key,
 };
-use crate::{ConfigError, CredentialsConfig, JsonMasterKeyStore, MasterKeyStore};
+use crate::{
+    CredentialError, CredentialsConfig, JsonMasterKeyStore, MasterKeyError, MasterKeyStore,
+    master_key_path,
+};
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-pub(crate) fn load_credentials(
+pub fn load_credentials(
     config_path: &Path,
     objects: &mut BTreeMap<String, RawConfigObject>,
-) -> Result<CredentialsConfig, ConfigError> {
+) -> Result<CredentialsConfig, CredentialDocumentError> {
     let credential_keys: Vec<String> = objects
         .keys()
         .filter(|key| key.starts_with("credential."))
@@ -32,11 +35,11 @@ pub(crate) fn load_credentials(
     Ok(credentials)
 }
 
-pub(crate) fn insert_credentials(
+pub fn insert_credentials(
     config_path: &Path,
     credentials: &CredentialsConfig,
     objects: &mut BTreeMap<String, RawConfigObject>,
-) -> Result<(), ConfigError> {
+) -> Result<(), CredentialDocumentError> {
     if credentials.is_empty() {
         return Ok(());
     }
@@ -50,11 +53,27 @@ pub(crate) fn insert_credentials(
     Ok(())
 }
 
-pub(crate) fn master_key_path(config_path: &Path) -> PathBuf {
-    let stem = config_path
-        .file_stem()
-        .and_then(|value| value.to_str())
-        .filter(|value| !value.is_empty())
-        .unwrap_or("reliquary");
-    config_path.with_file_name(format!("{stem}.master-key.json"))
+#[derive(Debug)]
+pub enum CredentialDocumentError {
+    Credential(CredentialError),
+    MasterKey(MasterKeyError),
 }
+impl From<CredentialError> for CredentialDocumentError {
+    fn from(value: CredentialError) -> Self {
+        Self::Credential(value)
+    }
+}
+impl From<MasterKeyError> for CredentialDocumentError {
+    fn from(value: MasterKeyError) -> Self {
+        Self::MasterKey(value)
+    }
+}
+impl std::fmt::Display for CredentialDocumentError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Credential(error) => error.fmt(f),
+            Self::MasterKey(error) => error.fmt(f),
+        }
+    }
+}
+impl std::error::Error for CredentialDocumentError {}

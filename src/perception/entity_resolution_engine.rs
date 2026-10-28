@@ -377,9 +377,8 @@ mod tests {
                 "answers": {"resolution": {"type": "choice", "choice": "candidate_0"}}
             })],
         ));
-        let decision: Arc<dyn DecisionEndpoint> = Arc::new(
-            crate::general_decision::GeneralDecisionEndpoint::new(general),
-        );
+        let decision: Arc<dyn DecisionEndpoint> =
+            Arc::new(crate::GeneralDecisionEndpoint::new(general));
         let fallback = SimulatedGeneralEndpoint::new(
             "entity-resolver",
             vec![json!({

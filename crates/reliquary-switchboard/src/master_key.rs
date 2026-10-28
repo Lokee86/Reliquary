@@ -187,3 +187,13 @@ fn create_private_file(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     }
     result
 }
+
+/// Returns the machine-local key file path paired with a configuration file.
+pub fn master_key_path(config_path: &Path) -> PathBuf {
+    let stem = config_path
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .filter(|value| !value.is_empty())
+        .unwrap_or("reliquary");
+    config_path.with_file_name(format!("{stem}.master-key.json"))
+}

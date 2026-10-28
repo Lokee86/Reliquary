@@ -1,6 +1,6 @@
 # Switchboard first-class crate extraction — implementation specification
 
-**Status:** Specified; implementation not begun (2026-10-27).
+**Status:** Implemented; functional acceptance passed, with fresh architecture evidence and documentation ownership enforcement pending (2026-10-27).
 **Target:** `crates/reliquary-switchboard`, currently a zero-API placeholder.
 **Baseline:** `refactor/crate-first-restart` at `ae2d555a`. **Mode:** correction-only, staged hard cut with bounded compiled integration gates. **Sequence:** immediately after Chronos. Do not mix the retained Graph evidence edit or temporary `t/` runtime-test artifacts into this cut.
 

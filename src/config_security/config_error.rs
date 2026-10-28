@@ -60,3 +60,41 @@ impl From<MasterKeyError> for ConfigError {
         Self::MasterKey(value)
     }
 }
+
+impl From<reliquary_switchboard::ConfigDocumentError> for ConfigError {
+    fn from(value: reliquary_switchboard::ConfigDocumentError) -> Self {
+        use reliquary_switchboard::ConfigDocumentError as Raw;
+        match value {
+            Raw::Io(error) => Self::Io(error),
+            Raw::InvalidMagic => Self::InvalidMagic,
+            Raw::UnsupportedVersion { major, minor } => Self::UnsupportedVersion { major, minor },
+            Raw::Truncated => Self::Truncated,
+            Raw::InvalidObject => Self::InvalidObject,
+            Raw::DuplicateObject(key) => Self::DuplicateObject(key),
+        }
+    }
+}
+
+impl From<reliquary_switchboard::CredentialDocumentError> for ConfigError {
+    fn from(value: reliquary_switchboard::CredentialDocumentError) -> Self {
+        match value {
+            reliquary_switchboard::CredentialDocumentError::Credential(error) => {
+                Self::Credential(error)
+            }
+            reliquary_switchboard::CredentialDocumentError::MasterKey(error) => {
+                Self::MasterKey(error)
+            }
+        }
+    }
+}
+
+impl From<reliquary_switchboard::ModelConfigError> for ConfigError {
+    fn from(value: reliquary_switchboard::ModelConfigError) -> Self {
+        match value {
+            reliquary_switchboard::ModelConfigError::InvalidModelSwitchboard => {
+                Self::InvalidModelSwitchboard
+            }
+            reliquary_switchboard::ModelConfigError::Credential(error) => Self::Credential(error),
+        }
+    }
+}

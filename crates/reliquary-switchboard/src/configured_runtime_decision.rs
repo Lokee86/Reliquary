@@ -1,4 +1,4 @@
-use crate::general_decision::GeneralDecisionEndpoint;
+use crate::GeneralDecisionEndpoint;
 use crate::{
     ConfiguredDecisionEndpoint, DecisionEndpoint, DecisionEndpointError, DecisionModelEndpoint,
     GeneralEndpoint, GeneralModelEndpoint, ModelSwitchboard, ModelSwitchboardConfig,
@@ -6,21 +6,21 @@ use crate::{
 use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) enum DecisionConsumer {
+pub enum DecisionConsumer {
     EntityResolution,
     MemoryRetrieval,
     Chronos,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) enum DecisionRouteSelection<'a> {
+pub enum DecisionRouteSelection<'a> {
     Dedicated(&'a DecisionModelEndpoint),
     Shared(&'a DecisionModelEndpoint),
     General(&'a GeneralModelEndpoint),
     Unavailable,
 }
 
-pub(super) fn select_route<'a>(
+pub fn select_route<'a>(
     config: &'a ModelSwitchboardConfig,
     consumer: DecisionConsumer,
 ) -> DecisionRouteSelection<'a> {
@@ -41,7 +41,7 @@ pub(super) fn select_route<'a>(
     DecisionRouteSelection::Unavailable
 }
 
-pub(super) fn construct_decision_service(
+pub fn construct_decision_service(
     switchboard: &ModelSwitchboard,
     selected: DecisionRouteSelection<'_>,
     consumer: DecisionConsumer,
@@ -77,7 +77,7 @@ pub(super) fn construct_decision_service(
     ConfiguredDecisionEndpoint::from_route(endpoint, auth, route).map(Some)
 }
 
-pub(super) fn construct_decision_endpoint(
+pub fn construct_decision_endpoint(
     switchboard: &ModelSwitchboard,
     selected: DecisionRouteSelection<'_>,
     consumer: DecisionConsumer,

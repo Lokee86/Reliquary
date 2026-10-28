@@ -270,7 +270,14 @@ fn model(path: &Path, command: ModelCommand) -> Result<()> {
                 url: Some(url),
                 credential_id: credential_id(credential)?,
                 dimensions,
-                normalization: normalization(n),
+                normalization: match normalization(n) {
+                    reliquary_memory::VectorNormalization::None => {
+                        reliquary_memory::EmbeddingNormalization::None
+                    }
+                    reliquary_memory::VectorNormalization::L2 => {
+                        reliquary_memory::EmbeddingNormalization::L2
+                    }
+                },
             });
             validate_runtime(&config)?;
         }

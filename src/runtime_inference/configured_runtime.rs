@@ -5,8 +5,7 @@ use crate::{
 use std::path::Path;
 use std::sync::Arc;
 
-#[path = "configured_runtime_decision.rs"]
-mod decision;
+use reliquary_switchboard::configured_runtime_decision as decision;
 #[path = "configured_runtime_historical.rs"]
 mod historical;
 #[path = "configured_runtime_insomnia.rs"]
@@ -41,7 +40,8 @@ pub struct ConfiguredRuntime {
 impl ConfiguredRuntime {
     pub fn open(path: &Path) -> Result<Self, ConfiguredRuntimeError> {
         let config = ReliquaryConfig::open(path)?;
-        let switchboard = ModelSwitchboard::new(config.models, config.credentials)?;
+        let switchboard =
+            ModelSwitchboard::new(config.models, config.credentials).map_err(ConfigError::from)?;
         Ok(Self { switchboard })
     }
 

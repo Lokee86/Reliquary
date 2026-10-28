@@ -137,4 +137,4 @@ Repository verification also performs command-level smoke tests for REL create/i
 
 ## Notes
 
-The CLI owns only interface concerns: argument parsing, terminal interaction, human-readable rendering, and explicit operator command dispatch. Configured provider/model composition and finite Insomnia/vector workflows are owned by the library `ConfiguredRuntime`; retrieval policy remains library-owned. A CLI boundary regression test prevents the known low-level runtime-composition types from returning to command modules.
+The CLI owns only interface concerns: argument parsing, terminal interaction, human-readable rendering, and explicit operator command dispatch. Model and credential configuration values are owned by `reliquary-switchboard`; the CLI translates its normalization argument at that boundary. Configured provider/model composition and finite Insomnia/vector workflows are owned by the library `ConfiguredRuntime`; retrieval policy remains library-owned. A CLI boundary regression test prevents the known low-level runtime-composition types from returning to command modules.

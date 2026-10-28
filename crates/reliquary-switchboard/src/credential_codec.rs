@@ -1,4 +1,4 @@
-use crate::config_codec::RawConfigObject;
+use crate::ConfigObject as RawConfigObject;
 use crate::credential_crypto::{decrypt_credential, encrypt_credential};
 use crate::{Credential, CredentialError, CredentialId, MasterKey, SecretString};
 use zeroize::Zeroize;
@@ -131,4 +131,31 @@ fn decode_string(bytes: &[u8], cursor: &mut usize) -> Result<String, CredentialE
     .to_owned();
     *cursor = end;
     Ok(value)
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{JsonMasterKeyStore, MasterKeyStore};
+
+    #[test]
+    fn encrypted_object_is_bound_to_its_credential_id() {
+        let path =
+            std::env::temp_dir().join(format!("switchboard-aad-{}.json", uuid::Uuid::new_v4()));
+        let key = JsonMasterKeyStore::new(&path).load_or_create().unwrap();
+        let original = CredentialId::new("original").unwrap();
+        let other = CredentialId::new("other").unwrap();
+        let credential = Credential::ApiKey {
+            api_key: SecretString::new("test-secret").unwrap(),
+        };
+        let object = encode_credential_object(&original, &credential, &key).unwrap();
+        assert_eq!(
+            decode_credential_object(&original, &object, &key).unwrap(),
+            credential
+        );
+        assert!(matches!(
+            decode_credential_object(&other, &object, &key),
+            Err(CredentialError::DecryptionFailed)
+        ));
+        std::fs::remove_file(path).unwrap();
+    }
 }

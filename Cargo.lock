@@ -2868,6 +2868,7 @@ dependencies = [
  "reliquary-memory-core",
  "reliquary-owner-lifecycle",
  "reliquary-perception-store",
+ "reliquary-switchboard",
  "reliquary-vector-store",
  "reqwest",
  "serde",
@@ -2930,6 +2931,14 @@ version = "0.1.0"
 [[package]]
 name = "reliquary-switchboard"
 version = "0.1.0"
+dependencies = [
+ "aes-gcm",
+ "base64 0.22.1",
+ "reqwest",
+ "serde_json",
+ "uuid",
+ "zeroize",
+]
 
 [[package]]
 name = "reliquary-vector-store"

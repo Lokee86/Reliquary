@@ -1,7 +1,7 @@
 use crate::openai_ready_embedding_response::decode_response;
 use crate::{
-    EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, ModelProvider, ModelRequestAuth,
-    ModelSwitchboard, VectorNormalization,
+    EmbeddingEndpointError, EmbeddingMode, EmbeddingNormalization, ModelProvider, ModelRequestAuth,
+    ModelSwitchboard,
 };
 use reqwest::blocking::Client;
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
@@ -22,7 +22,7 @@ pub struct OpenAiReadyEmbeddingEndpoint {
     url: String,
     model: String,
     dimensions: u32,
-    normalization: VectorNormalization,
+    normalization: EmbeddingNormalization,
     auth: ModelRequestAuth,
     batch_size: usize,
     concurrency: usize,
@@ -163,11 +163,11 @@ impl OpenAiReadyEmbeddingEndpoint {
     }
 }
 
-impl EmbeddingEndpoint for OpenAiReadyEmbeddingEndpoint {
-    fn supports_bounded_embedding(&self) -> bool {
+impl OpenAiReadyEmbeddingEndpoint {
+    pub fn supports_bounded_provider_embedding(&self) -> bool {
         true
     }
-    fn embed_bounded(
+    pub fn embed_bounded_provider(
         &self,
         mode: EmbeddingMode,
         inputs: &[String],
@@ -180,15 +180,15 @@ impl EmbeddingEndpoint for OpenAiReadyEmbeddingEndpoint {
         }
         self.request_batch_with_limit(mode, inputs, Some(max_response_bytes))
     }
-    fn dimensions(&self) -> u32 {
+    pub fn provider_dimensions(&self) -> u32 {
         self.dimensions
     }
 
-    fn normalization(&self) -> VectorNormalization {
+    pub fn provider_normalization(&self) -> EmbeddingNormalization {
         self.normalization
     }
 
-    fn embed(
+    pub fn embed_provider(
         &self,
         mode: EmbeddingMode,
         inputs: &[String],

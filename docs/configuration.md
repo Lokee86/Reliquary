@@ -12,7 +12,7 @@ Reliquary uses one small purpose-built `reliquary.cfg` file for machine-local cu
 
 ## Ownership
 
-`reliquary.cfg` is a purpose-built local application-configuration file. It is not part of a `.rel`, does not participate in Reliquary semantic clocks, and has no historical or append-only semantics.
+`reliquary.cfg` is a purpose-built local application-configuration file. Its low-level document framing, unknown-object preservation, atomic replacement, model/credential codecs, and master-key/credential security are owned by `reliquary-switchboard` (`crates/reliquary-switchboard`), which has no internal Reliquary crate dependencies. The root `ReliquaryConfig` wrapper retains product fields and validates Fragment, Retrieval, and Runtime domain payloads. The file is not part of a `.rel`, does not participate in semantic clocks, and has no historical or append-only semantics.
 
 Configuration is current-state only:
 
@@ -206,13 +206,14 @@ Encrypted credential bytes are intentionally nondeterministic because each save 
 
 - The default operating-system config location is not selected yet; callers currently supply a path.
 - General/Insomnia/Insomnia-metadata/Dream/embedding routes, encrypted credentials, credential references, request-auth attachment, direct `openai-ready` embedding/General HTTP execution, and provider-native `openai-codex` General/Insomnia/Insomnia-metadata/Dream Responses execution are implemented. Insomnia and Dream independently fall back to General when their dedicated routes are unset; fixed-group metadata classification is skipped when its optional route is absent, while production Entity-mention enrichment falls back to effective main Insomnia. Lexical Memory routing is deterministic and makes no model request.
-- `openai-codex` ChatGPT device-code acquisition stores the returned ID/access/refresh tokens plus ChatGPT account ID as an encrypted credential object. OAuth token refresh is not implemented yet.
+- `openai-codex` ChatGPT device-code acquisition stores the returned ID/access/refresh tokens plus ChatGPT account ID as an encrypted credential object. An explicit credential refresh command exchanges the stored refresh token; refresh is not automatic during provider requests.
 - The master key currently lives in temporary plaintext JSON; Windows Credential Manager integration is not implemented yet.
 - No import/export text format exists yet.
 
 ## Code Map
 
-- `src/config_security/**`
+- `crates/reliquary-switchboard/src/config_document.rs`, `config_credentials.rs`, `credential*.rs`, `master_key*.rs`, `model_switchboard*.rs` — canonical framing, model/credential codecs and security
+- `src/config_security/config.rs`, `config_codec.rs`, `config_io.rs`, `config_object.rs`, `runtime_config.rs` — product config wrapper and domain payload validation
 
 ## Related docs
 

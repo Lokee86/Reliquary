@@ -1,5 +1,5 @@
 use super::*;
-use crate::general_decision::GeneralDecisionEndpoint;
+use crate::GeneralDecisionEndpoint;
 use crate::{
     ConfiguredGeneralEndpoint, CredentialId, CredentialsConfig, DecisionEndpoint,
     GeneralModelEndpoint, ModelProvider, ModelSwitchboard, ModelSwitchboardConfig,

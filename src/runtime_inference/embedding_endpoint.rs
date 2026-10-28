@@ -1,21 +1,6 @@
+pub use reliquary_switchboard::EmbeddingEndpointError;
 pub use reliquary_vector_store::{EmbeddingMode, VectorNormalization};
 use sha2::{Digest, Sha256};
-use std::fmt;
-
-#[derive(Debug)]
-pub enum EmbeddingEndpointError {
-    InvalidConfiguration(&'static str),
-    InvalidResponse(&'static str),
-    Failure(String),
-}
-
-impl fmt::Display for EmbeddingEndpointError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "embedding endpoint error: {self:?}")
-    }
-}
-
-impl std::error::Error for EmbeddingEndpointError {}
 
 pub trait EmbeddingEndpoint {
     /// One request, no redirects/retries/fan-out, bounded output and a finite timeout.
@@ -154,5 +139,46 @@ impl EmbeddingEndpoint for SimulatedEmbeddingEndpoint {
             .iter()
             .map(|input| self.embed_one(mode, input))
             .collect()
+    }
+}
+
+/// Project the provider route's normalization into vector semantics.
+pub(crate) fn vector_normalization(value: crate::EmbeddingNormalization) -> VectorNormalization {
+    match value {
+        crate::EmbeddingNormalization::None => VectorNormalization::None,
+        crate::EmbeddingNormalization::L2 => VectorNormalization::L2,
+    }
+}
+
+impl EmbeddingEndpoint for reliquary_switchboard::OpenAiReadyEmbeddingEndpoint {
+    fn supports_bounded_embedding(&self) -> bool {
+        self.supports_bounded_provider_embedding()
+    }
+    fn embed_bounded(
+        &self,
+        mode: EmbeddingMode,
+        inputs: &[String],
+        max_response_bytes: usize,
+    ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
+        self.embed_bounded_provider(provider_mode(mode), inputs, max_response_bytes)
+    }
+    fn dimensions(&self) -> u32 {
+        self.provider_dimensions()
+    }
+    fn normalization(&self) -> VectorNormalization {
+        vector_normalization(self.provider_normalization())
+    }
+    fn embed(
+        &self,
+        mode: EmbeddingMode,
+        inputs: &[String],
+    ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
+        self.embed_provider(provider_mode(mode), inputs)
+    }
+}
+fn provider_mode(mode: EmbeddingMode) -> reliquary_switchboard::EmbeddingMode {
+    match mode {
+        EmbeddingMode::Query => reliquary_switchboard::EmbeddingMode::Query,
+        EmbeddingMode::Document => reliquary_switchboard::EmbeddingMode::Document,
     }
 }

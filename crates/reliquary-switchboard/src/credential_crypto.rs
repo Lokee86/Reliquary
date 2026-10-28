@@ -1,5 +1,6 @@
+use crate::CredentialError;
+use crate::MasterKey;
 use crate::master_key_entropy::fill_random;
-use crate::{CredentialError, MasterKey};
 use aes_gcm::aead::{Aead, KeyInit, Payload};
 use aes_gcm::{Aes256Gcm, Nonce};
 use zeroize::Zeroize;
