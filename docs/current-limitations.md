@@ -2,6 +2,10 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Chronos explicit-definition gap
+
+Chronos currently enumerates valid meanings of ambiguous recurrence terms such as `biweekly` and `bimonthly`, but does not deterministically bind an accompanying explicit definition such as `biweekly, meaning every two weeks`. Even with that clarification it can invoke a decision model; candidate validation checks allowed canonical meanings rather than contradiction with the explicit definition. This limitation remains open until the [Chronos explicit-definition correction specification](chronos-explicit-definition-resolution-spec-2026-10-27.md) is implemented and its regression gates pass. It does not invalidate the independently verified crate extraction.
+
 ## Crate-first recovery boundary
 
 The crate-first restart extracts physical Container and Archive source history
