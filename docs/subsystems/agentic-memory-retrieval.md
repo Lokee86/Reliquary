@@ -76,12 +76,15 @@ Current source contains focused functional coverage for full-pool ranking, selec
 
 ## Code Map
 
+- `crates/reliquary-retrieval/src/` — deterministic lexical scoring/index,
+  exact vector scoring, hybrid ranking, and pure Memory routing/index policy.
 - `src/runtime_inference/agentic_memory_retrieval*`
 - `src/runtime_inference/agentic_memory_frozen_fixture*`
 - `src/runtime_inference/runtime_host_gateway_agentic_memory*`
 - `src/runtime_inference/general_decision*`
 - `src/runtime_inference/configured_runtime_decision*`
-- `src/retrieval/**`
+- `src/retrieval/**` — product adapters, owner reads, vector hydration, and
+  public error mapping remain in Root.
 - `src/freshness/**`
 
 ## Related docs
@@ -92,6 +95,7 @@ Current source contains focused functional coverage for full-pool ranking, selec
 - [Freshness](freshness.md)
 - [Behavioral contracts](../behavioral-contracts.md)
 - [Agentic retrieval verification](../agentic-memory-retrieval-verification-2026-10-16.md)
+- [Retrieval extraction evidence](../retrieval-service-crate-extraction-evidence-2026-10-28.md)
 - [Host handoff evidence](../agentic-memory-host-handoff-seam-2026-10-16.md)
 
 ## Notes

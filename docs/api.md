@@ -167,6 +167,24 @@ Historical reconstruction refuses to reuse an earlier import's settlement as a r
 
 The public `reliquary_memory::imports` module exports schema-1 DTOs, epoch status/completion types, `ImportReadinessOwner`, `ImportReadinessStatus`, `ImportReadinessBlocker`, `ImportReadinessReport`, `ImportVectorReadiness`, and the four byte-only normalizers. `Cva::import_native(&NativeImport, now_ns)` and `Cva::complete_native_import(import_id, now_ns)` are exclusive/offline operations. `Cva::native_import_readiness(import_id)` is a read-only report for the current open epoch: it returns the import ID, an optional typed owner blocker, and vector status; unknown, completed and noncurrent IDs reject. Readiness derives exact receipt, accepted scoped-settlement, imported Episode, Insomnia-output, local Memory, initial Dream and active, non-superseded Dream-processed output Memory mention-key Perception evidence; callers cannot provide proof booleans or digests. Every nonzero local output ID must have its exact retained same-epoch InsomniaCompletion record, a revision-1 Memory record attributed to that same Episode, and a matching retained first mutation. An output ID without that evidence is `Memory/ConflictingEvidence`; owner-supplied IDs or caller-provided Memory provenance alone do not suffice. A pending readiness outcome identifies one owner, exact identity and `Missing`, `Pending`, `Failed`, `ConflictingEvidence` or `Unsupported` status. PHY external Memory refs return `Memory/Unsupported` because this REL-only API cannot authenticate a second owner. Vector status is `NotRequired` only when there are no source Nodes and no Memory outputs; otherwise it is `SupportedUnavailable` and does not certify complete vector coverage. For an empty receipt (`receipt.conversations.is_empty()`), the authenticated scoped settlement must also be a true no-op: no source Nodes, births, cohort, replacement records or superseded IDs, and `base_cut == settlement_cut`. Dormant/unresolved mention keys for an active, non-superseded Dream-processed output Memory remain blockers; only inactive, archived or superseded Memories have no mention obligation. A Dream pass already pending for an import-owned birth remains a blocker if its Memory becomes archived or terminal; an archived birth without pending work does not start a new pass. The report does not wait for unrelated work or unscheduled Ego work. Completed marker layout is unchanged; completion still syncs its marker before reopening writes. There is no mounted completion operation. [Native historical import](native-import.md) owns the detailed readiness boundary.
 
+## Retrieval policy service
+
+The product `Reliquary` and `Phylactery` search and Memory-retrieval methods
+keep their existing signatures. Their deterministic engine types and policies
+are moving to `reliquary-retrieval`, including lexical tokenization and
+postings, exact semantic row scoring, hybrid ranking, disposable Memory index
+construction, Community routing, candidate selection, and Graph traversal.
+The root crate re-exports the Memory-retrieval config, index, hit, mode, and
+result types from the service.
+
+The service works on supplied facts. Root still authorizes and reads owner
+state, decodes vector rows, hydrates Archive/Memory content, reads current
+watermarks and active Graph relations, and maps pure policy failures into the
+existing `SearchError` and `MemoryRetrievalError` variants. Memory retrieval
+indexes and posting indexes remain transient and are not persisted. The
+service extraction is in progress; see the [implementation evidence](retrieval-service-crate-extraction-evidence-2026-10-28.md)
+for verified boundaries and pending checks.
+
 ## Agentic Memory retrieval
 
 `AgenticMemoryController::new()` creates empty host-owned, in-memory state for one requesting-agent turn. `current_query()`, `searched_ids()`, and `selected_ids()` expose read-only views over owner-qualified `MemoryRef` values; there is no gateway registry or durable controller state. The REL-only gateway workflow exposes exactly three model operations: query, refinement, and one-hop graph traversal. Query unions the full lexical and exact-semantic candidate pools before Freshness ordering and the top-ten cut. Refinement considers previously declined candidates in deterministic batches of at most ten without rerunning ordinary retrieval. Traversal searches each anchor in both directions, concurrently, and applies a separate top-ten new-candidate cap per anchor; duplicate neighbors return once while retaining all applicable anchor reports.

@@ -1,4 +1,3 @@
-use crate::search::deduplicate_candidates;
 use crate::{
     Cva, EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, Fragment, FragmentConfig,
     RetrievalConfig, SearchCandidate, VectorNormalization,
@@ -144,7 +143,10 @@ fn duplicate_ranges_are_removed_and_default_result_limit_is_ten() {
     };
     let mut duplicate = fake.clone();
     duplicate.id = crate::FragmentId([2; 32]);
-    let deduped = deduplicate_candidates(vec![candidate(fake, 0.9), candidate(duplicate, 0.1)]);
+    let deduped = reliquary_retrieval::deduplicate_search_candidates(vec![
+        candidate(fake, 0.9),
+        candidate(duplicate, 0.1),
+    ]);
     assert_eq!(deduped.len(), 1);
 
     let path = test_path("limit.cva");

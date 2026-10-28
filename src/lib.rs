@@ -586,8 +586,6 @@ mod memory_retrieval;
 mod memory_retrieval_build;
 #[path = "retrieval/memory_retrieval_error.rs"]
 mod memory_retrieval_error;
-#[path = "retrieval/memory_retrieval_index.rs"]
-mod memory_retrieval_index;
 #[path = "retrieval/memory_retrieval_model.rs"]
 mod memory_retrieval_model;
 #[path = "retrieval/memory_retrieval_traversal.rs"]
@@ -1132,9 +1130,6 @@ mod community_routing_score_bench;
 #[path = "semantic_graph/community_routing_tests.rs"]
 mod community_routing_tests;
 
-#[cfg(all(test, feature = "community-benchmarks"))]
-#[path = "semantic_graph/community_subcentroid_routing.rs"]
-mod community_subcentroid_routing;
 #[cfg(test)]
 #[path = "semantic_graph/community_test_support.rs"]
 mod community_test_support;

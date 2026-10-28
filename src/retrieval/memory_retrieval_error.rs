@@ -45,3 +45,16 @@ impl From<reliquary_vector_store::PackedVectorError> for MemoryRetrievalError {
         Self::PackedVectors(value.into())
     }
 }
+
+impl From<reliquary_retrieval::memory_retrieval::RetrievalPolicyError> for MemoryRetrievalError {
+    fn from(value: reliquary_retrieval::memory_retrieval::RetrievalPolicyError) -> Self {
+        use reliquary_retrieval::memory_retrieval::RetrievalPolicyError as Policy;
+        match value {
+            Policy::InvalidConfig => Self::InvalidConfig,
+            Policy::InvalidQueryVector => Self::InvalidQueryVector,
+            Policy::EmptyPopulation => Self::EmptyPopulation,
+            Policy::StaleIndex => Self::StaleIndex,
+            Policy::CorruptVector(reason) => Self::CorruptVector(reason),
+        }
+    }
+}

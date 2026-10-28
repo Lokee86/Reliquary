@@ -120,38 +120,36 @@ impl GatewayRuntime {
         controller: &crate::AgenticMemoryController,
         anchor: &MemoryRef,
     ) -> Result<PreparedAnchor, AgenticMemoryError> {
-        use crate::agentic_memory_retrieval::{grade_agentic_memories, order_agentic_memories};
+        use crate::agentic_memory_retrieval::grade_agentic_memories;
         let relations = self.agentic_anchor_evidence(envelope, anchor)?;
-        let neighbors = relations
-            .iter()
-            .map(|edge| edge.neighbor.clone())
-            .collect::<BTreeSet<_>>();
-        let declined_neighbors = neighbors
-            .iter()
-            .filter(|id| {
-                controller.searched_ids().contains(*id) && !controller.selected_ids().contains(*id)
-            })
-            .count();
-        let unseen = neighbors
-            .into_iter()
-            .filter(|id| {
-                !controller.searched_ids().contains(id) && !controller.selected_ids().contains(id)
-            })
-            .collect::<Vec<_>>();
-        let unseen_neighbors = unseen.len();
+        let neighbor_selection = reliquary_retrieval::memory_candidates::select_agentic_neighbors(
+            relations.iter().map(|edge| edge.neighbor.clone()),
+            controller.searched_ids(),
+            controller.selected_ids(),
+        );
+        let declined_neighbors = neighbor_selection.declined_count;
+        let unseen_neighbors = neighbor_selection.unseen_count;
         let owner = envelope
             .owners
             .iter()
             .find(|owner| owner.token.owner_id == anchor.owner_id)
             .ok_or_else(|| auth_error("graph anchor is outside the authorized REL closure"))?;
-        let ids = unseen.iter().map(|id| id.memory_id).collect::<Vec<_>>();
+        let ids = neighbor_selection
+            .unseen
+            .iter()
+            .map(|id| id.memory_id)
+            .collect::<Vec<_>>();
         let mut ranked = self
             .with_rel(&owner.token, |runtime| {
                 grade_agentic_memories(&runtime.cva, &ids, owner.cut).map_err(operation)
             })
             .map_err(read_error)?;
-        order_agentic_memories(&mut ranked);
-        ranked.truncate(10);
+        let ranked = reliquary_retrieval::memory_candidates::limit_freshness_candidates(
+            ranked,
+            &BTreeSet::new(),
+            10,
+        )
+        .candidates;
         let candidates = ranked
             .iter()
             .map(|candidate| self.hydrate_agentic_memory(envelope, &candidate.memory))

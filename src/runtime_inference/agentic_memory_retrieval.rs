@@ -145,11 +145,7 @@ impl AgenticMemoryController {
 mod agentic_memory_retrieval_tests;
 
 /// Operation-local grade; never retained in the turn controller.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct RankedAgenticMemory {
-    pub(crate) memory: MemoryRef,
-    pub(crate) freshness: i16,
-}
+pub(crate) use reliquary_retrieval::memory_candidates::FreshnessCandidate as RankedAgenticMemory;
 
 pub(crate) fn grade_agentic_memories(
     owner: &crate::Cva,
@@ -181,10 +177,5 @@ pub(crate) fn grade_agentic_memories(
 }
 
 pub(crate) fn order_agentic_memories(candidates: &mut [RankedAgenticMemory]) {
-    candidates.sort_by(|left, right| {
-        right
-            .freshness
-            .cmp(&left.freshness)
-            .then_with(|| left.memory.cmp(&right.memory))
-    });
+    reliquary_retrieval::memory_candidates::order_by_freshness(candidates);
 }

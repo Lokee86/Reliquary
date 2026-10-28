@@ -6,3 +6,10 @@ publish = false
 
 [lib]
 path = "src/lib.rs"
+
+[dependencies]
+reliquary-archive = { path = "../reliquary-archive" }
+reliquary-graph = { path = "../reliquary-graph" }
+reliquary-memory-core = { path = "../reliquary-memory-core" }
+reliquary-vectors = { path = "../reliquary-vectors" }
+reliquary-vector-store = { path = "../reliquary-vector-store" }

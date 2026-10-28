@@ -51,6 +51,12 @@ It combines:
 - exact fine search inside the selected routing set.
 - configured fallback behavior.
 
+The deterministic lexical and Memory routing engine is being extracted to
+`reliquary-retrieval`. Root still reads Archive, Memory, Graph, and vector-store
+facts, validates the owner snapshot, hydrates source text, and maps service
+policy errors to the existing product errors. The extraction preserves the
+REL/PHY methods and their result types; remaining verification limitations are recorded in the extraction evidence.
+
 ## Stale indexes
 
 A cached retrieval index fails closed with `MemoryRetrievalError::StaleIndex` when relevant inputs change.
@@ -64,6 +70,10 @@ Relevant watermarks include:
 - Community generation.
 - selected-profile Memory-vector bindings.
 - profile/vector dimensions/configuration.
+
+The service compares the Memory version, Memory-Graph version, Community
+generation, selected-profile binding count, and routed subcentroid setting.
+Entity-only Graph changes leave the Memory-Graph watermark unchanged.
 
 Entity-only semantic Graph writes do **not** stale a Memory retrieval index.
 
@@ -91,6 +101,7 @@ PHY Memories retain identifier-only references to originating REL source identit
 ## Related docs
 
 - [Rust API](../api.md)
+- [Retrieval extraction evidence](../retrieval-service-crate-extraction-evidence-2026-10-28.md)
 - [Community routing validation](../community-routing-validation-2026-08-29.md)
 - [Graph and Communities](graph-and-communities.md)
 - [Local configuration](../configuration.md)

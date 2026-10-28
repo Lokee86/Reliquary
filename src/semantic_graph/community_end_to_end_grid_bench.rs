@@ -1,9 +1,11 @@
 use crate::community_routing::cosine;
 use crate::community_routing_bench_fixture::load_fixture;
-use crate::community_subcentroid_routing::{build_subcentroids, route_subcentroids};
 use crate::community_traversal_bench_fixture::adjacency;
 use crate::community_traversal_bench_support::{TraversalPolicy, traverse};
 use crate::{CommunityId, MemoryId};
+use reliquary_retrieval::community_routing::{
+    CommunitySubcentroid, build_subcentroids, route_communities as route_subcentroids,
+};
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
@@ -99,7 +101,8 @@ fn community_end_to_end_operating_point_benchmark() {
             .filter(|(id, _)| !held_out.contains(id))
             .map(|(id, vector)| (*id, vector.clone()))
             .collect();
-        let router = build_subcentroids(&fixture, &training, 4);
+        let lower_snapshot = fixture.snapshot.clone().into();
+        let router = build_subcentroids(&lower_snapshot, &training, 4);
 
         for (k_slot, k) in ROUTE_KS.into_iter().enumerate() {
             let totals = evaluate_fold(&fixture, &graph, &held_out, &router, k);
@@ -117,7 +120,7 @@ fn evaluate_fold(
     fixture: &crate::community_routing_bench_fixture::RoutingFixture,
     graph: &HashMap<MemoryId, Vec<MemoryId>>,
     held_out: &HashSet<MemoryId>,
-    router: &[crate::community_subcentroid_routing::SubcentroidEntry],
+    router: &[CommunitySubcentroid],
     k: usize,
 ) -> Totals {
     let mut totals = Totals::default();

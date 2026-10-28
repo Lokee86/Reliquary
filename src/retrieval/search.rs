@@ -4,9 +4,6 @@ use crate::{
 };
 use std::collections::HashSet;
 
-#[cfg(test)]
-pub(crate) use crate::search_rank::{combine_scores, deduplicate_candidates};
-
 impl Cva {
     pub fn search(
         &mut self,
@@ -91,14 +88,8 @@ impl Cva {
 }
 
 fn validate_search(query: &str, config: RetrievalConfig) -> Result<(f64, f64), SearchError> {
-    if query.trim().is_empty() {
-        return Err(SearchError::EmptyQuery);
-    }
-    let Some(weights) = config.normalized_weights() else {
-        return Err(SearchError::InvalidConfig);
-    };
-    if config.candidate_limit > crate::MAX_SEMANTIC_SEARCH_LIMIT {
-        return Err(SearchError::InvalidConfig);
-    }
-    Ok(weights)
+    reliquary_retrieval::validate_hybrid_request(query, config).map_err(|error| match error {
+        reliquary_retrieval::HybridPolicyError::EmptyQuery => SearchError::EmptyQuery,
+        reliquary_retrieval::HybridPolicyError::InvalidConfig => SearchError::InvalidConfig,
+    })
 }

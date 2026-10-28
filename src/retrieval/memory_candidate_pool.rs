@@ -1,16 +1,5 @@
 use crate::{CompatibilityProfileId, MemoryId};
-
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub(crate) struct MemoryCandidateEvidence {
-    pub(crate) lexical_score: Option<f64>,
-    pub(crate) semantic_score: Option<f64>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) struct MemoryCandidate {
-    pub(crate) memory_id: MemoryId,
-    pub(crate) evidence: MemoryCandidateEvidence,
-}
+pub(crate) use reliquary_retrieval::memory_candidates::MemoryCandidate;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct MemoryCandidatePool {
@@ -35,7 +24,6 @@ impl crate::Cva {
         use crate::memory_retrieval_vectors::{
             exact_memory_scores, load_searchable_memory_vectors, validate_query,
         };
-        use std::collections::BTreeMap;
         validate_query(query_vector)?;
         // An absent profile has no semantic population, but lexical eligibility is independent.
         if let Some(profile) = self.compatibility_profiles.get_active(profile_id) {
@@ -54,22 +42,11 @@ impl crate::Cva {
         let mut ids = vectors.keys().copied().collect::<Vec<_>>();
         ids.sort();
         let semantic = exact_memory_scores(query_vector, &vectors, &ids)?;
-        let mut evidence = BTreeMap::<MemoryId, MemoryCandidateEvidence>::new();
-        for hit in lexical {
-            evidence.entry(hit.memory_id).or_default().lexical_score = Some(hit.score);
-        }
-        for hit in semantic {
-            evidence.entry(hit.memory_id).or_default().semantic_score = Some(hit.score);
-        }
         Ok(MemoryCandidatePool {
             compatibility_profile_id: profile_id,
-            candidates: evidence
-                .into_iter()
-                .map(|(memory_id, evidence)| MemoryCandidate {
-                    memory_id,
-                    evidence,
-                })
-                .collect(),
+            candidates: reliquary_retrieval::memory_candidates::union_memory_evidence(
+                lexical, semantic,
+            ),
         })
     }
 }

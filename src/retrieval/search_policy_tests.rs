@@ -1,5 +1,4 @@
 use crate::lexical_search::{lexical_score, lexical_terms};
-use crate::search::combine_scores;
 use crate::{
     DEFAULT_LEXICAL_WEIGHT, DEFAULT_SEARCH_CANDIDATE_LIMIT, DEFAULT_SEARCH_RESULT_LIMIT,
     DEFAULT_SEMANTIC_WEIGHT,
@@ -11,9 +10,17 @@ fn old_default_weights_and_limits_are_restored() {
     assert_eq!(DEFAULT_SEMANTIC_WEIGHT, 0.55);
     assert_eq!(DEFAULT_SEARCH_CANDIDATE_LIMIT, 30);
     assert_eq!(DEFAULT_SEARCH_RESULT_LIMIT, 10);
-    assert_eq!(combine_scores(0.8, 0.0), 0.8);
-    assert_eq!(combine_scores(0.0, 0.9), 0.9);
-    assert!((combine_scores(0.8, 0.6) - 0.69).abs() < 1e-9);
+    assert_eq!(
+        reliquary_retrieval::combine_hybrid_scores(0.8, 0.0, (0.45, 0.55)),
+        0.8
+    );
+    assert_eq!(
+        reliquary_retrieval::combine_hybrid_scores(0.0, 0.9, (0.45, 0.55)),
+        0.9
+    );
+    assert!(
+        (reliquary_retrieval::combine_hybrid_scores(0.8, 0.6, (0.45, 0.55)) - 0.69).abs() < 1e-9
+    );
 }
 
 #[test]

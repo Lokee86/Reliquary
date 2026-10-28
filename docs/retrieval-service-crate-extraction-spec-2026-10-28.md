@@ -1,18 +1,22 @@
 # Retrieval service crate extraction — implementation specification
 
-**Status:** Specified, not implemented (2026-10-28).
+**Status:** Implementation integrated and product-tested; architecture and documentation tooling limitations remain. See [implementation evidence](retrieval-service-crate-extraction-evidence-2026-10-28.md).
 **Repository / branch:** `Reliquary-crate-first`, `refactor/crate-first-restart`.
-**Baseline:** last committed product `a2313af7`. Vectors service implementation is independently active and **uncommitted** in this working tree. Its verified source cut and consumer rewiring are the intended lower service input, **not** a license to include any Vectors edits in this specification commit.
-**Target:** `crates/reliquary-retrieval/` (currently a placeholder with no production code).
+**Baseline:** committed Vectors service cut `3bacc56d`; Retrieval implementation follows this baseline. This spec and its evidence record the current slices without including unrelated Graph edits.
+**Target:** `crates/reliquary-retrieval/` (production implementation integrated; tooling limitations recorded in evidence).
 **Objective:** A behavior-preserving hard cut of deterministic Retrieval policy and derived indexes out of product Root. No new retrieval product, search algorithm, inference call, storage file, corpus migration or permission mechanism.
 
-## Purpose and problem
+## Purpose
 
-Today Retrieval's lexical indexing, token scoring, hybrid fusion/diversification, vector scoring, Community routing, Graph traversal, complete agentic candidate union and public result models reside across `src/retrieval/`, `src/runtime_inference/` and the root `Cva`/`Phylactery` package. Numerous engine functions are `impl Cva` or take a concrete `GraphOwner`/`Container` or root-owned error. Consequently changes to ranking or routing depend on owner I/O, transaction APIs, provider changes, and runtime call sites, violating the intended small-blast-radius architecture.
+At the specification baseline, Retrieval's lexical indexing, token scoring, hybrid fusion/diversification, vector scoring, Community routing, Graph traversal, complete agentic candidate union and public result models resided across `src/retrieval/`, `src/runtime_inference/` and the root `Cva`/`Phylactery` package. The integrated cut moves deterministic policies into `reliquary-retrieval`; owner I/O, product error mapping and agentic controller orchestration remain in their authorized Root/Gateway boundaries.
 
 Extract the deterministic search engine into `reliquary-retrieval`, with **caller-supplied authorized facts** and canonical lower-crate types. The engine may own disposable indexes and calculation results; it must **never** own Memory/Archive content, Graph relationships, vector generation authority, user/REL grants, accepted-use receipts, agent state lifetime, or model transport. Existing product entrypoints keep their signatures and delegate to the service.
 
 **Developer outcome:** alter a lexical scorer, hybrid fusion or Memory routing/traversal strategy inside one crate, run its focused tests, and integrate without edits to Container, Archive, Memory Core, Graph, Vector Store, Vectors, Freshness, or unrelated services.
+
+## Overview
+
+This specification defines the staged extraction and its ownership and verification gates.
 
 ## Baseline and authoritative rules
 
@@ -20,7 +24,7 @@ Extract the deterministic search engine into `reliquary-retrieval`, with **calle
 - [ADR 0026](decisions/0026-community-routed-memory-retrieval.md) and [Retrieval manual](manual/retrieval.md): Memory/PHY retrieval is owner-local; the cached index is derived; only **Memory-graph** mutations invalidate Community routing. Default 4 subcentroids, top 4 Communities, 4 seeds, 32 Graph budget, depth 3; global fallback and unclustered residual lane; depth always before boundary crossings. No semantic Community summaries or persisted centroids.
 - [Agentic Retrieval](agentic-memory-retrieval-design-2026-10-15.md) and [implementation](subsystems/agentic-memory-retrieval.md): full lexical + exact-semantic union before any top-10, owner-qualified Freshness order, excluded already selected results, per-anchor one-hop max 10, deterministic overlap, previous-content-only `already_provided` with **zero new delivery**, no reinforcement on passive reads. The turn/controller/delivery owner remains Runtime/Gateway; see [handoff](agentic-memory-host-handoff-seam-2026-10-16.md).
 - Existing hybrid defaults `DEFAULT_LEXICAL_WEIGHT=0.45`, `DEFAULT_SEMANTIC_WEIGHT=0.55`, candidate limit `30`, result limit `10`; single-lane scores remain unscaled, lexical coverage/density calculation unchanged; stable tie ordering, duplicate-source ranges and overlap diversification unchanged.
-- [Vectors extraction](vectors-service-crate-extraction-spec-2026-10-28.md): `reliquary-vectors` now supplies embedding contracts and cosine/profile verification; Retrieval is a consumer only. Vector Store owns actual matrices/generations, not Retrieval. The Vectors extraction must be **committed and integrated** before running this migration; refresh the baseline then.
+- [Vectors extraction](vectors-service-crate-extraction-spec-2026-10-28.md): `reliquary-vectors` supplies embedding contracts and cosine/profile verification; Retrieval is a consumer only. Vector Store owns actual matrices/generations, not Retrieval. The source cut is committed at `3bacc56d` and is the Retrieval baseline.
 - Current semantic-corpus limitation: the separate `CVAFRS07` six-file admission is not verified; the agentic answer/evidence comparison previously measured **1/128 (0.78%)** recall. Neither is solved or claimed by changing crate ownership.
 
 ## Canonical type and responsibility boundaries
@@ -122,7 +126,7 @@ Run relevant tests with owner fixtures and allowed local loopback as necessary, 
 
 No new retrieval heuristic or evaluation-model prompt, no reweighting based on Freshness, no semantic-only third search path, no alternate ranking schema, no new Graph/Community projection, no optimizer or ANN backend, no persistent retrieval index, no proactive Ego changes, no new multi-owner query authority, no corpus migration/compatibility reader, no additional model route, no change to host acknowledgment semantics, and no general architectural tooling.
 
-## Related documents
+## Related docs
 
 - [Crate-first architecture](crate-first-architecture.md) and [crate map](architecture/crate-map.json)
 - [Vectors extraction spec](vectors-service-crate-extraction-spec-2026-10-28.md)
@@ -131,7 +135,8 @@ No new retrieval heuristic or evaluation-model prompt, no reweighting based on F
 - [Agentic retrieval design](agentic-memory-retrieval-design-2026-10-15.md) and [implementation](subsystems/agentic-memory-retrieval.md)
 - [Agentic host handoff seam](agentic-memory-host-handoff-seam-2026-10-16.md)
 - [Freshness retrieval boundary](freshness-external-consumption-contract.md)
+- [Implementation evidence](retrieval-service-crate-extraction-evidence-2026-10-28.md)
 
 ## Notes
 
-This is an **implementation specification**, not a declaration that the Retrieval crate exists beyond its placeholder or that the Vectors source cut is committed. Avoid trading implementation completeness for a clean module list; the migrated engine must be the one called by real Root and Gateway paths.
+This specification describes the implementation and its acceptance gates. The [evidence](retrieval-service-crate-extraction-evidence-2026-10-28.md) records product verification and the remaining architecture and documentation tooling limitations.

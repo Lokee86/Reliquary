@@ -1,5 +1,5 @@
 use super::*;
-use crate::agentic_memory_retrieval::{grade_agentic_memories, order_agentic_memories};
+use crate::agentic_memory_retrieval::grade_agentic_memories;
 use crate::agentic_memory_retrieval_decision::select_memories;
 use crate::{
     AgenticMemoryContent, AgenticMemoryController, AgenticMemoryError, AgenticMemoryOperation,
@@ -48,13 +48,13 @@ impl GatewayRuntime {
                 .map_err(read_error)?;
             ranked.append(&mut candidates);
         }
-        let raw_matches = ranked
-            .iter()
-            .map(|candidate| candidate.memory.clone())
-            .collect::<BTreeSet<_>>();
-        ranked.retain(|candidate| !controller.selected_ids().contains(&candidate.memory));
-        order_agentic_memories(&mut ranked);
-        ranked.truncate(10);
+        let selection = reliquary_retrieval::memory_candidates::limit_freshness_candidates(
+            ranked,
+            controller.selected_ids(),
+            10,
+        );
+        let raw_matches = selection.raw_matches;
+        let ranked = selection.candidates;
         let candidates = ranked
             .iter()
             .map(|candidate| self.hydrate_agentic_memory(&envelope, &candidate.memory))

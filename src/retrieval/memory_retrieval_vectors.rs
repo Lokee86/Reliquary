@@ -45,19 +45,8 @@ pub(crate) fn load_memory_vectors(
 }
 
 fn decode_f32_row(bytes: &[u8]) -> Result<Vec<f32>, MemoryRetrievalError> {
-    if !bytes.len().is_multiple_of(4) {
-        return Err(MemoryRetrievalError::CorruptVector("f32 row width"));
-    }
-    bytes
-        .chunks_exact(4)
-        .map(|chunk| {
-            let value = f32::from_le_bytes(chunk.try_into().expect("f32 width"));
-            value
-                .is_finite()
-                .then_some(value)
-                .ok_or(MemoryRetrievalError::CorruptVector("non-finite vector"))
-        })
-        .collect()
+    reliquary_retrieval::semantic_scoring::decode_f32_row(bytes)
+        .map_err(MemoryRetrievalError::CorruptVector)
 }
 
 /// Canonical exact scorer, before routing, seed or presentation limits.
@@ -67,40 +56,12 @@ pub(crate) fn exact_memory_scores(
     vectors: &HashMap<crate::MemoryId, Vec<f32>>,
     candidates: &[crate::MemoryId],
 ) -> Result<Vec<crate::MemoryRetrievalHit>, MemoryRetrievalError> {
-    validate_query(query)?;
-    let mut ranked = Vec::with_capacity(candidates.len());
-    for id in candidates {
-        let vector = vectors.get(id).ok_or(MemoryRetrievalError::CorruptVector(
-            "missing candidate vector",
-        ))?;
-        let score = reliquary_vectors::compatibility_vector::cosine(query, vector)
-            .ok_or(MemoryRetrievalError::InvalidQueryVector)?;
-        ranked.push(crate::MemoryRetrievalHit {
-            memory_id: *id,
-            score,
-        });
-    }
-    ranked.sort_by(|left, right| {
-        right
-            .score
-            .total_cmp(&left.score)
-            .then_with(|| left.memory_id.cmp(&right.memory_id))
-    });
-    Ok(ranked)
+    reliquary_retrieval::memory_retrieval::exact_memory_scores(query, vectors, candidates)
+        .map_err(Into::into)
 }
 
 pub(crate) fn validate_query(query: &[f32]) -> Result<(), MemoryRetrievalError> {
-    if query.is_empty() || query.iter().any(|value| !value.is_finite()) {
-        return Err(MemoryRetrievalError::InvalidQueryVector);
-    }
-    let norm = query
-        .iter()
-        .map(|value| f64::from(*value) * f64::from(*value))
-        .sum::<f64>();
-    if norm == 0.0 {
-        return Err(MemoryRetrievalError::InvalidQueryVector);
-    }
-    Ok(())
+    reliquary_retrieval::memory_retrieval::validate_query(query).map_err(Into::into)
 }
 
 /// Load the current searchable population using the same validation for both consumers.

@@ -39,7 +39,8 @@ fn community_end_to_end_context_quality_benchmark() {
             .filter(|(id, _)| !held_out.contains(id))
             .map(|(id, vector)| (*id, vector.clone()))
             .collect();
-        let router = build_subcentroids(&fixture, &training, 4);
+        let lower_snapshot = fixture.snapshot.clone().into();
+        let router = build_subcentroids(&lower_snapshot, &training, 4);
 
         evaluate_fold(&fixture, &graph, &held_out, &router, &mut totals);
     }
@@ -71,7 +72,7 @@ fn evaluate_fold(
     fixture: &crate::community_routing_bench_fixture::RoutingFixture,
     graph: &HashMap<MemoryId, Vec<MemoryId>>,
     held_out: &HashSet<MemoryId>,
-    router: &[crate::community_subcentroid_routing::SubcentroidEntry],
+    router: &[reliquary_retrieval::community_routing::CommunitySubcentroid],
     totals: &mut QualityTotals,
 ) {
     for probe in fixture

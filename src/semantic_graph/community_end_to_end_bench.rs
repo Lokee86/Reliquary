@@ -1,9 +1,11 @@
 use crate::community_routing::cosine;
 use crate::community_routing_bench_fixture::load_fixture;
-use crate::community_subcentroid_routing::{build_subcentroids, route_subcentroids};
 use crate::community_traversal_bench_fixture::{adjacency, ranked_targets};
 use crate::community_traversal_bench_support::{TraversalPolicy, traverse};
 use crate::{CommunityId, MemoryId};
+use reliquary_retrieval::community_routing::{
+    build_subcentroids, route_communities as route_subcentroids,
+};
 use std::collections::{HashMap, HashSet};
 
 const ROUTE_K: usize = 5;
@@ -42,7 +44,8 @@ fn community_retrieval_traversal_end_to_end_benchmark() {
         .filter(|(id, _)| !held_out.contains(id))
         .map(|(id, vector)| (*id, vector.clone()))
         .collect();
-    let router = build_subcentroids(&fixture, &training, 4);
+    let lower_snapshot = fixture.snapshot.clone().into();
+    let router = build_subcentroids(&lower_snapshot, &training, 4);
     let graph = adjacency(&fixture);
     let mut totals = Totals::default();
 

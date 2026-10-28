@@ -29,6 +29,7 @@
 - [Vectors service crate extraction specification](vectors-service-crate-extraction-spec-2026-10-28.md) — model embedding, compatibility verification, pure F32 packing, and root/Vector Store separation.
 - [Vectors service crate extraction evidence](vectors-service-crate-extraction-evidence-2026-10-28.md) — current source cut and integration status; verification remains in progress.
 - [Retrieval service crate extraction specification](retrieval-service-crate-extraction-spec-2026-10-28.md) — passive lexical/semantic/hybrid engine, Community-routed Memory retrieval, agentic candidate ordering and strict owner boundaries.
+- [Retrieval service crate extraction evidence](retrieval-service-crate-extraction-evidence-2026-10-28.md) — partial source ownership cut and verified checks; final integration acceptance remains pending.
 - [Owner Lifecycle extraction specification](owner-lifecycle-crate-extraction-spec-2026-10-27.md) — compiled owner reopen and structural replay coordination.
 - [Compact interaction stream contract](interaction-stream-compact-contract-2026-10-21.md) — frozen checkpoint transitions and exact suffix representation.
 - [Compact publication envelope contract](publication-envelope-contract-2026-10-20.md) — planned physical allocation/reserved-binding format and owner migration gates.
@@ -273,6 +274,7 @@
 - [perception-subsystem-plan.md](perception-subsystem-plan.md) - Perception Subsystem Plan documentation.
 - [publication-envelope-contract-2026-10-20.md](publication-envelope-contract-2026-10-20.md) - Publication Envelope Contract 2026 10 20 documentation.
 - [retained-entity-resolution-contract-2026-10-21.md](retained-entity-resolution-contract-2026-10-21.md) - Retained Entity Resolution Contract 2026 10 21 documentation.
+- [retrieval-service-crate-extraction-evidence-2026-10-28.md](retrieval-service-crate-extraction-evidence-2026-10-28.md) - Retrieval Service Crate Extraction Evidence 2026 10 28 documentation.
 - [retrieval-service-crate-extraction-spec-2026-10-28.md](retrieval-service-crate-extraction-spec-2026-10-28.md) - Retrieval Service Crate Extraction Spec 2026 10 28 documentation.
 - [roadmap.md](roadmap.md) - Roadmap documentation.
 - [semantic-import-pruning-history-rewrite-evidence-2026-10-18.md](semantic-import-pruning-history-rewrite-evidence-2026-10-18.md) - Semantic Import Pruning History Rewrite Evidence 2026 10 18 documentation.

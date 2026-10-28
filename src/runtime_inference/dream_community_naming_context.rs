@@ -30,16 +30,25 @@ pub(crate) fn representative_ids(
     community: &Community,
     index: &MemoryRetrievalIndex,
 ) -> Vec<MemoryId> {
-    let member_set: HashSet<_> = community.members.iter().copied().collect();
     let centroids: Vec<_> = index
-        .subcentroids
+        .subcentroids()
         .iter()
         .filter(|centroid| centroid.community_id == community.id)
+        .map(|centroid| centroid.vector.as_slice())
         .collect();
+    representative_ids_with_centroids(community, index, &centroids)
+}
+
+fn representative_ids_with_centroids(
+    community: &Community,
+    index: &MemoryRetrievalIndex,
+    centroids: &[&[f32]],
+) -> Vec<MemoryId> {
+    let member_set: HashSet<_> = community.members.iter().copied().collect();
     let mut selected = Vec::with_capacity(DEFAULT_COMMUNITY_NAMING_REPRESENTATIVES);
 
-    for centroid in &centroids {
-        let mut ranked = ranked_members_for_centroid(community, index, &centroid.vector);
+    for centroid in centroids {
+        let mut ranked = ranked_members_for_centroid(community, index, centroid);
         let mut admitted = 0;
         for (memory_id, _) in ranked.drain(..) {
             if !selected.contains(&memory_id) {
@@ -59,15 +68,14 @@ pub(crate) fn representative_ids(
 
     if selected.len() < DEFAULT_COMMUNITY_NAMING_REPRESENTATIVES {
         let mut remaining: Vec<_> = index
-            .vectors
-            .iter()
+            .vectors()
             .filter(|(memory_id, _)| member_set.contains(memory_id))
             .filter_map(|(memory_id, vector)| {
                 let score = centroids
                     .iter()
-                    .filter_map(|centroid| cosine(&centroid.vector, vector))
+                    .filter_map(|centroid| cosine(centroid, vector))
                     .max_by(f64::total_cmp)?;
-                Some((*memory_id, score))
+                Some((memory_id, score))
             })
             .collect();
         sort_ranked(&mut remaining);
@@ -102,7 +110,7 @@ fn ranked_members_for_centroid(
         .members
         .iter()
         .filter_map(|memory_id| {
-            let vector = index.vectors.get(memory_id)?;
+            let vector = index.vector_for(*memory_id)?;
             Some((*memory_id, cosine(centroid, vector)?))
         })
         .collect();
@@ -155,9 +163,9 @@ fn truncate_utf8(value: &str, max_bytes: usize) -> &str {
 
 #[cfg(test)]
 mod tests {
-    use super::{representative_ids, truncate_utf8};
-    use crate::memory_retrieval_index::CommunitySubcentroid;
+    use super::{representative_ids_with_centroids, truncate_utf8};
     use crate::{Community, CommunityId, CompatibilityProfileId, MemoryId, MemoryRetrievalIndex};
+    use reliquary_retrieval::memory_retrieval::MemoryRetrievalSnapshot;
     use std::collections::{HashMap, HashSet};
 
     #[test]
@@ -186,43 +194,33 @@ mod tests {
             (members[8], vec![1.0, 1.0]),
             (members[9], vec![-1.0, -1.0]),
         ]);
-        let index = MemoryRetrievalIndex {
+        let lower_snapshot: reliquary_graph::CommunitySnapshot = crate::CommunitySnapshot {
+            generation: 1,
+            derived_graph_version: 0,
+            algorithm_version: crate::COMMUNITY_ALGORITHM_VERSION,
+            seed: 0,
+            resolution: 1.0,
+            quality: 1.0,
+            communities: vec![community.clone()],
+        }
+        .into();
+        let index = MemoryRetrievalIndex::build(MemoryRetrievalSnapshot {
             compatibility_profile_id: CompatibilityProfileId([1; 32]),
             memory_version: 0,
             memory_graph_version: 0,
             community_generation: Some(1),
             vector_bindings: vectors.len(),
             subcentroids_per_community: 4,
-            dimensions: 2,
-            indexed_memories: vectors.len(),
-            routing_vectors: 4,
-            vectors,
+            community_snapshot: Some(lower_snapshot),
             searchable: HashSet::new(),
-            memberships: HashMap::new(),
-            subcentroids: vec![
-                CommunitySubcentroid {
-                    community_id,
-                    routing_key: members[0],
-                    vector: vec![1.0, 0.0],
-                },
-                CommunitySubcentroid {
-                    community_id,
-                    routing_key: members[0],
-                    vector: vec![0.0, 1.0],
-                },
-                CommunitySubcentroid {
-                    community_id,
-                    routing_key: members[0],
-                    vector: vec![-1.0, 0.0],
-                },
-                CommunitySubcentroid {
-                    community_id,
-                    routing_key: members[0],
-                    vector: vec![0.0, -1.0],
-                },
-            ],
-        };
+            vectors,
+        })
+        .unwrap();
 
-        assert_eq!(representative_ids(&community, &index), members[..8]);
+        let centroids: &[&[f32]] = &[&[1.0, 0.0], &[0.0, 1.0], &[-1.0, 0.0], &[0.0, -1.0]];
+        assert_eq!(
+            representative_ids_with_centroids(&community, &index, centroids),
+            members[..8]
+        );
     }
 }

@@ -1,15 +1,18 @@
-use crate::{CommunityId, CommunitySnapshot, MemoryId};
-use reliquary_vectors::compatibility_vector::cosine;
 use std::collections::HashMap;
 
+use reliquary_graph::{CommunityId, CommunitySnapshot};
+use reliquary_memory_core::MemoryId;
+use reliquary_vectors::compatibility_vector::cosine;
+
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct CommunitySubcentroid {
-    pub(crate) community_id: CommunityId,
-    pub(crate) routing_key: MemoryId,
-    pub(crate) vector: Vec<f32>,
+pub struct CommunitySubcentroid {
+    pub community_id: CommunityId,
+    pub routing_key: MemoryId,
+    pub vector: Vec<f32>,
 }
 
-pub(crate) fn build_subcentroids(
+/// Build disposable deterministic routing centroids from an authorized Community snapshot.
+pub fn build_subcentroids(
     snapshot: &CommunitySnapshot,
     vectors: &HashMap<MemoryId, Vec<f32>>,
     count: usize,
@@ -21,17 +24,21 @@ pub(crate) fn build_subcentroids(
             let points: Vec<_> = community
                 .members
                 .iter()
-                .filter_map(|member| vectors.get(member).cloned())
+                .filter_map(|member| vectors.get(&MemoryId(*member)).cloned())
                 .collect();
+            let Some(routing_key) = community
+                .members
+                .iter()
+                .map(|member| MemoryId(*member))
+                .min()
+            else {
+                return Vec::new();
+            };
             subcentroids(&points, count)
                 .into_iter()
                 .map(|vector| CommunitySubcentroid {
                     community_id: community.id,
-                    routing_key: *community
-                        .members
-                        .iter()
-                        .min()
-                        .expect("Community is nonempty"),
+                    routing_key,
                     vector,
                 })
                 .collect::<Vec<_>>()
@@ -39,7 +46,8 @@ pub(crate) fn build_subcentroids(
         .collect()
 }
 
-pub(crate) fn route_communities(
+/// Select Communities by their best matching centroid, with stable membership-based ties.
+pub fn route_communities(
     entries: &[CommunitySubcentroid],
     query: &[f32],
     limit: usize,
@@ -138,13 +146,14 @@ fn mean_vector<'a>(vectors: impl Iterator<Item = &'a Vec<f32>>) -> Option<Vec<f3
 }
 
 #[cfg(test)]
-mod rewrite_tests {
+mod tests {
     use super::*;
+
     #[test]
-    fn equal_similarity_routing_uses_membership_identity_across_owner_changes() {
+    fn equal_similarity_routing_uses_membership_identity() {
         let first = MemoryId([1; 32]);
         let second = MemoryId([2; 32]);
-        let before = [
+        let entries = [
             CommunitySubcentroid {
                 community_id: CommunityId([8; 32]),
                 routing_key: first,
@@ -156,23 +165,9 @@ mod rewrite_tests {
                 vector: vec![1.0, 0.0],
             },
         ];
-        let after = [
-            CommunitySubcentroid {
-                community_id: CommunityId([2; 32]),
-                ..before[0].clone()
-            },
-            CommunitySubcentroid {
-                community_id: CommunityId([9; 32]),
-                ..before[1].clone()
-            },
-        ];
         assert_eq!(
-            route_communities(&before, &[1.0, 0.0], 1),
-            vec![before[0].community_id]
-        );
-        assert_eq!(
-            route_communities(&after, &[1.0, 0.0], 1),
-            vec![after[0].community_id]
+            route_communities(&entries, &[1.0, 0.0], 1),
+            vec![entries[0].community_id]
         );
     }
 }

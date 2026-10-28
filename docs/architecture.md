@@ -173,10 +173,30 @@ not modify owner bytes.
 Community membership and names share the Graph owner's Container stream.
 Community currentness follows the Memory projection watermark, while names
 consume no semantic or global version. Dream retains relation decisions,
-refresh scheduling and inferred naming. Retrieval retains vector routing,
-representative selection and traversal policy in root consumers. This cut
+refresh scheduling and inferred naming. Retrieval's deterministic Community
+centroid generation and routing policy now live in `reliquary-retrieval`; Root
+validates and converts the owner Community snapshot at the boundary. This cut
 preserves the existing Graph/Community codecs and does not establish the
 separate CVAFRS07 whole-product recovery gate.
+
+## Retrieval deterministic policy crate (in progress)
+
+`reliquary-retrieval` now contains lexical tokenization/scoring and disposable
+Archive, file, raw-turn, and Memory posting indexes; exact semantic row scoring;
+hybrid fusion/diversification; Community subcentroid generation and routing;
+and Memory retrieval index construction, routed candidate selection, seed
+scoring, watermark comparison, and bounded Graph traversal. Its direct lower
+dependencies are Archive, Graph, Memory Core, Vectors, and Vector Store. It has
+no Container or product-root dependency.
+
+Root retains owner enumeration and authorization, Archive/Memory text and
+packed-vector hydration, Memory/Graph watermark acquisition, active relation
+reads, query-result hydration, and translation into existing public error
+variants. REL/PHY facade signatures remain stable and re-export the same
+retrieval result types. Agentic turn state, Freshness reads, model decisions,
+handoff confirmation, and accepted-use publication remain in their existing
+Root/Gateway owners. Extraction verification is partial; see the
+[Retrieval evidence](retrieval-service-crate-extraction-evidence-2026-10-28.md).
 
 ## Perception durable owner crate
 
