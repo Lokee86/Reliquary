@@ -30,6 +30,7 @@
 - [Vectors service crate extraction evidence](vectors-service-crate-extraction-evidence-2026-10-28.md) — current source cut and integration status; verification remains in progress.
 - [Retrieval service crate extraction specification](retrieval-service-crate-extraction-spec-2026-10-28.md) — passive lexical/semantic/hybrid engine, Community-routed Memory retrieval, agentic candidate ordering and strict owner boundaries.
 - [Entity Resolution service crate extraction specification](entity-resolution-service-crate-extraction-spec-2026-10-28.md) — replace the reserved Perception service placeholder with the current identity-resolution engine; leave Perception Store and future Observations separate.
+- [Insomnia service crate extraction specification](insomnia-service-crate-extraction-spec-2026-10-28.md) — separate the existing Episode-to-Memory inference and candidate policy from owner evidence hydration, durable publication, work scheduling and replay.
 - [Retrieval service crate extraction evidence](retrieval-service-crate-extraction-evidence-2026-10-28.md) — partial source ownership cut and verified checks; final integration acceptance remains pending.
 - [Owner Lifecycle extraction specification](owner-lifecycle-crate-extraction-spec-2026-10-27.md) — compiled owner reopen and structural replay coordination.
 - [Compact interaction stream contract](interaction-stream-compact-contract-2026-10-21.md) — frozen checkpoint transitions and exact suffix representation.
@@ -253,6 +254,7 @@
 - [import-store-crate-extraction-spec-2026-10-27.md](import-store-crate-extraction-spec-2026-10-27.md) - Import Store Crate Extraction Spec 2026 10 27 documentation.
 - [insomnia-explicit-memory-commit-plan.md](insomnia-explicit-memory-commit-plan.md) - Insomnia Explicit Memory Commit Plan documentation.
 - [insomnia-semantic-validation-2026-08-24.md](insomnia-semantic-validation-2026-08-24.md) - Insomnia Semantic Validation 2026 08 24 documentation.
+- [insomnia-service-crate-extraction-spec-2026-10-28.md](insomnia-service-crate-extraction-spec-2026-10-28.md) - Insomnia Service Crate Extraction Spec 2026 10 28 documentation.
 - [insomnia-store-crate-extraction-evidence-2026-10-26.md](insomnia-store-crate-extraction-evidence-2026-10-26.md) - Insomnia Store Crate Extraction Evidence 2026 10 26 documentation.
 - [insomnia-store-crate-extraction-spec-2026-10-26.md](insomnia-store-crate-extraction-spec-2026-10-26.md) - Insomnia Store Crate Extraction Spec 2026 10 26 documentation.
 - [interaction-stream-compact-contract-2026-10-21.md](interaction-stream-compact-contract-2026-10-21.md) - Interaction Stream Compact Contract 2026 10 21 documentation.
