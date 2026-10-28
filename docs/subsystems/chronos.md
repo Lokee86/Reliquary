@@ -68,7 +68,7 @@ Perception currently owns Observation semantics and is the future consumer for b
 ## Failure and recovery
 
 - Missing reference time leaves reference-dependent forms unresolved.
-- Model failure or invalid canonical output cannot overwrite deterministic results.
+- Model failure or invalid selection cannot overwrite deterministic results. External-source callers receive distinct decision transport, invalid-output and backpressure errors, including a retry hint when provided.
 - Persisted inference is stale when its body/reference binding changes.
 - Chronos never substitutes transaction time for semantic source/valid time.
 - Deterministic caches, if introduced, are disposable optimization state only.

@@ -213,7 +213,7 @@ pub(crate) fn prepare<E: GeneralEndpoint>(
         };
         if let Some(inferencer) = &inferencer {
             crate::insomnia::temporal::infer_memory(inferencer, &mut prepared)
-                .map_err(|_| ExternalSourceError::Unavailable)?;
+                .map_err(temporal_error)?;
         }
         let temporal = prepared.bound_temporal_inference();
         let evidence = ExternalMemoryEvidence {
@@ -247,6 +247,55 @@ pub(crate) fn prepare<E: GeneralEndpoint>(
         user,
         rejected: extraction.rejected.len(),
     })
+}
+
+fn temporal_error(error: crate::InsomniaExtractionError) -> ExternalSourceError {
+    use crate::{DecisionEndpointError, InsomniaExtractionError};
+    match error {
+        InsomniaExtractionError::Decision(DecisionEndpointError::Backpressure {
+            retry_after,
+            ..
+        }) => ExternalSourceError::TemporalDecisionBackpressure {
+            retry_after_ns: retry_after
+                .map(|duration| u64::try_from(duration.as_nanos()).unwrap_or(u64::MAX)),
+        },
+        InsomniaExtractionError::Decision(DecisionEndpointError::InvalidResponse(_))
+        | InsomniaExtractionError::InvalidOutput(_) => {
+            ExternalSourceError::TemporalDecisionInvalidOutput
+        }
+        _ => ExternalSourceError::TemporalDecisionUnavailable,
+    }
+}
+
+#[cfg(test)]
+mod temporal_error_tests {
+    use super::*;
+    #[test]
+    fn preserves_decision_failure_category_and_retry_hint() {
+        use crate::{DecisionEndpointError, InsomniaExtractionError};
+        let error = InsomniaExtractionError::Decision(DecisionEndpointError::Backpressure {
+            message: "busy".into(),
+            retry_after: Some(std::time::Duration::from_secs(120)),
+        });
+        assert_eq!(
+            temporal_error(error),
+            ExternalSourceError::TemporalDecisionBackpressure {
+                retry_after_ns: Some(120_000_000_000)
+            }
+        );
+        assert_eq!(
+            temporal_error(InsomniaExtractionError::Decision(
+                DecisionEndpointError::InvalidResponse("invalid")
+            )),
+            ExternalSourceError::TemporalDecisionInvalidOutput
+        );
+        assert_eq!(
+            temporal_error(InsomniaExtractionError::Decision(
+                DecisionEndpointError::Failure("offline".into())
+            )),
+            ExternalSourceError::TemporalDecisionUnavailable
+        );
+    }
 }
 fn evidence_chunk(
     messages: &[HydratedExternalMessage],
