@@ -84,6 +84,13 @@
       ]
     },
     {
+      "id": "switchboard",
+      "description": "Independent model routes, endpoint contracts, provider transports, credentials and raw configuration framing; no semantic owner authority",
+      "paths": [
+        "crates/reliquary-switchboard/src"
+      ]
+    },
+    {
       "id": "ego",
       "description": "Owner-local Identity, Personality, Anchor, and synthesis persistence",
       "paths": [
@@ -187,7 +194,8 @@
       "scope_paths": [
         "src",
         "crates/reliquary-container/src",
-        "crates/reliquary-archive/src"
+        "crates/reliquary-archive/src",
+        "crates/reliquary-switchboard/src"
       ],
       "source_kinds": [
         "file"

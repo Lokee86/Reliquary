@@ -1,12 +1,20 @@
 # Switchboard first-class crate extraction — implementation specification
 
 **Status:** Implemented; functional acceptance passed, with fresh architecture evidence and documentation ownership enforcement pending (2026-10-27).
-**Target:** `crates/reliquary-switchboard`, currently a zero-API placeholder.
+**Target:** `crates/reliquary-switchboard` (implemented as the canonical model runtime crate).
 **Baseline:** `refactor/crate-first-restart` at `ae2d555a`. **Mode:** correction-only, staged hard cut with bounded compiled integration gates. **Sequence:** immediately after Chronos. Do not mix the retained Graph evidence edit or temporary `t/` runtime-test artifacts into this cut.
+
+## Purpose
+
+Specify the first-class Switchboard extraction, canonical model runtime ownership, boundary constraints, behavioral parity and acceptance gates.
+
+## Overview
+
+The extracted crate owns provider routing, endpoint contracts, credentials, and raw machine-local configuration, while root product modules retain semantic operations and cross-owner runtime assembly. The integrated implementation and test outcomes are recorded in the linked extraction evidence; the separate fresh architecture/documentation ownership gates are not implied by functional acceptance.
 
 ## Problem and target
 
-Model routing, configured provider adapters, credential security and local configuration currently compile inside the root product, even though semantic consumers should depend **downward** on a replaceable model execution service. Their existing root placement permits Dream/Insomnia/Chronos/Retrieval/Entity and Gateway code to accidentally reach provider credentials or share transport-policy state.
+Before extraction, model routing, configured provider adapters, credential security and local configuration compiled inside the root product, even though semantic consumers needed to depend **downward** on a replaceable model execution service. Their existing root placement permits Dream/Insomnia/Chronos/Retrieval/Entity and Gateway code to accidentally reach provider credentials or share transport-policy state.
 
 The compiled `reliquary-switchboard` crate is the **single owner of model endpoint identity, route selection, credential security, provider invocation and the machine-local configuration framing needed to load those settings**. No semantic model prompts, decision criteria or Memory/REL/PHY authority moves into it. The product root continues to assemble configured runtime services and issue semantically authorized work.
 
@@ -71,3 +79,14 @@ A short red migration window is acceptable between coherent ownership cuts; do n
 ## Out of scope
 
 New provider implementations, model capabilities, semantic prompts, inference policy changes, OAuth security redesign, new credential vault, general config-file migration unrelated to verified consumer needs, REL/PHY format changes, automatic remote retries between model tiers, extracted Gateway/Context Engine/Insomnia business services, extra architecture analyzers, performance retuning and speculative framework layers.
+
+## Related docs
+
+- [Switchboard extraction evidence](switchboard-crate-extraction-evidence-2026-10-27.md)
+- [Model and provider runtime](subsystems/model-runtime.md)
+- [Configuration](configuration.md)
+- [Architecture](architecture.md)
+
+## Notes
+
+This document records the completed extraction contract and its acceptance criteria. Verified outcomes and remaining cross-repository tool limitations belong in the extraction evidence, not in additional architecture tooling or speculative follow-up phases.

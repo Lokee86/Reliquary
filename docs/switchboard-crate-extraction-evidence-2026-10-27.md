@@ -30,6 +30,22 @@ The provider-facing `EmbeddingNormalization` is projected to Vector Store's `Vec
 - `python scripts/check_architecture.py` without refresh: source guards and 25 Pitlord rules passed against the existing older Arcana graph; this is not fresh-graph evidence. A refresh was stopped after its Rust analyzer reached about 9 GB and free physical memory fell to about 1.6 GB.
 - The Pitlord documentation guard against `origin/main` failed with 344 unmapped files using the older graph (953/1,297 mapped). It cannot establish current ownership coverage from that graph. A current-change check also identified `docs/cli.md` as needing an update; the CLI documentation was updated. The fresh Arcana graph and documentation-ownership gate are unclaimed.
 
+## Independent closure verification (2026-10-27)
+
+The post-commit audit of `449d4afe` found one canonical Switchboard owner for models, credential encryption, raw configuration, provider transports and decision routing, with no direct Reliquary crate dependencies. The existing `tools/pitlord/semantic.json` policy now maps Switchboard's source to its own architectural area and extends the authored-source ownership scope; no new analyzer was created.
+
+- `cargo check --workspace --all-targets --locked --offline -j 1`: passed.
+- `cargo test -p reliquary-switchboard --locked --offline -j 1`: 44 passed, 0 failed.
+- Detached CLI `cargo test --manifest-path cli/Cargo.toml --locked --offline -j 1`: 32 passed, 0 failed.
+- `cargo test --lib --locked --offline -j 1`: **1,547 passed, 0 failed, 5 ignored** on the then-current checkout (which included uncommitted Chronos correction work).
+- `cargo fmt --all -- --check`: passed.
+- `python scripts/check_architecture.py` without refresh: source guards, policy validation and all 25 Pitlord rules passed using the **older Arcana snapshot**; this is not a fresh-graph check.
+- The Switchboard specification's four missing documentation-policy sections were added; 31 existing missing-section findings remain exclusively in other extraction documents, so full and changed-from checks still fail.
+- The installed Pitlord rejects the documented `pitlord docs` command as unknown. A previous Arcana refresh was aborted near 9 GiB analyzer memory consumption; a fresh resource-intensive scan was deliberately not repeated. Fresh-graph and documentation-ownership enforcement remain unverified.
+- The six-file CVAFRS07 canonical corpus gate remains a separate product-level acceptance constraint.
+
+The retained Graph evidence change and concurrent Chronos work were not included in Switchboard's documentation/policy closure.
+
 ## Related docs
 
 - [Model and provider runtime](subsystems/model-runtime.md)
@@ -38,4 +54,4 @@ The provider-facing `EmbeddingNormalization` is projected to Vector Store's `Vec
 
 ## Notes
 
-The full documentation-policy scan reports 35 missing-section findings in existing extraction documents and a pre-existing local Chronos specification; the baseline worktree independently reports 32 findings in tracked documents. These are recorded separately from this extraction. The CVAFRS07 six-file gate is not claimed.
+The original documentation-policy scan reported 35 missing-section findings; four originated in the Switchboard spec and are now corrected. The remaining 31 are in other extraction documents. These pre-existing policy findings and the separate CVAFRS07 six-file gate are not Switchboard implementation defects, but still block repository-wide formal acceptance.
