@@ -1,8 +1,7 @@
 use super::*;
-use crate::{
-    CommunityId,
-    freshness::{PropagationEvent, propagate},
-};
+use crate::{PropagationEvent, propagate};
+use reliquary_graph::CommunityId;
+use reliquary_memory_core::MemoryId;
 fn id(n: u8) -> MemoryId {
     MemoryId([n; 32])
 }
@@ -214,7 +213,7 @@ fn historical_validation_does_not_relax_live_principals_or_bridge_exclusions() {
 
 #[test]
 fn historical_semantic_handoff_keeps_one_fragment_and_strongest_duplicate_root() {
-    use crate::freshness::{
+    use crate::{
         historical_planner::SourceKey,
         historical_semantic::HistoricalSemanticEvent,
         semantic_policy::{SemanticEffect, SemanticPolicy},

@@ -10,7 +10,7 @@
 
 Extract the deterministic Freshness service from the product root into a compiled library with a small, coherent public interface. The goal is local changes with local compile/test impact: reinforcement/propagation, semantic scoring and historical calculation belong together and depend **down** on their already-extracted data owners. A Freshness feature must not require modifying Container, Memory Core, Graph, the durable Freshness Store, or unrelated semantic services.
 
-## Overview and diagnosis
+## Overview
 
 The lower `reliquary-freshness-store` is already implemented, owns admitted `FreshnessRecord`/`FreshnessPolicy`, event receipts, journal/replay, semantic/import settlement and rewrite baselines, and has only Container as its internal Reliquary dependency. **Do not extract it again or move its persisted logic upward.**
 

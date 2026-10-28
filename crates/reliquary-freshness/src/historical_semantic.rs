@@ -1,11 +1,11 @@
 //! Historical semantic production over an owner-verified H1 cut.
 //! Identity is independent of positions, evidence, policy values and awards.
-use crate::MemoryId;
-use crate::freshness::historical_planner::{HistoricalTimeline, MemoryAvailability, SourceKey};
-use crate::freshness::semantic_policy::{
+use crate::historical_planner::{HistoricalTimeline, MemoryAvailability, SourceKey};
+use crate::semantic_policy::{
     SemanticCandidate, SemanticEffect, SemanticPolicy, SemanticPolicyError, SemanticVectorProfile,
     cosine_similarity, plan_local_effects, validate_profile_compatibility,
 };
+use reliquary_memory_core::MemoryId;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 

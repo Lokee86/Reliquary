@@ -1,5 +1,5 @@
 //! Cva adapters for the bounded, rebuildable Freshness due dispatcher.
-use crate::freshness_due::{FreshnessDue, FreshnessReversal};
+use crate::freshness::{FreshnessDue, FreshnessReversal};
 use crate::{Cva, CvaError, MemoryId};
 use std::collections::{BTreeSet, VecDeque};
 

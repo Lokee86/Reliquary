@@ -107,6 +107,22 @@ recovery and authoritative six-file corpus gate remain unverified; see the
 [extraction specification](../freshness-store-crate-extraction-spec-2026-10-26.md)
 and [implementation evidence](../freshness-store-crate-extraction-evidence-2026-10-26.md).
 
+### Service ownership
+
+The deterministic service cutover is integrated. Propagation, F8 semantic
+policy, historical planning/propagation/scoring/Dream/semantic calculations,
+the boundary index and volatile due dispatcher live in
+`crates/reliquary-freshness/`. The root Cva adapter connects due refreshes to
+accepted REL activity. The service owns pure calculations and the rebuildable
+due index/dispatcher, depending downward on Freshness Store, Memory Core, and
+Graph. Store remains the sole authority for records, policies, receipts,
+replay and durable settlement. Root runtime and facade code continue to
+authorize owner cuts, collect snapshots, perform I/O, coordinate acceptance
+and publish results. `freshness_trace` and the Dream journal adapter remain
+root-owned. Final verification gates remain pending; see the
+[service extraction specification](../freshness-service-crate-extraction-spec-2026-10-28.md)
+and [F1 baseline capture](../freshness-service-crate-extraction-baseline-2026-10-28.md).
+
 Freshness does not:
 
 - mutate Memory bodies or Dream lifecycle;
@@ -121,13 +137,14 @@ PHY does not inherit the REL activity clock. Any PHY Freshness policy requires a
 
 ## Performance
 
-The retained implementation uses bounded grouped propagation, conservative batch scheduling, bounded receipt residency/history structures, and measured hot-path optimizations. Performance work did not introduce a graph cache or change v1 relevance semantics where measurements did not justify it. The extraction currently omits the lower-store trace rows `freshness.payload.shape` and `freshness.history.scan`; root-stage traces remain available, but those two lower-stage measurements are not emitted by the new crate.
+The retained implementation uses bounded grouped propagation, conservative batch scheduling, bounded receipt residency/history structures, and measured hot-path optimizations. Performance work did not introduce a graph cache or change v1 relevance semantics where measurements did not justify it. The Freshness Store extraction omits the lower-store trace rows `freshness.payload.shape` and `freshness.history.scan`; root-stage traces remain available. The service source cutover is integrated; final verification remains pending.
 
 ## Code Map
 
-- `src/freshness/**`
+- `src/freshness/**` (root-owned Dream journal codecs/digest and trace code)
+- `crates/reliquary-freshness/src/` (service algorithms, score/index and due dispatcher)
 - `crates/reliquary-freshness-store/src/`
-- `src/freshness_due.rs`
+- `src/facade/cva_freshness_due.rs` (root activity/owner adapter)
 - `src/freshness_dream_journal.rs`
 - `src/runtime_inference/freshness_access.rs`
 - `src/facade/*freshness*`

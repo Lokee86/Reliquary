@@ -1,7 +1,7 @@
 //! Sparse chronological scoring for the import-only historical projection.
 use super::FreshnessPolicy;
 use super::score::{FreshnessError, FreshnessRecord};
-use crate::MemoryId;
+use reliquary_memory_core::MemoryId;
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Debug, Eq, PartialEq)]

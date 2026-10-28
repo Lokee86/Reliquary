@@ -1,5 +1,5 @@
 use super::*;
-use crate::freshness::FreshnessRecord;
+use reliquary_freshness_store::FreshnessRecord;
 
 fn id(n: u8) -> MemoryId {
     MemoryId([n; 32])

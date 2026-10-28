@@ -1,6 +1,7 @@
 //! Pure REL-local historical first-cycle Dream event production.
 use super::historical_propagation::{HistoricalPropagationEvent, HistoricalPropagationKind};
-use crate::{GraphRelationKind, GraphRelationOrigin, MemoryId};
+use reliquary_graph::{GraphRelationKind, GraphRelationOrigin};
+use reliquary_memory_core::MemoryId;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 

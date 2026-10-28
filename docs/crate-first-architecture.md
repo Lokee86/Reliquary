@@ -21,7 +21,7 @@ The original October 21 phase execution ledger is archived in the Step 1 Git bun
 | `reliquary-echo` | Ordered source-scoped computational/tool evidence; receiver acknowledgments |
 | `reliquary-graph` | Memory associations, semantic topology and Communities |
 | `reliquary-perception` | Entity/mention semantics and resolution/admission |
-| `reliquary-freshness` | Triggered reinforcement, propagation and decay over a separate Freshness Store |
+| `reliquary-freshness` | Deterministic reinforcement, propagation, historical scoring and derived due scheduling; consumes Freshness Store, Memory Core and Graph |
 | `reliquary-insomnia` | Memory extraction and processing over an independent durable work store |
 | `reliquary-dream` | Association, duplicate and Community synthesis; Dream journal is lower-owned |
 | `reliquary-chronos` | Temporal reasoning |
@@ -54,6 +54,16 @@ The final physical target separates all necessary rank-2 stores from their highe
 | `reliquary-maintenance-store` | Maintenance manifests and proof evidence readable without mutation policy |
 | `reliquary-external-index-store` | Host-derived index state without Gateway authority |
 | `reliquary-owner-lifecycle` | Validated REL/PHY aggregate opening and replay using lower stores only |
+
+The `reliquary-freshness` source cutover is integrated: propagation, semantic
+policy, historical calculations, scoring/indexing and due dispatch are in the
+service crate. The root Cva adapter connects due refreshes to accepted REL
+activity. The service owns pure evaluation and rebuildable due scheduling; it
+does not own durable records, event receipts or replay, which remain in
+`reliquary-freshness-store`. Root facades/runtime continue cross-owner
+authorization, I/O and acceptance orchestration. Final verification gates
+remain pending. See the [service extraction
+specification](freshness-service-crate-extraction-spec-2026-10-28.md).
 
 This yields **30 libraries plus the existing `reliquary-memory` product package**. The root retains the semantic owners and consumes the extracted Container through a Cargo dependency. To avoid colliding with its Cargo name, the new Memory domain is `reliquary-memory-core`.
 

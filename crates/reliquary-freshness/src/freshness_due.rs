@@ -6,10 +6,10 @@
 //! the caller settles the durable record at that boundary and refreshes it there
 //! to enqueue a later crossing, even when several boundaries were missed offline.
 
-use crate::MemoryId;
-use crate::freshness::{
+use crate::{
     FreshnessBoundaryIndex, FreshnessError, FreshnessPolicy, FreshnessRecord, FreshnessState,
 };
+use reliquary_memory_core::MemoryId;
 
 /// One lifecycle boundary removed from the due index for durable settlement.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -45,7 +45,7 @@ pub struct FreshnessDueDispatcher {
 }
 
 impl FreshnessDueDispatcher {
-    pub(crate) fn configure_initial_decay_carries(
+    pub fn configure_initial_decay_carries(
         &mut self,
         carries: impl IntoIterator<Item = (MemoryId, u64)>,
     ) -> Result<(), FreshnessError> {
@@ -80,7 +80,7 @@ impl FreshnessDueDispatcher {
         at: u64,
     ) -> Result<Option<u64>, FreshnessError> {
         let carry = self.carry_for(id, record);
-        crate::freshness::next_state_boundary_with_policy(
+        crate::next_state_boundary_with_policy(
             record,
             at.checked_add(carry)
                 .ok_or(FreshnessError::ArithmeticOverflow)?,
@@ -101,7 +101,7 @@ impl FreshnessDueDispatcher {
     ) -> Result<FreshnessState, FreshnessError> {
         let mut record = *record;
         let carry = self.carry_for(id, &record);
-        crate::freshness::settle_with_initial_decay_carry(&mut record, at, carry, &self.policy)?;
+        crate::settle_with_initial_decay_carry(&mut record, at, carry, &self.policy)?;
         record.state_at_with_policy(at, &self.policy)
     }
     /// Rebuilds all scheduled boundaries from the owner's current durable records.
@@ -209,7 +209,7 @@ impl FreshnessDueDispatcher {
     /// Re-queues a due boundary unchanged when the notification buffer is full.
     /// Captures this affected Memory's exact missed crossings and advances only its
     /// derived snapshot. The score owner remains unchanged.
-    pub(crate) fn take_due_for(
+    pub fn take_due_for(
         &mut self,
         memory: MemoryId,
         through_turn: u64,
@@ -242,7 +242,7 @@ impl FreshnessDueDispatcher {
         Ok(result)
     }
 
-    pub(crate) fn defer(&mut self, due: FreshnessDue) -> Result<(), FreshnessError> {
+    pub fn defer(&mut self, due: FreshnessDue) -> Result<(), FreshnessError> {
         let record = *self
             .records
             .get(&due.memory)
@@ -254,7 +254,7 @@ impl FreshnessDueDispatcher {
 
     /// Advances the dispatcher's derived snapshot exactly to the boundary just emitted.
     /// Durable score records remain owned by FreshnessStore and are never changed here.
-    pub(crate) fn advance(&mut self, due: FreshnessDue) -> Result<Option<u64>, FreshnessError> {
+    pub fn advance(&mut self, due: FreshnessDue) -> Result<Option<u64>, FreshnessError> {
         let carry = self
             .records
             .get(&due.memory)
@@ -264,12 +264,7 @@ impl FreshnessDueDispatcher {
             .records
             .get_mut(&due.memory)
             .ok_or(FreshnessError::InvalidScore)?;
-        crate::freshness::settle_with_initial_decay_carry(
-            record,
-            due.boundary_turn,
-            carry,
-            &self.policy,
-        )?;
+        crate::settle_with_initial_decay_carry(record, due.boundary_turn, carry, &self.policy)?;
         self.index
             .insert_with_policy(due.memory, record, due.boundary_turn, &self.policy)
     }

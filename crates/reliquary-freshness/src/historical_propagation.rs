@@ -6,7 +6,7 @@ use super::semantic_policy::{SEMANTIC_BONUS_CAP, SEMANTIC_CANDIDATE_LIMIT};
 use super::{
     CommunityMembership, FreshnessPolicy, MemoryAdjacency, PropagationError, PropagationOutcome,
 };
-use crate::MemoryId;
+use reliquary_memory_core::MemoryId;
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

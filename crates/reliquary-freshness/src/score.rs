@@ -1,7 +1,5 @@
-use super::policy::FreshnessPolicy;
-pub use reliquary_freshness_store::{
-    FreshnessError, FreshnessRecord, FreshnessState, settle_with_initial_decay_carry,
-};
+use reliquary_freshness_store::FreshnessPolicy;
+pub use reliquary_freshness_store::{FreshnessError, FreshnessRecord, FreshnessState};
 use reliquary_freshness_store::{state_for, validate_policy};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -52,12 +50,16 @@ pub fn next_state_boundary_with_policy(
 /// Rebuildable sparse index of each admitted Memory's next Freshness state boundary.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct FreshnessBoundaryIndex {
-    due: BTreeMap<u64, BTreeSet<crate::MemoryId>>,
-    by_memory: BTreeMap<crate::MemoryId, u64>,
+    due: BTreeMap<u64, BTreeSet<reliquary_memory_core::MemoryId>>,
+    by_memory: BTreeMap<reliquary_memory_core::MemoryId, u64>,
 }
 
 impl FreshnessBoundaryIndex {
-    pub(crate) fn replace_boundary(&mut self, memory: crate::MemoryId, boundary: Option<u64>) {
+    pub(crate) fn replace_boundary(
+        &mut self,
+        memory: reliquary_memory_core::MemoryId,
+        boundary: Option<u64>,
+    ) {
         self.remove(memory);
         if let Some(turn) = boundary {
             self.due.entry(turn).or_default().insert(memory);
@@ -66,7 +68,7 @@ impl FreshnessBoundaryIndex {
     }
     pub fn insert(
         &mut self,
-        memory: crate::MemoryId,
+        memory: reliquary_memory_core::MemoryId,
         record: &FreshnessRecord,
         as_of_turn: u64,
     ) -> Result<Option<u64>, FreshnessError> {
@@ -75,7 +77,7 @@ impl FreshnessBoundaryIndex {
 
     pub fn insert_with_policy(
         &mut self,
-        memory: crate::MemoryId,
+        memory: reliquary_memory_core::MemoryId,
         record: &FreshnessRecord,
         as_of_turn: u64,
         policy: &FreshnessPolicy,
@@ -90,7 +92,7 @@ impl FreshnessBoundaryIndex {
         Ok(Some(turn))
     }
 
-    pub fn remove(&mut self, memory: crate::MemoryId) -> bool {
+    pub fn remove(&mut self, memory: reliquary_memory_core::MemoryId) -> bool {
         let Some(turn) = self.by_memory.remove(&memory) else {
             return false;
         };
@@ -105,7 +107,11 @@ impl FreshnessBoundaryIndex {
 
     /// Drains at most `limit` crossed boundaries in stable turn and Memory-ID order.
     /// Remaining due entries stay indexed for a later bounded pass.
-    pub fn drain_through_limit(&mut self, turn: u64, limit: usize) -> Vec<(u64, crate::MemoryId)> {
+    pub fn drain_through_limit(
+        &mut self,
+        turn: u64,
+        limit: usize,
+    ) -> Vec<(u64, reliquary_memory_core::MemoryId)> {
         let due: Vec<_> = self
             .due
             .range(..=turn)
@@ -118,7 +124,7 @@ impl FreshnessBoundaryIndex {
         due
     }
 
-    pub fn drain_through(&mut self, turn: u64) -> Vec<(u64, crate::MemoryId)> {
+    pub fn drain_through(&mut self, turn: u64) -> Vec<(u64, reliquary_memory_core::MemoryId)> {
         self.drain_through_limit(turn, usize::MAX)
     }
 
@@ -176,15 +182,15 @@ mod tests {
 
     #[test]
     fn boundary_index_is_sparse_deterministic_and_rebuildable() {
-        let a = crate::MemoryId([2; 32]);
-        let b = crate::MemoryId([1; 32]);
+        let a = reliquary_memory_core::MemoryId([2; 32]);
+        let b = reliquary_memory_core::MemoryId([1; 32]);
         let record = admitted(4);
         let mut index = FreshnessBoundaryIndex::default();
         assert_eq!(index.insert(a, &record, 4).unwrap(), Some(1004));
         assert_eq!(index.insert(b, &record, 4).unwrap(), Some(1004));
         assert_eq!(
             index.drain_through(1003),
-            Vec::<(u64, crate::MemoryId)>::new()
+            Vec::<(u64, reliquary_memory_core::MemoryId)>::new()
         );
         assert_eq!(index.drain_through_limit(1004, 1), vec![(1004, b)]);
         assert_eq!(index.drain_through(1004), vec![(1004, a)]);
@@ -194,7 +200,7 @@ mod tests {
     #[test]
     fn boundary_backlog_survives_rebuild_and_advances_one_state_at_a_time() {
         let mut record = admitted(0);
-        let id = crate::MemoryId([3; 32]);
+        let id = reliquary_memory_core::MemoryId([3; 32]);
         let mut index = FreshnessBoundaryIndex::default();
         assert_eq!(index.insert(id, &record, 1_510).unwrap(), Some(1_000));
         assert_eq!(index.drain_through(1_510), vec![(1_000, id)]);

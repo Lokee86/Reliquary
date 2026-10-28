@@ -1,5 +1,5 @@
 use super::*;
-use crate::freshness::historical_planner::HistoricalSource;
+use crate::historical_planner::HistoricalSource;
 fn key(c: &str, n: &str) -> SourceKey {
     SourceKey {
         conversation_id: c.into(),

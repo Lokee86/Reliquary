@@ -26,8 +26,7 @@ mod cva_semantic_live;
 #[path = "facade/cva_semantic_source.rs"]
 mod cva_semantic_source;
 pub use cva_semantic_live::SemanticFreshnessReport;
-#[path = "freshness/mod.rs"]
-pub mod freshness;
+pub use reliquary_freshness as freshness;
 #[path = "rewrite.rs"]
 pub mod rewrite;
 pub use rewrite::{RewriteError, RewritePlan, RewriteReport, RewriteRequest};
@@ -97,11 +96,7 @@ pub use freshness::{
     CommunityMembership, FreshnessBoundaryIndex, FreshnessError, FreshnessRecord, FreshnessState,
     MemoryAdjacency, PropagationError, PropagationEvent, propagate,
 };
-#[path = "freshness_due.rs"]
-mod freshness_due;
-pub use freshness_due::{
-    FreshnessDue, FreshnessDueDispatcher, FreshnessRefresh, FreshnessReversal,
-};
+pub use freshness::{FreshnessDue, FreshnessDueDispatcher, FreshnessRefresh, FreshnessReversal};
 #[path = "freshness/dream_begin_codec.rs"]
 mod dream_begin_codec;
 #[path = "freshness/dream_population_digest.rs"]

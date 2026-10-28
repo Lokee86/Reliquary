@@ -10,7 +10,7 @@ use std::fmt;
 
 use sha2::{Digest, Sha256};
 
-use crate::MemoryId;
+use reliquary_memory_core::MemoryId;
 
 pub use reliquary_freshness_store::{SEMANTIC_BONUS_CAP, SEMANTIC_POLICY_VERSION};
 pub const SEMANTIC_NUMERICAL_REVISION: u16 = 1;

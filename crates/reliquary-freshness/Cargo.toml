@@ -6,3 +6,9 @@ publish = false
 
 [lib]
 path = "src/lib.rs"
+
+[dependencies]
+reliquary-freshness-store = { path = "../reliquary-freshness-store" }
+reliquary-memory-core = { path = "../reliquary-memory-core" }
+reliquary-graph = { path = "../reliquary-graph" }
+sha2 = "0.10"

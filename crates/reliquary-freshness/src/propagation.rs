@@ -2,9 +2,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::thread;
 
-use crate::{CommunityId, MemoryId};
+use reliquary_graph::CommunityId;
+use reliquary_memory_core::MemoryId;
 
-use super::policy::{FreshnessPolicy, FreshnessPolicyError};
+use reliquary_freshness_store::{FreshnessPolicy, FreshnessPolicyError};
 
 pub type MemoryAdjacency = BTreeMap<MemoryId, BTreeSet<MemoryId>>;
 pub type CommunityMembership = BTreeMap<MemoryId, CommunityId>;
@@ -207,7 +208,7 @@ pub fn propagate_events_with_policy(
 
 /// Crate-private production path for consumers that need only candidate scores.
 /// Public batch APIs continue returning fully populated statistics.
-pub(crate) fn propagate_event_candidates_with_policy(
+pub fn propagate_event_candidates_with_policy(
     events: &[PropagationEvent],
     adjacency: &MemoryAdjacency,
     memberships: &CommunityMembership,

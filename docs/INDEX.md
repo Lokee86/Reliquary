@@ -235,6 +235,8 @@
 - [freshness-semantic-historical-baseline-2026-10-11.md](freshness-semantic-historical-baseline-2026-10-11.md) - Freshness Semantic Historical Baseline 2026 10 11 documentation.
 - [freshness-semantic-policy-module-2026-10-11.md](freshness-semantic-policy-module-2026-10-11.md) - Freshness Semantic Policy Module 2026 10 11 documentation.
 - [freshness-semantic-release-verification-2026-10-12.md](freshness-semantic-release-verification-2026-10-12.md) - Freshness Semantic Release Verification 2026 10 12 documentation.
+- [freshness-service-crate-extraction-baseline-2026-10-28.md](freshness-service-crate-extraction-baseline-2026-10-28.md) - Freshness Service Crate Extraction Baseline 2026 10 28 documentation.
+- [freshness-service-crate-extraction-evidence-2026-10-28.md](freshness-service-crate-extraction-evidence-2026-10-28.md) - Freshness Service Crate Extraction Evidence 2026 10 28 documentation.
 - [freshness-service-crate-extraction-spec-2026-10-28.md](freshness-service-crate-extraction-spec-2026-10-28.md) - Freshness Service Crate Extraction Spec 2026 10 28 documentation.
 - [freshness-store-crate-extraction-evidence-2026-10-26.md](freshness-store-crate-extraction-evidence-2026-10-26.md) - Freshness Store Crate Extraction Evidence 2026 10 26 documentation.
 - [freshness-store-crate-extraction-spec-2026-10-26.md](freshness-store-crate-extraction-spec-2026-10-26.md) - Freshness Store Crate Extraction Spec 2026 10 26 documentation.
