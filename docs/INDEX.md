@@ -25,6 +25,7 @@
 - [Chronos explicit-definition correction specification](chronos-explicit-definition-resolution-spec-2026-10-27.md) — source-span-grounded deterministic clarification, model exclusion and replay acceptance.
 - [Switchboard extraction evidence](switchboard-crate-extraction-evidence-2026-10-27.md) - ownership and verification results.
 - [Switchboard crate extraction specification](switchboard-crate-extraction-spec-2026-10-27.md) — target ownership and dependency gates; current boundaries are described in [Model and provider runtime](subsystems/model-runtime.md), with verification tracked separately.
+- [Freshness service crate extraction specification](freshness-service-crate-extraction-spec-2026-10-28.md) — deterministic service ownership, pure historical/F8 evaluation, due scheduling and staged root hard cut.
 - [Owner Lifecycle extraction specification](owner-lifecycle-crate-extraction-spec-2026-10-27.md) — compiled owner reopen and structural replay coordination.
 - [Compact interaction stream contract](interaction-stream-compact-contract-2026-10-21.md) — frozen checkpoint transitions and exact suffix representation.
 - [Compact publication envelope contract](publication-envelope-contract-2026-10-20.md) — planned physical allocation/reserved-binding format and owner migration gates.
@@ -233,6 +234,7 @@
 - [freshness-semantic-historical-baseline-2026-10-11.md](freshness-semantic-historical-baseline-2026-10-11.md) - Freshness Semantic Historical Baseline 2026 10 11 documentation.
 - [freshness-semantic-policy-module-2026-10-11.md](freshness-semantic-policy-module-2026-10-11.md) - Freshness Semantic Policy Module 2026 10 11 documentation.
 - [freshness-semantic-release-verification-2026-10-12.md](freshness-semantic-release-verification-2026-10-12.md) - Freshness Semantic Release Verification 2026 10 12 documentation.
+- [freshness-service-crate-extraction-spec-2026-10-28.md](freshness-service-crate-extraction-spec-2026-10-28.md) - Freshness Service Crate Extraction Spec 2026 10 28 documentation.
 - [freshness-store-crate-extraction-evidence-2026-10-26.md](freshness-store-crate-extraction-evidence-2026-10-26.md) - Freshness Store Crate Extraction Evidence 2026 10 26 documentation.
 - [freshness-store-crate-extraction-spec-2026-10-26.md](freshness-store-crate-extraction-spec-2026-10-26.md) - Freshness Store Crate Extraction Spec 2026 10 26 documentation.
 - [graph-crate-extraction-evidence-2026-10-26.md](graph-crate-extraction-evidence-2026-10-26.md) - Graph Crate Extraction Evidence 2026 10 26 documentation.
