@@ -30,15 +30,18 @@ pub fn assess_choices(text: &str, reference_timestamp_ns: Option<i64>) -> Tempor
     if indications.len() <= 32 {
         for (index, indication) in indications.iter().enumerate() {
             if indication.kind != TemporalIndicationKind::Recurrence
-                || !indication.evidence.eq_ignore_ascii_case("biweekly")
                 || text.get(indication.start_byte..indication.end_byte)
                     != Some(indication.evidence.as_str())
             {
                 continue;
             }
+            let alternatives = match indication.evidence.to_ascii_lowercase().as_str() {
+                "biweekly" => ["every two weeks", "twice weekly"],
+                "bimonthly" => ["every two months", "twice monthly"],
+                _ => continue,
+            };
             let mut candidates = Vec::new();
-            for (alternative, expression) in ["every two weeks", "twice weekly"].iter().enumerate()
-            {
+            for (alternative, expression) in alternatives.iter().enumerate() {
                 if let Ok(mut analysis) =
                     crate::chronos_inference_verify::verify_canonical_expression(
                         expression,
@@ -214,6 +217,36 @@ mod tests {
         );
         assert_eq!(
             choices.assessment.analysis.patterns[0].occurrences_per_period,
+            2
+        );
+    }
+    #[test]
+    fn bimonthly_has_distinct_verified_alternatives() {
+        let choices = assess_choices("Review bimonthly.", None);
+        let set = &choices.sets[0];
+        assert_eq!(set.candidates.len(), 2);
+        assert_eq!(set.candidates[0].analysis.patterns[0].interval, 2);
+        assert_eq!(
+            set.candidates[1].analysis.patterns[0].occurrences_per_period,
+            2
+        );
+        assert_eq!(set.candidates[1].analysis.patterns[0].month_day, None);
+        assert!(
+            crate::chronos::temporal_matches(
+                &set.candidates[0].analysis,
+                &set.candidates[1].analysis
+            )
+            .0
+            .is_empty()
+        );
+        let exact = assess_choices("Review semimonthly.", None);
+        assert!(exact.sets.is_empty());
+        assert_eq!(
+            exact.assessment.resolution.status,
+            crate::TemporalResolutionStatus::FullyResolved
+        );
+        assert_eq!(
+            exact.assessment.analysis.patterns[0].occurrences_per_period,
             2
         );
     }

@@ -45,7 +45,7 @@ Ambiguous locale-dependent forms remain unresolved rather than inheriting machin
 
 ## Candidate selection
 
-The lower `reliquary-chronos` crate enumerates supported alternatives for unresolved indications. Currently `biweekly` offers every two weeks and twice weekly, represented by distinct derived occurrence counts without inventing weekdays. Unsupported expressions remain unresolved. A shared decision endpoint receives the original text, reference time, resolved evidence and locally enumerated choices. It may select an ID or abstain; Chronos reparses and revalidates every selection. Invalid, missing, extra or unknown answers fail closed.
+The lower `reliquary-chronos` crate enumerates supported alternatives for unresolved indications. `biweekly` offers every two weeks and twice weekly; `bimonthly` offers every two months and twice monthly. Distinct derived occurrence counts avoid inventing weekdays or month days. Unsupported expressions remain unresolved. A shared decision endpoint receives the original text, reference time, resolved evidence and locally enumerated choices. It may select an ID or abstain; Chronos reparses and revalidates every selection. Invalid, missing, extra or unknown answers fail closed.
 
 Configured selection uses `models.general_decision`, then `models.general` through the constrained decision adapter. If neither exists, no decision is made. The former dedicated `models.chronos` route is rejected. Candidate sets and model responses are not stored.
 

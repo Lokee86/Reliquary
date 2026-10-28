@@ -9,6 +9,8 @@ static CADENCE_RE: LazyLock<Regex> = LazyLock::new(|| {
 });
 static TWICE_WEEKLY_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?i)\b(?:twice\s+weekly|semiweekly)\b").unwrap());
+static TWICE_MONTHLY_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)\b(?:twice\s+monthly|semimonthly)\b").unwrap());
 static YEARLY_DATE_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?i)\b(?:every year on|annually on|yearly on)\s+(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?\b")
         .unwrap()
@@ -21,6 +23,18 @@ static MONTHLY_DAY_RE: LazyLock<Regex> = LazyLock::new(|| {
 pub(crate) fn extract_recurrence(text: &str) -> Vec<TemporalPattern> {
     let mut result = Vec::new();
     let mut claimed_spans = Vec::new();
+    for found in TWICE_MONTHLY_RE.find_iter(text) {
+        let mut value = pattern(found.as_str(), TemporalFrequency::Monthly, None);
+        value.occurrences_per_period = 2;
+        result.push(value);
+        push_claimed(
+            &mut claimed_spans,
+            TextSpan {
+                start: found.start(),
+                end: found.end(),
+            },
+        );
+    }
     for found in TWICE_WEEKLY_RE.find_iter(text) {
         let mut value = pattern(found.as_str(), TemporalFrequency::Weekly, None);
         value.occurrences_per_period = 2;
