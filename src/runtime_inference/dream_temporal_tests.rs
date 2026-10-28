@@ -144,6 +144,34 @@ fn recurrence_parser_preserves_weekday_and_interval_identity() {
 }
 
 #[test]
+fn dream_analysis_uses_explicit_recurrence_definition_from_shared_parser() {
+    let source_time = timestamp_ns(2026, Month::August, 24, 12);
+    let mut cva = Cva::create(test_path("dream-explicit-recurrence-definition.cva")).unwrap();
+    let id = memory(
+        &mut cva,
+        "explicit-recurrence-definition",
+        "Temporal test",
+        "Review biweekly, meaning every two weeks.",
+        source_time,
+        false,
+    );
+
+    let dream = cva.dream_temporal_analysis(id).unwrap();
+    let deterministic = parse_temporal(
+        "Temporal test\nReview biweekly, meaning every two weeks.",
+        Some(source_time),
+    );
+    assert_eq!(dream, deterministic);
+    assert!(dream.patterns.iter().any(|pattern| {
+        pattern.frequency == DreamTemporalFrequency::Weekly
+            && pattern.interval == 2
+            && pattern.occurrences_per_period == 1
+            && pattern.weekday.is_none()
+            && pattern.month_day.is_none()
+    }));
+}
+
+#[test]
 fn temporal_lane_recovers_unembedded_candidate_from_relative_and_explicit_dates() {
     let source_time = timestamp_ns(2026, Month::August, 24, 12);
     let mut cva = Cva::create(test_path("temporal-candidate.cva")).unwrap();

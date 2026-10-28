@@ -35,6 +35,15 @@ pub fn assess_choices(text: &str, reference_timestamp_ns: Option<i64>) -> Tempor
             {
                 continue;
             }
+            match crate::chronos_resolution::explicit_definition_outcome(
+                text,
+                indication,
+                reference_timestamp_ns,
+            ) {
+                crate::chronos_resolution::ExplicitDefinitionOutcome::Proven { .. }
+                | crate::chronos_resolution::ExplicitDefinitionOutcome::Blocked => continue,
+                crate::chronos_resolution::ExplicitDefinitionOutcome::None => {}
+            }
             let alternatives = match indication.evidence.to_ascii_lowercase().as_str() {
                 "biweekly" => ["every two weeks", "twice weekly"],
                 "bimonthly" => ["every two months", "twice monthly"],
@@ -220,6 +229,151 @@ mod tests {
             2
         );
     }
+
+    #[test]
+    fn explicit_definition_resolves_and_is_not_offered_as_a_choice() {
+        for (text, occurrences, interval) in [
+            ("Review biweekly, meaning every two weeks.", 1, 2),
+            ("Review biweekly (twice weekly).", 2, 1),
+            ("Review bimonthly, i.e. twice monthly.", 2, 1),
+            ("Review bimonthly, meaning every two months.", 1, 2),
+        ] {
+            let choices = assess_choices(text, None);
+            assert!(choices.sets.is_empty(), "{text}");
+            assert_eq!(
+                choices.assessment.resolution.status,
+                crate::TemporalResolutionStatus::FullyResolved,
+                "{text}"
+            );
+            let pattern = choices
+                .assessment
+                .analysis
+                .patterns
+                .iter()
+                .find(|pattern| {
+                    pattern.occurrences_per_period == occurrences && pattern.interval == interval
+                })
+                .unwrap_or_else(|| panic!("expected bound recurrence for {text}"));
+            assert!(!pattern.evidence.is_empty());
+        }
+    }
+
+    #[test]
+    fn blocked_explicit_definitions_do_not_offer_freely_selectable_choices() {
+        for text in [
+            "Review biweekly, meaning every two weeks, meaning twice weekly.",
+            "Review biweekly, not every two weeks.",
+            "Review biweekly, maybe every two weeks.",
+        ] {
+            let choices = assess_choices(text, None);
+            assert!(choices.sets.is_empty(), "{text}");
+            assert_eq!(
+                choices.assessment.resolution.status,
+                crate::TemporalResolutionStatus::Unresolved,
+                "{text}"
+            );
+        }
+    }
+
+    #[test]
+    fn competing_parenthetical_definitions_are_blocked() {
+        for text in [
+            "Review biweekly (twice weekly) or every two weeks.",
+            "Review biweekly (twice weekly), or every two weeks.",
+            "Review biweekly (twice weekly) and every two weeks.",
+            "Review biweekly (twice weekly), not every two weeks.",
+            "Review biweekly (twice weekly), maybe every two weeks.",
+            "Review biweekly (twice weekly), possibly every two weeks.",
+            "Review biweekly (twice weekly), but not twice weekly.",
+            "Review biweekly (twice weekly) (every two weeks).",
+        ] {
+            let choices = assess_choices(text, None);
+            assert!(choices.sets.is_empty(), "{text}");
+            assert_eq!(
+                choices.assessment.resolution.status,
+                crate::TemporalResolutionStatus::Unresolved,
+                "{text}"
+            );
+        }
+    }
+
+    #[test]
+    fn independent_recurrence_does_not_resolve_ambiguous_term() {
+        let choices = assess_choices("Review biweekly. Audit every two weeks.", None);
+        assert_eq!(choices.sets.len(), 1);
+        assert_eq!(choices.sets[0].candidates.len(), 2);
+    }
+
+    #[test]
+    fn exact_definition_spans_handle_case_utf8_and_repeated_terms() {
+        let text = "é REVIEW BIWEEKLY, meaning every two weeks; review biweekly.";
+        let choices = assess_choices(text, None);
+        assert_eq!(choices.sets.len(), 1);
+        assert_eq!(choices.sets[0].indication.evidence, "biweekly");
+        assert_eq!(
+            text.get(choices.sets[0].indication.start_byte..choices.sets[0].indication.end_byte),
+            Some("biweekly")
+        );
+    }
+
+    #[test]
+    fn mixed_and_newline_separated_material_only_resolves_bound_definition() {
+        let mixed = assess_choices("Review biweekly (every two weeks); audit bimonthly.", None);
+        assert_eq!(mixed.sets.len(), 1);
+        assert_eq!(mixed.sets[0].indication.evidence, "bimonthly");
+
+        let newline = assess_choices("Review biweekly, meaning\nevery two weeks.", None);
+        assert_eq!(newline.sets.len(), 1);
+        assert_eq!(newline.sets[0].candidates.len(), 2);
+    }
+
+    #[test]
+    fn malformed_parentheses_and_preceding_hedges_are_blocked() {
+        for text in [
+            "Review biweekly (every two weeks.",
+            "Maybe biweekly, meaning every two weeks.",
+            "If biweekly, meaning every two weeks.",
+        ] {
+            let choices = assess_choices(text, None);
+            assert!(choices.sets.is_empty(), "{text}");
+            assert_eq!(
+                choices.assessment.resolution.status,
+                crate::TemporalResolutionStatus::Unresolved,
+                "{text}"
+            );
+        }
+    }
+
+    #[test]
+    fn punctuation_only_neighbor_is_not_a_definition() {
+        let choices = assess_choices("Review biweekly; every two weeks.", None);
+        assert_eq!(choices.sets.len(), 1);
+        assert_eq!(choices.sets[0].candidates.len(), 2);
+    }
+
+    #[test]
+    fn repeated_identical_definitions_survive_semantic_dedup_without_choices() {
+        let text = "biweekly, meaning every two weeks; biweekly, meaning every two weeks.";
+        let choices = assess_choices(text, None);
+        assert!(choices.sets.is_empty());
+        assert_eq!(
+            choices.assessment.resolution.status,
+            crate::TemporalResolutionStatus::FullyResolved
+        );
+        assert_eq!(choices.assessment.analysis.patterns.len(), 1);
+        assert_eq!(choices.assessment.analysis.patterns[0].interval, 2);
+    }
+
+    #[test]
+    fn unsupported_extra_recurrence_constraints_block_definition_resolution() {
+        let text = "Review biweekly, meaning every two weeks on Monday.";
+        let choices = assess_choices(text, None);
+        assert!(choices.sets.is_empty());
+        assert_eq!(
+            choices.assessment.resolution.status,
+            crate::TemporalResolutionStatus::Unresolved
+        );
+    }
     #[test]
     fn bimonthly_has_distinct_verified_alternatives() {
         let choices = assess_choices("Review bimonthly.", None);
@@ -311,5 +465,20 @@ mod tests {
         let mut forged = inference;
         forged.resolutions[0].start_byte += 1;
         assert!(crate::chronos::analyze_with_inference(text, None, &forged).is_err());
+    }
+
+    #[test]
+    fn selection_cannot_answer_a_deterministically_resolved_indication() {
+        use serde_json::json;
+        let text = "Review biweekly, meaning every two weeks.";
+        assert!(
+            accept_selection(
+                text,
+                None,
+                "model",
+                &json!({"answers":{"u000":{"type":"choice","choice":"u000c00"}}})
+            )
+            .is_err()
+        );
     }
 }

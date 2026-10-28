@@ -43,6 +43,8 @@ Current deterministic support includes absolute calendar expressions, relative d
 
 Ambiguous locale-dependent forms remain unresolved rather than inheriting machine locale. Bounded typo normalization preserves original evidence spans. Calendar month/year arithmetic uses calendar-aware clamping rather than fixed-duration substitution.
 
+For `biweekly` and `bimonthly`, a supported, explicit local definition is bound to the exact source occurrence and resolved through the existing recurrence grammar. Negated, uncertain, conflicting, or incomplete definitions do not establish a deterministic meaning. Unrelated recurrence expressions do not define the ambiguous term. This interpretation is shared by analysis and assessment, including when no decision endpoint is configured.
+
 ## Candidate selection
 
 The lower `reliquary-chronos` crate enumerates supported alternatives for unresolved indications. `biweekly` offers every two weeks and twice weekly; `bimonthly` offers every two months and twice monthly. Distinct derived occurrence counts avoid inventing weekdays or month days. Unsupported expressions remain unresolved. A shared decision endpoint receives the original text, reference time, resolved evidence and locally enumerated choices. It may select an ID or abstain; Chronos reparses and revalidates every selection. Invalid, missing, extra or unknown answers fail closed.
@@ -50,6 +52,7 @@ The lower `reliquary-chronos` crate enumerates supported alternatives for unreso
 Configured selection uses `models.general_decision`, then `models.general` through the constrained decision adapter. If neither exists, no decision is made. The former dedicated `models.chronos` route is rejected. Candidate sets and model responses are not stored.
 
 Deterministic products remain derived. Only a consumer that needs a nondeterministic conclusion may persist it, bound to the exact semantic body and authoritative reference time.
+Persisted inference is rejected when it contradicts an explicit local definition; compatible conclusions remain replayable.
 
 ## Consumers
 

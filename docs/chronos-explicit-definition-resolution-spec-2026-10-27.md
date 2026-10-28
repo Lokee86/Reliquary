@@ -1,10 +1,14 @@
 # Chronos explicit-definition resolution — correction specification
 
-**Status:** Specified, not implemented (2026-10-27).  
+**Status:** Implemented; final integration gates pending (2026-10-28).
 **Target:** `crates/reliquary-chronos` existing temporal core; root consumers stay thin.  
 **Baseline:** `refactor/crate-first-restart`, Chronos commits `69460fe6`, `abc62e99`, `ae2d555a`.  
 **Related:** [Chronos extraction and decision redesign](chronos-crate-extraction-spec-2026-10-27.md).  
 **Delivery:** One bounded correction in the already-extracted crate, not another crate extraction or architectural phase. **Do not mix or stage ongoing Switchboard work or the Graph evidence modification.**
+
+## Overview
+
+This specification defines a bounded correction to Chronos explicit-definition handling for ambiguous recurrence terms. It records the intended behavior, implementation constraints, and acceptance evidence; implementation status and remaining gates are stated above and in Completion evidence.
 
 ## Purpose
 
@@ -77,3 +81,13 @@ Record per fixture: candidate count before/after narrowing, link span evidence, 
 ## Out of scope
 
 Broad natural-language entailment, arbitrary cross-sentence coreference, timezone inference, free-text model interpretation, new temporal variants, chronology/storage changes, new semantic model route, Perception Observations, and unrelated Switchboard extraction work.
+
+## Related docs
+
+- [Chronos subsystem guide](subsystems/chronos.md)
+- [Chronos crate extraction specification](chronos-crate-extraction-spec-2026-10-27.md)
+- [Shared temporal semantics decision](decisions/0035-chronos-shared-temporal-semantics.md)
+
+## Notes
+
+This is a dated correction specification. Its implementation and final integration gates must be reported against the completion evidence above; do not infer completion from the status label alone.

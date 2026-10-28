@@ -98,6 +98,113 @@ fn insomnia_temporal_inference_is_called_only_for_unresolved_prepared_memories()
     assert!(prepared.project_drafts[1].temporal_inference.is_some());
 }
 
+#[test]
+fn insomnia_explicit_recurrence_definition_resolves_without_a_decision_call() {
+    let explicit_draft = draft(
+        "Review biweekly, meaning every two weeks.",
+        Some(timestamp_ns(2026, Month::September, 16)),
+    );
+    let assessment = assess_draft(&explicit_draft);
+    assert_eq!(
+        assessment.resolution.status,
+        TemporalResolutionStatus::FullyResolved
+    );
+    assert!(assessment.resolution.unresolved_indications.is_empty());
+    assert!(assessment.analysis.patterns.iter().any(|pattern| {
+        pattern.frequency == crate::TemporalFrequency::Weekly
+            && pattern.interval == 2
+            && pattern.occurrences_per_period == 1
+            && pattern.weekday.is_none()
+            && pattern.month_day.is_none()
+    }));
+
+    let endpoint = CountingEndpoint::new(json!({"answers": {}}));
+    let mut prepared = PreparedApplication {
+        project_drafts: vec![PreparedMemory {
+            temporal: assessment,
+            draft: explicit_draft,
+            temporal_inference: None,
+            routing_metadata: None,
+        }],
+        user_drafts: Vec::new(),
+        rejected: Vec::new(),
+        model: "extractor".into(),
+    };
+    assert_eq!(infer_prepared(Some(&endpoint), &mut prepared).unwrap(), 0);
+    assert_eq!(endpoint.calls.load(Ordering::SeqCst), 0);
+    assert!(prepared.project_drafts[0].temporal_inference.is_none());
+}
+
+#[test]
+fn insomnia_no_route_assessment_resolves_explicit_recurrence_deterministically() {
+    let explicit_draft = draft(
+        "Review biweekly (every two weeks).",
+        Some(timestamp_ns(2026, Month::September, 16)),
+    );
+    let assessment = assess_draft(&explicit_draft);
+
+    assert_eq!(
+        assessment.resolution.status,
+        TemporalResolutionStatus::FullyResolved
+    );
+    assert!(assessment.resolution.unresolved_indications.is_empty());
+    assert!(assessment.analysis.patterns.iter().any(|pattern| {
+        pattern.frequency == crate::TemporalFrequency::Weekly && pattern.interval == 2
+    }));
+
+    let mut prepared = PreparedApplication {
+        project_drafts: vec![PreparedMemory {
+            temporal: assessment.clone(),
+            draft: explicit_draft,
+            temporal_inference: None,
+            routing_metadata: None,
+        }],
+        user_drafts: Vec::new(),
+        rejected: Vec::new(),
+        model: "extractor".into(),
+    };
+    assert_eq!(infer_prepared(None, &mut prepared).unwrap(), 0);
+    assert_eq!(prepared.project_drafts[0].temporal, assessment);
+    assert!(prepared.project_drafts[0].temporal_inference.is_none());
+}
+
+#[test]
+fn insomnia_mixed_explicit_and_ambiguous_recurrences_only_request_the_ambiguous_one() {
+    let mixed_draft = draft(
+        "Review biweekly (every two weeks); audit bimonthly.",
+        Some(timestamp_ns(2026, Month::September, 16)),
+    );
+    let assessment = assess_draft(&mixed_draft);
+    assert_eq!(
+        assessment.resolution.status,
+        TemporalResolutionStatus::Unresolved
+    );
+    assert_eq!(assessment.resolution.unresolved_indications.len(), 1);
+    assert_eq!(
+        assessment.resolution.unresolved_indications[0].evidence,
+        "bimonthly"
+    );
+
+    let endpoint = CountingEndpoint::new(json!({
+        "answers": {"u000": {"type":"choice", "choice":"u000c00"}}
+    }));
+    let mut prepared = PreparedApplication {
+        project_drafts: vec![PreparedMemory {
+            temporal: assessment,
+            draft: mixed_draft,
+            temporal_inference: None,
+            routing_metadata: None,
+        }],
+        user_drafts: Vec::new(),
+        rejected: Vec::new(),
+        model: "extractor".into(),
+    };
+
+    assert_eq!(infer_prepared(Some(&endpoint), &mut prepared).unwrap(), 1);
+    assert_eq!(endpoint.calls.load(Ordering::SeqCst), 1);
+    assert!(prepared.project_drafts[0].temporal_inference.is_some());
+}
+
 struct CountingEndpoint {
     calls: AtomicUsize,
     response: Value,

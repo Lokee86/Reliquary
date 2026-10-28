@@ -2,17 +2,269 @@ use crate::{
     TemporalAnalysis, TemporalDetection, TemporalIndication, TemporalResolution,
     TemporalResolutionStatus,
 };
+use regex::Regex;
+use std::sync::LazyLock;
+
+/// The result of checking one exact ambiguous source indication for a local definition.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum ExplicitDefinitionOutcome {
+    Proven {
+        canonical_expression: String,
+        phrase_span: (usize, usize),
+    },
+    Blocked,
+    None,
+}
+
+static DEFINITION_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)^(biweekly|bimonthly)\s*(?:,\s*(?:meaning|i\.e\.|that is|not|maybe|perhaps|possibly|might|if|or)\s+|=\s*|\(\s*)([^.;\n()]+)(\))?")
+        .expect("valid explicit definition regex")
+});
+
+/// Resolve a definition only when its matched source term is this indication and the
+/// captured phrase verifies as exactly one of that term's supported meanings.
+pub(crate) fn explicit_definition_outcome(
+    text: &str,
+    indication: &TemporalIndication,
+    reference_timestamp_ns: Option<i64>,
+) -> ExplicitDefinitionOutcome {
+    if indication.kind != crate::TemporalIndicationKind::Recurrence
+        || text.get(indication.start_byte..indication.end_byte)
+            != Some(indication.evidence.as_str())
+        || !matches!(
+            indication.evidence.to_ascii_lowercase().as_str(),
+            "biweekly" | "bimonthly"
+        )
+    {
+        return ExplicitDefinitionOutcome::None;
+    }
+    let alternatives = if indication.evidence.eq_ignore_ascii_case("biweekly") {
+        ["every two weeks", "twice weekly"]
+    } else {
+        ["every two months", "twice monthly"]
+    };
+    let mut local_end = indication.end_byte.saturating_add(512).min(text.len());
+    while !text.is_char_boundary(local_end) {
+        local_end -= 1;
+    }
+    let Some(local) = text.get(indication.start_byte..local_end) else {
+        return ExplicitDefinitionOutcome::None;
+    };
+    let Some(captures) = DEFINITION_RE.captures(local) else {
+        return ExplicitDefinitionOutcome::None;
+    };
+    let term = captures.get(1).unwrap();
+    if term.end() != indication.end_byte - indication.start_byte {
+        return ExplicitDefinitionOutcome::None;
+    }
+    let phrase = captures.get(2).unwrap();
+    let whole = captures.get(0).unwrap();
+    let tail = &local[phrase.end()..whole.end()];
+    let connector = &local[term.end()..phrase.start()];
+    let parenthetical = connector.contains('(');
+    if connector.contains('\n') || connector.contains('\r') {
+        return ExplicitDefinitionOutcome::None;
+    }
+    if parenthetical && !tail.starts_with(')') {
+        return ExplicitDefinitionOutcome::Blocked;
+    }
+    if parenthetical {
+        let remainder = local[whole.end()..].trim_start();
+        let remainder_lower = remainder.to_ascii_lowercase();
+        let continuation = remainder_lower.trim_start_matches(',').trim_start();
+        if remainder.starts_with('(')
+            || remainder_lower.starts_with("or ")
+            || remainder_lower.starts_with(", or ")
+            || remainder_lower.starts_with("and every ")
+            || remainder_lower.starts_with("and twice ")
+            || remainder_lower.starts_with(", and every ")
+            || remainder_lower.starts_with(", and twice ")
+            || remainder_lower.starts_with(", meaning ")
+            || remainder_lower.starts_with(", i.e.")
+            || remainder_lower.starts_with(", that is ")
+            || [
+                "not ",
+                "never ",
+                "maybe ",
+                "perhaps ",
+                "possibly ",
+                "might ",
+                "if ",
+                "but not ",
+            ]
+            .iter()
+            .any(|prefix| continuation.starts_with(prefix))
+        {
+            return ExplicitDefinitionOutcome::Blocked;
+        }
+    }
+    let lower = local[term.end()..phrase.end()].to_ascii_lowercase();
+    let mut prefix_start = indication.start_byte.saturating_sub(128);
+    while !text.is_char_boundary(prefix_start) {
+        prefix_start += 1;
+    }
+    let before_term = &text[prefix_start..indication.start_byte];
+    let clause_prefix = before_term
+        .rsplit(['.', ';', '\n', '\r'])
+        .next()
+        .unwrap_or(before_term)
+        .to_ascii_lowercase();
+    if lower.starts_with("not ")
+        || lower.contains(" not ")
+        || lower.contains("never")
+        || lower.contains(" maybe ")
+        || lower.contains(" perhaps ")
+        || lower.contains(" might ")
+        || lower.contains(" or ")
+        || lower.contains(" if ")
+        || clause_prefix.split_whitespace().rev().take(3).any(|word| {
+            matches!(
+                word,
+                "not" | "maybe" | "perhaps" | "might" | "possibly" | "if" | "hypothetically"
+            )
+        })
+    {
+        return ExplicitDefinitionOutcome::Blocked;
+    }
+    let phrase_text = phrase.as_str().trim();
+    if crate::chronos::detect(phrase_text)
+        .indications
+        .iter()
+        .any(|value| {
+            matches!(
+                value.evidence.to_ascii_lowercase().as_str(),
+                "biweekly" | "bimonthly"
+            )
+        })
+    {
+        return ExplicitDefinitionOutcome::Blocked;
+    }
+    let mut meaning = None;
+    for candidate in alternatives {
+        if let Ok(analysis) = crate::chronos_inference_verify::verify_canonical_expression(
+            phrase_text,
+            crate::TemporalIndicationKind::Recurrence,
+            reference_timestamp_ns,
+        ) {
+            if let Ok(expected) = crate::chronos_inference_verify::verify_canonical_expression(
+                candidate,
+                crate::TemporalIndicationKind::Recurrence,
+                reference_timestamp_ns,
+            ) {
+                if analysis
+                    .patterns
+                    .first()
+                    .is_some_and(|pattern| pattern.evidence.eq_ignore_ascii_case(phrase_text))
+                    && same_recurrence(&analysis, &expected)
+                {
+                    if meaning.is_some() {
+                        return ExplicitDefinitionOutcome::Blocked;
+                    }
+                    meaning = Some(candidate.to_owned());
+                }
+            }
+        }
+    }
+    match meaning {
+        Some(canonical_expression) => ExplicitDefinitionOutcome::Proven {
+            canonical_expression,
+            phrase_span: (
+                indication.start_byte + phrase.start(),
+                indication.start_byte + phrase.end(),
+            ),
+        },
+        None => ExplicitDefinitionOutcome::Blocked,
+    }
+}
+
+fn same_recurrence(left: &TemporalAnalysis, right: &TemporalAnalysis) -> bool {
+    has_only_one_recurrence(left) && has_only_one_recurrence(right) && {
+        let a = &left.patterns[0];
+        let b = &right.patterns[0];
+        a.frequency == b.frequency
+            && a.interval == b.interval
+            && a.occurrences_per_period == b.occurrences_per_period
+            && a.weekday == b.weekday
+            && a.month_day == b.month_day
+            && a.month == b.month
+    }
+}
+
+fn has_only_one_recurrence(analysis: &TemporalAnalysis) -> bool {
+    analysis.patterns.len() == 1
+        && analysis.anchors.is_empty()
+        && analysis.times_of_day.is_empty()
+        && analysis.durations.is_empty()
+        && analysis.duration_ranges.is_empty()
+        && analysis.approximate_durations.is_empty()
+        && analysis.event_relations.is_empty()
+        && analysis.intervals.is_empty()
+}
+
+/// Merge deterministic, source-backed definitions into the shared analysis path.
+pub(crate) fn apply_explicit_definitions(
+    text: &str,
+    reference_timestamp_ns: Option<i64>,
+    detection: &TemporalDetection,
+    analysis: &mut TemporalAnalysis,
+) {
+    for indication in &detection.indications {
+        let ExplicitDefinitionOutcome::Proven {
+            canonical_expression,
+            ..
+        } = explicit_definition_outcome(text, indication, reference_timestamp_ns)
+        else {
+            continue;
+        };
+        let Ok(mut inferred) = crate::chronos_inference_verify::verify_canonical_expression(
+            &canonical_expression,
+            indication.kind,
+            reference_timestamp_ns,
+        ) else {
+            continue;
+        };
+        for pattern in &mut inferred.patterns {
+            pattern.evidence = indication.evidence.clone();
+        }
+        crate::chronos_parser::merge_temporal_analysis(analysis, inferred);
+    }
+}
 
 pub(crate) fn assess_resolution(
     text: &str,
     detection: &TemporalDetection,
     analysis: &TemporalAnalysis,
 ) -> TemporalResolution {
-    let resolved_spans = resolved_spans(text, analysis);
+    let mut resolved_spans = resolved_spans(text, analysis);
+    let explicitly_resolved = detection
+        .indications
+        .iter()
+        .filter_map(|indication| {
+            if let ExplicitDefinitionOutcome::Proven { phrase_span, .. } =
+                explicit_definition_outcome(text, indication, analysis.source_timestamp_ns)
+            {
+                resolved_spans.push(phrase_span);
+                Some((indication.start_byte, indication.end_byte))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
     let unresolved_indications = detection
         .indications
         .iter()
-        .filter(|indication| !indication_resolved(indication, &resolved_spans))
+        .filter(|indication| {
+            let exact_span = (indication.start_byte, indication.end_byte);
+            let explicit_term = matches!(
+                indication.evidence.to_ascii_lowercase().as_str(),
+                "biweekly" | "bimonthly"
+            );
+            if explicit_term {
+                !explicitly_resolved.contains(&exact_span)
+            } else {
+                !indication_resolved(indication, &resolved_spans)
+            }
+        })
         .cloned()
         .collect::<Vec<_>>();
 

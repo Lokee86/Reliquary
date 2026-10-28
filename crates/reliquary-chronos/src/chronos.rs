@@ -53,6 +53,12 @@ fn analyze_detected(
 ) -> TemporalAnalysis {
     let mut analysis = crate::chronos_parser::parse_temporal(text, reference_timestamp_ns);
     let Some(normalized_text) = detected.normalized_text.as_deref() else {
+        crate::chronos_resolution::apply_explicit_definitions(
+            text,
+            reference_timestamp_ns,
+            &detected.detection,
+            &mut analysis,
+        );
         return analysis;
     };
 
@@ -83,6 +89,12 @@ fn analyze_detected(
         pattern.evidence = detected.restore_evidence(text, &pattern.evidence);
     }
     crate::chronos_parser::merge_temporal_analysis(&mut analysis, corrected);
+    crate::chronos_resolution::apply_explicit_definitions(
+        text,
+        reference_timestamp_ns,
+        &detected.detection,
+        &mut analysis,
+    );
     analysis
 }
 
