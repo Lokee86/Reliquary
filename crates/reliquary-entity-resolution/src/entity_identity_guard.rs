@@ -2,10 +2,7 @@ use std::collections::BTreeSet;
 
 const GENERIC_SUFFIXES: &[&str] = &["package", "module", "component"];
 
-pub(crate) fn identity_guard_keys(
-    surface: &str,
-    qualifier_tokens: &BTreeSet<String>,
-) -> BTreeSet<String> {
+fn identity_guard_keys(surface: &str, qualifier_tokens: &BTreeSet<String>) -> BTreeSet<String> {
     let mut keys = BTreeSet::new();
     append_surface_keys(surface, qualifier_tokens, &mut keys);
 
@@ -19,7 +16,7 @@ pub(crate) fn identity_guard_keys(
     keys
 }
 
-pub(crate) fn single_token(value: &str) -> Option<String> {
+fn single_token(value: &str) -> Option<String> {
     let tokens = tokens(value);
     (tokens.len() == 1).then(|| tokens[0].clone())
 }
@@ -94,18 +91,17 @@ mod tests {
     }
 }
 
-pub(crate) fn creation_conflicts(
-    store: &reliquary_perception_store::EntityStore,
+pub fn creation_conflicts(
+    current: &[reliquary_perception_store::Entity],
     surface: &str,
     kind: &str,
     limit: usize,
-) -> Vec<crate::Entity> {
-    let current = store.current();
+) -> Vec<reliquary_perception_store::Entity> {
     if kind == "principal" {
         return Vec::new();
     }
     let mut qualifiers = BTreeSet::new();
-    for entity in &current {
+    for entity in current {
         if entity.kind == "programming_language" {
             for value in std::iter::once(entity.canonical_name.as_str())
                 .chain(entity.aliases.iter().map(String::as_str))
@@ -122,7 +118,7 @@ pub(crate) fn creation_conflicts(
     }
 
     let mut matches = Vec::new();
-    for entity in &current {
+    for entity in current {
         if entity.kind != kind {
             continue;
         }

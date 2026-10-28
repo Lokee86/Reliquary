@@ -1,4 +1,3 @@
-use crate::entity_reconciliation_candidates::reconciliation_candidates;
 use crate::entity_reconciliation_model::{
     EntityReconciliationPrepared, EntityReconciliationPreparedPair,
 };
@@ -7,6 +6,7 @@ use crate::{
     Cva, DEFAULT_ENTITY_RECONCILIATION_PAIR_LIMIT, EntityReconciliationError,
     MemoryEntityResolutionStatus, Phylactery,
 };
+use reliquary_entity_resolution::reconciliation_candidates;
 
 macro_rules! impl_owner {
     ($owner:ty) => {

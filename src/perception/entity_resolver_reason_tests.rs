@@ -1,5 +1,5 @@
 use crate::EntityResolutionReason;
-use crate::entity_resolver::parse_reason;
+use reliquary_entity_resolution::parse_reason;
 
 #[test]
 fn parses_recurrence_required_reason() {

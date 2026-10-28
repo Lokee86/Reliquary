@@ -1,6 +1,6 @@
 use crate::entity_candidate_test_support::entity_draft;
-use crate::entity_reconciliation_candidates::reconciliation_candidates;
 use crate::{Entity, EntityGlobalId, EntityId};
+use reliquary_entity_resolution::reconciliation_candidates;
 
 fn entity(name: &str, kind: &str, seed: u8) -> Entity {
     let draft = entity_draft(name, &[], "summary", seed as i64);

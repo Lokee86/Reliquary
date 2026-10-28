@@ -199,6 +199,7 @@
 - [ego-store-crate-extraction-spec-2026-10-26.md](ego-store-crate-extraction-spec-2026-10-26.md) - Ego Store Crate Extraction Spec 2026 10 26 documentation.
 - [ego-web-synthesis-plan.md](ego-web-synthesis-plan.md) - Ego Web Synthesis Plan documentation.
 - [entity-resolution-compact-contract-2026-10-21.md](entity-resolution-compact-contract-2026-10-21.md) - Entity Resolution Compact Contract 2026 10 21 documentation.
+- [entity-resolution-service-crate-extraction-evidence-2026-10-28.md](entity-resolution-service-crate-extraction-evidence-2026-10-28.md) - Entity Resolution Service Crate Extraction Evidence 2026 10 28 documentation.
 - [entity-resolution-service-crate-extraction-spec-2026-10-28.md](entity-resolution-service-crate-extraction-spec-2026-10-28.md) - Entity Resolution Service Crate Extraction Spec 2026 10 28 documentation.
 - [entity-resolution-state.md](entity-resolution-state.md) - Entity Resolution State documentation.
 - [external-index-compact-contract-2026-10-21.md](external-index-compact-contract-2026-10-21.md) - External Index Compact Contract 2026 10 21 documentation.

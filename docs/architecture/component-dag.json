@@ -623,7 +623,7 @@
       "id": "perception",
       "rank": 7,
       "kind": "service",
-      "responsibility": "Entity and mention resolution, future Observation synthesis",
+      "responsibility": "Entity and mention identity resolution; Observation synthesis remains future work",
       "depends_on": [
         {
           "to": "perception-store",

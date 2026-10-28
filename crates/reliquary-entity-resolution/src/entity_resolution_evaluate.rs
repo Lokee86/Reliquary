@@ -6,9 +6,9 @@ use crate::{
 };
 
 impl<E: GeneralEndpoint> EntityResolver<E> {
-    pub(crate) fn evaluate_prepared(
+    pub fn evaluate_prepared(
         &self,
-        prepared: &EntityResolutionPrepared,
+        prepared: &EntityResolutionPrepared<'_>,
     ) -> Result<EntityResolutionEvaluation, EntityResolverError> {
         if is_obvious_transient_occurrence(&prepared.memory, &prepared.candidates) {
             return Ok(EntityResolutionEvaluation {

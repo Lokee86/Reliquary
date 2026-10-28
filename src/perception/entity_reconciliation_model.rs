@@ -1,22 +1,10 @@
-use crate::{Entity, EntityAuditReport, EntityId, Memory, MemoryEntityMentionKey};
+use crate::{
+    Entity, EntityAuditReport, EntityId, EntityReconciliationCandidate,
+    EntityReconciliationRelation, Memory, MemoryEntityMentionKey,
+};
 
 pub const DEFAULT_ENTITY_RECONCILIATION_PAIR_LIMIT: usize = 128;
 pub const DEFAULT_ENTITY_RECONCILIATION_ROUNDS: usize = 3;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum EntityReconciliationRelation {
-    SameIdentity,
-    RelatedDistinct,
-    Uncertain,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct EntityReconciliationCandidate {
-    pub left: EntityId,
-    pub right: EntityId,
-    pub deterministic: bool,
-    pub score: u16,
-}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EntityReconciliationReport {

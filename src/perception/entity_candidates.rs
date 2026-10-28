@@ -1,14 +1,14 @@
-use crate::entity_candidate_model::{
-    EntityCandidateConfig, EntityCandidateError, EntityCandidateSet,
-    MAX_ENTITY_ADMISSION_SURFACE_MEMORIES, MAX_ENTITY_CANDIDATE_GRAPH_NEIGHBORS,
-    MAX_ENTITY_CANDIDATE_LEXICAL_MEMORIES, MAX_ENTITY_CANDIDATE_SUPPORT_MEMORIES,
-    MAX_ENTITY_CANDIDATE_SURFACE_MATCHES,
-};
-use crate::entity_candidate_rank::{
+use crate::EntityCandidateError;
+use crate::{Cva, EntityId, MemoryEntityMention, MemoryEntityMentionKey, Phylactery};
+use reliquary_entity_resolution::{
     CandidateEvidence, candidate_order, finalize_candidate, push_unique,
 };
-use crate::entity_candidate_routing::{context_query, graph_neighbor_ids, memory_contains_surface};
-use crate::{Cva, EntityId, MemoryEntityMention, MemoryEntityMentionKey, Phylactery};
+use reliquary_entity_resolution::{
+    EntityCandidateConfig, EntityCandidateSet, MAX_ENTITY_ADMISSION_SURFACE_MEMORIES,
+    MAX_ENTITY_CANDIDATE_GRAPH_NEIGHBORS, MAX_ENTITY_CANDIDATE_LEXICAL_MEMORIES,
+    MAX_ENTITY_CANDIDATE_SUPPORT_MEMORIES, MAX_ENTITY_CANDIDATE_SURFACE_MATCHES,
+};
+use reliquary_entity_resolution::{context_query, memory_contains_surface};
 use std::collections::HashMap;
 
 macro_rules! impl_owner {
@@ -72,8 +72,8 @@ macro_rules! impl_owner {
                     }
                 }
 
-                let graph_neighbors =
-                    graph_neighbor_ids(self, key.memory_id, config.graph_neighbor_limit)?;
+                let graph_neighbors = self
+                    .graph_neighbor_ids_for_candidate(key.memory_id, config.graph_neighbor_limit)?;
                 for memory_id in &graph_neighbors {
                     for entity_id in self.entity_associations_for_memory(*memory_id) {
                         evidence

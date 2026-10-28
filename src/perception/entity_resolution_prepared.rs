@@ -1,7 +1,4 @@
-use crate::{
-    EntityCandidateSet, EntityMaterialization, EntityResolutionOutcome, EntityResolverOutput,
-    Memory, MemoryEntityMentionKey,
-};
+use crate::{EntityCandidateSet, EntityResolutionOutcome, Memory, MemoryEntityMentionKey};
 
 pub(crate) enum EntityResolutionPreparation {
     Complete(EntityResolutionOutcome),
@@ -23,7 +20,15 @@ pub(crate) struct EntityResolutionPrepared {
     pub(crate) graph_version: u64,
 }
 
-pub(crate) struct EntityResolutionEvaluation {
-    pub(crate) output: EntityResolverOutput,
-    pub(crate) materialization: Option<EntityMaterialization>,
+impl EntityResolutionPrepared {
+    pub(crate) fn evaluation_input(
+        &self,
+    ) -> reliquary_entity_resolution::EntityResolutionPrepared<'_> {
+        reliquary_entity_resolution::EntityResolutionPrepared {
+            memory: &self.memory,
+            candidates: &self.candidates,
+            evidence: &self.evidence,
+            admission_context: &self.admission_context,
+        }
+    }
 }

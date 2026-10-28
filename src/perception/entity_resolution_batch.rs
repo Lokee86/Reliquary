@@ -134,7 +134,10 @@ fn evaluate_prepared_with_retry<E: GeneralEndpoint>(
 ) -> Result<EntityResolutionEvaluation, EntityResolverError> {
     const MAX_RETRIES: usize = 5;
     for attempt in 0..=MAX_RETRIES {
-        match engine.evaluate_prepared(prepared) {
+        match engine
+            .evaluate_prepared(&prepared.evaluation_input())
+            .map_err(EntityResolverError::from)
+        {
             Ok(evaluation) => return Ok(evaluation),
             Err(error) if attempt < MAX_RETRIES && transient_endpoint_error(&error) => {
                 let delay = retry_delay(&error, attempt);

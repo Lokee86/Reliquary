@@ -1,10 +1,10 @@
-use crate::entity_audit_collisions::{
-    alias_collisions, cross_kind_alias_shadows, exact_surface_collisions,
-    normalized_surface_collisions,
-};
 use crate::{
     Cva, EntityAuditEntity, EntityAuditReport, EntityAuditResolutionViolation, EntityId,
     EntityResolutionReason, MemoryEntityResolutionStatus, Phylactery,
+};
+use reliquary_entity_resolution::{
+    alias_collisions, cross_kind_alias_shadows, exact_surface_collisions,
+    normalized_surface_collisions,
 };
 use std::collections::{BTreeMap, HashMap, HashSet};
 

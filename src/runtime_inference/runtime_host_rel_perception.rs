@@ -329,7 +329,10 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
         };
         let engine =
             EntityResolutionEngine::new(SharedEndpoint(endpoint)).with_decision_endpoint(decision);
-        let evaluation = match engine.evaluate_prepared(&prepared) {
+        let evaluation = match engine
+            .evaluate_prepared(&prepared.evaluation_input())
+            .map_err(EntityResolverError::from)
+        {
             Ok(v) => v,
             Err(EntityResolverError::Endpoint(_)) => {
                 let mut q = shared

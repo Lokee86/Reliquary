@@ -20,7 +20,7 @@ The original October 21 phase execution ledger is archived in the Step 1 Git bun
 | `reliquary-memory-core` | Memory publication, revisions, lifecycle and accepted use |
 | `reliquary-echo` | Ordered source-scoped computational/tool evidence; receiver acknowledgments |
 | `reliquary-graph` | Memory associations, semantic topology and Communities |
-| `reliquary-perception` | Entity/mention semantics and resolution/admission |
+| `reliquary-entity-resolution` | Entity/mention semantics and resolution/admission |
 | `reliquary-freshness` | Deterministic reinforcement, propagation, historical scoring and derived due scheduling; consumes Freshness Store, Memory Core and Graph |
 | `reliquary-insomnia` | Memory extraction and processing over an independent durable work store |
 | `reliquary-dream` | Association, duplicate and Community synthesis; Dream journal is lower-owned |

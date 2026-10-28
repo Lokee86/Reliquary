@@ -1,11 +1,11 @@
-use crate::entity_reconciliation_candidates::reconciliation_candidates;
-use crate::entity_reconciliation_inference::classify_pair;
 use crate::entity_reconciliation_support::{choose_survivor, merge_alias_budget_fits};
 use crate::{
     Cva, DEFAULT_ENTITY_RECONCILIATION_PAIR_LIMIT, DEFAULT_ENTITY_RECONCILIATION_ROUNDS,
     EntityAuditReport, EntityId, EntityReconciliationError, EntityReconciliationRelation,
     EntityReconciliationReport, GeneralEndpoint, Memory, Phylactery,
 };
+use reliquary_entity_resolution::classify_pair;
+use reliquary_entity_resolution::reconciliation_candidates;
 use std::collections::{HashMap, HashSet};
 
 macro_rules! impl_reconciliation {

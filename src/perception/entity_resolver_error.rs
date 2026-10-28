@@ -61,3 +61,14 @@ impl From<GraphError> for EntityResolverError {
         Self::Graph(value)
     }
 }
+
+impl From<reliquary_entity_resolution::EntityResolverError> for EntityResolverError {
+    fn from(value: reliquary_entity_resolution::EntityResolverError) -> Self {
+        match value {
+            reliquary_entity_resolution::EntityResolverError::Endpoint(e) => Self::Endpoint(e),
+            reliquary_entity_resolution::EntityResolverError::InvalidOutput(s) => {
+                Self::InvalidOutput(s)
+            }
+        }
+    }
+}

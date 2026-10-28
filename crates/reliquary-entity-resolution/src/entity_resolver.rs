@@ -202,7 +202,7 @@ fn identity_kinds_compatible(
     false
 }
 
-pub(crate) fn parse_reason(value: &str) -> Result<EntityResolutionReason, EntityResolverError> {
+pub fn parse_reason(value: &str) -> Result<EntityResolutionReason, EntityResolverError> {
     Ok(match value {
         "context_match" => EntityResolutionReason::ContextMatch,
         "context_conflict_new_identity" => EntityResolutionReason::ContextConflictNewIdentity,

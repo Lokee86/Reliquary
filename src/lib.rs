@@ -383,21 +383,13 @@ mod ego_compact_writer_tests;
 mod ego_error;
 use reliquary_ego_store::ego_model;
 use reliquary_ego_store::ego_store;
-#[path = "perception/entity_admission.rs"]
-mod entity_admission;
 #[path = "perception/entity_audit.rs"]
 mod entity_audit;
-#[path = "perception/entity_audit_collisions.rs"]
-mod entity_audit_collisions;
-#[path = "perception/entity_audit_model.rs"]
-mod entity_audit_model;
 #[cfg(test)]
 #[path = "perception/entity_audit_tests.rs"]
 mod entity_audit_tests;
 #[path = "perception/entity_candidate_model.rs"]
 mod entity_candidate_model;
-#[path = "perception/entity_candidate_rank.rs"]
-mod entity_candidate_rank;
 #[path = "perception/entity_candidate_routing.rs"]
 mod entity_candidate_routing;
 #[cfg(test)]
@@ -433,22 +425,16 @@ mod entity_reconciliation;
 #[cfg(test)]
 #[path = "perception/entity_reconciliation_candidate_tests.rs"]
 mod entity_reconciliation_candidate_tests;
-#[path = "perception/entity_reconciliation_candidates.rs"]
-mod entity_reconciliation_candidates;
 #[path = "perception/entity_reconciliation_commit.rs"]
 mod entity_reconciliation_commit;
 #[path = "perception/entity_reconciliation_error.rs"]
 mod entity_reconciliation_error;
-#[path = "perception/entity_reconciliation_inference.rs"]
-mod entity_reconciliation_inference;
 #[path = "perception/entity_reconciliation_model.rs"]
 mod entity_reconciliation_model;
 #[path = "perception/entity_reconciliation_owner.rs"]
 mod entity_reconciliation_owner;
 #[path = "perception/entity_reconciliation_prepare.rs"]
 mod entity_reconciliation_prepare;
-#[path = "perception/entity_reconciliation_schema.rs"]
-mod entity_reconciliation_schema;
 #[path = "perception/entity_reconciliation_staged.rs"]
 mod entity_reconciliation_staged;
 #[path = "perception/entity_reconciliation_support.rs"]
@@ -473,12 +459,6 @@ mod entity_resolution_batch_tests;
 use reliquary_perception_store::entity_resolution_codec;
 #[path = "perception/entity_resolution_commit.rs"]
 mod entity_resolution_commit;
-#[path = "perception/entity_resolution_decision.rs"]
-mod entity_resolution_decision;
-#[path = "perception/entity_resolution_engine.rs"]
-mod entity_resolution_engine;
-#[path = "perception/entity_resolution_evaluate.rs"]
-mod entity_resolution_evaluate;
 #[path = "perception/entity_resolution_evidence.rs"]
 mod entity_resolution_evidence;
 #[cfg(test)]
@@ -512,17 +492,11 @@ mod entity_resolution_test_support;
 #[cfg(test)]
 #[path = "perception/entity_resolution_tests.rs"]
 mod entity_resolution_tests;
-#[path = "perception/entity_resolver.rs"]
-mod entity_resolver;
 #[path = "perception/entity_resolver_error.rs"]
 mod entity_resolver_error;
-#[path = "perception/entity_resolver_model.rs"]
-mod entity_resolver_model;
 #[cfg(test)]
 #[path = "perception/entity_resolver_reason_tests.rs"]
 mod entity_resolver_reason_tests;
-#[path = "perception/entity_resolver_schema.rs"]
-mod entity_resolver_schema;
 #[cfg(all(test, feature = "entity-calibration"))]
 #[path = "perception/entity_zero_bootstrap_calibration_support.rs"]
 mod entity_zero_bootstrap_calibration_support;
@@ -860,26 +834,14 @@ pub use ego_model::{
     EgoAnchor, EgoAnchorId, EgoAnchorPriority, EgoIdentity, EgoIdentityId, EgoPersonality,
     EgoWebSynthesis, MAX_EGO_ANCHOR_CHARS,
 };
-pub use entity_admission::MAX_ENTITY_ADMISSION_CONTEXT_MEMORIES;
-pub use entity_audit_model::{
-    EntityAuditCollision, EntityAuditEntity, EntityAuditReport, EntityAuditResolutionViolation,
-};
-pub use entity_candidate_model::{
-    DEFAULT_ENTITY_CANDIDATE_GRAPH_NEIGHBORS, DEFAULT_ENTITY_CANDIDATE_LEXICAL_MEMORIES,
-    DEFAULT_ENTITY_CANDIDATE_SUPPORT_MEMORIES, EntityCandidate, EntityCandidateConfig,
-    EntityCandidateError, EntityCandidateSet, MAX_ENTITY_ADMISSION_SURFACE_MEMORIES,
-    MAX_ENTITY_CANDIDATE_CONTEXT_TERMS, MAX_ENTITY_CANDIDATE_GRAPH_NEIGHBORS,
-    MAX_ENTITY_CANDIDATE_LEXICAL_MEMORIES, MAX_ENTITY_CANDIDATE_SUPPORT_MEMORIES,
-    MAX_ENTITY_CANDIDATE_SURFACE_MATCHES,
-};
+pub use entity_candidate_model::EntityCandidateError;
 pub use entity_error::EntityError;
 pub use entity_reconciliation_error::EntityReconciliationError;
 pub use entity_reconciliation_model::{
     DEFAULT_ENTITY_RECONCILIATION_PAIR_LIMIT, DEFAULT_ENTITY_RECONCILIATION_ROUNDS,
-    EntityReconciliationCandidate, EntityReconciliationRelation, EntityReconciliationReport,
+    EntityReconciliationReport,
 };
 pub use entity_resolution_batch::EntityResolutionBatchOutcome;
-pub use entity_resolution_engine::EntityResolutionEngine;
 pub use entity_resolution_model::{
     DEFAULT_ENTITY_RESOLUTION_DORMANT_TTL_NS, DEFAULT_ENTITY_RESOLUTION_PENDING_TTL_NS,
     EntityResolutionCompaction, EntityResolutionDormant, EntityResolutionPending,
@@ -887,22 +849,9 @@ pub use entity_resolution_model::{
     MemoryEntityResolution, MemoryEntityResolutionStatus,
 };
 pub(crate) use entity_resolution_prepared::{
-    EntityResolutionEvaluation, EntityResolutionPreparation, EntityResolutionPrepared,
-};
-pub use entity_resolver::{
-    EntityResolver, MAX_ENTITY_RESOLVER_EVIDENCE_MEMORIES, MAX_ENTITY_RESOLVER_EVIDENCE_TEXT_BYTES,
+    EntityResolutionPreparation, EntityResolutionPrepared,
 };
 pub use entity_resolver_error::EntityResolverError;
-pub use entity_resolver_model::{
-    EntityAdmissionDecision, EntityAdmissionOutput, EntityMaterialization,
-    EntityResolutionDecision, EntityResolutionOutcome, EntityResolverOutput,
-};
-pub use entity_resolver_schema::{
-    ENTITY_ADMISSION_CONTRACT_VERSION, ENTITY_ADMISSION_SYSTEM_PROMPT,
-    ENTITY_MATERIALIZATION_CONTRACT_VERSION, ENTITY_MATERIALIZATION_SYSTEM_PROMPT,
-    ENTITY_RESOLVER_CONTRACT_VERSION, ENTITY_RESOLVER_SYSTEM_PROMPT, entity_admission_schema,
-    entity_materialization_schema, entity_resolver_schema,
-};
 pub use graph_error::GraphError;
 pub(crate) use graph_model::GraphNodeRecord;
 pub use graph_model::{
@@ -997,6 +946,31 @@ pub use reliquary_archive::project_history_model::{
 };
 pub use reliquary_chronos::CHRONOS_INFERENCE_CONTRACT_VERSION;
 pub use reliquary_echo::{EchoError, EchoEvent, EchoEventKind};
+pub use reliquary_entity_resolution::EntityResolutionEngine;
+pub use reliquary_entity_resolution::MAX_ENTITY_ADMISSION_CONTEXT_MEMORIES;
+pub use reliquary_entity_resolution::{
+    DEFAULT_ENTITY_CANDIDATE_GRAPH_NEIGHBORS, DEFAULT_ENTITY_CANDIDATE_LEXICAL_MEMORIES,
+    DEFAULT_ENTITY_CANDIDATE_SUPPORT_MEMORIES, EntityCandidate, EntityCandidateConfig,
+    EntityCandidateSet, MAX_ENTITY_ADMISSION_SURFACE_MEMORIES, MAX_ENTITY_CANDIDATE_CONTEXT_TERMS,
+    MAX_ENTITY_CANDIDATE_GRAPH_NEIGHBORS, MAX_ENTITY_CANDIDATE_LEXICAL_MEMORIES,
+    MAX_ENTITY_CANDIDATE_SUPPORT_MEMORIES, MAX_ENTITY_CANDIDATE_SURFACE_MATCHES,
+};
+pub use reliquary_entity_resolution::{
+    ENTITY_ADMISSION_CONTRACT_VERSION, ENTITY_ADMISSION_SYSTEM_PROMPT,
+    ENTITY_MATERIALIZATION_CONTRACT_VERSION, ENTITY_MATERIALIZATION_SYSTEM_PROMPT,
+    ENTITY_RESOLVER_CONTRACT_VERSION, ENTITY_RESOLVER_SYSTEM_PROMPT, entity_admission_schema,
+    entity_materialization_schema, entity_resolver_schema,
+};
+pub use reliquary_entity_resolution::{
+    EntityAdmissionDecision, EntityAdmissionOutput, EntityMaterialization,
+    EntityResolutionDecision, EntityResolutionOutcome, EntityResolverOutput,
+};
+pub use reliquary_entity_resolution::{
+    EntityAuditCollision, EntityAuditEntity, EntityAuditReport, EntityAuditResolutionViolation,
+};
+pub use reliquary_entity_resolution::{
+    EntityResolver, MAX_ENTITY_RESOLVER_EVIDENCE_MEMORIES, MAX_ENTITY_RESOLVER_EVIDENCE_TEXT_BYTES,
+};
 pub use reliquary_perception_store::EntityRef;
 pub use reliquary_perception_store::{
     Entity, EntityDraft, EntityGlobalId, EntityId, EntityMergeOutcome, EntityRetainedRevision,
@@ -1445,8 +1419,16 @@ mod entity_resolution_owner_format_tests;
 #[path = "perception/entity_resolution_retained_tests.rs"]
 mod entity_resolution_retained_tests;
 
-#[path = "perception/entity_identity_guard.rs"]
-mod entity_identity_guard;
 #[cfg(test)]
 #[path = "perception/relationship_replay_tests.rs"]
 mod relationship_replay_tests;
+
+#[cfg(test)]
+#[path = "perception/entity_resolution_engine_tests.rs"]
+mod entity_resolution_engine_tests;
+
+pub(crate) use reliquary_entity_resolution::EntityResolutionEvaluation;
+
+pub use reliquary_entity_resolution::{
+    EntityReconciliationCandidate, EntityReconciliationRelation,
+};

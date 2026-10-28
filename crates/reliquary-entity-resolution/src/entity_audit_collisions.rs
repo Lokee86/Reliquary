@@ -1,7 +1,7 @@
 use crate::{Entity, EntityAuditCollision, EntityAuditEntity, EntityId};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
-pub(super) fn exact_surface_collisions(
+pub fn exact_surface_collisions(
     entities: &[Entity],
     audit_entities: &[EntityAuditEntity],
 ) -> Vec<EntityAuditCollision> {
@@ -14,7 +14,7 @@ pub(super) fn exact_surface_collisions(
     })
 }
 
-pub(super) fn normalized_surface_collisions(
+pub fn normalized_surface_collisions(
     entities: &[Entity],
     audit_entities: &[EntityAuditEntity],
 ) -> Vec<EntityAuditCollision> {
@@ -27,7 +27,7 @@ pub(super) fn normalized_surface_collisions(
     })
 }
 
-pub(super) fn alias_collisions(
+pub fn alias_collisions(
     entities: &[Entity],
     audit_entities: &[EntityAuditEntity],
 ) -> Vec<EntityAuditCollision> {
@@ -40,7 +40,7 @@ pub(super) fn alias_collisions(
     })
 }
 
-pub(super) fn cross_kind_alias_shadows(
+pub fn cross_kind_alias_shadows(
     entities: &[Entity],
     audit_entities: &[EntityAuditEntity],
 ) -> Vec<EntityAuditCollision> {

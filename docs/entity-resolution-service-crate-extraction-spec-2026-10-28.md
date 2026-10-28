@@ -1,11 +1,15 @@
 # Entity Resolution service crate — extraction specification
 
-**Status:** Specified, not implemented (2026-10-28).
+**Status:** Implementation in progress (2026-10-28). The service rename and policy moves are integrated; the unavailable 41-query live-calibration fixture remains a separately documented acceptance gap.
 **Repository / branch:** `C:\!bin\workspace\Reliquary-crate-first` · `refactor/crate-first-restart`.
 **Baseline:** Retrieval service cut `8fbe6f75`, after Vectors `3bacc56d`. Both are integrated. The unrelated, dirty `docs/graph-crate-extraction-evidence-2026-10-26.md` must remain unstaged and unmodified.
 **Canonical target:** **`crates/reliquary-entity-resolution/`**, package **`reliquary-entity-resolution`**.
 **Superseded placeholder:** `crates/reliquary-perception/`, package `reliquary-perception`. There is no meaningful implementation in that placeholder. **Rename/replace the placeholder directly; do not keep both crates.**
 **Scope:** A correction-only, behavior-preserving hard cut of the **already implemented Entity identity-resolution service**. This is not the planned Observation half of Perception, and it is not another durable store extraction.
+
+## Overview
+
+The extraction moves Entity identity decision policy into a compiled service while Root retains authorization and durable commits.
 
 ## Purpose
 
@@ -141,4 +145,4 @@ No Observation persistence/synthesis, inductive/abductive/abstractive inference,
 
 ## Notes
 
-This spec commits only the decided name, boundaries and migration plan; it does not rename the reserved crate or claim that Entity Resolution has been extracted. The implementing agent must preserve the baseline receipts and not convert the whole `src/perception` directory into a library.
+This specification records the decided name, boundaries and migration plan. Implementation must preserve the baseline receipts and does not convert the whole `src/perception` directory into a library.

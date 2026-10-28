@@ -1,13 +1,13 @@
 use crate::entity_principal::{
     PRINCIPAL_ENTITY_KIND, principal_entity_global_id, principal_entity_id,
 };
-use crate::entity_reconciliation_candidates::reconciliation_candidates;
 use crate::{
     Cva, EntityDraft, EntityError, EntityId, EntityResolutionDecision, EntityResolutionReason,
     EpisodeBoundary, EpisodeConfig, EpisodeId, EpisodeOrigin, GraphDirection, GraphError,
     MemoryDraft, MemoryEntityMention, MemoryEntityMentionKey, MemoryRoutingMetadata,
     MemorySourceRef, MemoryTextField, Phylactery, SemanticNodeRef,
 };
+use reliquary_entity_resolution::reconciliation_candidates;
 use std::path::PathBuf;
 
 const PRINCIPAL_A: &str = "phy-00000000-0000-0000-0000-0000000000a1";

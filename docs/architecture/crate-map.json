@@ -6,7 +6,7 @@
     "reliquary-memory-core",
     "reliquary-echo",
     "reliquary-graph",
-    "reliquary-perception",
+    "reliquary-entity-resolution",
     "reliquary-freshness",
     "reliquary-insomnia",
     "reliquary-dream",
@@ -62,7 +62,7 @@
     "vectors": "reliquary-vectors",
     "freshness": "reliquary-freshness",
     "retrieval": "reliquary-retrieval",
-    "perception": "reliquary-perception",
+    "perception": "reliquary-entity-resolution",
     "insomnia": "reliquary-insomnia",
     "dream": "reliquary-dream",
     "ego": "reliquary-ego",
@@ -86,7 +86,7 @@
     "reliquary-graph": [
       "reliquary-container"
     ],
-    "reliquary-perception": [
+    "reliquary-entity-resolution": [
       "reliquary-archive",
       "reliquary-chronos",
       "reliquary-graph",
@@ -108,7 +108,7 @@
       "reliquary-freshness",
       "reliquary-insomnia-store",
       "reliquary-memory-core",
-      "reliquary-perception",
+      "reliquary-entity-resolution",
       "reliquary-switchboard"
     ],
     "reliquary-dream": [
@@ -190,7 +190,7 @@
       "reliquary-insomnia",
       "reliquary-memory-core",
       "reliquary-owner-lifecycle",
-      "reliquary-perception"
+      "reliquary-entity-resolution"
     ],
     "reliquary-maintenance": [
       "reliquary-archive",
@@ -225,7 +225,7 @@
       "reliquary-maintenance",
       "reliquary-memory-core",
       "reliquary-owner-lifecycle",
-      "reliquary-perception",
+      "reliquary-entity-resolution",
       "reliquary-project-environment",
       "reliquary-retrieval",
       "reliquary-switchboard",

@@ -1,8 +1,8 @@
-use crate::entity_reconciliation_inference::classify_pair;
 use crate::entity_reconciliation_model::{
     EntityReconciliationEvaluation, EntityReconciliationPairDecision, EntityReconciliationPrepared,
 };
 use crate::{EntityReconciliationError, EntityReconciliationRelation, GeneralEndpoint};
+use reliquary_entity_resolution::classify_pair;
 
 pub(crate) fn evaluate_reconciliation<E: GeneralEndpoint>(
     endpoint: &E,

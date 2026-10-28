@@ -8,7 +8,7 @@ Describe the implemented Perception foundations: Entity mention state, Entity ow
 
 ## Overview
 
-Perception turns semantic evidence into longer-lived derived semantic state. Its implemented production foundation is Entity-centered: Insomnia records exact Entity mentions, Perception resolves or admits Entities, persists mention-resolution state, associates typed graph evidence, and schedules bounded reconsideration.
+Perception turns semantic evidence into longer-lived derived semantic state. Its implemented production foundation is Entity-centered: Insomnia records exact Entity mentions, Entity Resolution evaluates or admits Entities; Root persists mention-resolution state, associates typed graph evidence, and schedules bounded reconsideration.
 
 Observation synthesis and broader propositional reasoning remain active future work in the Perception plan.
 
@@ -53,7 +53,9 @@ Chronos supplies temporal interpretation primitives. Perception owns any resulti
 
 ## Code Map
 
-- `src/perception/**`
+- `crates/reliquary-entity-resolution/src/**` — candidate, admission, inference and reconciliation policy
+- `crates/reliquary-perception-store/src/**` — durable Entity and resolution records
+- `src/perception/**` — authorized evidence, owner commits and orchestration
 - `src/runtime_inference/*perception*`
 - `src/semantic_graph/**`
 - `src/chronos/**`

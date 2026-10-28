@@ -1,23 +1,21 @@
 use crate::entity_reconciliation_schema::{
     ENTITY_RECONCILIATION_SYSTEM_PROMPT, entity_reconciliation_schema,
 };
-use crate::{
-    Entity, EntityReconciliationError, EntityReconciliationRelation, GeneralEndpoint, Memory,
-};
+use crate::{Entity, EntityReconciliationRelation, GeneralEndpoint, Memory, ReconciliationError};
 use serde_json::{Value, json};
 
-pub(crate) fn classify_pair<E: GeneralEndpoint>(
+pub fn classify_pair<E: GeneralEndpoint>(
     endpoint: &E,
     left: &Entity,
     right: &Entity,
     left_support: &[Memory],
     right_support: &[Memory],
-) -> Result<EntityReconciliationRelation, EntityReconciliationError> {
+) -> Result<EntityReconciliationRelation, ReconciliationError> {
     let payload = serde_json::to_string(&json!({
         "left": entity_json(left, left_support),
         "right": entity_json(right, right_support),
     }))
-    .map_err(|error| EntityReconciliationError::InvalidOutput(error.to_string()))?;
+    .map_err(|error| ReconciliationError::InvalidOutput(error.to_string()))?;
 
     let output = endpoint.complete_json(
         ENTITY_RECONCILIATION_SYSTEM_PROMPT,
@@ -52,14 +50,12 @@ fn truncate(value: &str, max_chars: usize) -> String {
     value.chars().take(max_chars).collect()
 }
 
-fn parse_relation(
-    output: &Value,
-) -> Result<EntityReconciliationRelation, EntityReconciliationError> {
+fn parse_relation(output: &Value) -> Result<EntityReconciliationRelation, ReconciliationError> {
     match output.get("relation").and_then(Value::as_str) {
         Some("same_identity") => Ok(EntityReconciliationRelation::SameIdentity),
         Some("related_distinct") => Ok(EntityReconciliationRelation::RelatedDistinct),
         Some("uncertain") => Ok(EntityReconciliationRelation::Uncertain),
-        _ => Err(EntityReconciliationError::InvalidOutput(
+        _ => Err(ReconciliationError::InvalidOutput(
             "missing or invalid relation".into(),
         )),
     }

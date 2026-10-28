@@ -2926,6 +2926,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "reliquary-entity-resolution"
+version = "0.1.0"
+dependencies = [
+ "reliquary-memory-core",
+ "reliquary-perception-store",
+ "reliquary-retrieval",
+ "reliquary-switchboard",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "reliquary-external-index-store"
 version = "0.1.0"
 dependencies = [
@@ -3008,6 +3020,7 @@ dependencies = [
  "reliquary-dream-store",
  "reliquary-echo",
  "reliquary-ego-store",
+ "reliquary-entity-resolution",
  "reliquary-external-index-store",
  "reliquary-freshness",
  "reliquary-freshness-store",
@@ -3070,9 +3083,10 @@ dependencies = [
  "reliquary-archive",
  "reliquary-graph",
  "reliquary-memory-core",
- "reliquary-vectors",
  "reliquary-vector-store",
+ "reliquary-vectors",
 ]
+
 [[package]]
 name = "reliquary-switchboard"
 version = "0.1.0"

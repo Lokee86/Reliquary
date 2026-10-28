@@ -44,7 +44,7 @@ Reliquary/
 │   ├── reliquary-memory-core/
 │   ├── reliquary-echo/
 │   ├── reliquary-graph/
-│   ├── reliquary-perception/
+│   ├── reliquary-entity-resolution/
 │   ├── reliquary-freshness/
 │   ├── reliquary-insomnia/
 │   ├── reliquary-dream/

@@ -6,7 +6,7 @@ members = [
     "crates/reliquary-echo",
     "crates/reliquary-graph",
     "crates/reliquary-perception-store",
-    "crates/reliquary-perception",
+    "crates/reliquary-entity-resolution",
     "crates/reliquary-freshness",
     "crates/reliquary-insomnia",
     "crates/reliquary-dream",
@@ -95,6 +95,7 @@ path = "examples/entity_jev_resolution_experiment/main.rs"
 required-features = ["entity-calibration"]
 
 [dependencies]
+reliquary-entity-resolution = { path = "crates/reliquary-entity-resolution" }
 reliquary-switchboard = { path = "crates/reliquary-switchboard" }
 reliquary-chronos = { path = "crates/reliquary-chronos" }
 reliquary-owner-lifecycle = { path = "crates/reliquary-owner-lifecycle" }

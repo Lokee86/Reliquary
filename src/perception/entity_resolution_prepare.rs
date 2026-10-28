@@ -1,12 +1,11 @@
 use crate::entity_resolution_evidence::{hydrate_admission_context, hydrate_evidence};
-use crate::entity_resolution_processor_support::{
-    candidate_fingerprint, context_fingerprint, status_reason, terminal_outcome,
-};
+use crate::entity_resolution_processor_support::{status_reason, terminal_outcome};
 use crate::{
     Cva, EntityCandidateConfig, EntityResolutionDecision, EntityResolutionOutcome,
     EntityResolutionPreparation, EntityResolutionPrepared, EntityResolverError,
     MemoryEntityMentionKey, Phylactery,
 };
+use reliquary_entity_resolution::{candidate_fingerprint, context_fingerprint};
 
 macro_rules! impl_owner {
     ($owner:ty) => {

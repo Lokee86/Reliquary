@@ -9,7 +9,7 @@ pub const DEFAULT_ENTITY_DECISION_MARGIN: f64 = 0.15;
 
 pub(crate) fn try_decision_fast_path(
     endpoint: &dyn DecisionEndpoint,
-    prepared: &EntityResolutionPrepared,
+    prepared: &EntityResolutionPrepared<'_>,
 ) -> Result<Option<EntityResolutionEvaluation>, DecisionEndpointError> {
     if prepared.candidates.candidates.is_empty() {
         return Ok(None);

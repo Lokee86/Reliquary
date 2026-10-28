@@ -195,8 +195,8 @@ macro_rules! impl_owner {
                 kind: &str,
                 limit: usize,
             ) -> Vec<Entity> {
-                crate::entity_identity_guard::creation_conflicts(
-                    &self.entities,
+                reliquary_entity_resolution::creation_conflicts(
+                    &self.entities.current(),
                     surface,
                     kind,
                     limit,

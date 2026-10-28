@@ -33,3 +33,14 @@ impl From<EntityResolverError> for EntityReconciliationError {
         Self::Resolver(value)
     }
 }
+
+impl From<reliquary_entity_resolution::ReconciliationError> for EntityReconciliationError {
+    fn from(value: reliquary_entity_resolution::ReconciliationError) -> Self {
+        match value {
+            reliquary_entity_resolution::ReconciliationError::Endpoint(e) => Self::Endpoint(e),
+            reliquary_entity_resolution::ReconciliationError::InvalidOutput(s) => {
+                Self::InvalidOutput(s)
+            }
+        }
+    }
+}

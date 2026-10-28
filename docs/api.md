@@ -2,6 +2,10 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Entity Resolution service boundary
+
+Root re-exports the Entity Resolution engine, resolver, candidate values and schemas from `reliquary-entity-resolution`. Root retains owner-facing errors, evidence authorization, version revalidation and durable commits. The separate `reliquary-perception-store` remains the durable owner.
+
 ## External Index Store crate boundary
 
 `reliquary-external-index-store` owns the current `CVAXIDX2` codec and

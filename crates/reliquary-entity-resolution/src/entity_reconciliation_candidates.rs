@@ -17,7 +17,7 @@ const GENERIC_TOKENS: &[&str] = &[
     "tool",
 ];
 
-pub(crate) fn reconciliation_candidates(
+pub fn reconciliation_candidates(
     entities: &[Entity],
     pair_limit: usize,
 ) -> Vec<EntityReconciliationCandidate> {

@@ -203,14 +203,12 @@ Root/Gateway owners. Extraction verification is partial; see the
 `reliquary-perception-store` owns the separate Entity, mention-resolution and
 transitional Relationship stores. Their values, compact codecs, replay,
 retention and indexes live under `crates/reliquary-perception-store/src/`.
-Container is its only Reliquary dependency. This does not extract the Perception
-decision service or introduce Observation synthesis.
+Container is its only Reliquary dependency. Entity Resolution decision policy lives in `reliquary-entity-resolution`; Observation synthesis remains future work.
 
 Foreign Memory evidence and mention coordinates retain their exact wire values.
 The product boundary converts Memory Core values and validates immutable mention
 binding, current or historical existence, owner authority and principal rules.
-Inference, candidate selection, merge coordination, Graph projection and
-destructive maintenance authorization remain above the store. Ordinary replay
+Root supplies authorized evidence to the Entity Resolution service and retains merge coordination, Graph projection and destructive maintenance authorization above the store. Ordinary replay
 does not repair owner bytes. Entity and Relationship publication keep their
 existing global and owner-local clocks; resolution metadata remains clock-neutral.
 
