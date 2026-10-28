@@ -29,6 +29,7 @@
 - [Vectors service crate extraction specification](vectors-service-crate-extraction-spec-2026-10-28.md) — model embedding, compatibility verification, pure F32 packing, and root/Vector Store separation.
 - [Vectors service crate extraction evidence](vectors-service-crate-extraction-evidence-2026-10-28.md) — current source cut and integration status; verification remains in progress.
 - [Retrieval service crate extraction specification](retrieval-service-crate-extraction-spec-2026-10-28.md) — passive lexical/semantic/hybrid engine, Community-routed Memory retrieval, agentic candidate ordering and strict owner boundaries.
+- [Entity Resolution service crate extraction specification](entity-resolution-service-crate-extraction-spec-2026-10-28.md) — replace the reserved Perception service placeholder with the current identity-resolution engine; leave Perception Store and future Observations separate.
 - [Retrieval service crate extraction evidence](retrieval-service-crate-extraction-evidence-2026-10-28.md) — partial source ownership cut and verified checks; final integration acceptance remains pending.
 - [Owner Lifecycle extraction specification](owner-lifecycle-crate-extraction-spec-2026-10-27.md) — compiled owner reopen and structural replay coordination.
 - [Compact interaction stream contract](interaction-stream-compact-contract-2026-10-21.md) — frozen checkpoint transitions and exact suffix representation.
@@ -198,6 +199,7 @@
 - [ego-store-crate-extraction-spec-2026-10-26.md](ego-store-crate-extraction-spec-2026-10-26.md) - Ego Store Crate Extraction Spec 2026 10 26 documentation.
 - [ego-web-synthesis-plan.md](ego-web-synthesis-plan.md) - Ego Web Synthesis Plan documentation.
 - [entity-resolution-compact-contract-2026-10-21.md](entity-resolution-compact-contract-2026-10-21.md) - Entity Resolution Compact Contract 2026 10 21 documentation.
+- [entity-resolution-service-crate-extraction-spec-2026-10-28.md](entity-resolution-service-crate-extraction-spec-2026-10-28.md) - Entity Resolution Service Crate Extraction Spec 2026 10 28 documentation.
 - [entity-resolution-state.md](entity-resolution-state.md) - Entity Resolution State documentation.
 - [external-index-compact-contract-2026-10-21.md](external-index-compact-contract-2026-10-21.md) - External Index Compact Contract 2026 10 21 documentation.
 - [external-index-store-crate-extraction-evidence-2026-10-27.md](external-index-store-crate-extraction-evidence-2026-10-27.md) - External Index Store Crate Extraction Evidence 2026 10 27 documentation.
