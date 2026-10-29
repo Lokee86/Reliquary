@@ -2836,6 +2836,13 @@ version = "0.1.0"
 [[package]]
 name = "reliquary-import"
 version = "0.1.0"
+dependencies = [
+ "reliquary-archive",
+ "serde",
+ "serde_json",
+ "sha2",
+ "time",
+]
 
 [[package]]
 name = "reliquary-import-store"
@@ -2902,6 +2909,7 @@ dependencies = [
  "reliquary-freshness",
  "reliquary-freshness-store",
  "reliquary-graph",
+ "reliquary-import",
  "reliquary-import-store",
  "reliquary-insomnia",
  "reliquary-insomnia-store",
