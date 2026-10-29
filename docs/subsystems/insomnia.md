@@ -78,7 +78,10 @@ Retryable model/output/publication failures retain durable work identity. Exhaus
 
 ## Code Map
 
-- `crates/reliquary-insomnia/src/` — extraction contract, ledger, candidate policy, inference stages and bounded evidence response validation
+- `crates/reliquary-insomnia/src/extraction.rs` and `src/extraction/{run,ledger_run,synthesis_run,payload,response}.rs` — immutable extractor interface, two-stage execution, authority ledger model calls, candidate synthesis, request/response validation and payload encoding; `response_tests.rs` covers integrity guards
+- `crates/reliquary-insomnia/src/ledger.rs` and `src/ledger/{turn_repair,field_repair,field_apply,parse,schema}.rs` — exact v3-4 policy, dynamic schema, bounded repair and authority/provenance parsing
+- `crates/reliquary-insomnia/src/enrichment.rs` and `src/enrichment/{generic,mentions}.rs` — Entity-mention inference, generic-surface rejection and exact text spans
+- `crates/reliquary-insomnia/src/{candidate*,synthesis,metadata,ownership}.rs` — deterministic candidate selection, fixed groups and semantic classification; `tests/consumer.rs` exercises the actual external service API
 - `crates/reliquary-insomnia-store/src/` — durable work/attempt store, codecs, scheduler and transition values
 - `src/runtime_inference/insomnia/product_adapter.rs` — root identity conversion and Archive-authenticated inputs
 - `src/runtime_inference/insomnia/extraction.rs` — Root evidence lookup/hydration coordinator over service `start` and `finish_evidence`
