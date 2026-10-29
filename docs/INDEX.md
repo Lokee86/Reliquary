@@ -34,6 +34,7 @@
 - [Insomnia service crate extraction evidence](insomnia-service-crate-extraction-evidence-2026-10-28.md) — service/root boundary and scoped verification results; workspace, CLI and other acceptance gates remain in progress.
 - [Dream service crate extraction evidence](dream-service-crate-extraction-evidence-2026-10-28.md) - current changes and verification status.
 - [Dream service crate extraction specification](dream-service-crate-extraction-spec-2026-10-28.md) — separate pair classification, candidate and duplicate policy, lifecycle decisions and Community naming from REL/PHY Graph, Freshness, Dream Store and runtime writes.
+- [Context Engine crate extraction specification](context-engine-crate-extraction-spec-2026-10-28.md) — move the existing deterministic context and compaction engine into its compiled crate; no new Ego, model or runtime features.
 - [Retrieval service crate extraction evidence](retrieval-service-crate-extraction-evidence-2026-10-28.md) — partial source ownership cut and verified checks; final integration acceptance remains pending.
 - [Owner Lifecycle extraction specification](owner-lifecycle-crate-extraction-spec-2026-10-27.md) — compiled owner reopen and structural replay coordination.
 - [Compact interaction stream contract](interaction-stream-compact-contract-2026-10-21.md) — frozen checkpoint transitions and exact suffix representation.
@@ -179,6 +180,7 @@
 - [community-scan-merge-benchmark-2026-08-27.md](community-scan-merge-benchmark-2026-08-27.md) - Community Scan Merge Benchmark 2026 08 27 documentation.
 - [configuration.md](configuration.md) - Configuration documentation.
 - [container-crate-extraction-spec-2026-10-25.md](container-crate-extraction-spec-2026-10-25.md) - Container Crate Extraction Spec 2026 10 25 documentation.
+- [context-engine-crate-extraction-spec-2026-10-28.md](context-engine-crate-extraction-spec-2026-10-28.md) - Context Engine Crate Extraction Spec 2026 10 28 documentation.
 - [conversation-index-integration-plan.md](conversation-index-integration-plan.md) - Conversation Index Integration Plan documentation.
 - [crate-first-architecture.md](crate-first-architecture.md) - Crate First Architecture documentation.
 - [crate-first-layout-spec-2026-10-25.md](crate-first-layout-spec-2026-10-25.md) - Crate First Layout Spec 2026 10 25 documentation.

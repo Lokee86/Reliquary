@@ -57,6 +57,7 @@ Ego cross-chat and Memory-Web synthesis are separate future context layers. Curr
 
 ## Related docs
 
+- [Context Engine crate extraction specification](../context-engine-crate-extraction-spec-2026-10-28.md) — existing-code move; implementation pending.
 - [Architecture](../architecture.md)
 - [Rust API](../api.md)
 - [Ego cross-chat plan](../ego-cross-chat-context-plan.md)
