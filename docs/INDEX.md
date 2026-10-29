@@ -40,6 +40,7 @@
 - [Project Environment crate extraction specification](project-environment-crate-extraction-spec-2026-10-28.md) — move existing Git/Lore project operations into the compiled crate while keeping REL lifecycle and publication under Root authority.
 - [Project Environment crate extraction evidence](project-environment-crate-extraction-evidence-2026-10-28.md) - implementation ownership and validation results.
 - [Import service crate extraction specification](import-service-crate-extraction-spec-2026-10-29.md) — move existing native import normalization and canonical preparation to its compiled crate; Root retains durable epoch coordination and reconciliation.
+- [Import service crate extraction evidence](import-service-crate-extraction-evidence-2026-10-29.md) — compiled boundaries and acceptance verification.
 - [Retrieval service crate extraction evidence](retrieval-service-crate-extraction-evidence-2026-10-28.md) — partial source ownership cut and verified checks; final integration acceptance remains pending.
 - [Owner Lifecycle extraction specification](owner-lifecycle-crate-extraction-spec-2026-10-27.md) — compiled owner reopen and structural replay coordination.
 - [Compact interaction stream contract](interaction-stream-compact-contract-2026-10-21.md) — frozen checkpoint transitions and exact suffix representation.
@@ -264,6 +265,7 @@
 - [freshness-store-crate-extraction-spec-2026-10-26.md](freshness-store-crate-extraction-spec-2026-10-26.md) - Freshness Store Crate Extraction Spec 2026 10 26 documentation.
 - [graph-crate-extraction-evidence-2026-10-26.md](graph-crate-extraction-evidence-2026-10-26.md) - Graph Crate Extraction Evidence 2026 10 26 documentation.
 - [graph-crate-extraction-spec-2026-10-26.md](graph-crate-extraction-spec-2026-10-26.md) - Graph Crate Extraction Spec 2026 10 26 documentation.
+- [import-service-crate-extraction-evidence-2026-10-29.md](import-service-crate-extraction-evidence-2026-10-29.md) - Import Service Crate Extraction Evidence 2026 10 29 documentation.
 - [import-service-crate-extraction-spec-2026-10-29.md](import-service-crate-extraction-spec-2026-10-29.md) - Import Service Crate Extraction Spec 2026 10 29 documentation.
 - [import-step24-attribution-acceptance-2026-10-17.md](import-step24-attribution-acceptance-2026-10-17.md) - Import Step24 Attribution Acceptance 2026 10 17 documentation.
 - [import-store-crate-extraction-evidence-2026-10-27.md](import-store-crate-extraction-evidence-2026-10-27.md) - Import Store Crate Extraction Evidence 2026 10 27 documentation.

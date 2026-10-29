@@ -2,7 +2,7 @@
 
 Parent index: [Documentation index](INDEX.md)
 
-**Crate-first migration:** [Import service crate extraction specification](import-service-crate-extraction-spec-2026-10-29.md) — planned compiled normalization/preparation owner, with existing exclusive epoch/reconstruction/reconciliation authority staying in Root. The specification is not implementation evidence.
+**Crate-first ownership:** The compiled `reliquary-import` crate owns schema-1 source DTOs, ChatGPT/Claude/Hermes/agent normalizers, canonical source digest and preparation of Archive-owned receipts/turns. The public `reliquary_memory::imports` module forwards the original signatures and error categories. Root/Cva remains the only authority for ImportStart/ImportComplete admission, durable Archive/Insomnia publication, scoped Freshness settlement, readiness and reconciliation; `reliquary-import-store` remains the durable epoch store. See the [extraction specification](import-service-crate-extraction-spec-2026-10-29.md) and [acceptance evidence](import-service-crate-extraction-evidence-2026-10-29.md). No persisted format or provider behavior changed.
 
 ## Historical Freshness post-generation operation
 
