@@ -102,6 +102,7 @@
 - [Documentation procedure](documentation-procedure.md) — required documentation workflow.
 - [Documentation coverage](documentation-coverage.md) — implementation-to-document mapping.
 - [Roadmap](roadmap.md) — future-only product, runtime, semantic-layer, and storage implementation sequence.
+- [History service crate extraction evidence](history-service-crate-extraction-evidence-2026-10-29.md) — shared read-only historical revision boundary and verification.
 - [Import step 24 attribution acceptance](import-step24-attribution-acceptance-2026-10-17.md) — scoped cohort/source proofs and validation record.
 - [Native historical import](native-import.md) — current provider-normalized offline import API and durability.
 - [Multiplexing consumer and release plan](multiplexing-implementation-plan.md) — remaining Warlock production adoption, release verification, legacy-surface cleanup, and Hermes integration.
@@ -266,6 +267,7 @@
 - [freshness-store-crate-extraction-spec-2026-10-26.md](freshness-store-crate-extraction-spec-2026-10-26.md) - Freshness Store Crate Extraction Spec 2026 10 26 documentation.
 - [graph-crate-extraction-evidence-2026-10-26.md](graph-crate-extraction-evidence-2026-10-26.md) - Graph Crate Extraction Evidence 2026 10 26 documentation.
 - [graph-crate-extraction-spec-2026-10-26.md](graph-crate-extraction-spec-2026-10-26.md) - Graph Crate Extraction Spec 2026 10 26 documentation.
+- [history-service-crate-extraction-evidence-2026-10-29.md](history-service-crate-extraction-evidence-2026-10-29.md) - History Service Crate Extraction Evidence 2026 10 29 documentation.
 - [history-service-crate-extraction-spec-2026-10-29.md](history-service-crate-extraction-spec-2026-10-29.md) - History Service Crate Extraction Spec 2026 10 29 documentation.
 - [import-service-crate-extraction-evidence-2026-10-29.md](import-service-crate-extraction-evidence-2026-10-29.md) - Import Service Crate Extraction Evidence 2026 10 29 documentation.
 - [import-service-crate-extraction-spec-2026-10-29.md](import-service-crate-extraction-spec-2026-10-29.md) - Import Service Crate Extraction Spec 2026 10 29 documentation.

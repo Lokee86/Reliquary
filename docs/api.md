@@ -408,3 +408,7 @@ Import epoch values exposed through `imports` are the canonical `reliquary-impor
 ## Dream service boundary
 
 `DreamClassifier` and `DreamVerifier` are re-exported from the Dream service. `DreamProcessor` remains the product-facing adapter for Cva and Phylactery processing, and coordinates publication and settlement after service evaluation. `DreamCommunityNamer` remains the product-facing Community naming adapter.
+
+## Historical revision views
+
+`reliquary-history` defines `HistoricalPayload` and evaluates owner-authorized revision facts. The existing `reliquary_memory::owner_lifecycle::HistoricalPayload` path reexports the same type. REL and PHY Memory, Entity and Relationship retain their source lookup, lifecycle and error authority. See [History extraction evidence](history-service-crate-extraction-evidence-2026-10-29.md).

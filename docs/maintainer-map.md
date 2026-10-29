@@ -433,3 +433,7 @@ Archive publication framing is owned by `archive_publication_codec`, with field 
 `scripts/history_writer_inventory.py` rejects reintroduced retired identities and records current lexical identities and append sites. Its evidence supplements, rather than replaces, concrete owner tests and architecture enforcement. `historical_current_corpus_tests.rs` checks the promoted corpus against frozen history; the [linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) owns final acceptance.
 
 Import epoch durable values, framing, identity and projection live in `crates/reliquary-import-store/`. Receipt digest authority and completion admission remain in `src/imports/`; the coordinator writes the completion marker and then applies its accepted bytes to the projection.
+
+## Historical revision classification
+
+`crates/reliquary-history/src/lib.rs` owns the canonical `HistoricalPayload` and shared lazy evaluator. `src/owner_lifecycle.rs` reexports the type; `src/facade/{cva,phylactery}.rs` and `src/perception/{entity_owner,relationship_owner}.rs` retain authorized reads and domain errors. Store history, replay, Import and Maintenance remain with their existing owners. See [History extraction evidence](history-service-crate-extraction-evidence-2026-10-29.md).

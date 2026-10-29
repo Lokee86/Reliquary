@@ -671,3 +671,7 @@ REL and PHY use `reliquary-owner-lifecycle` for shared core initialization, phys
 ## Dream semantic service boundary
 
 `reliquary-dream` evaluates owner-supplied Memory, temporal and Graph facts and returns decisions. Root coordinates authorized reads, version checks, Graph and Memory publication, pair receipts and Freshness settlement. Dream Store retains the durable first-cycle journal; Root retains the separate Dream-pair store. The service does not open owner stores. See [Dream](subsystems/dream.md).
+
+## Historical revision views
+
+`reliquary-history` owns the shared read-only classification of an already requested revision. REL and PHY Memory, Entity and Relationship owners supply lazy lifecycle and retained-structure reads and translate their own errors. Import reconstruction, Maintenance mutation and owner replay remain with their existing owners; History creates no durable records. See [History extraction evidence](history-service-crate-extraction-evidence-2026-10-29.md).

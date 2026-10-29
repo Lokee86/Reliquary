@@ -1,6 +1,6 @@
 # History service crate extraction — implementation specification
 
-**Status:** Specified; not implemented (2026-10-29).
+**Status:** Implemented (2026-10-29); see [acceptance evidence](history-service-crate-extraction-evidence-2026-10-29.md).
 **Target:** `crates/reliquary-history/` (`reliquary-history`), presently a four-line placeholder.
 **Branch / baseline:** `refactor/crate-first-restart`; HEAD `b95f43cd` (Import acceptance).
 **Scope:** correction-only physical boundary; no new product capability, data format, general time-travel engine or migration.
@@ -66,4 +66,4 @@ Required after implementation:
 
 [Crate-first architecture](crate-first-architecture.md), [crate layout](crate-first-layout-spec-2026-10-25.md), [crate map](architecture/crate-map.json), [ADR 0042](decisions/0042-minimal-lossless-current-history.md), [ADR 0041](decisions/0041-semantic-import-boundaries-owner-pruning-history-rewrite.md), [maintainer map](maintainer-map.md), [Rust API](api.md), [behavioral contracts](behavioral-contracts.md).
 
-**Specification only:** no Rust implementation, storage records, corpus files or owner APIs were changed.
+This specification described the pre-implementation boundary; the acceptance evidence records the completed extraction and verification.
