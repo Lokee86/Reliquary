@@ -18,7 +18,7 @@
 | `src/imports/prepare.rs` | `crates/reliquary-import/src/prepare.rs` |
 | DTO definitions formerly in `src/imports/contract.rs` | `crates/reliquary-import/src/lib.rs` |
 
-A direct source-to-source diff against `c5a16f0c` verified the five moved implementation files retain the *same executable body*, with changes restricted to imports and cross-crate visibility. Root now has 5 narrow forwarding functions/modules and reexports the one lower DTO definition. Root `ImportError` retains existing public variants and display semantics and maps lower normalization/preparation errors at this boundary. There are no duplicate provider implementations, source DTO definitions or preparation algorithms.
+A direct source-to-source diff against `c5a16f0c` verified the five moved implementation files retain the *same executable body*, with changes restricted to imports and cross-crate visibility. Root now has narrow forwarding functions and a preparation adapter and reexports the one lower DTO definition. Root `ImportError` retains existing public variants and display semantics and maps lower normalization/preparation errors at this boundary. There are no duplicate provider implementations, source DTO definitions or preparation algorithms.
 
 **Owner boundary:** `src/imports/commit.rs`, `completion.rs`, `readiness.rs`, `epoch_scope.rs`, `epoch_store.rs`, `epoch_codec.rs`, `reconciliation.rs`, `reconciliation_interval.rs`, `reconciliation_replay.rs` and historical reconstruction remain Root/Cva owner operations. `reliquary-import-store` remains the existing durable epoch owner; Archive owns receipt and turn models. Nothing in the Import crate imports `Cva`, `Phylactery`, Container or Gateway. `cargo tree -p reliquary-import --depth 1 --offline` lists Archive as the **only** direct Reliquary crate dependency, plus Serde, Serde JSON, SHA-2 and time. Root depends downward on the compiled Import crate.
 
@@ -43,3 +43,5 @@ The approved crate-map dependency edges are maximum permissions, not dependencie
 An unrelated pre-existing working-tree edit to `docs/graph-crate-extraction-evidence-2026-10-26.md` was preserved, not staged, not amended and not included in either Import commit.
 
 **Result:** Existing Import normalization and canonical preparation now execute through `reliquary-import` as a real compiled crate. Root remains the sole authority for durable admission, source/Insomnia publication, historical Freshness settlement, strict completion and reconciliation. Implementation and acceptance are complete within the stated graph-tool limitation.
+
+A subsequent workspace check during wrapper cleanup encountered a concurrent, unfinished History extraction (`reliquary_history` unresolved in `src/owner_lifecycle.rs`); this is separate from the recorded accepted implementation check above. The four provider forwarding functions now reside in `src/imports/mod.rs`, and the displaced Root provider files have been deleted.
