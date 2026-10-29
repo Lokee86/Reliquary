@@ -2,6 +2,8 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+**Crate-first migration:** [Import service crate extraction specification](import-service-crate-extraction-spec-2026-10-29.md) — planned compiled normalization/preparation owner, with existing exclusive epoch/reconstruction/reconciliation authority staying in Root. The specification is not implementation evidence.
+
 ## Historical Freshness post-generation operation
 
 New imports remain fenced after receipt publication until the explicit Historical Freshness operation and exclusive completion coordinator both accept their evidence. The coordinator derives attributed Insomnia, local Memory, import-born Dream and active non-superseded output Memory mention-resolution readiness from owner stores. Routed PHY outputs return a typed unsupported blocker because this REL-only API cannot validate the other owner. Completed local epochs support ordered divergent replay through their concrete owners; mounted completion remains unavailable.
