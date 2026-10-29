@@ -60,6 +60,7 @@
 - [Memory Core extraction results](memory-core-crate-extraction-results-2026-10-25.md) — corrected grouped replay validation, verified owner/root checks, and explicit corpus gate.
 - [Echo crate extraction specification](echo-crate-extraction-spec-2026-10-26.md) — fourth compiled owner cut: source-keyed execution evidence, CVAECHO1 replay, runtime/Context Engine authority separation and integration gates.
 - [Perception Store crate extraction specification](perception-store-crate-extraction-spec-2026-10-26.md) — sixth compiled owner cut: Entity, mention-resolution and Relationship persistence below Perception service and Owner Lifecycle.
+- [Ego service crate activation specification](ego-service-crate-extraction-spec-2026-10-28.md) — verified absence of an extractable Ego semantic service, frozen service/Store/Context Engine boundaries, conditional implementation gates and unresolved feature contracts.
 - [Ego Store crate extraction specification](ego-store-crate-extraction-spec-2026-10-26.md) — seventh compiled owner cut: Identity, Personality, Anchor and current text synthesis persistence, distinct from future Ego inference; current implementation ownership is documented in [Ego subsystem](subsystems/ego.md).
 - [Freshness Store crate extraction specification](freshness-store-crate-extraction-spec-2026-10-26.md) — eighth compiled owner cut: durable score records, event/accepted-use journal, exact replay and import settlements below Freshness policy and scheduling.
 - [Vector Store crate extraction specification](vector-store-crate-extraction-spec-2026-10-26.md) — partial compiled vector owner cut, storage boundary, wire invariants and full acceptance matrix.
@@ -201,6 +202,7 @@
 - [echo-crate-extraction-spec-2026-10-26.md](echo-crate-extraction-spec-2026-10-26.md) - Echo Crate Extraction Spec 2026 10 26 documentation.
 - [ego-cross-chat-context-plan.md](ego-cross-chat-context-plan.md) - Ego Cross Chat Context Plan documentation.
 - [ego-cross-rel-summary-inclusion-plan.md](ego-cross-rel-summary-inclusion-plan.md) - Ego Cross Rel Summary Inclusion Plan documentation.
+- [ego-service-crate-extraction-spec-2026-10-28.md](ego-service-crate-extraction-spec-2026-10-28.md) - Ego service activation and conditional implementation specification.
 - [ego-status-decision-inventory-2026-10-14.md](ego-status-decision-inventory-2026-10-14.md) - Ego Status Decision Inventory 2026 10 14 documentation.
 - [ego-store-crate-extraction-spec-2026-10-26.md](ego-store-crate-extraction-spec-2026-10-26.md) - Ego Store Crate Extraction Spec 2026 10 26 documentation.
 - [ego-web-synthesis-plan.md](ego-web-synthesis-plan.md) - Ego Web Synthesis Plan documentation.

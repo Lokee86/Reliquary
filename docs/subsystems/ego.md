@@ -56,6 +56,7 @@ Rewrite/prune/reconciliation must preserve or intentionally select Ego state acc
 
 - [Architecture](../architecture.md)
 - [Storage format](../storage-format.md)
+- [Ego service activation and implementation specification](../ego-service-crate-extraction-spec-2026-10-28.md) — empty service today; future semantic implementation requires separate feature authorization and resolved contracts.
 - [Ego Memory-Web synthesis plan](../ego-web-synthesis-plan.md)
 - [Cross-chat context plan](../ego-cross-chat-context-plan.md)
 - [Cross-REL summary inclusion plan](../ego-cross-rel-summary-inclusion-plan.md)
