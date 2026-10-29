@@ -104,6 +104,7 @@ reliquary-chronos = { path = "crates/reliquary-chronos" }
 reliquary-owner-lifecycle = { path = "crates/reliquary-owner-lifecycle" }
 reliquary-external-index-store = { path = "crates/reliquary-external-index-store" }
 reliquary-maintenance-store = { path = "crates/reliquary-maintenance-store" }
+reliquary-maintenance = { path = "crates/reliquary-maintenance" }
 reliquary-import-store = { path = "crates/reliquary-import-store" }
 reliquary-dream-store = { path = "crates/reliquary-dream-store" }
 reliquary-freshness = { path = "crates/reliquary-freshness" }

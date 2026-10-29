@@ -45,82 +45,6 @@ fn source_head_digest(path: &std::path::Path) -> Result<[u8; 32], RewriteError> 
     Ok(Sha256::digest(bytes).into())
 }
 
-fn apply_explicit_selection(
-    candidates: &mut [(MemoryId, bool, String, Vec<u8>)],
-    request: &RewriteRequest,
-) -> Result<(), RewriteError> {
-    let included = request
-        .memories
-        .include_ids
-        .iter()
-        .map(|s| parse_id(s, "Memory ID"))
-        .collect::<Result<std::collections::BTreeSet<_>, _>>()?;
-    let excluded = request
-        .memories
-        .exclude_ids
-        .iter()
-        .map(|s| parse_id(s, "Memory ID"))
-        .collect::<Result<std::collections::BTreeSet<_>, _>>()?;
-    let all: std::collections::BTreeSet<_> = candidates.iter().map(|(id, ..)| id.0).collect();
-    if let Some(id) = included.iter().find(|id| !all.contains(*id)) {
-        return Err(RewriteError(format!(
-            "explicitly included Memory {} does not exist in the source",
-            id_hex(id)
-        )));
-    }
-    if let Some(id) = excluded.iter().find(|id| !all.contains(*id)) {
-        return Err(RewriteError(format!(
-            "explicitly excluded Memory {} does not exist in the source",
-            id_hex(id)
-        )));
-    }
-    for (id, retain, reason, _) in candidates {
-        if excluded.contains(&id.0) {
-            *retain = false;
-            *reason = "explicitly excluded".into();
-        } else if included.contains(&id.0) {
-            *retain = true;
-            *reason = "explicitly included".into();
-        }
-    }
-    Ok(())
-}
-
-fn apply_semantic_closure(
-    candidates: &mut [(MemoryId, bool, String, Vec<u8>)],
-    expanded: &std::collections::BTreeSet<MemoryId>,
-    request: &RewriteRequest,
-) -> Result<(), RewriteError> {
-    let excluded = request
-        .memories
-        .exclude_ids
-        .iter()
-        .map(|s| parse_id(s, "Memory ID"))
-        .collect::<Result<std::collections::BTreeSet<_>, _>>()?;
-    for id in expanded {
-        if excluded.contains(&id.0) {
-            return Err(RewriteError(format!(
-                "explicitly excluded Memory {} is required by retained semantic evidence",
-                id_hex(&id.0)
-            )));
-        }
-        let Some((_, retain, reason, _)) = candidates
-            .iter_mut()
-            .find(|(candidate, ..)| candidate == id)
-        else {
-            return Err(RewriteError(format!(
-                "semantic evidence requires unavailable Memory {}",
-                id_hex(&id.0)
-            )));
-        };
-        if !*retain {
-            *retain = true;
-            *reason = "required by retained semantic evidence closure".into();
-        }
-    }
-    Ok(())
-}
-
 fn memory_link_closure(
     retained: &std::collections::BTreeSet<MemoryId>,
     mut memory: impl FnMut(MemoryId) -> Result<crate::Memory, RewriteError>,
@@ -301,42 +225,8 @@ fn finish_plan(
     source_digest: [u8; 32],
     generation: HistoryGenerationId,
 ) -> Result<RewritePlan, RewriteError> {
-    let included = request
-        .memories
-        .include_ids
-        .iter()
-        .map(|s| parse_id(s, "Memory ID"))
-        .collect::<Result<std::collections::BTreeSet<_>, _>>()?;
-    let excluded = request
-        .memories
-        .exclude_ids
-        .iter()
-        .map(|s| parse_id(s, "Memory ID"))
-        .collect::<Result<std::collections::BTreeSet<_>, _>>()?;
-    let all_ids: std::collections::BTreeSet<_> = candidates.iter().map(|(id, ..)| id.0).collect();
-    if let Some(missing) = included.iter().find(|id| !all_ids.contains(*id)) {
-        return Err(RewriteError(format!(
-            "explicitly included Memory {} does not exist in the source",
-            id_hex(missing)
-        )));
-    }
-    if let Some(missing) = excluded.iter().find(|id| !all_ids.contains(*id)) {
-        return Err(RewriteError(format!(
-            "explicitly excluded Memory {} does not exist in the source",
-            id_hex(missing)
-        )));
-    }
-    for (id, retain, reason, _) in &mut candidates {
-        let key = id.0;
-        if excluded.contains(&key) && !reason.starts_with("required by retained semantic evidence")
-        {
-            *retain = false;
-            *reason = "explicitly excluded".into();
-        } else if included.contains(&key) {
-            *retain = true;
-            *reason = "explicitly included".into();
-        }
-    }
+    // Selection was already applied before closure expansion. Reapplying it
+    // here used to duplicate policy and could mask a closure-required item.
     candidates.sort_by_key(|(id, ..)| id.0);
     let memory_decisions = candidates
         .iter()
@@ -494,7 +384,12 @@ impl Cva {
             }
             candidates.push((id, retain, reason, memory.title.into_bytes()));
         }
-        apply_explicit_selection(&mut candidates, request)?;
+        reliquary_maintenance::apply_explicit_selection(
+            &mut candidates,
+            &request.memories.include_ids,
+            &request.memories.exclude_ids,
+        )
+        .map_err(RewriteError)?;
         loop {
             let retained: std::collections::BTreeSet<_> = candidates
                 .iter()
@@ -504,7 +399,12 @@ impl Cva {
             let mut expanded = memory_link_closure(&retained, |id| latest_rel_memory(self, id))?;
             let semantic = crate::rewrite::semantic_state::semantic_closure_rel(self, &expanded)?;
             expanded.extend(semantic.expanded_memory_ids);
-            apply_semantic_closure(&mut candidates, &expanded, request)?;
+            reliquary_maintenance::apply_semantic_closure(
+                &mut candidates,
+                &expanded,
+                &request.memories.exclude_ids,
+            )
+            .map_err(RewriteError)?;
             if expanded == retained {
                 break;
             }
@@ -698,7 +598,12 @@ impl Phylactery {
             }
             candidates.push((id, retain, reason, memory.title.into_bytes()));
         }
-        apply_explicit_selection(&mut candidates, request)?;
+        reliquary_maintenance::apply_explicit_selection(
+            &mut candidates,
+            &request.memories.include_ids,
+            &request.memories.exclude_ids,
+        )
+        .map_err(RewriteError)?;
         loop {
             let retained: std::collections::BTreeSet<_> = candidates
                 .iter()
@@ -708,7 +613,12 @@ impl Phylactery {
             let mut expanded = memory_link_closure(&retained, |id| latest_phy_memory(self, id))?;
             let semantic = crate::rewrite::semantic_state::semantic_closure_phy(self, &expanded)?;
             expanded.extend(semantic.expanded_memory_ids);
-            apply_semantic_closure(&mut candidates, &expanded, request)?;
+            reliquary_maintenance::apply_semantic_closure(
+                &mut candidates,
+                &expanded,
+                &request.memories.exclude_ids,
+            )
+            .map_err(RewriteError)?;
             if expanded == retained {
                 break;
             }

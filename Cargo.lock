@@ -2879,6 +2879,9 @@ dependencies = [
 [[package]]
 name = "reliquary-maintenance"
 version = "0.1.0"
+dependencies = [
+ "reliquary-memory-core",
+]
 
 [[package]]
 name = "reliquary-maintenance-store"
@@ -2917,6 +2920,7 @@ dependencies = [
  "reliquary-import-store",
  "reliquary-insomnia",
  "reliquary-insomnia-store",
+ "reliquary-maintenance",
  "reliquary-maintenance-store",
  "reliquary-memory-core",
  "reliquary-owner-lifecycle",

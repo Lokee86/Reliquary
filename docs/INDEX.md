@@ -21,6 +21,8 @@
 - [Compact derived external index contract](external-index-compact-contract-2026-10-21.md)
 - [External Index Store extraction specification](external-index-store-crate-extraction-spec-2026-10-27.md) — derived snapshot/codec ownership and validation boundary.
 - [Maintenance Store extraction specification](maintenance-store-crate-extraction-spec-2026-10-27.md) — evidence-first durable ownership decision.
+- [Maintenance service extraction specification](maintenance-service-crate-extraction-spec-2026-10-29.md) — existing rewrite-selection policy ownership and production integration gates.
+- [Maintenance service extraction evidence](maintenance-service-crate-extraction-evidence-2026-10-29.md) — source crosswalk, implementation status, and verification evidence.
 - [Owner Lifecycle extraction evidence](owner-lifecycle-crate-extraction-evidence-2026-10-27.md) — implementation, verification and remaining fixture limits.
 - [Chronos extraction evidence](chronos-crate-extraction-evidence-2026-10-27.md) — extraction baseline and verification.
 - [Chronos extraction specification](chronos-crate-extraction-spec-2026-10-27.md) — Chronos ownership and staged migration.
@@ -284,6 +286,8 @@
 - [invariants.md](invariants.md) - Invariants documentation.
 - [latest-offline-converter-coverage-2026-10-21.md](latest-offline-converter-coverage-2026-10-21.md) - Latest Offline Converter Coverage 2026 10 21 documentation.
 - [maintainer-map.md](maintainer-map.md) - Maintainer Map documentation.
+- [maintenance-service-crate-extraction-evidence-2026-10-29.md](maintenance-service-crate-extraction-evidence-2026-10-29.md) - Maintenance Service Crate Extraction Evidence 2026 10 29 documentation.
+- [maintenance-service-crate-extraction-spec-2026-10-29.md](maintenance-service-crate-extraction-spec-2026-10-29.md) - Maintenance Service Crate Extraction Spec 2026 10 29 documentation.
 - [maintenance-store-crate-extraction-evidence-2026-10-27.md](maintenance-store-crate-extraction-evidence-2026-10-27.md) - Maintenance Store Crate Extraction Evidence 2026 10 27 documentation.
 - [maintenance-store-crate-extraction-spec-2026-10-27.md](maintenance-store-crate-extraction-spec-2026-10-27.md) - Maintenance Store Crate Extraction Spec 2026 10 27 documentation.
 - [memory-core-crate-extraction-results-2026-10-25.md](memory-core-crate-extraction-results-2026-10-25.md) - Memory Core Crate Extraction Results 2026 10 25 documentation.
