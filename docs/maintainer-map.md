@@ -146,6 +146,10 @@ C9 fixtures live in `src/facade/historical_matrix_{tests,semantic_tests,dream_te
 
 Retained-REL diagnosis uses `historical_retained_corpus_tests.rs` / `historical_retained_diagnostics.rs` under the same private Cva test owner, orchestrated by `scripts/freshness_historical_corpus.py`. Route clock, legacy-cohort, generation/branch coverage and Dream approximation work to the [C10 diagnosis](subsystems/freshness.md#historical-reconstruction); current blockers remain in [Current limitations](current-limitations.md). Diagnostic fixtures cannot authorize publication or bypass native gates.
 
+## Dream service and host adapters
+
+The `reliquary-dream` crate owns candidate ranking, pair classification and verification, bounded inference, publication policy, duplicate planning and lifecycle decisions over owner-supplied facts. Root Dream adapters hydrate owner facts and execute Graph and Memory writes; the pair history and first-cycle journals remain in their existing durable owners. See [Dream](subsystems/dream.md) for the boundary.
+
 ## Dream pair history
 
 `src/runtime_inference/dream_pair_history.rs` owns clock-neutral pair membership

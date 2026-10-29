@@ -1,7 +1,5 @@
 use crate::chronos::temporal_matches;
-use crate::dream_candidate_ranking::{
-    ScoredCandidate, lexical_score, rank_lanes, select_candidates,
-};
+use crate::dream_candidate_ranking::{ScoredCandidate, rank_and_select};
 use crate::dream_owner_vectors::load_memory_vectors;
 use crate::dream_pair_history::DreamPairStore;
 use crate::dream_temporal::analyze_memory_temporal;
@@ -10,9 +8,10 @@ use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::{
     CompatibilityProfileId, DreamCandidateConfig, DreamCandidateError, DreamCandidateSet,
-    DreamMemoryContext, GraphRelation, MAX_DREAM_CANDIDATE_LIMIT, Memory, MemoryBodyId, MemoryId,
+    DreamMemoryContext, GraphRelation, Memory, MemoryBodyId, MemoryId,
 };
 use reliquary_container::Container;
+use reliquary_dream::lexical_score;
 use reliquary_vector_store::PackedVectorStore;
 
 pub(crate) fn dream_memory_context<R>(
@@ -46,7 +45,8 @@ pub(crate) fn dream_candidates<R>(
 where
     R: Fn(&Memory) -> Option<i64>,
 {
-    validate_config(config)?;
+    reliquary_dream::validate_candidate_config(config)
+        .map_err(|_| DreamCandidateError::InvalidConfig)?;
     let source = memories.memory(container, source_id)?;
     let source_body = memories.current_body_id(source_id)?;
     let vectors = load_memory_vectors(
@@ -80,7 +80,10 @@ where
         let body_id = memories.current_body_id(id)?;
         let semantic_score = vectors
             .get(&body_id)
-            .map(|candidate| cosine(source_vector, candidate))
+            .map(|candidate| {
+                reliquary_dream::candidate_cosine(source_vector, candidate)
+                    .map_err(DreamCandidateError::CorruptVector)
+            })
             .transpose()?;
         let lexical_score = lexical_score(&source_context.memory, &memory);
         let context = build_context(memory, body_id, &relations, source_time);
@@ -99,10 +102,9 @@ where
             fused_score: 0.0,
         });
     }
-    rank_lanes(&source_context, &mut scored, config);
     Ok(DreamCandidateSet {
+        candidates: rank_and_select(&source_context, scored, config),
         source: source_context,
-        candidates: select_candidates(scored, config),
     })
 }
 
@@ -129,35 +131,4 @@ where
         graph_relations,
         temporal,
     }
-}
-
-fn validate_config(config: DreamCandidateConfig) -> Result<(), DreamCandidateError> {
-    if config.limit == 0
-        || config.limit > MAX_DREAM_CANDIDATE_LIMIT
-        || config.semantic_limit > MAX_DREAM_CANDIDATE_LIMIT
-        || config.lexical_limit > MAX_DREAM_CANDIDATE_LIMIT
-        || config.temporal_limit > MAX_DREAM_CANDIDATE_LIMIT
-        || config.prior_semantic_quota > config.limit
-    {
-        return Err(DreamCandidateError::InvalidConfig);
-    }
-    Ok(())
-}
-
-fn cosine(left: &[f32], right: &[f32]) -> Result<f64, DreamCandidateError> {
-    if left.len() != right.len() || left.is_empty() {
-        return Err(DreamCandidateError::CorruptVector("vector dimensions"));
-    }
-    let mut dot = 0.0_f64;
-    let mut left_norm = 0.0_f64;
-    let mut right_norm = 0.0_f64;
-    for (left, right) in left.iter().zip(right) {
-        dot += *left as f64 * *right as f64;
-        left_norm += (*left as f64).powi(2);
-        right_norm += (*right as f64).powi(2);
-    }
-    if left_norm == 0.0 || right_norm == 0.0 {
-        return Err(DreamCandidateError::CorruptVector("zero vector"));
-    }
-    Ok(dot / (left_norm.sqrt() * right_norm.sqrt()))
 }

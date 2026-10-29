@@ -109,8 +109,6 @@
     ],
     "reliquary-dream": [
       "reliquary-chronos",
-      "reliquary-dream-store",
-      "reliquary-freshness",
       "reliquary-graph",
       "reliquary-memory-core",
       "reliquary-switchboard",

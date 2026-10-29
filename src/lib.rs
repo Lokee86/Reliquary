@@ -300,22 +300,10 @@ mod dream_candidate_ranking;
 mod dream_candidates;
 #[path = "runtime_inference/dream_canonical.rs"]
 mod dream_canonical;
-#[path = "runtime_inference/dream_classifier.rs"]
-mod dream_classifier;
-#[path = "runtime_inference/dream_classifier_error.rs"]
-mod dream_classifier_error;
-#[path = "runtime_inference/dream_classifier_model.rs"]
-mod dream_classifier_model;
-#[path = "runtime_inference/dream_classifier_schema.rs"]
-mod dream_classifier_schema;
 #[path = "runtime_inference/dream_community_naming.rs"]
 mod dream_community_naming;
-#[path = "runtime_inference/dream_community_naming_context.rs"]
-mod dream_community_naming_context;
 #[path = "runtime_inference/dream_community_naming_error.rs"]
 mod dream_community_naming_error;
-#[path = "runtime_inference/dream_community_naming_schema.rs"]
-mod dream_community_naming_schema;
 #[path = "runtime_inference/dream_cooldown.rs"]
 mod dream_cooldown;
 #[path = "runtime_inference/dream_duplicate_index.rs"]
@@ -336,8 +324,6 @@ mod dream_owner_duplicate;
 mod dream_owner_publisher;
 #[path = "runtime_inference/dream_owner_vectors.rs"]
 mod dream_owner_vectors;
-#[path = "runtime_inference/dream_pair_context.rs"]
-mod dream_pair_context;
 #[path = "runtime_inference/dream_pair_history.rs"]
 mod dream_pair_history;
 #[path = "runtime_inference/freshness_access.rs"]
@@ -362,14 +348,6 @@ mod dream_publisher_error;
 mod dream_publisher_model;
 #[path = "runtime_inference/dream_temporal.rs"]
 mod dream_temporal;
-#[path = "runtime_inference/dream_verifier.rs"]
-mod dream_verifier;
-#[path = "runtime_inference/dream_verifier_error.rs"]
-mod dream_verifier_error;
-#[path = "runtime_inference/dream_verifier_model.rs"]
-mod dream_verifier_model;
-#[path = "runtime_inference/dream_verifier_schema.rs"]
-mod dream_verifier_schema;
 use reliquary_ego_store::ego_codec;
 use reliquary_ego_store::ego_compact_apply;
 use reliquary_ego_store::ego_compact_contract;
@@ -794,23 +772,9 @@ pub use cva_reconcile_error::CvaReconcileError;
 pub use cva_repack::ProjectAttachmentRepackResult;
 pub use cva_vector_recovery::DerivedVectorRecovery;
 pub use dream_candidate_error::DreamCandidateError;
-pub use dream_candidate_model::{
-    DEFAULT_DREAM_CANDIDATE_LIMIT, DEFAULT_DREAM_LEXICAL_LIMIT, DEFAULT_DREAM_PRIOR_SEMANTIC_QUOTA,
-    DEFAULT_DREAM_SEMANTIC_LIMIT, DEFAULT_DREAM_TEMPORAL_LIMIT, DreamCandidate,
-    DreamCandidateConfig, DreamCandidateSet, DreamMemoryContext, MAX_DREAM_CANDIDATE_LIMIT,
-};
-pub use dream_classifier::DreamClassifier;
-pub use dream_classifier_error::DreamClassificationError;
-pub use dream_classifier_model::{
-    DREAM_CLASSIFIER_CONTRACT_VERSION, DreamEvidenceSide, DreamPairClassification,
-    DreamPairEvidence, DreamRelationDirection, DreamRelationKind,
-};
-pub use dream_classifier_schema::{DREAM_CLASSIFIER_SYSTEM_PROMPT, dream_classifier_schema};
+pub use dream_candidate_model::{DreamCandidate, DreamCandidateSet, DreamMemoryContext};
 pub use dream_community_naming::{DreamCommunityNamer, DreamCommunityNamingResult};
 pub use dream_community_naming_error::DreamCommunityNamingError;
-pub use dream_community_naming_schema::{
-    DREAM_COMMUNITY_NAMING_SYSTEM_PROMPT, dream_community_naming_schema,
-};
 pub use dream_cooldown::DEFAULT_DREAM_REPROCESS_COOLDOWN_NS;
 pub use dream_lifecycle_error::DreamLifecycleError;
 pub use dream_lifecycle_model::DreamLifecycleResult;
@@ -822,13 +786,6 @@ pub use dream_processor_frontier::{
 pub use dream_processor_model::{DreamProcessResult, DreamProcessedPair};
 pub use dream_publisher_error::DreamPublicationError;
 pub use dream_publisher_model::DreamPublicationOutcome;
-pub use dream_verifier::DreamVerifier;
-pub use dream_verifier_error::DreamVerificationError;
-pub use dream_verifier_model::{
-    DREAM_VERIFIER_CONTRACT_VERSION, DreamPairVerification, DreamVerificationPolicy,
-    DreamVerificationSignal, DreamVerificationVerdict,
-};
-pub use dream_verifier_schema::{DREAM_VERIFIER_SYSTEM_PROMPT, dream_verifier_schema};
 pub use ego_error::EgoError;
 pub use ego_model::{
     EgoAnchor, EgoAnchorId, EgoAnchorPriority, EgoIdentity, EgoIdentityId, EgoPersonality,
@@ -945,6 +902,26 @@ pub use reliquary_archive::project_history_model::{
     ProjectRevisionCorrelation, ProjectRevisionRef, RelSemanticCut,
 };
 pub use reliquary_chronos::CHRONOS_INFERENCE_CONTRACT_VERSION;
+pub use reliquary_dream::DreamClassificationError;
+pub use reliquary_dream::DreamClassifier;
+pub use reliquary_dream::DreamVerificationError;
+pub use reliquary_dream::DreamVerifier;
+pub use reliquary_dream::{
+    DEFAULT_DREAM_CANDIDATE_LIMIT, DEFAULT_DREAM_LEXICAL_LIMIT, DEFAULT_DREAM_PRIOR_SEMANTIC_QUOTA,
+    DEFAULT_DREAM_SEMANTIC_LIMIT, DEFAULT_DREAM_TEMPORAL_LIMIT, DreamCandidateConfig,
+    MAX_DREAM_CANDIDATE_LIMIT,
+};
+pub use reliquary_dream::{
+    DREAM_CLASSIFIER_CONTRACT_VERSION, DreamEvidenceSide, DreamPairClassification,
+    DreamPairEvidence, DreamRelationDirection, DreamRelationKind,
+};
+pub use reliquary_dream::{DREAM_CLASSIFIER_SYSTEM_PROMPT, dream_classifier_schema};
+pub use reliquary_dream::{DREAM_COMMUNITY_NAMING_SYSTEM_PROMPT, dream_community_naming_schema};
+pub use reliquary_dream::{
+    DREAM_VERIFIER_CONTRACT_VERSION, DreamPairVerification, DreamVerificationPolicy,
+    DreamVerificationSignal, DreamVerificationVerdict,
+};
+pub use reliquary_dream::{DREAM_VERIFIER_SYSTEM_PROMPT, dream_verifier_schema};
 pub use reliquary_echo::{EchoError, EchoEvent, EchoEventKind};
 pub use reliquary_entity_resolution::EntityResolutionEngine;
 pub use reliquary_entity_resolution::MAX_ENTITY_ADMISSION_CONTEXT_MEMORIES;

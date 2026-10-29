@@ -1,10 +1,10 @@
 use crate::dream_canonical::{
     canonical_superseders, corroborated_representative, duplicate_component_has_active_peer,
-    explicit_authority_promotes,
+    unique_superseder,
 };
 use crate::{
-    Cva, DreamLifecycleError, DreamLifecycleResult, GraphRelation, GraphRelationKind, Memory,
-    MemoryDraft, MemoryId,
+    Cva, DreamLifecycleError, DreamLifecycleResult, GraphRelationKind, Memory, MemoryDraft,
+    MemoryId,
 };
 
 impl Cva {
@@ -13,10 +13,7 @@ impl Cva {
         source_id: MemoryId,
     ) -> Result<DreamLifecycleResult, DreamLifecycleError> {
         let relations = self.graph_relations();
-        let mut revised = Vec::new();
-        let mut archived = Vec::new();
         let mut canonicalized = canonical_superseders(self, source_id, &relations)?;
-
         let mut superseded_targets: Vec<_> = relations
             .iter()
             .filter(|relation| {
@@ -28,62 +25,67 @@ impl Cva {
         superseded_targets.sort_by_key(|id| id.0);
         superseded_targets.dedup();
 
-        for target in superseded_targets {
-            let superseded_by = unique_superseder(&relations, target);
-            if let Some(memory) = self.revise_lifecycle(target, "archived", true, superseded_by)? {
-                archived.push(target);
-                revised.push(memory);
-            }
-        }
-
         let source = self.memory(source_id)?;
-        if !source.archived
+        let has_active_duplicate_peer = !superseded_targets.contains(&source_id)
+            && !source.archived
             && source.lifecycle_state == "extracted"
-            && duplicate_component_has_active_peer(self, source_id, &relations)?
-            && let Some(memory) =
-                self.revise_lifecycle(source_id, "archived", true, source.superseded_by)?
+            && duplicate_component_has_active_peer(
+                self,
+                source_id,
+                &relations,
+                &superseded_targets,
+            )?;
+        let mut will_archive = superseded_targets.clone();
+        if has_active_duplicate_peer {
+            will_archive.push(source_id);
+        }
+        if let Some(representative) =
+            corroborated_representative(self, source_id, &relations, &will_archive)?
         {
-            archived.push(source_id);
-            revised.push(memory);
-        }
-
-        let source = self.memory(source_id)?;
-        if !source.archived && explicit_authority_promotes(&source) {
-            canonicalized.push(source_id);
-        }
-        if let Some(representative) = corroborated_representative(self, source_id, &relations)? {
             canonicalized.push(representative);
         }
-        canonicalized.sort_by_key(|id| id.0);
-        canonicalized.dedup();
-
+        let mut targets = Vec::with_capacity(superseded_targets.len());
+        for id in superseded_targets {
+            targets.push((
+                lifecycle_memory(self.memory(id)?),
+                unique_superseder(&relations, id),
+            ));
+        }
+        let canonical_facts = canonicalized
+            .into_iter()
+            .map(|id| self.memory(id).map(lifecycle_memory))
+            .collect::<Result<Vec<_>, _>>()?;
+        let plan = reliquary_dream::plan_lifecycle(
+            lifecycle_memory(source.clone()),
+            &targets,
+            has_active_duplicate_peer,
+            canonical_facts,
+            reliquary_dream::explicit_authority_promotes(
+                &source.authority_kind,
+                &source.category,
+                &source.memory_type,
+            ),
+        );
+        let mut revised = Vec::new();
+        let mut archived = Vec::new();
         let mut promoted = Vec::new();
-        for id in canonicalized {
-            let current = self.memory(id)?;
-            if current.archived || current.lifecycle_state == "canonical" {
-                continue;
-            }
-            if let Some(memory) =
-                self.revise_lifecycle(id, "canonical", false, current.superseded_by)?
-            {
+        let mut promoted_to_knowledge = false;
+        for intent in plan {
+            if let Some(memory) = self.revise_lifecycle(
+                intent.memory_id,
+                intent.lifecycle_state,
+                intent.archived,
+                intent.superseded_by,
+            )? {
                 revised.push(memory);
-                promoted.push(id);
+                match intent.lifecycle_state {
+                    "archived" => archived.push(intent.memory_id),
+                    "canonical" => promoted.push(intent.memory_id),
+                    "knowledge" => promoted_to_knowledge = true,
+                    _ => unreachable!("Dream lifecycle policy returned an unknown state"),
+                }
             }
         }
-
-        let source = self.memory(source_id)?;
-        let promoted_to_knowledge = if !source.archived && source.lifecycle_state == "extracted" {
-            if let Some(memory) =
-                self.revise_lifecycle(source_id, "knowledge", false, source.superseded_by)?
-            {
-                revised.push(memory);
-                true
-            } else {
-                false
-            }
-        } else {
-            false
-        };
 
         archived.sort_by_key(|id| id.0);
         archived.dedup();
@@ -124,19 +126,17 @@ impl Cva {
     }
 }
 
-fn unique_superseder(relations: &[GraphRelation], target: MemoryId) -> Option<MemoryId> {
-    let mut sources: Vec<_> = relations
-        .iter()
-        .filter(|relation| {
-            relation.kind == GraphRelationKind::Supersedes && relation.target == target
-        })
-        .map(|relation| relation.source)
-        .collect();
-    sources.sort_by_key(|id| id.0);
-    sources.dedup();
-    match sources.as_slice() {
-        [source] => Some(*source),
-        _ => None,
+fn lifecycle_memory(memory: Memory) -> reliquary_dream::DreamLifecycleMemory {
+    reliquary_dream::DreamLifecycleMemory {
+        id: memory.id,
+        lifecycle_state: match memory.lifecycle_state.as_str() {
+            "extracted" => "extracted",
+            "knowledge" => "knowledge",
+            "canonical" => "canonical",
+            _ => "other",
+        },
+        archived: memory.archived,
+        superseded_by: memory.superseded_by,
     }
 }
 

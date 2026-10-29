@@ -99,5 +99,5 @@ where
     let memory = memories.memory(container, memory_id)?;
     let timestamp_ns =
         source_time(&memory).ok_or(DreamPublicationError::MissingSourceTimestamp(memory_id))?;
-    Ok(DuplicateTemporalKey::new(timestamp_ns, memory_id))
+    Ok(DuplicateTemporalKey::new(timestamp_ns, memory_id.0))
 }

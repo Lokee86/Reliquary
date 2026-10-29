@@ -1,26 +1,47 @@
-use crate::{
-    DreamMemoryContext, DreamTemporalFrequency, DreamTemporalGranularity, DreamTemporalOrigin,
-    DreamTemporalWeekday, GraphRelationKind,
+use reliquary_chronos::{
+    TemporalAnalysis, TemporalFrequency as DreamTemporalFrequency,
+    TemporalGranularity as DreamTemporalGranularity, TemporalOrigin as DreamTemporalOrigin,
+    TemporalWeekday as DreamTemporalWeekday,
 };
+use reliquary_graph::GraphRelationKind;
+use reliquary_memory_core::{Memory, MemoryBodyId, MemoryId};
 use serde_json::{Value, json};
 
-pub(crate) fn canonical_pair<'a>(
-    left: &'a DreamMemoryContext,
-    right: &'a DreamMemoryContext,
-) -> Option<(&'a DreamMemoryContext, &'a DreamMemoryContext)> {
-    if left.memory.id == right.memory.id {
+#[derive(Clone, Copy)]
+pub struct DreamRelationContext {
+    pub source: MemoryId,
+    pub target: MemoryId,
+    pub kind: GraphRelationKind,
+}
+pub trait DreamContext {
+    fn memory(&self) -> &Memory;
+    fn body_id(&self) -> MemoryBodyId;
+    fn source_timestamp_ns(&self) -> Option<i64>;
+    fn temporal(&self) -> &TemporalAnalysis;
+    fn relations(&self) -> Vec<DreamRelationContext>;
+}
+pub trait DreamCandidateContexts {
+    type Context: DreamContext;
+    fn source(&self) -> &Self::Context;
+    fn candidates(&self) -> Vec<&Self::Context>;
+}
+pub(crate) fn canonical_pair<'a, C: DreamContext>(
+    left: &'a C,
+    right: &'a C,
+) -> Option<(&'a C, &'a C)> {
+    if left.memory().id == right.memory().id {
         return None;
     }
-    Some(if left.memory.id.0 < right.memory.id.0 {
+    Some(if left.memory().id.0 < right.memory().id.0 {
         (left, right)
     } else {
         (right, left)
     })
 }
 
-pub(crate) fn context_json(context: &DreamMemoryContext) -> Value {
+pub(crate) fn context_json(context: &impl DreamContext) -> Value {
     let relations: Vec<_> = context
-        .graph_relations
+        .relations()
         .iter()
         .map(|relation| {
             json!({
@@ -31,22 +52,22 @@ pub(crate) fn context_json(context: &DreamMemoryContext) -> Value {
         })
         .collect();
     json!({
-        "memory_id": hex(&context.memory.id.0),
-        "body_id": hex(&context.body_id.0),
-        "category": context.memory.category,
-        "memory_type": context.memory.memory_type,
-        "lifecycle_state": context.memory.lifecycle_state,
-        "title": context.memory.title,
-        "content": context.memory.content,
-        "source_timestamp_ns": context.source_timestamp_ns,
+        "memory_id": hex(&context.memory().id.0),
+        "body_id": hex(&context.body_id().0),
+        "category": context.memory().category,
+        "memory_type": context.memory().memory_type,
+        "lifecycle_state": context.memory().lifecycle_state,
+        "title": context.memory().title,
+        "content": context.memory().content,
+        "source_timestamp_ns": context.source_timestamp_ns(),
         "temporal": temporal_json(context),
         "graph_relations": relations,
     })
 }
 
-fn temporal_json(context: &DreamMemoryContext) -> Value {
+fn temporal_json(context: &impl DreamContext) -> Value {
     let anchors: Vec<_> = context
-        .temporal
+        .temporal()
         .anchors
         .iter()
         .map(|anchor| {
@@ -60,7 +81,7 @@ fn temporal_json(context: &DreamMemoryContext) -> Value {
         })
         .collect();
     let patterns: Vec<_> = context
-        .temporal
+        .temporal()
         .patterns
         .iter()
         .map(|pattern| {
@@ -77,8 +98,8 @@ fn temporal_json(context: &DreamMemoryContext) -> Value {
     json!({"anchors": anchors, "patterns": patterns})
 }
 
-pub(crate) fn memory_text(context: &DreamMemoryContext) -> String {
-    format!("{}\n{}", context.memory.title, context.memory.content)
+pub(crate) fn memory_text(context: &impl DreamContext) -> String {
+    format!("{}\n{}", context.memory().title, context.memory().content)
 }
 
 pub(crate) fn hex(bytes: &[u8; 32]) -> String {

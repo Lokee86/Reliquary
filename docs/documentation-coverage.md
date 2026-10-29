@@ -240,3 +240,5 @@ is documented in [Architecture](architecture.md#graph-and-community-owner-crate)
 and the [maintainer map](maintainer-map.md). Product endpoint admission and
 History/Maintenance authorization stay above the crate; retrieval routing stays
 with its consumers. Existing Graph/Community wire formats are unchanged.
+
+Dream service policy and inference live in `crates/reliquary-dream/src/`; owner adapters and the pair journal remain in `src/runtime_inference/` and `src/facade/`. The [Dream subsystem](subsystems/dream.md) and [API](api.md) document this boundary.

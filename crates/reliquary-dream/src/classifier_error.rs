@@ -1,4 +1,4 @@
-use crate::GeneralEndpointError;
+use reliquary_switchboard::GeneralEndpointError;
 use std::fmt;
 
 #[derive(Debug)]

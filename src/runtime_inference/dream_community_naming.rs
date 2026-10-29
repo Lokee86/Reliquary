@@ -1,15 +1,13 @@
-use crate::dream_community_naming_context::{build_payload, parse_name, representative_ids};
-use crate::dream_community_naming_schema::{
-    DREAM_COMMUNITY_NAMING_SYSTEM_PROMPT, dream_community_naming_schema,
-};
 use crate::{
     COMMUNITY_ALGORITHM_VERSION, COMMUNITY_NAMING_CONTRACT_VERSION, CommunitySemanticName,
     CommunitySemanticNameSource, CompatibilityProfileId, Cva,
     DEFAULT_MEMORY_RETRIEVAL_SUBCENTROIDS, DreamCommunityNamingError, GeneralEndpoint, Memory,
     Phylactery,
 };
-
-const DREAM_COMMUNITY_NAMING_RETRY_LIMIT: usize = 2;
+use reliquary_dream::{
+    DreamCommunityNameEvaluationError, DreamCommunityNameEvaluator,
+    community_representative_ids as representative_ids,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DreamCommunityNamingResult {
@@ -19,27 +17,24 @@ pub struct DreamCommunityNamingResult {
 }
 
 pub struct DreamCommunityNamer<E> {
-    endpoint: E,
-    system_prompt: String,
+    evaluator: DreamCommunityNameEvaluator<E>,
 }
 
 impl<E: GeneralEndpoint> DreamCommunityNamer<E> {
     pub fn new(endpoint: E) -> Self {
         Self {
-            endpoint,
-            system_prompt: DREAM_COMMUNITY_NAMING_SYSTEM_PROMPT.to_owned(),
+            evaluator: DreamCommunityNameEvaluator::new(endpoint),
         }
     }
 
     pub fn with_system_prompt(endpoint: E, system_prompt: impl Into<String>) -> Self {
         Self {
-            endpoint,
-            system_prompt: system_prompt.into(),
+            evaluator: DreamCommunityNameEvaluator::with_system_prompt(endpoint, system_prompt),
         }
     }
 
     pub fn model(&self) -> &str {
-        self.endpoint.model()
+        self.evaluator.model()
     }
 
     pub fn name_communities(
@@ -65,7 +60,18 @@ impl<E: GeneralEndpoint> DreamCommunityNamer<E> {
             .collect();
         let mut named = Vec::with_capacity(pending.len());
         for community in &pending {
-            let representatives = representative_ids(community, &index);
+            let centroids: Vec<_> = index
+                .subcentroids()
+                .iter()
+                .filter(|centroid| centroid.community_id == community.id)
+                .map(|centroid| centroid.vector.clone())
+                .collect();
+            let vectors: std::collections::HashMap<_, _> = community
+                .members
+                .iter()
+                .filter_map(|id| index.vector_for(*id).map(|vector| (*id, vector.to_vec())))
+                .collect();
+            let representatives = representative_ids(&community.members, &centroids, &vectors);
             let memories = representatives
                 .iter()
                 .map(|memory_id| cva.memory(*memory_id))
@@ -75,7 +81,7 @@ impl<E: GeneralEndpoint> DreamCommunityNamer<E> {
                 baseline_community_id: community.id,
                 contract_version: COMMUNITY_NAMING_CONTRACT_VERSION,
                 source: CommunitySemanticNameSource::Dream,
-                name: self.generate_name(&memories)?,
+                name: self.evaluate_name(&memories)?,
                 representative_memories: representatives,
             };
             cva.publish_community_semantic_name(record.clone())?;
@@ -121,7 +127,18 @@ impl<E: GeneralEndpoint> DreamCommunityNamer<E> {
             .collect();
         let mut named = Vec::with_capacity(pending.len());
         for community in &pending {
-            let representatives = representative_ids(community, &index);
+            let centroids: Vec<_> = index
+                .subcentroids()
+                .iter()
+                .filter(|centroid| centroid.community_id == community.id)
+                .map(|centroid| centroid.vector.clone())
+                .collect();
+            let vectors: std::collections::HashMap<_, _> = community
+                .members
+                .iter()
+                .filter_map(|id| index.vector_for(*id).map(|vector| (*id, vector.to_vec())))
+                .collect();
+            let representatives = representative_ids(&community.members, &centroids, &vectors);
             let memories = representatives
                 .iter()
                 .map(|memory_id| phylactery.memory(*memory_id))
@@ -131,7 +148,7 @@ impl<E: GeneralEndpoint> DreamCommunityNamer<E> {
                 baseline_community_id: community.id,
                 contract_version: COMMUNITY_NAMING_CONTRACT_VERSION,
                 source: CommunitySemanticNameSource::Dream,
-                name: self.generate_name(&memories)?,
+                name: self.evaluate_name(&memories)?,
                 representative_memories: representatives,
             };
             phylactery.publish_community_semantic_name(record.clone())?;
@@ -151,32 +168,18 @@ impl<E: GeneralEndpoint> DreamCommunityNamer<E> {
         })
     }
 
-    fn generate_name(&self, memories: &[Memory]) -> Result<String, DreamCommunityNamingError> {
-        let payload = build_payload(memories)?;
-        for attempt in 0..=DREAM_COMMUNITY_NAMING_RETRY_LIMIT {
-            match self.endpoint.complete_json(
-                &self.system_prompt,
-                &payload,
-                "dream_community_name",
-                &dream_community_naming_schema(),
-            ) {
-                Ok(output) => match parse_name(&output) {
-                    Ok(name) => return Ok(name),
-                    Err(error) if attempt == DREAM_COMMUNITY_NAMING_RETRY_LIMIT => {
-                        return Err(error);
-                    }
-                    Err(_) => continue,
-                },
-                Err(error) if error.is_backpressure() => {
-                    return Err(DreamCommunityNamingError::Inference(error));
+    fn evaluate_name(&self, memories: &[Memory]) -> Result<String, DreamCommunityNamingError> {
+        self.evaluator
+            .generate_name(memories)
+            .map_err(|error| match error {
+                DreamCommunityNameEvaluationError::Payload(message)
+                | DreamCommunityNameEvaluationError::InvalidOutput(message) => {
+                    DreamCommunityNamingError::InvalidOutput(message)
                 }
-                Err(error) if attempt == DREAM_COMMUNITY_NAMING_RETRY_LIMIT => {
-                    return Err(DreamCommunityNamingError::Inference(error));
+                DreamCommunityNameEvaluationError::Inference(error) => {
+                    DreamCommunityNamingError::Inference(error)
                 }
-                Err(_) => continue,
-            }
-        }
-        unreachable!("Dream community naming retry loop always returns")
+            })
     }
 }
 

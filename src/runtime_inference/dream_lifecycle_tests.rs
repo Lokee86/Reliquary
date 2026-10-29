@@ -99,3 +99,24 @@ fn lifecycle_reconciliation_is_idempotent() {
     assert!(second.revised.is_empty());
     assert_eq!(cva.memory_version(), memory_version);
 }
+
+#[test]
+fn superseded_duplicate_peer_does_not_archive_the_source() {
+    let mut cva = Cva::create(test_path("lifecycle-peer-archived-first.cva")).unwrap();
+    let old = memory(&mut cva, "old", "Old", "Old memory.", 100, false);
+    let source = memory_extracted(&mut cva, "new", "New", "New memory.", 110);
+    cva.set_memory_relation(source, old, GraphRelationKind::DuplicateOf, true, 0)
+        .unwrap();
+    cva.set_memory_relation(
+        source,
+        old,
+        GraphRelationKind::Supersedes,
+        true,
+        cva.graph_version(),
+    )
+    .unwrap();
+    let result = cva.reconcile_dream_lifecycle(source).unwrap();
+    assert!(cva.memory(old).unwrap().archived);
+    assert!(!result.source.archived);
+    assert_eq!(result.source.lifecycle_state, "knowledge");
+}

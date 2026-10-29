@@ -82,6 +82,69 @@ fn independent_duplicate_authority_promotes_active_representative() {
 }
 
 #[test]
+fn corroborated_representative_uses_post_archive_duplicate_members() {
+    let mut cva = Cva::create(test_path("canonical-post-archive-representative.cva")).unwrap();
+    let first_anchor = authority_anchor(&mut cva, "post-archive-first", 100);
+    let source_anchor = authority_anchor(&mut cva, "post-archive-source", 200);
+    let third_anchor = authority_anchor(&mut cva, "post-archive-third", 300);
+    let first = publish(
+        &mut cva,
+        "post-archive-first",
+        &first_anchor,
+        "fact",
+        "identity",
+        "direct",
+        "knowledge",
+        "The client is Acme.",
+    );
+    let source = publish(
+        &mut cva,
+        "post-archive-source",
+        &source_anchor,
+        "fact",
+        "identity",
+        "direct",
+        "extracted",
+        "The client is Acme.",
+    );
+    let third = publish(
+        &mut cva,
+        "post-archive-third",
+        &third_anchor,
+        "fact",
+        "identity",
+        "direct",
+        "knowledge",
+        "The client is Acme.",
+    );
+    cva.set_memory_relation(source, first, GraphRelationKind::DuplicateOf, true, 0)
+        .unwrap();
+    cva.set_memory_relation(
+        third,
+        first,
+        GraphRelationKind::DuplicateOf,
+        true,
+        cva.graph_version(),
+    )
+    .unwrap();
+    cva.set_memory_relation(
+        source,
+        first,
+        GraphRelationKind::Supersedes,
+        true,
+        cva.graph_version(),
+    )
+    .unwrap();
+
+    let result = cva.reconcile_dream_lifecycle(source).unwrap();
+
+    assert!(cva.memory(first).unwrap().archived);
+    assert!(result.source.archived);
+    assert_eq!(cva.memory(third).unwrap().lifecycle_state, "canonical");
+    assert_eq!(result.canonicalized, vec![third]);
+}
+
+#[test]
 fn duplicate_memories_from_same_authority_anchor_do_not_corroborate() {
     let mut cva = Cva::create(test_path("canonical-same-anchor.cva")).unwrap();
     let anchor = authority_anchor(&mut cva, "shared", 100);

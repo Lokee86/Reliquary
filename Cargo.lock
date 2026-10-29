@@ -2738,6 +2738,14 @@ version = "0.1.0"
 [[package]]
 name = "reliquary-dream"
 version = "0.1.0"
+dependencies = [
+ "reliquary-chronos",
+ "reliquary-graph",
+ "reliquary-memory-core",
+ "reliquary-switchboard",
+ "reliquary-vectors",
+ "serde_json",
+]
 
 [[package]]
 name = "reliquary-dream-store"
@@ -2881,6 +2889,7 @@ dependencies = [
  "reliquary-archive",
  "reliquary-chronos",
  "reliquary-container",
+ "reliquary-dream",
  "reliquary-dream-store",
  "reliquary-echo",
  "reliquary-ego-store",

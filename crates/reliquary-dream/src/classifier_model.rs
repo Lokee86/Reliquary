@@ -1,4 +1,4 @@
-use crate::MemoryId;
+use reliquary_memory_core::MemoryId;
 
 pub const DREAM_CLASSIFIER_CONTRACT_VERSION: &str = "v3";
 

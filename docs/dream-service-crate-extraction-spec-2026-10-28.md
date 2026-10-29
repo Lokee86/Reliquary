@@ -1,11 +1,19 @@
 # Dream service crate extraction — implementation specification
 
-**Status:** Specified; implementation **not started** (2026-10-28).
+**Status:** Implementation and verification in progress; see [evidence](dream-service-crate-extraction-evidence-2026-10-28.md).
 **Repository / branch:** `C:\!bin\workspace\Reliquary-crate-first` / `refactor/crate-first-restart`.
 **Baseline:** `199b8648` — accepted Insomnia service modularization. Confirm actual HEAD, Cargo graph and worktree immediately before implementation.
-**Target:** `crates/reliquary-dream/`, package `reliquary-dream` (currently a placeholder).
+**Target:** `crates/reliquary-dream/`, package `reliquary-dream` (a placeholder at specification time).
 **Pre-existing unrelated edit:** `docs/graph-crate-extraction-evidence-2026-10-26.md`; do not alter, stage, discard or silently commit it.
 **Scope:** Existing Dream **semantic service**, not Dream Store, Memory, Graph, Freshness, runtime scheduling or historical replay. Keep all persisted bytes and accepted semantics unchanged.
+
+## Purpose
+
+Specify the behavior-preserving extraction of Dream semantic policy into its service crate.
+
+## Overview
+
+The gates below separate pure evaluation from owner-authorized reads, durable writes and settlement.
 
 ## 1. Goal and acceptance boundary
 
@@ -111,4 +119,13 @@ No new Dream algorithm, relation class, score weight, Memory lifecycle behavior,
 
 Canonical authority: [Dream subsystem](subsystems/dream.md), [ADR 0024](decisions/0024-owner-local-dream-processing.md), [ADR 0025](decisions/0025-owner-local-derived-communities.md), [ADR 0030](decisions/0030-provenance-anchored-dream-maintenance.md), [ADR 0031](decisions/0031-dream-derived-community-semantic-names.md), [ADR 0032](decisions/0032-community-lineage-and-name-continuity.md), [Dream Store spec](dream-store-crate-extraction-spec-2026-10-27.md) and [evidence](dream-store-crate-extraction-evidence-2026-10-27.md), [crate map](architecture/crate-map.json), [crate-first architecture](crate-first-architecture.md), [layout](crate-first-layout-spec-2026-10-25.md), [behavioral contracts](behavioral-contracts.md).
 
-**Specification only.** No service implementation, schema, source, tests, fixture or runtime behavior is changed by this commit.
+**Specification baseline.** Commit `494e1c2a` changed no service implementation, schema, source, tests, fixtures or runtime behavior.
+
+## Notes
+
+The gates and witnesses remain the acceptance authority for this extraction.
+
+## Related docs
+
+- [Dream subsystem](subsystems/dream.md)
+- [Implementation evidence](dream-service-crate-extraction-evidence-2026-10-28.md)

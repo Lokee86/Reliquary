@@ -1,4 +1,5 @@
-use crate::{DreamPairClassification, DreamRelationKind, MemoryId};
+use crate::{DreamPairClassification, DreamRelationKind};
+use reliquary_memory_core::MemoryId;
 
 pub const DREAM_VERIFIER_CONTRACT_VERSION: &str = "v1";
 

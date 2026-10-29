@@ -3,15 +3,25 @@ use crate::dream_owner_duplicate::publish_duplicate_pair;
 use crate::graph_owner::GraphOwner;
 use crate::memory_store::MemoryStore;
 use crate::{
-    DreamEvidenceSide, DreamPairClassification, DreamPairVerification, DreamPublicationError,
-    DreamPublicationOutcome, DreamRelationDirection, DreamRelationKind, DreamVerificationPolicy,
-    DreamVerificationVerdict, GraphRelationChange, GraphRelationKind, GraphRelationOrigin, Memory,
-    MemoryId,
+    DreamPairClassification, DreamPairVerification, DreamPublicationError, DreamPublicationOutcome,
+    DreamRelationKind, DreamVerificationPolicy, GraphRelationChange, GraphRelationOrigin, Memory,
 };
 use reliquary_container::Container;
 use std::collections::HashSet;
 
-type RelationIdentity = (MemoryId, MemoryId, GraphRelationKind);
+use reliquary_dream::{
+    PublicationPolicyError, desired_relations, validate_classification, verification_gate,
+};
+
+fn policy_error(error: PublicationPolicyError) -> DreamPublicationError {
+    match error {
+        PublicationPolicyError::InvalidClassification => {
+            DreamPublicationError::InvalidClassification
+        }
+        PublicationPolicyError::VerificationMismatch => DreamPublicationError::VerificationMismatch,
+        PublicationPolicyError::MissingVerification => DreamPublicationError::MissingVerification,
+    }
+}
 
 pub(crate) fn publish_dream_pair<R>(
     container: &mut Container,
@@ -27,9 +37,11 @@ pub(crate) fn publish_dream_pair<R>(
 where
     R: Fn(&Memory) -> Option<i64>,
 {
-    validate_classification(classification)?;
-    if let Some(outcome) = verification_gate(classification, verification, policy)? {
-        return Ok(outcome);
+    validate_classification(classification).map_err(policy_error)?;
+    if let Some(outcome) =
+        verification_gate(classification, verification, policy).map_err(policy_error)?
+    {
+        return Ok(DreamPublicationOutcome::Withheld(outcome));
     }
     if classification.relation == DreamRelationKind::DuplicateOf {
         return publish_duplicate_pair(
@@ -52,7 +64,7 @@ where
         .into());
     }
 
-    let desired = desired_relations(classification)?;
+    let desired = desired_relations(classification).map_err(policy_error)?;
     let existing: HashSet<_> = graph
         .active_relations()
         .into_iter()
@@ -88,100 +100,4 @@ pub(crate) fn dream_may_change_relation(graph: &GraphOwner, change: GraphRelatio
         .is_some_and(|state| {
             state.origin == GraphRelationOrigin::User && state.active != change.active
         })
-}
-
-fn verification_gate(
-    classification: &DreamPairClassification,
-    verification: Option<&DreamPairVerification>,
-    policy: DreamVerificationPolicy,
-) -> Result<Option<DreamPublicationOutcome>, DreamPublicationError> {
-    if let Some(verification) = verification {
-        if verification.a != classification.a
-            || verification.b != classification.b
-            || verification.classification != *classification
-        {
-            return Err(DreamPublicationError::VerificationMismatch);
-        }
-        return Ok(match verification.verdict {
-            DreamVerificationVerdict::Accept => None,
-            verdict => Some(DreamPublicationOutcome::Withheld(verdict)),
-        });
-    }
-    if policy.should_verify(classification.relation) {
-        Err(DreamPublicationError::MissingVerification)
-    } else {
-        Ok(None)
-    }
-}
-
-fn validate_classification(
-    classification: &DreamPairClassification,
-) -> Result<(), DreamPublicationError> {
-    if classification.a == classification.b {
-        return Err(DreamPublicationError::InvalidClassification);
-    }
-    let evidence_valid = if classification.relation == DreamRelationKind::None {
-        classification.evidence.is_empty()
-    } else {
-        classification.evidence.len() == 2
-            && classification
-                .evidence
-                .iter()
-                .filter(|item| item.side == DreamEvidenceSide::A)
-                .count()
-                == 1
-            && classification
-                .evidence
-                .iter()
-                .filter(|item| item.side == DreamEvidenceSide::B)
-                .count()
-                == 1
-    };
-    let valid = evidence_valid
-        && match classification.relation {
-            DreamRelationKind::None => classification.direction == DreamRelationDirection::None,
-            DreamRelationKind::Topical
-            | DreamRelationKind::Recurrent
-            | DreamRelationKind::DuplicateOf => {
-                classification.direction == DreamRelationDirection::Undirected
-            }
-            DreamRelationKind::Factual
-            | DreamRelationKind::Causal
-            | DreamRelationKind::Supersedes => matches!(
-                classification.direction,
-                DreamRelationDirection::AToB | DreamRelationDirection::BToA
-            ),
-        };
-    valid
-        .then_some(())
-        .ok_or(DreamPublicationError::InvalidClassification)
-}
-
-fn desired_relations(
-    classification: &DreamPairClassification,
-) -> Result<HashSet<RelationIdentity>, DreamPublicationError> {
-    let mut desired = HashSet::new();
-    let kind = match classification.relation {
-        DreamRelationKind::None => return Ok(desired),
-        DreamRelationKind::Topical => GraphRelationKind::Topical,
-        DreamRelationKind::Factual => GraphRelationKind::Factual,
-        DreamRelationKind::Causal => GraphRelationKind::Causal,
-        DreamRelationKind::Recurrent => GraphRelationKind::Recurrent,
-        DreamRelationKind::Supersedes => GraphRelationKind::Supersedes,
-        DreamRelationKind::DuplicateOf => return Err(DreamPublicationError::InvalidClassification),
-    };
-    match classification.direction {
-        DreamRelationDirection::Undirected => {
-            desired.insert((classification.a, classification.b, kind));
-            desired.insert((classification.b, classification.a, kind));
-        }
-        DreamRelationDirection::AToB => {
-            desired.insert((classification.a, classification.b, kind));
-        }
-        DreamRelationDirection::BToA => {
-            desired.insert((classification.b, classification.a, kind));
-        }
-        DreamRelationDirection::None => return Err(DreamPublicationError::InvalidClassification),
-    }
-    Ok(desired)
 }

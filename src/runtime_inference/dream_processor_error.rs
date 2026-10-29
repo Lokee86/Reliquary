@@ -75,3 +75,12 @@ impl From<MemoryError> for DreamProcessError {
         Self::Memory(value)
     }
 }
+
+impl From<reliquary_dream::DreamEvaluationError> for DreamProcessError {
+    fn from(value: reliquary_dream::DreamEvaluationError) -> Self {
+        match value {
+            reliquary_dream::DreamEvaluationError::Classification(e) => Self::Classification(e),
+            reliquary_dream::DreamEvaluationError::Verification(e) => Self::Verification(e),
+        }
+    }
+}

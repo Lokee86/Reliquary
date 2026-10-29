@@ -400,3 +400,7 @@ Memory replay preserves stable IDs and mutation IDs and uses ordinary expected-r
 Decision inheritance changes configured endpoint composition only; semantic persistence and owner lifecycle are unchanged.
 
 Import epoch values exposed through `imports` are the canonical `reliquary-import-store` values. The Cva epoch inspection methods continue to return owned values; completion remains an exclusive Cva coordinator operation.
+
+## Dream service boundary
+
+`DreamClassifier` and `DreamVerifier` are re-exported from the Dream service. `DreamProcessor` remains the product-facing adapter for Cva and Phylactery processing, and coordinates publication and settlement after service evaluation. `DreamCommunityNamer` remains the product-facing Community naming adapter.

@@ -1,78 +1,77 @@
 use crate::{DreamLifecycleError, GraphRelation, GraphRelationKind, MemoryId, Phylactery};
-use std::collections::{HashSet, VecDeque};
 
 pub(crate) fn canonical_superseders(
     phy: &mut Phylactery,
     source_id: MemoryId,
     relations: &[GraphRelation],
 ) -> Result<Vec<MemoryId>, DreamLifecycleError> {
-    let mut candidates = Vec::new();
+    let service_relations = service_relations(relations);
+    let mut facts = Vec::new();
     for relation in relations.iter().filter(|relation| {
         relation.kind == GraphRelationKind::Supersedes
             && (relation.source == source_id || relation.target == source_id)
     }) {
-        if unique_superseder(relations, relation.target) == Some(relation.source)
-            && target_has_canonical_authority(phy, relation.target, relation.source)?
-        {
-            candidates.push(relation.source);
+        if unique_superseder(relations, relation.target) == Some(relation.source) {
+            facts.push(reliquary_dream::DreamCanonicalSupersederFact {
+                target: relation.target.0,
+                superseder: relation.source.0,
+                target_had_canonical_authority: target_has_canonical_authority(
+                    phy,
+                    relation.target,
+                    relation.source,
+                )?,
+            });
         }
     }
-    candidates.sort_by_key(|id| id.0);
-    candidates.dedup();
-    Ok(candidates)
+    Ok(
+        reliquary_dream::canonical_superseders(source_id.0, &service_relations, &facts)
+            .into_iter()
+            .map(MemoryId)
+            .collect(),
+    )
 }
 
 pub(crate) fn duplicate_component_has_active_peer(
     phy: &mut Phylactery,
     source_id: MemoryId,
     relations: &[GraphRelation],
+    will_archive: &[MemoryId],
 ) -> Result<bool, DreamLifecycleError> {
-    for id in duplicate_component(source_id, relations)
-        .into_iter()
-        .filter(|id| *id != source_id)
-    {
-        if !phy.memory(id)?.archived {
-            return Ok(true);
-        }
+    let component = duplicate_component(source_id, relations);
+    let mut memories = Vec::with_capacity(component.len());
+    for id in component {
+        let memory = phy.memory(id)?;
+        memories.push(reliquary_dream::DreamCanonicalMemory {
+            id: id.0,
+            lifecycle_state: memory.lifecycle_state,
+            archived: memory.archived,
+            superseded_by: memory.superseded_by.map(|id| id.0),
+            source_timestamp_ns: None,
+            authority_anchor: None,
+            publication_birth: false,
+        });
     }
-    Ok(false)
+    Ok(reliquary_dream::has_active_duplicate_peer(
+        source_id.0,
+        &service_relations(relations),
+        &memories,
+        &will_archive.iter().map(|id| id.0).collect::<Vec<_>>(),
+    ))
 }
 
 pub(crate) fn unique_superseder(relations: &[GraphRelation], target: MemoryId) -> Option<MemoryId> {
-    let mut sources: Vec<_> = relations
-        .iter()
-        .filter(|relation| {
-            relation.kind == GraphRelationKind::Supersedes && relation.target == target
-        })
-        .map(|relation| relation.source)
-        .collect();
-    sources.sort_by_key(|id| id.0);
-    sources.dedup();
-    match sources.as_slice() {
-        [source] => Some(*source),
-        _ => None,
-    }
+    reliquary_dream::unique_superseder(&service_relations(relations), target.0).map(MemoryId)
 }
 
 fn duplicate_component(source_id: MemoryId, relations: &[GraphRelation]) -> Vec<MemoryId> {
-    let mut visited = HashSet::from([source_id]);
-    let mut queue = VecDeque::from([source_id]);
-    while let Some(current) = queue.pop_front() {
-        for relation in relations.iter().filter(|relation| {
-            relation.kind == GraphRelationKind::DuplicateOf
-                && (relation.source == current || relation.target == current)
-        }) {
-            let neighbor = if relation.source == current {
-                relation.target
-            } else {
-                relation.source
-            };
-            if visited.insert(neighbor) {
-                queue.push_back(neighbor);
-            }
-        }
-    }
-    visited.into_iter().collect()
+    reliquary_dream::duplicate_component(source_id.0, &service_relations(relations))
+        .into_iter()
+        .map(MemoryId)
+        .collect()
+}
+
+fn service_relations(relations: &[GraphRelation]) -> Vec<reliquary_graph::GraphRelation> {
+    relations.iter().copied().map(Into::into).collect()
 }
 
 fn target_has_canonical_authority(

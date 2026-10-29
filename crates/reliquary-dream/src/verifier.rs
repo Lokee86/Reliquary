@@ -1,7 +1,7 @@
-use crate::dream_pair_context::{canonical_pair, context_json};
-use crate::dream_verifier_schema::{DREAM_VERIFIER_SYSTEM_PROMPT, dream_verifier_schema};
+use crate::pair_context::{canonical_pair, context_json};
+use crate::{DREAM_VERIFIER_SYSTEM_PROMPT, dream_verifier_schema};
 use crate::{
-    DreamEvidenceSide, DreamMemoryContext, DreamPairClassification, DreamPairVerification,
+    DreamContext, DreamEvidenceSide, DreamPairClassification, DreamPairVerification,
     DreamRelationDirection, DreamRelationKind, DreamVerificationError, DreamVerificationPolicy,
     DreamVerificationSignal, DreamVerificationVerdict, GeneralEndpoint,
 };
@@ -20,12 +20,12 @@ impl<E: GeneralEndpoint> DreamVerifier<E> {
         self.endpoint.model()
     }
 
-    pub fn verify_if_required(
+    pub fn verify_if_required<C: DreamContext>(
         &self,
         policy: DreamVerificationPolicy,
         classification: &DreamPairClassification,
-        left: &DreamMemoryContext,
-        right: &DreamMemoryContext,
+        left: &C,
+        right: &C,
     ) -> Result<Option<DreamPairVerification>, DreamVerificationError> {
         if !policy.should_verify(classification.relation) {
             return Ok(None);
@@ -33,17 +33,17 @@ impl<E: GeneralEndpoint> DreamVerifier<E> {
         self.verify_pair(classification, left, right).map(Some)
     }
 
-    pub fn verify_pair(
+    pub fn verify_pair<C: DreamContext>(
         &self,
         classification: &DreamPairClassification,
-        left: &DreamMemoryContext,
-        right: &DreamMemoryContext,
+        left: &C,
+        right: &C,
     ) -> Result<DreamPairVerification, DreamVerificationError> {
         if classification.relation == DreamRelationKind::None {
             return Err(DreamVerificationError::NoRelation);
         }
         let (a, b) = canonical_pair(left, right).ok_or(DreamVerificationError::InvalidPair)?;
-        if classification.a != a.memory.id || classification.b != b.memory.id {
+        if classification.a != a.memory().id || classification.b != b.memory().id {
             return Err(DreamVerificationError::InvalidPair);
         }
         let payload = serde_json::to_string(&json!({
@@ -160,4 +160,23 @@ fn direction_name(direction: DreamRelationDirection) -> &'static str {
 
 fn invalid(message: &str) -> DreamVerificationError {
     DreamVerificationError::InvalidOutput(message.into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn invalid_signals_fail_and_no_overrides_uncertain() {
+        assert!(parse_signal("maybe").is_err());
+        assert_eq!(
+            derive_verdict(
+                DreamVerificationSignal::Uncertain,
+                DreamVerificationSignal::No,
+                DreamVerificationSignal::Yes
+            ),
+            DreamVerificationVerdict::Reject
+        );
+        assert_eq!(dream_verifier_schema()["additionalProperties"], false);
+    }
 }

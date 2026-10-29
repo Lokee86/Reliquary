@@ -3,17 +3,11 @@ use crate::{Cva, DreamLifecycleError, GraphRelation, GraphRelationKind, Memory, 
 use std::collections::{HashSet, VecDeque};
 
 pub(crate) fn explicit_authority_promotes(memory: &Memory) -> bool {
-    if !matches!(memory.authority_kind.as_str(), "direct" | "correction") {
-        return false;
-    }
-    matches!(
-        memory.category.as_str(),
-        "decision" | "preference" | "instruction" | "constraint" | "correction" | "commitment"
-    ) || (memory.category == "fact"
-        && matches!(
-            memory.memory_type.as_str(),
-            "project" | "process" | "product" | "schedule"
-        ))
+    reliquary_dream::explicit_authority_promotes(
+        &memory.authority_kind,
+        &memory.category,
+        &memory.memory_type,
+    )
 }
 
 pub(crate) fn canonical_superseders(
@@ -21,47 +15,51 @@ pub(crate) fn canonical_superseders(
     source_id: MemoryId,
     relations: &[GraphRelation],
 ) -> Result<Vec<MemoryId>, DreamLifecycleError> {
-    let mut candidates = Vec::new();
+    let service_relations = service_relations(relations);
+    let mut authority_facts = Vec::new();
     for relation in relations.iter().filter(|relation| {
         relation.kind == GraphRelationKind::Supersedes
             && (relation.source == source_id || relation.target == source_id)
     }) {
-        if unique_superseder(relations, relation.target) == Some(relation.source)
-            && target_has_canonical_authority(cva, relation.target, relation.source)?
-        {
-            candidates.push(relation.source);
+        if unique_superseder(relations, relation.target) == Some(relation.source) {
+            authority_facts.push(reliquary_dream::DreamCanonicalSupersederFact {
+                target: relation.target.0,
+                superseder: relation.source.0,
+                target_had_canonical_authority: target_has_canonical_authority(
+                    cva,
+                    relation.target,
+                    relation.source,
+                )?,
+            });
         }
     }
-    candidates.sort_by_key(|id| id.0);
-    candidates.dedup();
-    Ok(candidates)
+    Ok(
+        reliquary_dream::canonical_superseders(source_id.0, &service_relations, &authority_facts)
+            .into_iter()
+            .map(MemoryId)
+            .collect(),
+    )
 }
 
 pub(crate) fn corroborated_representative(
     cva: &mut Cva,
     source_id: MemoryId,
     relations: &[GraphRelation],
+    will_archive: &[MemoryId],
 ) -> Result<Option<MemoryId>, DreamLifecycleError> {
     let component = duplicate_component(source_id, relations);
-    if component.len() < 2 {
-        return Ok(None);
-    }
-    let mut anchors = HashSet::new();
-    let mut active = Vec::new();
+    let mut memories = Vec::with_capacity(component.len());
     for id in component {
         let memory = cva.memory(id)?;
-        if let Some(anchor) = authority_anchor(cva, &memory) {
-            anchors.insert(anchor);
-        }
-        if !memory.archived {
-            active.push(memory);
-        }
+        memories.push(canonical_memory(cva, &memory, false));
     }
-    if anchors.len() < 2 || active.is_empty() {
-        return Ok(None);
-    }
-    active.sort_by_key(|memory| representative_key(cva, memory));
-    Ok(active.first().map(|memory| memory.id))
+    Ok(reliquary_dream::corroborated_representative(
+        source_id.0,
+        &service_relations(relations),
+        &memories,
+        &will_archive.iter().map(|id| id.0).collect::<Vec<_>>(),
+    )
+    .map(MemoryId))
 }
 
 pub(crate) fn existing_duplicate_representative(
@@ -104,11 +102,14 @@ pub(crate) fn historical_duplicate_representative(
         }
         let memory = cva.memory(current)?;
         if !memory.archived && cva.freshness_is_publication_birth(current) {
-            active.push(memory);
+            active.push(canonical_memory(
+                cva,
+                &memory,
+                cva.freshness_is_publication_birth(current),
+            ));
         }
     }
-    active.sort_by_key(|memory| representative_key(cva, memory));
-    Ok(active.first().map(|memory| memory.id))
+    Ok(reliquary_dream::select_duplicate_representative(&active).map(MemoryId))
 }
 
 fn historical_supersession_terminal(
@@ -118,25 +119,31 @@ fn historical_supersession_terminal(
 ) -> Result<Option<MemoryId>, DreamLifecycleError> {
     let mut current = root_id;
     let mut visited = HashSet::new();
-    loop {
-        if !visited.insert(current) {
-            return Ok(None);
-        }
+    let mut facts = Vec::new();
+    while visited.insert(current) {
         let memory = cva.memory(current)?;
-        let Some(superseder) = memory.superseded_by else {
+        let superseder = memory.superseded_by;
+        let birth = cva.freshness_is_publication_birth(current);
+        facts.push(canonical_memory(cva, &memory, birth));
+        let Some(superseder) = superseder else {
             break;
         };
-        // Both existing owners must agree. A bare pointer, conflicting active
-        // edge, cycle or unproved publication cannot confer representation.
+        // Root hydrates only owner-proved superseder births. A missing proof
+        // remains a pure-policy rejection without causing a Memory lookup error.
         if !memory.archived
             || unique_superseder(relations, current) != Some(superseder)
             || !cva.freshness_is_publication_birth(superseder)
         {
-            return Ok(None);
+            break;
         }
         current = superseder;
     }
-    Ok(Some(current))
+    Ok(reliquary_dream::historical_supersession_terminal(
+        root_id.0,
+        &service_relations(relations),
+        &facts,
+    )
+    .map(MemoryId))
 }
 
 fn duplicate_representative(
@@ -167,48 +174,41 @@ fn duplicate_representative(
         }
         let memory = cva.memory(id)?;
         if !memory.archived {
-            active.push(memory);
+            active.push(canonical_memory(cva, &memory, false));
         }
     }
-    active.sort_by_key(|memory| representative_key(cva, memory));
-    Ok(active.first().map(|memory| memory.id))
+    Ok(reliquary_dream::select_duplicate_representative(&active).map(MemoryId))
 }
 
 pub(crate) fn duplicate_component_has_active_peer(
     cva: &mut Cva,
     source_id: MemoryId,
     relations: &[GraphRelation],
+    will_archive: &[MemoryId],
 ) -> Result<bool, DreamLifecycleError> {
-    for id in duplicate_component(source_id, relations)
-        .into_iter()
-        .filter(|id| *id != source_id)
-    {
-        if !cva.memory(id)?.archived {
-            return Ok(true);
-        }
+    let component = duplicate_component(source_id, relations);
+    let mut memories = Vec::with_capacity(component.len());
+    for id in component {
+        let memory = cva.memory(id)?;
+        memories.push(canonical_memory(cva, &memory, false));
     }
-    Ok(false)
+    Ok(reliquary_dream::has_active_duplicate_peer(
+        source_id.0,
+        &service_relations(relations),
+        &memories,
+        &will_archive.iter().map(|id| id.0).collect::<Vec<_>>(),
+    ))
 }
 
 fn duplicate_component(source_id: MemoryId, relations: &[GraphRelation]) -> Vec<MemoryId> {
-    let mut visited = HashSet::from([source_id]);
-    let mut queue = VecDeque::from([source_id]);
-    while let Some(current) = queue.pop_front() {
-        for relation in relations.iter().filter(|relation| {
-            relation.kind == GraphRelationKind::DuplicateOf
-                && (relation.source == current || relation.target == current)
-        }) {
-            let neighbor = if relation.source == current {
-                relation.target
-            } else {
-                relation.source
-            };
-            if visited.insert(neighbor) {
-                queue.push_back(neighbor);
-            }
-        }
-    }
-    visited.into_iter().collect()
+    reliquary_dream::duplicate_component(source_id.0, &service_relations(relations))
+        .into_iter()
+        .map(MemoryId)
+        .collect()
+}
+
+fn service_relations(relations: &[GraphRelation]) -> Vec<reliquary_graph::GraphRelation> {
+    relations.iter().copied().map(Into::into).collect()
 }
 
 fn authority_anchor(cva: &Cva, memory: &Memory) -> Option<(String, String)> {
@@ -220,18 +220,20 @@ fn authority_anchor(cva: &Cva, memory: &Memory) -> Option<(String, String)> {
     Some((conversation_id, node_id))
 }
 
-fn representative_key(cva: &Cva, memory: &Memory) -> (u8, i64, [u8; 32]) {
-    let state_rank = match memory.lifecycle_state.as_str() {
-        "canonical" => 0,
-        "knowledge" => 1,
-        "extracted" => 2,
-        _ => 3,
-    };
-    (
-        state_rank,
-        reliquary_memory_source_timestamp_ns(&cva.archive, memory).unwrap_or(i64::MAX),
-        memory.id.0,
-    )
+fn canonical_memory(
+    cva: &Cva,
+    memory: &Memory,
+    publication_birth: bool,
+) -> reliquary_dream::DreamCanonicalMemory {
+    reliquary_dream::DreamCanonicalMemory {
+        id: memory.id.0,
+        lifecycle_state: memory.lifecycle_state.clone(),
+        archived: memory.archived,
+        superseded_by: memory.superseded_by.map(|id| id.0),
+        source_timestamp_ns: reliquary_memory_source_timestamp_ns(&cva.archive, memory),
+        authority_anchor: authority_anchor(cva, memory),
+        publication_birth,
+    }
 }
 
 fn target_has_canonical_authority(
@@ -255,18 +257,6 @@ fn target_has_canonical_authority(
     Ok(false)
 }
 
-fn unique_superseder(relations: &[GraphRelation], target: MemoryId) -> Option<MemoryId> {
-    let mut sources: Vec<_> = relations
-        .iter()
-        .filter(|relation| {
-            relation.kind == GraphRelationKind::Supersedes && relation.target == target
-        })
-        .map(|relation| relation.source)
-        .collect();
-    sources.sort_by_key(|id| id.0);
-    sources.dedup();
-    match sources.as_slice() {
-        [source] => Some(*source),
-        _ => None,
-    }
+pub(crate) fn unique_superseder(relations: &[GraphRelation], target: MemoryId) -> Option<MemoryId> {
+    reliquary_dream::unique_superseder(&service_relations(relations), target.0).map(MemoryId)
 }

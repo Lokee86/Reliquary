@@ -1,7 +1,7 @@
-use crate::dream_classifier_schema::{DREAM_CLASSIFIER_SYSTEM_PROMPT, dream_classifier_schema};
-use crate::dream_pair_context::{canonical_pair, context_json, memory_text};
+use crate::pair_context::{canonical_pair, context_json, memory_text};
+use crate::{DREAM_CLASSIFIER_SYSTEM_PROMPT, dream_classifier_schema};
 use crate::{
-    DreamCandidateSet, DreamClassificationError, DreamEvidenceSide, DreamMemoryContext,
+    DreamCandidateContexts, DreamClassificationError, DreamContext, DreamEvidenceSide,
     DreamPairClassification, DreamPairEvidence, DreamRelationDirection, DreamRelationKind,
     GeneralEndpoint,
 };
@@ -33,18 +33,18 @@ impl<E: GeneralEndpoint> DreamClassifier<E> {
 
     pub fn classify_candidates(
         &self,
-        set: &DreamCandidateSet,
+        set: &impl DreamCandidateContexts,
     ) -> Result<Vec<DreamPairClassification>, DreamClassificationError> {
-        set.candidates
-            .iter()
-            .map(|candidate| self.classify_pair(&set.source, &candidate.context))
+        set.candidates()
+            .into_iter()
+            .map(|candidate| self.classify_pair(set.source(), candidate))
             .collect()
     }
 
-    pub fn classify_pair(
+    pub fn classify_pair<C: DreamContext>(
         &self,
-        left: &DreamMemoryContext,
-        right: &DreamMemoryContext,
+        left: &C,
+        right: &C,
     ) -> Result<DreamPairClassification, DreamClassificationError> {
         let (a, b) = canonical_pair(left, right).ok_or(DreamClassificationError::InvalidPair)?;
         let payload = serde_json::to_string(&json!({
@@ -63,10 +63,10 @@ impl<E: GeneralEndpoint> DreamClassifier<E> {
     }
 }
 
-fn parse_output(
+fn parse_output<C: DreamContext>(
     model: &str,
-    a: &DreamMemoryContext,
-    b: &DreamMemoryContext,
+    a: &C,
+    b: &C,
     output: &Value,
 ) -> Result<DreamPairClassification, DreamClassificationError> {
     let relation = parse_relation(required_string(output, "relation")?)?;
@@ -75,19 +75,19 @@ fn parse_output(
     let evidence = parse_evidence(output, relation, a, b)?;
     Ok(DreamPairClassification {
         model: model.to_owned(),
-        a: a.memory.id,
-        b: b.memory.id,
+        a: a.memory().id,
+        b: b.memory().id,
         relation,
         direction,
         evidence,
     })
 }
 
-fn parse_evidence(
+fn parse_evidence<C: DreamContext>(
     output: &Value,
     relation: DreamRelationKind,
-    a: &DreamMemoryContext,
-    b: &DreamMemoryContext,
+    a: &C,
+    b: &C,
 ) -> Result<Vec<DreamPairEvidence>, DreamClassificationError> {
     let values = output
         .get("evidence")
@@ -184,3 +184,7 @@ fn required_string<'a>(value: &'a Value, key: &str) -> Result<&'a str, DreamClas
 fn invalid(message: &str) -> DreamClassificationError {
     DreamClassificationError::InvalidOutput(message.into())
 }
+
+#[cfg(test)]
+#[path = "classifier_tests.rs"]
+mod tests;

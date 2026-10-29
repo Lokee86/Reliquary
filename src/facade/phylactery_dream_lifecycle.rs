@@ -13,8 +13,6 @@ impl Phylactery {
         source_id: MemoryId,
     ) -> Result<DreamLifecycleResult, DreamLifecycleError> {
         let relations = self.graph_relations();
-        let mut revised = Vec::new();
-        let mut archived = Vec::new();
         let mut canonicalized = canonical_superseders(self, source_id, &relations)?;
 
         let mut superseded_targets: Vec<_> = relations
@@ -28,61 +26,53 @@ impl Phylactery {
         superseded_targets.sort_by_key(|id| id.0);
         superseded_targets.dedup();
 
-        for target in superseded_targets {
-            let superseded_by = unique_superseder(&relations, target);
-            if let Some(memory) =
-                self.revise_dream_lifecycle(target, "archived", true, superseded_by)?
-            {
-                archived.push(target);
-                revised.push(memory);
-            }
-        }
-
         let source = self.memory(source_id)?;
-        if !source.archived
-            && source.lifecycle_state == "extracted"
-            && duplicate_component_has_active_peer(self, source_id, &relations)?
-            && let Some(memory) =
-                self.revise_dream_lifecycle(source_id, "archived", true, source.superseded_by)?
-        {
-            archived.push(source_id);
-            revised.push(memory);
+        let mut targets = Vec::with_capacity(superseded_targets.len());
+        for id in superseded_targets.iter().copied() {
+            targets.push((
+                lifecycle_memory(self.memory(id)?),
+                unique_superseder(&relations, id),
+            ));
         }
-
-        let source = self.memory(source_id)?;
-        if !source.archived && explicit_authority_promotes(&source) {
-            canonicalized.push(source_id);
-        }
-        canonicalized.sort_by_key(|id| id.0);
-        canonicalized.dedup();
-
+        let canonical_facts = canonicalized
+            .into_iter()
+            .map(|id| self.memory(id).map(lifecycle_memory))
+            .collect::<Result<Vec<_>, _>>()?;
+        let plan = reliquary_dream::plan_lifecycle(
+            lifecycle_memory(source.clone()),
+            &targets,
+            !superseded_targets.contains(&source_id)
+                && !source.archived
+                && source.lifecycle_state == "extracted"
+                && duplicate_component_has_active_peer(
+                    self,
+                    source_id,
+                    &relations,
+                    &superseded_targets,
+                )?,
+            canonical_facts,
+            explicit_authority_promotes(&source),
+        );
+        let mut revised = Vec::new();
+        let mut archived = Vec::new();
         let mut promoted = Vec::new();
-        for id in canonicalized {
-            let current = self.memory(id)?;
-            if current.archived || current.lifecycle_state == "canonical" {
-                continue;
-            }
-            if let Some(memory) =
-                self.revise_dream_lifecycle(id, "canonical", false, current.superseded_by)?
-            {
+        let mut promoted_to_knowledge = false;
+        for intent in plan {
+            if let Some(memory) = self.revise_dream_lifecycle(
+                intent.memory_id,
+                intent.lifecycle_state,
+                intent.archived,
+                intent.superseded_by,
+            )? {
                 revised.push(memory);
-                promoted.push(id);
+                match intent.lifecycle_state {
+                    "archived" => archived.push(intent.memory_id),
+                    "canonical" => promoted.push(intent.memory_id),
+                    "knowledge" => promoted_to_knowledge = true,
+                    _ => unreachable!("Dream lifecycle policy returned an unknown state"),
+                }
             }
         }
-
-        let source = self.memory(source_id)?;
-        let promoted_to_knowledge = if !source.archived && source.lifecycle_state == "extracted" {
-            if let Some(memory) =
-                self.revise_dream_lifecycle(source_id, "knowledge", false, source.superseded_by)?
-            {
-                revised.push(memory);
-                true
-            } else {
-                false
-            }
-        } else {
-            false
-        };
 
         archived.sort_by_key(|id| id.0);
         archived.dedup();
@@ -119,6 +109,20 @@ impl Phylactery {
         );
         let (memory, changed) = self.publish_memory(Some(id), current.revision, draft)?;
         Ok(changed.then_some(memory))
+    }
+}
+
+fn lifecycle_memory(memory: Memory) -> reliquary_dream::DreamLifecycleMemory {
+    reliquary_dream::DreamLifecycleMemory {
+        id: memory.id,
+        lifecycle_state: match memory.lifecycle_state.as_str() {
+            "extracted" => "extracted",
+            "knowledge" => "knowledge",
+            "canonical" => "canonical",
+            _ => "other",
+        },
+        archived: memory.archived,
+        superseded_by: memory.superseded_by,
     }
 }
 

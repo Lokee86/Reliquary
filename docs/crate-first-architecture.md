@@ -105,3 +105,5 @@ ADR 0014 says Echo is its own durable owner, although the old source stored `Ech
 ## Notes
 
 Reserved library targets do not claim an implemented ownership boundary.
+
+The Dream semantic service evaluates supplied facts; Root retains owner-authorized reads and writes, processing coordination and pair history. Dream Store owns the existing first-cycle journal. The [Dream subsystem](subsystems/dream.md) describes the executable boundary.

@@ -1,33 +1,5 @@
 use crate::{DreamTemporalAnalysis, DreamTemporalMatch, GraphRelation, Memory, MemoryBodyId};
 
-pub const DEFAULT_DREAM_CANDIDATE_LIMIT: usize = 12;
-pub const DEFAULT_DREAM_SEMANTIC_LIMIT: usize = 24;
-pub const DEFAULT_DREAM_PRIOR_SEMANTIC_QUOTA: usize = 3;
-pub const DEFAULT_DREAM_LEXICAL_LIMIT: usize = 8;
-pub const DEFAULT_DREAM_TEMPORAL_LIMIT: usize = 8;
-pub const MAX_DREAM_CANDIDATE_LIMIT: usize = 128;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct DreamCandidateConfig {
-    pub limit: usize,
-    pub semantic_limit: usize,
-    pub prior_semantic_quota: usize,
-    pub lexical_limit: usize,
-    pub temporal_limit: usize,
-}
-
-impl Default for DreamCandidateConfig {
-    fn default() -> Self {
-        Self {
-            limit: DEFAULT_DREAM_CANDIDATE_LIMIT,
-            semantic_limit: DEFAULT_DREAM_SEMANTIC_LIMIT,
-            prior_semantic_quota: DEFAULT_DREAM_PRIOR_SEMANTIC_QUOTA,
-            lexical_limit: DEFAULT_DREAM_LEXICAL_LIMIT,
-            temporal_limit: DEFAULT_DREAM_TEMPORAL_LIMIT,
-        }
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct DreamMemoryContext {
     pub memory: Memory,
@@ -54,4 +26,38 @@ pub struct DreamCandidate {
 pub struct DreamCandidateSet {
     pub source: DreamMemoryContext,
     pub candidates: Vec<DreamCandidate>,
+}
+
+impl reliquary_dream::DreamContext for DreamMemoryContext {
+    fn memory(&self) -> &Memory {
+        &self.memory
+    }
+    fn body_id(&self) -> MemoryBodyId {
+        self.body_id
+    }
+    fn source_timestamp_ns(&self) -> Option<i64> {
+        self.source_timestamp_ns
+    }
+    fn temporal(&self) -> &DreamTemporalAnalysis {
+        &self.temporal
+    }
+    fn relations(&self) -> Vec<reliquary_dream::DreamRelationContext> {
+        self.graph_relations
+            .iter()
+            .map(|r| reliquary_dream::DreamRelationContext {
+                source: r.source,
+                target: r.target,
+                kind: r.kind,
+            })
+            .collect()
+    }
+}
+impl reliquary_dream::DreamCandidateContexts for DreamCandidateSet {
+    type Context = DreamMemoryContext;
+    fn source(&self) -> &Self::Context {
+        &self.source
+    }
+    fn candidates(&self) -> Vec<&Self::Context> {
+        self.candidates.iter().map(|c| &c.context).collect()
+    }
 }

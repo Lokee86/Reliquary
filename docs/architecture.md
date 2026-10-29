@@ -667,3 +667,7 @@ Import epoch persistence is owned by `reliquary-import-store`, which depends onl
 ### Owner Lifecycle extraction
 
 REL and PHY use `reliquary-owner-lifecycle` for shared core initialization, physical replay, REL interaction/compaction/Echo projection, Graph reconstruction, and cross-owner structural validation. The lifecycle crate accepts a completed scan only after owner callbacks succeed. REL dispatch hints do not authorize records; semantic admission and special Dream, Insomnia, and Import proof handling remain in the product coordinator. Bounded physical traversal leaves cut selection and proof interpretation to its caller.
+
+## Dream semantic service boundary
+
+`reliquary-dream` evaluates owner-supplied Memory, temporal and Graph facts and returns decisions. Root coordinates authorized reads, version checks, Graph and Memory publication, pair receipts and Freshness settlement. Dream Store retains the durable first-cycle journal; Root retains the separate Dream-pair store. The service does not open owner stores. See [Dream](subsystems/dream.md).

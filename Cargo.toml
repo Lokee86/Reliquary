@@ -95,6 +95,7 @@ path = "examples/entity_jev_resolution_experiment/main.rs"
 required-features = ["entity-calibration"]
 
 [dependencies]
+reliquary-dream = { path = "crates/reliquary-dream" }
 reliquary-entity-resolution = { path = "crates/reliquary-entity-resolution" }
 reliquary-switchboard = { path = "crates/reliquary-switchboard" }
 reliquary-chronos = { path = "crates/reliquary-chronos" }

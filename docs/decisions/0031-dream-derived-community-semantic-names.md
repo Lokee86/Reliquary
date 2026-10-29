@@ -60,4 +60,4 @@ Rejected. Representative selection, Community identity, and the user-over-Dream 
 
 ## Verification
 
-`src/runtime_inference/dream_community_naming_tests.rs` protects REL/PHY naming, persistence, user-name suppression, representative membership, stale-snapshot rejection, invalid-output rejection, and no-op repeat behavior. `src/runtime_inference/dream_community_naming_context.rs` directly protects the two-representatives-per-sub-centroid / eight-Memory selection policy. Existing Community tests continue to protect deterministic membership and snapshot generation independently of naming.
+`src/runtime_inference/dream_community_naming_tests.rs` protects REL/PHY naming, persistence, user-name suppression, representative membership, stale-snapshot rejection, invalid-output rejection, and no-op repeat behavior. `crates/reliquary-dream/tests/community_naming_consumer.rs` directly protects the two-representatives-per-sub-centroid / eight-Memory selection policy. Existing Community tests continue to protect deterministic membership and snapshot generation independently of naming.

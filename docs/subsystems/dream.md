@@ -75,7 +75,13 @@ for the boundary and acceptance requirements. Lower, workspace, formatting,
 focused Dream, full library and CLI checks pass. See the
 [implementation evidence](../dream-store-crate-extraction-evidence-2026-10-27.md).
 
+## Service and owner boundary
+
+`crates/reliquary-dream/` evaluates supplied candidate facts, pair classification and verification, bounded inference, duplicate plans and lifecycle intents. The Root `DreamProcessor` coordinates authorized Memory, vector and Graph reads, publication and first-cycle settlement. The Root Community namer retains snapshot checks, representative hydration and name publication. Dream Store and the Root pair journal continue to own their existing durable evidence; the service does not open either store.
+
 ## Code Map
+
+- `crates/reliquary-dream/src/` - semantic policy and inference
 
 - `src/runtime_inference/dream*`
 - `src/semantic_graph/**`
