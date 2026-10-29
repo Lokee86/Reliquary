@@ -105,30 +105,30 @@ macro_rules! impl_owner {
                 >,
                 RelationshipError,
             > {
-                let value = match self.relationship_revision(id, revision) {
-                    Ok(value) => value,
-                    Err(RelationshipError::PayloadUnavailable(crate::owner_lifecycle::PayloadUnavailable::Pruned)) => {
-                        let structure = self
-                            .relationship_retention_descriptor(id)?
+                reliquary_history::evaluate(
+                    self.relationship_revision(id, revision),
+                    |error| match error {
+                        RelationshipError::PayloadUnavailable(
+                            crate::owner_lifecycle::PayloadUnavailable::Pruned,
+                        ) => Some(crate::owner_lifecycle::PayloadUnavailable::Pruned),
+                        _ => None,
+                    },
+                    || {
+                        self.relationship_lifecycle_state(id).map(|state| {
+                            matches!(
+                                state,
+                                crate::owner_lifecycle::LifecycleState::Tombstoned(_)
+                            )
+                        })
+                    },
+                    || {
+                        self.relationship_retention_descriptor(id)?
                             .revisions
                             .into_iter()
                             .find(|r| r.revision == revision)
-                            .ok_or(RelationshipError::MissingRelationship)?;
-                        return Ok(crate::owner_lifecycle::HistoricalPayload::Pruned {
-                            structural_history: structure,
-                            reason: crate::owner_lifecycle::PayloadUnavailable::Pruned,
-                        });
-                    }
-                    Err(error) => return Err(error),
-                };
-                Ok(match self.relationship_lifecycle_state(id)? {
-                    crate::owner_lifecycle::LifecycleState::Active => {
-                        crate::owner_lifecycle::HistoricalPayload::Available(value)
-                    }
-                    crate::owner_lifecycle::LifecycleState::Tombstoned(_) => {
-                        crate::owner_lifecycle::HistoricalPayload::Tombstoned(value)
-                    }
-                })
+                            .ok_or(RelationshipError::MissingRelationship)
+                    },
+                )
             }
 
             pub fn relationship_lifecycle_state(

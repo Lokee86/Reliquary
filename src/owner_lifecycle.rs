@@ -41,18 +41,7 @@ pub enum TombstonePolicy {
     ExplicitCascade(Vec<LifecycleTarget>),
 }
 
-pub use reliquary_archive::archive_error::ArchivePayloadUnavailable as PayloadUnavailable;
-
-/// Payload availability is independent of lifecycle. A tombstone need not destroy bytes.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum HistoricalPayload<T, S> {
-    Available(T),
-    Tombstoned(T),
-    Pruned {
-        structural_history: S,
-        reason: PayloadUnavailable,
-    },
-}
+pub use reliquary_history::{HistoricalPayload, PayloadUnavailable};
 
 /// A repeated delete returns the original coordinates without allocating another ticket.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

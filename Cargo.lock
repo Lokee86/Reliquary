@@ -2832,6 +2832,9 @@ dependencies = [
 [[package]]
 name = "reliquary-history"
 version = "0.1.0"
+dependencies = [
+ "reliquary-archive",
+]
 
 [[package]]
 name = "reliquary-import"
@@ -2909,6 +2912,7 @@ dependencies = [
  "reliquary-freshness",
  "reliquary-freshness-store",
  "reliquary-graph",
+ "reliquary-history",
  "reliquary-import",
  "reliquary-import-store",
  "reliquary-insomnia",

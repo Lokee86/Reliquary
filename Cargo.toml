@@ -114,6 +114,7 @@ reliquary-graph = { path = "crates/reliquary-graph" }
 reliquary-echo = { path = "crates/reliquary-echo" }
 reliquary-context-engine = { path = "crates/reliquary-context-engine" }
 reliquary-memory-core = { path = "crates/reliquary-memory-core" }
+reliquary-history = { path = "crates/reliquary-history" }
 reliquary-archive = { path = "crates/reliquary-archive" }
 reliquary-container = { path = "crates/reliquary-container" }
 reliquary-insomnia-store = { path = "crates/reliquary-insomnia-store" }

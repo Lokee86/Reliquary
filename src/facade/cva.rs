@@ -474,30 +474,28 @@ impl Cva {
         crate::owner_lifecycle::HistoricalPayload<Memory, crate::MemoryRetainedRevision>,
         MemoryError,
     > {
-        let value = match self.memory_revision(id, revision) {
-            Ok(value) => value,
-            Err(MemoryError::PayloadUnavailable(reason)) => {
-                let structure = self
-                    .memory_retention_descriptor(id)?
+        reliquary_history::evaluate(
+            self.memory_revision(id, revision),
+            |error| match error {
+                MemoryError::PayloadUnavailable(reason) => {
+                    Some(crate::owner_lifecycle::memory_payload_unavailable(*reason))
+                }
+                _ => None,
+            },
+            || {
+                Ok(matches!(
+                    self.memory_lifecycle_state(id)?,
+                    crate::owner_lifecycle::LifecycleState::Tombstoned(_)
+                ))
+            },
+            || {
+                self.memory_retention_descriptor(id)?
                     .revisions
                     .into_iter()
-                    .find(|r| r.revision == revision)
-                    .ok_or(MemoryError::MissingMemory)?;
-                return Ok(crate::owner_lifecycle::HistoricalPayload::Pruned {
-                    structural_history: structure,
-                    reason: crate::owner_lifecycle::memory_payload_unavailable(reason),
-                });
-            }
-            Err(error) => return Err(error),
-        };
-        Ok(match self.memory_lifecycle_state(id)? {
-            crate::owner_lifecycle::LifecycleState::Active => {
-                crate::owner_lifecycle::HistoricalPayload::Available(value)
-            }
-            crate::owner_lifecycle::LifecycleState::Tombstoned(_) => {
-                crate::owner_lifecycle::HistoricalPayload::Tombstoned(value)
-            }
-        })
+                    .find(|retained| retained.revision == revision)
+                    .ok_or(MemoryError::MissingMemory)
+            },
+        )
     }
 
     pub fn memory_lifecycle_state(
