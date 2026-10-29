@@ -1,7 +1,7 @@
 use super::git::{require_git_repository, validate_reference_repository};
 use super::git_command::git_owned;
 use super::lore_file::sha256;
-use crate::{ProjectFileRef, ProjectRepositoryKind};
+use reliquary_archive::{ProjectFileRef, ProjectRepositoryKind};
 use std::ffi::OsString;
 use std::path::Path;
 

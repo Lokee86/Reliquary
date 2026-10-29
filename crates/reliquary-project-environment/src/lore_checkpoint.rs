@@ -1,10 +1,10 @@
 use super::lore::{
     block_on_lore, current_revision, globals, maintain_reserved_ignore, require_lore_repository,
 };
-use crate::{ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef};
 use lore::file::LoreFileStageArgs;
 use lore::interface::{LoreArray, LoreEvent, LoreEventCallback, LoreString};
 use lore::revision::LoreRevisionCommitArgs;
+use reliquary_archive::{ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 

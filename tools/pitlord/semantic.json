@@ -132,6 +132,8 @@
       "id": "project-environment",
       "description": "Lore/Git project repository bootstrap, identity validation and attachment ingestion",
       "paths": [
+        "crates/reliquary-project-environment/src",
+        "crates/reliquary-project-environment/tests",
         "src/project_environment.rs",
         "src/project_environment",
         "src/project_environment_git_tests.rs",

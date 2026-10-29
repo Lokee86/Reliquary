@@ -1,9 +1,9 @@
 use super::lore::{
     PreparedLoreRepository, block_on_lore, current_revision, globals, require_lore_repository,
 };
-use crate::ProjectFileRef;
 use lore::file::LoreFileWriteArgs;
 use lore::interface::LoreString;
+use reliquary_archive::ProjectFileRef;
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::Path;

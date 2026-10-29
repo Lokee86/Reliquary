@@ -302,7 +302,9 @@ The compiled `reliquary-context-engine` crate is the canonical owner of determin
 The crate depends on `reliquary-echo` only for immutable event values used by evidence rendering. Host applications may map `ContextRequest` and `ContextMessage` into provider wire DTOs and execute the summarization request, but they retain history access, checkpoint lineage authentication, token-counter choice and persistence. The crate does not own a transcript store or perform inference.
 
 ### Project Environment host
-`ProjectRepositoryMode` selects `ManagedLore`, `ManualLore`, or `Git` bootstrap policy. `GatewayRuntime::create_project_environment_rel` and `adopt_project_environment_rel` own repository discovery/bootstrap, durable repository identity, initial revision correlation, and REL creation/adoption. `inspect_project_adoption_source` validates an uncorrelated durable-owner REL before adoption.
+The compiled `reliquary-project-environment` crate owns repository and file operations; Root and Gateway retain REL lifecycle, authorization, and durable correlation publication. Archive owns the reference types.
+
+`ProjectRepositoryMode` selects `ManagedLore`, `ManualLore`, or `Git` bootstrap policy. `GatewayRuntime::create_project_environment_rel` and `adopt_project_environment_rel` orchestrate repository discovery/bootstrap through the Project Environment crate and own durable correlation and REL creation/adoption. `inspect_project_adoption_source` validates an uncorrelated durable-owner REL before adoption.
 
 For mounted Project RELs, `validate_project_environment_for` verifies the supplied local project directory against the durable repository identity and refreshes only a moved repository-relative `project_path`; `validate_project_environment_cva` provides the same check before mount. `checkpoint_manual_project_for` owns explicit externally-managed Lore checkpoints. `project_repository_root_for` resolves the repository root after identity validation.
 

@@ -48,13 +48,13 @@ Reliquary may retain exact project revision/file references, but it must not gro
 
 ## Code Map
 
-- `src/project_environment.rs`
-- `src/project_environment/**`
+- `crates/reliquary-project-environment/src/**` - Git/Lore and file operations
+- `src/project_environment.rs` and `src/project_environment/lifecycle.rs` - Root lifecycle and correlation
 - `src/project_environment_*_tests.rs`
 
 ## Related docs
 
-- [Project Environment crate extraction specification](../project-environment-crate-extraction-spec-2026-10-28.md) — existing Git/Lore implementation move; implementation pending.
+- [Project Environment crate extraction specification](../project-environment-crate-extraction-spec-2026-10-28.md) — the extraction contract and acceptance criteria.
 - [Architecture](../architecture.md)
 - [Roadmap](../roadmap.md)
 - [ADR 0027](../decisions/0027-warlock-project-repositories-and-reliquary-storage-boundary.md)

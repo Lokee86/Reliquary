@@ -15,7 +15,7 @@ pub(crate) fn create_project_rel(
             return Err(error.to_string());
         }
     };
-    if let Err(error) = repository.correlate(&mut cva) {
+    if let Err(error) = correlate(&repository, &mut cva) {
         drop(cva);
         let _ = std::fs::remove_file(rel_path);
         repository.rollback();
@@ -27,7 +27,7 @@ pub(crate) fn create_project_rel(
         repository.rollback();
         return Err(error.to_string());
     }
-    repository.validate(&cva)?;
+    validate(&repository, &cva)?;
     Ok(cva)
 }
 
@@ -70,7 +70,7 @@ pub(crate) fn adopt_project_rel(
         repository.rollback();
         return Err("Project adoption source acquired repository correlation".into());
     }
-    if let Err(error) = repository.correlate(&mut cva) {
+    if let Err(error) = correlate(&repository, &mut cva) {
         repository.rollback();
         return Err(error);
     }
@@ -78,6 +78,33 @@ pub(crate) fn adopt_project_rel(
         repository.rollback();
         return Err(error.to_string());
     }
-    repository.validate(&cva)?;
+    validate(&repository, &cva)?;
     Ok(cva)
+}
+
+fn correlate(
+    repository: &reliquary_project_environment::PreparedProjectRepository,
+    cva: &mut Cva,
+) -> Result<(), String> {
+    cva.correlate_project_revision_with_management(
+        repository.revision().clone(),
+        repository.management(),
+    )
+    .map(|_| ())
+    .map_err(|error| error.to_string())
+}
+
+fn validate(
+    repository: &reliquary_project_environment::PreparedProjectRepository,
+    cva: &Cva,
+) -> Result<(), String> {
+    let actual = cva
+        .latest_project_revision_correlation()
+        .ok_or_else(|| "Project REL has no repository correlation after bootstrap".to_string())?;
+    if actual.project_revision != *repository.revision()
+        || actual.repository_management != repository.management()
+    {
+        return Err("Project REL repository correlation does not match bootstrap state".into());
+    }
+    Ok(())
 }

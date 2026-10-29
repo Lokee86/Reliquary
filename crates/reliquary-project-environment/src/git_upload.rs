@@ -4,7 +4,9 @@ use super::git_command::{git_bytes_with_input, git_owned};
 use super::git_snapshot::snapshot_file;
 use super::lore_file::sha256;
 use super::upload_paths::{mime_type, upload_destination};
-use crate::{ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef};
+use reliquary_archive::{
+    ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef,
+};
 use std::ffi::OsString;
 use std::fs;
 use std::path::Path;

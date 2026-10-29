@@ -38,6 +38,7 @@
 - [Dream service crate extraction specification](dream-service-crate-extraction-spec-2026-10-28.md) — separate pair classification, candidate and duplicate policy, lifecycle decisions and Community naming from REL/PHY Graph, Freshness, Dream Store and runtime writes.
 - [Context Engine crate extraction specification](context-engine-crate-extraction-spec-2026-10-28.md) — move the existing deterministic context and compaction engine into its compiled crate; no new Ego, model or runtime features.
 - [Project Environment crate extraction specification](project-environment-crate-extraction-spec-2026-10-28.md) — move existing Git/Lore project operations into the compiled crate while keeping REL lifecycle and publication under Root authority.
+- [Project Environment crate extraction evidence](project-environment-crate-extraction-evidence-2026-10-28.md) - implementation ownership and validation results.
 - [Retrieval service crate extraction evidence](retrieval-service-crate-extraction-evidence-2026-10-28.md) — partial source ownership cut and verified checks; final integration acceptance remains pending.
 - [Owner Lifecycle extraction specification](owner-lifecycle-crate-extraction-spec-2026-10-27.md) — compiled owner reopen and structural replay coordination.
 - [Compact interaction stream contract](interaction-stream-compact-contract-2026-10-21.md) — frozen checkpoint transitions and exact suffix representation.
@@ -291,6 +292,7 @@
 - [perception-store-crate-extraction-evidence-2026-10-26.md](perception-store-crate-extraction-evidence-2026-10-26.md) - Perception Store Crate Extraction Evidence 2026 10 26 documentation.
 - [perception-store-crate-extraction-spec-2026-10-26.md](perception-store-crate-extraction-spec-2026-10-26.md) - Perception Store Crate Extraction Spec 2026 10 26 documentation.
 - [perception-subsystem-plan.md](perception-subsystem-plan.md) - Perception Subsystem Plan documentation.
+- [project-environment-crate-extraction-evidence-2026-10-28.md](project-environment-crate-extraction-evidence-2026-10-28.md) - Project Environment extraction evidence.
 - [project-environment-crate-extraction-spec-2026-10-28.md](project-environment-crate-extraction-spec-2026-10-28.md) - Project Environment Crate Extraction Spec 2026 10 28 documentation.
 - [publication-envelope-contract-2026-10-20.md](publication-envelope-contract-2026-10-20.md) - Publication Envelope Contract 2026 10 20 documentation.
 - [retained-entity-resolution-contract-2026-10-21.md](retained-entity-resolution-contract-2026-10-21.md) - Retained Entity Resolution Contract 2026 10 21 documentation.

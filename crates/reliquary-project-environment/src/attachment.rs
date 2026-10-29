@@ -1,8 +1,10 @@
 use super::{PreparedProjectAttachment, git_upload, lore_upload};
-use crate::{ProjectRepositoryKind, ProjectRepositoryManagement, ProjectRevisionCorrelation};
+use reliquary_archive::{
+    ProjectRepositoryKind, ProjectRepositoryManagement, ProjectRevisionCorrelation,
+};
 use std::path::Path;
 
-pub(crate) fn prepare_upload(
+pub fn prepare_upload(
     correlation: &ProjectRevisionCorrelation,
     project_dir: &Path,
     source: &Path,

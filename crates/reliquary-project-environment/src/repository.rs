@@ -5,45 +5,34 @@ use super::lore::{
     prepare_managed_lore, require_lore_repository,
 };
 use super::lore_checkpoint;
-use crate::{
-    Cva, ProjectRepositoryKind, ProjectRepositoryManagement, ProjectRepositoryRef,
+use reliquary_archive::{
+    ProjectRepositoryKind, ProjectRepositoryManagement, ProjectRepositoryRef,
     ProjectRevisionCorrelation, ProjectRevisionRef,
 };
 use std::path::{Path, PathBuf};
 
-pub(crate) struct PreparedProjectRepository {
+pub struct PreparedProjectRepository {
     revision: ProjectRevisionRef,
     management: ProjectRepositoryManagement,
     lore: Option<PreparedLoreRepository>,
 }
 
 impl PreparedProjectRepository {
-    pub(crate) fn correlate(&self, cva: &mut Cva) -> Result<(), String> {
-        cva.correlate_project_revision_with_management(self.revision.clone(), self.management)
-            .map(|_| ())
-            .map_err(|error| error.to_string())
+    pub fn revision(&self) -> &ProjectRevisionRef {
+        &self.revision
+    }
+    pub fn management(&self) -> ProjectRepositoryManagement {
+        self.management
     }
 
-    pub(crate) fn validate(&self, cva: &Cva) -> Result<(), String> {
-        let actual = cva.latest_project_revision_correlation().ok_or_else(|| {
-            "Project REL has no repository correlation after bootstrap".to_string()
-        })?;
-        if actual.project_revision != self.revision
-            || actual.repository_management != self.management
-        {
-            return Err("Project REL repository correlation does not match bootstrap state".into());
-        }
-        Ok(())
-    }
-
-    pub(crate) fn rollback(&self) {
+    pub fn rollback(&self) {
         if let Some(repository) = &self.lore {
             repository.rollback();
         }
     }
 }
 
-pub(crate) fn prepare_project_repository(
+pub fn prepare_project_repository(
     project_dir: &Path,
     mode: ProjectRepositoryMode,
 ) -> Result<PreparedProjectRepository, String> {
@@ -105,7 +94,7 @@ fn prepare_lore(
     })
 }
 
-pub(crate) fn current_revision_for(
+pub fn current_revision_for(
     project_dir: &Path,
     correlation: &ProjectRevisionCorrelation,
 ) -> Result<ProjectRevisionRef, String> {
@@ -151,7 +140,7 @@ pub(crate) fn current_revision_for(
     }
 }
 
-pub(crate) fn repository_root(
+pub fn repository_root(
     project_dir: &Path,
     correlation: &ProjectRevisionCorrelation,
 ) -> Result<PathBuf, String> {
@@ -175,7 +164,7 @@ pub(crate) fn repository_root(
     }
 }
 
-pub(crate) fn checkpoint_manual_lore(
+pub fn checkpoint_manual_lore(
     project_dir: &Path,
     correlation: &ProjectRevisionCorrelation,
 ) -> Result<ProjectRevisionRef, String> {

@@ -1,4 +1,5 @@
 use super::git_command::{git_failure, git_success, git_text};
+use reliquary_archive::ProjectFileRef;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -60,7 +61,7 @@ pub(crate) fn require_git_repository(project_dir: &Path) -> Result<PreparedGitRe
 
 pub(crate) fn validate_reference_repository(
     repository: &PreparedGitRepository,
-    reference: &crate::ProjectFileRef,
+    reference: &ProjectFileRef,
 ) -> Result<(), String> {
     if repository.repository_id != reference.revision.repository.repository_id {
         return Err("Project file repository identity does not match the open Git project".into());

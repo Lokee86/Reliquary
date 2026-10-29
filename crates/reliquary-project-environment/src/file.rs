@@ -1,8 +1,8 @@
 use super::{git_file, lore_file};
-use crate::{ProjectFileRef, ProjectRepositoryKind};
+use reliquary_archive::{ProjectFileRef, ProjectRepositoryKind};
 use std::path::Path;
 
-pub(crate) fn read_project_file(
+pub fn read_project_file(
     project_dir: &Path,
     reference: &ProjectFileRef,
 ) -> Result<Vec<u8>, String> {

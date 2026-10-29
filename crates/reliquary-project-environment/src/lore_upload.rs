@@ -5,10 +5,12 @@ use super::lore::{
 };
 use super::lore_file::{repository_relative, sha256};
 use super::upload_paths::{find_tracked_match, mime_type, upload_destination};
-use crate::{ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef};
 use lore::file::LoreFileStageArgs;
 use lore::interface::{LoreArray, LoreString};
 use lore::revision::LoreRevisionCommitArgs;
+use reliquary_archive::{
+    ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef,
+};
 use std::fs;
 use std::path::Path;
 
