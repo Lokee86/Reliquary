@@ -125,8 +125,7 @@
       "id": "context-engine",
       "description": "Provider-neutral context messages, evidence rendering and compaction policy",
       "paths": [
-        "src/context_engine.rs",
-        "src/context_engine"
+        "crates/reliquary-context-engine/src"
       ]
     },
     {

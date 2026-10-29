@@ -2734,6 +2734,9 @@ dependencies = [
 [[package]]
 name = "reliquary-context-engine"
 version = "0.1.0"
+dependencies = [
+ "reliquary-echo",
+]
 
 [[package]]
 name = "reliquary-dream"
@@ -2889,6 +2892,7 @@ dependencies = [
  "reliquary-archive",
  "reliquary-chronos",
  "reliquary-container",
+ "reliquary-context-engine",
  "reliquary-dream",
  "reliquary-dream-store",
  "reliquary-echo",

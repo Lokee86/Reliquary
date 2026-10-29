@@ -52,12 +52,16 @@ Ego cross-chat and Memory-Web synthesis are separate future context layers. Curr
 
 ## Code Map
 
-- `src/context_engine.rs`
-- `src/context_engine/**`
+- `crates/reliquary-context-engine/src/{lib,model,compaction_budget,compaction,evidence}.rs` — canonical compiled implementation.
+- `crates/reliquary-context-engine/tests/behavior.rs` — external-consumer behavioral tests.
+- `src/lib.rs` — Root public re-exports preserving the product API.
+- `src/echo/echo_tests.rs` — Root integration coverage for the public Echo rendering API.
+
+The product owns no duplicate Context Engine implementation. The crate consumes immutable Echo event values; Archive/host retain history, checkpoint authentication, token-counter selection and persistence.
 
 ## Related docs
 
-- [Context Engine crate extraction specification](../context-engine-crate-extraction-spec-2026-10-28.md) — existing-code move; implementation pending.
+- [Context Engine crate extraction specification](../context-engine-crate-extraction-spec-2026-10-28.md) — existing-code move and compatibility contract.
 - [Architecture](../architecture.md)
 - [Rust API](../api.md)
 - [Ego cross-chat plan](../ego-cross-chat-context-plan.md)

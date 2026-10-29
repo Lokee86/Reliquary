@@ -1,5 +1,7 @@
 # Reliquary Memory v2 Documentation
 
+- [Context Engine extraction evidence](context-engine-crate-extraction-evidence-2026-10-28.md) — ownership move and verification.
+
 - [Canonical migration results](canonical-history-migration-results-2026-10-21.md) - six disposable conversions, exact resolution history and full raw-byte accounting.
 - [Retained inert Entity Resolution contract](retained-entity-resolution-contract-2026-10-21.md) — frozen behavior, original bytes and distinct format admission.
 
@@ -180,6 +182,7 @@
 - [community-scan-merge-benchmark-2026-08-27.md](community-scan-merge-benchmark-2026-08-27.md) - Community Scan Merge Benchmark 2026 08 27 documentation.
 - [configuration.md](configuration.md) - Configuration documentation.
 - [container-crate-extraction-spec-2026-10-25.md](container-crate-extraction-spec-2026-10-25.md) - Container Crate Extraction Spec 2026 10 25 documentation.
+- [context-engine-crate-extraction-evidence-2026-10-28.md](context-engine-crate-extraction-evidence-2026-10-28.md) - Context Engine Crate Extraction Evidence 2026 10 28 documentation.
 - [context-engine-crate-extraction-spec-2026-10-28.md](context-engine-crate-extraction-spec-2026-10-28.md) - Context Engine Crate Extraction Spec 2026 10 28 documentation.
 - [conversation-index-integration-plan.md](conversation-index-integration-plan.md) - Conversation Index Integration Plan documentation.
 - [crate-first-architecture.md](crate-first-architecture.md) - Crate First Architecture documentation.

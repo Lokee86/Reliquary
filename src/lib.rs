@@ -190,8 +190,6 @@ mod config_io;
 mod config_object;
 #[path = "runtime_inference/configured_runtime.rs"]
 mod configured_runtime;
-#[path = "context_engine.rs"]
-mod context_engine;
 #[path = "retrieval/conversation_search.rs"]
 mod conversation_search;
 #[path = "retrieval/conversation_search_model.rs"]
@@ -753,16 +751,6 @@ pub use runtime_config::RuntimeConfig;
 pub use storage_reclamation::StorageReclamationReport;
 pub type Reliquary = Cva;
 pub use chronos_inference_error::TemporalInferenceError;
-pub use context_engine::{
-    COMPACTED_CONTEXT_INSTRUCTIONS, COMPACTION_INPUT_PERCENT, COMPACTION_TARGET_OF_TRIGGER_PERCENT,
-    CompactionBudget, CompactionCheckpoint, CompactionError, CompactionPlan, ContextEvidence,
-    ContextMessage, ContextRequest, ContextRole, ContextTokenCounter, ContextTurn, ContextView,
-    DEFAULT_COMPACTION_TRIGGER_PERCENT, EvidenceKind, MAX_SUMMARY_TOKENS, MIN_RAW_TAIL_TURNS,
-    RAW_TAIL_OF_TARGET_PERCENT, SUMMARY_OF_TARGET_PERCENT, budget_satisfied, checkpoint_applies,
-    compaction_budget, compaction_needed, normalize_summary, plan_compaction,
-    plan_session_compaction, render_assistant_content, render_assistant_content_from_echo,
-    request_context, request_messages,
-};
 pub use cva_error::CvaError;
 pub use cva_file_memory::FileMemoryLink;
 pub use cva_principal_repack::PrincipalBackfillRepackResult;
@@ -902,6 +890,16 @@ pub use reliquary_archive::project_history_model::{
     ProjectRevisionCorrelation, ProjectRevisionRef, RelSemanticCut,
 };
 pub use reliquary_chronos::CHRONOS_INFERENCE_CONTRACT_VERSION;
+pub use reliquary_context_engine::{
+    COMPACTED_CONTEXT_INSTRUCTIONS, COMPACTION_INPUT_PERCENT, COMPACTION_TARGET_OF_TRIGGER_PERCENT,
+    CompactionBudget, CompactionCheckpoint, CompactionError, CompactionPlan, ContextEvidence,
+    ContextMessage, ContextRequest, ContextRole, ContextTokenCounter, ContextTurn, ContextView,
+    DEFAULT_COMPACTION_TRIGGER_PERCENT, EvidenceKind, MAX_SUMMARY_TOKENS, MIN_RAW_TAIL_TURNS,
+    RAW_TAIL_OF_TARGET_PERCENT, SUMMARY_OF_TARGET_PERCENT, budget_satisfied, checkpoint_applies,
+    compaction_budget, compaction_needed, normalize_summary, plan_compaction,
+    plan_session_compaction, render_assistant_content, render_assistant_content_from_echo,
+    request_context, request_messages,
+};
 pub use reliquary_dream::DreamClassificationError;
 pub use reliquary_dream::DreamClassifier;
 pub use reliquary_dream::DreamVerificationError;

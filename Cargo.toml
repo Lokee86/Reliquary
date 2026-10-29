@@ -110,6 +110,7 @@ reliquary-ego-store = { path = "crates/reliquary-ego-store" }
 reliquary-perception-store = { path = "crates/reliquary-perception-store" }
 reliquary-graph = { path = "crates/reliquary-graph" }
 reliquary-echo = { path = "crates/reliquary-echo" }
+reliquary-context-engine = { path = "crates/reliquary-context-engine" }
 reliquary-memory-core = { path = "crates/reliquary-memory-core" }
 reliquary-archive = { path = "crates/reliquary-archive" }
 reliquary-container = { path = "crates/reliquary-container" }

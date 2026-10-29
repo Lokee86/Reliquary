@@ -139,12 +139,7 @@
       "reliquary-vectors"
     ],
     "reliquary-context-engine": [
-      "reliquary-archive",
-      "reliquary-echo",
-      "reliquary-ego",
-      "reliquary-freshness",
-      "reliquary-retrieval",
-      "reliquary-switchboard"
+      "reliquary-echo"
     ],
     "reliquary-vectors": [
       "reliquary-archive",
@@ -269,6 +264,7 @@
       "reliquary-container"
     ],
     "reliquary-memory": [
+      "reliquary-context-engine",
       "reliquary-history",
       "reliquary-import",
       "reliquary-maintenance",
