@@ -54,6 +54,7 @@ Reliquary may retain exact project revision/file references, but it must not gro
 
 ## Related docs
 
+- [Project Environment crate extraction specification](../project-environment-crate-extraction-spec-2026-10-28.md) — existing Git/Lore implementation move; implementation pending.
 - [Architecture](../architecture.md)
 - [Roadmap](../roadmap.md)
 - [ADR 0027](../decisions/0027-warlock-project-repositories-and-reliquary-storage-boundary.md)
