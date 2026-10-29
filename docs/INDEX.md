@@ -32,6 +32,7 @@
 - [Entity Resolution service crate extraction specification](entity-resolution-service-crate-extraction-spec-2026-10-28.md) — replace the reserved Perception service placeholder with the current identity-resolution engine; leave Perception Store and future Observations separate.
 - [Insomnia service crate extraction specification](insomnia-service-crate-extraction-spec-2026-10-28.md) — separate the existing Episode-to-Memory inference and candidate policy from owner evidence hydration, durable publication, work scheduling and replay.
 - [Insomnia service crate extraction evidence](insomnia-service-crate-extraction-evidence-2026-10-28.md) — service/root boundary and scoped verification results; workspace, CLI and other acceptance gates remain in progress.
+- [Dream service crate extraction specification](dream-service-crate-extraction-spec-2026-10-28.md) — separate pair classification, candidate and duplicate policy, lifecycle decisions and Community naming from REL/PHY Graph, Freshness, Dream Store and runtime writes.
 - [Retrieval service crate extraction evidence](retrieval-service-crate-extraction-evidence-2026-10-28.md) — partial source ownership cut and verified checks; final integration acceptance remains pending.
 - [Owner Lifecycle extraction specification](owner-lifecycle-crate-extraction-spec-2026-10-27.md) — compiled owner reopen and structural replay coordination.
 - [Compact interaction stream contract](interaction-stream-compact-contract-2026-10-21.md) — frozen checkpoint transitions and exact suffix representation.
@@ -192,6 +193,7 @@
 - [domain-tombstone-convergence-split-2026-10-17.md](domain-tombstone-convergence-split-2026-10-17.md) - Domain Tombstone Convergence Split 2026 10 17 documentation.
 - [dream-classifier-v2-design.md](dream-classifier-v2-design.md) - Dream Classifier V2 Design documentation.
 - [dream-population-contract-2026-10-21.md](dream-population-contract-2026-10-21.md) - Dream Population Contract 2026 10 21 documentation.
+- [dream-service-crate-extraction-spec-2026-10-28.md](dream-service-crate-extraction-spec-2026-10-28.md) - Dream Service Crate Extraction Spec 2026 10 28 documentation.
 - [dream-store-crate-extraction-evidence-2026-10-27.md](dream-store-crate-extraction-evidence-2026-10-27.md) - Dream Store Crate Extraction Evidence 2026 10 27 documentation.
 - [dream-store-crate-extraction-spec-2026-10-27.md](dream-store-crate-extraction-spec-2026-10-27.md) - Dream Store Crate Extraction Spec 2026 10 27 documentation.
 - [echo-crate-extraction-spec-2026-10-26.md](echo-crate-extraction-spec-2026-10-26.md) - Echo Crate Extraction Spec 2026 10 26 documentation.
