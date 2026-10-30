@@ -23,6 +23,7 @@
 - [Maintenance Store extraction specification](maintenance-store-crate-extraction-spec-2026-10-27.md) — evidence-first durable ownership decision.
 - [Maintenance service extraction specification](maintenance-service-crate-extraction-spec-2026-10-29.md) — existing rewrite-selection policy ownership and production integration gates.
 - [Maintenance service extraction evidence](maintenance-service-crate-extraction-evidence-2026-10-29.md) — source crosswalk, implementation status, and verification evidence.
+- [Runtime Gateway service extraction specification](runtime-gateway-service-crate-extraction-spec-2026-10-30.md) — canonical per-instance runtime authority, hard-cut Gateway integration, privacy and multiplexing regression gates.
 - [Owner Lifecycle extraction evidence](owner-lifecycle-crate-extraction-evidence-2026-10-27.md) — implementation, verification and remaining fixture limits.
 - [Chronos extraction evidence](chronos-crate-extraction-evidence-2026-10-27.md) — extraction baseline and verification.
 - [Chronos extraction specification](chronos-crate-extraction-spec-2026-10-27.md) — Chronos ownership and staged migration.
@@ -311,6 +312,7 @@
 - [retrieval-service-crate-extraction-evidence-2026-10-28.md](retrieval-service-crate-extraction-evidence-2026-10-28.md) - Retrieval Service Crate Extraction Evidence 2026 10 28 documentation.
 - [retrieval-service-crate-extraction-spec-2026-10-28.md](retrieval-service-crate-extraction-spec-2026-10-28.md) - Retrieval Service Crate Extraction Spec 2026 10 28 documentation.
 - [roadmap.md](roadmap.md) - Roadmap documentation.
+- [runtime-gateway-service-crate-extraction-spec-2026-10-30.md](runtime-gateway-service-crate-extraction-spec-2026-10-30.md) - Runtime Gateway Service Crate Extraction Spec 2026 10 30 documentation.
 - [semantic-import-pruning-history-rewrite-evidence-2026-10-18.md](semantic-import-pruning-history-rewrite-evidence-2026-10-18.md) - Semantic Import Pruning History Rewrite Evidence 2026 10 18 documentation.
 - [storage-format.md](storage-format.md) - Storage Format documentation.
 - [switchboard-crate-extraction-evidence-2026-10-27.md](switchboard-crate-extraction-evidence-2026-10-27.md) - Switchboard Crate Extraction Evidence 2026 10 27 documentation.
