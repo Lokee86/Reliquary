@@ -1,6 +1,6 @@
 # Runtime Gateway service crate extraction — implementation specification
 
-**Status:** Specified, not implemented (2026-10-30).
+**Status:** **Partial Gateway extraction specification, NOT final architecture acceptance** (2026-10-30). The [Root dependency audit](crate-first-root-dependency-audit-2026-10-30.md) identifies an unresolved concrete Cva/Phylactery owner-aggregate boundary and separately movable host/journal responsibilities. G0–G5 may be used as a bounded intermediate cut, but cannot authorize declaring Runtime Gateway extracted to its final ownership target without a revised full-Gateway specification.
 **Branch/baseline:** `refactor/crate-first-restart`; observed HEAD `0016340f`. Reconfirm before source edits.
 **Target:** `crates/reliquary-runtime-gateway` (presently comment-only placeholder).
 **Scope:** Behavior-preserving extraction of **existing runtime gateway and per-instance policy**, not new multiplexing capability or a new platform host.

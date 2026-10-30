@@ -23,7 +23,8 @@
 - [Maintenance Store extraction specification](maintenance-store-crate-extraction-spec-2026-10-27.md) — evidence-first durable ownership decision.
 - [Maintenance service extraction specification](maintenance-service-crate-extraction-spec-2026-10-29.md) — existing rewrite-selection policy ownership and production integration gates.
 - [Maintenance service extraction evidence](maintenance-service-crate-extraction-evidence-2026-10-29.md) — source crosswalk, implementation status, and verification evidence.
-- [Runtime Gateway service extraction specification](runtime-gateway-service-crate-extraction-spec-2026-10-30.md) — canonical per-instance runtime authority, hard-cut Gateway integration, privacy and multiplexing regression gates.
+- [Runtime Gateway service extraction specification](runtime-gateway-service-crate-extraction-spec-2026-10-30.md) — partial per-instance cut, with final Gateway ownership blocked pending a corrected boundary.
+- [Crate-first Root dependency audit](crate-first-root-dependency-audit-2026-10-30.md) — measured residual Root coupling, concrete owner-aggregate/Gateway dependency knot, incomplete service boundaries and required closure decisions.
 - [Owner Lifecycle extraction evidence](owner-lifecycle-crate-extraction-evidence-2026-10-27.md) — implementation, verification and remaining fixture limits.
 - [Chronos extraction evidence](chronos-crate-extraction-evidence-2026-10-27.md) — extraction baseline and verification.
 - [Chronos extraction specification](chronos-crate-extraction-spec-2026-10-27.md) — Chronos ownership and staged migration.
@@ -196,6 +197,7 @@
 - [conversation-index-integration-plan.md](conversation-index-integration-plan.md) - Conversation Index Integration Plan documentation.
 - [crate-first-architecture.md](crate-first-architecture.md) - Crate First Architecture documentation.
 - [crate-first-layout-spec-2026-10-25.md](crate-first-layout-spec-2026-10-25.md) - Crate First Layout Spec 2026 10 25 documentation.
+- [crate-first-root-dependency-audit-2026-10-30.md](crate-first-root-dependency-audit-2026-10-30.md) - Crate First Root Dependency Audit 2026 10 30 documentation.
 - [current-limitations.md](current-limitations.md) - Current Limitations documentation.
 - [derived-semantic-nodes-exploration.md](derived-semantic-nodes-exploration.md) - Derived Semantic Nodes Exploration documentation.
 - [development-format-compatibility-retirement-audit-2026-10-19.md](development-format-compatibility-retirement-audit-2026-10-19.md) - Development Format Compatibility Retirement Audit 2026 10 19 documentation.
