@@ -1,0 +1,63 @@
+# Runtime Gateway service crate extraction — implementation specification
+
+**Status:** Specified, not implemented (2026-10-30).
+**Branch/baseline:** `refactor/crate-first-restart`; observed HEAD `0016340f`. Reconfirm before source edits.
+**Target:** `crates/reliquary-runtime-gateway` (presently comment-only placeholder).
+**Scope:** Behavior-preserving extraction of **existing runtime gateway and per-instance policy**, not new multiplexing capability or a new platform host.
+**Unrelated edit:** Preserve `docs/graph-crate-extraction-evidence-2026-10-26.md` and all untracked test artifacts. Stage only intentional files.
+
+## 1. Audited implementation and ownership
+
+The real gateway is **already implemented in Root**, principally `src/runtime_inference/runtime_host_gateway.rs` with the `runtime_host_gateway_*.rs` modules, `runtime_host_instances.rs`, `multiplexing_journal.rs`, `runtime_host_owner_operation_journal.rs`, `runtime_host_owner_publication*.rs`, `runtime_host_phy_execution.rs` and `runtime_host_rel_execution.rs`. It is not under `src/gateway` or `src/runtime`. The gateway includes durable REL/PHY attachments, instance-scoped selections/grants, owner fencing, submission queues, generation/stream recovery, host handoff, external sources, semantic lookup, and existing public APIs. The source uses Root `Cva`, `Phylactery`, `InteractionRuntime`, owner mutation and many higher-level adapters: moving the entire module tree into a lower library would create a forbidden Root dependency.
+
+| Existing source | Intended disposition |
+| --- | --- |
+| `runtime_host_instances.rs`: `InstanceRuntime`, `OwnerGrant`, `InstanceAuthorization`, `ManagedConversationState`, attached/detach/grant-generation/selection policy | **First concrete extraction candidate**: own canonical per-instance policy/state in gateway crate, preserving exact public Root reexports and all gateway call sites. Constructors must remain host-verified. |
+| `runtime_host_gateway.rs`: `GatewayRuntime`, `LeaseGate`, admission/mount dispatch, owner and lifecycle coordination | **Root until a proven lower seam exists.** Extract only an existing bounded, caller-independent fence/lease policy if compatible with public/error types, never duplicate gate state. |
+| `multiplexing_journal.rs`: `RQMUXJ01`, `RQMUXS01`, `RQMUXH01` queue/host state, staged attachment bounds, replay/compaction | **Inventory second, do not blindly move.** Owns physical journal I/O and references Root host operation values; lower extraction requires canonical value boundaries and exact format/recovery proof. No new journal or conversion cache. |
+| `runtime_host_gateway_conversation*.rs`, stream/reconnect/subscription/host/owner-operation files | **Root coordination unless demonstrably Root-independent**. Keep Archive publication, accepted-use receipts, host effects and owner authorization at product boundary. |
+| `runtime_host_gateway_external*.rs`, `src/external_source/**`, existing `reliquary-external-index-store` | Keep current external-source owner processing and lower durable index state. Gateway may coordinate only authorized source effects; do not re-extract store. |
+| `runtime_inference/interaction_*.rs`, configured runtime/model routing, Insomnia/Dream/Ego/Context Engine | Stay in their current owners/Root, except tiny proven gateway-specific pure policy. No new semantic controller. |
+| `#[cfg(test)]` P6 fixture, host/conversation/recovery and integration tests | **Tests**, not production code to inflate extraction. |
+
+**Minimum real extraction:** one canonical **production** gateway subsystem, preferably `InstanceRuntime` and its grant, incarnation, and managed-selection rules, must compile within `reliquary-runtime-gateway` and be invoked by existing Root `GatewayRuntime` for all production paths. Root must not keep a second `InstanceRuntime` implementation or state mirror. A renamed placeholder or wrapper forwarding to a Root method is not completion. If the chosen candidate has hidden upward references, stop and record them rather than create an alternate model.
+
+## 2. Invariants and allowed dependencies
+
+1. **Security and isolation:** Host-verified principal/PHY bindings, exact owner grants, instance incarnation and generation revocation, per-owner generation fencing, active REL selection, detach/reconnect boundaries, instance-local historical leaf selection and no automatic branch write must retain identical behavior.
+2. **Owner lifetime:** Shared REL/PHY mounts survive independent instance detach; owner leases, draining, cancellation, mutation fencing, concurrent-user isolation and no cross-owner authority leakage stay intact. Do not move `Cva`/`Phylactery` writers behind unverified callbacks.
+3. **Queue/recovery:** Preserve durable submission order, idempotency, the queued/running/cancelled/finalized distinctions, crash/restart/reconcile semantics, stable identity receipts, postcommit recovery, auto-branch behavior and partial-prefix refusal. No changes to journal magic, encoding, frame/hash limits, atomicity, versions or snapshot bytes.
+4. **Stream/host:** Existing generation resume tokens, sequence/cursor validation, exactly-once accepted handoff where currently promised, cancellation and reconnect, event subscriptions, host contract and stream backpressure remain unchanged. No new streaming protocol or runtime scheduler.
+5. **Public API:** Preserve `reliquary-memory` exports (`GatewayRuntime`, `InstanceRuntime`, `OwnerGrant`, `InstanceAuthorization`, `GatewayHostAdapter`, receipts, statuses and associated errors) at their existing paths. Move canonical types and reexport; do not fork enum variants, IDs or serialization formats. Inherent implementations must live with their canonical types.
+6. **Dependency DAG:** `reliquary-runtime-gateway` can import only actually necessary crates permitted in `docs/architecture/crate-map.json`; permissions are maxima. **No dependency on `reliquary-memory` Root, an upward gateway consumer or a cyclic sibling.** For the initial instance policy, prefer only `uuid` and standard synchronization/collections; avoid importing 20 unused domain crates. Root continues to depend downward.
+7. **Scope control:** Preserve the existing Gateway/Instance split. Do not rewrite the whole gateway, refactor all `runtime_host_gateway_*.rs` files, add runtime services, duplicate journals/queues, create generic host adapters solely to compile, modify P6 behavior or postpone essential root wiring.
+8. **Error fidelity:** Exact denied/revoked/fenced, stale-incarnation, lock-poisoning, grant-scoping, duplicate/replay and owner error ordering is part of the contract; compile success alone is insufficient.
+
+## 3. Bounded implementation gates
+
+| Gate | Task | Required proof |
+| --- | --- | --- |
+| **G0 — freeze baseline and exact source map** | Capture fresh HEAD/status, full `runtime_host_instances.rs` public and internal accessors/callers, `GatewayRuntime` auth and attachment call sites, public reexports, Root-only types, Cargo tree, nonzero named gateway tests. Inventory journal and owner seams but do not expand cut automatically. | Function-by-function move/stay table, pre-cut regression witnesses, Graph edit untouched |
+| **G1 — canonical Instance boundary** | Relocate the actual instance state/types/errors and grant/selection policy into `reliquary-runtime-gateway`. Preserve single canonical instance identity and exact existing behavior; implement private accessors or minimal needed public methods only where Rust crate privacy requires, without widening host authority. | Crate compiles standalone; only one real type; public-path type-identity and error parity tests |
+| **G2 — integrate all host production callers** | Change Root gateway module to import/reexport canonical lower types. Wire all attach, detach, grants, admission-token, per-owner generation, active REL, historical-selection and snapshot callers to the same instance object. Remove original implementation and duplicates. | Source crosswalk is exhausted; no inactive adapter or shadow state; named multi-instance tests |
+| **G3 — verify concurrency and authority** | Run grant rotation/revocation, stale attachment/owner generation, detach/reattach, independent clients, PHY principal isolation, managed selection/branch, cancellation and mount fencing tests. Include concurrent races and restart/stream cases for impacted public paths. | Exact outcomes and existing error ordering; no weakened security |
+| **G4 — choose bounded optional second cut** | After G1–G3, review `LeaseGate` or journal code for another **actual root-independent** production policy. Only extract a clearly separable existing function family if the smaller boundary is insufficient to represent gateway ownership; do not force I/O or Root types into the lower crate. | Explicit extract/no-extract finding, Cargo DAG and no format changes |
+| **G5 — acceptance and close** | Run full locked offline workspace checks, crate/consumer tests, Root and CLI suites, docs/format, architecture guard as available. Record blockers separately; commit implementation and acceptance evidence. | Compiled and real product-integrated service, matching public API, preserved runtime behavior |
+
+**Stop rule:** If G1 cannot preserve the existing public/error behavior without upward dependency or a duplicate `InstanceRuntime`, record concrete compiler/source conflict and revise the spec before proceeding. Do **not** declare the empty crate a completed extraction.
+
+## 4. Required verification
+
+- `cargo check -p reliquary-runtime-gateway --locked --offline -j 1`; `cargo test -p reliquary-runtime-gateway --locked --offline -j 1`, including a downstream concrete consumer.
+- Focused named production tests from `runtime_host_instance_tests`, `runtime_host_gateway_admission_tests`, `runtime_host_gateway_host_*tests`, `runtime_host_gateway_conversation_*tests`, `runtime_host_gateway_reconnect_tests`, `runtime_host_gateway_streams*tests`, `runtime_host_gateway_p6_*tests`, `multiplexing_journal_tests`, `runtime_host_owner_operation_journal_tests`. Select tests from actual `cargo test -- --list` and count **nonzero** results; don't mistake a zero-match filter for acceptance.
+- `cargo check --workspace --all-targets --locked --offline -j 1`; `cargo test --lib --locked --offline -j 1 -- --test-threads=8`; `cargo test --manifest-path cli/Cargo.toml --locked --offline -j 1`; `cargo fmt --all -- --check`; CLI fmt; `git diff --check`; `cargo tree -p reliquary-runtime-gateway --depth 1 --offline`; `ddocs check --indexes --links`.
+- Compare pre/post recovery and authorization behavior for all affected APIs. Preserve journal golden bytes and no-writes-on-failure where any journal code is moved. Use short writable TEMP/TMP/TMPDIR and `-j 1` to avoid known Windows resource/path failures.
+- Run existing architecture/ownership checks where operational. **Existing six unmapped Context Engine files** and stale Lexicon/Arcana/Pitlord graphs are independently reported deficiencies, not passed checks or permission to weaken gates. Do not claim CVAFRS07 corpus verification without an actual run.
+
+Write `docs/runtime-gateway-service-crate-extraction-evidence-2026-10-30.md` with baseline SHA, actual symbols moved, direct dependencies, all original Root consumers, tests/counts, scoped code diff and outstanding verified limitations. Update source ownership maps and API docs only where changes actually occur; preserve unrelated Graph and test artifacts.
+
+**Exit condition:** Root invokes one canonical, lower-owned `InstanceRuntime` policy and has no local duplicate, with full behavior preserved. The result is an extraction of existing gateway behavior, **not** proof that every Root host orchestration method has been physically relocated.
+
+## Related sources
+
+[Crate layout](crate-first-layout-spec-2026-10-25.md), [crate map](architecture/crate-map.json), [Gateway ADR](decisions/0038-gateway-instance-runtime-multiplexing.md), [Maintenance acceptance](maintenance-service-crate-extraction-evidence-2026-10-29.md).
