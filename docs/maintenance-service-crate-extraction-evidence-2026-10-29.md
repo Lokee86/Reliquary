@@ -1,8 +1,8 @@
-# Maintenance service crate extraction — M0 evidence
+# Maintenance service crate extraction — acceptance evidence
 
-**Status:** M0 inventory captured; implementation in progress; tests and acceptance pending (2026-10-29).
+**Status:** Implementation committed as `0db752a9` (2026-10-29). M0–M4 source and regression evidence recorded; acceptance is conditional on the existing cross-repository architecture ownership finding described below. No additional Maintenance source changes are required by the current extraction scope.
 
-This is the function-to-owner crosswalk required by the [maintenance service extraction specification](maintenance-service-crate-extraction-spec-2026-10-29.md). It records the initial source baseline and subsequent in-progress extraction state. Tests and acceptance have not been completed.
+This is the function-to-owner crosswalk and acceptance record required by the [maintenance service extraction specification](maintenance-service-crate-extraction-spec-2026-10-29.md). The extraction code is committed, real REL and PHY production planners use the moved policy, and targeted plus full Root verification passed. The existing repository-level architecture ownership finding is still open; it is not represented as green.
 
 ## Baseline and worktree state
 
@@ -17,14 +17,14 @@ This is the function-to-owner crosswalk required by the [maintenance service ext
   ```
 
 - Those two paths were outside the maintenance extraction and remain unrelated.
-- At the initial baseline, `crates/reliquary-maintenance/Cargo.toml` had no dependencies and `crates/reliquary-maintenance/src/lib.rs` was the placeholder boundary. Thus the initial `cargo tree -p reliquary-maintenance --depth 1 --offline` was dependency-free. The current in-progress extraction now depends on `reliquary-memory-core` for the existing `MemoryId` type:
+- At the initial baseline, `crates/reliquary-maintenance/Cargo.toml` had no dependencies and `crates/reliquary-maintenance/src/lib.rs` was the placeholder boundary. Thus the initial `cargo tree -p reliquary-maintenance --depth 1 --offline` was dependency-free. The committed extraction depends on `reliquary-memory-core` for the existing `MemoryId` type:
 
   ```text
   reliquary-maintenance v0.1.0
   └── reliquary-memory-core v0.1.0
   ```
 
-  `reliquary-maintenance` now owns the existing explicit-selection and semantic-closure implementations, and both REL and PHY rewrite planners call those service functions. This is in-progress production wiring; it does not establish completed tests or acceptance.
+  `reliquary-maintenance` now owns the existing explicit-selection and semantic-closure implementations, and both REL and PHY rewrite planners call those service functions. This is committed production wiring, confirmed by the tests below.
 
 ## Function-to-owner crosswalk
 
@@ -96,3 +96,8 @@ M0 selected the shared deterministic rewrite-selection policy. The initial basel
 - Architecture/ownership guard failed on six existing `src/context_engine` files reported as lacking an owner. This remains an unresolved repository architecture finding; no architecture policy was relaxed.
 - Fresh Lexicon/Arcana/Pitlord graph acceptance was not run; no fresh graph result is claimed.
 - `cargo test --lib --locked --offline -j 1 -- --test-threads=8`: passed, 1,457 passed and 5 ignored, with loopback access and short repository-local `.t` TEMP/TMP/TMPDIR. An earlier run with the longer `.maintenance-test-temp` path produced three external gateway failures; the isolated case passed with the shorter path, and the full short-path rerun passed. Restricted loopback also caused configured-runtime test failures in an earlier run.
+- Independent post-commit acceptance rerun on `0db752a9`: `cargo test --lib --locked --offline -j 1 -- --test-threads=8` with short local `.t` TEMP/TMP/TMPDIR: **1,457 passed, 0 failed, 5 ignored**, exit code 0, 356.58s. This verifies the committed product behavior rather than only the prior extraction worktree.
+
+## Disposition
+
+**Maintenance extraction accepted within its specified production-policy scope (M0–M5).** Existing REL and PHY rewrite planners invoke the shared service policy without retaining duplicate selection algorithms; Maintenance Store, History, owners, and Root remain in their approved roles. Full Root and CLI regression acceptance passed. **Repository-wide architecture acceptance remains limited:** the separate source ownership guard flags six existing Context Engine files, and no fresh Lexicon/Arcana/Pitlord graph was established. This is an explicitly open cross-repository follow-up, not a silently green check. No CVAFRS07 corpus acceptance is claimed. The pre-existing Graph evidence edit and untracked test artifacts are excluded from this acceptance commit.
