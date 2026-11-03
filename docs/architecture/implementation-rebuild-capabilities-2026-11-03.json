@@ -2,7 +2,7 @@
   "schema_version": 2,
   "status": "design-only",
   "title": "Reliquary selective-reuse clean rebuild capability plan",
-  "source_head": "3e0b782f",
+  "source_head": "eb74c8cc",
   "principle": "Build required externally observable capabilities directly in approved target architecture. Existing source is optional reference material, not mandatory transfer inventory.",
   "reuse_rule": "For each capability evaluate: reuse unchanged / adapt / reimplement / omit. Only retain code when it contributes to the new design and passes behavioral acceptance.",
   "slice_rule": "Before coding a capability, derive the smallest implementation slices from its target interface and tests; do not pre-generate one task per old file or function.",
@@ -15,9 +15,10 @@
       "phase": "reference",
       "title": "Freeze reference and set up independent source baseline",
       "depends_on": [],
-      "deliverable": "Immutable reference revision, fixture manifest and unmodified unrelated edits",
-      "acceptance": "Reference can still build or documented failures are reproduced; all baseline and fixture hashes captured; unrelated work preserved",
-      "status": "not-started"
+      "deliverable": "A clean detached pinned reference worktree, one compact source/dirty-state evidence note, reserved isolated rebuild path; no replacement code created",
+      "acceptance": "Complete F01.1\u2013F01.7: source/dirty SHA and patch custody, safe detached reference checkout at exact pinned commit, separate build-output path, real or explicitly blocked smoke test, original tree unchanged; F04 alone creates the empty rebuild tree.",
+      "status": "not-started",
+      "breakdown": "docs/rebuild-f01-reference-baseline-2026-11-03.md"
     },
     {
       "id": "F02",
