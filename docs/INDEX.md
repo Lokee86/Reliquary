@@ -1,5 +1,7 @@
 # Reliquary Memory v2 Documentation
 
+- [Current system implementation inventory (2026-11-03)](current-system-inventory-2026-11-03.md) — live crate/dependency map, durable ownership, processing paths, Root coupling, capability status, and redesign inputs.
+
 - [Context Engine extraction evidence](context-engine-crate-extraction-evidence-2026-10-28.md) — ownership move and verification.
 
 - [Canonical migration results](canonical-history-migration-results-2026-10-21.md) - six disposable conversions, exact resolution history and full raw-byte accounting.
@@ -199,6 +201,7 @@
 - [crate-first-layout-spec-2026-10-25.md](crate-first-layout-spec-2026-10-25.md) - Crate First Layout Spec 2026 10 25 documentation.
 - [crate-first-root-dependency-audit-2026-10-30.md](crate-first-root-dependency-audit-2026-10-30.md) - Crate First Root Dependency Audit 2026 10 30 documentation.
 - [current-limitations.md](current-limitations.md) - Current Limitations documentation.
+- [current-system-inventory-2026-11-03.md](current-system-inventory-2026-11-03.md) - Current System Inventory 2026 11 03 documentation.
 - [derived-semantic-nodes-exploration.md](derived-semantic-nodes-exploration.md) - Derived Semantic Nodes Exploration documentation.
 - [development-format-compatibility-retirement-audit-2026-10-19.md](development-format-compatibility-retirement-audit-2026-10-19.md) - Development Format Compatibility Retirement Audit 2026 10 19 documentation.
 - [development-format-hard-cut-interruption-spec-2026-10-19.md](development-format-hard-cut-interruption-spec-2026-10-19.md) - Development Format Hard Cut Interruption Spec 2026 10 19 documentation.
