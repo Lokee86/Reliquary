@@ -94,6 +94,7 @@
 - [0042-minimal-lossless-current-history.md](0042-minimal-lossless-current-history.md) - 0042 Minimal Lossless Current History documentation.
 - [0043-rel-terminology-and-wire-identity.md](0043-rel-terminology-and-wire-identity.md) - 0043 Rel Terminology And Wire Identity documentation.
 - [0044-canonical-rel-phy-owner-session-architecture.md](0044-canonical-rel-phy-owner-session-architecture.md) - 0044 Canonical Rel Phy Owner Session Architecture documentation.
+- [0045-deep-semantic-services-and-effect-contracts.md](0045-deep-semantic-services-and-effect-contracts.md) - 0045 Deep Semantic Services And Effect Contracts documentation.
 <!-- doc-ledger:files:end -->
 
 ## Stub Files

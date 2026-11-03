@@ -323,6 +323,8 @@
 - [roadmap.md](roadmap.md) - Roadmap documentation.
 - [runtime-gateway-service-crate-extraction-spec-2026-10-30.md](runtime-gateway-service-crate-extraction-spec-2026-10-30.md) - Runtime Gateway Service Crate Extraction Spec 2026 10 30 documentation.
 - [semantic-import-pruning-history-rewrite-evidence-2026-10-18.md](semantic-import-pruning-history-rewrite-evidence-2026-10-18.md) - Semantic Import Pruning History Rewrite Evidence 2026 10 18 documentation.
+- [semantic-service-architecture-2026-11-03.md](semantic-service-architecture-2026-11-03.md) - Semantic Service Architecture 2026 11 03 documentation.
+- [semantic-service-boundary-crosswalk-2026-11-03.md](semantic-service-boundary-crosswalk-2026-11-03.md) - Semantic Service Boundary Crosswalk 2026 11 03 documentation.
 - [storage-format.md](storage-format.md) - Storage Format documentation.
 - [switchboard-crate-extraction-evidence-2026-10-27.md](switchboard-crate-extraction-evidence-2026-10-27.md) - Switchboard Crate Extraction Evidence 2026 10 27 documentation.
 - [switchboard-crate-extraction-spec-2026-10-27.md](switchboard-crate-extraction-spec-2026-10-27.md) - Switchboard Crate Extraction Spec 2026 10 27 documentation.

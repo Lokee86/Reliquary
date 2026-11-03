@@ -8,6 +8,8 @@ Parent index: [Documentation index](INDEX.md)
 
 **Stage 1 storage design complete:** [REL/PHY storage architecture](rel-phy-storage-architecture-2026-11-03.md), [ADR 0044](decisions/0044-canonical-rel-phy-owner-session-architecture.md) and [method-level ownership crosswalk](rel-phy-method-ownership-crosswalk-2026-11-03.md). Earlier [owner-session alternatives](rel-phy-owner-session-design-2026-11-03.md) are retained as rationale. **Confirmed naming direction:** [ADR 0043 — REL terminology and wire identity](decisions/0043-rel-terminology-and-wire-identity.md).
 
+**Stage 2 semantic service design complete:** [semantic service architecture](semantic-service-architecture-2026-11-03.md), [source/contract crosswalk](semantic-service-boundary-crosswalk-2026-11-03.md), and [ADR 0045](decisions/0045-deep-semantic-services-and-effect-contracts.md). Gateway/workflow runtime, final Cargo DAG, the code/wire naming migration and source-migration plan remain future design stages.
+
 ## Purpose
 
 Record the product-wide architectural goals and compare materially different storage models before relocating implementation code.
