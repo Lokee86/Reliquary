@@ -135,7 +135,7 @@ Root tests may legitimately exercise public integration, but production code can
 6. Behavior/performance parity: frozen Insomnia/Dream/Entity/Freshness/Retrieval/Chronos/Vector scenarios and existing baseline measurements, deterministic output/provenance/identity, bounded memory and no copying whole Web for interface crossing.
 7. **Growth exercise:** adding an Observation evaluator or Ego producer must not cause edits to Container, existing unrelated semantic evaluators, public Root implementation or an all-owner registry. If durable records are introduced, add only their owner-local codec/replay/read/command plus a focused workflow/worker and documented DAG edge.
 
-**Unresolved by design:** exact hard-cut ordered implementation steps, ABI/user-facing API migration timing, CVA→REL wire marker/hash-domain transformation and offline corpus conversion. They are deliberately **Stages 5 and 6**. There is no authorization to begin code relocation merely because this physical graph is selected.
+**Subsequent design is now available:** [Stage 5](cva-to-rel-format-and-identity-migration-2026-11-03.md) specifies the REL format/data conversion, and [Stage 6](architecture-rebuild-implementation-plan-2026-11-03.md) specifies direct **selective-reuse** capability construction, not old-code relocation. Their implementation, corpus validation and cutover have not begun.
 
 ## Related docs
 

@@ -2,7 +2,7 @@
 
 Parent index: [Documentation index](INDEX.md)
 
-**Status:** target package mapping against the existing tracked Rust layout; **not a completed move or compiler-qualified call-site migration**. The [authoritative allowed-edge DAG](architecture/target-crate-dag-2026-11-03.json) lists every package and all ten retirements. Target decisions: [Stage 4 architecture](dependency-architecture-and-crate-layout-2026-11-03.md), [ADR 0047](decisions/0047-physical-dependency-architecture.md).
+**Status:** reference source catalog and target package ownership comparison; **not a mandatory source-movement checklist**. Only useful implementation is reused during the new-system build. The [authoritative allowed-edge DAG](architecture/target-crate-dag-2026-11-03.json) lists every package and all ten retirements. Target decisions: [Stage 4 architecture](dependency-architecture-and-crate-layout-2026-11-03.md), [ADR 0047](decisions/0047-physical-dependency-architecture.md).
 
 ## Purpose
 
@@ -90,11 +90,11 @@ The following inventories use a simple count of `src/**/*.rs` paths (includes te
 | `reliquary-project-environment` imports Archive | File/revision value references only; VCS is its own authoritative source |
 | `reliquary-memory` Root direct imports many lower libraries | Only curated public type reexports and narrow construction; no retained hidden implementation under `src/lib.rs` |
 
-## 4. Migration classification rules and acceptance
+## 4. Selective reuse and acceptance
 
-For every **production** file in Stage 6, record a target package/module, action `keep`/`move`/`merge`/`split`/`delete`, exact provider/owner boundary and tests. A whole source file containing *both* semantic evaluation and grouped commit must be **split**, not assigned intact to an arbitrary crate. No blanket `Cva` rename is considered a valid ownership move.
+**The old files are reference material, not a backlog to transfer.** When implementing a required new capability, consult only useful old types, algorithms, tests or record codecs and select reuse, adaptation, replacement or omission. An old file mixing inference and publication does not have to be copied and split; only the required behaviors must appear through the new evaluator/workflow/owner boundaries. Unneeded compatibility code and unused private helpers are discarded without a per-function migration report.
 
-The current package map above is exhaustive for Cargo membership and Root directory families, **not each of the ~hundreds of individual functions**. That more granular migration crosswalk must be done before code changes. Implementation should verify `Cargo.toml` direct edges match the [target graph](architecture/target-crate-dag-2026-11-03.json), enforce no Root reverse edges, and compare current behaviors, durable recovery, host queue/stream/security and performance.
+The package inventory above is exhaustive as a **snapshot of the previous Cargo layout**, not an obligation to create a matching replacement for every Rust source function. The target package DAG describes the *new* implementation. Acceptance depends on behavior, durable recovery, host queue/stream/security, performance and actual `cargo metadata`, not on exhausting the old code inventory. See the [capability build plan](architecture-rebuild-implementation-plan-2026-11-03.md).
 
 ## Related docs
 

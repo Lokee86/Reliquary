@@ -1,0 +1,540 @@
+{
+  "schema_version": 2,
+  "status": "design-only",
+  "title": "Reliquary selective-reuse clean rebuild capability plan",
+  "source_head": "3e0b782f",
+  "principle": "Build required externally observable capabilities directly in approved target architecture. Existing source is optional reference material, not mandatory transfer inventory.",
+  "reuse_rule": "For each capability evaluate: reuse unchanged / adapt / reimplement / omit. Only retain code when it contributes to the new design and passes behavioral acceptance.",
+  "slice_rule": "Before coding a capability, derive the smallest implementation slices from its target interface and tests; do not pre-generate one task per old file or function.",
+  "baseline_rule": "Reference worktree remains usable and unchanged. Red builds of the working product are not planned.",
+  "format_rule": "Rebuilt normal runtime supports REL 2.1 only; 2.0-to-2.1 conversion is an isolated data task after full rebuilt product acceptance.",
+  "completion_rule": "Mandatory supported behaviors and invariants pass. Removed legacy internals need no function-level replacement.",
+  "increments": [
+    {
+      "id": "F01",
+      "phase": "reference",
+      "title": "Freeze reference and set up independent source baseline",
+      "depends_on": [],
+      "deliverable": "Immutable reference revision, fixture manifest and unmodified unrelated edits",
+      "acceptance": "Reference can still build or documented failures are reproduced; all baseline and fixture hashes captured; unrelated work preserved",
+      "status": "not-started"
+    },
+    {
+      "id": "F02",
+      "phase": "reference",
+      "title": "Select supported behavior to reproduce",
+      "depends_on": [
+        "F01"
+      ],
+      "deliverable": "Behavior inventory marked retain, replace, retire or deferred",
+      "acceptance": "Tests/examples and consumer use determine required behavior; internal methods without needed behavior are not mandatory",
+      "status": "not-started"
+    },
+    {
+      "id": "F03",
+      "phase": "reference",
+      "title": "Capture stable IDs and classify old-format corpus evidence",
+      "depends_on": [
+        "F01"
+      ],
+      "deliverable": "Pinned identity hashes, accepted-record inventory and explicit FRS07 corpus status",
+      "acceptance": "Capture golden ID inputs/outputs; independently verify the six-file corpus on copies OR record exact FRS07 blocker. A failed corpus proof blocks only later conversion, not construction of unrelated new capabilities.",
+      "status": "not-started"
+    },
+    {
+      "id": "F04",
+      "phase": "foundation",
+      "title": "Create empty target workspace and intended package seams",
+      "depends_on": [
+        "F01",
+        "F02"
+      ],
+      "deliverable": "Independent final Rust workspace and minimal real module skeletons",
+      "acceptance": "Cargo metadata validates intended package DAG and no Root backreach; no legacy implementation linked or empty crate claimed complete",
+      "status": "not-started"
+    },
+    {
+      "id": "C01",
+      "phase": "storage",
+      "title": "Build REL 2.1 Container",
+      "depends_on": [
+        "F04"
+      ],
+      "deliverable": "Physical format, typed header, frames, lease, sync, explicit repair",
+      "acceptance": "New writer/read-only current 2.1 open; invalid/wrong-kind/mixed headers fail without mutation; old 2.0 not supported at runtime",
+      "status": "not-started"
+    },
+    {
+      "id": "C02",
+      "phase": "storage",
+      "title": "Build native Archive and Echo evidence",
+      "depends_on": [
+        "C01"
+      ],
+      "deliverable": "Turns, branches, Episodes, native source and separately owned Echo evidence",
+      "acceptance": "Typed accepted turns survive reopen with exact activity/source identity and retained conversation history",
+      "status": "not-started"
+    },
+    {
+      "id": "C03",
+      "phase": "storage",
+      "title": "Build owner-local Memory",
+      "depends_on": [
+        "C01"
+      ],
+      "deliverable": "Memory records, provenance, revisions, terminal states and history",
+      "acceptance": "Body/revision/tombstone reads and identity/provenance survive reopen; absent payload remains distinguishable",
+      "status": "not-started"
+    },
+    {
+      "id": "C04",
+      "phase": "storage",
+      "title": "Build Graph and Community projections",
+      "depends_on": [
+        "C01",
+        "C03"
+      ],
+      "deliverable": "Typed graph records, references and derived Communities",
+      "acceptance": "Graph closures validate exact Memory/Entity identity; derived indexes rebuild without creating semantic events",
+      "status": "not-started"
+    },
+    {
+      "id": "C05",
+      "phase": "storage",
+      "title": "Build Entity and relationship-evidence persistence",
+      "depends_on": [
+        "C01",
+        "C03"
+      ],
+      "deliverable": "Canonical Entity/mention-resolution/transition records",
+      "acceptance": "Owner-bound identity, ambiguity and source span proofs reopen; no new Observation synthesis is added",
+      "status": "not-started"
+    },
+    {
+      "id": "C06",
+      "phase": "storage",
+      "title": "Build Ego durable state",
+      "depends_on": [
+        "C01"
+      ],
+      "deliverable": "Identity, Personality, Anchor and existing Ego persistence",
+      "acceptance": "REL/PHY scope rules, revision history and private PHY facts verified; future Ego synthesis remains deferred",
+      "status": "not-started"
+    },
+    {
+      "id": "C07",
+      "phase": "storage",
+      "title": "Build vector and embedding-profile persistence",
+      "depends_on": [
+        "C01",
+        "F03"
+      ],
+      "deliverable": "Packed Memory/Archive vectors, profile and generation records",
+      "acceptance": "All stable identity hash vectors match reference, payload/profile generations reopen and invalid backing rejects",
+      "status": "not-started"
+    },
+    {
+      "id": "C08",
+      "phase": "storage",
+      "title": "Build durable Freshness events and scores",
+      "depends_on": [
+        "C01",
+        "C03"
+      ],
+      "deliverable": "Accepted activity/use/birth/settlement record owner",
+      "acceptance": "Exact source/score/history replay, no reinforcement on internal retrieval and no forged FRS07 semantics",
+      "status": "not-started"
+    },
+    {
+      "id": "C09",
+      "phase": "storage",
+      "title": "Build durable work and maintenance evidence",
+      "depends_on": [
+        "C01",
+        "C03"
+      ],
+      "deliverable": "Insomnia work receipts, Dream-first-cycle, import epoch, maintenance lineage and external-index evidence",
+      "acceptance": "Durable records reopen without semantic inference and preserve proper scope and admission fences",
+      "status": "not-started"
+    },
+    {
+      "id": "C10",
+      "phase": "storage",
+      "title": "Compose canonical RelSession",
+      "depends_on": [
+        "C02",
+        "C03",
+        "C04",
+        "C05",
+        "C06",
+        "C07",
+        "C08",
+        "C09"
+      ],
+      "deliverable": "One private typed REL owner aggregate and read/commit API",
+      "acceptance": "No public mutable store bag; exact owner ID, ordered replay, supported cuts and wrong-kind rejection",
+      "status": "not-started"
+    },
+    {
+      "id": "C11",
+      "phase": "storage",
+      "title": "Compose canonical PhySession",
+      "depends_on": [
+        "C03",
+        "C04",
+        "C05",
+        "C06",
+        "C07",
+        "C09"
+      ],
+      "deliverable": "One private typed PHY owner aggregate",
+      "acceptance": "No Archive/REL turn authority, separate privacy/owner clock, replay and principal-independent correctness",
+      "status": "not-started"
+    },
+    {
+      "id": "C12",
+      "phase": "storage",
+      "title": "Implement named grouped commits and history proofs",
+      "depends_on": [
+        "C10",
+        "C11"
+      ],
+      "deliverable": "Atomic owner-local publication, historical proofs, idempotent receipt handling",
+      "acceptance": "Fault after sync requires replay before further mutation; tombstone and unavailable history survive; no fake cross-file atomic commit",
+      "status": "not-started"
+    },
+    {
+      "id": "G1",
+      "phase": "gate",
+      "title": "Accept rebuilt storage on synthetic 2.1 owner files",
+      "depends_on": [
+        "C12"
+      ],
+      "deliverable": "Storage behavior acceptance",
+      "acceptance": "All final storage crates build/test; separate REL/PHY reopen, grouped publication, wrong-kind and history tests pass",
+      "status": "not-started"
+    },
+    {
+      "id": "S01",
+      "phase": "semantic",
+      "title": "Build inference endpoint and Chronos capabilities",
+      "depends_on": [
+        "F04"
+      ],
+      "deliverable": "Provider routing, decision/general fallback and temporal parsing",
+      "acceptance": "No owner storage dependency; explicit unavailable/ambiguous result; existing deterministic temporal cases preserved",
+      "status": "not-started"
+    },
+    {
+      "id": "S02",
+      "phase": "semantic",
+      "title": "Build Insomnia evaluator",
+      "depends_on": [
+        "S01",
+        "C02"
+      ],
+      "deliverable": "Episode evidence requests, source-grounded Memory drafts and routing decisions",
+      "acceptance": "Same required extraction classes, evidence provenance and bounded behavior; no direct owner writes",
+      "status": "not-started"
+    },
+    {
+      "id": "S03",
+      "phase": "semantic",
+      "title": "Build Dream evaluator",
+      "depends_on": [
+        "S01",
+        "C03",
+        "C04"
+      ],
+      "deliverable": "Pair decisions, duplicate/canonical/lifecycle intents and community naming",
+      "acceptance": "Frozen verified classifications, zero-link and duplicate cases; no direct graph/freshness publication",
+      "status": "not-started"
+    },
+    {
+      "id": "S04",
+      "phase": "semantic",
+      "title": "Build Entity Resolution evaluator",
+      "depends_on": [
+        "S01",
+        "C05"
+      ],
+      "deliverable": "Canonical Entity match, ambiguity and association proposals",
+      "acceptance": "Correct body/span binding and guarded merges; no default fabricated identity",
+      "status": "not-started"
+    },
+    {
+      "id": "S05",
+      "phase": "semantic",
+      "title": "Build deterministic Retrieval and agentic selection",
+      "depends_on": [
+        "C03",
+        "C04",
+        "C07"
+      ],
+      "deliverable": "Hybrid candidate ranking, community routing and turn-scoped query/refine/traverse",
+      "acceptance": "Frozen ranks/limits/selected IDs and no reinforcement on read; no hidden provider storage state",
+      "status": "not-started"
+    },
+    {
+      "id": "S06",
+      "phase": "semantic",
+      "title": "Build deterministic Freshness policy",
+      "depends_on": [
+        "C08",
+        "C04"
+      ],
+      "deliverable": "Score decay, propagation, F8 matching and due schedule calculation",
+      "acceptance": "Score/event invariants and current-clock interpretation match required behavior; runtime scheduler not a durable owner",
+      "status": "not-started"
+    },
+    {
+      "id": "S07",
+      "phase": "semantic",
+      "title": "Build vector inference and Context Engine assembly",
+      "depends_on": [
+        "S01",
+        "C07",
+        "C02"
+      ],
+      "deliverable": "Embedding compatibility/packs and final bounded model-facing context rendering",
+      "acceptance": "Profile validation, compaction budgets and source-bound context; no Ego synthesis invented",
+      "status": "not-started"
+    },
+    {
+      "id": "S08",
+      "phase": "semantic",
+      "title": "Build Project Environment integration",
+      "depends_on": [
+        "F04"
+      ],
+      "deliverable": "Independent Git/Lore revision and file correlation boundary",
+      "acceptance": "VCS remains source authority; REL contains only proven correlations",
+      "status": "not-started"
+    },
+    {
+      "id": "V01",
+      "phase": "vertical",
+      "title": "Make native conversation become source-grounded Memory",
+      "depends_on": [
+        "G1",
+        "S02"
+      ],
+      "deliverable": "Accepted turn \u2192 Episode \u2192 Insomnia \u2192 REL/PHY Memory publication",
+      "acceptance": "End-to-end provenance, bounded evidence and idempotent routed user/project memories; crash/retry proof",
+      "status": "not-started"
+    },
+    {
+      "id": "V02",
+      "phase": "vertical",
+      "title": "Organize Memory-Web with Dream",
+      "depends_on": [
+        "V01",
+        "S03",
+        "S06"
+      ],
+      "deliverable": "Draft/accepted Memory \u2192 graph/canonical/lifecycle and first-pass settlement",
+      "acceptance": "Correct relations/duplicate policy, zero-link first-cycle and idempotent Freshness birth; no rewire bonus",
+      "status": "not-started"
+    },
+    {
+      "id": "V03",
+      "phase": "vertical",
+      "title": "Resolve Entity mentions without expanding scope",
+      "depends_on": [
+        "V01",
+        "S04"
+      ],
+      "deliverable": "Memory mention \u2192 authorized Entity resolution \u2192 owner record",
+      "acceptance": "Correct candidate match, unknown/ambiguous path, PHY privacy and history",
+      "status": "not-started"
+    },
+    {
+      "id": "V04",
+      "phase": "vertical",
+      "title": "Retrieve and deliver Memory with confirmed use",
+      "depends_on": [
+        "V02",
+        "S05",
+        "S06"
+      ],
+      "deliverable": "Authorized query \u2192 selection \u2192 host handoff \u2192 accepted-use receipt",
+      "acceptance": "Same candidate ranking, grants checked twice; no +25 until confirmed external consumption",
+      "status": "not-started"
+    },
+    {
+      "id": "V05",
+      "phase": "vertical",
+      "title": "Publish vectors and compose bounded context",
+      "depends_on": [
+        "V01",
+        "S07",
+        "S08"
+      ],
+      "deliverable": "Source-bound vectors/profiles, repository evidence and final context",
+      "acceptance": "No model under owner locks, valid sources/profiles and budget; no duplicate host transcript authority",
+      "status": "not-started"
+    },
+    {
+      "id": "V06",
+      "phase": "vertical",
+      "title": "Read history and run exclusive maintenance/import",
+      "depends_on": [
+        "G1",
+        "V01"
+      ],
+      "deliverable": "Owner-cut history, native import, prune/rewrite/reconcile on verified copies",
+      "acceptance": "Historical unavailability and import fencing correct; transformation promoted only after independently reopened validation",
+      "status": "not-started"
+    },
+    {
+      "id": "V07",
+      "phase": "vertical",
+      "title": "Handle reference-only external content",
+      "depends_on": [
+        "V01"
+      ],
+      "deliverable": "External host source validation and durable reference receipts",
+      "acceptance": "No fake native Archive transcript; index rebuild without forging semantic truth",
+      "status": "not-started"
+    },
+    {
+      "id": "G2",
+      "phase": "gate",
+      "title": "Accept rebuilt semantic/application behavior",
+      "depends_on": [
+        "V02",
+        "V03",
+        "V04",
+        "V05",
+        "V06",
+        "V07"
+      ],
+      "deliverable": "End-to-end memory system acceptance",
+      "acceptance": "Complete Application/semantic workspace compiles; supported ingest, Dream, Entity, retrieval, freshness, vector, context, import and history tests pass",
+      "status": "not-started"
+    },
+    {
+      "id": "H01",
+      "phase": "runtime",
+      "title": "Mount owners and isolate Instances",
+      "depends_on": [
+        "G2"
+      ],
+      "deliverable": "One Gateway registry, per-owner sessions/workers, principal/PHY grants",
+      "acceptance": "No duplicate mutable owner, unauthorized access, stale mount write or grant-changing public Instance API",
+      "status": "not-started"
+    },
+    {
+      "id": "H02",
+      "phase": "runtime",
+      "title": "Run durable native conversation queue",
+      "depends_on": [
+        "H01"
+      ],
+      "deliverable": "Owner-scoped submit/finalize/cancel and operation journaling",
+      "acceptance": "Concurrent branch order or authorized fork; crash after Archive commit reconciles without duplicate turns",
+      "status": "not-started"
+    },
+    {
+      "id": "H03",
+      "phase": "runtime",
+      "title": "Delegate host work and stream committed output",
+      "depends_on": [
+        "H02"
+      ],
+      "deliverable": "Host-capability arbitration, Held outcomes, generation checkpoints, snapshot+watermark",
+      "acceptance": "No blind redispatch, no unsynced text exposure, reconnect/cursor privacy and resync cases pass",
+      "status": "not-started"
+    },
+    {
+      "id": "H04",
+      "phase": "runtime",
+      "title": "Run workers with restart and quiesce recovery",
+      "depends_on": [
+        "H01",
+        "H03"
+      ],
+      "deliverable": "Owner-local Insomnia/Dream/Entity/Vector/Freshness workers and lifecycle",
+      "acceptance": "Bounded concurrency, no provider under owner lock, idempotent resume, mount/permission fences preserved",
+      "status": "not-started"
+    },
+    {
+      "id": "G3",
+      "phase": "gate",
+      "title": "Accept complete Gateway on synthetic owners",
+      "depends_on": [
+        "H04"
+      ],
+      "deliverable": "Runtime and host integration acceptance",
+      "acceptance": "Gateway/Instance/worker/journal/stream and negative-grant/fault tests pass on 2.1 test files",
+      "status": "not-started"
+    },
+    {
+      "id": "P01",
+      "phase": "product",
+      "title": "Expose final Rel/Phylactery API and consumer CLI",
+      "depends_on": [
+        "G3"
+      ],
+      "deliverable": "Thin public package, REL-only CLI and trusted host integration",
+      "acceptance": "Only needed public operations; no Cva aliases, empty forwarding crates, original Root dependency or external consumer contract break without approval",
+      "status": "not-started"
+    },
+    {
+      "id": "G4",
+      "phase": "gate",
+      "title": "Accept complete rebuilt product on generated 2.1 corpus",
+      "depends_on": [
+        "P01"
+      ],
+      "deliverable": "Whole new product baseline",
+      "acceptance": "Locked Rust/CLI checks, supported scenarios and target Cargo DAG pass; no 2.0 runtime reader",
+      "status": "not-started"
+    },
+    {
+      "id": "D01",
+      "phase": "data",
+      "title": "Convert archived 2.0 owner files offline",
+      "depends_on": [
+        "G4",
+        "F03"
+      ],
+      "deliverable": "Isolated disposable 2.0 \u2192 2.1 converter that is not part of rebuilt runtime",
+      "acceptance": "Before conversion, all six source files MUST reopen under validated old-format semantics including FRS07; only verified source records converted to 2.1 with owner identities and offsets preserved.",
+      "status": "not-started"
+    },
+    {
+      "id": "D02",
+      "phase": "data",
+      "title": "Verify converted owner corpus and operational references",
+      "depends_on": [
+        "D01"
+      ],
+      "deliverable": "Independent 2.1 reader reopens all supported REL/PHY files",
+      "acceptance": "Exact historical/owner/ID/vector/source/freshness/gateway receipt parity and privacy across all six known files",
+      "status": "not-started"
+    },
+    {
+      "id": "D03",
+      "phase": "data",
+      "title": "Prepare safe activation and retire converter",
+      "depends_on": [
+        "D02"
+      ],
+      "deliverable": "Generation-level cutover and rollback plan, no shipped legacy reader/converter",
+      "acceptance": "No mixed format promotion, all source/target hashes preserved, inactive old data untouched",
+      "status": "not-started"
+    },
+    {
+      "id": "G5",
+      "phase": "gate",
+      "title": "Accept parity and activate rebuilt product",
+      "depends_on": [
+        "D03"
+      ],
+      "deliverable": "Release-cutover acceptance report",
+      "acceptance": "Measured latency/memory and host privacy/queue/stream behavior within accepted baselines; new code owns no obsolete pathway",
+      "status": "not-started"
+    }
+  ]
+}
