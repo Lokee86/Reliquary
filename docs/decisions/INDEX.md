@@ -97,6 +97,7 @@
 - [0045-deep-semantic-services-and-effect-contracts.md](0045-deep-semantic-services-and-effect-contracts.md) - 0045 Deep Semantic Services And Effect Contracts documentation.
 - [0046-gateway-runtime-and-named-workflow-ownership.md](0046-gateway-runtime-and-named-workflow-ownership.md) - 0046 Gateway Runtime And Named Workflow Ownership documentation.
 - [0047-physical-dependency-architecture.md](0047-physical-dependency-architecture.md) - 0047 Physical Dependency Architecture documentation.
+- [0048-rel-current-format-and-stable-identity-domains.md](0048-rel-current-format-and-stable-identity-domains.md) - 0048 Rel Current Format And Stable Identity Domains documentation.
 <!-- doc-ledger:files:end -->
 
 ## Stub Files

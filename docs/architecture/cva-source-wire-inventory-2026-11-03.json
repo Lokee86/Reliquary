@@ -1,0 +1,1926 @@
+{
+  "schema_version": 1,
+  "source_head": "51579a9f",
+  "kind": "tracked_Rust_lexical_wire_and_identity_inventory",
+  "warning": "Candidates are lexical matches, not verified active writers/readers. Production here means non-test-named source, not necessarily executed; synthetic invalid tags and retired codecs are included. Dynamic/indirect markers require additional codec review.",
+  "record_marker_candidates": [
+    {
+      "marker": "CVAAFMT2",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_history_codec.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs",
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 4,
+      "test_sources": [
+        "crates/reliquary-archive/src/archive_publication_core_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAAREC1",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_history_codec.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs",
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 3,
+      "test_sources": [
+        "src/facade/archive_publication_writer_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAARP02",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-archive/src/archive_publication_core_tests.rs",
+        "tests/rel_activity_clock_contract.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVAAVEC1",
+      "production_sources": [
+        "crates/reliquary-vector-store/src/archive_codec.rs",
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "crates/reliquary-vector-store/tests/vector_wire.rs",
+        "src/retrieval/archive_vector_tests.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVAAVFM1",
+      "production_sources": [
+        "crates/reliquary-vector-store/src/archive_codec.rs",
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "crates/reliquary-vector-store/tests/vector_wire.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVABRC02",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-archive/src/archive_publication_core_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVABRCH1",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_codec.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs",
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 3,
+      "test_sources": [
+        "crates/reliquary-archive/src/archive_publication_core_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVACNAM1",
+      "production_sources": [
+        "crates/reliquary-graph/src/community_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVACOMM1",
+      "production_sources": [
+        "crates/reliquary-graph/src/community_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVACON04",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-archive/src/archive_publication_bundle_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVACON99",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "crates/reliquary-archive/src/archive_publication_bundle_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVACONT1",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_codec.rs",
+        "crates/reliquary-archive/src/archive_rebuild.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 5,
+      "test_sources": [
+        "crates/reliquary-archive/src/archive_publication_core_tests.rs",
+        "src/facade/container_owner_tests.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVACONV1",
+      "production_sources": [
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVACONV2",
+      "production_sources": [
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVACONV3",
+      "production_sources": [
+        "crates/reliquary-archive/src/conversation_metadata_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVACPFM1",
+      "production_sources": [
+        "crates/reliquary-vector-store/src/profile.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-vector-store/tests/vector_wire.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVACPRO1",
+      "production_sources": [
+        "crates/reliquary-vector-store/src/profile.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-vector-store/tests/vector_wire.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVACPRT1",
+      "production_sources": [
+        "crates/reliquary-vector-store/src/profile.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVACTM02",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-archive/src/archive_publication_core_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVACTMB1",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVADRM01",
+      "production_sources": [
+        "src/runtime_inference/dream_pair_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "src/runtime_inference/dream_pair_history_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVADRM02",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "src/runtime_inference/dream_pair_history_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVADRP01",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "src/runtime_inference/dream_pair_history_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVADRP02",
+      "production_sources": [
+        "src/runtime_inference/dream_pair_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "src/runtime_inference/dream_pair_history_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVADRP03",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "src/runtime_inference/dream_pair_history_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAECHO1",
+      "production_sources": [
+        "crates/reliquary-echo/src/echo_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-echo/src/echo_store_tests.rs",
+        "crates/reliquary-perception-store/src/entity_compact_codec_tests.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVAECR01",
+      "production_sources": [
+        "crates/reliquary-ego-store/src/ego_compact_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-ego-store/src/ego_compact_creation_codec_tests.rs",
+        "src/ego/ego_compact_writer_tests.rs"
+      ],
+      "test_file_count": 3
+    },
+    {
+      "marker": "CVAECR99",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "src/imports/reconciliation_ego_compact_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAEDL01",
+      "production_sources": [
+        "crates/reliquary-ego-store/src/ego_compact_delta_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-ego-store/src/ego_compact_delta_codec_tests.rs",
+        "src/ego/ego_compact_writer_tests.rs"
+      ],
+      "test_file_count": 3
+    },
+    {
+      "marker": "CVAEDL99",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "src/imports/reconciliation_ego_compact_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAEIDA1",
+      "production_sources": [
+        "crates/reliquary-ego-store/src/ego_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "src/ego/ego_compact_writer_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAENC01",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/entity_compact_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-perception-store/src/entity_compact_codec_tests.rs",
+        "src/facade/storage_reclamation_entity_publication_tests.rs"
+      ],
+      "test_file_count": 3
+    },
+    {
+      "marker": "CVAENC02",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/entity_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-perception-store/src/entity_publication_codec_tests.rs",
+        "src/facade/cva_reconcile_entity_envelope_tests.rs"
+      ],
+      "test_file_count": 5
+    },
+    {
+      "marker": "CVAENC99",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "src/perception/entity_publication_replay_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAEND01",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/entity_compact_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-perception-store/src/entity_compact_codec_tests.rs",
+        "src/facade/storage_reclamation_entity_publication_tests.rs"
+      ],
+      "test_file_count": 3
+    },
+    {
+      "marker": "CVAEND02",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/entity_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-perception-store/src/entity_publication_codec_tests.rs",
+        "src/facade/storage_reclamation_entity_compact_tests.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVAENTF1",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/entity_codec.rs",
+        "src/imports/reconciliation.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAENTR1",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/entity_codec.rs",
+        "crates/reliquary-perception-store/src/entity_retained_structure.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "crates/reliquary-perception-store/src/entity_import_evidence_tests.rs",
+        "crates/reliquary-perception-store/src/entity_publication_codec_tests.rs"
+      ],
+      "test_file_count": 5
+    },
+    {
+      "marker": "CVAENTR2",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/entity_codec.rs",
+        "crates/reliquary-perception-store/src/entity_retained_structure.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "src/facade/storage_reclamation_entity_compact_tests.rs",
+        "src/perception/entity_compact_writer_tests.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVAENTT1",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/entity_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "src/perception/entity_compact_writer_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAENTT2",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/entity_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "src/perception/entity_compact_writer_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAENTV1",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/entity_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "src/perception/entity_compact_writer_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAEPI02",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-archive/src/archive_publication_extra_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAEPI03",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "crates/reliquary-archive/src/archive_publication_extra_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAEPIS1",
+      "production_sources": [
+        "crates/reliquary-archive/src/episode_codec.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs",
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 3,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAERL01",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/entity_resolution_retained.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAERS01",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/entity_resolution_codec.rs",
+        "crates/reliquary-perception-store/src/entity_resolution_delta_codec.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAERS02",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/entity_resolution_retained.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-perception-store/src/entity_resolution_retained_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAERS03",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/entity_resolution_delta_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-perception-store/src/entity_resolution_delta_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAERS04",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "crates/reliquary-perception-store/src/entity_resolution_delta_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAETD02",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/entity_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-perception-store/src/entity_publication_codec_tests.rs",
+        "src/facade/storage_reclamation_entity_compact_tests.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVAETM01",
+      "production_sources": [
+        "crates/reliquary-ego-store/src/ego_compact_codec.rs",
+        "src/facade/storage_reclamation_scan.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "src/ego/ego_compact_writer_tests.rs",
+        "src/imports/reconciliation_ego_compact_tests.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVAETM02",
+      "production_sources": [
+        "crates/reliquary-ego-store/src/ego_store.rs",
+        "crates/reliquary-perception-store/src/entity_publication_codec.rs",
+        "src/imports/reconciliation.rs"
+      ],
+      "production_file_count": 3,
+      "test_sources": [
+        "crates/reliquary-perception-store/src/entity_publication_codec_tests.rs",
+        "src/facade/storage_reclamation_entity_compact_tests.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVAETM03",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "crates/reliquary-ego-store/src/ego_compact_replay_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAETM99",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "src/imports/reconciliation_ego_compact_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAFIL02",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-archive/src/archive_publication_core_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAFILE1",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_codec.rs",
+        "crates/reliquary-archive/src/file_store.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 4,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAFME02",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-archive/src/archive_publication_extra_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAFMEM1",
+      "production_sources": [
+        "crates/reliquary-archive/src/file_memory_link_codec.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs",
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 3,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAFRA02",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-archive/src/archive_publication_core_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAFRAG1",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_codec.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs",
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 3,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAFRB01",
+      "production_sources": [
+        "crates/reliquary-freshness-store/src/freshness_rewrite_baseline.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAFRP01",
+      "production_sources": [
+        "crates/reliquary-freshness-store/src/storage.rs",
+        "src/facade/cva_lifecycle.rs",
+        "src/imports/reconciliation.rs"
+      ],
+      "production_file_count": 3,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAFRS01",
+      "production_sources": [
+        "crates/reliquary-freshness-store/src/freshness_storage_stream.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAFRS02",
+      "production_sources": [
+        "crates/reliquary-freshness-store/src/storage.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-freshness-store/src/effect_storage_contract_tests.rs",
+        "src/facade/historical_recovery_tests.rs"
+      ],
+      "test_file_count": 4
+    },
+    {
+      "marker": "CVAFRS03",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "src/tombstone_import_history_characterization_tests.rs",
+        "tests/current_format_boundary.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVAFRS04",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "src/facade/historical_embedding_tests.rs",
+        "tests/current_format_boundary.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVAFRS05",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "tests/current_format_boundary.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAFRS06",
+      "production_sources": [
+        "crates/reliquary-freshness-store/src/freshness_semantic_settlement.rs",
+        "src/imports/completion.rs",
+        "src/imports/readiness.rs"
+      ],
+      "production_file_count": 5,
+      "test_sources": [
+        "src/facade/historical_events_tests.rs",
+        "src/facade/historical_import_attribution_tests.rs"
+      ],
+      "test_file_count": 6
+    },
+    {
+      "marker": "CVAFRS07",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "tests/current_format_boundary.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAFRS99",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "crates/reliquary-freshness-store/src/effect_storage_contract_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAFSA01",
+      "production_sources": [
+        "crates/reliquary-freshness-store/src/freshness_semantic_activation.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAGBAT1",
+      "production_sources": [
+        "crates/reliquary-graph/src/graph_codec_mutation.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAGBAT2",
+      "production_sources": [
+        "crates/reliquary-graph/src/graph_codec_mutation.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAGBL01",
+      "production_sources": [
+        "crates/reliquary-graph/src/graph_rewrite_baseline.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "crates/reliquary-graph/src/graph_publication_codec_tests.rs",
+        "src/facade/historical_graph_fingerprint_tests.rs"
+      ],
+      "test_file_count": 4
+    },
+    {
+      "marker": "CVAGCB01",
+      "production_sources": [
+        "crates/reliquary-graph/src/graph_compact_codec.rs",
+        "crates/reliquary-graph/src/graph_store_compact.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 3,
+      "test_sources": [
+        "crates/reliquary-graph/src/graph_compact_codec_tests.rs",
+        "crates/reliquary-graph/src/graph_publication_codec_tests.rs"
+      ],
+      "test_file_count": 3
+    },
+    {
+      "marker": "CVAGCB02",
+      "production_sources": [
+        "crates/reliquary-graph/src/graph_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-graph/src/graph_compact_codec_tests.rs",
+        "crates/reliquary-graph/src/graph_publication_codec_tests.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVAGCB99",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "crates/reliquary-graph/src/graph_compact_codec_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAGCM01",
+      "production_sources": [
+        "crates/reliquary-graph/src/graph_compact_codec.rs",
+        "crates/reliquary-graph/src/graph_store_compact.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 3,
+      "test_sources": [
+        "crates/reliquary-graph/src/graph_compact_codec_tests.rs",
+        "crates/reliquary-graph/src/graph_publication_codec_tests.rs"
+      ],
+      "test_file_count": 5
+    },
+    {
+      "marker": "CVAGCM02",
+      "production_sources": [
+        "crates/reliquary-graph/src/graph_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-graph/src/graph_compact_codec_tests.rs",
+        "crates/reliquary-graph/src/graph_publication_codec_tests.rs"
+      ],
+      "test_file_count": 3
+    },
+    {
+      "marker": "CVAGCM99",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "crates/reliquary-graph/src/graph_compact_codec_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAGFMT1",
+      "production_sources": [
+        "crates/reliquary-graph/src/graph_codec.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs",
+        "src/imports/reconciliation.rs"
+      ],
+      "production_file_count": 3,
+      "test_sources": [
+        "crates/reliquary-graph/src/graph_publication_codec_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAGMUT1",
+      "production_sources": [
+        "crates/reliquary-graph/src/graph_codec_mutation.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAGMUT2",
+      "production_sources": [
+        "crates/reliquary-graph/src/graph_codec_mutation.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "crates/reliquary-graph/src/graph_codec_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAGNOD2",
+      "production_sources": [
+        "crates/reliquary-graph/src/graph_codec.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "crates/reliquary-graph/src/graph_codec_tests.rs",
+        "crates/reliquary-graph/src/graph_publication_codec_tests.rs"
+      ],
+      "test_file_count": 4
+    },
+    {
+      "marker": "CVAGNODE",
+      "production_sources": [
+        "crates/reliquary-graph/src/graph_codec.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "crates/reliquary-graph/src/graph_codec_tests.rs",
+        "crates/reliquary-graph/src/graph_publication_codec_tests.rs"
+      ],
+      "test_file_count": 4
+    },
+    {
+      "marker": "CVAGVER1",
+      "production_sources": [
+        "crates/reliquary-graph/src/graph_codec.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "crates/reliquary-graph/src/graph_publication_codec_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAHPR01",
+      "production_sources": [
+        "crates/reliquary-maintenance-store/src/lib.rs",
+        "crates/reliquary-perception-store/src/entity_compact_contract.rs",
+        "crates/reliquary-perception-store/src/relationship_compact_contract.rs"
+      ],
+      "production_file_count": 3,
+      "test_sources": [
+        "src/facade/relationship_compact_prune_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAIEPC1",
+      "production_sources": [
+        "crates/reliquary-import-store/src/codec.rs",
+        "src/facade/historical_import_transform.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "src/facade/historical_import_transform_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAIEPS1",
+      "production_sources": [
+        "crates/reliquary-import-store/src/codec.rs",
+        "src/facade/historical_import_transform.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "src/facade/historical_import_transform_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAILEG1",
+      "production_sources": [
+        "crates/reliquary-import-store/src/codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "tests/current_format_boundary.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAILEG2",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "tests/current_format_boundary.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAIMP02",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-archive/src/archive_publication_extra_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAIMP03",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "crates/reliquary-archive/src/archive_publication_extra_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAIMPT1",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_import.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAINSA1",
+      "production_sources": [
+        "crates/reliquary-insomnia-store/src/codec.rs",
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "crates/reliquary-insomnia-store/src/tests.rs",
+        "src/imports/reconcile_tests.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVAINSA2",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "crates/reliquary-insomnia-store/src/tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAINSC1",
+      "production_sources": [
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "src/runtime_inference/insomnia/completion_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAINSC2",
+      "production_sources": [
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAINSC3",
+      "production_sources": [
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAINSC4",
+      "production_sources": [
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAINSC5",
+      "production_sources": [
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAINSC6",
+      "production_sources": [
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "src/facade/phylactery_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAINSC7",
+      "production_sources": [
+        "crates/reliquary-container/src/container.rs",
+        "crates/reliquary-container/src/grouped_clock.rs",
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 4,
+      "test_sources": [
+        "crates/reliquary-container/src/publication_envelope_clock_tests.rs",
+        "crates/reliquary-insomnia-store/src/tests.rs"
+      ],
+      "test_file_count": 6
+    },
+    {
+      "marker": "CVAINSC8",
+      "production_sources": [
+        "crates/reliquary-container/src/container.rs",
+        "crates/reliquary-container/src/grouped_clock.rs",
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 5,
+      "test_sources": [
+        "crates/reliquary-insomnia-store/src/tests.rs",
+        "src/facade/phylactery_tests.rs"
+      ],
+      "test_file_count": 3
+    },
+    {
+      "marker": "CVAINSF1",
+      "production_sources": [
+        "crates/reliquary-insomnia-store/src/codec.rs",
+        "src/facade/phylactery_lifecycle.rs",
+        "src/imports/reconciliation.rs"
+      ],
+      "production_file_count": 3,
+      "test_sources": [
+        "crates/reliquary-insomnia-store/src/tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAINSF2",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "crates/reliquary-insomnia-store/src/tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAINSW1",
+      "production_sources": [
+        "crates/reliquary-insomnia-store/src/codec.rs",
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "crates/reliquary-insomnia-store/src/tests.rs",
+        "src/imports/reconcile_tests.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVAINSW2",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "crates/reliquary-insomnia-store/src/tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAISTR1",
+      "production_sources": [
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "src/runtime_inference/interaction_stream_compact_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAISTR2",
+      "production_sources": [
+        "crates/reliquary-archive/src/interaction_stream_codec.rs",
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "crates/reliquary-archive/src/interaction_stream_compact_tests.rs",
+        "src/runtime_inference/interaction_stream_compact_tests.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVAISTR3",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "crates/reliquary-archive/src/interaction_stream_compact_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAMBDY1",
+      "production_sources": [
+        "crates/reliquary-memory-core/src/memory_codec.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "src/memory/memory_publication_writer_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAMC001",
+      "production_sources": [
+        "crates/reliquary-memory-core/src/memory_compact_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-memory-core/src/memory_compact_codec_tests.rs",
+        "src/external_source/publication_compact_tests.rs"
+      ],
+      "test_file_count": 6
+    },
+    {
+      "marker": "CVAMC002",
+      "production_sources": [
+        "crates/reliquary-memory-core/src/memory_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-graph/src/graph_publication_codec_tests.rs",
+        "crates/reliquary-graph/src/graph_publication_replay_tests.rs"
+      ],
+      "test_file_count": 6
+    },
+    {
+      "marker": "CVAMD001",
+      "production_sources": [
+        "crates/reliquary-memory-core/src/memory_compact_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-memory-core/src/memory_compact_codec_tests.rs",
+        "src/memory/memory_compact_writer_tests.rs"
+      ],
+      "test_file_count": 4
+    },
+    {
+      "marker": "CVAMD002",
+      "production_sources": [
+        "crates/reliquary-memory-core/src/memory_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-memory-core/src/memory_publication_codec_tests.rs",
+        "src/imports/reconciliation_memory_envelope_tests.rs"
+      ],
+      "test_file_count": 3
+    },
+    {
+      "marker": "CVAMEMC2",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "crates/reliquary-perception-store/src/entity_publication_codec_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAMEMF2",
+      "production_sources": [
+        "crates/reliquary-memory-core/src/memory_codec.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs",
+        "src/imports/reconciliation.rs"
+      ],
+      "production_file_count": 3,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAMEMR2",
+      "production_sources": [
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAMEMR3",
+      "production_sources": [
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAMEMR4",
+      "production_sources": [
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAMEMR5",
+      "production_sources": [
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAMEMR6",
+      "production_sources": [
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAMEMR7",
+      "production_sources": [
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAMEMR8",
+      "production_sources": [
+        "crates/reliquary-memory-core/src/memory_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAMEMT1",
+      "production_sources": [
+        "crates/reliquary-memory-core/src/memory_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "src/memory/memory_publication_writer_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAMEMV1",
+      "production_sources": [
+        "crates/reliquary-memory-core/src/memory_codec.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "src/memory/memory_compact_writer_tests.rs",
+        "src/memory/memory_publication_writer_tests.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVAMPRN1",
+      "production_sources": [
+        "crates/reliquary-memory-core/src/memory_store/history_prune.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAMRTE1",
+      "production_sources": [
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAMRTE2",
+      "production_sources": [
+        "crates/reliquary-memory-core/src/memory_routing_codec.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAMT002",
+      "production_sources": [
+        "crates/reliquary-memory-core/src/memory_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-memory-core/src/memory_publication_codec_tests.rs",
+        "src/memory/memory_compact_writer_tests.rs"
+      ],
+      "test_file_count": 3
+    },
+    {
+      "marker": "CVAMVEC1",
+      "production_sources": [
+        "crates/reliquary-vector-store/src/memory_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-vector-store/tests/vector_wire.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAMVFM1",
+      "production_sources": [
+        "crates/reliquary-vector-store/src/memory_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-vector-store/tests/vector_wire.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVANOD02",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-archive/src/archive_publication_core_tests.rs",
+        "tests/rel_activity_clock_contract.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVANODE1",
+      "production_sources": [
+        "crates/reliquary-owner-lifecycle/src/lib.rs",
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVANODE2",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-archive/src/archive_publication_core_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAPEP01",
+      "production_sources": [
+        "src/imports/reconciliation.rs",
+        "src/imports/reconciliation_interval.rs",
+        "src/memory/processing_epoch_store.rs"
+      ],
+      "production_file_count": 3,
+      "test_sources": [
+        "src/memory/processing_epoch_store_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAPHYP1",
+      "production_sources": [
+        "src/facade/phylactery_profile_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "src/facade/phylactery_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAPRND1",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_history_prune.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAPUB01",
+      "production_sources": [
+        "crates/reliquary-container/src/publication_envelope.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "crates/reliquary-container/src/publication_envelope_clock_tests.rs",
+        "crates/reliquary-container/src/publication_envelope_tests.rs"
+      ],
+      "test_file_count": 10
+    },
+    {
+      "marker": "CVAPUB02",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "crates/reliquary-container/src/publication_envelope_tests.rs",
+        "src/imports/reconciliation_memory_envelope_tests.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVAPVEC1",
+      "production_sources": [
+        "crates/reliquary-vector-store/src/codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-vector-store/tests/vector_wire.rs",
+        "src/retrieval/packed_vector_tests.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVAPVFM1",
+      "production_sources": [
+        "crates/reliquary-vector-store/src/codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-vector-store/tests/vector_wire.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAPVRN1",
+      "production_sources": [
+        "crates/reliquary-vector-store/src/codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVARELF1",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/relationship_codec.rs",
+        "src/imports/reconciliation.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVARELM1",
+      "production_sources": [
+        "src/facade/rel_metadata_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVARELR1",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/relationship_codec.rs",
+        "crates/reliquary-perception-store/src/relationship_retained_structure.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "crates/reliquary-perception-store/src/relationship_retained_structure_tests.rs",
+        "src/facade/storage_reclamation_relationship_compact_tests.rs"
+      ],
+      "test_file_count": 3
+    },
+    {
+      "marker": "CVARELT1",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/relationship_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "src/perception/relationship_publication_writer_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVARELV1",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/relationship_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "src/facade/storage_reclamation_relationship_compact_tests.rs",
+        "src/perception/relationship_publication_writer_tests.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVARGN01",
+      "production_sources": [
+        "src/rewrite_lineage.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVARNC01",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/relationship_compact_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-perception-store/src/relationship_compact_codec_tests.rs",
+        "src/facade/storage_reclamation_relationship_publication_tests.rs"
+      ],
+      "test_file_count": 3
+    },
+    {
+      "marker": "CVARNC02",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/relationship_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-perception-store/src/relationship_publication_codec_tests.rs",
+        "src/facade/cva_reconcile_relationship_envelope_tests.rs"
+      ],
+      "test_file_count": 5
+    },
+    {
+      "marker": "CVARNC99",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "crates/reliquary-perception-store/src/relationship_compact_codec_tests.rs",
+        "src/imports/reconciliation_relationship_compact_tests.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVARND01",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/relationship_compact_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-perception-store/src/relationship_compact_codec_tests.rs",
+        "src/facade/storage_reclamation_relationship_publication_tests.rs"
+      ],
+      "test_file_count": 3
+    },
+    {
+      "marker": "CVARND02",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/relationship_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-perception-store/src/relationship_publication_codec_tests.rs",
+        "src/facade/storage_reclamation_relationship_compact_tests.rs"
+      ],
+      "test_file_count": 3
+    },
+    {
+      "marker": "CVARND99",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "crates/reliquary-perception-store/src/relationship_compact_codec_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVARTD02",
+      "production_sources": [
+        "crates/reliquary-perception-store/src/relationship_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-perception-store/src/relationship_publication_codec_tests.rs",
+        "src/facade/storage_reclamation_relationship_compact_tests.rs"
+      ],
+      "test_file_count": 3
+    },
+    {
+      "marker": "CVATUR03",
+      "production_sources": [
+        "crates/reliquary-archive/src/archive_publication_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [
+        "crates/reliquary-archive/src/archive_publication_bundle_tests.rs",
+        "tests/rel_activity_clock_contract.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVATUR99",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "crates/reliquary-archive/src/archive_publication_bundle_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVATURN1",
+      "production_sources": [
+        "crates/reliquary-owner-lifecycle/src/lib.rs",
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVATURN2",
+      "production_sources": [
+        "crates/reliquary-archive/src/turn_ingest_codec.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAVERS1",
+      "production_sources": [
+        "crates/reliquary-container/src/version.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs",
+        "src/imports/reconciliation.rs"
+      ],
+      "production_file_count": 3,
+      "test_sources": [
+        "crates/reliquary-container/src/container_tests.rs",
+        "crates/reliquary-container/src/publication_envelope_clock_tests.rs"
+      ],
+      "test_file_count": 4
+    },
+    {
+      "marker": "CVAVERS2",
+      "production_sources": [
+        "crates/reliquary-container/src/version.rs",
+        "crates/reliquary-owner-lifecycle/src/lib.rs",
+        "src/imports/reconciliation.rs"
+      ],
+      "production_file_count": 3,
+      "test_sources": [
+        "crates/reliquary-container/src/container_tests.rs",
+        "crates/reliquary-container/src/publication_envelope_clock_tests.rs"
+      ],
+      "test_file_count": 4
+    },
+    {
+      "marker": "CVAVGEN2",
+      "production_sources": [
+        "crates/reliquary-vector-store/src/generation.rs",
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "crates/reliquary-vector-store/tests/vector_wire.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAVGFM2",
+      "production_sources": [
+        "crates/reliquary-vector-store/src/generation.rs",
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "crates/reliquary-vector-store/tests/vector_wire.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAVGRC2",
+      "production_sources": [
+        "crates/reliquary-vector-store/src/generation.rs",
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "src/retrieval/vector_generation_validation_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAWKFM1",
+      "production_sources": [
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAWKSP1",
+      "production_sources": [
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    },
+    {
+      "marker": "CVAXIDX2",
+      "production_sources": [
+        "crates/reliquary-external-index-store/src/compact_index.rs",
+        "src/facade/phylactery_lifecycle.rs"
+      ],
+      "production_file_count": 2,
+      "test_sources": [
+        "src/external_source/compact_tests.rs"
+      ],
+      "test_file_count": 1
+    },
+    {
+      "marker": "CVAXMEM1",
+      "production_sources": [],
+      "production_file_count": 0,
+      "test_sources": [
+        "src/external_source/publication_compact_tests.rs",
+        "src/facade/external_birth_prefix_tests.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVAXMEM2",
+      "production_sources": [
+        "crates/reliquary-container/src/container.rs",
+        "crates/reliquary-container/src/grouped_clock.rs",
+        "src/external_source/publication.rs"
+      ],
+      "production_file_count": 3,
+      "test_sources": [
+        "src/external_source/publication_compact_tests.rs",
+        "src/facade/external_birth_prefix_tests.rs"
+      ],
+      "test_file_count": 2
+    },
+    {
+      "marker": "CVAXPLN1",
+      "production_sources": [
+        "src/runtime_inference/runtime_host_gateway_external_plan.rs"
+      ],
+      "production_file_count": 1,
+      "test_sources": [],
+      "test_file_count": 0
+    }
+  ],
+  "hash_domain_literal_candidates": [
+    {
+      "literal": "CVA-ARCHIVE-VECTORS-V1\\0",
+      "sources": [
+        "crates/reliquary-vector-store/src/archive.rs:203"
+      ]
+    },
+    {
+      "literal": "CVA-COMPATIBILITY-PROFILE-V1\\0",
+      "sources": [
+        "crates/reliquary-vector-store/src/profile.rs:193"
+      ]
+    },
+    {
+      "literal": "CVA-MEMORY-VECTORS-V1\\0",
+      "sources": [
+        "crates/reliquary-vector-store/src/memory.rs:293"
+      ]
+    },
+    {
+      "literal": "CVA-PACKED-VECTOR-V1\\0",
+      "sources": [
+        "crates/reliquary-vector-store/src/store.rs:208"
+      ]
+    },
+    {
+      "literal": "CVA-VECTOR-GENERATION-V2\\0",
+      "sources": [
+        "crates/reliquary-vector-store/src/generation.rs:139"
+      ]
+    },
+    {
+      "literal": "CVAFILE1-ID\\0",
+      "sources": [
+        "crates/reliquary-archive/src/file_store.rs:191"
+      ]
+    }
+  ]
+}

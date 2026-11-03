@@ -203,6 +203,8 @@
 - [crate-first-root-dependency-audit-2026-10-30.md](crate-first-root-dependency-audit-2026-10-30.md) - Crate First Root Dependency Audit 2026 10 30 documentation.
 - [current-limitations.md](current-limitations.md) - Current Limitations documentation.
 - [current-system-inventory-2026-11-03.md](current-system-inventory-2026-11-03.md) - Current System Inventory 2026 11 03 documentation.
+- [cva-rel-migration-source-and-proof-matrix-2026-11-03.md](cva-rel-migration-source-and-proof-matrix-2026-11-03.md) - Cva Rel Migration Source And Proof Matrix 2026 11 03 documentation.
+- [cva-to-rel-format-and-identity-migration-2026-11-03.md](cva-to-rel-format-and-identity-migration-2026-11-03.md) - Cva To Rel Format And Identity Migration 2026 11 03 documentation.
 - [dependency-architecture-and-crate-layout-2026-11-03.md](dependency-architecture-and-crate-layout-2026-11-03.md) - Dependency Architecture And Crate Layout 2026 11 03 documentation.
 - [derived-semantic-nodes-exploration.md](derived-semantic-nodes-exploration.md) - Derived Semantic Nodes Exploration documentation.
 - [development-format-compatibility-retirement-audit-2026-10-19.md](development-format-compatibility-retirement-audit-2026-10-19.md) - Development Format Compatibility Retirement Audit 2026 10 19 documentation.

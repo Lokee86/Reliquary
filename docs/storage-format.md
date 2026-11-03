@@ -2,6 +2,8 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+**Current implemented format: 2.0. Selected redesign target: 2.1 (not yet implemented).** The REL-branded 2.1 header, offline conversion and stable identity-preimage policy are specified in [Stage 5 migration design](cva-to-rel-format-and-identity-migration-2026-11-03.md) and [ADR 0048](decisions/0048-rel-current-format-and-stable-identity-domains.md). The codecs described below remain the existing 2.0 behavior until the verified hard cut. The six-file FRS07 corpus reopen gap must be repaired first.
+
 ## External derived index ownership
 
 The `CVAXIDX2` snapshot/discard format is unchanged. Its independent,

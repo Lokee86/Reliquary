@@ -2,7 +2,7 @@
 
 Parent index: [Architectural decisions](INDEX.md)
 
-**Status:** Accepted **code naming direction** — 2026-11-03. The concrete new persisted wire format, identifier-domain migration and implementation sequence remain **unapproved design work**. No source change or corpus migration is implied by this ADR alone.
+**Status:** Accepted **code naming direction** — 2026-11-03. The concrete persisted-format and stable-identity decisions are now defined by [ADR 0048](0048-rel-current-format-and-stable-identity-domains.md) and [Stage 5 migration design](../cva-to-rel-format-and-identity-migration-2026-11-03.md); implementation sequencing remains Stage 6. No source change or corpus conversion is implied by this ADR alone.
 
 ## Context
 
@@ -36,7 +36,7 @@ The wire-format decision must:
 - preserve internal and external consumers' expectations, including Warlock/Hermes, CLI, integrations, file paths and documented public interfaces, through a deliberately coordinated hard cut;
 - delete the temporary migration/conversion machinery and old normal readers once the canonical corpus is verified, with no permanent `CVA*` Rust constants, aliases, dispatch or test fixtures pretending old formats are current.
 
-A format version and exact byte-level transformation have **not** been selected here. The pre-existing six-file CVAFRS07 acceptance gap must be recovered and measured first, so the migration has a trustworthy source baseline.
+This naming ADR originally deferred the format version and byte-level conversion. [ADR 0048](0048-rel-current-format-and-stable-identity-domains.md) now selects current-only **2.1** with a REL header and typed offline conversion, while preserving versioned deterministic hash-input bytes. The pre-existing six-file CVAFRS07 acceptance gap remains an **implementation prerequisite**: it must be recovered and measured before converting the corpus.
 
 ## Migration/verification gates
 
@@ -53,6 +53,6 @@ A format version and exact byte-level transformation have **not** been selected 
 - **Rejected:** rename only the public type and leave `Cva` internally. It perpetuates confused implementation ownership.
 - **Rejected:** mechanically rewrite CVA-prefixed on-disk magic or hash domains with search/replace. It would risk making existing files unopenable and corrupting identity/provenance.
 - **Rejected:** keep both names indefinitely behind aliases and wire compatibility readers. It creates two mental models and defers the user-requested cleanup.
-- **Open, needs design evidence:** exact wire-version transition and whether preserving all stable identifier domains is possible without keeping old protocol bytes; no decision to regenerate externally visible IDs is accepted.
+- **Resolved by ADR 0048:** new current-only 2.1 wire signatures and a one-time typed converter; opaque stable identity-domain preimage bytes are preserved explicitly. Regenerating externally visible IDs remains rejected without a separate approved rekey.
 
 This naming decision does **not** by itself approve the recommended storage architecture option or authorize Rust implementation changes.

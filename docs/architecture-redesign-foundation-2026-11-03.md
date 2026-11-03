@@ -14,6 +14,8 @@ Parent index: [Documentation index](INDEX.md)
 
 **Stage 4 physical dependency design complete:** [crate layout and dependency architecture](dependency-architecture-and-crate-layout-2026-11-03.md), [target package DAG](architecture/target-crate-dag-2026-11-03.json), [source disposition](physical-crate-source-disposition-2026-11-03.md), and [ADR 0047](decisions/0047-physical-dependency-architecture.md). The code/wire CVA→REL migration and ordered implementation plan remain design stages; **the new crates and edges have not yet been compiled**.
 
+**Stage 5 code/format migration design complete:** [REL current-format and identity migration](cva-to-rel-format-and-identity-migration-2026-11-03.md), [source/proof matrix](cva-rel-migration-source-and-proof-matrix-2026-11-03.md), [marker inventory](architecture/cva-source-wire-inventory-2026-11-03.json), and [ADR 0048](decisions/0048-rel-current-format-and-stable-identity-domains.md). Actual source conversion, FRS07 baseline repair and Stage 6 implementation migration plan are **not completed**.
+
 ## Purpose
 
 Record the product-wide architectural goals and compare materially different storage models before relocating implementation code.
