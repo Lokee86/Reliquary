@@ -92,6 +92,7 @@
 - [0040-terminal-tombstones-and-import-epochs.md](0040-terminal-tombstones-and-import-epochs.md) - 0040 Terminal Tombstones And Import Epochs documentation.
 - [0041-semantic-import-boundaries-owner-pruning-history-rewrite.md](0041-semantic-import-boundaries-owner-pruning-history-rewrite.md) - 0041 Semantic Import Boundaries Owner Pruning History Rewrite documentation.
 - [0042-minimal-lossless-current-history.md](0042-minimal-lossless-current-history.md) - 0042 Minimal Lossless Current History documentation.
+- [0043-rel-terminology-and-wire-identity.md](0043-rel-terminology-and-wire-identity.md) - 0043 Rel Terminology And Wire Identity documentation.
 <!-- doc-ledger:files:end -->
 
 ## Stub Files

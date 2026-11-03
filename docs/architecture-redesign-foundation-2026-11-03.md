@@ -6,6 +6,8 @@ Parent index: [Documentation index](INDEX.md)
 **Baseline:** [Current implementation inventory](current-system-inventory-2026-11-03.md) at `a1039bbe`; [Root dependency audit](crate-first-root-dependency-audit-2026-10-30.md); [Architecture](architecture.md), [invariants](invariants.md), [storage format](storage-format.md), [scope ownership](subsystems/scope-ownership.md), [runtime multiplexing](subsystems/runtime-multiplexing.md), ADR 0001/0034/0037/0038/0042.
 **Intent:** Re-design the architecture of the *existing implemented system* before changing its code. Previous 30-crate physical layout and logical component DAG are evidence to evaluate, **not mandatory destinations**. No feature implementation, crate migration, or existing storage-format changes are authorized by this document.
 
+**Next design stage:** [REL/PHY owner-session design](rel-phy-owner-session-design-2026-11-03.md). **Confirmed naming direction:** [ADR 0043 — REL terminology and wire identity](decisions/0043-rel-terminology-and-wire-identity.md).
+
 ## 1. Confirmed design objectives and ranking
 
 The project owner selected **maintainability and extensibility as primary goals**, with all existing functionality and performance treated as hard preservation constraints. Reliquary is not feature-complete; the architecture must support substantial semantic expansion before release.
