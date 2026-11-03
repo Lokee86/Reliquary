@@ -95,6 +95,7 @@
 - [0043-rel-terminology-and-wire-identity.md](0043-rel-terminology-and-wire-identity.md) - 0043 Rel Terminology And Wire Identity documentation.
 - [0044-canonical-rel-phy-owner-session-architecture.md](0044-canonical-rel-phy-owner-session-architecture.md) - 0044 Canonical Rel Phy Owner Session Architecture documentation.
 - [0045-deep-semantic-services-and-effect-contracts.md](0045-deep-semantic-services-and-effect-contracts.md) - 0045 Deep Semantic Services And Effect Contracts documentation.
+- [0046-gateway-runtime-and-named-workflow-ownership.md](0046-gateway-runtime-and-named-workflow-ownership.md) - 0046 Gateway Runtime And Named Workflow Ownership documentation.
 <!-- doc-ledger:files:end -->
 
 ## Stub Files

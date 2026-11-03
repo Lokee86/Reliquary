@@ -322,6 +322,8 @@
 - [retrieval-service-crate-extraction-spec-2026-10-28.md](retrieval-service-crate-extraction-spec-2026-10-28.md) - Retrieval Service Crate Extraction Spec 2026 10 28 documentation.
 - [roadmap.md](roadmap.md) - Roadmap documentation.
 - [runtime-gateway-service-crate-extraction-spec-2026-10-30.md](runtime-gateway-service-crate-extraction-spec-2026-10-30.md) - Runtime Gateway Service Crate Extraction Spec 2026 10 30 documentation.
+- [runtime-orchestration-architecture-2026-11-03.md](runtime-orchestration-architecture-2026-11-03.md) - Runtime Orchestration Architecture 2026 11 03 documentation.
+- [runtime-orchestration-source-crosswalk-2026-11-03.md](runtime-orchestration-source-crosswalk-2026-11-03.md) - Runtime Orchestration Source Crosswalk 2026 11 03 documentation.
 - [semantic-import-pruning-history-rewrite-evidence-2026-10-18.md](semantic-import-pruning-history-rewrite-evidence-2026-10-18.md) - Semantic Import Pruning History Rewrite Evidence 2026 10 18 documentation.
 - [semantic-service-architecture-2026-11-03.md](semantic-service-architecture-2026-11-03.md) - Semantic Service Architecture 2026 11 03 documentation.
 - [semantic-service-boundary-crosswalk-2026-11-03.md](semantic-service-boundary-crosswalk-2026-11-03.md) - Semantic Service Boundary Crosswalk 2026 11 03 documentation.
