@@ -96,6 +96,7 @@
 - [0044-canonical-rel-phy-owner-session-architecture.md](0044-canonical-rel-phy-owner-session-architecture.md) - 0044 Canonical Rel Phy Owner Session Architecture documentation.
 - [0045-deep-semantic-services-and-effect-contracts.md](0045-deep-semantic-services-and-effect-contracts.md) - 0045 Deep Semantic Services And Effect Contracts documentation.
 - [0046-gateway-runtime-and-named-workflow-ownership.md](0046-gateway-runtime-and-named-workflow-ownership.md) - 0046 Gateway Runtime And Named Workflow Ownership documentation.
+- [0047-physical-dependency-architecture.md](0047-physical-dependency-architecture.md) - 0047 Physical Dependency Architecture documentation.
 <!-- doc-ledger:files:end -->
 
 ## Stub Files

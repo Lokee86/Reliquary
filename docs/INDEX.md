@@ -203,6 +203,7 @@
 - [crate-first-root-dependency-audit-2026-10-30.md](crate-first-root-dependency-audit-2026-10-30.md) - Crate First Root Dependency Audit 2026 10 30 documentation.
 - [current-limitations.md](current-limitations.md) - Current Limitations documentation.
 - [current-system-inventory-2026-11-03.md](current-system-inventory-2026-11-03.md) - Current System Inventory 2026 11 03 documentation.
+- [dependency-architecture-and-crate-layout-2026-11-03.md](dependency-architecture-and-crate-layout-2026-11-03.md) - Dependency Architecture And Crate Layout 2026 11 03 documentation.
 - [derived-semantic-nodes-exploration.md](derived-semantic-nodes-exploration.md) - Derived Semantic Nodes Exploration documentation.
 - [development-format-compatibility-retirement-audit-2026-10-19.md](development-format-compatibility-retirement-audit-2026-10-19.md) - Development Format Compatibility Retirement Audit 2026 10 19 documentation.
 - [development-format-hard-cut-interruption-spec-2026-10-19.md](development-format-hard-cut-interruption-spec-2026-10-19.md) - Development Format Hard Cut Interruption Spec 2026 10 19 documentation.
@@ -311,6 +312,7 @@
 - [perception-store-crate-extraction-evidence-2026-10-26.md](perception-store-crate-extraction-evidence-2026-10-26.md) - Perception Store Crate Extraction Evidence 2026 10 26 documentation.
 - [perception-store-crate-extraction-spec-2026-10-26.md](perception-store-crate-extraction-spec-2026-10-26.md) - Perception Store Crate Extraction Spec 2026 10 26 documentation.
 - [perception-subsystem-plan.md](perception-subsystem-plan.md) - Perception Subsystem Plan documentation.
+- [physical-crate-source-disposition-2026-11-03.md](physical-crate-source-disposition-2026-11-03.md) - Physical Crate Source Disposition 2026 11 03 documentation.
 - [project-environment-crate-extraction-evidence-2026-10-28.md](project-environment-crate-extraction-evidence-2026-10-28.md) - Project Environment extraction evidence.
 - [project-environment-crate-extraction-spec-2026-10-28.md](project-environment-crate-extraction-spec-2026-10-28.md) - Project Environment Crate Extraction Spec 2026 10 28 documentation.
 - [publication-envelope-contract-2026-10-20.md](publication-envelope-contract-2026-10-20.md) - Publication Envelope Contract 2026 10 20 documentation.

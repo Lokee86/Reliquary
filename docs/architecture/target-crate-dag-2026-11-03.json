@@ -1,0 +1,304 @@
+{
+  "schema_version": 1,
+  "title": "Reliquary proposed target package dependency DAG",
+  "date": "2026-11-03",
+  "status": "design-only",
+  "source_head": "7084b145",
+  "direction": "A depends_on B means A may import B; reverse imports prohibited",
+  "packages": [
+    {
+      "id": "reliquary-container",
+      "layer": "physical",
+      "depends_on": [],
+      "boundary": "Physical frames, typed header, identity, leases and sync only"
+    },
+    {
+      "id": "reliquary-switchboard",
+      "layer": "external-capability",
+      "depends_on": [],
+      "boundary": "Configured provider transport, endpoints and credentials; no domain decisions"
+    },
+    {
+      "id": "reliquary-chronos",
+      "layer": "semantic-primitive",
+      "depends_on": [],
+      "boundary": "Pure temporal parsing and bounded decision validation"
+    },
+    {
+      "id": "reliquary-archive",
+      "layer": "durable-domain",
+      "depends_on": [
+        "reliquary-container"
+      ],
+      "boundary": "Native Archive plus independently named Echo evidence modules"
+    },
+    {
+      "id": "reliquary-memory-core",
+      "layer": "durable-domain",
+      "depends_on": [
+        "reliquary-container"
+      ],
+      "boundary": "Memory bodies, lineage, revisions, tombstones"
+    },
+    {
+      "id": "reliquary-graph",
+      "layer": "durable-domain",
+      "depends_on": [
+        "reliquary-container"
+      ],
+      "boundary": "Graph topology, Community projections and history"
+    },
+    {
+      "id": "reliquary-perception-store",
+      "layer": "durable-domain",
+      "depends_on": [
+        "reliquary-container"
+      ],
+      "boundary": "Entity/mention/Relationship transitional records and future Observation owner-local records"
+    },
+    {
+      "id": "reliquary-ego-store",
+      "layer": "durable-domain",
+      "depends_on": [
+        "reliquary-container"
+      ],
+      "boundary": "Identity, Personality, Anchors and synthesis durable state"
+    },
+    {
+      "id": "reliquary-freshness-store",
+      "layer": "durable-domain",
+      "depends_on": [
+        "reliquary-container"
+      ],
+      "boundary": "Accepted event receipts, score and history"
+    },
+    {
+      "id": "reliquary-vector-store",
+      "layer": "durable-domain",
+      "depends_on": [
+        "reliquary-container"
+      ],
+      "boundary": "Vector payloads, profiles and generations"
+    },
+    {
+      "id": "reliquary-insomnia-store",
+      "layer": "durable-domain",
+      "depends_on": [
+        "reliquary-container"
+      ],
+      "boundary": "Durable Episode work claims, leases, completions and receipts"
+    },
+    {
+      "id": "reliquary-owner-session",
+      "layer": "owner-composition",
+      "depends_on": [
+        "reliquary-container",
+        "reliquary-archive",
+        "reliquary-memory-core",
+        "reliquary-graph",
+        "reliquary-perception-store",
+        "reliquary-ego-store",
+        "reliquary-freshness-store",
+        "reliquary-vector-store",
+        "reliquary-insomnia-store"
+      ],
+      "boundary": "Single mutable REL or PHY session; typed record replay/admission, exact grouped publication and owner-local proofs; internal Dream/Import/Maintenance/external-index codecs"
+    },
+    {
+      "id": "reliquary-vectors",
+      "layer": "semantic-primitive",
+      "depends_on": [
+        "reliquary-switchboard",
+        "reliquary-vector-store"
+      ],
+      "boundary": "Embedding interface, compatibility policy, batch packing; store dependency value types only"
+    },
+    {
+      "id": "reliquary-retrieval",
+      "layer": "semantic-evaluator",
+      "depends_on": [
+        "reliquary-archive",
+        "reliquary-graph",
+        "reliquary-memory-core",
+        "reliquary-vector-store",
+        "reliquary-vectors"
+      ],
+      "boundary": "Pure lexical/exact-semantic/community rank, bounded traversal and agentic selection state"
+    },
+    {
+      "id": "reliquary-dream",
+      "layer": "semantic-evaluator",
+      "depends_on": [
+        "reliquary-chronos",
+        "reliquary-graph",
+        "reliquary-memory-core",
+        "reliquary-switchboard",
+        "reliquary-vectors"
+      ],
+      "boundary": "Memory-Web inference, canonical/lifecycle policy and Community naming; no direct store writes"
+    },
+    {
+      "id": "reliquary-insomnia",
+      "layer": "semantic-evaluator",
+      "depends_on": [
+        "reliquary-archive",
+        "reliquary-memory-core",
+        "reliquary-switchboard"
+      ],
+      "boundary": "Episode extraction, evidence schema, ownership and candidate policy; no store mutation"
+    },
+    {
+      "id": "reliquary-entity-resolution",
+      "layer": "semantic-evaluator",
+      "depends_on": [
+        "reliquary-perception-store",
+        "reliquary-memory-core",
+        "reliquary-retrieval",
+        "reliquary-switchboard"
+      ],
+      "boundary": "Entity matching/admission/ambiguity and future Perception foundations; Retrieval import pure candidate helper only"
+    },
+    {
+      "id": "reliquary-freshness",
+      "layer": "semantic-evaluator",
+      "depends_on": [
+        "reliquary-freshness-store",
+        "reliquary-graph",
+        "reliquary-memory-core"
+      ],
+      "boundary": "Deterministic scoring, propagation, historical evaluation and derived due policy"
+    },
+    {
+      "id": "reliquary-context-engine",
+      "layer": "semantic-composition",
+      "depends_on": [
+        "reliquary-archive"
+      ],
+      "boundary": "Deterministic context budget/render/compaction; Archive import only for immutable Echo evidence"
+    },
+    {
+      "id": "reliquary-project-environment",
+      "layer": "external-capability",
+      "depends_on": [
+        "reliquary-archive"
+      ],
+      "boundary": "Git/Lore project authority and exact source revision correlation; Archive types only"
+    },
+    {
+      "id": "reliquary-application",
+      "layer": "application-workflows",
+      "depends_on": [
+        "reliquary-owner-session",
+        "reliquary-insomnia",
+        "reliquary-dream",
+        "reliquary-entity-resolution",
+        "reliquary-freshness",
+        "reliquary-retrieval",
+        "reliquary-chronos",
+        "reliquary-vectors",
+        "reliquary-context-engine",
+        "reliquary-switchboard",
+        "reliquary-project-environment"
+      ],
+      "boundary": "Named typed ingest, Insomnia, Dream, Perception, retrieval, accepted-use, vectors, history, import and exclusive maintenance workflows"
+    },
+    {
+      "id": "reliquary-runtime-gateway",
+      "layer": "runtime",
+      "depends_on": [
+        "reliquary-application",
+        "reliquary-owner-session",
+        "reliquary-switchboard"
+      ],
+      "boundary": "One canonical mounted Gateway and per-Instance runtime, worker/host queue/journals/stream authority"
+    },
+    {
+      "id": "reliquary-memory",
+      "layer": "public-product",
+      "depends_on": [
+        "reliquary-application",
+        "reliquary-runtime-gateway",
+        "reliquary-owner-session",
+        "reliquary-archive",
+        "reliquary-memory-core",
+        "reliquary-graph",
+        "reliquary-perception-store",
+        "reliquary-ego-store",
+        "reliquary-freshness-store",
+        "reliquary-vector-store",
+        "reliquary-insomnia-store",
+        "reliquary-chronos",
+        "reliquary-switchboard",
+        "reliquary-dream",
+        "reliquary-insomnia",
+        "reliquary-entity-resolution",
+        "reliquary-freshness",
+        "reliquary-retrieval",
+        "reliquary-vectors",
+        "reliquary-context-engine",
+        "reliquary-project-environment"
+      ],
+      "boundary": "Public compatibility-replacing REL/PHY/host API and curated reexports ONLY; no mutable root aggregate or semantic execution"
+    }
+  ],
+  "retire_or_merge": [
+    {
+      "from": "reliquary-echo",
+      "to": "reliquary-archive",
+      "scope": "archive::echo — durable independent evidence within same physical package"
+    },
+    {
+      "from": "reliquary-dream-store",
+      "to": "reliquary-owner-session",
+      "scope": "records::dream — durable first-cycle/journal and codec, not Dream inference"
+    },
+    {
+      "from": "reliquary-import-store",
+      "to": "reliquary-owner-session",
+      "scope": "records::import — import epoch and replay"
+    },
+    {
+      "from": "reliquary-maintenance-store",
+      "to": "reliquary-owner-session",
+      "scope": "records::maintenance — retention/prune proof"
+    },
+    {
+      "from": "reliquary-external-index-store",
+      "to": "reliquary-owner-session",
+      "scope": "records::external_index — separate replaceable external-source derived index"
+    },
+    {
+      "from": "reliquary-owner-lifecycle",
+      "to": "reliquary-owner-session",
+      "scope": "open/replay — exactly one canonical owner composition and grouped admission"
+    },
+    {
+      "from": "reliquary-history",
+      "to": "reliquary-application",
+      "scope": "history — immutable owner-cut proof composition"
+    },
+    {
+      "from": "reliquary-import",
+      "to": "reliquary-application",
+      "scope": "import — source adapter/normalization and exclusive epoch workflow"
+    },
+    {
+      "from": "reliquary-maintenance",
+      "to": "reliquary-application",
+      "scope": "maintenance — prune/rewrite/reconcile policy and copy/verify/promote"
+    },
+    {
+      "from": "reliquary-ego",
+      "to": null,
+      "scope": "Delete placeholder-only crate; future Ego synthesis may earn a service package when implemented"
+    }
+  ],
+  "policy": {
+    "root": "reexports and narrow public API only; direct lower dependencies in root exist exclusively to reexport canonical public types",
+    "domain_type_imports": "semantic packages may import canonical immutable value types/pure helpers from store packages, not mutable store open/write/session APIs",
+    "owner_composition": "only reliquary-owner-session may assemble durable domain stores, replay and grouped session publication",
+    "workflows": "only application composes multiple semantic services and owner mutations; runtime invokes workflows",
+    "gateway": "runtime owns operational journals and host/Instance authority, never mutable domain stores",
+    "no_extra": "all unlisted package dependency edges are prohibited until a superseding decision"
+  }
+}

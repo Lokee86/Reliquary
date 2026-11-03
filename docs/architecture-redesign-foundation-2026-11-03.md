@@ -10,7 +10,9 @@ Parent index: [Documentation index](INDEX.md)
 
 **Stage 2 semantic service design complete:** [semantic service architecture](semantic-service-architecture-2026-11-03.md), [source/contract crosswalk](semantic-service-boundary-crosswalk-2026-11-03.md), and [ADR 0045](decisions/0045-deep-semantic-services-and-effect-contracts.md).
 
-**Stage 3 runtime/workflow design complete:** [runtime and orchestration architecture](runtime-orchestration-architecture-2026-11-03.md), [source boundary crosswalk](runtime-orchestration-source-crosswalk-2026-11-03.md), and [ADR 0046](decisions/0046-gateway-runtime-and-named-workflow-ownership.md). Final Cargo dependency architecture, code/wire CVA→REL migration, and implementation migration plan remain design stages.
+**Stage 3 runtime/workflow design complete:** [runtime and orchestration architecture](runtime-orchestration-architecture-2026-11-03.md), [source boundary crosswalk](runtime-orchestration-source-crosswalk-2026-11-03.md), and [ADR 0046](decisions/0046-gateway-runtime-and-named-workflow-ownership.md).
+
+**Stage 4 physical dependency design complete:** [crate layout and dependency architecture](dependency-architecture-and-crate-layout-2026-11-03.md), [target package DAG](architecture/target-crate-dag-2026-11-03.json), [source disposition](physical-crate-source-disposition-2026-11-03.md), and [ADR 0047](decisions/0047-physical-dependency-architecture.md). The code/wire CVA→REL migration and ordered implementation plan remain design stages; **the new crates and edges have not yet been compiled**.
 
 ## Purpose
 

@@ -1,13 +1,13 @@
 # Crate-first Reliquary architecture
 
-Status: **Container, Archive, Memory Core, Echo, Freshness, Insomnia, and Vectors service/owner cuts are integrated; remaining gates are tracked in their evidence** (2026-10-28).
+Status: **SUPERSEDED for target architecture** by [Stage 4 dependency architecture](dependency-architecture-and-crate-layout-2026-11-03.md), [target crate DAG](architecture/target-crate-dag-2026-11-03.json), and [ADR 0047](decisions/0047-physical-dependency-architecture.md). This file records the October 2026 crate-first attempt, not the approved November design. The listed extraction progress below is historical evidence (2026-10-28).
 Starting commit: `c43d33c`. Branch: `refactor/crate-first-restart`.
 
 ## Purpose
 
 Retain the accepted dependency-convergence architecture, not its Phase 0–7 execution and evidence system. Extract into independent Rust libraries **as the dependency corrections are made**, rather than first untangling a single monolith. Cargo rejects physical crate dependency cycles; tests protect behavior and data. No bespoke whole-repository dependency-proof framework is a prerequisite.
 
-The authoritative targets are [component-dag.json](architecture/component-dag.json) and [crate-map.json](architecture/crate-map.json). The former is the original 34-component, explicit-allowlist DAG, modified only to give Echo an independent owner in accordance with ADR 0014: 35 logical components, 173 approved direct logical edges. The latter records their physical ownership mapping and permitted crate dependencies. Allowed edges are *maximum permissions*, not requirements or imports to insert before they are used.
+The **historical October targets** were [component-dag.json](architecture/component-dag.json) and [crate-map.json](architecture/crate-map.json). The former was the original 34-component, explicit-allowlist DAG, modified to give Echo an independent owner in accordance with ADR 0014: 35 logical components, 173 approved direct logical edges. The latter mapped that proposal to physical crate permissions. **Neither is authoritative for the November redesign.** The new selected direct package edges are in [target-crate-dag-2026-11-03.json](architecture/target-crate-dag-2026-11-03.json).
 
 The original October 21 phase execution ledger is archived in the Step 1 Git bundle, not carried into this new branch. No roadmap features are included. The detailed source, API, directory and document crosswalk is the [crate layout specification](crate-first-layout-spec-2026-10-25.md).
 
