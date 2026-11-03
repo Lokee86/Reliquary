@@ -177,6 +177,7 @@
 - [agentic-memory-retrieval-design-2026-10-15.md](agentic-memory-retrieval-design-2026-10-15.md) - Agentic Memory Retrieval Design 2026 10 15 documentation.
 - [agentic-memory-retrieval-verification-2026-10-16.md](agentic-memory-retrieval-verification-2026-10-16.md) - Agentic Memory Retrieval Verification 2026 10 16 documentation.
 - [api.md](api.md) - Api documentation.
+- [architecture-rebuild-implementation-plan-2026-11-03.md](architecture-rebuild-implementation-plan-2026-11-03.md) - Architecture Rebuild Implementation Plan 2026 11 03 documentation.
 - [architecture-redesign-foundation-2026-11-03.md](architecture-redesign-foundation-2026-11-03.md) - Architecture Redesign Foundation 2026 11 03 documentation.
 - [architecture.md](architecture.md) - Architecture documentation.
 - [archive-crate-extraction-results-2026-10-25.md](archive-crate-extraction-results-2026-10-25.md) - Archive Crate Extraction Results 2026 10 25 documentation.

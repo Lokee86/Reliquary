@@ -4,6 +4,8 @@ Parent index: [Documentation index](INDEX.md)
 
 **Design status: COMPLETE FOR STAGE 4; not implemented or compiler-validated.** This is the **selected physical package layout** grounded in the 2026-11-03 [current inventory](current-system-inventory-2026-11-03.md), direct `Cargo.toml` manifests, and [Stages 1–3](rel-phy-storage-architecture-2026-11-03.md), [semantic services](semantic-service-architecture-2026-11-03.md), and [Gateway/workflows](runtime-orchestration-architecture-2026-11-03.md). Canonical machine-readable edges: [target crate DAG](architecture/target-crate-dag-2026-11-03.json). [ADR 0047](decisions/0047-physical-dependency-architecture.md). [Source disposition map](physical-crate-source-disposition-2026-11-03.md).
 
+**Execution clarification (ADR 0049):** The crates specified here are built **directly in a separate clean replacement worktree** using verified existing implementation. The original remains the stable reference; none of these merge/retirements requires a period of incremental in-place refactoring. See [clean rebuild plan](architecture-rebuild-implementation-plan-2026-11-03.md).
+
 ## Purpose
 
 Finish the *where does the code live, and who can depend on whom* design before any code move. The goal is fewer meaningful deep modules, no Root or parent backreach, independently recoverable REL/PHY semantics, and uncomplicated future extension—not an arbitrary crate count or mechanically preserving the previous extraction sequence.

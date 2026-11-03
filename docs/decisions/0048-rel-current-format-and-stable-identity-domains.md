@@ -4,6 +4,8 @@ Parent index: [Architectural decisions](INDEX.md)
 
 **Status: Selected design — 2026-11-03. Not implemented and subject to corpus/identity acceptance gates.** Detailed [Stage 5 migration contract](../cva-to-rel-format-and-identity-migration-2026-11-03.md), [wire source inventory](../architecture/cva-source-wire-inventory-2026-11-03.json), [ADR 0043 naming](0043-rel-terminology-and-wire-identity.md), [current-only development format policy](../development-format-hard-cut-interruption-spec-2026-10-19.md).
 
+**Build strategy:** [ADR 0049](0049-parallel-architecture-rebuild-and-verified-cutover.md) builds only final 2.1 runtime codecs in the new target. The isolated converter uses read-only verified old-format copies; no runtime compatibility reader is introduced.
+
 ## Purpose
 
 Retire CVA in active Rust and persisted current-format tags while protecting deterministic identifiers, source/provenance chains and current-only storage policy.

@@ -16,6 +16,8 @@ Parent index: [Documentation index](INDEX.md)
 
 **Stage 5 code/format migration design complete:** [REL current-format and identity migration](cva-to-rel-format-and-identity-migration-2026-11-03.md), [source/proof matrix](cva-rel-migration-source-and-proof-matrix-2026-11-03.md), [marker inventory](architecture/cva-source-wire-inventory-2026-11-03.json), and [ADR 0048](decisions/0048-rel-current-format-and-stable-identity-domains.md). Actual source conversion, FRS07 baseline repair and Stage 6 implementation migration plan are **not completed**.
 
+**Stage 6 clean rebuild execution plan complete:** [architecture rebuild implementation plan](architecture-rebuild-implementation-plan-2026-11-03.md), [58-task rebuild DAG](architecture/implementation-rebuild-task-dag-2026-11-03.json), and [ADR 0049](decisions/0049-parallel-architecture-rebuild-and-verified-cutover.md). **The existing implementation remains an untouched reference; the replacement is built independently in final target crates.** Only the separate old-file → current 2.1 **data conversion** is a migration. FRS07 baseline validation, construction and test execution are still outstanding.
+
 ## Purpose
 
 Record the product-wide architectural goals and compare materially different storage models before relocating implementation code.

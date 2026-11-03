@@ -4,6 +4,8 @@ Parent index: [Documentation index](INDEX.md)
 
 **Status: COMPLETE AS A TARGET MIGRATION DESIGN, NOT IMPLEMENTED.** All affected files, identifiers and actual corpus outcomes must be verified at the later implementation gates; no Rust, CLI, fixtures or canonical REL/PHY bytes have been converted. **Canonical decisions:** [ADR 0043](decisions/0043-rel-terminology-and-wire-identity.md), [ADR 0048](decisions/0048-rel-current-format-and-stable-identity-domains.md), [Stage 4 dependency architecture](dependency-architecture-and-crate-layout-2026-11-03.md). **Lexical source evidence:** [machine-readable marker and hash-domain inventory](architecture/cva-source-wire-inventory-2026-11-03.json). The [source classification](cva-rel-migration-source-and-proof-matrix-2026-11-03.md) defines affected responsibilities and acceptance.
 
+**Execution clarification (ADR 0049):** The Rust architecture is rebuilt directly with **current-only 2.1** in a separate clean target. The word *migration* in this document refers **only to offline conversion of persisted 2.0 REL/PHY data** and any required consumer cutover. The working reference implementation is not incrementally migrated through temporary crates. See [clean rebuild plan](architecture-rebuild-implementation-plan-2026-11-03.md).
+
 ## Purpose
 
 Eliminate **CVA terminology and its legacy-format signatures from active production Rust**, without corrupting existing owner files, changing stable semantic identity, losing historical or provenance evidence, or accumulating perpetual compatibility readers. Close the engineering choices that would otherwise turn a mechanical rename into an unsafe development-format migration.

@@ -1,0 +1,795 @@
+{
+  "schema_version": 1,
+  "source_head": "e2f249d2",
+  "status": "design-only",
+  "title": "Reliquary clean-architecture rebuild task DAG",
+  "rules": {
+    "target": "22 support crates plus reliquary-memory Root, ADR 0047",
+    "cva_to_rel": "2.1 typed offline migration, ADR 0048",
+    "no_compatibility": "Do not add temporary bridges, copy the old owner aggregate or maintain dual semantics. Only isolated offline 2.0-to-2.1 DATA converter before activation.",
+    "verification": "Coherent final-destination target crates at G1-G4; complete rebuild and 2.1 corpus at G5-G6; original reference remains functional",
+    "parallel": "Separate stable reference worktree from rebuild worktree; parallel-ready tasks must not concurrently edit overlapping target owners",
+    "external": "External integrators must compile or be explicitly blocked, never silently waived",
+    "cutover": "Publish the new architecture only when whole rebuilt target, converted current corpus and consumers are validated"
+  },
+  "phase_order": [
+    "P0",
+    "P1",
+    "G1",
+    "P2",
+    "G2",
+    "P3",
+    "G3",
+    "P4",
+    "G4",
+    "P5",
+    "G5",
+    "G6"
+  ],
+  "tickets": [
+    {
+      "id": "T01",
+      "phase": "P0",
+      "title": "Freeze stable reference and initialize separate rebuild worktree",
+      "depends_on": [],
+      "source_scope": "main root, CLI, fixtures, installed host consumers",
+      "deliverable": "Verified read-only reference state and isolated rebuild worktree; do not modify stable implementation",
+      "acceptance": "Record baseline commit, snapshot working tree before any change, preserve unrelated Graph edit, ensure reference build remains usable; new target is created in a different worktree.",
+      "status": "not-started"
+    },
+    {
+      "id": "T02",
+      "phase": "P0",
+      "title": "Pin semantic and performance baseline",
+      "depends_on": [
+        "T01"
+      ],
+      "source_scope": "tests, examples, existing benchmarks",
+      "deliverable": "Pin semantic and performance baseline",
+      "acceptance": "Capture exact command results, source IDs, selected retrieval rankings, per-domain history and latency/memory; distinguish unavailable external models.",
+      "status": "not-started"
+    },
+    {
+      "id": "T03",
+      "phase": "P0",
+      "title": "Resolve FRS07 historical baseline in isolated reference validation",
+      "depends_on": [
+        "T01"
+      ],
+      "source_scope": "freshness-store semantic settlement / replay",
+      "deliverable": "Copy-based old-format evidence proof for authoritative FRS07 corpus",
+      "acceptance": "In disposable reference validation only, prove authentic FRS07 replay and all receipts/clock states without modifying stable source/corpus; reproduce correction directly in new target.",
+      "status": "not-started"
+    },
+    {
+      "id": "T04",
+      "phase": "P0",
+      "title": "Admit all six old-format canonical REL/PHY files",
+      "depends_on": [
+        "T03"
+      ],
+      "source_scope": "tests/current_format_boundary.rs; corpus fixture repo",
+      "deliverable": "Admit all six old-format canonical REL/PHY files",
+      "acceptance": "Remove/resolve ignored six-file gate on copies; verify 3 REL+3 PHY owner UUIDs, full heads, exact SHA and no mutation.",
+      "status": "not-started"
+    },
+    {
+      "id": "T05",
+      "phase": "P0",
+      "title": "Classify 173 CVA marker candidates and every dynamic magic",
+      "depends_on": [
+        "T01"
+      ],
+      "source_scope": "all current writer/reader codecs, inventory JSON",
+      "deliverable": "Classify 173 CVA marker candidates and every dynamic magic",
+      "acceptance": "Label current write/read, retired, invalid/test-only; record hash/offset/proof inputs, no unknown valid carrier; classify exact code path.",
+      "status": "not-started"
+    },
+    {
+      "id": "T06",
+      "phase": "P0",
+      "title": "Freeze CLI, Warlock, Hermes and host contract consumers",
+      "depends_on": [
+        "T01"
+      ],
+      "source_scope": "public API, cli, external integration entrypoints",
+      "deliverable": "Freeze CLI, Warlock, Hermes and host contract consumers",
+      "acceptance": "Record symbol, protocol, CLI, journal and installer dependency map; identify integrations available for actual compilation.",
+      "status": "not-started"
+    },
+    {
+      "id": "T07",
+      "phase": "P0",
+      "title": "Reference evidence gate before clean rebuild",
+      "depends_on": [
+        "T02",
+        "T04",
+        "T05",
+        "T06"
+      ],
+      "source_scope": "proof ledger and baseline checks",
+      "deliverable": "Frozen source, golden tests and complete current-format codec inventory",
+      "acceptance": "Proofs for old corpus, hash IDs, CLI/host interfaces and baseline behavior; fail closed if source fixture cannot be validated. Stable reference stays untouched.",
+      "status": "not-started"
+    },
+    {
+      "id": "T08",
+      "phase": "P1",
+      "title": "Build final Archive/Echo module from verified reference logic",
+      "depends_on": [
+        "T50",
+        "T51"
+      ],
+      "source_scope": "reliquary-echo -> reliquary-archive::echo; Context Engine value imports",
+      "deliverable": "Single final Archive crate with independent durable Echo module",
+      "acceptance": "Replay Echo history identical, direct value-only imports, independent Archive tests pass; remove Echo crate only after callers migrated.",
+      "status": "not-started"
+    },
+    {
+      "id": "T09",
+      "phase": "P1",
+      "title": "Build typed domain owner read/commit APIs in final crates",
+      "depends_on": [
+        "T50",
+        "T51"
+      ],
+      "source_scope": "Memory/Graph/Entity/Ego/Freshness/Vector/Insomnia stores",
+      "deliverable": "Final canonical domain stores; no mutable access from evaluators",
+      "acceptance": "Private Container-backed commands for owner-session; canonical data types, no store mutation accessible to semantic evaluators.",
+      "status": "not-started"
+    },
+    {
+      "id": "T10",
+      "phase": "P1",
+      "title": "Implement Dream first-cycle records in final owner-session module",
+      "depends_on": [
+        "T09"
+      ],
+      "source_scope": "reliquary-dream-store -> owner-session::records::dream",
+      "deliverable": "Final Dream proof/codec owner module",
+      "acceptance": "Exact journal population digest and idempotent Begin replay; no Dream inference on file open.",
+      "status": "not-started"
+    },
+    {
+      "id": "T11",
+      "phase": "P1",
+      "title": "Implement import epoch records in final owner-session module",
+      "depends_on": [
+        "T09"
+      ],
+      "source_scope": "reliquary-import-store -> owner-session::records::import",
+      "deliverable": "Final import epoch state and replay",
+      "acceptance": "Persist/replay ImportStart/Complete, fenced writes and settlement unchanged; no import workflow dependency.",
+      "status": "not-started"
+    },
+    {
+      "id": "T12",
+      "phase": "P1",
+      "title": "Implement maintenance and external-index record modules in final owner-session",
+      "depends_on": [
+        "T09"
+      ],
+      "source_scope": "maintenance-store and external-index-store -> owner-session records",
+      "deliverable": "Final owner-local record modules and admission",
+      "acceptance": "Retain prune proof, exclude derived-index corruption from semantic authority; replay independent of higher workflows.",
+      "status": "not-started"
+    },
+    {
+      "id": "T13",
+      "phase": "P1",
+      "title": "Build canonical RelSession directly from existing implementation",
+      "depends_on": [
+        "T08",
+        "T09",
+        "T10",
+        "T11",
+        "T12"
+      ],
+      "source_scope": "src/facade/cva.rs and cva_lifecycle.rs -> reliquary-owner-session",
+      "deliverable": "Final private REL aggregate, typed open/replay and owners, never a Cva clone",
+      "acceptance": "Move durable fields and open/ordered replay directly once; no duplicate mutable aggregate or Root imports; current REL owner fixture opens.",
+      "status": "not-started"
+    },
+    {
+      "id": "T14",
+      "phase": "P1",
+      "title": "Build canonical PhySession directly from existing implementation",
+      "depends_on": [
+        "T13"
+      ],
+      "source_scope": "src/facade/phylactery.rs / phylactery_lifecycle.rs",
+      "deliverable": "Final PHY-only durable state, typed open/replay",
+      "acceptance": "PHY kind-checked domain set and private content, own Memory/Ego/Entity/Graph history; no REL Archive admission.",
+      "status": "not-started"
+    },
+    {
+      "id": "T15",
+      "phase": "P1",
+      "title": "Implement typed session reads and historical proofs",
+      "depends_on": [
+        "T13",
+        "T14"
+      ],
+      "source_scope": "facade cva_memory/graph/ego/vector/historical and PHY readers",
+      "deliverable": "Final owner-session read API and cut-bound historical proof",
+      "acceptance": "Canonical bounded owned results/borrow-scoped reads and actual cuts, missing payload/tombstones distinct; no provider on reopen.",
+      "status": "not-started"
+    },
+    {
+      "id": "T16",
+      "phase": "P1",
+      "title": "Implement named grouped owner-publication commands",
+      "depends_on": [
+        "T13",
+        "T14"
+      ],
+      "source_scope": "cva turn ingestion, Insomnia grouped and external grouped carriers",
+      "deliverable": "Final grouped carrier admission, replay and receipt semantics",
+      "acceptance": "One exact commit and sync/projection/reopen fence, metadata/global clocks preserved; stop writes after post-sync projection failure.",
+      "status": "not-started"
+    },
+    {
+      "id": "T17",
+      "phase": "P1",
+      "title": "Account for all existing owner functions in final interfaces",
+      "depends_on": [
+        "T15",
+        "T16"
+      ],
+      "source_scope": "all 519 Cva/Phylactery inherent methods and helper functions",
+      "deliverable": "Every inherent Cva/Phylactery behavior mapped, implemented and tested in its final owner/workflow; no second mutable aggregate",
+      "acceptance": "Every method classified as owner, workflow or service; no dangling Root fields, direct store mutability, or duplicate current state.",
+      "status": "not-started"
+    },
+    {
+      "id": "T49",
+      "phase": "P1",
+      "title": "Implement final 2.1 Container/header/grouped carriers directly",
+      "depends_on": [
+        "T07"
+      ],
+      "source_scope": "container/header, publication envelopes and grouped record types",
+      "deliverable": "Final new physical format in target package, no old normal-format reader",
+      "acceptance": "REL 2.1 exact signature, typed kind, UUID, publication/global coordinates, grouped carrier tests in target crate. No runtime 2.0 codec.",
+      "status": "not-started"
+    },
+    {
+      "id": "T50",
+      "phase": "P1",
+      "title": "Implement final REL-branded 2.1 durable-domain codecs",
+      "depends_on": [
+        "T49",
+        "T05"
+      ],
+      "source_scope": "Archive/Echo/Memory/Graph/Entity/Ego/Freshness/Vector/Insomnia/record owners",
+      "deliverable": "All target domain writers/readers and replay codecs, with no old-format dispatch",
+      "acceptance": "Classify each current live family, emit/accept only 2.1 REL tags (unrelated RQMUX/RQOP preserved); all canonical domain tests on new-format fixtures.",
+      "status": "not-started"
+    },
+    {
+      "id": "T51",
+      "phase": "P1",
+      "title": "Encode stable hash preimages in final domain implementations",
+      "depends_on": [
+        "T07",
+        "T05"
+      ],
+      "source_scope": "file_store and vector-store six explicit ID domains",
+      "deliverable": "Versioned opaque binary identity inputs identical to reference",
+      "acceptance": "Golden FileId and vector ID outputs identical to reference; old textual names absent in active target Rust and tests.",
+      "status": "not-started"
+    },
+    {
+      "id": "T18",
+      "phase": "G1",
+      "title": "Validate rebuilt 2.1 owner-session subgraph",
+      "depends_on": [
+        "T17"
+      ],
+      "source_scope": "owner-session + eight durable stores + Container",
+      "deliverable": "Integrate typed owner-session storage subgraph",
+      "acceptance": "Compile/test completed Container+eight stores+owner-session; synthetic 2.1 REL/PHY fixtures, grouped receipt/history and wrong-kind tests. Original old-format corpus is checked only in reference worktree.",
+      "status": "not-started"
+    },
+    {
+      "id": "T19",
+      "phase": "P2",
+      "title": "Finalize Insomnia and Dream pure evaluation inputs",
+      "depends_on": [
+        "T18"
+      ],
+      "source_scope": "crates/insomnia, dream and Root dream candidate policy",
+      "deliverable": "Finalize Insomnia and Dream pure evaluation inputs",
+      "acceptance": "Evaluators accept bounded facts and return typed proposals; Root policy moved once; evidence tests and duplicate/zero-link contracts pass.",
+      "status": "not-started"
+    },
+    {
+      "id": "T20",
+      "phase": "P2",
+      "title": "Finalize Entity Resolution and Perception evaluator contracts",
+      "depends_on": [
+        "T18"
+      ],
+      "source_scope": "entity-resolution, src/perception",
+      "deliverable": "Finalize Entity Resolution and Perception evaluator contracts",
+      "acceptance": "Move canonical matching and ambiguities to service; no new Observation inference; exact mention/owner tests.",
+      "status": "not-started"
+    },
+    {
+      "id": "T21",
+      "phase": "P2",
+      "title": "Finalize Freshness deterministic service boundary",
+      "depends_on": [
+        "T18"
+      ],
+      "source_scope": "freshness service and dispatcher; root freshness_access",
+      "deliverable": "Finalize Freshness deterministic service boundary",
+      "acceptance": "Policy computes scores, only accepted event receipts commit; schedule remains runtime/rebuildable; no read reinforcement.",
+      "status": "not-started"
+    },
+    {
+      "id": "T22",
+      "phase": "P2",
+      "title": "Finalize passive and agentic Retrieval evaluation",
+      "depends_on": [
+        "T18"
+      ],
+      "source_scope": "retrieval service; src/runtime_inference/agentic_memory_retrieval*",
+      "deliverable": "Finalize passive and agentic Retrieval evaluation",
+      "acceptance": "Preserve 45/55 hybrid, semantic-lane community, selection state; controller turn-scoped and nonreinforcing.",
+      "status": "not-started"
+    },
+    {
+      "id": "T23",
+      "phase": "P2",
+      "title": "Finalize Chronos, Vectors and Switchboard seams",
+      "depends_on": [
+        "T18"
+      ],
+      "source_scope": "chronos, vectors, vector-store and configured inference",
+      "deliverable": "Finalize Chronos, Vectors and Switchboard seams",
+      "acceptance": "Pure temporal/compatibility decisions and explicit endpoints; no model under owner lock; stable profile behavior.",
+      "status": "not-started"
+    },
+    {
+      "id": "T24",
+      "phase": "P2",
+      "title": "Finalize Context Engine and Echo value import",
+      "depends_on": [
+        "T08",
+        "T18"
+      ],
+      "source_scope": "context-engine + src/echo/ compaction/render",
+      "deliverable": "Finalize Context Engine and Echo value import",
+      "acceptance": "Final context composition consumes supplied authorized facts; no Ego synthesis invented, Echo source authority stays durable.",
+      "status": "not-started"
+    },
+    {
+      "id": "T25",
+      "phase": "P2",
+      "title": "Build real application package and accepted-turn workflow",
+      "depends_on": [
+        "T18"
+      ],
+      "source_scope": "reliquary-application::ingest, src/runtime_inference/interaction_runtime",
+      "deliverable": "Final named workflows with typed input/proof/result; no placeholder or general service registry",
+      "acceptance": "Real turn admission and Episode scheduling through typed session; no empty placeholder and no mutable service registry.",
+      "status": "not-started"
+    },
+    {
+      "id": "T26",
+      "phase": "P2",
+      "title": "Implement Insomnia authorization, evidence and routing",
+      "depends_on": [
+        "T19",
+        "T25"
+      ],
+      "source_scope": "src/runtime_inference/insomnia/** and source adapters",
+      "deliverable": "Migrate Insomnia authorization, evidence and routing",
+      "acceptance": "Prepare outside lock, verify exact source/lease; PHY-first idempotent routing followed by grouped REL completion.",
+      "status": "not-started"
+    },
+    {
+      "id": "T27",
+      "phase": "P2",
+      "title": "Implement Dream candidates, commit and first-cycle settlement",
+      "depends_on": [
+        "T19",
+        "T25"
+      ],
+      "source_scope": "src/runtime_inference/dream_* and Graph community naming",
+      "deliverable": "Migrate Dream candidates, commit and first-cycle settlement",
+      "acceptance": "Verified pairs and zero-link settlement, no duplicate Freshness +50, exact journal/Graph clock and provenance.",
+      "status": "not-started"
+    },
+    {
+      "id": "T28",
+      "phase": "P2",
+      "title": "Implement Perception/Entity application workflow",
+      "depends_on": [
+        "T20",
+        "T25"
+      ],
+      "source_scope": "src/perception/** and runtime callbacks",
+      "deliverable": "Migrate Perception/Entity application workflow",
+      "acceptance": "Exact body-bound candidate proof, grant recheck, typed Entity/Graph admission, no forced ambiguous match.",
+      "status": "not-started"
+    },
+    {
+      "id": "T29",
+      "phase": "P2",
+      "title": "Implement accepted-use/Freshness workflow",
+      "depends_on": [
+        "T21",
+        "T25"
+      ],
+      "source_scope": "root Freshness hooks, host handoff evidence",
+      "deliverable": "Migrate accepted-use/Freshness workflow",
+      "acceptance": "Accepted-use only on confirmed host delivery; exact event ID, bounded propagation, deterministic retries.",
+      "status": "not-started"
+    },
+    {
+      "id": "T30",
+      "phase": "P2",
+      "title": "Implement Retrieval hydration and agentic query workflow",
+      "depends_on": [
+        "T22",
+        "T25"
+      ],
+      "source_scope": "src/retrieval/**, agentic controller orchestration",
+      "deliverable": "Migrate Retrieval hydration and agentic query workflow",
+      "acceptance": "Authorization before query and rechecked before hydration; selected-only delivery; same frozen output/ranking.",
+      "status": "not-started"
+    },
+    {
+      "id": "T31",
+      "phase": "P2",
+      "title": "Implement vector/profile publication workflow",
+      "depends_on": [
+        "T23",
+        "T25"
+      ],
+      "source_scope": "runtime_vector_step, embedding_endpoint",
+      "deliverable": "Migrate vector/profile publication workflow",
+      "acceptance": "Exact source revision+profile, model outside lock, batch publish and history unchanged.",
+      "status": "not-started"
+    },
+    {
+      "id": "T32",
+      "phase": "P2",
+      "title": "Implement Context and external-source workflows",
+      "depends_on": [
+        "T24",
+        "T25"
+      ],
+      "source_scope": "src/external_source/**, context, Echo and host hydration",
+      "deliverable": "Migrate Context and external-source workflows",
+      "acceptance": "Host owns reference transcripts; owner has only accepted source receipts, no forged native turns; bounded context.",
+      "status": "not-started"
+    },
+    {
+      "id": "T33",
+      "phase": "P2",
+      "title": "Implement immutable History composition",
+      "depends_on": [
+        "T15",
+        "T25"
+      ],
+      "source_scope": "root historical_facade, reliquary-history helper",
+      "deliverable": "Migrate immutable History composition",
+      "acceptance": "Cut-specific proofs and unavailable/tombstoned/pruned distinctions preserved without semantic inference.",
+      "status": "not-started"
+    },
+    {
+      "id": "T34",
+      "phase": "P2",
+      "title": "Implement Import and exclusive Maintenance workflows",
+      "depends_on": [
+        "T11",
+        "T12",
+        "T15",
+        "T25"
+      ],
+      "source_scope": "src/imports/**, src/rewrite/**, helper import/maintenance crates",
+      "deliverable": "Migrate Import and exclusive Maintenance workflows",
+      "acceptance": "Exclusive epoch/settlement, transform-copy/reopen/verify/promote, authoritative lineage and failed admission.",
+      "status": "not-started"
+    },
+    {
+      "id": "T35",
+      "phase": "G2",
+      "title": "Validate rebuilt Application and semantic subgraph",
+      "depends_on": [
+        "T26",
+        "T27",
+        "T28",
+        "T29",
+        "T30",
+        "T31",
+        "T32",
+        "T33",
+        "T34"
+      ],
+      "source_scope": "application and deep semantic crates",
+      "deliverable": "Integrate application and semantic subgraph",
+      "acceptance": "Compile/test target services and Application against synthetic 2.1 domain fixtures, same semantic decision golden outputs and owner proof behavior; no root dependency.",
+      "status": "not-started"
+    },
+    {
+      "id": "T36",
+      "phase": "P3",
+      "title": "Build canonical Gateway/Instance mount and admission authority",
+      "depends_on": [
+        "T35"
+      ],
+      "source_scope": "runtime_host_gateway.rs, runtime_host_instances.rs and mount/admission",
+      "deliverable": "Final Gateway owner map, Instance permissions and typed RelSession handles without obsolete InteractionRuntime aggregate",
+      "acceptance": "Instance privileged mutators Gateway-private; one owner mount; typed RelSession, no Cva aggregate or duplicated grants.",
+      "status": "not-started"
+    },
+    {
+      "id": "T37",
+      "phase": "P3",
+      "title": "Implement durable provisional and owner-operation journals",
+      "depends_on": [
+        "T36"
+      ],
+      "source_scope": "multiplexing_journal.rs and owner_operation_journal.rs",
+      "deliverable": "Move durable provisional and owner-operation journals",
+      "acceptance": "Exact RQMUX/RQOP formats and restore; operational vs semantic authority separate, no unknown-status success.",
+      "status": "not-started"
+    },
+    {
+      "id": "T38",
+      "phase": "P3",
+      "title": "Implement branch conversation submit/finalize/cancel coordinator",
+      "depends_on": [
+        "T37"
+      ],
+      "source_scope": "runtime_host_gateway_conversation*",
+      "deliverable": "Move branch conversation submit/finalize/cancel coordinator",
+      "acceptance": "Linearizable cancel/dequeue/finalize, idempotent post-Archive receipt, crash fault matrix passes.",
+      "status": "not-started"
+    },
+    {
+      "id": "T39",
+      "phase": "P3",
+      "title": "Implement host negotiation, handoff and reconciliation",
+      "depends_on": [
+        "T37"
+      ],
+      "source_scope": "runtime_host_gateway_host* and configured host adapters",
+      "deliverable": "Move host negotiation, handoff and reconciliation",
+      "acceptance": "Native vs host queue guarantees and Held unknown outcome, no blind redispatch, transport conformance.",
+      "status": "not-started"
+    },
+    {
+      "id": "T40",
+      "phase": "P3",
+      "title": "Implement stream sequencing, snapshots and events",
+      "depends_on": [
+        "T38",
+        "T39"
+      ],
+      "source_scope": "runtime_host_gateway_stream* and convergence/events",
+      "deliverable": "Move stream sequencing, snapshots and events",
+      "acceptance": "Persist before visibility; snapshot+watermark gap recovery, revoked/old mount epoch denied.",
+      "status": "not-started"
+    },
+    {
+      "id": "T41",
+      "phase": "P3",
+      "title": "Implement per-REL worker coordination",
+      "depends_on": [
+        "T35",
+        "T36"
+      ],
+      "source_scope": "runtime_host_rel_execution and insomnia/dream/perception/vector workers",
+      "deliverable": "Move per-REL worker coordination",
+      "acceptance": "One owner-local worker set, bounded concurrency, stale epochs fenced, model calls outside lock.",
+      "status": "not-started"
+    },
+    {
+      "id": "T42",
+      "phase": "P3",
+      "title": "Implement PHY worker coordination",
+      "depends_on": [
+        "T35",
+        "T36"
+      ],
+      "source_scope": "runtime_host_phy_* worker family",
+      "deliverable": "Move PHY worker coordination",
+      "acceptance": "One principal-bound PHY runtime, no cross-principal grants or duplicate PHY mutable state.",
+      "status": "not-started"
+    },
+    {
+      "id": "T43",
+      "phase": "P3",
+      "title": "Implement live session and project/mount lifecycle",
+      "depends_on": [
+        "T39",
+        "T40",
+        "T41",
+        "T42"
+      ],
+      "source_scope": "interaction_live, runtime_host_project_lifecycle and project_environment",
+      "deliverable": "Move live session and project/mount lifecycle",
+      "acceptance": "LiveSession recipient only; source VCS authority remains Project Environment; clean quiesce/reopen/shutdown.",
+      "status": "not-started"
+    },
+    {
+      "id": "T44",
+      "phase": "G3",
+      "title": "Validate complete rebuilt Gateway package",
+      "depends_on": [
+        "T38",
+        "T39",
+        "T40",
+        "T43"
+      ],
+      "source_scope": "reliquary-runtime-gateway (old placeholder replaced)",
+      "deliverable": "Integrate complete actual Gateway crate",
+      "acceptance": "Build/test Gateway target with new Application and owner-session; conformance for operational journal queue/host/stream/worker/permissions on synthetic new-format fixtures.",
+      "status": "not-started"
+    },
+    {
+      "id": "T45",
+      "phase": "P4",
+      "title": "Expose final Rel/Phylactery product API in clean Root",
+      "depends_on": [
+        "T44",
+        "T17"
+      ],
+      "source_scope": "src/lib.rs, root facade and main entrypoints",
+      "deliverable": "Thin public Root and canonical owner-session reexports, no old facade",
+      "acceptance": "Public Rel/RelError via actual owner session; Phylactery distinct; no Cva alias or Root implementation/privileged store access.",
+      "status": "not-started"
+    },
+    {
+      "id": "T46",
+      "phase": "P4",
+      "title": "Build canonical CLI/consumer surfaces against new API",
+      "depends_on": [
+        "T45",
+        "T06"
+      ],
+      "source_scope": "cli standalone, examples, tests, Warlock/Hermes inventory",
+      "deliverable": "Final CLI with rel spelling, updated examples/host bindings and consumer conformance cases",
+      "acceptance": "CLI uses rel, no cva alias; typed host entrypoints reflected; compile available first-party consumers or record external blocker.",
+      "status": "not-started"
+    },
+    {
+      "id": "T47",
+      "phase": "P4",
+      "title": "Finalize target 23-package graph; leave obsolete crates only in reference",
+      "depends_on": [
+        "T44",
+        "T45",
+        "T46"
+      ],
+      "source_scope": "root/ Cargo, crates membership and test paths",
+      "deliverable": "One clean 22-supporting-crate target plus Root; no shims, placeholders or duplicate manifests",
+      "acceptance": "Target 22 supporting crates + Root; no placeholder/forwarder, duplicate member, unassigned Root production module or reverse edge.",
+      "status": "not-started"
+    },
+    {
+      "id": "T48",
+      "phase": "G4",
+      "title": "Validate complete rebuilt architecture using synthetic 2.1 data",
+      "depends_on": [
+        "T35",
+        "T44",
+        "T47"
+      ],
+      "source_scope": "whole workspace + detached CLI + restored FRS07 corpus",
+      "deliverable": "Integrated behavioral release gate at old data encoding",
+      "acceptance": "Whole new workspace + standalone CLI build, integration and behavioral parity on synthetic 2.1 fixtures, target DAG, queue/host/stream tests. No old-format runtime reader or 2.0 intermediate build.",
+      "status": "not-started"
+    },
+    {
+      "id": "T52",
+      "phase": "P5",
+      "title": "Build separately isolated offline 2.0-to-2.1 data converter",
+      "depends_on": [
+        "T48",
+        "T04",
+        "T05",
+        "T51"
+      ],
+      "source_scope": "isolated migration executable, not linked into final runtime",
+      "deliverable": "One-time offline format conversion executable, not linked into new runtime",
+      "acceptance": "Read verified old-format copied input via isolated converter; produce 2.1 for new runtime, exact owner/history identity, offset/bytes relocation; unknown input fails closed.",
+      "status": "not-started"
+    },
+    {
+      "id": "T53",
+      "phase": "P5",
+      "title": "Rehearse conversion against immutable reference copies",
+      "depends_on": [
+        "T52"
+      ],
+      "source_scope": "copies of 3 REL + 3 PHY; journal/host reference snapshots",
+      "deliverable": "Rehearse all six files and reference/host reconciliation",
+      "acceptance": "All 3 REL/PHY pairs converted to standalone new 2.1 files; independently reopen through rebuilt runtime; compare all IDs, owner/clock/history/vector state, host journal safety, source/target hashes.",
+      "status": "not-started"
+    },
+    {
+      "id": "T54",
+      "phase": "P5",
+      "title": "Activate verified converted corpus only after complete rebuild",
+      "depends_on": [
+        "T53"
+      ],
+      "source_scope": "fixture repository and normal writer deployment",
+      "deliverable": "Generation-set selection or documented stopped-release switch; reference unchanged",
+      "acceptance": "Promote verified 2.1 cohort and commit new corpus/hash evidence separately. No partial owner-set switch or unsafe multi-file atomicity claim.",
+      "status": "not-started"
+    },
+    {
+      "id": "T55",
+      "phase": "P5",
+      "title": "Remove temporary offline conversion tools and final legacy names",
+      "depends_on": [
+        "T54"
+      ],
+      "source_scope": "Rust/CLI/tests/examples/generated code",
+      "deliverable": "Delete one-time readers, converter and every old source spelling",
+      "acceptance": "Converter/old decoder stays outside shipping rebuild and is then deleted. No CVA textual name in active Rust/tests/path, no dual runtime writer or reader.",
+      "status": "not-started"
+    },
+    {
+      "id": "T56",
+      "phase": "G5",
+      "title": "Validate rebuilt product with converted 2.1 corpus and consumers",
+      "depends_on": [
+        "T55",
+        "T46"
+      ],
+      "source_scope": "whole workspace, detached CLI, host integrations, 2.1 promoted corpus",
+      "deliverable": "Final 2.1 format and consumer integration gate",
+      "acceptance": "Whole rebuilt workspace/CLI/available hosts green on promoted corpus; old/mixed format fail closed, exact identities/proofs/permissions; no old source paths.",
+      "status": "not-started"
+    },
+    {
+      "id": "T57",
+      "phase": "G6",
+      "title": "Compare rebuilt performance and full host/privacy fault matrix",
+      "depends_on": [
+        "T56",
+        "T02"
+      ],
+      "source_scope": "benchmarks, concurrent Gateway/Instance scenarios, negative tests",
+      "deliverable": "Measure performance and authorization/host fault parity",
+      "acceptance": "Compare measured new system against stable reference; fail on material unapproved regression; host queue/stream, per-owner locks, PHY privacy and source proof parity.",
+      "status": "not-started"
+    },
+    {
+      "id": "T58",
+      "phase": "G6",
+      "title": "Accept rebuilt architecture and cut over product reference",
+      "depends_on": [
+        "T57",
+        "T47"
+      ],
+      "source_scope": "Cargo metadata, source worklist, ADRs, test and doc index",
+      "deliverable": "Final source, DAG, docs and acceptance signoff",
+      "acceptance": "Target DAG, method/source ledger, complete compiled app, converted corpus, CLI/host consumer checks, documented measured parity; stable reference retained for rollback and audit.",
+      "status": "not-started"
+    }
+  ],
+  "execution_model": "Independent target-architecture rebuild from verified reference source; no in-place incremental refactor and no deliberately red migration window",
+  "phases": {
+    "P0": "Freeze and validate stable reference; isolate FRS07 fixture repair",
+    "P1": "Construct final 2.1 physical/domain/session subsystem directly",
+    "G1": "Validate coherent rebuilt owner-session system",
+    "P2": "Reuse semantic implementations inside final services and build named Application",
+    "G2": "Validate coherent rebuilt semantic/Application system",
+    "P3": "Build final Gateway and operational journals without legacy Root",
+    "G3": "Validate coherent rebuilt Gateway system",
+    "P4": "Finish clean public Root, CLI and final crate graph",
+    "G4": "Full synthetic 2.1 rebuilt-system gate (no old-format reader)",
+    "P5": "One-time DATA conversion and verified corpus activation, then delete converter",
+    "G5": "Full converted-data build and consumer gate",
+    "G6": "Measured parity and final architecture acceptance"
+  }
+}

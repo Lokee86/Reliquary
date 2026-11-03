@@ -6,6 +6,8 @@ Parent index: [Architectural decisions](INDEX.md)
 
 Full specification: [Stage 4 dependency architecture](../dependency-architecture-and-crate-layout-2026-11-03.md). Direct dependency contract: [target-crate-dag-2026-11-03.json](../architecture/target-crate-dag-2026-11-03.json). Existing implementation disposition: [physical source crosswalk](../physical-crate-source-disposition-2026-11-03.md). Earlier decisions: [ADR 0044](0044-canonical-rel-phy-owner-session-architecture.md), [ADR 0045](0045-deep-semantic-services-and-effect-contracts.md), [ADR 0046](0046-gateway-runtime-and-named-workflow-ownership.md).
 
+**Build strategy:** [ADR 0049](0049-parallel-architecture-rebuild-and-verified-cutover.md) now requires an independent direct rebuild of this selected target, not incremental edits to the reference program.
+
 ## Purpose
 
 Select the enforceable Rust package structure for the completed storage, semantic and Gateway/workflow designs. Close the question of whether to preserve 30 extracted libraries, collapse everything into one package, or combine actual deep domains behind a controlled small number of seams.
