@@ -17,8 +17,20 @@
       "depends_on": [],
       "deliverable": "A clean detached pinned reference worktree, one compact source/dirty-state evidence note, reserved isolated rebuild path; no replacement code created",
       "acceptance": "Complete F01.1\u2013F01.7: source/dirty SHA and patch custody, safe detached reference checkout at exact pinned commit, separate build-output path, real or explicitly blocked smoke test, original tree unchanged; F04 alone creates the empty rebuild tree.",
-      "status": "not-started",
-      "breakdown": "docs/rebuild-f01-reference-baseline-2026-11-03.md"
+      "status": "completed",
+      "breakdown": "docs/rebuild-f01-reference-baseline-2026-11-03.md",
+      "completion_evidence": "C:\\!bin\\workspace\\reliquary-f01-evidence-2026-11-03.md",
+      "reference_revision": "f62b1fb44ca7f0bd8351e3a30fb5d76211f85102",
+      "verified": {
+        "reference_worktree": "C:\\!bin\\workspace\\Reliquary-reference",
+        "detached": true,
+        "locked": true,
+        "clean": true,
+        "cargo_metadata": "passed",
+        "cargo_check_reliquary_container": "passed",
+        "source_worktree_unchanged": true,
+        "rebuild_worktree_not_yet_created": true
+      }
     },
     {
       "id": "F02",

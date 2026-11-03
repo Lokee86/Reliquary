@@ -2,7 +2,7 @@
 
 Parent index: [Documentation index](INDEX.md)
 
-**Status: specified, not executed.** Parent: [selective-reuse rebuild capability plan](architecture-rebuild-implementation-plan-2026-11-03.md), item `F01` in the [capability DAG](architecture/implementation-rebuild-capabilities-2026-11-03.json). **Goal:** make the existing implementation a *safe, reproducible source of code and behavioral evidence*, not a system that the rebuild must reproduce internally.
+**Status: COMPLETED and independently verified — 2026-11-03.** Execution evidence: `C:\!bin\workspace\reliquary-f01-evidence-2026-11-03.md`; separate verified dirty-state backup: `C:\!bin\workspace\Reliquary-reference-evidence\F01.2-f62b1fb4\evidence.json`. Detached/locked clean reference at `C:\!bin\workspace\Reliquary-reference`, pinned at `f62b1fb44ca7f0bd8351e3a30fb5d76211f85102`. Both `cargo metadata --format-version 1 --no-deps --locked` and `cargo check -p reliquary-container --locked --offline` passed with an independent target directory. Parent: [selective-reuse rebuild capability plan](architecture-rebuild-implementation-plan-2026-11-03.md), item `F01` in the [capability DAG](architecture/implementation-rebuild-capabilities-2026-11-03.json). **Goal:** make the existing implementation a *safe, reproducible source of code and behavioral evidence*, not a system that the rebuild must reproduce internally.
 
 ## Purpose
 
@@ -55,4 +55,4 @@ The implementation of F01 should produce **one small evidence note** (pinned SHA
 
 ## Notes
 
-This is a **small setup step**, not an attempt to decompose the entire rebuild now. The new system is designed and implemented incrementally by its *own capabilities*; the reference provides selected source and behavioral oracles only. No reference worktree or build target has been created by writing this specification.
+This is a **small setup step**, not an attempt to decompose the entire rebuild now. The new system is designed and implemented incrementally by its *own capabilities*; the reference provides selected source and behavioral oracles only. The separate reference worktree and independent build target were subsequently created and verified during F01 execution. The original `Reliquary-crate-first` working tree, its unrelated Graph edit, and ignored scratch/target directories were preserved; no clean rebuild worktree has been created yet.
