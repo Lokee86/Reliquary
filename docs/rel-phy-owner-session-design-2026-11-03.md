@@ -2,7 +2,15 @@
 
 Parent index: [Documentation index](INDEX.md)
 
-**Status: proposed target design, not approved for implementation.** This is the next design stage after [system/storage options](architecture-redesign-foundation-2026-11-03.md), derived from [implementation inventory](current-system-inventory-2026-11-03.md) and live source. Product priorities: maintainability and extensibility; existing behavior and performance are preservation constraints. **Naming policy:** use REL rather than CVA in target code, as recorded in [ADR 0043](decisions/0043-rel-terminology-and-wire-identity.md). No Rust code, stored data or current format has been changed by this document.
+**Status: preliminary comparison, completed by [Stage 1 final storage architecture](rel-phy-storage-architecture-2026-11-03.md).** This earlier alternatives/field inventory remains as source rationale; the final contract and its [method crosswalk](rel-phy-method-ownership-crosswalk-2026-11-03.md) supersede its open verification questions. This is the next design stage after [system/storage options](architecture-redesign-foundation-2026-11-03.md), derived from [implementation inventory](current-system-inventory-2026-11-03.md) and live source. Product priorities: maintainability and extensibility; existing behavior and performance are preservation constraints. **Naming policy:** use REL rather than CVA in target code, as recorded in [ADR 0043](decisions/0043-rel-terminology-and-wire-identity.md). No Rust code, stored data or current format has been changed by this document.
+
+## Purpose
+
+Compare concrete REL/PHY owner-session boundaries against the implemented aggregates and identify their responsibilities.
+
+## Overview
+
+The source-based alternatives and field inventory here led to the [final Stage 1 storage contract](rel-phy-storage-architecture-2026-11-03.md) and its [full method crosswalk](rel-phy-method-ownership-crosswalk-2026-11-03.md).
 
 ## 1. Verified present architecture and its costs
 
@@ -141,3 +149,13 @@ Not every field deserves a crate. All fields must have **one** canonical mutable
 5. Sequence the **REL naming hard cut** against the owner-session migration and independently verified current-only wire/corpus conversion. See [ADR 0043](decisions/0043-rel-terminology-and-wire-identity.md).
 
 **Stop rule:** No implementation extraction or mass rename based on this draft; the whole system architecture remains under design. In particular, renaming the current `Cva` struct to `Rel` with its fields still `pub(crate)` would preserve the defect.
+
+## Related docs
+
+- [Final Stage 1 storage architecture](rel-phy-storage-architecture-2026-11-03.md)
+- [Complete method crosswalk](rel-phy-method-ownership-crosswalk-2026-11-03.md)
+- [Storage ownership decision](decisions/0044-canonical-rel-phy-owner-session-architecture.md)
+
+## Notes
+
+The pending questions above were design-time gates for this preliminary draft; the linked final specification resolves Stage 1. They are not an invitation to restart the storage design.

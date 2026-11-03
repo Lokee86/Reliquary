@@ -314,7 +314,9 @@
 - [project-environment-crate-extraction-evidence-2026-10-28.md](project-environment-crate-extraction-evidence-2026-10-28.md) - Project Environment extraction evidence.
 - [project-environment-crate-extraction-spec-2026-10-28.md](project-environment-crate-extraction-spec-2026-10-28.md) - Project Environment Crate Extraction Spec 2026 10 28 documentation.
 - [publication-envelope-contract-2026-10-20.md](publication-envelope-contract-2026-10-20.md) - Publication Envelope Contract 2026 10 20 documentation.
+- [rel-phy-method-ownership-crosswalk-2026-11-03.md](rel-phy-method-ownership-crosswalk-2026-11-03.md) - Rel Phy Method Ownership Crosswalk 2026 11 03 documentation.
 - [rel-phy-owner-session-design-2026-11-03.md](rel-phy-owner-session-design-2026-11-03.md) - Rel Phy Owner Session Design 2026 11 03 documentation.
+- [rel-phy-storage-architecture-2026-11-03.md](rel-phy-storage-architecture-2026-11-03.md) - Rel Phy Storage Architecture 2026 11 03 documentation.
 - [retained-entity-resolution-contract-2026-10-21.md](retained-entity-resolution-contract-2026-10-21.md) - Retained Entity Resolution Contract 2026 10 21 documentation.
 - [retrieval-service-crate-extraction-evidence-2026-10-28.md](retrieval-service-crate-extraction-evidence-2026-10-28.md) - Retrieval Service Crate Extraction Evidence 2026 10 28 documentation.
 - [retrieval-service-crate-extraction-spec-2026-10-28.md](retrieval-service-crate-extraction-spec-2026-10-28.md) - Retrieval Service Crate Extraction Spec 2026 10 28 documentation.

@@ -6,7 +6,15 @@ Parent index: [Documentation index](INDEX.md)
 **Baseline:** [Current implementation inventory](current-system-inventory-2026-11-03.md) at `a1039bbe`; [Root dependency audit](crate-first-root-dependency-audit-2026-10-30.md); [Architecture](architecture.md), [invariants](invariants.md), [storage format](storage-format.md), [scope ownership](subsystems/scope-ownership.md), [runtime multiplexing](subsystems/runtime-multiplexing.md), ADR 0001/0034/0037/0038/0042.
 **Intent:** Re-design the architecture of the *existing implemented system* before changing its code. Previous 30-crate physical layout and logical component DAG are evidence to evaluate, **not mandatory destinations**. No feature implementation, crate migration, or existing storage-format changes are authorized by this document.
 
-**Next design stage:** [REL/PHY owner-session design](rel-phy-owner-session-design-2026-11-03.md). **Confirmed naming direction:** [ADR 0043 — REL terminology and wire identity](decisions/0043-rel-terminology-and-wire-identity.md).
+**Stage 1 storage design complete:** [REL/PHY storage architecture](rel-phy-storage-architecture-2026-11-03.md), [ADR 0044](decisions/0044-canonical-rel-phy-owner-session-architecture.md) and [method-level ownership crosswalk](rel-phy-method-ownership-crosswalk-2026-11-03.md). Earlier [owner-session alternatives](rel-phy-owner-session-design-2026-11-03.md) are retained as rationale. **Confirmed naming direction:** [ADR 0043 — REL terminology and wire identity](decisions/0043-rel-terminology-and-wire-identity.md).
+
+## Purpose
+
+Record the product-wide architectural goals and compare materially different storage models before relocating implementation code.
+
+## Overview
+
+This is the initial design exploration. Its storage conclusions were finalized by the [Stage 1 REL/PHY storage architecture](rel-phy-storage-architecture-2026-11-03.md); later service, runtime and dependency designs remain separate.
 
 ## 1. Confirmed design objectives and ranking
 
@@ -199,3 +207,13 @@ Only D5's **objective** is already selected. D1–D4 are proposed technical defa
 - Compilation and full regression checks apply to future source changes; this draft itself makes no new passing-runtime claim.
 - Keep failed/pending format recovery as an independent verified blocker, not a justification for architectural special cases.
 - Avoid broad automatic callgraph/architecture proof machinery: use direct source inspection, Rust/Cargo dependencies, exact behavior tests and targeted structural navigation.
+
+## Related docs
+
+- [Current implementation inventory](current-system-inventory-2026-11-03.md)
+- [Final REL/PHY storage architecture](rel-phy-storage-architecture-2026-11-03.md)
+- [REL naming decision](decisions/0043-rel-terminology-and-wire-identity.md)
+
+## Notes
+
+This is retained as the alternatives and system-scope exploration. Its storage question is resolved by Stage 1; no implementation or full-system architecture acceptance is implied.
