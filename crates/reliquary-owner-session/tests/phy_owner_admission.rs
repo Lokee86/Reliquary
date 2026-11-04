@@ -1,7 +1,7 @@
 use reliquary_archive::{Archive, EpisodeBoundary, EpisodeOrigin, TurnInput};
 use reliquary_container::{Container, ContainerIdentity, ReliquaryScope};
 use reliquary_memory_core::{MemoryDraft, MemorySourceRef};
-use reliquary_owner_session::{GraphAdmission, OwnerSessionError, PhySession, RelSession};
+use reliquary_owner_session::{GraphAdmission, OwnerSessionError, PhySession, PhyWriter, RelSession};
 use reliquary_vector_store::{
     ArchiveVectorStore, CompatibilityProfileStore, MemoryVectorStore, PackedVectorStore,
     VectorGenerationStore,
@@ -153,7 +153,7 @@ fn phy_owner_rejects_unsupported_rel_freshness_versions_without_mutation() {
 }
 
 #[test]
-fn rel_source_proof_rejects_forged_owner_principal_and_quote() {
+fn rel_source_proof_fails_closed_until_candidate_evidence_is_sealed() {
     let path = Temp::new();
     let owner = [44; 16];
     let mut container = Container::create(
@@ -227,6 +227,23 @@ fn rel_source_proof_rejects_forged_owner_principal_and_quote() {
     let graph = GraphAdmission::for_replay(owner, [], [], [], [], []);
     let container = Container::open_read_only(&path.0).unwrap();
     let rel = RelSession::open(&container, &graph, [], []).unwrap();
+    let phy_path = Temp::new();
+    let phy_owner = [45; 16];
+    let mut phy_container =
+        Container::create(&phy_path.0, ContainerIdentity::phylactery(), phy_owner).unwrap();
+    PackedVectorStore::default()
+        .initialize(&mut phy_container)
+        .unwrap();
+    CompatibilityProfileStore::default()
+        .initialize(&mut phy_container)
+        .unwrap();
+    MemoryVectorStore::default()
+        .initialize(&mut phy_container)
+        .unwrap();
+    phy_container.sync().unwrap();
+    drop(phy_container);
+    let phy_graph = GraphAdmission::for_replay(phy_owner, [], [], [], [], []);
+    let phy = PhyWriter::open_path(&phy_path.0, &phy_graph, []).unwrap();
     let make_draft = |owner_id: String,
                       principal_id: String,
                       source_node_id: &str,
@@ -296,10 +313,9 @@ fn rel_source_proof_rejects_forged_owner_principal_and_quote() {
             "I like coffee",
         ),
     ] {
-        assert!(
-            rel.prove_routed_user_memory([45; 16], &draft, quote)
-                .is_err(),
-            "REL minted a routed proof for forged source data"
-        );
+        let error = rel
+            .prove_routed_user_memory(&phy, &draft, quote)
+            .expect_err("REL must not mint a proof from caller-supplied draft data");
+        assert!(error.to_string().contains("sealed candidate evidence"));
     }
 }

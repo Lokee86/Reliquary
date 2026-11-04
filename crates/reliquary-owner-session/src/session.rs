@@ -20,7 +20,7 @@ use reliquary_insomnia_store::{
     MemoryId as WorkMemoryId,
 };
 use reliquary_memory_core::{
-    MemoryDraft, MemoryError, MemoryHistory, MemoryId, MemoryRevision, MemorySourceRef, MemoryStore,
+    MemoryDraft, MemoryError, MemoryHistory, MemoryId, MemoryRevision, MemoryStore,
 };
 use reliquary_perception_store::{
     Entity, EntityId, MemoryEntityMentionKey, MemoryEntityResolution, PerceptionError,
@@ -426,6 +426,17 @@ pub struct PhyWriter {
     common: CommonState,
     writer_lease_proof: Option<WriterLeaseProof>,
     poisoned: bool,
+}
+
+/// Unforgeable source and payload proof for one user-owned Memory routed from
+/// an opened REL to a specific PHY writer. Only `RelSession` can mint it after
+/// checking the exact Archive turn, principal and quoted evidence. The proof
+/// authenticates owner data, not a principal's Gateway grant.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoutedUserMemoryProof {
+    source_owner_id: [u8; 16],
+    destination_owner_id: [u8; 16],
+    draft: MemoryDraft,
 }
 
 fn open_common(
@@ -999,6 +1010,22 @@ impl RelSession {
             .resolved_turn(conversation_id, node_id)
             .map_err(|error| OwnerSessionError::Record(error.to_string()))
     }
+
+    pub fn prove_routed_user_memory(
+        &self,
+        _destination: &PhyWriter,
+        _draft: &MemoryDraft,
+        _source_quote: &str,
+    ) -> Result<RoutedUserMemoryProof, OwnerSessionError> {
+        // Archive membership proves who said the quoted text, but it cannot
+        // prove that a proposed Memory is a semantically valid extraction.
+        // Keep cross-owner publication closed until the shared application
+        // pipeline supplies an unforgeable validated-candidate type.
+        Err(OwnerSessionError::Record(
+            "routed Memory publication requires sealed candidate evidence".into(),
+        ))
+    }
+
 }
 
 impl PhySession {
@@ -1062,8 +1089,7 @@ impl PhyWriter {
     /// Memory record contains only its owner-local source reference.
     pub fn publish_routed_user_memory(
         &mut self,
-        mut draft: MemoryDraft,
-        source_ref: MemorySourceRef,
+        proof: RoutedUserMemoryProof,
     ) -> Result<MemoryRevision, OwnerSessionError> {
         if self.poisoned {
             return Err(OwnerSessionError::Record(
@@ -1078,24 +1104,17 @@ impl PhyWriter {
                 "PHY owner session is stale; reopen before routed publication".into(),
             ));
         }
-        if draft.scope != "user"
-            || source_ref.principal_id.as_deref().is_none_or(str::is_empty)
-            || draft
-                .source_ref
-                .as_ref()
-                .is_some_and(|existing| existing != &source_ref)
-            || draft.source_node_id.is_some()
-            || draft.content_source_conversation_id.is_some()
-            || draft.content_source_node_id.is_some()
-            || draft.grounding_source_conversation_id.is_some()
-            || draft.grounding_source_node_id.is_some()
-            || draft.source_episode_id.is_some()
-        {
+        if proof.destination_owner_id != self.owner_id {
             return Err(OwnerSessionError::Record(
-                "routed PHY Memory violates privacy or source-reference requirements".into(),
+                "routed Memory proof names another PHY owner".into(),
             ));
         }
-        draft.source_ref = Some(source_ref);
+        if proof.source_owner_id == self.owner_id {
+            return Err(OwnerSessionError::Record(
+                "routed Memory source and destination owners must differ".into(),
+            ));
+        }
+        let draft = proof.draft;
         let published = self
             .common
             .memories
