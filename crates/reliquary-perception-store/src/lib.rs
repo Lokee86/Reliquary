@@ -4,7 +4,7 @@
 //! coordinates and caller-supplied decisions; it does not read Memory payloads
 //! or synthesize Observations.
 
-use reliquary_container::{Container, ContainerError};
+use reliquary_container::{Container, ContainerError, ContainerIdentity};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fmt;
@@ -375,6 +375,7 @@ impl Record {
 /// Per-container canonical entities and exact source-span resolution facts.
 pub struct PerceptionStore {
     owner_id: [u8; 16],
+    identity: ContainerIdentity,
     version: u64,
     entities: BTreeMap<EntityId, Entity>,
     mutations: BTreeMap<String, EntityId>,
@@ -385,6 +386,7 @@ impl PerceptionStore {
     pub fn open(container: &Container) -> Result<Self, PerceptionError> {
         let mut store = Self {
             owner_id: container.owner_id(),
+            identity: container.identity(),
             version: 0,
             entities: BTreeMap::new(),
             mutations: BTreeMap::new(),
@@ -559,7 +561,7 @@ impl PerceptionStore {
     }
 
     fn check_owner(&self, container: &Container) -> Result<(), PerceptionError> {
-        if container.owner_id() == self.owner_id {
+        if container.owner_id() == self.owner_id && container.identity() == self.identity {
             Ok(())
         } else {
             Err(PerceptionError::OwnerMismatch)
@@ -914,6 +916,18 @@ mod tests {
             ),
             Err(PerceptionError::OwnerMismatch)
         ));
+        let phy_path = TempFile::new();
+        let mut phy = Container::create(
+            &phy_path.0,
+            ContainerIdentity::phylactery(),
+            first.owner_id(),
+        )
+        .unwrap();
+        assert!(matches!(
+            store.publish_entity(&mut phy, draft("foreign", "Foreign")),
+            Err(PerceptionError::OwnerMismatch)
+        ));
+        assert!(phy.read_frames().unwrap().is_empty());
         assert!(matches!(
             store.put_mention_resolution(
                 &mut first,
