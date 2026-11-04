@@ -235,6 +235,13 @@ fn rel_session_replays_grouped_insomnia_receipt_instead_of_dropping_the_carrier(
         .initialize(&mut container)
         .unwrap();
     reliquary_memory_core::MemoryStore::create(&mut container).unwrap();
+    let mut existing =
+        reliquary_memory_core::decode_grouped_creation(&fixture().memory_records[0]).unwrap();
+    existing.mutation_id = "previous-memory".into();
+    existing.id = memory_id(&existing.mutation_id);
+    container
+        .append(&reliquary_memory_core::encode_grouped_creation(&existing).unwrap())
+        .unwrap();
     reliquary_freshness_store::FreshnessStore::new(Some([3; 16]))
         .initialize(&mut container)
         .unwrap();
@@ -298,6 +305,8 @@ fn rel_session_replays_grouped_insomnia_receipt_instead_of_dropping_the_carrier(
     let mut memory =
         reliquary_memory_core::decode_grouped_creation(&completion.memory_records[0]).unwrap();
     memory.source_episode_id = Some(episode_id.0);
+    memory.memory_version = 2;
+    completion.memory_ids.push(existing.id.0);
     completion.memory_records[0] = reliquary_memory_core::encode_grouped_creation(&memory).unwrap();
     let mut stale_session = crate::RelSession::open(
         &container,
@@ -315,6 +324,14 @@ fn rel_session_replays_grouped_insomnia_receipt_instead_of_dropping_the_carrier(
             memory_id: [99; 32],
         });
     let before_untrusted_route = container.latest_version();
+    let mut absent_memory = completion.clone();
+    absent_memory.memory_ids.push([98; 32]);
+    assert!(
+        stale_session
+            .commit_grouped_insomnia_completion(&mut container, token, absent_memory, 20)
+            .is_err()
+    );
+    assert_eq!(container.latest_version(), before_untrusted_route);
     assert!(
         stale_session
             .commit_grouped_insomnia_completion(
@@ -401,7 +418,7 @@ fn rel_session_replays_grouped_insomnia_receipt_instead_of_dropping_the_carrier(
     )
     .unwrap();
     let receipt = session.insomnia_receipt(work_episode, 1).unwrap();
-    assert_eq!(receipt.memory_ids.len(), 1);
+    assert_eq!(receipt.memory_ids.len(), 2);
     assert_eq!(receipt.completed_at_ns, 20);
     assert!(
         session

@@ -103,26 +103,18 @@ impl RelSession {
         }
 
         let receipt = grouped_completion_receipt(&completion);
-        if completion
-            .memory_ids
+        let birth_ids = completion
+            .memory_records
             .iter()
-            .any(|id| !self.common.memories.contains_memory(MemoryId(*id)))
-        {
-            let birth_ids = completion
-                .memory_records
-                .iter()
-                .filter_map(|bytes| reliquary_memory_core::decode_grouped_creation(bytes).ok())
-                .map(|record| record.id.0)
-                .collect::<std::collections::BTreeSet<_>>();
-            if completion
-                .memory_ids
-                .iter()
-                .any(|id| !birth_ids.contains(id))
-            {
-                return Err(OwnerSessionError::Record(
-                    "grouped completion references an absent owner Memory".into(),
-                ));
-            }
+            .filter_map(|bytes| reliquary_memory_core::decode_grouped_creation(bytes).ok())
+            .map(|record| record.id.0)
+            .collect::<std::collections::BTreeSet<_>>();
+        if completion.memory_ids.iter().any(|id| {
+            !self.common.memories.contains_memory(MemoryId(*id)) && !birth_ids.contains(id)
+        }) {
+            return Err(OwnerSessionError::Record(
+                "grouped completion references an absent owner Memory".into(),
+            ));
         }
         let bodies = completion
             .bodies
