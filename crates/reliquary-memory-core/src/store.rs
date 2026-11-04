@@ -1,6 +1,6 @@
 use crate::{codec::*, decode_grouped_creation, error::MemoryError, model::*};
 use reliquary_container::{Container, ContainerIdentity};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::io::Read;
 
 pub type GroupedMemoryReplay = (Vec<(MemoryBodyId, Vec<u8>)>, Vec<Vec<u8>>);
@@ -9,6 +9,7 @@ pub type GroupedMemoryReplay = (Vec<(MemoryBodyId, Vec<u8>)>, Vec<Vec<u8>>);
 struct State {
     revisions: BTreeMap<MemoryId, Vec<MemoryRecord>>,
     bodies: HashMap<MemoryBodyId, MemoryBody>,
+    body_memories: HashMap<MemoryBodyId, BTreeSet<MemoryId>>,
     mutations: HashMap<String, (MemoryId, usize)>,
     tombstones: HashMap<MemoryId, TerminalTombstone>,
     next_memory_version: u64,
@@ -19,6 +20,7 @@ impl Default for State {
         Self {
             revisions: BTreeMap::new(),
             bodies: HashMap::new(),
+            body_memories: HashMap::new(),
             mutations: HashMap::new(),
             tombstones: HashMap::new(),
             next_memory_version: 1,
@@ -187,7 +189,9 @@ impl MemoryStore {
                 "grouped body is not referenced by a creation",
             ));
         }
-        next.validate_backed_records()?;
+        for id in &provided_bodies {
+            next.validate_body_records(*id)?;
+        }
         *self = next;
         Ok(())
     }
@@ -199,6 +203,15 @@ impl MemoryStore {
         for history in self.state.revisions.values() {
             for record in history {
                 validate_replayed_record(record, self.state.bodies.get(&record.body_id))?;
+            }
+        }
+        Ok(())
+    }
+    fn validate_body_records(&self, body_id: MemoryBodyId) -> Result<(), MemoryError> {
+        let body = self.state.bodies.get(&body_id);
+        for id in self.state.body_memories.get(&body_id).into_iter().flatten() {
+            for record in &self.state.revisions[id] {
+                validate_replayed_record(record, body)?;
             }
         }
         Ok(())
@@ -341,8 +354,8 @@ impl MemoryStore {
                 return Err(MemoryError::HashCollision);
             }
         } else {
-            for history in self.state.revisions.values() {
-                for existing in history.iter().filter(|record| record.body_id == body_id) {
+            for id in self.state.body_memories.get(&body_id).into_iter().flatten() {
+                for existing in &self.state.revisions[id] {
                     validate_replayed_record(existing, Some(&body))?;
                 }
             }
@@ -355,6 +368,11 @@ impl MemoryStore {
         let history = self.state.revisions.entry(target).or_default();
         let revision_index = history.len();
         history.push(record.clone());
+        self.state
+            .body_memories
+            .entry(body_id)
+            .or_default()
+            .insert(target);
         self.state
             .mutations
             .insert(draft.mutation_id, (target, revision_index));
@@ -483,6 +501,11 @@ impl MemoryStore {
             self.state
                 .mutations
                 .insert(record.mutation_id.clone(), (record.id, 0));
+            self.state
+                .body_memories
+                .entry(record.body_id)
+                .or_default()
+                .insert(record.id);
             self.state.revisions.insert(record.id, vec![record]);
             self.state.next_memory_version = self
                 .state
