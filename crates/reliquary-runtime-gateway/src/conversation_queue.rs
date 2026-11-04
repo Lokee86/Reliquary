@@ -1877,6 +1877,98 @@ mod tests {
     }
 
     #[test]
+    fn cancel_and_finalize_winners_remain_unambiguous_after_queue_reopen() {
+        let dir = temp_dir();
+        let owner = OwnerId::from_bytes([29; 16]);
+        let mut queue = ConversationQueue::open(&dir, owner).unwrap();
+        let finalizing = submission("finalize across restart");
+        let finalizing_id = finalizing.id.clone();
+        queue.enqueue(finalizing, 0).unwrap();
+        let capture = FinalizeCapture {
+            branch_id: "main".into(),
+            parent_node_id: None,
+            committed_timestamp_ns: 29,
+            verified_principal_id: "alice".into(),
+        };
+        let won_finalize = queue
+            .claim_finalize(&finalizing_id, 1, capture.clone())
+            .unwrap();
+
+        let cancelled = QueuedSubmission::new(
+            ConversationSubmissionId::new(
+                "conversation",
+                SubmissionId::new("cancel-after-reopen").unwrap(),
+            )
+            .unwrap(),
+            "alice",
+            "cancel across restart",
+        )
+        .unwrap();
+        let cancelled_id = cancelled.id.clone();
+        queue.enqueue(cancelled, 2).unwrap();
+        drop(queue);
+
+        let mut recovered = ConversationQueue::open(&dir, owner).unwrap();
+        assert_eq!(recovered.status(&finalizing_id), Some(won_finalize.clone()));
+        assert_eq!(
+            recovered
+                .claim_finalize(&finalizing_id, 2, capture.clone())
+                .unwrap(),
+            won_finalize
+        );
+        assert!(matches!(
+            recovered.cancel(&finalizing_id, 2),
+            Err(QueueError::InvalidState)
+        ));
+        let won_cancel = recovered.cancel(&cancelled_id, 3).unwrap();
+        assert_eq!(won_cancel.state, QueueState::Cancelled);
+        drop(recovered);
+
+        let mut recovered_again = ConversationQueue::open(&dir, owner).unwrap();
+        assert_eq!(
+            recovered_again.status(&finalizing_id).unwrap().state,
+            QueueState::Finalizing
+        );
+        assert!(
+            recovered_again
+                .status(&finalizing_id)
+                .unwrap()
+                .archive_receipt
+                .is_none()
+        );
+        assert!(matches!(
+            recovered_again.claim_finalize(
+                &finalizing_id,
+                3,
+                FinalizeCapture {
+                    branch_id: "fork".into(),
+                    ..capture
+                }
+            ),
+            Err(QueueError::ArchiveIdentityConflict)
+        ));
+        assert_eq!(
+            recovered_again.cancel(&cancelled_id, 0).unwrap(),
+            won_cancel
+        );
+        assert!(matches!(
+            recovered_again.claim_finalize(
+                &cancelled_id,
+                4,
+                FinalizeCapture {
+                    branch_id: "main".into(),
+                    parent_node_id: None,
+                    committed_timestamp_ns: 30,
+                    verified_principal_id: "alice".into(),
+                }
+            ),
+            Err(QueueError::InvalidState)
+        ));
+        drop(recovered_again);
+        fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
     fn duplicate_enqueue_requires_identical_payload_and_revision() {
         let dir = temp_dir();
         let mut queue = ConversationQueue::open(&dir, OwnerId::from_bytes([20; 16])).unwrap();

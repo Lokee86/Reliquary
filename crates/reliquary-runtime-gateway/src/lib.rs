@@ -493,6 +493,15 @@ impl Instance {
         capture: FinalizeCapture,
     ) -> Result<SubmissionStatus, GatewayError> {
         self.authorize_queue_owner(queue.owner())?;
+        let submitter = queue
+            .submitter_principal(id)
+            .ok_or(conversation_queue::QueueError::MissingSubmission)?;
+        if submitter != self.principal.as_ref() {
+            return Err(GatewayError::UnauthorizedQueueSubmission {
+                principal: self.principal.to_string(),
+                owner: queue.owner(),
+            });
+        }
         if let Some(status) = queue.status(id)
             && status.state == QueueState::Committed
         {
@@ -505,8 +514,6 @@ impl Instance {
             .submission(id)
             .cloned()
             .ok_or(conversation_queue::QueueError::MissingSubmission)?;
-        let finalizing = queue.claim_finalize(id, expected_revision, capture.clone())?;
-
         let mounted = {
             let owners = self
                 .owners
@@ -518,31 +525,33 @@ impl Instance {
                 Some(_) => return Err(GatewayError::WriterUnavailable),
             }
         };
-        let node = {
+        let turn = reliquary_archive::TurnInput {
+            id: submission.id.submission_id.as_str().to_owned(),
+            conversation_id: submission.id.conversation_id.clone(),
+            parent_id: capture.parent_node_id.clone(),
+            role: "user".to_owned(),
+            principal_id: Some(submission.principal_id.clone()),
+            timestamp_ns: capture.committed_timestamp_ns,
+            content: submission.content,
+            attachments: Vec::new(),
+            project_attachments: Vec::new(),
+        };
+        let branch = reliquary_archive::Branch {
+            id: capture.branch_id.clone(),
+            conversation_id: id.conversation_id.clone(),
+            leaf_node_id: id.submission_id.as_str().to_owned(),
+            canonical: true,
+        };
+        let (finalizing, node) = {
             let mut writer = mounted
                 .writer
                 .lock()
                 .map_err(|_| GatewayError::RegistryPoisoned)?;
             self.ensure_credential_active()?;
-            writer.accept_turn_and_advance_branch(
-                reliquary_archive::TurnInput {
-                    id: submission.id.submission_id.as_str().to_owned(),
-                    conversation_id: submission.id.conversation_id.clone(),
-                    parent_id: capture.parent_node_id.clone(),
-                    role: "user".to_owned(),
-                    principal_id: Some(submission.principal_id.clone()),
-                    timestamp_ns: capture.committed_timestamp_ns,
-                    content: submission.content,
-                    attachments: Vec::new(),
-                    project_attachments: Vec::new(),
-                },
-                reliquary_archive::Branch {
-                    id: capture.branch_id.clone(),
-                    conversation_id: id.conversation_id.clone(),
-                    leaf_node_id: id.submission_id.as_str().to_owned(),
-                    canonical: true,
-                },
-            )?
+            writer.validate_turn_branch(&turn, &branch)?;
+            let finalizing = queue.claim_finalize(id, expected_revision, capture.clone())?;
+            let node = writer.accept_turn_and_advance_branch(turn, branch)?;
+            (finalizing, node)
         };
 
         let receipt = ArchiveReceipt {
@@ -793,7 +802,9 @@ mod tests {
             owner,
         )
         .unwrap();
-        PackedVectorStore::default().initialize(&mut container).unwrap();
+        PackedVectorStore::default()
+            .initialize(&mut container)
+            .unwrap();
         CompatibilityProfileStore::default()
             .initialize(&mut container)
             .unwrap();
@@ -846,7 +857,9 @@ mod tests {
             verified_principal_id: "alice".to_owned(),
         };
 
-        let mut queue = instance.open_conversation_queue(&queue_path, owner).unwrap();
+        let mut queue = instance
+            .open_conversation_queue(&queue_path, owner)
+            .unwrap();
         instance
             .submit_conversation(
                 &mut queue,
@@ -856,6 +869,19 @@ mod tests {
                 0,
             )
             .unwrap();
+        let other_principal = gateway.instance("bob", [owner], []).unwrap();
+        assert!(matches!(
+            other_principal.finalize_conversation_submission(&mut queue, &id, 1, capture.clone(),),
+            Err(GatewayError::UnauthorizedQueueSubmission { .. })
+        ));
+        assert_eq!(
+            instance
+                .conversation_submission_status(&queue, &id)
+                .unwrap()
+                .unwrap()
+                .state,
+            QueueState::Pending
+        );
         let committed = instance
             .finalize_conversation_submission(&mut queue, &id, 1, capture.clone())
             .unwrap();
@@ -864,12 +890,67 @@ mod tests {
             committed.archive_receipt.as_ref().unwrap().principal_id,
             "alice"
         );
-        assert!(instance
-            .with_writable_reliquary(owner, |rel| {
-                rel.archive_node("conversation-1", "submission-1")
-                    .is_some()
-            })
-            .unwrap());
+        assert!(matches!(
+            other_principal.finalize_conversation_submission(&mut queue, &id, 1, capture.clone(),),
+            Err(GatewayError::UnauthorizedQueueSubmission { .. })
+        ));
+        assert!(
+            instance
+                .with_writable_reliquary(owner, |rel| {
+                    rel.archive_node("conversation-1", "submission-1").is_some()
+                })
+                .unwrap()
+        );
+
+        let followup_id = ConversationSubmissionId::new(
+            "conversation-1",
+            SubmissionId::new("submission-2").unwrap(),
+        )
+        .unwrap();
+        instance
+            .submit_conversation(
+                &mut queue,
+                "conversation-1",
+                followup_id.submission_id.clone(),
+                "forked follow-up",
+                3,
+            )
+            .unwrap();
+        let stale_parent = FinalizeCapture {
+            branch_id: "main".to_owned(),
+            parent_node_id: None,
+            committed_timestamp_ns: 43,
+            verified_principal_id: "alice".to_owned(),
+        };
+        assert!(matches!(
+            instance.finalize_conversation_submission(&mut queue, &followup_id, 4, stale_parent,),
+            Err(GatewayError::OwnerSession(_))
+        ));
+        assert_eq!(
+            instance
+                .conversation_submission_status(&queue, &followup_id)
+                .unwrap()
+                .unwrap()
+                .state,
+            QueueState::Pending
+        );
+        assert!(
+            !instance
+                .with_writable_reliquary(owner, |rel| {
+                    rel.archive_node("conversation-1", "submission-2").is_some()
+                })
+                .unwrap()
+        );
+        let fork_capture = FinalizeCapture {
+            branch_id: "fork".to_owned(),
+            parent_node_id: Some("submission-1".to_owned()),
+            committed_timestamp_ns: 43,
+            verified_principal_id: "alice".to_owned(),
+        };
+        let forked = instance
+            .finalize_conversation_submission(&mut queue, &followup_id, 4, fork_capture.clone())
+            .unwrap();
+        assert_eq!(forked.state, QueueState::Committed);
 
         let outsider = gateway.instance("bob", [], []).unwrap();
         assert!(matches!(
@@ -878,26 +959,157 @@ mod tests {
         ));
 
         drop(queue);
-        let mut recovered = instance.open_conversation_queue(&queue_path, owner).unwrap();
+        let mut recovered = instance
+            .open_conversation_queue(&queue_path, owner)
+            .unwrap();
         assert_eq!(
             instance
-                .finalize_conversation_submission(&mut recovered, &id, 1, capture)
+                .finalize_conversation_submission(&mut recovered, &followup_id, 4, fork_capture)
                 .unwrap(),
-            committed
+            forked
         );
         let (accepted_turn_count, content) = instance
             .with_writable_reliquary(owner, |rel| {
                 (
                     rel.accepted_turn_sources().len(),
-                    rel.resolved_archive_turn("conversation-1", "submission-1")
+                    rel.resolved_archive_turn("conversation-1", "submission-2")
                         .unwrap()
                         .unwrap()
                         .content,
                 )
             })
             .unwrap();
-        assert_eq!(accepted_turn_count, 1);
-        assert_eq!(content, "durable conversation text");
+        assert_eq!(accepted_turn_count, 2);
+        assert_eq!(content, "forked follow-up");
+        drop(recovered);
+        drop(instance);
+        drop(gateway);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn archive_commit_without_queue_receipt_reconciles_after_branch_advances() {
+        let root = std::env::current_dir()
+            .unwrap()
+            .join(".test-tmp")
+            .join(format!(
+                "gateway-archive-reconcile-{}-{}",
+                std::process::id(),
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos()
+            ));
+        std::fs::create_dir_all(&root).unwrap();
+        let rel_path = root.join("owner.rel");
+        let queue_path = root.join("queue");
+        let raw_owner = [62; 16];
+        initialize_rel(&rel_path, raw_owner);
+
+        let gateway = Gateway::new();
+        let admission = GraphAdmission::for_replay(raw_owner, [], [], [], [], []);
+        let owner = gateway
+            .mount_writable_reliquary(&rel_path, &admission, [], [])
+            .unwrap();
+        let instance = gateway.instance("alice", [owner], []).unwrap();
+        let first_id = ConversationSubmissionId::new(
+            "conversation-1",
+            SubmissionId::new("submission-1").unwrap(),
+        )
+        .unwrap();
+        let second_id = ConversationSubmissionId::new(
+            "conversation-1",
+            SubmissionId::new("submission-2").unwrap(),
+        )
+        .unwrap();
+        let first_capture = FinalizeCapture {
+            branch_id: "main".to_owned(),
+            parent_node_id: None,
+            committed_timestamp_ns: 43,
+            verified_principal_id: "alice".to_owned(),
+        };
+        let second_capture = FinalizeCapture {
+            branch_id: "main".to_owned(),
+            parent_node_id: Some("submission-1".to_owned()),
+            committed_timestamp_ns: 44,
+            verified_principal_id: "alice".to_owned(),
+        };
+        let mut queue = instance
+            .open_conversation_queue(&queue_path, owner)
+            .unwrap();
+        instance
+            .submit_conversation(
+                &mut queue,
+                "conversation-1",
+                first_id.submission_id.clone(),
+                "first turn",
+                0,
+            )
+            .unwrap();
+        queue
+            .claim_finalize(&first_id, 1, first_capture.clone())
+            .unwrap();
+
+        // Simulate process loss after both Archive frames sync but before the
+        // queue's ArchiveCommitted event is appended.
+        {
+            let owners = instance.owners.read().unwrap();
+            let Some(MountedOwner::RelWriter(mounted)) = owners.get(&owner) else {
+                panic!("writable REL mount disappeared");
+            };
+            mounted
+                .writer
+                .lock()
+                .unwrap()
+                .accept_turn_and_advance_branch(
+                    reliquary_archive::TurnInput {
+                        id: "submission-1".to_owned(),
+                        conversation_id: "conversation-1".to_owned(),
+                        parent_id: None,
+                        role: "user".to_owned(),
+                        principal_id: Some("alice".to_owned()),
+                        timestamp_ns: 43,
+                        content: "first turn".to_owned(),
+                        attachments: Vec::new(),
+                        project_attachments: Vec::new(),
+                    },
+                    reliquary_archive::Branch {
+                        id: "main".to_owned(),
+                        conversation_id: "conversation-1".to_owned(),
+                        leaf_node_id: "submission-1".to_owned(),
+                        canonical: true,
+                    },
+                )
+                .unwrap();
+        }
+        assert!(queue.status(&first_id).unwrap().archive_receipt.is_none());
+        instance
+            .submit_conversation(
+                &mut queue,
+                "conversation-1",
+                second_id.submission_id.clone(),
+                "second turn",
+                2,
+            )
+            .unwrap();
+        instance
+            .finalize_conversation_submission(&mut queue, &second_id, 3, second_capture)
+            .unwrap();
+        drop(queue);
+
+        let mut recovered = instance
+            .open_conversation_queue(&queue_path, owner)
+            .unwrap();
+        let first_status = instance
+            .finalize_conversation_submission(&mut recovered, &first_id, 1, first_capture)
+            .unwrap();
+        assert_eq!(first_status.state, QueueState::Committed);
+        assert!(first_status.archive_receipt.is_some());
+        let accepted_count = instance
+            .with_writable_reliquary(owner, |rel| rel.accepted_turn_sources().len())
+            .unwrap();
+        assert_eq!(accepted_count, 2);
+
         drop(recovered);
         drop(instance);
         drop(gateway);
