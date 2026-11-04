@@ -79,6 +79,36 @@ fn validate_source_ref(source: &MemorySourceRef) -> Result<(), MemoryError> {
     Ok(())
 }
 
+pub(super) fn validate_replayed_record(
+    record: &MemoryRecord,
+    body: Option<&MemoryBody>,
+) -> Result<(), MemoryError> {
+    if [
+        &record.mutation_id,
+        &record.category,
+        &record.memory_type,
+        &record.authority_kind,
+        &record.temporal_status,
+        &record.scope,
+        &record.lifecycle_state,
+    ]
+    .iter()
+    .any(|value| value.is_empty())
+    {
+        return Err(MemoryError::Corrupt("empty required Memory field"));
+    }
+    if let Some(source) = &record.source_ref {
+        validate_source_ref(source)?;
+    }
+    if let Some(proof) = &record.temporal_inference {
+        let body_len = body.map_or(usize::MAX, |body| {
+            body.title.len().saturating_add(body.content.len())
+        });
+        validate_temporal_inference(proof, record.body_id, record.source_time_ns, body_len)?;
+    }
+    Ok(())
+}
+
 pub(super) fn validate_temporal_inference(
     proof: &MemoryTemporalInference,
     body_id: MemoryBodyId,

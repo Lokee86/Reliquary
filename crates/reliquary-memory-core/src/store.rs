@@ -452,6 +452,7 @@ impl MemoryStore {
         }
         if bytes.starts_with(CREATION) {
             let record = decode_creation(bytes)?;
+            validate_replayed_record(&record, self.state.bodies.get(&record.body_id))?;
             if record.revision != 1
                 || record.memory_version != self.state.next_memory_version
                 || record.mutation_id.is_empty()
@@ -596,6 +597,7 @@ impl MemoryStore {
             } else {
                 previous.updated_at_ns
             };
+            validate_replayed_record(&record, self.state.bodies.get(&record.body_id))?;
             let index = history.len();
             self.state
                 .mutations

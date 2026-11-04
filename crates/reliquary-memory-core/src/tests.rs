@@ -413,3 +413,21 @@ fn invalid_creation_metadata_does_not_append_an_orphan_body() {
     assert_eq!(container.read_frames().unwrap().len(), before);
     assert_eq!(MemoryStore::open(&container).unwrap().memory_count(), 0);
 }
+
+#[test]
+fn replay_rejects_creation_with_invalid_metadata() {
+    let temp = TempDir::new();
+    let (mut source, mut store) = open_new(&temp.0.join("source.rel"));
+    let mut record = store
+        .publish(&mut source, None, 0, draft("metadata", "Title", "fact"))
+        .unwrap()
+        .revision
+        .record;
+    record.category.clear();
+    let (mut target, _) = open_new(&temp.0.join("forged.rel"));
+    target.append(&encode_creation(&record).unwrap()).unwrap();
+    assert!(matches!(
+        MemoryStore::open(&target),
+        Err(MemoryError::Corrupt("empty required Memory field"))
+    ));
+}
