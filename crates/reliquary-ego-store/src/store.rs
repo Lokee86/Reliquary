@@ -598,6 +598,9 @@ impl EgoStore {
             }
         })?;
         check_revision(expected_revision, current.revision)?;
+        if current.priority == priority && current.text == text {
+            return Ok(current.clone());
+        }
         let value = EgoAnchor {
             id,
             revision: next_revision(current.revision)?,

@@ -160,6 +160,40 @@ fn rel_rejects_private_identity_and_personality_writes() {
 }
 
 #[test]
+fn identical_anchor_update_does_not_append_a_new_revision() {
+    let path = TempFile::new();
+    let mut container = create(FileKind::Reliquary, path.path());
+    let mut store = EgoStore::open(&container).unwrap();
+    let id = anchor(21);
+    let original = store
+        .create_anchor(
+            &mut container,
+            id,
+            EgoAnchorPriority::Normal,
+            "Keep the source grounded".into(),
+        )
+        .unwrap();
+    let frame_count = container.read_frames().unwrap().len();
+
+    let retry = store
+        .update_anchor(
+            &mut container,
+            id,
+            original.revision,
+            original.priority,
+            original.text.clone(),
+        )
+        .unwrap();
+
+    assert_eq!(retry, original);
+    assert_eq!(store.anchor_revision(id, 2), None);
+    assert_eq!(container.read_frames().unwrap().len(), frame_count);
+    let reopened = EgoStore::open(&container).unwrap();
+    assert_eq!(reopened.anchor(id), Some(&original));
+    assert_eq!(reopened.anchor_revision(id, 2), None);
+}
+
+#[test]
 fn rel_replay_rejects_private_phy_records() {
     let phy_path = TempFile::new();
     let mut phy = create(FileKind::Phylactery, phy_path.path());
