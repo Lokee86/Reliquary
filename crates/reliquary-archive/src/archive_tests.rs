@@ -219,7 +219,7 @@ fn accepted_turns_branches_episodes_and_owner_identity_reopen_exactly() {
             .collect::<Vec<_>>(),
         ["assistant-left", "user-followup"]
     );
-    assert_eq!(episode_turns[0].content, "answer-left");
+    assert_eq!(episode_turns[0].content, "left reply");
 
     let main = reopened.branch_turns("conversation-1", "main").unwrap();
     assert_eq!(
