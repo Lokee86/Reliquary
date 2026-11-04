@@ -372,10 +372,18 @@ impl Record {
     }
 }
 
-/// Read an Entity's first publication identity for owner-prefix validation.
-pub fn entity_creation_in_frame(payload: &[u8]) -> Result<Option<EntityId>, PerceptionError> {
+/// Selected owner-local source facts for physical-prefix validation.
+pub enum SourcePublication {
+    EntityCreation(EntityId),
+    Mention(MemoryEntityMentionKey),
+}
+
+pub fn source_publication(payload: &[u8]) -> Result<Option<SourcePublication>, PerceptionError> {
     match Record::decode(payload)? {
-        Some(Record::Entity { value, .. }) if value.revision == 1 => Ok(Some(value.id)),
+        Some(Record::Entity { value, .. }) if value.revision == 1 => {
+            Ok(Some(SourcePublication::EntityCreation(value.id)))
+        }
+        Some(Record::Mention { value, .. }) => Ok(Some(SourcePublication::Mention(value.key))),
         _ => Ok(None),
     }
 }

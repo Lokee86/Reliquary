@@ -649,6 +649,36 @@ fn owner_session_accepts_graph_with_owner_backed_memory_endpoints() {
     assert!(
         matches!(crate::RelSession::open(&forged, &empty_admission, [], []), Err(crate::OwnerSessionError::Record(message)) if message.contains("Graph endpoint is absent from its physical prefix"))
     );
+    let mention_path = Temp::new();
+    let mut early_mention = Container::create(
+        &mention_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    let mention = frames
+        .iter()
+        .find(|frame| frame.payload.starts_with(b"RELPER01"))
+        .unwrap();
+    for frame in &frames {
+        if frame.payload.starts_with(b"RELMCRT1")
+            && reliquary_memory_core::decode_grouped_creation(&frame.payload)
+                .unwrap()
+                .id
+                == first.id
+        {
+            early_mention.append(&mention.payload).unwrap();
+        }
+        if frame.object.offset != mention.object.offset {
+            early_mention.append(&frame.payload).unwrap();
+        }
+    }
+    early_mention.sync().unwrap();
+    drop(early_mention);
+    let early_mention = Container::open_read_only(&mention_path.0).unwrap();
+    assert!(
+        matches!(crate::RelSession::open(&early_mention, &empty_admission, [], []), Err(crate::OwnerSessionError::Record(message)) if message.contains("Entity mention references a Memory outside its physical prefix"))
+    );
     let dream = crate::DreamBeginAdmission {
         owner_uuid: owner,
         pass_id: "owner-backed".into(),

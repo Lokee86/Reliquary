@@ -158,8 +158,18 @@ fn validate_graph_prefix(container: &Container) -> Result<(), OwnerSessionError>
                 );
             }
         }
-        if let Some(id) = reliquary_perception_store::entity_creation_in_frame(payload)? {
-            entities.insert(id.0);
+        match reliquary_perception_store::source_publication(payload)? {
+            Some(reliquary_perception_store::SourcePublication::EntityCreation(id)) => {
+                entities.insert(id.0);
+            }
+            Some(reliquary_perception_store::SourcePublication::Mention(key))
+                if !memories.contains(&key.memory_id) =>
+            {
+                return Err(OwnerSessionError::Record(
+                    "Entity mention references a Memory outside its physical prefix".into(),
+                ));
+            }
+            _ => {}
         }
         if let Some(relation) = reliquary_graph::relation_in_frame(payload)? {
             for endpoint in [relation.source, relation.target] {
