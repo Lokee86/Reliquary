@@ -144,6 +144,10 @@ pub fn prepare_native_ingest_from_archive(
     evidence: &[EvidenceTurn],
     proposals: Vec<RawCandidate>,
 ) -> Result<PreparedIngest, IngestError> {
+    // Enforce the request bounds before any owner reads. Besides avoiding
+    // unnecessary per-turn Archive lookups, this keeps the cost of rejected
+    // ingest requests bounded by the evidence contract.
+    validate_evidence(evidence)?;
     let episode = rel
         .episode(episode_id)
         .cloned()
@@ -416,5 +420,29 @@ mod tests {
             validate_evidence(&[duplicate.clone(), duplicate]),
             Err(IngestError::InvalidEvidence(_))
         ));
+    }
+
+    #[test]
+    fn rejects_oversized_evidence_before_episode_lookup() {
+        let (_path, rel, _) = accepted_rel();
+        let too_many = vec![
+            EvidenceTurn {
+                conversation_id: "conversation".into(),
+                node_id: "user-turn".into(),
+                role: "user".into(),
+                timestamp_ns: 1,
+                content: String::new(),
+            };
+            MAX_INGEST_EVIDENCE_TURNS + 1
+        ];
+        assert_eq!(
+            prepare_native_ingest_from_archive(
+                &rel,
+                EpisodeId([255; 32]),
+                &too_many,
+                vec![],
+            ),
+            Err(IngestError::EvidenceTurnLimit)
+        );
     }
 }
