@@ -321,6 +321,11 @@ impl MemoryStore {
             content: draft.content.clone(),
         };
         let body_bytes = encode_body(body_id, &body)?;
+        let encoded = if let Some(previous) = current {
+            encode_delta(previous, &record)?
+        } else {
+            encode_creation(&record)?
+        };
         if let Some(existing) = self.state.bodies.get(&body_id) {
             if existing != &body {
                 return Err(MemoryError::HashCollision);
@@ -328,11 +333,6 @@ impl MemoryStore {
         } else {
             container.append(&body_bytes)?;
         }
-        let encoded = if let Some(previous) = current {
-            encode_delta(previous, &record)?
-        } else {
-            encode_creation(&record)?
-        };
         container.append(&encoded)?;
         if self.state.bodies.get(&body_id).is_none() {
             self.state.bodies.insert(body_id, body);

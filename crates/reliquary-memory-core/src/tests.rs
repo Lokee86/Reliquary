@@ -398,3 +398,18 @@ fn creating_memory_twice_does_not_corrupt_existing_history() {
         1
     );
 }
+
+#[test]
+fn invalid_creation_metadata_does_not_append_an_orphan_body() {
+    let temp = TempDir::new();
+    let (mut container, mut store) = open_new(&temp.0.join("invalid.rel"));
+    let mut invalid = draft("invalid", "Title", "fact");
+    invalid.category = "x".repeat(crate::codec::MAX_FIELD_BYTES + 1);
+    let before = container.read_frames().unwrap().len();
+    assert!(matches!(
+        store.publish(&mut container, None, 0, invalid),
+        Err(MemoryError::FieldTooLarge)
+    ));
+    assert_eq!(container.read_frames().unwrap().len(), before);
+    assert_eq!(MemoryStore::open(&container).unwrap().memory_count(), 0);
+}
