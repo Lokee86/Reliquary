@@ -292,10 +292,18 @@ pub fn validate_replay_record(
 }
 
 /// Read Memory body identities from a mapping frame for owner-prefix validation.
-pub fn referenced_bodies_in_frame(
-    payload: &[u8],
-) -> Result<Option<Vec<MemoryBodyId>>, MemoryVectorError> {
-    Ok(decode_object(payload)?.map(|record| record.bodies))
+pub struct MemoryVectorSources {
+    pub profile: CompatibilityProfileId,
+    pub packed: PackedVectorId,
+    pub bodies: Vec<MemoryBodyId>,
+}
+
+pub fn sources_in_frame(payload: &[u8]) -> Result<Option<MemoryVectorSources>, MemoryVectorError> {
+    Ok(decode_object(payload)?.map(|record| MemoryVectorSources {
+        profile: record.profile,
+        packed: record.packed,
+        bodies: record.bodies,
+    }))
 }
 
 fn ensure_unique(bodies: &[MemoryBodyId]) -> Result<(), MemoryVectorError> {

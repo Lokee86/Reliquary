@@ -867,6 +867,29 @@ fn memory_vector_mapping_requires_retained_owner_body_identity() {
     assert!(
         matches!(crate::RelSession::open(&early, &admission, [], []), Err(crate::OwnerSessionError::Record(message)) if message.contains("Memory vector references a body outside its physical prefix"))
     );
+    let early_profile_path = Temp::new();
+    let mut early_profile = Container::create(
+        &early_profile_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    let profile_frame = frames
+        .iter()
+        .find(|frame| frame.payload.starts_with(b"RELCPRO1"))
+        .unwrap();
+    for frame in &frames {
+        if frame.object.offset != profile_frame.object.offset {
+            early_profile.append(&frame.payload).unwrap();
+        }
+    }
+    early_profile.append(&profile_frame.payload).unwrap();
+    early_profile.sync().unwrap();
+    drop(early_profile);
+    let early_profile = Container::open_read_only(&early_profile_path.0).unwrap();
+    assert!(
+        matches!(crate::RelSession::open(&early_profile, &admission, [], []), Err(crate::OwnerSessionError::Record(message)) if message.contains("Memory vector references backing outside its physical prefix"))
+    );
     vectors
         .put(&mut container, &packed, &profiles, mapping([0x99; 32]))
         .unwrap();

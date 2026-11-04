@@ -139,6 +139,8 @@ pub(super) fn open_common(
 fn validate_graph_prefix(container: &Container) -> Result<(), OwnerSessionError> {
     let mut memories = std::collections::BTreeSet::new();
     let mut memory_bodies = std::collections::BTreeSet::new();
+    let mut profiles = std::collections::BTreeSet::new();
+    let mut packed_vectors = std::collections::BTreeSet::new();
     let mut entities = std::collections::BTreeSet::new();
     let mut graph_version = 0;
     for frame in container.read_frames()? {
@@ -156,12 +158,28 @@ fn validate_graph_prefix(container: &Container) -> Result<(), OwnerSessionError>
                 memory_bodies.insert(record.body_id.0);
             }
         }
-        if let Some(bodies) = reliquary_vector_store::memory::referenced_bodies_in_frame(payload)?
-            && bodies.iter().any(|id| !memory_bodies.contains(&id.0))
-        {
-            return Err(OwnerSessionError::Record(
-                "Memory vector references a body outside its physical prefix".into(),
-            ));
+        if let Some(profile) = reliquary_vector_store::profile::decode_profile(payload)? {
+            profiles.insert(profile.id.0);
+        }
+        if let Some(packed) = reliquary_vector_store::store::packed_id_in_frame(payload)? {
+            packed_vectors.insert(packed.0);
+        }
+        if let Some(mapping) = reliquary_vector_store::memory::sources_in_frame(payload)? {
+            if mapping
+                .bodies
+                .iter()
+                .any(|id| !memory_bodies.contains(&id.0))
+            {
+                return Err(OwnerSessionError::Record(
+                    "Memory vector references a body outside its physical prefix".into(),
+                ));
+            }
+            if !profiles.contains(&mapping.profile.0) || !packed_vectors.contains(&mapping.packed.0)
+            {
+                return Err(OwnerSessionError::Record(
+                    "Memory vector references backing outside its physical prefix".into(),
+                ));
+            }
         }
         match reliquary_perception_store::source_publication(payload)? {
             Some(reliquary_perception_store::SourcePublication::EntityCreation(id)) => {

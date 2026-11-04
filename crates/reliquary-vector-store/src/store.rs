@@ -8,6 +8,14 @@ use reliquary_container::{Container, ObjectRef};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 
+/// Identify a packed payload or retained pruned marker in a physical frame.
+pub fn packed_id_in_frame(payload: &[u8]) -> Result<Option<PackedVectorId>, PackedVectorError> {
+    if let Some(marker) = crate::codec::decode_pruned_marker(payload)? {
+        return Ok(Some(marker.info.id));
+    }
+    Ok(crate::codec::decode_object(payload)?.map(|record| record.id))
+}
+
 #[derive(Default)]
 pub struct PackedVectorStore {
     objects: HashMap<PackedVectorId, PackedVectorEntry>,
