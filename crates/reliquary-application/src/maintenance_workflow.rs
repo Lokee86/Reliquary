@@ -5,8 +5,7 @@
 //! independently transformed owner copy.
 
 use crate::{
-    EntityOwnerSession, MemoryHistoryLookup, MemoryHistoryWorkflowError,
-    read_owner_memory_history,
+    EntityOwnerSession, MemoryHistoryLookup, MemoryHistoryWorkflowError, read_owner_memory_history,
 };
 use reliquary_memory_core::{MemoryBodyId, MemoryId, PayloadState};
 use sha2::{Digest, Sha256};
@@ -14,7 +13,10 @@ use std::{collections::BTreeSet, fmt};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum MemoryMaintenancePreparation {
-    Unavailable { owner_id: [u8; 16], memory_id: MemoryId },
+    Unavailable {
+        owner_id: [u8; 16],
+        memory_id: MemoryId,
+    },
     Blocked {
         owner_id: [u8; 16],
         memory_id: MemoryId,
@@ -83,7 +85,11 @@ pub fn prepare_tombstoned_memory_maintenance(
             reason: MaintenanceBlocker::NotTerminallyTombstoned,
         });
     };
-    let latest_revision = history.history.revisions.last().map(|revision| revision.record.revision);
+    let latest_revision = history
+        .history
+        .revisions
+        .last()
+        .map(|revision| revision.record.revision);
     // Tombstones are separate terminal records, one revision after the last body revision.
     if latest_revision.and_then(|revision| revision.checked_add(1)) != Some(tombstone.revision) {
         return Ok(MemoryMaintenancePreparation::Blocked {
@@ -112,21 +118,19 @@ pub fn prepare_tombstoned_memory_maintenance(
             reason: MaintenanceBlocker::NoRetainedPayloadCandidates,
         });
     }
-    let source_history_digest = digest_history(
-        history.owner_id,
-        memory_id,
-        &history.history,
-    );
-    Ok(MemoryMaintenancePreparation::Candidate(MemoryPruneCandidate {
-        owner_id: history.owner_id,
-        memory_id,
-        tombstone_revision: tombstone.revision,
-        tombstone_memory_version: tombstone.memory_version,
-        source_history_digest,
-        candidate_payloads: payloads.into_iter().collect(),
-        requires_cross_domain_reference_audit: true,
-        requires_verified_copy_and_reopen: true,
-    }))
+    let source_history_digest = digest_history(history.owner_id, memory_id, &history.history);
+    Ok(MemoryMaintenancePreparation::Candidate(
+        MemoryPruneCandidate {
+            owner_id: history.owner_id,
+            memory_id,
+            tombstone_revision: tombstone.revision,
+            tombstone_memory_version: tombstone.memory_version,
+            source_history_digest,
+            candidate_payloads: payloads.into_iter().collect(),
+            requires_cross_domain_reference_audit: true,
+            requires_verified_copy_and_reopen: true,
+        },
+    ))
 }
 
 /// Recheck a candidate against a newly authorized immutable owner snapshot.
@@ -189,7 +193,11 @@ mod tests {
     use reliquary_memory_core::{MemoryDraft, MemoryStore};
     use reliquary_owner_session::{GraphAdmission, PhySession};
     use reliquary_vector_store::{CompatibilityProfileStore, MemoryVectorStore, PackedVectorStore};
-    use std::{fs, path::PathBuf, sync::atomic::{AtomicU64, Ordering}};
+    use std::{
+        fs,
+        path::PathBuf,
+        sync::atomic::{AtomicU64, Ordering},
+    };
 
     static NEXT: AtomicU64 = AtomicU64::new(1);
     struct Temp(PathBuf);
@@ -197,23 +205,44 @@ mod tests {
         fn new() -> Self {
             let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".test-tmp");
             fs::create_dir_all(&root).unwrap();
-            Self(root.join(format!("maintenance-workflow-{}-{}.phy", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed))))
+            Self(root.join(format!(
+                "maintenance-workflow-{}-{}.phy",
+                std::process::id(),
+                NEXT.fetch_add(1, Ordering::Relaxed)
+            )))
         }
     }
     impl Drop for Temp {
-        fn drop(&mut self) { let _ = fs::remove_file(&self.0); }
+        fn drop(&mut self) {
+            let _ = fs::remove_file(&self.0);
+        }
     }
 
     fn memory(mutation: &str) -> MemoryDraft {
         MemoryDraft {
-            title: "old title".into(), content: "old content".into(), category: "fact".into(),
-            memory_type: "project".into(), authority_kind: "direct".into(), temporal_status: "past".into(),
-            scope: "project".into(), lifecycle_state: "knowledge".into(), archived: false,
-            parent_id: None, superseded_by: None, source_node_id: None,
-            content_source_conversation_id: None, content_source_node_id: None,
-            grounding_source_conversation_id: None, grounding_source_node_id: None,
-            source_episode_id: None, source_ref: None, source_time_ns: None, temporal_inference: None,
-            mutation_id: mutation.into(), created_at_ns: 1, updated_at_ns: 1,
+            title: "old title".into(),
+            content: "old content".into(),
+            category: "fact".into(),
+            memory_type: "project".into(),
+            authority_kind: "direct".into(),
+            temporal_status: "past".into(),
+            scope: "project".into(),
+            lifecycle_state: "knowledge".into(),
+            archived: false,
+            parent_id: None,
+            superseded_by: None,
+            source_node_id: None,
+            content_source_conversation_id: None,
+            content_source_node_id: None,
+            grounding_source_conversation_id: None,
+            grounding_source_node_id: None,
+            source_episode_id: None,
+            source_ref: None,
+            source_time_ns: None,
+            temporal_inference: None,
+            mutation_id: mutation.into(),
+            created_at_ns: 1,
+            updated_at_ns: 1,
         }
     }
 
@@ -221,13 +250,30 @@ mod tests {
     fn terminal_prune_candidate_is_read_only_and_requires_reference_audit_and_copy_reopen() {
         let path = Temp::new();
         let owner_id = [74; 16];
-        let mut container = Container::create(&path.0, ContainerIdentity::phylactery(), owner_id).unwrap();
-        PackedVectorStore::default().initialize(&mut container).unwrap();
-        CompatibilityProfileStore::default().initialize(&mut container).unwrap();
-        MemoryVectorStore::default().initialize(&mut container).unwrap();
+        let mut container =
+            Container::create(&path.0, ContainerIdentity::phylactery(), owner_id).unwrap();
+        PackedVectorStore::default()
+            .initialize(&mut container)
+            .unwrap();
+        CompatibilityProfileStore::default()
+            .initialize(&mut container)
+            .unwrap();
+        MemoryVectorStore::default()
+            .initialize(&mut container)
+            .unwrap();
         let mut memories = MemoryStore::create(&mut container).unwrap();
-        let live = memories.publish(&mut container, None, 0, memory("maint-live")).unwrap().revision.record.id;
-        let deleted = memories.publish(&mut container, None, 0, memory("maint-deleted")).unwrap().revision.record.id;
+        let live = memories
+            .publish(&mut container, None, 0, memory("maint-live"))
+            .unwrap()
+            .revision
+            .record
+            .id;
+        let deleted = memories
+            .publish(&mut container, None, 0, memory("maint-deleted"))
+            .unwrap()
+            .revision
+            .record
+            .id;
         memories.tombstone(&mut container, deleted, 1).unwrap();
         container.sync().unwrap();
         drop(memories);
@@ -238,17 +284,30 @@ mod tests {
         let owner = EntityOwnerSession::Phy(&session);
         assert!(matches!(
             prepare_tombstoned_memory_maintenance(&owner, owner_id, live).unwrap(),
-            MemoryMaintenancePreparation::Blocked { reason: MaintenanceBlocker::NotTerminallyTombstoned, .. }
+            MemoryMaintenancePreparation::Blocked {
+                reason: MaintenanceBlocker::NotTerminallyTombstoned,
+                ..
+            }
         ));
         let MemoryMaintenancePreparation::Candidate(candidate) =
             prepare_tombstoned_memory_maintenance(&owner, owner_id, deleted).unwrap()
-        else { panic!("expected candidate") };
+        else {
+            panic!("expected candidate")
+        };
         assert_eq!(candidate.candidate_payloads.len(), 1);
         assert!(candidate.requires_cross_domain_reference_audit);
         assert!(candidate.requires_verified_copy_and_reopen);
         assert!(recheck_tombstoned_memory_maintenance(&owner, owner_id, &candidate).unwrap());
         assert!(!recheck_tombstoned_memory_maintenance(&owner, [75; 16], &candidate).unwrap());
-        assert_eq!(session.memory_history(deleted).unwrap().unwrap().revisions.len(), 1);
+        assert_eq!(
+            session
+                .memory_history(deleted)
+                .unwrap()
+                .unwrap()
+                .revisions
+                .len(),
+            1
+        );
         assert!(matches!(
             session.memory_history(deleted).unwrap().unwrap().revisions[0].payload,
             PayloadState::Available(_)

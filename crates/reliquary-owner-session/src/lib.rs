@@ -9,5 +9,5 @@ pub use reliquary_insomnia_store::AcceptedEpisodeOrder;
 pub use reliquary_memory_core::MemoryId;
 pub mod records;
 mod session;
-pub use session::{OwnerSessionError, PhySession, RelSession, RelWriter};
 pub use reliquary_insomnia_store::{CompletionCheck, InsomniaLeaseToken};
+pub use session::{OwnerSessionError, PhySession, RelSession, RelWriter};

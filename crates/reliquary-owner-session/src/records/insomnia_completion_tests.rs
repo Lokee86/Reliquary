@@ -348,13 +348,17 @@ fn rel_session_replays_grouped_insomnia_receipt_instead_of_dropping_the_carrier(
     );
     assert_eq!(container.latest_version(), version_before_preflight_failure);
     session.inject_grouped_projection_failure();
-    assert!(session
-        .commit_grouped_insomnia_completion(&mut container, token, completion.clone(), 20)
-        .is_err());
+    assert!(
+        session
+            .commit_grouped_insomnia_completion(&mut container, token, completion.clone(), 20)
+            .is_err()
+    );
     let version_after_synced_carrier = container.latest_version();
-    assert!(session
-        .commit_grouped_insomnia_completion(&mut container, token, completion.clone(), 20)
-        .is_err());
+    assert!(
+        session
+            .commit_grouped_insomnia_completion(&mut container, token, completion.clone(), 20)
+            .is_err()
+    );
     assert_eq!(container.latest_version(), version_after_synced_carrier);
     drop(session);
     drop(container);
