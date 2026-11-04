@@ -84,7 +84,8 @@ pub fn prepare_tombstoned_memory_maintenance(
         });
     };
     let latest_revision = history.history.revisions.last().map(|revision| revision.record.revision);
-    if latest_revision != Some(tombstone.revision) {
+    // Tombstones are separate terminal records, one revision after the last body revision.
+    if latest_revision.and_then(|revision| revision.checked_add(1)) != Some(tombstone.revision) {
         return Ok(MemoryMaintenancePreparation::Blocked {
             owner_id: history.owner_id,
             memory_id,
