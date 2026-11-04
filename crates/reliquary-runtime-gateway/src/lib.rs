@@ -789,7 +789,7 @@ impl Instance {
     }
 
     /// Open the queue for a mounted REL only after checking this Instance's grant.
-    pub fn open_conversation_queue(
+    pub(crate) fn open_conversation_queue(
         &self,
         state_dir: impl AsRef<Path>,
         owner: OwnerId,
