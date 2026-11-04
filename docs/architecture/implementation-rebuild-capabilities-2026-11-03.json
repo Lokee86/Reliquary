@@ -253,8 +253,8 @@
       ],
       "deliverable": "Provider routing, decision/general fallback and temporal parsing",
       "acceptance": "No owner storage dependency; explicit unavailable/ambiguous result; existing deterministic temporal cases preserved",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\semantic-continuation-2026-11-04.md"
     },
     {
       "id": "S02",
@@ -320,8 +320,8 @@
       ],
       "deliverable": "Score decay, propagation, F8 matching and due schedule calculation",
       "acceptance": "Score/event invariants and current-clock interpretation match required behavior; runtime scheduler not a durable owner",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\semantic-continuation-2026-11-04.md"
     },
     {
       "id": "S07",
