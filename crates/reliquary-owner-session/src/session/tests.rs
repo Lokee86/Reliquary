@@ -38,6 +38,69 @@ fn initialize_vectors(container: &mut Container) {
 }
 
 #[test]
+fn open_import_epoch_fences_mutation_after_writer_reopen() {
+    let path = Temp::new();
+    let owner = [0x71; 16];
+    drop(RelWriter::create_path(&path.0, ReliquaryScope::Project, owner).unwrap());
+    let mut container = Container::open_writer(&path.0).unwrap();
+    let mut imports = crate::records::ImportEpochStore::open(&container).unwrap();
+    let key = "ab".repeat(32);
+    let start = crate::records::ImportStart {
+        owner_uuid: owner,
+        import_id: crate::records::import_id(owner, &key),
+        import_key: key,
+        source_namespace: "source/account".into(),
+        source_format: "json-v1".into(),
+        started_at_ns: 1,
+        pre: crate::records::ImportWatermarks::default(),
+    };
+    imports.append_start(&mut container, start.clone()).unwrap();
+    drop(container);
+    let before = fs::read(&path.0).unwrap();
+    let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    for _ in 0..2 {
+        let mut writer = RelWriter::open_path(&path.0, admission.clone(), [], []).unwrap();
+        assert!(
+            writer
+                .read_session()
+                .import_status(&start.import_id)
+                .is_some()
+        );
+        assert!(
+            matches!(writer.claim_next_insomnia_input("worker", 2, 10, 1),
+            Err(OwnerSessionError::Record(message)) if message.contains("fenced by an open import epoch"))
+        );
+        drop(writer);
+        assert_eq!(fs::read(&path.0).unwrap(), before);
+    }
+    use sha2::{Digest, Sha256};
+    let mut container = Container::open_writer(&path.0).unwrap();
+    let mut imports = crate::records::ImportEpochStore::open(&container).unwrap();
+    imports
+        .append_complete(
+            &mut container,
+            crate::records::ImportComplete {
+                owner_uuid: owner,
+                import_id: start.import_id.clone(),
+                start_digest: format!("{:x}", Sha256::digest(serde_json::to_vec(&start).unwrap())),
+                receipt_digest: "receipt-v1".into(),
+                completed_at_ns: 2,
+                post: start.pre,
+                historical_freshness_settlement_digest: "settled-v1".into(),
+            },
+        )
+        .unwrap();
+    drop(container);
+    let mut writer = RelWriter::open_path(&path.0, admission, [], []).unwrap();
+    assert!(
+        writer
+            .claim_next_insomnia_input("worker", 3, 10, 1)
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[test]
 fn rel_writer_owns_the_exclusive_container_lease() {
     let path = Temp::new();
     let mut container = Container::create(

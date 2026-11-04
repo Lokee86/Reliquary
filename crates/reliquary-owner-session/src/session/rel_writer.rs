@@ -6,6 +6,10 @@ impl RelWriter {
             Err(OwnerSessionError::Record(
                 "owner session requires reopen after an uncertain write".into(),
             ))
+        } else if self.session.imports.open_epoch().is_some() {
+            Err(OwnerSessionError::Record(
+                "owner mutation is fenced by an open import epoch".into(),
+            ))
         } else {
             Ok(())
         }

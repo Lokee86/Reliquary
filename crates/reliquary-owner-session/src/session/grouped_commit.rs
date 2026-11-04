@@ -13,6 +13,11 @@ impl RelSession {
                 "owner session requires reopen after an uncertain grouped write".into(),
             ));
         }
+        if self.imports.open_epoch().is_some() {
+            return Err(OwnerSessionError::Record(
+                "owner mutation is fenced by an open import epoch".into(),
+            ));
+        }
         if container.identity().file_kind != FileKind::Reliquary {
             return Err(OwnerSessionError::WrongFileKind {
                 expected: FileKind::Reliquary,
