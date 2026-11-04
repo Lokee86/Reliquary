@@ -116,6 +116,7 @@ fn compaction_citations_must_name_ordered_sources_before_the_cut() {
     assert!(checkpoint_applies(&v, &checkpoint));
     assert!(finalize_compaction(&v, &plan, "Resource: shared workspace".into(), &Words).is_ok());
     for summary in [
+        "",
         "source: m1..missing",
         "source: m1..m5",
         "source: m3..m1",

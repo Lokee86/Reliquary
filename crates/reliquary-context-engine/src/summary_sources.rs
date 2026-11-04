@@ -4,6 +4,9 @@ use crate::{
 
 /// Validate every cited source range against the ordered compacted prefix.
 pub fn validate_summary_sources(view: &ContextView, through: &str, summary: &str) -> bool {
+    if summary.trim().is_empty() {
+        return false;
+    }
     let mut positions = std::collections::HashMap::new();
     for (index, turn) in view.turns.iter().enumerate() {
         if turn.message_id.is_empty() || positions.insert(turn.message_id.as_str(), index).is_some()
