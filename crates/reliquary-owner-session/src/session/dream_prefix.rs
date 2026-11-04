@@ -1,5 +1,6 @@
 //! Physical-prefix proof for compact Dream populations from grouped births.
 use super::*;
+use crate::records::dream::freshness_journal::DirectBirthPrefix;
 use crate::records::dream::{
     dream_begin_codec, dream_begin_codec::BeginPopulation, population_digest,
 };
@@ -8,10 +9,11 @@ use std::io::Read;
 
 const MAX_RELEVANT_FRAME: u64 = 128 * 1024 * 1024;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct Birth {
     global: u64,
-    cohort: u64,
+    cohort: Option<u64>,
+    mutation: Option<String>,
 }
 
 /// Verify compact Begin populations against evidence strictly before each Begin.
@@ -26,6 +28,7 @@ pub(crate) fn validate_compact_dream_prefix(
     let mut head = 0u64;
     let mut cohort = 0u64;
     let mut graph_head = 0u64;
+    let mut direct = DirectBirthPrefix::new(container.owner_id());
     let mut unsupported = false;
     let mut cursor = container.physical_cursor()?;
     while let Some(mut frame) = cursor.next_frame()? {
@@ -53,13 +56,16 @@ pub(crate) fn validate_compact_dream_prefix(
         }
         if magic == *b"RELMDLT1"
             || magic == *b"RELMTMB1"
-            || magic == *b"CVDREAM1"
             || magic.starts_with(b"RELFRS")
             || magic.starts_with(b"RELIEP")
-            || magic.starts_with(b"RELPUB")
         {
             unsupported = true;
-        } else if magic == *b"RELINSC7" || magic == *b"CVDREAM2" || magic == *b"RELGRF01" {
+        } else if magic == *b"RELINSC7"
+            || magic == *b"CVDREAM2"
+            || magic == *b"RELGRF01"
+            || magic == *b"CVDREAM1"
+            || magic.starts_with(b"RELPUB")
+        {
             if frame.object().length > MAX_RELEVANT_FRAME {
                 return Err(OwnerSessionError::Record(
                     "Dream prefix frame exceeds size limit".into(),
@@ -70,6 +76,43 @@ pub(crate) fn validate_compact_dream_prefix(
             frame
                 .read_to_end(&mut payload)
                 .map_err(|error| OwnerSessionError::Record(error.to_string()))?;
+            if magic == *b"CVDREAM1" {
+                direct.ingest(&payload).map_err(OwnerSessionError::Record)?;
+                continue;
+            }
+            if magic.starts_with(b"RELPUB") {
+                let envelope =
+                    reliquary_container::decode_publication(&payload)?.ok_or_else(|| {
+                        OwnerSessionError::Record("invalid publication envelope".into())
+                    })?;
+                if envelope.body.starts_with(b"RELMCRT1") {
+                    let record = reliquary_memory_core::decode_grouped_creation(envelope.body)?;
+                    visible_memories.insert(record.id);
+                    head = head.checked_add(1).ok_or_else(|| {
+                        OwnerSessionError::Record("Dream Memory head exhausted".into())
+                    })?;
+                    if record.memory_version != head {
+                        unsupported = true;
+                    }
+                    if births
+                        .insert(
+                            record.id,
+                            Birth {
+                                global: envelope.version,
+                                cohort: None,
+                                mutation: Some(record.mutation_id),
+                            },
+                        )
+                        .is_some()
+                    {
+                        unsupported = true;
+                    }
+                } else {
+                    // Other publication forms need their own ordered owner proof.
+                    unsupported = true;
+                }
+                continue;
+            }
             if magic == *b"RELGRF01" {
                 let relation = reliquary_graph::relation_in_frame(&payload)?
                     .ok_or_else(|| OwnerSessionError::Record("missing Graph relation".into()))?;
@@ -106,7 +149,17 @@ pub(crate) fn validate_compact_dream_prefix(
                         .ok_or_else(|| {
                             OwnerSessionError::Record("Dream global version exhausted".into())
                         })?;
-                    if births.insert(record.id, Birth { global, cohort }).is_some() {
+                    if births
+                        .insert(
+                            record.id,
+                            Birth {
+                                global,
+                                cohort: Some(cohort),
+                                mutation: None,
+                            },
+                        )
+                        .is_some()
+                    {
                         unsupported = true;
                     }
                 }
@@ -142,7 +195,21 @@ pub(crate) fn validate_compact_dream_prefix(
             let population: BTreeSet<_> = births
                 .iter()
                 .filter_map(|(id, birth)| {
-                    (birth.global < source.global && birth.cohort != source.cohort).then_some(*id)
+                    let outside_source_cohort = source
+                        .cohort
+                        .is_none_or(|cohort| birth.cohort != Some(cohort));
+                    let proven = match &birth.mutation {
+                        None => true,
+                        Some(mutation) => {
+                            direct.pending_intents().get(id) == Some(mutation)
+                                || direct
+                                    .consumed_intents()
+                                    .get(id)
+                                    .is_some_and(|values| values.contains(mutation))
+                                || direct.replay_births().contains(id)
+                        }
+                    };
+                    (birth.global < source.global && outside_source_cohort && proven).then_some(*id)
                 })
                 .collect();
             let admission = admissions

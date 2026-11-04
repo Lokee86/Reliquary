@@ -1125,3 +1125,102 @@ fn compact_dream_population_uses_physical_grouped_births_and_excludes_siblings()
         matches!(crate::session::dream_prefix::validate_compact_dream_prefix(&future_graph, &[]), Err(crate::OwnerSessionError::Record(message)) if message.contains("Graph cut outside its physical prefix"))
     );
 }
+
+#[test]
+fn compact_dream_uses_direct_birth_intent_and_recorded_global_order() {
+    use crate::records::dream::{
+        dream_begin_codec::{BeginPopulation, BeginRecord, encode},
+        freshness_journal::DreamFreshnessJournal,
+        population_digest,
+    };
+    use std::collections::BTreeSet;
+    let path = Temp::new();
+    let owner = [0x77; 16];
+    let writer = crate::RelWriter::create_path(&path.0, ReliquaryScope::Project, owner).unwrap();
+    drop(writer);
+    let mut container = Container::open_writer(&path.0).unwrap();
+    let earlier_global = container.reserve_version(None).unwrap();
+    let later_global = container.reserve_version(None).unwrap();
+    let mut source =
+        reliquary_memory_core::decode_grouped_creation(&fixture().memory_records[0]).unwrap();
+    source.mutation_id = "direct-source".into();
+    source.id = memory_id(&source.mutation_id);
+    source.memory_version = 1;
+    let mut earlier = source.clone();
+    earlier.mutation_id = "direct-earlier".into();
+    earlier.id = memory_id(&earlier.mutation_id);
+    earlier.memory_version = 2;
+    let mut journal = DreamFreshnessJournal::new(Some(owner));
+    let source_intent = journal
+        .publication_intent_payload(source.id, &source.mutation_id, 1, false)
+        .unwrap();
+    let earlier_intent = journal
+        .publication_intent_payload(earlier.id, &earlier.mutation_id, 1, false)
+        .unwrap();
+    container.append(&source_intent).unwrap();
+    container.append(&earlier_intent).unwrap();
+    container
+        .append_bound_publication_envelope(
+            later_global,
+            &reliquary_memory_core::encode_grouped_creation(&source).unwrap(),
+        )
+        .unwrap();
+    container
+        .append_bound_publication_envelope(
+            earlier_global,
+            &reliquary_memory_core::encode_grouped_creation(&earlier).unwrap(),
+        )
+        .unwrap();
+    let population = BTreeSet::from([earlier.id]);
+    let admission = crate::DreamBeginAdmission {
+        owner_uuid: owner,
+        pass_id: "direct".into(),
+        source_id: source.id,
+        turn: 1,
+        graph_version_before: 0,
+        preexisting_ids: population.clone(),
+        memory_cut: 2,
+    };
+    let begin = BeginRecord {
+        owner_uuid: owner,
+        pass_id: "direct".into(),
+        source_id: source.id,
+        turn: 1,
+        graph_version_before: 0,
+        population: BeginPopulation::CompactCut {
+            memory_cut: 2,
+            digest: population_digest(&population),
+        },
+    };
+    container.append(&encode(&begin).unwrap()).unwrap();
+    journal.ingest(&earlier_intent).unwrap();
+    let later_consume = journal
+        .consume_publication_intent_payload(earlier.id)
+        .unwrap()
+        .unwrap();
+    container.append(&later_consume).unwrap();
+    container.sync().unwrap();
+    let frames = container.read_frames().unwrap();
+    drop(container);
+    let reopened = Container::open_read_only(&path.0).unwrap();
+    let graph = reliquary_graph::GraphAdmission::for_replay(owner, [], [], [], [], []);
+    assert!(crate::RelSession::open(&reopened, &graph, [], [admission.clone()]).is_ok());
+    let missing_intent_path = Temp::new();
+    let mut missing = Container::create(
+        &missing_intent_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    for frame in &frames {
+        if frame.payload != earlier_intent {
+            missing.append(&frame.payload).unwrap();
+        }
+    }
+    missing.sync().unwrap();
+    drop(missing);
+    let missing = Container::open_read_only(&missing_intent_path.0).unwrap();
+    assert!(
+        matches!(crate::RelSession::open(&missing, &graph, [], [admission]), Err(crate::OwnerSessionError::Record(message)) if message.contains("population differs from physical prefix"))
+    );
+}
