@@ -67,11 +67,16 @@ fn unqueued_admission_batch_is_bounded_and_owner_ordered() {
     let mut container = container(&path.0, 1);
     let first = EpisodeId([1; 32]);
     let second = EpisodeId([2; 32]);
-    let mut store = InsomniaStore::open(&container, [order(second), order(first)]).unwrap();
+    let mut first_order = order(first);
+    first_order.source_through_ns = 20;
+    let mut second_order = order(second);
+    second_order.source_through_ns = 10;
+    let mut store =
+        InsomniaStore::open(&container, [first_order.clone(), second_order.clone()]).unwrap();
     store
-        .queue(&mut container, order(first), InsomniaPriority::Live, 10)
+        .queue(&mut container, first_order, InsomniaPriority::Live, 10)
         .unwrap();
-    assert_eq!(store.unqueued_orders(1), vec![order(second)]);
+    assert_eq!(store.unqueued_orders(1), vec![second_order]);
     assert!(store.unqueued_orders(0).is_empty());
 }
 

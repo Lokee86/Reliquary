@@ -194,6 +194,17 @@ pub struct RelWriter {
     session: RelSession,
 }
 
+/// Owner-validated work input returned after the durable lease claim commits.
+/// Callers may run model inference on this snapshot only after the writer lock
+/// is released; completion must still present the lease token.
+#[derive(Clone, Debug)]
+pub struct RelInsomniaClaimInput {
+    pub work: InsomniaWork,
+    pub episode: reliquary_archive::Episode,
+    pub turns: Vec<reliquary_archive::ResolvedTurn>,
+    pub started_at_ns: i64,
+}
+
 impl RelWriter {
     pub fn open_path(
         path: impl AsRef<Path>,
@@ -218,6 +229,75 @@ impl RelWriter {
     }
     pub fn read_session(&self) -> &RelSession {
         &self.session
+    }
+
+    /// Admit a bounded batch of previously accepted Episodes, claim the next
+    /// due work item, and return Archive-verified input. This method performs
+    /// only local journal/projection work; callers run inference after it
+    /// returns, when the Gateway's owner lock can be released.
+    pub fn claim_next_insomnia_input(
+        &mut self,
+        worker: &str,
+        started_at_ns: i64,
+        lease_duration_ns: i64,
+        max_admissions: usize,
+    ) -> Result<Option<RelInsomniaClaimInput>, OwnerSessionError> {
+        if max_admissions == 0 || lease_duration_ns <= 0 || worker.trim().is_empty() {
+            return Err(OwnerSessionError::Insomnia(InsomniaError::InvalidField(
+                "Insomnia worker limits",
+            )));
+        }
+        for order in self.session.insomnia.unqueued_orders(max_admissions) {
+            let episode = self
+                .session
+                .archive
+                .episode(reliquary_archive::EpisodeId(order.episode_id.0))
+                .ok_or(OwnerSessionError::Insomnia(
+                    InsomniaError::UnacceptedEpisode,
+                ))?;
+            if episode.source_through_ns != order.source_through_ns
+                || episode.conversation_id != order.conversation_id
+                || episode.start_node_id != order.start_node_id
+            {
+                return Err(OwnerSessionError::Insomnia(
+                    InsomniaError::UnacceptedEpisode,
+                ));
+            }
+            self.session.insomnia.queue(
+                &mut self.container,
+                order,
+                InsomniaPriority::Live,
+                started_at_ns,
+            )?;
+        }
+        let Some(work) = self.session.insomnia.claim_next(
+            &mut self.container,
+            worker,
+            started_at_ns,
+            lease_duration_ns,
+        )?
+        else {
+            self.session.writer_lease_proof = self.container.writer_lease_proof();
+            return Ok(None);
+        };
+        let episode_id = reliquary_archive::EpisodeId(work.episode_id.0);
+        let episode = self.session.archive.episode(episode_id).cloned().ok_or(
+            OwnerSessionError::Insomnia(InsomniaError::UnacceptedEpisode),
+        )?;
+        let turns =
+            self.session
+                .archive
+                .episode_turns(episode_id)?
+                .ok_or(OwnerSessionError::Insomnia(
+                    InsomniaError::UnacceptedEpisode,
+                ))?;
+        self.session.writer_lease_proof = self.container.writer_lease_proof();
+        Ok(Some(RelInsomniaClaimInput {
+            work,
+            episode,
+            turns,
+            started_at_ns,
+        }))
     }
 
     pub fn next_global_version(&self) -> Result<u64, OwnerSessionError> {
@@ -1379,6 +1459,97 @@ mod tests {
                 .leaf_node_id,
             "submission-1"
         );
+    }
+
+    #[test]
+    fn bounded_insomnia_claim_returns_archive_verified_input() {
+        let path = Temp::new();
+        let owner = [31; 16];
+        let mut container = Container::create(
+            &path.0,
+            ContainerIdentity::reliquary(ReliquaryScope::Project),
+            owner,
+        )
+        .unwrap();
+        initialize_vectors(&mut container);
+        let mut archive = Archive::empty();
+        archive
+            .accept_turn(
+                &mut container,
+                reliquary_archive::TurnInput {
+                    id: "user-1".into(),
+                    conversation_id: "conversation-1".into(),
+                    parent_id: None,
+                    role: "user".into(),
+                    principal_id: Some("alice".into()),
+                    timestamp_ns: 10,
+                    content: "remember this".into(),
+                    attachments: Vec::new(),
+                    project_attachments: Vec::new(),
+                },
+            )
+            .unwrap();
+        archive
+            .accept_turn(
+                &mut container,
+                reliquary_archive::TurnInput {
+                    id: "assistant-1".into(),
+                    conversation_id: "conversation-1".into(),
+                    parent_id: Some("user-1".into()),
+                    role: "assistant".into(),
+                    principal_id: None,
+                    timestamp_ns: 20,
+                    content: "I will".into(),
+                    attachments: Vec::new(),
+                    project_attachments: Vec::new(),
+                },
+            )
+            .unwrap();
+        archive
+            .put_branch(
+                &mut container,
+                reliquary_archive::Branch {
+                    id: "main".into(),
+                    conversation_id: "conversation-1".into(),
+                    leaf_node_id: "assistant-1".into(),
+                    canonical: true,
+                },
+            )
+            .unwrap();
+        let episode_id = archive
+            .put_episode(
+                &mut container,
+                "conversation-1",
+                "user-1",
+                "assistant-1",
+                reliquary_archive::EpisodeOrigin::Live,
+                reliquary_archive::EpisodeBoundary::Explicit,
+                20,
+            )
+            .unwrap();
+        let episode = archive.episode(episode_id).unwrap().clone();
+        container.sync().unwrap();
+        drop(archive);
+        drop(container);
+
+        let order = AcceptedEpisodeOrder {
+            episode_id: WorkEpisodeId(episode_id.0),
+            source_through_ns: episode.source_through_ns,
+            conversation_id: episode.conversation_id.clone(),
+            start_node_id: episode.start_node_id.clone(),
+        };
+        let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+        let mut writer = RelWriter::open_path(&path.0, admission, [order], []).unwrap();
+        let claim = writer
+            .claim_next_insomnia_input("worker-1", 100, 1_000, 4)
+            .unwrap()
+            .unwrap();
+        assert_eq!(claim.episode, episode);
+        assert_eq!(claim.turns.len(), 2);
+        assert_eq!(claim.turns[0].node_id, "user-1");
+        assert_eq!(claim.work.lease_owner.as_deref(), Some("worker-1"));
+        assert!(claim.work.lease_token.is_some());
+        assert_eq!(claim.started_at_ns, 100);
     }
 
     #[test]

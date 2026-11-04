@@ -11,5 +11,6 @@ pub mod records;
 mod session;
 pub use reliquary_insomnia_store::{CompletionCheck, InsomniaLeaseToken};
 pub use session::{
-    OwnerSessionError, PhySession, PhyWriter, RelSession, RelWriter, RoutedUserMemoryProof,
+    OwnerSessionError, PhySession, PhyWriter, RelInsomniaClaimInput, RelSession, RelWriter,
+    RoutedUserMemoryProof,
 };

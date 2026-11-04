@@ -6,7 +6,7 @@
 use reliquary_application::{PreparedIngest, prepare_routed_user_memory};
 use reliquary_owner_session::{
     AcceptedEpisodeOrder, CompletionCheck, GraphAdmission, InsomniaLeaseToken, OwnerSessionError,
-    PhySession, PhyWriter, RelSession, RelWriter, RoutedUserMemoryProof,
+    PhySession, PhyWriter, RelInsomniaClaimInput, RelSession, RelWriter, RoutedUserMemoryProof,
     records::{DreamBeginAdmission, GroupedExternalMemoryRef, GroupedInsomniaCompletion},
 };
 use uuid::Uuid;
@@ -27,11 +27,14 @@ pub use generation_stream::{
     GenerationStreamDelivery, GenerationStreamEvent, GenerationStreamPayload,
     GenerationStreamSnapshot, GenerationStreamSubscription,
 };
+pub use host_lifecycle::{
+    CapabilityRouter, HostCapabilityContract, HostCapabilityState, HostConnection,
+    HostExecutionMode,
+};
 pub use host_runtime::{
     HostDispatchOutcome, HostOperation, HostQueueGuarantees, HostReconcileStatus,
     TrustedHostAdapter,
 };
-pub use host_lifecycle::{CapabilityRouter, HostCapabilityContract, HostCapabilityState, HostConnection, HostExecutionMode};
 use std::{
     collections::{BTreeSet, HashMap},
     fmt,
@@ -542,10 +545,7 @@ impl HostAdmissionAdapter {
     /// Connect an explicitly configured runtime host. Request Instances have no
     /// corresponding method, so adapters cannot self-register during a call.
     /// Negotiated guarantees remain declarations requiring host-side conformance.
-    pub fn connect_runtime_host(
-        &self,
-        adapter: Arc<dyn TrustedHostAdapter>,
-    ) -> CapabilityRouter {
+    pub fn connect_runtime_host(&self, adapter: Arc<dyn TrustedHostAdapter>) -> CapabilityRouter {
         CapabilityRouter::connect(adapter, Arc::as_ptr(&self.gateway.owners) as usize)
     }
 
@@ -992,6 +992,52 @@ impl Instance {
             .map_err(|_| GatewayError::RegistryPoisoned)?;
         self.ensure_credential_active()?;
         Ok(writer.commit_grouped_insomnia_completion(token, completion, now_ns)?)
+    }
+
+    /// Claim one bounded batch of owner-admitted Insomnia work and return an
+    /// Archive-validated input snapshot. The owner writer lock is released
+    /// before this returns, so caller-side inference never runs under it.
+    pub fn claim_next_insomnia_input(
+        &self,
+        owner: OwnerId,
+        worker: &str,
+        started_at_ns: i64,
+        lease_duration_ns: i64,
+        max_admissions: usize,
+    ) -> Result<Option<RelInsomniaClaimInput>, GatewayError> {
+        self.ensure_credential_active()?;
+        if !self.rel_grants.contains(&owner) {
+            return Err(GatewayError::UnauthorizedRel {
+                principal: self.principal.to_string(),
+                owner,
+            });
+        }
+        let mounted = {
+            let owners = self
+                .owners
+                .read()
+                .map_err(|_| GatewayError::RegistryPoisoned)?;
+            match owners.get(&owner) {
+                None => return Err(GatewayError::UnknownOwner(owner)),
+                Some(MountedOwner::RelWriter(writer)) => Arc::clone(writer),
+                Some(MountedOwner::Rel(_)) => return Err(GatewayError::WriterUnavailable),
+                Some(_) => return Err(GatewayError::WrongOwnerKind(owner)),
+            }
+        };
+        let result = {
+            let mut writer = mounted
+                .writer
+                .lock()
+                .map_err(|_| GatewayError::RegistryPoisoned)?;
+            self.ensure_credential_active()?;
+            writer.claim_next_insomnia_input(
+                worker,
+                started_at_ns,
+                lease_duration_ns,
+                max_admissions,
+            )?
+        };
+        Ok(result)
     }
     pub fn phylactery(&self, owner: OwnerId) -> Result<Arc<PhySession>, GatewayError> {
         self.ensure_credential_active()?;
@@ -1445,6 +1491,10 @@ mod tests {
             Err(GatewayError::CredentialRevoked)
         ));
         assert!(matches!(
+            instance.claim_next_insomnia_input(OwnerId::from_bytes([41; 16]), "worker", 1, 10, 1),
+            Err(GatewayError::CredentialRevoked)
+        ));
+        assert!(matches!(
             adapter.authenticate(token),
             Err(GatewayError::CredentialRevoked)
         ));
@@ -1479,6 +1529,17 @@ mod tests {
         assert_eq!(queue.sequence(), 0);
         drop(queue);
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn ungranted_instance_cannot_claim_insomnia_work() {
+        let gateway = Gateway::new();
+        let owner = OwnerId::from_bytes([88; 16]);
+        let instance = gateway.instance("alice", [], []).unwrap();
+        assert!(matches!(
+            instance.claim_next_insomnia_input(owner, "worker", 1, 10, 1),
+            Err(GatewayError::UnauthorizedRel { .. })
+        ));
     }
 
     #[test]

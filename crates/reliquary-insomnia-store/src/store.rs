@@ -192,12 +192,21 @@ impl InsomniaStore {
     /// Return a deterministic, bounded batch of admitted episodes that have
     /// never entered the work queue. Completed work is not re-enqueued.
     pub fn unqueued_orders(&self, limit: usize) -> Vec<AcceptedEpisodeOrder> {
-        self.accepted
+        let mut orders = self
+            .accepted
             .iter()
             .filter(|(id, _)| !self.work.contains_key(id))
-            .take(limit)
             .map(|(_, order)| order.clone())
-            .collect()
+            .collect::<Vec<_>>();
+        orders.sort_by(|left, right| {
+            left.source_through_ns
+                .cmp(&right.source_through_ns)
+                .then_with(|| left.conversation_id.cmp(&right.conversation_id))
+                .then_with(|| left.start_node_id.cmp(&right.start_node_id))
+                .then_with(|| left.episode_id.cmp(&right.episode_id))
+        });
+        orders.truncate(limit);
+        orders
     }
     pub fn work(&self, id: EpisodeId) -> Option<&InsomniaWork> {
         self.work.get(&id)
