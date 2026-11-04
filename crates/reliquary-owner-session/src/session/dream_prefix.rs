@@ -1,0 +1,170 @@
+//! Physical-prefix proof for compact Dream populations from grouped births.
+use super::*;
+use crate::records::dream::{
+    dream_begin_codec, dream_begin_codec::BeginPopulation, population_digest,
+};
+use std::collections::{BTreeMap, BTreeSet};
+use std::io::Read;
+
+const MAX_RELEVANT_FRAME: u64 = 128 * 1024 * 1024;
+
+#[derive(Clone, Copy)]
+struct Birth {
+    global: u64,
+    cohort: u64,
+}
+
+/// Verify compact Begin populations against evidence strictly before each Begin.
+/// Direct, imported and journal births require additional owner proof and are
+/// explicitly unsupported here rather than inferred from a caller's admission.
+pub(crate) fn validate_compact_dream_prefix(
+    container: &Container,
+    admissions: &[DreamBeginAdmission],
+) -> Result<(), OwnerSessionError> {
+    let mut births = BTreeMap::<MemoryId, Birth>::new();
+    let mut visible_memories = BTreeSet::new();
+    let mut head = 0u64;
+    let mut cohort = 0u64;
+    let mut graph_head = 0u64;
+    let mut unsupported = false;
+    let mut cursor = container.physical_cursor()?;
+    while let Some(mut frame) = cursor.next_frame()? {
+        if frame.object().length < 8 {
+            continue;
+        }
+        let mut magic = [0u8; 8];
+        frame
+            .read_exact(&mut magic)
+            .map_err(|error| OwnerSessionError::Record(error.to_string()))?;
+        if magic == *b"RELMCRT1" {
+            if frame.object().length > MAX_RELEVANT_FRAME {
+                return Err(OwnerSessionError::Record(
+                    "Dream prefix frame exceeds size limit".into(),
+                ));
+            }
+            let mut payload = Vec::with_capacity(frame.object().length as usize);
+            payload.extend_from_slice(&magic);
+            frame
+                .read_to_end(&mut payload)
+                .map_err(|error| OwnerSessionError::Record(error.to_string()))?;
+            visible_memories.insert(reliquary_memory_core::decode_grouped_creation(&payload)?.id);
+            unsupported = true;
+            continue;
+        }
+        if magic == *b"RELMDLT1"
+            || magic == *b"RELMTMB1"
+            || magic == *b"CVDREAM1"
+            || magic.starts_with(b"RELFRS")
+            || magic.starts_with(b"RELIEP")
+            || magic.starts_with(b"RELPUB")
+        {
+            unsupported = true;
+        } else if magic == *b"RELINSC7" || magic == *b"CVDREAM2" || magic == *b"RELGRF01" {
+            if frame.object().length > MAX_RELEVANT_FRAME {
+                return Err(OwnerSessionError::Record(
+                    "Dream prefix frame exceeds size limit".into(),
+                ));
+            }
+            let mut payload = Vec::with_capacity(frame.object().length as usize);
+            payload.extend_from_slice(&magic);
+            frame
+                .read_to_end(&mut payload)
+                .map_err(|error| OwnerSessionError::Record(error.to_string()))?;
+            if magic == *b"RELGRF01" {
+                let relation = reliquary_graph::relation_in_frame(&payload)?
+                    .ok_or_else(|| OwnerSessionError::Record("missing Graph relation".into()))?;
+                graph_head = relation.graph_version;
+                continue;
+            }
+            if magic == *b"RELINSC7" {
+                let completion = GroupedInsomniaCompletion::decode(&payload)
+                    .map_err(OwnerSessionError::Record)?;
+                if !completion.memory_records.is_empty()
+                    && (completion.freshness_birth_turn.is_none()
+                        || !completion.external_memory_refs.is_empty()
+                        || !completion.routing_metadata.is_empty())
+                {
+                    unsupported = true;
+                }
+                cohort = cohort
+                    .checked_add(1)
+                    .ok_or_else(|| OwnerSessionError::Record("Dream cohort exhausted".into()))?;
+                for (index, bytes) in completion.memory_records.iter().enumerate() {
+                    let record = reliquary_memory_core::decode_grouped_creation(bytes)?;
+                    visible_memories.insert(record.id);
+                    head = head.checked_add(1).ok_or_else(|| {
+                        OwnerSessionError::Record("Dream Memory head exhausted".into())
+                    })?;
+                    if record.memory_version != head {
+                        unsupported = true;
+                    }
+                    let global = completion
+                        .global_version_start
+                        .checked_add(u64::try_from(index).map_err(|_| {
+                            OwnerSessionError::Record("Dream global version exhausted".into())
+                        })?)
+                        .ok_or_else(|| {
+                            OwnerSessionError::Record("Dream global version exhausted".into())
+                        })?;
+                    if births.insert(record.id, Birth { global, cohort }).is_some() {
+                        unsupported = true;
+                    }
+                }
+                continue;
+            }
+            let begin = dream_begin_codec::decode(&payload).map_err(OwnerSessionError::Record)?;
+            if begin.graph_version_before > graph_head {
+                return Err(OwnerSessionError::Record(
+                    "Dream Begin references a Graph cut outside its physical prefix".into(),
+                ));
+            }
+            if !visible_memories.contains(&begin.source_id) {
+                return Err(OwnerSessionError::Record(
+                    "Dream Begin source is absent from its physical prefix".into(),
+                ));
+            }
+            let BeginPopulation::CompactCut { memory_cut, digest } = begin.population else {
+                continue;
+            };
+            if unsupported {
+                return Err(OwnerSessionError::Record(
+                    "Dream compact population requires unsupported birth-prefix proof".into(),
+                ));
+            }
+            if memory_cut != head {
+                return Err(OwnerSessionError::Record(
+                    "Dream compact Memory cut differs from physical prefix".into(),
+                ));
+            }
+            let source = births.get(&begin.source_id).ok_or_else(|| {
+                OwnerSessionError::Record("Dream compact source lacks grouped birth proof".into())
+            })?;
+            let population: BTreeSet<_> = births
+                .iter()
+                .filter_map(|(id, birth)| {
+                    (birth.global < source.global && birth.cohort != source.cohort).then_some(*id)
+                })
+                .collect();
+            let admission = admissions
+                .iter()
+                .find(|admission| admission.pass_id == begin.pass_id)
+                .ok_or_else(|| {
+                    OwnerSessionError::Record("Dream Begin lacks owner admission".into())
+                })?;
+            if begin.owner_uuid != container.owner_id()
+                || admission.owner_uuid != begin.owner_uuid
+                || admission.source_id != begin.source_id
+                || admission.turn != begin.turn
+                || admission.graph_version_before != begin.graph_version_before
+                || admission.memory_cut != memory_cut
+                || admission.preexisting_ids != population
+                || digest != population_digest(&population)
+            {
+                return Err(OwnerSessionError::Record(
+                    "Dream compact population differs from physical prefix".into(),
+                ));
+            }
+        }
+    }
+    Ok(())
+}

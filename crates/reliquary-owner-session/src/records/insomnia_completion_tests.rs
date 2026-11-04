@@ -898,3 +898,230 @@ fn memory_vector_mapping_requires_retained_owner_body_identity() {
         Err(crate::OwnerSessionError::Record(_))
     ));
 }
+
+#[test]
+fn compact_dream_population_uses_physical_grouped_births_and_excludes_siblings() {
+    use crate::records::dream::{
+        dream_begin_codec::{BeginPopulation, BeginRecord, encode},
+        population_digest,
+    };
+    use std::collections::BTreeSet;
+    let path = Temp::new();
+    let owner = [0x76; 16];
+    let mut container = Container::create(
+        &path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    let mut first = fixture();
+    first.routing_metadata.clear();
+    first.freshness_birth_turn = Some(1);
+    first.global_version_start = 1;
+    let first_id = reliquary_memory_core::decode_grouped_creation(&first.memory_records[0])
+        .unwrap()
+        .id;
+    container.append(&first.encode().unwrap()).unwrap();
+    container
+        .commit_embedded_version_range_at(1, 1, Some(first.transaction_time_ns))
+        .unwrap();
+    let mut second = first.clone();
+    second.attempt = 2;
+    second.global_version_start = 2;
+    let mut source =
+        reliquary_memory_core::decode_grouped_creation(&first.memory_records[0]).unwrap();
+    source.mutation_id = "dream-source".into();
+    source.id = memory_id(&source.mutation_id);
+    source.memory_version = 2;
+    let mut sibling = source.clone();
+    sibling.mutation_id = "dream-sibling".into();
+    sibling.id = memory_id(&sibling.mutation_id);
+    sibling.memory_version = 3;
+    second.memory_records = vec![
+        reliquary_memory_core::encode_grouped_creation(&source).unwrap(),
+        reliquary_memory_core::encode_grouped_creation(&sibling).unwrap(),
+    ];
+    second.memory_ids = vec![source.id.0, sibling.id.0];
+    second.freshness_birth_memory_ids = second.memory_ids.clone();
+    container.append(&second.encode().unwrap()).unwrap();
+    container
+        .commit_embedded_version_range_at(2, 2, Some(second.transaction_time_ns))
+        .unwrap();
+    let expected = BTreeSet::from([first_id]);
+    let admission = crate::DreamBeginAdmission {
+        owner_uuid: owner,
+        pass_id: "compact".into(),
+        source_id: source.id,
+        turn: 1,
+        graph_version_before: 0,
+        preexisting_ids: expected.clone(),
+        memory_cut: 3,
+    };
+    let begin = BeginRecord {
+        owner_uuid: owner,
+        pass_id: "compact".into(),
+        source_id: source.id,
+        turn: 1,
+        graph_version_before: 0,
+        population: BeginPopulation::CompactCut {
+            memory_cut: 3,
+            digest: population_digest(&expected),
+        },
+    };
+    container.append(&encode(&begin).unwrap()).unwrap();
+    container.sync().unwrap();
+    assert!(
+        crate::session::dream_prefix::validate_compact_dream_prefix(
+            &container,
+            std::slice::from_ref(&admission)
+        )
+        .is_ok()
+    );
+    let mut forged = admission.clone();
+    forged.preexisting_ids.insert(sibling.id);
+    assert!(
+        crate::session::dream_prefix::validate_compact_dream_prefix(&container, &[forged]).is_err()
+    );
+    let mut forged = admission;
+    forged.memory_cut = 4;
+    assert!(
+        crate::session::dream_prefix::validate_compact_dream_prefix(&container, &[forged]).is_err()
+    );
+    drop(container);
+    let reopened = Container::open_read_only(&path.0).unwrap();
+    let admission = crate::DreamBeginAdmission {
+        owner_uuid: owner,
+        pass_id: "compact".into(),
+        source_id: source.id,
+        turn: 1,
+        graph_version_before: 0,
+        preexisting_ids: expected,
+        memory_cut: 3,
+    };
+    assert!(
+        crate::session::dream_prefix::validate_compact_dream_prefix(&reopened, &[admission])
+            .is_ok()
+    );
+    let future_path = Temp::new();
+    let mut future = Container::create(
+        &future_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    future.append(&first.encode().unwrap()).unwrap();
+    future
+        .commit_embedded_version_range_at(1, 1, Some(first.transaction_time_ns))
+        .unwrap();
+    let future_begin = BeginRecord {
+        owner_uuid: owner,
+        pass_id: "future".into(),
+        source_id: source.id,
+        turn: 1,
+        graph_version_before: 0,
+        population: BeginPopulation::CompactCut {
+            memory_cut: 1,
+            digest: population_digest(&BTreeSet::new()),
+        },
+    };
+    future.append(&encode(&future_begin).unwrap()).unwrap();
+    future.append(&second.encode().unwrap()).unwrap();
+    future
+        .commit_embedded_version_range_at(2, 2, Some(second.transaction_time_ns))
+        .unwrap();
+    future.sync().unwrap();
+    let future_admission = crate::DreamBeginAdmission {
+        owner_uuid: owner,
+        pass_id: "future".into(),
+        source_id: source.id,
+        turn: 1,
+        graph_version_before: 0,
+        preexisting_ids: BTreeSet::new(),
+        memory_cut: 1,
+    };
+    assert!(
+        matches!(crate::session::dream_prefix::validate_compact_dream_prefix(&future, &[future_admission]), Err(crate::OwnerSessionError::Record(message)) if message.contains("source is absent from its physical prefix"))
+    );
+    let explicit_path = Temp::new();
+    let mut explicit = Container::create(
+        &explicit_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    explicit.append(&first.encode().unwrap()).unwrap();
+    explicit
+        .commit_embedded_version_range_at(1, 1, Some(first.transaction_time_ns))
+        .unwrap();
+    let mut early_explicit = future_begin.clone();
+    early_explicit.population = BeginPopulation::ExplicitSet(BTreeSet::new());
+    explicit.append(&encode(&early_explicit).unwrap()).unwrap();
+    explicit.append(&second.encode().unwrap()).unwrap();
+    explicit
+        .commit_embedded_version_range_at(2, 2, Some(second.transaction_time_ns))
+        .unwrap();
+    assert!(
+        matches!(crate::session::dream_prefix::validate_compact_dream_prefix(&explicit, &[]), Err(crate::OwnerSessionError::Record(message)) if message.contains("source is absent from its physical prefix"))
+    );
+    let unsupported_path = Temp::new();
+    let mut unsupported = Container::create(
+        &unsupported_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    unsupported.append(&first.memory_records[0]).unwrap();
+    unsupported.append(&second.memory_records[0]).unwrap();
+    unsupported.append(&encode(&begin).unwrap()).unwrap();
+    let unsupported_admission = crate::DreamBeginAdmission {
+        owner_uuid: owner,
+        pass_id: "compact".into(),
+        source_id: source.id,
+        turn: 1,
+        graph_version_before: 0,
+        preexisting_ids: BTreeSet::from([first_id]),
+        memory_cut: 3,
+    };
+    assert!(
+        matches!(crate::session::dream_prefix::validate_compact_dream_prefix(&unsupported, &[unsupported_admission]), Err(crate::OwnerSessionError::Record(message)) if message.contains("unsupported birth-prefix proof"))
+    );
+    let future_graph_path = Temp::new();
+    let mut future_graph = Container::create(
+        &future_graph_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    future_graph.append(&first.encode().unwrap()).unwrap();
+    future_graph
+        .commit_embedded_version_range_at(1, 1, Some(first.transaction_time_ns))
+        .unwrap();
+    future_graph.append(&second.encode().unwrap()).unwrap();
+    future_graph
+        .commit_embedded_version_range_at(2, 2, Some(second.transaction_time_ns))
+        .unwrap();
+    let mut early_graph_begin = begin.clone();
+    early_graph_begin.graph_version_before = 1;
+    future_graph
+        .append(&encode(&early_graph_begin).unwrap())
+        .unwrap();
+    let graph_admission =
+        reliquary_graph::GraphAdmission::for_changes(owner, [first_id.0, source.id.0], []);
+    let mut graph = reliquary_graph::GraphStore::open(&future_graph, &graph_admission).unwrap();
+    graph
+        .put(
+            &mut future_graph,
+            &graph_admission,
+            &[reliquary_graph::RelationChange {
+                source: reliquary_graph::NodeRef::Memory(first_id.0),
+                target: reliquary_graph::NodeRef::Memory(source.id.0),
+                kind: reliquary_graph::RelationKind::Topical,
+                active: true,
+                origin: reliquary_graph::RelationOrigin::User,
+            }],
+        )
+        .unwrap();
+    assert!(
+        matches!(crate::session::dream_prefix::validate_compact_dream_prefix(&future_graph, &[]), Err(crate::OwnerSessionError::Record(message)) if message.contains("Graph cut outside its physical prefix"))
+    );
+}

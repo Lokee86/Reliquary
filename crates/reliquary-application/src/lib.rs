@@ -690,8 +690,38 @@ mod tests {
             .clone();
         assert_eq!(receipt.memory_ids.len(), 1);
         drop(writer);
+        let source_id = reliquary_memory_core::MemoryId(receipt.memory_ids[0].0);
+        let dream_admission = reliquary_owner_session::DreamBeginAdmission {
+            owner_uuid: owner,
+            pass_id: "native-first-cycle".into(),
+            source_id,
+            turn: 1,
+            graph_version_before: 0,
+            preexisting_ids: Default::default(),
+            memory_cut: 1,
+        };
+        let begin = reliquary_owner_session::records::dream::dream_begin_codec::BeginRecord {
+            owner_uuid: owner, pass_id: dream_admission.pass_id.clone(), source_id, turn: 1,
+            graph_version_before: 0, population: reliquary_owner_session::records::dream::dream_begin_codec::BeginPopulation::CompactCut {
+                memory_cut: 1, digest: reliquary_owner_session::records::dream::population_digest(&Default::default()),
+            },
+        };
+        let mut container = Container::open_writer(&path.0).unwrap();
+        container
+            .append(
+                &reliquary_owner_session::records::dream::dream_begin_codec::encode(&begin)
+                    .unwrap(),
+            )
+            .unwrap();
+        container.sync().unwrap();
+        drop(container);
         let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
-        let mut reopened = RelWriter::open_path(&path.0, admission, [], []).unwrap();
+        let mut reopened =
+            RelWriter::open_path(&path.0, admission, [], [dream_admission.clone()]).unwrap();
+        assert_eq!(
+            reopened.read_session().dream_begin("native-first-cycle"),
+            Some(&begin)
+        );
         let history = reopened
             .read_session()
             .memory_history(reliquary_memory_core::MemoryId(receipt.memory_ids[0].0))
@@ -769,7 +799,7 @@ mod tests {
         drop(memories);
         drop(container);
         let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
-        let mut reopened = RelWriter::open_path(&path.0, admission, [], []).unwrap();
+        let mut reopened = RelWriter::open_path(&path.0, admission, [], [dream_admission]).unwrap();
         assert_eq!(
             commit_prepared_native_ingest(
                 &mut reopened,

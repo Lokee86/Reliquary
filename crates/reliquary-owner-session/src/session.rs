@@ -363,6 +363,7 @@ common_reads!(PhySession, common);
 mod tests;
 
 mod create;
+pub(crate) mod dream_prefix;
 mod phy_writer;
 mod rel_session;
 mod rel_writer;

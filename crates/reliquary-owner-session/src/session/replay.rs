@@ -120,6 +120,7 @@ pub(super) fn open_common(
             ));
         }
     }
+    super::dream_prefix::validate_compact_dream_prefix(container, &dream_admissions)?;
     let dreams =
         DreamEvidenceStore::open(container, dream_admissions).map_err(OwnerSessionError::Record)?;
     Ok(CommonState {
