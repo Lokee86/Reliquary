@@ -2,7 +2,7 @@
 
 Parent index: [Documentation index](INDEX.md)
 
-**Status: corrected Stage 6 execution design; no implementation started.** The target boundaries are specified in [Stages 1–5](architecture-redesign-foundation-2026-11-03.md) and [ADR 0044–0048](decisions/0048-rel-current-format-and-stable-identity-domains.md). [ADR 0049](decisions/0049-parallel-architecture-rebuild-and-verified-cutover.md) governs the independent reference/rebuild setup. The [capability build plan](architecture/implementation-rebuild-capabilities-2026-11-03.json) replaces the earlier 58-item old-source relocation DAG.
+**Status: implementation started in the independent rebuild workspace; product and release gates remain incomplete.** The target boundaries are specified in [Stages 1–5](architecture-redesign-foundation-2026-11-03.md) and [ADR 0044–0048](decisions/0048-rel-current-format-and-stable-identity-domains.md). [ADR 0049](decisions/0049-parallel-architecture-rebuild-and-verified-cutover.md) governs the independent reference/rebuild setup. The [capability build plan](architecture/implementation-rebuild-capabilities-2026-11-03.json) replaces the earlier 58-item old-source relocation DAG.
 
 ## Purpose
 
@@ -116,4 +116,4 @@ Use isolated target directories on Windows and resolve the known long `target/` 
 
 ## Notes
 
-This plan intentionally does **not** assign every legacy Rust function, CLI flag, file or crate a new address. The new system implements chosen capabilities under selected boundaries, and unused old implementation stays behind. The capability plan is a coordination/checkpoint guide; minimal coding slices are derived from each next capability **when it is actually implemented**, based on its new interface and tests. No rebuild or conversion work has begun.
+This plan intentionally does **not** assign every legacy Rust function, CLI flag, file or crate a new address. The new system implements chosen capabilities under selected boundaries, and unused old implementation stays behind. The capability plan is a coordination/checkpoint guide; minimal coding slices are derived from each next capability **when it is actually implemented**, based on its new interface and tests. The independent rebuild workspace is under construction; no conversion or cutover has occurred. See the capability statuses and workspace setup evidence for current progress.

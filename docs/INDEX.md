@@ -1,5 +1,13 @@
 # Reliquary Memory v2 Documentation
 
+- [Rebuild implementation progress](rebuild-implementation-progress.md) — incomplete slices and verification.
+
+- [Identity and corpus evidence](rebuild-f03-identity-and-corpus-evidence-2026-11-03.md) — F03 findings and unresolved proof.
+
+- [Rebuild workspace setup evidence](rebuild-workspace-setup-evidence.md) — isolated workspace and initial dependency graph.
+
+- [Supported behavior inventory](supported-behavior-inventory.md) — selected rebuild behavior and evidence.
+
 - [Current system implementation inventory (2026-11-03)](current-system-inventory-2026-11-03.md) — live crate/dependency map, durable ownership, processing paths, Root coupling, capability status, and redesign inputs.
 
 - [Context Engine extraction evidence](context-engine-crate-extraction-evidence-2026-10-28.md) — ownership move and verification.
@@ -360,3 +368,7 @@
 - [references](references/INDEX.md) - References documentation.
 - [subsystems](subsystems/INDEX.md) - Subsystems documentation.
 <!-- doc-ledger:folders:end -->
+
+
+
+

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "status": "design-only",
+  "status": "in-progress",
   "title": "Reliquary selective-reuse clean rebuild capability plan",
   "source_head": "eb74c8cc",
   "principle": "Build required externally observable capabilities directly in approved target architecture. Existing source is optional reference material, not mandatory transfer inventory.",
@@ -41,7 +41,8 @@
       ],
       "deliverable": "Behavior inventory marked retain, replace, retire or deferred",
       "acceptance": "Tests/examples and consumer use determine required behavior; internal methods without needed behavior are not mandatory",
-      "status": "not-started"
+      "status": "completed",
+      "completion_evidence": "docs/supported-behavior-inventory.md"
     },
     {
       "id": "F03",
@@ -52,7 +53,9 @@
       ],
       "deliverable": "Pinned identity hashes, accepted-record inventory and explicit FRS07 corpus status",
       "acceptance": "Capture golden ID inputs/outputs; independently verify the six-file corpus on copies OR record exact FRS07 blocker. A failed corpus proof blocks only later conversion, not construction of unrelated new capabilities.",
-      "status": "not-started"
+      "status": "completed",
+      "completion_evidence": "docs/rebuild-f03-identity-and-corpus-evidence-2026-11-03.md",
+      "corpus_status": "historical FRS07 implementation reopened all six copies and matched pinned heads; pinned F01 reference still rejects three REL files; full historical fingerprint and conversion remain unverified"
     },
     {
       "id": "F04",
@@ -64,7 +67,8 @@
       ],
       "deliverable": "Independent final Rust workspace and minimal real module skeletons",
       "acceptance": "Cargo metadata validates intended package DAG and no Root backreach; no legacy implementation linked or empty crate claimed complete",
-      "status": "not-started"
+      "status": "completed",
+      "completion_evidence": "docs/rebuild-workspace-setup-evidence.md"
     },
     {
       "id": "C01",
@@ -75,7 +79,8 @@
       ],
       "deliverable": "Physical format, typed header, frames, lease, sync, explicit repair",
       "acceptance": "New writer/read-only current 2.1 open; invalid/wrong-kind/mixed headers fail without mutation; old 2.0 not supported at runtime",
-      "status": "not-started"
+      "status": "completed",
+      "completion_evidence": "docs/rebuild-workspace-setup-evidence.md"
     },
     {
       "id": "C02",
@@ -86,7 +91,8 @@
       ],
       "deliverable": "Turns, branches, Episodes, native source and separately owned Echo evidence",
       "acceptance": "Typed accepted turns survive reopen with exact activity/source identity and retained conversation history",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "C03",
@@ -97,7 +103,8 @@
       ],
       "deliverable": "Memory records, provenance, revisions, terminal states and history",
       "acceptance": "Body/revision/tombstone reads and identity/provenance survive reopen; absent payload remains distinguishable",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "C04",
@@ -109,7 +116,8 @@
       ],
       "deliverable": "Typed graph records, references and derived Communities",
       "acceptance": "Graph closures validate exact Memory/Entity identity; derived indexes rebuild without creating semantic events",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "C05",
@@ -121,7 +129,8 @@
       ],
       "deliverable": "Canonical Entity/mention-resolution/transition records",
       "acceptance": "Owner-bound identity, ambiguity and source span proofs reopen; no new Observation synthesis is added",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "C06",
@@ -132,7 +141,8 @@
       ],
       "deliverable": "Identity, Personality, Anchor and existing Ego persistence",
       "acceptance": "REL/PHY scope rules, revision history and private PHY facts verified; future Ego synthesis remains deferred",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "C07",
@@ -144,7 +154,8 @@
       ],
       "deliverable": "Packed Memory/Archive vectors, profile and generation records",
       "acceptance": "All stable identity hash vectors match reference, payload/profile generations reopen and invalid backing rejects",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "C08",
@@ -156,7 +167,8 @@
       ],
       "deliverable": "Accepted activity/use/birth/settlement record owner",
       "acceptance": "Exact source/score/history replay, no reinforcement on internal retrieval and no forged FRS07 semantics",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "C09",
@@ -168,7 +180,8 @@
       ],
       "deliverable": "Insomnia work receipts, Dream-first-cycle, import epoch, maintenance lineage and external-index evidence",
       "acceptance": "Durable records reopen without semantic inference and preserve proper scope and admission fences",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "C10",
@@ -186,7 +199,8 @@
       ],
       "deliverable": "One private typed REL owner aggregate and read/commit API",
       "acceptance": "No public mutable store bag; exact owner ID, ordered replay, supported cuts and wrong-kind rejection",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "C11",
@@ -202,7 +216,8 @@
       ],
       "deliverable": "One private typed PHY owner aggregate",
       "acceptance": "No Archive/REL turn authority, separate privacy/owner clock, replay and principal-independent correctness",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "C12",
@@ -214,7 +229,8 @@
       ],
       "deliverable": "Atomic owner-local publication, historical proofs, idempotent receipt handling",
       "acceptance": "Fault after sync requires replay before further mutation; tombstone and unavailable history survive; no fake cross-file atomic commit",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "G1",
@@ -236,7 +252,8 @@
       ],
       "deliverable": "Provider routing, decision/general fallback and temporal parsing",
       "acceptance": "No owner storage dependency; explicit unavailable/ambiguous result; existing deterministic temporal cases preserved",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "S02",
@@ -248,7 +265,8 @@
       ],
       "deliverable": "Episode evidence requests, source-grounded Memory drafts and routing decisions",
       "acceptance": "Same required extraction classes, evidence provenance and bounded behavior; no direct owner writes",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "S03",
@@ -261,7 +279,8 @@
       ],
       "deliverable": "Pair decisions, duplicate/canonical/lifecycle intents and community naming",
       "acceptance": "Frozen verified classifications, zero-link and duplicate cases; no direct graph/freshness publication",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "S04",
@@ -273,7 +292,8 @@
       ],
       "deliverable": "Canonical Entity match, ambiguity and association proposals",
       "acceptance": "Correct body/span binding and guarded merges; no default fabricated identity",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "S05",
@@ -286,7 +306,8 @@
       ],
       "deliverable": "Hybrid candidate ranking, community routing and turn-scoped query/refine/traverse",
       "acceptance": "Frozen ranks/limits/selected IDs and no reinforcement on read; no hidden provider storage state",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "S06",
@@ -298,7 +319,8 @@
       ],
       "deliverable": "Score decay, propagation, F8 matching and due schedule calculation",
       "acceptance": "Score/event invariants and current-clock interpretation match required behavior; runtime scheduler not a durable owner",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "S07",
@@ -311,7 +333,8 @@
       ],
       "deliverable": "Embedding compatibility/packs and final bounded model-facing context rendering",
       "acceptance": "Profile validation, compaction budgets and source-bound context; no Ego synthesis invented",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "S08",
@@ -322,7 +345,8 @@
       ],
       "deliverable": "Independent Git/Lore revision and file correlation boundary",
       "acceptance": "VCS remains source authority; REL contains only proven correlations",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "V01",
@@ -334,7 +358,8 @@
       ],
       "deliverable": "Accepted turn \u2192 Episode \u2192 Insomnia \u2192 REL/PHY Memory publication",
       "acceptance": "End-to-end provenance, bounded evidence and idempotent routed user/project memories; crash/retry proof",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "V02",
@@ -347,7 +372,8 @@
       ],
       "deliverable": "Draft/accepted Memory \u2192 graph/canonical/lifecycle and first-pass settlement",
       "acceptance": "Correct relations/duplicate policy, zero-link first-cycle and idempotent Freshness birth; no rewire bonus",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "V03",
@@ -359,7 +385,8 @@
       ],
       "deliverable": "Memory mention \u2192 authorized Entity resolution \u2192 owner record",
       "acceptance": "Correct candidate match, unknown/ambiguous path, PHY privacy and history",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "V04",
@@ -372,7 +399,8 @@
       ],
       "deliverable": "Authorized query \u2192 selection \u2192 host handoff \u2192 accepted-use receipt",
       "acceptance": "Same candidate ranking, grants checked twice; no +25 until confirmed external consumption",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "V05",
@@ -385,7 +413,8 @@
       ],
       "deliverable": "Source-bound vectors/profiles, repository evidence and final context",
       "acceptance": "No model under owner locks, valid sources/profiles and budget; no duplicate host transcript authority",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "V06",
@@ -397,7 +426,8 @@
       ],
       "deliverable": "Owner-cut history, native import, prune/rewrite/reconcile on verified copies",
       "acceptance": "Historical unavailability and import fencing correct; transformation promoted only after independently reopened validation",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "V07",
@@ -408,7 +438,8 @@
       ],
       "deliverable": "External host source validation and durable reference receipts",
       "acceptance": "No fake native Archive transcript; index rebuild without forging semantic truth",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "G2",
@@ -435,7 +466,8 @@
       ],
       "deliverable": "One Gateway registry, per-owner sessions/workers, principal/PHY grants",
       "acceptance": "No duplicate mutable owner, unauthorized access, stale mount write or grant-changing public Instance API",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "H02",
@@ -446,7 +478,8 @@
       ],
       "deliverable": "Owner-scoped submit/finalize/cancel and operation journaling",
       "acceptance": "Concurrent branch order or authorized fork; crash after Archive commit reconciles without duplicate turns",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "H03",
@@ -457,7 +490,8 @@
       ],
       "deliverable": "Host-capability arbitration, Held outcomes, generation checkpoints, snapshot+watermark",
       "acceptance": "No blind redispatch, no unsynced text exposure, reconnect/cursor privacy and resync cases pass",
-      "status": "not-started"
+      "status": "in-progress",
+      "progress_evidence": "docs/rebuild-implementation-progress.md"
     },
     {
       "id": "H04",
