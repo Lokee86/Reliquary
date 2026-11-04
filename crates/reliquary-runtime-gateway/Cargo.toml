@@ -13,3 +13,7 @@ reliquary-application = { path = "../reliquary-application" }
 reliquary-archive = { path = "../reliquary-archive" }
 reliquary-owner-session = { path = "../reliquary-owner-session" }
 reliquary-switchboard = { path = "../reliquary-switchboard" }
+
+[dev-dependencies]
+reliquary-container = { path = "../reliquary-container" }
+reliquary-vector-store = { path = "../reliquary-vector-store" }

@@ -569,7 +569,18 @@ impl Instance {
         owner: OwnerId,
     ) -> Result<ConversationQueue, GatewayError> {
         self.authorize_queue_owner(owner)?;
-        self.reliquary(owner)?;
+        {
+            let owners = self
+                .owners
+                .read()
+                .map_err(|_| GatewayError::RegistryPoisoned)?;
+            match owners.get(&owner) {
+                Some(mounted) if mounted.is_rel() => {}
+                Some(_) => return Err(GatewayError::WrongOwnerKind(owner)),
+                None => return Err(GatewayError::UnknownOwner(owner)),
+            }
+        }
+        self.ensure_credential_active()?;
         Ok(ConversationQueue::open(state_dir, owner)?)
     }
 
@@ -769,6 +780,129 @@ impl Instance {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use reliquary_container::{Container, ContainerIdentity, ReliquaryScope};
+    use reliquary_vector_store::{
+        ArchiveVectorStore, CompatibilityProfileStore, MemoryVectorStore, PackedVectorStore,
+        VectorGenerationStore,
+    };
+
+    fn initialize_rel(path: &Path, owner: [u8; 16]) {
+        let mut container = Container::create(
+            path,
+            ContainerIdentity::reliquary(ReliquaryScope::Project),
+            owner,
+        )
+        .unwrap();
+        PackedVectorStore::default().initialize(&mut container).unwrap();
+        CompatibilityProfileStore::default()
+            .initialize(&mut container)
+            .unwrap();
+        ArchiveVectorStore::default()
+            .initialize(&mut container)
+            .unwrap();
+        MemoryVectorStore::default()
+            .initialize(&mut container)
+            .unwrap();
+        VectorGenerationStore::empty()
+            .initialize(&mut container)
+            .unwrap();
+        container.sync().unwrap();
+    }
+
+    #[test]
+    fn writable_mount_queue_finalization_and_reopen_retry_are_end_to_end() {
+        let root = std::env::current_dir()
+            .unwrap()
+            .join(".test-tmp")
+            .join(format!(
+                "gateway-finalize-{}-{}",
+                std::process::id(),
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos()
+            ));
+        std::fs::create_dir_all(&root).unwrap();
+        let rel_path = root.join("owner.rel");
+        let queue_path = root.join("queue");
+        let raw_owner = [61; 16];
+        initialize_rel(&rel_path, raw_owner);
+
+        let gateway = Gateway::new();
+        let admission = GraphAdmission::for_replay(raw_owner, [], [], [], [], []);
+        let owner = gateway
+            .mount_writable_reliquary(&rel_path, &admission, [], [])
+            .unwrap();
+        let instance = gateway.instance("alice", [owner], []).unwrap();
+        let id = ConversationSubmissionId::new(
+            "conversation-1",
+            SubmissionId::new("submission-1").unwrap(),
+        )
+        .unwrap();
+        let capture = FinalizeCapture {
+            branch_id: "main".to_owned(),
+            parent_node_id: None,
+            committed_timestamp_ns: 42,
+            verified_principal_id: "alice".to_owned(),
+        };
+
+        let mut queue = instance.open_conversation_queue(&queue_path, owner).unwrap();
+        instance
+            .submit_conversation(
+                &mut queue,
+                "conversation-1",
+                id.submission_id.clone(),
+                "durable conversation text",
+                0,
+            )
+            .unwrap();
+        let committed = instance
+            .finalize_conversation_submission(&mut queue, &id, 1, capture.clone())
+            .unwrap();
+        assert_eq!(committed.state, QueueState::Committed);
+        assert_eq!(
+            committed.archive_receipt.as_ref().unwrap().principal_id,
+            "alice"
+        );
+        assert!(instance
+            .with_writable_reliquary(owner, |rel| {
+                rel.archive_node("conversation-1", "submission-1")
+                    .is_some()
+            })
+            .unwrap());
+
+        let outsider = gateway.instance("bob", [], []).unwrap();
+        assert!(matches!(
+            outsider.open_conversation_queue(&queue_path, owner),
+            Err(GatewayError::UnauthorizedRel { .. })
+        ));
+
+        drop(queue);
+        let mut recovered = instance.open_conversation_queue(&queue_path, owner).unwrap();
+        assert_eq!(
+            instance
+                .finalize_conversation_submission(&mut recovered, &id, 1, capture)
+                .unwrap(),
+            committed
+        );
+        let (accepted_turn_count, content) = instance
+            .with_writable_reliquary(owner, |rel| {
+                (
+                    rel.accepted_turn_sources().len(),
+                    rel.resolved_archive_turn("conversation-1", "submission-1")
+                        .unwrap()
+                        .unwrap()
+                        .content,
+                )
+            })
+            .unwrap();
+        assert_eq!(accepted_turn_count, 1);
+        assert_eq!(content, "durable conversation text");
+        drop(recovered);
+        drop(instance);
+        drop(gateway);
+        std::fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn ungranted_owner_access_is_denied_before_lookup() {
