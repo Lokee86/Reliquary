@@ -198,6 +198,9 @@ impl GroupedInsomniaCompletion {
         if !self.external_memory_refs.is_empty() {
             return Err("routed completion requires separate owner authentication".into());
         }
+        if !self.routing_metadata.is_empty() {
+            return Err("routed completion metadata requires separate owner authentication".into());
+        }
         let births = self
             .memory_records
             .iter()

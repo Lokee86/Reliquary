@@ -182,6 +182,11 @@ fn routed_replay_requires_external_owner_authentication() {
         });
     let decoded = GroupedInsomniaCompletion::decode(&completion.encode().unwrap()).unwrap();
     assert!(decoded.validate_replay_episode([4; 32]).is_err());
+
+    let mut completion = fixture();
+    completion.routing_metadata = vec![b"ROUTING1opaque".to_vec()];
+    let decoded = GroupedInsomniaCompletion::decode(&completion.encode().unwrap()).unwrap();
+    assert!(decoded.validate_replay_episode([4; 32]).is_err());
 }
 
 #[test]
