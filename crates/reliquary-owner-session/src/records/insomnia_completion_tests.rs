@@ -455,6 +455,29 @@ fn rel_session_replays_grouped_insomnia_receipt_instead_of_dropping_the_carrier(
     assert!(
         matches!(crate::RelSession::open(&wrong_turn, &admission, [], []), Err(crate::OwnerSessionError::Record(message)) if message.contains("Freshness turn differs"))
     );
+    let future_memory_path = Temp::new();
+    let mut future_memory = Container::create(
+        &future_memory_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [3; 16],
+    )
+    .unwrap();
+    let creation = frames
+        .iter()
+        .find(|frame| frame.payload.starts_with(b"RELMCRT1"))
+        .unwrap();
+    for frame in &frames {
+        if !frame.payload.starts_with(b"RELMCRT1") {
+            future_memory.append(&frame.payload).unwrap();
+        }
+    }
+    future_memory.append(&creation.payload).unwrap();
+    future_memory.sync().unwrap();
+    drop(future_memory);
+    let future_memory = Container::open_read_only(&future_memory_path.0).unwrap();
+    assert!(
+        matches!(crate::RelSession::open(&future_memory, &admission, [], []), Err(crate::OwnerSessionError::Record(message)) if message.contains("Memory outside its physical prefix"))
+    );
     drop(session);
     drop(container);
 

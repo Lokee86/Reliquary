@@ -55,6 +55,7 @@ pub(super) fn validate_grouped_replay_admission(
     let mut grouped = BTreeMap::new();
     let mut visible_episodes = std::collections::BTreeSet::new();
     let mut visible_turns = std::collections::BTreeSet::new();
+    let mut visible_memories = std::collections::BTreeSet::new();
     let mut activity = 0u64;
     for frame in container.read_frames()? {
         match reliquary_archive::source_publication(&frame.payload)? {
@@ -73,6 +74,10 @@ pub(super) fn validate_grouped_replay_admission(
                 }
             }
             None => {}
+        }
+        if frame.payload.starts_with(b"RELMCRT1") {
+            let creation = reliquary_memory_core::decode_grouped_creation(&frame.payload)?;
+            visible_memories.insert(creation.id.0);
         }
         if !frame.payload.starts_with(b"RELINSC7") {
             continue;
@@ -95,6 +100,23 @@ pub(super) fn validate_grouped_replay_admission(
         completion
             .validate_replay_episode(completion.episode_id)
             .map_err(OwnerSessionError::Record)?;
+        let births = completion
+            .memory_records
+            .iter()
+            .map(|bytes| {
+                reliquary_memory_core::decode_grouped_creation(bytes).map(|record| record.id.0)
+            })
+            .collect::<Result<std::collections::BTreeSet<_>, _>>()?;
+        if completion
+            .memory_ids
+            .iter()
+            .any(|id| !visible_memories.contains(id) && !births.contains(id))
+        {
+            return Err(OwnerSessionError::Record(
+                "grouped completion references a Memory outside its physical prefix".into(),
+            ));
+        }
+        visible_memories.extend(births);
         if !completion.routing_metadata.is_empty() {
             return Err(OwnerSessionError::Record(
                 "grouped routing metadata replay is unsupported".into(),
