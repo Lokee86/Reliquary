@@ -562,7 +562,7 @@ impl Archive {
             Some(owner_id) if owner_id != container.owner_id() => Err(ArchiveError::WrongOwner),
             Some(_) => Ok(()),
             None => {
-                self.owner_id = Some(container.owner_id());
+                *self = Self::open(container)?;
                 Ok(())
             }
         }

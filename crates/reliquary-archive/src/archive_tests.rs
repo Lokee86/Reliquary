@@ -504,3 +504,31 @@ fn archive_state_cannot_be_written_to_a_different_container_owner() {
     ));
     assert!(second.read_frames().unwrap().is_empty());
 }
+
+#[test]
+fn fresh_projection_replays_existing_history_before_accepting() {
+    let temp = TestDirectory::new();
+    let path = temp.file("existing.rel");
+    let mut container = Container::create(
+        &path,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [0xE1; 16],
+    )
+    .unwrap();
+    let mut first = Archive::empty();
+    first
+        .accept_turn(&mut container, turn("root", None, 1, "original"))
+        .unwrap();
+    let before = container.read_frames().unwrap().len();
+    let mut fresh = Archive::empty();
+    assert!(matches!(
+        fresh.accept_turn(&mut container, turn("root", None, 1, "conflict")),
+        Err(ArchiveError::ConflictingNode)
+    ));
+    assert_eq!(container.read_frames().unwrap().len(), before);
+    let accepted = fresh
+        .accept_turn(&mut container, turn("child", Some("root"), 2, "next"))
+        .unwrap();
+    assert_eq!(accepted.activity_position, Some(2));
+    assert_eq!(Archive::open(&container).unwrap().node_count(), 2);
+}
