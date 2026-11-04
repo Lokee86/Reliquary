@@ -464,3 +464,65 @@ fn rel_session_replays_grouped_insomnia_receipt_instead_of_dropping_the_carrier(
         reliquary_insomnia_store::CompletionCheck::AlreadyAccepted
     );
 }
+
+#[test]
+fn owner_session_accepts_graph_with_owner_backed_memory_endpoints() {
+    let path = Temp::new();
+    let owner = [0x63; 16];
+    let mut container = Container::create(
+        &path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    reliquary_vector_store::PackedVectorStore::default()
+        .initialize(&mut container)
+        .unwrap();
+    reliquary_vector_store::CompatibilityProfileStore::default()
+        .initialize(&mut container)
+        .unwrap();
+    reliquary_vector_store::ArchiveVectorStore::default()
+        .initialize(&mut container)
+        .unwrap();
+    reliquary_vector_store::MemoryVectorStore::default()
+        .initialize(&mut container)
+        .unwrap();
+    reliquary_vector_store::VectorGenerationStore::empty()
+        .initialize(&mut container)
+        .unwrap();
+    reliquary_memory_core::MemoryStore::create(&mut container).unwrap();
+    let mut first =
+        reliquary_memory_core::decode_grouped_creation(&fixture().memory_records[0]).unwrap();
+    first.mutation_id = "graph-first".into();
+    first.id = memory_id(&first.mutation_id);
+    let mut second = first.clone();
+    second.mutation_id = "graph-second".into();
+    second.id = memory_id(&second.mutation_id);
+    second.memory_version = 2;
+    container
+        .append(&reliquary_memory_core::encode_grouped_creation(&first).unwrap())
+        .unwrap();
+    container
+        .append(&reliquary_memory_core::encode_grouped_creation(&second).unwrap())
+        .unwrap();
+    let admission =
+        reliquary_graph::GraphAdmission::for_changes(owner, [first.id.0, second.id.0], []);
+    let mut graph = reliquary_graph::GraphStore::open(&container, &admission).unwrap();
+    graph
+        .put(
+            &mut container,
+            &admission,
+            &[reliquary_graph::RelationChange {
+                source: reliquary_graph::NodeRef::Memory(first.id.0),
+                target: reliquary_graph::NodeRef::Memory(second.id.0),
+                kind: reliquary_graph::RelationKind::Topical,
+                active: true,
+                origin: reliquary_graph::RelationOrigin::User,
+            }],
+        )
+        .unwrap();
+    drop(container);
+    let reopened = Container::open_read_only(&path.0).unwrap();
+    let session = crate::RelSession::open(&reopened, &admission, [], []).unwrap();
+    assert_eq!(session.graph_version(), 1);
+}
