@@ -139,6 +139,7 @@ pub(super) fn open_common(
 fn validate_graph_prefix(container: &Container) -> Result<(), OwnerSessionError> {
     let mut memories = std::collections::BTreeSet::new();
     let mut entities = std::collections::BTreeSet::new();
+    let mut graph_version = 0;
     for frame in container.read_frames()? {
         let payload = &frame.payload;
         if payload.starts_with(b"RELMCRT1") {
@@ -183,6 +184,14 @@ fn validate_graph_prefix(container: &Container) -> Result<(), OwnerSessionError>
                     ));
                 }
             }
+            graph_version = relation.graph_version;
+        }
+        if reliquary_graph::community_graph_version_in_frame(payload)?
+            .is_some_and(|version| version > graph_version)
+        {
+            return Err(OwnerSessionError::Record(
+                "Community references a Graph cut outside its physical prefix".into(),
+            ));
         }
     }
     Ok(())

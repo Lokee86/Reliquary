@@ -613,6 +613,23 @@ fn owner_session_accepts_graph_with_owner_backed_memory_endpoints() {
     perception
         .put_mention_resolution(&mut container, key, 1, 2, status.clone())
         .unwrap();
+    let mut members = vec![first.id.0, second.id.0];
+    members.sort();
+    let mut communities = reliquary_graph::CommunityStore::open(&container, &graph).unwrap();
+    communities
+        .publish(
+            &mut container,
+            &graph,
+            reliquary_graph::CommunitySnapshot {
+                generation: 1,
+                graph_version: 1,
+                communities: vec![reliquary_graph::Community {
+                    id: reliquary_graph::community_id(owner, &members),
+                    members,
+                }],
+            },
+        )
+        .unwrap();
     drop(container);
     let reopened = Container::open_read_only(&path.0).unwrap();
     let empty_admission = reliquary_graph::GraphAdmission::for_replay(owner, [], [], [], [], []);
@@ -623,6 +640,31 @@ fn owner_session_accepts_graph_with_owner_backed_memory_endpoints() {
         .iter()
         .find(|frame| frame.payload.starts_with(b"RELGRF01"))
         .unwrap();
+    let community_frame = frames
+        .iter()
+        .find(|frame| frame.payload.starts_with(b"RELCOM01"))
+        .unwrap();
+    let community_path = Temp::new();
+    let mut early_community = Container::create(
+        &community_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    for frame in &frames {
+        if frame.object.offset == graph_frame.object.offset {
+            early_community.append(&community_frame.payload).unwrap();
+        }
+        if frame.object.offset != community_frame.object.offset {
+            early_community.append(&frame.payload).unwrap();
+        }
+    }
+    early_community.sync().unwrap();
+    drop(early_community);
+    let early_community = Container::open_read_only(&community_path.0).unwrap();
+    assert!(
+        matches!(crate::RelSession::open(&early_community, &empty_admission, [], []), Err(crate::OwnerSessionError::Record(message)) if message.contains("Community references a Graph cut outside its physical prefix"))
+    );
     let forged_path = Temp::new();
     let mut forged = Container::create(
         &forged_path.0,

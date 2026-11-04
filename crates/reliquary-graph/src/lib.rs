@@ -690,6 +690,11 @@ fn decode_community(b: &[u8]) -> Result<Option<([u8; 16], CommunitySnapshot)>, G
         },
     )))
 }
+
+/// Read a Community's source Graph cut for physical-prefix validation.
+pub fn community_graph_version_in_frame(payload: &[u8]) -> Result<Option<u64>, GraphError> {
+    Ok(decode_community(payload)?.map(|(_, snapshot)| snapshot.graph_version))
+}
 fn put_node(o: &mut Vec<u8>, n: NodeRef) {
     match n {
         NodeRef::Memory(id) => {
