@@ -16,7 +16,8 @@ use reliquary_graph::{
 };
 use reliquary_insomnia_store::{
     AcceptedCompletionState, AcceptedEpisodeOrder, CompletionCheck, EpisodeId as WorkEpisodeId,
-    InsomniaError, InsomniaLeaseToken, InsomniaStore, InsomniaWork, MemoryId as WorkMemoryId,
+    InsomniaError, InsomniaLeaseToken, InsomniaPriority, InsomniaStore, InsomniaWork,
+    MemoryId as WorkMemoryId,
 };
 use reliquary_memory_core::{MemoryError, MemoryHistory, MemoryId, MemoryStore};
 use reliquary_perception_store::{
@@ -217,6 +218,13 @@ impl RelWriter {
         &self.session
     }
 
+    pub fn next_global_version(&self) -> Result<u64, OwnerSessionError> {
+        self.container
+            .latest_version()
+            .checked_add(1)
+            .ok_or_else(|| OwnerSessionError::Record("physical version exhausted".into()))
+    }
+
     /// Accept a live source turn and advance its branch through the owner’s
     /// Archive projection. Archive operations are idempotent, so a retry after
     /// a queue journal failure can safely confirm the already synced turn.
@@ -225,14 +233,165 @@ impl RelWriter {
         input: reliquary_archive::TurnInput,
         branch: reliquary_archive::Branch,
     ) -> Result<reliquary_archive::Node, OwnerSessionError> {
+        self.validate_turn_branch(&input, &branch)?;
+        let already_on_branch = if let Some(current) = self
+            .session
+            .archive
+            .branch(&branch.conversation_id, &branch.id)
+        {
+            let ancestry = self
+                .session
+                .archive
+                .historical_turns(&branch.conversation_id, &current.leaf_node_id)?;
+            let found = ancestry.iter().any(|turn| turn.node_id == input.id);
+            if found {
+                self.validate_existing_turn(&input)?;
+            }
+            found
+        } else {
+            false
+        };
         let accepted = self
             .session
             .archive
             .accept_turn(&mut self.container, input)?;
+        if already_on_branch {
+            return Ok(accepted.value);
+        }
         self.session
             .archive
             .put_branch(&mut self.container, branch)?;
         Ok(accepted.value)
+    }
+
+    /// Check that an accepted turn would advance this owner's current branch
+    /// before any Archive frame is appended. The caller must retain the same
+    /// writer lock from validation through `accept_turn_and_advance_branch`.
+    pub fn validate_turn_branch(
+        &self,
+        input: &reliquary_archive::TurnInput,
+        branch: &reliquary_archive::Branch,
+    ) -> Result<(), OwnerSessionError> {
+        if input.conversation_id != branch.conversation_id || input.id != branch.leaf_node_id {
+            return Err(OwnerSessionError::Archive(
+                reliquary_archive::ArchiveError::InvalidBranchRevision,
+            ));
+        }
+        let Some(current) = self
+            .session
+            .archive
+            .branch(&branch.conversation_id, &branch.id)
+        else {
+            return Ok(());
+        };
+        if self
+            .session
+            .archive
+            .node(&input.conversation_id, &input.id)
+            .is_some()
+        {
+            self.validate_existing_turn(input)?;
+        }
+        let current_ancestry = self
+            .session
+            .archive
+            .historical_turns(&branch.conversation_id, &current.leaf_node_id)?;
+        if current_ancestry
+            .iter()
+            .any(|turn| turn.node_id == input.id)
+        {
+            return Ok(());
+        }
+        let Some(parent_id) = input.parent_id.as_deref() else {
+            return Err(OwnerSessionError::Archive(
+                reliquary_archive::ArchiveError::InvalidBranchRevision,
+            ));
+        };
+        let ancestry = self
+            .session
+            .archive
+            .historical_turns(&input.conversation_id, parent_id)?;
+        if ancestry
+            .iter()
+            .any(|turn| turn.node_id == current.leaf_node_id)
+        {
+            Ok(())
+        } else {
+            Err(OwnerSessionError::Archive(
+                reliquary_archive::ArchiveError::InvalidBranchRevision,
+            ))
+        }
+    }
+
+    fn validate_existing_turn(
+        &self,
+        input: &reliquary_archive::TurnInput,
+    ) -> Result<(), OwnerSessionError> {
+        let Some(node) = self
+            .session
+            .archive
+            .node(&input.conversation_id, &input.id)
+        else {
+            return Ok(());
+        };
+        let content_matches = self
+            .session
+            .archive
+            .content_for_node(&input.conversation_id, &input.id)
+            == Some(input.content.as_str());
+        if node.parent_id != input.parent_id
+            || node.role != input.role
+            || node.principal_id != input.principal_id
+            || node.timestamp_ns != input.timestamp_ns
+            || !content_matches
+        {
+            return Err(OwnerSessionError::Archive(
+                reliquary_archive::ArchiveError::ConflictingNode,
+            ));
+        }
+        Ok(())
+    }
+
+    /// Queue and lease work for an admitted Archive Episode. The Episode's
+    /// scheduling identity is re-derived from this owner's Archive projection;
+    /// caller-supplied order data cannot redirect the claim.
+    pub fn queue_and_claim_insomnia_episode(
+        &mut self,
+        episode_id: reliquary_archive::EpisodeId,
+        worker: &str,
+        now_ns: i64,
+        lease_duration_ns: i64,
+    ) -> Result<InsomniaWork, OwnerSessionError> {
+        let episode = self
+            .session
+            .archive
+            .episode(episode_id)
+            .ok_or(OwnerSessionError::Insomnia(InsomniaError::UnacceptedEpisode))?;
+        let work_id = WorkEpisodeId(episode_id.0);
+        let order = self
+            .session
+            .insomnia
+            .accepted_order(work_id)
+            .cloned()
+            .ok_or(OwnerSessionError::Insomnia(InsomniaError::UnacceptedEpisode))?;
+        if order.source_through_ns != episode.source_through_ns
+            || order.conversation_id != episode.conversation_id
+            || order.start_node_id != episode.start_node_id
+        {
+            return Err(OwnerSessionError::Insomnia(InsomniaError::UnacceptedEpisode));
+        }
+        self.session
+            .insomnia
+            .queue(&mut self.container, order, InsomniaPriority::Live, now_ns)?;
+        let work = self.session.insomnia.claim_episode(
+            &mut self.container,
+            work_id,
+            worker,
+            now_ns,
+            lease_duration_ns,
+        )?;
+        self.session.writer_lease_proof = self.container.writer_lease_proof();
+        Ok(work)
     }
 
     pub fn commit_grouped_insomnia_completion(
@@ -533,6 +692,9 @@ impl RelSession {
     }
     pub fn episode(&self, id: reliquary_archive::EpisodeId) -> Option<&reliquary_archive::Episode> {
         self.archive.episode(id)
+    }
+    pub fn rel_turn_count(&self) -> u64 {
+        self.archive.rel_turn_count()
     }
     pub fn accepted_turn_sources(&self) -> Vec<reliquary_archive::AcceptedTurnSource> {
         self.archive.accepted_turn_sources()
@@ -933,7 +1095,7 @@ fn validate_grouped_replay_admission(
 }
 
 fn reject_rel_only_records(container: &Container) -> Result<(), OwnerSessionError> {
-    const REL_ONLY: [(&[u8; 8], &str); 18] = [
+    const REL_ONLY: [(&[u8; 8], &str); 19] = [
         (b"RELTURN2", "Archive turn"),
         (b"RELFILE1", "Archive file"),
         (b"RELBRCH1", "Archive branch"),
@@ -952,6 +1114,7 @@ fn reject_rel_only_records(container: &Container) -> Result<(), OwnerSessionErro
         (b"RELVGEN1", "vector generation"),
         (b"RELVGRC1", "vector generation revision"),
         (b"RELXIDX2", "external source index"),
+        (b"RELXMEM2", "external Memory reference"),
     ];
     use std::io::Read;
     let mut cursor = container.physical_cursor()?;

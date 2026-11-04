@@ -265,7 +265,35 @@ impl InsomniaStore {
             })
             .map(|(id, _)| *id);
         let Some(id) = id else { return Ok(None) };
-        let mut w = self.work[&id].clone();
+        self.claim_episode(c, id, worker, now, duration).map(Some)
+    }
+
+    /// Claim one specifically requested, previously admitted Episode.
+    pub fn claim_episode(
+        &mut self,
+        c: &mut Container,
+        id: EpisodeId,
+        worker: &str,
+        now: i64,
+        duration: i64,
+    ) -> Result<InsomniaWork, InsomniaError> {
+        self.check_owner(c)?;
+        if worker.trim().is_empty() || duration <= 0 {
+            return Err(InsomniaError::InvalidField("worker lease"));
+        }
+        if !self.orders.contains_key(&id) {
+            return Err(InsomniaError::UnacceptedEpisode);
+        }
+        let Some(w) = self.work.get(&id).cloned() else {
+            return Err(InsomniaError::MissingWork);
+        };
+        let claimable = matches!(w.state, InsomniaWorkState::Pending)
+            || w.state == InsomniaWorkState::Failed && w.retry_after_ns.is_none_or(|t| t <= now)
+            || w.state == InsomniaWorkState::Processing && w.lease_expires_ns.is_none_or(|t| t <= now);
+        if !claimable {
+            return Err(InsomniaError::InvalidTransition);
+        }
+        let mut w = w;
         w.attempt_count = w
             .attempt_count
             .checked_add(1)
@@ -286,7 +314,7 @@ impl InsomniaStore {
             .ok_or(InsomniaError::VersionExhausted)?;
         let order = self.orders[&id].clone();
         self.persist_work(c, &order, w.clone())?;
-        Ok(Some(w))
+        Ok(w)
     }
     pub fn renew(
         &mut self,
