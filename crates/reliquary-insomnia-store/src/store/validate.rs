@@ -13,8 +13,15 @@ pub(super) fn validate_order(o: &AcceptedEpisodeOrder) -> Result<(), InsomniaErr
     }
 }
 pub(super) fn validate_work(w: &InsomniaWork) -> Result<(), InsomniaError> {
-    let leased = w.lease_owner.is_some() && w.lease_token.is_some() && w.lease_expires_ns.is_some();
-    if (w.state == InsomniaWorkState::Processing) != leased
+    let lease_fields = [
+        w.lease_owner.is_some(),
+        w.lease_token.is_some(),
+        w.lease_expires_ns.is_some(),
+    ];
+    let leased = lease_fields.iter().all(|present| *present);
+    let partial_lease = lease_fields.iter().any(|present| *present) && !leased;
+    if partial_lease
+        || (w.state == InsomniaWorkState::Processing) != leased
         || w.revision == 0
         || w.held_payload
             .as_ref()
@@ -28,6 +35,45 @@ pub(super) fn validate_work(w: &InsomniaWork) -> Result<(), InsomniaError> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn pending_work() -> InsomniaWork {
+        InsomniaWork {
+            episode_id: EpisodeId([1; 32]),
+            priority: InsomniaPriority::Live,
+            state: InsomniaWorkState::Pending,
+            attempt_count: 0,
+            lease_owner: None,
+            lease_token: None,
+            lease_expires_ns: None,
+            retry_after_ns: None,
+            last_error: None,
+            held_payload: None,
+            updated_at_ns: 0,
+            revision: 1,
+        }
+    }
+
+    #[test]
+    fn rejects_partial_lease_fields_during_replay_validation() {
+        let mut work = pending_work();
+        work.lease_owner = Some("worker".into());
+        assert!(matches!(
+            validate_work(&work),
+            Err(InsomniaError::CorruptRecord("work lease invariants"))
+        ));
+
+        work.lease_token = Some(InsomniaLeaseToken([2; 32]));
+        assert!(matches!(
+            validate_work(&work),
+            Err(InsomniaError::CorruptRecord("work lease invariants"))
+        ));
+    }
+}
+
 pub(super) fn validate_receipt(r: &AcceptedCompletionState) -> Result<(), InsomniaError> {
     if r.attempt == 0
         || r.completed_at_ns < r.started_at_ns
