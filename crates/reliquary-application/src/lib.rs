@@ -1,8 +1,8 @@
 //! Typed application workflows over the domain owners.
 //!
 //! Native ingest preparation validates a caller-accepted Episode and exact
-//! source evidence before producing routed Memory proposals. Durable owner
-//! publication is deliberately not exposed while owner sessions are read-only.
+//! source evidence before producing routed Memory proposals and named durable
+//! owner publication workflows.
 
 use reliquary_insomnia::{
     EvidenceTurn, InsomniaCandidate, InsomniaExtraction, RawCandidate, validate_candidates,
@@ -15,7 +15,7 @@ mod conversation_workflow;
 mod dream_workflow;
 pub use conversation_workflow::{
     NativeConversationCommit, PublishedNativeTurn, commit_native_conversation_turn,
-    validate_native_conversation_commit,
+    finalize_native_episode, validate_native_conversation_commit,
 };
 mod entity_workflow;
 mod external_source_workflow;

@@ -4,7 +4,7 @@
 
 use reliquary_owner_session::{
     OwnerSessionError, RelWriter,
-    model::{Branch, TurnInput},
+    model::{Branch, EpisodeBoundary, EpisodeId, EpisodeOrigin, TurnInput},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -71,4 +71,87 @@ pub fn commit_native_conversation_turn(
         principal_id: node.principal_id,
         committed_timestamp_ns: node.timestamp_ns,
     })
+}
+
+/// Finalize an accepted native conversation range for durable Insomnia work.
+pub fn finalize_native_episode(
+    writer: &mut RelWriter,
+    conversation_id: &str,
+    start_node_id: &str,
+    end_node_id: &str,
+    boundary: EpisodeBoundary,
+    finalized_at_ns: i64,
+) -> Result<EpisodeId, OwnerSessionError> {
+    writer.finalize_episode(
+        conversation_id,
+        start_node_id,
+        end_node_id,
+        EpisodeOrigin::Live,
+        boundary,
+        finalized_at_ns,
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use reliquary_container::ReliquaryScope;
+    use reliquary_owner_session::GraphAdmission;
+    use std::{
+        fs,
+        path::PathBuf,
+        sync::atomic::{AtomicU64, Ordering},
+    };
+    static NEXT: AtomicU64 = AtomicU64::new(1);
+    struct Temp(PathBuf);
+    impl Temp {
+        fn new() -> Self {
+            let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".test-tmp");
+            fs::create_dir_all(&dir).unwrap();
+            Self(dir.join(format!(
+                "conversation-{}-{}.rel",
+                std::process::id(),
+                NEXT.fetch_add(1, Ordering::Relaxed)
+            )))
+        }
+    }
+    impl Drop for Temp {
+        fn drop(&mut self) {
+            let _ = fs::remove_file(&self.0);
+        }
+    }
+    #[test]
+    fn native_turn_to_episode_work_reopens_without_caller_admission() {
+        let path = Temp::new();
+        let owner = [0x69; 16];
+        let mut writer = RelWriter::create_path(&path.0, ReliquaryScope::Project, owner).unwrap();
+        let command = NativeConversationCommit {
+            node_id: "turn".into(),
+            conversation_id: "conversation".into(),
+            parent_node_id: None,
+            branch_id: "main".into(),
+            principal_id: "user".into(),
+            committed_timestamp_ns: 10,
+            content: "source evidence".into(),
+        };
+        commit_native_conversation_turn(&mut writer, command).unwrap();
+        let episode = finalize_native_episode(
+            &mut writer,
+            "conversation",
+            "turn",
+            "turn",
+            EpisodeBoundary::Explicit,
+            11,
+        )
+        .unwrap();
+        drop(writer);
+        let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+        let mut writer = RelWriter::open_path(&path.0, admission, [], []).unwrap();
+        let claim = writer
+            .claim_next_insomnia_input("worker", 12, 100, 1)
+            .unwrap()
+            .unwrap();
+        assert_eq!(claim.episode.id, episode);
+        assert_eq!(claim.turns[0].content, "source evidence");
+    }
 }

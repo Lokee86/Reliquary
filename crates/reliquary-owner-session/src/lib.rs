@@ -1,8 +1,8 @@
-//! Typed, read-only composition of the current REL and PHY owners.
+//! Typed composition and mutation authority for the current REL and PHY owners.
 //!
 //! The aggregate keeps individual stores private. Replayed graph endpoints,
-//! accepted episodes, and Dream first-cycle populations require explicit
-//! admissions supplied by their owning domains; no admissions are synthesized.
+//! accepted Episodes are derived from durable owners; Dream first-cycle
+//! populations still require externally supplied admission evidence.
 
 pub use reliquary_graph::GraphAdmission;
 pub use reliquary_insomnia_store::AcceptedEpisodeOrder;
