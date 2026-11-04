@@ -67,6 +67,29 @@ fn rel_replay_rejects_unsupported_publication_carriers_without_mutation() {
 }
 
 #[test]
+fn phy_rejects_wrapped_rel_only_records_without_mutation() {
+    for (body, time) in [
+        (b"RELTURN2".as_slice(), None),
+        (b"RELXMEM2".as_slice(), Some(3)),
+    ] {
+        let path = Temp::new();
+        let owner = [0x46; 16];
+        drop(PhyWriter::create_path(&path.0, owner).unwrap());
+        let mut container = Container::open_writer(&path.0).unwrap();
+        container.append_publication_envelope(body, time).unwrap();
+        container.sync().unwrap();
+        drop(container);
+        let before = fs::read(&path.0).unwrap();
+        let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+        assert!(matches!(
+            PhySession::open_path(&path.0, &admission, []),
+            Err(OwnerSessionError::RelOnlyRecordInPhylactery(_))
+        ));
+        assert_eq!(fs::read(&path.0).unwrap(), before);
+    }
+}
+
+#[test]
 fn phy_owner_rejects_rel_external_memory_record_without_mutation() {
     let path = Temp::new();
     let owner = [41; 16];

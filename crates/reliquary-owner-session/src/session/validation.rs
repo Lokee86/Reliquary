@@ -181,6 +181,25 @@ pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), Owner
             }
             length += count;
         }
+        if length == prefix.len() && prefix.starts_with(b"RELPUB") {
+            // An envelope needs at most 33 bytes to validate its header and
+            // inspect the complete eight-byte owner record marker.
+            let mut header = [0u8; 33];
+            header[..8].copy_from_slice(&prefix);
+            let mut used = 8;
+            while used < header.len() {
+                let count = frame
+                    .read(&mut header[used..])
+                    .map_err(ContainerError::Io)?;
+                if count == 0 {
+                    break;
+                }
+                used += count;
+            }
+            let envelope = reliquary_container::decode_publication(&header[..used])?
+                .ok_or_else(|| OwnerSessionError::Record("missing publication envelope".into()))?;
+            prefix.copy_from_slice(&envelope.body[..8]);
+        }
         if length == prefix.len() {
             for (marker, domain) in REL_ONLY {
                 if &prefix == marker {

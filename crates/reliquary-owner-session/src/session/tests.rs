@@ -415,6 +415,41 @@ fn rel_and_phy_replay_through_distinct_typed_aggregates() {
 }
 
 #[test]
+fn phy_private_history_and_clock_reopen_without_rel_or_principal() {
+    let rel_path = Temp::new();
+    let phy_path = Temp::new();
+    let owner = [0x39; 16];
+    drop(RelWriter::create_path(&rel_path.0, ReliquaryScope::Project, owner).unwrap());
+    drop(PhyWriter::create_path(&phy_path.0, owner).unwrap());
+    let identity = EgoIdentityId([0x18; 16]);
+    let mut phy = Container::open_writer(&phy_path.0).unwrap();
+    let mut ego = EgoStore::open(&phy).unwrap();
+    ego.create_identity(
+        &mut phy,
+        identity,
+        "private".into(),
+        "private owner fact".into(),
+    )
+    .unwrap();
+    phy.reserve_version(Some(5)).unwrap();
+    phy.sync().unwrap();
+    drop(ego);
+    drop(phy);
+    let graph = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let phy = PhySession::open_path(&phy_path.0, &graph, []).unwrap();
+    assert_eq!(
+        phy.ego_identity(identity).unwrap().text,
+        "private owner fact"
+    );
+    let rel = RelSession::open_path(&rel_path.0, &graph, [], []).unwrap();
+    assert!(rel.ego_identity(identity).is_none());
+    let phy_file = Container::open_read_only(&phy_path.0).unwrap();
+    let rel_file = Container::open_read_only(&rel_path.0).unwrap();
+    assert_eq!(phy_file.latest_version(), 1);
+    assert_eq!(rel_file.latest_version(), 0);
+}
+
+#[test]
 fn phy_rejects_rel_only_record_families_without_mutation() {
     for marker in [
         b"RELTURN2",
