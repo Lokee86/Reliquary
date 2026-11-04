@@ -553,16 +553,11 @@ impl CommunityStore {
                 return Err(GraphError::InvalidCommunity("community identity"));
             }
         }
-        if snapshot.graph_version == graph.graph_version && seen != closure {
+        if seen != closure {
             return Err(GraphError::InvalidCommunity(
-                "current snapshot does not cover active graph memory closure",
+                "snapshot does not cover active graph memory closure",
             ));
         };
-        if !seen.is_subset(&closure) {
-            return Err(GraphError::InvalidCommunity(
-                "snapshot contains memory outside its graph version",
-            ));
-        }
         Ok(())
     }
 }
@@ -970,5 +965,59 @@ mod tests {
             communities.current().unwrap().communities[0].members,
             vec![m1, m2]
         );
+    }
+
+    #[test]
+    fn historical_community_snapshot_must_cover_its_graph_version_closure() {
+        let path = Temp::new();
+        let m1 = [1; 32];
+        let m2 = [2; 32];
+        let m3 = [3; 32];
+        let mut c = container(&path.0, 5);
+        let owner = c.owner_id();
+        let admission = GraphAdmission::for_changes(owner, [m1, m2, m3], []);
+        let mut graph = GraphStore::open(&c, &admission).unwrap();
+        graph
+            .put(
+                &mut c,
+                &admission,
+                &[RelationChange {
+                    source: NodeRef::Memory(m1),
+                    target: NodeRef::Memory(m2),
+                    kind: RelationKind::References,
+                    active: true,
+                    origin: RelationOrigin::User,
+                }],
+            )
+            .unwrap();
+        let mut communities = CommunityStore::open(&c, &graph).unwrap();
+        graph
+            .put(
+                &mut c,
+                &admission,
+                &[RelationChange {
+                    source: NodeRef::Memory(m2),
+                    target: NodeRef::Memory(m3),
+                    kind: RelationKind::References,
+                    active: true,
+                    origin: RelationOrigin::User,
+                }],
+            )
+            .unwrap();
+
+        let before = c.read_frames().unwrap().len();
+        let incomplete = CommunitySnapshot {
+            generation: 1,
+            graph_version: 1,
+            communities: vec![Community {
+                id: community_id(owner, &[m1]),
+                members: vec![m1],
+            }],
+        };
+        assert!(matches!(
+            communities.publish(&mut c, &graph, incomplete),
+            Err(GraphError::InvalidCommunity(_))
+        ));
+        assert_eq!(c.read_frames().unwrap().len(), before);
     }
 }
