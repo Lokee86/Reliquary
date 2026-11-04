@@ -1280,6 +1280,36 @@ fn compact_dream_uses_direct_birth_intent_and_recorded_global_order() {
             true,
         )
         .unwrap();
+    let mut imports = crate::records::ImportEpochStore::open(&container).unwrap();
+    let key = "cd".repeat(32);
+    let start = crate::records::ImportStart {
+        owner_uuid: owner,
+        import_id: crate::records::import_id(owner, &key),
+        import_key: key,
+        source_namespace: "source/account".into(),
+        source_format: "json-v1".into(),
+        started_at_ns: 1,
+        pre: crate::records::ImportWatermarks {
+            memory_version: 3,
+            ..Default::default()
+        },
+    };
+    imports.append_start(&mut container, start.clone()).unwrap();
+    use sha2::{Digest, Sha256};
+    imports
+        .append_complete(
+            &mut container,
+            crate::records::ImportComplete {
+                owner_uuid: owner,
+                import_id: start.import_id.clone(),
+                start_digest: format!("{:x}", Sha256::digest(serde_json::to_vec(&start).unwrap())),
+                receipt_digest: "receipt-v1".into(),
+                completed_at_ns: 2,
+                post: start.pre,
+                historical_freshness_settlement_digest: "settled-v1".into(),
+            },
+        )
+        .unwrap();
     let population = BTreeSet::from([earlier.id]);
     let admission = crate::DreamBeginAdmission {
         owner_uuid: owner,
@@ -1314,6 +1344,45 @@ fn compact_dream_uses_direct_birth_intent_and_recorded_global_order() {
     let reopened = Container::open_read_only(&path.0).unwrap();
     let graph = reliquary_graph::GraphAdmission::for_replay(owner, [], [], [], [], []);
     assert!(crate::RelSession::open(&reopened, &graph, [], [admission.clone()]).is_ok());
+    let open_import_path = Temp::new();
+    let mut open_import = Container::create(
+        &open_import_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    for frame in &frames {
+        if !frame.payload.starts_with(b"RELIEPC1") {
+            open_import.append(&frame.payload).unwrap();
+        }
+    }
+    assert!(matches!(
+        crate::session::dream_prefix::validate_compact_dream_prefix(&open_import, &[admission.clone()]),
+        Err(crate::OwnerSessionError::Record(message)) if message.contains("fenced by an open import epoch")
+    ));
+    let changed_cut_path = Temp::new();
+    let mut changed_cut = Container::create(
+        &changed_cut_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    let import_start = frames
+        .iter()
+        .find(|frame| frame.payload.starts_with(b"RELIEPS1"))
+        .unwrap();
+    for frame in &frames {
+        if frame.payload.starts_with(b"RELMTMB1") {
+            changed_cut.append(&import_start.payload).unwrap();
+        }
+        if !frame.payload.starts_with(b"RELIEPS1") {
+            changed_cut.append(&frame.payload).unwrap();
+        }
+    }
+    assert!(matches!(
+        crate::session::dream_prefix::validate_compact_dream_prefix(&changed_cut, &[admission.clone()]),
+        Err(crate::OwnerSessionError::Record(message)) if message.contains("unsupported birth-prefix proof")
+    ));
     let wrong_clock_path = Temp::new();
     let mut wrong_clock = Container::create(
         &wrong_clock_path.0,

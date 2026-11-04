@@ -15,6 +15,24 @@ pub struct ImportEpochStore {
 }
 
 impl ImportEpochStore {
+    pub(crate) fn prefix(owner: [u8; 16]) -> Self {
+        Self {
+            owner: Some(owner),
+            ..Self::default()
+        }
+    }
+
+    /// Replay one physical epoch marker into a bounded prefix projection.
+    pub(crate) fn ingest_prefix(&mut self, payload: &[u8]) -> Result<(), String> {
+        if payload.starts_with(START_MAGIC) {
+            self.ingest_start(decode(payload, START_MAGIC)?)
+        } else if payload.starts_with(COMPLETE_MAGIC) {
+            self.ingest_complete(decode(payload, COMPLETE_MAGIC)?)
+        } else {
+            Err("unsupported import epoch marker".into())
+        }
+    }
+
     pub fn open(container: &Container) -> Result<Self, String> {
         let owner = container.owner_id();
         let mut store = Self {

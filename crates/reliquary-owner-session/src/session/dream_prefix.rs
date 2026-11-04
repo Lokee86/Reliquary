@@ -29,6 +29,8 @@ pub(crate) fn validate_compact_dream_prefix(
     let mut cohort = 0u64;
     let mut graph_head = 0u64;
     let mut direct = DirectBirthPrefix::new(container.owner_id());
+    let mut imports = ImportEpochStore::prefix(container.owner_id());
+    let mut import_head = None;
     let mut unsupported = false;
     let mut cursor = container.physical_cursor()?;
     while let Some(mut frame) = cursor.next_frame()? {
@@ -54,11 +56,12 @@ pub(crate) fn validate_compact_dream_prefix(
             unsupported = true;
             continue;
         }
-        if (magic.starts_with(b"RELFRS") && magic != *b"RELFRS02") || magic.starts_with(b"RELIEP") {
+        if magic.starts_with(b"RELFRS") && magic != *b"RELFRS02" {
             unsupported = true;
         } else if magic == *b"RELMDLT1"
             || magic == *b"RELMTMB1"
             || magic == *b"RELFRS02"
+            || magic.starts_with(b"RELIEP")
             || magic == *b"RELINSC7"
             || magic == *b"CVDREAM2"
             || magic == *b"RELGRF01"
@@ -78,6 +81,29 @@ pub(crate) fn validate_compact_dream_prefix(
             if magic == *b"RELFRS02" {
                 reliquary_freshness_store::validate_journal_frame(&payload, container.owner_id())
                     .map_err(OwnerSessionError::Record)?;
+                continue;
+            }
+            if magic.starts_with(b"RELIEP") {
+                let prior = imports.open_epoch().cloned();
+                imports
+                    .ingest_prefix(&payload)
+                    .map_err(OwnerSessionError::Record)?;
+                if let Some(start) = imports.open_epoch() {
+                    if start.pre.memory_version != head {
+                        unsupported = true;
+                    }
+                    import_head = Some(head);
+                } else if let Some(start) = prior {
+                    let completed = imports.status(&start.import_id).ok_or_else(|| {
+                        OwnerSessionError::Record("import completion missing from prefix".into())
+                    })?;
+                    if let ImportEpochStatus::Completed { complete, .. } = completed {
+                        if import_head != Some(head) || complete.post.memory_version != head {
+                            unsupported = true;
+                        }
+                    }
+                    import_head = None;
+                }
                 continue;
             }
             if magic == *b"RELMDLT1" || magic == *b"RELMTMB1" {
@@ -203,6 +229,11 @@ pub(crate) fn validate_compact_dream_prefix(
             let BeginPopulation::CompactCut { memory_cut, digest } = begin.population else {
                 continue;
             };
+            if imports.open_epoch().is_some() {
+                return Err(OwnerSessionError::Record(
+                    "Dream compact population is fenced by an open import epoch".into(),
+                ));
+            }
             if unsupported {
                 return Err(OwnerSessionError::Record(
                     "Dream compact population requires unsupported birth-prefix proof".into(),
