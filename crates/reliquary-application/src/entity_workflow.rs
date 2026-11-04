@@ -51,6 +51,28 @@ impl EntityOwnerSession<'_> {
         }
     }
 
+    pub(crate) fn memory_ids_page(
+        &self,
+        after: Option<MemoryId>,
+        limit: usize,
+    ) -> Result<(u64, Vec<MemoryId>), OwnerSessionError> {
+        match self {
+            Self::Rel(session) => session.memory_ids_page(after, limit),
+            Self::Phy(session) => session.memory_ids_page(after, limit),
+        }
+    }
+
+    pub(crate) fn memory_vector_row(
+        &self,
+        profile: CompatibilityProfileId,
+        body: MemoryBodyId,
+    ) -> Result<Option<Vec<f32>>, OwnerSessionError> {
+        match self {
+            Self::Rel(session) => session.memory_vector_row(profile, body),
+            Self::Phy(session) => session.memory_vector_row(profile, body),
+        }
+    }
+
     pub(crate) fn graph_relation(
         &self,
         source: NodeRef,

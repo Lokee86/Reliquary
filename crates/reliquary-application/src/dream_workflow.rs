@@ -33,6 +33,9 @@ pub enum DreamWorkflowError {
     MemoryUnavailable(MemoryId),
     MemoryTombstoned(MemoryId),
     MemoryBodyUnavailable(MemoryId),
+    MissingSourceVector,
+    InvalidVector(String),
+    TemporalInferenceUnavailable,
     Classifier(String),
     Verifier(String),
     StaleSnapshot,
@@ -48,6 +51,11 @@ impl fmt::Display for DreamWorkflowError {
             Self::MemoryUnavailable(id) => write!(f, "Memory {id:?} is unavailable in owner"),
             Self::MemoryTombstoned(id) => write!(f, "Memory {id:?} is tombstoned"),
             Self::MemoryBodyUnavailable(id) => write!(f, "Memory {id:?} body is unavailable"),
+            Self::MissingSourceVector => f.write_str("Dream source embedding is unavailable"),
+            Self::InvalidVector(error) => write!(f, "Dream vector is invalid: {error}"),
+            Self::TemporalInferenceUnavailable => {
+                f.write_str("Dream temporal inference is not yet supported")
+            }
             Self::Classifier(error) => write!(f, "Dream classification failed: {error}"),
             Self::Verifier(error) => write!(f, "Dream verification failed: {error}"),
             Self::StaleSnapshot => f.write_str("Dream proposal no longer matches owner state"),
@@ -520,6 +528,175 @@ mod tests {
         let session = PhySession::open_path(&path.0, &admission, []).unwrap();
         assert_ne!(unrelated, a);
         (path, session, owner_id, a, b)
+    }
+
+    fn dream_test_profile() -> reliquary_vector_store::CompatibilityProfile {
+        use reliquary_vector_store::{
+            CompatibilityProbeReference, EmbeddingMode, VectorNormalization,
+        };
+        let mut profile = reliquary_vector_store::CompatibilityProfile {
+            id: reliquary_vector_store::CompatibilityProfileId([0; 32]),
+            dimensions: 2,
+            normalization: VectorNormalization::L2,
+            probe_suite_version: 1,
+            compatibility_policy_version: 2,
+            references: [
+                EmbeddingMode::Query,
+                EmbeddingMode::Query,
+                EmbeddingMode::Document,
+                EmbeddingMode::Document,
+            ]
+            .into_iter()
+            .map(|mode| CompatibilityProbeReference {
+                mode,
+                vector: vec![1.0, 0.0],
+            })
+            .collect(),
+        };
+        profile.id = reliquary_vector_store::profile::compatibility_profile_id(&profile);
+        profile
+    }
+
+    #[test]
+    fn owner_candidate_ranking_uses_profile_vectors_and_pair_history() {
+        use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
+        use reliquary_vector_store::AcceptedMemoryMapping;
+        let (path, session, owner_id, source, candidate) = owner();
+        let (_, ids) = session.memory_ids_page(None, 128).unwrap();
+        let unrelated = *ids
+            .iter()
+            .find(|id| **id != source && **id != candidate)
+            .unwrap();
+        drop(session);
+        let mut container = Container::open_writer(&path.0).unwrap();
+        let memories = MemoryStore::open(&container).unwrap();
+        let bodies = [source, candidate, unrelated]
+            .map(|id| memories.history(id).unwrap().revisions[0].record.body_id);
+        let mut packed = PackedVectorStore::open(&container).unwrap();
+        let values = [1.0f32, 0.0, 0.8, 0.6, 0.0, 1.0];
+        let vector = PackedVectors::from_bytes(
+            VectorSchema::new(2, ScalarType::F32).unwrap(),
+            values.into_iter().flat_map(f32::to_le_bytes).collect(),
+        )
+        .unwrap();
+        let packed_id = packed.put(&mut container, vector).unwrap();
+        let mut profiles = CompatibilityProfileStore::open(&container).unwrap();
+        let profile = dream_test_profile();
+        profiles.put(&mut container, profile.clone()).unwrap();
+        let mut vectors = MemoryVectorStore::open(&container, &packed, &profiles).unwrap();
+        vectors
+            .put(
+                &mut container,
+                &packed,
+                &profiles,
+                AcceptedMemoryMapping {
+                    profile: profile.id,
+                    packed: packed_id,
+                    packed_rows: 3,
+                    body_ids: bodies
+                        .into_iter()
+                        .map(|body| reliquary_vector_store::MemoryBodyId(body.0))
+                        .collect(),
+                },
+            )
+            .unwrap();
+        container.sync().unwrap();
+        drop(container);
+        let admission = GraphAdmission::for_replay(owner_id, [], [], [], [], []);
+        let session = PhySession::open_path(&path.0, &admission, []).unwrap();
+        let before = fs::read(&path.0).unwrap();
+        let selection = crate::ranked_owner_dream_candidates(
+            &EntityOwnerSession::Phy(&session),
+            owner_id,
+            source,
+            profile.id,
+            reliquary_dream::DreamCandidateConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(selection.first(), Some(&candidate));
+        assert!(selection.contains(&unrelated));
+        let endpoint = RecordingEndpoint::default();
+        let config = reliquary_dream::DreamCandidateConfig {
+            limit: 1,
+            prior_semantic_quota: 0,
+            ..Default::default()
+        };
+        let proposal = crate::draft_ranked_dream_organization(
+            &EntityOwnerSession::Phy(&session),
+            owner_id,
+            source,
+            profile.id,
+            config,
+            &DreamClassifier::new(endpoint.clone()),
+            None::<&DreamVerifier<RecordingEndpoint>>,
+            DreamVerificationPolicy::default(),
+        )
+        .unwrap();
+        assert_eq!(proposal.classifications.len(), 1);
+        assert!(
+            proposal.classifications[0].a == candidate
+                || proposal.classifications[0].b == candidate
+        );
+        assert_eq!(endpoint.0.lock().unwrap().len(), 1);
+        assert_eq!(fs::read(&path.0).unwrap(), before);
+        drop(session);
+        let mut writer =
+            reliquary_owner_session::PhyWriter::open_path(&path.0, &admission, []).unwrap();
+        writer.record_dream_pair(source, candidate).unwrap();
+        drop(writer);
+        let session = PhySession::open_path(&path.0, &admission, []).unwrap();
+        let selection = crate::ranked_owner_dream_candidates(
+            &EntityOwnerSession::Phy(&session),
+            owner_id,
+            source,
+            profile.id,
+            reliquary_dream::DreamCandidateConfig::default(),
+        )
+        .unwrap();
+        assert!(!selection.contains(&candidate));
+    }
+
+    #[test]
+    fn owner_ranked_candidates_reject_mismatched_authority_without_access() {
+        let (path, session, owner_id, source, _) = owner();
+        let bytes = fs::read(&path.0).unwrap();
+        assert_eq!(
+            crate::ranked_owner_dream_candidates(
+                &EntityOwnerSession::Phy(&session),
+                [owner_id[0].wrapping_add(1); 16],
+                source,
+                reliquary_owner_session::model::CompatibilityProfileId([0; 32]),
+                reliquary_dream::DreamCandidateConfig::default(),
+            ),
+            Err(DreamWorkflowError::OwnerMismatch)
+        );
+        assert_eq!(fs::read(&path.0).unwrap(), bytes);
+    }
+
+    #[test]
+    fn owner_ranked_candidates_require_a_retained_source_embedding() {
+        let (path, session, owner_id, source, _) = owner();
+        drop(session);
+        let mut container = Container::open_writer(&path.0).unwrap();
+        let mut profiles = CompatibilityProfileStore::open(&container).unwrap();
+        let profile = dream_test_profile();
+        profiles.put(&mut container, profile.clone()).unwrap();
+        container.sync().unwrap();
+        drop(container);
+        let admission = GraphAdmission::for_replay(owner_id, [], [], [], [], []);
+        let session = PhySession::open_path(&path.0, &admission, []).unwrap();
+        let bytes = fs::read(&path.0).unwrap();
+        assert_eq!(
+            crate::ranked_owner_dream_candidates(
+                &EntityOwnerSession::Phy(&session),
+                owner_id,
+                source,
+                profile.id,
+                reliquary_dream::DreamCandidateConfig::default(),
+            ),
+            Err(DreamWorkflowError::MissingSourceVector)
+        );
+        assert_eq!(fs::read(&path.0).unwrap(), bytes);
     }
 
     #[test]

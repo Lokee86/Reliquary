@@ -10,3 +10,11 @@
 - **S08 remains in progress:** Git and default-feature Lore tests pass, including exact historical bytes and project scope. The current evidence does not yet establish end-to-end source-authorized correlation admission into REL.
 
 G2 remains unaccepted. Native routing, Dream, Entity, Retrieval, vector/context, import/history and external-source vertical workflows retain their own acceptance criteria.
+
+## S03 owner-backed Dream ranking checkpoint — 2026-11-04
+
+The owner-backed Dream candidate preparation slice now runs through a named, read-only Application workflow. It pages the authorized REL/PHY owner for current Memory identities, reads their retained bodies and profile-qualified vector rows, excludes archived, already-related, tombstoned and previously evaluated candidates, ranks semantic/lexical/temporal lanes with the selected Dream ranking policy, and produces bounded classified proposals without writing owner state. The positive PHY integration test verifies ordered candidates, model-call selection, read-only preparation and the durable evaluated-pair exclusion after reopen. Negative tests reject mismatched caller owner before reads and distinguish a registered profile with no source embedding from an unregistered profile. The earlier pending Dream/Entity workflow changes and test-only vector fixture dependency are retained rather than replaced.
+
+**Verification:** focused Dream workflow tests 8/8; locked offline workspace tests **381 passed, 0 failed** (including doctests); locked workspace check, Rust formatting and `python scripts/check_architecture.py` all passed. The approved graph remains 23 production packages and 76 edges.
+
+**S03 still in progress:** Ranked owner candidate preparation currently materializes eligible Memory candidates while paging the entire owner; a bounded retrieval strategy must be verified for large owners before claiming production-scale candidate preparation. Stored model-derived temporal inference is explicitly rejected rather than silently misinterpreted; full time semantics and error policy need a supported implementation. Atomic owner publication of verified Dream decisions and the full end-to-end S03 acceptance are not established by this read-only slice. **Do not mark S03 or G2 complete on the basis of this checkpoint.**

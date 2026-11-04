@@ -12,6 +12,7 @@ use reliquary_owner_session::{OwnerSessionError, RelSession};
 use std::{collections::HashSet, fmt};
 
 mod conversation_workflow;
+mod dream_candidates;
 mod dream_workflow;
 pub use conversation_workflow::{
     NativeConversationCommit, PublishedNativeTurn, commit_native_conversation_turn,
@@ -25,6 +26,7 @@ mod maintenance_workflow;
 mod retrieval_workflow;
 mod vector_workflow;
 mod verified_copy_workflow;
+pub use dream_candidates::{draft_ranked_dream_organization, ranked_owner_dream_candidates};
 pub use dream_workflow::{
     DreamOrganizationDraft, DreamWorkflowError, MAX_DREAM_CANDIDATES, draft_dream_organization,
 };
