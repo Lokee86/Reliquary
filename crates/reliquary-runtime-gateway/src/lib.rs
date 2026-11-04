@@ -3,13 +3,18 @@
 //! Gateway owns the mounted-session registry. Instances carry immutable PHY
 //! grants and never own or clone mutable domain stores.
 
+use reliquary_application::{
+    PreparedIngest, prepare_routed_user_memory,
+};
 use reliquary_owner_session::{
     AcceptedEpisodeOrder, CompletionCheck, GraphAdmission, InsomniaLeaseToken, OwnerSessionError,
-    PhySession, RelSession, RelWriter,
-    records::{DreamBeginAdmission, GroupedInsomniaCompletion},
+    PhySession, PhyWriter, RelSession, RelWriter, RoutedUserMemoryProof,
+    records::{DreamBeginAdmission, GroupedExternalMemoryRef, GroupedInsomniaCompletion},
 };
+use uuid::Uuid;
 
 mod conversation_queue;
+mod generation_stream;
 use conversation_queue::ArchiveCommitProof;
 pub use conversation_queue::{
     ArchiveReceipt, ConversationQueue, ConversationSubmissionId, DurableGeneration,
@@ -17,6 +22,10 @@ pub use conversation_queue::{
     DurableHostOperationPhase, EnqueueOutcome, FinalizeCapture, GenerationReplay, HandoffReceipt,
     HostCancelOutcome, HostOperationStatus, QueueError, QueueState, QueuedSubmission,
     RuntimeCapability, SubmissionId, SubmissionStatus,
+};
+pub use generation_stream::{
+    GenerationStreamDelivery, GenerationStreamEvent, GenerationStreamPayload,
+    GenerationStreamSnapshot, GenerationStreamSubscription,
 };
 use std::{
     collections::{BTreeSet, HashMap},
@@ -69,6 +78,8 @@ pub enum GatewayError {
     InvalidCredential,
     DuplicateCredential,
     CredentialRevoked,
+    InvalidGenerationSubscription,
+    RoutedMemory(String),
     RegistryPoisoned,
     WriterUnavailable,
 }
@@ -107,6 +118,10 @@ impl fmt::Display for GatewayError {
             Self::InvalidCredential => f.write_str("credential is invalid"),
             Self::DuplicateCredential => f.write_str("credential is already configured"),
             Self::CredentialRevoked => f.write_str("credential has been revoked"),
+            Self::InvalidGenerationSubscription => {
+                f.write_str("generation subscription belongs to another instance or stream")
+            }
+            Self::RoutedMemory(reason) => write!(f, "routed user Memory failed: {reason}"),
             Self::RegistryPoisoned => f.write_str("gateway owner registry is unavailable"),
             Self::WriterUnavailable => f.write_str("owner writer session is unavailable"),
         }
@@ -129,9 +144,17 @@ enum MountedOwner {
     Rel(Arc<RelSession>),
     RelWriter(Arc<MountedRelWriter>),
     Phy(Arc<PhySession>),
+    PhyWriter(Arc<MountedPhyWriter>),
 }
 struct MountedRelWriter {
     writer: std::sync::Mutex<RelWriter>,
+}
+struct MountedPhyWriter {
+    writer: std::sync::Mutex<PhyWriter>,
+}
+enum RoutedSource {
+    Snapshot(Arc<RelSession>),
+    Writer(Arc<MountedRelWriter>),
 }
 impl MountedOwner {
     fn is_rel(&self) -> bool {
@@ -209,6 +232,26 @@ impl Gateway {
         Ok(owner)
     }
 
+    /// Mount a PHY with one owner-local writer lease for authenticated routed
+    /// user Memory. General mutation stays inside owner-session.
+    pub fn mount_writable_phylactery(
+        &self,
+        path: impl AsRef<Path>,
+        graph_admission: &GraphAdmission,
+        dream_admissions: impl IntoIterator<Item = DreamBeginAdmission>,
+    ) -> Result<OwnerId, GatewayError> {
+        let writer = PhyWriter::open_path(path, graph_admission, dream_admissions)?;
+        let owner = OwnerId(writer.owner_id());
+        self.check_admission(owner, graph_admission)?;
+        self.insert(
+            owner,
+            MountedOwner::PhyWriter(Arc::new(MountedPhyWriter {
+                writer: std::sync::Mutex::new(writer),
+            })),
+        )?;
+        Ok(owner)
+    }
+
     /// Private construction path used only after trusted host authentication.
     #[allow(dead_code)]
     pub(crate) fn instance(
@@ -235,6 +278,7 @@ impl Gateway {
         Ok(Instance {
             owners: Arc::clone(&self.owners),
             principal: Arc::from(principal),
+            instance_id: Uuid::new_v4(),
             rel_grants: Arc::new(rel_grants),
             phy_grants: Arc::new(phy_grants),
             credential_active,
@@ -311,6 +355,58 @@ fn validate_principal(principal: &str) -> Result<(), GatewayError> {
     } else {
         Ok(())
     }
+}
+
+fn route_user_proofs(
+    rel: &RelSession,
+    destination: &PhyWriter,
+    prepared: &PreparedIngest,
+    principal: &str,
+) -> Result<Vec<RoutedUserMemoryProof>, GatewayError> {
+    if rel.owner_id() != prepared.owner_id() {
+        return Err(GatewayError::RoutedMemory(
+            "prepared ingest does not belong to the mounted REL".into(),
+        ));
+    }
+    let episode = rel
+        .episode(prepared.episode_id())
+        .ok_or_else(|| GatewayError::RoutedMemory("prepared Episode is unavailable".into()))?;
+    if episode.conversation_id != prepared.conversation_id() {
+        return Err(GatewayError::RoutedMemory(
+            "prepared Episode conversation differs from Archive".into(),
+        ));
+    }
+    let mut proofs = Vec::with_capacity(prepared.user_memories().count());
+    for candidate in prepared.user_memories() {
+        let source_turn = rel
+            .resolved_archive_turn(prepared.conversation_id(), &candidate.source_node_id)?
+            .ok_or_else(|| {
+                GatewayError::RoutedMemory("user Memory source turn is unavailable".into())
+            })?;
+        let (draft, _) = prepare_routed_user_memory(
+            prepared,
+            candidate,
+            &source_turn,
+            principal,
+        )
+        .map_err(|error| GatewayError::RoutedMemory(error.to_string()))?;
+        proofs.push(rel.prove_routed_user_memory(
+            destination,
+            &draft,
+            &candidate.source_quote,
+        )?);
+    }
+    Ok(proofs)
+}
+
+fn hex(bytes: &[u8]) -> String {
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    let mut output = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        output.push(DIGITS[usize::from(byte >> 4)] as char);
+        output.push(DIGITS[usize::from(byte & 0x0f)] as char);
+    }
+    output
 }
 
 /// One trusted host-side credential-to-grant configuration entry.
@@ -458,6 +554,7 @@ impl HostAdmissionAdapter {
 pub struct Instance {
     owners: Arc<RwLock<HashMap<OwnerId, MountedOwner>>>,
     principal: Arc<str>,
+    instance_id: Uuid,
     rel_grants: Arc<BTreeSet<OwnerId>>,
     phy_grants: Arc<BTreeSet<OwnerId>>,
     credential_active: Option<Arc<AtomicBool>>,
@@ -465,6 +562,119 @@ pub struct Instance {
 impl Instance {
     pub fn principal(&self) -> &str {
         &self.principal
+    }
+
+    /// Attempt routed publication through this Instance's exact REL and PHY
+    /// grants. The owner-session boundary currently rejects publication until
+    /// semantic candidate evidence can be sealed across the application API.
+    pub fn publish_user_owned_ingest(
+        &self,
+        source_rel_owner: OwnerId,
+        destination_phy_owner: OwnerId,
+        prepared: &PreparedIngest,
+    ) -> Result<Vec<GroupedExternalMemoryRef>, GatewayError> {
+        self.authorize_routed_owners(source_rel_owner, destination_phy_owner)?;
+        if prepared.owner_id() != source_rel_owner.as_bytes() {
+            return Err(GatewayError::RoutedMemory(
+                "prepared ingest source owner differs from its REL grant".into(),
+            ));
+        }
+        let (source, destination) = {
+            let owners = self
+                .owners
+                .read()
+                .map_err(|_| GatewayError::RegistryPoisoned)?;
+            let source = match owners.get(&source_rel_owner) {
+                Some(MountedOwner::Rel(session)) => RoutedSource::Snapshot(Arc::clone(session)),
+                Some(MountedOwner::RelWriter(writer)) => {
+                    RoutedSource::Writer(Arc::clone(writer))
+                }
+                Some(_) => return Err(GatewayError::WrongOwnerKind(source_rel_owner)),
+                None => return Err(GatewayError::UnknownOwner(source_rel_owner)),
+            };
+            let destination = match owners.get(&destination_phy_owner) {
+                Some(MountedOwner::PhyWriter(writer)) => Arc::clone(writer),
+                Some(MountedOwner::Phy(_)) => return Err(GatewayError::WriterUnavailable),
+                Some(_) => return Err(GatewayError::WrongOwnerKind(destination_phy_owner)),
+                None => return Err(GatewayError::UnknownOwner(destination_phy_owner)),
+            };
+            (source, destination)
+        };
+
+        let mut destination = destination
+            .writer
+            .lock()
+            .map_err(|_| GatewayError::RegistryPoisoned)?;
+        let proofs = match source {
+            RoutedSource::Snapshot(session) => route_user_proofs(
+                &session,
+                &destination,
+                prepared,
+                &self.principal,
+            )?,
+            RoutedSource::Writer(writer) => {
+                let writer = writer
+                    .writer
+                    .lock()
+                    .map_err(|_| GatewayError::RegistryPoisoned)?;
+                route_user_proofs(
+                    writer.read_session(),
+                    &destination,
+                    prepared,
+                    &self.principal,
+                )?
+            }
+        };
+        self.authorize_routed_owners(source_rel_owner, destination_phy_owner)?;
+        let destination_id = hex(&destination_phy_owner.0);
+        let mut refs = Vec::with_capacity(proofs.len());
+        let mut seen = BTreeSet::new();
+        for proof in proofs {
+            self.authorize_routed_owners(source_rel_owner, destination_phy_owner)?;
+            let revision = destination.publish_routed_user_memory(proof)?;
+            let id = revision.record.id.0;
+            if !seen.insert(id) {
+                return Err(GatewayError::RoutedMemory(
+                    "duplicate routed Memory identity".into(),
+                ));
+            }
+            let source = revision.record.source_ref.as_ref().ok_or_else(|| {
+                GatewayError::RoutedMemory("PHY revision lost source proof".into())
+            })?;
+            if source.owner_id != hex(&source_rel_owner.0)
+                || source.principal_id.as_deref() != Some(self.principal.as_ref())
+            {
+                return Err(GatewayError::RoutedMemory(
+                    "published PHY revision differs from the active source grant".into(),
+                ));
+            }
+            refs.push(GroupedExternalMemoryRef {
+                owner_id: destination_id.clone(),
+                memory_id: id,
+            });
+        }
+        Ok(refs)
+    }
+
+    fn authorize_routed_owners(
+        &self,
+        source_rel_owner: OwnerId,
+        destination_phy_owner: OwnerId,
+    ) -> Result<(), GatewayError> {
+        self.ensure_credential_active()?;
+        if !self.rel_grants.contains(&source_rel_owner) {
+            return Err(GatewayError::UnauthorizedRel {
+                principal: self.principal.to_string(),
+                owner: source_rel_owner,
+            });
+        }
+        if !self.phy_grants.contains(&destination_phy_owner) {
+            return Err(GatewayError::UnauthorizedPhy {
+                principal: self.principal.to_string(),
+                owner: destination_phy_owner,
+            });
+        }
+        Ok(())
     }
 
     /// Admit a provisional user submission using only this Instance's verified
@@ -683,6 +893,7 @@ impl Instance {
             Some(MountedOwner::Rel(session)) => Ok(Arc::clone(session)),
             Some(MountedOwner::RelWriter(_)) => Err(GatewayError::WriterUnavailable),
             Some(MountedOwner::Phy(_)) => Err(GatewayError::WrongOwnerKind(owner)),
+            Some(MountedOwner::PhyWriter(_)) => Err(GatewayError::WrongOwnerKind(owner)),
         }
     }
 
@@ -710,6 +921,7 @@ impl Instance {
                 Some(MountedOwner::RelWriter(writer)) => Arc::clone(writer),
                 Some(MountedOwner::Rel(_)) => return Err(GatewayError::WriterUnavailable),
                 Some(MountedOwner::Phy(_)) => return Err(GatewayError::WrongOwnerKind(owner)),
+                Some(MountedOwner::PhyWriter(_)) => return Err(GatewayError::WrongOwnerKind(owner)),
             }
         };
         let writer = mounted
@@ -744,6 +956,7 @@ impl Instance {
                 Some(MountedOwner::RelWriter(writer)) => Arc::clone(writer),
                 Some(MountedOwner::Rel(_)) => return Err(GatewayError::WriterUnavailable),
                 Some(MountedOwner::Phy(_)) => return Err(GatewayError::WrongOwnerKind(owner)),
+                Some(MountedOwner::PhyWriter(_)) => return Err(GatewayError::WrongOwnerKind(owner)),
             }
         };
         let mut writer = mounted
@@ -770,6 +983,7 @@ impl Instance {
             Some(MountedOwner::Phy(session)) => Ok(Arc::clone(session)),
             Some(MountedOwner::Rel(_)) => Err(GatewayError::WrongOwnerKind(owner)),
             Some(MountedOwner::RelWriter(_)) => Err(GatewayError::WrongOwnerKind(owner)),
+            Some(MountedOwner::PhyWriter(_)) => Err(GatewayError::WriterUnavailable),
         }
     }
 

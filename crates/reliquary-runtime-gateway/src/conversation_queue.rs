@@ -239,7 +239,28 @@ pub struct DurableGeneration {
     pub started_timestamp_ns: i64,
     pub phase: DurableGenerationPhase,
     pub transition_revision: u64,
+    /// Per-generation stream position for checkpoint and status delivery.
+    #[serde(default)]
+    pub stream_cursor: u64,
     pub checkpoint: Option<DurableGenerationCheckpoint>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub(crate) struct GenerationStreamRecord {
+    pub cursor: u64,
+    pub phase: DurableGenerationPhase,
+    pub checkpoint: Option<DurableGenerationCheckpoint>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum GenerationEventReplay {
+    Events {
+        latest_cursor: u64,
+        items: Vec<GenerationStreamRecord>,
+    },
+    ResyncRequired {
+        latest_cursor: u64,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -346,6 +367,7 @@ struct Entry {
     host_operations: BTreeMap<RuntimeCapability, DurableHostOperation>,
     generation: Option<DurableGeneration>,
     checkpoint_history: VecDeque<DurableGenerationCheckpoint>,
+    generation_event_history: VecDeque<GenerationStreamRecord>,
 }
 impl Entry {
     fn status(&self) -> SubmissionStatus {
@@ -416,6 +438,7 @@ impl Projection {
                         host_operations: BTreeMap::new(),
                         generation: None,
                         checkpoint_history: VecDeque::new(),
+                        generation_event_history: VecDeque::new(),
                     },
                 );
             }
@@ -514,12 +537,27 @@ impl Projection {
                     .ok_or(QueueError::Corrupt("missing generation target"))?;
                 let new_checkpoint =
                     validate_generation_update(entry.generation.as_ref(), generation)?;
-                if let Some(checkpoint) = new_checkpoint {
+                if let Some(checkpoint) = new_checkpoint.clone() {
                     entry.checkpoint_history.push_back(checkpoint);
                     while entry.checkpoint_history.len() > MAX_REPLAY_CHECKPOINTS
                         || checkpoint_history_bytes(&entry.checkpoint_history) > MAX_REPLAY_BYTES
                     {
                         entry.checkpoint_history.pop_front();
+                    }
+                }
+                if entry.generation.is_some() {
+                    entry
+                        .generation_event_history
+                        .push_back(GenerationStreamRecord {
+                            cursor: generation.stream_cursor,
+                            phase: generation.phase,
+                            checkpoint: new_checkpoint,
+                        });
+                    while entry.generation_event_history.len() > MAX_REPLAY_CHECKPOINTS
+                        || generation_event_history_bytes(&entry.generation_event_history)
+                            > MAX_REPLAY_BYTES
+                    {
+                        entry.generation_event_history.pop_front();
                     }
                 }
                 entry.generation = Some(generation.clone());
@@ -730,6 +768,59 @@ impl ConversationQueue {
             return Ok(GenerationReplay::ResyncRequired { latest_cursor });
         }
         Ok(GenerationReplay::Checkpoints {
+            latest_cursor,
+            items,
+        })
+    }
+    pub(crate) fn replay_generation_events(
+        &self,
+        id: &ConversationSubmissionId,
+        after_cursor: u64,
+        max_items: usize,
+    ) -> Result<GenerationEventReplay, QueueError> {
+        if max_items == 0 || max_items > MAX_REPLAY_CHECKPOINTS {
+            return Err(QueueError::InvalidReplayBound);
+        }
+        let entry = self
+            .projection
+            .entries
+            .get(id)
+            .ok_or(QueueError::MissingSubmission)?;
+        let latest_cursor = entry
+            .generation
+            .as_ref()
+            .map_or(0, |generation| generation.stream_cursor);
+        if after_cursor > latest_cursor {
+            return Err(QueueError::InvalidReplayCursor);
+        }
+        let Some(first) = entry.generation_event_history.front() else {
+            return if after_cursor == latest_cursor {
+                Ok(GenerationEventReplay::Events {
+                    latest_cursor,
+                    items: Vec::new(),
+                })
+            } else {
+                Ok(GenerationEventReplay::ResyncRequired { latest_cursor })
+            };
+        };
+        if after_cursor.saturating_add(1) < first.cursor {
+            return Ok(GenerationEventReplay::ResyncRequired { latest_cursor });
+        }
+        let items: Vec<_> = entry
+            .generation_event_history
+            .iter()
+            .filter(|event| event.cursor > after_cursor)
+            .cloned()
+            .collect();
+        let bytes: usize = items
+            .iter()
+            .filter_map(|event| event.checkpoint.as_ref())
+            .map(|checkpoint| checkpoint.content_prefix.len())
+            .sum();
+        if items.len() > max_items || bytes > MAX_REPLAY_BYTES {
+            return Ok(GenerationEventReplay::ResyncRequired { latest_cursor });
+        }
+        Ok(GenerationEventReplay::Events {
             latest_cursor,
             items,
         })
@@ -1123,6 +1214,7 @@ impl ConversationQueue {
             started_timestamp_ns,
             phase: DurableGenerationPhase::Running,
             transition_revision: 1,
+            stream_cursor: 0,
             checkpoint: None,
         };
         self.append(Event::GenerationUpdated {
@@ -1186,6 +1278,10 @@ impl ConversationQueue {
             .transition_revision
             .checked_add(1)
             .ok_or(QueueError::SequenceOverflow)?;
+        next.stream_cursor = next
+            .stream_cursor
+            .checked_add(1)
+            .ok_or(QueueError::SequenceOverflow)?;
         let delivery_cursor = current
             .checkpoint
             .as_ref()
@@ -1229,6 +1325,10 @@ impl ConversationQueue {
         generation.phase = phase;
         generation.transition_revision = generation
             .transition_revision
+            .checked_add(1)
+            .ok_or(QueueError::SequenceOverflow)?;
+        generation.stream_cursor = generation
+            .stream_cursor
             .checked_add(1)
             .ok_or(QueueError::SequenceOverflow)?;
         self.append(Event::GenerationUpdated {
@@ -1495,6 +1595,7 @@ fn validate_generation_update(
     match previous {
         None => {
             if next.transition_revision != 1
+                || next.stream_cursor != 0
                 || !matches!(
                     next.phase,
                     DurableGenerationPhase::Pending | DurableGenerationPhase::Running
@@ -1513,6 +1614,7 @@ fn validate_generation_update(
                 || old.parent_node_id != next.parent_node_id
                 || old.started_timestamp_ns != next.started_timestamp_ns
                 || Some(next.transition_revision) != old.transition_revision.checked_add(1)
+                || Some(next.stream_cursor) != old.stream_cursor.checked_add(1)
                 || (old.phase != next.phase
                     && !generation_phase_transition_allowed(old.phase, next.phase))
             {
@@ -1572,6 +1674,14 @@ fn validate_checkpoint(
 fn checkpoint_history_bytes(history: &VecDeque<DurableGenerationCheckpoint>) -> usize {
     history
         .iter()
+        .map(|checkpoint| checkpoint.content_prefix.len())
+        .sum()
+}
+
+fn generation_event_history_bytes(history: &VecDeque<GenerationStreamRecord>) -> usize {
+    history
+        .iter()
+        .filter_map(|event| event.checkpoint.as_ref())
         .map(|checkpoint| checkpoint.content_prefix.len())
         .sum()
 }
