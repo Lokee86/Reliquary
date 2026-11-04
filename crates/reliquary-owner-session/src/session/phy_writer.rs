@@ -55,10 +55,21 @@ impl PhyWriter {
             ));
         }
         let draft = proof.draft;
-        let published = self
+        let published = match self
             .common
             .memories
-            .publish(&mut self.container, None, 0, draft)?;
+            .publish(&mut self.container, None, 0, draft)
+        {
+            Ok(published) => published,
+            Err(error) => {
+                if matches!(error, MemoryError::Container(_) | MemoryError::Io(_))
+                    || self.container.writer_lease_proof() != Some(expected_proof)
+                {
+                    self.poisoned = true;
+                }
+                return Err(error.into());
+            }
+        };
         if let Err(error) = self.container.sync() {
             self.poisoned = true;
             return Err(error.into());
