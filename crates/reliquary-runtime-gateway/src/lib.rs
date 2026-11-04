@@ -588,7 +588,7 @@ impl Instance {
 
     /// Execute bounded owner-local read work against a writable mount's current
     /// projection. Do not call providers, network APIs, or external callbacks here.
-    pub fn with_writable_reliquary<T>(
+    pub(crate) fn with_writable_reliquary<T>(
         &self,
         owner: OwnerId,
         read: impl FnOnce(&RelSession) -> T,
