@@ -70,6 +70,13 @@ impl EntityOwnerSession<'_> {
         }
     }
 
+    pub(crate) fn dream_pair_evaluated(&self, left: MemoryId, right: MemoryId) -> bool {
+        match self {
+            Self::Rel(session) => session.dream_pair_evaluated(left, right),
+            Self::Phy(session) => session.dream_pair_evaluated(left, right),
+        }
+    }
+
     pub(crate) fn active_compatibility_profile(
         &self,
         id: CompatibilityProfileId,

@@ -67,6 +67,40 @@ impl RelWriter {
     pub fn owner_id(&self) -> [u8; 16] {
         self.session.owner_id()
     }
+    /// Record an evaluated pair after the application has accepted its result.
+    pub fn record_dream_pair(
+        &mut self,
+        left: MemoryId,
+        right: MemoryId,
+    ) -> Result<bool, OwnerSessionError> {
+        self.ensure_write_ready()?;
+        let before = self.container.writer_lease_proof();
+        if before.is_none() || before != self.session.writer_lease_proof {
+            return Err(OwnerSessionError::Record(
+                "owner session is stale; reopen before Dream writes".into(),
+            ));
+        }
+        let result = self.session.common.dream_pairs.append(
+            &mut self.container,
+            &self.session.common.memories,
+            left,
+            right,
+        );
+        match result {
+            Ok(value) => {
+                self.session.writer_lease_proof = self.container.writer_lease_proof();
+                Ok(value)
+            }
+            Err(error) => {
+                if matches!(error, OwnerSessionError::Container(_))
+                    || before != self.container.writer_lease_proof()
+                {
+                    self.session.write_poisoned = true;
+                }
+                Err(error)
+            }
+        }
+    }
     pub fn read_session(&self) -> &RelSession {
         &self.session
     }

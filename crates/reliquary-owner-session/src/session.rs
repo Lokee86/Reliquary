@@ -162,6 +162,7 @@ struct CommonState {
     memory_vectors: MemoryVectorStore,
     maintenance: OwnerMaintenanceStore,
     dreams: DreamEvidenceStore,
+    dream_pairs: dream_pairs::DreamPairs,
 }
 
 /// Read-only Reliquary owner aggregate. Archive and turn authority exist only
@@ -321,6 +322,9 @@ macro_rules! common_reads {
             ) -> Option<&crate::records::dream::dream_begin_codec::BeginRecord> {
                 self.$field.dreams.begin(pass_id)
             }
+            pub fn dream_pair_evaluated(&self, left: MemoryId, right: MemoryId) -> bool {
+                self.$field.dream_pairs.contains(left, right)
+            }
             pub fn packed_vector_info(
                 &self,
                 id: reliquary_vector_store::PackedVectorId,
@@ -409,6 +413,7 @@ common_reads!(PhySession, common);
 mod tests;
 
 mod create;
+pub(crate) mod dream_pairs;
 pub(crate) mod dream_prefix;
 mod phy_writer;
 mod rel_session;

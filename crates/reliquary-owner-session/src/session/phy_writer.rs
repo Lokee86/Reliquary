@@ -43,6 +43,43 @@ impl PhyWriter {
         self.owner_id
     }
 
+    /// Record an evaluated pair after the application has accepted its result.
+    pub fn record_dream_pair(
+        &mut self,
+        left: MemoryId,
+        right: MemoryId,
+    ) -> Result<bool, OwnerSessionError> {
+        if self.poisoned {
+            return Err(OwnerSessionError::Record(
+                "PHY writer requires replay after a failed write".into(),
+            ));
+        }
+        let before = self.container.writer_lease_proof();
+        if before.is_none() || before != self.writer_lease_proof {
+            return Err(OwnerSessionError::Record(
+                "PHY owner session is stale; reopen before Dream writes".into(),
+            ));
+        }
+        let result =
+            self.common
+                .dream_pairs
+                .append(&mut self.container, &self.common.memories, left, right);
+        match result {
+            Ok(value) => {
+                self.writer_lease_proof = self.container.writer_lease_proof();
+                Ok(value)
+            }
+            Err(error) => {
+                if matches!(error, OwnerSessionError::Container(_))
+                    || before != self.container.writer_lease_proof()
+                {
+                    self.poisoned = true;
+                }
+                Err(error)
+            }
+        }
+    }
+
     /// Publish a privacy-preserving user Memory after the Gateway verifies
     /// the exact source REL, principal and destination PHY grants. The public
     /// Memory record contains only its owner-local source reference.

@@ -538,6 +538,143 @@ fn rel_session_replays_grouped_insomnia_receipt_instead_of_dropping_the_carrier(
 }
 
 #[test]
+fn dream_pair_writers_reopen_and_retry_without_advancing_clock() {
+    for phy in [false, true] {
+        let path = Temp::new();
+        let owner = [0x68; 16];
+        if phy {
+            drop(crate::PhyWriter::create_path(&path.0, owner).unwrap());
+        } else {
+            drop(crate::RelWriter::create_path(&path.0, ReliquaryScope::Project, owner).unwrap());
+        }
+        let mut container = Container::open_writer(&path.0).unwrap();
+        let mut first =
+            reliquary_memory_core::decode_grouped_creation(&fixture().memory_records[0]).unwrap();
+        first.mutation_id = "writer-pair-first".into();
+        first.id = memory_id(&first.mutation_id);
+        let mut second = first.clone();
+        second.mutation_id = "writer-pair-second".into();
+        second.id = memory_id(&second.mutation_id);
+        second.memory_version = 2;
+        container
+            .append(&reliquary_memory_core::encode_grouped_creation(&first).unwrap())
+            .unwrap();
+        container
+            .append(&reliquary_memory_core::encode_grouped_creation(&second).unwrap())
+            .unwrap();
+        let mut partial_mapping = b"RELDRM01".to_vec();
+        partial_mapping.extend_from_slice(&1u32.to_le_bytes());
+        partial_mapping.extend_from_slice(&first.id.min(second.id).0);
+        container.append(&partial_mapping).unwrap();
+        container.sync().unwrap();
+        drop(container);
+        let before_size = std::fs::metadata(&path.0).unwrap().len();
+        let admission = reliquary_graph::GraphAdmission::for_replay(owner, [], [], [], [], []);
+        if phy {
+            let mut writer = crate::PhyWriter::open_path(&path.0, &admission, []).unwrap();
+            assert!(writer.record_dream_pair(first.id, second.id).unwrap());
+            assert!(!writer.record_dream_pair(second.id, first.id).unwrap());
+            assert!(writer.record_dream_pair(first.id, first.id).is_err());
+            assert!(
+                writer
+                    .record_dream_pair(first.id, reliquary_memory_core::MemoryId([0xff; 32]))
+                    .is_err()
+            );
+        } else {
+            let mut writer =
+                crate::RelWriter::open_path(&path.0, admission.clone(), [], []).unwrap();
+            assert!(writer.record_dream_pair(first.id, second.id).unwrap());
+            assert!(!writer.record_dream_pair(second.id, first.id).unwrap());
+            assert!(writer.record_dream_pair(first.id, first.id).is_err());
+            assert!(
+                writer
+                    .record_dream_pair(first.id, reliquary_memory_core::MemoryId([0xff; 32]))
+                    .is_err()
+            );
+        }
+        let before = std::fs::read(&path.0).unwrap();
+        assert!(before.len() as u64 > before_size);
+        let container = Container::open_read_only(&path.0).unwrap();
+        assert_eq!(container.latest_version(), 0);
+        if phy {
+            assert!(
+                crate::PhySession::open(&container, &admission, [])
+                    .unwrap()
+                    .dream_pair_evaluated(second.id, first.id)
+            );
+        } else {
+            assert!(
+                crate::RelSession::open(&container, &admission, [], [])
+                    .unwrap()
+                    .dream_pair_evaluated(second.id, first.id)
+            );
+        }
+        drop(container);
+        assert_eq!(std::fs::read(&path.0).unwrap(), before);
+    }
+}
+
+#[test]
+fn dream_pair_history_is_symmetric_owner_bound_and_prefix_checked() {
+    let path = Temp::new();
+    let owner = [0x67; 16];
+    let mut container = Container::create(&path.0, ContainerIdentity::phylactery(), owner).unwrap();
+    let mut first =
+        reliquary_memory_core::decode_grouped_creation(&fixture().memory_records[0]).unwrap();
+    first.mutation_id = "pair-first".into();
+    first.id = memory_id(&first.mutation_id);
+    let mut second = first.clone();
+    second.mutation_id = "pair-second".into();
+    second.id = memory_id(&second.mutation_id);
+    second.memory_version = 2;
+    let (left, right) = if first.id < second.id {
+        (first.id, second.id)
+    } else {
+        (second.id, first.id)
+    };
+    let mut mapping_left = b"RELDRM01".to_vec();
+    mapping_left.extend_from_slice(&1u32.to_le_bytes());
+    mapping_left.extend_from_slice(&left.0);
+    let mut mapping_right = b"RELDRM01".to_vec();
+    mapping_right.extend_from_slice(&2u32.to_le_bytes());
+    mapping_right.extend_from_slice(&right.0);
+    let mut pair = b"RELDRP02".to_vec();
+    pair.extend_from_slice(&1u32.to_le_bytes());
+    pair.extend_from_slice(&2u32.to_le_bytes());
+    container
+        .append(&reliquary_memory_core::encode_grouped_creation(&first).unwrap())
+        .unwrap();
+    container.append(&pair).unwrap();
+    assert!(crate::session::dream_pairs::DreamPairs::open(&container).is_err());
+    drop(container);
+    let other = Temp::new();
+    let mut container =
+        Container::create(&other.0, ContainerIdentity::phylactery(), owner).unwrap();
+    container
+        .append(&reliquary_memory_core::encode_grouped_creation(&first).unwrap())
+        .unwrap();
+    container
+        .append(&reliquary_memory_core::encode_grouped_creation(&second).unwrap())
+        .unwrap();
+    container.append(&mapping_left).unwrap();
+    container.append(&mapping_right).unwrap();
+    container.append(&pair).unwrap();
+    container.sync().unwrap();
+    drop(container);
+    let container = Container::open_read_only(&other.0).unwrap();
+    let history = crate::session::dream_pairs::DreamPairs::open(&container).unwrap();
+    assert!(history.contains(first.id, second.id));
+    assert!(history.contains(second.id, first.id));
+    assert!(!history.contains(first.id, first.id));
+    drop(container);
+    let forged = Temp::new();
+    let mut container =
+        Container::create(&forged.0, ContainerIdentity::phylactery(), [9; 16]).unwrap();
+    container.append(&pair).unwrap();
+    assert!(crate::session::dream_pairs::DreamPairs::open(&container).is_err());
+}
+
+#[test]
 fn open_import_epoch_fences_direct_grouped_completion() {
     let path = Temp::new();
     let owner = [0x61; 16];

@@ -127,6 +127,7 @@ pub(super) fn open_common(
     super::dream_prefix::validate_compact_dream_prefix(container, &dream_admissions)?;
     let dreams =
         DreamEvidenceStore::open(container, dream_admissions).map_err(OwnerSessionError::Record)?;
+    let dream_pairs = super::dream_pairs::DreamPairs::open(container)?;
     Ok(CommonState {
         memories,
         perception,
@@ -138,6 +139,7 @@ pub(super) fn open_common(
         memory_vectors,
         maintenance,
         dreams,
+        dream_pairs,
     })
 }
 

@@ -218,7 +218,9 @@ pub fn draft_dream_organization<C: GeneralEndpoint, V: GeneralEndpoint>(
         candidates: memories
             .iter()
             .skip(1)
-            .filter(|memory| !excluded.contains(&memory.id))
+            .filter(|memory| {
+                !excluded.contains(&memory.id) && !owner.dream_pair_evaluated(source_id, memory.id)
+            })
             .cloned()
             .collect(),
     };
@@ -279,6 +281,13 @@ pub fn recheck_dream_draft(
         return Err(DreamWorkflowError::OwnerMismatch);
     }
     if owner.graph_version() != draft.graph_version {
+        return Err(DreamWorkflowError::StaleSnapshot);
+    }
+    if draft
+        .classifications
+        .iter()
+        .any(|pair| owner.dream_pair_evaluated(pair.a, pair.b))
+    {
         return Err(DreamWorkflowError::StaleSnapshot);
     }
     for observed in &draft.observed_memories {
@@ -526,6 +535,57 @@ mod tests {
         assert!(all.contains(&a) && all.contains(&b));
         assert!(session.memory_ids_page(None, 0).is_err());
         assert!(session.memory_ids_page(None, 129).is_err());
+    }
+
+    #[test]
+    fn excludes_previously_evaluated_pair_after_owner_reopen() {
+        let (path, session, owner_id, a, b) = owner();
+        drop(session);
+        let admission = GraphAdmission::for_replay(owner_id, [], [], [], [], []);
+        let mut writer =
+            reliquary_owner_session::PhyWriter::open_path(&path.0, &admission, []).unwrap();
+        assert!(writer.record_dream_pair(a, b).unwrap());
+        drop(writer);
+        let session = PhySession::open_path(&path.0, &admission, []).unwrap();
+        let endpoint = RecordingEndpoint::default();
+        let draft = draft_dream_organization(
+            &EntityOwnerSession::Phy(&session),
+            owner_id,
+            a,
+            &[b],
+            &DreamClassifier::new(endpoint.clone()),
+            None::<&DreamVerifier<RecordingEndpoint>>,
+            DreamVerificationPolicy::default(),
+        )
+        .unwrap();
+        assert!(draft.classifications.is_empty());
+        assert!(endpoint.0.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn draft_recheck_rejects_pair_evaluated_after_preparation() {
+        let (path, session, owner_id, a, b) = owner();
+        let draft = draft_dream_organization(
+            &EntityOwnerSession::Phy(&session),
+            owner_id,
+            a,
+            &[b],
+            &DreamClassifier::new(RecordingEndpoint::default()),
+            None::<&DreamVerifier<RecordingEndpoint>>,
+            DreamVerificationPolicy::default(),
+        )
+        .unwrap();
+        drop(session);
+        let admission = GraphAdmission::for_replay(owner_id, [], [], [], [], []);
+        let mut writer =
+            reliquary_owner_session::PhyWriter::open_path(&path.0, &admission, []).unwrap();
+        writer.record_dream_pair(a, b).unwrap();
+        drop(writer);
+        let session = PhySession::open_path(&path.0, &admission, []).unwrap();
+        assert_eq!(
+            recheck_dream_draft(&EntityOwnerSession::Phy(&session), owner_id, &draft),
+            Err(DreamWorkflowError::StaleSnapshot)
+        );
     }
 
     #[test]
