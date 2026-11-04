@@ -88,16 +88,15 @@ pub fn checkpoint_lore_project(project_dir: &Path) -> Result<ProjectRevisionRef,
     let project_path = project_dir
         .strip_prefix(&root)
         .map_err(|_| "project folder is outside the Lore repository root".to_string())?;
-    let stage_path = if project_path.as_os_str().is_empty() {
-        ".".to_owned()
-    } else {
-        project_path.to_string_lossy().replace('\\', "/")
-    };
+    // Lore resolves user paths relative to the process working directory,
+    // not the repository root. Pass an absolute path for this project subtree.
+    let stage_path = project_dir.to_string_lossy().replace('\\', "/");
     let staged = Arc::new(Mutex::new(0usize));
     let staged_callback = staged.clone();
     let callback: LoreEventCallback = Some(Box::new(move |event: &LoreEvent| {
-        if matches!(event, LoreEvent::FileStageFile(_)) {
-            *staged_callback.lock().expect("Lore stage counter poisoned") += 1;
+        if let LoreEvent::FileStageEnd(data) = event {
+            *staged_callback.lock().expect("Lore stage counter poisoned") =
+                data.count.total_count as usize;
         }
     }));
     let status = block_on_lore(lore::file::stage(
@@ -209,11 +208,13 @@ fn ensure_reserved_ignored(root: &Path) -> Result<(), String> {
 }
 
 fn temporary_path(root: &Path) -> Result<PathBuf, String> {
-    let directory = if root.join(LORE_DIR).is_dir() {
-        root.join(LORE_DIR)
-    } else {
-        root.join(LEGACY_LORE_DIR)
-    };
+    // Lore refuses to write output files into its managed repository unless
+    // the caller holds a repository write token. Keep this transient output
+    // beside the repository so historical reads do not mutate or conflict
+    // with managed state.
+    let directory = root
+        .parent()
+        .ok_or_else(|| "Lore repository root has no parent directory".to_string())?;
     let suffix = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|error| error.to_string())?
