@@ -5,6 +5,7 @@ mod compaction;
 mod compaction_budget;
 mod evidence;
 mod model;
+mod summary_sources;
 
 pub use compaction::{
     COMPACTED_CONTEXT_INSTRUCTIONS, MIN_RAW_TAIL_TURNS, checkpoint_applies, plan_compaction,
@@ -21,6 +22,7 @@ pub use model::{
     CompactionBudget, CompactionCheckpoint, CompactionPlan, ContextEvidence, ContextMessage,
     ContextRequest, ContextRole, ContextTurn, ContextView, EvidenceKind,
 };
+pub use summary_sources::{finalize_compaction, validate_summary_sources};
 
 #[cfg(test)]
 #[path = "behavior_tests.rs"]

@@ -112,9 +112,7 @@ pub fn plan_compaction(
     }))
 }
 pub fn checkpoint_applies(view: &ContextView, c: &CompactionCheckpoint) -> bool {
-    view.turns
-        .iter()
-        .any(|t| t.message_id == c.through_message_id)
+    crate::validate_summary_sources(view, &c.through_message_id, &c.summary)
 }
 fn compactable_prefix_len(tokens: &[u64], limit: u64) -> usize {
     if tokens.len() <= 1 {

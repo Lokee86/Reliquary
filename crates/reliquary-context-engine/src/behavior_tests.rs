@@ -102,3 +102,32 @@ fn summary_is_limited_by_token_counter() {
         "one two"
     );
 }
+
+#[test]
+fn compaction_citations_must_name_ordered_sources_before_the_cut() {
+    let v = view(8);
+    let plan = CompactionPlan {
+        through_message_id: "m3".into(),
+        instructions: String::new(),
+        messages: vec![],
+        summary_token_limit: 8,
+    };
+    let checkpoint = finalize_compaction(&v, &plan, "Goal source: m1..m3".into(), &Words).unwrap();
+    assert!(checkpoint_applies(&v, &checkpoint));
+    for summary in [
+        "source: m1..missing",
+        "source: m1..m5",
+        "source: m3..m1",
+        "source: m1",
+    ] {
+        assert!(finalize_compaction(&v, &plan, summary.into(), &Words).is_err());
+        let invalid = CompactionCheckpoint {
+            through_message_id: "m3".into(),
+            summary: summary.into(),
+        };
+        assert_eq!(request_messages(&v, Some(&invalid)).len(), v.turns.len());
+    }
+    let mut duplicate = v.clone();
+    duplicate.turns[7].message_id = "m1".into();
+    assert!(finalize_compaction(&duplicate, &plan, "source: m1..m3".into(), &Words).is_err());
+}
