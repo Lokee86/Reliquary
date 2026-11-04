@@ -41,5 +41,24 @@ pub use profile::{
 pub use rebuild::PackedVectorOpenState;
 pub use store::{PackedVectorStore, archive_vector_id, info, memory_vector_id, packed_vector_id};
 
+fn has_format(
+    container: &reliquary_container::Container,
+    marker: &[u8],
+) -> Result<bool, reliquary_container::ContainerError> {
+    use std::io::Read;
+    let mut cursor = container.physical_cursor()?;
+    while let Some(mut frame) = cursor.next_frame()? {
+        if frame.object().length < 8 {
+            continue;
+        }
+        let mut magic = [0; 8];
+        frame.read_exact(&mut magic)?;
+        if magic == marker[..8] {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 #[cfg(test)]
 mod tests;

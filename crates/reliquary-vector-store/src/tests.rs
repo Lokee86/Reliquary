@@ -360,3 +360,52 @@ fn open_rejects_packed_payload_with_invalid_identity_backing() {
         Err(PackedVectorError::HashCollision)
     ));
 }
+
+#[test]
+fn vector_formats_cannot_be_initialized_twice() {
+    let temp = TempDir::new();
+    let path = temp.0.join("formats.rel");
+    let mut container = Container::create(
+        &path,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [17; 16],
+    )
+    .unwrap();
+    let packed = PackedVectorStore::default();
+    let profiles = CompatibilityProfileStore::default();
+    let archives = ArchiveVectorStore::default();
+    let memories = MemoryVectorStore::default();
+    let generations = VectorGenerationStore::default();
+    packed.initialize(&mut container).unwrap();
+    profiles.initialize(&mut container).unwrap();
+    archives.initialize(&mut container).unwrap();
+    memories.initialize(&mut container).unwrap();
+    generations.initialize(&mut container).unwrap();
+    let before = container.read_frames().unwrap().len();
+    assert!(matches!(
+        packed.initialize(&mut container),
+        Err(PackedVectorError::ConflictingFormat)
+    ));
+    assert!(matches!(
+        profiles.initialize(&mut container),
+        Err(ProfileStoreError::ConflictingFormat)
+    ));
+    assert!(matches!(
+        archives.initialize(&mut container),
+        Err(ArchiveVectorError::ConflictingFormat)
+    ));
+    assert!(matches!(
+        memories.initialize(&mut container),
+        Err(MemoryVectorError::ConflictingFormat)
+    ));
+    assert!(matches!(
+        generations.initialize(&mut container),
+        Err(GenerationStoreError::ConflictingFormat)
+    ));
+    assert_eq!(container.read_frames().unwrap().len(), before);
+    let packed = PackedVectorStore::open(&container).unwrap();
+    let profiles = CompatibilityProfileStore::open(&container).unwrap();
+    let archives = ArchiveVectorStore::open(&container, &packed).unwrap();
+    MemoryVectorStore::open(&container, &packed, &profiles).unwrap();
+    VectorGenerationStore::open(&container, &profiles, &archives).unwrap();
+}

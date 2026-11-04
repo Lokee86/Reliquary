@@ -31,7 +31,11 @@ pub struct MemoryVectorStore {
 
 impl MemoryVectorStore {
     pub fn initialize(&self, container: &mut Container) -> Result<(), MemoryVectorError> {
-        container.append(&encode_format())?;
+        let format = encode_format();
+        if crate::has_format(container, &format)? {
+            return Err(MemoryVectorError::ConflictingFormat);
+        }
+        container.append(&format)?;
         Ok(())
     }
 

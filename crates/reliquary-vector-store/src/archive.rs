@@ -30,7 +30,11 @@ pub struct ArchiveVectorStore {
 
 impl ArchiveVectorStore {
     pub fn initialize(&self, container: &mut Container) -> Result<(), ArchiveVectorError> {
-        container.append(&encode_archive_format())?;
+        let format = encode_archive_format();
+        if crate::has_format(container, &format)? {
+            return Err(ArchiveVectorError::ConflictingFormat);
+        }
+        container.append(&format)?;
         Ok(())
     }
 

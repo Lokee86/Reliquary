@@ -140,7 +140,11 @@ impl VectorGenerationStore {
     }
 
     pub fn initialize(&self, container: &mut Container) -> Result<(), GenerationStoreError> {
-        container.append(&encode_format())?;
+        let format = encode_format();
+        if crate::has_format(container, &format)? {
+            return Err(GenerationStoreError::ConflictingFormat);
+        }
+        container.append(&format)?;
         Ok(())
     }
 

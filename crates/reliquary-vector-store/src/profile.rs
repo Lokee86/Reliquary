@@ -289,7 +289,11 @@ impl CompatibilityProfileStore {
     }
 
     pub fn initialize(&self, container: &mut Container) -> Result<(), ProfileStoreError> {
-        container.append(&encode_format())?;
+        let format = encode_format();
+        if crate::has_format(container, &format)? {
+            return Err(ProfileStoreError::ConflictingFormat);
+        }
+        container.append(&format)?;
         Ok(())
     }
     pub fn put(

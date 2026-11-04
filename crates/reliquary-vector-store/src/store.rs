@@ -37,7 +37,11 @@ impl PackedVectorStore {
     }
 
     pub fn initialize(&self, container: &mut Container) -> Result<(), PackedVectorError> {
-        container.append(&encode_format())?;
+        let format = encode_format();
+        if crate::has_format(container, &format)? {
+            return Err(PackedVectorError::ConflictingFormat);
+        }
+        container.append(&format)?;
         Ok(())
     }
 
