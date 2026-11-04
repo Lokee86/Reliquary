@@ -938,7 +938,27 @@ fn memory_vector_mapping_requires_retained_owner_body_identity() {
         )
         .unwrap();
     let admission = reliquary_graph::GraphAdmission::for_replay(owner, [], [], [], [], []);
-    assert!(crate::RelSession::open(&container, &admission, [], []).is_ok());
+    let session = crate::RelSession::open(&container, &admission, [], []).unwrap();
+    assert_eq!(
+        session
+            .memory_vector_row(profile.id, record.body_id)
+            .unwrap(),
+        Some(vec![1.0])
+    );
+    assert_eq!(
+        session
+            .memory_vector_row(profile.id, reliquary_memory_core::MemoryBodyId([0x88; 32]))
+            .unwrap(),
+        None
+    );
+    assert!(
+        session
+            .memory_vector_row(
+                reliquary_vector_store::CompatibilityProfileId([0x33; 32]),
+                record.body_id
+            )
+            .is_err()
+    );
     let frames = container.read_frames().unwrap();
     let mapping_frame = frames
         .iter()

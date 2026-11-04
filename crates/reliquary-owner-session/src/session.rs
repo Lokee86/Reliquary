@@ -342,6 +342,31 @@ macro_rules! common_reads {
             pub fn memory_vector_infos(&self) -> Vec<MemoryVectorInfo> {
                 self.$field.memory_vectors.infos()
             }
+            /// Read one profile-qualified Memory-body vector from this owner.
+            pub fn memory_vector_row(
+                &self,
+                profile: CompatibilityProfileId,
+                body: reliquary_memory_core::MemoryBodyId,
+            ) -> Result<Option<Vec<f32>>, OwnerSessionError> {
+                if self.$field.profiles.get_active(profile).is_none() {
+                    return Err(OwnerSessionError::Record(
+                        "embedding profile is unavailable".into(),
+                    ));
+                }
+                let Some(location) = self
+                    .$field
+                    .memory_vectors
+                    .location(profile, reliquary_vector_store::MemoryBodyId(body.0))
+                else {
+                    return Ok(None);
+                };
+                let mapping = self.$field.memory_vectors.get(location.set_id)?;
+                let row = self
+                    .$field
+                    .packed_vectors
+                    .read_f32_row(mapping.packed_vector_id, location.row)?;
+                Ok(Some(row))
+            }
         }
     };
 }

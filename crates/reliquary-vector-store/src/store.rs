@@ -31,6 +31,53 @@ struct PackedVectorEntry {
 }
 
 impl PackedVectorStore {
+    /// Read one retained F32 row without exposing the packed store or writer.
+    pub fn read_f32_row(
+        &self,
+        id: PackedVectorId,
+        row: u64,
+    ) -> Result<Vec<f32>, PackedVectorError> {
+        let entry = self
+            .objects
+            .get(&id)
+            .ok_or(PackedVectorError::MissingObject)?;
+        let bytes = entry
+            .bytes
+            .as_deref()
+            .ok_or(PackedVectorError::PayloadUnavailable(
+                crate::PayloadUnavailable::Pruned,
+            ))?;
+        if entry.info.schema.scalar != lodestone_packed::ScalarType::F32
+            || packed_vector_id(entry.info.schema, bytes) != id
+        {
+            return Err(PackedVectorError::CorruptRecord(
+                "packed-vector row backing",
+            ));
+        }
+        if row >= entry.info.count {
+            return Err(PackedVectorError::CorruptRecord("packed-vector row index"));
+        }
+        let row_bytes = usize::try_from(entry.info.schema.dimensions)
+            .ok()
+            .and_then(|n| n.checked_mul(4))
+            .ok_or(PackedVectorError::CorruptRecord("packed-vector dimensions"))?;
+        let start = usize::try_from(row)
+            .ok()
+            .and_then(|n| n.checked_mul(row_bytes))
+            .ok_or(PackedVectorError::CorruptRecord("packed-vector row index"))?;
+        let end = start
+            .checked_add(row_bytes)
+            .ok_or(PackedVectorError::CorruptRecord("packed-vector row index"))?;
+        let bytes = bytes
+            .get(start..end)
+            .ok_or(PackedVectorError::CorruptRecord(
+                "packed-vector row backing",
+            ))?;
+        Ok(bytes
+            .chunks_exact(4)
+            .map(|value| f32::from_le_bytes(value.try_into().unwrap()))
+            .collect())
+    }
     pub fn open(container: &Container) -> Result<Self, PackedVectorError> {
         let mut state = crate::PackedVectorOpenState::new();
         let mut cursor = container.physical_cursor()?;

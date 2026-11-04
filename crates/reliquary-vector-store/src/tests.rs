@@ -559,6 +559,8 @@ fn packed_payload_and_profile_persist_and_reopen() {
     let mut container = Container::open_read_only(&packed_path).unwrap();
     let store = PackedVectorStore::open(&container).unwrap();
     assert_eq!(store.get(&mut container, id).unwrap(), expected);
+    assert_eq!(store.read_f32_row(id, 0).unwrap(), vec![1.0, -2.5]);
+    assert!(store.read_f32_row(id, 1).is_err());
 
     let profile_path = temp.0.join("profiles.rel");
     let expected_profile = profile();
