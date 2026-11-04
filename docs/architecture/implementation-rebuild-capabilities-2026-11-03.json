@@ -116,8 +116,8 @@
       ],
       "deliverable": "Typed graph records, references and derived Communities",
       "acceptance": "Graph closures validate exact Memory/Entity identity; derived indexes rebuild without creating semantic events",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\storage-continuation-2026-11-04.md"
     },
     {
       "id": "C05",
