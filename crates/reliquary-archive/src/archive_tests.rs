@@ -532,3 +532,33 @@ fn fresh_projection_replays_existing_history_before_accepting() {
     assert_eq!(accepted.activity_position, Some(2));
     assert_eq!(Archive::open(&container).unwrap().node_count(), 2);
 }
+
+#[test]
+fn archive_rejects_other_rel_scope_with_same_owner_id() {
+    let temp = TestDirectory::new();
+    let mut first = Container::create(
+        &temp.file("project.rel"),
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [0xED; 16],
+    )
+    .unwrap();
+    let mut archive = Archive::empty();
+    archive
+        .accept_turn(&mut first, turn("root", None, 1, "first"))
+        .unwrap();
+    let mut other = Container::create(
+        &temp.file("organization.rel"),
+        ContainerIdentity::reliquary(ReliquaryScope::Organization),
+        [0xED; 16],
+    )
+    .unwrap();
+    assert!(matches!(
+        archive.accept_turn(&mut other, turn("other", None, 2, "wrong")),
+        Err(ArchiveError::WrongOwner)
+    ));
+    assert!(matches!(
+        archive.validate_owner(&other),
+        Err(ArchiveError::WrongOwner)
+    ));
+    assert!(other.read_frames().unwrap().is_empty());
+}

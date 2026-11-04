@@ -1,6 +1,6 @@
 use crate::echo_codec::{decode, encode};
 use crate::{EchoError, EchoEvent};
-use reliquary_container::{Container, FileKind};
+use reliquary_container::{Container, ContainerIdentity, FileKind};
 use std::collections::{BTreeMap, HashMap};
 
 /// Separately owned source-keyed reasoning/tool evidence. It shares only the
@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, HashMap};
 #[derive(Debug, Default)]
 pub struct EchoStore {
     owner_id: Option<[u8; 16]>,
+    container_identity: Option<ContainerIdentity>,
     records: HashMap<(String, String), BTreeMap<u64, EchoEvent>>,
 }
 
@@ -18,6 +19,7 @@ impl EchoStore {
         }
         let mut store = Self {
             owner_id: Some(container.owner_id()),
+            container_identity: Some(container.identity()),
             records: HashMap::new(),
         };
         for frame in container.read_frames()? {
@@ -97,7 +99,12 @@ impl EchoStore {
             return Err(EchoError::WrongFileKind);
         }
         match self.owner_id {
-            Some(owner_id) if owner_id != container.owner_id() => Err(EchoError::WrongOwner),
+            Some(owner_id)
+                if owner_id != container.owner_id()
+                    || self.container_identity != Some(container.identity()) =>
+            {
+                Err(EchoError::WrongOwner)
+            }
             Some(_) => Ok(()),
             None => {
                 *self = Self::open(container)?;

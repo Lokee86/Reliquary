@@ -169,3 +169,28 @@ fn fresh_echo_store_replays_before_checking_sequence() {
         vec![original]
     );
 }
+
+#[test]
+fn echo_rejects_other_rel_scope_with_same_owner_id() {
+    let temp = TestDirectory::new();
+    let mut first = Container::create(
+        &temp.0.join("project.rel"),
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [0xED; 16],
+    )
+    .unwrap();
+    let mut echo = EchoStore::default();
+    echo.put(&mut first, event(0, EchoEventKind::ReasoningSummary))
+        .unwrap();
+    let mut other = Container::create(
+        &temp.0.join("organization.rel"),
+        ContainerIdentity::reliquary(ReliquaryScope::Organization),
+        [0xED; 16],
+    )
+    .unwrap();
+    assert!(matches!(
+        echo.put(&mut other, event(1, EchoEventKind::ReasoningSummary)),
+        Err(EchoError::WrongOwner)
+    ));
+    assert!(other.read_frames().unwrap().is_empty());
+}

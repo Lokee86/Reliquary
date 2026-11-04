@@ -15,12 +15,13 @@ use crate::{
     EpisodeId, EpisodeOrigin, Node, ProjectAttachmentInput, ProjectFileRef, ProjectRepositoryKind,
     ResolvedTurn, SourceAttachment, TurnAcceptance, TurnInput,
 };
-use reliquary_container::{Container, ContainerError, FileKind};
+use reliquary_container::{Container, ContainerError, ContainerIdentity, FileKind};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, HashMap};
 
 pub struct Archive {
     owner_id: Option<[u8; 16]>,
+    container_identity: Option<ContainerIdentity>,
     nodes: HashMap<(String, String), Node>,
     content: HashMap<ContentId, String>,
     accepted_node_order: Vec<(String, String)>,
@@ -36,6 +37,7 @@ impl Archive {
     pub fn empty() -> Self {
         Self {
             owner_id: None,
+            container_identity: None,
             nodes: HashMap::new(),
             content: HashMap::new(),
             accepted_node_order: Vec::new(),
@@ -56,6 +58,7 @@ impl Archive {
         }
         let mut archive = Self::empty();
         archive.owner_id = Some(container.owner_id());
+        archive.container_identity = Some(container.identity());
         for frame in container.read_frames()? {
             if let Some(record) = decode_record(&frame.payload)? {
                 archive.apply_record(record)?;
@@ -348,7 +351,9 @@ impl Archive {
     /// supplied owner container before another subsystem relies on its source
     /// identities as owner-local evidence.
     pub fn validate_owner(&self, container: &Container) -> Result<(), ArchiveError> {
-        if self.owner_id == Some(container.owner_id()) {
+        if self.owner_id == Some(container.owner_id())
+            && self.container_identity == Some(container.identity())
+        {
             Ok(())
         } else {
             Err(ArchiveError::WrongOwner)
@@ -559,7 +564,12 @@ impl Archive {
             return Err(ArchiveError::WrongFileKind);
         }
         match self.owner_id {
-            Some(owner_id) if owner_id != container.owner_id() => Err(ArchiveError::WrongOwner),
+            Some(owner_id)
+                if owner_id != container.owner_id()
+                    || self.container_identity != Some(container.identity()) =>
+            {
+                Err(ArchiveError::WrongOwner)
+            }
             Some(_) => Ok(()),
             None => {
                 *self = Self::open(container)?;
