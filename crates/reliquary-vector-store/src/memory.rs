@@ -291,6 +291,13 @@ pub fn validate_replay_record(
     Ok(())
 }
 
+/// Read Memory body identities from a mapping frame for owner-prefix validation.
+pub fn referenced_bodies_in_frame(
+    payload: &[u8],
+) -> Result<Option<Vec<MemoryBodyId>>, MemoryVectorError> {
+    Ok(decode_object(payload)?.map(|record| record.bodies))
+}
+
 fn ensure_unique(bodies: &[MemoryBodyId]) -> Result<(), MemoryVectorError> {
     let mut seen = HashSet::with_capacity(bodies.len());
     if bodies.iter().any(|body| !seen.insert(*body)) {

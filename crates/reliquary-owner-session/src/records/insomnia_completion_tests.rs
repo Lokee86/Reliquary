@@ -841,6 +841,32 @@ fn memory_vector_mapping_requires_retained_owner_body_identity() {
         .unwrap();
     let admission = reliquary_graph::GraphAdmission::for_replay(owner, [], [], [], [], []);
     assert!(crate::RelSession::open(&container, &admission, [], []).is_ok());
+    let frames = container.read_frames().unwrap();
+    let mapping_frame = frames
+        .iter()
+        .find(|frame| frame.payload.starts_with(b"RELMVEC1"))
+        .unwrap();
+    let early_path = Temp::new();
+    let mut early = Container::create(
+        &early_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    for frame in &frames {
+        if frame.payload.starts_with(b"RELMCRT1") {
+            early.append(&mapping_frame.payload).unwrap();
+        }
+        if frame.object.offset != mapping_frame.object.offset {
+            early.append(&frame.payload).unwrap();
+        }
+    }
+    early.sync().unwrap();
+    drop(early);
+    let early = Container::open_read_only(&early_path.0).unwrap();
+    assert!(
+        matches!(crate::RelSession::open(&early, &admission, [], []), Err(crate::OwnerSessionError::Record(message)) if message.contains("Memory vector references a body outside its physical prefix"))
+    );
     vectors
         .put(&mut container, &packed, &profiles, mapping([0x99; 32]))
         .unwrap();
