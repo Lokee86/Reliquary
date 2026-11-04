@@ -2,7 +2,7 @@ use reliquary_archive::{Archive, EpisodeBoundary, EpisodeOrigin, TurnInput};
 use reliquary_container::{Container, ContainerIdentity, ReliquaryScope};
 use reliquary_memory_core::{MemoryDraft, MemorySourceRef};
 use reliquary_owner_session::{
-    GraphAdmission, OwnerSessionError, PhySession, PhyWriter, RelSession,
+    GraphAdmission, OwnerSessionError, PhySession, PhyWriter, RelSession, RelWriter,
 };
 use reliquary_vector_store::{
     ArchiveVectorStore, CompatibilityProfileStore, MemoryVectorStore, PackedVectorStore,
@@ -46,6 +46,24 @@ fn external_memory_record() -> Vec<u8> {
     let digest = Sha256::digest(&payload);
     payload.extend_from_slice(&digest);
     payload
+}
+
+#[test]
+fn rel_replay_rejects_unsupported_publication_carriers_without_mutation() {
+    for payload in [external_memory_record(), b"RELINSC8\x01".to_vec()] {
+        let path = Temp::new();
+        let owner = [0x45; 16];
+        drop(RelWriter::create_path(&path.0, ReliquaryScope::Project, owner).unwrap());
+        let mut container = Container::open_writer(&path.0).unwrap();
+        container.append(&payload).unwrap();
+        container.sync().unwrap();
+        drop(container);
+        let before = fs::read(&path.0).unwrap();
+        let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+        assert!(matches!(RelSession::open_path(&path.0, &admission, [], []),
+            Err(OwnerSessionError::Record(message)) if message.contains("unsupported owner publication")));
+        assert_eq!(fs::read(&path.0).unwrap(), before);
+    }
 }
 
 #[test]

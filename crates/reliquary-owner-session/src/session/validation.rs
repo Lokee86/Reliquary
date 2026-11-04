@@ -58,7 +58,16 @@ pub(super) fn validate_grouped_replay_admission(
     let mut visible_memories = std::collections::BTreeSet::new();
     let mut activity = 0u64;
     for frame in container.read_frames()? {
-        let payload = reliquary_container::decode_publication(&frame.payload)?
+        let envelope = reliquary_container::decode_publication(&frame.payload)?;
+        let body = envelope
+            .as_ref()
+            .map_or(frame.payload.as_slice(), |value| value.body);
+        if body.starts_with(b"RELXMEM") || body.starts_with(b"RELINSC8") {
+            return Err(OwnerSessionError::Record(
+                "unsupported owner publication requires authenticated replay".into(),
+            ));
+        }
+        let payload = envelope
             .filter(|envelope| envelope.body.starts_with(b"RELMCRT1"))
             .map_or(frame.payload.as_slice(), |envelope| envelope.body);
         match reliquary_archive::source_publication(payload)? {
