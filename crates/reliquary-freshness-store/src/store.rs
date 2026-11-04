@@ -9,7 +9,7 @@ use crate::projection::{
 use crate::{
     FRESHNESS_POLICY_VERSION, FreshnessMemoryId, FreshnessPolicy, FreshnessRecord, validate_policy,
 };
-use reliquary_container::{Container, ContainerError};
+use reliquary_container::{Container, ContainerError, ContainerIdentity};
 use std::collections::BTreeMap;
 use std::io::Read;
 
@@ -18,6 +18,7 @@ const MAX_FRAME_BYTES: u64 = 128 * 1024 * 1024;
 #[derive(Clone, Debug)]
 pub struct FreshnessStore {
     owner_uuid: Option<[u8; 16]>,
+    identity: Option<ContainerIdentity>,
     policy: FreshnessPolicy,
     policy_persisted: bool,
     births: BTreeMap<FreshnessMemoryId, (u64, bool)>,
@@ -37,6 +38,7 @@ impl FreshnessStore {
     pub fn new(owner_uuid: Option<[u8; 16]>) -> Self {
         Self {
             owner_uuid,
+            identity: None,
             policy: FreshnessPolicy::default_v1(),
             policy_persisted: false,
             births: BTreeMap::new(),
@@ -65,6 +67,7 @@ impl FreshnessStore {
     ) -> Result<Self, String> {
         let owner = container.owner_id();
         let mut store = Self::new(Some(owner));
+        store.identity = Some(container.identity());
         let mut cursor = container.physical_cursor().map_err(display_error)?;
         while let Some(mut frame) = cursor.next_frame().map_err(display_error)? {
             if frame.object().length > MAX_FRAME_BYTES {
@@ -146,6 +149,12 @@ impl FreshnessStore {
 
     pub fn initialize(&mut self, container: &mut Container) -> Result<bool, String> {
         self.bind_owner(container.owner_id())?;
+        if self
+            .identity
+            .is_some_and(|identity| identity != container.identity())
+        {
+            return Err("Freshness container identity does not match owner".into());
+        }
         if self.policy_persisted {
             return Ok(false);
         }
@@ -169,6 +178,7 @@ impl FreshnessStore {
             .owner_uuid
             .ok_or("Freshness owner identity is required")?;
         self.append_then_ingest(container, encode_policy(owner, self.policy))?;
+        self.identity = Some(container.identity());
         Ok(true)
     }
 
@@ -438,6 +448,9 @@ impl FreshnessStore {
 
     fn ensure_ready_for(&mut self, container: &Container) -> Result<(), String> {
         self.bind_owner(container.owner_id())?;
+        if self.identity != Some(container.identity()) {
+            return Err("Freshness container identity does not match owner".into());
+        }
         if !self.policy_persisted {
             return Err("Freshness owner policy must be persisted before activities".into());
         }

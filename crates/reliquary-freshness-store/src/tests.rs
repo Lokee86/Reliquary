@@ -226,3 +226,31 @@ fn fresh_store_cannot_append_a_second_policy() {
         1
     );
 }
+
+#[test]
+fn freshness_rejects_other_container_kind_with_same_owner_id() {
+    let temp = TempDir::new();
+    let owner = [9; 16];
+    let mut rel = Container::create(
+        &temp.0.join("owner.rel"),
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    let mut store = FreshnessStore::new(Some(owner));
+    store.initialize(&mut rel).unwrap();
+    let mut phy = Container::create(
+        &temp.0.join("private.phy"),
+        ContainerIdentity::phylactery(),
+        owner,
+    )
+    .unwrap();
+    assert!(
+        store
+            .create_birth(&mut phy, FreshnessMemoryId([7; 32]), 1, false)
+            .is_err()
+    );
+    assert!(phy.read_frames().unwrap().is_empty());
+    let mut reopened = FreshnessStore::open(&rel).unwrap();
+    assert!(reopened.initialize(&mut phy).is_err());
+}
