@@ -3,9 +3,7 @@
 //! Gateway owns the mounted-session registry. Instances carry immutable PHY
 //! grants and never own or clone mutable domain stores.
 
-use reliquary_application::{
-    PreparedIngest, prepare_routed_user_memory,
-};
+use reliquary_application::{PreparedIngest, prepare_routed_user_memory};
 use reliquary_owner_session::{
     AcceptedEpisodeOrder, CompletionCheck, GraphAdmission, InsomniaLeaseToken, OwnerSessionError,
     PhySession, PhyWriter, RelSession, RelWriter, RoutedUserMemoryProof,
@@ -15,6 +13,7 @@ use uuid::Uuid;
 
 mod conversation_queue;
 mod generation_stream;
+mod host_runtime;
 use conversation_queue::ArchiveCommitProof;
 pub use conversation_queue::{
     ArchiveReceipt, ConversationQueue, ConversationSubmissionId, DurableGeneration,
@@ -26,6 +25,10 @@ pub use conversation_queue::{
 pub use generation_stream::{
     GenerationStreamDelivery, GenerationStreamEvent, GenerationStreamPayload,
     GenerationStreamSnapshot, GenerationStreamSubscription,
+};
+pub use host_runtime::{
+    HostDispatchOutcome, HostOperation, HostQueueGuarantees, HostReconcileStatus,
+    TrustedHostAdapter,
 };
 use std::{
     collections::{BTreeSet, HashMap},
@@ -79,6 +82,11 @@ pub enum GatewayError {
     DuplicateCredential,
     CredentialRevoked,
     InvalidGenerationSubscription,
+    HostAdapter(String),
+    HostStatusUnknown,
+    InvalidHandoffReceipt,
+    IncompleteHostContract(RuntimeCapability),
+    UnsupportedHostCapability(RuntimeCapability),
     RoutedMemory(String),
     RegistryPoisoned,
     WriterUnavailable,
@@ -120,6 +128,19 @@ impl fmt::Display for GatewayError {
             Self::CredentialRevoked => f.write_str("credential has been revoked"),
             Self::InvalidGenerationSubscription => {
                 f.write_str("generation subscription belongs to another instance or stream")
+            }
+            Self::HostAdapter(reason) => write!(f, "trusted host adapter failed: {reason}"),
+            Self::HostStatusUnknown => {
+                f.write_str("host status is unknown; operation remains held")
+            }
+            Self::InvalidHandoffReceipt => {
+                f.write_str("host handoff receipt does not match the durable operation")
+            }
+            Self::IncompleteHostContract(capability) => {
+                write!(f, "host queue contract is incomplete for {capability:?}")
+            }
+            Self::UnsupportedHostCapability(capability) => {
+                write!(f, "host execution is not enabled for {capability:?}")
             }
             Self::RoutedMemory(reason) => write!(f, "routed user Memory failed: {reason}"),
             Self::RegistryPoisoned => f.write_str("gateway owner registry is unavailable"),
@@ -383,18 +404,9 @@ fn route_user_proofs(
             .ok_or_else(|| {
                 GatewayError::RoutedMemory("user Memory source turn is unavailable".into())
             })?;
-        let (draft, _) = prepare_routed_user_memory(
-            prepared,
-            candidate,
-            &source_turn,
-            principal,
-        )
-        .map_err(|error| GatewayError::RoutedMemory(error.to_string()))?;
-        proofs.push(rel.prove_routed_user_memory(
-            destination,
-            &draft,
-            &candidate.source_quote,
-        )?);
+        let (draft, _) = prepare_routed_user_memory(prepared, candidate, &source_turn, principal)
+            .map_err(|error| GatewayError::RoutedMemory(error.to_string()))?;
+        proofs.push(rel.prove_routed_user_memory(destination, &draft, &candidate.source_quote)?);
     }
     Ok(proofs)
 }
@@ -586,9 +598,7 @@ impl Instance {
                 .map_err(|_| GatewayError::RegistryPoisoned)?;
             let source = match owners.get(&source_rel_owner) {
                 Some(MountedOwner::Rel(session)) => RoutedSource::Snapshot(Arc::clone(session)),
-                Some(MountedOwner::RelWriter(writer)) => {
-                    RoutedSource::Writer(Arc::clone(writer))
-                }
+                Some(MountedOwner::RelWriter(writer)) => RoutedSource::Writer(Arc::clone(writer)),
                 Some(_) => return Err(GatewayError::WrongOwnerKind(source_rel_owner)),
                 None => return Err(GatewayError::UnknownOwner(source_rel_owner)),
             };
@@ -606,12 +616,9 @@ impl Instance {
             .lock()
             .map_err(|_| GatewayError::RegistryPoisoned)?;
         let proofs = match source {
-            RoutedSource::Snapshot(session) => route_user_proofs(
-                &session,
-                &destination,
-                prepared,
-                &self.principal,
-            )?,
+            RoutedSource::Snapshot(session) => {
+                route_user_proofs(&session, &destination, prepared, &self.principal)?
+            }
             RoutedSource::Writer(writer) => {
                 let writer = writer
                     .writer
@@ -921,7 +928,9 @@ impl Instance {
                 Some(MountedOwner::RelWriter(writer)) => Arc::clone(writer),
                 Some(MountedOwner::Rel(_)) => return Err(GatewayError::WriterUnavailable),
                 Some(MountedOwner::Phy(_)) => return Err(GatewayError::WrongOwnerKind(owner)),
-                Some(MountedOwner::PhyWriter(_)) => return Err(GatewayError::WrongOwnerKind(owner)),
+                Some(MountedOwner::PhyWriter(_)) => {
+                    return Err(GatewayError::WrongOwnerKind(owner));
+                }
             }
         };
         let writer = mounted
@@ -956,7 +965,9 @@ impl Instance {
                 Some(MountedOwner::RelWriter(writer)) => Arc::clone(writer),
                 Some(MountedOwner::Rel(_)) => return Err(GatewayError::WriterUnavailable),
                 Some(MountedOwner::Phy(_)) => return Err(GatewayError::WrongOwnerKind(owner)),
-                Some(MountedOwner::PhyWriter(_)) => return Err(GatewayError::WrongOwnerKind(owner)),
+                Some(MountedOwner::PhyWriter(_)) => {
+                    return Err(GatewayError::WrongOwnerKind(owner));
+                }
             }
         };
         let mut writer = mounted
