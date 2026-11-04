@@ -74,3 +74,38 @@ fn phy_owner_rejects_rel_external_memory_record_without_mutation() {
     );
     assert_eq!(fs::read(&path.0).unwrap(), before);
 }
+
+#[test]
+fn phy_owner_rejects_future_rel_grouped_completion_without_mutation() {
+    let path = Temp::new();
+    let owner = [42; 16];
+    let mut container = Container::create(&path.0, ContainerIdentity::phylactery(), owner).unwrap();
+    PackedVectorStore::default()
+        .initialize(&mut container)
+        .unwrap();
+    CompatibilityProfileStore::default()
+        .initialize(&mut container)
+        .unwrap();
+    MemoryVectorStore::default()
+        .initialize(&mut container)
+        .unwrap();
+    // Shape 1 is a valid RELINSC8 grouped-clock record without an embedded range.
+    container.append(b"RELINSC8\x01").unwrap();
+    container.sync().unwrap();
+    drop(container);
+
+    let before = fs::read(&path.0).unwrap();
+    let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let error = match PhySession::open_path(&path.0, &admission, []) {
+        Err(error) => error,
+        Ok(_) => panic!("PhySession accepted a REL-only grouped completion"),
+    };
+    assert!(
+        matches!(
+            error,
+            OwnerSessionError::RelOnlyRecordInPhylactery("grouped Insomnia completion v8")
+        ),
+        "unexpected Phy open error: {error:?}"
+    );
+    assert_eq!(fs::read(&path.0).unwrap(), before);
+}
