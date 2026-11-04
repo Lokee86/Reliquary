@@ -1,6 +1,6 @@
 use crate::{
     EntityCandidate, EntityResolutionReason, IdentityRelation, MentionSpan, ResolutionChoice,
-    ResolutionJudgment, ResolutionOutcome, TextField, evaluate_judgment,
+    ResolutionDecision, ResolutionJudgment, ResolutionOutcome, TextField, evaluate_judgment,
 };
 use reliquary_memory_core::MemoryBody;
 use reliquary_switchboard::{GeneralEndpoint, GeneralEndpointError};
@@ -94,6 +94,18 @@ impl<E: GeneralEndpoint> EntityModelEvaluator<E> {
         if surface != mention.text || surface.trim().is_empty() {
             return Err(invalid("mention surface does not match exact Memory span"));
         }
+        if is_bare_generic_surface(surface) {
+            return Ok(ResolutionOutcome {
+                decision: ResolutionDecision::Reject,
+                reason: EntityResolutionReason::GenericRole,
+            });
+        }
+        if is_obvious_transient_occurrence(surface, source) {
+            return Ok(ResolutionOutcome {
+                decision: ResolutionDecision::Reject,
+                reason: EntityResolutionReason::TransientValue,
+            });
+        }
         if candidates.len() > 8 {
             return Err(invalid("candidate count exceeds 8"));
         }
@@ -114,6 +126,9 @@ impl<E: GeneralEndpoint> EntityModelEvaluator<E> {
             "reject" => ResolutionChoice::Reject,
             _ => return Err(invalid("unknown resolution decision")),
         };
+        if matches!(choice, ResolutionChoice::Candidate(index) if index >= candidates.len()) {
+            return Err(invalid("target candidate index out of range"));
+        }
         let relation = match required(&output, "identity_relation")? {
             "same_identity" => IdentityRelation::SameIdentity,
             "related_distinct" => IdentityRelation::RelatedDistinct,
@@ -149,6 +164,20 @@ impl<E: GeneralEndpoint> EntityModelEvaluator<E> {
         if surface != mention.text || surface.trim().is_empty() {
             return Err(invalid("mention surface does not match exact Memory span"));
         }
+        if is_bare_generic_surface(surface) {
+            return Ok(EntityAdmissionOutcome {
+                decision: AdmissionDecision::Reject,
+                reason: EntityResolutionReason::GenericRole,
+                materialization: None,
+            });
+        }
+        if is_obvious_transient_occurrence(surface, source) {
+            return Ok(EntityAdmissionOutcome {
+                decision: AdmissionDecision::Reject,
+                reason: EntityResolutionReason::TransientValue,
+                materialization: None,
+            });
+        }
         if recurrence_evidence.len() > 3 {
             return Err(invalid("recurrence evidence count exceeds 3"));
         }
@@ -167,8 +196,23 @@ impl<E: GeneralEndpoint> EntityModelEvaluator<E> {
         };
         let mut reason = parse_reason(required(&output, "reason")?)?;
         let policy = required(&output, "promotion_policy")?;
+        if !matches!(policy, "immediate" | "requires_recurrence" | "none") {
+            return Err(invalid("unknown Entity promotion policy"));
+        }
+        if reason == EntityResolutionReason::RecurrenceRequired {
+            decision = AdmissionDecision::Unresolved;
+        } else if is_rejection_reason(reason) {
+            decision = AdmissionDecision::Reject;
+        }
         let kind = required(&output, "entity_kind")?;
         let summary = required(&output, "entity_summary")?.trim();
+        if reason == EntityResolutionReason::RecurrenceRequired {
+            return Ok(EntityAdmissionOutcome {
+                decision: AdmissionDecision::Unresolved,
+                reason,
+                materialization: None,
+            });
+        }
         let recurrence_required = policy == "requires_recurrence"
             || matches!(kind, "code_symbol" | "enum_value" | "input_action");
         let materialization = if decision == AdmissionDecision::CreateNew {
@@ -188,6 +232,16 @@ impl<E: GeneralEndpoint> EntityModelEvaluator<E> {
             if recurrence_required {
                 decision = AdmissionDecision::Unresolved;
                 reason = EntityResolutionReason::RecurrenceRequired;
+                None
+            } else if policy == "none" {
+                return Err(invalid("create_new admission requires promotion policy"));
+            } else if materialization_describes_transient(surface, summary) {
+                decision = AdmissionDecision::Reject;
+                reason = EntityResolutionReason::TransientValue;
+                None
+            } else if materialization_describes_wrapper_category(kind, summary) {
+                decision = AdmissionDecision::Reject;
+                reason = EntityResolutionReason::WrapperCategory;
                 None
             } else {
                 Some(EntityAdmissionMaterialization {
@@ -243,6 +297,144 @@ impl<E: GeneralEndpoint> EntityModelEvaluator<E> {
         }
         Ok(out)
     }
+}
+
+fn materialization_describes_transient(surface: &str, summary: &str) -> bool {
+    let surface = surface.trim().to_ascii_lowercase();
+    let summary = summary.to_ascii_lowercase();
+    [
+        "source-control branch",
+        "source control branch",
+        "git branch",
+        "temporary branch",
+        "task branch",
+        "temporary worktree",
+        "task worktree",
+        "benchmark run",
+        "test run",
+        "build instance",
+        "deployment instance",
+        "session instance",
+        "dated snapshot",
+    ]
+    .iter()
+    .any(|phrase| summary.contains(phrase))
+        || summary.contains(&format!("branch named {surface}"))
+        || summary.contains(&format!("worktree named {surface}"))
+}
+
+fn materialization_describes_wrapper_category(kind: &str, summary: &str) -> bool {
+    if kind != "domain_entity" && kind != "other" {
+        return false;
+    }
+    let summary = summary.to_ascii_lowercase();
+    [
+        "category of",
+        "general category",
+        "class of systems",
+        "class of tools",
+        "class of applications",
+        "broad concept",
+        "general concept",
+    ]
+    .iter()
+    .any(|phrase| summary.contains(phrase))
+}
+
+fn is_bare_generic_surface(value: &str) -> bool {
+    const GENERIC: &[&str] = &[
+        "agent",
+        "application",
+        "assistant",
+        "client",
+        "code",
+        "data",
+        "deployment",
+        "devtool",
+        "documentation",
+        "entry",
+        "file",
+        "flow",
+        "implementation",
+        "lane",
+        "pipeline",
+        "project",
+        "repository",
+        "request",
+        "response",
+        "script",
+        "scripts",
+        "server",
+        "session",
+        "shader",
+        "state",
+        "status",
+        "system",
+        "tool",
+        "tooling",
+        "user",
+    ];
+    let normalized = value.trim().to_ascii_lowercase();
+    GENERIC.contains(&normalized.strip_prefix("the ").unwrap_or(&normalized))
+}
+
+fn is_obvious_transient_occurrence(surface: &str, context: &str) -> bool {
+    let surface = surface.trim();
+    let lower = surface.to_ascii_lowercase();
+    let context = context.to_ascii_lowercase();
+    let context_plain = context.replace(['`', '\'', '"'], "");
+    if ["branch", "worktree"].iter().any(|kind| {
+        context_plain.contains(&format!("{lower} {kind}"))
+            || context_plain.contains(&format!("{kind} {lower}"))
+    }) {
+        return true;
+    }
+    if let Some(value) = lower.strip_prefix("commit ") {
+        if looks_like_git_object_id(value.trim_matches(|c: char| matches!(c, '`' | '\'' | '"'))) {
+            return true;
+        }
+    }
+    if looks_like_git_object_id(surface)
+        && ["commit", "rollback", "revision"]
+            .iter()
+            .any(|word| context.contains(word))
+    {
+        return true;
+    }
+    explicit_numbered_occurrence(&lower, "build")
+        || explicit_numbered_occurrence(&lower, "benchmark run")
+        || explicit_numbered_occurrence(&lower, "test run")
+        || explicit_numbered_occurrence(&lower, "deployment")
+        || explicit_id_occurrence(&lower, "request id")
+        || explicit_id_occurrence(&lower, "response id")
+        || explicit_id_occurrence(&lower, "run id")
+        || explicit_id_occurrence(&lower, "build id")
+        || explicit_id_occurrence(&lower, "deployment id")
+        || explicit_id_occurrence(&lower, "session id")
+}
+
+fn looks_like_git_object_id(value: &str) -> bool {
+    (6..=40).contains(&value.len()) && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+fn explicit_numbered_occurrence(value: &str, prefix: &str) -> bool {
+    let Some(rest) = value.strip_prefix(prefix) else {
+        return false;
+    };
+    let rest = rest.trim_start_matches(|c: char| c.is_whitespace() || matches!(c, '#' | ':' | '-'));
+    !rest.is_empty()
+        && rest.bytes().all(|byte| {
+            byte.is_ascii_digit() || byte.is_ascii_hexdigit() || matches!(byte, b'-' | b'_' | b'.')
+        })
+}
+fn explicit_id_occurrence(value: &str, prefix: &str) -> bool {
+    let Some(rest) = value.strip_prefix(prefix) else {
+        return false;
+    };
+    let rest = rest.trim_start_matches(|c: char| c.is_whitespace() || matches!(c, ':' | '#' | '='));
+    rest.len() >= 4
+        && rest
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'/'))
 }
 
 fn parse_reason(v: &str) -> Result<EntityResolutionReason, EntityResolverError> {
@@ -405,6 +597,24 @@ mod tests {
     }
 
     #[test]
+    fn resolver_rejects_out_of_range_index_and_keeps_kind_conflicts_unresolved() {
+        let out_of_range = json!({"decision":"resolve_existing","reason":"context_match","target_candidate_index":1,"identity_relation":"same_identity","mention_kind":"service"});
+        let evaluator = EntityModelEvaluator::new(Stub(Mutex::new(vec![out_of_range])));
+        assert!(
+            evaluator
+                .resolve(&body(), &mention(), &[candidate()])
+                .is_err()
+        );
+
+        let wrong_kind = json!({"decision":"resolve_existing","reason":"context_match","target_candidate_index":0,"identity_relation":"same_identity","mention_kind":"tool"});
+        let evaluator = EntityModelEvaluator::new(Stub(Mutex::new(vec![wrong_kind])));
+        let out = evaluator
+            .resolve(&body(), &mention(), &[candidate()])
+            .unwrap();
+        assert_eq!(out.decision, crate::ResolutionDecision::Unresolved);
+    }
+
+    #[test]
     fn admission_requires_recurrence_for_fine_grained_entities() {
         let response = json!({"decision":"create_new","reason":"first_seen_identity","promotion_policy":"immediate","entity_kind":"code_symbol","entity_summary":"A stable symbol."});
         let evaluator = EntityModelEvaluator::new(Stub(Mutex::new(vec![response])));
@@ -415,5 +625,71 @@ mod tests {
         assert_eq!(out.decision, AdmissionDecision::Unresolved);
         assert_eq!(out.reason, EntityResolutionReason::RecurrenceRequired);
         assert!(out.materialization.is_none());
+    }
+
+    #[test]
+    fn generic_and_transient_surfaces_reject_before_model_call() {
+        let empty = EntityModelEvaluator::new(Stub(Mutex::new(vec![])));
+        let generic_body = MemoryBody {
+            title: "agent".into(),
+            content: String::new(),
+        };
+        let generic = MentionSpan {
+            field: TextField::Title,
+            start_byte: 0,
+            end_byte: 5,
+            text: "agent".into(),
+        };
+        let out = empty.resolve(&generic_body, &generic, &[]).unwrap();
+        assert_eq!(out.decision, crate::ResolutionDecision::Reject);
+        assert_eq!(out.reason, EntityResolutionReason::GenericRole);
+
+        let transient_body = MemoryBody {
+            title: "Build 42 failed".into(),
+            content: String::new(),
+        };
+        let transient = MentionSpan {
+            field: TextField::Title,
+            start_byte: 0,
+            end_byte: 8,
+            text: "Build 42".into(),
+        };
+        let out = empty
+            .resolve(&transient_body, &transient, &[candidate()])
+            .unwrap();
+        assert_eq!(out.decision, crate::ResolutionDecision::Reject);
+        assert_eq!(out.reason, EntityResolutionReason::TransientValue);
+        let out = empty.admit(&transient_body, &transient, &[]).unwrap();
+        assert_eq!(out.decision, AdmissionDecision::Reject);
+        assert_eq!(out.reason, EntityResolutionReason::TransientValue);
+    }
+
+    #[test]
+    fn admission_validates_policy_and_rejects_transient_or_wrapper_materialization() {
+        let body = MemoryBody {
+            title: "clientv2".into(),
+            content: "Use clientv2 for this release.".into(),
+        };
+        let mention = MentionSpan {
+            field: TextField::Title,
+            start_byte: 0,
+            end_byte: 8,
+            text: "clientv2".into(),
+        };
+        let responses = vec![
+            json!({"decision":"create_new","reason":"first_seen_identity","promotion_policy":"unknown","entity_kind":"tool","entity_summary":"A release management tool."}),
+            json!({"decision":"create_new","reason":"first_seen_identity","promotion_policy":"immediate","entity_kind":"domain_entity","entity_summary":"A general category of tools."}),
+            json!({"decision":"create_new","reason":"first_seen_identity","promotion_policy":"immediate","entity_kind":"other","entity_summary":"The source-control branch named clientv2."}),
+        ];
+        let evaluator = EntityModelEvaluator::new(Stub(Mutex::new(responses)));
+        let transient = evaluator.admit(&body, &mention, &[]).unwrap();
+        assert_eq!(transient.decision, AdmissionDecision::Reject);
+        assert_eq!(transient.reason, EntityResolutionReason::TransientValue);
+        assert!(transient.materialization.is_none());
+        let wrapper = evaluator.admit(&body, &mention, &[]).unwrap();
+        assert_eq!(wrapper.decision, AdmissionDecision::Reject);
+        assert_eq!(wrapper.reason, EntityResolutionReason::WrapperCategory);
+        assert!(wrapper.materialization.is_none());
+        assert!(evaluator.admit(&body, &mention, &[]).is_err());
     }
 }
