@@ -520,7 +520,13 @@ fn rel_open_rejects_caller_fabricated_episode_admission() {
 fn poisoned_rel_writer_rejects_other_mutations_until_reopen() {
     let path = Temp::new();
     let mut writer = RelWriter::create_path(&path.0, ReliquaryScope::Project, [0x65; 16]).unwrap();
-    writer.session.write_poisoned = true;
+    assert!(
+        writer
+            .finish_insomnia_write::<()>(Err(InsomniaError::Container(
+                ContainerError::WriteRecoveryRequired
+            )))
+            .is_err()
+    );
     let before = writer.container.read_frames().unwrap().len();
     assert!(matches!(
         writer.claim_next_insomnia_input("worker", 1, 10, 1),

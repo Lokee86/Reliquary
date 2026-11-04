@@ -10,6 +10,25 @@ impl RelWriter {
             Ok(())
         }
     }
+    pub(super) fn finish_insomnia_write<T>(
+        &mut self,
+        result: Result<T, InsomniaError>,
+    ) -> Result<T, OwnerSessionError> {
+        match result {
+            Ok(value) => {
+                self.session.writer_lease_proof = self.container.writer_lease_proof();
+                Ok(value)
+            }
+            Err(error) => {
+                if matches!(error, InsomniaError::Container(_))
+                    || self.session.writer_lease_proof != self.container.writer_lease_proof()
+                {
+                    self.session.write_poisoned = true;
+                }
+                Err(error.into())
+            }
+        }
+    }
     /// Create and initialize a new REL owner, then open its canonical writer.
     pub fn create_path(
         path: impl AsRef<Path>,
@@ -81,20 +100,21 @@ impl RelWriter {
                     InsomniaError::UnacceptedEpisode,
                 ));
             }
-            self.session.insomnia.queue(
+            let queued = self.session.insomnia.queue(
                 &mut self.container,
                 order,
                 InsomniaPriority::Live,
                 started_at_ns,
-            )?;
+            );
+            self.finish_insomnia_write(queued)?;
         }
-        let Some(work) = self.session.insomnia.claim_next(
+        let claimed = self.session.insomnia.claim_next(
             &mut self.container,
             worker,
             started_at_ns,
             lease_duration_ns,
-        )?
-        else {
+        );
+        let Some(work) = self.finish_insomnia_write(claimed)? else {
             self.session.writer_lease_proof = self.container.writer_lease_proof();
             return Ok(None);
         };
@@ -145,16 +165,15 @@ impl RelWriter {
             .work
             .lease_token
             .ok_or(OwnerSessionError::Insomnia(InsomniaError::InvalidLease))?;
-        let work = self.session.insomnia.hold_with_payload(
+        let result = self.session.insomnia.hold_with_payload(
             &mut self.container,
             claim.work.episode_id,
             token,
             held_at_ns,
             reason,
             held_payload,
-        )?;
-        self.session.writer_lease_proof = self.container.writer_lease_proof();
-        Ok(work)
+        );
+        self.finish_insomnia_write(result)
     }
 
     pub fn checkpoint_insomnia_claim(
@@ -173,15 +192,14 @@ impl RelWriter {
             .work
             .lease_token
             .ok_or(OwnerSessionError::Insomnia(InsomniaError::InvalidLease))?;
-        let work = self.session.insomnia.checkpoint_payload(
+        let result = self.session.insomnia.checkpoint_payload(
             &mut self.container,
             claim.work.episode_id,
             token,
             checkpointed_at_ns,
             payload,
-        )?;
-        self.session.writer_lease_proof = self.container.writer_lease_proof();
-        Ok(work)
+        );
+        self.finish_insomnia_write(result)
     }
 
     pub fn next_global_version(&self) -> Result<u64, OwnerSessionError> {
@@ -357,18 +375,19 @@ impl RelWriter {
                 InsomniaError::UnacceptedEpisode,
             ));
         }
-        self.session
-            .insomnia
-            .queue(&mut self.container, order, InsomniaPriority::Live, now_ns)?;
-        let work = self.session.insomnia.claim_episode(
+        let queued =
+            self.session
+                .insomnia
+                .queue(&mut self.container, order, InsomniaPriority::Live, now_ns);
+        self.finish_insomnia_write(queued)?;
+        let result = self.session.insomnia.claim_episode(
             &mut self.container,
             work_id,
             worker,
             now_ns,
             lease_duration_ns,
-        )?;
-        self.session.writer_lease_proof = self.container.writer_lease_proof();
-        Ok(work)
+        );
+        self.finish_insomnia_write(result)
     }
 
     pub fn commit_grouped_insomnia_completion(
