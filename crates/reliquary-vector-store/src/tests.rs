@@ -377,6 +377,56 @@ fn open_rejects_packed_payload_with_invalid_identity_backing() {
 }
 
 #[test]
+fn rebuilt_packed_vector_requires_consistent_payload_backing() {
+    let schema = VectorSchema::new(1, ScalarType::F32).unwrap();
+    let bytes = 1.0f32.to_le_bytes().to_vec();
+    let chunk = reliquary_container::ObjectRef {
+        offset: 12,
+        length: 4,
+    };
+    let valid_id = packed_vector_id(schema, &bytes);
+    let mut store = PackedVectorStore::default();
+
+    let wrong_identity = PackedVectorInfo {
+        id: PackedVectorId([0xa5; 32]),
+        schema,
+        count: 1,
+        byte_len: 4,
+    };
+    assert!(matches!(
+        store.insert_rebuilt(wrong_identity, chunk, bytes.clone()),
+        Err(PackedVectorError::HashCollision)
+    ));
+
+    let wrong_metadata = PackedVectorInfo {
+        id: valid_id,
+        schema,
+        count: 2,
+        byte_len: 4,
+    };
+    assert!(matches!(
+        store.insert_rebuilt(wrong_metadata, chunk, bytes.clone()),
+        Err(PackedVectorError::CorruptRecord(
+            "packed-vector backing metadata"
+        ))
+    ));
+
+    store
+        .insert_rebuilt(
+            PackedVectorInfo {
+                id: valid_id,
+                schema,
+                count: 1,
+                byte_len: 4,
+            },
+            chunk,
+            bytes,
+        )
+        .unwrap();
+    assert_eq!(store.info(valid_id).unwrap().count, 1);
+}
+
+#[test]
 fn vector_formats_cannot_be_initialized_twice() {
     let temp = TempDir::new();
     let path = temp.0.join("formats.rel");

@@ -104,20 +104,36 @@ impl PackedVectorStore {
 
     pub fn insert_rebuilt(
         &mut self,
-        info: PackedVectorInfo,
+        packed_info: PackedVectorInfo,
         chunk: ObjectRef,
         bytes: Vec<u8>,
     ) -> Result<(), PackedVectorError> {
-        if let Some(existing) = self.objects.get(&info.id) {
-            if existing.info != info || existing.bytes.as_deref() != Some(bytes.as_slice()) {
+        let packed = PackedVectors::from_bytes(packed_info.schema, bytes.clone())
+            .map_err(|_| PackedVectorError::CorruptRecord("packed-vector matrix"))?;
+        let expected = info(
+            packed_info.id,
+            packed_info.schema,
+            packed.count(),
+            bytes.len(),
+        )?;
+        if expected != packed_info {
+            return Err(PackedVectorError::CorruptRecord(
+                "packed-vector backing metadata",
+            ));
+        }
+        if packed_vector_id(packed_info.schema, &bytes) != packed_info.id {
+            return Err(PackedVectorError::HashCollision);
+        }
+        if let Some(existing) = self.objects.get(&packed_info.id) {
+            if existing.info != packed_info || existing.bytes.as_deref() != Some(bytes.as_slice()) {
                 return Err(PackedVectorError::HashCollision);
             }
             return Ok(());
         }
         self.objects.insert(
-            info.id,
+            packed_info.id,
             PackedVectorEntry {
-                info,
+                info: packed_info,
                 chunk: Some(chunk),
                 bytes: Some(bytes),
                 marker_chunk: None,
