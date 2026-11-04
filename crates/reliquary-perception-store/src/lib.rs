@@ -379,7 +379,7 @@ pub struct PerceptionStore {
     version: u64,
     entities: BTreeMap<EntityId, Entity>,
     entity_history: BTreeMap<(EntityId, u64), Entity>,
-    mutations: BTreeMap<String, EntityId>,
+    mutations: BTreeMap<String, (EntityId, u64)>,
     mentions: BTreeMap<MemoryEntityMentionKey, MemoryEntityResolution>,
     mention_history: BTreeMap<(MemoryEntityMentionKey, u32), MemoryEntityResolution>,
 }
@@ -442,10 +442,10 @@ impl PerceptionStore {
         self.check_owner(container)?;
         validate_draft(&draft)?;
         let id = entity_id(&draft.mutation_id);
-        if let Some(existing_id) = self.mutations.get(&draft.mutation_id) {
+        if let Some(&(existing_id, revision)) = self.mutations.get(&draft.mutation_id) {
             let existing = self
-                .entities
-                .get(existing_id)
+                .entity_history
+                .get(&(existing_id, revision))
                 .expect("mutation index is consistent");
             if existing.id == id
                 && existing.canonical_name == draft.canonical_name
@@ -453,6 +453,7 @@ impl PerceptionStore {
                 && existing.kind == draft.kind
                 && existing.summary == draft.summary
                 && existing.created_at_ns == draft.created_at_ns
+                && existing.updated_at_ns == draft.updated_at_ns
             {
                 return Ok(existing.clone());
             }
@@ -495,7 +496,22 @@ impl PerceptionStore {
     ) -> Result<Entity, PerceptionError> {
         self.check_owner(container)?;
         validate_draft(&draft)?;
-        if self.mutations.contains_key(&draft.mutation_id) {
+        if let Some(&(seen_id, revision)) = self.mutations.get(&draft.mutation_id) {
+            let accepted = self
+                .entity_history
+                .get(&(seen_id, revision))
+                .expect("mutation index is consistent");
+            if seen_id == id
+                && expected_revision.checked_add(1) == Some(revision)
+                && accepted.canonical_name == draft.canonical_name
+                && accepted.aliases == draft.aliases
+                && accepted.kind == draft.kind
+                && accepted.summary == draft.summary
+                && accepted.created_at_ns == draft.created_at_ns
+                && accepted.updated_at_ns == draft.updated_at_ns
+            {
+                return Ok(accepted.clone());
+            }
             return Err(PerceptionError::InvalidField("mutation ID is already used"));
         }
         let current = self
@@ -624,7 +640,8 @@ impl PerceptionStore {
                 } else if value.id != entity_id(&value.mutation_id) {
                     return Err(PerceptionError::CorruptRecord("Entity identity mismatch"));
                 }
-                self.mutations.insert(value.mutation_id.clone(), value.id);
+                self.mutations
+                    .insert(value.mutation_id.clone(), (value.id, value.revision));
                 self.entity_history
                     .insert((value.id, value.revision), value.clone());
                 self.entities.insert(value.id, value.clone());
@@ -989,6 +1006,34 @@ mod tests {
             matches!(&store.mention_revision(key(), 1).unwrap().status, MemoryEntityResolutionStatus::Ambiguous { candidates } if candidates.len() == 2)
         );
         assert!(store.mention_revision(key(), 3).is_none());
+        drop(store);
+        drop(container);
+        let mut container = Container::open_writer(&path.0).unwrap();
+        let mut store = PerceptionStore::open(&container).unwrap();
+        let before = container.read_frames().unwrap().len();
+        assert_eq!(
+            store
+                .publish_entity(&mut container, draft("create-alpha", "Alpha"))
+                .unwrap()
+                .revision,
+            1
+        );
+        let mut retry = draft("revise-alpha", "Alpha Prime");
+        retry.updated_at_ns = 11;
+        assert_eq!(
+            store
+                .update_entity(&mut container, alpha, 1, retry.clone())
+                .unwrap()
+                .revision,
+            2
+        );
+        retry.updated_at_ns = 12;
+        assert!(
+            store
+                .update_entity(&mut container, alpha, 1, retry)
+                .is_err()
+        );
+        assert_eq!(container.read_frames().unwrap().len(), before);
     }
 
     #[test]
