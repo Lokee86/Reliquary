@@ -132,4 +132,9 @@ fn compaction_citations_must_name_ordered_sources_before_the_cut() {
     let mut duplicate = v.clone();
     duplicate.turns[7].message_id = "m1".into();
     assert!(finalize_compaction(&duplicate, &plan, "source: m1..m3".into(), &Words).is_err());
+    let short = CompactionPlan {
+        summary_token_limit: 2,
+        ..plan
+    };
+    assert!(finalize_compaction(&v, &short, "safe words source: m1..m7".into(), &Words).is_err());
 }

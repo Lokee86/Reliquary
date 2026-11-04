@@ -54,6 +54,9 @@ pub fn finalize_compaction(
     summary: String,
     counter: &impl ContextTokenCounter,
 ) -> Result<CompactionCheckpoint, String> {
+    if !validate_summary_sources(view, &plan.through_message_id, &summary) {
+        return Err("compaction summary cites an invalid source range".into());
+    }
     let summary = normalize_summary(summary, plan.summary_token_limit, counter)?;
     if !validate_summary_sources(view, &plan.through_message_id, &summary) {
         return Err("compaction summary cites an invalid source range".into());
