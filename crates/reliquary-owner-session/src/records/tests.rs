@@ -198,3 +198,28 @@ fn dream_first_cycle_requires_exact_population_admission_and_reopens() {
     };
     assert!(s.append_begin(&mut other_c, wrong_owner).is_err());
 }
+
+#[test]
+fn dream_replay_rejects_foreign_and_duplicate_admissions_before_reading_records() {
+    let path = Temp::new();
+    let c = container(&path.0, 8);
+    let owner = c.owner_id();
+    let admission = DreamBeginAdmission {
+        owner_uuid: owner,
+        pass_id: "admitted-pass".into(),
+        source_id: MemoryId([1; 32]),
+        turn: 7,
+        graph_version_before: 9,
+        preexisting_ids: BTreeSet::new(),
+        memory_cut: 0,
+    };
+
+    let mut foreign = admission.clone();
+    foreign.owner_uuid = [99; 16];
+    assert!(DreamEvidenceStore::open(&c, [foreign]).is_err());
+
+    let mut duplicate = admission.clone();
+    duplicate.source_id = MemoryId([2; 32]);
+    assert!(DreamEvidenceStore::open(&c, [admission, duplicate]).is_err());
+    assert!(c.read_frames().unwrap().is_empty());
+}
