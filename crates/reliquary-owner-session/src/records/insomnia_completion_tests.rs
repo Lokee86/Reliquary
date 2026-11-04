@@ -419,7 +419,17 @@ fn rel_session_replays_grouped_insomnia_receipt_instead_of_dropping_the_carrier(
     .unwrap();
     let receipt = session.insomnia_receipt(work_episode, 1).unwrap();
     assert_eq!(receipt.memory_ids.len(), 2);
+    assert!(
+        receipt
+            .memory_ids
+            .contains(&reliquary_insomnia_store::MemoryId(existing.id.0))
+    );
     assert_eq!(receipt.completed_at_ns, 20);
+    let existing_history = session.memory_history(existing.id).unwrap().unwrap();
+    assert!(matches!(
+        existing_history.revisions[0].payload,
+        reliquary_memory_core::PayloadState::Available(_)
+    ));
     assert!(
         session
             .memory_history(reliquary_memory_core::MemoryId(memory.id.0))
