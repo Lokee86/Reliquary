@@ -97,8 +97,11 @@ impl Instance {
         self.authorize_host_submission(queue, id)?;
         require_executable(capability)?;
 
-        if queue.host_operation(id, capability).is_some() {
+        if let Some(existing) = queue.host_operation(id, capability) {
             ensure_host_router(router, self.gateway_binding())?;
+            // Rehydrate router ownership from the durable queue before querying
+            // the host after process restart or router replacement.
+            router.record_owned_operation(capability, existing.stable_id.clone());
             return self.reconcile_host_operation(queue, id, capability, router);
         }
         require_host_contract(router, capability, self.gateway_binding())?;
