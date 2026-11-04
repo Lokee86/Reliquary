@@ -1,4 +1,4 @@
-use reliquary_container::{Container, ContainerError};
+use reliquary_container::{Container, ContainerError, ContainerIdentity};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fmt;
@@ -119,6 +119,7 @@ impl From<ContainerError> for InsomniaError {
 
 pub struct InsomniaStore {
     owner: [u8; 16],
+    identity: ContainerIdentity,
     accepted: BTreeMap<EpisodeId, AcceptedEpisodeOrder>,
     work: BTreeMap<EpisodeId, InsomniaWork>,
     orders: BTreeMap<EpisodeId, AcceptedEpisodeOrder>,

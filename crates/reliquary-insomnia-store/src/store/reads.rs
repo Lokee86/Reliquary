@@ -29,6 +29,7 @@ impl InsomniaStore {
         }
         let mut store = Self {
             owner: container.owner_id(),
+            identity: container.identity(),
             accepted: orders,
             work: BTreeMap::new(),
             orders: BTreeMap::new(),

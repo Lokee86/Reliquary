@@ -80,6 +80,7 @@ impl InsomniaStore {
     pub(super) fn clone_for_preflight(&self) -> Self {
         Self {
             owner: self.owner,
+            identity: self.identity,
             accepted: self.accepted.clone(),
             work: self.work.clone(),
             orders: self.orders.clone(),
@@ -219,7 +220,7 @@ impl InsomniaStore {
         Ok(w.clone())
     }
     pub(super) fn check_owner(&self, c: &Container) -> Result<(), InsomniaError> {
-        if c.owner_id() == self.owner {
+        if c.owner_id() == self.owner && c.identity() == self.identity {
             Ok(())
         } else {
             Err(InsomniaError::WrongOwner)

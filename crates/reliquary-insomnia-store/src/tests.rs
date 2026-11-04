@@ -254,3 +254,19 @@ fn owner_binding_and_admission_are_enforced() {
         Err(InsomniaError::WrongOwner)
     ));
 }
+
+#[test]
+fn queue_rejects_same_owner_id_in_a_different_container_kind() {
+    let path = Temp::new();
+    let phy_path = Temp::new();
+    let rel = container(&path.0, 9);
+    let id = EpisodeId([8; 32]);
+    let mut store = InsomniaStore::open(&rel, [order(id)]).unwrap();
+    let mut phy =
+        Container::create(&phy_path.0, ContainerIdentity::phylactery(), rel.owner_id()).unwrap();
+    assert!(matches!(
+        store.queue(&mut phy, order(id), InsomniaPriority::Live, 10),
+        Err(InsomniaError::WrongOwner)
+    ));
+    assert!(phy.read_frames().unwrap().is_empty());
+}
