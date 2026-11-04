@@ -54,13 +54,11 @@ pub(crate) fn validate_compact_dream_prefix(
             unsupported = true;
             continue;
         }
-        if magic == *b"RELMDLT1"
-            || magic == *b"RELMTMB1"
-            || magic.starts_with(b"RELFRS")
-            || magic.starts_with(b"RELIEP")
-        {
+        if magic.starts_with(b"RELFRS") || magic.starts_with(b"RELIEP") {
             unsupported = true;
-        } else if magic == *b"RELINSC7"
+        } else if magic == *b"RELMDLT1"
+            || magic == *b"RELMTMB1"
+            || magic == *b"RELINSC7"
             || magic == *b"CVDREAM2"
             || magic == *b"RELGRF01"
             || magic == *b"CVDREAM1"
@@ -76,6 +74,21 @@ pub(crate) fn validate_compact_dream_prefix(
             frame
                 .read_to_end(&mut payload)
                 .map_err(|error| OwnerSessionError::Record(error.to_string()))?;
+            if magic == *b"RELMDLT1" || magic == *b"RELMTMB1" {
+                let (id, version) = reliquary_memory_core::history_change_in_frame(&payload)?
+                    .ok_or_else(|| {
+                        OwnerSessionError::Record("missing Memory history change".into())
+                    })?;
+                head = head.checked_add(1).ok_or_else(|| {
+                    OwnerSessionError::Record("Dream Memory head exhausted".into())
+                })?;
+                if !visible_memories.contains(&id) || version != head {
+                    return Err(OwnerSessionError::Record(
+                        "Memory history change differs from its physical prefix".into(),
+                    ));
+                }
+                continue;
+            }
             if magic == *b"CVDREAM1" {
                 direct.ingest(&payload).map_err(OwnerSessionError::Record)?;
                 continue;

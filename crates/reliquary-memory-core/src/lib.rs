@@ -36,5 +36,19 @@ pub fn decode_grouped_creation(bytes: &[u8]) -> Result<MemoryRecord, MemoryError
     Ok(record)
 }
 
+/// Read the owner-local Memory clock from a revision or tombstone frame.
+/// Full semantic validation remains the responsibility of Memory replay.
+pub fn history_change_in_frame(bytes: &[u8]) -> Result<Option<(MemoryId, u64)>, MemoryError> {
+    if bytes.starts_with(codec::DELTA) {
+        let delta = codec::decode_delta(bytes)?;
+        Ok(Some((delta.id, delta.record.memory_version)))
+    } else if bytes.starts_with(codec::TOMBSTONE) {
+        let (id, _, version) = codec::decode_tombstone(bytes)?;
+        Ok(Some((id, version)))
+    } else {
+        Ok(None)
+    }
+}
+
 #[cfg(test)]
 mod tests;

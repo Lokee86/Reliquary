@@ -1171,6 +1171,8 @@ fn compact_dream_uses_direct_birth_intent_and_recorded_global_order() {
             &reliquary_memory_core::encode_grouped_creation(&earlier).unwrap(),
         )
         .unwrap();
+    let mut memory = reliquary_memory_core::MemoryStore::open(&container).unwrap();
+    memory.tombstone(&mut container, earlier.id, 1).unwrap();
     let population = BTreeSet::from([earlier.id]);
     let admission = crate::DreamBeginAdmission {
         owner_uuid: owner,
@@ -1179,7 +1181,7 @@ fn compact_dream_uses_direct_birth_intent_and_recorded_global_order() {
         turn: 1,
         graph_version_before: 0,
         preexisting_ids: population.clone(),
-        memory_cut: 2,
+        memory_cut: 3,
     };
     let begin = BeginRecord {
         owner_uuid: owner,
@@ -1188,7 +1190,7 @@ fn compact_dream_uses_direct_birth_intent_and_recorded_global_order() {
         turn: 1,
         graph_version_before: 0,
         population: BeginPopulation::CompactCut {
-            memory_cut: 2,
+            memory_cut: 3,
             digest: population_digest(&population),
         },
     };
@@ -1205,6 +1207,24 @@ fn compact_dream_uses_direct_birth_intent_and_recorded_global_order() {
     let reopened = Container::open_read_only(&path.0).unwrap();
     let graph = reliquary_graph::GraphAdmission::for_replay(owner, [], [], [], [], []);
     assert!(crate::RelSession::open(&reopened, &graph, [], [admission.clone()]).is_ok());
+    let wrong_clock_path = Temp::new();
+    let mut wrong_clock = Container::create(
+        &wrong_clock_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    for frame in &frames {
+        let mut payload = frame.payload.clone();
+        if payload.starts_with(b"RELMTMB1") {
+            payload[48..56].copy_from_slice(&4u64.to_le_bytes());
+        }
+        wrong_clock.append(&payload).unwrap();
+    }
+    assert!(matches!(
+        crate::session::dream_prefix::validate_compact_dream_prefix(&wrong_clock, &[admission.clone()]),
+        Err(crate::OwnerSessionError::Record(message)) if message.contains("Memory history change differs")
+    ));
     let missing_intent_path = Temp::new();
     let mut missing = Container::create(
         &missing_intent_path.0,
