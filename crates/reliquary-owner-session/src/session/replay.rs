@@ -145,7 +145,9 @@ fn validate_graph_prefix(container: &Container) -> Result<(), OwnerSessionError>
     let mut entities = std::collections::BTreeSet::new();
     let mut graph_version = 0;
     for frame in container.read_frames()? {
-        let payload = &frame.payload;
+        let payload = reliquary_container::decode_publication(&frame.payload)?
+            .filter(|envelope| envelope.body.starts_with(b"RELMCRT1"))
+            .map_or(frame.payload.as_slice(), |envelope| envelope.body);
         if payload.starts_with(b"RELMCRT1") {
             let record = reliquary_memory_core::decode_grouped_creation(payload)?;
             memories.insert(record.id.0);

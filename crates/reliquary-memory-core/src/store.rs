@@ -44,6 +44,25 @@ impl MemoryStore {
             }
             let mut magic = [0; 8];
             frame.read_exact(&mut magic)?;
+            if magic.starts_with(b"RELPUB") {
+                let len = usize::try_from(frame.object().length)
+                    .map_err(|_| MemoryError::FieldTooLarge)?;
+                if len > 128 * 1024 * 1024 {
+                    return Err(MemoryError::FieldTooLarge);
+                }
+                let mut payload = Vec::with_capacity(len);
+                payload.extend_from_slice(&magic);
+                frame.read_to_end(&mut payload)?;
+                if let Some(envelope) = reliquary_container::decode_publication(&payload)?
+                    && [BODY, CREATION, DELTA, TOMBSTONE]
+                        .iter()
+                        .any(|marker| envelope.body.starts_with(*marker))
+                {
+                    return Err(MemoryError::Corrupt(
+                        "Memory owner already contains records",
+                    ));
+                }
+            }
             if magic == *FORMAT
                 || magic == *BODY
                 || magic == *CREATION
@@ -96,6 +115,27 @@ impl MemoryStore {
             }
             let mut magic = [0; 8];
             frame.read_exact(&mut magic)?;
+            if magic.starts_with(b"RELPUB") {
+                let mut payload = Vec::with_capacity(len);
+                payload.extend_from_slice(&magic);
+                frame.read_to_end(&mut payload)?;
+                if let Some(envelope) = reliquary_container::decode_publication(&payload)?
+                    && [BODY, CREATION, DELTA, TOMBSTONE]
+                        .iter()
+                        .any(|marker| envelope.body.starts_with(*marker))
+                {
+                    if !store.initialized {
+                        return Err(MemoryError::Corrupt(
+                            "Memory record precedes format declaration",
+                        ));
+                    }
+                    if envelope.body.len() > MAX_BODY_BYTES + MAX_FIELD_BYTES {
+                        return Err(MemoryError::FieldTooLarge);
+                    }
+                    store.replay(envelope.body)?;
+                }
+                continue;
+            }
             if magic == *FORMAT {
                 if len != 8 || store.initialized {
                     return Err(MemoryError::Corrupt("duplicate or malformed format record"));

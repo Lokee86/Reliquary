@@ -480,3 +480,34 @@ fn replay_rechecks_temporal_spans_when_body_appears_later() {
         Err(MemoryError::InvalidField("temporal_inference_span"))
     ));
 }
+
+#[test]
+fn versioned_memory_creation_reopens_with_its_global_coordinate() {
+    let temp = TempDir::new();
+    let (mut source, mut original) = open_new(&temp.0.join("source.rel"));
+    let record = original
+        .publish(&mut source, None, 0, draft("versioned", "Title", "fact"))
+        .unwrap()
+        .revision
+        .record;
+    let (mut container, _) = open_new(&temp.0.join("versioned.rel"));
+    let (global, _) = container
+        .append_publication_envelope(&encode_creation(&record).unwrap(), Some(33))
+        .unwrap();
+    assert_eq!(global, 1);
+    container.sync().unwrap();
+    drop(container);
+    let mut container = Container::open_writer(&temp.0.join("versioned.rel")).unwrap();
+    let store = MemoryStore::open(&container).unwrap();
+    assert_eq!(
+        store.history(record.id).unwrap().revisions[0].record,
+        record
+    );
+    assert_eq!(container.transaction_time_ns(global), Some(33));
+    let before = container.read_frames().unwrap().len();
+    assert!(matches!(
+        MemoryStore::create(&mut container),
+        Err(MemoryError::Corrupt(_))
+    ));
+    assert_eq!(container.read_frames().unwrap().len(), before);
+}

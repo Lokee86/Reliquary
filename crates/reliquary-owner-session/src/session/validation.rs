@@ -58,7 +58,10 @@ pub(super) fn validate_grouped_replay_admission(
     let mut visible_memories = std::collections::BTreeSet::new();
     let mut activity = 0u64;
     for frame in container.read_frames()? {
-        match reliquary_archive::source_publication(&frame.payload)? {
+        let payload = reliquary_container::decode_publication(&frame.payload)?
+            .filter(|envelope| envelope.body.starts_with(b"RELMCRT1"))
+            .map_or(frame.payload.as_slice(), |envelope| envelope.body);
+        match reliquary_archive::source_publication(payload)? {
             Some(reliquary_archive::SourcePublication::Episode(id)) => {
                 visible_episodes.insert(id);
             }
@@ -75,15 +78,15 @@ pub(super) fn validate_grouped_replay_admission(
             }
             None => {}
         }
-        if frame.payload.starts_with(b"RELMCRT1") {
-            let creation = reliquary_memory_core::decode_grouped_creation(&frame.payload)?;
+        if payload.starts_with(b"RELMCRT1") {
+            let creation = reliquary_memory_core::decode_grouped_creation(payload)?;
             visible_memories.insert(creation.id.0);
         }
-        if !frame.payload.starts_with(b"RELINSC7") {
+        if !payload.starts_with(b"RELINSC7") {
             continue;
         }
         let completion =
-            GroupedInsomniaCompletion::decode(&frame.payload).map_err(OwnerSessionError::Record)?;
+            GroupedInsomniaCompletion::decode(payload).map_err(OwnerSessionError::Record)?;
         let episode_id = reliquary_archive::EpisodeId(completion.episode_id);
         if archive.episode(episode_id).is_none() || !visible_episodes.contains(&episode_id) {
             return Err(OwnerSessionError::Record(
