@@ -95,6 +95,22 @@ pub(super) fn open_common(
         ));
     }
     let maintenance = OwnerMaintenanceStore::open(container).map_err(OwnerSessionError::Record)?;
+    let dream_admissions = dream_admissions.into_iter().collect::<Vec<_>>();
+    for admission in &dream_admissions {
+        if admission.owner_uuid != container.owner_id()
+            || !memories.contains_memory(admission.source_id)
+            || admission
+                .preexisting_ids
+                .iter()
+                .any(|id| !memories.contains_memory(*id))
+            || admission.memory_cut > memories.memory_version()
+            || admission.graph_version_before > graph.graph_version()
+        {
+            return Err(OwnerSessionError::Record(
+                "Dream admission references unavailable owner history".into(),
+            ));
+        }
+    }
     let dreams =
         DreamEvidenceStore::open(container, dream_admissions).map_err(OwnerSessionError::Record)?;
     Ok(CommonState {

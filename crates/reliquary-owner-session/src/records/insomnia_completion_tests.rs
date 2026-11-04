@@ -546,6 +546,27 @@ fn owner_session_accepts_graph_with_owner_backed_memory_endpoints() {
     let empty_admission = reliquary_graph::GraphAdmission::for_replay(owner, [], [], [], [], []);
     let session = crate::RelSession::open(&reopened, &empty_admission, [], []).unwrap();
     assert_eq!(session.graph_version(), 1);
+    let dream = crate::DreamBeginAdmission {
+        owner_uuid: owner,
+        pass_id: "owner-backed".into(),
+        source_id: first.id,
+        turn: 0,
+        graph_version_before: 1,
+        preexisting_ids: [second.id].into_iter().collect(),
+        memory_cut: 2,
+    };
+    assert!(crate::RelSession::open(&reopened, &empty_admission, [], [dream.clone()]).is_ok());
+    let mut invalid = dream.clone();
+    invalid.memory_cut = 3;
+    assert!(crate::RelSession::open(&reopened, &empty_admission, [], [invalid]).is_err());
+    let mut invalid = dream.clone();
+    invalid.graph_version_before = 2;
+    assert!(crate::RelSession::open(&reopened, &empty_admission, [], [invalid]).is_err());
+    let mut invalid = dream;
+    invalid
+        .preexisting_ids
+        .insert(reliquary_memory_core::MemoryId([0xef; 32]));
+    assert!(crate::RelSession::open(&reopened, &empty_admission, [], [invalid]).is_err());
     assert_eq!(session.mention_revision(key, 1).unwrap().updated_at_ns, 1);
     assert_eq!(session.mention(key).unwrap().revision, 2);
     drop(session);

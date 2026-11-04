@@ -664,3 +664,26 @@ fn poisoned_rel_writer_rejects_other_mutations_until_reopen() {
     ));
     assert_eq!(writer.container.read_frames().unwrap().len(), before);
 }
+
+#[test]
+fn dream_admission_cannot_name_absent_owner_history() {
+    let path = Temp::new();
+    let owner = [0x67; 16];
+    let writer = RelWriter::create_path(&path.0, ReliquaryScope::Project, owner).unwrap();
+    let graph = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let admission = DreamBeginAdmission {
+        owner_uuid: owner,
+        pass_id: "forged".into(),
+        source_id: MemoryId([9; 32]),
+        turn: 1,
+        graph_version_before: 0,
+        preexisting_ids: Default::default(),
+        memory_cut: 0,
+    };
+    let before = writer.container.read_frames().unwrap().len();
+    assert!(matches!(
+        RelSession::open(&writer.container, &graph, [], [admission]),
+        Err(OwnerSessionError::Record(_))
+    ));
+    assert_eq!(writer.container.read_frames().unwrap().len(), before);
+}
