@@ -53,6 +53,16 @@ fn turn(id: &str, parent_id: Option<&str>, timestamp_ns: i64, content: &str) -> 
 }
 
 #[test]
+fn file_identity_matches_f03_reference_vector() {
+    let id = super::file_id("report.txt", Some("text/plain"), ContentId([0x10; 32]), 123);
+    let actual: String = id.iter().map(|byte| format!("{byte:02x}")).collect();
+    assert_eq!(
+        actual,
+        "f88c8992a4741a09f22417bc8fe4ca378ba21ab9d66ae19caeab0e552f6c7a88"
+    );
+}
+
+#[test]
 fn accepted_turns_branches_episodes_and_owner_identity_reopen_exactly() {
     let temp = TestDirectory::new();
     let path = temp.file("archive.rel");

@@ -93,6 +93,63 @@ fn pinned_identity_goldens_match_reference() {
 }
 
 #[test]
+fn f03_reference_identity_vectors_match() {
+    fn hex(bytes: [u8; 32]) -> String {
+        bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+    }
+    let packed = packed_vector_id(
+        VectorSchema::new(3, ScalarType::F32).unwrap(),
+        &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    );
+    assert_eq!(
+        hex(packed.0),
+        "358743b8ccfdeece4cef22af3df6b76da9b5f474a2595b99fe598efcf47a5419"
+    );
+    let profile = CompatibilityProfile {
+        id: CompatibilityProfileId([0; 32]),
+        dimensions: 3,
+        normalization: VectorNormalization::L2,
+        probe_suite_version: 1,
+        compatibility_policy_version: 2,
+        references: [
+            (EmbeddingMode::Query, vec![0.5, -1.25, 2.0]),
+            (EmbeddingMode::Query, vec![-0.25, 0.75, 1.5]),
+            (EmbeddingMode::Document, vec![1.0, 0.0, -1.0]),
+            (EmbeddingMode::Document, vec![0.125, 0.25, 0.5]),
+        ]
+        .into_iter()
+        .map(|(mode, vector)| CompatibilityProbeReference { mode, vector })
+        .collect(),
+    };
+    let profile = profile::compatibility_profile_id(&profile);
+    assert_eq!(
+        hex(profile.0),
+        "fb87924dad756b01c75e8925a8fefe999727124ef2c81f5349c98116f1f2a37a"
+    );
+    let archive = archive_vector_id(
+        PackedVectorId([0x11; 32]),
+        &[ArchiveFragmentId([0x22; 32]), ArchiveFragmentId([0x33; 32])],
+    );
+    assert_eq!(
+        hex(archive.0),
+        "957cce787993df75646ed70892f9db461c207c67c55605391e49c23361335833"
+    );
+    let memory = memory_vector_id(
+        profile,
+        PackedVectorId([0x11; 32]),
+        &[MemoryBodyId([0x44; 32]), MemoryBodyId([0x55; 32])],
+    );
+    assert_eq!(
+        hex(memory.0),
+        "c592f25bd556512a331f404469e4a31a48c9da08291ca20b92d2a515f791b9ee"
+    );
+    assert_eq!(
+        hex(vector_generation_id(profile, archive, 0x0102030405060708).0),
+        "803cbae7840970444914e0be23cf1faaf4bda07744444200dbc96d29703c4c3e"
+    );
+}
+
+#[test]
 fn malformed_profile_count_is_rejected_before_allocation() {
     let mut bytes = profile::encode_profile(&profile()).unwrap();
     bytes[56..60].copy_from_slice(&u32::MAX.to_le_bytes());

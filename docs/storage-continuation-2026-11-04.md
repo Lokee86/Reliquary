@@ -1,5 +1,24 @@
 # Storage continuation evidence — 2026-11-04
 
+## Capability reassessment
+
+The following assessment uses the individual acceptance statements and prerequisite edges in the canonical capability tracker. Earlier statements in this file that C02–C08 are all in progress are superseded by this assessment.
+
+- **C02 accepted:** Archive tests `accepted_turns_branches_episodes_and_owner_identity_reopen_exactly` and `accepted_source_attachments_and_source_timestamp_survive_reopen` verify typed turns, activity and source identity, and retained history. `echo_is_separate_source_keyed_evidence_and_reopens_without_activity_effects` verifies separate Echo evidence. Owner/scope and conflicting-retry negatives pass.
+- **C03 accepted:** `creation_revision_provenance_and_body_survive_reopen`, `retries_conflicts_immutable_body_and_terminal_deletion_are_explicit`, and `missing_memory_and_missing_body_backing_are_distinct` cover every stated read/reopen condition, including absent payload. Owner and malformed-record negatives pass.
+- **C04 incomplete:** owner replay derives local Memory/Entity closure from durable stores and checks the physical prefix; Graph and Community reopen tests pass. Principal-association history and authorized cross-owner Graph closure still fail closed because authenticated historical principal/other-owner proofs are unavailable. Those supported relationships need their actual proof and replay path; caller-supplied IDs cannot substitute.
+- **C05 accepted:** `entities_and_ambiguous_source_spans_survive_reopen` covers owner-bound entities, ambiguity, spans and revisions. Owner-session replay checks referenced Memory and available source spans and rejects references outside the physical prefix. The persistence store records supplied resolution facts and does not synthesize Observations.
+- **C06 accepted:** `phy_private_state_and_revision_history_survive_reopen`, `rel_rejects_private_identity_and_personality_writes`, and `rel_replay_rejects_private_phy_records` cover scope, history and privacy. Supplied existing synthesis text is persisted; no future synthesis algorithm is added.
+- **C07 accepted:** `f03_reference_identity_vectors_match` and `file_identity_matches_f03_reference_vector` compare all six captured F03 reference hashes. Vector-store tests reopen packed payloads, profiles, mappings and generations, and reject missing or inconsistent backing. Durable Archive-fragment publication and generation provenance remain later owner/publication work, not a claim made by these store tests.
+- **C08 accepted:** `births_admissions_uses_and_settled_cuts_survive_reopen` checks accepted source, event proof, scores and historical cuts; `access_without_accepted_use_receipt_cannot_reinforce_freshness` rejects unreceipted retrieval reinforcement; unsupported FRS07 fails closed. This does not claim offline conversion or import settlement is complete.
+- **C09 incomplete:** compact Dream Begin prefix proof supports grouped and versioned direct births, but external/import birth evidence and unversioned first-publication coordinates still fail closed. Those accepted record forms require authenticated physical-prefix and cohort proof before admission is complete.
+- **C10 incomplete:** depends on C04 and C09; RelSession rejects routed external Memory/routing metadata until it can authenticate owner-bound evidence. Supported historical cuts and ordered replay cannot be accepted across those missing proofs.
+- **C11 incomplete:** depends on C04 and C09. PHY kind/privacy separation exists, but principal-association historical proof and supported Dream admissions remain unavailable, so principal-independent replay is not established for those histories.
+- **C12 not yet dependency-ready:** grouped Insomnia commit, post-sync replay fencing, tombstones and absent history have focused tests; C10 and C11 must pass before accepting the grouped-commit/history capability. Cross-file atomicity is not claimed.
+- **G1 not accepted:** depends on C12. Run the storage gate after its prerequisites are accepted; workspace tests alone do not establish this gate. G2 remains downstream of G1.
+
+The focused Archive, Memory, Perception, Ego, Vector and Freshness tests and the 23-package/76-edge checker passed during this reassessment. F03's old-format corpus limitation is separate from current REL 2.1 runtime acceptance.
+
 C02–C08 remain in progress; no product gate is accepted by this record.
 
 - C02: Archive and Echo fresh projections replay before their first write, rejecting conflicting existing identities (`84aef57`, `06bb6af`).

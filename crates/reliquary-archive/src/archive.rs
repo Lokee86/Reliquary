@@ -672,17 +672,14 @@ fn prepare_attachments(
         let byte_length =
             u64::try_from(input.bytes.len()).map_err(|_| ArchiveError::FieldTooLarge)?;
         let content_id = ContentId(Sha256::digest(&input.bytes).into());
-        let mut hasher = Sha256::new();
-        hasher.update(FILE_ID_DOMAIN);
-        hasher.update(content_id.0);
-        hasher.update(byte_length.to_le_bytes());
-        hasher.update((input.filename.len() as u64).to_le_bytes());
-        hasher.update(input.filename.as_bytes());
-        let mime = input.mime_type.as_deref().unwrap_or("");
-        hasher.update((mime.len() as u64).to_le_bytes());
-        hasher.update(mime.as_bytes());
+        let id = file_id(
+            &input.filename,
+            input.mime_type.as_deref(),
+            content_id,
+            byte_length,
+        );
         attachments.push(SourceAttachment {
-            id: hasher.finalize().into(),
+            id,
             content_id,
             filename: input.filename,
             mime_type: input.mime_type,
@@ -746,7 +743,6 @@ fn validate_source_attachments(attachments: &[SourceAttachment]) -> Result<(), A
         if let Some(mime) = attachment.mime_type.as_deref() {
             validate_text(mime, "attachment MIME type")?;
         }
-        let mut hasher = Sha256::new();
         if let Some(reference) = &attachment.project_reference {
             let expected = project_file_id(
                 &attachment.filename,
@@ -760,19 +756,35 @@ fn validate_source_attachments(attachments: &[SourceAttachment]) -> Result<(), A
             }
             continue;
         }
-        hasher.update(FILE_ID_DOMAIN);
-        hasher.update(attachment.content_id.0);
-        hasher.update(attachment.byte_length.to_le_bytes());
-        hasher.update((attachment.filename.len() as u64).to_le_bytes());
-        hasher.update(attachment.filename.as_bytes());
-        let mime = attachment.mime_type.as_deref().unwrap_or("");
-        hasher.update((mime.len() as u64).to_le_bytes());
-        hasher.update(mime.as_bytes());
-        if <[u8; 32]>::from(hasher.finalize()) != attachment.id {
+        if file_id(
+            &attachment.filename,
+            attachment.mime_type.as_deref(),
+            attachment.content_id,
+            attachment.byte_length,
+        ) != attachment.id
+        {
             return Err(ArchiveError::InvalidAttachment);
         }
     }
     Ok(())
+}
+
+fn file_id(
+    filename: &str,
+    mime_type: Option<&str>,
+    content_id: ContentId,
+    byte_length: u64,
+) -> [u8; 32] {
+    let mut hasher = Sha256::new();
+    hasher.update(FILE_ID_DOMAIN);
+    hasher.update(content_id.0);
+    hasher.update(byte_length.to_le_bytes());
+    hasher.update((filename.len() as u64).to_le_bytes());
+    hasher.update(filename.as_bytes());
+    let mime = mime_type.unwrap_or("");
+    hasher.update((mime.len() as u64).to_le_bytes());
+    hasher.update(mime.as_bytes());
+    hasher.finalize().into()
 }
 
 fn project_file_id(
