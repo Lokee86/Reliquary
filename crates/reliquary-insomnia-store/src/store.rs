@@ -189,6 +189,16 @@ impl InsomniaStore {
     pub fn accepted_orders(&self) -> impl Iterator<Item = &AcceptedEpisodeOrder> {
         self.accepted.values()
     }
+    /// Return a deterministic, bounded batch of admitted episodes that have
+    /// never entered the work queue. Completed work is not re-enqueued.
+    pub fn unqueued_orders(&self, limit: usize) -> Vec<AcceptedEpisodeOrder> {
+        self.accepted
+            .iter()
+            .filter(|(id, _)| !self.work.contains_key(id))
+            .take(limit)
+            .map(|(_, order)| order.clone())
+            .collect()
+    }
     pub fn work(&self, id: EpisodeId) -> Option<&InsomniaWork> {
         self.work.get(&id)
     }

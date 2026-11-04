@@ -62,6 +62,20 @@ fn receipt(id: EpisodeId) -> AcceptedCompletionState {
 }
 
 #[test]
+fn unqueued_admission_batch_is_bounded_and_owner_ordered() {
+    let path = Temp::new();
+    let mut container = container(&path.0, 1);
+    let first = EpisodeId([1; 32]);
+    let second = EpisodeId([2; 32]);
+    let mut store = InsomniaStore::open(&container, [order(second), order(first)]).unwrap();
+    store
+        .queue(&mut container, order(first), InsomniaPriority::Live, 10)
+        .unwrap();
+    assert_eq!(store.unqueued_orders(1), vec![order(second)]);
+    assert!(store.unqueued_orders(0).is_empty());
+}
+
+#[test]
 fn claim_and_completion_receipt_survive_reopen_and_duplicate_receipt_is_idempotent() {
     let path = Temp::new();
     let id = EpisodeId([1; 32]);
