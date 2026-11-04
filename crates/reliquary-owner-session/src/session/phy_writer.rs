@@ -1,6 +1,25 @@
 use super::*;
 
 impl PhyWriter {
+    /// Create and initialize a new private PHY owner and its canonical writer.
+    pub fn create_path(
+        path: impl AsRef<Path>,
+        owner_id: [u8; 16],
+    ) -> Result<Self, OwnerSessionError> {
+        let mut container = Container::create(path, ContainerIdentity::phylactery(), owner_id)?;
+        super::create::initialize_owner(&mut container)?;
+        let admission = GraphAdmission::for_replay(owner_id, [], [], [], [], []);
+        let common = open_common(&container, &admission, [], false)?;
+        let writer_lease_proof = container.writer_lease_proof();
+        Ok(Self {
+            owner_id,
+            container,
+            common,
+            writer_lease_proof,
+            poisoned: false,
+        })
+    }
+
     pub fn open_path(
         path: impl AsRef<Path>,
         graph_admission: &GraphAdmission,

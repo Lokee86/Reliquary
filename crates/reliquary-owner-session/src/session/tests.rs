@@ -405,3 +405,77 @@ fn session_rejects_mention_of_missing_owner_memory() {
     ));
     assert_eq!(container.read_frames().unwrap().len(), before);
 }
+
+#[test]
+fn new_rel_and_phy_writers_initialize_and_reopen_their_owners() {
+    let rel_path = Temp::new();
+    let rel_owner = [0x61; 16];
+    let mut writer =
+        RelWriter::create_path(&rel_path.0, ReliquaryScope::Project, rel_owner).unwrap();
+    assert_eq!(writer.owner_id(), rel_owner);
+    writer
+        .accept_turn_and_advance_branch(
+            reliquary_archive::TurnInput {
+                id: "new-turn".into(),
+                conversation_id: "new-conversation".into(),
+                parent_id: None,
+                role: "user".into(),
+                principal_id: Some("principal".into()),
+                timestamp_ns: 10,
+                content: "persisted".into(),
+                attachments: vec![],
+                project_attachments: vec![],
+            },
+            reliquary_archive::Branch {
+                id: "main".into(),
+                conversation_id: "new-conversation".into(),
+                leaf_node_id: "new-turn".into(),
+                canonical: true,
+            },
+        )
+        .unwrap();
+    assert!(RelWriter::create_path(&rel_path.0, ReliquaryScope::Project, rel_owner).is_err());
+    drop(writer);
+    let admission = GraphAdmission::for_replay(rel_owner, [], [], [], [], []);
+    let reopened = RelWriter::open_path(&rel_path.0, admission, [], []).unwrap();
+    assert_eq!(reopened.read_session().memory_version(), 0);
+    assert_eq!(
+        reopened
+            .read_session()
+            .archive_node("new-conversation", "new-turn")
+            .unwrap()
+            .role,
+        "user"
+    );
+    drop(reopened);
+    assert!(
+        PhySession::open_path(
+            &rel_path.0,
+            &GraphAdmission::for_replay(rel_owner, [], [], [], [], []),
+            []
+        )
+        .is_err()
+    );
+
+    let phy_path = Temp::new();
+    let phy_owner = [0x62; 16];
+    let writer = PhyWriter::create_path(&phy_path.0, phy_owner).unwrap();
+    assert_eq!(writer.owner_id(), phy_owner);
+    assert!(PhyWriter::create_path(&phy_path.0, phy_owner).is_err());
+    drop(writer);
+    let admission = GraphAdmission::for_replay(phy_owner, [], [], [], [], []);
+    let reopened = PhyWriter::open_path(&phy_path.0, &admission, []).unwrap();
+    assert_eq!(reopened.owner_id(), phy_owner);
+    assert!(
+        reopened
+            .memory_history(MemoryId([0; 32]))
+            .unwrap()
+            .is_none()
+    );
+    drop(reopened);
+    let file = Container::open_read_only(&phy_path.0).unwrap();
+    assert!(matches!(
+        RelSession::open(&file, &admission, [], []),
+        Err(OwnerSessionError::WrongFileKind { .. })
+    ));
+}

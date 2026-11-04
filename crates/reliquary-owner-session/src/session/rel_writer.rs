@@ -1,6 +1,19 @@
 use super::*;
 
 impl RelWriter {
+    /// Create and initialize a new REL owner, then open its canonical writer.
+    pub fn create_path(
+        path: impl AsRef<Path>,
+        scope: reliquary_container::ReliquaryScope,
+        owner_id: [u8; 16],
+    ) -> Result<Self, OwnerSessionError> {
+        let mut container = Container::create(path, ContainerIdentity::reliquary(scope), owner_id)?;
+        super::create::initialize_owner(&mut container)?;
+        let admission = GraphAdmission::for_replay(owner_id, [], [], [], [], []);
+        let session = RelSession::open(&container, &admission, [], [])?;
+        Ok(Self { container, session })
+    }
+
     pub fn open_path(
         path: impl AsRef<Path>,
         graph_admission: GraphAdmission,
