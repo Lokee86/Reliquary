@@ -341,6 +341,11 @@ impl MemoryStore {
                 return Err(MemoryError::HashCollision);
             }
         } else {
+            for history in self.state.revisions.values() {
+                for existing in history.iter().filter(|record| record.body_id == body_id) {
+                    validate_replayed_record(existing, Some(&body))?;
+                }
+            }
             container.append(&body_bytes)?;
         }
         container.append(&encoded)?;
