@@ -208,13 +208,11 @@ fn ensure_reserved_ignored(root: &Path) -> Result<(), String> {
 }
 
 fn temporary_path(root: &Path) -> Result<PathBuf, String> {
-    // Lore refuses to write output files into its managed repository unless
-    // the caller holds a repository write token. Keep this transient output
-    // beside the repository so historical reads do not mutate or conflict
-    // with managed state.
-    let directory = root
-        .parent()
-        .ok_or_else(|| "Lore repository root has no parent directory".to_string())?;
+    let directory = if root.join(LORE_DIR).is_dir() {
+        root.join(LORE_DIR)
+    } else {
+        root.join(LEGACY_LORE_DIR)
+    };
     let suffix = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|error| error.to_string())?
