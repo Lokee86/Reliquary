@@ -1,6 +1,11 @@
-use reliquary_container::{Container, ContainerIdentity};
-use reliquary_owner_session::{GraphAdmission, OwnerSessionError, PhySession};
-use reliquary_vector_store::{CompatibilityProfileStore, MemoryVectorStore, PackedVectorStore};
+use reliquary_archive::{Archive, EpisodeBoundary, EpisodeOrigin, TurnInput};
+use reliquary_container::{Container, ContainerIdentity, ReliquaryScope};
+use reliquary_memory_core::{MemoryDraft, MemorySourceRef};
+use reliquary_owner_session::{GraphAdmission, OwnerSessionError, PhySession, RelSession};
+use reliquary_vector_store::{
+    ArchiveVectorStore, CompatibilityProfileStore, MemoryVectorStore, PackedVectorStore,
+    VectorGenerationStore,
+};
 use sha2::{Digest, Sha256};
 use std::{
     fs,
@@ -144,5 +149,157 @@ fn phy_owner_rejects_unsupported_rel_freshness_versions_without_mutation() {
             "unexpected Phy open error: {error:?}"
         );
         assert_eq!(fs::read(&path.0).unwrap(), before);
+    }
+}
+
+#[test]
+fn rel_source_proof_rejects_forged_owner_principal_and_quote() {
+    let path = Temp::new();
+    let owner = [44; 16];
+    let mut container = Container::create(
+        &path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    PackedVectorStore::default()
+        .initialize(&mut container)
+        .unwrap();
+    CompatibilityProfileStore::default()
+        .initialize(&mut container)
+        .unwrap();
+    MemoryVectorStore::default()
+        .initialize(&mut container)
+        .unwrap();
+    ArchiveVectorStore::default()
+        .initialize(&mut container)
+        .unwrap();
+    VectorGenerationStore::empty()
+        .initialize(&mut container)
+        .unwrap();
+    let mut archive = Archive::empty();
+    archive
+        .accept_turn(
+            &mut container,
+            TurnInput {
+                id: "user-turn".into(),
+                conversation_id: "conversation".into(),
+                parent_id: None,
+                role: "user".into(),
+                principal_id: Some("principal-1".into()),
+                timestamp_ns: 100,
+                content: "I prefer tea in the morning".into(),
+                attachments: vec![],
+                project_attachments: vec![],
+            },
+        )
+        .unwrap();
+    archive
+        .accept_turn(
+            &mut container,
+            TurnInput {
+                id: "other-turn".into(),
+                conversation_id: "conversation".into(),
+                parent_id: Some("user-turn".into()),
+                role: "user".into(),
+                principal_id: Some("principal-1".into()),
+                timestamp_ns: 200,
+                content: "I like coffee in the afternoon".into(),
+                attachments: vec![],
+                project_attachments: vec![],
+            },
+        )
+        .unwrap();
+    let episode_id = archive
+        .put_episode(
+            &mut container,
+            "conversation",
+            "user-turn",
+            "user-turn",
+            EpisodeOrigin::Live,
+            EpisodeBoundary::Explicit,
+            100,
+        )
+        .unwrap();
+    container.sync().unwrap();
+    drop(container);
+
+    let graph = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let container = Container::open_read_only(&path.0).unwrap();
+    let rel = RelSession::open(&container, &graph, [], []).unwrap();
+    let make_draft = |owner_id: String,
+                      principal_id: String,
+                      source_node_id: &str,
+                      source_time_ns: i64| MemoryDraft {
+        title: "Tea preference".into(),
+        content: "Prefers tea in the morning".into(),
+        category: "preference".into(),
+        memory_type: "fact".into(),
+        authority_kind: "direct".into(),
+        temporal_status: "current".into(),
+        scope: "user".into(),
+        lifecycle_state: "extracted".into(),
+        archived: false,
+        parent_id: None,
+        superseded_by: None,
+        source_node_id: None,
+        content_source_conversation_id: None,
+        content_source_node_id: None,
+        grounding_source_conversation_id: None,
+        grounding_source_node_id: None,
+        source_episode_id: None,
+        source_ref: Some(MemorySourceRef {
+            owner_id,
+            principal_id: Some(principal_id),
+            source_episode_id: episode_id.0,
+            source_node_id: source_node_id.into(),
+            content_source_conversation_id: None,
+            content_source_node_id: None,
+            grounding_source_conversation_id: None,
+            grounding_source_node_id: None,
+        }),
+        source_time_ns: Some(source_time_ns),
+        temporal_inference: None,
+        mutation_id: "route-1".into(),
+        created_at_ns: 101,
+        updated_at_ns: 101,
+    };
+    let owner_id = owner
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    for (draft, quote) in [
+        (
+            make_draft(
+                "forged-owner".into(),
+                "principal-1".into(),
+                "user-turn",
+                100,
+            ),
+            "I prefer tea",
+        ),
+        (
+            make_draft(
+                owner_id.clone(),
+                "forged-principal".into(),
+                "user-turn",
+                100,
+            ),
+            "I prefer tea",
+        ),
+        (
+            make_draft(owner_id.clone(), "principal-1".into(), "user-turn", 100),
+            "I prefer coffee",
+        ),
+        (
+            make_draft(owner_id, "principal-1".into(), "other-turn", 200),
+            "I like coffee",
+        ),
+    ] {
+        assert!(
+            rel.prove_routed_user_memory([45; 16], &draft, quote)
+                .is_err(),
+            "REL minted a routed proof for forged source data"
+        );
     }
 }
