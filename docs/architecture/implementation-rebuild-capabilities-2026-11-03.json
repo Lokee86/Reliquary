@@ -180,8 +180,8 @@
       ],
       "deliverable": "Insomnia work receipts, Dream-first-cycle, import epoch, maintenance lineage and external-index evidence",
       "acceptance": "Durable records reopen without semantic inference and preserve proper scope and admission fences",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\storage-continuation-2026-11-04.md"
     },
     {
       "id": "C10",
