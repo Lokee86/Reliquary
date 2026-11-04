@@ -1,0 +1,13 @@
+[package]
+name = "reliquary-dream"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+reliquary-chronos = { path = "../reliquary-chronos" }
+reliquary-graph = { path = "../reliquary-graph" }
+reliquary-memory-core = { path = "../reliquary-memory-core" }
+reliquary-switchboard = { path = "../reliquary-switchboard" }
+reliquary-vectors = { path = "../reliquary-vectors" }
+serde_json = "1"

@@ -1,0 +1,12 @@
+[package]
+name = "reliquary-entity-resolution"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+reliquary-perception-store = { path = "../reliquary-perception-store" }
+reliquary-memory-core = { path = "../reliquary-memory-core" }
+reliquary-retrieval = { path = "../reliquary-retrieval" }
+reliquary-switchboard = { path = "../reliquary-switchboard" }
+serde_json = "1"

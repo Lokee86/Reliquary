@@ -1,0 +1,11 @@
+[package]
+name = "reliquary-freshness"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+reliquary-freshness-store = { path = "../reliquary-freshness-store" }
+reliquary-graph = { path = "../reliquary-graph" }
+reliquary-memory-core = { path = "../reliquary-memory-core" }
+sha2 = "0.10"

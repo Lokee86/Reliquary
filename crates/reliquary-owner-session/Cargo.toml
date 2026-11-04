@@ -1,0 +1,22 @@
+[package]
+name = "reliquary-owner-session"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[features]
+oracle-support = []
+
+[dependencies]
+reliquary-container = { path = "../reliquary-container" }
+reliquary-archive = { path = "../reliquary-archive" }
+reliquary-memory-core = { path = "../reliquary-memory-core" }
+reliquary-graph = { path = "../reliquary-graph" }
+reliquary-perception-store = { path = "../reliquary-perception-store" }
+reliquary-ego-store = { path = "../reliquary-ego-store" }
+reliquary-freshness-store = { path = "../reliquary-freshness-store" }
+reliquary-vector-store = { path = "../reliquary-vector-store" }
+reliquary-insomnia-store = { path = "../reliquary-insomnia-store" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"

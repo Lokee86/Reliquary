@@ -1,0 +1,13 @@
+[package]
+name = "reliquary-vector-store"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+reliquary-container = { path = "../reliquary-container" }
+lodestone-packed = { git = "https://github.com/Lokee86/lodestone.git", rev = "7b4b3e02b2bd3f3e474fef1a31c8632f8bbea49f" }
+sha2 = "0.10"

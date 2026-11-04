@@ -1,0 +1,9 @@
+[package]
+name = "reliquary-vectors"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+reliquary-switchboard = { path = "../reliquary-switchboard" }
+reliquary-vector-store = { path = "../reliquary-vector-store" }

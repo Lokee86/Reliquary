@@ -1,0 +1,15 @@
+[package]
+name = "reliquary-project-environment"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[features]
+default = ["lore-history"]
+lore-history = ["dep:lore", "dep:tokio"]
+
+[dependencies]
+reliquary-archive = { path = "../reliquary-archive" }
+lore = { git = "https://github.com/EpicGames/lore.git", rev = "c49390be048fa273ab47ff7d43bc4994ba7be8ce", optional = true }
+sha2 = "0.10"
+tokio = { version = "1", features = ["rt", "rt-multi-thread"], optional = true }

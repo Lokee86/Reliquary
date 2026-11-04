@@ -1,0 +1,10 @@
+[package]
+name = "reliquary-switchboard"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+reqwest = { version = "=0.12.23", default-features = false, features = ["blocking", "rustls-tls", "json"] }
+serde_json = "1"
+zeroize = "1"

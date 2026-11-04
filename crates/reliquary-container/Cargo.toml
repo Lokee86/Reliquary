@@ -1,0 +1,9 @@
+[package]
+name = "reliquary-container"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+uuid = { version = "1", features = ["v4"] }
+sha2 = "0.10"

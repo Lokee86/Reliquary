@@ -1,0 +1,58 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/reliquary-container",
+    "crates/reliquary-switchboard",
+    "crates/reliquary-chronos",
+    "crates/reliquary-archive",
+    "crates/reliquary-memory-core",
+    "crates/reliquary-graph",
+    "crates/reliquary-perception-store",
+    "crates/reliquary-ego-store",
+    "crates/reliquary-freshness-store",
+    "crates/reliquary-vector-store",
+    "crates/reliquary-insomnia-store",
+    "crates/reliquary-owner-session",
+    "crates/reliquary-vectors",
+    "crates/reliquary-retrieval",
+    "crates/reliquary-dream",
+    "crates/reliquary-insomnia",
+    "crates/reliquary-entity-resolution",
+    "crates/reliquary-freshness",
+    "crates/reliquary-context-engine",
+    "crates/reliquary-project-environment",
+    "crates/reliquary-application",
+    "crates/reliquary-runtime-gateway",
+]
+
+[package]
+name = "reliquary-memory"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+reliquary-application = { path = "crates/reliquary-application" }
+reliquary-runtime-gateway = { path = "crates/reliquary-runtime-gateway" }
+reliquary-owner-session = { path = "crates/reliquary-owner-session" }
+reliquary-archive = { path = "crates/reliquary-archive" }
+reliquary-memory-core = { path = "crates/reliquary-memory-core" }
+reliquary-graph = { path = "crates/reliquary-graph" }
+reliquary-perception-store = { path = "crates/reliquary-perception-store" }
+reliquary-ego-store = { path = "crates/reliquary-ego-store" }
+reliquary-freshness-store = { path = "crates/reliquary-freshness-store" }
+reliquary-vector-store = { path = "crates/reliquary-vector-store" }
+reliquary-insomnia-store = { path = "crates/reliquary-insomnia-store" }
+reliquary-chronos = { path = "crates/reliquary-chronos" }
+reliquary-switchboard = { path = "crates/reliquary-switchboard" }
+reliquary-dream = { path = "crates/reliquary-dream" }
+reliquary-insomnia = { path = "crates/reliquary-insomnia" }
+reliquary-entity-resolution = { path = "crates/reliquary-entity-resolution" }
+reliquary-freshness = { path = "crates/reliquary-freshness" }
+reliquary-retrieval = { path = "crates/reliquary-retrieval" }
+reliquary-vectors = { path = "crates/reliquary-vectors" }
+reliquary-context-engine = { path = "crates/reliquary-context-engine" }
+reliquary-project-environment = { path = "crates/reliquary-project-environment" }
+
+[patch.crates-io]
+quinn-proto = { path = "vendor/quinn-proto" }

@@ -1,0 +1,12 @@
+[package]
+name = "reliquary-retrieval"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+reliquary-archive = { path = "../reliquary-archive" }
+reliquary-graph = { path = "../reliquary-graph" }
+reliquary-memory-core = { path = "../reliquary-memory-core" }
+reliquary-vector-store = { path = "../reliquary-vector-store" }
+reliquary-vectors = { path = "../reliquary-vectors" }
