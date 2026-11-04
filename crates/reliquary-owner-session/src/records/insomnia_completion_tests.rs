@@ -560,6 +560,9 @@ fn owner_session_accepts_graph_with_owner_backed_memory_endpoints() {
     invalid.memory_cut = 3;
     assert!(crate::RelSession::open(&reopened, &empty_admission, [], [invalid]).is_err());
     let mut invalid = dream.clone();
+    invalid.memory_cut = 1;
+    assert!(crate::RelSession::open(&reopened, &empty_admission, [], [invalid]).is_err());
+    let mut invalid = dream.clone();
     invalid.graph_version_before = 2;
     assert!(crate::RelSession::open(&reopened, &empty_admission, [], [invalid]).is_err());
     let mut invalid = dream;

@@ -105,6 +105,14 @@ pub(super) fn open_common(
                 .any(|id| !memories.contains_memory(*id))
             || admission.memory_cut > memories.memory_version()
             || admission.graph_version_before > graph.graph_version()
+            || (admission.memory_cut != 0
+                && std::iter::once(&admission.source_id)
+                    .chain(admission.preexisting_ids.iter())
+                    .any(|id| {
+                        memories
+                            .first_memory_version(*id)
+                            .is_none_or(|version| version > admission.memory_cut)
+                    }))
         {
             return Err(OwnerSessionError::Record(
                 "Dream admission references unavailable owner history".into(),

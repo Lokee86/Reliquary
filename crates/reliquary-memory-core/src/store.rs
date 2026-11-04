@@ -232,6 +232,14 @@ impl MemoryStore {
     pub fn contains_memory(&self, id: MemoryId) -> bool {
         self.state.revisions.contains_key(&id)
     }
+    /// Owner-local version of the first retained creation, independent of payload availability.
+    pub fn first_memory_version(&self, id: MemoryId) -> Option<u64> {
+        self.state
+            .revisions
+            .get(&id)?
+            .first()
+            .map(|record| record.memory_version)
+    }
 
     pub fn publish(
         &mut self,
