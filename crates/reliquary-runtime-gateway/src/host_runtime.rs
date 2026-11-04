@@ -45,6 +45,11 @@ pub struct HostOperation {
 /// durability and dequeue/cancel guarantees; gateway tests cannot prove a real
 /// remote host's behavior.
 pub trait TrustedHostAdapter: Send + Sync {
+    /// Capability intent configured by the host application before connecting.
+    fn configured_capabilities(&self) -> std::collections::BTreeSet<RuntimeCapability>;
+    /// Authenticated connection handshake. Returned capability contracts are
+    /// declarations only; they are not independent evidence of host behavior.
+    fn connect(&self) -> Result<crate::host_lifecycle::HostConnection, String>;
     fn queue_guarantees(&self, capability: RuntimeCapability) -> HostQueueGuarantees;
     fn reconcile(&self, capability: RuntimeCapability) -> Result<HostReconcileStatus, String>;
     fn handoff(
@@ -82,21 +87,23 @@ struct CanonicalSubmission<'a> {
 impl Instance {
     /// Persist one handoff intent before calling the trusted host. An existing
     /// operation is reconciled by status and is never handed off a second time.
-    pub(crate) fn dispatch_conversation_submission(
+    pub fn dispatch_conversation_submission(
         &self,
         queue: &mut ConversationQueue,
         id: &ConversationSubmissionId,
         capability: RuntimeCapability,
-        adapter: &dyn TrustedHostAdapter,
+        router: &CapabilityRouter,
     ) -> Result<HostDispatchOutcome, GatewayError> {
         self.authorize_host_submission(queue, id)?;
         require_executable(capability)?;
-        require_host_contract(adapter, capability)?;
 
         if queue.host_operation(id, capability).is_some() {
-            return self.reconcile_host_operation(queue, id, capability, adapter);
+            ensure_host_router(router, self.gateway_binding())?;
+            return self.reconcile_host_operation(queue, id, capability, router);
         }
-        match adapter
+        require_host_contract(router, capability, self.gateway_binding())?;
+        match router
+            .adapter()
             .reconcile(capability)
             .map_err(GatewayError::HostAdapter)?
         {
@@ -125,14 +132,15 @@ impl Instance {
 
         // This append syncs before any externally visible host call.
         if !queue.begin_host_handoff(id, capability, stable_id.clone(), payload_digest)? {
-            return self.reconcile_host_operation(queue, id, capability, adapter);
+            return self.reconcile_host_operation(queue, id, capability, router);
         }
+        router.record_owned_operation(capability, stable_id.clone());
         let operation = HostOperation {
             stable_id: stable_id.clone(),
             payload_digest,
             payload,
         };
-        let receipt = match adapter.handoff(capability, &operation) {
+        let receipt = match router.adapter().handoff(capability, &operation) {
             Ok(receipt) => receipt,
             Err(error) => {
                 // Intent remains durable. Later calls can only query status.
@@ -152,20 +160,20 @@ impl Instance {
 
     /// Reconcile a previously dispatched operation. Unknown and adapter errors
     /// remain held; they never authorize redispatch.
-    pub(crate) fn reconcile_host_operation(
+    pub fn reconcile_host_operation(
         &self,
         queue: &mut ConversationQueue,
         id: &ConversationSubmissionId,
         capability: RuntimeCapability,
-        adapter: &dyn TrustedHostAdapter,
+        router: &CapabilityRouter,
     ) -> Result<HostDispatchOutcome, GatewayError> {
         self.authorize_host_submission(queue, id)?;
         require_executable(capability)?;
-        require_host_contract(adapter, capability)?;
+        ensure_host_router(router, self.gateway_binding())?;
         let current = queue
             .host_operation(id, capability)
             .ok_or(conversation_queue::QueueError::MissingSubmission)?;
-        match adapter.reconcile(capability) {
+        match router.adapter().reconcile(capability) {
             Ok(HostReconcileStatus::UnknownStatus) => {
                 return Ok(HostDispatchOutcome::Reconciled(queue.record_host_status(
                     id,
@@ -179,7 +187,7 @@ impl Instance {
                 return Err(GatewayError::HostAdapter(error));
             }
         }
-        let status = match adapter.status(capability, &current.stable_id) {
+        let status = match router.adapter().status(capability, &current.stable_id) {
             Ok(status) => status,
             Err(error) => {
                 let _ = queue.record_host_status(id, capability, HostOperationStatus::Unknown);
@@ -187,29 +195,47 @@ impl Instance {
             }
         };
         let status = queue.record_host_status(id, capability, status)?;
+        if status.host_operations.get(&capability).is_some_and(|op| {
+            matches!(
+                op.phase,
+                DurableHostOperationPhase::Completed | DurableHostOperationPhase::Cancelled
+            )
+        }) {
+            router.record_terminal_operation(capability, &current.stable_id);
+        }
         Ok(HostDispatchOutcome::Reconciled(status))
     }
 
     /// Record cancellation intent before calling the host's linearizable
     /// pending/dequeue cancellation gate.
-    pub(crate) fn cancel_host_operation(
+    pub fn cancel_host_operation(
         &self,
         queue: &mut ConversationQueue,
         id: &ConversationSubmissionId,
         capability: RuntimeCapability,
-        adapter: &dyn TrustedHostAdapter,
+        router: &CapabilityRouter,
     ) -> Result<SubmissionStatus, GatewayError> {
         self.authorize_host_submission(queue, id)?;
         require_executable(capability)?;
-        require_host_contract(adapter, capability)?;
+        ensure_host_router(router, self.gateway_binding())?;
         let current = queue
             .host_operation(id, capability)
             .ok_or(conversation_queue::QueueError::MissingSubmission)?;
         queue.begin_host_cancel(id, capability)?;
-        let outcome = adapter
+        let outcome = router
+            .adapter()
             .cancel(capability, &current.stable_id)
             .map_err(GatewayError::HostAdapter)?;
-        Ok(queue.record_host_cancel(id, capability, outcome)?)
+        let status = queue.record_host_cancel(id, capability, outcome)?;
+        if status.host_operations.get(&capability).is_some_and(|op| {
+            matches!(
+                op.phase,
+                DurableHostOperationPhase::Completed | DurableHostOperationPhase::Cancelled
+            )
+        }) {
+            router.record_terminal_operation(capability, &current.stable_id);
+        }
+        Ok(status)
     }
 
     fn authorize_host_submission(
@@ -241,13 +267,32 @@ fn require_executable(capability: RuntimeCapability) -> Result<(), GatewayError>
 }
 
 fn require_host_contract(
-    adapter: &dyn TrustedHostAdapter,
+    router: &CapabilityRouter,
     capability: RuntimeCapability,
+    gateway_binding: usize,
 ) -> Result<(), GatewayError> {
-    if adapter.queue_guarantees(capability).complete() {
+    ensure_host_router(router, gateway_binding)?;
+    let contract_ready = router
+        .contract(capability)
+        .is_some_and(|contract| contract.queue.complete());
+    match router.state(capability) {
+        HostCapabilityState::Ready if contract_ready => Ok(()),
+        HostCapabilityState::Unavailable(reason) => Err(GatewayError::HostAdapter(reason)),
+        HostCapabilityState::UnknownStatusHeld => Err(GatewayError::HostStatusUnknown),
+        _ => Err(GatewayError::IncompleteHostContract(capability)),
+    }
+}
+
+fn ensure_host_router(
+    router: &CapabilityRouter,
+    gateway_binding: usize,
+) -> Result<(), GatewayError> {
+    if router.belongs_to(gateway_binding) {
         Ok(())
     } else {
-        Err(GatewayError::IncompleteHostContract(capability))
+        Err(GatewayError::HostAdapter(
+            "host connection belongs to another Gateway".into(),
+        ))
     }
 }
 
@@ -365,6 +410,23 @@ mod tests {
         fail_handoff: Mutex<bool>,
     }
     impl TrustedHostAdapter for FakeHost {
+        fn configured_capabilities(&self) -> std::collections::BTreeSet<RuntimeCapability> {
+            [RuntimeCapability::ConversationExecution]
+                .into_iter()
+                .collect()
+        }
+        fn connect(&self) -> Result<crate::host_lifecycle::HostConnection, String> {
+            Ok(crate::host_lifecycle::HostConnection {
+                capabilities: [(
+                    RuntimeCapability::ConversationExecution,
+                    crate::host_lifecycle::HostCapabilityContract::pending_queue(
+                        self.queue_guarantees(RuntimeCapability::ConversationExecution),
+                    ),
+                )]
+                .into_iter()
+                .collect(),
+            })
+        }
         fn queue_guarantees(&self, _: RuntimeCapability) -> HostQueueGuarantees {
             HostQueueGuarantees {
                 durable_acceptance: true,
@@ -435,14 +497,15 @@ mod tests {
     #[test]
     fn uncertain_handoff_survives_reopen_and_is_reconciled_without_redispatch() {
         let (temp, instance, owner, mut queue, id) = setup();
-        let host = FakeHost::default();
+        let host = Arc::new(FakeHost::default());
+        let router = CapabilityRouter::connect(host.clone(), instance.gateway_binding());
         *host.fail_handoff.lock().unwrap() = true;
         assert!(matches!(
             instance.dispatch_conversation_submission(
                 &mut queue,
                 &id,
                 RuntimeCapability::ConversationExecution,
-                &host,
+                &router,
             ),
             Err(GatewayError::HostAdapter(_))
         ));
@@ -465,7 +528,7 @@ mod tests {
                 &mut queue,
                 &id,
                 RuntimeCapability::ConversationExecution,
-                &host,
+                &router,
             )
             .unwrap();
         assert!(matches!(outcome, HostDispatchOutcome::Reconciled(_)));
@@ -483,13 +546,14 @@ mod tests {
     #[test]
     fn accepted_dispatch_reconcile_and_cancel_use_same_stable_identity() {
         let (_temp, instance, _owner, mut queue, id) = setup();
-        let host = FakeHost::default();
+        let host = Arc::new(FakeHost::default());
+        let router = CapabilityRouter::connect(host.clone(), instance.gateway_binding());
         let dispatched = instance
             .dispatch_conversation_submission(
                 &mut queue,
                 &id,
                 RuntimeCapability::ConversationExecution,
-                &host,
+                &router,
             )
             .unwrap();
         assert!(matches!(dispatched, HostDispatchOutcome::Dispatched(_)));
@@ -502,7 +566,7 @@ mod tests {
                 &mut queue,
                 &id,
                 RuntimeCapability::ConversationExecution,
-                &host,
+                &router,
             )
             .unwrap();
         assert!(matches!(reconciled, HostDispatchOutcome::Reconciled(_)));
@@ -513,7 +577,7 @@ mod tests {
                 &mut queue,
                 &id,
                 RuntimeCapability::ConversationExecution,
-                &host,
+                &router,
             )
             .unwrap();
         assert_eq!(
@@ -527,5 +591,23 @@ mod tests {
                 .stable_id,
             stable_id
         );
+    }
+
+    #[test]
+    fn host_router_from_another_gateway_is_rejected() {
+        let (_temp, instance, _owner, mut queue, id) = setup();
+        let host = Arc::new(FakeHost::default());
+        let router =
+            CapabilityRouter::connect(host.clone(), instance.gateway_binding().wrapping_add(1));
+        assert!(matches!(
+            instance.dispatch_conversation_submission(
+                &mut queue,
+                &id,
+                RuntimeCapability::ConversationExecution,
+                &router
+            ),
+            Err(GatewayError::HostAdapter(_))
+        ));
+        assert_eq!(*host.handoffs.lock().unwrap(), 0);
     }
 }

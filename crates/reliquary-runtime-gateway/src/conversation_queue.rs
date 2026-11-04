@@ -123,6 +123,15 @@ pub enum RuntimeCapability {
     Embedding,
     ProjectEnvironment,
 }
+impl RuntimeCapability {
+    pub const ALL: [Self; 5] = [
+        Self::ConversationExecution,
+        Self::Insomnia,
+        Self::Dream,
+        Self::Embedding,
+        Self::ProjectEnvironment,
+    ];
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum HostOperationStatus {

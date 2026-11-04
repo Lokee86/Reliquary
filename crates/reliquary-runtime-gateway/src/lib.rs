@@ -13,6 +13,7 @@ use uuid::Uuid;
 
 mod conversation_queue;
 mod generation_stream;
+mod host_lifecycle;
 mod host_runtime;
 use conversation_queue::ArchiveCommitProof;
 pub use conversation_queue::{
@@ -30,6 +31,7 @@ pub use host_runtime::{
     HostDispatchOutcome, HostOperation, HostQueueGuarantees, HostReconcileStatus,
     TrustedHostAdapter,
 };
+pub use host_lifecycle::{CapabilityRouter, HostCapabilityContract, HostCapabilityState, HostConnection, HostExecutionMode};
 use std::{
     collections::{BTreeSet, HashMap},
     fmt,
@@ -537,6 +539,16 @@ impl HostAdmissionControl {
 }
 
 impl HostAdmissionAdapter {
+    /// Connect an explicitly configured runtime host. Request Instances have no
+    /// corresponding method, so adapters cannot self-register during a call.
+    /// Negotiated guarantees remain declarations requiring host-side conformance.
+    pub fn connect_runtime_host(
+        &self,
+        adapter: Arc<dyn TrustedHostAdapter>,
+    ) -> CapabilityRouter {
+        CapabilityRouter::connect(adapter, Arc::as_ptr(&self.gateway.owners) as usize)
+    }
+
     /// Authenticate a bearer token and create an Instance with its configured grants.
     /// Unknown, malformed, or changed credentials all fail closed.
     pub fn authenticate(&self, token: &str) -> Result<Instance, GatewayError> {
@@ -572,6 +584,10 @@ pub struct Instance {
     credential_active: Option<Arc<AtomicBool>>,
 }
 impl Instance {
+    pub(crate) fn gateway_binding(&self) -> usize {
+        Arc::as_ptr(&self.owners) as usize
+    }
+
     pub fn principal(&self) -> &str {
         &self.principal
     }
