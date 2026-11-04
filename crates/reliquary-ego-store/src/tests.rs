@@ -253,3 +253,27 @@ fn fresh_ego_store_replays_before_claiming_existing_identity() {
         "original"
     );
 }
+
+#[test]
+fn ego_rejects_same_owner_id_with_different_rel_scope() {
+    let first_path = TempFile::new();
+    let second_path = TempFile::new();
+    let first = create(FileKind::Reliquary, first_path.path());
+    let mut other = Container::create(
+        second_path.path(),
+        ContainerIdentity::reliquary(ReliquaryScope::Organization),
+        first.owner_id(),
+    )
+    .unwrap();
+    let mut store = EgoStore::open(&first).unwrap();
+    assert!(matches!(
+        store.create_anchor(
+            &mut other,
+            anchor(1),
+            EgoAnchorPriority::Normal,
+            "anchor".into()
+        ),
+        Err(EgoError::OwnerIdentityMismatch)
+    ));
+    assert!(other.read_frames().unwrap().is_empty());
+}
