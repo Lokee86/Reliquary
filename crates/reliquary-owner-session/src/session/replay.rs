@@ -32,6 +32,19 @@ pub(super) fn open_common(
     };
     let perception = PerceptionStore::open(container)?;
     let graph = GraphStore::open(container, graph_admission)?;
+    for relation in graph.history() {
+        for node in [relation.source, relation.target] {
+            let exists = match node {
+                NodeRef::Memory(id) => memories.contains_memory(MemoryId(id)),
+                NodeRef::Entity(id) => perception.entity(EntityId(id)).is_some(),
+            };
+            if !exists {
+                return Err(OwnerSessionError::Record(
+                    "Graph endpoint is absent from the owner stores".into(),
+                ));
+            }
+        }
+    }
     let communities = CommunityStore::open(container, &graph)?;
     let ego = EgoStore::open(container)?;
     let packed_vectors = PackedVectorStore::open(container)?;

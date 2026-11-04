@@ -211,6 +211,10 @@ impl GraphStore {
     pub fn owner_id(&self) -> [u8; 16] {
         self.owner
     }
+    /// Accepted relation history for owner-session closure validation.
+    pub fn history(&self) -> impl Iterator<Item = &Relation> {
+        self.history.iter()
+    }
     pub fn relation(
         &self,
         source: NodeRef,

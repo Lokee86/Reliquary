@@ -332,3 +332,39 @@ fn graph_replay_requires_owner_scoped_closure_admission() {
         Err(OwnerSessionError::Graph(_))
     ));
 }
+
+#[test]
+fn session_rejects_graph_endpoints_forged_by_caller_admission() {
+    let path = Temp::new();
+    let owner = [0x53; 16];
+    let mut container = Container::create(
+        &path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    initialize_vectors(&mut container);
+    let first = [1; 32];
+    let second = [2; 32];
+    let admission = GraphAdmission::for_changes(owner, [first, second], []);
+    let mut graph = GraphStore::open(&container, &admission).unwrap();
+    graph
+        .put(
+            &mut container,
+            &admission,
+            &[reliquary_graph::RelationChange {
+                source: NodeRef::Memory(first),
+                target: NodeRef::Memory(second),
+                kind: reliquary_graph::RelationKind::Topical,
+                active: true,
+                origin: reliquary_graph::RelationOrigin::User,
+            }],
+        )
+        .unwrap();
+    let before = container.read_frames().unwrap().len();
+    assert!(matches!(
+        RelSession::open(&container, &admission, [], []),
+        Err(OwnerSessionError::Record(_))
+    ));
+    assert_eq!(container.read_frames().unwrap().len(), before);
+}
