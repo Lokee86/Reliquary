@@ -4,13 +4,14 @@ use crate::PreparedIngest;
 use reliquary_insomnia::InsomniaOwnership;
 use reliquary_insomnia_store::InsomniaWork;
 use reliquary_memory_core::{
-    MemoryRecord, MemorySourceRef, encode_grouped_creation, memory_body_bytes, memory_body_id,
-    memory_id,
+    MemoryDraft, MemoryRecord, MemorySourceRef, encode_grouped_creation, memory_body_bytes,
+    memory_body_id, memory_id,
 };
 use reliquary_owner_session::{
     CompletionCheck, RelWriter,
     records::{GroupedInsomniaCompletion, GroupedMemoryBody},
 };
+use sha2::Digest;
 use std::{collections::HashSet, fmt};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -20,6 +21,7 @@ pub enum IngestPublicationError {
     RoutedOwnerUnsupported,
     MissingLease,
     MissingSourceTurn,
+    InvalidUserRoute,
     InvalidMetadata(&'static str),
     OwnerSession(String),
 }
@@ -34,6 +36,7 @@ impl fmt::Display for IngestPublicationError {
             }
             Self::MissingLease => f.write_str("Insomnia work has no active lease token"),
             Self::MissingSourceTurn => f.write_str("candidate source turn is unavailable"),
+            Self::InvalidUserRoute => f.write_str("user Memory route lacks source principal proof"),
             Self::InvalidMetadata(reason) => {
                 write!(f, "invalid ingest publication metadata: {reason}")
             }
@@ -43,6 +46,75 @@ impl fmt::Display for IngestPublicationError {
 }
 
 impl std::error::Error for IngestPublicationError {}
+
+/// Build a privacy-preserving PHY draft from one sealed User-owned candidate.
+/// The caller must separately authorize both owners and verify the supplied
+/// resolved source turn against the REL Archive before publishing the draft.
+pub fn prepare_routed_user_memory(
+    prepared: &PreparedIngest,
+    candidate: &reliquary_insomnia::InsomniaCandidate,
+    source_turn: &reliquary_archive::ResolvedTurn,
+    principal_id: &str,
+) -> Result<(MemoryDraft, MemorySourceRef), IngestPublicationError> {
+    if !prepared.candidates.contains(candidate)
+        || candidate.ownership != InsomniaOwnership::User
+        || source_turn.node_id != candidate.source_node_id
+        || source_turn.principal_id.as_deref() != Some(principal_id)
+        || principal_id.trim().is_empty()
+    {
+        return Err(IngestPublicationError::InvalidUserRoute);
+    }
+    let attribution = candidate.authority_source.as_ref();
+    let grounding = candidate.grounding_source.as_ref();
+    let mut key = Vec::new();
+    for field in [
+        candidate.source_node_id.as_str(),
+        candidate.category.as_str(),
+        candidate.memory_type.as_str(),
+        candidate.source_quote.as_str(),
+    ] {
+        key.extend_from_slice(&(field.len() as u64).to_le_bytes());
+        key.extend_from_slice(field.as_bytes());
+    }
+    let key = hex(&sha2::Sha256::digest(&key));
+    let mutation_id = format!("insomnia-user:{}:{key}", hex(&prepared.episode_id.0));
+    let source_ref = MemorySourceRef {
+        owner_id: hex(&prepared.owner_id),
+        principal_id: Some(principal_id.to_owned()),
+        source_episode_id: prepared.episode_id.0,
+        source_node_id: candidate.source_node_id.clone(),
+        content_source_conversation_id: attribution.map(|source| source.conversation_id.clone()),
+        content_source_node_id: attribution.map(|source| source.node_id.clone()),
+        grounding_source_conversation_id: grounding.map(|source| source.conversation_id.clone()),
+        grounding_source_node_id: grounding.map(|source| source.node_id.clone()),
+    };
+    let draft = MemoryDraft {
+        title: candidate.title.clone(),
+        content: candidate.content.clone(),
+        category: candidate.category.clone(),
+        memory_type: candidate.memory_type.clone(),
+        authority_kind: candidate.authority_kind.clone(),
+        temporal_status: candidate.temporal_status.clone(),
+        scope: "user".into(),
+        lifecycle_state: "extracted".into(),
+        archived: false,
+        parent_id: None,
+        superseded_by: None,
+        source_node_id: None,
+        content_source_conversation_id: None,
+        content_source_node_id: None,
+        grounding_source_conversation_id: None,
+        grounding_source_node_id: None,
+        source_episode_id: None,
+        source_ref: Some(source_ref.clone()),
+        source_time_ns: Some(source_turn.timestamp_ns),
+        temporal_inference: None,
+        mutation_id,
+        created_at_ns: prepared.source_through_ns,
+        updated_at_ns: prepared.source_through_ns,
+    };
+    Ok((draft, source_ref))
+}
 
 /// Publish Project-owned candidates from one prepared Episode to the same REL
 /// owner. User-owned candidates require a separately authorized PHY lease, so
@@ -57,6 +129,32 @@ pub fn commit_prepared_native_ingest(
     extractor_version: &str,
     completed_at_ns: i64,
 ) -> Result<CompletionCheck, IngestPublicationError> {
+    commit_prepared_native_ingest_with_external_refs(
+        writer,
+        prepared,
+        work,
+        extractor_model,
+        extractor_version,
+        completed_at_ns,
+        &[],
+    )
+}
+
+/// Commit one prepared Episode after the Gateway has durably published and
+/// revalidated every user-owned Memory in its authorized PHY owner.
+pub fn commit_prepared_native_ingest_with_external_refs(
+    writer: &mut RelWriter,
+    prepared: &PreparedIngest,
+    work: &InsomniaWork,
+    extractor_model: &str,
+    extractor_version: &str,
+    completed_at_ns: i64,
+    external_memory_refs: &[reliquary_owner_session::records::GroupedExternalMemoryRef],
+) -> Result<CompletionCheck, IngestPublicationError> {
+    if !external_memory_refs.is_empty() {
+        // A caller-supplied reference is not evidence of an authorized PHY publication.
+        return Err(IngestPublicationError::RoutedOwnerUnsupported);
+    }
     if writer.owner_id() != prepared.owner_id {
         return Err(IngestPublicationError::OwnerMismatch);
     }
@@ -78,12 +176,21 @@ pub fn commit_prepared_native_ingest(
     }
     let rejected_count = u32::try_from(prepared.rejected.len())
         .map_err(|_| IngestPublicationError::InvalidMetadata("rejection count"))?;
-    if prepared
+    let user_candidate_count = prepared
         .candidates
         .iter()
-        .any(|candidate| candidate.ownership != InsomniaOwnership::Project)
-    {
+        .filter(|candidate| candidate.ownership == InsomniaOwnership::User)
+        .count();
+    if user_candidate_count != external_memory_refs.len() {
         return Err(IngestPublicationError::RoutedOwnerUnsupported);
+    }
+    let mut external_ids = HashSet::with_capacity(external_memory_refs.len());
+    if external_memory_refs.iter().any(|reference| {
+        reference.owner_id.trim().is_empty() || !external_ids.insert(reference.memory_id)
+    }) {
+        return Err(IngestPublicationError::InvalidMetadata(
+            "duplicate or empty external Memory reference",
+        ));
     }
     let episode = writer
         .read_session()
@@ -97,7 +204,8 @@ pub fn commit_prepared_native_ingest(
     let mut bodies = Vec::with_capacity(prepared.candidates.len());
     let mut records = Vec::with_capacity(prepared.candidates.len());
     let mut expected_records = Vec::with_capacity(prepared.candidates.len());
-    let mut ids = Vec::with_capacity(prepared.candidates.len());
+    let project_count = prepared.candidates.len() - user_candidate_count;
+    let mut ids = Vec::with_capacity(project_count + user_candidate_count);
     let mut body_ids = HashSet::with_capacity(prepared.candidates.len());
     let global_version_start = writer
         .next_global_version()
@@ -109,7 +217,12 @@ pub fn commit_prepared_native_ingest(
         .ok_or(IngestPublicationError::InvalidMetadata(
             "Memory version exhausted",
         ))?;
-    for (index, candidate) in prepared.candidates.iter().enumerate() {
+    for (index, candidate) in prepared
+        .candidates
+        .iter()
+        .filter(|candidate| candidate.ownership == InsomniaOwnership::Project)
+        .enumerate()
+    {
         let source = writer
             .read_session()
             .resolved_archive_turn(&prepared.conversation_id, &candidate.source_node_id)
@@ -190,7 +303,17 @@ pub fn commit_prepared_native_ingest(
             && receipt.extractor_version == extractor_version
             && receipt.rejected_count == rejected_count
             && receipt.external_memory_refs.is_empty()
-            && receipt.memory_ids.iter().map(|id| id.0).collect::<Vec<_>>() == ids;
+            && receipt.memory_ids.iter().map(|id| id.0).collect::<Vec<_>>()
+                == completion_memory_ids(&ids, external_memory_refs)
+            && receipt
+                .external_memory_refs
+                .iter()
+                .map(|reference| (reference.owner_id.as_str(), reference.memory_id.0))
+                .collect::<Vec<_>>()
+                == external_memory_refs
+                    .iter()
+                    .map(|reference| (reference.owner_id.as_str(), reference.memory_id))
+                    .collect::<Vec<_>>();
         let records_match =
             expected_records
                 .iter()
@@ -224,6 +347,7 @@ pub fn commit_prepared_native_ingest(
     }
 
     let record_count = records.len();
+    let completed_memory_ids = completion_memory_ids(&ids, external_memory_refs);
     let completion = GroupedInsomniaCompletion {
         episode_id: prepared.episode_id.0,
         attempt: work.attempt_count,
@@ -233,8 +357,8 @@ pub fn commit_prepared_native_ingest(
         extractor_model: extractor_model.to_owned(),
         extractor_version: extractor_version.to_owned(),
         rejected_count,
-        memory_ids: ids.clone(),
-        external_memory_refs: vec![],
+        memory_ids: completed_memory_ids,
+        external_memory_refs: external_memory_refs.to_vec(),
         global_version_start,
         bodies,
         memory_records: records,
@@ -248,6 +372,21 @@ pub fn commit_prepared_native_ingest(
     writer
         .commit_grouped_insomnia_completion(token, completion, completed_at_ns)
         .map_err(|error| IngestPublicationError::OwnerSession(error.to_string()))
+}
+
+fn completion_memory_ids(
+    project_ids: &[[u8; 32]],
+    external_memory_refs: &[reliquary_owner_session::records::GroupedExternalMemoryRef],
+) -> Vec<[u8; 32]> {
+    project_ids
+        .iter()
+        .copied()
+        .chain(
+            external_memory_refs
+                .iter()
+                .map(|reference| reference.memory_id),
+        )
+        .collect()
 }
 
 fn hex(bytes: &[u8]) -> String {

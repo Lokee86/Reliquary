@@ -33,7 +33,10 @@ pub use history_workflow::{
     MemoryHistoryLookup, MemoryHistoryRead, MemoryHistoryStatus, MemoryHistoryWorkflowError,
     read_owner_memory_history,
 };
-pub use ingest_publication::{IngestPublicationError, commit_prepared_native_ingest};
+pub use ingest_publication::{
+    IngestPublicationError, commit_prepared_native_ingest,
+    commit_prepared_native_ingest_with_external_refs, prepare_routed_user_memory,
+};
 pub use maintenance_workflow::{
     MaintenanceBlocker, MaintenanceWorkflowError, MemoryMaintenancePreparation,
     MemoryPruneCandidate, prepare_tombstoned_memory_maintenance,
@@ -95,6 +98,7 @@ pub struct PreparedIngest {
     owner_id: [u8; 16],
     episode_id: EpisodeId,
     conversation_id: String,
+    source_through_ns: i64,
     candidates: Vec<InsomniaCandidate>,
     rejected: Vec<reliquary_insomnia::InsomniaRejection>,
 }
@@ -110,6 +114,10 @@ impl PreparedIngest {
 
     pub fn conversation_id(&self) -> &str {
         &self.conversation_id
+    }
+
+    pub fn source_through_ns(&self) -> i64 {
+        self.source_through_ns
     }
 
     pub fn candidates(&self) -> &[InsomniaCandidate] {
@@ -152,6 +160,7 @@ fn prepare_native_ingest(
         owner_id,
         episode_id: episode.id,
         conversation_id: episode.conversation_id.clone(),
+        source_through_ns: episode.source_through_ns,
         candidates,
         rejected,
     })
@@ -552,6 +561,22 @@ mod tests {
             .unwrap();
         assert_eq!(
             commit_prepared_native_ingest(&mut writer, &prepared, &work, "fixture-model", "v1", 20,),
+            Err(IngestPublicationError::RoutedOwnerUnsupported)
+        );
+        let forged = reliquary_owner_session::records::GroupedExternalMemoryRef {
+            owner_id: "fabricated-owner".to_owned(),
+            memory_id: [42; 32],
+        };
+        assert_eq!(
+            commit_prepared_native_ingest_with_external_refs(
+                &mut writer,
+                &prepared,
+                &work,
+                "fixture-model",
+                "v1",
+                20,
+                &[forged],
+            ),
             Err(IngestPublicationError::RoutedOwnerUnsupported)
         );
         assert!(

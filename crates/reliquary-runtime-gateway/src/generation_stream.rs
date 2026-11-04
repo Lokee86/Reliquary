@@ -386,7 +386,8 @@ mod tests {
     #[test]
     fn journal_reopen_recovers_stream_watermark_and_deliveries() {
         let (temp, _gateway, instance, owner, mut queue, id) = setup();
-        let (initial, mut subscription) = instance.subscribe_generation_stream(&queue, &id).unwrap();
+        let (initial, mut subscription) =
+            instance.subscribe_generation_stream(&queue, &id).unwrap();
         assert_eq!(initial.watermark, 0);
 
         queue
