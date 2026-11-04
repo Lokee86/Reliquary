@@ -492,6 +492,15 @@ impl CommunityStore {
                 if snapshot.generation != expected || expected == 0 {
                     return Err(GraphError::CorruptRecord("Community generation sequence"));
                 }
+                if store
+                    .current
+                    .as_ref()
+                    .is_some_and(|current| snapshot.graph_version < current.graph_version)
+                {
+                    return Err(GraphError::CorruptRecord(
+                        "Community graph version regressed",
+                    ));
+                }
                 store.current = Some(snapshot);
             }
         }
@@ -517,6 +526,13 @@ impl CommunityStore {
         if snapshot.generation != expected || expected == 0 {
             return Err(GraphError::InvalidCommunity("generation is not next"));
         };
+        if self
+            .current
+            .as_ref()
+            .is_some_and(|current| snapshot.graph_version < current.graph_version)
+        {
+            return Err(GraphError::InvalidCommunity("graph version regressed"));
+        }
         self.validate(&snapshot, graph)?;
         let bytes = encode_community(self.owner, &snapshot)?;
         container.append(&bytes)?;
@@ -1019,5 +1035,79 @@ mod tests {
             Err(GraphError::InvalidCommunity(_))
         ));
         assert_eq!(c.read_frames().unwrap().len(), before);
+    }
+
+    #[test]
+    fn community_graph_version_cannot_regress_in_generation_history() {
+        let path = Temp::new();
+        let m1 = [1; 32];
+        let m2 = [2; 32];
+        let m3 = [3; 32];
+        let mut c = container(&path.0, 6);
+        let owner = c.owner_id();
+        let admission = GraphAdmission::for_changes(owner, [m1, m2, m3], []);
+        let mut graph = GraphStore::open(&c, &admission).unwrap();
+        graph
+            .put(
+                &mut c,
+                &admission,
+                &[RelationChange {
+                    source: NodeRef::Memory(m1),
+                    target: NodeRef::Memory(m2),
+                    kind: RelationKind::References,
+                    active: true,
+                    origin: RelationOrigin::User,
+                }],
+            )
+            .unwrap();
+        graph
+            .put(
+                &mut c,
+                &admission,
+                &[RelationChange {
+                    source: NodeRef::Memory(m2),
+                    target: NodeRef::Memory(m3),
+                    kind: RelationKind::References,
+                    active: true,
+                    origin: RelationOrigin::User,
+                }],
+            )
+            .unwrap();
+        let mut communities = CommunityStore::open(&c, &graph).unwrap();
+        let current = CommunitySnapshot {
+            generation: 1,
+            graph_version: 2,
+            communities: vec![Community {
+                id: community_id(owner, &[m1, m2, m3]),
+                members: vec![m1, m2, m3],
+            }],
+        };
+        communities.publish(&mut c, &graph, current).unwrap();
+        let stale = CommunitySnapshot {
+            generation: 2,
+            graph_version: 1,
+            communities: vec![Community {
+                id: community_id(owner, &[m1, m2]),
+                members: vec![m1, m2],
+            }],
+        };
+        let before = c.read_frames().unwrap().len();
+        assert!(matches!(
+            communities.publish(&mut c, &graph, stale.clone()),
+            Err(GraphError::InvalidCommunity("graph version regressed"))
+        ));
+        assert_eq!(c.read_frames().unwrap().len(), before);
+
+        c.append(&encode_community(owner, &stale).unwrap()).unwrap();
+        c.sync().unwrap();
+        drop(communities);
+        drop(c);
+        let c = Container::open_read_only(&path.0).unwrap();
+        assert!(matches!(
+            CommunityStore::open(&c, &graph),
+            Err(GraphError::CorruptRecord(
+                "Community graph version regressed"
+            ))
+        ));
     }
 }
