@@ -16,6 +16,7 @@ mod chronos_fuzzy;
 mod chronos_loose_calendar;
 mod chronos_loose_explicit;
 mod chronos_loose_relative;
+mod chronos_match;
 mod chronos_model;
 mod chronos_normalize;
 mod chronos_number;
@@ -69,6 +70,14 @@ pub fn analyze(text: &str, reference_timestamp_ns: Option<i64>) -> TemporalAnaly
 /// Identifies potentially temporal text and corrects only tightly bounded likely typos.
 pub fn detect(text: &str) -> TemporalDetection {
     chronos_detection::detect_and_normalize(text).detection
+}
+
+/// Compare caller-supplied temporal analyses without accessing owner state.
+pub fn temporal_matches(
+    source: &TemporalAnalysis,
+    candidate: &TemporalAnalysis,
+) -> (Vec<TemporalMatch>, f64) {
+    chronos_match::temporal_matches(source, candidate)
 }
 
 #[cfg(test)]

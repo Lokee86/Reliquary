@@ -1,5 +1,6 @@
 use super::{
-    TemporalDurationUnit, TemporalFrequency, TemporalGranularity, TemporalOrigin, analyze,
+    TemporalDurationUnit, TemporalFrequency, TemporalGranularity, TemporalMatchKind,
+    TemporalOrigin, analyze, temporal_matches,
 };
 use time::{Date, Month, PrimitiveDateTime, Time};
 
@@ -10,6 +11,17 @@ fn timestamp_ns(year: i32, month: Month, day: u8, hour: u8) -> i64 {
     )
     .assume_utc()
     .unix_timestamp_nanos() as i64
+}
+
+#[test]
+fn temporal_match_scores_exact_overlap_and_unrelated_dates() {
+    let first = analyze("The launch was on 2024-05-13.", None);
+    let same = analyze("The release was on 2024-05-13.", None);
+    let different = analyze("The release was on 2024-05-14.", None);
+    let (matches, score) = temporal_matches(&first, &same);
+    assert_eq!(score, 0.98);
+    assert_eq!(matches[0].kind, TemporalMatchKind::ExactDay);
+    assert_eq!(temporal_matches(&first, &different), (vec![], 0.0));
 }
 
 fn day_start_ns(year: i32, month: Month, day: u8) -> i64 {
