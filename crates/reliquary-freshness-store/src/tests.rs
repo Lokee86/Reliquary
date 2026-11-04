@@ -188,6 +188,42 @@ fn owner_mismatch_and_forged_event_provenance_are_rejected() {
 }
 
 #[test]
+fn access_without_accepted_use_receipt_cannot_reinforce_freshness() {
+    let temp = TempDir::new();
+    let path = temp.0.join("unreceipted-access.rel");
+    let owner = [11; 16];
+    let memory = FreshnessMemoryId([6; 32]);
+    let mut container = Container::create(
+        &path,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    let mut store = FreshnessStore::new(Some(owner));
+    store.initialize(&mut container).unwrap();
+    store.create_birth(&mut container, memory, 1, true).unwrap();
+    let before = container.read_frames().unwrap().len();
+
+    let mut unreceipted = event(owner, memory, 2, 25);
+    unreceipted.event_id = format!(
+        "accepted-use:{}:72657472696576616c:{}",
+        hex(&owner),
+        hex(&memory.0)
+    );
+    unreceipted.provenance.source_id = "retrieval".into();
+    unreceipted.provenance.producer_kind = 2;
+    unreceipted.effects.clear();
+    unreceipted
+        .effects
+        .insert(memory, FreshnessPolicy::default_v1().access_principal);
+
+    assert!(store.append_event(&mut container, unreceipted).is_err());
+    assert_eq!(container.read_frames().unwrap().len(), before);
+    assert_eq!(store.record_at(memory, 2).unwrap().unwrap().score, 100);
+    assert!(store.accepted_use("retrieval").is_none());
+}
+
+#[test]
 fn unsupported_freshness_versions_fail_closed() {
     let mut store = FreshnessStore::default();
     assert!(store.ingest_payload(b"RELFRS07").is_err());
