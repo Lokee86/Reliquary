@@ -199,8 +199,8 @@
       ],
       "deliverable": "One private typed REL owner aggregate and read/commit API",
       "acceptance": "No public mutable store bag; exact owner ID, ordered replay, supported cuts and wrong-kind rejection",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\storage-continuation-2026-11-04.md"
     },
     {
       "id": "C11",
@@ -229,8 +229,8 @@
       ],
       "deliverable": "Atomic owner-local publication, historical proofs, idempotent receipt handling",
       "acceptance": "Fault after sync requires replay before further mutation; tombstone and unavailable history survive; no fake cross-file atomic commit",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\storage-continuation-2026-11-04.md"
     },
     {
       "id": "G1",
