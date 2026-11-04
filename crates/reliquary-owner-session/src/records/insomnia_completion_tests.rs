@@ -303,6 +303,27 @@ fn rel_session_replays_grouped_insomnia_receipt_instead_of_dropping_the_carrier(
         [],
     )
     .unwrap();
+    let mut untrusted_routed_completion = completion.clone();
+    untrusted_routed_completion.memory_ids.push([99; 32]);
+    untrusted_routed_completion
+        .external_memory_refs
+        .push(GroupedExternalMemoryRef {
+            owner_id: "unverified-phy-owner".into(),
+            memory_id: [99; 32],
+        });
+    let before_untrusted_route = container.latest_version();
+    assert!(
+        stale_session
+            .commit_grouped_insomnia_completion(
+                &mut container,
+                token,
+                untrusted_routed_completion,
+                20,
+            )
+            .is_err()
+    );
+    assert_eq!(container.latest_version(), before_untrusted_route);
+
     let foreign_path = Temp::new();
     let mut same_owner_other_file = Container::create(
         &foreign_path.0,
