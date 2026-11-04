@@ -406,6 +406,33 @@ fn rel_session_replays_grouped_insomnia_receipt_instead_of_dropping_the_carrier(
             .is_err()
     );
     assert_eq!(container.latest_version(), version_after_synced_carrier);
+    // Reordering a valid Episode after the grouped carrier must not turn
+    // future source evidence into authority at the earlier physical cut.
+    let frames = container.read_frames().unwrap();
+    let forged_path = Temp::new();
+    let mut forged = Container::create(
+        &forged_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [3; 16],
+    )
+    .unwrap();
+    let episode_frame = frames
+        .iter()
+        .find(|frame| frame.payload.starts_with(b"RELEPIS1"))
+        .unwrap();
+    for frame in &frames {
+        if !frame.payload.starts_with(b"RELEPIS1") {
+            forged.append(&frame.payload).unwrap();
+        }
+    }
+    forged.append(&episode_frame.payload).unwrap();
+    forged.sync().unwrap();
+    drop(forged);
+    let forged = Container::open_read_only(&forged_path.0).unwrap();
+    let admission = reliquary_graph::GraphAdmission::for_replay([3; 16], [], [], [], [], []);
+    assert!(
+        matches!(crate::RelSession::open(&forged, &admission, [], []), Err(crate::OwnerSessionError::Record(message)) if message.contains("Episode is not admitted"))
+    );
     drop(session);
     drop(container);
 

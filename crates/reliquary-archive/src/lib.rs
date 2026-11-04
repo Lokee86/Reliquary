@@ -24,6 +24,17 @@ pub use model::{
 
 pub use archive::validate_project_file_reference;
 
+/// Identify an Episode publication in a physical frame without exposing its codec.
+pub fn episode_publication_id(payload: &[u8]) -> Result<Option<EpisodeId>, ArchiveError> {
+    if !payload.starts_with(b"RELEPIS1") {
+        return Ok(None);
+    }
+    match codec::decode_record(payload)? {
+        Some(codec::Record::Episode(episode)) => Ok(Some(episode.id)),
+        _ => Ok(None),
+    }
+}
+
 #[cfg(test)]
 #[path = "echo_tests.rs"]
 mod echo_tests;

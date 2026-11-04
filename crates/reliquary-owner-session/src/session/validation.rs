@@ -53,14 +53,18 @@ pub(super) fn validate_grouped_replay_admission(
     archive: &Archive,
 ) -> Result<BTreeMap<(WorkEpisodeId, u32), GroupedInsomniaCompletion>, OwnerSessionError> {
     let mut grouped = BTreeMap::new();
+    let mut visible_episodes = std::collections::BTreeSet::new();
     for frame in container.read_frames()? {
+        if let Some(id) = reliquary_archive::episode_publication_id(&frame.payload)? {
+            visible_episodes.insert(id);
+        }
         if !frame.payload.starts_with(b"RELINSC7") {
             continue;
         }
         let completion =
             GroupedInsomniaCompletion::decode(&frame.payload).map_err(OwnerSessionError::Record)?;
         let episode_id = reliquary_archive::EpisodeId(completion.episode_id);
-        if archive.episode(episode_id).is_none() {
+        if archive.episode(episode_id).is_none() || !visible_episodes.contains(&episode_id) {
             return Err(OwnerSessionError::Record(
                 "grouped completion Episode is not admitted by this Archive".into(),
             ));
