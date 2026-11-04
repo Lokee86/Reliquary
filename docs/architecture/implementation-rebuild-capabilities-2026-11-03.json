@@ -91,8 +91,8 @@
       ],
       "deliverable": "Turns, branches, Episodes, native source and separately owned Echo evidence",
       "acceptance": "Typed accepted turns survive reopen with exact activity/source identity and retained conversation history",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\storage-continuation-2026-11-04.md"
     },
     {
       "id": "C03",
@@ -103,8 +103,8 @@
       ],
       "deliverable": "Memory records, provenance, revisions, terminal states and history",
       "acceptance": "Body/revision/tombstone reads and identity/provenance survive reopen; absent payload remains distinguishable",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\storage-continuation-2026-11-04.md"
     },
     {
       "id": "C04",
@@ -129,8 +129,8 @@
       ],
       "deliverable": "Canonical Entity/mention-resolution/transition records",
       "acceptance": "Owner-bound identity, ambiguity and source span proofs reopen; no new Observation synthesis is added",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\storage-continuation-2026-11-04.md"
     },
     {
       "id": "C06",
@@ -141,8 +141,8 @@
       ],
       "deliverable": "Identity, Personality, Anchor and existing Ego persistence",
       "acceptance": "REL/PHY scope rules, revision history and private PHY facts verified; future Ego synthesis remains deferred",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\storage-continuation-2026-11-04.md"
     },
     {
       "id": "C07",
@@ -154,8 +154,8 @@
       ],
       "deliverable": "Packed Memory/Archive vectors, profile and generation records",
       "acceptance": "All stable identity hash vectors match reference, payload/profile generations reopen and invalid backing rejects",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\storage-continuation-2026-11-04.md"
     },
     {
       "id": "C08",
@@ -167,8 +167,8 @@
       ],
       "deliverable": "Accepted activity/use/birth/settlement record owner",
       "acceptance": "Exact source/score/history replay, no reinforcement on internal retrieval and no forged FRS07 semantics",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\storage-continuation-2026-11-04.md"
     },
     {
       "id": "C09",
