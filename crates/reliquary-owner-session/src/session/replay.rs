@@ -31,6 +31,28 @@ pub(super) fn open_common(
         MemoryStore::open(container)?
     };
     let perception = PerceptionStore::open(container)?;
+    for mention in perception.mentions() {
+        let history = memories
+            .history(MemoryId(mention.key.memory_id))
+            .map_err(|_| {
+                OwnerSessionError::Record("Entity mention references an absent owner Memory".into())
+            })?;
+        if let Some(revision) = history.revisions.first()
+            && let reliquary_memory_core::PayloadState::Available(body) = &revision.payload
+        {
+            let text = match mention.key.field {
+                reliquary_perception_store::MemoryTextField::Title => &body.title,
+                reliquary_perception_store::MemoryTextField::Content => &body.content,
+            };
+            let start = mention.key.start_byte as usize;
+            let end = mention.key.end_byte as usize;
+            if text.get(start..end).is_none() {
+                return Err(OwnerSessionError::Record(
+                    "Entity mention span is outside its Memory body".into(),
+                ));
+            }
+        }
+    }
     let graph = GraphStore::open(container, graph_admission)?;
     for relation in graph.history() {
         for node in [relation.source, relation.target] {

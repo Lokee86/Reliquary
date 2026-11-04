@@ -499,6 +499,10 @@ fn owner_session_accepts_graph_with_owner_backed_memory_endpoints() {
     second.mutation_id = "graph-second".into();
     second.id = memory_id(&second.mutation_id);
     second.memory_version = 2;
+    let mut body = b"RELMBOD1".to_vec();
+    body.extend_from_slice(&first.body_id.0);
+    body.extend_from_slice(&memory_body_bytes("title", "body"));
+    container.append(&body).unwrap();
     container
         .append(&reliquary_memory_core::encode_grouped_creation(&first).unwrap())
         .unwrap();
@@ -521,8 +525,38 @@ fn owner_session_accepts_graph_with_owner_backed_memory_endpoints() {
             }],
         )
         .unwrap();
+    let mut perception = reliquary_perception_store::PerceptionStore::open(&container).unwrap();
+    let key = reliquary_perception_store::MemoryEntityMentionKey {
+        memory_id: first.id.0,
+        field: reliquary_perception_store::MemoryTextField::Content,
+        start_byte: 0,
+        end_byte: 4,
+    };
+    let status = reliquary_perception_store::MemoryEntityResolutionStatus::Unresolved {
+        reason: reliquary_perception_store::EntityResolutionReason::InsufficientEvidence,
+    };
+    perception
+        .put_mention_resolution(&mut container, key, 0, 1, status.clone())
+        .unwrap();
     drop(container);
     let reopened = Container::open_read_only(&path.0).unwrap();
     let session = crate::RelSession::open(&reopened, &admission, [], []).unwrap();
     assert_eq!(session.graph_version(), 1);
+    drop(session);
+    drop(reopened);
+    let mut writer = Container::open_writer(&path.0).unwrap();
+    let mut perception = reliquary_perception_store::PerceptionStore::open(&writer).unwrap();
+    perception
+        .put_mention_resolution(
+            &mut writer,
+            reliquary_perception_store::MemoryEntityMentionKey {
+                end_byte: 99,
+                ..key
+            },
+            0,
+            2,
+            status,
+        )
+        .unwrap();
+    assert!(crate::RelSession::open(&writer, &admission, [], []).is_err());
 }

@@ -368,3 +368,40 @@ fn session_rejects_graph_endpoints_forged_by_caller_admission() {
     ));
     assert_eq!(container.read_frames().unwrap().len(), before);
 }
+
+#[test]
+fn session_rejects_mention_of_missing_owner_memory() {
+    let path = Temp::new();
+    let owner = [0x54; 16];
+    let mut container = Container::create(
+        &path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    initialize_vectors(&mut container);
+    let mut perception = PerceptionStore::open(&container).unwrap();
+    perception
+        .put_mention_resolution(
+            &mut container,
+            MemoryEntityMentionKey {
+                memory_id: [9; 32],
+                field: reliquary_perception_store::MemoryTextField::Content,
+                start_byte: 0,
+                end_byte: 1,
+            },
+            0,
+            1,
+            reliquary_perception_store::MemoryEntityResolutionStatus::Unresolved {
+                reason: reliquary_perception_store::EntityResolutionReason::InsufficientEvidence,
+            },
+        )
+        .unwrap();
+    let before = container.read_frames().unwrap().len();
+    let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    assert!(matches!(
+        RelSession::open(&container, &admission, [], []),
+        Err(OwnerSessionError::Record(_))
+    ));
+    assert_eq!(container.read_frames().unwrap().len(), before);
+}
