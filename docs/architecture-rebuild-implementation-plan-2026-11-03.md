@@ -2,7 +2,7 @@
 
 Parent index: [Documentation index](INDEX.md)
 
-**Status: implementation started in the independent rebuild workspace; product and release gates remain incomplete.** The target boundaries are specified in [Stages 1–5](architecture-redesign-foundation-2026-11-03.md) and [ADR 0044–0048](decisions/0048-rel-current-format-and-stable-identity-domains.md). [ADR 0049](decisions/0049-parallel-architecture-rebuild-and-verified-cutover.md) governs the independent reference/rebuild setup. The [capability build plan](architecture/implementation-rebuild-capabilities-2026-11-03.json) replaces the earlier 58-item old-source relocation DAG.
+**Status (2026-11-04): implementation is active and architecture-correction checkpoint `95db1b41` is committed and tested; product and release gates G1–G5 remain incomplete.** The current execution/handoff record is [rebuild continuation (2026-11-04)](rebuild-continuation-2026-11-04.md). The implementation lives in `C:\!bin\workspace\Reliquary-rebuild`; its root `AGENTS.md` points back to this canonical plan and the capability tracker. The target boundaries are specified in [Stages 1–5](architecture-redesign-foundation-2026-11-03.md) and [ADR 0044–0048](decisions/0048-rel-current-format-and-stable-identity-domains.md). [ADR 0049](decisions/0049-parallel-architecture-rebuild-and-verified-cutover.md) governs the independent reference/rebuild setup. The [capability build plan](architecture/implementation-rebuild-capabilities-2026-11-03.json) replaces the earlier 58-item old-source relocation DAG.
 
 ## Purpose
 
@@ -38,7 +38,7 @@ A capability is complete when its desired externally observable behavior, durabl
 
 ## 2. Build increments and proof points
 
-The JSON lists each outcome, prerequisites and acceptance. Implementation proceeds by dependency readiness, **not by linearly completing legacy modules**.
+The JSON lists each outcome, prerequisites and acceptance. Implementation proceeds by dependency readiness, **not by linearly completing legacy modules**. A dependency blocks **declaring acceptance**, not provisional exploration or code construction. Some Gateway and application modules already have partial implementations ahead of prerequisite G1/G2 gates; do not claim those increments accepted until the prerequisites and their own behavioral evidence pass.
 
 | Group | Desired new behavior | Evidence required |
 | --- | --- | --- |
@@ -83,21 +83,24 @@ Future Observation synthesis and Ego cognition remain **future features**. Exist
 
 ## 5. Implementation verification and release cutover
 
-During implementation, prefer existing Rust/Cargo tooling and targeted searches:
+Run the following checks **from `Reliquary-rebuild`** when accepting an increment, not after every small edit. The executable package/import guard is mandatory: compilation alone does not enforce the approved dependency boundaries.
 
 ```powershell
+python scripts/check_architecture.py
 cargo fmt --all --check
-cargo metadata --format-version 1 --no-deps
-cargo check --workspace --locked --offline
-cargo test --workspace --locked --offline
+cargo metadata --format-version 1 --no-deps --locked --offline
+cargo check --workspace --locked --offline -j 1
+cargo test --workspace --locked --offline -j 1 -- --test-threads=1
+# Only after the replacement CLI exists (P01):
 cargo check --manifest-path cli/Cargo.toml --locked --offline
 cargo test --manifest-path cli/Cargo.toml --locked --offline
+# Only after replacement documentation tooling/content exists:
 ddocs check --indexes --links
 ```
 
-Use isolated target directories on Windows and resolve the known long `target/` path issue before depending on full checks. A missing pinned dependency or model/host endpoint is **unverified**, not a passing test; record the reason. Only start benchmarking comparable workloads after both the old reference and rebuilt equivalent can run.
+Avoid proliferating Windows Cargo target directories: low C: disk space previously caused an unrelated PDB linker failure. Use isolated output only when needed, and never delete user files, corpus, reference data, or another worktree's cache. CLI/docs checks against the old source do **not** prove the replacement is ready. Commit every verified capability as a recoverable checkpoint. A missing pinned dependency or model/host endpoint is **unverified**, not a passing test; record the reason. Only start benchmarking comparable workloads after both the old reference and rebuilt equivalent can run.
 
-**Crate verification:** Compare the rebuilt `cargo metadata` dependency graph against [the selected DAG](architecture/target-crate-dag-2026-11-03.json); no reverse edge into Root/Gateway and no unwanted all-owner state. A package with no substantive implementation fails. A proposed graph change needs a brief explicit architecture decision, not an ad hoc compatibility crate.
+**Crate verification:** Run `python scripts/check_architecture.py` as a mandatory acceptance check; compare the rebuilt `cargo metadata` dependency graph against [the selected DAG](architecture/target-crate-dag-2026-11-03.json); no reverse edge into Root/Gateway and no unwanted all-owner state. A package with no substantive implementation fails. A proposed graph change needs a brief explicit architecture decision, not an ad hoc compatibility crate.
 
 **Data verification:** Only the separate converter uses old-format records. First prove the existing FRS07 old corpus with authentic semantics; then convert copies, independently reopen all supported outputs using **2.1-only** runtime and compare durable owner IDs, body/history/revisions, exact provenance, cross-owner refs and SHA-derived IDs. Do not treat independent renames of six files as atomic; activate one validated generation or use an explicit stopped-release rollback protocol. Retire converter and old readers after acceptance.
 

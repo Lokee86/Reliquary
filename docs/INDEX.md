@@ -1,5 +1,7 @@
 # Reliquary Memory v2 Documentation
 
+- [Rebuild continuation checkpoint (2026-11-04)](rebuild-continuation-2026-11-04.md) — active worktree, verified architecture correction, exact agent handoff and pending gates.
+
 - [Rebuild implementation progress](rebuild-implementation-progress.md) — incomplete slices and verification.
 
 - [Identity and corpus evidence](rebuild-f03-identity-and-corpus-evidence-2026-11-03.md) — F03 findings and unresolved proof.
@@ -327,7 +329,11 @@
 - [project-environment-crate-extraction-evidence-2026-10-28.md](project-environment-crate-extraction-evidence-2026-10-28.md) - Project Environment extraction evidence.
 - [project-environment-crate-extraction-spec-2026-10-28.md](project-environment-crate-extraction-spec-2026-10-28.md) - Project Environment Crate Extraction Spec 2026 10 28 documentation.
 - [publication-envelope-contract-2026-10-20.md](publication-envelope-contract-2026-10-20.md) - Publication Envelope Contract 2026 10 20 documentation.
+- [rebuild-continuation-2026-11-04.md](rebuild-continuation-2026-11-04.md) - Rebuild Continuation 2026 11 04 documentation.
 - [rebuild-f01-reference-baseline-2026-11-03.md](rebuild-f01-reference-baseline-2026-11-03.md) - Rebuild F01 Reference Baseline 2026 11 03 documentation.
+- [rebuild-f03-identity-and-corpus-evidence-2026-11-03.md](rebuild-f03-identity-and-corpus-evidence-2026-11-03.md) - Rebuild F03 Identity And Corpus Evidence 2026 11 03 documentation.
+- [rebuild-implementation-progress.md](rebuild-implementation-progress.md) - Rebuild Implementation Progress documentation.
+- [rebuild-workspace-setup-evidence.md](rebuild-workspace-setup-evidence.md) - Rebuild Workspace Setup Evidence documentation.
 - [rel-phy-method-ownership-crosswalk-2026-11-03.md](rel-phy-method-ownership-crosswalk-2026-11-03.md) - Rel Phy Method Ownership Crosswalk 2026 11 03 documentation.
 - [rel-phy-owner-session-design-2026-11-03.md](rel-phy-owner-session-design-2026-11-03.md) - Rel Phy Owner Session Design 2026 11 03 documentation.
 - [rel-phy-storage-architecture-2026-11-03.md](rel-phy-storage-architecture-2026-11-03.md) - Rel Phy Storage Architecture 2026 11 03 documentation.
@@ -342,6 +348,7 @@
 - [semantic-service-architecture-2026-11-03.md](semantic-service-architecture-2026-11-03.md) - Semantic Service Architecture 2026 11 03 documentation.
 - [semantic-service-boundary-crosswalk-2026-11-03.md](semantic-service-boundary-crosswalk-2026-11-03.md) - Semantic Service Boundary Crosswalk 2026 11 03 documentation.
 - [storage-format.md](storage-format.md) - Storage Format documentation.
+- [supported-behavior-inventory.md](supported-behavior-inventory.md) - Supported Behavior Inventory documentation.
 - [switchboard-crate-extraction-evidence-2026-10-27.md](switchboard-crate-extraction-evidence-2026-10-27.md) - Switchboard Crate Extraction Evidence 2026 10 27 documentation.
 - [switchboard-crate-extraction-spec-2026-10-27.md](switchboard-crate-extraction-spec-2026-10-27.md) - Switchboard Crate Extraction Spec 2026 10 27 documentation.
 - [tombstone-import-history-execution-contract.md](tombstone-import-history-execution-contract.md) - Tombstone Import History Execution Contract documentation.

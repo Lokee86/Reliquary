@@ -5,10 +5,10 @@
   "source_head": "eb74c8cc",
   "principle": "Build required externally observable capabilities directly in approved target architecture. Existing source is optional reference material, not mandatory transfer inventory.",
   "reuse_rule": "For each capability evaluate: reuse unchanged / adapt / reimplement / omit. Only retain code when it contributes to the new design and passes behavioral acceptance.",
-  "slice_rule": "Before coding a capability, derive the smallest implementation slices from its target interface and tests; do not pre-generate one task per old file or function.",
-  "baseline_rule": "Reference worktree remains usable and unchanged. Red builds of the working product are not planned.",
+  "slice_rule": "Execute the existing capability increments. Split only a particular increment if its concrete interface/tests demand it; no speculative advance decomposition or one task per old file or function.",
+  "baseline_rule": "Pinned reference remains untouched. The rebuilt workspace stays recoverable through verified commits; green workspace tests alone do not imply integration gate acceptance.",
   "format_rule": "Rebuilt normal runtime supports REL 2.1 only; 2.0-to-2.1 conversion is an isolated data task after full rebuilt product acceptance.",
-  "completion_rule": "Mandatory supported behaviors and invariants pass. Removed legacy internals need no function-level replacement.",
+  "completion_rule": "Accept a capability only after its behavior, privacy, provenance, reopen, negative cases and prerequisite gates pass. The rebuilt python scripts/check_architecture.py and relevant Cargo tests must pass. No legacy internal function-for-function replacement is required.",
   "increments": [
     {
       "id": "F01",
