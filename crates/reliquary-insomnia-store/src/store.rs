@@ -289,7 +289,8 @@ impl InsomniaStore {
         };
         let claimable = matches!(w.state, InsomniaWorkState::Pending)
             || w.state == InsomniaWorkState::Failed && w.retry_after_ns.is_none_or(|t| t <= now)
-            || w.state == InsomniaWorkState::Processing && w.lease_expires_ns.is_none_or(|t| t <= now);
+            || w.state == InsomniaWorkState::Processing
+                && w.lease_expires_ns.is_none_or(|t| t <= now);
         if !claimable {
             return Err(InsomniaError::InvalidTransition);
         }

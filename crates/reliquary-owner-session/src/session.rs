@@ -296,10 +296,7 @@ impl RelWriter {
             .session
             .archive
             .historical_turns(&branch.conversation_id, &current.leaf_node_id)?;
-        if current_ancestry
-            .iter()
-            .any(|turn| turn.node_id == input.id)
-        {
+        if current_ancestry.iter().any(|turn| turn.node_id == input.id) {
             return Ok(());
         }
         let Some(parent_id) = input.parent_id.as_deref() else {
@@ -327,11 +324,7 @@ impl RelWriter {
         &self,
         input: &reliquary_archive::TurnInput,
     ) -> Result<(), OwnerSessionError> {
-        let Some(node) = self
-            .session
-            .archive
-            .node(&input.conversation_id, &input.id)
-        else {
+        let Some(node) = self.session.archive.node(&input.conversation_id, &input.id) else {
             return Ok(());
         };
         let content_matches = self
@@ -362,23 +355,29 @@ impl RelWriter {
         now_ns: i64,
         lease_duration_ns: i64,
     ) -> Result<InsomniaWork, OwnerSessionError> {
-        let episode = self
-            .session
-            .archive
-            .episode(episode_id)
-            .ok_or(OwnerSessionError::Insomnia(InsomniaError::UnacceptedEpisode))?;
+        let episode =
+            self.session
+                .archive
+                .episode(episode_id)
+                .ok_or(OwnerSessionError::Insomnia(
+                    InsomniaError::UnacceptedEpisode,
+                ))?;
         let work_id = WorkEpisodeId(episode_id.0);
         let order = self
             .session
             .insomnia
             .accepted_order(work_id)
             .cloned()
-            .ok_or(OwnerSessionError::Insomnia(InsomniaError::UnacceptedEpisode))?;
+            .ok_or(OwnerSessionError::Insomnia(
+                InsomniaError::UnacceptedEpisode,
+            ))?;
         if order.source_through_ns != episode.source_through_ns
             || order.conversation_id != episode.conversation_id
             || order.start_node_id != episode.start_node_id
         {
-            return Err(OwnerSessionError::Insomnia(InsomniaError::UnacceptedEpisode));
+            return Err(OwnerSessionError::Insomnia(
+                InsomniaError::UnacceptedEpisode,
+            ));
         }
         self.session
             .insomnia
@@ -695,6 +694,9 @@ impl RelSession {
     }
     pub fn rel_turn_count(&self) -> u64 {
         self.archive.rel_turn_count()
+    }
+    pub fn memory_version(&self) -> u64 {
+        self.common.memories.memory_version()
     }
     pub fn accepted_turn_sources(&self) -> Vec<reliquary_archive::AcceptedTurnSource> {
         self.archive.accepted_turn_sources()
@@ -1095,7 +1097,7 @@ fn validate_grouped_replay_admission(
 }
 
 fn reject_rel_only_records(container: &Container) -> Result<(), OwnerSessionError> {
-    const REL_ONLY: [(&[u8; 8], &str); 19] = [
+    const REL_ONLY: [(&[u8; 8], &str); 20] = [
         (b"RELTURN2", "Archive turn"),
         (b"RELFILE1", "Archive file"),
         (b"RELBRCH1", "Archive branch"),
@@ -1108,6 +1110,7 @@ fn reject_rel_only_records(container: &Container) -> Result<(), OwnerSessionErro
         (b"RELINSW1", "Insomnia work"),
         (b"RELINSR1", "Insomnia receipt"),
         (b"RELINSC7", "grouped Insomnia completion"),
+        (b"RELINSC8", "grouped Insomnia completion v8"),
         (b"RELAVFM1", "Archive vector format"),
         (b"RELAVEC1", "Archive vector"),
         (b"RELVGFM1", "vector generation format"),

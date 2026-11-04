@@ -7,6 +7,7 @@ publish = false
 [dependencies]
 reliquary-archive = { path = "../reliquary-archive" }
 reliquary-insomnia = { path = "../reliquary-insomnia" }
+reliquary-insomnia-store = { path = "../reliquary-insomnia-store" }
 reliquary-dream = { path = "../reliquary-dream" }
 reliquary-entity-resolution = { path = "../reliquary-entity-resolution" }
 reliquary-graph = { path = "../reliquary-graph" }
@@ -14,6 +15,7 @@ reliquary-memory-core = { path = "../reliquary-memory-core" }
 reliquary-owner-session = { path = "../reliquary-owner-session" }
 reliquary-perception-store = { path = "../reliquary-perception-store" }
 reliquary-freshness = { path = "../reliquary-freshness" }
+reliquary-freshness-store = { path = "../reliquary-freshness-store" }
 reliquary-retrieval = { path = "../reliquary-retrieval" }
 reliquary-chronos = { path = "../reliquary-chronos" }
 reliquary-vectors = { path = "../reliquary-vectors" }

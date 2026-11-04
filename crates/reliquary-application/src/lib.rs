@@ -15,6 +15,7 @@ mod dream_workflow;
 mod entity_workflow;
 mod external_source_workflow;
 mod history_workflow;
+mod ingest_publication;
 mod maintenance_workflow;
 mod retrieval_workflow;
 mod vector_workflow;
@@ -32,6 +33,7 @@ pub use history_workflow::{
     MemoryHistoryLookup, MemoryHistoryRead, MemoryHistoryStatus, MemoryHistoryWorkflowError,
     read_owner_memory_history,
 };
+pub use ingest_publication::{IngestPublicationError, commit_prepared_native_ingest};
 pub use maintenance_workflow::{
     MaintenanceBlocker, MaintenanceWorkflowError, MemoryMaintenancePreparation,
     MemoryPruneCandidate, prepare_tombstoned_memory_maintenance,
@@ -90,13 +92,34 @@ impl From<OwnerSessionError> for IngestError {
 /// transactional publication workflow.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PreparedIngest {
-    pub episode_id: EpisodeId,
-    pub conversation_id: String,
-    pub candidates: Vec<InsomniaCandidate>,
-    pub rejected: Vec<reliquary_insomnia::InsomniaRejection>,
+    owner_id: [u8; 16],
+    episode_id: EpisodeId,
+    conversation_id: String,
+    candidates: Vec<InsomniaCandidate>,
+    rejected: Vec<reliquary_insomnia::InsomniaRejection>,
 }
 
 impl PreparedIngest {
+    pub fn owner_id(&self) -> [u8; 16] {
+        self.owner_id
+    }
+
+    pub fn episode_id(&self) -> EpisodeId {
+        self.episode_id
+    }
+
+    pub fn conversation_id(&self) -> &str {
+        &self.conversation_id
+    }
+
+    pub fn candidates(&self) -> &[InsomniaCandidate] {
+        &self.candidates
+    }
+
+    pub fn rejected(&self) -> &[reliquary_insomnia::InsomniaRejection] {
+        &self.rejected
+    }
+
     pub fn user_memories(&self) -> impl Iterator<Item = &InsomniaCandidate> {
         self.candidates
             .iter()
@@ -113,6 +136,7 @@ impl PreparedIngest {
 /// Validate source identity and bounded evidence, then prepare only
 /// source-grounded Insomnia candidates for a later owner-local commit.
 fn prepare_native_ingest(
+    owner_id: [u8; 16],
     episode: &Episode,
     accepted_turns: &[ResolvedTurn],
     evidence: &[EvidenceTurn],
@@ -125,6 +149,7 @@ fn prepare_native_ingest(
     } = validate_candidates(episode, accepted_turns, evidence, proposals)
         .map_err(IngestError::Insomnia)?;
     Ok(PreparedIngest {
+        owner_id,
         episode_id: episode.id,
         conversation_id: episode.conversation_id.clone(),
         candidates,
@@ -166,7 +191,7 @@ pub fn prepare_native_ingest_from_archive(
             return Err(IngestError::EvidenceNotInArchive);
         }
     }
-    prepare_native_ingest(&episode, &turns, evidence, proposals)
+    prepare_native_ingest(rel.owner_id(), &episode, &turns, evidence, proposals)
 }
 
 fn validate_evidence(evidence: &[EvidenceTurn]) -> Result<(), IngestError> {
@@ -202,8 +227,11 @@ mod tests {
         Archive, AttachmentInput, EpisodeBoundary, EpisodeOrigin, ProjectAttachmentInput, TurnInput,
     };
     use reliquary_container::{Container, ContainerIdentity, ReliquaryScope};
+    use reliquary_freshness_store::FreshnessStore;
     use reliquary_insomnia::{InsomniaOwnership, RawCandidate};
-    use reliquary_owner_session::GraphAdmission;
+    use reliquary_insomnia_store::AcceptedEpisodeOrder;
+    use reliquary_memory_core::MemoryStore;
+    use reliquary_owner_session::{GraphAdmission, RelWriter};
     use reliquary_vector_store::{
         ArchiveVectorStore, CompatibilityProfileStore, MemoryVectorStore, PackedVectorStore,
         VectorGenerationStore,
@@ -259,6 +287,10 @@ mod tests {
             owner,
         )
         .unwrap();
+        MemoryStore::create(&mut container).unwrap();
+        FreshnessStore::default()
+            .initialize(&mut container)
+            .unwrap();
         PackedVectorStore::default()
             .initialize(&mut container)
             .unwrap();
@@ -324,6 +356,22 @@ mod tests {
         let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
         let rel = RelSession::open_path(&path.0, &admission, [], []).unwrap();
         (path, rel, episode_id)
+    }
+
+    fn accepted_writer() -> (Temp, RelWriter, EpisodeId) {
+        let (path, rel, episode_id) = accepted_rel();
+        let owner = rel.owner_id();
+        let episode = rel.episode(episode_id).unwrap();
+        let order = AcceptedEpisodeOrder {
+            episode_id: reliquary_insomnia_store::EpisodeId(episode_id.0),
+            source_through_ns: episode.source_through_ns,
+            conversation_id: episode.conversation_id.clone(),
+            start_node_id: episode.start_node_id.clone(),
+        };
+        drop(rel);
+        let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+        let writer = RelWriter::open_path(&path.0, admission, [order], []).unwrap();
+        (path, writer, episode_id)
     }
 
     #[test]
@@ -436,13 +484,84 @@ mod tests {
             MAX_INGEST_EVIDENCE_TURNS + 1
         ];
         assert_eq!(
-            prepare_native_ingest_from_archive(
-                &rel,
-                EpisodeId([255; 32]),
-                &too_many,
-                vec![],
-            ),
+            prepare_native_ingest_from_archive(&rel, EpisodeId([255; 32]), &too_many, vec![],),
             Err(IngestError::EvidenceTurnLimit)
+        );
+    }
+
+    #[test]
+    fn commits_prepared_project_memory_through_owner_lease_idempotently() {
+        let (_path, mut writer, episode_id) = accepted_writer();
+        let prepared = prepare_native_ingest_from_archive(
+            writer.read_session(),
+            episode_id,
+            &[],
+            vec![candidate("Keep my project notes private.")],
+        )
+        .unwrap();
+        let work = writer
+            .queue_and_claim_insomnia_episode(episode_id, "ingest-test", 10, 1_000)
+            .unwrap();
+        let first =
+            commit_prepared_native_ingest(&mut writer, &prepared, &work, "fixture-model", "v1", 20)
+                .unwrap();
+        assert_eq!(first, reliquary_owner_session::CompletionCheck::Apply);
+        assert_eq!(
+            commit_prepared_native_ingest(
+                &mut writer,
+                &prepared,
+                &work,
+                "fixture-model",
+                "v1",
+                20,
+            )
+            .unwrap(),
+            reliquary_owner_session::CompletionCheck::AlreadyAccepted
+        );
+        let receipt = writer
+            .read_session()
+            .insomnia_receipt(
+                reliquary_insomnia_store::EpisodeId(episode_id.0),
+                work.attempt_count,
+            )
+            .unwrap();
+        assert_eq!(receipt.memory_ids.len(), 1);
+        let history = writer
+            .read_session()
+            .memory_history(reliquary_memory_core::MemoryId(receipt.memory_ids[0].0))
+            .unwrap()
+            .unwrap();
+        assert!(matches!(
+            &history.revisions[0].payload,
+            reliquary_memory_core::PayloadState::Available(body)
+                if body.title == "Private project notes"
+                    && body.content == "The user wants project notes kept private."
+        ));
+    }
+
+    #[test]
+    fn same_owner_publication_fails_closed_for_user_owned_route() {
+        let (_path, mut writer, episode_id) = accepted_writer();
+        let mut raw = candidate("Keep my project notes private.");
+        raw.ownership = InsomniaOwnership::User;
+        let prepared =
+            prepare_native_ingest_from_archive(writer.read_session(), episode_id, &[], vec![raw])
+                .unwrap();
+        let work = writer
+            .queue_and_claim_insomnia_episode(episode_id, "ingest-test", 10, 1_000)
+            .unwrap();
+        assert_eq!(
+            commit_prepared_native_ingest(&mut writer, &prepared, &work, "fixture-model", "v1", 20,),
+            Err(IngestPublicationError::RoutedOwnerUnsupported)
+        );
+        assert!(
+            writer
+                .read_session()
+                .insomnia_receipt(
+                    reliquary_insomnia_store::EpisodeId(episode_id.0),
+                    work.attempt_count,
+                )
+                .is_none()
         );
     }
 }
