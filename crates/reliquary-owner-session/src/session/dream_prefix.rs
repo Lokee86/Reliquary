@@ -85,6 +85,11 @@ pub(crate) fn validate_compact_dream_prefix(
                     .ok_or_else(|| {
                         OwnerSessionError::Record("missing Memory history change".into())
                     })?;
+                if unsupported {
+                    // An unproven earlier birth prevents compact admission,
+                    // but must not reject an otherwise valid owner replay.
+                    continue;
+                }
                 head = head.checked_add(1).ok_or_else(|| {
                     OwnerSessionError::Record("Dream Memory head exhausted".into())
                 })?;
