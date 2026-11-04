@@ -615,6 +615,15 @@ impl PerceptionStore {
                 if value.revision != expected_revision {
                     return Err(PerceptionError::CorruptRecord("Entity revision sequence"));
                 }
+                if let Some(previous) = self.entities.get(&value.id) {
+                    if value.created_at_ns != previous.created_at_ns
+                        || value.updated_at_ns < previous.updated_at_ns
+                    {
+                        return Err(PerceptionError::CorruptRecord("Entity revision timestamps"));
+                    }
+                } else if value.id != entity_id(&value.mutation_id) {
+                    return Err(PerceptionError::CorruptRecord("Entity identity mismatch"));
+                }
                 self.mutations.insert(value.mutation_id.clone(), value.id);
                 self.entity_history
                     .insert((value.id, value.revision), value.clone());
@@ -831,6 +840,72 @@ mod tests {
             start_byte: 17,
             end_byte: 25,
         }
+    }
+
+    #[test]
+    fn replay_rejects_forged_entity_identity_and_revision_time() {
+        let bad_id_path = TempFile::new();
+        let mut bad_id = create(&bad_id_path.0, 4);
+        let value = Entity {
+            id: EntityId([7; 32]),
+            revision: 1,
+            canonical_name: "Name".into(),
+            aliases: vec![],
+            kind: "person".into(),
+            summary: "".into(),
+            mutation_id: "creation".into(),
+            created_at_ns: 10,
+            updated_at_ns: 10,
+        };
+        bad_id
+            .append(
+                &Record::Entity {
+                    version: 1,
+                    owner: bad_id.owner_id(),
+                    value: value.clone(),
+                }
+                .encode()
+                .unwrap(),
+            )
+            .unwrap();
+        assert!(matches!(
+            PerceptionStore::open(&bad_id),
+            Err(PerceptionError::CorruptRecord("Entity identity mismatch"))
+        ));
+
+        let bad_time_path = TempFile::new();
+        let mut bad_time = create(&bad_time_path.0, 5);
+        let mut valid = value;
+        valid.id = entity_id(&valid.mutation_id);
+        bad_time
+            .append(
+                &Record::Entity {
+                    version: 1,
+                    owner: bad_time.owner_id(),
+                    value: valid.clone(),
+                }
+                .encode()
+                .unwrap(),
+            )
+            .unwrap();
+        valid.revision = 2;
+        valid.mutation_id = "update".into();
+        valid.created_at_ns = 9;
+        bad_time
+            .append(
+                &Record::Entity {
+                    version: 2,
+                    owner: bad_time.owner_id(),
+                    value: valid,
+                }
+                .encode()
+                .unwrap(),
+            )
+            .unwrap();
+        assert!(matches!(
+            PerceptionStore::open(&bad_time),
+            Err(PerceptionError::CorruptRecord("Entity revision timestamps"))
+        ));
     }
 
     #[test]
