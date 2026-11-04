@@ -10,6 +10,7 @@ use reliquary_owner_session::{
 };
 
 mod conversation_queue;
+use conversation_queue::ArchiveCommitProof;
 pub use conversation_queue::{
     ArchiveReceipt, ConversationQueue, ConversationSubmissionId, DurableGeneration,
     DurableGenerationCheckpoint, DurableGenerationPhase, DurableHostOperation,
@@ -480,6 +481,85 @@ impl Instance {
         let id = ConversationSubmissionId::new(conversation_id, submission_id)?;
         let submission = QueuedSubmission::new(id, self.principal.to_string(), content)?;
         Ok(queue.enqueue(submission, expected_revision)?)
+    }
+
+    /// Win the finalize race, sync the accepted turn and branch through the
+    /// mounted REL Archive, then record the receipt in the durable queue.
+    pub fn finalize_conversation_submission(
+        &self,
+        queue: &mut ConversationQueue,
+        id: &ConversationSubmissionId,
+        expected_revision: u64,
+        capture: FinalizeCapture,
+    ) -> Result<SubmissionStatus, GatewayError> {
+        self.authorize_queue_owner(queue.owner())?;
+        if let Some(status) = queue.status(id)
+            && status.state == QueueState::Committed
+        {
+            if status.finalize_capture.as_ref() == Some(&capture) {
+                return Ok(status);
+            }
+            return Err(conversation_queue::QueueError::ArchiveIdentityConflict.into());
+        }
+        let submission = queue
+            .submission(id)
+            .cloned()
+            .ok_or(conversation_queue::QueueError::MissingSubmission)?;
+        let finalizing = queue.claim_finalize(id, expected_revision, capture.clone())?;
+
+        let mounted = {
+            let owners = self
+                .owners
+                .read()
+                .map_err(|_| GatewayError::RegistryPoisoned)?;
+            match owners.get(&queue.owner()) {
+                None => return Err(GatewayError::UnknownOwner(queue.owner())),
+                Some(MountedOwner::RelWriter(writer)) => Arc::clone(writer),
+                Some(_) => return Err(GatewayError::WriterUnavailable),
+            }
+        };
+        let node = {
+            let mut writer = mounted
+                .writer
+                .lock()
+                .map_err(|_| GatewayError::RegistryPoisoned)?;
+            self.ensure_credential_active()?;
+            writer.accept_turn_and_advance_branch(
+                reliquary_archive::TurnInput {
+                    id: submission.id.submission_id.as_str().to_owned(),
+                    conversation_id: submission.id.conversation_id.clone(),
+                    parent_id: capture.parent_node_id.clone(),
+                    role: "user".to_owned(),
+                    principal_id: Some(submission.principal_id.clone()),
+                    timestamp_ns: capture.committed_timestamp_ns,
+                    content: submission.content,
+                    attachments: Vec::new(),
+                    project_attachments: Vec::new(),
+                },
+                reliquary_archive::Branch {
+                    id: capture.branch_id.clone(),
+                    conversation_id: id.conversation_id.clone(),
+                    leaf_node_id: id.submission_id.as_str().to_owned(),
+                    canonical: true,
+                },
+            )?
+        };
+
+        let receipt = ArchiveReceipt {
+            node_id: node.id,
+            branch_id: capture.branch_id,
+            parent_node_id: node.parent_id,
+            principal_id: node
+                .principal_id
+                .ok_or(conversation_queue::QueueError::ArchiveIdentityConflict)?,
+            committed_timestamp_ns: node.timestamp_ns,
+            payload_hash: submission.payload_hash,
+        };
+        if finalizing.state != QueueState::Finalizing {
+            return Err(conversation_queue::QueueError::InvalidState.into());
+        }
+        queue.record_archive_commit(id, ArchiveCommitProof::from_archive(receipt))?;
+        Ok(queue.status(id).expect("committed entry remains projected"))
     }
 
     /// Open the queue for a mounted REL only after checking this Instance's grant.

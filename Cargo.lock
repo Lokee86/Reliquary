@@ -2769,6 +2769,7 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "reliquary-application",
+ "reliquary-archive",
  "reliquary-owner-session",
  "reliquary-switchboard",
  "serde",

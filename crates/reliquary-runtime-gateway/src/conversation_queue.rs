@@ -2,11 +2,11 @@
 //!
 //! This journal is deliberately separate from REL semantic data. It records
 //! accepted provisional submissions and the winner of cancel/finalize races.
-//! Only the trusted Archive publication path may record Archive commitment;
-//! this crate currently has no writable Archive API, so queued work remains
-//! finalizing until that proof is integrated. Host status recorders are private,
-//! and there is no host adapter, provider dispatcher, recipient stream, or reconnect
-//! transport here. Checkpoint reads are bounded local replay only; H03 is not complete.
+//! Only the trusted Instance finalization path records Archive commitment, after
+//! the mounted REL writer syncs the turn and branch. Host status recorders remain
+//! private. Provider dispatch, recipient streaming, and reconnect transport are
+//! not implemented; checkpoint reads are bounded local replay only, so H03 is
+//! not complete.
 
 use crate::OwnerId;
 use serde::{Deserialize, Serialize};
@@ -587,10 +587,14 @@ impl Event {
 }
 
 /// Proof created only inside the trusted Archive publication integration.
-/// The current rebuild has no writable Archive seam, so no public constructor
-/// is provided and finalizing queue items remain unreconciled.
-#[allow(dead_code)] // minted only when a writable Archive publication seam exists
+/// No public constructor is provided; only the gateway's Archive publication
+/// path can mint this after the REL writer has synced the turn and branch.
 pub(crate) struct ArchiveCommitProof(ArchiveReceipt);
+impl ArchiveCommitProof {
+    pub(super) fn from_archive(receipt: ArchiveReceipt) -> Self {
+        Self(receipt)
+    }
+}
 
 /// One exclusive, REL-owner-qualified durable provisional conversation queue.
 pub struct ConversationQueue {

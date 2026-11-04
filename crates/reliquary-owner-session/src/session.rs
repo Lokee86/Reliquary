@@ -53,6 +53,7 @@ pub enum OwnerSessionError {
     ArchiveVector(ArchiveVectorError),
     MemoryVector(MemoryVectorError),
     Generation(GenerationStoreError),
+    Archive(reliquary_archive::ArchiveError),
     Record(String),
 }
 
@@ -79,11 +80,17 @@ impl fmt::Display for OwnerSessionError {
             Self::ArchiveVector(e) => e.fmt(f),
             Self::MemoryVector(e) => e.fmt(f),
             Self::Generation(e) => e.fmt(f),
+            Self::Archive(e) => e.fmt(f),
             Self::Record(e) => f.write_str(e),
         }
     }
 }
 impl std::error::Error for OwnerSessionError {}
+impl From<reliquary_archive::ArchiveError> for OwnerSessionError {
+    fn from(e: reliquary_archive::ArchiveError) -> Self {
+        Self::Archive(e)
+    }
+}
 impl From<ContainerError> for OwnerSessionError {
     fn from(e: ContainerError) -> Self {
         Self::Container(e)
@@ -208,6 +215,24 @@ impl RelWriter {
     }
     pub fn read_session(&self) -> &RelSession {
         &self.session
+    }
+
+    /// Accept a live source turn and advance its branch through the owner’s
+    /// Archive projection. Archive operations are idempotent, so a retry after
+    /// a queue journal failure can safely confirm the already synced turn.
+    pub fn accept_turn_and_advance_branch(
+        &mut self,
+        input: reliquary_archive::TurnInput,
+        branch: reliquary_archive::Branch,
+    ) -> Result<reliquary_archive::Node, OwnerSessionError> {
+        let accepted = self
+            .session
+            .archive
+            .accept_turn(&mut self.container, input)?;
+        self.session
+            .archive
+            .put_branch(&mut self.container, branch)?;
+        Ok(accepted.value)
     }
 
     pub fn commit_grouped_insomnia_completion(
@@ -1014,6 +1039,60 @@ mod tests {
 
         let reopened = Container::open_writer(&path.0).unwrap();
         drop(reopened);
+    }
+
+    #[test]
+    fn accepted_turn_and_branch_are_idempotent_after_writer_reopen() {
+        let path = Temp::new();
+        let owner = [19; 16];
+        let mut container = Container::create(
+            &path.0,
+            ContainerIdentity::reliquary(ReliquaryScope::Project),
+            owner,
+        )
+        .unwrap();
+        initialize_vectors(&mut container);
+        drop(container);
+
+        let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+        let turn = || reliquary_archive::TurnInput {
+            id: "submission-1".to_owned(),
+            conversation_id: "conversation-1".to_owned(),
+            parent_id: None,
+            role: "user".to_owned(),
+            principal_id: Some("alice".to_owned()),
+            timestamp_ns: 42,
+            content: "durable content".to_owned(),
+            attachments: Vec::new(),
+            project_attachments: Vec::new(),
+        };
+        let branch = || reliquary_archive::Branch {
+            id: "main".to_owned(),
+            conversation_id: "conversation-1".to_owned(),
+            leaf_node_id: "submission-1".to_owned(),
+            canonical: true,
+        };
+
+        let mut writer = RelWriter::open_path(&path.0, admission.clone(), [], []).unwrap();
+        writer
+            .accept_turn_and_advance_branch(turn(), branch())
+            .unwrap();
+        drop(writer);
+
+        let mut recovered = RelWriter::open_path(&path.0, admission, [], []).unwrap();
+        recovered
+            .accept_turn_and_advance_branch(turn(), branch())
+            .unwrap();
+        assert_eq!(recovered.session.archive.node_count(), 1);
+        assert_eq!(
+            recovered
+                .session
+                .archive
+                .branch("conversation-1", "main")
+                .unwrap()
+                .leaf_node_id,
+            "submission-1"
+        );
     }
 
     #[test]
