@@ -149,6 +149,22 @@ impl FreshnessStore {
         if self.policy_persisted {
             return Ok(false);
         }
+        let mut cursor = container.physical_cursor().map_err(display_error)?;
+        while let Some(mut frame) = cursor.next_frame().map_err(display_error)? {
+            if frame.object().length < 8 {
+                continue;
+            }
+            let mut magic = [0; 8];
+            frame
+                .read_exact(&mut magic)
+                .map_err(|error| error.to_string())?;
+            if magic == *POLICY_MAGIC || magic == *JOURNAL_MAGIC || magic == *b"RELINSC7" {
+                return Err(
+                    "Freshness owner already contains records; reopen before writing".into(),
+                );
+            }
+        }
+        drop(cursor);
         let owner = self
             .owner_uuid
             .ok_or("Freshness owner identity is required")?;

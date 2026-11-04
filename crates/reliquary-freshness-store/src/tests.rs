@@ -196,3 +196,33 @@ fn unsupported_freshness_versions_fail_closed() {
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
+
+#[test]
+fn fresh_store_cannot_append_a_second_policy() {
+    let temp = TempDir::new();
+    let path = temp.0.join("owner.rel");
+    let owner = [8; 16];
+    let mut container = Container::create(
+        &path,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    let mut first = FreshnessStore::new(Some(owner));
+    first.initialize(&mut container).unwrap();
+    first
+        .create_birth(&mut container, FreshnessMemoryId([4; 32]), 3, false)
+        .unwrap();
+    let before = container.read_frames().unwrap().len();
+    let mut fresh = FreshnessStore::new(Some(owner));
+    assert!(fresh.initialize(&mut container).is_err());
+    assert_eq!(container.read_frames().unwrap().len(), before);
+    assert_eq!(
+        FreshnessStore::open(&container)
+            .unwrap()
+            .records()
+            .unwrap()
+            .len(),
+        1
+    );
+}
