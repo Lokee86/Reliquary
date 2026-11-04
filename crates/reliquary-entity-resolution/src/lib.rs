@@ -9,6 +9,7 @@ use reliquary_perception_store::{Entity, EntityId, EntityResolutionReason};
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
+mod decision_fast_path;
 mod model_evaluator;
 pub use model_evaluator::{
     AdmissionDecision, ENTITY_ADMISSION_SYSTEM_PROMPT, ENTITY_RESOLUTION_SYSTEM_PROMPT,

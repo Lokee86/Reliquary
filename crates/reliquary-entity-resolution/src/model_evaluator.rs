@@ -3,8 +3,9 @@ use crate::{
     ResolutionDecision, ResolutionJudgment, ResolutionOutcome, TextField, evaluate_judgment,
 };
 use reliquary_memory_core::MemoryBody;
-use reliquary_switchboard::{GeneralEndpoint, GeneralEndpointError};
+use reliquary_switchboard::{DecisionEndpoint, GeneralEndpoint, GeneralEndpointError};
 use serde_json::{Value, json};
+use std::sync::Arc;
 
 pub const MAX_ENTITY_MODEL_INPUT_BYTES: usize = 16 * 1024;
 pub const ENTITY_RESOLUTION_SYSTEM_PROMPT: &str = "Resolve the exact supplied Memory mention against only the supplied candidates. Candidate similarity is not proof of identity. Return resolve_existing only for the same referent, create_new only for a distinct durable referent, unresolved when uncertain, and reject transient or non-entity mentions. Keep identity_relation and mention_kind explicit.";
@@ -69,10 +70,18 @@ impl std::error::Error for EntityResolverError {}
 
 pub struct EntityModelEvaluator<E> {
     endpoint: E,
+    decision: Option<Arc<dyn DecisionEndpoint>>,
 }
 impl<E: GeneralEndpoint> EntityModelEvaluator<E> {
     pub fn new(endpoint: E) -> Self {
-        Self { endpoint }
+        Self {
+            endpoint,
+            decision: None,
+        }
+    }
+    pub fn with_decision_endpoint(mut self, decision: Option<Arc<dyn DecisionEndpoint>>) -> Self {
+        self.decision = decision;
+        self
     }
     pub fn model(&self) -> &str {
         self.endpoint.model()
@@ -110,6 +119,18 @@ impl<E: GeneralEndpoint> EntityModelEvaluator<E> {
             return Err(invalid("candidate count exceeds 8"));
         }
         let payload = json!({"title":body.title,"content":body.content,"mention":{"field":match mention.field { TextField::Title=>"title",TextField::Content=>"content"},"start_byte":mention.start_byte,"end_byte":mention.end_byte,"text":surface},"candidates":candidates.iter().enumerate().map(|(i,c)|json!({"candidate_index":i,"entity_id":hex(&c.entity.id.0),"canonical_name":c.entity.canonical_name,"aliases":c.entity.aliases,"kind":c.entity.kind,"summary":c.entity.summary,"evidence":{"exact_surface":c.exact_surface,"normalized_surface":c.normalized_surface,"alias_surface":c.alias_surface,"source_association":c.source_association,"lexical_memory_hits":c.lexical_memory_hits,"graph_neighbor_hits":c.graph_neighbor_hits}})).collect::<Vec<_>>()});
+        if let Some(decision) = &self.decision {
+            let encoded =
+                serde_json::to_vec(&payload).map_err(|error| invalid(&error.to_string()))?;
+            if encoded.len() > MAX_ENTITY_MODEL_INPUT_BYTES {
+                return Err(invalid("Entity model input exceeds byte limit"));
+            }
+            if let Some(outcome) =
+                crate::decision_fast_path::try_fast_path(decision.as_ref(), &payload, candidates)
+            {
+                return Ok(outcome);
+            }
+        }
         let output = self.complete(
             ENTITY_RESOLUTION_SYSTEM_PROMPT,
             &payload,
@@ -523,6 +544,21 @@ mod tests {
     use reliquary_perception_store::{Entity, EntityId};
     use std::sync::Mutex;
     struct Stub(Mutex<Vec<Value>>);
+    struct DecisionStub(Option<Value>);
+    impl DecisionEndpoint for DecisionStub {
+        fn model(&self) -> &str {
+            "decision-test"
+        }
+        fn evaluate(
+            &self,
+            _: &Value,
+            _: &Value,
+        ) -> Result<Value, reliquary_switchboard::DecisionEndpointError> {
+            self.0
+                .clone()
+                .ok_or(reliquary_switchboard::DecisionEndpointError::InvalidResponse("unavailable"))
+        }
+    }
     impl GeneralEndpoint for Stub {
         fn model(&self) -> &str {
             "entity-test"
@@ -577,6 +613,48 @@ mod tests {
             end_byte: 19,
             text: "Atlas service".into(),
         }
+    }
+
+    #[test]
+    fn decision_fast_path_requires_confidence_margin_and_falls_back() {
+        let response = |selected: f64, other: f64| json!({"answers":{"resolution":{"type":"choice","choice":"candidate_0","probabilities":{"candidate_0":selected,"unresolved":other}}}});
+        let evaluator = EntityModelEvaluator::new(Stub(Mutex::new(vec![])))
+            .with_decision_endpoint(Some(Arc::new(DecisionStub(Some(response(0.97, 0.01))))));
+        assert_eq!(
+            evaluator
+                .resolve(&body(), &mention(), &[candidate()])
+                .unwrap()
+                .decision,
+            ResolutionDecision::ResolveExisting(EntityId([7; 32]))
+        );
+        let fallback = json!({"decision":"unresolved","reason":"ambiguous","target_candidate_index":0,"identity_relation":"uncertain","mention_kind":"unknown"});
+        for decision in [
+            Some(response(0.94, 0.01)),
+            Some(response(0.96, 0.83)),
+            Some(json!({"invalid":true})),
+            None,
+        ] {
+            let evaluator = EntityModelEvaluator::new(Stub(Mutex::new(vec![fallback.clone()])))
+                .with_decision_endpoint(Some(Arc::new(DecisionStub(decision))));
+            assert_eq!(
+                evaluator
+                    .resolve(&body(), &mention(), &[candidate()])
+                    .unwrap()
+                    .decision,
+                ResolutionDecision::Unresolved
+            );
+        }
+        let mut unrelated = candidate();
+        unrelated.exact_surface = false;
+        let evaluator = EntityModelEvaluator::new(Stub(Mutex::new(vec![fallback])))
+            .with_decision_endpoint(Some(Arc::new(DecisionStub(Some(response(0.99, 0.0))))));
+        assert_eq!(
+            evaluator
+                .resolve(&body(), &mention(), &[unrelated])
+                .unwrap()
+                .decision,
+            ResolutionDecision::Unresolved
+        );
     }
 
     #[test]
