@@ -12,6 +12,8 @@ mod classifier;
 mod classifier_error;
 mod classifier_model;
 mod classifier_schema;
+mod evaluator;
+mod evaluator_frontier;
 mod pair_context;
 mod verifier;
 mod verifier_error;
@@ -22,6 +24,7 @@ pub use classifier::DreamClassifier;
 pub use classifier_error::DreamClassificationError;
 pub use classifier_model::*;
 pub use classifier_schema::{DREAM_CLASSIFIER_SYSTEM_PROMPT, dream_classifier_schema};
+pub use evaluator::{DreamEvaluationError, DreamPairEvaluator};
 pub use pair_context::{DreamCandidateContexts, DreamContext, DreamMemory};
 pub use reliquary_switchboard::{GeneralEndpoint, GeneralEndpointError};
 pub use verifier::DreamVerifier;
@@ -31,6 +34,8 @@ pub use verifier_schema::{DREAM_VERIFIER_SYSTEM_PROMPT, dream_verifier_schema};
 
 #[cfg(test)]
 mod inference_tests;
+#[cfg(test)]
+mod evaluator_tests;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PairRelation {
