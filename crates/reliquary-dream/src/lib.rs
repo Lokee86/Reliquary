@@ -8,6 +8,8 @@ use reliquary_memory_core::{MemoryBodyId, MemoryId};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
+mod candidate_config;
+mod candidate_ranking;
 mod classifier;
 mod classifier_error;
 mod classifier_model;
@@ -20,6 +22,10 @@ mod verifier_error;
 mod verifier_model;
 mod verifier_schema;
 
+pub use candidate_config::*;
+pub use candidate_ranking::{
+    RankedCandidate, candidate_cosine, rank_lanes, select_candidates, validate_candidate_config,
+};
 pub use classifier::DreamClassifier;
 pub use classifier_error::DreamClassificationError;
 pub use classifier_model::*;
