@@ -251,11 +251,21 @@ macro_rules! common_reads {
             pub fn entity(&self, id: EntityId) -> Option<&Entity> {
                 self.$field.perception.entity(id)
             }
+            pub fn entity_revision(&self, id: EntityId, revision: u64) -> Option<&Entity> {
+                self.$field.perception.entity_revision(id, revision)
+            }
             pub fn entities(&self) -> Vec<Entity> {
                 self.$field.perception.entities().cloned().collect()
             }
             pub fn mention(&self, key: MemoryEntityMentionKey) -> Option<&MemoryEntityResolution> {
                 self.$field.perception.mention(key)
+            }
+            pub fn mention_revision(
+                &self,
+                key: MemoryEntityMentionKey,
+                revision: u32,
+            ) -> Option<&MemoryEntityResolution> {
+                self.$field.perception.mention_revision(key, revision)
             }
             pub fn graph_relation(
                 &self,

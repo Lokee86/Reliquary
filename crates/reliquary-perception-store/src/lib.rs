@@ -378,8 +378,10 @@ pub struct PerceptionStore {
     identity: ContainerIdentity,
     version: u64,
     entities: BTreeMap<EntityId, Entity>,
+    entity_history: BTreeMap<(EntityId, u64), Entity>,
     mutations: BTreeMap<String, EntityId>,
     mentions: BTreeMap<MemoryEntityMentionKey, MemoryEntityResolution>,
+    mention_history: BTreeMap<(MemoryEntityMentionKey, u32), MemoryEntityResolution>,
 }
 
 impl PerceptionStore {
@@ -389,8 +391,10 @@ impl PerceptionStore {
             identity: container.identity(),
             version: 0,
             entities: BTreeMap::new(),
+            entity_history: BTreeMap::new(),
             mutations: BTreeMap::new(),
             mentions: BTreeMap::new(),
+            mention_history: BTreeMap::new(),
         };
         for frame in container.read_frames()? {
             let Some(record) = Record::decode(&frame.payload)? else {
@@ -410,8 +414,18 @@ impl PerceptionStore {
     pub fn entity(&self, id: EntityId) -> Option<&Entity> {
         self.entities.get(&id)
     }
+    pub fn entity_revision(&self, id: EntityId, revision: u64) -> Option<&Entity> {
+        self.entity_history.get(&(id, revision))
+    }
     pub fn mention(&self, key: MemoryEntityMentionKey) -> Option<&MemoryEntityResolution> {
         self.mentions.get(&key)
+    }
+    pub fn mention_revision(
+        &self,
+        key: MemoryEntityMentionKey,
+        revision: u32,
+    ) -> Option<&MemoryEntityResolution> {
+        self.mention_history.get(&(key, revision))
     }
     pub fn entities(&self) -> impl Iterator<Item = &Entity> {
         self.entities.values()
@@ -602,6 +616,8 @@ impl PerceptionStore {
                     return Err(PerceptionError::CorruptRecord("Entity revision sequence"));
                 }
                 self.mutations.insert(value.mutation_id.clone(), value.id);
+                self.entity_history
+                    .insert((value.id, value.revision), value.clone());
                 self.entities.insert(value.id, value.clone());
             }
             Record::Mention { value, .. } => {
@@ -615,6 +631,8 @@ impl PerceptionStore {
                     return Err(PerceptionError::CorruptRecord("mention revision sequence"));
                 }
                 validate_status(&value.status, &self.entities)?;
+                self.mention_history
+                    .insert((value.key, value.revision), value.clone());
                 self.mentions.insert(value.key, value.clone());
             }
         }
@@ -866,6 +884,18 @@ mod tests {
                     MemoryEntityResolutionStatus::Ambiguous { candidates },
                 )
                 .unwrap();
+            store
+                .put_mention_resolution(
+                    &mut container,
+                    key(),
+                    1,
+                    21,
+                    MemoryEntityResolutionStatus::Resolved {
+                        entity_id: alpha,
+                        reason: EntityResolutionReason::NamedReferent,
+                    },
+                )
+                .unwrap();
         }
         let container = Container::open_read_only(&path.0).unwrap();
         let store = PerceptionStore::open(&container).unwrap();
@@ -874,10 +904,16 @@ mod tests {
         assert_eq!(store.entity(alpha).unwrap().revision, 2);
         assert_eq!(store.entity(alpha).unwrap().canonical_name, "Alpha Prime");
         assert_eq!((mention.key.start_byte, mention.key.end_byte), (17, 25));
-        assert_eq!(mention.revision, 1);
-        assert!(
-            matches!(&mention.status, MemoryEntityResolutionStatus::Ambiguous { candidates } if candidates.len() == 2)
+        assert_eq!(mention.revision, 2);
+        assert_eq!(
+            store.entity_revision(alpha, 1).unwrap().canonical_name,
+            "Alpha"
         );
+        assert!(store.entity_revision(alpha, 3).is_none());
+        assert!(
+            matches!(&store.mention_revision(key(), 1).unwrap().status, MemoryEntityResolutionStatus::Ambiguous { candidates } if candidates.len() == 2)
+        );
+        assert!(store.mention_revision(key(), 3).is_none());
     }
 
     #[test]

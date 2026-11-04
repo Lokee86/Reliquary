@@ -538,10 +538,15 @@ fn owner_session_accepts_graph_with_owner_backed_memory_endpoints() {
     perception
         .put_mention_resolution(&mut container, key, 0, 1, status.clone())
         .unwrap();
+    perception
+        .put_mention_resolution(&mut container, key, 1, 2, status.clone())
+        .unwrap();
     drop(container);
     let reopened = Container::open_read_only(&path.0).unwrap();
     let session = crate::RelSession::open(&reopened, &admission, [], []).unwrap();
     assert_eq!(session.graph_version(), 1);
+    assert_eq!(session.mention_revision(key, 1).unwrap().updated_at_ns, 1);
+    assert_eq!(session.mention(key).unwrap().revision, 2);
     drop(session);
     drop(reopened);
     let mut writer = Container::open_writer(&path.0).unwrap();
