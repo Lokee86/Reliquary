@@ -296,6 +296,129 @@ fn memory_mapping_replay_rejects_missing_packed_backing() {
 }
 
 #[test]
+fn memory_mapping_replay_preserves_pruned_packed_backing() {
+    let temp = TempDir::new();
+    let path = temp.0.join("pruned-memory-mapping.rel");
+    let mut container = Container::create(
+        &path,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [13; 16],
+    )
+    .unwrap();
+    let packed_id = PackedVectorId([0xDE; 32]);
+    let packed_info = PackedVectorInfo {
+        id: packed_id,
+        schema: VectorSchema::new(1, ScalarType::F32).unwrap(),
+        count: 1,
+        byte_len: 4,
+    };
+    container.append(&crate::codec::encode_format()).unwrap();
+    container
+        .append(&crate::codec::encode_pruned_marker(packed_info, [1; 32]).unwrap())
+        .unwrap();
+    container.append(&memory_codec::encode_format()).unwrap();
+    let profile_id = profile().id;
+    let bodies = [MemoryBodyId([8; 32])];
+    let vector_id = memory_vector_id(profile_id, packed_id, &bodies);
+    container
+        .append(&memory_codec::encode_object(vector_id, profile_id, packed_id, &bodies).unwrap())
+        .unwrap();
+    container.sync().unwrap();
+    drop(container);
+
+    let mut profiles = CompatibilityProfileStore::default();
+    profiles.insert_rebuilt(profile()).unwrap();
+    let mut container = Container::open_read_only(&path).unwrap();
+    let packed = PackedVectorStore::open(&container).unwrap();
+    let mut memories = MemoryVectorStore::open(&container, &packed, &profiles).unwrap();
+    assert_eq!(memories.get(vector_id).unwrap().memory_body_ids, bodies);
+    assert!(matches!(
+        packed.get(&mut container, packed_id),
+        Err(PackedVectorError::PayloadUnavailable(
+            PayloadUnavailable::Pruned
+        ))
+    ));
+    assert!(matches!(
+        memories.put(
+            &mut container,
+            &packed,
+            &profiles,
+            AcceptedMemoryMapping {
+                profile: profile_id,
+                packed: packed_id,
+                packed_rows: 1,
+                body_ids: vec![MemoryBodyId([9; 32])],
+            },
+        ),
+        Err(MemoryVectorError::PackedVector(
+            PackedVectorError::PayloadUnavailable(PayloadUnavailable::Pruned)
+        ))
+    ));
+}
+
+#[test]
+fn archive_mapping_replay_preserves_pruned_packed_backing() {
+    let temp = TempDir::new();
+    let path = temp.0.join("pruned-archive-mapping.rel");
+    let mut container = Container::create(
+        &path,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [14; 16],
+    )
+    .unwrap();
+    let packed_id = PackedVectorId([0xDF; 32]);
+    let packed_info = PackedVectorInfo {
+        id: packed_id,
+        schema: VectorSchema::new(1, ScalarType::F32).unwrap(),
+        count: 1,
+        byte_len: 4,
+    };
+    container.append(&crate::codec::encode_format()).unwrap();
+    container
+        .append(&crate::codec::encode_pruned_marker(packed_info, [2; 32]).unwrap())
+        .unwrap();
+    container
+        .append(&crate::archive_codec::encode_archive_format())
+        .unwrap();
+    let fragments = [ArchiveFragmentId([8; 32])];
+    let archive_id = archive_vector_id(packed_id, &fragments);
+    container
+        .append(
+            &crate::archive_codec::encode_archive_object(archive_id, packed_id, &fragments, 1)
+                .unwrap(),
+        )
+        .unwrap();
+    container.sync().unwrap();
+    drop(container);
+
+    let mut container = Container::open_read_only(&path).unwrap();
+    let packed = PackedVectorStore::open(&container).unwrap();
+    let mut archives = ArchiveVectorStore::open(&container, &packed).unwrap();
+    assert_eq!(archives.get(archive_id).unwrap().fragment_ids, fragments);
+    assert!(matches!(
+        packed.get(&mut container, packed_id),
+        Err(PackedVectorError::PayloadUnavailable(
+            PayloadUnavailable::Pruned
+        ))
+    ));
+    assert!(matches!(
+        archives.put(
+            &mut container,
+            &packed,
+            AcceptedArchiveMapping {
+                packed_vector_id: packed_id,
+                packed_rows: 1,
+                fragment_ids: vec![ArchiveFragmentId([9; 32])],
+                max_fragment_archive_version: 2,
+            },
+        ),
+        Err(ArchiveVectorError::PackedVector(
+            PackedVectorError::PayloadUnavailable(PayloadUnavailable::Pruned)
+        ))
+    ));
+}
+
+#[test]
 fn packed_payload_and_profile_persist_and_reopen() {
     let temp = TempDir::new();
     let packed_path = temp.0.join("packed.rel");

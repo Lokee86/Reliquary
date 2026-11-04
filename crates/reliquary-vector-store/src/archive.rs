@@ -206,12 +206,6 @@ fn validate_packed_backing(
     if backing.count != info.rows {
         return Err(ArchiveVectorError::RowCountMismatch);
     }
-    if packed.is_pruned(info.packed_vector_id) {
-        return Err(crate::PackedVectorError::PayloadUnavailable(
-            crate::PayloadUnavailable::Pruned,
-        )
-        .into());
-    }
     Ok(())
 }
 

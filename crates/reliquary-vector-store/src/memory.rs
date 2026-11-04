@@ -259,17 +259,19 @@ pub fn validate_replay_record(
     let profile = profiles
         .get(info.compatibility_profile_id)
         .ok_or(MemoryVectorError::MissingProfile)?;
-    let packed = packed
+    let packed_info = packed
         .info(info.packed_vector_id)
         .ok_or(MemoryVectorError::MissingPackedVector)?;
-    if packed.count != info.rows {
+    if packed_info.count != info.rows {
         return Err(MemoryVectorError::RowCountMismatch);
     }
-    if packed.schema.dimensions != profile.dimensions {
+    if packed_info.schema.dimensions != profile.dimensions {
         return Err(MemoryVectorError::DimensionMismatch);
     }
-    if packed.schema.scalar != ScalarType::F32 {
-        return Err(MemoryVectorError::UnsupportedScalar(packed.schema.scalar));
+    if packed_info.schema.scalar != ScalarType::F32 {
+        return Err(MemoryVectorError::UnsupportedScalar(
+            packed_info.schema.scalar,
+        ));
     }
     Ok(())
 }
