@@ -716,5 +716,71 @@ mod tests {
             .unwrap(),
             reliquary_owner_session::CompletionCheck::AlreadyAccepted
         );
+        // A later metadata revision must not make an accepted completion retry
+        // conflict with the original revision it actually published.
+        let original = history.revisions[0].record.clone();
+        drop(reopened);
+        let mut container = Container::open_writer(&path.0).unwrap();
+        let mut memories = MemoryStore::open_with_grouped_completion(&container, |payload| {
+            let completion =
+                reliquary_owner_session::records::GroupedInsomniaCompletion::decode(payload)
+                    .map_err(|_| {
+                        reliquary_memory_core::MemoryError::Corrupt("grouped completion")
+                    })?;
+            Ok(Some((
+                completion
+                    .bodies
+                    .into_iter()
+                    .map(|body| (body.id, body.bytes))
+                    .collect(),
+                completion.memory_records,
+            )))
+        })
+        .unwrap();
+        let revision = reliquary_memory_core::MemoryDraft {
+            title: "Private project notes".into(),
+            content: "The user wants project notes kept private.".into(),
+            category: "revised".into(),
+            memory_type: original.memory_type.clone(),
+            authority_kind: original.authority_kind.clone(),
+            temporal_status: original.temporal_status.clone(),
+            scope: original.scope.clone(),
+            lifecycle_state: original.lifecycle_state.clone(),
+            archived: original.archived,
+            parent_id: original.parent_id,
+            superseded_by: original.superseded_by,
+            source_node_id: original.source_node_id.clone(),
+            content_source_conversation_id: original.content_source_conversation_id.clone(),
+            content_source_node_id: original.content_source_node_id.clone(),
+            grounding_source_conversation_id: original.grounding_source_conversation_id.clone(),
+            grounding_source_node_id: original.grounding_source_node_id.clone(),
+            source_episode_id: original.source_episode_id,
+            source_ref: original.source_ref.clone(),
+            source_time_ns: original.source_time_ns,
+            temporal_inference: original.temporal_inference.clone(),
+            mutation_id: "later-revision".into(),
+            created_at_ns: original.created_at_ns,
+            updated_at_ns: 21,
+        };
+        memories
+            .publish(&mut container, Some(original.id), 1, revision)
+            .unwrap();
+        container.sync().unwrap();
+        drop(memories);
+        drop(container);
+        let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+        let mut reopened = RelWriter::open_path(&path.0, admission, [], []).unwrap();
+        assert_eq!(
+            commit_prepared_native_ingest(
+                &mut reopened,
+                &prepared,
+                &claim.work,
+                "fixture-model",
+                "v1",
+                20
+            )
+            .unwrap(),
+            reliquary_owner_session::CompletionCheck::AlreadyAccepted
+        );
     }
 }

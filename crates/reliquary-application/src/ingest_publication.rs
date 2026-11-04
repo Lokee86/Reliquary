@@ -323,7 +323,12 @@ pub fn commit_prepared_native_ingest_with_external_refs(
                         .memory_history(expected.id)
                         .ok()
                         .flatten()
-                        .and_then(|history| history.revisions.last().cloned())
+                        .and_then(|history| {
+                            history
+                                .revisions
+                                .into_iter()
+                                .find(|revision| revision.record.revision == 1)
+                        })
                         .is_some_and(|revision| {
                             let mut expected = expected.clone();
                             expected.memory_version = revision.record.memory_version;
