@@ -22,5 +22,15 @@ pub use score::{
 };
 pub use store::FreshnessStore;
 
+/// Validate a current-format journal frame encountered during owner replay.
+/// Score and event ordering are validated by `FreshnessStore` itself.
+pub fn validate_journal_frame(bytes: &[u8], owner: [u8; 16]) -> Result<(), String> {
+    match codec::decode_entry(bytes)? {
+        Some((actual, _)) if actual == owner => Ok(()),
+        Some(_) => Err("Freshness journal owner mismatch".into()),
+        None => Err("not a Freshness journal frame".into()),
+    }
+}
+
 #[cfg(test)]
 mod tests;

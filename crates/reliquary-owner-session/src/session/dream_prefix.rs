@@ -54,10 +54,11 @@ pub(crate) fn validate_compact_dream_prefix(
             unsupported = true;
             continue;
         }
-        if magic.starts_with(b"RELFRS") || magic.starts_with(b"RELIEP") {
+        if (magic.starts_with(b"RELFRS") && magic != *b"RELFRS02") || magic.starts_with(b"RELIEP") {
             unsupported = true;
         } else if magic == *b"RELMDLT1"
             || magic == *b"RELMTMB1"
+            || magic == *b"RELFRS02"
             || magic == *b"RELINSC7"
             || magic == *b"CVDREAM2"
             || magic == *b"RELGRF01"
@@ -74,6 +75,11 @@ pub(crate) fn validate_compact_dream_prefix(
             frame
                 .read_to_end(&mut payload)
                 .map_err(|error| OwnerSessionError::Record(error.to_string()))?;
+            if magic == *b"RELFRS02" {
+                reliquary_freshness_store::validate_journal_frame(&payload, container.owner_id())
+                    .map_err(OwnerSessionError::Record)?;
+                continue;
+            }
             if magic == *b"RELMDLT1" || magic == *b"RELMTMB1" {
                 let (id, version) = reliquary_memory_core::history_change_in_frame(&payload)?
                     .ok_or_else(|| {

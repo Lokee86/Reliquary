@@ -1173,6 +1173,15 @@ fn compact_dream_uses_direct_birth_intent_and_recorded_global_order() {
         .unwrap();
     let mut memory = reliquary_memory_core::MemoryStore::open(&container).unwrap();
     memory.tombstone(&mut container, earlier.id, 1).unwrap();
+    let mut freshness = reliquary_freshness_store::FreshnessStore::open(&container).unwrap();
+    freshness
+        .create_birth(
+            &mut container,
+            reliquary_freshness_store::FreshnessMemoryId(source.id.0),
+            1,
+            true,
+        )
+        .unwrap();
     let population = BTreeSet::from([earlier.id]);
     let admission = crate::DreamBeginAdmission {
         owner_uuid: owner,
@@ -1224,6 +1233,24 @@ fn compact_dream_uses_direct_birth_intent_and_recorded_global_order() {
     assert!(matches!(
         crate::session::dream_prefix::validate_compact_dream_prefix(&wrong_clock, &[admission.clone()]),
         Err(crate::OwnerSessionError::Record(message)) if message.contains("Memory history change differs")
+    ));
+    let wrong_owner_path = Temp::new();
+    let mut wrong_owner = Container::create(
+        &wrong_owner_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    for frame in &frames {
+        let mut payload = frame.payload.clone();
+        if payload.starts_with(b"RELFRS02") {
+            payload[8..24].copy_from_slice(&[0x44; 16]);
+        }
+        wrong_owner.append(&payload).unwrap();
+    }
+    assert!(matches!(
+        crate::session::dream_prefix::validate_compact_dream_prefix(&wrong_owner, &[admission.clone()]),
+        Err(crate::OwnerSessionError::Record(message)) if message.contains("Freshness journal owner mismatch")
     ));
     let missing_intent_path = Temp::new();
     let mut missing = Container::create(
