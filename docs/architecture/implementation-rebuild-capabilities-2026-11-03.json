@@ -280,8 +280,8 @@
       ],
       "deliverable": "Pair decisions, duplicate/canonical/lifecycle intents and community naming",
       "acceptance": "Frozen verified classifications, zero-link and duplicate cases; no direct graph/freshness publication",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\s03-dream-evaluator-acceptance-2026-11-04.md"
     },
     {
       "id": "S04",
