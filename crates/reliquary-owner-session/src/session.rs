@@ -19,7 +19,9 @@ use reliquary_insomnia_store::{
     InsomniaError, InsomniaLeaseToken, InsomniaPriority, InsomniaStore, InsomniaWork,
     MemoryId as WorkMemoryId,
 };
-use reliquary_memory_core::{MemoryError, MemoryHistory, MemoryId, MemoryStore};
+use reliquary_memory_core::{
+    MemoryDraft, MemoryError, MemoryHistory, MemoryId, MemoryRevision, MemorySourceRef, MemoryStore,
+};
 use reliquary_perception_store::{
     Entity, EntityId, MemoryEntityMentionKey, MemoryEntityResolution, PerceptionError,
     PerceptionStore,
@@ -413,6 +415,17 @@ impl RelWriter {
 pub struct PhySession {
     owner_id: [u8; 16],
     common: CommonState,
+}
+
+/// Narrow PHY writer for user-owned Memories routed from an authorized REL.
+/// The Gateway owns the grant check; this writer exposes no general Container
+/// mutation or Archive capability.
+pub struct PhyWriter {
+    container: Container,
+    owner_id: [u8; 16],
+    common: CommonState,
+    writer_lease_proof: Option<WriterLeaseProof>,
+    poisoned: bool,
 }
 
 fn open_common(
@@ -1020,6 +1033,90 @@ impl PhySession {
 }
 common_reads!(PhySession, common);
 
+impl PhyWriter {
+    pub fn open_path(
+        path: impl AsRef<Path>,
+        graph_admission: &GraphAdmission,
+        dream_admissions: impl IntoIterator<Item = DreamBeginAdmission>,
+    ) -> Result<Self, OwnerSessionError> {
+        let container = Container::open_writer_as(path, FileKind::Phylactery)?;
+        require_kind(&container, FileKind::Phylactery)?;
+        reject_rel_only_records(&container)?;
+        let common = open_common(&container, graph_admission, dream_admissions, false)?;
+        let writer_lease_proof = container.writer_lease_proof();
+        Ok(Self {
+            owner_id: container.owner_id(),
+            container,
+            common,
+            writer_lease_proof,
+            poisoned: false,
+        })
+    }
+
+    pub fn owner_id(&self) -> [u8; 16] {
+        self.owner_id
+    }
+
+    /// Publish a privacy-preserving user Memory after the Gateway verifies
+    /// the exact source REL, principal and destination PHY grants. The public
+    /// Memory record contains only its owner-local source reference.
+    pub fn publish_routed_user_memory(
+        &mut self,
+        mut draft: MemoryDraft,
+        source_ref: MemorySourceRef,
+    ) -> Result<MemoryRevision, OwnerSessionError> {
+        if self.poisoned {
+            return Err(OwnerSessionError::Record(
+                "PHY writer requires replay after a failed write".into(),
+            ));
+        }
+        let expected_proof = self.writer_lease_proof.ok_or_else(|| {
+            OwnerSessionError::Record("PHY writer lacks its owner lease proof".into())
+        })?;
+        if self.container.writer_lease_proof() != Some(expected_proof) {
+            return Err(OwnerSessionError::Record(
+                "PHY owner session is stale; reopen before routed publication".into(),
+            ));
+        }
+        if draft.scope != "user"
+            || source_ref.principal_id.as_deref().is_none_or(str::is_empty)
+            || draft
+                .source_ref
+                .as_ref()
+                .is_some_and(|existing| existing != &source_ref)
+            || draft.source_node_id.is_some()
+            || draft.content_source_conversation_id.is_some()
+            || draft.content_source_node_id.is_some()
+            || draft.grounding_source_conversation_id.is_some()
+            || draft.grounding_source_node_id.is_some()
+            || draft.source_episode_id.is_some()
+        {
+            return Err(OwnerSessionError::Record(
+                "routed PHY Memory violates privacy or source-reference requirements".into(),
+            ));
+        }
+        draft.source_ref = Some(source_ref);
+        let published = self
+            .common
+            .memories
+            .publish(&mut self.container, None, 0, draft)?;
+        if let Err(error) = self.container.sync() {
+            self.poisoned = true;
+            return Err(error.into());
+        }
+        self.writer_lease_proof = self.container.writer_lease_proof();
+        Ok(published.revision)
+    }
+
+    pub fn memory_history(&self, id: MemoryId) -> Result<Option<MemoryHistory>, OwnerSessionError> {
+        match self.common.memories.history(id) {
+            Ok(history) => Ok(Some(history)),
+            Err(MemoryError::MissingMemory) => Ok(None),
+            Err(error) => Err(error.into()),
+        }
+    }
+}
+
 fn grouped_completion_receipt(completion: &GroupedInsomniaCompletion) -> AcceptedCompletionState {
     AcceptedCompletionState {
         episode_id: WorkEpisodeId(completion.episode_id),
@@ -1139,6 +1236,11 @@ fn reject_rel_only_records(container: &Container) -> Result<(), OwnerSessionErro
                     return Err(OwnerSessionError::RelOnlyRecordInPhylactery(domain));
                 }
             }
+        }
+        if length >= 6 && &prefix[..6] == b"RELFRS" {
+            return Err(OwnerSessionError::RelOnlyRecordInPhylactery(
+                "Freshness record",
+            ));
         }
     }
     Ok(())
