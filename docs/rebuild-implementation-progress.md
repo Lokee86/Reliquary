@@ -73,3 +73,6 @@ On 2026-11-04, Gateway writer-mounted queue finalization and crash-retry receive
 
 
 Latest full locked offline workspace test with local loopback access failed in `lore_history::tests::lore_checkpoint_is_idempotent_and_reads_archived_revision`: Lore historical file read returned status 88. The failure reproduced with normal filesystem access. A temporary output-path experiment was reverted because its verification build stalled; the root cause remains unresolved. Other targeted suites, including 25 Gateway tests and the owner-session tests, passed. No full product gate is accepted.
+
+
+After the Lore checkpoint fix in rebuild commits `b4c5ce9` and `a8e65f6`, the full `cargo test --workspace --locked --offline -j 1` passed with normal local filesystem and loopback access. The earlier status-88 failure resulted from staging a path relative to the process working directory, leaving the revision zero; the corrected test reads its historical file successfully. This suite result does not satisfy unfinished capability gates, CLI or converted-corpus acceptance.
