@@ -444,6 +444,10 @@ fn new_rel_and_phy_writers_initialize_and_reopen_their_owners() {
             },
         )
         .unwrap();
+    assert_eq!(
+        writer.session.writer_lease_proof,
+        writer.container.writer_lease_proof()
+    );
     assert!(RelWriter::create_path(&rel_path.0, ReliquaryScope::Project, rel_owner).is_err());
     drop(writer);
     let admission = GraphAdmission::for_replay(rel_owner, [], [], [], [], []);
@@ -508,6 +512,28 @@ fn rel_open_rejects_caller_fabricated_episode_admission() {
         Err(OwnerSessionError::Insomnia(
             InsomniaError::UnacceptedEpisode
         ))
+    ));
+    assert_eq!(writer.container.read_frames().unwrap().len(), before);
+}
+
+#[test]
+fn poisoned_rel_writer_rejects_other_mutations_until_reopen() {
+    let path = Temp::new();
+    let mut writer = RelWriter::create_path(&path.0, ReliquaryScope::Project, [0x65; 16]).unwrap();
+    writer.session.write_poisoned = true;
+    let before = writer.container.read_frames().unwrap().len();
+    assert!(matches!(
+        writer.claim_next_insomnia_input("worker", 1, 10, 1),
+        Err(OwnerSessionError::Record(_))
+    ));
+    assert!(matches!(
+        writer.queue_and_claim_insomnia_episode(
+            reliquary_archive::EpisodeId([1; 32]),
+            "worker",
+            1,
+            10
+        ),
+        Err(OwnerSessionError::Record(_))
     ));
     assert_eq!(writer.container.read_frames().unwrap().len(), before);
 }

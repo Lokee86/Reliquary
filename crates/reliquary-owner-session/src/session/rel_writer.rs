@@ -1,6 +1,15 @@
 use super::*;
 
 impl RelWriter {
+    fn ensure_write_ready(&self) -> Result<(), OwnerSessionError> {
+        if self.session.write_poisoned {
+            Err(OwnerSessionError::Record(
+                "owner session requires reopen after an uncertain write".into(),
+            ))
+        } else {
+            Ok(())
+        }
+    }
     /// Create and initialize a new REL owner, then open its canonical writer.
     pub fn create_path(
         path: impl AsRef<Path>,
@@ -50,6 +59,7 @@ impl RelWriter {
         lease_duration_ns: i64,
         max_admissions: usize,
     ) -> Result<Option<RelInsomniaClaimInput>, OwnerSessionError> {
+        self.ensure_write_ready()?;
         if max_admissions == 0 || lease_duration_ns <= 0 || worker.trim().is_empty() {
             return Err(OwnerSessionError::Insomnia(InsomniaError::InvalidField(
                 "Insomnia worker limits",
@@ -125,6 +135,7 @@ impl RelWriter {
         reason: String,
         held_payload: Option<Vec<u8>>,
     ) -> Result<InsomniaWork, OwnerSessionError> {
+        self.ensure_write_ready()?;
         if claim.owner_id != self.owner_id() || claim.work.episode_id.0 != claim.episode.id.0 {
             return Err(OwnerSessionError::Insomnia(
                 InsomniaError::UnacceptedEpisode,
@@ -152,6 +163,7 @@ impl RelWriter {
         checkpointed_at_ns: i64,
         payload: Vec<u8>,
     ) -> Result<InsomniaWork, OwnerSessionError> {
+        self.ensure_write_ready()?;
         if claim.owner_id != self.owner_id() || claim.work.episode_id.0 != claim.episode.id.0 {
             return Err(OwnerSessionError::Insomnia(
                 InsomniaError::UnacceptedEpisode,
@@ -187,6 +199,7 @@ impl RelWriter {
         input: reliquary_archive::TurnInput,
         branch: reliquary_archive::Branch,
     ) -> Result<reliquary_archive::Node, OwnerSessionError> {
+        self.ensure_write_ready()?;
         self.validate_turn_branch(&input, &branch)?;
         let already_on_branch = if let Some(current) = self
             .session
@@ -205,16 +218,26 @@ impl RelWriter {
         } else {
             false
         };
-        let accepted = self
-            .session
-            .archive
-            .accept_turn(&mut self.container, input)?;
+        let accepted = match self.session.archive.accept_turn(&mut self.container, input) {
+            Ok(value) => value,
+            Err(error) => {
+                if matches!(error, reliquary_archive::ArchiveError::Container(_)) {
+                    self.session.write_poisoned = true;
+                }
+                return Err(error.into());
+            }
+        };
+        self.session.writer_lease_proof = self.container.writer_lease_proof();
         if already_on_branch {
             return Ok(accepted.value);
         }
-        self.session
-            .archive
-            .put_branch(&mut self.container, branch)?;
+        if let Err(error) = self.session.archive.put_branch(&mut self.container, branch) {
+            if matches!(error, reliquary_archive::ArchiveError::Container(_)) {
+                self.session.write_poisoned = true;
+            }
+            return Err(error.into());
+        }
+        self.session.writer_lease_proof = self.container.writer_lease_proof();
         Ok(accepted.value)
     }
 
@@ -309,6 +332,7 @@ impl RelWriter {
         now_ns: i64,
         lease_duration_ns: i64,
     ) -> Result<InsomniaWork, OwnerSessionError> {
+        self.ensure_write_ready()?;
         let episode =
             self.session
                 .archive
