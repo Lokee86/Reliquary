@@ -371,3 +371,30 @@ fn memory_mutations_reject_a_different_owner_without_writing() {
     ));
     assert!(phy.read_frames().unwrap().is_empty());
 }
+
+#[test]
+fn creating_memory_twice_does_not_corrupt_existing_history() {
+    let temp = TempDir::new();
+    let (mut container, mut store) = open_new(&temp.0.join("existing.rel"));
+    let id = store
+        .publish(&mut container, None, 0, draft("existing", "Title", "fact"))
+        .unwrap()
+        .revision
+        .record
+        .id;
+    let before = container.read_frames().unwrap().len();
+    assert!(matches!(
+        MemoryStore::create(&mut container),
+        Err(MemoryError::Corrupt(_))
+    ));
+    assert_eq!(container.read_frames().unwrap().len(), before);
+    assert_eq!(
+        MemoryStore::open(&container)
+            .unwrap()
+            .history(id)
+            .unwrap()
+            .revisions
+            .len(),
+        1
+    );
+}

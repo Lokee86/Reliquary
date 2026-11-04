@@ -35,6 +35,26 @@ pub struct MemoryStore {
 
 impl MemoryStore {
     pub fn create(container: &mut Container) -> Result<Self, MemoryError> {
+        let mut cursor = container.physical_cursor()?;
+        while let Some(mut frame) = cursor.next_frame()? {
+            if frame.object().length < 8 {
+                continue;
+            }
+            let mut magic = [0; 8];
+            frame.read_exact(&mut magic)?;
+            if magic == *FORMAT
+                || magic == *BODY
+                || magic == *CREATION
+                || magic == *DELTA
+                || magic == *TOMBSTONE
+                || magic == *b"RELINSC7"
+            {
+                return Err(MemoryError::Corrupt(
+                    "Memory owner already contains records",
+                ));
+            }
+        }
+        drop(cursor);
         container.append(FORMAT)?;
         Ok(Self {
             initialized: true,
