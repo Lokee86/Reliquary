@@ -114,6 +114,72 @@ fn accepted_turn_and_branch_are_idempotent_after_writer_reopen() {
 }
 
 #[test]
+fn rel_session_reopens_native_archive_with_source_keyed_echo() {
+    let path = Temp::new();
+    let owner = [23; 16];
+    let mut container = Container::create(
+        &path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    initialize_vectors(&mut container);
+    let mut archive = Archive::empty();
+    archive
+        .accept_turn(
+            &mut container,
+            reliquary_archive::TurnInput {
+                id: "assistant-1".into(),
+                conversation_id: "conversation-echo".into(),
+                parent_id: None,
+                role: "assistant".into(),
+                principal_id: None,
+                timestamp_ns: 42,
+                content: "accepted answer".into(),
+                attachments: Vec::new(),
+                project_attachments: Vec::new(),
+            },
+        )
+        .unwrap();
+    let event = reliquary_archive::EchoEvent {
+        conversation_id: "conversation-echo".into(),
+        message_id: "assistant-1".into(),
+        sequence: 1,
+        timestamp_ns: 43,
+        model_round: Some(2),
+        kind: reliquary_archive::EchoEventKind::ReasoningSummary,
+        correlation_id: None,
+        name: None,
+        content: "answer grounded in the accepted turn".into(),
+    };
+    reliquary_archive::EchoStore::default()
+        .put(&mut container, event.clone())
+        .unwrap();
+    container.sync().unwrap();
+    drop(archive);
+    drop(container);
+
+    let container = Container::open_read_only(&path.0).unwrap();
+    let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let session = RelSession::open(&container, &admission, [], []).unwrap();
+    assert_eq!(
+        session
+            .archive_node("conversation-echo", "assistant-1")
+            .unwrap()
+            .role,
+        "assistant"
+    );
+    assert_eq!(
+        session.echo_for_turn("conversation-echo", "assistant-1"),
+        vec![event.clone()]
+    );
+    assert_eq!(
+        session.echo_for_conversation("conversation-echo"),
+        vec![event]
+    );
+}
+
+#[test]
 fn bounded_insomnia_claim_returns_archive_verified_input() {
     let path = Temp::new();
     let owner = [31; 16];

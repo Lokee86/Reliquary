@@ -3,7 +3,7 @@ use crate::records::{
     DreamBeginAdmission, DreamEvidenceStore, GroupedInsomniaCompletion, HistoryPruneManifest,
     ImportEpochStatus, ImportEpochStore, OwnerMaintenanceStore,
 };
-use reliquary_archive::{Archive, Node};
+use reliquary_archive::{Archive, EchoStore, Node};
 use reliquary_container::{
     Container, ContainerError, ContainerIdentity, FileKind, WriterLeaseProof,
 };
@@ -169,6 +169,7 @@ struct CommonState {
 pub struct RelSession {
     owner_id: [u8; 16],
     archive: Archive,
+    echo: EchoStore,
     common: CommonState,
     freshness: FreshnessStore,
     insomnia: InsomniaStore,

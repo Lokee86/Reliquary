@@ -12,6 +12,8 @@ impl RelSession {
         require_kind(container, FileKind::Reliquary)?;
         let archive =
             Archive::open(container).map_err(|e| OwnerSessionError::Record(e.to_string()))?;
+        let echo = reliquary_archive::EchoStore::open(container)
+            .map_err(|e| OwnerSessionError::Record(e.to_string()))?;
         let accepted_episodes = accepted_episodes.into_iter().collect::<Vec<_>>();
         for order in &accepted_episodes {
             let episode = archive
@@ -123,6 +125,7 @@ impl RelSession {
         Ok(Self {
             owner_id: container.owner_id(),
             archive,
+            echo,
             common,
             freshness,
             insomnia,
@@ -162,6 +165,18 @@ impl RelSession {
 
     pub fn archive_node(&self, conversation: &str, node: &str) -> Option<&Node> {
         self.archive.node(conversation, node)
+    }
+    /// Read immutable Echo evidence for one exact conversation/message source.
+    pub fn echo_for_turn(
+        &self,
+        conversation: &str,
+        message: &str,
+    ) -> Vec<reliquary_archive::EchoEvent> {
+        self.echo.for_turn(conversation, message)
+    }
+    /// Read immutable Echo evidence for one conversation in deterministic order.
+    pub fn echo_for_conversation(&self, conversation: &str) -> Vec<reliquary_archive::EchoEvent> {
+        self.echo.for_conversation(conversation)
     }
     pub fn archive_source_attachments(
         &self,
