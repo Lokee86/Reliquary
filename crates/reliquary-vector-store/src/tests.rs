@@ -177,12 +177,27 @@ fn archive_memory_and_generation_mappings_persist_and_reopen() {
             )
             .unwrap();
         assert_eq!(generation.vector_version, 1);
+        profiles.retire(&mut container, profile_id).unwrap();
+        let before = container.read_frames().unwrap().len();
+        assert!(matches!(
+            generations.publish(
+                &mut container,
+                &profiles,
+                &archives,
+                profile_id,
+                archive_id,
+                13
+            ),
+            Err(GenerationStoreError::MissingProfile)
+        ));
+        assert_eq!(container.read_frames().unwrap().len(), before);
         container.sync().unwrap();
     }
 
     let container = Container::open_read_only(&path).unwrap();
     let packed = PackedVectorStore::open(&container).unwrap();
     let profiles = CompatibilityProfileStore::open(&container).unwrap();
+    assert!(profiles.is_retired(profile_id));
     let archives = ArchiveVectorStore::open(&container, &packed).unwrap();
     let memories = MemoryVectorStore::open(&container, &packed, &profiles).unwrap();
     let generations = VectorGenerationStore::open(&container, &profiles, &archives).unwrap();

@@ -374,10 +374,9 @@ impl VectorGenerationOpenState {
         }
         let mut store = VectorGenerationStore::empty();
         for generation in self.generations {
-            if profiles
-                .get_active(generation.compatibility_profile_id)
-                .is_none()
-            {
+            // A retired profile cannot publish new generations, but it still
+            // backs generations already present in durable history.
+            if profiles.get(generation.compatibility_profile_id).is_none() {
                 return Err(GenerationStoreError::MissingProfile);
             }
             archives

@@ -254,8 +254,10 @@ pub fn validate_replay_record(
     profiles: &CompatibilityProfileStore,
     info: MemoryVectorInfo,
 ) -> Result<(), MemoryVectorError> {
+    // Retirement prevents new mappings, but historical mappings remain valid
+    // while their profile record is retained.
     let profile = profiles
-        .get_active(info.compatibility_profile_id)
+        .get(info.compatibility_profile_id)
         .ok_or(MemoryVectorError::MissingProfile)?;
     let packed = packed
         .info(info.packed_vector_id)
