@@ -448,6 +448,23 @@ fn new_rel_and_phy_writers_initialize_and_reopen_their_owners() {
         writer.session.writer_lease_proof,
         writer.container.writer_lease_proof()
     );
+    let before_invalid = writer.container.read_frames().unwrap().len();
+    assert!(
+        writer
+            .finalize_episode(
+                "new-conversation",
+                "missing",
+                "new-turn",
+                reliquary_archive::EpisodeOrigin::Live,
+                reliquary_archive::EpisodeBoundary::Explicit,
+                11
+            )
+            .is_err()
+    );
+    assert_eq!(
+        writer.container.read_frames().unwrap().len(),
+        before_invalid
+    );
     let episode = writer
         .finalize_episode(
             "new-conversation",
