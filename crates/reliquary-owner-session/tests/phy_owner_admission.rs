@@ -109,3 +109,40 @@ fn phy_owner_rejects_future_rel_grouped_completion_without_mutation() {
     );
     assert_eq!(fs::read(&path.0).unwrap(), before);
 }
+
+#[test]
+fn phy_owner_rejects_unsupported_rel_freshness_versions_without_mutation() {
+    for marker in [b"RELFRS07", b"RELFRS99"] {
+        let path = Temp::new();
+        let owner = [43; 16];
+        let mut container =
+            Container::create(&path.0, ContainerIdentity::phylactery(), owner).unwrap();
+        PackedVectorStore::default()
+            .initialize(&mut container)
+            .unwrap();
+        CompatibilityProfileStore::default()
+            .initialize(&mut container)
+            .unwrap();
+        MemoryVectorStore::default()
+            .initialize(&mut container)
+            .unwrap();
+        container.append(marker).unwrap();
+        container.sync().unwrap();
+        drop(container);
+
+        let before = fs::read(&path.0).unwrap();
+        let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+        let error = match PhySession::open_path(&path.0, &admission, []) {
+            Err(error) => error,
+            Ok(_) => panic!("PhySession accepted unsupported REL Freshness record {marker:?}"),
+        };
+        assert!(
+            matches!(
+                error,
+                OwnerSessionError::RelOnlyRecordInPhylactery("Freshness record")
+            ),
+            "unexpected Phy open error: {error:?}"
+        );
+        assert_eq!(fs::read(&path.0).unwrap(), before);
+    }
+}
