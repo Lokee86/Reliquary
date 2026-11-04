@@ -216,8 +216,8 @@
       ],
       "deliverable": "One private typed PHY owner aggregate",
       "acceptance": "No Archive/REL turn authority, separate privacy/owner clock, replay and principal-independent correctness",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\storage-continuation-2026-11-04.md"
     },
     {
       "id": "C12",
