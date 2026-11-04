@@ -17,7 +17,15 @@ pub fn validate_summary_sources(view: &ContextView, through: &str, summary: &str
     let lower = summary.to_ascii_lowercase();
     let mut offset = 0;
     while let Some(found) = lower[offset..].find("source:") {
-        let start = offset + found + "source:".len();
+        let marker = offset + found;
+        if marker > 0
+            && (lower.as_bytes()[marker - 1].is_ascii_alphanumeric()
+                || lower.as_bytes()[marker - 1] == b'_')
+        {
+            offset = marker + "source:".len();
+            continue;
+        }
+        let start = marker + "source:".len();
         let Some(token) = summary[start..].split_whitespace().next() else {
             return false;
         };
