@@ -81,6 +81,40 @@ fn unqueued_admission_batch_is_bounded_and_owner_ordered() {
 }
 
 #[test]
+fn archive_verified_order_admission_is_idempotent_and_conflict_safe() {
+    let path = Temp::new();
+    let mut c = container(&path.0, 1);
+    let id = EpisodeId([11; 32]);
+    let mut store = InsomniaStore::open(&c, []).unwrap();
+    let admitted = order(id);
+
+    store.admit_order(admitted.clone()).unwrap();
+    store.admit_order(admitted.clone()).unwrap();
+    assert_eq!(store.accepted_order(id), Some(&admitted));
+    assert_eq!(store.unqueued_orders(1), vec![admitted.clone()]);
+
+    let mut conflicting = admitted.clone();
+    conflicting.source_through_ns += 1;
+    assert!(matches!(
+        store.admit_order(conflicting),
+        Err(InsomniaError::UnacceptedEpisode)
+    ));
+
+    let mut invalid = order(EpisodeId([12; 32]));
+    invalid.conversation_id.clear();
+    assert!(matches!(
+        store.admit_order(invalid),
+        Err(InsomniaError::InvalidField("accepted Episode order"))
+    ));
+
+    let (queued, inserted) = store
+        .queue(&mut c, admitted, InsomniaPriority::Live, 1)
+        .unwrap();
+    assert!(inserted);
+    assert_eq!(queued.state, InsomniaWorkState::Pending);
+}
+
+#[test]
 fn held_insomnia_work_survives_reopen_until_explicit_retry() {
     let path = Temp::new();
     let id = EpisodeId([9; 32]);

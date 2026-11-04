@@ -1,6 +1,29 @@
 use super::*;
 
 impl InsomniaStore {
+    /// Admit an Archive-verified Episode order for scheduling. The authority
+    /// check belongs to the caller; this projection accepts exact retries and
+    /// rejects attempts to redefine an Episode's ordering evidence.
+    pub fn admit_order(&mut self, order: AcceptedEpisodeOrder) -> Result<(), InsomniaError> {
+        validate_order(&order)?;
+        if let Some(existing) = self.accepted.get(&order.episode_id) {
+            return if existing == &order {
+                Ok(())
+            } else {
+                Err(InsomniaError::UnacceptedEpisode)
+            };
+        }
+        if self
+            .orders
+            .get(&order.episode_id)
+            .is_some_and(|existing| existing != &order)
+        {
+            return Err(InsomniaError::UnacceptedEpisode);
+        }
+        self.accepted.insert(order.episode_id, order);
+        Ok(())
+    }
+
     pub fn open(
         container: &Container,
         accepted: impl IntoIterator<Item = AcceptedEpisodeOrder>,
