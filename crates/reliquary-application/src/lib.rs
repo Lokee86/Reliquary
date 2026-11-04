@@ -630,4 +630,91 @@ mod tests {
                 .is_none()
         );
     }
+    #[test]
+    fn new_owner_native_turn_publishes_memory_and_recovers_idempotently() {
+        let path = Temp::new();
+        let owner = [72; 16];
+        let mut writer = RelWriter::create_path(&path.0, ReliquaryScope::Project, owner).unwrap();
+        commit_native_conversation_turn(
+            &mut writer,
+            NativeConversationCommit {
+                node_id: "user-turn".into(),
+                conversation_id: "conversation".into(),
+                parent_node_id: None,
+                branch_id: "main".into(),
+                principal_id: "principal".into(),
+                committed_timestamp_ns: 1,
+                content: "Keep my project notes private.".into(),
+            },
+        )
+        .unwrap();
+        let episode = finalize_native_episode(
+            &mut writer,
+            "conversation",
+            "user-turn",
+            "user-turn",
+            EpisodeBoundary::Explicit,
+            2,
+        )
+        .unwrap();
+        let claim = writer
+            .claim_next_insomnia_input("worker", 10, 1000, 1)
+            .unwrap()
+            .unwrap();
+        let prepared = prepare_native_ingest_from_archive(
+            writer.read_session(),
+            episode,
+            &[],
+            vec![candidate("Keep my project notes private.")],
+        )
+        .unwrap();
+        assert_eq!(
+            commit_prepared_native_ingest(
+                &mut writer,
+                &prepared,
+                &claim.work,
+                "fixture-model",
+                "v1",
+                20
+            )
+            .unwrap(),
+            reliquary_owner_session::CompletionCheck::Apply
+        );
+        let receipt = writer
+            .read_session()
+            .insomnia_receipt(
+                reliquary_insomnia_store::EpisodeId(episode.0),
+                claim.work.attempt_count,
+            )
+            .unwrap()
+            .clone();
+        assert_eq!(receipt.memory_ids.len(), 1);
+        drop(writer);
+        let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+        let mut reopened = RelWriter::open_path(&path.0, admission, [], []).unwrap();
+        let history = reopened
+            .read_session()
+            .memory_history(reliquary_memory_core::MemoryId(receipt.memory_ids[0].0))
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            history.revisions[0].record.source_episode_id,
+            Some(episode.0)
+        );
+        assert!(
+            matches!(&history.revisions[0].payload, reliquary_memory_core::PayloadState::Available(body) if body.content == "The user wants project notes kept private.")
+        );
+        assert_eq!(
+            commit_prepared_native_ingest(
+                &mut reopened,
+                &prepared,
+                &claim.work,
+                "fixture-model",
+                "v1",
+                20
+            )
+            .unwrap(),
+            reliquary_owner_session::CompletionCheck::AlreadyAccepted
+        );
+    }
 }
