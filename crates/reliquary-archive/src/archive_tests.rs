@@ -209,6 +209,27 @@ fn accepted_turns_branches_episodes_and_owner_identity_reopen_exactly() {
         ]
     );
     assert_eq!(reopened.branches().len(), 2);
+    let fragments = reopened
+        .branch_fragment_windows(
+            "conversation-1",
+            "main",
+            crate::FragmentConfig {
+                turns: 2,
+                overlap: 1,
+            },
+            true,
+        )
+        .unwrap();
+    assert_eq!(
+        fragments
+            .iter()
+            .map(|f| (f.start_node_id.as_str(), f.end_node_id.as_str()))
+            .collect::<Vec<_>>(),
+        [
+            ("user-root", "assistant-left"),
+            ("assistant-left", "user-followup")
+        ]
+    );
     assert_eq!(reopened.episodes().len(), 1);
     assert_eq!(reopened.episode(episode_id).unwrap().finalized_at_ns, 50);
     let episode_turns = reopened.episode_turns(episode_id).unwrap().unwrap();

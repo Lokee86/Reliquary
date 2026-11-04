@@ -278,6 +278,25 @@ impl Archive {
         self.resolve_path(self.branch_path(conversation_id, &branch.leaf_node_id)?)
     }
 
+    /// Select deterministic fragment windows from this owner's accepted branch.
+    pub fn branch_fragment_windows(
+        &self,
+        conversation_id: &str,
+        branch_id: &str,
+        config: crate::FragmentConfig,
+        close_tail: bool,
+    ) -> Result<Vec<crate::Fragment>, ArchiveError> {
+        let branch = self
+            .branch(conversation_id, branch_id)
+            .ok_or(ArchiveError::MissingBranch)?;
+        let nodes = self
+            .branch_path(conversation_id, &branch.leaf_node_id)?
+            .into_iter()
+            .cloned()
+            .collect::<Vec<_>>();
+        crate::path_fragment_windows(&nodes, config, close_tail)
+    }
+
     pub fn historical_turns(
         &self,
         conversation_id: &str,

@@ -8,11 +8,13 @@ mod codec;
 mod echo_codec;
 mod echo_model;
 mod echo_store;
+mod fragment;
 mod model;
 
 pub use archive::Archive;
 pub use echo_model::{EchoError, EchoEvent, EchoEventKind};
 pub use echo_store::EchoStore;
+pub use fragment::{Fragment, FragmentConfig, FragmentId, fragment_id, path_fragment_windows};
 pub use model::{
     AcceptedTurnSource, ArchiveError, AttachmentInput, Branch, ContentId, Episode, EpisodeBoundary,
     EpisodeId, EpisodeOrigin, Node, ProjectAttachmentInput, ProjectFileRef, ProjectRepositoryKind,
