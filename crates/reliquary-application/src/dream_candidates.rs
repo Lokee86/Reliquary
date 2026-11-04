@@ -4,8 +4,8 @@ use crate::{
     dream_workflow::{DreamWorkflowError, MAX_DREAM_CANDIDATES},
 };
 use reliquary_dream::{
-    DreamCandidateConfig, RankedCandidate, candidate_cosine, lexical_score, rank_lanes,
-    select_candidates, validate_candidate_config,
+    DreamCandidateConfig, DreamCandidateFrontier, RankedCandidate, candidate_cosine, lexical_score,
+    validate_candidate_config,
 };
 use reliquary_owner_session::model::{
     CompatibilityProfileId, MemoryBody, MemoryId, MemoryRecord, NodeRef, PayloadState, RelationKind,
@@ -57,7 +57,7 @@ pub fn ranked_owner_dream_candidates(
         .map_err(|error| DreamWorkflowError::OwnerRead(error.to_string()))?
         .ok_or(DreamWorkflowError::MissingSourceVector)?;
     let source_time = temporal(&source, &source_body)?;
-    let mut candidates = Vec::new();
+    let mut frontier = DreamCandidateFrontier::new(source.source_time_ns, config);
     let mut cursor = None;
     let mut cut = None;
     loop {
@@ -111,7 +111,7 @@ pub fn ranked_owner_dream_candidates(
                 &source_time,
                 &temporal(&revision.record, body)?,
             );
-            candidates.push(RankedCandidate {
+            frontier.push(RankedCandidate {
                 id,
                 source_timestamp_ns: revision.record.source_time_ns,
                 semantic_score,
@@ -125,8 +125,8 @@ pub fn ranked_owner_dream_candidates(
             });
         }
     }
-    rank_lanes(source.source_time_ns, &mut candidates, config);
-    Ok(select_candidates(candidates, config)
+    Ok(frontier
+        .finish()
         .into_iter()
         .map(|candidate| candidate.id)
         .collect())

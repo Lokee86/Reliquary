@@ -9,6 +9,7 @@ use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 mod candidate_config;
+mod candidate_frontier;
 mod candidate_ranking;
 mod classifier;
 mod classifier_error;
@@ -23,6 +24,7 @@ mod verifier_model;
 mod verifier_schema;
 
 pub use candidate_config::*;
+pub use candidate_frontier::DreamCandidateFrontier;
 pub use candidate_ranking::{
     RankedCandidate, candidate_cosine, lexical_score, rank_lanes, select_candidates,
     validate_candidate_config,
@@ -39,6 +41,8 @@ pub use verifier_error::DreamVerificationError;
 pub use verifier_model::*;
 pub use verifier_schema::{DREAM_VERIFIER_SYSTEM_PROMPT, dream_verifier_schema};
 
+#[cfg(test)]
+mod acceptance_tests;
 #[cfg(test)]
 mod evaluator_tests;
 #[cfg(test)]
