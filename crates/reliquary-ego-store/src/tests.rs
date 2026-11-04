@@ -218,3 +218,38 @@ fn owner_kind_and_identity_mismatches_fail_before_append() {
         Err(EgoError::OwnerIdentityMismatch)
     ));
 }
+
+#[test]
+fn fresh_ego_store_replays_before_claiming_existing_identity() {
+    let path = TempFile::new();
+    let mut container = create(FileKind::Phylactery, path.path());
+    let mut first = EgoStore::open(&container).unwrap();
+    first
+        .create_identity(
+            &mut container,
+            identity(9),
+            "name".into(),
+            "original".into(),
+        )
+        .unwrap();
+    let before = container.read_frames().unwrap().len();
+    let mut fresh = EgoStore::empty_for(FileKind::Phylactery);
+    assert!(matches!(
+        fresh.create_identity(
+            &mut container,
+            identity(9),
+            "name".into(),
+            "conflict".into()
+        ),
+        Err(EgoError::InvalidRecord(_))
+    ));
+    assert_eq!(container.read_frames().unwrap().len(), before);
+    assert_eq!(
+        EgoStore::open(&container)
+            .unwrap()
+            .identity(identity(9))
+            .unwrap()
+            .text,
+        "original"
+    );
+}

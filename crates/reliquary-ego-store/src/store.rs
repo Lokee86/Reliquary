@@ -2,7 +2,7 @@ use crate::{
     EgoAnchor, EgoAnchorId, EgoAnchorPriority, EgoIdentity, EgoIdentityId, EgoLifecycleState,
     EgoPersonality, EgoWebSynthesis, MAX_EGO_ANCHOR_CHARS,
 };
-use reliquary_container::{Container, ContainerError, FileKind};
+use reliquary_container::{Container, ContainerError, ContainerIdentity, FileKind};
 use std::collections::BTreeMap;
 use std::fmt;
 
@@ -264,6 +264,7 @@ impl EgoRecord {
 pub struct EgoStore {
     owner_kind: EgoOwnerKind,
     owner_id: Option<[u8; 16]>,
+    container_identity: Option<ContainerIdentity>,
     version: u64,
     identities: BTreeMap<EgoIdentityId, EgoIdentity>,
     identity_history: BTreeMap<(EgoIdentityId, u64), EgoIdentity>,
@@ -282,6 +283,7 @@ impl EgoStore {
         let identity = container.identity();
         let mut store = Self::empty(EgoOwnerKind::from_file_kind(identity.file_kind));
         store.owner_id = Some(container.owner_id());
+        store.container_identity = Some(identity);
         for frame in container.read_frames()? {
             let Some(record) = EgoRecord::decode(&frame.payload)? else {
                 continue;
@@ -299,6 +301,7 @@ impl EgoStore {
         Self {
             owner_kind,
             owner_id: None,
+            container_identity: None,
             version: 0,
             identities: BTreeMap::new(),
             identity_history: BTreeMap::new(),
@@ -654,12 +657,15 @@ impl EgoStore {
             return Err(EgoError::WrongOwnerKind);
         }
         match self.owner_id {
-            Some(owner_id) if owner_id != container.owner_id() => {
+            Some(owner_id)
+                if owner_id != container.owner_id()
+                    || self.container_identity != Some(container.identity()) =>
+            {
                 Err(EgoError::OwnerIdentityMismatch)
             }
             Some(_) => Ok(()),
             None => {
-                self.owner_id = Some(container.owner_id());
+                *self = Self::open(container)?;
                 Ok(())
             }
         }
