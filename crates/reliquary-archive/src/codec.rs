@@ -8,6 +8,7 @@ const TURN_MAGIC: [u8; 8] = *b"RELTURN2";
 const FILE_MAGIC: [u8; 8] = *b"RELFILE1";
 const BRANCH_MAGIC: [u8; 8] = *b"RELBRCH1";
 const EPISODE_MAGIC: [u8; 8] = *b"RELEPIS1";
+const MIN_ATTACHMENT_RECORD_LEN: usize = 32 + 32 + 8 + 4 + 1 + 1;
 
 pub(crate) enum Record {
     Turn(Node, String, Vec<SourceAttachment>),
@@ -125,6 +126,9 @@ fn decode_turn(bytes: &[u8]) -> Result<Record, ArchiveError> {
     let principal_id = read_optional_string(bytes, &mut cursor)?;
     let content = read_string(bytes, &mut cursor)?;
     let count = read_u32(bytes, &mut cursor)? as usize;
+    if count > bytes.len().saturating_sub(cursor) / MIN_ATTACHMENT_RECORD_LEN {
+        return Err(ArchiveError::CorruptRecord("impossible attachment count"));
+    }
     let mut attachments = Vec::with_capacity(count);
     for _ in 0..count {
         let id = read_fixed(bytes, &mut cursor, "short source attachment ID")?;
@@ -350,5 +354,31 @@ fn require_end(bytes: &[u8], cursor: usize) -> Result<(), ArchiveError> {
         Ok(())
     } else {
         Err(ArchiveError::CorruptRecord("trailing bytes"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn turn_decoder_rejects_impossible_attachment_count_before_allocating() {
+        let mut bytes = Vec::from(TURN_MAGIC);
+        bytes.extend_from_slice(&0i64.to_le_bytes());
+        bytes.extend_from_slice(&[0; 32]);
+        for field in [b"".as_slice(), b"".as_slice()] {
+            bytes.extend_from_slice(&(field.len() as u32).to_le_bytes());
+            bytes.extend_from_slice(field);
+        }
+        bytes.push(0); // parent
+        bytes.extend_from_slice(&0u32.to_le_bytes()); // role
+        bytes.push(0); // principal
+        bytes.extend_from_slice(&0u32.to_le_bytes()); // content
+        bytes.extend_from_slice(&u32::MAX.to_le_bytes());
+
+        assert!(matches!(
+            decode_record(&bytes),
+            Err(ArchiveError::CorruptRecord("impossible attachment count"))
+        ));
     }
 }
