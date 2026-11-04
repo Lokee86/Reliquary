@@ -334,8 +334,8 @@
       ],
       "deliverable": "Embedding compatibility/packs and final bounded model-facing context rendering",
       "acceptance": "Profile validation, compaction budgets and source-bound context; no Ego synthesis invented",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\semantic-continuation-2026-11-04.md"
     },
     {
       "id": "S08",
