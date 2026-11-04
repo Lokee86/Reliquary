@@ -228,6 +228,43 @@ fn fresh_store_cannot_append_a_second_policy() {
 }
 
 #[test]
+fn replay_rejects_duplicate_event_frames_even_when_identical() {
+    let temp = TempDir::new();
+    let path = temp.0.join("duplicate-event.rel");
+    let owner = [10; 16];
+    let memory = FreshnessMemoryId([5; 32]);
+    let mut container = Container::create(
+        &path,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    let mut store = FreshnessStore::new(Some(owner));
+    store.initialize(&mut container).unwrap();
+    store.create_birth(&mut container, memory, 1, true).unwrap();
+    let accepted = event(owner, memory, 2, 50);
+    store
+        .append_event(&mut container, accepted.clone())
+        .unwrap();
+    container
+        .append(
+            &super::codec::encode_entry(owner, &super::codec::JournalEntry::Event(accepted))
+                .unwrap(),
+        )
+        .unwrap();
+    container.sync().unwrap();
+    drop(store);
+    drop(container);
+
+    let container = Container::open_read_only(&path).unwrap();
+    assert!(
+        FreshnessStore::open(&container)
+            .unwrap_err()
+            .contains("duplicate Freshness event")
+    );
+}
+
+#[test]
 fn freshness_rejects_other_container_kind_with_same_owner_id() {
     let temp = TempDir::new();
     let owner = [9; 16];

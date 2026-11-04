@@ -590,9 +590,11 @@ impl FreshnessStore {
             }
         }
         if let Some(existing) = self.events.get(&event.event_id) {
-            if existing != event {
-                return Err("Freshness event identity conflict".into());
-            }
+            return Err(if existing == event {
+                "duplicate Freshness event in owner history".into()
+            } else {
+                "Freshness event identity conflict".into()
+            });
         }
         Ok(())
     }
