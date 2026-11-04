@@ -239,6 +239,27 @@ pub struct RoutedUserMemoryProof {
 macro_rules! common_reads {
     ($session:ty, $field:ident) => {
         impl $session {
+            /// Enumerate retained Memory identities in stable owner-local order.
+            /// The returned clock lets callers reject a mixed multi-page read.
+            pub fn memory_ids_page(
+                &self,
+                after: Option<MemoryId>,
+                limit: usize,
+            ) -> Result<(u64, Vec<MemoryId>), OwnerSessionError> {
+                if !(1..=128).contains(&limit) {
+                    return Err(OwnerSessionError::Record(
+                        "Memory page limit must be between 1 and 128".into(),
+                    ));
+                }
+                let ids = self
+                    .$field
+                    .memories
+                    .memory_ids()
+                    .filter(|id| after.is_none_or(|cursor| *id > cursor))
+                    .take(limit)
+                    .collect();
+                Ok((self.$field.memories.memory_version(), ids))
+            }
             pub fn memory_history(
                 &self,
                 id: MemoryId,

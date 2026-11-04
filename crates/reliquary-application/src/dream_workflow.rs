@@ -514,6 +514,21 @@ mod tests {
     }
 
     #[test]
+    fn owner_memory_pages_are_stable_bounded_and_clocked() {
+        let (_path, session, _owner_id, a, b) = owner();
+        let (clock, first) = session.memory_ids_page(None, 2).unwrap();
+        let (next_clock, second) = session.memory_ids_page(first.last().copied(), 2).unwrap();
+        assert_eq!(clock, 3);
+        assert_eq!(clock, next_clock);
+        let all: Vec<_> = first.into_iter().chain(second).collect();
+        assert_eq!(all.len(), 3);
+        assert!(all.windows(2).all(|pair| pair[0] < pair[1]));
+        assert!(all.contains(&a) && all.contains(&b));
+        assert!(session.memory_ids_page(None, 0).is_err());
+        assert!(session.memory_ids_page(None, 129).is_err());
+    }
+
+    #[test]
     fn excludes_archived_and_already_related_memories_before_model_call() {
         let (path, session, owner_id, a, b) = owner();
         drop(session);
