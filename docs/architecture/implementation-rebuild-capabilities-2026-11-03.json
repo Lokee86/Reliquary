@@ -241,7 +241,8 @@
       ],
       "deliverable": "Storage behavior acceptance",
       "acceptance": "All final storage crates build/test; separate REL/PHY reopen, grouped publication, wrong-kind and history tests pass",
-      "status": "not-started"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\storage-continuation-2026-11-04.md"
     },
     {
       "id": "S01",
