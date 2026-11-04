@@ -7,3 +7,4 @@ publish = false
 [dependencies]
 reliquary-container = { path = "../reliquary-container" }
 sha2 = "0.10"
+uuid = "1"

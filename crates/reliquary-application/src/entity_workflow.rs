@@ -234,6 +234,7 @@ fn build_candidates(
     let normalized = normalize(surface);
     let mut candidates = entities
         .iter()
+        .filter(|entity| entity.kind != "principal")
         .filter_map(|entity| {
             let canonical_exact = entity.canonical_name == *surface;
             let canonical_normalized = normalize(&entity.canonical_name) == normalized;
@@ -441,6 +442,28 @@ mod tests {
         let admission = GraphAdmission::for_replay(owner_id, [], [], [], [], []);
         let session = PhySession::open_path(&path.0, &admission, []).unwrap();
         (path, session, memory, second_memory, entity)
+    }
+
+    #[test]
+    fn generic_candidates_exclude_principal_entities() {
+        let entity = Entity {
+            id: reliquary_perception_store::EntityId([1; 32]),
+            revision: 1,
+            canonical_name: "phy-00000000-0000-0000-0000-000000000123".into(),
+            aliases: vec!["Alice".into()],
+            kind: "principal".into(),
+            summary: String::new(),
+            mutation_id: "principal".into(),
+            created_at_ns: 1,
+            updated_at_ns: 1,
+        };
+        let mention = MentionSpan {
+            field: TextField::Title,
+            start_byte: 0,
+            end_byte: 5,
+            text: "Alice".into(),
+        };
+        assert!(build_candidates(&[entity], &mention).unwrap().is_empty());
     }
 
     #[test]

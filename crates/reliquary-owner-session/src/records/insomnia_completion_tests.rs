@@ -538,6 +538,73 @@ fn rel_session_replays_grouped_insomnia_receipt_instead_of_dropping_the_carrier(
 }
 
 #[test]
+fn owner_graph_reopens_principal_association_from_entity_history() {
+    let path = Temp::new();
+    let owner = [0x62; 16];
+    drop(crate::RelWriter::create_path(&path.0, ReliquaryScope::Project, owner).unwrap());
+    let mut container = Container::open_writer(&path.0).unwrap();
+    let record =
+        reliquary_memory_core::decode_grouped_creation(&fixture().memory_records[0]).unwrap();
+    container
+        .append(&reliquary_memory_core::encode_grouped_creation(&record).unwrap())
+        .unwrap();
+    let mut perception = reliquary_perception_store::PerceptionStore::open(&container).unwrap();
+    let principal = perception
+        .publish_entity(
+            &mut container,
+            reliquary_perception_store::EntityDraft {
+                canonical_name: "phy-00000000-0000-0000-0000-000000000123".into(),
+                aliases: vec![],
+                kind: reliquary_perception_store::PRINCIPAL_ENTITY_KIND.into(),
+                summary: String::new(),
+                mutation_id: "principal-one".into(),
+                created_at_ns: 1,
+                updated_at_ns: 1,
+            },
+        )
+        .unwrap();
+    let admitted = reliquary_graph::GraphAdmission::for_changes(
+        owner,
+        [record.id.0],
+        [(principal.id.0, true)],
+    );
+    let mut graph = reliquary_graph::GraphStore::open(&container, &admitted).unwrap();
+    graph
+        .put(
+            &mut container,
+            &admitted,
+            &[reliquary_graph::RelationChange {
+                source: reliquary_graph::NodeRef::Memory(record.id.0),
+                target: reliquary_graph::NodeRef::Entity(principal.id.0),
+                kind: reliquary_graph::RelationKind::PrincipalAssociation,
+                active: true,
+                origin: reliquary_graph::RelationOrigin::User,
+            }],
+        )
+        .unwrap();
+    assert!(
+        graph
+            .outgoing(reliquary_graph::NodeRef::Memory(record.id.0))
+            .is_empty()
+    );
+    assert!(
+        graph
+            .incoming(reliquary_graph::NodeRef::Entity(principal.id.0))
+            .is_empty()
+    );
+    assert!(graph.active_memory_nodes().is_empty());
+    drop(container);
+    let reopened = Container::open_read_only(&path.0).unwrap();
+    let no_caller_proof = reliquary_graph::GraphAdmission::for_replay(owner, [], [], [], [], []);
+    assert_eq!(
+        crate::RelSession::open(&reopened, &no_caller_proof, [], [])
+            .unwrap()
+            .graph_version(),
+        1
+    );
+}
+
+#[test]
 fn owner_session_accepts_graph_with_owner_backed_memory_endpoints() {
     let path = Temp::new();
     let owner = [0x63; 16];

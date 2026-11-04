@@ -233,6 +233,7 @@ impl GraphStore {
             .into_iter()
             .flatten()
             .filter_map(|key| self.states.get(key).copied())
+            .filter(|relation| relation.kind != RelationKind::PrincipalAssociation)
             .collect()
     }
     pub fn incoming(&self, node: NodeRef) -> Vec<Relation> {
@@ -241,12 +242,13 @@ impl GraphStore {
             .into_iter()
             .flatten()
             .filter_map(|key| self.states.get(key).copied())
+            .filter(|relation| relation.kind != RelationKind::PrincipalAssociation)
             .collect()
     }
     pub fn active_memory_nodes(&self) -> BTreeSet<Id> {
         self.states
             .values()
-            .filter(|r| r.active)
+            .filter(|r| r.active && r.kind != RelationKind::PrincipalAssociation)
             .flat_map(|r| [r.source, r.target])
             .filter_map(|n| {
                 if let NodeRef::Memory(id) = n {
@@ -274,7 +276,7 @@ impl GraphStore {
         }
         Ok(state
             .values()
-            .filter(|r| r.active)
+            .filter(|r| r.active && r.kind != RelationKind::PrincipalAssociation)
             .flat_map(|r| [r.source, r.target])
             .filter_map(|n| {
                 if let NodeRef::Memory(id) = n {

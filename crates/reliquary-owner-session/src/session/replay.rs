@@ -57,13 +57,17 @@ pub(super) fn open_common(
         return Err(OwnerSessionError::Graph(GraphError::WrongOwner));
     }
     // The persisted owners, not an external list, establish replay closure.
-    // Principal associations remain fail-closed until principal identity has
-    // an owner-authenticated historical proof.
+    // Principal identity is validated by the owner-local Entity replay.
     let derived_admission = GraphAdmission::for_replay(
         container.owner_id(),
         memories.memory_ids().map(|id| id.0),
         [],
-        perception.entities().map(|entity| (entity.id.0, false)),
+        perception.entities().map(|entity| {
+            (
+                entity.id.0,
+                entity.kind == reliquary_perception_store::PRINCIPAL_ENTITY_KIND,
+            )
+        }),
         [],
         [],
     );

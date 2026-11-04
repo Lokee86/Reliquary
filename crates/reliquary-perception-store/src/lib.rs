@@ -4,7 +4,7 @@
 //! coordinates and caller-supplied decisions; it does not read Memory payloads
 //! or synthesize Observations.
 
-use reliquary_container::{Container, ContainerError, ContainerIdentity};
+use reliquary_container::{Container, ContainerError, ContainerIdentity, FileKind};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fmt;
@@ -15,6 +15,15 @@ pub const MAX_ENTITY_NAME_BYTES: usize = 512;
 pub const MAX_ENTITY_KIND_BYTES: usize = 128;
 pub const MAX_ENTITY_SUMMARY_BYTES: usize = 4096;
 pub const MAX_MENTION_CANDIDATES: usize = 8;
+pub const PRINCIPAL_ENTITY_KIND: &str = "principal";
+
+pub fn principal_entity_id(principal_id: &str) -> EntityId {
+    let mut hash = Sha256::new();
+    hash.update(b"reliquary-principal-entity-v1\0");
+    hash.update((principal_id.len() as u64).to_le_bytes());
+    hash.update(principal_id.as_bytes());
+    EntityId(hash.finalize().into())
+}
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct EntityId(pub [u8; 32]);
@@ -457,7 +466,12 @@ impl PerceptionStore {
     ) -> Result<Entity, PerceptionError> {
         self.check_owner(container)?;
         validate_draft(&draft)?;
-        let id = entity_id(&draft.mutation_id);
+        self.validate_principal_scope(&draft.kind)?;
+        let id = if draft.kind == PRINCIPAL_ENTITY_KIND {
+            principal_entity_id(&draft.canonical_name)
+        } else {
+            entity_id(&draft.mutation_id)
+        };
         if let Some(&(existing_id, revision)) = self.mutations.get(&draft.mutation_id) {
             let existing = self
                 .entity_history
@@ -476,8 +490,10 @@ impl PerceptionStore {
             return Err(PerceptionError::InvalidField("conflicting mutation ID"));
         }
         let previous = self.entities.get(&id);
-        if previous.is_some_and(|value| value.created_at_ns != draft.created_at_ns) {
-            return Err(PerceptionError::InvalidField("created_at_ns is immutable"));
+        if previous.is_some_and(|value| {
+            value.created_at_ns != draft.created_at_ns || value.updated_at_ns > draft.updated_at_ns
+        }) {
+            return Err(PerceptionError::InvalidField("Entity timestamps"));
         }
         let revision = previous.map_or(1, |value| value.revision.checked_add(1).unwrap_or(0));
         if revision == 0 {
@@ -512,6 +528,7 @@ impl PerceptionStore {
     ) -> Result<Entity, PerceptionError> {
         self.check_owner(container)?;
         validate_draft(&draft)?;
+        self.validate_principal_scope(&draft.kind)?;
         if let Some(&(seen_id, revision)) = self.mutations.get(&draft.mutation_id) {
             let accepted = self
                 .entity_history
@@ -534,6 +551,11 @@ impl PerceptionStore {
             .entities
             .get(&id)
             .ok_or(PerceptionError::MissingEntity(id))?;
+        if (current.kind == PRINCIPAL_ENTITY_KIND || draft.kind == PRINCIPAL_ENTITY_KIND)
+            && (current.kind != draft.kind || current.canonical_name != draft.canonical_name)
+        {
+            return Err(PerceptionError::InvalidField("principal Entity identity"));
+        }
         if current.revision != expected_revision {
             return Err(PerceptionError::EntityRevisionConflict {
                 expected: expected_revision,
@@ -613,6 +635,12 @@ impl PerceptionStore {
             Err(PerceptionError::OwnerMismatch)
         }
     }
+    fn validate_principal_scope(&self, kind: &str) -> Result<(), PerceptionError> {
+        if kind == PRINCIPAL_ENTITY_KIND && self.identity.file_kind != FileKind::Reliquary {
+            return Err(PerceptionError::InvalidField("principal Entity in PHY"));
+        }
+        Ok(())
+    }
     fn next_version(&self) -> Result<u64, PerceptionError> {
         self.version
             .checked_add(1)
@@ -635,6 +663,14 @@ impl PerceptionStore {
         match &record {
             Record::Entity { value, .. } => {
                 validate_entity(value)?;
+                self.validate_principal_scope(&value.kind)?;
+                if value.kind == PRINCIPAL_ENTITY_KIND
+                    && value.id != principal_entity_id(&value.canonical_name)
+                {
+                    return Err(PerceptionError::CorruptRecord(
+                        "principal Entity identity mismatch",
+                    ));
+                }
                 if self.mutations.contains_key(&value.mutation_id) {
                     return Err(PerceptionError::CorruptRecord("duplicate mutation ID"));
                 }
@@ -648,12 +684,23 @@ impl PerceptionStore {
                     return Err(PerceptionError::CorruptRecord("Entity revision sequence"));
                 }
                 if let Some(previous) = self.entities.get(&value.id) {
+                    if (previous.kind == PRINCIPAL_ENTITY_KIND
+                        || value.kind == PRINCIPAL_ENTITY_KIND)
+                        && (previous.kind != value.kind
+                            || previous.canonical_name != value.canonical_name)
+                    {
+                        return Err(PerceptionError::CorruptRecord(
+                            "principal Entity identity changed",
+                        ));
+                    }
                     if value.created_at_ns != previous.created_at_ns
                         || value.updated_at_ns < previous.updated_at_ns
                     {
                         return Err(PerceptionError::CorruptRecord("Entity revision timestamps"));
                     }
-                } else if value.id != entity_id(&value.mutation_id) {
+                } else if value.kind != PRINCIPAL_ENTITY_KIND
+                    && value.id != entity_id(&value.mutation_id)
+                {
                     return Err(PerceptionError::CorruptRecord("Entity identity mismatch"));
                 }
                 self.mutations
@@ -691,6 +738,15 @@ fn entity_id(mutation_id: &str) -> EntityId {
     EntityId(hash.finalize().into())
 }
 fn validate_draft(value: &EntityDraft) -> Result<(), PerceptionError> {
+    if value.kind == PRINCIPAL_ENTITY_KIND
+        && value
+            .canonical_name
+            .strip_prefix("phy-")
+            .and_then(|id| uuid::Uuid::parse_str(id).ok())
+            .is_none()
+    {
+        return Err(PerceptionError::InvalidField("principal Entity identity"));
+    }
     if value.mutation_id.trim().is_empty()
         || value.canonical_name.trim().is_empty()
         || value.canonical_name.len() > MAX_ENTITY_NAME_BYTES
@@ -854,6 +910,73 @@ mod tests {
             id,
         )
         .unwrap()
+    }
+
+    #[test]
+    fn principal_identity_is_stable_owner_local_and_rel_only() {
+        let path = TempFile::new();
+        let principal = "phy-00000000-0000-0000-0000-000000000123";
+        let mut value = draft("principal-create", principal);
+        value.kind = PRINCIPAL_ENTITY_KIND.into();
+        let mut container = create(&path.0, 7);
+        let mut store = PerceptionStore::open(&container).unwrap();
+        let entity = store.publish_entity(&mut container, value.clone()).unwrap();
+        assert_eq!(entity.id, principal_entity_id(principal));
+        let digest: String = entity
+            .id
+            .0
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect();
+        assert_eq!(
+            digest,
+            "f30b58c84c763ee23fd131ad7539f8c12ae16f510a96e66d67abc55ba95bfa3b"
+        );
+        let before = container.read_frames().unwrap().len();
+        let mut invalid = value.clone();
+        invalid.mutation_id = "invalid-principal".into();
+        invalid.canonical_name = "alice".into();
+        assert!(store.publish_entity(&mut container, invalid).is_err());
+        let mut changed = value.clone();
+        changed.mutation_id = "change-principal".into();
+        changed.canonical_name = "phy-00000000-0000-0000-0000-000000000124".into();
+        assert!(
+            store
+                .update_entity(&mut container, entity.id, 1, changed)
+                .is_err()
+        );
+        assert_eq!(container.read_frames().unwrap().len(), before);
+        drop(store);
+        drop(container);
+        let container = Container::open_read_only(&path.0).unwrap();
+        assert_eq!(
+            PerceptionStore::open(&container).unwrap().entity(entity.id),
+            Some(&entity)
+        );
+
+        let forged_path = TempFile::new();
+        let mut forged = create(&forged_path.0, 7);
+        let mut forged_entity = entity.clone();
+        forged_entity.id = EntityId([0x44; 32]);
+        forged
+            .append(
+                &Record::Entity {
+                    version: 1,
+                    owner: forged.owner_id(),
+                    value: forged_entity,
+                }
+                .encode()
+                .unwrap(),
+            )
+            .unwrap();
+        assert!(PerceptionStore::open(&forged).is_err());
+
+        let phy_path = TempFile::new();
+        let mut phy =
+            Container::create(&phy_path.0, ContainerIdentity::phylactery(), [9; 16]).unwrap();
+        let mut phy_store = PerceptionStore::open(&phy).unwrap();
+        assert!(phy_store.publish_entity(&mut phy, value).is_err());
+        assert!(phy.read_frames().unwrap().is_empty());
     }
     fn draft(mutation_id: &str, name: &str) -> EntityDraft {
         EntityDraft {
