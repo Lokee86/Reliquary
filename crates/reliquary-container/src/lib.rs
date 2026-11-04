@@ -17,6 +17,7 @@ const CURRENT_VERSION: FormatVersion = FormatVersion { major: 2, minor: 1 };
 
 mod grouped_clock;
 mod publication_envelope;
+pub use publication_envelope::{PublicationEnvelope, decode_publication};
 mod version_clock;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
