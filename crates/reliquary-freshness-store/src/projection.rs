@@ -66,5 +66,5 @@ pub enum FreshnessReplayEntry {
         accepted_turn: u64,
     },
     Event(FreshnessEvent),
-    AcceptedUse(FreshnessUseReceipt),
+    AcceptedUse(FreshnessUseReceipt, FreshnessEventProof),
 }

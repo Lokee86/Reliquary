@@ -137,12 +137,26 @@ fn births_admissions_uses_and_settled_cuts_survive_reopen() {
         .unwrap();
     assert_eq!(use_event.provenance.producer_kind, 2);
     assert_eq!(use_event.effects.get(&memory), Some(&25));
-    assert!(
-        store
-            .replay_entries()
+    let replay = store.replay_entries();
+    assert_eq!(replay.len(), 4);
+    assert_eq!(
+        replay
             .iter()
-            .any(|entry| matches!(entry, FreshnessReplayEntry::AcceptedUse(_)))
+            .filter(|entry| matches!(entry, FreshnessReplayEntry::Event(_)))
+            .count(),
+        1,
+        "the accepted-use access event is derived from its durable receipt"
     );
+    assert!(replay.iter().any(|entry| matches!(
+        entry,
+        FreshnessReplayEntry::AcceptedUse(receipt, proof)
+            if receipt.use_id == "use-42"
+                && *proof == FreshnessEventProof {
+                    graph_version: 4,
+                    community_generation: None,
+                    community_graph_version: None,
+                }
+    )));
 }
 
 #[test]

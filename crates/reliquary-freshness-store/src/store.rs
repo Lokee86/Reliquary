@@ -426,16 +426,7 @@ impl FreshnessStore {
                     entries.push(FreshnessReplayEntry::Event(event.clone()))
                 }
                 JournalEntry::AcceptedUse(receipt, proof) => {
-                    if let Some(owner) = self.owner_uuid {
-                        for source in &receipt.sources {
-                            let event_id = accepted_event_id(owner, &receipt.use_id, *source);
-                            if let Some(event) = self.events.get(&event_id) {
-                                entries.push(FreshnessReplayEntry::Event(event.clone()));
-                            }
-                        }
-                    }
-                    let _ = proof;
-                    entries.push(FreshnessReplayEntry::AcceptedUse(receipt.clone()));
+                    entries.push(FreshnessReplayEntry::AcceptedUse(receipt.clone(), *proof));
                 }
             }
         }
