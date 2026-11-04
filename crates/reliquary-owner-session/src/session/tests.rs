@@ -191,6 +191,16 @@ fn bounded_insomnia_claim_returns_archive_verified_input() {
         start_node_id: episode.start_node_id.clone(),
     };
     let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let mut forged = order.clone();
+    forged.source_through_ns += 1;
+    let reader = Container::open_read_only(&path.0).unwrap();
+    assert!(matches!(
+        RelSession::open(&reader, &admission, [forged], []),
+        Err(OwnerSessionError::Insomnia(
+            InsomniaError::UnacceptedEpisode
+        ))
+    ));
+    drop(reader);
     let mut writer = RelWriter::open_path(&path.0, admission, [order], []).unwrap();
     let claim = writer
         .claim_next_insomnia_input("worker-1", 100, 1_000, 4)
@@ -478,4 +488,26 @@ fn new_rel_and_phy_writers_initialize_and_reopen_their_owners() {
         RelSession::open(&file, &admission, [], []),
         Err(OwnerSessionError::WrongFileKind { .. })
     ));
+}
+
+#[test]
+fn rel_open_rejects_caller_fabricated_episode_admission() {
+    let path = Temp::new();
+    let owner = [0x64; 16];
+    let writer = RelWriter::create_path(&path.0, ReliquaryScope::Project, owner).unwrap();
+    let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let forged = AcceptedEpisodeOrder {
+        episode_id: WorkEpisodeId([0x77; 32]),
+        source_through_ns: 1,
+        conversation_id: "missing".into(),
+        start_node_id: "missing".into(),
+    };
+    let before = writer.container.read_frames().unwrap().len();
+    assert!(matches!(
+        RelSession::open(&writer.container, &admission, [forged], []),
+        Err(OwnerSessionError::Insomnia(
+            InsomniaError::UnacceptedEpisode
+        ))
+    ));
+    assert_eq!(writer.container.read_frames().unwrap().len(), before);
 }

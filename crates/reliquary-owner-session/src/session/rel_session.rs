@@ -12,6 +12,22 @@ impl RelSession {
         require_kind(container, FileKind::Reliquary)?;
         let archive =
             Archive::open(container).map_err(|e| OwnerSessionError::Record(e.to_string()))?;
+        let accepted_episodes = accepted_episodes.into_iter().collect::<Vec<_>>();
+        for order in &accepted_episodes {
+            let episode = archive
+                .episode(reliquary_archive::EpisodeId(order.episode_id.0))
+                .ok_or(OwnerSessionError::Insomnia(
+                    InsomniaError::UnacceptedEpisode,
+                ))?;
+            if order.source_through_ns != episode.source_through_ns
+                || order.conversation_id != episode.conversation_id
+                || order.start_node_id != episode.start_node_id
+            {
+                return Err(OwnerSessionError::Insomnia(
+                    InsomniaError::UnacceptedEpisode,
+                ));
+            }
+        }
         let grouped_completions = validate_grouped_replay_admission(container, &archive)?;
         let common = open_common(container, graph_admission, dream_admissions, true)?;
         for completion in grouped_completions.values() {
