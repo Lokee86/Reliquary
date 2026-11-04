@@ -240,6 +240,21 @@ impl MemoryVectorStore {
         infos
     }
 
+    /// Yield the unique Memory body identities referenced by stored mappings.
+    /// The result is stable across reopens and includes mappings whose packed
+    /// payload has been pruned.
+    pub fn referenced_body_ids(&self) -> impl Iterator<Item = MemoryBodyId> {
+        let mut ids = self
+            .objects
+            .values()
+            .flat_map(|entry| entry.bodies.iter().copied())
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>();
+        ids.sort_by_key(|id| id.0);
+        ids.into_iter()
+    }
+
     pub fn stats(&self) -> MemoryVectorStats {
         MemoryVectorStats {
             objects: self.objects.len(),

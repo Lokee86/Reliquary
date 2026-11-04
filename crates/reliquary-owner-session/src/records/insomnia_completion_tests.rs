@@ -566,3 +566,87 @@ fn owner_session_accepts_graph_with_owner_backed_memory_endpoints() {
         .unwrap();
     assert!(crate::RelSession::open(&writer, &admission, [], []).is_err());
 }
+
+#[test]
+fn memory_vector_mapping_requires_retained_owner_body_identity() {
+    use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
+    use reliquary_vector_store::{
+        AcceptedMemoryMapping, CompatibilityProbeReference, EmbeddingMode, VectorNormalization,
+    };
+    let path = Temp::new();
+    let owner = [0x66; 16];
+    let mut container = Container::create(
+        &path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    reliquary_memory_core::MemoryStore::create(&mut container).unwrap();
+    let record =
+        reliquary_memory_core::decode_grouped_creation(&fixture().memory_records[0]).unwrap();
+    container
+        .append(&reliquary_memory_core::encode_grouped_creation(&record).unwrap())
+        .unwrap();
+    let mut packed = reliquary_vector_store::PackedVectorStore::default();
+    packed.initialize(&mut container).unwrap();
+    let vector = PackedVectors::from_bytes(
+        VectorSchema::new(1, ScalarType::F32).unwrap(),
+        1.0f32.to_le_bytes().to_vec(),
+    )
+    .unwrap();
+    let packed_id = packed.put(&mut container, vector).unwrap();
+    let mut profiles = reliquary_vector_store::CompatibilityProfileStore::default();
+    profiles.initialize(&mut container).unwrap();
+    let mut profile = reliquary_vector_store::CompatibilityProfile {
+        id: reliquary_vector_store::CompatibilityProfileId([0; 32]),
+        dimensions: 1,
+        normalization: VectorNormalization::None,
+        probe_suite_version: 1,
+        compatibility_policy_version: 2,
+        references: [
+            EmbeddingMode::Query,
+            EmbeddingMode::Query,
+            EmbeddingMode::Document,
+            EmbeddingMode::Document,
+        ]
+        .into_iter()
+        .map(|mode| CompatibilityProbeReference {
+            mode,
+            vector: vec![1.5],
+        })
+        .collect(),
+    };
+    profile.id = reliquary_vector_store::profile::compatibility_profile_id(&profile);
+    profiles.put(&mut container, profile.clone()).unwrap();
+    let mut vectors = reliquary_vector_store::MemoryVectorStore::default();
+    vectors.initialize(&mut container).unwrap();
+    reliquary_vector_store::ArchiveVectorStore::default()
+        .initialize(&mut container)
+        .unwrap();
+    reliquary_vector_store::VectorGenerationStore::empty()
+        .initialize(&mut container)
+        .unwrap();
+    let mapping = |body| AcceptedMemoryMapping {
+        profile: profile.id,
+        packed: packed_id,
+        packed_rows: 1,
+        body_ids: vec![reliquary_vector_store::MemoryBodyId(body)],
+    };
+    vectors
+        .put(
+            &mut container,
+            &packed,
+            &profiles,
+            mapping(record.body_id.0),
+        )
+        .unwrap();
+    let admission = reliquary_graph::GraphAdmission::for_replay(owner, [], [], [], [], []);
+    assert!(crate::RelSession::open(&container, &admission, [], []).is_ok());
+    vectors
+        .put(&mut container, &packed, &profiles, mapping([0x99; 32]))
+        .unwrap();
+    assert!(matches!(
+        crate::RelSession::open(&container, &admission, [], []),
+        Err(crate::OwnerSessionError::Record(_))
+    ));
+}

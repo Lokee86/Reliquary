@@ -2723,6 +2723,7 @@ dependencies = [
 name = "reliquary-owner-session"
 version = "0.1.0"
 dependencies = [
+ "lodestone-packed",
  "reliquary-archive",
  "reliquary-container",
  "reliquary-ego-store",

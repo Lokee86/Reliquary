@@ -451,6 +451,8 @@ fn replay_rechecks_temporal_spans_when_body_appears_later() {
     let (mut target, _) = open_new(&temp.0.join("late.rel"));
     target.append(&encode_creation(&record).unwrap()).unwrap();
     let mut projected = MemoryStore::open(&target).unwrap();
+    assert!(projected.references_body(record.body_id));
+    assert!(!projected.references_body(MemoryBodyId([0; 32])));
     let before = target.read_frames().unwrap().len();
     assert!(matches!(
         projected.publish(&mut target, None, 0, draft("direct-late", "Title", "fact")),

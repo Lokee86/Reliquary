@@ -210,10 +210,64 @@ fn archive_memory_and_generation_mappings_persist_and_reopen() {
         9
     );
     assert_eq!(memories.get(memory_id).unwrap().memory_body_ids, bodies);
+    assert_eq!(memories.referenced_body_ids().collect::<Vec<_>>(), bodies);
     assert_eq!(memories.binding_count(profile_id), 2);
     assert_eq!(generations.current_generation(profile_id), Some(generation));
     assert_eq!(generation.source_archive_version, 12);
     assert_eq!(generations.vector_version(), 1);
+}
+
+#[test]
+fn referenced_memory_body_ids_are_unique_and_stable_after_reopen() {
+    let temp = TempDir::new();
+    let path = temp.0.join("memory-body-closure.rel");
+    let first_profile = profile();
+    let mut second_profile = profile();
+    second_profile.compatibility_policy_version = 3;
+    second_profile.id = profile::compatibility_profile_id(&second_profile);
+    assert_ne!(first_profile.id, second_profile.id);
+    let body = MemoryBodyId([0x31; 32]);
+    let vectors = PackedVectors::from_bytes(
+        VectorSchema::new(1, ScalarType::F32).unwrap(),
+        1.0f32.to_le_bytes().to_vec(),
+    )
+    .unwrap();
+    let mut container = Container::create(
+        &path,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [15; 16],
+    )
+    .unwrap();
+    let mut packed = PackedVectorStore::default();
+    packed.initialize(&mut container).unwrap();
+    let packed_id = packed.put(&mut container, vectors).unwrap();
+    let mut memories = MemoryVectorStore::default();
+    memories.initialize(&mut container).unwrap();
+    let mut profiles = CompatibilityProfileStore::default();
+    profiles.insert_rebuilt(first_profile.clone()).unwrap();
+    profiles.insert_rebuilt(second_profile.clone()).unwrap();
+    for profile_id in [first_profile.id, second_profile.id] {
+        memories
+            .put(
+                &mut container,
+                &packed,
+                &profiles,
+                AcceptedMemoryMapping {
+                    profile: profile_id,
+                    packed: packed_id,
+                    packed_rows: 1,
+                    body_ids: vec![body],
+                },
+            )
+            .unwrap();
+    }
+    container.sync().unwrap();
+    drop(container);
+
+    let container = Container::open_read_only(&path).unwrap();
+    let packed = PackedVectorStore::open(&container).unwrap();
+    let memories = MemoryVectorStore::open(&container, &packed, &profiles).unwrap();
+    assert_eq!(memories.referenced_body_ids().collect::<Vec<_>>(), [body]);
 }
 
 #[test]
@@ -332,6 +386,7 @@ fn memory_mapping_replay_preserves_pruned_packed_backing() {
     let packed = PackedVectorStore::open(&container).unwrap();
     let mut memories = MemoryVectorStore::open(&container, &packed, &profiles).unwrap();
     assert_eq!(memories.get(vector_id).unwrap().memory_body_ids, bodies);
+    assert_eq!(memories.referenced_body_ids().collect::<Vec<_>>(), bodies);
     assert!(matches!(
         packed.get(&mut container, packed_id),
         Err(PackedVectorError::PayloadUnavailable(

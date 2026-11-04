@@ -225,6 +225,10 @@ impl MemoryStore {
     pub fn memory_ids(&self) -> impl Iterator<Item = MemoryId> + '_ {
         self.state.revisions.keys().copied()
     }
+    /// Whether retained owner history names this body, even if its payload is unavailable.
+    pub fn references_body(&self, body_id: MemoryBodyId) -> bool {
+        self.state.body_memories.contains_key(&body_id)
+    }
     pub fn contains_memory(&self, id: MemoryId) -> bool {
         self.state.revisions.contains_key(&id)
     }

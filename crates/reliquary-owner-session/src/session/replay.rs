@@ -86,6 +86,14 @@ pub(super) fn open_common(
     let packed_vectors = PackedVectorStore::open(container)?;
     let profiles = CompatibilityProfileStore::open(container)?;
     let memory_vectors = MemoryVectorStore::open(container, &packed_vectors, &profiles)?;
+    if memory_vectors
+        .referenced_body_ids()
+        .any(|id| !memories.references_body(reliquary_memory_core::MemoryBodyId(id.0)))
+    {
+        return Err(OwnerSessionError::Record(
+            "Memory vector references a body absent from owner history".into(),
+        ));
+    }
     let maintenance = OwnerMaintenanceStore::open(container).map_err(OwnerSessionError::Record)?;
     let dreams =
         DreamEvidenceStore::open(container, dream_admissions).map_err(OwnerSessionError::Record)?;
