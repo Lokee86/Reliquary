@@ -471,6 +471,21 @@ fn validate_candidate(
         if !in_episode && !in_evidence {
             return Err("attribution quote is not in supplied authoritative evidence".into());
         }
+        let timely_episode = attribution.conversation_id == episode.conversation_id
+            && turns.iter().any(|turn| {
+                turn.node_id == attribution.node_id
+                    && turn.content.contains(&attribution.quote)
+                    && turn.timestamp_ns <= source.timestamp_ns
+            });
+        let timely_evidence = evidence.iter().any(|turn| {
+            turn.conversation_id == attribution.conversation_id
+                && turn.node_id == attribution.node_id
+                && turn.content.contains(&attribution.quote)
+                && turn.timestamp_ns <= source.timestamp_ns
+        });
+        if !timely_episode && !timely_evidence {
+            return Err("attribution must not postdate the user authority turn".into());
+        }
     }
     if authority_kind != "adoption" && raw.authority_source.is_some() {
         return Err("only adoption may use assistant authority provenance".into());
@@ -484,12 +499,14 @@ fn validate_candidate(
                 turn.node_id == attribution.node_id
                     && turn.role == "assistant"
                     && turn.content.contains(&attribution.quote)
+                    && turn.timestamp_ns <= source.timestamp_ns
             });
         let assistant_in_evidence = evidence.iter().any(|turn| {
             turn.conversation_id == attribution.conversation_id
                 && turn.node_id == attribution.node_id
                 && turn.role == "assistant"
                 && turn.content.contains(&attribution.quote)
+                && turn.timestamp_ns <= source.timestamp_ns
         });
         if !assistant_in_episode && !assistant_in_evidence {
             return Err("authority attribution must identify an assistant turn".into());
@@ -634,7 +651,8 @@ mod tests {
 
     #[test]
     fn attribution_requires_caller_supplied_exact_evidence() {
-        let turns = turns();
+        let mut turns = turns();
+        turns[1].timestamp_ns = 0;
         let mut value = candidate();
         value.authority_kind = "adoption".into();
         value.authority_source = Some(SourceAttribution {
@@ -648,6 +666,14 @@ mod tests {
                 .candidates
                 .len()
                 == 1
+        );
+        let mut later = turns.clone();
+        later[1].timestamp_ns = 2;
+        assert!(
+            validate_candidates(&episode(), &later, &[], vec![value.clone()])
+                .unwrap()
+                .candidates
+                .is_empty()
         );
         let mut user_as_assistant = value.clone();
         user_as_assistant.authority_source = Some(SourceAttribution {
