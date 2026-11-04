@@ -1,5 +1,5 @@
 use crate::{codec::*, decode_grouped_creation, error::MemoryError, model::*};
-use reliquary_container::Container;
+use reliquary_container::{Container, ContainerIdentity};
 use std::collections::{BTreeMap, HashMap};
 use std::io::Read;
 
@@ -30,6 +30,7 @@ impl Default for State {
 pub struct MemoryStore {
     state: State,
     initialized: bool,
+    owner: Option<([u8; 16], ContainerIdentity)>,
 }
 
 impl MemoryStore {
@@ -37,6 +38,7 @@ impl MemoryStore {
         container.append(FORMAT)?;
         Ok(Self {
             initialized: true,
+            owner: Some((container.owner_id(), container.identity())),
             ..Self::default()
         })
     }
@@ -56,7 +58,10 @@ impl MemoryStore {
         container: &Container,
         mut decode_grouped: impl FnMut(&[u8]) -> Result<Option<GroupedMemoryReplay>, MemoryError>,
     ) -> Result<Self, MemoryError> {
-        let mut store = Self::default();
+        let mut store = Self {
+            owner: Some((container.owner_id(), container.identity())),
+            ..Self::default()
+        };
         let mut cursor = container.physical_cursor()?;
         while let Some(mut frame) = cursor.next_frame()? {
             let len =
@@ -185,6 +190,7 @@ impl MemoryStore {
         expected_revision: u64,
         draft: MemoryDraft,
     ) -> Result<PublishResult, MemoryError> {
+        self.validate_owner(container)?;
         validate_draft(&draft)?;
         if !self.initialized {
             return Err(MemoryError::Corrupt("Memory owner is not initialized"));
@@ -324,12 +330,21 @@ impl MemoryStore {
         })
     }
 
+    fn validate_owner(&self, container: &Container) -> Result<(), MemoryError> {
+        if self.owner == Some((container.owner_id(), container.identity())) {
+            Ok(())
+        } else {
+            Err(MemoryError::WrongOwner)
+        }
+    }
+
     pub fn tombstone(
         &mut self,
         container: &mut Container,
         id: MemoryId,
         expected_revision: u64,
     ) -> Result<TerminalTombstone, MemoryError> {
+        self.validate_owner(container)?;
         if let Some(tombstone) = self.state.tombstones.get(&id).copied() {
             if expected_revision.checked_add(1) == Some(tombstone.revision) {
                 return Ok(tombstone);

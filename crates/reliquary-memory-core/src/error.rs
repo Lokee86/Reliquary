@@ -7,6 +7,7 @@ pub enum MemoryError {
     Io(io::Error),
     Corrupt(&'static str),
     MissingMemory,
+    WrongOwner,
     RevisionConflict,
     MutationConflict,
     ImmutableBodyChanged,
@@ -23,6 +24,7 @@ impl fmt::Display for MemoryError {
             Self::Container(e) => write!(f, "container: {e}"),
             Self::Io(e) => write!(f, "Memory I/O: {e}"),
             Self::Corrupt(reason) => write!(f, "corrupt Memory record: {reason}"),
+            Self::WrongOwner => f.write_str("Memory store belongs to a different owner"),
             Self::MissingMemory => f.write_str("Memory identity is absent"),
             Self::RevisionConflict => {
                 f.write_str("Memory revision does not match the expected predecessor")

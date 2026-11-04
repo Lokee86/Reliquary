@@ -326,3 +326,48 @@ fn missing_memory_and_missing_body_backing_are_distinct() {
         Err(MemoryError::MissingMemory)
     ));
 }
+
+#[test]
+fn memory_mutations_reject_a_different_owner_without_writing() {
+    let temp = TempDir::new();
+    let (mut first, mut store) = open_new(&temp.0.join("first.rel"));
+    let id = store
+        .publish(&mut first, None, 0, draft("owner-test", "Title", "fact"))
+        .unwrap()
+        .revision
+        .record
+        .id;
+    let mut second = Container::create(
+        &temp.0.join("second.rel"),
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [2; 16],
+    )
+    .unwrap();
+    let before = second.read_frames().unwrap().len();
+    assert!(matches!(
+        store.publish(&mut second, None, 0, draft("other", "Title", "fact")),
+        Err(MemoryError::WrongOwner)
+    ));
+    assert!(matches!(
+        store.tombstone(&mut second, id, 1),
+        Err(MemoryError::WrongOwner)
+    ));
+    assert_eq!(second.read_frames().unwrap().len(), before);
+    drop(store);
+    let mut reopened = MemoryStore::open(&first).unwrap();
+    assert!(matches!(
+        reopened.tombstone(&mut second, id, 1),
+        Err(MemoryError::WrongOwner)
+    ));
+    let mut phy = Container::create(
+        &temp.0.join("private.phy"),
+        ContainerIdentity::phylactery(),
+        [1; 16],
+    )
+    .unwrap();
+    assert!(matches!(
+        reopened.tombstone(&mut phy, id, 1),
+        Err(MemoryError::WrongOwner)
+    ));
+    assert!(phy.read_frames().unwrap().is_empty());
+}
