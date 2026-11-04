@@ -431,3 +431,44 @@ fn replay_rejects_creation_with_invalid_metadata() {
         Err(MemoryError::Corrupt("empty required Memory field"))
     ));
 }
+
+#[test]
+fn replay_rechecks_temporal_spans_when_body_appears_later() {
+    let temp = TempDir::new();
+    let (mut source, mut store) = open_new(&temp.0.join("source.rel"));
+    let mut record = store
+        .publish(&mut source, None, 0, draft("late-body", "Title", "fact"))
+        .unwrap()
+        .revision
+        .record;
+    record
+        .temporal_inference
+        .as_mut()
+        .unwrap()
+        .inference
+        .resolutions[0]
+        .end_byte = 1000;
+    let (mut target, _) = open_new(&temp.0.join("late.rel"));
+    target.append(&encode_creation(&record).unwrap()).unwrap();
+    let projected = MemoryStore::open(&target).unwrap();
+    let mut new_record = record.clone();
+    new_record.mutation_id = "late-new".into();
+    new_record.id = memory_id(&new_record.mutation_id);
+    new_record.memory_version = 2;
+    new_record.temporal_inference = None;
+    assert!(matches!(
+        projected.preflight_grouped_completion(
+            vec![(record.body_id, memory_body_bytes("Title", "immutable body"))],
+            vec![encode_creation(&new_record).unwrap()],
+        ),
+        Err(MemoryError::InvalidField("temporal_inference_span"))
+    ));
+    let mut body = b"RELMBOD1".to_vec();
+    body.extend_from_slice(&record.body_id.0);
+    body.extend_from_slice(&memory_body_bytes("Title", "immutable body"));
+    target.append(&body).unwrap();
+    assert!(matches!(
+        MemoryStore::open(&target),
+        Err(MemoryError::InvalidField("temporal_inference_span"))
+    ));
+}

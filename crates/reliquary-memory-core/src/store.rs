@@ -126,6 +126,7 @@ impl MemoryStore {
             frame.read_to_end(&mut payload)?;
             store.replay(&payload)?;
         }
+        store.validate_backed_records()?;
         Ok(store)
     }
 
@@ -186,12 +187,21 @@ impl MemoryStore {
                 "grouped body is not referenced by a creation",
             ));
         }
+        next.validate_backed_records()?;
         *self = next;
         Ok(())
     }
 
     pub fn is_initialized(&self) -> bool {
         self.initialized
+    }
+    fn validate_backed_records(&self) -> Result<(), MemoryError> {
+        for history in self.state.revisions.values() {
+            for record in history {
+                validate_replayed_record(record, self.state.bodies.get(&record.body_id))?;
+            }
+        }
+        Ok(())
     }
     pub fn memory_version(&self) -> u64 {
         self.state.next_memory_version.saturating_sub(1)
