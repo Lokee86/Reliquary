@@ -264,6 +264,37 @@ fn fresh_store_cannot_append_a_second_policy() {
 }
 
 #[test]
+fn replay_rejects_duplicate_identical_policy_frames() {
+    let temp = TempDir::new();
+    let path = temp.0.join("duplicate-policy.rel");
+    let owner = [12; 16];
+    let mut container = Container::create(
+        &path,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    let mut store = FreshnessStore::new(Some(owner));
+    store.initialize(&mut container).unwrap();
+    container
+        .append(&super::codec::encode_policy(
+            owner,
+            FreshnessPolicy::default_v1(),
+        ))
+        .unwrap();
+    container.sync().unwrap();
+    drop(store);
+    drop(container);
+
+    let container = Container::open_read_only(&path).unwrap();
+    assert!(
+        FreshnessStore::open(&container)
+            .unwrap_err()
+            .contains("duplicate Freshness owner policy")
+    );
+}
+
+#[test]
 fn replay_rejects_duplicate_event_frames_even_when_identical() {
     let temp = TempDir::new();
     let path = temp.0.join("duplicate-event.rel");

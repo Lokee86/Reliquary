@@ -341,8 +341,12 @@ impl FreshnessStore {
             if self.owner_uuid.is_some_and(|actual| actual != owner) {
                 return Err("Freshness policy belongs to another owner".into());
             }
-            if self.policy_persisted && self.policy != policy {
-                return Err("Freshness owner policy changed within history".into());
+            if self.policy_persisted {
+                return Err(if self.policy == policy {
+                    "duplicate Freshness owner policy in history".into()
+                } else {
+                    "Freshness owner policy changed within history".into()
+                });
             }
             self.owner_uuid.get_or_insert(owner);
             self.policy = policy;
