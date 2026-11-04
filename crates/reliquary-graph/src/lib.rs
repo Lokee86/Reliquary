@@ -3,7 +3,7 @@
 //! Endpoint IDs are supplied by the owning stores. This crate never discovers
 //! foreign records; callers provide an exact admission closure for writes and replay.
 
-use reliquary_container::{Container, ContainerError};
+use reliquary_container::{Container, ContainerError, ContainerIdentity};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -171,6 +171,7 @@ struct Key {
 
 pub struct GraphStore {
     owner: [u8; 16],
+    identity: ContainerIdentity,
     graph_version: u64,
     states: BTreeMap<Key, Relation>,
     history: Vec<Relation>,
@@ -187,6 +188,7 @@ impl GraphStore {
         }
         let mut store = Self {
             owner: container.owner_id(),
+            identity: container.identity(),
             graph_version: 0,
             states: BTreeMap::new(),
             history: Vec::new(),
@@ -381,7 +383,7 @@ impl GraphStore {
         }
     }
     fn check_owner(&self, container: &Container) -> Result<(), GraphError> {
-        if container.owner_id() == self.owner {
+        if container.owner_id() == self.owner && container.identity() == self.identity {
             Ok(())
         } else {
             Err(GraphError::WrongOwner)
@@ -463,15 +465,15 @@ fn validate_relation(
 
 pub struct CommunityStore {
     owner: [u8; 16],
+    identity: ContainerIdentity,
     current: Option<CommunitySnapshot>,
 }
 impl CommunityStore {
     pub fn open(container: &Container, graph: &GraphStore) -> Result<Self, GraphError> {
-        if container.owner_id() != graph.owner_id() {
-            return Err(GraphError::WrongOwner);
-        };
+        graph.check_owner(container)?;
         let mut store = Self {
             owner: container.owner_id(),
+            identity: container.identity(),
             current: None,
         };
         for frame in container.read_frames()? {
@@ -500,9 +502,10 @@ impl CommunityStore {
         graph: &GraphStore,
         snapshot: CommunitySnapshot,
     ) -> Result<(), GraphError> {
-        if container.owner_id() != self.owner {
+        if container.owner_id() != self.owner || container.identity() != self.identity {
             return Err(GraphError::WrongOwner);
         };
+        graph.check_owner(container)?;
         let expected = self
             .current
             .as_ref()
@@ -782,6 +785,50 @@ mod tests {
             id,
         )
         .unwrap()
+    }
+
+    #[test]
+    fn community_rejects_graph_from_another_owner_before_writing() {
+        let first_path = Temp::new();
+        let second_path = Temp::new();
+        let mut first = container(&first_path.0, 10);
+        let second = container(&second_path.0, 11);
+        let first_admission = GraphAdmission::for_changes(first.owner_id(), [], []);
+        let second_admission = GraphAdmission::for_changes(second.owner_id(), [], []);
+        let first_graph = GraphStore::open(&first, &first_admission).unwrap();
+        let second_graph = GraphStore::open(&second, &second_admission).unwrap();
+        let mut communities = CommunityStore::open(&first, &first_graph).unwrap();
+        let before = first.read_frames().unwrap().len();
+        assert!(matches!(
+            communities.publish(
+                &mut first,
+                &second_graph,
+                CommunitySnapshot {
+                    generation: 1,
+                    graph_version: 0,
+                    communities: vec![],
+                }
+            ),
+            Err(GraphError::WrongOwner)
+        ));
+        assert_eq!(first.read_frames().unwrap().len(), before);
+        assert!(
+            CommunityStore::open(&first, &first_graph)
+                .unwrap()
+                .current()
+                .is_none()
+        );
+        let phy_path = Temp::new();
+        let phy = Container::create(
+            &phy_path.0,
+            ContainerIdentity::phylactery(),
+            first.owner_id(),
+        )
+        .unwrap();
+        assert!(matches!(
+            CommunityStore::open(&phy, &first_graph),
+            Err(GraphError::WrongOwner)
+        ));
     }
 
     #[test]
