@@ -185,6 +185,10 @@ impl InsomniaStore {
     pub fn accepted_order(&self, id: EpisodeId) -> Option<&AcceptedEpisodeOrder> {
         self.accepted.get(&id)
     }
+    /// Deterministic owner-admitted scheduling input for bounded workers.
+    pub fn accepted_orders(&self) -> impl Iterator<Item = &AcceptedEpisodeOrder> {
+        self.accepted.values()
+    }
     pub fn work(&self, id: EpisodeId) -> Option<&InsomniaWork> {
         self.work.get(&id)
     }
