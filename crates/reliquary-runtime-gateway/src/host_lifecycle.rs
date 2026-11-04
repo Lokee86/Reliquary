@@ -124,6 +124,47 @@ mod tests {
     }
 
     #[test]
+    fn empty_host_reconciliation_cannot_release_known_operation_debt() {
+        let host = Arc::new(MockHost {
+            connection: Mutex::new(Ok(MockHost::full_contract())),
+            reconcile: Mutex::new(Ok(HostReconcileStatus::NoOutstandingWork)),
+        });
+        let router = CapabilityRouter::connect(Arc::clone(&host) as Arc<dyn TrustedHostAdapter>, 1);
+        router.record_owned_operation(RuntimeCapability::ConversationExecution, "op-1");
+        router.reconnect();
+        assert_eq!(
+            router.state(RuntimeCapability::ConversationExecution),
+            HostCapabilityState::UnknownStatusHeld
+        );
+        router.record_terminal_operation(RuntimeCapability::ConversationExecution, "op-1");
+        router.reconnect();
+        assert_eq!(
+            router.state(RuntimeCapability::ConversationExecution),
+            HostCapabilityState::Ready
+        );
+    }
+
+    #[test]
+    fn connection_failure_fences_configured_capability() {
+        let host = Arc::new(MockHost {
+            connection: Mutex::new(Ok(MockHost::full_contract())),
+            reconcile: Mutex::new(Ok(HostReconcileStatus::NoOutstandingWork)),
+        });
+        let router = CapabilityRouter::connect(Arc::clone(&host) as Arc<dyn TrustedHostAdapter>, 1);
+        *host.connection.lock().unwrap() = Err("offline".into());
+        router.reconnect();
+        assert_eq!(
+            router.state(RuntimeCapability::ConversationExecution),
+            HostCapabilityState::Unavailable("offline".into())
+        );
+        assert!(
+            router
+                .contract(RuntimeCapability::ConversationExecution)
+                .is_some()
+        );
+    }
+
+    #[test]
     fn incomplete_declaration_does_not_gain_host_authority() {
         let host = Arc::new(MockHost {
             connection: Mutex::new(Ok(HostConnection {
@@ -326,8 +367,8 @@ impl CapabilityRouter {
                         continue;
                     }
                     match self.adapter.reconcile(capability) {
-                        // The host's authoritative empty result clears capability
-                        // level debt; this compact router does not own operation IDs.
+                        // Clear ownership debt only after host-wide empty state and
+                        // no durable operation IDs remain in this router.
                         Ok(HostReconcileStatus::NoOutstandingWork)
                             if !owned_ids.iter().any(|(cap, _)| *cap == capability) =>
                         {
