@@ -2,6 +2,7 @@
 //! explicitly resolved evidence. This crate does not read Archive or publish Memory.
 
 use reliquary_archive::{Episode, ResolvedTurn};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashSet;
 
@@ -19,19 +20,19 @@ pub const MAX_INSOMNIA_EVIDENCE_TURNS: usize = 64;
 pub const MAX_INSOMNIA_EVIDENCE_BYTES: usize = 128 << 10;
 pub const MAX_MEMORY_ENTITY_MENTIONS: usize = 32;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum InsomniaOwnership {
     User,
     Project,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum TextField {
     Title,
     Content,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RoutingMention {
     pub field: TextField,
     pub start_byte: usize,
@@ -39,7 +40,7 @@ pub struct RoutingMention {
     pub text: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SourceAttribution {
     pub conversation_id: String,
     pub node_id: String,
@@ -211,7 +212,7 @@ pub struct RawCandidate {
     pub routing_mentions: Vec<RoutingMention>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct InsomniaCandidate {
     pub authority_kind: String,
     pub category: String,
@@ -227,13 +228,13 @@ pub struct InsomniaCandidate {
     pub routing_mentions: Vec<RoutingMention>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct InsomniaRejection {
     pub candidate_index: usize,
     pub reason: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct InsomniaExtraction {
     pub candidates: Vec<InsomniaCandidate>,
     pub rejected: Vec<InsomniaRejection>,

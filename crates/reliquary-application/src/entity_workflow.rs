@@ -4,15 +4,16 @@ use reliquary_entity_resolution::{
     EntityCandidate, EntityModelEvaluator, MentionSpan, ResolutionOutcome, TextField,
     rank_candidates,
 };
-use reliquary_graph::{NodeRef, Relation, RelationKind};
-use reliquary_memory_core::{MemoryBody, MemoryBodyId, MemoryId, PayloadState};
-use reliquary_owner_session::{OwnerSessionError, PhySession, RelSession};
-use reliquary_perception_store::{
+use reliquary_owner_session::model::{CompatibilityProfile, CompatibilityProfileId};
+use reliquary_owner_session::model::{
     Entity, EntityId, MAX_MENTION_CANDIDATES, MemoryEntityMentionKey, MemoryEntityResolution,
     MemoryTextField,
 };
+use reliquary_owner_session::model::{
+    MemoryBody, MemoryBodyId, MemoryId, NodeRef, PayloadState, Relation, RelationKind,
+};
+use reliquary_owner_session::{OwnerSessionError, PhySession, RelSession};
 use reliquary_switchboard::GeneralEndpoint;
-use reliquary_vector_store::{CompatibilityProfile, CompatibilityProfileId};
 use std::fmt;
 
 /// An immutable owner-qualified Memory identity.
@@ -43,7 +44,7 @@ impl EntityOwnerSession<'_> {
     pub(crate) fn memory_history(
         &self,
         memory_id: MemoryId,
-    ) -> Result<Option<reliquary_memory_core::MemoryHistory>, OwnerSessionError> {
+    ) -> Result<Option<reliquary_owner_session::model::MemoryHistory>, OwnerSessionError> {
         match self {
             Self::Rel(session) => session.memory_history(memory_id),
             Self::Phy(session) => session.memory_history(memory_id),

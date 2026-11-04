@@ -1,8 +1,8 @@
 //! Source-bound vector preparation over immutable owner reads.
 
 use crate::EntityOwnerSession;
-use reliquary_memory_core::{MemoryBodyId, MemoryId, PayloadState};
-use reliquary_vector_store::{CompatibilityProfileId, EmbeddingMode};
+use reliquary_owner_session::model::{CompatibilityProfileId, EmbeddingMode};
+use reliquary_owner_session::model::{MemoryBodyId, MemoryId, PayloadState};
 use reliquary_vectors::{EmbeddingEndpoint, validate_embedding_batch, verify_endpoint};
 use std::{collections::HashSet, fmt};
 

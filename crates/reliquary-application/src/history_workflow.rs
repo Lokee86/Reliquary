@@ -1,7 +1,7 @@
 //! Owner-qualified, read-only Memory history access.
 
 use crate::EntityOwnerSession;
-use reliquary_memory_core::{MemoryHistory, MemoryId, TerminalTombstone};
+use reliquary_owner_session::model::{MemoryHistory, MemoryId, TerminalTombstone};
 use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

@@ -2,7 +2,10 @@
 //!
 //! This module validates bytes and cross-record structural invariants only.
 //! Episode admission, source authorization and candidate policy remain above it.
-use reliquary_memory_core::{MemoryBodyId, decode_grouped_creation};
+use reliquary_memory_core::{
+    MemoryBodyId, MemoryRecord, decode_grouped_creation, encode_grouped_creation,
+    memory_body_bytes, memory_body_id,
+};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
@@ -16,6 +19,22 @@ pub struct GroupedMemoryBody {
     pub id: MemoryBodyId,
     /// Memory Core body identity preimage: title length/title/content length/content.
     pub bytes: Vec<u8>,
+}
+
+impl GroupedMemoryBody {
+    /// Construct the canonical durable body payload without exposing the
+    /// storage byte preimage to an Application workflow.
+    pub fn from_content(title: &str, content: &str) -> Self {
+        Self {
+            id: memory_body_id(title, content),
+            bytes: memory_body_bytes(title, content),
+        }
+    }
+}
+
+/// Encode a validated grouped-creation record at the owner durability boundary.
+pub fn encode_insomnia_memory_creation(record: &MemoryRecord) -> Result<Vec<u8>, String> {
+    encode_grouped_creation(record).map_err(|error| error.to_string())
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

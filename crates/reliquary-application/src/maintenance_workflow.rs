@@ -7,7 +7,9 @@
 use crate::{
     EntityOwnerSession, MemoryHistoryLookup, MemoryHistoryWorkflowError, read_owner_memory_history,
 };
-use reliquary_memory_core::{MemoryBodyId, MemoryId, PayloadState};
+use reliquary_owner_session::model::{
+    MemoryBodyId, MemoryHistory, MemoryId, PayloadState, memory_body_id,
+};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeSet, fmt};
 
@@ -101,9 +103,7 @@ pub fn prepare_tombstoned_memory_maintenance(
     let mut payloads = BTreeSet::new();
     for revision in &history.history.revisions {
         if let PayloadState::Available(body) = &revision.payload {
-            if reliquary_memory_core::memory_body_id(&body.title, &body.content)
-                != revision.record.body_id
-            {
+            if memory_body_id(&body.title, &body.content) != revision.record.body_id {
                 return Err(MaintenanceWorkflowError::OwnerRead(
                     "Memory body identity failed validation".into(),
                 ));
@@ -150,11 +150,7 @@ pub fn recheck_tombstoned_memory_maintenance(
     }
 }
 
-fn digest_history(
-    owner_id: [u8; 16],
-    memory_id: MemoryId,
-    history: &reliquary_memory_core::MemoryHistory,
-) -> [u8; 32] {
+fn digest_history(owner_id: [u8; 16], memory_id: MemoryId, history: &MemoryHistory) -> [u8; 32] {
     let mut hash = Sha256::new();
     hash.update(b"reliquary-memory-maintenance-history-v1\0");
     hash.update(owner_id);

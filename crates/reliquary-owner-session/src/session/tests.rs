@@ -1,0 +1,334 @@
+use super::*;
+use reliquary_container::{ContainerIdentity, ReliquaryScope};
+use std::{
+    fs,
+    path::PathBuf,
+    sync::atomic::{AtomicU64, Ordering},
+};
+
+static NEXT: AtomicU64 = AtomicU64::new(1);
+struct Temp(PathBuf);
+impl Temp {
+    fn new() -> Self {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".owner-session-test-tmp");
+        fs::create_dir_all(&root).unwrap();
+        Self(root.join(format!(
+            "owner-session-{}-{}.rel",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        )))
+    }
+}
+impl Drop for Temp {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.0);
+    }
+}
+fn initialize_vectors(container: &mut Container) {
+    PackedVectorStore::default().initialize(container).unwrap();
+    CompatibilityProfileStore::default()
+        .initialize(container)
+        .unwrap();
+    ArchiveVectorStore::default().initialize(container).unwrap();
+    MemoryVectorStore::default().initialize(container).unwrap();
+    VectorGenerationStore::empty()
+        .initialize(container)
+        .unwrap();
+    container.sync().unwrap();
+}
+
+#[test]
+fn rel_writer_owns_the_exclusive_container_lease() {
+    let path = Temp::new();
+    let mut container = Container::create(
+        &path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [9; 16],
+    )
+    .unwrap();
+    initialize_vectors(&mut container);
+    drop(container);
+
+    let admission = GraphAdmission::for_replay([9; 16], [], [], [], [], []);
+    let writer = RelWriter::open_path(&path.0, admission, [], []).unwrap();
+    assert_eq!(writer.owner_id(), [9; 16]);
+    assert!(Container::open_writer(&path.0).is_err());
+    drop(writer);
+
+    let reopened = Container::open_writer(&path.0).unwrap();
+    drop(reopened);
+}
+
+#[test]
+fn accepted_turn_and_branch_are_idempotent_after_writer_reopen() {
+    let path = Temp::new();
+    let owner = [19; 16];
+    let mut container = Container::create(
+        &path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    initialize_vectors(&mut container);
+    drop(container);
+
+    let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let turn = || reliquary_archive::TurnInput {
+        id: "submission-1".to_owned(),
+        conversation_id: "conversation-1".to_owned(),
+        parent_id: None,
+        role: "user".to_owned(),
+        principal_id: Some("alice".to_owned()),
+        timestamp_ns: 42,
+        content: "durable content".to_owned(),
+        attachments: Vec::new(),
+        project_attachments: Vec::new(),
+    };
+    let branch = || reliquary_archive::Branch {
+        id: "main".to_owned(),
+        conversation_id: "conversation-1".to_owned(),
+        leaf_node_id: "submission-1".to_owned(),
+        canonical: true,
+    };
+
+    let mut writer = RelWriter::open_path(&path.0, admission.clone(), [], []).unwrap();
+    writer
+        .accept_turn_and_advance_branch(turn(), branch())
+        .unwrap();
+    drop(writer);
+
+    let mut recovered = RelWriter::open_path(&path.0, admission, [], []).unwrap();
+    recovered
+        .accept_turn_and_advance_branch(turn(), branch())
+        .unwrap();
+    assert_eq!(recovered.session.archive.node_count(), 1);
+    assert_eq!(
+        recovered
+            .session
+            .archive
+            .branch("conversation-1", "main")
+            .unwrap()
+            .leaf_node_id,
+        "submission-1"
+    );
+}
+
+#[test]
+fn bounded_insomnia_claim_returns_archive_verified_input() {
+    let path = Temp::new();
+    let owner = [31; 16];
+    let mut container = Container::create(
+        &path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    initialize_vectors(&mut container);
+    let mut archive = Archive::empty();
+    archive
+        .accept_turn(
+            &mut container,
+            reliquary_archive::TurnInput {
+                id: "user-1".into(),
+                conversation_id: "conversation-1".into(),
+                parent_id: None,
+                role: "user".into(),
+                principal_id: Some("alice".into()),
+                timestamp_ns: 10,
+                content: "remember this".into(),
+                attachments: Vec::new(),
+                project_attachments: Vec::new(),
+            },
+        )
+        .unwrap();
+    archive
+        .accept_turn(
+            &mut container,
+            reliquary_archive::TurnInput {
+                id: "assistant-1".into(),
+                conversation_id: "conversation-1".into(),
+                parent_id: Some("user-1".into()),
+                role: "assistant".into(),
+                principal_id: None,
+                timestamp_ns: 20,
+                content: "I will".into(),
+                attachments: Vec::new(),
+                project_attachments: Vec::new(),
+            },
+        )
+        .unwrap();
+    archive
+        .put_branch(
+            &mut container,
+            reliquary_archive::Branch {
+                id: "main".into(),
+                conversation_id: "conversation-1".into(),
+                leaf_node_id: "assistant-1".into(),
+                canonical: true,
+            },
+        )
+        .unwrap();
+    let episode_id = archive
+        .put_episode(
+            &mut container,
+            "conversation-1",
+            "user-1",
+            "assistant-1",
+            reliquary_archive::EpisodeOrigin::Live,
+            reliquary_archive::EpisodeBoundary::Explicit,
+            20,
+        )
+        .unwrap();
+    let episode = archive.episode(episode_id).unwrap().clone();
+    container.sync().unwrap();
+    drop(archive);
+    drop(container);
+
+    let order = AcceptedEpisodeOrder {
+        episode_id: WorkEpisodeId(episode_id.0),
+        source_through_ns: episode.source_through_ns,
+        conversation_id: episode.conversation_id.clone(),
+        start_node_id: episode.start_node_id.clone(),
+    };
+    let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let mut writer = RelWriter::open_path(&path.0, admission, [order], []).unwrap();
+    let claim = writer
+        .claim_next_insomnia_input("worker-1", 100, 1_000, 4)
+        .unwrap()
+        .unwrap();
+    assert_eq!(claim.episode, episode);
+    assert_eq!(claim.turns.len(), 2);
+    assert_eq!(claim.turns[0].node_id, "user-1");
+    assert_eq!(claim.work.lease_owner.as_deref(), Some("worker-1"));
+    assert!(claim.work.lease_token.is_some());
+    assert_eq!(claim.started_at_ns, 100);
+}
+
+#[test]
+fn rel_and_phy_replay_through_distinct_typed_aggregates() {
+    let rel_path = Temp::new();
+    let mut owner = [0; 16];
+    owner[0] = 1;
+    let mut rel = Container::create(
+        &rel_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    initialize_vectors(&mut rel);
+    let mut archive = Archive::empty();
+    archive
+        .accept_turn(
+            &mut rel,
+            reliquary_archive::TurnInput {
+                id: "assistant-1".into(),
+                conversation_id: "conversation-1".into(),
+                parent_id: None,
+                role: "assistant".into(),
+                principal_id: None,
+                timestamp_ns: 12,
+                content: "replayed turn".into(),
+                attachments: vec![],
+                project_attachments: vec![],
+            },
+        )
+        .unwrap();
+    rel.sync().unwrap();
+    let graph = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let rel_session = RelSession::open(&rel, &graph, [], []).unwrap();
+    assert_eq!(rel_session.owner_id(), owner);
+    assert_eq!(
+        rel_session
+            .archive_node("conversation-1", "assistant-1")
+            .unwrap()
+            .role,
+        "assistant"
+    );
+    assert_eq!(rel_session.accepted_turn_sources().len(), 1);
+    assert!(matches!(
+        PhySession::open(&rel, &graph, []),
+        Err(OwnerSessionError::WrongFileKind { .. })
+    ));
+
+    let phy_path = Temp::new();
+    let mut phy = Container::create(&phy_path.0, ContainerIdentity::phylactery(), owner).unwrap();
+    PackedVectorStore::default().initialize(&mut phy).unwrap();
+    CompatibilityProfileStore::default()
+        .initialize(&mut phy)
+        .unwrap();
+    MemoryVectorStore::default().initialize(&mut phy).unwrap();
+    phy.sync().unwrap();
+    let phy_session = PhySession::open(&phy, &graph, []).unwrap();
+    assert_eq!(phy_session.owner_id(), owner);
+    assert_eq!(phy_session.graph_version(), 0);
+    assert!(
+        phy_session
+            .memory_history(MemoryId([8; 32]))
+            .unwrap()
+            .is_none()
+    );
+    assert!(phy_session.entity(EntityId([8; 32])).is_none());
+    assert!(phy_session.memory_vector_infos().is_empty());
+    assert!(matches!(
+        RelSession::open(&phy, &graph, [], []),
+        Err(OwnerSessionError::WrongFileKind { .. })
+    ));
+}
+
+#[test]
+fn phy_rejects_rel_only_record_families_without_mutation() {
+    for marker in [
+        b"RELTURN2",
+        b"RELFILE1",
+        b"RELBRCH1",
+        b"RELEPIS1",
+        b"RELECHO1",
+        b"RELFRS02",
+        b"RELFRP01",
+        b"RELIEPS1",
+        b"RELIEPC1",
+        b"RELINSW1",
+        b"RELINSR1",
+        b"RELAVFM1",
+        b"RELAVEC1",
+        b"RELVGFM1",
+        b"RELVGEN1",
+        b"RELVGRC1",
+        b"RELXIDX2",
+    ] {
+        let path = Temp::new();
+        let owner = [7; 16];
+        let mut phy = Container::create(&path.0, ContainerIdentity::phylactery(), owner).unwrap();
+        phy.append(marker).unwrap();
+        phy.sync().unwrap();
+        drop(phy);
+        let before = fs::read(&path.0).unwrap();
+        let phy = Container::open_read_only(&path.0).unwrap();
+        let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+        assert!(matches!(
+            PhySession::open(&phy, &admission, []),
+            Err(OwnerSessionError::RelOnlyRecordInPhylactery(_))
+        ));
+        drop(phy);
+        assert_eq!(fs::read(&path.0).unwrap(), before);
+    }
+}
+
+#[test]
+fn graph_replay_requires_owner_scoped_closure_admission() {
+    let path = Temp::new();
+    let mut owner = [0; 16];
+    owner[0] = 2;
+    let mut container = Container::create(
+        &path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    initialize_vectors(&mut container);
+    let foreign = GraphAdmission::for_replay([9; 16], [], [], [], [], []);
+    assert!(matches!(
+        RelSession::open(&container, &foreign, [], []),
+        Err(OwnerSessionError::Graph(_))
+    ));
+}

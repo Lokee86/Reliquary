@@ -33,9 +33,9 @@ pub use verifier_model::*;
 pub use verifier_schema::{DREAM_VERIFIER_SYSTEM_PROMPT, dream_verifier_schema};
 
 #[cfg(test)]
-mod inference_tests;
-#[cfg(test)]
 mod evaluator_tests;
+#[cfg(test)]
+mod inference_tests;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PairRelation {

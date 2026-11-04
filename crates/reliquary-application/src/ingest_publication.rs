@@ -2,14 +2,13 @@
 
 use crate::PreparedIngest;
 use reliquary_insomnia::InsomniaOwnership;
-use reliquary_insomnia_store::InsomniaWork;
-use reliquary_memory_core::{
-    MemoryDraft, MemoryRecord, MemorySourceRef, encode_grouped_creation, memory_body_bytes,
-    memory_body_id, memory_id,
+use reliquary_owner_session::model::{
+    FRESHNESS_POLICY_VERSION, InsomniaEpisodeId, InsomniaWork, MemoryBody, MemoryDraft,
+    MemoryRecord, MemorySourceRef, PayloadState, ResolvedTurn, memory_body_id, memory_id,
 };
 use reliquary_owner_session::{
     CompletionCheck, RelWriter,
-    records::{GroupedInsomniaCompletion, GroupedMemoryBody},
+    records::{GroupedInsomniaCompletion, GroupedMemoryBody, encode_insomnia_memory_creation},
 };
 use sha2::Digest;
 use std::{collections::HashSet, fmt};
@@ -53,7 +52,7 @@ impl std::error::Error for IngestPublicationError {}
 pub fn prepare_routed_user_memory(
     prepared: &PreparedIngest,
     candidate: &reliquary_insomnia::InsomniaCandidate,
-    source_turn: &reliquary_archive::ResolvedTurn,
+    source_turn: &ResolvedTurn,
     principal_id: &str,
 ) -> Result<(MemoryDraft, MemorySourceRef), IngestPublicationError> {
     if !prepared.candidates.contains(candidate)
@@ -280,23 +279,23 @@ pub fn commit_prepared_native_ingest_with_external_refs(
             memory_version,
         };
         if body_ids.insert(body_id) {
-            bodies.push(GroupedMemoryBody {
-                id: body_id,
-                bytes: memory_body_bytes(&candidate.title, &candidate.content),
-            });
+            bodies.push(GroupedMemoryBody::from_content(
+                &candidate.title,
+                &candidate.content,
+            ));
         }
         ids.push(id.0);
         records.push(
-            encode_grouped_creation(&record)
+            encode_insomnia_memory_creation(&record)
                 .map_err(|error| IngestPublicationError::OwnerSession(error.to_string()))?,
         );
         expected_records.push(record);
     }
 
-    if let Some(receipt) = writer.read_session().insomnia_receipt(
-        reliquary_insomnia_store::EpisodeId(prepared.episode_id.0),
-        work.attempt_count,
-    ) {
+    if let Some(receipt) = writer
+        .read_session()
+        .insomnia_receipt(InsomniaEpisodeId(prepared.episode_id.0), work.attempt_count)
+    {
         let receipt_matches = receipt.started_at_ns == work.updated_at_ns
             && receipt.completed_at_ns == completed_at_ns
             && receipt.extractor_model == extractor_model
@@ -330,12 +329,10 @@ pub fn commit_prepared_native_ingest_with_external_refs(
                             expected.memory_version = revision.record.memory_version;
                             revision.record == expected
                                 && revision.payload
-                                    == reliquary_memory_core::PayloadState::Available(
-                                        reliquary_memory_core::MemoryBody {
-                                            title: candidate.title.clone(),
-                                            content: candidate.content.clone(),
-                                        },
-                                    )
+                                    == PayloadState::Available(MemoryBody {
+                                        title: candidate.title.clone(),
+                                        content: candidate.content.clone(),
+                                    })
                         })
                 });
         if receipt_matches && records_match {
@@ -364,9 +361,7 @@ pub fn commit_prepared_native_ingest_with_external_refs(
         memory_records: records,
         routing_metadata: vec![],
         freshness_birth_turn: (record_count > 0).then(|| writer.read_session().rel_turn_count()),
-        freshness_policy_version: (record_count > 0).then_some(u64::from(
-            reliquary_freshness_store::FRESHNESS_POLICY_VERSION,
-        )),
+        freshness_policy_version: (record_count > 0).then_some(u64::from(FRESHNESS_POLICY_VERSION)),
         freshness_birth_memory_ids: ids,
     };
     writer

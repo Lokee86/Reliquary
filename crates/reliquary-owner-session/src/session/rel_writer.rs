@@ -1,0 +1,350 @@
+use super::*;
+
+impl RelWriter {
+    pub fn open_path(
+        path: impl AsRef<Path>,
+        graph_admission: GraphAdmission,
+        accepted_episodes: impl IntoIterator<Item = AcceptedEpisodeOrder>,
+        dream_admissions: impl IntoIterator<Item = DreamBeginAdmission>,
+    ) -> Result<Self, OwnerSessionError> {
+        let accepted_episodes = accepted_episodes.into_iter().collect::<Vec<_>>();
+        let dream_admissions = dream_admissions.into_iter().collect::<Vec<_>>();
+        let container = Container::open_writer_as(path, FileKind::Reliquary)?;
+        let session = RelSession::open(
+            &container,
+            &graph_admission,
+            accepted_episodes.clone(),
+            dream_admissions.clone(),
+        )?;
+        Ok(Self { container, session })
+    }
+
+    pub fn owner_id(&self) -> [u8; 16] {
+        self.session.owner_id()
+    }
+    pub fn read_session(&self) -> &RelSession {
+        &self.session
+    }
+
+    /// Admit a bounded batch of previously accepted Episodes, claim the next
+    /// due work item, and return Archive-verified input. This method performs
+    /// only local journal/projection work; callers run inference after it
+    /// returns, when the Gateway's owner lock can be released.
+    pub fn claim_next_insomnia_input(
+        &mut self,
+        worker: &str,
+        started_at_ns: i64,
+        lease_duration_ns: i64,
+        max_admissions: usize,
+    ) -> Result<Option<RelInsomniaClaimInput>, OwnerSessionError> {
+        if max_admissions == 0 || lease_duration_ns <= 0 || worker.trim().is_empty() {
+            return Err(OwnerSessionError::Insomnia(InsomniaError::InvalidField(
+                "Insomnia worker limits",
+            )));
+        }
+        for order in self.session.insomnia.unqueued_orders(max_admissions) {
+            let episode = self
+                .session
+                .archive
+                .episode(reliquary_archive::EpisodeId(order.episode_id.0))
+                .ok_or(OwnerSessionError::Insomnia(
+                    InsomniaError::UnacceptedEpisode,
+                ))?;
+            if episode.source_through_ns != order.source_through_ns
+                || episode.conversation_id != order.conversation_id
+                || episode.start_node_id != order.start_node_id
+            {
+                return Err(OwnerSessionError::Insomnia(
+                    InsomniaError::UnacceptedEpisode,
+                ));
+            }
+            self.session.insomnia.queue(
+                &mut self.container,
+                order,
+                InsomniaPriority::Live,
+                started_at_ns,
+            )?;
+        }
+        let Some(work) = self.session.insomnia.claim_next(
+            &mut self.container,
+            worker,
+            started_at_ns,
+            lease_duration_ns,
+        )?
+        else {
+            self.session.writer_lease_proof = self.container.writer_lease_proof();
+            return Ok(None);
+        };
+        let episode_id = reliquary_archive::EpisodeId(work.episode_id.0);
+        let episode = self.session.archive.episode(episode_id).cloned().ok_or(
+            OwnerSessionError::Insomnia(InsomniaError::UnacceptedEpisode),
+        )?;
+        let turns =
+            self.session
+                .archive
+                .episode_turns(episode_id)?
+                .ok_or(OwnerSessionError::Insomnia(
+                    InsomniaError::UnacceptedEpisode,
+                ))?;
+        self.session.writer_lease_proof = self.container.writer_lease_proof();
+        Ok(Some(RelInsomniaClaimInput {
+            owner_id: self.owner_id(),
+            work,
+            episode,
+            turns,
+            started_at_ns,
+        }))
+    }
+
+    pub fn hold_insomnia_claim(
+        &mut self,
+        claim: &RelInsomniaClaimInput,
+        held_at_ns: i64,
+        reason: String,
+    ) -> Result<InsomniaWork, OwnerSessionError> {
+        self.hold_insomnia_claim_with_payload(claim, held_at_ns, reason, None)
+    }
+
+    pub fn hold_insomnia_claim_with_payload(
+        &mut self,
+        claim: &RelInsomniaClaimInput,
+        held_at_ns: i64,
+        reason: String,
+        held_payload: Option<Vec<u8>>,
+    ) -> Result<InsomniaWork, OwnerSessionError> {
+        if claim.owner_id != self.owner_id() || claim.work.episode_id.0 != claim.episode.id.0 {
+            return Err(OwnerSessionError::Insomnia(
+                InsomniaError::UnacceptedEpisode,
+            ));
+        }
+        let token = claim
+            .work
+            .lease_token
+            .ok_or(OwnerSessionError::Insomnia(InsomniaError::InvalidLease))?;
+        let work = self.session.insomnia.hold_with_payload(
+            &mut self.container,
+            claim.work.episode_id,
+            token,
+            held_at_ns,
+            reason,
+            held_payload,
+        )?;
+        self.session.writer_lease_proof = self.container.writer_lease_proof();
+        Ok(work)
+    }
+
+    pub fn checkpoint_insomnia_claim(
+        &mut self,
+        claim: &RelInsomniaClaimInput,
+        checkpointed_at_ns: i64,
+        payload: Vec<u8>,
+    ) -> Result<InsomniaWork, OwnerSessionError> {
+        if claim.owner_id != self.owner_id() || claim.work.episode_id.0 != claim.episode.id.0 {
+            return Err(OwnerSessionError::Insomnia(
+                InsomniaError::UnacceptedEpisode,
+            ));
+        }
+        let token = claim
+            .work
+            .lease_token
+            .ok_or(OwnerSessionError::Insomnia(InsomniaError::InvalidLease))?;
+        let work = self.session.insomnia.checkpoint_payload(
+            &mut self.container,
+            claim.work.episode_id,
+            token,
+            checkpointed_at_ns,
+            payload,
+        )?;
+        self.session.writer_lease_proof = self.container.writer_lease_proof();
+        Ok(work)
+    }
+
+    pub fn next_global_version(&self) -> Result<u64, OwnerSessionError> {
+        self.container
+            .latest_version()
+            .checked_add(1)
+            .ok_or_else(|| OwnerSessionError::Record("physical version exhausted".into()))
+    }
+
+    /// Accept a live source turn and advance its branch through the owner’s
+    /// Archive projection. Archive operations are idempotent, so a retry after
+    /// a queue journal failure can safely confirm the already synced turn.
+    pub fn accept_turn_and_advance_branch(
+        &mut self,
+        input: reliquary_archive::TurnInput,
+        branch: reliquary_archive::Branch,
+    ) -> Result<reliquary_archive::Node, OwnerSessionError> {
+        self.validate_turn_branch(&input, &branch)?;
+        let already_on_branch = if let Some(current) = self
+            .session
+            .archive
+            .branch(&branch.conversation_id, &branch.id)
+        {
+            let ancestry = self
+                .session
+                .archive
+                .historical_turns(&branch.conversation_id, &current.leaf_node_id)?;
+            let found = ancestry.iter().any(|turn| turn.node_id == input.id);
+            if found {
+                self.validate_existing_turn(&input)?;
+            }
+            found
+        } else {
+            false
+        };
+        let accepted = self
+            .session
+            .archive
+            .accept_turn(&mut self.container, input)?;
+        if already_on_branch {
+            return Ok(accepted.value);
+        }
+        self.session
+            .archive
+            .put_branch(&mut self.container, branch)?;
+        Ok(accepted.value)
+    }
+
+    /// Check that an accepted turn would advance this owner's current branch
+    /// before any Archive frame is appended. The caller must retain the same
+    /// writer lock from validation through `accept_turn_and_advance_branch`.
+    pub fn validate_turn_branch(
+        &self,
+        input: &reliquary_archive::TurnInput,
+        branch: &reliquary_archive::Branch,
+    ) -> Result<(), OwnerSessionError> {
+        if input.conversation_id != branch.conversation_id || input.id != branch.leaf_node_id {
+            return Err(OwnerSessionError::Archive(
+                reliquary_archive::ArchiveError::InvalidBranchRevision,
+            ));
+        }
+        let Some(current) = self
+            .session
+            .archive
+            .branch(&branch.conversation_id, &branch.id)
+        else {
+            return Ok(());
+        };
+        if self
+            .session
+            .archive
+            .node(&input.conversation_id, &input.id)
+            .is_some()
+        {
+            self.validate_existing_turn(input)?;
+        }
+        let current_ancestry = self
+            .session
+            .archive
+            .historical_turns(&branch.conversation_id, &current.leaf_node_id)?;
+        if current_ancestry.iter().any(|turn| turn.node_id == input.id) {
+            return Ok(());
+        }
+        let Some(parent_id) = input.parent_id.as_deref() else {
+            return Err(OwnerSessionError::Archive(
+                reliquary_archive::ArchiveError::InvalidBranchRevision,
+            ));
+        };
+        let ancestry = self
+            .session
+            .archive
+            .historical_turns(&input.conversation_id, parent_id)?;
+        if ancestry
+            .iter()
+            .any(|turn| turn.node_id == current.leaf_node_id)
+        {
+            Ok(())
+        } else {
+            Err(OwnerSessionError::Archive(
+                reliquary_archive::ArchiveError::InvalidBranchRevision,
+            ))
+        }
+    }
+
+    fn validate_existing_turn(
+        &self,
+        input: &reliquary_archive::TurnInput,
+    ) -> Result<(), OwnerSessionError> {
+        let Some(node) = self.session.archive.node(&input.conversation_id, &input.id) else {
+            return Ok(());
+        };
+        let content_matches = self
+            .session
+            .archive
+            .content_for_node(&input.conversation_id, &input.id)
+            == Some(input.content.as_str());
+        if node.parent_id != input.parent_id
+            || node.role != input.role
+            || node.principal_id != input.principal_id
+            || node.timestamp_ns != input.timestamp_ns
+            || !content_matches
+        {
+            return Err(OwnerSessionError::Archive(
+                reliquary_archive::ArchiveError::ConflictingNode,
+            ));
+        }
+        Ok(())
+    }
+
+    /// Queue and lease work for an admitted Archive Episode. The Episode's
+    /// scheduling identity is re-derived from this owner's Archive projection;
+    /// caller-supplied order data cannot redirect the claim.
+    pub fn queue_and_claim_insomnia_episode(
+        &mut self,
+        episode_id: reliquary_archive::EpisodeId,
+        worker: &str,
+        now_ns: i64,
+        lease_duration_ns: i64,
+    ) -> Result<InsomniaWork, OwnerSessionError> {
+        let episode =
+            self.session
+                .archive
+                .episode(episode_id)
+                .ok_or(OwnerSessionError::Insomnia(
+                    InsomniaError::UnacceptedEpisode,
+                ))?;
+        let work_id = WorkEpisodeId(episode_id.0);
+        let order = self
+            .session
+            .insomnia
+            .accepted_order(work_id)
+            .cloned()
+            .ok_or(OwnerSessionError::Insomnia(
+                InsomniaError::UnacceptedEpisode,
+            ))?;
+        if order.source_through_ns != episode.source_through_ns
+            || order.conversation_id != episode.conversation_id
+            || order.start_node_id != episode.start_node_id
+        {
+            return Err(OwnerSessionError::Insomnia(
+                InsomniaError::UnacceptedEpisode,
+            ));
+        }
+        self.session
+            .insomnia
+            .queue(&mut self.container, order, InsomniaPriority::Live, now_ns)?;
+        let work = self.session.insomnia.claim_episode(
+            &mut self.container,
+            work_id,
+            worker,
+            now_ns,
+            lease_duration_ns,
+        )?;
+        self.session.writer_lease_proof = self.container.writer_lease_proof();
+        Ok(work)
+    }
+
+    pub fn commit_grouped_insomnia_completion(
+        &mut self,
+        token: InsomniaLeaseToken,
+        completion: GroupedInsomniaCompletion,
+        now_ns: i64,
+    ) -> Result<CompletionCheck, OwnerSessionError> {
+        self.session.commit_grouped_insomnia_completion(
+            &mut self.container,
+            token,
+            completion,
+            now_ns,
+        )
+    }
+}

@@ -2,7 +2,7 @@
 //! and does not alter freshness; a host must confirm consumption separately.
 
 use crate::EntityOwnerSession;
-use reliquary_memory_core::{MemoryBody, MemoryBodyId, MemoryId, PayloadState};
+use reliquary_owner_session::model::{MemoryBody, MemoryBodyId, MemoryId, PayloadState};
 use reliquary_retrieval::{RetrievalConfig, combine_hybrid_scores, validate_hybrid_request};
 use std::collections::HashSet;
 use std::fmt;

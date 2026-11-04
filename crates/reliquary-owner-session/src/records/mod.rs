@@ -6,16 +6,19 @@ pub mod import;
 mod import_model;
 pub mod insomnia_completion;
 pub mod maintenance;
+pub mod verified_copy;
 pub use dream::{DreamBeginAdmission, DreamEvidenceStore};
 pub use import::{ImportEpochStore, import_id};
 pub use import_model::{ImportComplete, ImportEpochStatus, ImportStart, ImportWatermarks};
 pub use insomnia_completion::{
     GroupedExternalMemoryRef, GroupedInsomniaCompletion, GroupedMemoryBody,
+    encode_insomnia_memory_creation,
 };
 pub use maintenance::{
     HistoryPruneManifest, HistoryRetentionDescriptor, OwnerMaintenanceStore, PrunedPayload,
     RetentionDomain, RetentionTarget,
 };
+pub use verified_copy::{VerifiedOwnerCopyPlan, VerifiedOwnerCopyReceipt};
 
 #[cfg(test)]
 mod tests;

@@ -9,3 +9,4 @@ reliquary-archive = { path = "../reliquary-archive" }
 reliquary-memory-core = { path = "../reliquary-memory-core" }
 reliquary-switchboard = { path = "../reliquary-switchboard" }
 serde_json = "1"
+serde = { version = "1", features = ["derive"] }

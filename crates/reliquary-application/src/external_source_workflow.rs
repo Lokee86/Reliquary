@@ -1,10 +1,10 @@
 //! Read-only verification for Archive-associated external project files.
 
-use reliquary_archive::{
+use reliquary_owner_session::RelSession;
+use reliquary_owner_session::model::{
     ContentId, ProjectFileRef, ProjectRepositoryKind, SourceAttachment,
     validate_project_file_reference,
 };
-use reliquary_owner_session::RelSession;
 use sha2::{Digest, Sha256};
 use std::{fmt, path::Path};
 

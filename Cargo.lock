@@ -2672,6 +2672,7 @@ dependencies = [
  "reliquary-archive",
  "reliquary-memory-core",
  "reliquary-switchboard",
+ "serde",
  "serde_json",
 ]
 

@@ -11,10 +11,10 @@ serde_json = "1.0"
 sha2 = "0.10"
 uuid = { version = "1.26", features = ["v4"] }
 reliquary-application = { path = "../reliquary-application" }
-reliquary-archive = { path = "../reliquary-archive" }
 reliquary-owner-session = { path = "../reliquary-owner-session" }
 reliquary-switchboard = { path = "../reliquary-switchboard" }
 
 [dev-dependencies]
+reliquary-archive = { path = "../reliquary-archive" }
 reliquary-container = { path = "../reliquary-container" }
 reliquary-vector-store = { path = "../reliquary-vector-store" }

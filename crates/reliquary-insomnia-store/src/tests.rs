@@ -81,6 +81,100 @@ fn unqueued_admission_batch_is_bounded_and_owner_ordered() {
 }
 
 #[test]
+fn held_insomnia_work_survives_reopen_until_explicit_retry() {
+    let path = Temp::new();
+    let id = EpisodeId([9; 32]);
+    let accepted = [order(id)];
+    let token;
+    {
+        let mut c = container(&path.0, 1);
+        let mut store = InsomniaStore::open(&c, accepted.clone()).unwrap();
+        store
+            .queue(&mut c, order(id), InsomniaPriority::Live, 10)
+            .unwrap();
+        let claim = store
+            .claim_next(&mut c, "worker", 10, 100)
+            .unwrap()
+            .unwrap();
+        token = claim.lease_token.unwrap();
+        store
+            .hold_with_payload(
+                &mut c,
+                id,
+                token,
+                11,
+                "evidence resolver unavailable".into(),
+                Some(br#"{"version":1}"#.to_vec()),
+            )
+            .unwrap();
+    }
+    let mut c = Container::open_writer(&path.0).unwrap();
+    let mut store = InsomniaStore::open(&c, accepted).unwrap();
+    assert_eq!(store.work(id).unwrap().state, InsomniaWorkState::Held);
+    assert_eq!(
+        store.work(id).unwrap().last_error.as_deref(),
+        Some("evidence resolver unavailable")
+    );
+    assert_eq!(
+        store.work(id).unwrap().held_payload.as_deref(),
+        Some(br#"{"version":1}"#.as_slice())
+    );
+    assert!(
+        store
+            .claim_next(&mut c, "worker", 12, 100)
+            .unwrap()
+            .is_none()
+    );
+    store.retry_held(&mut c, id, 13).unwrap();
+    assert_eq!(
+        store
+            .claim_next(&mut c, "worker", 13, 100)
+            .unwrap()
+            .unwrap()
+            .state,
+        InsomniaWorkState::Processing
+    );
+}
+
+#[test]
+fn expired_claim_reuses_synced_model_checkpoint_after_reopen() {
+    let path = Temp::new();
+    let id = EpisodeId([10; 32]);
+    let accepted = [order(id)];
+    {
+        let mut c = container(&path.0, 2);
+        let mut store = InsomniaStore::open(&c, accepted.clone()).unwrap();
+        store
+            .queue(&mut c, order(id), InsomniaPriority::Live, 10)
+            .unwrap();
+        let claim = store
+            .claim_next(&mut c, "worker-1", 10, 100)
+            .unwrap()
+            .unwrap();
+        store
+            .checkpoint_payload(
+                &mut c,
+                id,
+                claim.lease_token.unwrap(),
+                20,
+                br#"{"candidates":[]}"#.to_vec(),
+            )
+            .unwrap();
+    }
+    let mut c = Container::open_writer(&path.0).unwrap();
+    let mut store = InsomniaStore::open(&c, accepted).unwrap();
+    let recovered = store
+        .claim_next(&mut c, "worker-2", 111, 100)
+        .unwrap()
+        .unwrap();
+    assert_eq!(recovered.attempt_count, 2);
+    assert_eq!(
+        recovered.held_payload.as_deref(),
+        Some(br#"{"candidates":[]}"#.as_slice())
+    );
+}
+
+#[test]
 fn claim_and_completion_receipt_survive_reopen_and_duplicate_receipt_is_idempotent() {
     let path = Temp::new();
     let id = EpisodeId([1; 32]);

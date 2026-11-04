@@ -7,8 +7,10 @@ use reliquary_dream::{
     DreamVerificationVerdict, DreamVerifier, EvaluationPlan, MemoryFact, PairDecision,
     PairDirection, PairRelation,
 };
-use reliquary_graph::{NodeRef, Relation, RelationKind, RelationOrigin};
-use reliquary_memory_core::{MemoryBodyId, MemoryId, PayloadState};
+use reliquary_owner_session::model::{
+    MemoryBodyId, MemoryId, MemoryTemporalInference, NodeRef, PayloadState, Relation, RelationKind,
+    RelationOrigin,
+};
 use reliquary_switchboard::GeneralEndpoint;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -299,7 +301,7 @@ fn pair_decision(classification: &DreamPairClassification) -> PairDecision {
     }
 }
 
-fn temporal_json(value: Option<&reliquary_memory_core::MemoryTemporalInference>) -> Value {
+fn temporal_json(value: Option<&MemoryTemporalInference>) -> Value {
     let Some(value) = value else {
         return Value::Null;
     };

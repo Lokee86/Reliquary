@@ -4,14 +4,19 @@
 //! source evidence before producing routed Memory proposals. Durable owner
 //! publication is deliberately not exposed while owner sessions are read-only.
 
-use reliquary_archive::{Episode, EpisodeId, ResolvedTurn};
 use reliquary_insomnia::{
     EvidenceTurn, InsomniaCandidate, InsomniaExtraction, RawCandidate, validate_candidates,
 };
+use reliquary_owner_session::model::{Episode, EpisodeId, ResolvedTurn};
 use reliquary_owner_session::{OwnerSessionError, RelSession};
 use std::{collections::HashSet, fmt};
 
+mod conversation_workflow;
 mod dream_workflow;
+pub use conversation_workflow::{
+    NativeConversationCommit, PublishedNativeTurn, commit_native_conversation_turn,
+    validate_native_conversation_commit,
+};
 mod entity_workflow;
 mod external_source_workflow;
 mod history_workflow;
@@ -19,6 +24,7 @@ mod ingest_publication;
 mod maintenance_workflow;
 mod retrieval_workflow;
 mod vector_workflow;
+mod verified_copy_workflow;
 pub use dream_workflow::{
     DreamOrganizationDraft, DreamWorkflowError, MAX_DREAM_CANDIDATES, draft_dream_organization,
 };
@@ -48,6 +54,10 @@ pub use retrieval_workflow::{
 };
 pub use vector_workflow::{
     MemoryEmbeddingBatch, MemoryEmbeddingSource, VectorWorkflowError, prepare_memory_embeddings,
+};
+pub use verified_copy_workflow::{
+    VerifiedPhyOwnerCopy, VerifiedRelOwnerCopy, copy_and_reopen_phy_owner,
+    copy_and_reopen_rel_owner,
 };
 
 pub const MAX_INGEST_EVIDENCE_TURNS: usize = 64;
@@ -164,6 +174,37 @@ fn prepare_native_ingest(
         candidates,
         rejected,
     })
+}
+
+/// Revalidate a model extraction against the owner-validated Episode snapshot
+/// returned by the runtime claim API. The claim's lease and owner identity stay
+/// bound through later publication.
+pub fn prepare_native_ingest_from_claim(
+    claim: &reliquary_owner_session::RelInsomniaClaimInput,
+    extraction: InsomniaExtraction,
+) -> Result<PreparedIngest, IngestError> {
+    let proposals = extraction
+        .candidates
+        .into_iter()
+        .map(|candidate| RawCandidate {
+            authority_kind: candidate.authority_kind,
+            category: candidate.category,
+            memory_type: candidate.memory_type,
+            temporal_status: candidate.temporal_status,
+            ownership: candidate.ownership,
+            title: candidate.title,
+            content: candidate.content,
+            source_node_id: candidate.source_node_id,
+            source_quote: candidate.source_quote,
+            authority_source: candidate.authority_source,
+            grounding_source: candidate.grounding_source,
+            routing_mentions: candidate.routing_mentions,
+        })
+        .collect();
+    let mut prepared =
+        prepare_native_ingest(claim.owner_id, &claim.episode, &claim.turns, &[], proposals)?;
+    prepared.rejected.extend(extraction.rejected);
+    Ok(prepared)
 }
 
 /// Hydrate accepted turns and verify every supplied evidence turn against the
