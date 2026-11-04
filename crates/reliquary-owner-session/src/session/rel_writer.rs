@@ -1,7 +1,7 @@
 use super::*;
 
 impl RelWriter {
-    fn ensure_write_ready(&self) -> Result<(), OwnerSessionError> {
+    pub(super) fn ensure_write_ready(&self) -> Result<(), OwnerSessionError> {
         if self.session.write_poisoned {
             Err(OwnerSessionError::Record(
                 "owner session requires reopen after an uncertain write".into(),

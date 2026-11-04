@@ -36,6 +36,8 @@ pub enum DreamWorkflowError {
     MissingSourceVector,
     InvalidVector(String),
     TemporalInferenceUnavailable,
+    UnsupportedPublication,
+    OwnerWrite(String),
     Classifier(String),
     Verifier(String),
     StaleSnapshot,
@@ -56,6 +58,10 @@ impl fmt::Display for DreamWorkflowError {
             Self::TemporalInferenceUnavailable => {
                 f.write_str("Dream temporal inference is not yet supported")
             }
+            Self::UnsupportedPublication => {
+                f.write_str("Dream publication requires a single evaluated zero-link decision")
+            }
+            Self::OwnerWrite(error) => write!(f, "Dream owner publication failed: {error}"),
             Self::Classifier(error) => write!(f, "Dream classification failed: {error}"),
             Self::Verifier(error) => write!(f, "Dream verification failed: {error}"),
             Self::StaleSnapshot => f.write_str("Dream proposal no longer matches owner state"),
@@ -68,13 +74,36 @@ impl std::error::Error for DreamWorkflowError {}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DreamOrganizationDraft {
-    pub owner_id: [u8; 16],
-    pub graph_version: u64,
-    pub observed_memories: Vec<DreamMemoryObservation>,
-    pub classifications: Vec<DreamPairClassification>,
-    pub verifications: Vec<DreamPairVerification>,
+    // Only the checked Application workflow may create or change this draft.
+    // External callers can inspect but cannot forge or replace its model data.
+    pub(crate) owner_id: [u8; 16],
+    pub(crate) graph_version: u64,
+    pub(crate) observed_memories: Vec<DreamMemoryObservation>,
+    pub(crate) classifications: Vec<DreamPairClassification>,
+    pub(crate) verifications: Vec<DreamPairVerification>,
     /// Pure proposal from Dream's snapshot evaluator; it is not persisted.
-    pub plan: EvaluationPlan,
+    pub(crate) plan: EvaluationPlan,
+}
+
+impl DreamOrganizationDraft {
+    pub fn owner_id(&self) -> [u8; 16] {
+        self.owner_id
+    }
+    pub fn graph_version(&self) -> u64 {
+        self.graph_version
+    }
+    pub fn observed_memories(&self) -> &[DreamMemoryObservation] {
+        &self.observed_memories
+    }
+    pub fn classifications(&self) -> &[DreamPairClassification] {
+        &self.classifications
+    }
+    pub fn verifications(&self) -> &[DreamPairVerification] {
+        &self.verifications
+    }
+    pub fn plan(&self) -> &EvaluationPlan {
+        &self.plan
+    }
 }
 
 struct CandidateSet {

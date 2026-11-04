@@ -58,6 +58,7 @@ pub enum OwnerSessionError {
     Generation(GenerationStoreError),
     Archive(reliquary_archive::ArchiveError),
     Record(String),
+    StaleDreamCut,
 }
 
 impl fmt::Display for OwnerSessionError {
@@ -85,6 +86,7 @@ impl fmt::Display for OwnerSessionError {
             Self::Generation(e) => e.fmt(f),
             Self::Archive(e) => e.fmt(f),
             Self::Record(e) => f.write_str(e),
+            Self::StaleDreamCut => f.write_str("Dream owner cut changed before publication"),
         }
     }
 }
@@ -423,4 +425,5 @@ mod replay;
 mod validation;
 use replay::*;
 use validation::*;
+mod dream_no_link;
 mod grouped_commit;

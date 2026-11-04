@@ -11,6 +11,8 @@
 
 G2 remains unaccepted. Native routing, Dream, Entity, Retrieval, vector/context, import/history and external-source vertical workflows retain their own acceptance criteria.
 
+**V02 publication update:** [V02 progress evidence](v02-dream-publication-progress-2026-11-04.md) records a checked, durable **single-pair zero-link** admission for REL/PHY, with current-cut validation and idempotent replay. V02 is **not accepted**: grouped Graph/Memory lifecycle/first-cycle Freshness publication is still missing; the implementation explicitly refuses those effects rather than issuing uncoordinated store writes.
+
 ## Historical S03 owner-backed Dream ranking checkpoint — 2026-11-04 (superseded by S03 acceptance above)
 
 The owner-backed Dream candidate preparation slice now runs through a named, read-only Application workflow. It pages the authorized REL/PHY owner for current Memory identities, reads their retained bodies and profile-qualified vector rows, excludes archived, already-related, tombstoned and previously evaluated candidates, ranks semantic/lexical/temporal lanes with the selected Dream ranking policy, and produces bounded classified proposals without writing owner state. The positive PHY integration test verifies ordered candidates, model-call selection, read-only preparation and the durable evaluated-pair exclusion after reopen. Negative tests reject mismatched caller owner before reads and distinguish a registered profile with no source embedding from an unregistered profile. The earlier pending Dream/Entity workflow changes and test-only vector fixture dependency are retained rather than replaced.
