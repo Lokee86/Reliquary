@@ -538,6 +538,37 @@ fn rel_session_replays_grouped_insomnia_receipt_instead_of_dropping_the_carrier(
 }
 
 #[test]
+fn open_import_epoch_fences_direct_grouped_completion() {
+    let path = Temp::new();
+    let owner = [0x61; 16];
+    drop(crate::RelWriter::create_path(&path.0, ReliquaryScope::Project, owner).unwrap());
+    let mut container = Container::open_writer(&path.0).unwrap();
+    let mut imports = crate::records::ImportEpochStore::open(&container).unwrap();
+    let key = "bc".repeat(32);
+    imports
+        .append_start(
+            &mut container,
+            crate::records::ImportStart {
+                owner_uuid: owner,
+                import_id: crate::records::import_id(owner, &key),
+                import_key: key,
+                source_namespace: "source/account".into(),
+                source_format: "json-v1".into(),
+                started_at_ns: 1,
+                pre: crate::records::ImportWatermarks::default(),
+            },
+        )
+        .unwrap();
+    let admission = reliquary_graph::GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let mut session = crate::RelSession::open(&container, &admission, [], []).unwrap();
+    let before = container.read_frames().unwrap().len();
+    assert!(matches!(session.commit_grouped_insomnia_completion(
+        &mut container, reliquary_insomnia_store::InsomniaLeaseToken([0; 32]), fixture(), 2),
+        Err(crate::OwnerSessionError::Record(message)) if message.contains("fenced by an open import epoch")));
+    assert_eq!(container.read_frames().unwrap().len(), before);
+}
+
+#[test]
 fn owner_graph_reopens_principal_association_from_entity_history() {
     let path = Temp::new();
     let owner = [0x62; 16];
