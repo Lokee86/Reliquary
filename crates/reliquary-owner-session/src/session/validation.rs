@@ -54,9 +54,25 @@ pub(super) fn validate_grouped_replay_admission(
 ) -> Result<BTreeMap<(WorkEpisodeId, u32), GroupedInsomniaCompletion>, OwnerSessionError> {
     let mut grouped = BTreeMap::new();
     let mut visible_episodes = std::collections::BTreeSet::new();
+    let mut visible_turns = std::collections::BTreeSet::new();
+    let mut activity = 0u64;
     for frame in container.read_frames()? {
-        if let Some(id) = reliquary_archive::episode_publication_id(&frame.payload)? {
-            visible_episodes.insert(id);
+        match reliquary_archive::source_publication(&frame.payload)? {
+            Some(reliquary_archive::SourcePublication::Episode(id)) => {
+                visible_episodes.insert(id);
+            }
+            Some(reliquary_archive::SourcePublication::Turn {
+                conversation_id,
+                node_id,
+                counts_activity,
+            }) => {
+                if visible_turns.insert((conversation_id, node_id)) && counts_activity {
+                    activity = activity.checked_add(1).ok_or_else(|| {
+                        OwnerSessionError::Record("Archive activity exhausted".into())
+                    })?;
+                }
+            }
+            None => {}
         }
         if !frame.payload.starts_with(b"RELINSC7") {
             continue;
@@ -67,6 +83,13 @@ pub(super) fn validate_grouped_replay_admission(
         if archive.episode(episode_id).is_none() || !visible_episodes.contains(&episode_id) {
             return Err(OwnerSessionError::Record(
                 "grouped completion Episode is not admitted by this Archive".into(),
+            ));
+        }
+        if !completion.memory_records.is_empty()
+            && completion.freshness_birth_turn != Some(activity)
+        {
+            return Err(OwnerSessionError::Record(
+                "grouped completion Freshness turn differs from Archive prefix".into(),
             ));
         }
         completion

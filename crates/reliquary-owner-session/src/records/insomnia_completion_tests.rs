@@ -433,6 +433,28 @@ fn rel_session_replays_grouped_insomnia_receipt_instead_of_dropping_the_carrier(
     assert!(
         matches!(crate::RelSession::open(&forged, &admission, [], []), Err(crate::OwnerSessionError::Record(message)) if message.contains("Episode is not admitted"))
     );
+    let wrong_turn_path = Temp::new();
+    let mut wrong_turn = Container::create(
+        &wrong_turn_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [3; 16],
+    )
+    .unwrap();
+    for frame in &frames {
+        if frame.payload.starts_with(b"RELINSC7") {
+            let mut carrier = GroupedInsomniaCompletion::decode(&frame.payload).unwrap();
+            carrier.freshness_birth_turn = Some(2);
+            wrong_turn.append(&carrier.encode().unwrap()).unwrap();
+        } else {
+            wrong_turn.append(&frame.payload).unwrap();
+        }
+    }
+    wrong_turn.sync().unwrap();
+    drop(wrong_turn);
+    let wrong_turn = Container::open_read_only(&wrong_turn_path.0).unwrap();
+    assert!(
+        matches!(crate::RelSession::open(&wrong_turn, &admission, [], []), Err(crate::OwnerSessionError::Record(message)) if message.contains("Freshness turn differs"))
+    );
     drop(session);
     drop(container);
 

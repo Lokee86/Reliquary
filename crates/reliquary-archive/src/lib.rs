@@ -24,13 +24,28 @@ pub use model::{
 
 pub use archive::validate_project_file_reference;
 
-/// Identify an Episode publication in a physical frame without exposing its codec.
-pub fn episode_publication_id(payload: &[u8]) -> Result<Option<EpisodeId>, ArchiveError> {
-    if !payload.starts_with(b"RELEPIS1") {
+/// Owner-session source facts needed to validate a physical Archive prefix.
+pub enum SourcePublication {
+    Turn {
+        conversation_id: String,
+        node_id: String,
+        counts_activity: bool,
+    },
+    Episode(EpisodeId),
+}
+
+/// Identify accepted source publications without exposing the Archive codec.
+pub fn source_publication(payload: &[u8]) -> Result<Option<SourcePublication>, ArchiveError> {
+    if !payload.starts_with(b"RELEPIS1") && !payload.starts_with(b"RELTURN2") {
         return Ok(None);
     }
     match codec::decode_record(payload)? {
-        Some(codec::Record::Episode(episode)) => Ok(Some(episode.id)),
+        Some(codec::Record::Episode(episode)) => Ok(Some(SourcePublication::Episode(episode.id))),
+        Some(codec::Record::Turn(node, _, _)) => Ok(Some(SourcePublication::Turn {
+            conversation_id: node.conversation_id,
+            node_id: node.id,
+            counts_activity: matches!(node.role.as_str(), "user" | "assistant"),
+        })),
         _ => Ok(None),
     }
 }
