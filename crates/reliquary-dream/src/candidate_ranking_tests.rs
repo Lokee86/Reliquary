@@ -1,5 +1,54 @@
 use super::*;
 
+fn record() -> MemoryRecord {
+    MemoryRecord {
+        id: MemoryId([1; 32]),
+        revision: 1,
+        body_id: reliquary_memory_core::MemoryBodyId([2; 32]),
+        category: "fact".into(),
+        memory_type: "project".into(),
+        authority_kind: "direct".into(),
+        temporal_status: "current".into(),
+        scope: "project".into(),
+        lifecycle_state: "knowledge".into(),
+        archived: false,
+        parent_id: Some(MemoryId([3; 32])),
+        superseded_by: None,
+        source_node_id: None,
+        content_source_conversation_id: None,
+        content_source_node_id: None,
+        grounding_source_conversation_id: None,
+        grounding_source_node_id: None,
+        source_episode_id: None,
+        source_ref: None,
+        source_time_ns: None,
+        temporal_inference: None,
+        mutation_id: "one".into(),
+        created_at_ns: 1,
+        updated_at_ns: 1,
+        memory_version: 1,
+    }
+}
+
+#[test]
+fn lexical_lane_matches_reference_token_and_metadata_weights() {
+    let source = record();
+    let mut other = source.clone();
+    let first = MemoryBody {
+        title: "Alpha beta".into(),
+        content: "beta x".into(),
+    };
+    let second = MemoryBody {
+        title: "BETA gamma".into(),
+        content: "gamma".into(),
+    };
+    assert!((lexical_score(&source, &first, &other, &second) - (1.0 / 3.0 + 0.28)).abs() < 1e-12);
+    other.parent_id = None;
+    other.category = "preference".into();
+    other.memory_type = "communication".into();
+    assert!((lexical_score(&source, &first, &other, &second) - 1.0 / 3.0).abs() < 1e-12);
+}
+
 fn candidate(
     id: u8,
     time: Option<i64>,

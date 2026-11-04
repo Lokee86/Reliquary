@@ -1,5 +1,5 @@
 use crate::DreamCandidateConfig;
-use reliquary_memory_core::MemoryId;
+use reliquary_memory_core::{MemoryBody, MemoryId, MemoryRecord};
 use std::collections::HashSet;
 
 #[derive(Clone, Debug)]
@@ -14,6 +14,40 @@ pub struct RankedCandidate {
     pub temporal_score: f64,
     pub temporal_rank: Option<usize>,
     pub fused_score: f64,
+}
+
+/// Reference lexical lane score over the owner-supplied records and bodies.
+pub fn lexical_score(
+    source: &MemoryRecord,
+    source_body: &MemoryBody,
+    candidate: &MemoryRecord,
+    candidate_body: &MemoryBody,
+) -> f64 {
+    fn tokens(body: &MemoryBody) -> HashSet<String> {
+        format!("{} {}", body.title, body.content)
+            .split(|ch: char| !ch.is_alphanumeric())
+            .filter(|token| token.len() > 1)
+            .map(str::to_lowercase)
+            .collect()
+    }
+    let source_tokens = tokens(source_body);
+    let candidate_tokens = tokens(candidate_body);
+    let union = source_tokens.union(&candidate_tokens).count();
+    let mut score = if union == 0 {
+        0.0
+    } else {
+        source_tokens.intersection(&candidate_tokens).count() as f64 / union as f64
+    };
+    if source.category == candidate.category {
+        score += 0.08;
+    }
+    if source.memory_type == candidate.memory_type {
+        score += 0.08;
+    }
+    if source.parent_id.is_some() && source.parent_id == candidate.parent_id {
+        score += 0.12;
+    }
+    score
 }
 
 pub fn rank_lanes(

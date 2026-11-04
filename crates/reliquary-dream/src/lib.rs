@@ -24,7 +24,8 @@ mod verifier_schema;
 
 pub use candidate_config::*;
 pub use candidate_ranking::{
-    RankedCandidate, candidate_cosine, rank_lanes, select_candidates, validate_candidate_config,
+    RankedCandidate, candidate_cosine, lexical_score, rank_lanes, select_candidates,
+    validate_candidate_config,
 };
 pub use classifier::DreamClassifier;
 pub use classifier_error::DreamClassificationError;
