@@ -1025,7 +1025,6 @@ impl RelSession {
             "routed Memory publication requires sealed candidate evidence".into(),
         ))
     }
-
 }
 
 impl PhySession {

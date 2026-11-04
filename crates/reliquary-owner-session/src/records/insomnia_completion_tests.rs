@@ -91,8 +91,11 @@ fn current_rel_grouped_completion_roundtrips_and_exposes_physical_clock() {
     assert!(encoded.starts_with(b"RELINSC7"));
     let decoded = GroupedInsomniaCompletion::decode(&encoded).unwrap();
     assert_eq!(decoded, completion);
-    decoded.validate_replay_episode([4; 32]).unwrap();
-    assert!(decoded.validate_replay_episode([5; 32]).is_err());
+    assert!(decoded.validate_replay_episode([4; 32]).is_err());
+    let mut unrouted = decoded;
+    unrouted.routing_metadata.clear();
+    unrouted.validate_replay_episode([4; 32]).unwrap();
+    assert!(unrouted.validate_replay_episode([5; 32]).is_err());
 }
 
 #[test]
