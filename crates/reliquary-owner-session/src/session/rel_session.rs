@@ -28,6 +28,19 @@ impl RelSession {
                 ));
             }
         }
+        // Archive is the durable authority for accepted Episodes. Rebuild
+        // the scheduling admission from it so reopen does not depend on a
+        // caller retaining a separate list of work candidates.
+        let accepted_episodes = archive
+            .episodes()
+            .into_iter()
+            .map(|episode| AcceptedEpisodeOrder {
+                episode_id: WorkEpisodeId(episode.id.0),
+                source_through_ns: episode.source_through_ns,
+                conversation_id: episode.conversation_id,
+                start_node_id: episode.start_node_id,
+            })
+            .collect::<Vec<_>>();
         let grouped_completions = validate_grouped_replay_admission(container, &archive)?;
         let common = open_common(container, graph_admission, dream_admissions, true)?;
         for completion in grouped_completions.values() {

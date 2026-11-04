@@ -259,6 +259,53 @@ impl RelWriter {
         Ok(accepted.value)
     }
 
+    /// Finalize a native Episode and admit its Archive-derived order for work.
+    pub fn finalize_episode(
+        &mut self,
+        conversation_id: &str,
+        start_node_id: &str,
+        end_node_id: &str,
+        origin: reliquary_archive::EpisodeOrigin,
+        boundary: reliquary_archive::EpisodeBoundary,
+        finalized_at_ns: i64,
+    ) -> Result<reliquary_archive::EpisodeId, OwnerSessionError> {
+        self.ensure_write_ready()?;
+        let id = match self.session.archive.put_episode(
+            &mut self.container,
+            conversation_id,
+            start_node_id,
+            end_node_id,
+            origin,
+            boundary,
+            finalized_at_ns,
+        ) {
+            Ok(id) => id,
+            Err(error) => {
+                if matches!(error, reliquary_archive::ArchiveError::Container(_)) {
+                    self.session.write_poisoned = true;
+                }
+                return Err(error.into());
+            }
+        };
+        self.session.writer_lease_proof = self.container.writer_lease_proof();
+        let episode = self
+            .session
+            .archive
+            .episode(id)
+            .expect("finalized Episode is present");
+        let order = AcceptedEpisodeOrder {
+            episode_id: WorkEpisodeId(id.0),
+            source_through_ns: episode.source_through_ns,
+            conversation_id: episode.conversation_id.clone(),
+            start_node_id: episode.start_node_id.clone(),
+        };
+        if let Err(error) = self.session.insomnia.admit_order(order) {
+            self.session.write_poisoned = true;
+            return Err(error.into());
+        }
+        Ok(id)
+    }
+
     /// Check that an accepted turn would advance this owner's current branch
     /// before any Archive frame is appended. The caller must retain the same
     /// writer lock from validation through `accept_turn_and_advance_branch`.

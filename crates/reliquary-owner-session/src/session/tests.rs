@@ -201,7 +201,7 @@ fn bounded_insomnia_claim_returns_archive_verified_input() {
         ))
     ));
     drop(reader);
-    let mut writer = RelWriter::open_path(&path.0, admission, [order], []).unwrap();
+    let mut writer = RelWriter::open_path(&path.0, admission, [], []).unwrap();
     let claim = writer
         .claim_next_insomnia_input("worker-1", 100, 1_000, 4)
         .unwrap()
@@ -448,6 +448,36 @@ fn new_rel_and_phy_writers_initialize_and_reopen_their_owners() {
         writer.session.writer_lease_proof,
         writer.container.writer_lease_proof()
     );
+    let episode = writer
+        .finalize_episode(
+            "new-conversation",
+            "new-turn",
+            "new-turn",
+            reliquary_archive::EpisodeOrigin::Live,
+            reliquary_archive::EpisodeBoundary::Explicit,
+            11,
+        )
+        .unwrap();
+    let before_retry = writer.container.read_frames().unwrap().len();
+    assert_eq!(
+        writer
+            .finalize_episode(
+                "new-conversation",
+                "new-turn",
+                "new-turn",
+                reliquary_archive::EpisodeOrigin::Live,
+                reliquary_archive::EpisodeBoundary::Explicit,
+                11
+            )
+            .unwrap(),
+        episode
+    );
+    assert_eq!(writer.container.read_frames().unwrap().len(), before_retry);
+    let claim = writer
+        .claim_next_insomnia_input("worker", 12, 100, 1)
+        .unwrap()
+        .unwrap();
+    assert_eq!(claim.episode.id, episode);
     assert!(RelWriter::create_path(&rel_path.0, ReliquaryScope::Project, rel_owner).is_err());
     drop(writer);
     let admission = GraphAdmission::for_replay(rel_owner, [], [], [], [], []);
@@ -460,6 +490,14 @@ fn new_rel_and_phy_writers_initialize_and_reopen_their_owners() {
             .unwrap()
             .role,
         "user"
+    );
+    assert_eq!(
+        reopened
+            .read_session()
+            .insomnia_work(WorkEpisodeId(episode.0))
+            .unwrap()
+            .state,
+        reliquary_insomnia_store::InsomniaWorkState::Processing
     );
     drop(reopened);
     assert!(
