@@ -135,3 +135,37 @@ fn echo_rejects_missing_tool_proof_before_appending() {
     ));
     assert_eq!(container.read_frames().unwrap().len(), before);
 }
+
+#[test]
+fn fresh_echo_store_replays_before_checking_sequence() {
+    let temp = TestDirectory::new();
+    let path = temp.0.join("existing-echo.rel");
+    let mut container = Container::create(
+        &path,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [0xE3; 16],
+    )
+    .unwrap();
+    let original = event(0, EchoEventKind::ReasoningSummary);
+    EchoStore::default()
+        .put(&mut container, original.clone())
+        .unwrap();
+    let before = container.read_frames().unwrap().len();
+    let mut fresh = EchoStore::default();
+    let conflict = EchoEvent {
+        content: "conflict".into(),
+        ..original.clone()
+    };
+    assert!(matches!(
+        fresh.put(&mut container, conflict),
+        Err(EchoError::ConflictingSequence)
+    ));
+    assert_eq!(container.read_frames().unwrap().len(), before);
+    assert!(!fresh.put(&mut container, original.clone()).unwrap());
+    assert_eq!(
+        EchoStore::open(&container)
+            .unwrap()
+            .for_turn("conversation-echo", "assistant-1"),
+        vec![original]
+    );
+}
