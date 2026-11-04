@@ -198,9 +198,29 @@ pub fn draft_dream_organization<C: GeneralEndpoint, V: GeneralEndpoint>(
         .first()
         .cloned()
         .ok_or(DreamWorkflowError::MemoryUnavailable(source_id))?;
+    let excluded: HashSet<_> = existing_relations
+        .values()
+        .filter(|relation| relation.active)
+        .flat_map(|relation| [relation.source, relation.target])
+        .filter_map(|node| match node {
+            NodeRef::Memory(id) if id != source_id.0 => Some(MemoryId(id)),
+            _ => None,
+        })
+        .chain(
+            facts
+                .iter()
+                .filter(|fact| fact.archived)
+                .map(|fact| fact.id),
+        )
+        .collect();
     let set = CandidateSet {
         source,
-        candidates: memories.iter().skip(1).cloned().collect(),
+        candidates: memories
+            .iter()
+            .skip(1)
+            .filter(|memory| !excluded.contains(&memory.id))
+            .cloned()
+            .collect(),
     };
     let classifications = classifier
         .classify_candidates(&set)
@@ -491,6 +511,87 @@ mod tests {
         let session = PhySession::open_path(&path.0, &admission, []).unwrap();
         assert_ne!(unrelated, a);
         (path, session, owner_id, a, b)
+    }
+
+    #[test]
+    fn excludes_archived_and_already_related_memories_before_model_call() {
+        let (path, session, owner_id, a, b) = owner();
+        drop(session);
+        let mut container = Container::open_writer(&path.0).unwrap();
+        let admission = GraphAdmission::for_changes(owner_id, [a.0, b.0], []);
+        let mut graph = reliquary_graph::GraphStore::open(&container, &admission).unwrap();
+        graph
+            .put(
+                &mut container,
+                &admission,
+                &[reliquary_graph::RelationChange {
+                    source: NodeRef::Memory(a.0),
+                    target: NodeRef::Memory(b.0),
+                    kind: RelationKind::Topical,
+                    active: true,
+                    origin: RelationOrigin::User,
+                }],
+            )
+            .unwrap();
+        drop(container);
+        let replay = GraphAdmission::for_replay(owner_id, [], [], [], [], []);
+        let session = PhySession::open_path(&path.0, &replay, []).unwrap();
+        let endpoint = RecordingEndpoint::default();
+        let draft = draft_dream_organization(
+            &EntityOwnerSession::Phy(&session),
+            owner_id,
+            a,
+            &[b],
+            &DreamClassifier::new(endpoint.clone()),
+            None::<&DreamVerifier<RecordingEndpoint>>,
+            DreamVerificationPolicy::default(),
+        )
+        .unwrap();
+        assert!(draft.classifications.is_empty());
+        assert!(endpoint.0.lock().unwrap().is_empty());
+        drop(session);
+
+        let mut container = Container::open_writer(&path.0).unwrap();
+        let mut graph = reliquary_graph::GraphStore::open(&container, &admission).unwrap();
+        graph
+            .put(
+                &mut container,
+                &admission,
+                &[reliquary_graph::RelationChange {
+                    source: NodeRef::Memory(a.0),
+                    target: NodeRef::Memory(b.0),
+                    kind: RelationKind::Topical,
+                    active: false,
+                    origin: RelationOrigin::User,
+                }],
+            )
+            .unwrap();
+        let mut memories = MemoryStore::open(&container).unwrap();
+        let mut archived = memory_draft(
+            "archive-b",
+            "Rollout plan",
+            "The rollout has a staged deployment schedule.",
+        );
+        archived.archived = true;
+        memories
+            .publish(&mut container, Some(b), 1, archived)
+            .unwrap();
+        drop(memories);
+        drop(container);
+        let session = PhySession::open_path(&path.0, &replay, []).unwrap();
+        let endpoint = RecordingEndpoint::default();
+        let draft = draft_dream_organization(
+            &EntityOwnerSession::Phy(&session),
+            owner_id,
+            a,
+            &[b],
+            &DreamClassifier::new(endpoint.clone()),
+            None::<&DreamVerifier<RecordingEndpoint>>,
+            DreamVerificationPolicy::default(),
+        )
+        .unwrap();
+        assert!(draft.classifications.is_empty());
+        assert!(endpoint.0.lock().unwrap().is_empty());
     }
 
     #[test]
