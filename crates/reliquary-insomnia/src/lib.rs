@@ -88,7 +88,7 @@ pub fn parse_evidence_requests(value: &Value) -> Result<Vec<EvidenceRequest>, St
     requests
         .iter()
         .map(|value| {
-            Ok(EvidenceRequest {
+            let request = EvidenceRequest {
                 kind: string_field(value, "kind")?.trim().to_lowercase(),
                 conversation_id: optional_string(value, "conversation_id")?,
                 node_id: optional_string(value, "node_id")?,
@@ -96,9 +96,40 @@ pub fn parse_evidence_requests(value: &Value) -> Result<Vec<EvidenceRequest>, St
                 end_node_id: optional_string(value, "end_node_id")?,
                 query: optional_string(value, "query")?,
                 limit: optional_usize(value, "limit")?,
-            })
+            };
+            validate_evidence_request(&request)?;
+            Ok(request)
         })
         .collect()
+}
+
+fn validate_evidence_request(request: &EvidenceRequest) -> Result<(), String> {
+    if request.limit > 5 {
+        return Err("evidence request limit exceeds 5".into());
+    }
+    match request.kind.as_str() {
+        "turn"
+            if !request.conversation_id.trim().is_empty() && !request.node_id.trim().is_empty() =>
+        {
+            Ok(())
+        }
+        "conversation_range"
+            if !request.conversation_id.trim().is_empty()
+                && !request.start_node_id.trim().is_empty()
+                && !request.end_node_id.trim().is_empty() =>
+        {
+            Ok(())
+        }
+        "archive_search"
+            if !request.query.trim().is_empty() && request.query.trim().len() <= 512 =>
+        {
+            Ok(())
+        }
+        "turn" | "conversation_range" | "archive_search" => {
+            Err("evidence request lacks a valid target".into())
+        }
+        _ => Err("unsupported evidence request kind".into()),
+    }
 }
 
 /// Validates that per-request references reproduce only the exact bounded facts
@@ -142,11 +173,38 @@ pub fn validate_evidence_response(
     let mut referenced = HashSet::new();
     let mut result_count = 0usize;
     for (request, result) in requests.iter().zip(results) {
+        validate_evidence_request(request)?;
         if result.kind != request.kind {
             return Err("evidence kind mismatch".into());
         }
         if result.error.is_some() && !result.turns.is_empty() {
             return Err("failed evidence result contains turns".into());
+        }
+        if request.kind == "turn"
+            && (result.turns.len() > 1
+                || result.turns.iter().any(|turn| {
+                    turn.conversation_id != request.conversation_id.trim()
+                        || turn.node_id != request.node_id.trim()
+                }))
+        {
+            return Err("turn evidence differs from requested target".into());
+        }
+        if request.kind == "conversation_range"
+            && result
+                .turns
+                .iter()
+                .any(|turn| turn.conversation_id != request.conversation_id.trim())
+        {
+            return Err("range evidence differs from requested conversation".into());
+        }
+        if request.kind == "archive_search"
+            && !request.conversation_id.trim().is_empty()
+            && result
+                .turns
+                .iter()
+                .any(|turn| turn.conversation_id != request.conversation_id.trim())
+        {
+            return Err("search evidence differs from requested conversation".into());
         }
         for turn in &result.turns {
             result_count = result_count
@@ -414,14 +472,28 @@ fn validate_candidate(
             return Err("attribution quote is not in supplied authoritative evidence".into());
         }
     }
-    if matches!(authority_kind.as_str(), "direct" | "correction") && raw.authority_source.is_some()
-    {
-        return Err(
-            "direct/correction authority must not use assistant authority provenance".into(),
-        );
+    if authority_kind != "adoption" && raw.authority_source.is_some() {
+        return Err("only adoption may use assistant authority provenance".into());
     }
     if authority_kind == "adoption" && raw.authority_source.is_none() {
         return Err("adoption authority requires assistant authority provenance".into());
+    }
+    if let Some(attribution) = &raw.authority_source {
+        let assistant_in_episode = attribution.conversation_id == episode.conversation_id
+            && turns.iter().any(|turn| {
+                turn.node_id == attribution.node_id
+                    && turn.role == "assistant"
+                    && turn.content.contains(&attribution.quote)
+            });
+        let assistant_in_evidence = evidence.iter().any(|turn| {
+            turn.conversation_id == attribution.conversation_id
+                && turn.node_id == attribution.node_id
+                && turn.role == "assistant"
+                && turn.content.contains(&attribution.quote)
+        });
+        if !assistant_in_episode && !assistant_in_evidence {
+            return Err("authority attribution must identify an assistant turn".into());
+        }
     }
     let title = raw.title.trim();
     let content = raw.content.trim();
@@ -577,6 +649,26 @@ mod tests {
                 .len()
                 == 1
         );
+        let mut user_as_assistant = value.clone();
+        user_as_assistant.authority_source = Some(SourceAttribution {
+            conversation_id: "c".into(),
+            node_id: "n1".into(),
+            quote: "I prefer concise answers.".into(),
+        });
+        assert!(
+            validate_candidates(&episode(), &turns, &[], vec![user_as_assistant])
+                .unwrap()
+                .candidates
+                .is_empty()
+        );
+        let mut retention_with_assistant = value.clone();
+        retention_with_assistant.authority_kind = "retention".into();
+        assert!(
+            validate_candidates(&episode(), &turns, &[], vec![retention_with_assistant])
+                .unwrap()
+                .candidates
+                .is_empty()
+        );
         value.authority_source.as_mut().unwrap().quote = "I will answer briefly.".into();
         assert!(
             validate_candidates(&episode(), &turns, &[], vec![value])
@@ -606,6 +698,21 @@ mod tests {
         );
         assert_eq!(parse_evidence_requests(&json!({"evidence_requests":[{"kind":" TURN ","conversation_id":"c","node_id":"x"}]})).unwrap()[0].kind,"turn");
         assert!(parse_evidence_requests(&json!({"evidence_requests":[{},{},{},{},{}]})).is_err());
+        assert!(
+            parse_evidence_requests(&json!({"evidence_requests":[{"kind":"unknown"}]})).is_err()
+        );
+        assert!(
+            parse_evidence_requests(
+                &json!({"evidence_requests":[{"kind":"turn","conversation_id":"c"}]})
+            )
+            .is_err()
+        );
+        assert!(
+            parse_evidence_requests(
+                &json!({"evidence_requests":[{"kind":"archive_search","query":"topic","limit":6}]})
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -636,6 +743,19 @@ mod tests {
             validate_evidence_response(&[request.clone()], &[result.clone()], &[turn.clone()])
                 .is_ok()
         );
+        let mut wrong_target = request.clone();
+        wrong_target.node_id = "different".into();
+        assert!(
+            validate_evidence_response(&[wrong_target], &[result.clone()], &[turn.clone()])
+                .is_err()
+        );
+        let mut search = request.clone();
+        search.kind = "archive_search".into();
+        search.query = "concise".into();
+        search.conversation_id = "other".into();
+        let mut search_result = result.clone();
+        search_result.kind = "archive_search".into();
+        assert!(validate_evidence_response(&[search], &[search_result], &[turn.clone()]).is_err());
         let mut altered = result;
         altered.turns[0].content.push('!');
         assert!(
