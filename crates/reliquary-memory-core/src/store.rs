@@ -222,6 +222,9 @@ impl MemoryStore {
     pub fn memory_count(&self) -> usize {
         self.state.revisions.len()
     }
+    pub fn memory_ids(&self) -> impl Iterator<Item = MemoryId> + '_ {
+        self.state.revisions.keys().copied()
+    }
     pub fn contains_memory(&self, id: MemoryId) -> bool {
         self.state.revisions.contains_key(&id)
     }

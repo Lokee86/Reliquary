@@ -53,7 +53,21 @@ pub(super) fn open_common(
             }
         }
     }
-    let graph = GraphStore::open(container, graph_admission)?;
+    if graph_admission.owner_id() != Some(container.owner_id()) {
+        return Err(OwnerSessionError::Graph(GraphError::WrongOwner));
+    }
+    // The persisted owners, not an external list, establish replay closure.
+    // Principal associations remain fail-closed until principal identity has
+    // an owner-authenticated historical proof.
+    let derived_admission = GraphAdmission::for_replay(
+        container.owner_id(),
+        memories.memory_ids().map(|id| id.0),
+        [],
+        perception.entities().map(|entity| (entity.id.0, false)),
+        [],
+        [],
+    );
+    let graph = GraphStore::open(container, &derived_admission)?;
     for relation in graph.history() {
         for node in [relation.source, relation.target] {
             let exists = match node {

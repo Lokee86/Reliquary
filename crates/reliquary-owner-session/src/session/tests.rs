@@ -374,7 +374,7 @@ fn session_rejects_graph_endpoints_forged_by_caller_admission() {
     let before = container.read_frames().unwrap().len();
     assert!(matches!(
         RelSession::open(&container, &admission, [], []),
-        Err(OwnerSessionError::Record(_))
+        Err(OwnerSessionError::Graph(GraphError::InvalidClosure(_)))
     ));
     assert_eq!(container.read_frames().unwrap().len(), before);
 }
