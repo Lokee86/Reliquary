@@ -618,6 +618,37 @@ fn owner_session_accepts_graph_with_owner_backed_memory_endpoints() {
     let empty_admission = reliquary_graph::GraphAdmission::for_replay(owner, [], [], [], [], []);
     let session = crate::RelSession::open(&reopened, &empty_admission, [], []).unwrap();
     assert_eq!(session.graph_version(), 1);
+    let frames = reopened.read_frames().unwrap();
+    let graph_frame = frames
+        .iter()
+        .find(|frame| frame.payload.starts_with(b"RELGRF01"))
+        .unwrap();
+    let forged_path = Temp::new();
+    let mut forged = Container::create(
+        &forged_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    for frame in &frames {
+        if frame.payload.starts_with(b"RELMCRT1")
+            && reliquary_memory_core::decode_grouped_creation(&frame.payload)
+                .unwrap()
+                .id
+                == first.id
+        {
+            forged.append(&graph_frame.payload).unwrap();
+        }
+        if !frame.payload.starts_with(b"RELGRF01") {
+            forged.append(&frame.payload).unwrap();
+        }
+    }
+    forged.sync().unwrap();
+    drop(forged);
+    let forged = Container::open_read_only(&forged_path.0).unwrap();
+    assert!(
+        matches!(crate::RelSession::open(&forged, &empty_admission, [], []), Err(crate::OwnerSessionError::Record(message)) if message.contains("Graph endpoint is absent from its physical prefix"))
+    );
     let dream = crate::DreamBeginAdmission {
         owner_uuid: owner,
         pass_id: "owner-backed".into(),

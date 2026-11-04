@@ -372,6 +372,14 @@ impl Record {
     }
 }
 
+/// Read an Entity's first publication identity for owner-prefix validation.
+pub fn entity_creation_in_frame(payload: &[u8]) -> Result<Option<EntityId>, PerceptionError> {
+    match Record::decode(payload)? {
+        Some(Record::Entity { value, .. }) if value.revision == 1 => Ok(Some(value.id)),
+        _ => Ok(None),
+    }
+}
+
 /// Per-container canonical entities and exact source-span resolution facts.
 pub struct PerceptionStore {
     owner_id: [u8; 16],

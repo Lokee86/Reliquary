@@ -68,6 +68,7 @@ pub(super) fn open_common(
         [],
     );
     let graph = GraphStore::open(container, &derived_admission)?;
+    validate_graph_prefix(container)?;
     for relation in graph.history() {
         for node in [relation.source, relation.target] {
             let exists = match node {
@@ -133,4 +134,46 @@ pub(super) fn open_common(
         maintenance,
         dreams,
     })
+}
+
+fn validate_graph_prefix(container: &Container) -> Result<(), OwnerSessionError> {
+    let mut memories = std::collections::BTreeSet::new();
+    let mut entities = std::collections::BTreeSet::new();
+    for frame in container.read_frames()? {
+        let payload = &frame.payload;
+        if payload.starts_with(b"RELMCRT1") {
+            memories.insert(
+                reliquary_memory_core::decode_grouped_creation(payload)?
+                    .id
+                    .0,
+            );
+        } else if payload.starts_with(b"RELINSC7") {
+            let completion =
+                GroupedInsomniaCompletion::decode(payload).map_err(OwnerSessionError::Record)?;
+            for record in completion.memory_records {
+                memories.insert(
+                    reliquary_memory_core::decode_grouped_creation(&record)?
+                        .id
+                        .0,
+                );
+            }
+        }
+        if let Some(id) = reliquary_perception_store::entity_creation_in_frame(payload)? {
+            entities.insert(id.0);
+        }
+        if let Some(relation) = reliquary_graph::relation_in_frame(payload)? {
+            for endpoint in [relation.source, relation.target] {
+                let found = match endpoint {
+                    NodeRef::Memory(id) => memories.contains(&id),
+                    NodeRef::Entity(id) => entities.contains(&id),
+                };
+                if !found {
+                    return Err(OwnerSessionError::Record(
+                        "Graph endpoint is absent from its physical prefix".into(),
+                    ));
+                }
+            }
+        }
+    }
+    Ok(())
 }

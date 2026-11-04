@@ -631,6 +631,11 @@ fn decode_graph(b: &[u8]) -> Result<Option<([u8; 16], Relation)>, GraphError> {
         },
     )))
 }
+
+/// Read a Graph relation from a physical frame for owner-prefix validation.
+pub fn relation_in_frame(payload: &[u8]) -> Result<Option<Relation>, GraphError> {
+    Ok(decode_graph(payload)?.map(|(_, relation)| relation))
+}
 fn encode_community(owner: [u8; 16], s: &CommunitySnapshot) -> Result<Vec<u8>, GraphError> {
     let mut o = COMMUNITY_MAGIC.to_vec();
     o.extend_from_slice(&owner);
