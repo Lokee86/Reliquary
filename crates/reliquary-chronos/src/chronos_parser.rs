@@ -91,3 +91,5 @@ fn mirror_range_anchors(anchors: &[TemporalAnchor], intervals: &mut Vec<Temporal
         });
     }
 }
+
+pub(crate) use crate::chronos_merge::merge_temporal_analysis;

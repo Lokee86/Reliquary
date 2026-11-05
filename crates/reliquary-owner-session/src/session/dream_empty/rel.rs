@@ -83,7 +83,39 @@ impl RelWriter {
             accepted_turn,
         )?;
         let memory_delta = promotion(&self.session.common, pass_id, observed, promote)?;
+        let admit = self
+            .session
+            .common
+            .dreams
+            .settlement_record(pass_id)
+            .map(|r| r.admit)
+            .unwrap_or(
+                !self
+                    .session
+                    .common
+                    .memories
+                    .current(observed.id)?
+                    .record
+                    .archived,
+            );
+        let credit_roots = self
+            .session
+            .common
+            .dreams
+            .settlement_record(pass_id)
+            .map(|r| r.credit_roots.clone())
+            .unwrap_or_else(|| {
+                effects
+                    .iter()
+                    .filter(|(_, amount)| {
+                        **amount == self.session.freshness.policy().linkage_principal
+                    })
+                    .map(|(id, _)| *id)
+                    .collect()
+            });
         let record = InitialDreamSettlement {
+            admit,
+            credit_roots,
             memory_delta,
             owner: self.owner_id(),
             pass_id: pass_id.to_owned(),
@@ -123,7 +155,7 @@ impl RelWriter {
                         .ok_or(OwnerSessionError::StaleDreamCut)?;
                     self.session
                         .freshness
-                        .prepare_initial_dream(
+                        .prepare_initial_dream_lifecycle(
                             FreshnessMemoryId(observed.id.0),
                             begin.turn,
                             accepted_turn,
@@ -138,6 +170,7 @@ impl RelWriter {
                                 .iter()
                                 .map(|(id, amount)| (FreshnessMemoryId(id.0), *amount))
                                 .collect(),
+                            admit,
                         )
                         .map_err(OwnerSessionError::Record)?
                 }
@@ -178,6 +211,12 @@ impl RelWriter {
                     }
                 }
                 self.session.writer_lease_proof = self.container.writer_lease_proof();
+                if accepted {
+                    if let Err(error) = self.session.common.refresh_dream_index(&[observed.id]) {
+                        self.session.write_poisoned = true;
+                        return Err(error);
+                    }
+                }
                 Ok(accepted)
             }
             Err(message) => {

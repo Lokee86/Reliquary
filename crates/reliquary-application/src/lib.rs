@@ -16,6 +16,7 @@ mod dream_candidates;
 mod dream_empty_publication;
 mod dream_publication;
 mod dream_supersession_publication;
+mod dream_temporal;
 mod dream_workflow;
 pub use conversation_workflow::{
     NativeConversationCommit, PublishedNativeTurn, commit_native_conversation_turn,
@@ -29,7 +30,10 @@ mod maintenance_workflow;
 mod retrieval_workflow;
 mod vector_workflow;
 mod verified_copy_workflow;
-pub use dream_candidates::{draft_ranked_dream_organization, ranked_owner_dream_candidates};
+pub use dream_candidates::{
+    DreamCandidateReadReport, draft_ranked_dream_organization, ranked_owner_dream_candidates,
+    ranked_owner_dream_candidates_with_report,
+};
 pub use dream_empty_publication::{commit_empty_dream_cycle, settle_initial_dream_cycle};
 pub use dream_publication::{DreamOwnerWriter, commit_dream_relation, commit_dream_zero_link};
 pub use dream_supersession_publication::commit_dream_supersession;
@@ -822,3 +826,11 @@ mod tests {
         );
     }
 }
+
+mod dream_batch_workflow;
+pub use dream_batch_workflow::{commit_dream_batch, draft_dream_batch_organization};
+
+mod dream_frontier_workflow;
+pub use dream_frontier_workflow::{
+    PreparedDreamFrontier, begin_prepared_dream_frontier, prepare_explicit_dream_frontier,
+};

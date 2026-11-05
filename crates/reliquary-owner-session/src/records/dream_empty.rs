@@ -4,7 +4,7 @@ use crate::MemoryId;
 use reliquary_memory_core::MemoryBodyId;
 use std::collections::BTreeSet;
 
-const MAGIC: &[u8; 8] = b"RELDRF01";
+const MAGIC: &[u8; 8] = b"RELDRF02";
 const PREFIX: &[u8; 6] = b"RELDRF";
 const MAX_PASS_BYTES: usize = 256;
 const FIXED: usize = 8 + 16 + 2 + 32 + 8 + 32 + 8 + 8 + 2 + 1;
@@ -20,6 +20,8 @@ pub(crate) struct InitialDreamSettlement {
     pub accepted_turn: u64,
     pub community_generation: Option<u64>,
     pub roots: BTreeSet<MemoryId>,
+    pub credit_roots: BTreeSet<MemoryId>,
+    pub admit: bool,
     pub freshness_effects: Vec<Vec<u8>>,
     pub memory_delta: Option<Vec<u8>>,
 }
@@ -48,10 +50,13 @@ impl InitialDreamSettlement {
         })
     }
     pub(crate) fn validate(&self) -> Result<(), String> {
-        if self.pass_id.is_empty()
+        if self.credit_roots.len() > 16
+            || self.credit_roots.contains(&self.source)
+            || (!self.admit && self.memory_delta.is_some())
+            || self.pass_id.is_empty()
             || self.pass_id.trim() != self.pass_id
             || self.pass_id.len() > MAX_PASS_BYTES
-            || self.revision != 1
+            || self.revision == 0
             || self.freshness_effects.len() > 3
             || self.roots.len() > 16
             || self.roots.contains(&self.source)
@@ -92,6 +97,11 @@ impl InitialDreamSettlement {
         for root in &self.roots {
             out.extend_from_slice(&root.0);
         }
+        out.push(u8::from(self.admit));
+        out.push(self.credit_roots.len() as u8);
+        for root in &self.credit_roots {
+            out.extend_from_slice(&root.0);
+        }
         out.push(self.freshness_effects.len() as u8);
         for effect in &self.freshness_effects {
             out.extend_from_slice(&(effect.len() as u16).to_le_bytes());
@@ -107,7 +117,8 @@ impl InitialDreamSettlement {
         if !payload.starts_with(PREFIX) {
             return Ok(None);
         }
-        if payload.len() < FIXED || !payload.starts_with(MAGIC) {
+        let legacy = payload.starts_with(b"RELDRF01");
+        if payload.len() < FIXED || (!legacy && !payload.starts_with(MAGIC)) {
             return Err("invalid initial Dream carrier".into());
         }
         let mut at = 8;
@@ -130,6 +141,8 @@ impl InitialDreamSettlement {
             accepted_turn: u64::from_le_bytes(take::<8>(payload, &mut at)),
             community_generation: None,
             roots: BTreeSet::new(),
+            credit_roots: BTreeSet::new(),
+            admit: true,
             freshness_effects: Vec::new(),
             memory_delta: None,
         };
@@ -157,6 +170,33 @@ impl InitialDreamSettlement {
             previous = Some(root);
             if !result.roots.insert(root) {
                 return Err("duplicate Dream root".into());
+            }
+        }
+        if legacy {
+            result.credit_roots = result.roots.clone();
+        } else {
+            if payload.len() < at + 2 {
+                return Err("truncated Dream credit proof".into());
+            }
+            result.admit = match payload[at] {
+                0 => false,
+                1 => true,
+                _ => return Err("invalid Dream admission flag".into()),
+            };
+            at += 1;
+            let credits = payload[at] as usize;
+            at += 1;
+            if credits > 16 || payload.len() < at + credits * 32 + 1 {
+                return Err("truncated Dream credit roots".into());
+            }
+            let mut previous = None;
+            for _ in 0..credits {
+                let root = MemoryId(take::<32>(payload, &mut at));
+                if previous.is_some_and(|id| id >= root) {
+                    return Err("unordered Dream credit roots".into());
+                }
+                previous = Some(root);
+                result.credit_roots.insert(root);
             }
         }
         let count = payload[at] as usize;

@@ -28,7 +28,7 @@ impl DreamEvidenceStore {
         if !pass.roots.is_empty()
             || !settlement.roots.is_subset(&pass.preexisting_ids)
             || pass.source_id != settlement.source
-            || pass.first_revision != settlement.revision
+            || pass.first_revision != 1
         {
             return Err("initial Dream settlement has roots or incorrect source revision".into());
         }
@@ -94,6 +94,7 @@ impl DreamEvidenceStore {
             begins: self.begins.clone(),
             journal: self.journal.clone(),
             initial_settlements: self.initial_settlements.clone(),
+            frontiers: self.frontiers.clone(),
         }
     }
 

@@ -1,3 +1,6 @@
+#[path = "dream_lifecycle.rs"]
+mod dream_lifecycle;
+pub use dream_lifecycle::GroupedMemoryLifecycle;
 #[path = "initial_promotion.rs"]
 mod initial_promotion;
 use crate::{codec::*, decode_grouped_creation, error::MemoryError, model::*};
@@ -135,12 +138,23 @@ impl MemoryStore {
 
     pub fn open_with_grouped_initial_events(
         container: &Container,
+        grouped: impl FnMut(&[u8]) -> Result<Option<GroupedMemoryReplay>, MemoryError>,
+        dream: impl FnMut(&[u8]) -> Result<Option<GroupedMemorySupersession>, MemoryError>,
+        initial: impl FnMut(&[u8]) -> Result<Option<GroupedMemoryInitialPromotion>, MemoryError>,
+    ) -> Result<Self, MemoryError> {
+        Self::open_with_dream_batches(container, grouped, dream, initial, |_| {
+            Err(MemoryError::Corrupt("Dream batch requires owner replay"))
+        })
+    }
+    pub fn open_with_dream_batches(
+        container: &Container,
         mut decode_grouped: impl FnMut(&[u8]) -> Result<Option<GroupedMemoryReplay>, MemoryError>,
         mut decode_dream: impl FnMut(&[u8]) -> Result<Option<GroupedMemorySupersession>, MemoryError>,
         mut decode_initial: impl FnMut(
             &[u8],
         )
             -> Result<Option<GroupedMemoryInitialPromotion>, MemoryError>,
+        mut decode_batch: impl FnMut(&[u8]) -> Result<Vec<GroupedMemoryLifecycle>, MemoryError>,
     ) -> Result<Self, MemoryError> {
         let mut store = Self {
             owner: Some((container.owner_id(), container.identity())),
@@ -192,6 +206,14 @@ impl MemoryStore {
                 frame.read_to_end(&mut payload)?;
                 if let Some((bodies, records)) = decode_grouped(&payload)? {
                     store.apply_grouped_completion(bodies, records)?;
+                }
+                continue;
+            }
+            if magic.starts_with(b"RELDRB") {
+                let mut payload = magic.to_vec();
+                frame.read_to_end(&mut payload)?;
+                for event in decode_batch(&payload)? {
+                    store.apply_dream_lifecycle(&event)?;
                 }
                 continue;
             }
@@ -641,6 +663,42 @@ impl MemoryStore {
         Ok(tombstone)
     }
 
+    /// Current selected revision without cloning the retained revision history.
+    pub fn current(&self, id: MemoryId) -> Result<MemoryRevision, MemoryError> {
+        if self.state.tombstones.contains_key(&id) {
+            return Err(MemoryError::TerminalTombstone);
+        }
+        let record = self
+            .state
+            .revisions
+            .get(&id)
+            .and_then(|h| h.last())
+            .ok_or(MemoryError::MissingMemory)?;
+        Ok(self.revision_view(record))
+    }
+    /// Canonical metadata at a domain-version cut, including tombstone exclusion.
+    pub fn record_at_cut(&self, id: MemoryId, cut: u64) -> Option<&MemoryRecord> {
+        if self
+            .state
+            .tombstones
+            .get(&id)
+            .is_some_and(|t| t.memory_version <= cut)
+        {
+            return None;
+        }
+        let history = self.state.revisions.get(&id)?;
+        let at = history.partition_point(|r| r.memory_version <= cut);
+        at.checked_sub(1).and_then(|at| history.get(at))
+    }
+    pub fn memory_ids_page(&self, after: Option<MemoryId>, limit: usize) -> Vec<MemoryId> {
+        use std::ops::Bound::{Excluded, Unbounded};
+        self.state
+            .revisions
+            .range((after.map_or(Unbounded, Excluded), Unbounded))
+            .take(limit)
+            .map(|(id, _)| *id)
+            .collect()
+    }
     pub fn history(&self, id: MemoryId) -> Result<MemoryHistory, MemoryError> {
         let records = self
             .state

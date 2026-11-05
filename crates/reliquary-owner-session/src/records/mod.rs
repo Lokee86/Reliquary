@@ -1,6 +1,9 @@
 //! Passive owner-scoped durability records. Semantic truth and foreign-owner
 //! admission remain with their owning stores and coordinators.
 pub mod dream;
+pub(crate) mod dream_batch;
+pub(crate) mod dream_frontier;
+pub use dream_frontier::InitialDreamFrontier;
 pub(crate) mod dream_empty;
 pub(crate) mod dream_group;
 pub mod dream_no_link;

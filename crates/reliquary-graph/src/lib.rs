@@ -169,6 +169,7 @@ struct Key {
     kind: RelationKind,
 }
 
+#[derive(Clone)]
 pub struct GraphStore {
     owner: [u8; 16],
     identity: ContainerIdentity,
@@ -177,6 +178,7 @@ pub struct GraphStore {
     history: Vec<Relation>,
     outgoing: BTreeMap<NodeRef, BTreeSet<Key>>,
     incoming: BTreeMap<NodeRef, BTreeSet<Key>>,
+    duplicate_incident: BTreeMap<NodeRef, BTreeSet<Key>>,
 }
 
 impl GraphStore {
@@ -189,7 +191,19 @@ impl GraphStore {
     pub fn open_with_grouped_dream(
         container: &Container,
         admission: &GraphAdmission,
+        grouped: impl FnMut(&[u8]) -> Result<Option<Relation>, GraphError>,
+    ) -> Result<Self, GraphError> {
+        Self::open_with_dream_batches(container, admission, grouped, |_, _| {
+            Err(GraphError::CorruptRecord(
+                "Dream batch requires owner replay",
+            ))
+        })
+    }
+    pub fn open_with_dream_batches(
+        container: &Container,
+        admission: &GraphAdmission,
         mut grouped: impl FnMut(&[u8]) -> Result<Option<Relation>, GraphError>,
+        mut batch: impl FnMut(&[u8], &Self) -> Result<Vec<Relation>, GraphError>,
     ) -> Result<Self, GraphError> {
         if admission.owner_id != Some(container.owner_id()) {
             return Err(GraphError::InvalidClosure(
@@ -204,9 +218,14 @@ impl GraphStore {
             history: Vec::new(),
             outgoing: BTreeMap::new(),
             incoming: BTreeMap::new(),
+            duplicate_incident: BTreeMap::new(),
         };
         for frame in container.read_frames()? {
-            if let Some((owner, relation)) = decode_graph(&frame.payload)? {
+            if frame.payload.starts_with(b"RELDRB") {
+                for relation in batch(&frame.payload, &store)? {
+                    store.apply_dream_relation(admission, relation)?;
+                }
+            } else if let Some((owner, relation)) = decode_graph(&frame.payload)? {
                 if owner != store.owner {
                     return Err(GraphError::WrongOwner);
                 }
@@ -440,6 +459,16 @@ impl GraphStore {
         }
         self.states.insert(key, relation);
         if relation.active {
+            if relation.kind == RelationKind::DuplicateOf {
+                self.duplicate_incident
+                    .entry(relation.source)
+                    .or_default()
+                    .insert(key);
+                self.duplicate_incident
+                    .entry(relation.target)
+                    .or_default()
+                    .insert(key);
+            }
             self.outgoing
                 .entry(relation.source)
                 .or_default()
@@ -455,6 +484,10 @@ impl GraphStore {
     }
     fn remove_index(&mut self, key: Key, relation: Relation) {
         if relation.active {
+            if relation.kind == RelationKind::DuplicateOf {
+                remove_key(&mut self.duplicate_incident, relation.source, key);
+                remove_key(&mut self.duplicate_incident, relation.target, key);
+            }
             remove_key(&mut self.outgoing, relation.source, key);
             remove_key(&mut self.incoming, relation.target, key);
         }
@@ -1194,3 +1227,11 @@ mod tests {
         ));
     }
 }
+
+#[path = "dream_batch.rs"]
+mod dream_batch;
+
+pub use dream_batch::dream_relation_in_frame;
+
+#[path = "duplicate_context.rs"]
+mod duplicate_context;

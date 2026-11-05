@@ -93,17 +93,18 @@ impl RelSession {
                     .dreams
                     .begin(&record.pass_id)
                     .ok_or("Dream Freshness lacks Begin")?;
-                let effects = freshness.validate_initial_dream(
+                let effects = freshness.validate_initial_dream_lifecycle(
                     FreshnessMemoryId(record.source.0),
                     begin.turn,
                     record.accepted_turn,
                     record.graph_version,
                     record.community_generation,
                     &record.freshness_effects,
+                    record.admit,
                 )?;
-                if record.roots.is_empty() != effects.is_empty()
+                if record.credit_roots.is_empty() != effects.is_empty()
                     || effects.contains_key(&FreshnessMemoryId(record.source.0))
-                    || record.roots.iter().any(|id| {
+                    || record.credit_roots.iter().any(|id| {
                         effects.get(&FreshnessMemoryId(id.0))
                             != Some(&freshness.policy().linkage_principal)
                     })

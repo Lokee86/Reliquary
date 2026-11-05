@@ -12,8 +12,9 @@ pub use reliquary_freshness_store::FRESHNESS_POLICY_VERSION;
 pub use reliquary_graph::{NodeRef, Relation, RelationKind, RelationOrigin};
 pub use reliquary_insomnia_store::{EpisodeId as InsomniaEpisodeId, InsomniaWork};
 pub use reliquary_memory_core::{
-    MemoryBody, MemoryBodyId, MemoryDraft, MemoryHistory, MemoryId, MemoryRecord, MemorySourceRef,
-    MemoryTemporalInference, PayloadState, TerminalTombstone, memory_body_id, memory_id,
+    MemoryBody, MemoryBodyId, MemoryDraft, MemoryError, MemoryHistory, MemoryId, MemoryRecord,
+    MemoryRevision, MemorySourceRef, MemoryTemporalInference, PayloadState, TemporalIndicationKind,
+    TemporalInference, TemporalInferenceResolution, TerminalTombstone, memory_body_id, memory_id,
 };
 pub use reliquary_perception_store::{
     Entity, EntityId, MAX_MENTION_CANDIDATES, MemoryEntityMentionKey, MemoryEntityResolution,

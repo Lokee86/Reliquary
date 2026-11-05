@@ -77,7 +77,21 @@ impl PhyWriter {
             accepted_turn,
         )?;
         let memory_delta = promotion(&self.common, pass_id, observed, promote)?;
+        let admit = self
+            .common
+            .dreams
+            .settlement_record(pass_id)
+            .map(|r| r.admit)
+            .unwrap_or(!self.common.memories.current(observed.id)?.record.archived);
+        let credit_roots = self
+            .common
+            .dreams
+            .settlement_record(pass_id)
+            .map(|r| r.credit_roots.clone())
+            .unwrap_or_else(|| Default::default());
         let record = InitialDreamSettlement {
+            admit,
+            credit_roots,
             memory_delta,
             owner: self.owner_id,
             pass_id: pass_id.to_owned(),
@@ -119,6 +133,12 @@ impl PhyWriter {
                     }
                 }
                 self.writer_lease_proof = self.container.writer_lease_proof();
+                if accepted {
+                    if let Err(error) = self.common.refresh_dream_index(&[observed.id]) {
+                        self.poisoned = true;
+                        return Err(error);
+                    }
+                }
                 Ok(accepted)
             }
             Err(message) => {

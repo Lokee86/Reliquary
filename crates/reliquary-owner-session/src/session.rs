@@ -165,6 +165,7 @@ struct CommonState {
     maintenance: OwnerMaintenanceStore,
     dreams: DreamEvidenceStore,
     dream_pairs: dream_pairs::DreamPairs,
+    dream_read_index: dream_read_index::DreamReadIndex,
 }
 
 /// Read-only Reliquary owner aggregate. Archive and turn authority exist only
@@ -254,14 +255,15 @@ macro_rules! common_reads {
                         "Memory page limit must be between 1 and 128".into(),
                     ));
                 }
-                let ids = self
-                    .$field
-                    .memories
-                    .memory_ids()
-                    .filter(|id| after.is_none_or(|cursor| *id > cursor))
-                    .take(limit)
-                    .collect();
+                let ids = self.$field.memories.memory_ids_page(after, limit);
                 Ok((self.$field.memories.memory_version(), ids))
+            }
+            pub fn current_memory(&self,id:MemoryId)->Result<MemoryRevision,OwnerSessionError>{Ok(self.$field.memories.current(id)?)}
+            pub fn dream_candidate_pool(&self,source:MemoryId,profile:CompatibilityProfileId,row:&[f32])->Result<DreamCandidatePool,OwnerSessionError>{
+                if self.$field.dream_read_index.version!=self.$field.memories.memory_version(){return Err(OwnerSessionError::StaleDreamCut);}
+                let current=self.$field.memories.record_at_cut(source,self.$field.memories.memory_version()).ok_or(OwnerSessionError::StaleDreamCut)?;
+                if !self.$field.dream_read_index.active.contains(&source){return Err(OwnerSessionError::StaleDreamCut);}
+                Ok(self.$field.dream_read_index.query(source,self.$field.memories.first_memory_version(source).ok_or(OwnerSessionError::StaleDreamCut)?,current.source_time_ns,profile,row))
             }
             pub fn memory_history(
                 &self,
@@ -318,6 +320,13 @@ macro_rules! common_reads {
             pub fn retention_manifest(&self, digest: &[u8; 32]) -> Option<&HistoryPruneManifest> {
                 self.$field.maintenance.get(digest)
             }
+            pub fn dream_duplicate_context(&self,seeds:&[MemoryId])->Result<(Vec<reliquary_memory_core::MemoryRecord>,Vec<Relation>),OwnerSessionError> {
+                let (ids,relations)=self.$field.graph.duplicate_context(&seeds.iter().map(|id|id.0).collect::<Vec<_>>(),128)?;
+                let mut records=Vec::new();
+                for id in ids {records.push(self.$field.memories.record_at_cut(MemoryId(id),self.$field.memories.memory_version()).ok_or(OwnerSessionError::StaleDreamCut)?.clone());}
+                Ok((records,relations))
+            }
+            pub fn initial_dream_frontier(&self,pass:&str)->Option<crate::InitialDreamFrontier>{self.$field.dreams.initial_frontier(pass)}
             pub fn dream_begin(
                 &self,
                 pass_id: &str,
@@ -366,7 +375,7 @@ macro_rules! common_reads {
                 else {
                     return Ok(None);
                 };
-                let mapping = self.$field.memory_vectors.get(location.set_id)?;
+                let mapping = self.$field.memory_vectors.info(location.set_id).ok_or(MemoryVectorError::MissingObject)?;
                 let row = self
                     .$field
                     .packed_vectors
@@ -434,3 +443,29 @@ mod dream_group;
 mod dream_no_link;
 mod dream_supersession;
 mod grouped_commit;
+
+pub(crate) mod dream_batch_model;
+pub use dream_batch_model::{DreamBatchCut, DreamLifecyclePublication, DreamPairPublication};
+
+mod dream_batch;
+
+mod dream_frontier;
+
+mod dream_read_index;
+pub use dream_read_index::DreamCandidatePool;
+
+impl CommonState {
+    fn refresh_dream_index(&mut self, ids: &[MemoryId]) -> Result<(), OwnerSessionError> {
+        self.dream_read_index.refresh(
+            &self.memories,
+            &self.packed_vectors,
+            &self.profiles,
+            &self.memory_vectors,
+            ids,
+        )
+    }
+}
+
+mod replay_prefix;
+
+mod dream_prefix_effect;

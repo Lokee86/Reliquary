@@ -16,7 +16,7 @@ pub fn settle_initial_dream_cycle(
     if writer.owner_id() != authorized_owner || draft.owner_id != authorized_owner {
         return Err(DreamWorkflowError::OwnerMismatch);
     }
-    let [source] = draft.observed_memories.as_slice() else {
+    let Some(source) = draft.observed_memories.first() else {
         return Err(DreamWorkflowError::UnsupportedPublication);
     };
     if !draft.classifications.is_empty()
@@ -72,9 +72,42 @@ pub fn settle_initial_dream_cycle(
     }
     let promote =
         !lifecycle.is_empty() || (snapshot.settled && fact.lifecycle_state == "extracted");
+    let facts: Vec<_> = snapshot
+        .duplicate_facts
+        .iter()
+        .map(|r| reliquary_dream::MemoryFact {
+            id: r.id,
+            lifecycle_state: r.lifecycle_state.clone(),
+            archived: r.archived,
+            superseded_by: r.superseded_by,
+            source_time_ns: r.source_time_ns,
+            authority_kind: r.authority_kind.clone(),
+            category: r.category.clone(),
+            memory_type: r.memory_type.clone(),
+        })
+        .collect();
+    let graph: Vec<_> = current.values().copied().collect();
+    let mut credit_roots = std::collections::BTreeSet::new();
+    if !snapshot.source.archived || snapshot.duplicate_origin {
+        for root in &snapshot.roots {
+            let component = reliquary_dream::duplicate_component(*root, &graph);
+            let members: Vec<_> = facts
+                .iter()
+                .filter(|f| component.contains(&f.id))
+                .cloned()
+                .collect();
+            if let Some(id) = reliquary_dream::duplicate_representative(&members) {
+                if id != source.memory_id
+                    && snapshot.preexisting.contains(&id)
+                    && snapshot.eligible.contains(&id)
+                {
+                    credit_roots.insert(id);
+                }
+            }
+        }
+    }
     let mut effects = std::collections::BTreeMap::new();
-    if matches!(writer, DreamOwnerWriter::Rel(_)) && !snapshot.settled && !snapshot.roots.is_empty()
-    {
+    if matches!(writer, DreamOwnerWriter::Rel(_)) && !snapshot.settled && !credit_roots.is_empty() {
         use reliquary_freshness::{
             CommunityMembership, MemoryAdjacency, PropagationEvent, propagate_with_policy,
         };
@@ -102,7 +135,7 @@ pub fn settle_initial_dream_cycle(
         }
         effects = propagate_with_policy(
             &PropagationEvent {
-                roots: snapshot.roots.into_iter().collect(),
+                roots: credit_roots.into_iter().collect(),
                 principal: snapshot.policy.linkage_principal,
                 excluded: [source.memory_id].into(),
             },

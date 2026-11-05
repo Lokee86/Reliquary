@@ -21,6 +21,8 @@ fn replay_rejects_foreign_stale_fabricated_and_incomplete_first_cycle_carriers()
             community_generation: None,
             memory_delta: None,
             roots: Default::default(),
+            credit_roots: Default::default(),
+            admit: true,
             freshness_effects: w
                 .session
                 .freshness
@@ -160,6 +162,8 @@ fn settlement_replay_rejects_begin_with_an_invented_graph_or_memory_prefix() {
             accepted_turn: 4,
             community_generation: None,
             roots: Default::default(),
+            credit_roots: Default::default(),
+            admit: true,
             freshness_effects: freshness
                 .prepare_initial_admission(FreshnessMemoryId(source.id.0), 4, 4)
                 .unwrap(),

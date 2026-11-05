@@ -37,6 +37,7 @@ pub enum DreamWorkflowError {
     InvalidVector(String),
     TemporalInferenceUnavailable,
     UnsupportedPublication,
+    IncompleteFrontier,
     OwnerWrite(String),
     Classifier(String),
     Verifier(String),
@@ -56,8 +57,11 @@ impl fmt::Display for DreamWorkflowError {
             Self::MissingSourceVector => f.write_str("Dream source embedding is unavailable"),
             Self::InvalidVector(error) => write!(f, "Dream vector is invalid: {error}"),
             Self::TemporalInferenceUnavailable => {
-                f.write_str("Dream temporal inference is not yet supported")
+                f.write_str("Dream temporal inference failed source/contract validation")
             }
+            Self::IncompleteFrontier => f.write_str(
+                "Dream frontier has pending or uncertain decisions; retry before settlement",
+            ),
             Self::UnsupportedPublication => {
                 f.write_str("Dream publication requires a single evaluated zero-link decision")
             }
@@ -83,9 +87,18 @@ pub struct DreamOrganizationDraft {
     pub(crate) verifications: Vec<DreamPairVerification>,
     /// Pure proposal from Dream's snapshot evaluator; it is not persisted.
     pub(crate) plan: EvaluationPlan,
+    pub(crate) accepted_decisions: Vec<PairDecision>,
+    pub(crate) pending: Vec<(MemoryId, MemoryId)>,
+    pub(crate) skipped: Vec<MemoryId>,
+    pub(crate) batch_ready: bool,
+    pub(crate) facts: Vec<MemoryFact>,
+    pub(crate) relations: Vec<Relation>,
 }
 
 impl DreamOrganizationDraft {
+    pub fn pending_pairs(&self) -> &[(MemoryId, MemoryId)] {
+        &self.pending
+    }
     pub fn owner_id(&self) -> [u8; 16] {
         self.owner_id
     }
@@ -156,22 +169,18 @@ pub fn draft_dream_organization<C: GeneralEndpoint, V: GeneralEndpoint>(
     let mut observations = Vec::with_capacity(ids.len());
     let mut memories = Vec::with_capacity(ids.len());
     for id in ids {
-        let history = owner
-            .memory_history(id)
-            .map_err(|error| DreamWorkflowError::OwnerRead(error.to_string()))?
-            .ok_or(DreamWorkflowError::MemoryUnavailable(id))?;
-        if history.tombstone.is_some() {
-            return Err(DreamWorkflowError::MemoryTombstoned(id));
-        }
-        let revision = history
-            .revisions
-            .last()
-            .ok_or(DreamWorkflowError::MemoryUnavailable(id))?;
+        let revision = owner.current_memory(id).map_err(|error| match error {
+            reliquary_owner_session::OwnerSessionError::Memory(
+                reliquary_owner_session::model::MemoryError::TerminalTombstone,
+            ) => DreamWorkflowError::MemoryTombstoned(id),
+            _ => DreamWorkflowError::MemoryUnavailable(id),
+        })?;
         let body = match &revision.payload {
             PayloadState::Available(body) => body,
             PayloadState::Absent => return Err(DreamWorkflowError::MemoryBodyUnavailable(id)),
         };
         let record = &revision.record;
+        crate::dream_temporal::analyze(record, body)?;
         let fact = MemoryFact {
             id,
             lifecycle_state: record.lifecycle_state.clone(),
@@ -250,6 +259,12 @@ pub fn draft_dream_organization<C: GeneralEndpoint, V: GeneralEndpoint>(
                 .map(|fact| fact.id),
         )
         .collect();
+    let skipped: Vec<_> = memories
+        .iter()
+        .skip(1)
+        .filter(|m| excluded.contains(&m.id) && !owner.dream_pair_evaluated(source_id, m.id))
+        .map(|m| m.id)
+        .collect();
     let set = CandidateSet {
         source,
         candidates: memories
@@ -267,9 +282,11 @@ pub fn draft_dream_organization<C: GeneralEndpoint, V: GeneralEndpoint>(
     let by_id: HashMap<_, _> = memories.iter().map(|memory| (memory.id, memory)).collect();
     let mut verifications = Vec::new();
     let mut accepted_decisions = Vec::new();
+    let mut pending = Vec::new();
     for classification in &classifications {
         if verification_policy.should_verify(classification.relation) {
             let Some(verifier) = verifier else {
+                pending.push((classification.a, classification.b));
                 continue;
             };
             let left = by_id
@@ -282,8 +299,12 @@ pub fn draft_dream_organization<C: GeneralEndpoint, V: GeneralEndpoint>(
                 .verify_if_required(verification_policy, classification, *left, *right)
                 .map_err(|error| DreamWorkflowError::Verifier(error.to_string()))?
             else {
+                pending.push((classification.a, classification.b));
                 continue;
             };
+            if verification.verdict == DreamVerificationVerdict::Uncertain {
+                pending.push((classification.a, classification.b));
+            }
             let accepted = verification.verdict == DreamVerificationVerdict::Accept;
             verifications.push(verification);
             if !accepted {
@@ -292,11 +313,8 @@ pub fn draft_dream_organization<C: GeneralEndpoint, V: GeneralEndpoint>(
         }
         accepted_decisions.push(pair_decision(classification));
     }
-    let plan = reliquary_dream::evaluate_snapshot(
-        &accepted_decisions,
-        &facts,
-        &existing_relations.into_values().collect::<Vec<_>>(),
-    );
+    let relations = existing_relations.into_values().collect::<Vec<_>>();
+    let plan = reliquary_dream::evaluate_snapshot(&accepted_decisions, &facts, &relations);
     Ok(DreamOrganizationDraft {
         owner_id,
         graph_version: owner.graph_version(),
@@ -304,6 +322,12 @@ pub fn draft_dream_organization<C: GeneralEndpoint, V: GeneralEndpoint>(
         classifications,
         verifications,
         plan,
+        accepted_decisions,
+        pending,
+        skipped,
+        batch_ready: false,
+        facts,
+        relations,
     })
 }
 

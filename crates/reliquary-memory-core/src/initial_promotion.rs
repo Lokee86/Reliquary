@@ -26,7 +26,6 @@ impl MemoryStore {
             .is_some_and(|r| matches!(r.payload, PayloadState::Available(_)))
             || history.tombstone.is_some()
             || current.revision != expected_revision
-            || current.revision != 1
             || current.lifecycle_state != "extracted"
             || current.archived
             || current.superseded_by.is_some()
@@ -35,7 +34,10 @@ impl MemoryStore {
             return Err(MemoryError::RevisionConflict);
         }
         let mut next = current.clone();
-        next.revision = 2;
+        next.revision = current
+            .revision
+            .checked_add(1)
+            .ok_or(MemoryError::VersionExhausted)?;
         next.memory_version = self.state.next_memory_version;
         next.lifecycle_state = "knowledge".into();
         next.mutation_id = mutation_id;

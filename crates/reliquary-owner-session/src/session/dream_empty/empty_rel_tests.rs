@@ -136,6 +136,8 @@ fn rel_synced_settlement_recovers_before_any_projection_is_applied() {
         community_generation: None,
         memory_delta: None,
         roots: Default::default(),
+        credit_roots: Default::default(),
+        admit: true,
         freshness_effects: writer
             .session
             .freshness

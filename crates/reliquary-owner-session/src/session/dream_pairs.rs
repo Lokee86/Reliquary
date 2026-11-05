@@ -15,6 +15,8 @@ pub(crate) struct DreamPairs {
     refs: BTreeMap<MemoryId, u32>,
     pairs: BTreeSet<(MemoryId, MemoryId)>,
     grouped_receipts: BTreeMap<(MemoryId, MemoryId), GroupedDreamRelation>,
+    batches: BTreeMap<[u8; 32], crate::records::dream_batch::DreamBatchRecord>,
+    initial: BTreeMap<MemoryId, BTreeMap<MemoryId, (reliquary_graph::RelationKind, u64)>>,
     supersessions: BTreeMap<(MemoryId, MemoryId), GroupedDreamSupersession>,
 }
 
@@ -27,6 +29,8 @@ impl DreamPairs {
             refs: BTreeMap::new(),
             pairs: BTreeSet::new(),
             grouped_receipts: BTreeMap::new(),
+            batches: BTreeMap::new(),
+            initial: BTreeMap::new(),
             supersessions: BTreeMap::new(),
         };
         let mut memories = BTreeSet::new();
@@ -35,7 +39,19 @@ impl DreamPairs {
             let payload = envelope
                 .as_ref()
                 .map_or(frame.payload.as_slice(), |value| value.body);
-            if payload.starts_with(b"RELMCRT1") {
+            if let Some(batch) = crate::records::dream_batch::DreamBatchRecord::decode(payload)
+                .map_err(OwnerSessionError::Record)?
+            {
+                if batch.owner != state.owner
+                    || batch
+                        .observed
+                        .iter()
+                        .any(|o| !memories.contains(&MemoryId(o.id)))
+                {
+                    return Err(invalid());
+                }
+                state.apply_batch(batch)?;
+            } else if payload.starts_with(b"RELMCRT1") {
                 memories.insert(reliquary_memory_core::decode_grouped_creation(payload)?.id);
             } else if payload.starts_with(b"RELINSC7") {
                 let completion = GroupedInsomniaCompletion::decode(payload)
@@ -95,6 +111,10 @@ impl DreamPairs {
                 if !memories.contains(&left) || !memories.contains(&right) {
                     return Err(invalid());
                 }
+                state.initial.entry(group.0.source.id).or_default().insert(
+                    group.0.candidate.id,
+                    (group.relation().kind, group.relation().graph_version),
+                );
                 let pair = ordered(left, right);
                 if !state.pairs.insert(pair) || state.grouped_receipts.insert(pair, group).is_some()
                 {
@@ -144,6 +164,10 @@ impl DreamPairs {
         if !self.pairs.insert(pair) {
             return Err(invalid());
         }
+        self.initial.entry(group.0.source.id).or_default().insert(
+            group.0.candidate.id,
+            (group.relation().kind, group.relation().graph_version),
+        );
         self.grouped_receipts.insert(pair, group);
         Ok(())
     }
@@ -234,3 +258,6 @@ fn ordered(a: MemoryId, b: MemoryId) -> (MemoryId, MemoryId) {
 fn invalid() -> OwnerSessionError {
     OwnerSessionError::Record("invalid Dream pair physical prefix".into())
 }
+
+#[path = "dream_pair_batches.rs"]
+mod batches;

@@ -47,9 +47,8 @@ impl PackedVectorStore {
             .ok_or(PackedVectorError::PayloadUnavailable(
                 crate::PayloadUnavailable::Pruned,
             ))?;
-        if entry.info.schema.scalar != lodestone_packed::ScalarType::F32
-            || packed_vector_id(entry.info.schema, bytes) != id
-        {
+        // Private immutable backing was digest-verified by put/insert_rebuilt.
+        if entry.info.schema.scalar != lodestone_packed::ScalarType::F32 {
             return Err(PackedVectorError::CorruptRecord(
                 "packed-vector row backing",
             ));

@@ -175,6 +175,9 @@ impl MemoryVectorStore {
         Ok(())
     }
 
+    pub fn info(&self, id: MemoryVectorId) -> Option<MemoryVectorInfo> {
+        self.objects.get(&id).map(|entry| entry.info)
+    }
     pub fn get(&self, id: MemoryVectorId) -> Result<MemoryVectorRecord, MemoryVectorError> {
         let entry = self
             .objects

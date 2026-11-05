@@ -32,53 +32,30 @@ mod chronos_vocabulary;
 pub use chronos_detection_model::{TemporalDetection, TemporalIndication, TemporalIndicationKind};
 pub use chronos_model::*;
 
-/// Deterministically extracts temporal information from text.
-///
-/// Relative expressions are resolved only when the caller supplies an
-/// authoritative reference timestamp. Chronos does not choose or persist it.
-pub fn analyze(text: &str, reference_timestamp_ns: Option<i64>) -> TemporalAnalysis {
-    let detected = chronos_detection::detect_and_normalize(text);
-    let parse_text = detected.normalized_text.as_deref().unwrap_or(text);
-    let mut analysis = chronos_parser::parse_temporal(parse_text, reference_timestamp_ns);
-    for anchor in &mut analysis.anchors {
-        anchor.evidence = detected.restore_evidence(text, &anchor.evidence);
-    }
-    for time in &mut analysis.times_of_day {
-        time.evidence = detected.restore_evidence(text, &time.evidence);
-    }
-    for duration in &mut analysis.durations {
-        duration.evidence = detected.restore_evidence(text, &duration.evidence);
-    }
-    for duration in &mut analysis.duration_ranges {
-        duration.evidence = detected.restore_evidence(text, &duration.evidence);
-    }
-    for duration in &mut analysis.approximate_durations {
-        duration.evidence = detected.restore_evidence(text, &duration.evidence);
-    }
-    for relation in &mut analysis.event_relations {
-        relation.evidence = detected.restore_evidence(text, &relation.evidence);
-    }
-    for interval in &mut analysis.intervals {
-        interval.evidence = detected.restore_evidence(text, &interval.evidence);
-    }
-    for pattern in &mut analysis.patterns {
-        pattern.evidence = detected.restore_evidence(text, &pattern.evidence);
-    }
-    analysis
+mod chronos_analysis;
+mod chronos_assessment;
+mod chronos_inference_apply;
+mod chronos_inference_model;
+mod chronos_inference_verify;
+mod chronos_merge;
+mod chronos_resolution;
+mod chronos_resolution_model;
+pub use chronos_analysis::{analyze, analyze_with_inference, assess, detect, temporal_matches};
+pub use chronos_inference_model::*;
+pub use chronos_resolution_model::*;
+pub const CHRONOS_INFERENCE_CONTRACT_VERSION: &str = "chronos-temporal-inference-v1";
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TemporalInferenceError {
+    InvalidOutput(String),
 }
-
-/// Identifies potentially temporal text and corrects only tightly bounded likely typos.
-pub fn detect(text: &str) -> TemporalDetection {
-    chronos_detection::detect_and_normalize(text).detection
+impl std::fmt::Display for TemporalInferenceError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidOutput(reason) => f.write_str(reason),
+        }
+    }
 }
-
-/// Compare caller-supplied temporal analyses without accessing owner state.
-pub fn temporal_matches(
-    source: &TemporalAnalysis,
-    candidate: &TemporalAnalysis,
-) -> (Vec<TemporalMatch>, f64) {
-    chronos_match::temporal_matches(source, candidate)
-}
+impl std::error::Error for TemporalInferenceError {}
 
 #[cfg(test)]
 mod tests;
@@ -86,3 +63,6 @@ mod tests;
 #[cfg(test)]
 #[path = "chronos_detection_tests.rs"]
 mod detection_tests;
+
+#[cfg(test)]
+mod chronos_inference_tests;

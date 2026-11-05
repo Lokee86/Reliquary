@@ -5,9 +5,18 @@ impl FreshnessStore {
     /// retained; completing Dream never reanchors birth or admission.
     pub fn prepare_initial_admission(
         &self,
+        id: FreshnessMemoryId,
+        birth: u64,
+        accepted: u64,
+    ) -> Result<Vec<Vec<u8>>, String> {
+        self.prepare_initial_enrollment(id, birth, accepted, true)
+    }
+    fn prepare_initial_enrollment(
+        &self,
         memory_id: FreshnessMemoryId,
         birth_turn: u64,
         accepted_turn: u64,
+        admit: bool,
     ) -> Result<Vec<Vec<u8>>, String> {
         if !self.policy_persisted
             || birth_turn == 0
@@ -41,7 +50,7 @@ impl FreshnessStore {
             effects.push(payload);
         }
         let (_, admitted) = staged.births[&memory_id];
-        if !admitted && !staged.admissions.contains_key(&memory_id) {
+        if admit && !admitted && !staged.admissions.contains_key(&memory_id) {
             let payload = encode_entry(
                 owner,
                 &JournalEntry::Admission {
@@ -59,14 +68,27 @@ impl FreshnessStore {
     /// birth, admission and event validation. This method performs no writes.
     pub fn prepare_initial_dream(
         &self,
+        id: FreshnessMemoryId,
+        birth: u64,
+        accepted: u64,
+        graph: u64,
+        community: Option<u64>,
+        effects: BTreeMap<FreshnessMemoryId, i16>,
+    ) -> Result<Vec<Vec<u8>>, String> {
+        self.prepare_initial_dream_lifecycle(id, birth, accepted, graph, community, effects, true)
+    }
+    pub fn prepare_initial_dream_lifecycle(
+        &self,
         memory_id: FreshnessMemoryId,
         birth_turn: u64,
         accepted_turn: u64,
         graph_version: u64,
         community_generation: Option<u64>,
         effects: BTreeMap<FreshnessMemoryId, i16>,
+        admit: bool,
     ) -> Result<Vec<Vec<u8>>, String> {
-        let mut payloads = self.prepare_initial_admission(memory_id, birth_turn, accepted_turn)?;
+        let mut payloads =
+            self.prepare_initial_enrollment(memory_id, birth_turn, accepted_turn, admit)?;
         let mut staged = self.clone();
         for payload in &payloads {
             staged.ingest_payload(payload)?;
@@ -101,21 +123,34 @@ impl FreshnessStore {
     /// Validate the exact canonical owner-prepared effects at their physical cut.
     pub fn validate_initial_dream(
         &self,
+        id: FreshnessMemoryId,
+        birth: u64,
+        accepted: u64,
+        graph: u64,
+        community: Option<u64>,
+        payloads: &[Vec<u8>],
+    ) -> Result<BTreeMap<FreshnessMemoryId, i16>, String> {
+        self.validate_initial_dream_lifecycle(id, birth, accepted, graph, community, payloads, true)
+    }
+    pub fn validate_initial_dream_lifecycle(
+        &self,
         memory_id: FreshnessMemoryId,
         birth_turn: u64,
         accepted_turn: u64,
         graph_version: u64,
         community_generation: Option<u64>,
         payloads: &[Vec<u8>],
+        admit: bool,
     ) -> Result<BTreeMap<FreshnessMemoryId, i16>, String> {
         let effects = Self::initial_dream_effects(payloads)?;
-        if self.prepare_initial_dream(
+        if self.prepare_initial_dream_lifecycle(
             memory_id,
             birth_turn,
             accepted_turn,
             graph_version,
             community_generation,
             effects.clone(),
+            admit,
         )? != payloads
         {
             return Err("Dream Freshness effects differ from accepted cut".into());

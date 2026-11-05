@@ -23,6 +23,8 @@ fn incomplete_initial_frame_requires_explicit_repair_and_retry_applies_all_effec
                 accepted_turn: 4,
                 community_generation: None,
                 roots: Default::default(),
+                credit_roots: Default::default(),
+                admit: true,
                 freshness_effects: w
                     .session
                     .freshness
@@ -55,6 +57,8 @@ fn incomplete_initial_frame_requires_explicit_repair_and_retry_applies_all_effec
                 accepted_turn: 4,
                 community_generation: None,
                 roots: Default::default(),
+                credit_roots: Default::default(),
+                admit: true,
                 freshness_effects: vec![],
                 memory_delta: Some(
                     w.common

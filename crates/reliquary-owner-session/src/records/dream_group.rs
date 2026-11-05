@@ -23,8 +23,8 @@ pub(crate) struct GroupedDreamRelation(pub DreamRelationCut);
 impl GroupedDreamRelation {
     pub(crate) fn new(cut: DreamRelationCut) -> Result<Self, String> {
         if cut.source.id == cut.candidate.id
-            || cut.source.revision != 1
-            || cut.candidate.revision != 1
+            || cut.source.revision == 0
+            || cut.candidate.revision == 0
             || cut.graph_version == u64::MAX
             || cut.change.origin != RelationOrigin::Dream
             || !cut.change.active

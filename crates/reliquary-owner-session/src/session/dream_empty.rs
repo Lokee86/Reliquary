@@ -3,7 +3,7 @@
 use super::*;
 use crate::records::{DreamMemoryCut, dream_empty::InitialDreamSettlement};
 
-fn initial_admission(
+pub(super) fn initial_admission(
     container: &Container,
     common: &CommonState,
     source: DreamMemoryCut,
@@ -18,10 +18,15 @@ fn initial_admission(
     }
     if let Some(begin) = common.dreams.begin(&pass_id) {
         if begin.source_id == source.id && begin.turn == turn {
-            let history = common.memories.history(source.id)?;
-            if !history.revisions.first().is_some_and(|r| {
-                r.record.revision == source.revision && r.record.body_id == source.body_id
-            }) {
+            let admission = common
+                .dreams
+                .admission(&pass_id)
+                .ok_or(OwnerSessionError::StaleDreamCut)?;
+            if !common
+                .memories
+                .record_at_cut(source.id, admission.memory_cut)
+                .is_some_and(|r| r.revision == source.revision && r.body_id == source.body_id)
+            {
                 return Err(OwnerSessionError::StaleDreamCut);
             }
             return Ok(common.dreams.admission(&pass_id).unwrap().clone());
@@ -29,7 +34,7 @@ fn initial_admission(
         return Err(OwnerSessionError::StaleDreamCut);
     }
     super::dream_no_link::validate_memory(common, source)?;
-    if source.revision != 1 || turn == 0 {
+    if source.revision == 0 || turn == 0 {
         return Err(OwnerSessionError::StaleDreamCut);
     }
     let population =
@@ -79,8 +84,9 @@ fn validate(
     if common.graph.graph_version() != record.graph_version {
         return Err(OwnerSessionError::StaleDreamCut);
     }
-    super::dream_no_link::validate_memory(
+    validate_source(
         common,
+        &record.pass_id,
         DreamMemoryCut {
             id: record.source,
             revision: record.revision,
@@ -91,10 +97,11 @@ fn validate(
     if !history.revisions.last().is_some_and(|r| {
         matches!(r.record.lifecycle_state.as_str(), "knowledge" | "canonical")
             || (r.record.lifecycle_state == "extracted" && record.memory_delta.is_some())
+            || (r.record.archived && !record.admit)
     }) {
         return Err(OwnerSessionError::StaleDreamCut);
     }
-    if record.revision != 1 {
+    if record.revision == 0 {
         return Err(OwnerSessionError::StaleDreamCut);
     }
     Ok(())
@@ -171,14 +178,21 @@ fn preflight_source(
         .begin(pass)
         .ok_or(OwnerSessionError::StaleDreamCut)?;
     if begin.source_id != source.id
-        || source.revision != 1
+        || source.revision == 0
         || graph != common.graph.graph_version()
         || graph < begin.graph_version_before
         || turn < begin.turn
     {
         return Err(OwnerSessionError::StaleDreamCut);
     }
-    super::dream_no_link::validate_memory(common, source)
+    if common.dreams.initial_frontier(pass).is_some_and(|f| {
+        f.candidates
+            .iter()
+            .any(|c| !common.dream_pairs.contains(source.id, c.id))
+    }) {
+        return Err(OwnerSessionError::StaleDreamCut);
+    }
+    validate_source(common, pass, source)
 }
 
 #[cfg(test)]
@@ -188,3 +202,32 @@ mod interruption_tests;
 #[cfg(test)]
 #[path = "dream_empty/sequential_tests.rs"]
 mod sequential_tests;
+
+fn validate_source(
+    common: &CommonState,
+    pass: &str,
+    source: DreamMemoryCut,
+) -> Result<(), OwnerSessionError> {
+    let current = common
+        .memories
+        .current(source.id)
+        .map_err(|_| OwnerSessionError::StaleDreamCut)?;
+    let begin = common
+        .dreams
+        .begin(pass)
+        .ok_or(OwnerSessionError::StaleDreamCut)?;
+    if current.record.revision != source.revision
+        || current.record.body_id != source.body_id
+        || !matches!(
+            current.payload,
+            reliquary_memory_core::PayloadState::Available(_)
+        )
+        || (current.record.archived
+            && !common
+                .dream_pairs
+                .archival_origin(source.id, begin.graph_version_before))
+    {
+        return Err(OwnerSessionError::StaleDreamCut);
+    }
+    Ok(())
+}

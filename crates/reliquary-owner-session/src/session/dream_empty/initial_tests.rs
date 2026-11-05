@@ -95,6 +95,8 @@ fn initial_relation_sync_recovers_roots_birth_admission_and_exactly_one_event() 
             community_generation: None,
             memory_delta: None,
             roots: [older.id].into(),
+            credit_roots: [older.id].into(),
+            admit: true,
             freshness_effects: vec![],
         };
         if rel {

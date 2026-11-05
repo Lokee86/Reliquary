@@ -41,6 +41,26 @@ impl EntityOwnerSession<'_> {
         }
     }
 
+    pub(crate) fn current_memory(
+        &self,
+        id: MemoryId,
+    ) -> Result<reliquary_owner_session::model::MemoryRevision, OwnerSessionError> {
+        match self {
+            Self::Rel(s) => s.current_memory(id),
+            Self::Phy(s) => s.current_memory(id),
+        }
+    }
+    pub(crate) fn dream_candidate_pool(
+        &self,
+        id: MemoryId,
+        profile: CompatibilityProfileId,
+        row: &[f32],
+    ) -> Result<reliquary_owner_session::DreamCandidatePool, OwnerSessionError> {
+        match self {
+            Self::Rel(s) => s.dream_candidate_pool(id, profile, row),
+            Self::Phy(s) => s.dream_candidate_pool(id, profile, row),
+        }
+    }
     pub(crate) fn memory_history(
         &self,
         memory_id: MemoryId,
@@ -51,6 +71,21 @@ impl EntityOwnerSession<'_> {
         }
     }
 
+    pub(crate) fn dream_duplicate_context(
+        &self,
+        seeds: &[MemoryId],
+    ) -> Result<
+        (
+            Vec<reliquary_owner_session::model::MemoryRecord>,
+            Vec<Relation>,
+        ),
+        OwnerSessionError,
+    > {
+        match self {
+            Self::Rel(s) => s.dream_duplicate_context(seeds),
+            Self::Phy(s) => s.dream_duplicate_context(seeds),
+        }
+    }
     pub(crate) fn memory_ids_page(
         &self,
         after: Option<MemoryId>,

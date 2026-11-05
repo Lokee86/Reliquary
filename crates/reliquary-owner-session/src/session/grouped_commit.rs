@@ -210,6 +210,16 @@ impl RelSession {
                 return Err(error.into());
             }
         }
+        if let Err(error) = self.common.refresh_dream_index(
+            &completion
+                .memory_ids
+                .iter()
+                .map(|id| MemoryId(*id))
+                .collect::<Vec<_>>(),
+        ) {
+            self.write_poisoned = true;
+            return Err(error);
+        }
         self.grouped_completions.insert(key, completion);
         let Some(next_proof) = container.writer_lease_proof() else {
             self.write_poisoned = true;

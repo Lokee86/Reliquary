@@ -22,6 +22,8 @@ fn synced_no_candidate_promotion_replays_with_admission_and_settlement_rel_phy()
                 accepted_turn: 4,
                 community_generation: None,
                 roots: Default::default(),
+                credit_roots: Default::default(),
+                admit: true,
                 freshness_effects: w
                     .session
                     .freshness
@@ -67,6 +69,8 @@ fn synced_no_candidate_promotion_replays_with_admission_and_settlement_rel_phy()
                 accepted_turn: 4,
                 community_generation: None,
                 roots: Default::default(),
+                credit_roots: Default::default(),
+                admit: true,
                 freshness_effects: vec![],
                 memory_delta: Some(
                     w.common
@@ -195,6 +199,8 @@ fn replay_refuses_promotion_delta_with_unrelated_mutation_identity() {
         accepted_turn: 4,
         community_generation: None,
         roots: Default::default(),
+        credit_roots: Default::default(),
+        admit: true,
         freshness_effects: vec![],
         memory_delta: Some(
             w.common

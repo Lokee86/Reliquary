@@ -6,7 +6,7 @@ pub(super) fn open_common(
     dream_admissions: impl IntoIterator<Item = DreamBeginAdmission>,
     replay_grouped_insomnia: bool,
 ) -> Result<CommonState, OwnerSessionError> {
-    let memories = MemoryStore::open_with_grouped_initial_events(
+    let memories = MemoryStore::open_with_dream_batches(
         container,
         |payload| {
             if !replay_grouped_insomnia {
@@ -42,6 +42,15 @@ pub(super) fn open_common(
             crate::records::dream_empty::InitialDreamSettlement::decode(payload)
                 .map(|record| record.and_then(|r| r.memory_event()))
                 .map_err(|_| MemoryError::Corrupt("invalid initial Dream lifecycle"))
+        },
+        |payload| {
+            let record = crate::records::dream_batch::DreamBatchRecord::decode(payload)
+                .map_err(|_| MemoryError::Corrupt("invalid Dream batch"))?
+                .ok_or(MemoryError::Corrupt("missing Dream batch"))?;
+            if record.owner != container.owner_id() {
+                return Err(MemoryError::Corrupt("foreign Dream batch"));
+            }
+            Ok(record.lifecycles.iter().map(|l| l.event()).collect())
         },
     )?;
     let perception = PerceptionStore::open(container)?;
@@ -85,18 +94,39 @@ pub(super) fn open_common(
         [],
         [],
     );
-    let graph = GraphStore::open_with_grouped_dream(container, &derived_admission, |payload| {
-        if payload.starts_with(b"RELDRS") {
-            crate::records::dream_supersession::GroupedDreamSupersession::decode(payload)
-                .map(|record| record.map(|record| record.relation()))
-                .map_err(|_| GraphError::CorruptRecord("invalid Dream supersession carrier"))
-        } else {
-            crate::records::dream_group::GroupedDreamRelation::decode(payload)
-                .map(|record| record.map(|record| record.relation()))
-                .map_err(|_| GraphError::CorruptRecord("invalid grouped Dream carrier"))
-        }
-    })?;
-    validate_graph_prefix(container)?;
+    let graph = GraphStore::open_with_dream_batches(
+        container,
+        &derived_admission,
+        |payload| {
+            if payload.starts_with(b"RELDRS") {
+                crate::records::dream_supersession::GroupedDreamSupersession::decode(payload)
+                    .map(|record| record.map(|record| record.relation()))
+                    .map_err(|_| GraphError::CorruptRecord("invalid Dream supersession carrier"))
+            } else {
+                crate::records::dream_group::GroupedDreamRelation::decode(payload)
+                    .map(|record| record.map(|record| record.relation()))
+                    .map_err(|_| GraphError::CorruptRecord("invalid grouped Dream carrier"))
+            }
+        },
+        |payload, graph| {
+            let record = crate::records::dream_batch::DreamBatchRecord::decode(payload)
+                .map_err(|_| GraphError::CorruptRecord("invalid Dream batch"))?
+                .ok_or(GraphError::CorruptRecord("missing Dream batch"))?;
+            if record.owner != container.owner_id() || record.graph_version != graph.graph_version()
+            {
+                return Err(GraphError::WrongOwner);
+            }
+            record
+                .validate_direct(graph)
+                .map_err(|_| GraphError::CorruptRecord("invented Dream direct evidence"))?;
+            record
+                .graph_records
+                .iter()
+                .map(|r| reliquary_graph::dream_relation_in_frame(r, container.owner_id()))
+                .collect()
+        },
+    )?;
+    super::replay_prefix::validate_graph_prefix(container, &memories)?;
     for relation in graph.history() {
         for node in [relation.source, relation.target] {
             let exists = match node {
@@ -124,7 +154,40 @@ pub(super) fn open_common(
         ));
     }
     let maintenance = OwnerMaintenanceStore::open(container).map_err(OwnerSessionError::Record)?;
-    let dream_admissions = dream_admissions.into_iter().collect::<Vec<_>>();
+    let mut dream_admissions = dream_admissions.into_iter().collect::<Vec<_>>();
+    for frame in container.read_frames()? {
+        if let Some(frontier) =
+            crate::records::dream_frontier::FrontierRecord::decode(&frame.payload)
+                .map_err(OwnerSessionError::Record)?
+        {
+            if let Some(payload) = &frontier.begin {
+                let begin = crate::records::dream::dream_begin_codec::decode(payload)
+                    .map_err(OwnerSessionError::Record)?;
+                let population = super::dream_population::birth_population(
+                    container,
+                    &memories,
+                    begin.source_id,
+                )?;
+                let derived = DreamBeginAdmission {
+                    owner_uuid: container.owner_id(),
+                    pass_id: begin.pass_id.clone(),
+                    source_id: begin.source_id,
+                    turn: begin.turn,
+                    graph_version_before: begin.graph_version_before,
+                    preexisting_ids: population,
+                    memory_cut: frontier.memory_version,
+                };
+                if let Some(prior) = dream_admissions.iter().find(|a| a.pass_id == begin.pass_id) {
+                    if prior != &derived {
+                        return Err(OwnerSessionError::StaleDreamCut);
+                    }
+                } else {
+                    dream_admissions.push(derived);
+                }
+            }
+        }
+    }
+
     for admission in &dream_admissions {
         if admission.owner_uuid != container.owner_id()
             || !memories.contains_memory(admission.source_id)
@@ -151,8 +214,14 @@ pub(super) fn open_common(
     super::dream_prefix::validate_compact_dream_prefix(container, &dream_admissions)?;
     let dreams =
         DreamEvidenceStore::open(container, dream_admissions).map_err(OwnerSessionError::Record)?;
-    super::dream_initial_replay::validate(container, &dreams, &memories)?;
+    super::dream_initial_replay::validate(container, &dreams, &memories, &graph)?;
     let dream_pairs = super::dream_pairs::DreamPairs::open(container)?;
+    let dream_read_index = super::dream_read_index::DreamReadIndex::build(
+        &memories,
+        &packed_vectors,
+        &profiles,
+        &memory_vectors,
+    )?;
     Ok(CommonState {
         memories,
         perception,
@@ -165,127 +234,6 @@ pub(super) fn open_common(
         maintenance,
         dreams,
         dream_pairs,
+        dream_read_index,
     })
-}
-
-fn validate_graph_prefix(container: &Container) -> Result<(), OwnerSessionError> {
-    let mut memories = std::collections::BTreeSet::new();
-    let mut memory_bodies = std::collections::BTreeSet::new();
-    let mut birth_bodies = std::collections::BTreeMap::new();
-    let mut profiles = std::collections::BTreeSet::new();
-    let mut packed_vectors = std::collections::BTreeSet::new();
-    let mut entities = std::collections::BTreeSet::new();
-    let mut graph_version = 0;
-    for frame in container.read_frames()? {
-        let payload = reliquary_container::decode_publication(&frame.payload)?
-            .filter(|envelope| envelope.body.starts_with(b"RELMCRT1"))
-            .map_or(frame.payload.as_slice(), |envelope| envelope.body);
-        if payload.starts_with(b"RELMCRT1") {
-            let record = reliquary_memory_core::decode_grouped_creation(payload)?;
-            memories.insert(record.id.0);
-            memory_bodies.insert(record.body_id.0);
-            if record.revision == 1 {
-                birth_bodies.insert(record.id.0, record.body_id.0);
-            }
-        } else if payload.starts_with(b"RELINSC7") {
-            let completion =
-                GroupedInsomniaCompletion::decode(payload).map_err(OwnerSessionError::Record)?;
-            for record in completion.memory_records {
-                let record = reliquary_memory_core::decode_grouped_creation(&record)?;
-                memories.insert(record.id.0);
-                memory_bodies.insert(record.body_id.0);
-                if record.revision == 1 {
-                    birth_bodies.insert(record.id.0, record.body_id.0);
-                }
-            }
-        }
-        if let Some(profile) = reliquary_vector_store::profile::decode_profile(payload)? {
-            profiles.insert(profile.id.0);
-        }
-        if let Some(packed) = reliquary_vector_store::store::packed_id_in_frame(payload)? {
-            packed_vectors.insert(packed.0);
-        }
-        if let Some(mapping) = reliquary_vector_store::memory::sources_in_frame(payload)? {
-            if mapping
-                .bodies
-                .iter()
-                .any(|id| !memory_bodies.contains(&id.0))
-            {
-                return Err(OwnerSessionError::Record(
-                    "Memory vector references a body outside its physical prefix".into(),
-                ));
-            }
-            if !profiles.contains(&mapping.profile.0) || !packed_vectors.contains(&mapping.packed.0)
-            {
-                return Err(OwnerSessionError::Record(
-                    "Memory vector references backing outside its physical prefix".into(),
-                ));
-            }
-        }
-        match reliquary_perception_store::source_publication(payload)? {
-            Some(reliquary_perception_store::SourcePublication::EntityCreation(id)) => {
-                entities.insert(id.0);
-            }
-            Some(reliquary_perception_store::SourcePublication::Mention(key))
-                if !memories.contains(&key.memory_id) =>
-            {
-                return Err(OwnerSessionError::Record(
-                    "Entity mention references a Memory outside its physical prefix".into(),
-                ));
-            }
-            _ => {}
-        }
-        if let Some(relation) = reliquary_graph::relation_in_frame(payload)? {
-            for endpoint in [relation.source, relation.target] {
-                let found = match endpoint {
-                    NodeRef::Memory(id) => memories.contains(&id),
-                    NodeRef::Entity(id) => entities.contains(&id),
-                };
-                if !found {
-                    return Err(OwnerSessionError::Record(
-                        "Graph endpoint is absent from its physical prefix".into(),
-                    ));
-                }
-            }
-            graph_version = relation.graph_version;
-        } else if let Some(group) =
-            crate::records::dream_group::GroupedDreamRelation::decode(payload)
-                .map_err(OwnerSessionError::Record)?
-        {
-            if group.0.owner_id != container.owner_id()
-                || group.0.graph_version != graph_version
-                || [group.0.source, group.0.candidate]
-                    .iter()
-                    .any(|observed| birth_bodies.get(&observed.id.0) != Some(&observed.body_id.0))
-            {
-                return Err(OwnerSessionError::Record(
-                    "grouped Dream relation lacks owner physical-prefix proof".into(),
-                ));
-            }
-            graph_version = group.relation().graph_version;
-        } else if let Some(group) =
-            crate::records::dream_supersession::GroupedDreamSupersession::decode(payload)
-                .map_err(OwnerSessionError::Record)?
-        {
-            if group.cut.owner_id != container.owner_id()
-                || group.cut.graph_version != graph_version
-                || [group.cut.source, group.cut.candidate]
-                    .iter()
-                    .any(|observed| birth_bodies.get(&observed.id.0) != Some(&observed.body_id.0))
-            {
-                return Err(OwnerSessionError::Record(
-                    "Dream supersession lacks owner physical-prefix proof".into(),
-                ));
-            }
-            graph_version = group.relation().graph_version;
-        }
-        if reliquary_graph::community_graph_version_in_frame(payload)?
-            .is_some_and(|version| version > graph_version)
-        {
-            return Err(OwnerSessionError::Record(
-                "Community references a Graph cut outside its physical prefix".into(),
-            ));
-        }
-    }
-    Ok(())
 }

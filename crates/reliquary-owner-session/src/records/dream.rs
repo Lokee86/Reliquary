@@ -32,12 +32,14 @@ pub struct DreamBeginAdmission {
     pub memory_cut: u64,
 }
 
+#[derive(Clone)]
 pub struct DreamEvidenceStore {
     owner_uuid: [u8; 16],
     admissions: BTreeMap<String, DreamBeginAdmission>,
     begins: BTreeMap<String, BeginRecord>,
     journal: DreamFreshnessJournal,
     initial_settlements: BTreeMap<String, InitialDreamSettlement>,
+    frontiers: BTreeMap<String, super::dream_frontier::FrontierRecord>,
 }
 
 impl DreamEvidenceStore {
@@ -64,10 +66,16 @@ impl DreamEvidenceStore {
             begins: BTreeMap::new(),
             journal: DreamFreshnessJournal::new(Some(owner_uuid)),
             initial_settlements: BTreeMap::new(),
+            frontiers: BTreeMap::new(),
         };
         for frame in container.read_frames().map_err(|error| error.to_string())? {
-            if frame.payload.starts_with(BEGIN_MAGIC) {
-                let begin = dream_begin_codec::decode(&frame.payload)?;
+            let frontier = super::dream_frontier::FrontierRecord::decode(&frame.payload)?;
+            let payload = frontier
+                .as_ref()
+                .and_then(|r| r.begin.as_deref())
+                .unwrap_or(frame.payload.as_slice());
+            if payload.starts_with(BEGIN_MAGIC) {
+                let begin = dream_begin_codec::decode(payload)?;
                 let admission = store
                     .admissions
                     .get(&begin.pass_id)
@@ -84,15 +92,18 @@ impl DreamEvidenceStore {
                 let pass = materialize(&begin, admission);
                 store.journal.ingest_materialized_begin(owner_uuid, pass)?;
                 store.begins.insert(begin.pass_id.clone(), begin);
-            } else if frame.payload.starts_with(JOURNAL_MAGIC) {
-                store.journal.ingest(&frame.payload)?;
-            } else if let Some(settlement) = InitialDreamSettlement::decode(&frame.payload)? {
+            } else if payload.starts_with(JOURNAL_MAGIC) {
+                store.journal.ingest(payload)?;
+            } else if let Some(settlement) = InitialDreamSettlement::decode(payload)? {
                 if container.identity().file_kind == reliquary_container::FileKind::Phylactery
                     && !settlement.freshness_effects.is_empty()
                 {
                     return Err("PHY Dream cannot carry REL Freshness effects".into());
                 }
                 store.apply_initial_settlement(settlement)?;
+            }
+            if let Some(record) = frontier {
+                store.apply_frontier(record)?;
             }
         }
         Ok(store)
@@ -227,3 +238,6 @@ fn materialize(begin: &BeginRecord, admission: &DreamBeginAdmission) -> InitialD
         roots: BTreeSet::new(),
     }
 }
+
+#[path = "dream_frontier_store.rs"]
+mod frontier;

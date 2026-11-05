@@ -77,6 +77,7 @@ fn publish(
     common
         .graph
         .apply_grouped_relation(&admission, group.relation())?;
+    common.refresh_dream_index(&[group.memory_event().older])?;
     common.dream_pairs.apply_supersession(group)?;
     Ok(())
 }

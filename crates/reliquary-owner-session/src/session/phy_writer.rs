@@ -131,6 +131,13 @@ impl PhyWriter {
             return Err(error.into());
         }
         self.writer_lease_proof = self.container.writer_lease_proof();
+        if let Err(error) = self
+            .common
+            .refresh_dream_index(&[published.revision.record.id])
+        {
+            self.poisoned = true;
+            return Err(error);
+        }
         Ok(published.revision)
     }
 

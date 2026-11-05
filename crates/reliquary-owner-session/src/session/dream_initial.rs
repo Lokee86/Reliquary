@@ -7,6 +7,9 @@ use std::collections::{BTreeMap, BTreeSet};
 #[derive(Clone, Debug)]
 pub struct InitialDreamSnapshot {
     pub roots: BTreeSet<MemoryId>,
+    pub preexisting: BTreeSet<MemoryId>,
+    pub duplicate_facts: Vec<reliquary_memory_core::MemoryRecord>,
+    pub duplicate_origin: bool,
     pub source: reliquary_memory_core::MemoryRecord,
     pub relations: Vec<Relation>,
     pub community: Option<CommunitySnapshot>,
@@ -33,25 +36,12 @@ pub(super) fn roots(
         .admission(pass)
         .ok_or(OwnerSessionError::StaleDreamCut)?;
     let mut roots = BTreeSet::new();
-    for candidate in &admitted.preexisting_ids {
-        if let Some(receipt) = common
-            .dream_pairs
-            .grouped_receipt(begin.source_id, *candidate)
-        {
-            let relation = receipt.relation();
-            if receipt.0.source.id == begin.source_id
-                && relation.graph_version > begin.graph_version_before
-            {
-                // Only actual direct accepted publications, never adjacency,
-                // user relations, duplicate-chain rewires or later reprocessing.
-                super::dream_no_link::validate_memory(common, receipt.0.candidate)?;
-                if relation.kind == reliquary_graph::RelationKind::DuplicateOf
-                    && relation.source != NodeRef::Memory(begin.source_id.0)
-                {
-                    return Err(OwnerSessionError::StaleDreamCut);
-                }
-                roots.insert(*candidate);
-            }
+    for (candidate, _) in common
+        .dream_pairs
+        .initial_links(begin.source_id, begin.graph_version_before)
+    {
+        if admitted.preexisting_ids.contains(&candidate) {
+            roots.insert(candidate);
         }
     }
     if roots.len() > 16 {
@@ -77,15 +67,22 @@ pub(super) fn validate_effects(
         };
     };
     if effects.len() > 64
-        || record.roots.is_empty() != effects.is_empty()
+        || record.credit_roots.is_empty() != effects.is_empty()
         || effects.contains_key(&record.source)
         || record
-            .roots
+            .credit_roots
             .iter()
             .any(|id| effects.get(id) != Some(&principal))
     {
         return Err(OwnerSessionError::StaleDreamCut);
     }
+    validate_credit(
+        common,
+        &record.pass_id,
+        &record.roots,
+        &record.credit_roots,
+        common.graph.graph_version(),
+    )?;
     for id in effects.keys() {
         let history = common.memories.history(*id)?;
         let current = history
@@ -93,7 +90,6 @@ pub(super) fn validate_effects(
             .last()
             .ok_or(OwnerSessionError::StaleDreamCut)?;
         if history.tombstone.is_some()
-            || history.revisions.len() != 1
             || current.record.archived
             || !matches!(
                 current.record.lifecycle_state.as_str(),
@@ -116,7 +112,6 @@ fn snapshot(
     for id in common.memories.memory_ids() {
         let history = common.memories.history(id)?;
         if history.tombstone.is_none()
-            && history.revisions.len() == 1
             && history.revisions.last().is_some_and(|r| {
                 !r.record.archived
                     && matches!(r.record.lifecycle_state.as_str(), "knowledge" | "canonical")
@@ -131,16 +126,41 @@ fn snapshot(
         .begin(pass)
         .ok_or(OwnerSessionError::StaleDreamCut)?
         .source_id;
-    let source = common
-        .memories
-        .history(source_id)?
-        .revisions
-        .first()
+    let source = match common.dreams.settlement_record(pass) {
+        Some(record) => common.memories.revision(source_id, record.revision)?.record,
+        None => common.memories.current(source_id)?.record,
+    };
+    let preexisting = common
+        .dreams
+        .admission(pass)
         .ok_or(OwnerSessionError::StaleDreamCut)?
-        .record
+        .preexisting_ids
         .clone();
+    let begin = common
+        .dreams
+        .begin(pass)
+        .ok_or(OwnerSessionError::StaleDreamCut)?;
+    let seeds: Vec<_> = std::iter::once(source_id.0)
+        .chain(roots.iter().map(|id| id.0))
+        .collect();
+    let (ids, _) = common.graph.duplicate_context(&seeds, 128)?;
+    let duplicate_facts = ids
+        .into_iter()
+        .filter_map(|id| {
+            common
+                .memories
+                .record_at_cut(MemoryId(id), common.memories.memory_version())
+                .cloned()
+        })
+        .collect();
+    let duplicate_origin = common
+        .dream_pairs
+        .duplicate_origin(source_id, begin.graph_version_before);
     Ok(InitialDreamSnapshot {
         roots,
+        preexisting,
+        duplicate_facts,
+        duplicate_origin,
         source,
         relations: common.graph.history().copied().collect(),
         community: common
@@ -168,4 +188,39 @@ impl PhyWriter {
     ) -> Result<InitialDreamSnapshot, OwnerSessionError> {
         snapshot(&self.common, pass, None)
     }
+}
+
+pub(super) fn validate_credit(
+    common: &CommonState,
+    pass: &str,
+    roots: &BTreeSet<MemoryId>,
+    credits: &BTreeSet<MemoryId>,
+    version: u64,
+) -> Result<(), OwnerSessionError> {
+    let begin = common
+        .dreams
+        .begin(pass)
+        .ok_or(OwnerSessionError::StaleDreamCut)?;
+    let admitted = common
+        .dreams
+        .admission(pass)
+        .ok_or(OwnerSessionError::StaleDreamCut)?;
+    if credits.contains(&begin.source_id) || !credits.is_subset(&admitted.preexisting_ids) {
+        return Err(OwnerSessionError::StaleDreamCut);
+    }
+    let graph = common.graph.snapshot_at(version)?;
+    let (reachable, _) =
+        graph.duplicate_context(&roots.iter().map(|id| id.0).collect::<Vec<_>>(), 128)?;
+    if credits.iter().any(|id| !reachable.contains(&id.0)) {
+        return Err(OwnerSessionError::StaleDreamCut);
+    }
+    if common.memories.current(begin.source_id)?.record.archived
+        && !common
+            .dream_pairs
+            .duplicate_origin(begin.source_id, begin.graph_version_before)
+        && !credits.is_empty()
+    {
+        return Err(OwnerSessionError::StaleDreamCut);
+    }
+    Ok(())
 }
