@@ -1,13 +1,16 @@
+use crate::FragmentDefinition;
 use crate::{
-    ArchiveError, Branch, ContentId, Episode, EpisodeBoundary, EpisodeId, EpisodeOrigin, Node,
-    ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef,
-    SourceAttachment,
+    ArchiveError, Branch, ContentId, Episode, EpisodeBoundary, EpisodeId, EpisodeOrigin,
+    ImportReceipt, Node, ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryRef,
+    ProjectRevisionRef, SourceAttachment,
 };
 
 const TURN_MAGIC: [u8; 8] = *b"RELTURN2";
 const FILE_MAGIC: [u8; 8] = *b"RELFILE1";
 const BRANCH_MAGIC: [u8; 8] = *b"RELBRCH1";
 const EPISODE_MAGIC: [u8; 8] = *b"RELEPIS1";
+const IMPORT_MAGIC: [u8; 8] = *b"CVAIMPT1";
+const FRAGMENT_DEFINITION_MAGIC: [u8; 8] = *b"CVAFRG01";
 const MIN_ATTACHMENT_RECORD_LEN: usize = 32 + 32 + 8 + 4 + 1 + 1;
 
 pub(crate) enum Record {
@@ -15,6 +18,8 @@ pub(crate) enum Record {
     FileBlob(ContentId, Vec<u8>),
     Branch(Branch),
     Episode(Episode),
+    Import(ImportReceipt),
+    FragmentDefinitions(Vec<FragmentDefinition>),
 }
 
 pub(crate) fn encode_turn(
@@ -98,6 +103,26 @@ pub(crate) fn encode_episode(episode: &Episode) -> Result<Vec<u8>, ArchiveError>
     Ok(out)
 }
 
+pub(crate) fn encode_import_receipt(receipt: &ImportReceipt) -> Result<Vec<u8>, ArchiveError> {
+    let mut out = IMPORT_MAGIC.to_vec();
+    out.extend(
+        serde_json::to_vec(receipt)
+            .map_err(|_| ArchiveError::CorruptRecord("invalid import receipt"))?,
+    );
+    Ok(out)
+}
+
+pub(crate) fn encode_fragment_definitions(
+    definitions: &[FragmentDefinition],
+) -> Result<Vec<u8>, ArchiveError> {
+    let mut out = FRAGMENT_DEFINITION_MAGIC.to_vec();
+    out.extend(
+        serde_json::to_vec(definitions)
+            .map_err(|_| ArchiveError::CorruptRecord("invalid fragment definition"))?,
+    );
+    Ok(out)
+}
+
 pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<Record>, ArchiveError> {
     let Some(magic) = bytes.get(..8) else {
         return Ok(None);
@@ -110,6 +135,14 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<Record>, ArchiveError
         decode_branch(bytes).map(Some)
     } else if magic == EPISODE_MAGIC {
         decode_episode(bytes).map(Some)
+    } else if magic == IMPORT_MAGIC {
+        let receipt = serde_json::from_slice(bytes.get(8..).unwrap_or_default())
+            .map_err(|_| ArchiveError::CorruptRecord("invalid import receipt"))?;
+        Ok(Some(Record::Import(receipt)))
+    } else if magic == FRAGMENT_DEFINITION_MAGIC {
+        let definitions = serde_json::from_slice(bytes.get(8..).unwrap_or_default())
+            .map_err(|_| ArchiveError::CorruptRecord("invalid fragment definition"))?;
+        Ok(Some(Record::FragmentDefinitions(definitions)))
     } else {
         Ok(None)
     }

@@ -31,6 +31,35 @@ struct PackedVectorEntry {
 }
 
 impl PackedVectorStore {
+    /// Encode a bounded caller-validated matrix using the store's F32 format.
+    pub fn put_f32_rows(
+        &mut self,
+        container: &mut Container,
+        rows: &[Vec<f32>],
+    ) -> Result<PackedVectorId, PackedVectorError> {
+        let dimensions = rows
+            .first()
+            .ok_or(PackedVectorError::CorruptRecord("empty matrix"))?
+            .len();
+        if dimensions == 0
+            || rows
+                .iter()
+                .any(|row| row.len() != dimensions || row.iter().any(|v| !v.is_finite()))
+        {
+            return Err(PackedVectorError::CorruptRecord("invalid F32 matrix"));
+        }
+        let dimensions = u32::try_from(dimensions).map_err(|_| PackedVectorError::SizeOverflow)?;
+        let bytes = rows
+            .iter()
+            .flatten()
+            .flat_map(|v| v.to_le_bytes())
+            .collect();
+        let schema = VectorSchema::new(dimensions, lodestone_packed::ScalarType::F32)
+            .map_err(|_| PackedVectorError::CorruptRecord("matrix dimensions"))?;
+        let packed = PackedVectors::from_bytes(schema, bytes)
+            .map_err(|_| PackedVectorError::CorruptRecord("matrix bytes"))?;
+        self.put(container, packed)
+    }
     /// Read one retained F32 row without exposing the packed store or writer.
     pub fn read_f32_row(
         &self,

@@ -17,14 +17,18 @@ pub use archive::{
 };
 pub use echo_model::{EchoError, EchoEvent, EchoEventKind};
 pub use echo_store::EchoStore;
-pub use fragment::{Fragment, FragmentConfig, FragmentId, fragment_id, path_fragment_windows};
+pub use fragment::{
+    Fragment, FragmentConfig, FragmentDefinition, FragmentId, fragment_id, path_fragment_windows,
+};
 pub use model::{
     AcceptedTurnSource, ArchiveError, AttachmentInput, Branch, ContentId, Episode, EpisodeBoundary,
-    EpisodeId, EpisodeOrigin, Node, ProjectAttachmentInput, ProjectFileRef, ProjectRepositoryKind,
-    ProjectRepositoryRef, ProjectRevisionRef, ResolvedTurn, SourceAttachment, TurnAcceptance,
-    TurnInput,
+    EpisodeId, EpisodeOrigin, ImportReceipt, ImportedArtifact, ImportedBranch,
+    ImportedConversation, ImportedMessage, Node, ProjectAttachmentInput, ProjectFileRef,
+    ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef, ResolvedTurn,
+    SourceAttachment, TurnAcceptance, TurnInput,
 };
 
+pub use archive::file_id_from_bytes;
 pub use archive::validate_project_file_reference;
 
 /// Owner-session source facts needed to validate a physical Archive prefix.

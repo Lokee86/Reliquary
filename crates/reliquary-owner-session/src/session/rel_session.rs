@@ -162,6 +162,12 @@ impl RelSession {
         let archive_vectors = ArchiveVectorStore::open(container, &common.packed_vectors)?;
         let generations =
             VectorGenerationStore::open(container, &common.profiles, &archive_vectors)?;
+        super::archive_vector_publication::validate_generation_sources(
+            &archive,
+            &common,
+            &archive_vectors,
+            &generations,
+        )?;
         let external_index =
             ExternalIndexStore::open(container).map_err(OwnerSessionError::Record)?;
         let external_references =

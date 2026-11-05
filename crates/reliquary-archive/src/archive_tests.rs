@@ -63,6 +63,230 @@ fn file_identity_matches_f03_reference_vector() {
 }
 
 #[test]
+fn archive_version_tracks_new_turn_branch_and_episode_across_reopen() {
+    let temp = TestDirectory::new();
+    let mut container = Container::create(
+        temp.file("archive-version.rel"),
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [0xA6; 16],
+    )
+    .unwrap();
+    let mut archive = Archive::empty();
+    let first = turn("user1", None, 1, "question");
+    archive.accept_turn(&mut container, first.clone()).unwrap();
+    assert_eq!(archive.archive_version(), 1);
+    assert_eq!(
+        archive.node_archive_version("conversation-1", "user1"),
+        Some(1)
+    );
+    assert!(!archive.accept_turn(&mut container, first).unwrap().inserted);
+    assert_eq!(archive.archive_version(), 1);
+    archive
+        .accept_turn(
+            &mut container,
+            turn("assistant1", Some("user1"), 2, "answer"),
+        )
+        .unwrap();
+    assert_eq!(archive.archive_version(), 2);
+    assert_eq!(
+        archive.node_archive_version("conversation-1", "assistant1"),
+        Some(2)
+    );
+    archive
+        .put_branch(
+            &mut container,
+            Branch {
+                id: "main".into(),
+                conversation_id: "conversation-1".into(),
+                leaf_node_id: "assistant1".into(),
+                canonical: true,
+            },
+        )
+        .unwrap();
+    assert_eq!(archive.archive_version(), 3);
+    archive
+        .put_episode(
+            &mut container,
+            "conversation-1",
+            "user1",
+            "assistant1",
+            EpisodeOrigin::Import,
+            EpisodeBoundary::ImportEnd,
+            2,
+        )
+        .unwrap();
+    assert_eq!(archive.archive_version(), 4);
+    container.sync().unwrap();
+    let reopened = Archive::open(&container).unwrap();
+    assert_eq!(reopened.archive_version(), 4);
+    assert_eq!(
+        reopened.node_archive_version("conversation-1", "user1"),
+        Some(1)
+    );
+}
+
+#[test]
+fn fragment_definitions_are_durable_cut_proofs_and_old_tail_survives_extension() {
+    let temp = TestDirectory::new();
+    let owner = [0xB6; 16];
+    let mut container = Container::create(
+        temp.file("fragment-definitions.rel"),
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    let mut archive = Archive::empty();
+    for (id, parent) in [("user1", None), ("assistant1", Some("user1"))] {
+        archive
+            .accept_turn(&mut container, turn(id, parent, 1, id))
+            .unwrap();
+    }
+    archive
+        .put_branch(
+            &mut container,
+            Branch {
+                id: "main".into(),
+                conversation_id: "conversation-1".into(),
+                leaf_node_id: "assistant1".into(),
+                canonical: true,
+            },
+        )
+        .unwrap();
+    let config = crate::FragmentConfig {
+        turns: 2,
+        overlap: 1,
+    };
+    let published = archive
+        .define_branch_fragments(&mut container, "conversation-1", "main", config, true)
+        .unwrap();
+    assert_eq!(published.len(), 1);
+    let definition = published[0].clone();
+    assert_eq!(definition.archive_cut, 3);
+    let frame_count = container.latest_version();
+    assert_eq!(
+        archive
+            .define_branch_fragments(&mut container, "conversation-1", "main", config, true)
+            .unwrap(),
+        published
+    );
+    assert_eq!(container.latest_version(), frame_count);
+
+    archive
+        .accept_turn(
+            &mut container,
+            turn("user2", Some("assistant1"), 2, "later"),
+        )
+        .unwrap();
+    archive
+        .put_branch(
+            &mut container,
+            Branch {
+                id: "main".into(),
+                conversation_id: "conversation-1".into(),
+                leaf_node_id: "user2".into(),
+                canonical: true,
+            },
+        )
+        .unwrap();
+    container.sync().unwrap();
+    let reopened = Archive::open(&container).unwrap();
+    assert_eq!(
+        reopened.fragment_definition(definition.fragment.id),
+        Some(&definition)
+    );
+}
+
+#[test]
+fn import_receipt_binds_source_mapping_to_archive_nodes_branches_and_files() {
+    let temp = TestDirectory::new();
+    let owner = [0xA7; 16];
+    let mut container = Container::create(
+        temp.file("archive-import-receipt.rel"),
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    let mut archive = Archive::empty();
+    let mut source_turn = turn("native-node", None, 1, "private source body");
+    source_turn.attachments.push(crate::AttachmentInput {
+        filename: "note.txt".into(),
+        mime_type: Some("text/plain".into()),
+        bytes: b"artifact bytes".to_vec(),
+    });
+    archive.accept_turn(&mut container, source_turn).unwrap();
+    let branch = Branch {
+        id: "native-branch".into(),
+        conversation_id: "conversation-1".into(),
+        leaf_node_id: "native-node".into(),
+        canonical: true,
+    };
+    archive.put_branch(&mut container, branch).unwrap();
+    let attachment = archive.files_for_source("conversation-1", "native-node")[0].clone();
+    let receipt = crate::ImportReceipt {
+        schema_version: 1,
+        owner_uuid: owner,
+        import_key: [0x11; 32],
+        source_namespace: "provider/account".into(),
+        source_format: "schema-1".into(),
+        source_digest: [0x11; 32],
+        conversations: vec![crate::ImportedConversation {
+            source_id: "conversation-source".into(),
+            conversation_id: "conversation-1".into(),
+            title: Some("Imported title".into()),
+            messages: vec![crate::ImportedMessage {
+                source_id: "message-source".into(),
+                revision: "revision-1".into(),
+                source_parent_id: None,
+                replaces: None,
+                deleted: false,
+                node_id: Some("native-node".into()),
+                fingerprint: [0x22; 32],
+                artifacts: vec![crate::ImportedArtifact {
+                    source_id: "artifact-source".into(),
+                    source_ref: "export/attachment".into(),
+                    sha256: attachment.content_id.0,
+                    file_id: attachment.id,
+                }],
+            }],
+            branches: vec![crate::ImportedBranch {
+                source_id: "branch-source".into(),
+                branch_id: "native-branch".into(),
+                leaf_node_id: Some("native-node".into()),
+                canonical: true,
+            }],
+        }],
+        receipt_digest: [0; 32],
+    };
+    let accepted = archive
+        .put_import_receipt(&mut container, receipt.clone())
+        .unwrap();
+    assert_ne!(accepted.receipt_digest, [0; 32]);
+    assert_eq!(
+        archive
+            .put_import_receipt(&mut container, receipt.clone())
+            .unwrap(),
+        accepted
+    );
+    let mut conflicting = receipt.clone();
+    conflicting.conversations[0].messages[0].revision = "revision-2".into();
+    assert!(matches!(
+        archive.put_import_receipt(&mut container, conflicting),
+        Err(ArchiveError::ConflictingImportReceipt)
+    ));
+    let mut invalid = receipt;
+    invalid.conversations[0].messages[0].node_id = Some("missing-node".into());
+    invalid.import_key = [0x33; 32];
+    invalid.source_digest = [0x33; 32];
+    assert!(archive.put_import_receipt(&mut container, invalid).is_err());
+    container.sync().unwrap();
+    let reopened = Archive::open(&container).unwrap();
+    assert_eq!(
+        reopened.import_receipt(&accepted.import_key),
+        Some(&accepted)
+    );
+}
+
+#[test]
 fn bounded_episode_and_conversation_range_are_complete_and_size_limited() {
     let temp = TestDirectory::new();
     let mut container = Container::create(

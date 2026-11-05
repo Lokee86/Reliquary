@@ -2577,6 +2577,7 @@ dependencies = [
  "reliquary-switchboard",
  "reliquary-vector-store",
  "reliquary-vectors",
+ "serde",
  "serde_json",
  "sha2",
 ]
@@ -2586,6 +2587,8 @@ name = "reliquary-archive"
 version = "0.1.0"
 dependencies = [
  "reliquary-container",
+ "serde",
+ "serde_json",
  "sha2",
 ]
 

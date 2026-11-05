@@ -147,11 +147,13 @@ pub(super) fn validate_grouped_replay_admission(
 }
 
 pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), OwnerSessionError> {
-    const REL_ONLY: [(&[u8; 8], &str); 23] = [
+    const REL_ONLY: [(&[u8; 8], &str); 25] = [
         (b"RELTURN2", "Archive turn"),
         (b"RELFILE1", "Archive file"),
         (b"RELBRCH1", "Archive branch"),
         (b"RELEPIS1", "Archive Episode"),
+        (b"CVAIMPT1", "Archive import receipt"),
+        (b"CVAFRG01", "Archive fragment definition"),
         (b"RELECHO1", "Archive Echo"),
         (b"RELFRS02", "Freshness journal"),
         (b"RELFRP01", "Freshness policy"),

@@ -11,7 +11,18 @@ use reliquary_owner_session::model::{Episode, EpisodeId, ResolvedTurn};
 use reliquary_owner_session::{OwnerSessionError, RelSession};
 use std::{collections::HashSet, fmt};
 
+mod context_workflow;
 mod conversation_workflow;
+pub use context_workflow::{
+    ContextMemoryEvidence, ContextMemoryScope, ContextRepositoryEvidence, ContextWorkflowError,
+    MAX_CONTEXT_PROJECT_SOURCES, MAX_CONTEXT_SOURCE_BYTES, MAX_CONTEXT_SOURCE_TURNS,
+    PreparedContextWorkflow, finalize_context_workflow, prepare_context_workflow,
+    read_context_repository_source,
+};
+pub use reliquary_context_engine::{
+    CompactionBudget, CompactionCheckpoint, CompactionPlan, ContextMessage, ContextRequest,
+    ContextRole, ContextTokenCounter, ContextTurn, ContextView,
+};
 mod dream_candidates;
 mod dream_empty_publication;
 mod dream_publication;
@@ -43,7 +54,14 @@ pub use project_correlation_workflow::{
     validate_project_correlation_retry,
 };
 mod retrieval_workflow;
+mod vector_publication;
+pub use vector_publication::evaluate_archive_vectors;
 mod vector_workflow;
+pub use reliquary_vectors::{EmbeddingEndpoint, EmbeddingEndpointError, VectorNormalization};
+pub use vector_publication::{
+    PreparedMemoryVectors, commit_phy_memory_vectors, commit_rel_memory_vectors,
+    evaluate_memory_vectors, prepare_compatibility_profile,
+};
 mod verified_copy_workflow;
 pub use dream_candidates::{
     DreamCandidateReadReport, draft_ranked_dream_organization, ranked_owner_dream_candidates,

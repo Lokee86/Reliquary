@@ -27,6 +27,12 @@ pub use session::{
     RoutedUserMemoryReceipt,
 };
 
+pub use reliquary_vector_store::VectorGeneration;
 pub use session::EntityMentionCommit;
+pub use session::{
+    ArchiveVectorInput, ArchiveVectorRow, MAX_ARCHIVE_VECTOR_BATCH_ROWS,
+    MAX_ARCHIVE_VECTOR_RESPONSE_BYTES,
+};
+pub use session::{MemoryVectorInput, MemoryVectorRow};
 
 pub use session::{EntityCandidateMemory, EntityMentionInputs};

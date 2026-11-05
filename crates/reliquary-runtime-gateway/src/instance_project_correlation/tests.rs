@@ -4,6 +4,16 @@ use reliquary_owner_session::model::ProjectRepositoryKind;
 use sha2::{Digest, Sha256};
 use std::{fs, process::Command};
 
+struct ContextWords;
+impl reliquary_application::ContextTokenCounter for ContextWords {
+    fn count_text(&self, text: &str) -> u64 {
+        text.split_whitespace().count() as u64
+    }
+    fn count_message(&self, message: &reliquary_application::ContextMessage) -> u64 {
+        self.count_text(&message.content).saturating_add(1)
+    }
+}
+
 fn git(root: &Path, args: &[&str]) -> String {
     let result = Command::new("git")
         .arg("-C")
@@ -175,6 +185,43 @@ fn project_grant_proofs_gate_native_commit_and_survive_reopen() {
     assert_eq!(attachments.len(), 1);
     assert!(attachments[0].bytes.is_empty());
     let attachment_id = attachments[0].id;
+    let context = alice
+        .prepare_context_workflow(
+            owner,
+            "conversation",
+            reliquary_application::ContextView {
+                turns: vec![reliquary_application::ContextTurn {
+                    message_id: "source-turn".into(),
+                    role: reliquary_application::ContextRole::User,
+                    content: "Use this file.".into(),
+                }],
+            },
+            &[],
+            &[crate::ProjectContextAttachmentRef {
+                conversation_id: "conversation".into(),
+                source_node_id: "source-turn".into(),
+                attachment_id,
+            }],
+            &[&source],
+            None,
+            0,
+            reliquary_application::CompactionBudget {
+                trigger_tokens: 50,
+                target_tokens: 40,
+                raw_tail_tokens: 20,
+                summary_tokens: 10,
+                compaction_input_tokens: 80,
+            },
+            &ContextWords,
+        )
+        .unwrap();
+    let context_request = alice.context_request(&context).unwrap();
+    assert_eq!(context_request.messages.len(), 2);
+    assert!(
+        context_request.messages[1]
+            .content
+            .contains("source authority")
+    );
     assert_eq!(
         alice
             .verify_project_attachment(owner, "conversation", "source-turn", attachment_id, &source)
@@ -187,6 +234,7 @@ fn project_grant_proofs_gate_native_commit_and_survive_reopen() {
             .is_err()
     );
     source.revoke();
+    assert!(alice.context_request(&context).is_err());
     assert!(
         alice
             .verify_project_attachment(owner, "conversation", "source-turn", attachment_id, &source)

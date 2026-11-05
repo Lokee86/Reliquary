@@ -51,6 +51,16 @@ impl TrustedProjectSource {
         }
         Ok(&self.root)
     }
+
+    pub(super) fn context_root(
+        &self,
+        instance: &Instance,
+        owner: OwnerId,
+        repository: &ProjectRepositoryRef,
+    ) -> Result<(std::path::PathBuf, Arc<AtomicBool>), GatewayError> {
+        let root = self.authorize(instance, owner, repository)?.to_path_buf();
+        Ok((root, Arc::clone(&self.active)))
+    }
 }
 
 /// Source proof kept opaque through native turn admission.

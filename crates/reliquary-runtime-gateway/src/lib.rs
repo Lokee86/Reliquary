@@ -381,7 +381,12 @@ mod tests;
 
 mod gateway_mounts;
 mod insomnia_worker;
+mod instance_context;
 mod instance_conversation;
+pub use instance_context::{
+    AuthorizedContextCheckpoint, AuthorizedContextWorkflow, ContextMemoryOwnerKind,
+    ContextMemoryRef, ProjectContextAttachmentRef,
+};
 mod instance_owner;
 mod instance_passive_retrieval;
 mod instance_project_correlation;
@@ -391,6 +396,8 @@ pub use insomnia_worker::{InsomniaWorkerConfig, InsomniaWorkerHandle};
 
 mod host_memory_delivery;
 mod instance_entity;
+mod instance_vectors;
+pub use instance_vectors::PreparedVectorPublication;
 mod instance_retrieval;
 
 mod instance_external_source;

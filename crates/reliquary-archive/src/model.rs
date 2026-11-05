@@ -19,6 +19,62 @@ pub struct Node {
     pub content_id: ContentId,
 }
 
+/// Source-to-native mapping receipt for one complete normalized import.
+/// Transcript and artifact bodies remain in their ordinary Archive records.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ImportReceipt {
+    pub schema_version: u32,
+    pub owner_uuid: [u8; 16],
+    pub import_key: [u8; 32],
+    pub source_namespace: String,
+    pub source_format: String,
+    pub source_digest: [u8; 32],
+    pub conversations: Vec<ImportedConversation>,
+    pub receipt_digest: [u8; 32],
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ImportedConversation {
+    pub source_id: String,
+    pub conversation_id: String,
+    pub title: Option<String>,
+    pub messages: Vec<ImportedMessage>,
+    pub branches: Vec<ImportedBranch>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ImportedMessage {
+    pub source_id: String,
+    pub revision: String,
+    pub source_parent_id: Option<String>,
+    pub replaces: Option<String>,
+    pub deleted: bool,
+    pub node_id: Option<String>,
+    pub fingerprint: [u8; 32],
+    pub artifacts: Vec<ImportedArtifact>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ImportedBranch {
+    pub source_id: String,
+    pub branch_id: String,
+    pub leaf_node_id: Option<String>,
+    pub canonical: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ImportedArtifact {
+    pub source_id: String,
+    pub source_ref: String,
+    pub sha256: [u8; 32],
+    pub file_id: [u8; 32],
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TurnInput {
     pub id: String,
@@ -249,7 +305,10 @@ pub enum ArchiveError {
     InvalidEpisodeRange,
     EvidenceLimitExceeded,
     ConflictingEpisode,
+    ConflictingImportReceipt,
+    ConflictingFragmentDefinition,
     ActivityPositionExhausted,
+    ArchiveVersionExhausted,
     IndexCapacityExhausted,
 }
 
@@ -282,9 +341,16 @@ impl fmt::Display for ArchiveError {
             Self::ConflictingEpisode => {
                 f.write_str("Archive Episode identity has conflicting data")
             }
+            Self::ConflictingImportReceipt => {
+                f.write_str("Archive import identity has conflicting source mappings")
+            }
+            Self::ConflictingFragmentDefinition => {
+                f.write_str("Archive fragment identity has conflicting source definition")
+            }
             Self::ActivityPositionExhausted => {
                 f.write_str("Archive accepted activity position exhausted")
             }
+            Self::ArchiveVersionExhausted => f.write_str("Archive version exhausted"),
             Self::IndexCapacityExhausted => f.write_str("Archive index capacity exhausted"),
         }
     }

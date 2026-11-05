@@ -51,7 +51,7 @@ impl Instance {
         Ok(self.with_entity_phy_writer(owner, |writer| writer.commit_entity_mention(command))??)
     }
 
-    fn with_entity_phy_writer<T>(
+    pub(super) fn with_entity_phy_writer<T>(
         &self,
         owner: OwnerId,
         operation: impl FnOnce(&mut PhyWriter) -> T,

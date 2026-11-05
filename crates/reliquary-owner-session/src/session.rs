@@ -487,12 +487,19 @@ common_reads!(PhySession, common);
 mod tests;
 
 mod archive_evidence;
+mod archive_vector_publication;
 mod create;
 pub(crate) mod dream_pairs;
 pub(crate) mod dream_prefix;
 mod external_memory;
 mod external_reference;
 mod freshness_use;
+mod vector_publication;
+pub use archive_vector_publication::{
+    ArchiveVectorInput, ArchiveVectorRow, MAX_ARCHIVE_VECTOR_BATCH_ROWS,
+    MAX_ARCHIVE_VECTOR_RESPONSE_BYTES,
+};
+pub use vector_publication::{MemoryVectorInput, MemoryVectorRow};
 mod phy_writer;
 mod rel_session;
 mod rel_writer;

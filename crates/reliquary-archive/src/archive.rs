@@ -8,12 +8,13 @@
 mod tests;
 
 use crate::codec::{
-    Record, decode_record, encode_branch, encode_episode, encode_file_blob, encode_turn,
+    Record, decode_record, encode_branch, encode_episode, encode_file_blob,
+    encode_fragment_definitions, encode_import_receipt, encode_turn,
 };
 use crate::{
     AcceptedTurnSource, ArchiveError, AttachmentInput, Branch, ContentId, Episode, EpisodeBoundary,
-    EpisodeId, EpisodeOrigin, Node, ProjectAttachmentInput, ProjectFileRef, ProjectRepositoryKind,
-    ResolvedTurn, SourceAttachment, TurnAcceptance, TurnInput,
+    EpisodeId, EpisodeOrigin, ImportReceipt, Node, ProjectAttachmentInput, ProjectFileRef,
+    ProjectRepositoryKind, ResolvedTurn, SourceAttachment, TurnAcceptance, TurnInput,
 };
 use reliquary_container::{Container, ContainerError, ContainerIdentity, FileKind};
 use sha2::{Digest, Sha256};
@@ -31,12 +32,16 @@ pub struct Archive {
     nodes: HashMap<(String, String), Node>,
     content: HashMap<ContentId, String>,
     accepted_node_order: Vec<(String, String)>,
+    node_archive_versions: HashMap<(String, String), u64>,
     activity_position_by_node: HashMap<(String, String), u64>,
     rel_turn_count: u64,
     source_attachments: HashMap<(String, String), Vec<SourceAttachment>>,
     file_content: HashMap<ContentId, Vec<u8>>,
     branches: BTreeMap<(String, String), Branch>,
     episodes: BTreeMap<EpisodeId, Episode>,
+    import_receipts: BTreeMap<[u8; 32], ImportReceipt>,
+    fragment_definitions: BTreeMap<crate::FragmentId, crate::FragmentDefinition>,
+    archive_version: u64,
 }
 
 impl Archive {
@@ -47,12 +52,16 @@ impl Archive {
             nodes: HashMap::new(),
             content: HashMap::new(),
             accepted_node_order: Vec::new(),
+            node_archive_versions: HashMap::new(),
             activity_position_by_node: HashMap::new(),
             rel_turn_count: 0,
             source_attachments: HashMap::new(),
             file_content: HashMap::new(),
             branches: BTreeMap::new(),
             episodes: BTreeMap::new(),
+            import_receipts: BTreeMap::new(),
+            fragment_definitions: BTreeMap::new(),
+            archive_version: 0,
         }
     }
 
@@ -138,6 +147,9 @@ impl Archive {
         self.accepted_node_order
             .try_reserve(1)
             .map_err(|_| ArchiveError::IndexCapacityExhausted)?;
+        self.node_archive_versions
+            .try_reserve(1)
+            .map_err(|_| ArchiveError::IndexCapacityExhausted)?;
         let activity_position = if activity_role(&node.role) {
             let next = self
                 .rel_turn_count
@@ -151,6 +163,7 @@ impl Archive {
             None
         };
         let encoded = encode_turn(&node, &input.content, &attachments)?;
+        let archive_version = self.next_archive_version()?;
         let mut new_file_content = HashMap::new();
         for attachment in &attachments {
             if attachment.project_reference.is_some() {
@@ -181,10 +194,13 @@ impl Archive {
         self.content.entry(content_id).or_insert(input.content);
         self.source_attachments.insert(key.clone(), attachments);
         self.accepted_node_order.push(key.clone());
+        self.node_archive_versions
+            .insert(key.clone(), archive_version);
         if let Some(position) = activity_position {
             self.activity_position_by_node.insert(key, position);
             self.rel_turn_count = position;
         }
+        self.archive_version = archive_version;
         Ok(TurnAcceptance {
             value: node,
             inserted: true,
@@ -217,11 +233,13 @@ impl Archive {
                 return Err(ArchiveError::InvalidBranchRevision);
             }
         }
+        let archive_version = self.next_archive_version()?;
         let encoded = encode_branch(&branch)?;
         container.append(&encoded)?;
         container.sync()?;
         self.branches
             .insert((branch.conversation_id.clone(), branch.id.clone()), branch);
+        self.archive_version = archive_version;
         Ok(true)
     }
 
@@ -265,11 +283,52 @@ impl Archive {
             }
             return Err(ArchiveError::ConflictingEpisode);
         }
+        let archive_version = self.next_archive_version()?;
         let encoded = encode_episode(&episode)?;
         container.append(&encoded)?;
         container.sync()?;
         self.episodes.insert(episode.id, episode.clone());
+        self.archive_version = archive_version;
         Ok(episode.id)
+    }
+
+    /// Persist an owner-validated source-to-native mapping receipt after its
+    /// turns, branches, and files have been accepted. The receipt contains no
+    /// transcript or attachment bytes.
+    pub fn put_import_receipt(
+        &mut self,
+        container: &mut Container,
+        mut receipt: ImportReceipt,
+    ) -> Result<ImportReceipt, ArchiveError> {
+        self.bind_container(container)?;
+        if receipt.owner_uuid != container.owner_id() {
+            return Err(ArchiveError::WrongOwner);
+        }
+        receipt.receipt_digest = import_receipt_digest(&receipt)?;
+        self.validate_import_receipt(&receipt)?;
+        if let Some(existing) = self.import_receipts.get(&receipt.import_key) {
+            return if existing == &receipt {
+                Ok(existing.clone())
+            } else {
+                Err(ArchiveError::ConflictingImportReceipt)
+            };
+        }
+        let next_version = self.next_archive_version()?;
+        let encoded = encode_import_receipt(&receipt)?;
+        container.append(&encoded)?;
+        container.sync()?;
+        self.import_receipts
+            .insert(receipt.import_key, receipt.clone());
+        self.archive_version = next_version;
+        Ok(receipt)
+    }
+
+    pub fn import_receipt(&self, import_key: &[u8; 32]) -> Option<&ImportReceipt> {
+        self.import_receipts.get(import_key)
+    }
+
+    pub fn import_receipts(&self) -> Vec<ImportReceipt> {
+        self.import_receipts.values().cloned().collect()
     }
 
     pub fn branch_turns(
@@ -301,6 +360,61 @@ impl Archive {
             .cloned()
             .collect::<Vec<_>>();
         crate::path_fragment_windows(&nodes, config, close_tail)
+    }
+
+    /// Persist immutable deterministic fragment definitions for the current
+    /// accepted branch cut. Repeating the same publication is a no-op.
+    pub fn define_branch_fragments(
+        &mut self,
+        container: &mut Container,
+        conversation_id: &str,
+        branch_id: &str,
+        config: crate::FragmentConfig,
+        close_tail: bool,
+    ) -> Result<Vec<crate::FragmentDefinition>, ArchiveError> {
+        self.bind_container(container)?;
+        let fragments =
+            self.branch_fragment_windows(conversation_id, branch_id, config, close_tail)?;
+        let proposed = fragments
+            .into_iter()
+            .map(|fragment| crate::FragmentDefinition {
+                fragment,
+                branch_id: branch_id.to_owned(),
+                archive_cut: self.archive_version,
+                config,
+                close_tail,
+            })
+            .collect::<Vec<_>>();
+        let mut output = Vec::with_capacity(proposed.len());
+        let mut new_definitions = Vec::new();
+        for definition in proposed {
+            if let Some(existing) = self.fragment_definitions.get(&definition.fragment.id) {
+                if existing.fragment != definition.fragment {
+                    return Err(ArchiveError::ConflictingFragmentDefinition);
+                }
+                output.push(existing.clone());
+            } else {
+                new_definitions.push(definition.clone());
+                output.push(definition);
+            }
+        }
+        if new_definitions.is_empty() {
+            return Ok(output);
+        }
+        let next_version = self.next_archive_version()?;
+        let encoded = encode_fragment_definitions(&new_definitions)?;
+        container.append(&encoded)?;
+        container.sync()?;
+        for definition in &new_definitions {
+            self.fragment_definitions
+                .insert(definition.fragment.id, definition.clone());
+        }
+        self.archive_version = next_version;
+        Ok(output)
+    }
+
+    pub fn fragment_definition(&self, id: crate::FragmentId) -> Option<&crate::FragmentDefinition> {
+        self.fragment_definitions.get(&id)
     }
 
     pub fn historical_turns(
@@ -401,6 +515,27 @@ impl Archive {
         self.rel_turn_count
     }
 
+    /// Archive-local accepted record clock. One tick is allocated for each
+    /// newly accepted Turn, Branch revision, or Episode; FileBlob companions
+    /// and exact retries do not allocate a tick.
+    pub fn archive_version(&self) -> u64 {
+        self.archive_version
+    }
+
+    /// Archive clock assigned when this immutable source node was first
+    /// accepted. Replays and later branch changes do not move the node cut.
+    pub fn node_archive_version(&self, conversation_id: &str, node_id: &str) -> Option<u64> {
+        self.node_archive_versions
+            .get(&(conversation_id.to_owned(), node_id.to_owned()))
+            .copied()
+    }
+
+    fn next_archive_version(&self) -> Result<u64, ArchiveError> {
+        self.archive_version
+            .checked_add(1)
+            .ok_or(ArchiveError::ArchiveVersionExhausted)
+    }
+
     pub fn activity_position_for_turn(&self, conversation_id: &str, node_id: &str) -> Option<u64> {
         self.activity_position_by_node
             .get(&(conversation_id.to_owned(), node_id.to_owned()))
@@ -489,7 +624,11 @@ impl Archive {
                     return Err(ArchiveError::HashCollision);
                 }
                 validate_source_attachments(&attachments)?;
+                let archive_version = self.next_archive_version()?;
                 self.accepted_node_order
+                    .try_reserve(1)
+                    .map_err(|_| ArchiveError::IndexCapacityExhausted)?;
+                self.node_archive_versions
                     .try_reserve(1)
                     .map_err(|_| ArchiveError::IndexCapacityExhausted)?;
                 let position = if activity_role(&node.role) {
@@ -509,10 +648,13 @@ impl Archive {
                 self.source_attachments.insert(key.clone(), attachments);
                 let key = (node.conversation_id.clone(), node.id.clone());
                 self.accepted_node_order.push(key.clone());
+                self.node_archive_versions
+                    .insert(key.clone(), archive_version);
                 if let Some(position) = position {
                     self.activity_position_by_node.insert(key, position);
                     self.rel_turn_count = position;
                 }
+                self.archive_version = archive_version;
             }
             Record::FileBlob(content_id, bytes) => {
                 if ContentId(Sha256::digest(&bytes).into()) != content_id {
@@ -544,7 +686,9 @@ impl Archive {
                         return Err(ArchiveError::InvalidBranchRevision);
                     }
                 }
+                let archive_version = self.next_archive_version()?;
                 self.branches.insert(key, branch);
+                self.archive_version = archive_version;
             }
             Record::Episode(episode) => {
                 validate_text(&episode.conversation_id, "conversation id")?;
@@ -571,7 +715,194 @@ impl Archive {
                         return Err(ArchiveError::ConflictingEpisode);
                     }
                 } else {
+                    let archive_version = self.next_archive_version()?;
                     self.episodes.insert(episode.id, episode);
+                    self.archive_version = archive_version;
+                }
+            }
+            Record::Import(receipt) => {
+                self.validate_import_receipt(&receipt)?;
+                if let Some(existing) = self.import_receipts.get(&receipt.import_key) {
+                    return if existing == &receipt {
+                        Ok(())
+                    } else {
+                        Err(ArchiveError::ConflictingImportReceipt)
+                    };
+                }
+                let archive_version = self.next_archive_version()?;
+                self.import_receipts.insert(receipt.import_key, receipt);
+                self.archive_version = archive_version;
+            }
+            Record::FragmentDefinitions(definitions) => {
+                if definitions.is_empty() {
+                    return Err(ArchiveError::CorruptRecord(
+                        "empty fragment definition record",
+                    ));
+                }
+                let archive_cut = self.archive_version;
+                let mut expected = BTreeMap::new();
+                for definition in &definitions {
+                    if definition.archive_cut != archive_cut {
+                        return Err(ArchiveError::CorruptRecord("fragment cut mismatch"));
+                    }
+                    let fragments = self.branch_fragment_windows(
+                        &definition.fragment.conversation_id,
+                        &definition.branch_id,
+                        definition.config,
+                        definition.close_tail,
+                    )?;
+                    if !fragments.contains(&definition.fragment)
+                        || expected
+                            .insert(definition.fragment.id, definition)
+                            .is_some()
+                    {
+                        return Err(ArchiveError::CorruptRecord("invalid fragment definition"));
+                    }
+                }
+                if expected.len() != definitions.len()
+                    || definitions.iter().any(|definition| {
+                        self.fragment_definitions
+                            .contains_key(&definition.fragment.id)
+                    })
+                {
+                    return Err(ArchiveError::CorruptRecord("duplicate fragment definition"));
+                }
+                let archive_version = self.next_archive_version()?;
+                for definition in definitions {
+                    self.fragment_definitions
+                        .insert(definition.fragment.id, definition);
+                }
+                self.archive_version = archive_version;
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_import_receipt(&self, receipt: &ImportReceipt) -> Result<(), ArchiveError> {
+        if receipt.schema_version != 1
+            || Some(receipt.owner_uuid) != self.owner_id
+            || receipt.source_digest != receipt.import_key
+            || !valid_import_text(&receipt.source_namespace)
+            || !valid_import_text(&receipt.source_format)
+            || import_receipt_digest(receipt)? != receipt.receipt_digest
+        {
+            return Err(ArchiveError::CorruptRecord(
+                "invalid import receipt identity",
+            ));
+        }
+        let mut conversation_sources = std::collections::BTreeSet::new();
+        let mut native_conversations = std::collections::BTreeSet::new();
+        for conversation in &receipt.conversations {
+            if !valid_import_text(&conversation.source_id)
+                || !valid_import_text(&conversation.conversation_id)
+                || !conversation_sources.insert(conversation.source_id.as_str())
+                || !native_conversations.insert(conversation.conversation_id.as_str())
+            {
+                return Err(ArchiveError::CorruptRecord(
+                    "invalid imported conversation mapping",
+                ));
+            }
+            let mut source_messages = std::collections::BTreeSet::new();
+            for message in &conversation.messages {
+                if !valid_import_text(&message.source_id)
+                    || !valid_import_text(&message.revision)
+                    || !source_messages.insert(message.source_id.as_str())
+                {
+                    return Err(ArchiveError::CorruptRecord(
+                        "invalid imported message mapping",
+                    ));
+                }
+                if message
+                    .source_parent_id
+                    .as_deref()
+                    .is_some_and(|parent| !valid_import_text(parent))
+                    || message
+                        .replaces
+                        .as_deref()
+                        .is_some_and(|value| !valid_import_text(value))
+                {
+                    return Err(ArchiveError::CorruptRecord(
+                        "invalid imported message ancestry",
+                    ));
+                }
+                match (message.deleted, message.node_id.as_deref()) {
+                    (true, None) if message.artifacts.is_empty() => {}
+                    (false, Some(node_id)) if valid_import_text(node_id) => {
+                        let node = self
+                            .node(&conversation.conversation_id, node_id)
+                            .ok_or(ArchiveError::MissingNode)?;
+                        let source_attachments = self
+                            .source_attachments
+                            .get(&(conversation.conversation_id.clone(), node_id.to_owned()))
+                            .map(Vec::as_slice)
+                            .unwrap_or(&[]);
+                        if message.artifacts.len() != source_attachments.len() {
+                            return Err(ArchiveError::InvalidAttachment);
+                        }
+                        let mut artifact_sources = std::collections::BTreeSet::new();
+                        for artifact in &message.artifacts {
+                            if !valid_import_text(&artifact.source_id)
+                                || !valid_import_text(&artifact.source_ref)
+                                || !artifact_sources.insert(artifact.source_id.as_str())
+                            {
+                                return Err(ArchiveError::InvalidAttachment);
+                            }
+                            let found = source_attachments.iter().any(|attachment| {
+                                attachment.id == artifact.file_id
+                                    && attachment.content_id.0 == artifact.sha256
+                            });
+                            if !found {
+                                return Err(ArchiveError::InvalidAttachment);
+                            }
+                        }
+                        if node.conversation_id != conversation.conversation_id {
+                            return Err(ArchiveError::MissingNode);
+                        }
+                    }
+                    _ => {
+                        return Err(ArchiveError::CorruptRecord(
+                            "invalid imported message mapping",
+                        ));
+                    }
+                }
+            }
+            for message in &conversation.messages {
+                if message
+                    .source_parent_id
+                    .as_deref()
+                    .is_some_and(|parent| !source_messages.contains(parent))
+                {
+                    return Err(ArchiveError::CorruptRecord(
+                        "missing imported source parent",
+                    ));
+                }
+            }
+            let mut source_branches = std::collections::BTreeSet::new();
+            for branch in &conversation.branches {
+                if !valid_import_text(&branch.source_id)
+                    || !valid_import_text(&branch.branch_id)
+                    || !source_branches.insert(branch.source_id.as_str())
+                {
+                    return Err(ArchiveError::CorruptRecord(
+                        "invalid imported branch mapping",
+                    ));
+                }
+                if let Some(leaf) = branch.leaf_node_id.as_deref() {
+                    let accepted = self.branch(&conversation.conversation_id, &branch.branch_id);
+                    if !valid_import_text(leaf)
+                        || !accepted.is_some_and(|value| {
+                            value.leaf_node_id == leaf && value.canonical == branch.canonical
+                        })
+                    {
+                        return Err(ArchiveError::MissingBranch);
+                    }
+                } else if self
+                    .branch(&conversation.conversation_id, &branch.branch_id)
+                    .is_some()
+                {
+                    return Err(ArchiveError::CorruptRecord(
+                        "all-deleted imported branch has a native head",
+                    ));
                 }
             }
         }
@@ -652,6 +983,18 @@ fn validate_text(value: &str, field: &'static str) -> Result<(), ArchiveError> {
     } else {
         Ok(())
     }
+}
+
+fn valid_import_text(value: &str) -> bool {
+    !value.is_empty() && value.len() <= 4096 && !value.contains('\0')
+}
+
+fn import_receipt_digest(receipt: &ImportReceipt) -> Result<[u8; 32], ArchiveError> {
+    let mut unsigned = receipt.clone();
+    unsigned.receipt_digest = [0; 32];
+    let bytes = serde_json::to_vec(&unsigned)
+        .map_err(|_| ArchiveError::CorruptRecord("invalid import receipt"))?;
+    Ok(Sha256::digest(bytes).into())
 }
 
 fn activity_role(role: &str) -> bool {
@@ -791,6 +1134,21 @@ fn file_id(
     hasher.update((mime.len() as u64).to_le_bytes());
     hasher.update(mime.as_bytes());
     hasher.finalize().into()
+}
+
+/// Compute the native immutable file identity for exact imported bytes.
+pub fn file_id_from_bytes(
+    filename: &str,
+    mime_type: Option<&str>,
+    bytes: &[u8],
+) -> Result<[u8; 32], ArchiveError> {
+    validate_text(filename, "attachment filename")?;
+    if let Some(mime_type) = mime_type {
+        validate_text(mime_type, "attachment MIME type")?;
+    }
+    let byte_length = u64::try_from(bytes.len()).map_err(|_| ArchiveError::FieldTooLarge)?;
+    let content_id = ContentId(Sha256::digest(bytes).into());
+    Ok(file_id(filename, mime_type, content_id, byte_length))
 }
 
 fn project_file_id(

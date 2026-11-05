@@ -2,10 +2,12 @@
 use crate::{ArchiveError, Node};
 use sha2::{Digest, Sha256};
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct FragmentId(pub [u8; 32]);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Fragment {
     pub id: FragmentId,
     pub conversation_id: String,
@@ -13,7 +15,20 @@ pub struct Fragment {
     pub end_node_id: String,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+/// Immutable proof that a deterministic fragment was published from one
+/// accepted branch cut. The cut excludes this definition record itself.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FragmentDefinition {
+    pub fragment: Fragment,
+    pub branch_id: String,
+    pub archive_cut: u64,
+    pub config: FragmentConfig,
+    pub close_tail: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FragmentConfig {
     pub turns: usize,
     pub overlap: usize,

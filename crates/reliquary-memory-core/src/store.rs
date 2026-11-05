@@ -447,6 +447,17 @@ impl MemoryStore {
     pub fn references_body(&self, body_id: MemoryBodyId) -> bool {
         self.state.body_memories.contains_key(&body_id)
     }
+    pub fn memory_ids_for_body(
+        &self,
+        body_id: MemoryBodyId,
+    ) -> impl Iterator<Item = MemoryId> + '_ {
+        self.state
+            .body_memories
+            .get(&body_id)
+            .into_iter()
+            .flatten()
+            .copied()
+    }
     pub fn contains_memory(&self, id: MemoryId) -> bool {
         self.state.revisions.contains_key(&id)
     }
