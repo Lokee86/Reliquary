@@ -56,31 +56,63 @@ impl RelSession {
                 ));
             }
         }
-        let freshness = FreshnessStore::open_with_grouped_births(container, |payload| {
-            let completion = GroupedInsomniaCompletion::decode(payload)?;
-            if !completion.external_memory_refs.is_empty() {
-                return Err("routed grouped completion requires owner authentication".into());
-            }
-            if !completion.routing_metadata.is_empty() {
-                return Err("grouped routing metadata replay is unsupported".into());
-            }
-            match (
-                completion.freshness_birth_turn,
-                completion.freshness_policy_version,
-            ) {
-                (Some(turn), Some(policy)) => Ok(Some((
-                    turn,
-                    policy,
-                    completion
-                        .freshness_birth_memory_ids
-                        .into_iter()
-                        .map(FreshnessMemoryId)
-                        .collect(),
-                ))),
-                (None, None) => Ok(None),
-                _ => Err("incomplete grouped Freshness proof".into()),
-            }
-        })
+        let freshness = FreshnessStore::open_with_grouped_dream(
+            container,
+            |payload| {
+                let completion = GroupedInsomniaCompletion::decode(payload)?;
+                if !completion.external_memory_refs.is_empty() {
+                    return Err("routed grouped completion requires owner authentication".into());
+                }
+                if !completion.routing_metadata.is_empty() {
+                    return Err("grouped routing metadata replay is unsupported".into());
+                }
+                match (
+                    completion.freshness_birth_turn,
+                    completion.freshness_policy_version,
+                ) {
+                    (Some(turn), Some(policy)) => Ok(Some((
+                        turn,
+                        policy,
+                        completion
+                            .freshness_birth_memory_ids
+                            .into_iter()
+                            .map(FreshnessMemoryId)
+                            .collect(),
+                    ))),
+                    (None, None) => Ok(None),
+                    _ => Err("incomplete grouped Freshness proof".into()),
+                }
+            },
+            |payload, freshness| {
+                let record = crate::records::dream_empty::InitialDreamSettlement::decode(payload)?
+                    .ok_or("missing Dream settlement")?;
+                if record.owner != container.owner_id() {
+                    return Err("Dream Freshness owner mismatch".into());
+                }
+                let begin = common
+                    .dreams
+                    .begin(&record.pass_id)
+                    .ok_or("Dream Freshness lacks Begin")?;
+                let effects = freshness.validate_initial_dream(
+                    FreshnessMemoryId(record.source.0),
+                    begin.turn,
+                    record.accepted_turn,
+                    record.graph_version,
+                    record.community_generation,
+                    &record.freshness_effects,
+                )?;
+                if record.roots.is_empty() != effects.is_empty()
+                    || effects.contains_key(&FreshnessMemoryId(record.source.0))
+                    || record.roots.iter().any(|id| {
+                        effects.get(&FreshnessMemoryId(id.0))
+                            != Some(&freshness.policy().linkage_principal)
+                    })
+                {
+                    return Err("Dream initial roots differ from Freshness evidence".into());
+                }
+                Ok(record.freshness_effects)
+            },
+        )
         .map_err(OwnerSessionError::Record)?;
         let insomnia =
             InsomniaStore::open_with_grouped_completion(container, accepted_episodes, |payload| {

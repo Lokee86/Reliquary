@@ -18,6 +18,6 @@ mod session;
 pub use reliquary_insomnia_store::MAX_HELD_PAYLOAD_BYTES as MAX_INSOMNIA_CHECKPOINT_BYTES;
 pub use reliquary_insomnia_store::{CompletionCheck, InsomniaLeaseToken};
 pub use session::{
-    OwnerSessionError, PhySession, PhyWriter, RelInsomniaClaimInput, RelSession, RelWriter,
-    RoutedUserMemoryProof,
+    InitialDreamSnapshot, OwnerSessionError, PhySession, PhyWriter, RelInsomniaClaimInput,
+    RelSession, RelWriter, RoutedUserMemoryProof,
 };

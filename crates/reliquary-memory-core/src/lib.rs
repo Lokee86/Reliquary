@@ -11,7 +11,9 @@ mod store;
 
 pub use error::MemoryError;
 pub use model::*;
-pub use store::{GroupedMemoryReplay, GroupedMemorySupersession, MemoryStore};
+pub use store::{
+    GroupedMemoryInitialPromotion, GroupedMemoryReplay, GroupedMemorySupersession, MemoryStore,
+};
 
 /// Encode a Memory creation for embedding in a grouped owner carrier.
 /// Grouped Insomnia births are revision-one records; other revisions reject.

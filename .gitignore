@@ -17,3 +17,5 @@
 /target-owner-session-grouped/
 /target-owner-session/
 /target-runtime-gateway/
+/target-codex-check/
+/.v02-*.log

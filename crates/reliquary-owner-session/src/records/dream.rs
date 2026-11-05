@@ -2,6 +2,9 @@
 //! owner after it proves the exact Memory physical prefix.
 use self::dream_begin_codec::{BeginPopulation, BeginRecord};
 use self::freshness_journal::{DreamFreshnessJournal, InitialDreamPass};
+#[path = "dream_settlement.rs"]
+mod settlement;
+use super::dream_empty::InitialDreamSettlement;
 use crate::MemoryId;
 use reliquary_container::Container;
 use sha2::{Digest, Sha256};
@@ -34,6 +37,7 @@ pub struct DreamEvidenceStore {
     admissions: BTreeMap<String, DreamBeginAdmission>,
     begins: BTreeMap<String, BeginRecord>,
     journal: DreamFreshnessJournal,
+    initial_settlements: BTreeMap<String, InitialDreamSettlement>,
 }
 
 impl DreamEvidenceStore {
@@ -59,6 +63,7 @@ impl DreamEvidenceStore {
             admissions: admitted,
             begins: BTreeMap::new(),
             journal: DreamFreshnessJournal::new(Some(owner_uuid)),
+            initial_settlements: BTreeMap::new(),
         };
         for frame in container.read_frames().map_err(|error| error.to_string())? {
             if frame.payload.starts_with(BEGIN_MAGIC) {
@@ -68,17 +73,26 @@ impl DreamEvidenceStore {
                     .get(&begin.pass_id)
                     .ok_or("Dream Begin lacks authenticated population admission")?;
                 store.validate_begin(&begin, admission)?;
+                if store.begins.contains_key(&begin.pass_id)
+                    || store
+                        .begins
+                        .values()
+                        .any(|known| known.source_id == begin.source_id)
+                {
+                    return Err("duplicate physical first-cycle Dream Begin".into());
+                }
                 let pass = materialize(&begin, admission);
                 store.journal.ingest_materialized_begin(owner_uuid, pass)?;
-                if let Some(previous) = store.begins.get(&begin.pass_id) {
-                    if previous != &begin {
-                        return Err("conflicting Dream Begin identity".into());
-                    }
-                } else {
-                    store.begins.insert(begin.pass_id.clone(), begin);
-                }
+                store.begins.insert(begin.pass_id.clone(), begin);
             } else if frame.payload.starts_with(JOURNAL_MAGIC) {
                 store.journal.ingest(&frame.payload)?;
+            } else if let Some(settlement) = InitialDreamSettlement::decode(&frame.payload)? {
+                if container.identity().file_kind == reliquary_container::FileKind::Phylactery
+                    && !settlement.freshness_effects.is_empty()
+                {
+                    return Err("PHY Dream cannot carry REL Freshness effects".into());
+                }
+                store.apply_initial_settlement(settlement)?;
             }
         }
         Ok(store)
@@ -100,6 +114,13 @@ impl DreamEvidenceStore {
         begin: BeginRecord,
     ) -> Result<bool, String> {
         self.check_owner(container)?;
+        if self
+            .begins
+            .values()
+            .any(|known| known.source_id == begin.source_id && known.pass_id != begin.pass_id)
+        {
+            return Err("Memory already has a first-cycle Dream Begin".into());
+        }
         let admission = self
             .admissions
             .get(&begin.pass_id)

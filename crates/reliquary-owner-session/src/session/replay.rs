@@ -6,7 +6,7 @@ pub(super) fn open_common(
     dream_admissions: impl IntoIterator<Item = DreamBeginAdmission>,
     replay_grouped_insomnia: bool,
 ) -> Result<CommonState, OwnerSessionError> {
-    let memories = MemoryStore::open_with_grouped_events(
+    let memories = MemoryStore::open_with_grouped_initial_events(
         container,
         |payload| {
             if !replay_grouped_insomnia {
@@ -37,6 +37,11 @@ pub(super) fn open_common(
             crate::records::dream_supersession::GroupedDreamSupersession::decode(payload)
                 .map(|record| record.map(|record| record.memory_event()))
                 .map_err(|_| MemoryError::Corrupt("invalid Dream supersession carrier"))
+        },
+        |payload| {
+            crate::records::dream_empty::InitialDreamSettlement::decode(payload)
+                .map(|record| record.and_then(|r| r.memory_event()))
+                .map_err(|_| MemoryError::Corrupt("invalid initial Dream lifecycle"))
         },
     )?;
     let perception = PerceptionStore::open(container)?;
@@ -146,6 +151,7 @@ pub(super) fn open_common(
     super::dream_prefix::validate_compact_dream_prefix(container, &dream_admissions)?;
     let dreams =
         DreamEvidenceStore::open(container, dream_admissions).map_err(OwnerSessionError::Record)?;
+    super::dream_initial_replay::validate(container, &dreams, &memories)?;
     let dream_pairs = super::dream_pairs::DreamPairs::open(container)?;
     Ok(CommonState {
         memories,

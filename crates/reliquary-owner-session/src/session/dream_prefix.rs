@@ -41,6 +41,12 @@ pub(crate) fn validate_compact_dream_prefix(
         frame
             .read_exact(&mut magic)
             .map_err(|error| OwnerSessionError::Record(error.to_string()))?;
+        if magic.starts_with(b"RELDR") {
+            let (version, changed) = super::dream_initial_replay::prefix_effect(&mut frame, magic)?;
+            graph_head = version.unwrap_or(graph_head);
+            unsupported |= changed;
+            continue;
+        }
         if magic == *b"RELMCRT1" {
             if frame.object().length > MAX_RELEVANT_FRAME {
                 return Err(OwnerSessionError::Record(

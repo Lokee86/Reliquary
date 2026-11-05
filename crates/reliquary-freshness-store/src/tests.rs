@@ -6,6 +6,53 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 static NEXT: AtomicU64 = AtomicU64::new(1);
 
+#[test]
+fn initial_admission_preparation_retains_birth_and_never_reenrolls() {
+    let temp = TempDir::new();
+    let mut container = Container::create(
+        temp.0.join("initial.rel"),
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [91; 16],
+    )
+    .unwrap();
+    let mut store = FreshnessStore::new(Some([91; 16]));
+    store.initialize(&mut container).unwrap();
+    let id = FreshnessMemoryId([93; 32]);
+    let before = container.read_frames().unwrap().len();
+    let effects = store.prepare_initial_admission(id, 3, 5).unwrap();
+    assert_eq!(effects.len(), 2);
+    assert_eq!(container.read_frames().unwrap().len(), before);
+    for effect in effects {
+        store.ingest_payload(&effect).unwrap();
+    }
+    assert!(
+        store
+            .prepare_initial_admission(id, 3, 8)
+            .unwrap()
+            .is_empty()
+    );
+    assert!(store.prepare_initial_admission(id, 2, 8).is_err());
+    assert!(store.prepare_initial_admission(id, 3, 4).is_err());
+    let record = store.record_at(id, 8).unwrap().unwrap();
+    assert!(record.score <= 100);
+    assert!(store.prepare_initial_admission(id, 8, 3).is_err());
+    let existing = FreshnessMemoryId([94; 32]);
+    store
+        .create_birth(&mut container, existing, 2, false)
+        .unwrap();
+    let effects = store.prepare_initial_admission(existing, 3, 5).unwrap();
+    assert_eq!(effects.len(), 1);
+    for effect in effects {
+        store.ingest_payload(&effect).unwrap();
+    }
+    assert!(
+        store
+            .prepare_initial_admission(existing, 3, 9)
+            .unwrap()
+            .is_empty()
+    );
+}
+
 struct TempDir(PathBuf);
 impl TempDir {
     fn new() -> Self {

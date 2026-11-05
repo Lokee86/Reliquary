@@ -1,4 +1,7 @@
+#[path = "initial_promotion.rs"]
+mod initial_promotion;
 use crate::{codec::*, decode_grouped_creation, error::MemoryError, model::*};
+pub use initial_promotion::GroupedMemoryInitialPromotion;
 use reliquary_container::{Container, ContainerIdentity};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::io::Read;
@@ -120,8 +123,24 @@ impl MemoryStore {
     /// physical position. Memory reuses normal revision and clock validation.
     pub fn open_with_grouped_events(
         container: &Container,
+        decode_grouped: impl FnMut(&[u8]) -> Result<Option<GroupedMemoryReplay>, MemoryError>,
+        decode_dream: impl FnMut(&[u8]) -> Result<Option<GroupedMemorySupersession>, MemoryError>,
+    ) -> Result<Self, MemoryError> {
+        Self::open_with_grouped_initial_events(container, decode_grouped, decode_dream, |_| {
+            Err(MemoryError::Corrupt(
+                "initial Dream requires owner-session replay",
+            ))
+        })
+    }
+
+    pub fn open_with_grouped_initial_events(
+        container: &Container,
         mut decode_grouped: impl FnMut(&[u8]) -> Result<Option<GroupedMemoryReplay>, MemoryError>,
         mut decode_dream: impl FnMut(&[u8]) -> Result<Option<GroupedMemorySupersession>, MemoryError>,
+        mut decode_initial: impl FnMut(
+            &[u8],
+        )
+            -> Result<Option<GroupedMemoryInitialPromotion>, MemoryError>,
     ) -> Result<Self, MemoryError> {
         let mut store = Self {
             owner: Some((container.owner_id(), container.identity())),
@@ -173,6 +192,14 @@ impl MemoryStore {
                 frame.read_to_end(&mut payload)?;
                 if let Some((bodies, records)) = decode_grouped(&payload)? {
                     store.apply_grouped_completion(bodies, records)?;
+                }
+                continue;
+            }
+            if magic.starts_with(b"RELDRF") {
+                let mut payload = magic.to_vec();
+                frame.read_to_end(&mut payload)?;
+                if let Some(record) = decode_initial(&payload)? {
+                    store.apply_initial_promotion(&record)?;
                 }
                 continue;
             }

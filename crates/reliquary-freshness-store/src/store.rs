@@ -13,6 +13,9 @@ use reliquary_container::{Container, ContainerError, ContainerIdentity};
 use std::collections::BTreeMap;
 use std::io::Read;
 
+#[path = "initial_dream.rs"]
+mod initial_dream;
+
 const MAX_FRAME_BYTES: u64 = 128 * 1024 * 1024;
 
 #[derive(Clone, Debug)]
@@ -60,10 +63,22 @@ impl FreshnessStore {
     /// ownership of policy and birth admission.
     pub fn open_with_grouped_births(
         container: &Container,
+        decode_grouped: impl FnMut(&[u8]) -> Result<Option<(u64, u64, Vec<FreshnessMemoryId>)>, String>,
+    ) -> Result<Self, String> {
+        Self::open_with_grouped_dream(container, decode_grouped, |_, _| {
+            Err("grouped Dream requires owner-session replay".into())
+        })
+    }
+
+    /// Owner-decoded Dream effects retain their physical ordering and use the
+    /// same policy and transition validation as ordinary Freshness records.
+    pub fn open_with_grouped_dream(
+        container: &Container,
         mut decode_grouped: impl FnMut(
             &[u8],
         )
             -> Result<Option<(u64, u64, Vec<FreshnessMemoryId>)>, String>,
+        mut decode_dream: impl FnMut(&[u8], &Self) -> Result<Vec<Vec<u8>>, String>,
     ) -> Result<Self, String> {
         let owner = container.owner_id();
         let mut store = Self::new(Some(owner));
@@ -77,6 +92,12 @@ impl FreshnessStore {
             frame
                 .read_to_end(&mut payload)
                 .map_err(|error| error.to_string())?;
+            if payload.starts_with(b"RELDRF") {
+                for effect in decode_dream(&payload, &store)? {
+                    store.ingest_payload(&effect)?;
+                }
+                continue;
+            }
             if payload.starts_with(b"RELINSC7") {
                 if let Some((turn, policy, memory_ids)) = decode_grouped(&payload)? {
                     if policy != u64::from(FRESHNESS_POLICY_VERSION) {
