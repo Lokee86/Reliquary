@@ -346,8 +346,8 @@
       ],
       "deliverable": "Independent Git/Lore revision and file correlation boundary",
       "acceptance": "VCS remains source authority; REL contains only proven correlations",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\project-correlation-acceptance-2026-11-05.md"
     },
     {
       "id": "V01",
