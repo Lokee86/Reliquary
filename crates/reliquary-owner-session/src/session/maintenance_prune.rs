@@ -10,50 +10,9 @@ use crate::records::{
     HistoryPruneManifest, HistoryRetentionDescriptor, PrunedPayload, RetentionDomain,
     RetentionTarget, VerifiedOwnerCopyPlan,
 };
+use crate::staged_copy::StagedCopy;
 use reliquary_memory_core::{MemoryBodyId, PayloadState};
-use std::{
-    collections::BTreeSet,
-    fs,
-    io::{ErrorKind, Read},
-    path::{Path, PathBuf},
-    sync::atomic::{AtomicU64, Ordering},
-};
-
-struct StagedCopy {
-    directory: PathBuf,
-    path: PathBuf,
-}
-
-impl StagedCopy {
-    fn create(destination: &Path) -> Result<Self, String> {
-        static NEXT: AtomicU64 = AtomicU64::new(0);
-        let parent = destination
-            .parent()
-            .ok_or("copy destination has no parent")?;
-        loop {
-            let sequence = NEXT.fetch_add(1, Ordering::Relaxed);
-            let directory =
-                parent.join(format!(".reliquary-copy-{}-{sequence}", std::process::id()));
-            match fs::create_dir(&directory) {
-                Ok(()) => {
-                    return Ok(Self {
-                        path: directory.join("owner"),
-                        directory,
-                    });
-                }
-                Err(error) if error.kind() == ErrorKind::AlreadyExists => continue,
-                Err(error) => return Err(error.to_string()),
-            }
-        }
-    }
-}
-
-impl Drop for StagedCopy {
-    fn drop(&mut self) {
-        let _ = fs::remove_file(&self.path);
-        let _ = fs::remove_dir(&self.directory);
-    }
-}
+use std::{collections::BTreeSet, fs, io::Read, path::Path};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrunedOwnerCopyReport {

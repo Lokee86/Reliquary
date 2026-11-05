@@ -3,6 +3,7 @@
 //! This deliberately does not transform, promote, or delete source owners.
 
 use super::ImportEpochStore;
+use crate::staged_copy::StagedCopy;
 use reliquary_container::{Container, ContainerIdentity, FileKind};
 use sha2::{Digest, Sha256};
 use std::{
@@ -190,6 +191,21 @@ impl VerifiedOwnerCopyPlan {
             let _ = fs::remove_file(destination_path);
         }
         result
+    }
+
+    /// Publish a new destination only after the staged copy passes owner admission.
+    pub fn copy_to_with_admission<T>(
+        &self,
+        source: impl AsRef<Path>,
+        destination: &Path,
+        admit: impl FnOnce(&Path, &VerifiedOwnerCopyReceipt) -> Result<T, String>,
+    ) -> Result<(VerifiedOwnerCopyReceipt, T), String> {
+        let staged = StagedCopy::create(destination)?;
+        let receipt = self.copy_to(source, &staged.path)?;
+        let admitted = admit(&staged.path, &receipt)?;
+        fs::hard_link(&staged.path, destination)
+            .map_err(|error| format!("could not publish verified owner copy: {error}"))?;
+        Ok((receipt, admitted))
     }
 
     pub(crate) fn verify_source(&self, source: &Container, path: &Path) -> Result<(), String> {

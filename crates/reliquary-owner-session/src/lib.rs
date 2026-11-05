@@ -16,6 +16,7 @@ pub use records::{
 };
 pub use records::{ExternalMemoryDraft, ExternalMemoryProvenance, ExternalMemoryReceipt};
 mod session;
+mod staged_copy;
 pub use reliquary_freshness_store::{FreshnessEventProof, FreshnessMemoryId, FreshnessUseReceipt};
 /// Bound for durable Insomnia inference checkpoints, owned by the session store.
 pub use reliquary_insomnia_store::MAX_HELD_PAYLOAD_BYTES as MAX_INSOMNIA_CHECKPOINT_BYTES;

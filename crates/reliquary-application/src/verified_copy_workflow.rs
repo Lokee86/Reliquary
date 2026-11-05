@@ -77,17 +77,23 @@ pub fn copy_and_reopen_rel_owner(
     if !plan.is_reliquary() {
         return Err("REL copy workflow received a PHY maintenance plan".into());
     }
-    let receipt = plan.copy_to(source_path, destination_path.as_ref())?;
-    let session = RelSession::open_path(
-        destination_path,
-        graph_admission,
-        accepted_episodes,
-        dream_admissions,
-    )
-    .map_err(|error| format!("independent REL owner reopen failed: {error}"))?;
-    if session.owner_id() != receipt.owner_id {
-        return Err("reopened REL owner does not match the verified copy receipt".into());
-    }
+    let (receipt, session) = plan.copy_to_with_admission(
+        source_path,
+        destination_path.as_ref(),
+        |staged_path, receipt| {
+            let session = RelSession::open_path(
+                staged_path,
+                graph_admission,
+                accepted_episodes,
+                dream_admissions,
+            )
+            .map_err(|error| format!("independent REL owner reopen failed: {error}"))?;
+            if session.owner_id() != receipt.owner_id {
+                return Err("reopened REL owner does not match the verified copy receipt".into());
+            }
+            Ok(session)
+        },
+    )?;
     Ok(VerifiedRelOwnerCopy { receipt, session })
 }
 
@@ -104,12 +110,18 @@ pub fn copy_and_reopen_phy_owner(
     if plan.is_reliquary() {
         return Err("PHY copy workflow received a REL maintenance plan".into());
     }
-    let receipt = plan.copy_to(source_path, destination_path.as_ref())?;
-    let session = PhySession::open_path(destination_path, graph_admission, dream_admissions)
-        .map_err(|error| format!("independent PHY owner reopen failed: {error}"))?;
-    if session.owner_id() != receipt.owner_id {
-        return Err("reopened PHY owner does not match the verified copy receipt".into());
-    }
+    let (receipt, session) = plan.copy_to_with_admission(
+        source_path,
+        destination_path.as_ref(),
+        |staged_path, receipt| {
+            let session = PhySession::open_path(staged_path, graph_admission, dream_admissions)
+                .map_err(|error| format!("independent PHY owner reopen failed: {error}"))?;
+            if session.owner_id() != receipt.owner_id {
+                return Err("reopened PHY owner does not match the verified copy receipt".into());
+            }
+            Ok(session)
+        },
+    )?;
     Ok(VerifiedPhyOwnerCopy { receipt, session })
 }
 
@@ -214,6 +226,8 @@ mod tests {
             let right_before = fs::read(&right.0).unwrap();
             assert_eq!(reconcile(&output.0).unwrap().owner_id, owner);
             assert_eq!(fs::read(&output.0).unwrap(), right_before);
+            assert!(reconcile(&output.0).is_err());
+            assert_eq!(fs::read(&output.0).unwrap(), right_before);
 
             append(&left.0, 10);
             let left_before = fs::read(&left.0).unwrap();
@@ -246,6 +260,6 @@ mod tests {
         let graph = GraphAdmission::for_replay(owner_id, [], [], [], [], []);
         assert!(copy_and_reopen_phy_owner(&plan, &source.0, &destination.0, &graph, [],).is_err());
         assert_eq!(fs::read(&source.0).unwrap(), source_before);
-        assert!(destination.0.exists());
+        assert!(!destination.0.exists());
     }
 }

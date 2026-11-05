@@ -50,3 +50,9 @@ The retention proof binds the manifest to the original physical prefix. On reope
 Verification passed for 504 locked offline workspace tests. Formatting, locked offline metadata, whitespace and the 23-package, 76-edge architecture guard passed. Current-format pruning of Archive content, Entity or Relationship descriptions and retired profile probes remains unimplemented. The owner formats also lack a fresh-history lineage contract and a divergent semantic merge policy. V06 remains in progress and G2 remains gated.
 
 Independent owner admission rejects unsupported retention domains even when the manifest is correctly encoded and checksummed. The Archive and Perception codecs have no terminal payload-prune carriers, and the compatibility-profile codec stores probes inline and requires all four on admission. Those limits leave the corresponding historical payloads outside the supported transform. The locked offline workspace compile and the final workspace test rerun both passed.
+
+## V06 reconciliation publication
+
+REL and PHY exact-copy workflows now stage the copy beside its destination. They independently reopen it through typed owner admission before publishing the destination with a hard link. A rejected copy leaves no destination, and a collision preserves the existing destination. Reconciliation still requires a common physical prefix and refuses divergent histories.
+
+The three application copy and reconciliation tests and all 99 owner-session tests passed. Formatting, whitespace and the 23-package, 76-edge architecture guard passed.
