@@ -35,6 +35,26 @@ impl RelWriter {
         turn: u64,
     ) -> Result<DreamBeginAdmission, OwnerSessionError> {
         self.ensure_write_ready()?;
+        self.begin_initial_dream_pass_after_fence(pass_id, source, turn)
+    }
+
+    pub fn begin_native_import_initial_dream_pass(
+        &mut self,
+        import_id: &str,
+        pass_id: String,
+        source: DreamMemoryCut,
+        turn: u64,
+    ) -> Result<DreamBeginAdmission, OwnerSessionError> {
+        self.ensure_import_scope(import_id)?;
+        self.begin_initial_dream_pass_after_fence(pass_id, source, turn)
+    }
+
+    fn begin_initial_dream_pass_after_fence(
+        &mut self,
+        pass_id: String,
+        source: DreamMemoryCut,
+        turn: u64,
+    ) -> Result<DreamBeginAdmission, OwnerSessionError> {
         let admission =
             initial_admission(&self.container, &self.session.common, source, pass_id, turn)?;
         if self.container.writer_lease_proof().is_none()
@@ -71,6 +91,46 @@ impl RelWriter {
         promote: bool,
     ) -> Result<bool, OwnerSessionError> {
         self.ensure_write_ready()?;
+        self.commit_initial_dream_pass_after_fence(
+            pass_id,
+            observed,
+            graph_version,
+            accepted_turn,
+            effects,
+            promote,
+        )
+    }
+
+    pub fn commit_native_import_initial_dream_pass(
+        &mut self,
+        import_id: &str,
+        pass_id: &str,
+        observed: DreamMemoryCut,
+        graph_version: u64,
+        accepted_turn: u64,
+        effects: BTreeMap<MemoryId, i16>,
+        promote: bool,
+    ) -> Result<bool, OwnerSessionError> {
+        self.ensure_import_scope(import_id)?;
+        self.commit_initial_dream_pass_after_fence(
+            pass_id,
+            observed,
+            graph_version,
+            accepted_turn,
+            effects,
+            promote,
+        )
+    }
+
+    fn commit_initial_dream_pass_after_fence(
+        &mut self,
+        pass_id: &str,
+        observed: DreamMemoryCut,
+        graph_version: u64,
+        accepted_turn: u64,
+        effects: BTreeMap<MemoryId, i16>,
+        promote: bool,
+    ) -> Result<bool, OwnerSessionError> {
         let lease = self.container.writer_lease_proof();
         if lease.is_none() || lease != self.session.writer_lease_proof {
             return Err(OwnerSessionError::StaleDreamCut);

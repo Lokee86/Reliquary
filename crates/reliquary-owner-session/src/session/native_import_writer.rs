@@ -201,7 +201,7 @@ impl RelWriter {
         }
     }
 
-    pub(super) fn ensure_import_scope(&self, import_id: &str) -> Result<(), OwnerSessionError> {
+    pub(crate) fn ensure_import_scope(&self, import_id: &str) -> Result<(), OwnerSessionError> {
         if self.session.write_poisoned {
             return Err(OwnerSessionError::Record(
                 "owner session requires reopen after an uncertain write".into(),

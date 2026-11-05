@@ -7,6 +7,8 @@ use crate::records::{
 
 #[path = "native_import_completion.rs"]
 mod completion;
+#[path = "native_import_freshness.rs"]
+mod freshness;
 #[path = "native_import_work.rs"]
 mod work;
 #[path = "native_import_writer.rs"]

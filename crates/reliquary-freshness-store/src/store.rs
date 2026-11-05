@@ -2,6 +2,7 @@ use crate::codec::{
     JOURNAL_MAGIC, JournalEntry, POLICY_MAGIC, decode_entry, decode_policy, encode_entry,
     encode_policy,
 };
+use crate::historical_snapshot::HistoricalFreshnessSnapshot;
 use crate::projection::{
     FreshnessEvent, FreshnessEventCut, FreshnessEventProof, FreshnessEventProvenance,
     FreshnessReplayEntry, FreshnessUseReceipt,
@@ -29,6 +30,7 @@ pub struct FreshnessStore {
     events: BTreeMap<String, FreshnessEvent>,
     uses: BTreeMap<String, (FreshnessUseReceipt, FreshnessEventProof)>,
     journal: Vec<JournalEntry>,
+    historical_snapshots: Vec<HistoricalFreshnessSnapshot>,
 }
 
 impl Default for FreshnessStore {
@@ -49,6 +51,7 @@ impl FreshnessStore {
             events: BTreeMap::new(),
             uses: BTreeMap::new(),
             journal: Vec::new(),
+            historical_snapshots: Vec::new(),
         }
     }
 
@@ -374,6 +377,9 @@ impl FreshnessStore {
             self.policy_persisted = true;
             return Ok(());
         }
+        if let Some(snapshot) = HistoricalFreshnessSnapshot::decode(payload, &self.policy)? {
+            return self.apply_historical_snapshot(snapshot);
+        }
         if !payload.starts_with(JOURNAL_MAGIC) && payload.starts_with(b"RELFRS") {
             return Err("unsupported Freshness journal version".into());
         }
@@ -388,6 +394,51 @@ impl FreshnessStore {
         }
         self.validate_entry(&entry)?;
         self.apply_entry(entry)
+    }
+
+    pub fn append_historical_snapshot(
+        &mut self,
+        container: &mut Container,
+        mut snapshot: HistoricalFreshnessSnapshot,
+    ) -> Result<bool, String> {
+        self.ensure_ready_for(container)?;
+        let owner = self
+            .owner_uuid
+            .ok_or("Freshness owner identity is required")?;
+        if snapshot.owner_uuid != owner {
+            return Err("historical Freshness snapshot owner mismatch".into());
+        }
+        if let Some(existing) = self
+            .historical_snapshots
+            .iter()
+            .find(|known| known.import_id == snapshot.import_id)
+        {
+            return if existing == &snapshot {
+                Ok(false)
+            } else {
+                Err("conflicting historical Freshness snapshot retry".into())
+            };
+        }
+        snapshot.journal_entries_included = self.journal.len() as u64;
+        let current = self.project(None)?;
+        if snapshot.records.len() != current.len()
+            || snapshot.records.iter().any(|(id, record)| {
+                current
+                    .get(id)
+                    .is_none_or(|known| known.admitted_at_turn != record.admitted_at_turn)
+            })
+        {
+            return Err("historical Freshness snapshot changes owner enrollment".into());
+        }
+        let payload = snapshot.encode(&self.policy)?;
+        self.append_then_ingest(container, payload)?;
+        Ok(true)
+    }
+
+    pub fn historical_snapshot(&self, import_id: &str) -> Option<&HistoricalFreshnessSnapshot> {
+        self.historical_snapshots
+            .iter()
+            .find(|snapshot| snapshot.import_id == import_id)
     }
 
     pub fn records(&self) -> Result<BTreeMap<FreshnessMemoryId, FreshnessRecord>, String> {
@@ -470,6 +521,10 @@ impl FreshnessStore {
             }
         }
         entries
+    }
+
+    pub fn accepted_events(&self) -> Vec<FreshnessEvent> {
+        self.events.values().cloned().collect()
     }
 
     pub fn has_durable_birth(&self, memory_id: FreshnessMemoryId) -> bool {
@@ -710,43 +765,116 @@ impl FreshnessStore {
         Ok(())
     }
 
+    fn apply_historical_snapshot(
+        &mut self,
+        snapshot: HistoricalFreshnessSnapshot,
+    ) -> Result<(), String> {
+        let owner = self
+            .owner_uuid
+            .ok_or("historical Freshness snapshot precedes owner policy")?;
+        if snapshot.owner_uuid != owner
+            || snapshot.journal_entries_included != self.journal.len() as u64
+            || self
+                .historical_snapshots
+                .last()
+                .is_some_and(|previous| previous.settlement_cut > snapshot.settlement_cut)
+        {
+            return Err("historical Freshness snapshot owner or journal boundary mismatch".into());
+        }
+        if let Some(existing) = self
+            .historical_snapshots
+            .iter()
+            .find(|known| known.import_id == snapshot.import_id)
+        {
+            return if existing == &snapshot {
+                Ok(())
+            } else {
+                Err("conflicting historical Freshness snapshot in owner history".into())
+            };
+        }
+        let current = self.project(None)?;
+        if snapshot.records.len() != current.len()
+            || snapshot.records.iter().any(|(id, record)| {
+                current
+                    .get(id)
+                    .is_none_or(|known| known.admitted_at_turn != record.admitted_at_turn)
+            })
+        {
+            return Err("historical Freshness snapshot changes owner enrollment".into());
+        }
+        self.historical_snapshots.push(snapshot);
+        Ok(())
+    }
+
     fn project(
         &self,
         cut: Option<&FreshnessEventCut>,
     ) -> Result<BTreeMap<FreshnessMemoryId, FreshnessRecord>, String> {
-        #[derive(Clone, Copy)]
-        enum Action<'a> {
+        #[derive(Clone)]
+        enum Action {
             Birth(FreshnessMemoryId, bool),
             Admission(FreshnessMemoryId),
-            Event(&'a FreshnessEvent),
+            Event(FreshnessEvent),
         }
-        let mut actions: Vec<(u64, u8, String, Action<'_>)> = Vec::new();
-        for (id, (turn, admitted)) in &self.births {
-            actions.push((*turn, 0, String::new(), Action::Birth(*id, *admitted)));
-        }
-        for (id, turn) in &self.admissions {
-            actions.push((*turn, 1, String::new(), Action::Admission(*id)));
-        }
-        for event in self.events.values() {
-            let include = cut.is_none_or(|cut| {
-                event.accepted_turn < cut.rel_turn
-                    || (event.accepted_turn == cut.rel_turn
-                        && cut
-                            .event_id_inclusive
-                            .as_ref()
-                            .is_some_and(|limit| event.event_id <= *limit))
-            });
-            if include {
-                actions.push((
+        let selected = self.historical_snapshots.iter().rev().find(|snapshot| {
+            cut.is_none_or(|cut| {
+                snapshot.settlement_cut < cut.rel_turn
+                    || (snapshot.settlement_cut == cut.rel_turn && cut.event_id_inclusive.is_some())
+            })
+        });
+        let mut records = selected
+            .map(|snapshot| snapshot.records.clone())
+            .unwrap_or_default();
+        let journal_start = selected
+            .map(|snapshot| snapshot.journal_entries_included as usize)
+            .unwrap_or(0);
+        let owner = self
+            .owner_uuid
+            .ok_or("Freshness owner identity is required")?;
+        let mut actions: Vec<(u64, u8, String, Action)> = Vec::new();
+        for entry in &self.journal[journal_start..] {
+            match entry {
+                JournalEntry::Birth {
+                    memory_id,
+                    accepted_turn,
+                    admitted_at_birth,
+                } if cut.is_none_or(|cut| *accepted_turn <= cut.rel_turn) => actions.push((
+                    *accepted_turn,
+                    0,
+                    String::new(),
+                    Action::Birth(*memory_id, *admitted_at_birth),
+                )),
+                JournalEntry::Admission {
+                    memory_id,
+                    accepted_turn,
+                } if cut.is_none_or(|cut| *accepted_turn <= cut.rel_turn) => actions.push((
+                    *accepted_turn,
+                    1,
+                    String::new(),
+                    Action::Admission(*memory_id),
+                )),
+                JournalEntry::Event(event) if event_in_cut(event, cut) => actions.push((
                     event.accepted_turn,
                     2,
                     event.event_id.clone(),
-                    Action::Event(event),
-                ));
+                    Action::Event(event.clone()),
+                )),
+                JournalEntry::AcceptedUse(receipt, proof) => {
+                    for event in accepted_use_events(owner, receipt, *proof, &self.policy) {
+                        if event_in_cut(&event, cut) {
+                            actions.push((
+                                event.accepted_turn,
+                                2,
+                                event.event_id.clone(),
+                                Action::Event(event),
+                            ));
+                        }
+                    }
+                }
+                _ => {}
             }
         }
         actions.sort_by(|a, b| (&a.0, &a.1, &a.2).cmp(&(&b.0, &b.1, &b.2)));
-        let mut records = BTreeMap::new();
         for (_, _, _, action) in actions {
             match action {
                 Action::Birth(id, admitted) => {
@@ -794,6 +922,42 @@ fn accepted_event_id(owner: [u8; 16], use_id: &str, source: FreshnessMemoryId) -
     let owner_hex = hex(&owner);
     let use_hex = hex(use_id.as_bytes());
     format!("accepted-use:{owner_hex}:{use_hex}:{}", hex(&source.0))
+}
+
+fn accepted_use_events(
+    owner: [u8; 16],
+    receipt: &FreshnessUseReceipt,
+    proof: FreshnessEventProof,
+    policy: &FreshnessPolicy,
+) -> Vec<FreshnessEvent> {
+    receipt
+        .sources
+        .iter()
+        .map(|source| FreshnessEvent {
+            event_id: accepted_event_id(owner, &receipt.use_id, *source),
+            accepted_turn: receipt.accepted_turn,
+            provenance: FreshnessEventProvenance {
+                producer_kind: 2,
+                source_id: receipt.use_id.clone(),
+                origin_owner: owner,
+                accepted_turn: receipt.accepted_turn,
+                policy_version: receipt.policy_version,
+            },
+            proof,
+            effects: [(*source, policy.access_principal)].into_iter().collect(),
+        })
+        .collect()
+}
+
+fn event_in_cut(event: &FreshnessEvent, cut: Option<&FreshnessEventCut>) -> bool {
+    cut.is_none_or(|cut| {
+        event.accepted_turn < cut.rel_turn
+            || (event.accepted_turn == cut.rel_turn
+                && cut
+                    .event_id_inclusive
+                    .as_ref()
+                    .is_some_and(|limit| event.event_id <= *limit))
+    })
 }
 
 fn hex(bytes: &[u8]) -> String {

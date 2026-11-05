@@ -38,7 +38,7 @@ use reliquary_vector_store::{
     ProfileStoreError, VectorGeneration, VectorGenerationId, VectorGenerationStore,
 };
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     fmt,
     path::{Path, PathBuf},
 };
@@ -236,6 +236,47 @@ pub struct RelInsomniaClaimInput {
     pub episode: reliquary_archive::Episode,
     pub turns: Vec<reliquary_archive::ResolvedTurn>,
     pub started_at_ns: i64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum NativeImportMemoryAvailability {
+    Supported { position: u64 },
+    Unsupported,
+    CreditExcluded,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NativeImportHistoricalEvent {
+    pub source: MemoryId,
+    pub position: u64,
+    pub roots: BTreeMap<MemoryId, i16>,
+    pub credit_excluded: BTreeSet<MemoryId>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NativeImportRetainedEvent {
+    pub recipient: MemoryId,
+    pub position: u64,
+    pub event_id: [u8; 32],
+    pub amount: i16,
+}
+
+/// Immutable owner proof for Application's pure historical Freshness scorer.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NativeImportFreshnessInput {
+    pub owner_id: [u8; 16],
+    pub import_id: String,
+    pub import_digest: [u8; 32],
+    pub base_cut: u64,
+    pub settlement_cut: u64,
+    pub evidence_digest: [u8; 32],
+    pub initial_records: BTreeMap<MemoryId, FreshnessRecord>,
+    pub historical_events: Vec<NativeImportHistoricalEvent>,
+    pub retained_events: Vec<NativeImportRetainedEvent>,
+    pub adjacency: BTreeMap<MemoryId, BTreeSet<MemoryId>>,
+    pub memberships: BTreeMap<MemoryId, reliquary_graph::CommunityId>,
+    pub authorized: BTreeSet<MemoryId>,
+    pub availability: BTreeMap<MemoryId, NativeImportMemoryAvailability>,
 }
 
 /// Read-only Phylactery owner aggregate. It has Memory, Graph, Entity, Ego,

@@ -121,6 +121,9 @@ impl DreamEvidenceStore {
     pub(crate) fn settlement_record(&self, pass_id: &str) -> Option<&InitialDreamSettlement> {
         self.initial_settlements.get(pass_id)
     }
+    pub(crate) fn initial_settlements(&self) -> impl Iterator<Item = &InitialDreamSettlement> {
+        self.initial_settlements.values()
+    }
     pub(crate) fn append_initial_begin(
         &mut self,
         container: &mut Container,

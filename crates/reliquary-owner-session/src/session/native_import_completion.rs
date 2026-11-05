@@ -194,7 +194,7 @@ impl RelWriter {
         Ok((complete, written))
     }
 
-    fn validate_import_work_complete(
+    pub(super) fn validate_import_work_complete(
         &self,
         receipt: &crate::model::ImportReceipt,
     ) -> Result<(), OwnerSessionError> {

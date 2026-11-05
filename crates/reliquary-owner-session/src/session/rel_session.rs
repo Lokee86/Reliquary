@@ -260,6 +260,30 @@ impl RelSession {
             .record_at(id, u64::MAX)
             .map_err(OwnerSessionError::Record)
     }
+    pub fn freshness_record_at(
+        &self,
+        id: FreshnessMemoryId,
+        turn: u64,
+    ) -> Result<Option<FreshnessRecord>, OwnerSessionError> {
+        self.freshness
+            .record_at(id, turn)
+            .map_err(OwnerSessionError::Record)
+    }
+    pub fn freshness_record_through_turn(
+        &self,
+        id: FreshnessMemoryId,
+        turn: u64,
+    ) -> Result<Option<FreshnessRecord>, OwnerSessionError> {
+        Ok(self
+            .freshness
+            .records_through_turn(turn)
+            .map_err(OwnerSessionError::Record)?
+            .get(&id)
+            .copied())
+    }
+    pub fn freshness_policy(&self) -> reliquary_freshness_store::FreshnessPolicy {
+        self.freshness.policy()
+    }
     pub fn insomnia_work(&self, id: WorkEpisodeId) -> Option<&InsomniaWork> {
         self.insomnia.work(id)
     }

@@ -56,6 +56,22 @@ impl RelWriter {
         cut: DreamRelationCut,
     ) -> Result<bool, OwnerSessionError> {
         self.ensure_write_ready()?;
+        self.commit_dream_grouped_relation_after_fence(cut)
+    }
+
+    pub fn commit_native_import_dream_grouped_relation(
+        &mut self,
+        import_id: &str,
+        cut: DreamRelationCut,
+    ) -> Result<bool, OwnerSessionError> {
+        self.ensure_import_scope(import_id)?;
+        self.commit_dream_grouped_relation_after_fence(cut)
+    }
+
+    fn commit_dream_grouped_relation_after_fence(
+        &mut self,
+        cut: DreamRelationCut,
+    ) -> Result<bool, OwnerSessionError> {
         let record = GroupedDreamRelation::new(cut).map_err(OwnerSessionError::Record)?;
         let before = self.container.writer_lease_proof();
         if before.is_none() || before != self.session.writer_lease_proof {

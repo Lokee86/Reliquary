@@ -1,12 +1,14 @@
 //! Owner-scoped Freshness policy, activity receipts, and score projections.
 
 mod codec;
+mod historical_snapshot;
 mod model;
 mod policy;
 mod projection;
 mod score;
 mod store;
 
+pub use historical_snapshot::HistoricalFreshnessSnapshot;
 pub use model::FreshnessMemoryId;
 pub use policy::{
     FRESHNESS_POLICY_VERSION, FRESHNESS_SCORE_MAX, FRESHNESS_SCORE_MIN, FreshnessPolicy,

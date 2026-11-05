@@ -2,8 +2,15 @@
 //! outside this workflow; source-to-native mappings remain Archive-owned.
 
 use reliquary_freshness::historical_planner::{HistoricalSource, HistoricalTimeline, SourceKey};
+use reliquary_freshness::{
+    historical_dream::historical_dream_event_id,
+    historical_import::{HistoricalImportGraph, score_historical_import},
+    historical_planner::MemoryAvailability,
+    historical_propagation::{HistoricalPropagationEvent, HistoricalPropagationKind},
+    historical_scorer::HistoricalScoreEvent,
+};
 use reliquary_owner_session::{
-    OwnerSessionError, RelWriter,
+    NativeImportMemoryAvailability, OwnerSessionError, RelWriter,
     model::{Branch, EpisodeId, ImportReceipt, TurnInput},
     records::{ImportEpochStatus, ImportFreshnessSettlement, import_id},
 };
@@ -182,9 +189,78 @@ pub fn settle_native_import(
     if writer
         .read_session()
         .native_import_settlement(import_id)
-        .is_none()
+        .is_some()
     {
-        import_timeline(writer)?;
+        return writer.settle_native_import(import_id);
+    }
+    import_timeline(writer)?;
+    if !writer
+        .read_session()
+        .has_native_import_historical_freshness(import_id)
+    {
+        let input = writer.native_import_freshness_input(import_id)?;
+        let events = input
+            .historical_events
+            .iter()
+            .map(|event| {
+                (
+                    historical_dream_event_id(input.owner_id, input.import_digest, event.source),
+                    HistoricalPropagationEvent {
+                        kind: HistoricalPropagationKind::FirstCycleDream,
+                        position: event.position,
+                        roots: event.roots.clone(),
+                        credit_excluded: event.credit_excluded.clone(),
+                    },
+                )
+            })
+            .collect::<Vec<_>>();
+        let retained = input
+            .retained_events
+            .iter()
+            .map(|event| HistoricalScoreEvent {
+                recipient: event.recipient,
+                position: event.position,
+                event_id: event.event_id,
+                amount: event.amount,
+            })
+            .collect::<Vec<_>>();
+        let availability = input
+            .availability
+            .iter()
+            .map(|(id, value)| {
+                let value = match value {
+                    NativeImportMemoryAvailability::Supported { position } => {
+                        MemoryAvailability::Supported {
+                            position: *position,
+                        }
+                    }
+                    NativeImportMemoryAvailability::Unsupported => MemoryAvailability::Unsupported,
+                    NativeImportMemoryAvailability::CreditExcluded => {
+                        MemoryAvailability::CreditExcluded
+                    }
+                };
+                (*id, value)
+            })
+            .collect();
+        let records = score_historical_import(
+            &input.initial_records,
+            &events,
+            &retained,
+            HistoricalImportGraph {
+                adjacency: &input.adjacency,
+                memberships: &input.memberships,
+                authorized: &input.authorized,
+                availability: &availability,
+            },
+            input.settlement_cut,
+            &writer.read_session().freshness_policy(),
+        )
+        .map_err(OwnerSessionError::Record)?;
+        writer.publish_native_import_historical_freshness(
+            import_id,
+            input.evidence_digest,
+            records,
+        )?;
     }
     writer.settle_native_import(import_id)
 }

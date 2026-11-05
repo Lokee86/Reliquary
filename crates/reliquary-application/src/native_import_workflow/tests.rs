@@ -1,7 +1,14 @@
 use super::*;
-use reliquary_container::ReliquaryScope;
+use reliquary_container::{Container, ReliquaryScope};
+use reliquary_freshness_store::{FreshnessMemoryId, FreshnessStore};
+use reliquary_graph::{NodeRef, RelationChange, RelationKind, RelationOrigin};
+use reliquary_memory_core::{
+    MemoryDraft, MemoryRecord, MemorySourceRef, MemoryStore, encode_grouped_creation,
+    memory_body_id, memory_id,
+};
 use reliquary_owner_session::{
-    CompletionCheck, GraphAdmission, records::GroupedInsomniaCompletion,
+    CompletionCheck, DreamMemoryCut, DreamRelationCut, GraphAdmission,
+    records::{GroupedInsomniaCompletion, GroupedMemoryBody},
 };
 use std::{
     fs,
@@ -85,6 +92,34 @@ fn batch(owner: [u8; 16]) -> NativeImportBatch {
             finalized_at_ns: 11,
         }],
         started_at_ns: 10,
+    }
+}
+
+fn memory_draft(mutation_id: &str, lifecycle: &str) -> MemoryDraft {
+    MemoryDraft {
+        title: mutation_id.into(),
+        content: format!("content for {mutation_id}"),
+        category: "fact".into(),
+        memory_type: "project".into(),
+        authority_kind: "direct".into(),
+        temporal_status: "current".into(),
+        scope: "project".into(),
+        lifecycle_state: lifecycle.into(),
+        archived: false,
+        parent_id: None,
+        superseded_by: None,
+        source_node_id: None,
+        content_source_conversation_id: None,
+        content_source_node_id: None,
+        grounding_source_conversation_id: None,
+        grounding_source_node_id: None,
+        source_episode_id: None,
+        source_ref: None,
+        source_time_ns: Some(1),
+        temporal_inference: None,
+        mutation_id: mutation_id.into(),
+        created_at_ns: 1,
+        updated_at_ns: 1,
     }
 }
 
@@ -241,4 +276,259 @@ fn import_rejects_episode_evidence_outside_its_source_receipt() {
             .contains("path escapes its receipt source set")
     );
     assert_eq!(fs::metadata(&path.0).unwrap().len(), before);
+}
+
+#[test]
+fn historical_dream_credit_is_published_once_and_survives_reopen() {
+    let path = Temp::new();
+    let owner = [0x64; 16];
+    let input = batch(owner);
+    let old_id;
+    let excluded_id;
+    let source_memory_id;
+    let old_cut;
+    let excluded_after;
+    let settlement_turn;
+    let dream_admission;
+    {
+        drop(RelWriter::create_path(&path.0, ReliquaryScope::Project, owner).unwrap());
+        let mut container = Container::open_writer(&path.0).unwrap();
+        let mut memories = MemoryStore::open(&container).unwrap();
+        old_id = memories
+            .publish(
+                &mut container,
+                None,
+                0,
+                memory_draft("historical-old", "knowledge"),
+            )
+            .unwrap()
+            .revision
+            .record
+            .id;
+        excluded_id = memories
+            .publish(
+                &mut container,
+                None,
+                0,
+                memory_draft("historical-excluded", "archived"),
+            )
+            .unwrap()
+            .revision
+            .record
+            .id;
+        let mut freshness = FreshnessStore::open(&container).unwrap();
+        freshness
+            .create_birth(&mut container, FreshnessMemoryId(old_id.0), 1, true)
+            .unwrap();
+        freshness
+            .create_birth(&mut container, FreshnessMemoryId(excluded_id.0), 1, true)
+            .unwrap();
+        container.sync().unwrap();
+        drop(container);
+        let mut writer = RelWriter::open_path(
+            &path.0,
+            GraphAdmission::for_replay(owner, [old_id.0, excluded_id.0], [], [], [], []),
+            [],
+            [],
+        )
+        .unwrap();
+        let mut parent = None;
+        for index in 0..600 {
+            let id = format!("aging-{index}");
+            writer
+                .accept_turn_and_advance_branch(
+                    TurnInput {
+                        id: id.clone(),
+                        conversation_id: "aging".into(),
+                        parent_id: parent.clone(),
+                        role: "user".into(),
+                        principal_id: Some("alice".into()),
+                        timestamp_ns: index,
+                        content: "age existing Memory".into(),
+                        attachments: vec![],
+                        project_attachments: vec![],
+                    },
+                    Branch {
+                        id: "main".into(),
+                        conversation_id: "aging".into(),
+                        leaf_node_id: id.clone(),
+                        canonical: true,
+                    },
+                )
+                .unwrap();
+            parent = Some(id);
+        }
+        old_cut = writer
+            .read_session()
+            .freshness_record_at(FreshnessMemoryId(old_id.0), 600)
+            .unwrap()
+            .unwrap();
+
+        let staged = stage_native_import(&mut writer, input).unwrap();
+        let episode = staged.episodes[0];
+        let claim = writer
+            .claim_native_import_episode(&staged.import_id, episode, "worker", 700, 100)
+            .unwrap();
+        let mutation = "historical-import-source";
+        source_memory_id = memory_id(mutation);
+        let body = GroupedMemoryBody::from_content("Imported source", "Imported source content");
+        let record = MemoryRecord {
+            id: source_memory_id,
+            revision: 1,
+            body_id: memory_body_id("Imported source", "Imported source content"),
+            category: "fact".into(),
+            memory_type: "project".into(),
+            authority_kind: "direct".into(),
+            temporal_status: "current".into(),
+            scope: "project".into(),
+            lifecycle_state: "knowledge".into(),
+            archived: false,
+            parent_id: None,
+            superseded_by: None,
+            source_node_id: Some("imported-turn".into()),
+            content_source_conversation_id: Some("conversation".into()),
+            content_source_node_id: Some("imported-turn".into()),
+            grounding_source_conversation_id: None,
+            grounding_source_node_id: None,
+            source_episode_id: Some(episode.0),
+            source_ref: Some(MemorySourceRef {
+                owner_id: "project".into(),
+                principal_id: None,
+                source_episode_id: episode.0,
+                source_node_id: "imported-turn".into(),
+                content_source_conversation_id: Some("conversation".into()),
+                content_source_node_id: Some("imported-turn".into()),
+                grounding_source_conversation_id: None,
+                grounding_source_node_id: None,
+            }),
+            source_time_ns: Some(1),
+            temporal_inference: None,
+            mutation_id: mutation.into(),
+            created_at_ns: 701,
+            updated_at_ns: 701,
+            memory_version: writer.read_session().memory_version() + 1,
+        };
+        let completion = GroupedInsomniaCompletion {
+            episode_id: episode.0,
+            attempt: claim.work.attempt_count,
+            started_at_ns: claim.started_at_ns,
+            completed_at_ns: 701,
+            transaction_time_ns: 701,
+            extractor_model: "fixture".into(),
+            extractor_version: "v1".into(),
+            rejected_count: 0,
+            memory_ids: vec![source_memory_id.0],
+            external_memory_refs: vec![],
+            global_version_start: writer.next_global_version().unwrap(),
+            bodies: vec![body],
+            memory_records: vec![encode_grouped_creation(&record).unwrap()],
+            routing_metadata: vec![],
+            freshness_birth_turn: Some(writer.read_session().rel_turn_count()),
+            freshness_policy_version: Some(1),
+            freshness_birth_memory_ids: vec![source_memory_id.0],
+        };
+        writer
+            .commit_native_import_completion_with_routed_receipts(
+                &staged.import_id,
+                claim.work.lease_token.unwrap(),
+                completion,
+                701,
+                &[],
+            )
+            .unwrap();
+        let source = DreamMemoryCut {
+            id: source_memory_id,
+            revision: 1,
+            body_id: record.body_id,
+        };
+        let old = writer.read_session().current_memory(old_id).unwrap().record;
+        let old = DreamMemoryCut {
+            id: old_id,
+            revision: old.revision,
+            body_id: old.body_id,
+        };
+        dream_admission = writer
+            .begin_native_import_initial_dream_pass(
+                &staged.import_id,
+                "import-dream".into(),
+                source,
+                writer.read_session().rel_turn_count(),
+            )
+            .unwrap();
+        writer
+            .commit_native_import_dream_grouped_relation(
+                &staged.import_id,
+                DreamRelationCut {
+                    owner_id: owner,
+                    graph_version: writer.read_session().graph_version(),
+                    source,
+                    candidate: old,
+                    change: RelationChange {
+                        source: NodeRef::Memory(source_memory_id.0),
+                        target: NodeRef::Memory(old_id.0),
+                        kind: RelationKind::Topical,
+                        active: true,
+                        origin: RelationOrigin::Dream,
+                    },
+                },
+            )
+            .unwrap();
+        writer
+            .commit_native_import_initial_dream_pass(
+                &staged.import_id,
+                "import-dream",
+                source,
+                writer.read_session().graph_version(),
+                writer.read_session().rel_turn_count(),
+                [(old_id, 50)].into_iter().collect(),
+                false,
+            )
+            .unwrap();
+        let excluded_before = writer
+            .read_session()
+            .freshness_record_at(
+                FreshnessMemoryId(excluded_id.0),
+                writer.read_session().rel_turn_count(),
+            )
+            .unwrap()
+            .unwrap();
+        let settlement = settle_native_import(&mut writer, &staged.import_id).unwrap();
+        settlement_turn = settlement.rel_turn;
+        let after = writer
+            .read_session()
+            .freshness_record_through_turn(FreshnessMemoryId(old_id.0), settlement.rel_turn)
+            .unwrap()
+            .unwrap();
+        excluded_after = writer
+            .read_session()
+            .freshness_record_through_turn(FreshnessMemoryId(excluded_id.0), settlement.rel_turn)
+            .unwrap()
+            .unwrap();
+        assert!(after.score > old_cut.score);
+        assert_eq!(excluded_after, excluded_before);
+        assert!(settle_native_import(&mut writer, &staged.import_id).is_ok());
+    }
+    let admission = GraphAdmission::for_replay(
+        owner,
+        [source_memory_id.0],
+        [old_id.0, excluded_id.0],
+        [],
+        [],
+        [],
+    );
+    let reopened = RelWriter::open_path(&path.0, admission, [], [dream_admission]).unwrap();
+    let after = reopened
+        .read_session()
+        .freshness_record_through_turn(FreshnessMemoryId(old_id.0), 601)
+        .unwrap()
+        .unwrap();
+    assert!(after.score > old_cut.score);
+    assert_eq!(
+        reopened
+            .read_session()
+            .freshness_record_through_turn(FreshnessMemoryId(excluded_id.0), settlement_turn)
+            .unwrap()
+            .unwrap(),
+        excluded_after
+    );
 }

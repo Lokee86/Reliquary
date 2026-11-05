@@ -23,10 +23,11 @@ pub use reliquary_insomnia_store::MAX_HELD_PAYLOAD_BYTES as MAX_INSOMNIA_CHECKPO
 pub use reliquary_insomnia_store::{CompletionCheck, InsomniaLeaseToken};
 pub use session::{
     DreamBatchCut, DreamCandidatePool, DreamLifecyclePublication, DreamPairPublication,
-    InitialDreamSnapshot, OwnerSessionError, PhySession, PhyWriter, PrunedOwnerCopyReport,
-    RelInsomniaClaimInput, RelRetrievalMemory, RelRetrievalSnapshot, RelSession, RelWriter,
-    RoutedUserMemoryProof, RoutedUserMemoryReceipt, promote_terminal_memory_copy,
-    prune_terminal_memory_copy,
+    InitialDreamSnapshot, NativeImportFreshnessInput, NativeImportHistoricalEvent,
+    NativeImportMemoryAvailability, NativeImportRetainedEvent, OwnerSessionError, PhySession,
+    PhyWriter, PrunedOwnerCopyReport, RelInsomniaClaimInput, RelRetrievalMemory,
+    RelRetrievalSnapshot, RelSession, RelWriter, RoutedUserMemoryProof, RoutedUserMemoryReceipt,
+    promote_terminal_memory_copy, prune_terminal_memory_copy,
 };
 
 pub use reliquary_vector_store::VectorGeneration;
