@@ -7,7 +7,8 @@ use reliquary_owner_session::model::{
     MemoryRecord, MemorySourceRef, PayloadState, ResolvedTurn, memory_body_id, memory_id,
 };
 use reliquary_owner_session::{
-    CompletionCheck, RelWriter,
+    CompletionCheck, PhyWriter, RelSession, RelWriter, RoutedUserMemoryProof,
+    RoutedUserMemoryReceipt,
     records::{GroupedInsomniaCompletion, GroupedMemoryBody, encode_insomnia_memory_creation},
 };
 use sha2::Digest;
@@ -49,12 +50,13 @@ impl std::error::Error for IngestPublicationError {}
 /// Build a privacy-preserving PHY draft from one sealed User-owned candidate.
 /// The caller must separately authorize both owners and verify the supplied
 /// resolved source turn against the REL Archive before publishing the draft.
-pub fn prepare_routed_user_memory(
+fn prepare_routed_user_memory(
+    rel: &RelSession,
     prepared: &PreparedIngest,
     candidate: &reliquary_insomnia::InsomniaCandidate,
     source_turn: &ResolvedTurn,
     principal_id: &str,
-) -> Result<(MemoryDraft, MemorySourceRef), IngestPublicationError> {
+) -> Result<MemoryDraft, IngestPublicationError> {
     if !prepared.candidates.contains(candidate)
         || candidate.ownership != InsomniaOwnership::User
         || source_turn.node_id != candidate.source_node_id
@@ -70,13 +72,23 @@ pub fn prepare_routed_user_memory(
         candidate.source_node_id.as_str(),
         candidate.category.as_str(),
         candidate.memory_type.as_str(),
+        candidate.authority_kind.as_str(),
+        candidate.temporal_status.as_str(),
         candidate.source_quote.as_str(),
+        attribution.map_or("", |source| &source.conversation_id),
+        attribution.map_or("", |source| &source.node_id),
+        grounding.map_or("", |source| &source.conversation_id),
+        grounding.map_or("", |source| &source.node_id),
     ] {
         key.extend_from_slice(&(field.len() as u64).to_le_bytes());
         key.extend_from_slice(field.as_bytes());
     }
     let key = hex(&sha2::Sha256::digest(&key));
-    let mutation_id = format!("insomnia-user:{}:{key}", hex(&prepared.episode_id.0));
+    let mutation_id = format!(
+        "insomnia-user:{}:{}:{key}",
+        hex(&prepared.owner_id),
+        hex(&prepared.episode_id.0)
+    );
     let source_ref = MemorySourceRef {
         owner_id: hex(&prepared.owner_id),
         principal_id: Some(principal_id.to_owned()),
@@ -105,14 +117,95 @@ pub fn prepare_routed_user_memory(
         grounding_source_conversation_id: None,
         grounding_source_node_id: None,
         source_episode_id: None,
-        source_ref: Some(source_ref.clone()),
-        source_time_ns: Some(source_turn.timestamp_ns),
+        source_ref: Some(source_ref),
+        source_time_ns: Some(candidate_source_time(rel, candidate, source_turn)?),
         temporal_inference: None,
         mutation_id,
         created_at_ns: prepared.source_through_ns,
         updated_at_ns: prepared.source_through_ns,
     };
-    Ok((draft, source_ref))
+    Ok(draft)
+}
+
+fn candidate_source_time(
+    rel: &RelSession,
+    candidate: &reliquary_insomnia::InsomniaCandidate,
+    user_turn: &ResolvedTurn,
+) -> Result<i64, IngestPublicationError> {
+    let Some(attribution) = &candidate.authority_source else {
+        return Ok(user_turn.timestamp_ns);
+    };
+    let turn = rel
+        .archive_evidence_turn(&attribution.conversation_id, &attribution.node_id)
+        .map_err(|error| IngestPublicationError::OwnerSession(error.to_string()))?
+        .filter(|turn| {
+            turn.role == "assistant"
+                && turn.timestamp_ns <= user_turn.timestamp_ns
+                && turn.content.contains(&attribution.quote)
+        })
+        .ok_or(IngestPublicationError::MissingSourceTurn)?;
+    Ok(turn.timestamp_ns)
+}
+
+/// Validate the source Episode and seal every routed draft before the PHY writer
+/// receives any of them. Gateway authorizes both mounts and the principal.
+pub fn prepare_routed_user_proofs(
+    rel: &RelSession,
+    destination: &PhyWriter,
+    prepared: &PreparedIngest,
+    principal: &str,
+) -> Result<Vec<RoutedUserMemoryProof>, IngestPublicationError> {
+    validate_prepared_episode(rel, prepared)?;
+    let mut ids = HashSet::new();
+    prepared
+        .user_memories()
+        .map(|candidate| {
+            let turn = rel
+                .archive_evidence_turn(prepared.conversation_id(), &candidate.source_node_id)
+                .map_err(|error| IngestPublicationError::OwnerSession(error.to_string()))?
+                .ok_or(IngestPublicationError::MissingSourceTurn)?;
+            let draft = prepare_routed_user_memory(rel, prepared, candidate, &turn, principal)?;
+            if !ids.insert(memory_id(&draft.mutation_id)) {
+                return Err(IngestPublicationError::InvalidMetadata(
+                    "duplicate routed Memory identity",
+                ));
+            }
+            rel.prove_routed_user_memory(
+                destination,
+                &draft,
+                &candidate.source_quote,
+                candidate
+                    .authority_source
+                    .as_ref()
+                    .map(|source| source.quote.as_str()),
+            )
+            .map_err(|error| IngestPublicationError::OwnerSession(error.to_string()))
+        })
+        .collect()
+}
+
+fn validate_prepared_episode(
+    rel: &RelSession,
+    prepared: &PreparedIngest,
+) -> Result<(), IngestPublicationError> {
+    if rel.owner_id() != prepared.owner_id {
+        return Err(IngestPublicationError::OwnerMismatch);
+    }
+    let episode = rel
+        .episode(prepared.episode_id)
+        .ok_or(IngestPublicationError::EpisodeMismatch)?;
+    if episode.conversation_id != prepared.conversation_id {
+        return Err(IngestPublicationError::EpisodeMismatch);
+    }
+    if let Some((claimed_episode, claimed_turns)) = &prepared.claim_snapshot {
+        let archived_turns = rel
+            .archive_evidence_episode(prepared.episode_id)
+            .map_err(|error| IngestPublicationError::OwnerSession(error.to_string()))?;
+        if episode != claimed_episode || archived_turns.as_ref() != Some(claimed_turns) {
+            return Err(IngestPublicationError::EpisodeMismatch);
+        }
+    }
+    Ok(())
 }
 
 /// Publish Project-owned candidates from one prepared Episode to the same REL
@@ -154,9 +247,31 @@ pub fn commit_prepared_native_ingest_with_external_refs(
         // A caller-supplied reference is not evidence of an authorized PHY publication.
         return Err(IngestPublicationError::RoutedOwnerUnsupported);
     }
-    if writer.owner_id() != prepared.owner_id {
-        return Err(IngestPublicationError::OwnerMismatch);
-    }
+    commit_prepared_native_ingest_with_routed_receipts(
+        writer,
+        prepared,
+        work,
+        extractor_model,
+        extractor_version,
+        completed_at_ns,
+        &[],
+    )
+}
+
+pub fn commit_prepared_native_ingest_with_routed_receipts(
+    writer: &mut RelWriter,
+    prepared: &PreparedIngest,
+    work: &InsomniaWork,
+    extractor_model: &str,
+    extractor_version: &str,
+    completed_at_ns: i64,
+    routed: &[RoutedUserMemoryReceipt],
+) -> Result<CompletionCheck, IngestPublicationError> {
+    let external_memory_refs: Vec<_> = routed
+        .iter()
+        .map(RoutedUserMemoryReceipt::external_ref)
+        .collect();
+    validate_prepared_episode(writer.read_session(), prepared)?;
     if work.episode_id.0 != prepared.episode_id.0 {
         return Err(IngestPublicationError::EpisodeMismatch);
     }
@@ -184,28 +299,31 @@ pub fn commit_prepared_native_ingest_with_external_refs(
         return Err(IngestPublicationError::RoutedOwnerUnsupported);
     }
     let mut external_ids = HashSet::with_capacity(external_memory_refs.len());
-    if external_memory_refs.iter().any(|reference| {
-        reference.owner_id.trim().is_empty() || !external_ids.insert(reference.memory_id)
-    }) {
-        return Err(IngestPublicationError::InvalidMetadata(
-            "duplicate or empty external Memory reference",
-        ));
-    }
-    let episode = writer
-        .read_session()
-        .episode(prepared.episode_id)
-        .ok_or(IngestPublicationError::EpisodeMismatch)?;
-    if episode.conversation_id != prepared.conversation_id {
-        return Err(IngestPublicationError::EpisodeMismatch);
-    }
-
-    if let Some((claimed_episode, claimed_turns)) = &prepared.claim_snapshot {
-        let archived_turns = writer
+    for ((candidate, receipt), reference) in prepared
+        .user_memories()
+        .zip(routed)
+        .zip(&external_memory_refs)
+    {
+        let turn = writer
             .read_session()
-            .episode_turns(prepared.episode_id)
-            .map_err(|error| IngestPublicationError::OwnerSession(error.to_string()))?;
-        if episode != claimed_episode || archived_turns.as_ref() != Some(claimed_turns) {
-            return Err(IngestPublicationError::EpisodeMismatch);
+            .archive_evidence_turn(prepared.conversation_id(), &candidate.source_node_id)
+            .map_err(|error| IngestPublicationError::OwnerSession(error.to_string()))?
+            .ok_or(IngestPublicationError::MissingSourceTurn)?;
+        let principal = turn
+            .principal_id
+            .as_deref()
+            .ok_or(IngestPublicationError::InvalidUserRoute)?;
+        let draft = prepare_routed_user_memory(
+            writer.read_session(),
+            prepared,
+            candidate,
+            &turn,
+            principal,
+        )?;
+        if !external_ids.insert(reference.memory_id) || !receipt.matches_draft(&draft) {
+            return Err(IngestPublicationError::InvalidMetadata(
+                "routed receipt differs from candidate",
+            ));
         }
     }
 
@@ -234,7 +352,7 @@ pub fn commit_prepared_native_ingest_with_external_refs(
     {
         let source = writer
             .read_session()
-            .resolved_archive_turn(&prepared.conversation_id, &candidate.source_node_id)
+            .archive_evidence_turn(&prepared.conversation_id, &candidate.source_node_id)
             .map_err(|error| IngestPublicationError::OwnerSession(error.to_string()))?
             .ok_or(IngestPublicationError::MissingSourceTurn)?;
         let body_id = memory_body_id(&candidate.title, &candidate.content);
@@ -250,6 +368,18 @@ pub fn commit_prepared_native_ingest_with_external_refs(
             .checked_add(index)
             .ok_or(IngestPublicationError::InvalidMetadata("version overflow"))?;
         let grounding = candidate.grounding_source.as_ref();
+        let (content_conversation, content_node) = candidate.authority_source.as_ref().map_or(
+            (
+                prepared.conversation_id.as_str(),
+                candidate.source_node_id.as_str(),
+            ),
+            |attribution| {
+                (
+                    attribution.conversation_id.as_str(),
+                    attribution.node_id.as_str(),
+                )
+            },
+        );
         let record = MemoryRecord {
             id,
             revision: 1,
@@ -264,8 +394,8 @@ pub fn commit_prepared_native_ingest_with_external_refs(
             parent_id: None,
             superseded_by: None,
             source_node_id: Some(candidate.source_node_id.clone()),
-            content_source_conversation_id: Some(prepared.conversation_id.clone()),
-            content_source_node_id: Some(candidate.source_node_id.clone()),
+            content_source_conversation_id: Some(content_conversation.to_owned()),
+            content_source_node_id: Some(content_node.to_owned()),
             grounding_source_conversation_id: grounding
                 .map(|source| source.conversation_id.clone()),
             grounding_source_node_id: grounding.map(|source| source.node_id.clone()),
@@ -275,13 +405,17 @@ pub fn commit_prepared_native_ingest_with_external_refs(
                 principal_id: None,
                 source_episode_id: prepared.episode_id.0,
                 source_node_id: candidate.source_node_id.clone(),
-                content_source_conversation_id: Some(prepared.conversation_id.clone()),
-                content_source_node_id: Some(candidate.source_node_id.clone()),
+                content_source_conversation_id: Some(content_conversation.to_owned()),
+                content_source_node_id: Some(content_node.to_owned()),
                 grounding_source_conversation_id: grounding
                     .map(|source| source.conversation_id.clone()),
                 grounding_source_node_id: grounding.map(|source| source.node_id.clone()),
             }),
-            source_time_ns: Some(source.timestamp_ns),
+            source_time_ns: Some(candidate_source_time(
+                writer.read_session(),
+                candidate,
+                &source,
+            )?),
             temporal_inference: None,
             mutation_id,
             created_at_ns: completed_at_ns,
@@ -311,9 +445,7 @@ pub fn commit_prepared_native_ingest_with_external_refs(
             && receipt.extractor_model == extractor_model
             && receipt.extractor_version == extractor_version
             && receipt.rejected_count == rejected_count
-            && receipt.external_memory_refs.is_empty()
-            && receipt.memory_ids.iter().map(|id| id.0).collect::<Vec<_>>()
-                == completion_memory_ids(&ids, external_memory_refs)
+            && receipt.memory_ids.iter().map(|id| id.0).collect::<Vec<_>>() == ids
             && receipt
                 .external_memory_refs
                 .iter()
@@ -323,33 +455,32 @@ pub fn commit_prepared_native_ingest_with_external_refs(
                     .iter()
                     .map(|reference| (reference.owner_id.as_str(), reference.memory_id))
                     .collect::<Vec<_>>();
-        let records_match =
-            expected_records
-                .iter()
-                .zip(&prepared.candidates)
-                .all(|(expected, candidate)| {
-                    writer
-                        .read_session()
-                        .memory_history(expected.id)
-                        .ok()
-                        .flatten()
-                        .and_then(|history| {
-                            history
-                                .revisions
-                                .into_iter()
-                                .find(|revision| revision.record.revision == 1)
-                        })
-                        .is_some_and(|revision| {
-                            let mut expected = expected.clone();
-                            expected.memory_version = revision.record.memory_version;
-                            revision.record == expected
-                                && revision.payload
-                                    == PayloadState::Available(MemoryBody {
-                                        title: candidate.title.clone(),
-                                        content: candidate.content.clone(),
-                                    })
-                        })
-                });
+        let records_match = expected_records
+            .iter()
+            .zip(prepared.project_memories())
+            .all(|(expected, candidate)| {
+                writer
+                    .read_session()
+                    .memory_history(expected.id)
+                    .ok()
+                    .flatten()
+                    .and_then(|history| {
+                        history
+                            .revisions
+                            .into_iter()
+                            .find(|revision| revision.record.revision == 1)
+                    })
+                    .is_some_and(|revision| {
+                        let mut expected = expected.clone();
+                        expected.memory_version = revision.record.memory_version;
+                        revision.record == expected
+                            && revision.payload
+                                == PayloadState::Available(MemoryBody {
+                                    title: candidate.title.clone(),
+                                    content: candidate.content.clone(),
+                                })
+                    })
+            });
         if receipt_matches && records_match {
             return Ok(CompletionCheck::AlreadyAccepted);
         }
@@ -359,7 +490,6 @@ pub fn commit_prepared_native_ingest_with_external_refs(
     }
 
     let record_count = records.len();
-    let completed_memory_ids = completion_memory_ids(&ids, external_memory_refs);
     let completion = GroupedInsomniaCompletion {
         episode_id: prepared.episode_id.0,
         attempt: work.attempt_count,
@@ -369,8 +499,8 @@ pub fn commit_prepared_native_ingest_with_external_refs(
         extractor_model: extractor_model.to_owned(),
         extractor_version: extractor_version.to_owned(),
         rejected_count,
-        memory_ids: completed_memory_ids,
-        external_memory_refs: external_memory_refs.to_vec(),
+        memory_ids: ids.clone(),
+        external_memory_refs,
         global_version_start,
         bodies,
         memory_records: records,
@@ -380,23 +510,13 @@ pub fn commit_prepared_native_ingest_with_external_refs(
         freshness_birth_memory_ids: ids,
     };
     writer
-        .commit_grouped_insomnia_completion(token, completion, completed_at_ns)
-        .map_err(|error| IngestPublicationError::OwnerSession(error.to_string()))
-}
-
-fn completion_memory_ids(
-    project_ids: &[[u8; 32]],
-    external_memory_refs: &[reliquary_owner_session::records::GroupedExternalMemoryRef],
-) -> Vec<[u8; 32]> {
-    project_ids
-        .iter()
-        .copied()
-        .chain(
-            external_memory_refs
-                .iter()
-                .map(|reference| reference.memory_id),
+        .commit_grouped_insomnia_completion_with_routed_receipts(
+            token,
+            completion,
+            completed_at_ns,
+            routed,
         )
-        .collect()
+        .map_err(|error| IngestPublicationError::OwnerSession(error.to_string()))
 }
 
 fn hex(bytes: &[u8]) -> String {

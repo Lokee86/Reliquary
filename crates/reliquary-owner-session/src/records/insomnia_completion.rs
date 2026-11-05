@@ -53,6 +53,8 @@ pub struct GroupedInsomniaCompletion {
     pub extractor_model: String,
     pub extractor_version: String,
     pub rejected_count: u32,
+    /// Memory IDs local to this REL owner. Routed PHY IDs live only in
+    /// `external_memory_refs` and are never folded into this list.
     pub memory_ids: Vec<[u8; 32]>,
     pub external_memory_refs: Vec<GroupedExternalMemoryRef>,
     pub global_version_start: u64,
@@ -208,14 +210,12 @@ impl GroupedInsomniaCompletion {
     }
 
     /// Validate replay-visible structural proofs against an upper owner's Episode fact.
-    /// This does not authenticate the supplied Episode or any external owner.
+    /// This does not authenticate the supplied Episode or external owner at
+    /// write time; routed publication receipts are checked by RelSession.
     pub fn validate_replay_episode(&self, accepted_episode: [u8; 32]) -> Result<(), String> {
         self.validate_structure()?;
         if self.episode_id != accepted_episode {
             return Err("grouped completion Episode mismatch".into());
-        }
-        if !self.external_memory_refs.is_empty() {
-            return Err("routed completion requires separate owner authentication".into());
         }
         if !self.routing_metadata.is_empty() {
             return Err("routed completion metadata requires separate owner authentication".into());
@@ -304,13 +304,27 @@ impl GroupedInsomniaCompletion {
                 return Err("Freshness birth cohort differs from grouped creations".into());
             }
         }
+        let mut external_refs = BTreeSet::new();
         for reference in &self.external_memory_refs {
-            if reference.owner_id.trim().is_empty() {
-                return Err("empty external Memory owner".into());
+            if !is_owner_id(&reference.owner_id) {
+                return Err("invalid external Memory owner ID".into());
+            }
+            if memory_ids.contains(&reference.memory_id) {
+                return Err("external Memory reference duplicates a local Memory ID".into());
+            }
+            if !external_refs.insert((reference.owner_id.as_str(), reference.memory_id)) {
+                return Err("duplicate external Memory reference".into());
             }
         }
         Ok(())
     }
+}
+
+fn is_owner_id(owner_id: &str) -> bool {
+    owner_id.len() == 32
+        && owner_id
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn put_string(out: &mut Vec<u8>, value: &str) -> Result<(), String> {

@@ -3,13 +3,10 @@
 //! Gateway owns the mounted-session registry. Instances carry immutable PHY
 //! grants and never own or clone mutable domain stores.
 
-use reliquary_application::{
-    PreparedIngest, commit_prepared_native_ingest, prepare_routed_user_memory,
-};
+use reliquary_application::{PreparedIngest, commit_prepared_native_ingest};
 use reliquary_owner_session::{
-    AcceptedEpisodeOrder, CompletionCheck, GraphAdmission, InsomniaLeaseToken, OwnerSessionError,
-    PhySession, PhyWriter, RelInsomniaClaimInput, RelSession, RelWriter, RoutedUserMemoryProof,
-    records::{DreamBeginAdmission, GroupedExternalMemoryRef, GroupedInsomniaCompletion},
+    AcceptedEpisodeOrder, CompletionCheck, GraphAdmission, OwnerSessionError, PhySession,
+    PhyWriter, RelInsomniaClaimInput, RelSession, RelWriter, records::DreamBeginAdmission,
 };
 use uuid::Uuid;
 
@@ -180,10 +177,7 @@ struct MountedRelWriter {
 struct MountedPhyWriter {
     writer: std::sync::Mutex<PhyWriter>,
 }
-enum RoutedSource {
-    Snapshot(Arc<RelSession>),
-    Writer(Arc<MountedRelWriter>),
-}
+
 impl MountedOwner {
     fn is_rel(&self) -> bool {
         matches!(self, Self::Rel(_) | Self::RelWriter(_))
@@ -201,39 +195,6 @@ fn validate_principal(principal: &str) -> Result<(), GatewayError> {
     } else {
         Ok(())
     }
-}
-
-fn route_user_proofs(
-    rel: &RelSession,
-    destination: &PhyWriter,
-    prepared: &PreparedIngest,
-    principal: &str,
-) -> Result<Vec<RoutedUserMemoryProof>, GatewayError> {
-    if rel.owner_id() != prepared.owner_id() {
-        return Err(GatewayError::RoutedMemory(
-            "prepared ingest does not belong to the mounted REL".into(),
-        ));
-    }
-    let episode = rel
-        .episode(prepared.episode_id())
-        .ok_or_else(|| GatewayError::RoutedMemory("prepared Episode is unavailable".into()))?;
-    if episode.conversation_id != prepared.conversation_id() {
-        return Err(GatewayError::RoutedMemory(
-            "prepared Episode conversation differs from Archive".into(),
-        ));
-    }
-    let mut proofs = Vec::with_capacity(prepared.user_memories().count());
-    for candidate in prepared.user_memories() {
-        let source_turn = rel
-            .resolved_archive_turn(prepared.conversation_id(), &candidate.source_node_id)?
-            .ok_or_else(|| {
-                GatewayError::RoutedMemory("user Memory source turn is unavailable".into())
-            })?;
-        let (draft, _) = prepare_routed_user_memory(prepared, candidate, &source_turn, principal)
-            .map_err(|error| GatewayError::RoutedMemory(error.to_string()))?;
-        proofs.push(rel.prove_routed_user_memory(destination, &draft, &candidate.source_quote)?);
-    }
-    Ok(proofs)
 }
 
 fn hex(bytes: &[u8]) -> String {
@@ -407,6 +368,8 @@ pub struct Instance {
 mod tests;
 
 mod gateway_mounts;
+mod insomnia_worker;
 mod instance_conversation;
 mod instance_owner;
 mod instance_routing;
+pub use insomnia_worker::{InsomniaWorkerConfig, InsomniaWorkerHandle};

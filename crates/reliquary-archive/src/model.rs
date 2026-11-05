@@ -247,6 +247,7 @@ pub enum ArchiveError {
     ConflictingNode,
     InvalidBranchRevision,
     InvalidEpisodeRange,
+    EvidenceLimitExceeded,
     ConflictingEpisode,
     ActivityPositionExhausted,
     IndexCapacityExhausted,
@@ -275,6 +276,9 @@ impl fmt::Display for ArchiveError {
                 f.write_str("Archive branch revision is not a descendant")
             }
             Self::InvalidEpisodeRange => f.write_str("Archive Episode range is invalid"),
+            Self::EvidenceLimitExceeded => {
+                f.write_str("Archive evidence exceeds the requested bound")
+            }
             Self::ConflictingEpisode => {
                 f.write_str("Archive Episode identity has conflicting data")
             }

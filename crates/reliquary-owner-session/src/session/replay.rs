@@ -16,11 +16,6 @@ pub(super) fn open_common(
             }
             let completion = GroupedInsomniaCompletion::decode(payload)
                 .map_err(|_| MemoryError::Corrupt("grouped completion"))?;
-            if !completion.external_memory_refs.is_empty() {
-                return Err(MemoryError::Corrupt(
-                    "routed grouped completion requires owner authentication",
-                ));
-            }
             if !completion.routing_metadata.is_empty() {
                 return Err(MemoryError::Corrupt(
                     "grouped routing metadata replay is unsupported",

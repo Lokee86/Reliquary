@@ -105,6 +105,56 @@ impl RelWriter {
         &self.session
     }
 
+    /// Revalidate an inference snapshot against the live durable claim before
+    /// Gateway performs any routed PHY write.
+    pub fn validate_insomnia_claim(
+        &self,
+        claim: &RelInsomniaClaimInput,
+        now_ns: i64,
+    ) -> Result<(), OwnerSessionError> {
+        self.ensure_write_ready()?;
+        if self.session.writer_lease_proof.is_none()
+            || self.session.writer_lease_proof != self.container.writer_lease_proof()
+        {
+            return Err(OwnerSessionError::Record(
+                "owner session is stale; reopen before routed writes".into(),
+            ));
+        }
+        if claim.owner_id != self.session.owner_id {
+            return Err(OwnerSessionError::Insomnia(
+                InsomniaError::UnacceptedEpisode,
+            ));
+        }
+        let stored = self
+            .session
+            .insomnia
+            .work(claim.work.episode_id)
+            .ok_or(OwnerSessionError::Insomnia(InsomniaError::MissingWork))?;
+        if stored.state != reliquary_insomnia_store::InsomniaWorkState::Processing
+            || stored.attempt_count == 0
+            || stored != &claim.work
+            || stored.lease_token.is_none()
+            || stored
+                .lease_expires_ns
+                .is_none_or(|expires| expires <= now_ns)
+            || now_ns < stored.updated_at_ns
+            || now_ns < claim.started_at_ns
+            || claim.episode.id.0 != stored.episode_id.0
+            || self.session.archive.episode(claim.episode.id) != Some(&claim.episode)
+        {
+            return Err(OwnerSessionError::Insomnia(
+                InsomniaError::InvalidTransition,
+            ));
+        }
+        let turns = self.session.archive_evidence_episode(claim.episode.id)?;
+        if turns.as_ref() != Some(&claim.turns) {
+            return Err(OwnerSessionError::Insomnia(
+                InsomniaError::UnacceptedEpisode,
+            ));
+        }
+        Ok(())
+    }
+
     /// Admit a bounded batch of previously accepted Episodes, claim the next
     /// due work item, and return Archive-verified input. This method performs
     /// only local journal/projection work; callers run inference after it
@@ -160,13 +210,34 @@ impl RelWriter {
         let episode = self.session.archive.episode(episode_id).cloned().ok_or(
             OwnerSessionError::Insomnia(InsomniaError::UnacceptedEpisode),
         )?;
-        let turns =
-            self.session
-                .archive
-                .episode_turns(episode_id)?
-                .ok_or(OwnerSessionError::Insomnia(
+        let turns = match self.session.archive_evidence_episode(episode_id) {
+            Ok(Some(turns)) => turns,
+            Ok(None) => {
+                return Err(OwnerSessionError::Insomnia(
                     InsomniaError::UnacceptedEpisode,
-                ))?;
+                ));
+            }
+            Err(
+                error @ OwnerSessionError::Archive(
+                    reliquary_archive::ArchiveError::EvidenceLimitExceeded,
+                ),
+            ) => {
+                let held_claim = RelInsomniaClaimInput {
+                    owner_id: self.owner_id(),
+                    work: work.clone(),
+                    episode: episode.clone(),
+                    turns: Vec::new(),
+                    started_at_ns,
+                };
+                self.hold_insomnia_claim(
+                    &held_claim,
+                    started_at_ns,
+                    "Episode exceeds bounded native evidence limits".into(),
+                )?;
+                return Err(error);
+            }
+            Err(error) => return Err(error),
+        };
         self.session.writer_lease_proof = self.container.writer_lease_proof();
         Ok(Some(RelInsomniaClaimInput {
             owner_id: self.owner_id(),
@@ -487,5 +558,22 @@ impl RelWriter {
             completion,
             now_ns,
         )
+    }
+
+    pub fn commit_grouped_insomnia_completion_with_routed_receipts(
+        &mut self,
+        token: InsomniaLeaseToken,
+        completion: GroupedInsomniaCompletion,
+        now_ns: i64,
+        routed_receipts: &[RoutedUserMemoryReceipt],
+    ) -> Result<CompletionCheck, OwnerSessionError> {
+        self.session
+            .commit_grouped_insomnia_completion_with_routed_receipts(
+                &mut self.container,
+                token,
+                completion,
+                now_ns,
+                routed_receipts,
+            )
     }
 }

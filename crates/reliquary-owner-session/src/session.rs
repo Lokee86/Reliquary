@@ -237,7 +237,43 @@ pub struct PhyWriter {
 pub struct RoutedUserMemoryProof {
     source_owner_id: [u8; 16],
     destination_owner_id: [u8; 16],
+    source_episode_id: [u8; 32],
     draft: MemoryDraft,
+}
+
+/// Authenticated receipt for a User Memory durably published to a PHY.
+/// Only `PhyWriter` can mint this after its append and sync have succeeded.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoutedUserMemoryReceipt {
+    source_owner_id: [u8; 16],
+    source_episode_id: [u8; 32],
+    destination_owner_id: [u8; 16],
+    memory_id: MemoryId,
+    published_draft: MemoryDraft,
+}
+
+impl RoutedUserMemoryReceipt {
+    /// Return the owner-qualified reference suitable for the REL completion
+    /// carrier. The REL commit still authenticates this receipt separately.
+    pub fn external_ref(&self) -> crate::records::GroupedExternalMemoryRef {
+        const HEX: &[u8; 16] = b"0123456789abcdef";
+        let mut owner_id = String::with_capacity(32);
+        for byte in self.destination_owner_id {
+            owner_id.push(HEX[usize::from(byte >> 4)] as char);
+            owner_id.push(HEX[usize::from(byte & 0x0f)] as char);
+        }
+        crate::records::GroupedExternalMemoryRef {
+            owner_id,
+            memory_id: self.memory_id.0,
+        }
+    }
+
+    /// Check the full immutable routed draft accepted by PHY. Identity alone
+    /// is insufficient because Memory wording can change without changing
+    /// its stable semantic key.
+    pub fn matches_draft(&self, draft: &MemoryDraft) -> bool {
+        &self.published_draft == draft
+    }
 }
 
 macro_rules! common_reads {
@@ -423,6 +459,7 @@ common_reads!(PhySession, common);
 #[cfg(test)]
 mod tests;
 
+mod archive_evidence;
 mod create;
 pub(crate) mod dream_pairs;
 pub(crate) mod dream_prefix;

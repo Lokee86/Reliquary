@@ -4,6 +4,7 @@ use crate::*;
 use reliquary_archive::{Episode, ResolvedTurn};
 use reliquary_switchboard::{GeneralEndpoint, GeneralEndpointError};
 use serde_json::{Value, json};
+use std::sync::Arc;
 
 mod ledger_repair;
 
@@ -13,23 +14,25 @@ const LEDGER_PROMPT: &str = concat!(
     "Apply a strict durable-state test: retain only state useful after the immediate exchange or task is over, not conversational scaffolding. ",
     "Use direct when the user asserts state, correction when the user explicitly replaces earlier state, adoption only when the user explicitly accepts a specific assistant proposition, and retention only when the user asks to remember a proposition. ",
     "Questions, requests, proposed choices, recalled plans, challenges, uncertainty, advice, explanations, examples, assistant proposals, and pure execution/checkpoint receipts are non-authoritative by default. ",
-    "Split resulting durable state from receipt framing. ",
+    "Split a mixed turn when durable resulting state is mixed with a question, request, or receipt. A present-tense assessment such as everything seems to be working OK so far can be durable resulting state. ",
     "Preserve modality and lifecycle; prefer the final user-authoritative source and mark overlapping earlier clauses superseded. ",
     "Keep propositions narrow and omit unsupported rationale, implementation detail, or context. ",
+    "For each retained proposition, classify category as fact, preference, decision, instruction, relationship, constraint, correction, or commitment; classify type as identity, education, employment, location, possession, health, finance, schedule, communication, project, process, product, relationship, or other; classify lifecycle as current, future, or historical. Preserve the source's rhetorical force: a question is not a claim, and a confirmation tag does not erase an independently asserted requirement. ",
     "Request at most four narrow read-only evidence queries only when needed to resolve an explicit callback, adopted/retained assistant content, or unresolved referent. ",
     "Exhaust the Episode first. ",
     "Archive evidence is supporting context, never independent user authority. ",
     "Return the required JSON schema exactly.",
 );
 const WORDING_PROMPT: &str = concat!(
-    "Your ONLY job is to write one concise durable Memory title and content body for each supplied retained ledger item. ",
+    "Your ONLY job is to write one concise durable Memory title and content body for every supplied synthesis group. ",
     "Do not add, drop, merge, split, rename, or reorder groups. ",
     "Preserve every proposition and its modality; add no proposition, rationale, implementation detail, or contextual fact. ",
-    "Keep the ledger's grounding, authority, category, type, and lifecycle fixed, and classify durable ownership. ",
+    "Grounding, authority, category, type, lifecycle, and ownership are already final. ",
     "Keep each candidate bound to its source user turn with a verbatim source_quote. ",
-    "Only explicit adoption may cite assistant authority. ",
-    "Return candidates; do not infer details from supporting evidence.",
+    "Only explicit adoption or retention of an assistant-authored proposition may cite assistant authority. ",
+    "Return exactly one candidate per group; do not infer details from supporting evidence.",
 );
+const OWNERSHIP_PROMPT: &str = "Classify each fixed synthesis group as user or project. Change only its durable owner; do not alter group membership, propositions, authority, provenance, category, type, or lifecycle. User means genuinely user-global state intended to remain useful across unrelated projects, including stable personal facts, preferences, and reusable personal practices. Project means project-specific facts, decisions, requirements, plans, or state, and is the conservative destination for ambiguous or non-user-owned propositions. Ownership is not confidentiality, access control, visibility, or retrieval relevance. Return exactly one classification for each supplied group key.";
 const MAX_TURN_CHARS: usize = 128 * 1024;
 const MAX_MODEL_JSON_BYTES: usize = 512 * 1024;
 
@@ -42,11 +45,22 @@ pub struct InsomniaModelStage {
 
 pub struct InsomniaModelExtractor<E> {
     endpoint: E,
+    ownership_endpoint: Option<Arc<dyn GeneralEndpoint>>,
 }
 
 impl<E: GeneralEndpoint> InsomniaModelExtractor<E> {
     pub fn new(endpoint: E) -> Self {
-        Self { endpoint }
+        Self {
+            endpoint,
+            ownership_endpoint: None,
+        }
+    }
+
+    /// Enable the bounded User/Project routing classifier. Without this route,
+    /// all extracted drafts conservatively remain Project-owned.
+    pub fn with_ownership_endpoint<M: GeneralEndpoint + 'static>(mut self, endpoint: M) -> Self {
+        self.ownership_endpoint = Some(Arc::new(endpoint));
+        self
     }
 
     /// Run ledger selection. A returned evidence stage is a single bounded round;
@@ -209,14 +223,17 @@ impl<E: GeneralEndpoint> InsomniaModelExtractor<E> {
         ledger: &Value,
         evidence: &[EvidenceTurn],
     ) -> Result<InsomniaExtraction, String> {
-        let retained = retained_clauses(ledger)?;
+        let mut retained = retained_groups(ledger, turns)?;
         if retained.is_empty() {
             return Ok(InsomniaExtraction {
                 candidates: Vec::new(),
                 rejected: Vec::new(),
             });
         }
-        let input = serde_json::to_string(&json!({"authoritative_episode":payload,"ledger":retained,"supporting_evidence":evidence.iter().map(evidence_turn_json).collect::<Vec<_>>()})).map_err(|e| e.to_string())?;
+        if let Some(endpoint) = &self.ownership_endpoint {
+            classify_ownership(endpoint.as_ref(), payload, &mut retained)?;
+        }
+        let input = serde_json::to_string(&json!({"authoritative_episode":payload,"synthesis_groups":retained,"supporting_evidence":evidence.iter().map(evidence_turn_json).collect::<Vec<_>>()})).map_err(|e| e.to_string())?;
         let schema = candidate_schema(turns, evidence);
         let response = self.complete(WORDING_PROMPT, &input, "insomnia_memory_wording", &schema)?;
         let array = response
@@ -234,7 +251,7 @@ impl<E: GeneralEndpoint> InsomniaModelExtractor<E> {
             || raw
                 .iter()
                 .zip(&retained)
-                .any(|(candidate, clause)| !matches_retained_clause(candidate, clause))
+                .any(|(candidate, group)| !matches_retained_clause(candidate, group))
         {
             return Err("wording response differs from retained ledger clauses".into());
         }
@@ -354,18 +371,118 @@ fn validate_ledger(value: &Value, turns: &[ResolvedTurn]) -> Result<(), String> 
     Ok(())
 }
 
-fn retained_clauses(ledger: &Value) -> Result<Vec<Value>, String> {
-    let mut retained = Vec::new();
-    for (node, clauses) in ledger["turns"].as_object().ok_or("ledger requires turns")? {
+fn retained_groups(ledger: &Value, turns: &[ResolvedTurn]) -> Result<Vec<Value>, String> {
+    let mut groups: Vec<Value> = Vec::new();
+    for turn in turns.iter().filter(|turn| turn.role == "user") {
+        let node = &turn.node_id;
+        let clauses = &ledger["turns"][node];
         for clause in clauses.as_array().ok_or("clauses must be an array")? {
             if clause["disposition"].as_str() == Some("retain") {
-                let mut item = clause.clone();
-                item["source_node_id"] = Value::String(node.clone());
-                retained.push(item);
+                let signature = [
+                    node.as_str(),
+                    clause["authority_kind"].as_str().unwrap_or_default(),
+                    clause["category"].as_str().unwrap_or_default(),
+                    clause["type"].as_str().unwrap_or_default(),
+                    clause["lifecycle"].as_str().unwrap_or_default(),
+                    clause["authority_source_node_id"]
+                        .as_str()
+                        .unwrap_or_default(),
+                    clause["grounding_source_node_id"]
+                        .as_str()
+                        .unwrap_or_default(),
+                ];
+                let existing = groups.iter_mut().find(|group| {
+                    let candidate = [
+                        group["source_node_id"].as_str().unwrap_or_default(),
+                        group["authority_kind"].as_str().unwrap_or_default(),
+                        group["category"].as_str().unwrap_or_default(),
+                        group["type"].as_str().unwrap_or_default(),
+                        group["lifecycle"].as_str().unwrap_or_default(),
+                        group["authority_source_node_id"]
+                            .as_str()
+                            .unwrap_or_default(),
+                        group["grounding_source_node_id"]
+                            .as_str()
+                            .unwrap_or_default(),
+                    ];
+                    signature == candidate
+                });
+                if let Some(group) = existing {
+                    group["propositions"]
+                        .as_array_mut()
+                        .ok_or("synthesis group propositions must be an array")?
+                        .push(clause["proposition"].clone());
+                } else {
+                    if groups.len() == MAX_INSOMNIA_CANDIDATES {
+                        return Err("retained ledger requires too many synthesis groups".into());
+                    }
+                    groups.push(json!({"group_id":format!("g{:03}",groups.len()),"source_node_id":node,"authority_kind":clause["authority_kind"],"category":clause["category"],"type":clause["type"],"lifecycle":clause["lifecycle"],"ownership":"project","authority_source_node_id":clause["authority_source_node_id"],"grounding_source_node_id":clause["grounding_source_node_id"],"propositions":[clause["proposition"]]}));
+                }
             }
         }
     }
-    Ok(retained)
+    Ok(groups)
+}
+
+fn classify_ownership(
+    endpoint: &dyn GeneralEndpoint,
+    episode: &Value,
+    groups: &mut [Value],
+) -> Result<(), String> {
+    let mut properties = serde_json::Map::new();
+    let mut required = Vec::with_capacity(groups.len());
+    for group in groups.iter() {
+        let id = group["group_id"]
+            .as_str()
+            .ok_or("synthesis group lacks ID")?;
+        required.push(Value::String(id.to_owned()));
+        properties.insert(
+            id.to_owned(),
+            json!({"type":"string","enum":["user","project"]}),
+        );
+    }
+    let schema = json!({"type":"object","additionalProperties":false,"properties":{"ownership":{"type":"object","additionalProperties":false,"properties":properties,"required":required}},"required":["ownership"]});
+    let payload =
+        serde_json::to_string(&json!({"authoritative_episode":episode,"synthesis_groups":groups}))
+            .map_err(|error| error.to_string())?;
+    if payload.len() > MAX_MODEL_JSON_BYTES {
+        return Err("ownership input exceeds bounded JSON limit".into());
+    }
+    let output = endpoint
+        .complete_json(
+            OWNERSHIP_PROMPT,
+            &payload,
+            "insomnia_memory_ownership",
+            &schema,
+        )
+        .map_err(endpoint_error)?;
+    let output_object = output
+        .as_object()
+        .ok_or("ownership response must be an object")?;
+    if output_object.len() != 1 || !output_object.contains_key("ownership") {
+        return Err("ownership response contains unexpected fields".into());
+    }
+    let ownership = output
+        .get("ownership")
+        .and_then(Value::as_object)
+        .ok_or("ownership response requires ownership object")?;
+    if ownership.len() != groups.len() {
+        return Err("ownership group count mismatch".into());
+    }
+    for group in groups {
+        let id = group["group_id"]
+            .as_str()
+            .ok_or("synthesis group lacks ID")?;
+        let owner = ownership
+            .get(id)
+            .and_then(Value::as_str)
+            .ok_or("ownership response omits group")?;
+        if !matches!(owner, "user" | "project") {
+            return Err("ownership response contains unsupported owner".into());
+        }
+        group["ownership"] = Value::String(owner.to_owned());
+    }
+    Ok(())
 }
 
 fn matches_retained_clause(candidate: &RawCandidate, clause: &Value) -> bool {
@@ -375,6 +492,13 @@ fn matches_retained_clause(candidate: &RawCandidate, clause: &Value) -> bool {
         ("category", candidate.category.as_str()),
         ("type", candidate.memory_type.as_str()),
         ("lifecycle", candidate.temporal_status.as_str()),
+        (
+            "ownership",
+            match candidate.ownership {
+                InsomniaOwnership::User => "user",
+                InsomniaOwnership::Project => "project",
+            },
+        ),
         (
             "authority_source_node_id",
             candidate
@@ -512,6 +636,35 @@ mod tests {
     use reliquary_archive::{EpisodeBoundary, EpisodeId, EpisodeOrigin};
     use std::sync::Mutex;
 
+    #[test]
+    fn frozen_extraction_classes_and_wording_constraints_are_explicit() {
+        for clause in [
+            "strict durable-state test",
+            "correction when the user explicitly replaces earlier state",
+            "adoption only when the user explicitly accepts a specific assistant proposition",
+            "pure execution/checkpoint receipts are non-authoritative by default",
+            "mark overlapping earlier clauses superseded",
+            "Archive evidence is supporting context, never independent user authority",
+            "classify category as fact, preference, decision, instruction, relationship, constraint, correction, or commitment",
+        ] {
+            assert!(
+                LEDGER_PROMPT.contains(clause),
+                "missing ledger class rule: {clause}"
+            );
+        }
+        for clause in [
+            "Your ONLY job is to write one concise durable Memory title and content body",
+            "Do not add, drop, merge, split, rename, or reorder groups",
+            "Grounding, authority, category, type, lifecycle, and ownership are already final",
+        ] {
+            assert!(
+                WORDING_PROMPT.contains(clause),
+                "missing wording rule: {clause}"
+            );
+        }
+        assert!(OWNERSHIP_PROMPT.contains("User means genuinely user-global state"));
+    }
+
     struct FakeEndpoint(Mutex<Vec<Value>>);
     impl GeneralEndpoint for FakeEndpoint {
         fn model(&self) -> &str {
@@ -559,7 +712,46 @@ mod tests {
         json!({"turns":{"u1":[{"disposition":"retain","authority_kind":"direct","category":"preference","type":"communication","lifecycle":"current","proposition":"The user prefers concise answers.","authority_source_node_id":"","grounding_source_node_id":"","reason":"direct assertion"}]},"evidence_requests":request})
     }
     fn wording() -> Value {
-        json!({"candidates":[{"authority_kind":"direct","category":"preference","memory_type":"communication","temporal_status":"current","ownership":"user","title":"Concise answers","content":"The user prefers concise answers.","source_node_id":"u1","source_quote":"I prefer concise answers.","authority_source":null,"grounding_source":null,"routing_mentions":[]}]})
+        json!({"candidates":[{"authority_kind":"direct","category":"preference","memory_type":"communication","temporal_status":"current","ownership":"project","title":"Concise answers","content":"The user prefers concise answers.","source_node_id":"u1","source_quote":"I prefer concise answers.","authority_source":null,"grounding_source":null,"routing_mentions":[]}]})
+    }
+
+    struct GroupEndpoint(Mutex<Option<Value>>);
+    impl GeneralEndpoint for GroupEndpoint {
+        fn model(&self) -> &str {
+            "test-model"
+        }
+        fn complete_json(
+            &self,
+            _prompt: &str,
+            payload: &str,
+            name: &str,
+            _schema: &Value,
+        ) -> Result<Value, GeneralEndpointError> {
+            if name == "insomnia_memory_wording" {
+                *self.0.lock().unwrap() = Some(serde_json::from_str(payload).unwrap());
+                Ok(wording())
+            } else {
+                let mut ledger = ledger(json!([]));
+                ledger["turns"]["u1"].as_array_mut().unwrap().push(json!({"disposition":"retain","authority_kind":"direct","category":"preference","type":"communication","lifecycle":"current","proposition":"The user values predictable formatting.","authority_source_node_id":"","grounding_source_node_id":"","reason":"direct assertion"}));
+                Ok(ledger)
+            }
+        }
+    }
+
+    #[test]
+    fn equal_authority_clauses_are_grouped_before_wording() {
+        let (episode, turns) = source();
+        let endpoint = GroupEndpoint(Mutex::new(None));
+        let extractor = InsomniaModelExtractor::new(endpoint);
+        let stage = extractor.start(&episode, &turns).unwrap();
+        let extraction = extractor
+            .finish_without_evidence(&episode, &turns, stage)
+            .unwrap();
+        assert_eq!(extraction.candidates.len(), 1);
+        let payload = extractor.endpoint.0.lock().unwrap().clone().unwrap();
+        let groups = payload["synthesis_groups"].as_array().unwrap();
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0]["propositions"].as_array().unwrap().len(), 2);
     }
 
     #[test]
@@ -574,6 +766,35 @@ mod tests {
             .unwrap();
         assert_eq!(result.candidates.len(), 1);
         assert_eq!(result.candidates[0].source_node_id, "u1");
+        assert_eq!(result.candidates[0].ownership, InsomniaOwnership::Project);
+    }
+
+    #[test]
+    fn ownership_is_project_by_default_and_user_only_with_dedicated_classification() {
+        let (episode, turns) = source();
+        let mut default_wording = wording();
+        default_wording["candidates"][0]["ownership"] = json!("user");
+        let extractor = InsomniaModelExtractor::new(FakeEndpoint(Mutex::new(vec![
+            default_wording,
+            ledger(json!([])),
+        ])));
+        let stage = extractor.start(&episode, &turns).unwrap();
+        assert!(
+            extractor
+                .finish_without_evidence(&episode, &turns, stage)
+                .is_err()
+        );
+
+        let mut routed_wording = wording();
+        routed_wording["candidates"][0]["ownership"] = json!("user");
+        let main = FakeEndpoint(Mutex::new(vec![routed_wording, ledger(json!([]))]));
+        let owner = FakeEndpoint(Mutex::new(vec![json!({"ownership":{"g000":"user"}})]));
+        let extractor = InsomniaModelExtractor::new(main).with_ownership_endpoint(owner);
+        let stage = extractor.start(&episode, &turns).unwrap();
+        let result = extractor
+            .finish_without_evidence(&episode, &turns, stage)
+            .unwrap();
+        assert_eq!(result.candidates[0].ownership, InsomniaOwnership::User);
     }
 
     #[test]

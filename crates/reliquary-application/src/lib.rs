@@ -27,6 +27,14 @@ mod external_source_workflow;
 mod history_workflow;
 mod ingest_publication;
 mod maintenance_workflow;
+mod native_insomnia;
+mod native_insomnia_evidence;
+pub use native_insomnia::{
+    INSOMNIA_EXTRACTOR_CONTRACT_VERSION, NativeInsomniaExtraction, extract_native_insomnia,
+};
+pub use native_insomnia_evidence::{
+    ResolvedNativeInsomniaEvidence, resolve_native_insomnia_evidence,
+};
 mod retrieval_workflow;
 mod vector_workflow;
 mod verified_copy_workflow;
@@ -53,7 +61,8 @@ pub use history_workflow::{
 };
 pub use ingest_publication::{
     IngestPublicationError, commit_prepared_native_ingest,
-    commit_prepared_native_ingest_with_external_refs, prepare_routed_user_memory,
+    commit_prepared_native_ingest_with_external_refs,
+    commit_prepared_native_ingest_with_routed_receipts, prepare_routed_user_proofs,
 };
 pub use maintenance_workflow::{
     MaintenanceBlocker, MaintenanceWorkflowError, MemoryMaintenancePreparation,
@@ -197,8 +206,16 @@ pub fn prepare_native_ingest_from_claim(
     claim: &reliquary_owner_session::RelInsomniaClaimInput,
     extraction: InsomniaExtraction,
 ) -> Result<PreparedIngest, IngestError> {
-    let proposals = extraction
-        .candidates
+    let proposals = raw_insomnia_candidates(extraction.candidates);
+    let mut prepared =
+        prepare_native_ingest(claim.owner_id, &claim.episode, &claim.turns, &[], proposals)?;
+    prepared.claim_snapshot = Some((claim.episode.clone(), claim.turns.clone()));
+    prepared.rejected.extend(extraction.rejected);
+    Ok(prepared)
+}
+
+fn raw_insomnia_candidates(candidates: Vec<InsomniaCandidate>) -> Vec<RawCandidate> {
+    candidates
         .into_iter()
         .map(|candidate| RawCandidate {
             authority_kind: candidate.authority_kind,
@@ -214,12 +231,7 @@ pub fn prepare_native_ingest_from_claim(
             grounding_source: candidate.grounding_source,
             routing_mentions: candidate.routing_mentions,
         })
-        .collect();
-    let mut prepared =
-        prepare_native_ingest(claim.owner_id, &claim.episode, &claim.turns, &[], proposals)?;
-    prepared.claim_snapshot = Some((claim.episode.clone(), claim.turns.clone()));
-    prepared.rejected.extend(extraction.rejected);
-    Ok(prepared)
+        .collect()
 }
 
 /// Hydrate accepted turns and verify every supplied evidence turn against the
@@ -243,11 +255,11 @@ pub fn prepare_native_ingest_from_archive(
         .cloned()
         .ok_or(IngestError::EpisodeUnavailable)?;
     let turns = rel
-        .episode_turns(episode_id)?
+        .archive_evidence_episode(episode_id)?
         .ok_or(IngestError::EpisodeUnavailable)?;
     for source in evidence {
         let archived = rel
-            .resolved_archive_turn(&source.conversation_id, &source.node_id)?
+            .archive_evidence_turn(&source.conversation_id, &source.node_id)?
             .ok_or(IngestError::EvidenceNotInArchive)?;
         if archived.role != source.role
             || archived.timestamp_ns != source.timestamp_ns

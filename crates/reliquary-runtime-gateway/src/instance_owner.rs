@@ -37,43 +37,35 @@ impl Instance {
         owner: OwnerId,
         read: impl FnOnce(&RelSession) -> T,
     ) -> Result<T, GatewayError> {
-        self.ensure_credential_active()?;
-        if !self.rel_grants.contains(&owner) {
-            return Err(GatewayError::UnauthorizedRel {
-                principal: self.principal.to_string(),
-                owner,
-            });
-        }
-        let mounted = {
-            let owners = self
-                .owners
-                .read()
-                .map_err(|_| GatewayError::RegistryPoisoned)?;
-            match owners.get(&owner) {
-                None => return Err(GatewayError::UnknownOwner(owner)),
-                Some(MountedOwner::RelWriter(writer)) => Arc::clone(writer),
-                Some(MountedOwner::Rel(_)) => return Err(GatewayError::WriterUnavailable),
-                Some(MountedOwner::Phy(_)) => return Err(GatewayError::WrongOwnerKind(owner)),
-                Some(MountedOwner::PhyWriter(_)) => {
-                    return Err(GatewayError::WrongOwnerKind(owner));
-                }
-            }
-        };
-        let writer = mounted
-            .writer
-            .lock()
-            .map_err(|_| GatewayError::RegistryPoisoned)?;
-        self.ensure_credential_active()?;
-        Ok(read(writer.read_session()))
+        self.with_rel_writer(owner, |writer| read(writer.read_session()))
     }
 
-    pub fn commit_grouped_insomnia_completion(
+    pub fn finalize_conversation_episode(
         &self,
         owner: OwnerId,
-        token: InsomniaLeaseToken,
-        completion: GroupedInsomniaCompletion,
-        now_ns: i64,
-    ) -> Result<CompletionCheck, GatewayError> {
+        conversation_id: &str,
+        start_node_id: &str,
+        end_node_id: &str,
+        boundary: reliquary_owner_session::model::EpisodeBoundary,
+        finalized_at_ns: i64,
+    ) -> Result<reliquary_owner_session::model::EpisodeId, GatewayError> {
+        Ok(self.with_rel_writer(owner, |writer| {
+            reliquary_application::finalize_native_episode(
+                writer,
+                conversation_id,
+                start_node_id,
+                end_node_id,
+                boundary,
+                finalized_at_ns,
+            )
+        })??)
+    }
+
+    fn with_rel_writer<T>(
+        &self,
+        owner: OwnerId,
+        operation: impl FnOnce(&mut RelWriter) -> T,
+    ) -> Result<T, GatewayError> {
         self.ensure_credential_active()?;
         if !self.rel_grants.contains(&owner) {
             return Err(GatewayError::UnauthorizedRel {
@@ -101,12 +93,9 @@ impl Instance {
             .lock()
             .map_err(|_| GatewayError::RegistryPoisoned)?;
         self.ensure_credential_active()?;
-        Ok(writer.commit_grouped_insomnia_completion(token, completion, now_ns)?)
+        Ok(operation(&mut writer))
     }
 
-    /// Claim one bounded batch of owner-admitted Insomnia work and return an
-    /// Archive-validated input snapshot. The owner writer lock is released
-    /// before this returns, so caller-side inference never runs under it.
     pub fn claim_next_insomnia_input(
         &self,
         owner: OwnerId,
@@ -162,7 +151,7 @@ impl Instance {
         self.hold_insomnia_claim_with_payload(owner, claim, held_at_ns, reason, None)
     }
 
-    pub fn hold_insomnia_claim_with_payload(
+    pub(crate) fn hold_insomnia_claim_with_payload(
         &self,
         owner: OwnerId,
         claim: &RelInsomniaClaimInput,
@@ -203,13 +192,13 @@ impl Instance {
         Ok(())
     }
 
-    pub fn checkpoint_insomnia_claim(
+    pub(crate) fn checkpoint_insomnia_claim(
         &self,
         owner: OwnerId,
         claim: &RelInsomniaClaimInput,
         checkpointed_at_ns: i64,
         payload: Vec<u8>,
-    ) -> Result<(), GatewayError> {
+    ) -> Result<reliquary_owner_session::model::InsomniaWork, GatewayError> {
         self.ensure_credential_active()?;
         if !self.rel_grants.contains(&owner) {
             return Err(GatewayError::UnauthorizedRel {
@@ -239,13 +228,12 @@ impl Instance {
             .lock()
             .map_err(|_| GatewayError::RegistryPoisoned)?;
         self.ensure_credential_active()?;
-        writer.checkpoint_insomnia_claim(claim, checkpointed_at_ns, payload)?;
-        Ok(())
+        Ok(writer.checkpoint_insomnia_claim(claim, checkpointed_at_ns, payload)?)
     }
 
     /// Commit only a prepared, same-owner Insomnia batch under its original
     /// durable lease. The application layer verifies the exact receipt.
-    pub fn commit_prepared_insomnia_claim(
+    pub(crate) fn commit_prepared_insomnia_claim(
         &self,
         owner: OwnerId,
         claim: &RelInsomniaClaimInput,

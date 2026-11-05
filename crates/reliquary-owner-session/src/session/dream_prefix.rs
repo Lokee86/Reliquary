@@ -180,7 +180,6 @@ pub(crate) fn validate_compact_dream_prefix(
                     .map_err(OwnerSessionError::Record)?;
                 if !completion.memory_records.is_empty()
                     && (completion.freshness_birth_turn.is_none()
-                        || !completion.external_memory_refs.is_empty()
                         || !completion.routing_metadata.is_empty())
                 {
                     unsupported = true;

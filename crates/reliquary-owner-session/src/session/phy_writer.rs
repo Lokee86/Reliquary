@@ -86,7 +86,7 @@ impl PhyWriter {
     pub fn publish_routed_user_memory(
         &mut self,
         proof: RoutedUserMemoryProof,
-    ) -> Result<MemoryRevision, OwnerSessionError> {
+    ) -> Result<(MemoryRevision, RoutedUserMemoryReceipt), OwnerSessionError> {
         if self.poisoned {
             return Err(OwnerSessionError::Record(
                 "PHY writer requires replay after a failed write".into(),
@@ -110,6 +110,10 @@ impl PhyWriter {
                 "routed Memory source and destination owners must differ".into(),
             ));
         }
+        let source_owner_id = proof.source_owner_id;
+        let source_episode_id = proof.source_episode_id;
+        let destination_owner_id = proof.destination_owner_id;
+        let published_draft = proof.draft.clone();
         let draft = proof.draft;
         let published = match self
             .common
@@ -138,7 +142,14 @@ impl PhyWriter {
             self.poisoned = true;
             return Err(error);
         }
-        Ok(published.revision)
+        let receipt = RoutedUserMemoryReceipt {
+            source_owner_id,
+            source_episode_id,
+            destination_owner_id,
+            memory_id: published.revision.record.id,
+            published_draft,
+        };
+        Ok((published.revision, receipt))
     }
 
     pub fn memory_history(&self, id: MemoryId) -> Result<Option<MemoryHistory>, OwnerSessionError> {

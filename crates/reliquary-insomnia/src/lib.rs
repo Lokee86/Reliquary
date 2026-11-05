@@ -47,7 +47,7 @@ pub struct SourceAttribution {
     pub quote: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct EvidenceTurn {
     pub conversation_id: String,
     pub node_id: String,
@@ -487,8 +487,10 @@ fn validate_candidate(
             return Err("attribution must not postdate the user authority turn".into());
         }
     }
-    if authority_kind != "adoption" && raw.authority_source.is_some() {
-        return Err("only adoption may use assistant authority provenance".into());
+    if !matches!(authority_kind.as_str(), "adoption" | "retention")
+        && raw.authority_source.is_some()
+    {
+        return Err("only adoption or retention may use assistant authority provenance".into());
     }
     if authority_kind == "adoption" && raw.authority_source.is_none() {
         return Err("adoption authority requires assistant authority provenance".into());
@@ -689,12 +691,16 @@ mod tests {
         );
         let mut retention_with_assistant = value.clone();
         retention_with_assistant.authority_kind = "retention".into();
+        turns[0].content = "Remember that.".into();
+        retention_with_assistant.source_quote = "Remember that.".into();
         assert!(
             validate_candidates(&episode(), &turns, &[], vec![retention_with_assistant])
                 .unwrap()
                 .candidates
-                .is_empty()
+                .len()
+                == 1
         );
+        turns[0].content = "I prefer concise answers.".into();
         value.authority_source.as_mut().unwrap().quote = "I will answer briefly.".into();
         assert!(
             validate_candidates(&episode(), &turns, &[], vec![value])
@@ -802,5 +808,103 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn evidence_turn_can_be_checkpoint_serialized_and_restored() {
+        let turn = EvidenceTurn {
+            conversation_id: "conversation".into(),
+            node_id: "assistant-1".into(),
+            role: "assistant".into(),
+            timestamp_ns: 7,
+            content: "Use concise wording.".into(),
+        };
+        let encoded = serde_json::to_vec(&turn).unwrap();
+        assert_eq!(
+            serde_json::from_slice::<EvidenceTurn>(&encoded).unwrap(),
+            turn
+        );
+    }
+
+    #[test]
+    fn frozen_extraction_class_policy_matrix() {
+        let cases = [
+            (
+                "direct",
+                "preference",
+                "I prefer concise answers.",
+                "The user prefers concise answers.",
+                false,
+                false,
+                None,
+            ),
+            (
+                "correction",
+                "decision",
+                "we do want to add it now",
+                "Add ShipStats now.",
+                false,
+                true,
+                None,
+            ),
+            (
+                "direct",
+                "constraint",
+                "they'll have to because collision is server-authoritative, right?",
+                "Collision handling has to remain server-authoritative.",
+                false,
+                false,
+                None,
+            ),
+            (
+                "direct",
+                "decision",
+                "Should I add local spawners and transfer spawn logic?",
+                "Add local spawners and transfer spawn logic.",
+                false,
+                false,
+                Some("interrogative authority"),
+            ),
+            (
+                "direct",
+                "fact",
+                "completed through 41",
+                "The prompt sequence is completed through 41.",
+                false,
+                false,
+                Some("execution receipt"),
+            ),
+            (
+                "direct",
+                "decision",
+                "alright, that works",
+                "The server returns the updated Player state.",
+                false,
+                false,
+                Some("vague authority turn"),
+            ),
+        ];
+        for (authority, category, source, content, authority_source, grounding_source, rejected) in
+            cases
+        {
+            let result = validate_semantic_authority(
+                authority,
+                category,
+                "Frozen policy case",
+                source,
+                content,
+                authority_source,
+                grounding_source,
+            );
+            match rejected {
+                Some(expected) => assert!(
+                    result
+                        .as_deref()
+                        .is_some_and(|reason| reason.contains(expected)),
+                    "{source:?}: {result:?}"
+                ),
+                None => assert!(result.is_none(), "{source:?}: {result:?}"),
+            }
+        }
     }
 }

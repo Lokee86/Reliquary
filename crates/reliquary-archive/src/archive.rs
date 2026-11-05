@@ -19,6 +19,12 @@ use reliquary_container::{Container, ContainerError, ContainerIdentity, FileKind
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, HashMap};
 
+mod evidence;
+pub use evidence::{
+    ArchiveSearchResult, MAX_EVIDENCE_RESULT_BYTES, MAX_EVIDENCE_SEARCH_BYTES,
+    MAX_EVIDENCE_SEARCH_RESULTS, MAX_EVIDENCE_SEARCH_SCAN, MAX_EVIDENCE_TURNS,
+};
+
 pub struct Archive {
     owner_id: Option<[u8; 16]>,
     container_identity: Option<ContainerIdentity>,

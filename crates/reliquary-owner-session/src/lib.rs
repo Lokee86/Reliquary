@@ -20,5 +20,5 @@ pub use reliquary_insomnia_store::{CompletionCheck, InsomniaLeaseToken};
 pub use session::{
     DreamBatchCut, DreamCandidatePool, DreamLifecyclePublication, DreamPairPublication,
     InitialDreamSnapshot, OwnerSessionError, PhySession, PhyWriter, RelInsomniaClaimInput,
-    RelSession, RelWriter, RoutedUserMemoryProof,
+    RelSession, RelWriter, RoutedUserMemoryProof, RoutedUserMemoryReceipt,
 };

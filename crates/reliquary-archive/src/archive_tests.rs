@@ -63,6 +63,133 @@ fn file_identity_matches_f03_reference_vector() {
 }
 
 #[test]
+fn bounded_episode_and_conversation_range_are_complete_and_size_limited() {
+    let temp = TestDirectory::new();
+    let mut container = Container::create(
+        temp.file("bounded-evidence.rel"),
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [0xA5; 16],
+    )
+    .unwrap();
+    let mut archive = Archive::empty();
+    for (id, parent, time, content) in [
+        ("u1", None, 10, "first evidence"),
+        ("a1", Some("u1"), 20, "second evidence"),
+        ("u2", Some("a1"), 30, "third evidence"),
+    ] {
+        archive
+            .accept_turn(&mut container, turn(id, parent, time, content))
+            .unwrap();
+    }
+    let episode = archive
+        .put_episode(
+            &mut container,
+            "conversation-1",
+            "u1",
+            "a1",
+            EpisodeOrigin::Live,
+            EpisodeBoundary::Explicit,
+            21,
+        )
+        .unwrap();
+
+    let turns = archive
+        .bounded_episode_turns(episode, 2, 128)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        turns
+            .iter()
+            .map(|turn| turn.content.as_str())
+            .collect::<Vec<_>>(),
+        ["first evidence", "second evidence",]
+    );
+    assert!(matches!(
+        archive.bounded_episode_turns(episode, 1, 128),
+        Err(ArchiveError::EvidenceLimitExceeded)
+    ));
+    assert!(matches!(
+        archive.bounded_episode_turns(episode, 2, 10),
+        Err(ArchiveError::EvidenceLimitExceeded)
+    ));
+    let range = archive
+        .bounded_conversation_range("conversation-1", "a1", "u2", 2, 128)
+        .unwrap();
+    assert_eq!(range.len(), 2);
+    assert_eq!(range[0].node_id, "a1");
+    assert_eq!(range[1].node_id, "u2");
+    assert!(matches!(
+        archive.bounded_conversation_range("conversation-1", "u2", "a1", 2, 128),
+        Err(ArchiveError::InvalidEpisodeRange)
+    ));
+}
+
+#[test]
+fn bounded_archive_search_respects_owner_conversation_cutoff_and_result_bounds() {
+    let temp = TestDirectory::new();
+    let mut container = Container::create(
+        temp.file("bounded-search.rel"),
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [0xA5; 16],
+    )
+    .unwrap();
+    let mut archive = Archive::empty();
+    archive
+        .accept_turn(&mut container, turn("u1", None, 10, "needle in first"))
+        .unwrap();
+    archive
+        .accept_turn(
+            &mut container,
+            turn("a1", Some("u1"), 20, "needle in future"),
+        )
+        .unwrap();
+    let mut other = turn("other", None, 5, "needle in another conversation");
+    other.conversation_id = "conversation-2".into();
+    archive.accept_turn(&mut container, other).unwrap();
+
+    let historical = archive
+        .bounded_search(Some("conversation-1"), "needle", 5, Some(15))
+        .unwrap();
+    assert_eq!(historical.turns.len(), 1);
+    assert_eq!(historical.turns[0].0, "conversation-1");
+    assert_eq!(historical.turns[0].1.node_id, "u1");
+    assert!(!historical.truncated);
+
+    let limited = archive
+        .bounded_search(Some("conversation-1"), "needle", 1, None)
+        .unwrap();
+    assert_eq!(limited.turns.len(), 1);
+    assert!(limited.truncated);
+    assert!(matches!(
+        archive.bounded_search(None, "needle", MAX_EVIDENCE_SEARCH_RESULTS + 1, None),
+        Err(ArchiveError::InvalidField("evidence search"))
+    ));
+    let before_first = archive.bounded_search(None, "needle", 1, Some(4)).unwrap();
+    assert!(before_first.turns.is_empty());
+    assert!(!before_first.truncated);
+}
+
+#[test]
+fn bounded_archive_search_does_not_return_over_budget_text() {
+    let temp = TestDirectory::new();
+    let mut container = Container::create(
+        temp.file("bounded-search-size.rel"),
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [0xA5; 16],
+    )
+    .unwrap();
+    let mut archive = Archive::empty();
+    let content = format!("needle{}", "x".repeat(MAX_EVIDENCE_RESULT_BYTES));
+    archive
+        .accept_turn(&mut container, turn("u1", None, 10, &content))
+        .unwrap();
+
+    let result = archive.bounded_search(None, "needle", 1, None).unwrap();
+    assert!(result.turns.is_empty());
+    assert!(result.truncated);
+}
+
+#[test]
 fn accepted_turns_branches_episodes_and_owner_identity_reopen_exactly() {
     let temp = TestDirectory::new();
     let path = temp.file("archive.rel");

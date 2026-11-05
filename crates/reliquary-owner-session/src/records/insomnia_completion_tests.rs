@@ -104,7 +104,7 @@ fn relinsc7_field_order_matches_the_pinned_v7_carrier_contract() {
     completion
         .external_memory_refs
         .push(GroupedExternalMemoryRef {
-            owner_id: "owner-rel".into(),
+            owner_id: "01010101010101010101010101010101".into(),
             memory_id: [7; 32],
         });
     let encoded = completion.encode().unwrap();
@@ -175,16 +175,42 @@ fn malformed_freshness_cohort_or_record_episode_rejects_before_encoding() {
 }
 
 #[test]
-fn routed_replay_requires_external_owner_authentication() {
+fn routed_replay_accepts_external_refs_without_folding_them_into_local_ids() {
     let mut completion = fixture();
+    completion.routing_metadata.clear();
     completion
         .external_memory_refs
         .push(GroupedExternalMemoryRef {
-            owner_id: "phy-owner".into(),
+            owner_id: "02020202020202020202020202020202".into(),
             memory_id: [9; 32],
         });
     let decoded = GroupedInsomniaCompletion::decode(&completion.encode().unwrap()).unwrap();
-    assert!(decoded.validate_replay_episode([4; 32]).is_err());
+    decoded.validate_replay_episode([4; 32]).unwrap();
+    assert_eq!(decoded.memory_ids, completion.memory_ids);
+    assert_eq!(
+        decoded.external_memory_refs,
+        completion.external_memory_refs
+    );
+    assert!(decoded.validate_replay_episode([5; 32]).is_err());
+
+    let mut overlap = completion.clone();
+    overlap.external_memory_refs[0].memory_id = completion.memory_ids[0];
+    assert!(overlap.encode().is_err());
+
+    let mut empty_owner = completion;
+    empty_owner.external_memory_refs[0].owner_id.clear();
+    assert!(empty_owner.encode().is_err());
+
+    let mut uppercase_owner = GroupedInsomniaCompletion {
+        external_memory_refs: vec![GroupedExternalMemoryRef {
+            owner_id: "ABABABABABABABABABABABABABABABAB".into(),
+            memory_id: [9; 32],
+        }],
+        ..fixture()
+    };
+    assert!(uppercase_owner.encode().is_err());
+    uppercase_owner.external_memory_refs[0].owner_id = "02020202020202020202020202020202".into();
+    assert!(uppercase_owner.encode().is_ok());
 
     let mut completion = fixture();
     completion.routing_metadata = vec![b"ROUTING1opaque".to_vec()];
@@ -409,6 +435,79 @@ fn rel_session_replays_grouped_insomnia_receipt_instead_of_dropping_the_carrier(
     // Reordering a valid Episode after the grouped carrier must not turn
     // future source evidence into authority at the earlier physical cut.
     let frames = container.read_frames().unwrap();
+    let routed_path = Temp::new();
+    let mut routed_copy = Container::create(
+        &routed_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [3; 16],
+    )
+    .unwrap();
+    for frame in &frames {
+        if frame.payload.starts_with(b"RELINSC7") {
+            let mut carrier = GroupedInsomniaCompletion::decode(&frame.payload).unwrap();
+            carrier.external_memory_refs.push(GroupedExternalMemoryRef {
+                owner_id: "04040404040404040404040404040404".into(),
+                memory_id: [9; 32],
+            });
+            routed_copy.append(&carrier.encode().unwrap()).unwrap();
+        } else {
+            routed_copy.append(&frame.payload).unwrap();
+        }
+    }
+    routed_copy.sync().unwrap();
+    drop(routed_copy);
+    let routed_copy = Container::open_read_only(&routed_path.0).unwrap();
+    let routed_session = crate::RelSession::open(
+        &routed_copy,
+        &reliquary_graph::GraphAdmission::for_replay([3; 16], [], [], [], [], []),
+        [accepted_order.clone()],
+        [],
+    )
+    .unwrap();
+    let routed_receipt = routed_session.insomnia_receipt(work_episode, 1).unwrap();
+    assert_eq!(routed_receipt.memory_ids.len(), 2);
+    assert_eq!(routed_receipt.external_memory_refs.len(), 1);
+    assert_eq!(
+        routed_receipt.external_memory_refs[0].owner_id,
+        "04040404040404040404040404040404"
+    );
+    drop(routed_session);
+    drop(routed_copy);
+
+    let local_ref_path = Temp::new();
+    let mut local_ref_copy = Container::create(
+        &local_ref_path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [3; 16],
+    )
+    .unwrap();
+    for frame in &frames {
+        if frame.payload.starts_with(b"RELINSC7") {
+            let mut carrier = GroupedInsomniaCompletion::decode(&frame.payload).unwrap();
+            carrier.external_memory_refs.push(GroupedExternalMemoryRef {
+                owner_id: "03030303030303030303030303030303".into(),
+                memory_id: [9; 32],
+            });
+            local_ref_copy.append(&carrier.encode().unwrap()).unwrap();
+        } else {
+            local_ref_copy.append(&frame.payload).unwrap();
+        }
+    }
+    local_ref_copy.sync().unwrap();
+    drop(local_ref_copy);
+    let local_ref_copy = Container::open_read_only(&local_ref_path.0).unwrap();
+    assert!(matches!(
+        crate::RelSession::open(
+            &local_ref_copy,
+            &reliquary_graph::GraphAdmission::for_replay([3; 16], [], [], [], [], []),
+            [accepted_order.clone()],
+            [],
+        ),
+        Err(crate::OwnerSessionError::Record(message))
+            if message.contains("local REL owner")
+    ));
+    drop(local_ref_copy);
+
     let forged_path = Temp::new();
     let mut forged = Container::create(
         &forged_path.0,

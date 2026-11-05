@@ -8,6 +8,28 @@ impl RelSession {
         completion: GroupedInsomniaCompletion,
         now_ns: i64,
     ) -> Result<CompletionCheck, OwnerSessionError> {
+        if !completion.external_memory_refs.is_empty() {
+            return Err(OwnerSessionError::Record(
+                "routed completion requires an authenticated PHY publication receipt".into(),
+            ));
+        }
+        self.commit_grouped_insomnia_completion_with_routed_receipts(
+            container,
+            token,
+            completion,
+            now_ns,
+            &[],
+        )
+    }
+
+    pub fn commit_grouped_insomnia_completion_with_routed_receipts(
+        &mut self,
+        container: &mut Container,
+        token: InsomniaLeaseToken,
+        completion: GroupedInsomniaCompletion,
+        now_ns: i64,
+        routed_receipts: &[RoutedUserMemoryReceipt],
+    ) -> Result<CompletionCheck, OwnerSessionError> {
         if self.write_poisoned {
             return Err(OwnerSessionError::Record(
                 "owner session requires reopen after an uncertain grouped write".into(),
@@ -84,6 +106,12 @@ impl RelSession {
         completion
             .validate_replay_episode(completion.episode_id)
             .map_err(OwnerSessionError::Record)?;
+        validate_routed_completion_receipts(
+            self.owner_id,
+            completion.episode_id,
+            &completion.external_memory_refs,
+            routed_receipts,
+        )?;
         if !completion.routing_metadata.is_empty() {
             return Err(OwnerSessionError::Record(
                 "grouped routing metadata commit is unsupported".into(),
@@ -230,4 +258,31 @@ impl RelSession {
         self.writer_lease_proof = Some(next_proof);
         Ok(CompletionCheck::Apply)
     }
+}
+
+fn validate_routed_completion_receipts(
+    source_owner_id: [u8; 16],
+    source_episode_id: [u8; 32],
+    references: &[crate::records::GroupedExternalMemoryRef],
+    receipts: &[RoutedUserMemoryReceipt],
+) -> Result<(), OwnerSessionError> {
+    if references.len() != receipts.len() {
+        return Err(OwnerSessionError::Record(
+            "routed completion references lack matching PHY publication receipts".into(),
+        ));
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    for (reference, receipt) in references.iter().zip(receipts) {
+        if receipt.source_owner_id != source_owner_id
+            || receipt.source_episode_id != source_episode_id
+            || receipt.destination_owner_id == source_owner_id
+            || reference != &receipt.external_ref()
+            || !seen.insert((receipt.destination_owner_id, receipt.memory_id))
+        {
+            return Err(OwnerSessionError::Record(
+                "routed completion does not match authenticated PHY publication receipts".into(),
+            ));
+        }
+    }
+    Ok(())
 }

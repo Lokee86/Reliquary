@@ -1,94 +1,83 @@
 use super::*;
+use reliquary_application::{
+    commit_prepared_native_ingest_with_routed_receipts, prepare_routed_user_proofs,
+};
 
 impl Instance {
-    /// Attempt routed publication through this Instance's exact REL and PHY
-    /// grants. The owner-session boundary currently rejects publication until
-    /// semantic candidate evidence can be sealed across the application API.
-    pub fn publish_user_owned_ingest(
+    /// Publish to the explicitly granted PHY before recording the REL receipt.
+    /// Both mounted writers stay stable through authorization and publication.
+    pub(crate) fn commit_routed_insomnia_claim(
         &self,
-        source_rel_owner: OwnerId,
-        destination_phy_owner: OwnerId,
+        owner: OwnerId,
+        destination: OwnerId,
+        claim: &RelInsomniaClaimInput,
         prepared: &PreparedIngest,
-    ) -> Result<Vec<GroupedExternalMemoryRef>, GatewayError> {
-        self.authorize_routed_owners(source_rel_owner, destination_phy_owner)?;
-        if prepared.owner_id() != source_rel_owner.as_bytes() {
+        model: &str,
+        version: &str,
+        now_ns: i64,
+    ) -> Result<CompletionCheck, GatewayError> {
+        self.authorize_routed_owners(owner, destination)?;
+        if owner == destination
+            || claim.owner_id != owner.as_bytes()
+            || prepared.owner_id() != owner.as_bytes()
+            || claim.episode.id != prepared.episode_id()
+        {
             return Err(GatewayError::RoutedMemory(
-                "prepared ingest source owner differs from its REL grant".into(),
+                "routed claim identity mismatch".into(),
             ));
         }
-        let (source, destination) = {
+        let (rel, phy) = {
             let owners = self
                 .owners
                 .read()
                 .map_err(|_| GatewayError::RegistryPoisoned)?;
-            let source = match owners.get(&source_rel_owner) {
-                Some(MountedOwner::Rel(session)) => RoutedSource::Snapshot(Arc::clone(session)),
-                Some(MountedOwner::RelWriter(writer)) => RoutedSource::Writer(Arc::clone(writer)),
-                Some(_) => return Err(GatewayError::WrongOwnerKind(source_rel_owner)),
-                None => return Err(GatewayError::UnknownOwner(source_rel_owner)),
+            let rel = match owners.get(&owner) {
+                Some(MountedOwner::RelWriter(writer)) => Arc::clone(writer),
+                Some(MountedOwner::Rel(_)) => return Err(GatewayError::WriterUnavailable),
+                Some(_) => return Err(GatewayError::WrongOwnerKind(owner)),
+                None => return Err(GatewayError::UnknownOwner(owner)),
             };
-            let destination = match owners.get(&destination_phy_owner) {
+            let phy = match owners.get(&destination) {
                 Some(MountedOwner::PhyWriter(writer)) => Arc::clone(writer),
                 Some(MountedOwner::Phy(_)) => return Err(GatewayError::WriterUnavailable),
-                Some(_) => return Err(GatewayError::WrongOwnerKind(destination_phy_owner)),
-                None => return Err(GatewayError::UnknownOwner(destination_phy_owner)),
+                Some(_) => return Err(GatewayError::WrongOwnerKind(destination)),
+                None => return Err(GatewayError::UnknownOwner(destination)),
             };
-            (source, destination)
+            (rel, phy)
         };
-
-        let mut destination = destination
+        let mut rel = rel
             .writer
             .lock()
             .map_err(|_| GatewayError::RegistryPoisoned)?;
-        let proofs = match source {
-            RoutedSource::Snapshot(session) => {
-                route_user_proofs(&session, &destination, prepared, &self.principal)?
-            }
-            RoutedSource::Writer(writer) => {
-                let writer = writer
-                    .writer
-                    .lock()
-                    .map_err(|_| GatewayError::RegistryPoisoned)?;
-                route_user_proofs(
-                    writer.read_session(),
-                    &destination,
-                    prepared,
-                    &self.principal,
-                )?
-            }
-        };
-        self.authorize_routed_owners(source_rel_owner, destination_phy_owner)?;
-        let destination_id = hex(&destination_phy_owner.0);
-        let mut refs = Vec::with_capacity(proofs.len());
-        let mut seen = BTreeSet::new();
+        let mut phy = phy
+            .writer
+            .lock()
+            .map_err(|_| GatewayError::RegistryPoisoned)?;
+        self.authorize_routed_owners(owner, destination)?;
+        rel.validate_insomnia_claim(claim, now_ns)?;
+        let proofs =
+            prepare_routed_user_proofs(rel.read_session(), &phy, prepared, &self.principal)
+                .map_err(|error| GatewayError::RoutedMemory(error.to_string()))?;
+        let mut receipts = Vec::with_capacity(proofs.len());
         for proof in proofs {
-            self.authorize_routed_owners(source_rel_owner, destination_phy_owner)?;
-            let revision = destination.publish_routed_user_memory(proof)?;
-            let id = revision.record.id.0;
-            if !seen.insert(id) {
-                return Err(GatewayError::RoutedMemory(
-                    "duplicate routed Memory identity".into(),
-                ));
-            }
-            let source = revision.record.source_ref.as_ref().ok_or_else(|| {
-                GatewayError::RoutedMemory("PHY revision lost source proof".into())
-            })?;
-            if source.owner_id != hex(&source_rel_owner.0)
-                || source.principal_id.as_deref() != Some(self.principal.as_ref())
-            {
-                return Err(GatewayError::RoutedMemory(
-                    "published PHY revision differs from the active source grant".into(),
-                ));
-            }
-            refs.push(GroupedExternalMemoryRef {
-                owner_id: destination_id.clone(),
-                memory_id: id,
-            });
+            self.authorize_routed_owners(owner, destination)?;
+            let (_, receipt) = phy.publish_routed_user_memory(proof)?;
+            receipts.push(receipt);
         }
-        Ok(refs)
+        self.authorize_routed_owners(owner, destination)?;
+        commit_prepared_native_ingest_with_routed_receipts(
+            &mut rel,
+            prepared,
+            &claim.work,
+            model,
+            version,
+            now_ns,
+            &receipts,
+        )
+        .map_err(|error| GatewayError::RoutedMemory(error.to_string()))
     }
 
-    fn authorize_routed_owners(
+    pub(crate) fn authorize_routed_owners(
         &self,
         source_rel_owner: OwnerId,
         destination_phy_owner: OwnerId,

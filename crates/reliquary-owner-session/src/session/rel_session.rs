@@ -44,6 +44,21 @@ impl RelSession {
             })
             .collect::<Vec<_>>();
         let grouped_completions = validate_grouped_replay_admission(container, &archive)?;
+        let local_owner_id: String = container
+            .owner_id()
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect();
+        if grouped_completions.values().any(|completion| {
+            completion
+                .external_memory_refs
+                .iter()
+                .any(|reference| reference.owner_id == local_owner_id)
+        }) {
+            return Err(OwnerSessionError::Record(
+                "external Memory reference points to the local REL owner".into(),
+            ));
+        }
         let common = open_common(container, graph_admission, dream_admissions, true)?;
         for completion in grouped_completions.values() {
             if completion
@@ -60,9 +75,6 @@ impl RelSession {
             container,
             |payload| {
                 let completion = GroupedInsomniaCompletion::decode(payload)?;
-                if !completion.external_memory_refs.is_empty() {
-                    return Err("routed grouped completion requires owner authentication".into());
-                }
                 if !completion.routing_metadata.is_empty() {
                     return Err("grouped routing metadata replay is unsupported".into());
                 }
@@ -295,16 +307,111 @@ impl RelSession {
 
     pub fn prove_routed_user_memory(
         &self,
-        _destination: &PhyWriter,
-        _draft: &MemoryDraft,
-        _source_quote: &str,
+        destination: &PhyWriter,
+        draft: &MemoryDraft,
+        source_quote: &str,
+        authority_quote: Option<&str>,
     ) -> Result<RoutedUserMemoryProof, OwnerSessionError> {
-        // Archive membership proves who said the quoted text, but it cannot
-        // prove that a proposed Memory is a semantically valid extraction.
-        // Keep cross-owner publication closed until the shared application
-        // pipeline supplies an unforgeable validated-candidate type.
-        Err(OwnerSessionError::Record(
-            "routed Memory publication requires sealed candidate evidence".into(),
-        ))
+        // This constructor trusts Application to supply a semantically
+        // validated candidate. It independently checks the owner-local
+        // Archive identity, principal, quote and PHY privacy boundary.
+        let source = draft.source_ref.as_ref().ok_or_else(|| {
+            OwnerSessionError::Record("routed Memory lacks owner-qualified source proof".into())
+        })?;
+        let episode_id = reliquary_archive::EpisodeId(source.source_episode_id);
+        let episode = self.archive.episode(episode_id).ok_or_else(|| {
+            OwnerSessionError::Record("routed Memory source Episode is unavailable".into())
+        })?;
+        let source_turn = self
+            .archive_evidence_turn(&episode.conversation_id, &source.source_node_id)?
+            .ok_or_else(|| {
+                OwnerSessionError::Record("routed Memory source turn is unavailable".into())
+            })?;
+        let episode_turns = self.archive_evidence_episode(episode_id)?.ok_or_else(|| {
+            OwnerSessionError::Record("routed Memory source Episode is unavailable".into())
+        })?;
+        let in_episode = episode_turns
+            .iter()
+            .any(|turn| turn.node_id == source_turn.node_id);
+        let expected_source_time_ns = if let Some(quote) = authority_quote {
+            if !matches!(draft.authority_kind.as_str(), "adoption" | "retention")
+                || quote.trim().is_empty()
+            {
+                return Err(OwnerSessionError::Record(
+                    "invalid assistant authority quote".into(),
+                ));
+            }
+            let (Some(conversation_id), Some(node_id)) = (
+                source.content_source_conversation_id.as_deref(),
+                source.content_source_node_id.as_deref(),
+            ) else {
+                return Err(OwnerSessionError::Record(
+                    "adoption Memory lacks its assistant authority source".into(),
+                ));
+            };
+            let authority_turn = self
+                .archive_evidence_turn(conversation_id, node_id)?
+                .ok_or_else(|| {
+                    OwnerSessionError::Record(
+                        "adoption assistant authority turn is unavailable".into(),
+                    )
+                })?;
+            if authority_turn.role != "assistant"
+                || authority_turn.timestamp_ns > source_turn.timestamp_ns
+                || !authority_turn.content.contains(quote)
+            {
+                return Err(OwnerSessionError::Record(
+                    "adoption authority source is not an earlier accepted assistant turn".into(),
+                ));
+            }
+            authority_turn.timestamp_ns
+        } else {
+            if draft.authority_kind == "adoption"
+                || source.content_source_conversation_id.is_some()
+                || source.content_source_node_id.is_some()
+            {
+                return Err(OwnerSessionError::Record(
+                    "routed Memory lacks its assistant authority quote".into(),
+                ));
+            }
+            source_turn.timestamp_ns
+        };
+        let owner_hex: String = self
+            .owner_id
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect();
+        let destination_owner_id = destination.owner_id;
+        let privacy_valid = draft.scope == "user"
+            && draft.source_node_id.is_none()
+            && draft.content_source_conversation_id.is_none()
+            && draft.content_source_node_id.is_none()
+            && draft.grounding_source_conversation_id.is_none()
+            && draft.grounding_source_node_id.is_none()
+            && draft.source_episode_id.is_none();
+        if destination_owner_id == self.owner_id
+            || source.owner_id != owner_hex
+            || source.principal_id.as_deref().is_none_or(str::is_empty)
+            || source.principal_id != source_turn.principal_id
+            || source_turn.role != "user"
+            || source_turn.principal_id.is_none()
+            || source.source_node_id != source_turn.node_id
+            || draft.source_time_ns != Some(expected_source_time_ns)
+            || source_quote.trim().is_empty()
+            || !source_turn.content.contains(source_quote)
+            || !in_episode
+            || !privacy_valid
+            || draft.mutation_id.trim().is_empty()
+        {
+            return Err(OwnerSessionError::Record(
+                "routed Memory does not match authenticated user Archive evidence".into(),
+            ));
+        }
+        Ok(RoutedUserMemoryProof {
+            source_owner_id: self.owner_id,
+            destination_owner_id,
+            source_episode_id: episode_id.0,
+            draft: draft.clone(),
+        })
     }
 }

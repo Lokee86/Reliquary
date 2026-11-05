@@ -196,7 +196,7 @@ fn phy_owner_rejects_unsupported_rel_freshness_versions_without_mutation() {
 }
 
 #[test]
-fn rel_source_proof_fails_closed_until_candidate_evidence_is_sealed() {
+fn rel_source_proof_checks_archive_evidence_and_phy_returns_durable_receipt() {
     let path = Temp::new();
     let owner = [44; 16];
     let mut container = Container::create(
@@ -253,6 +253,22 @@ fn rel_source_proof_fails_closed_until_candidate_evidence_is_sealed() {
             },
         )
         .unwrap();
+    archive
+        .accept_turn(
+            &mut container,
+            TurnInput {
+                id: "assistant-reference".into(),
+                conversation_id: "previous-conversation".into(),
+                parent_id: None,
+                role: "assistant".into(),
+                principal_id: None,
+                timestamp_ns: 80,
+                content: "Tea is the preferred morning drink.".into(),
+                attachments: vec![],
+                project_attachments: vec![],
+            },
+        )
+        .unwrap();
     let episode_id = archive
         .put_episode(
             &mut container,
@@ -283,10 +299,11 @@ fn rel_source_proof_fails_closed_until_candidate_evidence_is_sealed() {
     MemoryVectorStore::default()
         .initialize(&mut phy_container)
         .unwrap();
+    reliquary_memory_core::MemoryStore::create(&mut phy_container).unwrap();
     phy_container.sync().unwrap();
     drop(phy_container);
     let phy_graph = GraphAdmission::for_replay(phy_owner, [], [], [], [], []);
-    let phy = PhyWriter::open_path(&phy_path.0, &phy_graph, []).unwrap();
+    let mut phy = PhyWriter::open_path(&phy_path.0, &phy_graph, []).unwrap();
     let make_draft = |owner_id: String,
                       principal_id: String,
                       source_node_id: &str,
@@ -352,13 +369,47 @@ fn rel_source_proof_fails_closed_until_candidate_evidence_is_sealed() {
             "I prefer coffee",
         ),
         (
-            make_draft(owner_id, "principal-1".into(), "other-turn", 200),
+            make_draft(owner_id.clone(), "principal-1".into(), "other-turn", 200),
             "I like coffee",
         ),
     ] {
-        let error = rel
-            .prove_routed_user_memory(&phy, &draft, quote)
-            .expect_err("REL must not mint a proof from caller-supplied draft data");
-        assert!(error.to_string().contains("sealed candidate evidence"));
+        rel.prove_routed_user_memory(&phy, &draft, quote, None)
+            .expect_err("REL must reject draft data that differs from Archive evidence");
     }
+
+    let mut adopted = make_draft(owner_id.clone(), "principal-1".into(), "user-turn", 80);
+    adopted.authority_kind = "adoption".into();
+    let source = adopted.source_ref.as_mut().unwrap();
+    source.content_source_conversation_id = Some("previous-conversation".into());
+    source.content_source_node_id = Some("assistant-reference".into());
+    assert!(
+        rel.prove_routed_user_memory(&phy, &adopted, "I prefer tea", None)
+            .is_err()
+    );
+    assert!(
+        rel.prove_routed_user_memory(&phy, &adopted, "I prefer tea", Some("I prefer coffee"))
+            .is_err()
+    );
+    assert!(
+        rel.prove_routed_user_memory(
+            &phy,
+            &adopted,
+            "I prefer tea",
+            Some("Tea is the preferred morning drink.")
+        )
+        .is_ok()
+    );
+
+    let draft = make_draft(owner_id, "principal-1".into(), "user-turn", 100);
+    let proof = rel
+        .prove_routed_user_memory(&phy, &draft, "I prefer tea", None)
+        .expect("matching validated user draft can be sealed");
+    let (revision, receipt) = phy
+        .publish_routed_user_memory(proof)
+        .expect("sealed draft publishes durably to PHY");
+    assert_eq!(receipt.external_ref().memory_id, revision.record.id.0);
+    assert!(receipt.matches_draft(&draft));
+    let mut changed = draft;
+    changed.title.push_str(" (changed)");
+    assert!(!receipt.matches_draft(&changed));
 }
