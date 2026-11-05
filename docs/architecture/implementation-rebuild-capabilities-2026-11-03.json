@@ -266,8 +266,8 @@
       ],
       "deliverable": "Episode evidence requests, source-grounded Memory drafts and routing decisions",
       "acceptance": "Same required extraction classes, evidence provenance and bounded behavior; no direct owner writes",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\semantic-continuation-2026-11-04.md"
     },
     {
       "id": "S03",
@@ -359,8 +359,8 @@
       ],
       "deliverable": "Accepted turn \u2192 Episode \u2192 Insomnia \u2192 REL/PHY Memory publication",
       "acceptance": "End-to-end provenance, bounded evidence and idempotent routed user/project memories; crash/retry proof",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\semantic-continuation-2026-11-04.md"
     },
     {
       "id": "V02",
