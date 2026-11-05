@@ -456,7 +456,8 @@
       ],
       "deliverable": "End-to-end memory system acceptance",
       "acceptance": "Complete Application/semantic workspace compiles; supported ingest, Dream, Entity, retrieval, freshness, vector, context, import and history tests pass",
-      "status": "not-started"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\g2-local-review-2026-11-05.md"
     },
     {
       "id": "H01",
