@@ -193,7 +193,11 @@ impl VerifiedOwnerCopyPlan {
     }
 
     pub(crate) fn verify_source(&self, source: &Container, path: &Path) -> Result<(), String> {
-        let (digest, len) = digest_file(path).map_err(|error| error.to_string())?;
+        if !source.names_same_file(path).map_err(|e| e.to_string())? {
+            return Err("source path no longer names the leased owner".into());
+        }
+        let (digest, len) = digest_reader(source.physical_bytes().map_err(|e| e.to_string())?)
+            .map_err(|error| error.to_string())?;
         if source.owner_id() != self.source_owner_id
             || source.identity() != self.source_identity
             || source.physical_file_identity().map_err(|e| e.to_string())?
@@ -209,7 +213,10 @@ impl VerifiedOwnerCopyPlan {
 }
 
 fn digest_file(path: &Path) -> io::Result<([u8; 32], u64)> {
-    let mut file = File::open(path)?;
+    digest_reader(File::open(path)?)
+}
+
+fn digest_reader(mut file: impl Read) -> io::Result<([u8; 32], u64)> {
     let mut hash = Sha256::new();
     let mut length = 0_u64;
     let mut buffer = [0; HASH_BUFFER_SIZE];

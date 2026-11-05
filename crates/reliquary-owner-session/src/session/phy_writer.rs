@@ -29,11 +29,6 @@ impl PhyWriter {
         require_kind(&container, FileKind::Phylactery)?;
         reject_rel_only_records(&container)?;
         let common = open_common(&container, graph_admission, dream_admissions, false)?;
-        if !common.maintenance.is_empty() {
-            return Err(OwnerSessionError::Record(
-                "transformed maintenance snapshots are read-only".into(),
-            ));
-        }
         let writer_lease_proof = container.writer_lease_proof();
         Ok(Self {
             owner_id: container.owner_id(),

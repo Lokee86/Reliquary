@@ -429,6 +429,21 @@ impl Container {
 
     /// Stable identity of the opened physical file, independent of its path.
     pub fn physical_file_identity(&self) -> Result<(u64, u64), ContainerError> {
+        Self::file_identity(&self.file)
+    }
+
+    pub fn names_same_file(&self, path: &Path) -> Result<bool, ContainerError> {
+        Ok(Self::file_identity(&File::open(path)?)? == self.physical_file_identity()?)
+    }
+
+    /// Read exact physical bytes through the existing owner lease.
+    pub fn physical_bytes(&self) -> Result<impl Read + '_, ContainerError> {
+        let mut file = self.file.try_clone()?;
+        file.seek(SeekFrom::Start(0))?;
+        Ok(file)
+    }
+
+    fn file_identity(file: &File) -> Result<(u64, u64), ContainerError> {
         #[cfg(windows)]
         {
             use std::os::windows::io::AsRawHandle;
@@ -453,10 +468,9 @@ impl Container {
                 ) -> i32;
             }
             let mut information = std::mem::MaybeUninit::<Information>::uninit();
-            // SAFETY: `self.file` owns a live handle and Windows fills the structure.
-            if unsafe {
-                GetFileInformationByHandle(self.file.as_raw_handle(), information.as_mut_ptr())
-            } == 0
+            // SAFETY: `file` owns a live handle and Windows fills the structure.
+            if unsafe { GetFileInformationByHandle(file.as_raw_handle(), information.as_mut_ptr()) }
+                == 0
             {
                 return Err(ContainerError::Io(std::io::Error::last_os_error()));
             }
@@ -469,7 +483,7 @@ impl Container {
         #[cfg(unix)]
         {
             use std::os::unix::fs::MetadataExt;
-            let metadata = self.file.metadata()?;
+            let metadata = file.metadata()?;
             Ok((metadata.dev(), metadata.ino()))
         }
         #[cfg(not(any(windows, unix)))]

@@ -530,7 +530,9 @@ mod freshness_use;
 mod maintenance_prune;
 mod maintenance_prune_proof;
 mod native_import;
-pub use maintenance_prune::{PrunedOwnerCopyReport, prune_terminal_memory_copy};
+pub use maintenance_prune::{
+    PrunedOwnerCopyReport, promote_terminal_memory_copy, prune_terminal_memory_copy,
+};
 mod vector_publication;
 pub use archive_vector_publication::{
     ArchiveVectorInput, ArchiveVectorRow, MAX_ARCHIVE_VECTOR_BATCH_ROWS,

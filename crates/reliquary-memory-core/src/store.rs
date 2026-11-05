@@ -47,6 +47,7 @@ impl Default for State {
 #[derive(Clone, Default)]
 pub struct MemoryStore {
     state: State,
+    pruned_bodies: BTreeSet<MemoryBodyId>,
     initialized: bool,
     owner: Option<([u8; 16], ContainerIdentity)>,
 }
@@ -277,6 +278,7 @@ impl MemoryStore {
         let mut seen_bodies = std::collections::BTreeSet::new();
         let mut provided_bodies = std::collections::BTreeSet::new();
         for (id, bytes) in bodies {
+            self.require_unpruned_body(id)?;
             if !seen_bodies.insert(id) {
                 return Err(MemoryError::Corrupt("duplicate grouped body identity"));
             }
@@ -293,6 +295,7 @@ impl MemoryStore {
         let mut used_provided_bodies = std::collections::BTreeSet::new();
         for bytes in records {
             let record = decode_grouped_creation(&bytes)?;
+            self.require_unpruned_body(record.body_id)?;
             if record.source_episode_id.is_none() {
                 return Err(MemoryError::Corrupt(
                     "grouped creation lacks Episode provenance",
@@ -456,6 +459,18 @@ impl MemoryStore {
             .filter(|id| !self.state.bodies.contains_key(id))
             .copied()
     }
+    /// Install the body identities verified by owner retention admission.
+    pub fn retain_pruned_body_fence(&mut self, bodies: BTreeSet<MemoryBodyId>) {
+        self.pruned_bodies.extend(bodies);
+    }
+
+    fn require_unpruned_body(&self, id: MemoryBodyId) -> Result<(), MemoryError> {
+        if self.pruned_bodies.contains(&id) {
+            return Err(MemoryError::Corrupt("Memory body was terminally pruned"));
+        }
+        Ok(())
+    }
+
     pub fn memory_ids_for_body(
         &self,
         body_id: MemoryBodyId,
@@ -514,6 +529,7 @@ impl MemoryStore {
         }
         let target = id.unwrap_or_else(|| memory_id(&draft.mutation_id));
         let body_id = memory_body_id(&draft.title, &draft.content);
+        self.require_unpruned_body(body_id)?;
 
         if let Some((seen_id, revision_index)) =
             self.state.mutations.get(&draft.mutation_id).copied()

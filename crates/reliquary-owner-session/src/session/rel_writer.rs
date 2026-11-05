@@ -61,11 +61,6 @@ impl RelWriter {
             accepted_episodes.clone(),
             dream_admissions.clone(),
         )?;
-        if !session.common.maintenance.is_empty() {
-            return Err(OwnerSessionError::Record(
-                "transformed maintenance snapshots are read-only".into(),
-            ));
-        }
         Ok(Self { container, session })
     }
 

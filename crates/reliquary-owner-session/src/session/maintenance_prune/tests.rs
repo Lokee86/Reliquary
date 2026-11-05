@@ -87,7 +87,7 @@ fn terminal_memory_prune_removes_payload_reopens_and_rejects_live_or_tampered_hi
             .record
             .id;
         tombstoned = memories
-            .publish(&mut container, None, 0, draft("discard-later", &private))
+            .publish_versioned_creation(&mut container, draft("discard-later", &private), 1)
             .unwrap()
             .revision
             .record
@@ -111,11 +111,7 @@ fn terminal_memory_prune_removes_payload_reopens_and_rejects_live_or_tampered_hi
             .windows(private.len())
             .any(|part| part == private.as_bytes())
     );
-    assert!(matches!(
-        PhyWriter::open_path(&output.0, &grant, []),
-        Err(OwnerSessionError::Record(message))
-            if message == "transformed maintenance snapshots are read-only"
-    ));
+    drop(PhyWriter::open_path(&output.0, &grant, []).unwrap());
     let session = PhySession::open_path(&output.0, &grant, []).unwrap();
     let removed = session.memory_history(tombstoned).unwrap().unwrap();
     assert!(removed.tombstone.is_some());
@@ -135,6 +131,22 @@ fn terminal_memory_prune_removes_payload_reopens_and_rejects_live_or_tampered_hi
     bytes[at + 30] ^= 1;
     fs::write(&forged.0, &bytes).unwrap();
     assert!(PhySession::open_path(&forged.0, &grant, []).is_err());
+    let unsupported = Temp::new();
+    let copy = Container::open_read_only(&output.0).unwrap();
+    let mut invalid = Container::create(&unsupported.0, copy.identity(), owner).unwrap();
+    for frame in copy.read_frames().unwrap() {
+        if frame.payload.starts_with(b"RELHPR01") {
+            let mut manifest = HistoryPruneManifest::decode(&frame.payload).unwrap();
+            manifest.descriptors[0].target.domain = RetentionDomain::Archive;
+            invalid.append(&manifest.encode().unwrap()).unwrap();
+        } else {
+            invalid.append(&frame.payload).unwrap();
+        }
+    }
+    invalid.sync().unwrap();
+    drop(invalid);
+    drop(copy);
+    assert!(PhySession::open_path(&unsupported.0, &grant, []).is_err());
     let appended = Temp::new();
     fs::write(&appended.0, &transformed).unwrap();
     let mut appended_writer = Container::open_writer(&appended.0).unwrap();
@@ -146,7 +158,52 @@ fn terminal_memory_prune_removes_payload_reopens_and_rejects_live_or_tampered_hi
         prune_terminal_memory_copy(&plan, &source.0, &output.0, &[tombstoned], &grant).is_err()
     );
     assert_eq!(fs::read(&output.0).unwrap(), transformed);
+    let backup = Temp::new();
+    assert!(
+        promote_terminal_memory_copy(&plan, &source.0, &output.0, &[tombstoned], &grant).is_err()
+    );
     assert_eq!(fs::read(&source.0).unwrap(), snapshot);
+    assert_eq!(fs::read(&output.0).unwrap(), transformed);
+    assert!(
+        promote_terminal_memory_copy(&plan, &source.0, &source.0, &[tombstoned], &grant).is_err()
+    );
+    promote_terminal_memory_copy(&plan, &source.0, &backup.0, &[tombstoned], &grant).unwrap();
+    assert_eq!(fs::read(&backup.0).unwrap(), snapshot);
+    let mut writer = PhyWriter::open_path(&source.0, &grant, []).unwrap();
+    assert!(
+        writer
+            .common
+            .memories
+            .publish(
+                &mut writer.container,
+                None,
+                0,
+                draft("restore-pruned", &private)
+            )
+            .is_err()
+    );
+    writer
+        .common
+        .memories
+        .publish_versioned_creation(
+            &mut writer.container,
+            draft("after-promotion", "new owner content"),
+            42,
+        )
+        .unwrap();
+    writer.container.sync().unwrap();
+    drop(writer);
+    let reopened = PhySession::open_path(&source.0, &grant, []).unwrap();
+    assert!(matches!(
+        reopened
+            .memory_history(tombstoned)
+            .unwrap()
+            .unwrap()
+            .revisions[0]
+            .payload,
+        PayloadState::Absent
+    ));
+    assert_eq!(fs::read(&backup.0).unwrap(), snapshot);
 }
 
 #[test]
@@ -160,6 +217,25 @@ fn shared_bodies_require_all_terminal_references_and_unknown_frames_block_prunin
         let owner = [0xa2; 16];
         let mut container = Container::create(&source.0, identity, owner).unwrap();
         super::super::create::initialize_owner(&mut container).unwrap();
+        if identity.file_kind == FileKind::Reliquary {
+            reliquary_archive::Archive::open(&container)
+                .unwrap()
+                .accept_turn(
+                    &mut container,
+                    reliquary_archive::TurnInput {
+                        id: "turn".into(),
+                        conversation_id: "conversation".into(),
+                        parent_id: None,
+                        role: "user".into(),
+                        principal_id: None,
+                        timestamp_ns: 1,
+                        content: "preserve Archive provenance".into(),
+                        attachments: vec![],
+                        project_attachments: vec![],
+                    },
+                )
+                .unwrap();
+        }
         let mut memories = MemoryStore::open(&container).unwrap();
         let body = "identical shared body ".repeat(80);
         let first = memories
@@ -190,9 +266,9 @@ fn shared_bodies_require_all_terminal_references_and_unknown_frames_block_prunin
         assert_eq!(report.pruned_memories, 2);
         let state = match identity.file_kind {
             FileKind::Reliquary => {
-                RelSession::open_path(&shared_copy.0, &grant, [], [])
-                    .unwrap()
-                    .common
+                let session = RelSession::open_path(&shared_copy.0, &grant, [], []).unwrap();
+                assert_eq!(session.rel_turn_count(), 1);
+                session.common
             }
             FileKind::Phylactery => {
                 PhySession::open_path(&shared_copy.0, &grant, [])
@@ -204,6 +280,24 @@ fn shared_bodies_require_all_terminal_references_and_unknown_frames_block_prunin
             let history = state.memories.history(id).unwrap();
             assert!(history.tombstone.is_some());
             assert!(matches!(history.revisions[0].payload, PayloadState::Absent));
+        }
+        if identity.file_kind == FileKind::Reliquary {
+            let replacement = Temp::new();
+            let backup = Temp::new();
+            let original = fs::read(&source.0).unwrap();
+            fs::write(&replacement.0, &original).unwrap();
+            let replacement_plan = VerifiedOwnerCopyPlan::prepare(&replacement.0).unwrap();
+            promote_terminal_memory_copy(
+                &replacement_plan,
+                &replacement.0,
+                &backup.0,
+                &[first, second],
+                &grant,
+            )
+            .unwrap();
+            assert_eq!(fs::read(&backup.0).unwrap(), original);
+            let writer = RelWriter::open_path(&replacement.0, grant.clone(), [], []).unwrap();
+            assert_eq!(writer.read_session().rel_turn_count(), 1);
         }
         let mut writer = Container::open_writer(&source.0).unwrap();
         writer.append(b"UNKNWN01-opaque-reference").unwrap();

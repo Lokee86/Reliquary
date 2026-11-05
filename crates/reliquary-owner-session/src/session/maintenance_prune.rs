@@ -74,15 +74,64 @@ pub fn prune_terminal_memory_copy(
     selected_memory_ids: &[MemoryId],
     graph_admission: &GraphAdmission,
 ) -> Result<PrunedOwnerCopyReport, String> {
+    transform_terminal_memory_copy(
+        plan,
+        source_path,
+        destination_path,
+        selected_memory_ids,
+        graph_admission,
+        false,
+    )
+}
+
+/// Replace an offline owner with an independently validated transformed copy.
+/// The backup is created without overwriting any existing path and retains
+/// the original inode. A failure before replacement leaves the source intact.
+pub fn promote_terminal_memory_copy(
+    plan: &VerifiedOwnerCopyPlan,
+    source_path: &Path,
+    backup_path: &Path,
+    selected_memory_ids: &[MemoryId],
+    graph_admission: &GraphAdmission,
+) -> Result<PrunedOwnerCopyReport, String> {
+    transform_terminal_memory_copy(
+        plan,
+        source_path,
+        backup_path,
+        selected_memory_ids,
+        graph_admission,
+        true,
+    )
+}
+
+fn transform_terminal_memory_copy(
+    plan: &VerifiedOwnerCopyPlan,
+    source_path: &Path,
+    destination_path: &Path,
+    selected_memory_ids: &[MemoryId],
+    graph_admission: &GraphAdmission,
+    replace_source: bool,
+) -> Result<PrunedOwnerCopyReport, String> {
     if selected_memory_ids.is_empty() || selected_memory_ids.len() > 128 {
         return Err("pruning requires between 1 and 128 explicit terminal Memories".into());
     }
-    let source = Container::open_read_only(source_path).map_err(|e| e.to_string())?;
+    let source = if replace_source {
+        if fs::symlink_metadata(source_path)
+            .map_err(|error| error.to_string())?
+            .is_symlink()
+        {
+            return Err("promotion requires the physical source path".into());
+        }
+        Container::open_writer_as(source_path, plan.file_kind())
+    } else {
+        Container::open_read_only(source_path)
+    }
+    .map_err(|e| e.to_string())?;
     plan.verify_source(&source, source_path)?;
-    safe_memory_only_frames(&source, false)?;
     if !OwnerMaintenanceStore::open(&source)?.is_empty() {
         return Err("repeated destructive pruning requires a new lineage contract".into());
     }
+    safe_memory_only_frames(&source, false)?;
     let source_state = match plan.file_kind() {
         FileKind::Reliquary => {
             let rel =
@@ -156,7 +205,11 @@ pub fn prune_terminal_memory_copy(
     let manifest_bytes = manifest.encode()?;
     let manifest_digest = manifest.digest()?;
     let source_bytes = fs::metadata(source_path).map_err(|e| e.to_string())?.len();
-    let staged = StagedCopy::create(destination_path)?;
+    let staged = StagedCopy::create(if replace_source {
+        source_path
+    } else {
+        destination_path
+    })?;
     let mut target = Container::create(&staged.path, source.identity(), source.owner_id())
         .map_err(|e| e.to_string())?;
     let mut skipped = BTreeSet::new();
@@ -203,10 +256,18 @@ pub fn prune_terminal_memory_copy(
     }
     plan.verify_source(&source, source_path)?;
     let transformed_bytes = fs::metadata(&staged.path).map_err(|e| e.to_string())?.len();
-    // Publish the already-synced inode without replacing an existing name.
-    // A failed link leaves the source and destination untouched.
-    fs::hard_link(&staged.path, destination_path)
-        .map_err(|error| format!("could not publish verified maintenance snapshot: {error}"))?;
+    if replace_source {
+        fs::hard_link(source_path, destination_path)
+            .map_err(|error| format!("could not retain original owner as backup: {error}"))?;
+        plan.verify_source(&source, destination_path)?;
+        plan.verify_source(&source, source_path)?;
+        fs::rename(&staged.path, source_path).map_err(|error| {
+            format!("could not replace verified owner; original retained at backup: {error}")
+        })?;
+    } else {
+        fs::hard_link(&staged.path, destination_path)
+            .map_err(|error| format!("could not publish verified maintenance snapshot: {error}"))?;
+    }
     Ok(PrunedOwnerCopyReport {
         owner_id: source.owner_id(),
         pruned_memories: selected.len(),

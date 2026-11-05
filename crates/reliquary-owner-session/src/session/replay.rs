@@ -6,7 +6,7 @@ pub(super) fn open_common(
     dream_admissions: impl IntoIterator<Item = DreamBeginAdmission>,
     replay_grouped_insomnia: bool,
 ) -> Result<CommonState, OwnerSessionError> {
-    let memories = MemoryStore::open_with_dream_batches(
+    let mut memories = MemoryStore::open_with_dream_batches(
         container,
         |payload| {
             if !replay_grouped_insomnia {
@@ -149,12 +149,13 @@ pub(super) fn open_common(
         ));
     }
     let maintenance = OwnerMaintenanceStore::open(container).map_err(OwnerSessionError::Record)?;
-    super::maintenance_prune_proof::validate_memory_prune(
+    let pruned_bodies = super::maintenance_prune_proof::validate_memory_prune(
         container,
         &memories,
         &memory_vectors,
         &maintenance,
     )?;
+    memories.retain_pruned_body_fence(pruned_bodies);
     let mut dream_admissions = dream_admissions.into_iter().collect::<Vec<_>>();
     for frame in container.read_frames()? {
         if let Some(frontier) =

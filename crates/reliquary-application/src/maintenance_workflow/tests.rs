@@ -122,4 +122,14 @@ fn terminal_prune_candidate_is_read_only_and_requires_reference_audit_and_copy_r
         session.memory_history(deleted).unwrap().unwrap().revisions[0].payload,
         PayloadState::Available(_)
     ));
+    let backup = Temp::new();
+    let original = fs::read(&path.0).unwrap();
+    let plan = VerifiedOwnerCopyPlan::prepare(&path.0).unwrap();
+    assert!(matches!(
+        promote_verified_memory_copy(&plan, &path.0, &backup.0, [75; 16], &[deleted], &admission),
+        Err(MaintenanceWorkflowError::OwnerRead(message))
+            if message == "maintenance source is outside the authorized owner"
+    ));
+    assert!(!backup.0.exists());
+    assert_eq!(fs::read(&path.0).unwrap(), original);
 }

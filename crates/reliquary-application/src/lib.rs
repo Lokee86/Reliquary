@@ -94,8 +94,8 @@ pub use ingest_publication::{
 };
 pub use maintenance_workflow::{
     MaintenanceBlocker, MaintenanceWorkflowError, MemoryMaintenancePreparation,
-    MemoryPruneCandidate, prepare_tombstoned_memory_maintenance, prune_verified_memory_copy,
-    recheck_tombstoned_memory_maintenance,
+    MemoryPruneCandidate, prepare_tombstoned_memory_maintenance, promote_verified_memory_copy,
+    prune_verified_memory_copy, recheck_tombstoned_memory_maintenance,
 };
 pub use retrieval_workflow::{
     OwnerMemoryEvidence, OwnerMemorySelection, RetrievalWorkflowError, SelectedMemory,

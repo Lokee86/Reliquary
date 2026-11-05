@@ -182,7 +182,8 @@ fn digest_history(owner_id: [u8; 16], memory_id: MemoryId, history: &MemoryHisto
 }
 
 use reliquary_owner_session::{
-    GraphAdmission, PrunedOwnerCopyReport, VerifiedOwnerCopyPlan, prune_terminal_memory_copy,
+    GraphAdmission, PrunedOwnerCopyReport, VerifiedOwnerCopyPlan, promote_terminal_memory_copy,
+    prune_terminal_memory_copy,
 };
 use std::path::Path;
 
@@ -210,6 +211,25 @@ pub fn prune_verified_memory_copy(
         graph_admission,
     )
     .map_err(MaintenanceWorkflowError::OwnerRead)
+}
+
+/// Replace an authorized offline owner after independent validation and retain
+/// its original bytes at a new backup path.
+pub fn promote_verified_memory_copy(
+    plan: &VerifiedOwnerCopyPlan,
+    source_path: &Path,
+    backup_path: &Path,
+    authorized_owner_id: [u8; 16],
+    selected: &[MemoryId],
+    graph_admission: &GraphAdmission,
+) -> Result<PrunedOwnerCopyReport, MaintenanceWorkflowError> {
+    if plan.owner_id() != authorized_owner_id {
+        return Err(MaintenanceWorkflowError::OwnerRead(
+            "maintenance source is outside the authorized owner".into(),
+        ));
+    }
+    promote_terminal_memory_copy(plan, source_path, backup_path, selected, graph_admission)
+        .map_err(MaintenanceWorkflowError::OwnerRead)
 }
 
 #[cfg(test)]

@@ -1,6 +1,6 @@
 //! Physical, retained-history proof for standalone terminal Memory body pruning.
 //! The digest covers every surviving source frame before the manifest.
-use reliquary_container::{Container, FileKind, ReliquaryScope};
+use reliquary_container::{Container, FileKind, ReliquaryScope, decode_publication};
 use reliquary_memory_core::{MemoryBodyId, MemoryId, TerminalTombstone};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeSet, io::Read};
@@ -92,7 +92,22 @@ pub(crate) fn memory_structure_digest(
         if &prefix == MANIFEST {
             break;
         }
-        if !matches!(&prefix, b"RELMCRT1" | b"RELMDLT1" | b"RELMTMB1") {
+        if &prefix == b"RELPUB01" {
+            let mut payload = prefix.to_vec();
+            frame.read_to_end(&mut payload).map_err(|e| e.to_string())?;
+            let envelope = decode_publication(&payload)
+                .map_err(|e| e.to_string())?
+                .ok_or("missing publication envelope")?;
+            if memory_history_record(envelope.body)
+                && envelope.body.get(8..40) == Some(memory_id.0.as_slice())
+            {
+                count += 1;
+                hash.update(len.to_le_bytes());
+                hash.update(payload);
+            }
+            continue;
+        }
+        if !memory_history_record(&prefix) {
             continue;
         }
         let mut id = [0u8; 32];
@@ -119,18 +134,43 @@ pub(crate) fn memory_structure_digest(
     Ok(hash.finalize().into())
 }
 
+fn memory_history_record(bytes: &[u8]) -> bool {
+    matches!(
+        bytes.get(..8),
+        Some(b"RELMCRT1" | b"RELMDLT1" | b"RELMTMB1")
+    )
+}
+
 /// Restrict this transform to frames with no offset-bearing cross-domain
 /// payloads. More families require their own relocation and proof contracts.
 pub(crate) fn safe_memory_only_frames(
     container: &Container,
     has_manifest: bool,
-) -> Result<(), String> {
+) -> Result<u64, String> {
+    let mut version = 0;
     let mut cursor = container.physical_cursor().map_err(|e| e.to_string())?;
     while let Some(mut frame) = cursor.next_frame().map_err(|e| e.to_string())? {
         let mut magic = [0u8; 8];
         frame.read_exact(&mut magic).map_err(|e| e.to_string())?;
         if has_manifest && &magic == MANIFEST {
-            return Ok(());
+            return Ok(version);
+        }
+        if &magic == b"RELPUB01" {
+            let mut payload = magic.to_vec();
+            frame.read_to_end(&mut payload).map_err(|e| e.to_string())?;
+            let envelope = decode_publication(&payload)
+                .map_err(|e| e.to_string())?
+                .ok_or("missing publication envelope")?;
+            if !memory_history_record(envelope.body) {
+                return Err("transform needs an owner proof for publication body".into());
+            }
+            version = version.max(envelope.version);
+            continue;
+        }
+        if matches!(&magic, b"RELVERS1" | b"RELVERS2") {
+            let mut raw = [0; 8];
+            frame.read_exact(&mut raw).map_err(|e| e.to_string())?;
+            version = version.max(u64::from_le_bytes(raw));
         }
         if !matches!(
             &magic,
@@ -145,6 +185,12 @@ pub(crate) fn safe_memory_only_frames(
                 | b"RELAVFM1"
                 | b"RELVGFM1"
                 | b"RELFRP01"
+                | b"RELTURN2"
+                | b"RELFILE1"
+                | b"RELBRCH1"
+                | b"RELEPIS1"
+                | b"CVAFRG01"
+                | b"RELECHO1"
                 | b"RELVERS1"
                 | b"RELVERS2"
         ) {
@@ -154,5 +200,8 @@ pub(crate) fn safe_memory_only_frames(
             ));
         }
     }
-    Ok(())
+    if has_manifest {
+        return Err("missing prune manifest".into());
+    }
+    Ok(version)
 }
