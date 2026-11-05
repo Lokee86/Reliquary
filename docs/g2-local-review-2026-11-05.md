@@ -13,3 +13,7 @@ The remaining integration needs owner-verified inputs at a frozen import cut, hi
 Local compilation, locked offline metadata, formatting, whitespace and the architecture guard passed. The production graph has 23 packages and 76 edges.
 
 The locked offline workspace suite passed 504 tests across 23 nonempty suites when run with Windows hard-link and loopback permissions. The initial restricted run stopped on two verified-copy tests when hard-link publication was denied.
+
+## Archive timeline checkpoint
+
+The Application settlement entry point validates the historical timeline from owner-accepted Archive nodes and activity positions before requesting the existing snapshot. It preserves accepted order when imported timestamps precede previously accepted live turns. The native import test exercises that case and confirms settlement retry and reopen. All 504 local locked offline workspace tests passed. Historical attribution, propagation and durable publication remain open.

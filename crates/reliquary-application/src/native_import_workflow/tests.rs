@@ -96,7 +96,19 @@ fn import_restarts_then_finishes_scoped_work_and_settlement_once() {
     let (id, episode);
     {
         let mut writer = RelWriter::create_path(&path.0, ReliquaryScope::Project, owner).unwrap();
+        let (mut live_turn, mut live_branch) = input.turns[0].clone();
+        live_turn.id = "live-turn".into();
+        live_turn.conversation_id = "live-conversation".into();
+        live_turn.timestamp_ns = 100;
+        live_branch.conversation_id = live_turn.conversation_id.clone();
+        live_branch.leaf_node_id = live_turn.id.clone();
+        writer
+            .accept_turn_and_advance_branch(live_turn, live_branch)
+            .unwrap();
         let staged = stage_native_import(&mut writer, input.clone()).unwrap();
+        let timeline = import_timeline(&writer).unwrap();
+        assert_eq!(timeline.activity_order[0].node_id, "live-turn");
+        assert_eq!(timeline.activity_order[1].node_id, "imported-turn");
         id = staged.import_id;
         episode = staged.episodes[0];
         assert!(writer.complete_native_import(&id, 12).is_err());
@@ -150,7 +162,7 @@ fn import_restarts_then_finishes_scoped_work_and_settlement_once() {
             .unwrap(),
         CompletionCheck::Apply
     );
-    let frozen = writer.settle_native_import(&id).unwrap();
+    let frozen = settle_native_import(&mut writer, &id).unwrap();
     assert_eq!(frozen.import_id, id);
     assert!(
         writer
@@ -158,7 +170,7 @@ fn import_restarts_then_finishes_scoped_work_and_settlement_once() {
             .native_import_settlement(&id)
             .is_some()
     );
-    assert!(writer.settle_native_import(&id).is_ok());
+    assert!(settle_native_import(&mut writer, &id).is_ok());
     drop(writer);
     // Simulate a restart after the settlement sync but before completion.
     let mut writer = RelWriter::open_path(&path.0, grant.clone(), [], []).unwrap();

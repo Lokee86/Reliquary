@@ -1,10 +1,11 @@
 //! Resumable normalized import composition. Provider decoding is intentionally
 //! outside this workflow; source-to-native mappings remain Archive-owned.
 
+use reliquary_freshness::historical_planner::{HistoricalSource, HistoricalTimeline, SourceKey};
 use reliquary_owner_session::{
     OwnerSessionError, RelWriter,
     model::{Branch, EpisodeId, ImportReceipt, TurnInput},
-    records::{ImportEpochStatus, import_id},
+    records::{ImportEpochStatus, ImportFreshnessSettlement, import_id},
 };
 use sha2::{Digest, Sha256};
 
@@ -170,6 +171,49 @@ fn confirm_staged_retry(
         episodes,
         already_completed,
     })
+}
+
+/// Validate the accepted Archive clock before freezing the import settlement.
+/// Use accepted positions so an import cannot move previously credited turns.
+pub fn settle_native_import(
+    writer: &mut RelWriter,
+    import_id: &str,
+) -> Result<ImportFreshnessSettlement, OwnerSessionError> {
+    if writer
+        .read_session()
+        .native_import_settlement(import_id)
+        .is_none()
+    {
+        import_timeline(writer)?;
+    }
+    writer.settle_native_import(import_id)
+}
+
+fn import_timeline(writer: &RelWriter) -> Result<HistoricalTimeline, OwnerSessionError> {
+    let owner = writer.read_session();
+    let accepted = owner.accepted_turn_sources();
+    let mut sources = Vec::with_capacity(accepted.len());
+    let mut positions = std::collections::BTreeMap::new();
+    for source in accepted {
+        let node = owner
+            .archive_node(&source.conversation_id, &source.node_id)
+            .ok_or_else(|| OwnerSessionError::Record("accepted Archive node is missing".into()))?;
+        let key = SourceKey {
+            conversation_id: source.conversation_id,
+            node_id: source.node_id,
+        };
+        if let Some(position) = source.activity_position {
+            positions.insert(key.clone(), position);
+        }
+        sources.push(HistoricalSource {
+            key,
+            parent_id: node.parent_id.clone(),
+            role: node.role.clone(),
+            timestamp_ns: node.timestamp_ns,
+        });
+    }
+    HistoricalTimeline::from_accepted_archive(sources, &positions, owner.rel_turn_count())
+        .map_err(|error| OwnerSessionError::Record(error.to_string()))
 }
 
 #[cfg(test)]
