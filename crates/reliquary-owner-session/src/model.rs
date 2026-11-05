@@ -21,3 +21,5 @@ pub use reliquary_perception_store::{
     MemoryTextField,
 };
 pub use reliquary_vector_store::{CompatibilityProfile, CompatibilityProfileId, EmbeddingMode};
+
+pub use reliquary_perception_store::{EntityResolutionReason, MemoryEntityResolutionStatus};

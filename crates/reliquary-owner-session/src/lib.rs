@@ -22,3 +22,5 @@ pub use session::{
     InitialDreamSnapshot, OwnerSessionError, PhySession, PhyWriter, RelInsomniaClaimInput,
     RelSession, RelWriter, RoutedUserMemoryProof, RoutedUserMemoryReceipt,
 };
+
+pub use session::EntityMentionCommit;

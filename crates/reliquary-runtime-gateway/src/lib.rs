@@ -373,3 +373,5 @@ mod instance_conversation;
 mod instance_owner;
 mod instance_routing;
 pub use insomnia_worker::{InsomniaWorkerConfig, InsomniaWorkerHandle};
+
+mod instance_entity;

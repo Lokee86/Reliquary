@@ -506,3 +506,6 @@ impl CommonState {
 mod replay_prefix;
 
 mod dream_prefix_effect;
+
+mod entity_mention;
+pub use entity_mention::EntityMentionCommit;

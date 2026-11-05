@@ -48,3 +48,13 @@ Verification on the acceptance checkpoint passed 445 tests across 47 suites with
 ## V03 Entity mention preparation
 
 Application can capture an owned mention input with its exact body, revision, UTF-8 span, same-owner candidates, and previous resolution. Evaluation takes that input without a session borrow, so Gateway can release the owner lock before calling the model. The existing proposal entry point uses the same preparation. The four focused Application fixtures passed, as did formatting, whitespace, and the architecture guard. S04 and V03 remain in progress. Durable publication still requires an authenticated owner write that rechecks the captured facts and records the outcome with REL and PHY reopen and history proof.
+
+## V03 existing-Entity and unresolved publication
+
+Gateway captures mention evidence through the authenticated REL or PHY writer, releases the lock for evaluation, and rechecks the credential and owner grant before publication. Owner-session binds the write to the current Memory revision, body, exact span, prior resolution revision, and selected Entity revisions. It refuses principal targets on this generic route and reuses the receipt on exact retry.
+
+The PHY fixture proves a same-owner match, rejects a foreign owner and a stale Entity revision, and verifies the stored resolution after reopen. The REL fixture refuses a mismatched body and reopens both unresolved revisions. Application also maps a bounded ambiguous outcome to owner-local candidate IDs.
+
+V03 remains in progress. New identities still need the evaluator's separate admission outcome wired into a recoverable owner publication. Candidate discovery currently uses same-owner name and alias evidence. Source, lexical, and Graph evidence lanes and the remaining S04 acceptance review are open.
+
+The locked offline workspace passed 446 tests across 47 suites with local loopback for mock HTTP servers. Workspace compilation, formatting, whitespace, and the 23-package, 76-edge architecture guard passed.

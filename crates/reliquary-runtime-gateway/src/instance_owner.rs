@@ -61,7 +61,7 @@ impl Instance {
         })??)
     }
 
-    fn with_rel_writer<T>(
+    pub(super) fn with_rel_writer<T>(
         &self,
         owner: OwnerId,
         operation: impl FnOnce(&mut RelWriter) -> T,

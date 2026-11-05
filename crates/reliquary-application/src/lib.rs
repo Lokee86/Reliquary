@@ -50,7 +50,8 @@ pub use dream_workflow::{
 };
 pub use entity_workflow::{
     EntityMemoryMention, EntityOwnerSession, EntityResolutionProposal, EntityWorkflowError,
-    PreparedEntityMention, prepare_memory_mention, resolve_memory_mention,
+    PreparedEntityMention, prepare_memory_mention, prepare_phy_writer_mention,
+    resolve_memory_mention,
 };
 pub use external_source_workflow::{
     ExternalSourceError, VerifiedExternalSource, verify_project_attachment,
@@ -599,6 +600,78 @@ mod tests {
             Err(IngestPublicationError::EpisodeMismatch)
         ));
         assert_eq!(writer.next_global_version().unwrap(), version);
+    }
+
+    #[test]
+    fn rel_unresolved_mention_preserves_revision_history_on_reopen() {
+        use reliquary_owner_session::{
+            EntityMentionCommit,
+            model::{
+                EntityResolutionReason, MemoryEntityMentionKey, MemoryEntityResolutionStatus,
+                MemoryId, MemoryTextField, memory_body_id,
+            },
+        };
+        let (path, mut writer, episode_id) = accepted_writer();
+        let prepared = prepare_native_ingest_from_archive(
+            writer.read_session(),
+            episode_id,
+            &[],
+            vec![candidate("Keep my project notes private.")],
+        )
+        .unwrap();
+        let work = writer
+            .queue_and_claim_insomnia_episode(episode_id, "mention-test", 10, 1000)
+            .unwrap();
+        commit_prepared_native_ingest(&mut writer, &prepared, &work, "fixture", "v1", 20).unwrap();
+        let receipt = writer
+            .read_session()
+            .insomnia_receipt(
+                reliquary_insomnia_store::EpisodeId(episode_id.0),
+                work.attempt_count,
+            )
+            .unwrap();
+        let memory = writer
+            .read_session()
+            .current_memory(MemoryId(receipt.memory_ids[0].0))
+            .unwrap();
+        let owner_id = writer.owner_id();
+        let key = MemoryEntityMentionKey {
+            memory_id: memory.record.id.0,
+            field: MemoryTextField::Title,
+            start_byte: 0,
+            end_byte: 7,
+        };
+        let mut command = EntityMentionCommit {
+            owner_id,
+            memory_revision: memory.record.revision,
+            body_id: memory_body_id(
+                "Private project notes",
+                "The user wants project notes kept private.",
+            ),
+            key,
+            surface: "Private".into(),
+            expected_revision: 0,
+            updated_at_ns: 21,
+            status: MemoryEntityResolutionStatus::Unresolved {
+                reason: EntityResolutionReason::InsufficientEvidence,
+            },
+            target_revisions: vec![],
+        };
+        let mut wrong_body = command.clone();
+        wrong_body.body_id = memory_body_id("different", "body");
+        assert!(writer.commit_entity_mention(wrong_body).is_err());
+        let first = writer.commit_entity_mention(command.clone()).unwrap();
+        command.expected_revision = first.revision;
+        command.updated_at_ns = 22;
+        command.status = MemoryEntityResolutionStatus::Unresolved {
+            reason: EntityResolutionReason::RecurrenceRequired,
+        };
+        let second = writer.commit_entity_mention(command).unwrap();
+        drop(writer);
+        let admission = GraphAdmission::for_replay(owner_id, [], [], [], [], []);
+        let rel = RelSession::open_path(&path.0, &admission, [], []).unwrap();
+        assert_eq!(rel.mention(key), Some(&second));
+        assert_eq!(rel.mention_revision(key, first.revision), Some(&first));
     }
 
     #[test]

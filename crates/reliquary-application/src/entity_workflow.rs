@@ -198,14 +198,101 @@ impl From<OwnerSessionError> for EntityWorkflowError {
 /// Perception store remains unchanged.
 #[derive(Clone, Debug, PartialEq)]
 pub struct EntityResolutionProposal {
-    pub owner_id: [u8; 16],
-    pub memory_id: MemoryId,
-    pub memory_revision: u64,
-    pub body_id: MemoryBodyId,
-    pub mention: MentionSpan,
-    pub candidates: Vec<EntityCandidate>,
-    pub existing_resolution: Option<MemoryEntityResolution>,
-    pub outcome: ResolutionOutcome,
+    owner_id: [u8; 16],
+    memory_id: MemoryId,
+    memory_revision: u64,
+    body_id: MemoryBodyId,
+    mention: MentionSpan,
+    candidates: Vec<EntityCandidate>,
+    existing_resolution: Option<MemoryEntityResolution>,
+    outcome: ResolutionOutcome,
+}
+
+impl EntityResolutionProposal {
+    pub fn outcome(&self) -> ResolutionOutcome {
+        self.outcome
+    }
+
+    /// Prepare the exact owner command from an evaluated proposal.
+    pub fn into_mention_commit(
+        self,
+        updated_at_ns: i64,
+    ) -> Result<reliquary_owner_session::EntityMentionCommit, EntityWorkflowError> {
+        use reliquary_entity_resolution::ResolutionDecision;
+        use reliquary_owner_session::model::{
+            EntityResolutionReason, MemoryEntityResolutionStatus,
+        };
+
+        let status = match self.outcome.decision {
+            ResolutionDecision::ResolveExisting(entity_id) => {
+                MemoryEntityResolutionStatus::Resolved {
+                    entity_id,
+                    reason: self.outcome.reason,
+                }
+            }
+            ResolutionDecision::Unresolved
+                if self.outcome.reason == EntityResolutionReason::Ambiguous =>
+            {
+                let mut candidates: Vec<_> = self
+                    .candidates
+                    .iter()
+                    .map(|candidate| candidate.entity.id)
+                    .collect();
+                candidates.sort_unstable();
+                candidates.dedup();
+                if candidates.len() >= 2 {
+                    MemoryEntityResolutionStatus::Ambiguous { candidates }
+                } else {
+                    MemoryEntityResolutionStatus::Unresolved {
+                        reason: self.outcome.reason,
+                    }
+                }
+            }
+            ResolutionDecision::Unresolved | ResolutionDecision::Reject => {
+                MemoryEntityResolutionStatus::Unresolved {
+                    reason: self.outcome.reason,
+                }
+            }
+            ResolutionDecision::CreateNew => {
+                return Err(EntityWorkflowError::Evaluator(
+                    "new Entity identity requires a separate owner admission".into(),
+                ));
+            }
+        };
+        let targets = match &status {
+            MemoryEntityResolutionStatus::Resolved { entity_id, .. } => {
+                std::slice::from_ref(entity_id)
+            }
+            MemoryEntityResolutionStatus::Ambiguous { candidates } => candidates,
+            MemoryEntityResolutionStatus::Unresolved { .. } => &[],
+        };
+        let target_revisions = targets
+            .iter()
+            .map(|id| {
+                self.candidates
+                    .iter()
+                    .find(|candidate| candidate.entity.id == *id)
+                    .map(|candidate| (*id, candidate.entity.revision))
+                    .ok_or(EntityWorkflowError::InvalidMention(
+                        "selected Entity was not evaluated",
+                    ))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(reliquary_owner_session::EntityMentionCommit {
+            owner_id: self.owner_id,
+            memory_revision: self.memory_revision,
+            body_id: self.body_id,
+            key: mention_key(self.memory_id, &self.mention)?,
+            surface: self.mention.text,
+            expected_revision: self
+                .existing_resolution
+                .as_ref()
+                .map_or(0, |value| value.revision),
+            updated_at_ns,
+            status,
+            target_revisions,
+        })
+    }
 }
 
 /// An owned, same-owner input captured before calling a model.
@@ -221,6 +308,13 @@ pub struct PreparedEntityMention {
 }
 
 impl PreparedEntityMention {
+    pub fn evaluate_with_endpoint<E: GeneralEndpoint>(
+        self,
+        endpoint: E,
+    ) -> Result<EntityResolutionProposal, EntityWorkflowError> {
+        self.evaluate(&EntityModelEvaluator::new(endpoint))
+    }
+
     pub fn evaluate<E: GeneralEndpoint>(
         self,
         evaluator: &EntityModelEvaluator<E>,
@@ -261,32 +355,75 @@ pub fn prepare_memory_mention(
     if owner_id != input.owner_id {
         return Err(EntityWorkflowError::OwnerMismatch);
     }
-    let history = owner
-        .memory_history(input.memory_id)?
-        .ok_or(EntityWorkflowError::MemoryUnavailable)?;
-    if history.tombstone.is_some() {
-        return Err(EntityWorkflowError::MemoryTombstoned);
+    prepare_mention_with(input, |key| {
+        let revision = owner.current_memory(MemoryId(key.memory_id))?;
+        Ok((revision, owner.entities(), owner.mention(key)))
+    })
+}
+
+pub fn prepare_phy_writer_mention(
+    owner: &reliquary_owner_session::PhyWriter,
+    input: EntityMemoryMention,
+) -> Result<PreparedEntityMention, EntityWorkflowError> {
+    if owner.owner_id() != input.owner_id {
+        return Err(EntityWorkflowError::OwnerMismatch);
     }
-    let revision = history
-        .revisions
-        .last()
-        .ok_or(EntityWorkflowError::MemoryUnavailable)?;
-    let body = match &revision.payload {
-        PayloadState::Available(body) => body,
-        PayloadState::Absent => return Err(EntityWorkflowError::MemoryBodyUnavailable),
-    };
+    prepare_mention_with(input, |key| owner.entity_mention_inputs(key))
+}
+
+fn prepare_mention_with(
+    input: EntityMemoryMention,
+    read: impl FnOnce(
+        MemoryEntityMentionKey,
+    ) -> Result<
+        (
+            reliquary_owner_session::model::MemoryRevision,
+            Vec<Entity>,
+            Option<MemoryEntityResolution>,
+        ),
+        OwnerSessionError,
+    >,
+) -> Result<PreparedEntityMention, EntityWorkflowError> {
+    use reliquary_owner_session::model::MemoryError;
     let mention = MentionSpan {
         field: input.field,
         start_byte: input.start_byte,
         end_byte: input.end_byte,
         text: input.text,
     };
-    validate_span(body, &mention)?;
+    let key = mention_key(input.memory_id, &mention)?;
+    let (revision, entities, existing_resolution) = read(key).map_err(|error| match error {
+        OwnerSessionError::Memory(MemoryError::MissingMemory) => {
+            EntityWorkflowError::MemoryUnavailable
+        }
+        OwnerSessionError::Memory(MemoryError::TerminalTombstone) => {
+            EntityWorkflowError::MemoryTombstoned
+        }
+        error => error.into(),
+    })?;
+    let PayloadState::Available(body) = revision.payload else {
+        return Err(EntityWorkflowError::MemoryBodyUnavailable);
+    };
+    validate_span(&body, &mention)?;
+    let candidates = build_candidates(&entities, &mention)?;
+    Ok(PreparedEntityMention {
+        owner_id: input.owner_id,
+        memory_id: input.memory_id,
+        memory_revision: revision.record.revision,
+        body_id: revision.record.body_id,
+        mention,
+        candidates,
+        existing_resolution,
+        body,
+    })
+}
 
-    let mut candidates = build_candidates(&owner.entities(), &mention)?;
-    rank_candidates(&mut candidates);
-    let key = MemoryEntityMentionKey {
-        memory_id: input.memory_id.0,
+fn mention_key(
+    memory_id: MemoryId,
+    mention: &MentionSpan,
+) -> Result<MemoryEntityMentionKey, EntityWorkflowError> {
+    Ok(MemoryEntityMentionKey {
+        memory_id: memory_id.0,
         field: match mention.field {
             TextField::Title => MemoryTextField::Title,
             TextField::Content => MemoryTextField::Content,
@@ -295,17 +432,6 @@ pub fn prepare_memory_mention(
             .map_err(|_| EntityWorkflowError::InvalidMention("offset exceeds stored range"))?,
         end_byte: u32::try_from(mention.end_byte)
             .map_err(|_| EntityWorkflowError::InvalidMention("offset exceeds stored range"))?,
-    };
-    let existing_resolution = owner.mention(key);
-    Ok(PreparedEntityMention {
-        owner_id,
-        memory_id: input.memory_id,
-        memory_revision: revision.record.revision,
-        body_id: revision.record.body_id,
-        mention,
-        candidates,
-        existing_resolution,
-        body: body.clone(),
     })
 }
 
@@ -594,7 +720,7 @@ mod tests {
 
     #[test]
     fn phy_resolution_uses_owner_body_and_candidates_and_returns_a_proposal() {
-        let (_path, session, memory, _second_memory, entity) = phy_session(
+        let (path, session, memory, _second_memory, entity) = phy_session(
             [88; 16],
             "Use Northstar in the internal migration. Owner-only note: blue lantern.",
             "Northstar",
@@ -649,6 +775,25 @@ mod tests {
             resolve_memory_mention(&evaluator, EntityOwnerSession::Phy(&session), wrong_owner,),
             Err(EntityWorkflowError::OwnerMismatch)
         );
+
+        let command = proposal.into_mention_commit(20).unwrap();
+        let key = command.key;
+        let admission = GraphAdmission::for_replay(session.owner_id(), [], [], [], [], []);
+        drop(session);
+        let mut writer =
+            reliquary_owner_session::PhyWriter::open_path(&path.0, &admission, []).unwrap();
+        let mut foreign = command.clone();
+        foreign.owner_id = [89; 16];
+        assert!(writer.commit_entity_mention(foreign).is_err());
+        let mut stale = command.clone();
+        stale.target_revisions[0].1 += 1;
+        assert!(writer.commit_entity_mention(stale).is_err());
+        let stored = writer.commit_entity_mention(command.clone()).unwrap();
+        assert_eq!(writer.commit_entity_mention(command).unwrap(), stored);
+        drop(writer);
+        let reopened = PhySession::open_path(&path.0, &admission, []).unwrap();
+        assert_eq!(reopened.mention(key), Some(&stored));
+        assert_eq!(reopened.mention_revision(key, 1), Some(&stored));
     }
 
     #[test]
