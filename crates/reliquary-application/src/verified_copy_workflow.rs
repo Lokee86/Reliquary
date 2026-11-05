@@ -16,6 +16,53 @@ pub struct VerifiedPhyOwnerCopy {
     pub session: PhySession,
 }
 
+/// Reconcile comparable REL histories into a new independently admitted copy.
+pub fn reconcile_rel_prefix(
+    left: &Path,
+    right: &Path,
+    destination: &Path,
+    graph_admission: &GraphAdmission,
+    accepted_episodes: impl IntoIterator<Item = AcceptedEpisodeOrder>,
+    dream_admissions: impl IntoIterator<Item = DreamBeginAdmission>,
+) -> Result<VerifiedRelOwnerCopy, String> {
+    let (plan, use_right) = VerifiedOwnerCopyPlan::prepare_prefix_reconciliation(left, right)?;
+    RelSession::open_path(
+        if use_right { left } else { right },
+        graph_admission,
+        [],
+        [],
+    )
+    .map_err(|error| format!("REL prefix owner admission failed: {error}"))?;
+    copy_and_reopen_rel_owner(
+        &plan,
+        if use_right { right } else { left },
+        destination,
+        graph_admission,
+        accepted_episodes,
+        dream_admissions,
+    )
+}
+
+/// Reconcile comparable PHY histories into a new independently admitted copy.
+pub fn reconcile_phy_prefix(
+    left: &Path,
+    right: &Path,
+    destination: &Path,
+    graph_admission: &GraphAdmission,
+    dream_admissions: impl IntoIterator<Item = DreamBeginAdmission>,
+) -> Result<VerifiedPhyOwnerCopy, String> {
+    let (plan, use_right) = VerifiedOwnerCopyPlan::prepare_prefix_reconciliation(left, right)?;
+    PhySession::open_path(if use_right { left } else { right }, graph_admission, [])
+        .map_err(|error| format!("PHY prefix owner admission failed: {error}"))?;
+    copy_and_reopen_phy_owner(
+        &plan,
+        if use_right { right } else { left },
+        destination,
+        graph_admission,
+        dream_admissions,
+    )
+}
+
 /// Create an exact REL copy and independently reopen it with current owner
 /// admission. This returns a verified copy only; it never replaces or removes
 /// the source and performs no promotion.
@@ -129,6 +176,56 @@ mod tests {
         assert_eq!(copied.receipt.source_digest, copied.receipt.copy_digest);
         assert_eq!(fs::read(&source.0).unwrap(), source_before);
         assert_eq!(fs::read(&destination.0).unwrap(), source_before);
+    }
+
+    #[test]
+    fn reconciliation_reopens_prefix_extensions_and_preserves_divergent_owners() {
+        use reliquary_container::ReliquaryScope;
+        use reliquary_owner_session::{PhyWriter, RelWriter};
+
+        for rel in [false, true] {
+            let left = Temp::new("reconcile-left");
+            let right = Temp::new("reconcile-right");
+            let output = Temp::new("reconcile-output");
+            let refused = Temp::new("reconcile-refused");
+            let owner = [83; 16];
+            let graph = GraphAdmission::for_replay(owner, [], [], [], [], []);
+            if rel {
+                RelWriter::create_path(&left.0, ReliquaryScope::Connection, owner).unwrap();
+            } else {
+                PhyWriter::create_path(&left.0, owner).unwrap();
+            }
+            fs::copy(&left.0, &right.0).unwrap();
+            let append = |path: &Path, timestamp| {
+                let mut container = Container::open_writer(path).unwrap();
+                container.reserve_version(Some(timestamp)).unwrap();
+                container.sync().unwrap();
+            };
+            append(&right.0, 20);
+            let reconcile = |destination: &Path| {
+                if rel {
+                    reconcile_rel_prefix(&left.0, &right.0, destination, &graph, [], [])
+                        .map(|verified| verified.receipt)
+                } else {
+                    reconcile_phy_prefix(&left.0, &right.0, destination, &graph, [])
+                        .map(|verified| verified.receipt)
+                }
+            };
+            let right_before = fs::read(&right.0).unwrap();
+            assert_eq!(reconcile(&output.0).unwrap().owner_id, owner);
+            assert_eq!(fs::read(&output.0).unwrap(), right_before);
+
+            append(&left.0, 10);
+            let left_before = fs::read(&left.0).unwrap();
+            assert!(
+                reconcile(&refused.0)
+                    .unwrap_err()
+                    .contains("histories diverge")
+            );
+            assert!(!refused.0.exists());
+            assert_eq!(fs::read(&left.0).unwrap(), left_before);
+            assert_eq!(fs::read(&right.0).unwrap(), right_before);
+        }
     }
 
     #[test]

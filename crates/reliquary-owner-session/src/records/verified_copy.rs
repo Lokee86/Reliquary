@@ -34,6 +34,59 @@ pub struct VerifiedOwnerCopyReceipt {
 }
 
 impl VerifiedOwnerCopyPlan {
+    /// Select a copy source when one owner is an exact physical prefix of the
+    /// other. Divergent histories require semantic reconciliation.
+    pub fn prepare_prefix_reconciliation(
+        left_path: &Path,
+        right_path: &Path,
+    ) -> Result<(Self, bool), String> {
+        let left_plan = Self::prepare(left_path)?;
+        let right_plan = Self::prepare(right_path)?;
+        let left = Container::open_read_only(left_path).map_err(|e| e.to_string())?;
+        let right = Container::open_read_only(right_path).map_err(|e| e.to_string())?;
+        left_plan.verify_source(&left, left_path)?;
+        right_plan.verify_source(&right, right_path)?;
+        if left.identity() != right.identity() || left.owner_id() != right.owner_id() {
+            return Err("reconciliation owners differ".into());
+        }
+        let mut left = left.physical_cursor().map_err(|e| e.to_string())?;
+        let mut right = right.physical_cursor().map_err(|e| e.to_string())?;
+        let mut common_frames = 0u64;
+        loop {
+            match (
+                left.next_frame().map_err(|e| e.to_string())?,
+                right.next_frame().map_err(|e| e.to_string())?,
+            ) {
+                (None, Some(_)) => return Ok((right_plan, true)),
+                (Some(_), None) | (None, None) => return Ok((left_plan, false)),
+                (Some(mut a), Some(mut b)) => {
+                    if a.object() != b.object() {
+                        return Err(format!(
+                            "reconciliation histories diverge after {common_frames} common frames; both owners are retained"
+                        ));
+                    }
+                    let mut remaining = a.object().length;
+                    let mut a_bytes = [0u8; HASH_BUFFER_SIZE];
+                    let mut b_bytes = [0u8; HASH_BUFFER_SIZE];
+                    while remaining != 0 {
+                        let len = remaining.min(HASH_BUFFER_SIZE as u64) as usize;
+                        a.read_exact(&mut a_bytes[..len])
+                            .map_err(|e| e.to_string())?;
+                        b.read_exact(&mut b_bytes[..len])
+                            .map_err(|e| e.to_string())?;
+                        if a_bytes[..len] != b_bytes[..len] {
+                            return Err(format!(
+                                "reconciliation histories diverge after {common_frames} common frames; both owners are retained"
+                            ));
+                        }
+                        remaining -= len as u64;
+                    }
+                    common_frames += 1;
+                }
+            }
+        }
+    }
+
     /// Capture owner identity, physical identity, head, length, and a full-file
     /// digest while holding a shared read lease. An active writer is refused.
     pub fn prepare(source_path: impl AsRef<Path>) -> Result<Self, String> {
@@ -201,6 +254,36 @@ mod tests {
     }
 
     #[test]
+    fn prefix_reconciliation_preserves_sources_and_rejects_divergence() {
+        let left = Temp::new("phy");
+        let right = Temp::new("phy");
+        let out = Temp::new("phy");
+        let mut owner =
+            Container::create(&left.0, ContainerIdentity::phylactery(), [31; 16]).unwrap();
+        owner.append(b"common history").unwrap();
+        owner.sync().unwrap();
+        drop(owner);
+        VerifiedOwnerCopyPlan::prepare(&left.0)
+            .unwrap()
+            .copy_to(&left.0, &right.0)
+            .unwrap();
+        let mut owner = Container::open_writer(&right.0).unwrap();
+        owner.append(b"right continuation").unwrap();
+        owner.sync().unwrap();
+        drop(owner);
+        let (plan, use_right) =
+            VerifiedOwnerCopyPlan::prepare_prefix_reconciliation(&left.0, &right.0).unwrap();
+        assert!(use_right);
+        plan.copy_to(&right.0, &out.0).unwrap();
+        assert_eq!(fs::read(&out.0).unwrap(), fs::read(&right.0).unwrap());
+        let mut owner = Container::open_writer(&left.0).unwrap();
+        owner.append(b"left continuation!").unwrap();
+        owner.sync().unwrap();
+        drop(owner);
+        assert!(VerifiedOwnerCopyPlan::prepare_prefix_reconciliation(&left.0, &right.0).is_err());
+    }
+
+    #[test]
     fn exact_copy_preserves_both_owner_kinds_and_reopens_independently() {
         for identity in [
             ContainerIdentity::reliquary(ReliquaryScope::Project),
@@ -297,6 +380,7 @@ mod tests {
                 .append_start(
                     &mut source,
                     super::super::ImportStart {
+                        format_version: 2,
                         owner_uuid: owner_id,
                         import_id: super::super::import_id(owner_id, &key),
                         import_key: key,

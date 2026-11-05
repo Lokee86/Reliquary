@@ -32,6 +32,7 @@ pub enum MemoryHistoryLookup {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum MemoryHistoryWorkflowError {
     OwnerMismatch,
+    CutBeyondCurrent,
     OwnerRead(String),
 }
 
@@ -39,9 +40,49 @@ impl fmt::Display for MemoryHistoryWorkflowError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::OwnerMismatch => f.write_str("history owner does not match caller authorization"),
+            Self::CutBeyondCurrent => {
+                f.write_str("history cut exceeds the accepted Memory version")
+            }
             Self::OwnerRead(error) => write!(f, "owner history read failed: {error}"),
         }
     }
+}
+
+/// Read revisions visible at an exact owner-local Memory version. The cut is
+/// checked against the immutable session before lookup and cannot expose a
+/// revision published later. Payloads pruned after the cut remain unavailable.
+pub fn read_owner_memory_history_at_cut(
+    owner: &EntityOwnerSession<'_>,
+    authorized_owner_id: [u8; 16],
+    memory_id: MemoryId,
+    memory_version: u64,
+) -> Result<MemoryHistoryLookup, MemoryHistoryWorkflowError> {
+    let owner_id = owner.owner_id();
+    if owner_id != authorized_owner_id {
+        return Err(MemoryHistoryWorkflowError::OwnerMismatch);
+    }
+    if memory_version > owner.memory_version() {
+        return Err(MemoryHistoryWorkflowError::CutBeyondCurrent);
+    }
+    let Some(history) = owner
+        .memory_history_at_cut(memory_id, memory_version)
+        .map_err(|error| MemoryHistoryWorkflowError::OwnerRead(error.to_string()))?
+    else {
+        return Ok(MemoryHistoryLookup::Unavailable {
+            owner_id,
+            memory_id,
+        });
+    };
+    let status = match history.tombstone {
+        Some(tombstone) => MemoryHistoryStatus::Tombstoned(tombstone),
+        None => MemoryHistoryStatus::Available,
+    };
+    Ok(MemoryHistoryLookup::Found(MemoryHistoryRead {
+        owner_id,
+        memory_id,
+        status,
+        history,
+    }))
 }
 
 impl std::error::Error for MemoryHistoryWorkflowError {}
@@ -190,6 +231,25 @@ mod tests {
             live.history.revisions[0].payload,
             PayloadState::Available(_)
         ));
+        assert!(matches!(
+            read_owner_memory_history_at_cut(
+                &EntityOwnerSession::Phy(&owner),
+                owner_id,
+                available,
+                0,
+            )
+            .unwrap(),
+            MemoryHistoryLookup::Unavailable { .. }
+        ));
+        assert!(matches!(
+            read_owner_memory_history_at_cut(
+                &EntityOwnerSession::Phy(&owner),
+                owner_id,
+                available,
+                u64::MAX,
+            ),
+            Err(MemoryHistoryWorkflowError::CutBeyondCurrent)
+        ));
 
         let deleted =
             read_owner_memory_history(&EntityOwnerSession::Phy(&owner), owner_id, tombstoned)
@@ -199,6 +259,18 @@ mod tests {
         };
         assert!(matches!(deleted.status, MemoryHistoryStatus::Tombstoned(_)));
         assert_eq!(deleted.history.revisions.len(), 1);
+        let historical = read_owner_memory_history_at_cut(
+            &EntityOwnerSession::Phy(&owner),
+            owner_id,
+            tombstoned,
+            2,
+        )
+        .unwrap();
+        let MemoryHistoryLookup::Found(historical) = historical else {
+            panic!("expected pre-tombstone history");
+        };
+        assert_eq!(historical.status, MemoryHistoryStatus::Available);
+        assert!(historical.history.tombstone.is_none());
 
         assert_eq!(
             read_owner_memory_history(

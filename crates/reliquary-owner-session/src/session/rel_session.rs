@@ -249,9 +249,6 @@ impl RelSession {
     pub fn rel_turn_count(&self) -> u64 {
         self.archive.rel_turn_count()
     }
-    pub fn memory_version(&self) -> u64 {
-        self.common.memories.memory_version()
-    }
     pub fn accepted_turn_sources(&self) -> Vec<reliquary_archive::AcceptedTurnSource> {
         self.archive.accepted_turn_sources()
     }

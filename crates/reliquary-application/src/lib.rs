@@ -85,7 +85,7 @@ pub use external_source_workflow::{
 };
 pub use history_workflow::{
     MemoryHistoryLookup, MemoryHistoryRead, MemoryHistoryStatus, MemoryHistoryWorkflowError,
-    read_owner_memory_history,
+    read_owner_memory_history, read_owner_memory_history_at_cut,
 };
 pub use ingest_publication::{
     IngestPublicationError, commit_prepared_native_ingest,
@@ -106,7 +106,7 @@ pub use vector_workflow::{
 };
 pub use verified_copy_workflow::{
     VerifiedPhyOwnerCopy, VerifiedRelOwnerCopy, copy_and_reopen_phy_owner,
-    copy_and_reopen_rel_owner,
+    copy_and_reopen_rel_owner, reconcile_phy_prefix, reconcile_rel_prefix,
 };
 
 pub const MAX_INGEST_EVIDENCE_TURNS: usize = 64;

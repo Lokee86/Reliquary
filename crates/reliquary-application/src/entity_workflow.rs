@@ -71,6 +71,24 @@ impl EntityOwnerSession<'_> {
         }
     }
 
+    pub(crate) fn memory_history_at_cut(
+        &self,
+        memory_id: MemoryId,
+        memory_version: u64,
+    ) -> Result<Option<reliquary_owner_session::model::MemoryHistory>, OwnerSessionError> {
+        match self {
+            Self::Rel(session) => session.memory_history_at_cut(memory_id, memory_version),
+            Self::Phy(session) => session.memory_history_at_cut(memory_id, memory_version),
+        }
+    }
+
+    pub(crate) fn memory_version(&self) -> u64 {
+        match self {
+            Self::Rel(session) => session.memory_version(),
+            Self::Phy(session) => session.memory_version(),
+        }
+    }
+
     pub(crate) fn dream_duplicate_context(
         &self,
         seeds: &[MemoryId],

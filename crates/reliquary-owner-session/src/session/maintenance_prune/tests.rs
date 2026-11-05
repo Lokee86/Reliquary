@@ -111,6 +111,11 @@ fn terminal_memory_prune_removes_payload_reopens_and_rejects_live_or_tampered_hi
             .windows(private.len())
             .any(|part| part == private.as_bytes())
     );
+    assert!(matches!(
+        PhyWriter::open_path(&output.0, &grant, []),
+        Err(OwnerSessionError::Record(message))
+            if message == "transformed maintenance snapshots are read-only"
+    ));
     let session = PhySession::open_path(&output.0, &grant, []).unwrap();
     let removed = session.memory_history(tombstoned).unwrap().unwrap();
     assert!(removed.tombstone.is_some());

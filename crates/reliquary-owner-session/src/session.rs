@@ -321,6 +321,9 @@ macro_rules! common_reads {
                 let ids = self.$field.memories.memory_ids_page(after, limit);
                 Ok((self.$field.memories.memory_version(), ids))
             }
+            pub fn memory_version(&self) -> u64 {
+                self.$field.memories.memory_version()
+            }
             pub fn current_memory(&self,id:MemoryId)->Result<MemoryRevision,OwnerSessionError>{Ok(self.$field.memories.current(id)?)}
             pub fn dream_candidate_pool(&self,source:MemoryId,profile:CompatibilityProfileId,row:&[f32])->Result<DreamCandidatePool,OwnerSessionError>{
                 if self.$field.dream_read_index.version!=self.$field.memories.memory_version(){return Err(OwnerSessionError::StaleDreamCut);}
@@ -337,6 +340,36 @@ macro_rules! common_reads {
                     Err(MemoryError::MissingMemory) => Ok(None),
                     Err(e) => Err(e.into()),
                 }
+            }
+            /// Return one Memory's retained revisions visible at its owner-local
+            /// publication cut. Payload availability remains the store's current
+            /// retained-body fact; a later prune does not recreate old bytes.
+            pub fn memory_history_at_cut(
+                &self,
+                id: MemoryId,
+                memory_version: u64,
+            ) -> Result<Option<MemoryHistory>, OwnerSessionError> {
+                if memory_version > self.$field.memories.memory_version() {
+                    return Err(OwnerSessionError::Record(
+                        "Memory history cut exceeds the accepted owner version".into(),
+                    ));
+                }
+                let Some(mut history) = self.memory_history(id)? else {
+                    return Ok(None);
+                };
+                history
+                    .revisions
+                    .retain(|revision| revision.record.memory_version <= memory_version);
+                if history.revisions.is_empty() {
+                    return Ok(None);
+                }
+                if history
+                    .tombstone
+                    .is_some_and(|tombstone| tombstone.memory_version > memory_version)
+                {
+                    history.tombstone = None;
+                }
+                Ok(Some(history))
             }
             pub fn entity(&self, id: EntityId) -> Option<&Entity> {
                 self.$field.perception.entity(id)
