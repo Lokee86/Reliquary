@@ -143,20 +143,6 @@ impl EntityOwnerSession<'_> {
             Self::Phy(session) => session.active_compatibility_profile(id).cloned(),
         }
     }
-
-    fn entities(&self) -> Vec<Entity> {
-        match self {
-            Self::Rel(session) => session.entities(),
-            Self::Phy(session) => session.entities(),
-        }
-    }
-
-    fn mention(&self, key: MemoryEntityMentionKey) -> Option<MemoryEntityResolution> {
-        match self {
-            Self::Rel(session) => session.mention(key).cloned(),
-            Self::Phy(session) => session.mention(key).cloned(),
-        }
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -376,9 +362,9 @@ pub fn prepare_memory_mention(
     if owner_id != input.owner_id {
         return Err(EntityWorkflowError::OwnerMismatch);
     }
-    prepare_mention_with(input, |key| {
-        let revision = owner.current_memory(MemoryId(key.memory_id))?;
-        Ok((revision, owner.entities(), owner.mention(key)))
+    prepare_mention_with(input, |key| match owner {
+        EntityOwnerSession::Rel(session) => session.entity_mention_inputs(key),
+        EntityOwnerSession::Phy(session) => session.entity_mention_inputs(key),
     })
 }
 
@@ -396,14 +382,7 @@ fn prepare_mention_with(
     input: EntityMemoryMention,
     read: impl FnOnce(
         MemoryEntityMentionKey,
-    ) -> Result<
-        (
-            reliquary_owner_session::model::MemoryRevision,
-            Vec<Entity>,
-            Option<MemoryEntityResolution>,
-        ),
-        OwnerSessionError,
-    >,
+    ) -> Result<reliquary_owner_session::EntityMentionInputs, OwnerSessionError>,
 ) -> Result<PreparedEntityMention, EntityWorkflowError> {
     use reliquary_owner_session::model::MemoryError;
     let mention = MentionSpan {
@@ -413,7 +392,13 @@ fn prepare_mention_with(
         text: input.text,
     };
     let key = mention_key(input.memory_id, &mention)?;
-    let (revision, entities, existing_resolution) = read(key).map_err(|error| match error {
+    let reliquary_owner_session::EntityMentionInputs {
+        revision,
+        entities,
+        existing: existing_resolution,
+        source_entities,
+        supporting_memories,
+    } = read(key).map_err(|error| match error {
         OwnerSessionError::Memory(MemoryError::MissingMemory) => {
             EntityWorkflowError::MemoryUnavailable
         }
@@ -426,7 +411,15 @@ fn prepare_mention_with(
         return Err(EntityWorkflowError::MemoryBodyUnavailable);
     };
     validate_span(&body, &mention)?;
-    let candidates = build_candidates(&entities, &mention)?;
+    let mut candidates = build_candidates(&entities, &mention)?;
+    merge_owner_evidence(
+        &mut candidates,
+        &entities,
+        &body,
+        &mention,
+        &source_entities,
+        &supporting_memories,
+    );
     Ok(PreparedEntityMention {
         owner_id: input.owner_id,
         memory_id: input.memory_id,
@@ -512,6 +505,87 @@ fn build_candidates(
         return Err(EntityWorkflowError::CandidateLimit);
     }
     Ok(candidates)
+}
+
+fn merge_owner_evidence(
+    candidates: &mut Vec<EntityCandidate>,
+    entities: &[Entity],
+    body: &MemoryBody,
+    mention: &MentionSpan,
+    source_entities: &[EntityId],
+    support: &[reliquary_owner_session::EntityCandidateMemory],
+) {
+    const LEXICAL_HIT_LIMIT: usize = 16;
+    const SUPPORT_LIMIT: usize = 8;
+
+    let mut terms = reliquary_retrieval::lexical_terms(&format!(
+        "{} {} {}",
+        mention.text, body.title, body.content
+    ));
+    terms.truncate(32);
+    let mut lexical_hits: Vec<_> = support
+        .iter()
+        .filter_map(|memory| {
+            let score = reliquary_retrieval::lexical_score(memory.lexical_text.as_deref()?, &terms);
+            (score > 0.0).then_some((memory.id, score))
+        })
+        .collect();
+    lexical_hits.sort_by(|(a_id, a), (b_id, b)| b.total_cmp(a).then_with(|| a_id.cmp(b_id)));
+    lexical_hits.truncate(LEXICAL_HIT_LIMIT);
+
+    let mut by_id: std::collections::BTreeMap<_, _> = candidates
+        .drain(..)
+        .map(|candidate| (candidate.entity.id, candidate))
+        .collect();
+    let entities: std::collections::BTreeMap<_, _> = entities
+        .iter()
+        .filter(|entity| entity.kind != "principal")
+        .map(|entity| (entity.id, entity))
+        .collect();
+    let mut apply = |id, source, graph, lexical: Option<f64>, memory: Option<MemoryId>| {
+        let Some(entity) = entities.get(&id) else {
+            return;
+        };
+        let candidate = by_id.entry(id).or_insert_with(|| EntityCandidate {
+            entity: (*entity).clone(),
+            exact_surface: false,
+            normalized_surface: false,
+            alias_surface: false,
+            source_association: false,
+            lexical_memory_hits: 0,
+            graph_neighbor_hits: 0,
+            best_lexical_score: 0.0,
+            supporting_memory_ids: vec![],
+        });
+        candidate.source_association |= source;
+        candidate.graph_neighbor_hits += usize::from(graph);
+        if let Some(score) = lexical {
+            candidate.lexical_memory_hits += 1;
+            candidate.best_lexical_score = candidate.best_lexical_score.max(score);
+        }
+        if let Some(memory) = memory
+            && candidate.supporting_memory_ids.len() < SUPPORT_LIMIT
+            && !candidate.supporting_memory_ids.contains(&memory)
+        {
+            candidate.supporting_memory_ids.push(memory);
+        }
+    };
+    for id in source_entities {
+        apply(*id, true, false, None, None);
+    }
+    for memory in support {
+        let lexical = lexical_hits
+            .iter()
+            .find_map(|(id, score)| (*id == memory.id).then_some(*score));
+        if lexical.is_some() || memory.graph_neighbor {
+            for id in &memory.entities {
+                apply(*id, false, memory.graph_neighbor, lexical, Some(memory.id));
+            }
+        }
+    }
+    candidates.extend(by_id.into_values());
+    rank_candidates(candidates);
+    candidates.truncate(MAX_MENTION_CANDIDATES);
 }
 
 fn normalize(value: &str) -> String {
@@ -793,6 +867,139 @@ mod tests {
         let admission = GraphAdmission::for_replay(owner_id, [], [], [], [], []);
         let session = PhySession::open_path(&path.0, &admission, []).unwrap();
         (path, session, memory, second_memory, entity)
+    }
+
+    struct AmbiguousEndpoint;
+    impl GeneralEndpoint for AmbiguousEndpoint {
+        fn model(&self) -> &str {
+            "entity-ambiguity-fixture"
+        }
+        fn complete_json(
+            &self,
+            _prompt: &str,
+            _payload: &str,
+            schema: &str,
+            _shape: &Value,
+        ) -> Result<Value, GeneralEndpointError> {
+            assert_eq!(schema, "entity_resolution");
+            Ok(json!({
+                "decision":"unresolved", "reason":"ambiguous", "target_candidate_index":-1,
+                "identity_relation":"uncertain", "mention_kind":"tool"
+            }))
+        }
+    }
+
+    #[test]
+    fn source_lexical_and_graph_lanes_reuse_only_owner_associations() {
+        use reliquary_graph::{GraphStore, RelationChange, RelationOrigin};
+        let owner_id = [92; 16];
+        let (path, session, source, neighbor, entity) = phy_session(
+            owner_id,
+            "Use Atlas for migration.",
+            "Northstar",
+            "Owner-local tool",
+        );
+        let alternate = session
+            .entities()
+            .into_iter()
+            .find(|item| item.id != entity)
+            .unwrap()
+            .id;
+        drop(session);
+        let mut container =
+            Container::open_writer_as(&path.0, reliquary_container::FileKind::Phylactery).unwrap();
+        let changes = GraphAdmission::for_changes(
+            owner_id,
+            [source.0, neighbor.0],
+            [(entity.0, false), (alternate.0, false)],
+        );
+        let mut graph = GraphStore::open(&container, &changes).unwrap();
+        graph
+            .put(
+                &mut container,
+                &changes,
+                &[
+                    RelationChange {
+                        source: NodeRef::Memory(source.0),
+                        target: NodeRef::Entity(alternate.0),
+                        kind: RelationKind::EntityAssociation,
+                        active: true,
+                        origin: RelationOrigin::Perception,
+                    },
+                    RelationChange {
+                        source: NodeRef::Memory(source.0),
+                        target: NodeRef::Entity(entity.0),
+                        kind: RelationKind::EntityAssociation,
+                        active: true,
+                        origin: RelationOrigin::Perception,
+                    },
+                    RelationChange {
+                        source: NodeRef::Memory(neighbor.0),
+                        target: NodeRef::Entity(entity.0),
+                        kind: RelationKind::EntityAssociation,
+                        active: true,
+                        origin: RelationOrigin::Perception,
+                    },
+                    RelationChange {
+                        source: NodeRef::Memory(neighbor.0),
+                        target: NodeRef::Memory(source.0),
+                        kind: RelationKind::Topical,
+                        active: true,
+                        origin: RelationOrigin::Dream,
+                    },
+                ],
+            )
+            .unwrap();
+        container.sync().unwrap();
+        drop(graph);
+        drop(container);
+        let replay = GraphAdmission::for_replay(owner_id, [], [], [], [], []);
+        let session = PhySession::open_path(&path.0, &replay, []).unwrap();
+        let input = EntityMemoryMention {
+            owner_id,
+            memory_id: source,
+            field: TextField::Content,
+            start_byte: 4,
+            end_byte: 9,
+            text: "Atlas".into(),
+        };
+        let prepared =
+            prepare_memory_mention(EntityOwnerSession::Phy(&session), input.clone()).unwrap();
+        assert_eq!(prepared.candidates.len(), 2);
+        let candidate = &prepared.candidates[0];
+        assert_eq!(candidate.entity.id, entity);
+        assert!(!candidate.exact_surface);
+        assert!(candidate.source_association);
+        assert_eq!(candidate.lexical_memory_hits, 1);
+        assert_eq!(candidate.graph_neighbor_hits, 1);
+        assert_eq!(candidate.supporting_memory_ids, vec![neighbor]);
+        drop(session);
+        let mut writer =
+            reliquary_owner_session::PhyWriter::open_path(&path.0, &replay, []).unwrap();
+        assert_eq!(
+            prepare_phy_writer_mention(&writer, input)
+                .unwrap()
+                .candidates,
+            prepared.candidates
+        );
+        let command = prepared
+            .evaluate_with_endpoint(AmbiguousEndpoint)
+            .unwrap()
+            .into_mention_commit(10)
+            .unwrap();
+        let receipt = writer.commit_entity_mention(command.clone()).unwrap();
+        assert_eq!(writer.commit_entity_mention(command).unwrap(), receipt);
+        drop(writer);
+        let session = PhySession::open_path(&path.0, &replay, []).unwrap();
+        let mut expected = vec![entity, alternate];
+        expected.sort_unstable();
+        assert_eq!(
+            receipt.status,
+            reliquary_owner_session::model::MemoryEntityResolutionStatus::Ambiguous {
+                candidates: expected
+            }
+        );
+        assert_eq!(session.mention(receipt.key), Some(&receipt));
     }
 
     #[test]

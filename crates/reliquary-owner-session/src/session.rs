@@ -509,3 +509,6 @@ mod dream_prefix_effect;
 
 mod entity_mention;
 pub use entity_mention::EntityMentionCommit;
+
+mod entity_mention_inputs;
+pub use entity_mention_inputs::{EntityCandidateMemory, EntityMentionInputs};

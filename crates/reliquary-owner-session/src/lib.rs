@@ -24,3 +24,5 @@ pub use session::{
 };
 
 pub use session::EntityMentionCommit;
+
+pub use session::{EntityCandidateMemory, EntityMentionInputs};

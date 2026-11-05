@@ -219,20 +219,6 @@ impl RelWriter {
 }
 
 impl PhyWriter {
-    /// Owner-local inputs for one mention. The caller releases the writer
-    /// lock before evaluating the snapshot.
-    pub fn entity_mention_inputs(
-        &self,
-        key: MemoryEntityMentionKey,
-    ) -> Result<(MemoryRevision, Vec<Entity>, Option<MemoryEntityResolution>), OwnerSessionError>
-    {
-        Ok((
-            self.common.memories.current(MemoryId(key.memory_id))?,
-            self.common.perception.entities().cloned().collect(),
-            self.common.perception.mention(key).cloned(),
-        ))
-    }
-
     pub fn commit_entity_mention(
         &mut self,
         request: EntityMentionCommit,

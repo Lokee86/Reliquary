@@ -66,3 +66,16 @@ S04 meets its evaluator criteria. S01 and C05 are accepted. Fixtures verify exac
 For V03, Application now invokes the separate admission pass outside the owner lock. Owner-session rechecks the Memory and mention revisions, rejects a matching Entity that appeared during inference, and syncs the admitted Entity before linking the mention. The Entity's source-bound mutation ID allows an exact retry to resume from the first synced record. The PHY fixture simulates that interruption, proves the retry uses revision one of the existing Entity, and reopens the final mention receipt. The generic creation path conservatively refuses competing names or aliases.
 
 The locked offline workspace passed 447 tests across 47 suites with local loopback for mock HTTP servers. Compilation, formatting, whitespace, and the architecture check passed. The approved graph remains 23 packages and 76 edges. V03 still needs owner-derived source, lexical, and Graph candidate evidence and the corresponding end-to-end acceptance proof.
+
+## V03 acceptance matrix
+
+| Criterion | Executable evidence |
+| --- | --- |
+| Owner-derived candidate selection | The lane fixture combines a source association, indexed lexical evidence, and an incoming Graph neighbor. It ranks a candidate whose name differs from the surface and retains the exact supporting Memory ID. Reader and writer snapshots agree after reopen. |
+| Ambiguous and unknown outcomes | The lane fixture durably records an ambiguous candidate set and checks exact retry and reopen. The REL fixture reopens the latest unresolved result and its prior revision. S04 tests cover unsupported and incompatible model judgments. |
+| Exact Memory provenance and privacy | Exact UTF-8 span tests and owner publication body/revision rechecks guard the source. PHY fixtures exclude foreign bodies and candidates and reject foreign owner IDs and stale target revisions at publication. Generic resolution excludes principal Entities. |
+| Durable publication and recovery | REL and PHY history reopen, accepted retries reuse receipts, and a PHY interruption between Entity creation and mention linking resumes with the original Entity revision. |
+
+REL and PHY share the owner-local evidence reader. It uses the existing rebuildable Memory postings to select lexical support, then Application scores the retained text with Retrieval's lexical scorer. Candidate evidence stays within the mounted owner. The lookup caps token postings, Memory hydration, lexical bytes, selected one-hop neighbors, and supporting IDs. Discovery uses a bounded set of postings, so the result is a ranked subset of owner history. Graph adjacency and Entity names remain owner-local reads.
+
+V01 and S04 are accepted prerequisites. The locked offline workspace passed 448 tests across 47 suites with local loopback for mock HTTP servers. Workspace compilation, locked metadata, formatting, whitespace, and the 23-package, 76-edge architecture guard passed. V03 is accepted.

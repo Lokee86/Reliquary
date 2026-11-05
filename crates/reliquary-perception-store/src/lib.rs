@@ -455,6 +455,22 @@ impl PerceptionStore {
     pub fn entities(&self) -> impl Iterator<Item = &Entity> {
         self.entities.values()
     }
+    pub fn mentions_for_memory(
+        &self,
+        memory_id: [u8; 32],
+    ) -> impl Iterator<Item = &MemoryEntityResolution> {
+        let start = MemoryEntityMentionKey {
+            memory_id,
+            field: MemoryTextField::Title,
+            start_byte: 0,
+            end_byte: 0,
+        };
+        self.mentions
+            .range(start..)
+            .take_while(move |(key, _)| key.memory_id == memory_id)
+            .map(|(_, value)| value)
+    }
+
     pub fn mentions(&self) -> impl Iterator<Item = &MemoryEntityResolution> {
         self.mentions.values()
     }
