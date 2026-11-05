@@ -139,7 +139,7 @@ impl VerifiedOwnerCopyPlan {
         result
     }
 
-    fn verify_source(&self, source: &Container, path: &Path) -> Result<(), String> {
+    pub(crate) fn verify_source(&self, source: &Container, path: &Path) -> Result<(), String> {
         let (digest, len) = digest_file(path).map_err(|error| error.to_string())?;
         if source.owner_id() != self.source_owner_id
             || source.identity() != self.source_identity

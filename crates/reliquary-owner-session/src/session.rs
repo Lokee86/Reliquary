@@ -494,7 +494,10 @@ pub(crate) mod dream_prefix;
 mod external_memory;
 mod external_reference;
 mod freshness_use;
+mod maintenance_prune;
+mod maintenance_prune_proof;
 mod native_import;
+pub use maintenance_prune::{PrunedOwnerCopyReport, prune_terminal_memory_copy};
 mod vector_publication;
 pub use archive_vector_publication::{
     ArchiveVectorInput, ArchiveVectorRow, MAX_ARCHIVE_VECTOR_BATCH_ROWS,

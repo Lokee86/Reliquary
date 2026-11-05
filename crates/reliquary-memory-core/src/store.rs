@@ -447,6 +447,15 @@ impl MemoryStore {
     pub fn references_body(&self, body_id: MemoryBodyId) -> bool {
         self.state.body_memories.contains_key(&body_id)
     }
+    /// Bodies named by accepted history without a local payload.
+    /// Transformed-copy admission uses these identities to validate pruning evidence.
+    pub fn unbacked_body_ids(&self) -> impl Iterator<Item = MemoryBodyId> + '_ {
+        self.state
+            .body_memories
+            .keys()
+            .filter(|id| !self.state.bodies.contains_key(id))
+            .copied()
+    }
     pub fn memory_ids_for_body(
         &self,
         body_id: MemoryBodyId,
