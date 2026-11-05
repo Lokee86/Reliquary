@@ -519,14 +519,79 @@
       "status": "not-started"
     },
     {
+      "id": "M01",
+      "phase": "parity",
+      "title": "Restore REL/PHY fresh-history rewriting",
+      "depends_on": [
+        "G3"
+      ],
+      "deliverable": "Policy/dry-run planner plus independently reopened 2.1 fresh-history executor for NewOwner and PreserveOwner generations",
+      "acceptance": "Selected Memory/provenance closure, REL Archive, PHY Ego, profile/Freshness/derived-state policy, stable retained IDs, preserved generation lineage, fresh output verification, source immutability and negative cases match supported reference behavior; no inference or 2.0 runtime reader",
+      "status": "not-started",
+      "breakdown": "docs/architecture/maintenance-history-parity-phase-2026-11-05.md"
+    },
+    {
+      "id": "M02",
+      "phase": "parity",
+      "title": "Restore multi-domain pruning, repair and reclamation",
+      "depends_on": [
+        "G3"
+      ],
+      "deliverable": "Verified-copy terminal Archive/Memory/Entity/Relationship/profile pruning plus proven unreachable-space reclamation and owner-level profile repair",
+      "acceptance": "REL/PHY retention evidence, source/active-reference closure, typed prune markers, offset relocation, clock/history parity, independently reopened candidate and failure-safe rollback; unsupported domains fail closed",
+      "status": "not-started",
+      "breakdown": "docs/architecture/maintenance-history-parity-phase-2026-11-05.md"
+    },
+    {
+      "id": "M03",
+      "phase": "parity",
+      "title": "Restore supported divergent REL semantic reconciliation",
+      "depends_on": [
+        "M01",
+        "M02"
+      ],
+      "deliverable": "Same-owner REL compare/prefix/divergent semantic replay with typed conflicts and independently verified output",
+      "acceptance": "Nonconflicting divergent owner records merge exactly once without lost provenance or Freshness credit; generation, imports, Entity/Ego and unsupported-state conflicts reject without mutation; both source files survive every failure",
+      "status": "not-started",
+      "breakdown": "docs/architecture/maintenance-history-parity-phase-2026-11-05.md"
+    },
+    {
+      "id": "M04",
+      "phase": "parity",
+      "title": "Close historical read and proof parity gaps",
+      "depends_on": [
+        "M03"
+      ],
+      "deliverable": "Evidence-based 2.1 supported historical REL/PHY cuts, owner projections and preserved-history verification after rewrite/prune/reconcile",
+      "acceptance": "Supported Archive, Memory, Entity/Relationship, Graph, Ego, Freshness and vector historical observations agree semantically with reference or have an explicit supported-format distinction; unavailable/unauthorized/corrupt cuts fail closed",
+      "status": "not-started",
+      "breakdown": "docs/architecture/maintenance-history-parity-phase-2026-11-05.md"
+    },
+    {
+      "id": "GM",
+      "phase": "gate",
+      "title": "Accept maintenance, history and reconciliation parity",
+      "depends_on": [
+        "M01",
+        "M02",
+        "M03",
+        "M04"
+      ],
+      "deliverable": "Reference-to-rebuild behavioral parity matrix, independently reopened REL/PHY transformed outputs, failure-safety and regression evidence",
+      "acceptance": "M01\u2013M04 accepted; supported rewrite, terminal multi-domain prune, reclamation, divergent REL and historical cases proven with source immutability, provenance/privacy and stable IDs; locked workspace tests, formatting and approved dependency graph pass; no uncovered required behavior silently deferred",
+      "status": "not-started",
+      "breakdown": "docs/architecture/maintenance-history-parity-phase-2026-11-05.md"
+    },
+    {
       "id": "P01",
       "phase": "product",
       "title": "Expose final Rel/Phylactery API and consumer CLI",
       "depends_on": [
-        "G3"
+        "G3",
+        "GM"
       ],
       "deliverable": "Thin public package, REL-only CLI and trusted host integration",
-      "acceptance": "Only needed public operations; no Cva aliases, empty forwarding crates, original Root dependency or external consumer contract break without approval",
+      "acceptance": "Only needed public operations; no Cva aliases, empty forwarding crates, original Root dependency or external consumer contract break without approval; expose GM-accepted rewrite/prune/reclaim/reconcile/history contracts via supported Rel/PHY API and CLI without dropping existing behavior",
       "status": "not-started"
     },
     {
@@ -534,7 +599,8 @@
       "phase": "gate",
       "title": "Accept complete rebuilt product on generated 2.1 corpus",
       "depends_on": [
-        "P01"
+        "P01",
+        "GM"
       ],
       "deliverable": "Whole new product baseline",
       "acceptance": "Locked Rust/CLI checks, supported scenarios and target Cargo DAG pass; no 2.0 runtime reader",

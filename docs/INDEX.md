@@ -10,6 +10,8 @@
 
 - [Supported behavior inventory](supported-behavior-inventory.md) — selected rebuild behavior and evidence.
 
+- [Post-G3 Maintenance, History and Reconciliation Parity phase](architecture/maintenance-history-parity-phase-2026-11-05.md) — M01–M04 and mandatory GM acceptance before P01/G4.
+
 - [Current system implementation inventory (2026-11-03)](current-system-inventory-2026-11-03.md) — live crate/dependency map, durable ownership, processing paths, Root coupling, capability status, and redesign inputs.
 
 - [Context Engine extraction evidence](context-engine-crate-extraction-evidence-2026-10-28.md) — ownership move and verification.

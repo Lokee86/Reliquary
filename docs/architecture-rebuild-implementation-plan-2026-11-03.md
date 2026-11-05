@@ -21,7 +21,7 @@ The work is an **independent clean implementation of the agreed target architect
 
 ## 1. Select behavior before selecting code
 
-The [capability plan](architecture/implementation-rebuild-capabilities-2026-11-03.json) records **44 capability increments and gates**. These are not 44 mandatory source transfers or claims that a subsystem can be implemented in one small code edit. As each increment becomes ready, inspect its **target interface and observable tests** and break it into just the few implementation slices actually necessary. Do not pre-generate one ticket per reference function or a speculative hundreds-step file map.
+The [capability plan](architecture/implementation-rebuild-capabilities-2026-11-03.json) records **49 capability increments and gates**. These are not 49 mandatory source transfers or claims that a subsystem can be implemented in one small code edit. As each increment becomes ready, inspect its **target interface and observable tests** and break it into just the few implementation slices actually necessary. Do not pre-generate one ticket per reference function or a speculative hundreds-step file map.
 
 For every prospective behavior, make one of four decisions:
 
@@ -48,11 +48,12 @@ The JSON lists each outcome, prerequisites and acceptance. Implementation procee
 | **Semantic capabilities** | Switchboard/Chronos; Insomnia; Dream; Entity Resolution; Freshness; Retrieval/agentic; Vectors/Context; Project Environment | Pure/evaluator tests from frozen behavior; bounded inputs, typed effects and no owner-store mutation by service |
 | **Product verticals** | Native turn→Memory; Dream Memory-Web; Entity resolution; retrieval→host accepted-use; vectors/context; history/import/maintenance; external reference sources | Whole workflow tests for provenance, idempotence, source authorization, privacy and negative/crash cases |
 | **Gateway** | One mounted owner runtime, authenticated Instances, conversation queue, host reconciliation, streams, workers and restart | Owner/branch concurrency, cancellation, withheld ambiguous outcomes, checkpoint-before-visibility and grant revocation tests |
+| **Post-G3 maintenance parity** | Restore supported fresh-history rewriting, multi-domain pruning/reclamation/repair, divergent REL semantic reconciliation and historical reads before exposing final public interfaces | [M01–M04 / GM specification](architecture/maintenance-history-parity-phase-2026-11-05.md): independently verified REL/PHY behavior, typed failure paths and reference-based parity before P01 |
 | **Public product** | Thin canonical `Rel`/PHY API, REL-only CLI, supported host integration | Consumer conformance, no old `Cva` surface, no Root mutable implementation |
 | **Existing data conversion** | Offline verified 2.0→2.1 files only after complete rebuilt product tests | Source/corpus proof, exact IDs/history/clocks, offset relocation, independent reopen and safe activation |
 | **Final acceptance** | Complete tested replacement | Actual Cargo DAG, no obsolete paths, measured performance/host/privacy parity and retained rollback reference |
 
-**Integration gates** in the plan are storage, semantic/application, Gateway, complete synthetic-2.1 product, and converted-real-data cutover. Gate failure is a defect in **the new worktree**; the reference stays usable. Individual modules are allowed to be under construction, but no gate is reported green because a placeholder compiles.
+**Integration gates** in the plan are storage, semantic/application, Gateway, **mandatory post-G3 maintenance/history parity (GM)**, complete synthetic-2.1 product, and converted-real-data cutover. Gate failure is a defect in **the new worktree**; the reference stays usable. Individual modules are allowed to be under construction, but no gate is reported green because a placeholder compiles.
 
 ## 3. How to implement one capability without importing the old architecture
 
