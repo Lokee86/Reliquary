@@ -207,3 +207,38 @@ fn import_restarts_then_finishes_scoped_work_and_settlement_once() {
         (accepted, false)
     );
 }
+
+#[test]
+fn import_rejects_episode_evidence_outside_its_source_receipt() {
+    let path = Temp::new();
+    let owner = [0x63; 16];
+    let mut input = batch(owner);
+    let mut writer = RelWriter::create_path(&path.0, ReliquaryScope::Project, owner).unwrap();
+
+    let (mut prior_turn, mut prior_branch) = input.turns[0].clone();
+    prior_turn.id = "prior-turn".into();
+    prior_branch.leaf_node_id = prior_turn.id.clone();
+    writer
+        .accept_turn_and_advance_branch(prior_turn, prior_branch)
+        .unwrap();
+
+    input.turns[0].0.parent_id = Some("prior-turn".into());
+    input.episodes[0].start_node_id = "prior-turn".into();
+    let staged = stage_native_import(&mut writer, input).unwrap();
+    let before = fs::metadata(&path.0).unwrap().len();
+    let error = writer
+        .claim_native_import_episode(&staged.import_id, staged.episodes[0], "worker", 20, 100)
+        .unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("path escapes its receipt source set")
+    );
+    let error = settle_native_import(&mut writer, &staged.import_id).unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("path escapes its receipt source set")
+    );
+    assert_eq!(fs::metadata(&path.0).unwrap().len(), before);
+}

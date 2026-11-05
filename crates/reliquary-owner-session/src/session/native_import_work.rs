@@ -1,6 +1,7 @@
 //! Imported Episode claim and scoped publication.
 use super::*;
 use reliquary_archive::EpisodeOrigin;
+use std::collections::BTreeSet;
 
 impl RelWriter {
     /// Claim a specific source-mapped import Episode while ordinary work
@@ -101,19 +102,38 @@ impl RelWriter {
             .ok_or(OwnerSessionError::Insomnia(
                 InsomniaError::UnacceptedEpisode,
             ))?;
-        if !turns.iter().any(|turn| {
-            receipt.conversations.iter().any(|conversation| {
-                conversation.conversation_id == episode.conversation_id
-                    && conversation
-                        .messages
-                        .iter()
-                        .any(|message| message.node_id.as_deref() == Some(turn.node_id.as_str()))
-            })
-        }) {
+        let mapped = mapped_source_nodes(receipt);
+        if !source_path_is_mapped(&mapped, &episode.conversation_id, &turns) {
             return Err(OwnerSessionError::Record(
-                "import Episode is not in the epoch source receipt".into(),
+                "import Episode path escapes its receipt source set".into(),
             ));
         }
         Ok(())
     }
+}
+
+pub(super) fn mapped_source_nodes(receipt: &crate::model::ImportReceipt) -> BTreeSet<(&str, &str)> {
+    receipt
+        .conversations
+        .iter()
+        .flat_map(|conversation| {
+            conversation.messages.iter().filter_map(|message| {
+                Some((
+                    conversation.conversation_id.as_str(),
+                    message.node_id.as_deref()?,
+                ))
+            })
+        })
+        .collect()
+}
+
+pub(super) fn source_path_is_mapped(
+    mapped: &BTreeSet<(&str, &str)>,
+    conversation: &str,
+    turns: &[reliquary_archive::ResolvedTurn],
+) -> bool {
+    !turns.is_empty()
+        && turns
+            .iter()
+            .all(|turn| mapped.contains(&(conversation, turn.node_id.as_str())))
 }

@@ -1,5 +1,6 @@
 //! Terminal import admission, with owner-derived Freshness evidence.
 
+use super::work::{mapped_source_nodes, source_path_is_mapped};
 use super::*;
 use crate::records::import_settlement::source_prefix_digest;
 use crate::records::{
@@ -197,14 +198,7 @@ impl RelWriter {
         &self,
         receipt: &crate::model::ImportReceipt,
     ) -> Result<(), OwnerSessionError> {
-        let mut mapped = BTreeSet::new();
-        for conversation in &receipt.conversations {
-            for message in &conversation.messages {
-                if let Some(node) = &message.node_id {
-                    mapped.insert((conversation.conversation_id.as_str(), node.as_str()));
-                }
-            }
-        }
+        let mapped = mapped_source_nodes(receipt);
         let mut covered = BTreeSet::new();
         for episode in self.session.archive.episodes() {
             if episode.origin != EpisodeOrigin::Import {
@@ -222,6 +216,11 @@ impl RelWriter {
             });
             if !covered_by_receipt {
                 continue;
+            }
+            if !source_path_is_mapped(&mapped, &episode.conversation_id, &turns) {
+                return Err(OwnerSessionError::Record(
+                    "import Episode path escapes its receipt source set".into(),
+                ));
             }
             let work_id = WorkEpisodeId(episode.id.0);
             let work = self.session.insomnia.work(work_id).ok_or_else(|| {
