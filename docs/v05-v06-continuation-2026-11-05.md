@@ -30,3 +30,11 @@ Owner-cut Memory reads reject future versions and distinguish a missing Memory, 
 Terminal Memory pruning uses the current retention manifest to verify retained frames and tombstones. Canonical REL and PHY writers refuse transformed snapshots because the current admission proof requires the manifest to end the file. Broader domain pruning, policy-driven rewrite and mutable replacement with recovery remain open. A mutable promotion needs an append-safe proof that continues to validate the pre-transform cut and prevents later publications from referencing unavailable payloads. V06 remains in progress and G2 remains gated.
 
 The locked offline workspace suite passed with Windows hard-link and local HTTP fixture access enabled. Formatting, whitespace and the 23-package, 76-edge architecture guard passed.
+
+## V06 verified snapshot publication checkpoint
+
+Terminal Memory pruning now covers shared bodies when every referring Memory is explicitly selected and terminal. The unchanged retention manifest identifies each removed body once, while the retained frame digest binds all referring histories. Independent admission checks that the referring histories are terminal, the body has no vector references, and the retained prefix uses supported frame families. Canonical REL initialization records are supported alongside PHY initialization records.
+
+Pruning streams frames into a sibling staging directory, syncs the transformed file and independently reopens it through owner admission. Publication creates the destination name atomically on a filesystem that supports hard links. An existing destination blocks publication and the original remains in place. A process interruption before publication can leave a staging directory. The published snapshot remains read-only. This does not implement replacement of an active owner, broader non-Memory pruning, policy-driven history rewrite, or semantic merge of divergent histories. V06 and G2 remain open.
+
+Verification passed for 504 locked offline workspace tests, including REL and PHY shared-body pruning, independent reopen, and destination-collision preservation. Formatting and the 23-package, 76-edge architecture guard passed.

@@ -146,54 +146,74 @@ fn terminal_memory_prune_removes_payload_reopens_and_rejects_live_or_tampered_hi
         prune_terminal_memory_copy(&plan, &source.0, &output.0, &[tombstoned], &grant).is_err()
     );
     assert_eq!(fs::read(&output.0).unwrap(), transformed);
+    assert_eq!(fs::read(&source.0).unwrap(), snapshot);
 }
 
 #[test]
-fn unsafe_shared_memory_body_and_unknown_frame_fail_without_creating_destination() {
-    let source = Temp::new();
-    let target = Temp::new();
-    let owner = [0xa2; 16];
-    let mut container =
-        Container::create(&source.0, ContainerIdentity::phylactery(), owner).unwrap();
-    PackedVectorStore::default()
-        .initialize(&mut container)
-        .unwrap();
-    CompatibilityProfileStore::default()
-        .initialize(&mut container)
-        .unwrap();
-    MemoryVectorStore::default()
-        .initialize(&mut container)
-        .unwrap();
-    let mut memories = MemoryStore::create(&mut container).unwrap();
-    let body = "identical shared body ".repeat(80);
-    let first = memories
-        .publish(&mut container, None, 0, draft("shared-a", &body))
-        .unwrap()
-        .revision
-        .record
-        .id;
-    let second = memories
-        .publish(&mut container, None, 0, draft("shared-b", &body))
-        .unwrap()
-        .revision
-        .record
-        .id;
-    memories.tombstone(&mut container, first, 1).unwrap();
-    memories.tombstone(&mut container, second, 1).unwrap();
-    container.sync().unwrap();
-    drop(memories);
-    drop(container);
-    let plan = VerifiedOwnerCopyPlan::prepare(&source.0).unwrap();
-    let grant = GraphAdmission::for_replay(owner, [], [], [], [], []);
-    assert!(prune_terminal_memory_copy(&plan, &source.0, &target.0, &[first], &grant).is_err());
-    assert!(!target.0.exists());
-    let mut writer = Container::open_writer(&source.0).unwrap();
-    writer.append(b"UNKNWN01-opaque-reference").unwrap();
-    writer.sync().unwrap();
-    drop(writer);
-    let plan = VerifiedOwnerCopyPlan::prepare(&source.0).unwrap();
-    assert!(
-        prune_terminal_memory_copy(&plan, &source.0, &target.0, &[first, second], &grant).is_err()
-    );
-    assert!(!target.0.exists());
+fn shared_bodies_require_all_terminal_references_and_unknown_frames_block_pruning() {
+    for identity in [
+        ContainerIdentity::phylactery(),
+        ContainerIdentity::reliquary(reliquary_container::ReliquaryScope::Connection),
+    ] {
+        let source = Temp::new();
+        let target = Temp::new();
+        let owner = [0xa2; 16];
+        let mut container = Container::create(&source.0, identity, owner).unwrap();
+        super::super::create::initialize_owner(&mut container).unwrap();
+        let mut memories = MemoryStore::open(&container).unwrap();
+        let body = "identical shared body ".repeat(80);
+        let first = memories
+            .publish(&mut container, None, 0, draft("shared-a", &body))
+            .unwrap()
+            .revision
+            .record
+            .id;
+        let second = memories
+            .publish(&mut container, None, 0, draft("shared-b", &body))
+            .unwrap()
+            .revision
+            .record
+            .id;
+        memories.tombstone(&mut container, first, 1).unwrap();
+        memories.tombstone(&mut container, second, 1).unwrap();
+        container.sync().unwrap();
+        drop(memories);
+        drop(container);
+        let plan = VerifiedOwnerCopyPlan::prepare(&source.0).unwrap();
+        let grant = GraphAdmission::for_replay(owner, [], [], [], [], []);
+        assert!(prune_terminal_memory_copy(&plan, &source.0, &target.0, &[first], &grant).is_err());
+        assert!(!target.0.exists());
+        let shared_copy = Temp::new();
+        let report =
+            prune_terminal_memory_copy(&plan, &source.0, &shared_copy.0, &[first, second], &grant)
+                .unwrap();
+        assert_eq!(report.pruned_memories, 2);
+        let state = match identity.file_kind {
+            FileKind::Reliquary => {
+                RelSession::open_path(&shared_copy.0, &grant, [], [])
+                    .unwrap()
+                    .common
+            }
+            FileKind::Phylactery => {
+                PhySession::open_path(&shared_copy.0, &grant, [])
+                    .unwrap()
+                    .common
+            }
+        };
+        for id in [first, second] {
+            let history = state.memories.history(id).unwrap();
+            assert!(history.tombstone.is_some());
+            assert!(matches!(history.revisions[0].payload, PayloadState::Absent));
+        }
+        let mut writer = Container::open_writer(&source.0).unwrap();
+        writer.append(b"UNKNWN01-opaque-reference").unwrap();
+        writer.sync().unwrap();
+        drop(writer);
+        let plan = VerifiedOwnerCopyPlan::prepare(&source.0).unwrap();
+        assert!(
+            prune_terminal_memory_copy(&plan, &source.0, &target.0, &[first, second], &grant)
+                .is_err()
+        );
+        assert!(!target.0.exists());
+    }
 }

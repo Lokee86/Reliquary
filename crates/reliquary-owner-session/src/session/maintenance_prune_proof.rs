@@ -1,7 +1,8 @@
 //! Semantic admission for transformed, tombstone-backed Memory history.
 use super::*;
 use crate::records::memory_prune_proof::{
-    MEMORY_BODY, frame_history_digest, memory_structure_digest, tombstone_digest,
+    MEMORY_BODY, frame_history_digest, memory_structure_digest, safe_memory_only_frames,
+    tombstone_digest,
 };
 use crate::records::{OwnerMaintenanceStore, PrunedPayload, RetentionDomain};
 use reliquary_memory_core::{MemoryBodyId, PayloadState};
@@ -38,10 +39,11 @@ pub(super) fn validate_memory_prune(
     }
     let manifest = manifests[0];
     if manifest.owner_uuid != container.owner_id()
-        || manifest.source_global_version > container.latest_version()
+        || manifest.source_global_version != container.latest_version()
     {
         return Err(invalid("prune owner or global watermark mismatch"));
     }
+    safe_memory_only_frames(container, true).map_err(OwnerSessionError::Record)?;
     let mut selected = BTreeSet::new();
     for descriptor in &manifest.descriptors {
         if descriptor.target.domain != RetentionDomain::Memory
@@ -75,7 +77,11 @@ pub(super) fn validate_memory_prune(
                 revision.record.body_id == body_id
                     && matches!(revision.payload, PayloadState::Absent)
             })
-            || memories.memory_ids_for_body(body_id).collect::<Vec<_>>() != [id]
+            || memories.memory_ids_for_body(body_id).any(|reference| {
+                !memories
+                    .history(reference)
+                    .is_ok_and(|history| history.tombstone.is_some())
+            })
             || memory_vectors
                 .referenced_body_ids()
                 .any(|value| value.0 == body_id.0)
@@ -86,9 +92,7 @@ pub(super) fn validate_memory_prune(
                 != memory_structure_digest(container, id).map_err(OwnerSessionError::Record)?
             || !selected.insert(body_id)
         {
-            return Err(invalid(
-                "pruned body lacks exclusive, terminal source proof",
-            ));
+            return Err(invalid("pruned body lacks terminal source proof"));
         }
     }
     if absent != selected {

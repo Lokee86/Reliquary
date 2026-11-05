@@ -1,8 +1,7 @@
-//! Read-only preparation for terminal Memory history maintenance.
+//! Prepare terminal Memory maintenance and publish verified snapshots.
 //!
-//! This deliberately stops before a prune manifest or transformed copy: the
-//! current application layer cannot prove cross-domain references or reopen an
-//! independently transformed owner copy.
+//! Candidate preparation is read-only. The owner proves payload eligibility,
+//! validates the staged snapshot, and publishes it at the requested path.
 
 use crate::{
     EntityOwnerSession, MemoryHistoryLookup, MemoryHistoryWorkflowError, read_owner_memory_history,

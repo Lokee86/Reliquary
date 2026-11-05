@@ -121,11 +121,17 @@ pub(crate) fn memory_structure_digest(
 
 /// Restrict this transform to frames with no offset-bearing cross-domain
 /// payloads. More families require their own relocation and proof contracts.
-pub(crate) fn safe_memory_only_frames(container: &Container) -> Result<(), String> {
+pub(crate) fn safe_memory_only_frames(
+    container: &Container,
+    has_manifest: bool,
+) -> Result<(), String> {
     let mut cursor = container.physical_cursor().map_err(|e| e.to_string())?;
     while let Some(mut frame) = cursor.next_frame().map_err(|e| e.to_string())? {
         let mut magic = [0u8; 8];
         frame.read_exact(&mut magic).map_err(|e| e.to_string())?;
+        if has_manifest && &magic == MANIFEST {
+            return Ok(());
+        }
         if !matches!(
             &magic,
             b"RELMFMT1"
@@ -136,6 +142,9 @@ pub(crate) fn safe_memory_only_frames(container: &Container) -> Result<(), Strin
                 | b"RELPVFM1"
                 | b"RELMVFM1"
                 | b"RELCPFM1"
+                | b"RELAVFM1"
+                | b"RELVGFM1"
+                | b"RELFRP01"
                 | b"RELVERS1"
                 | b"RELVERS2"
         ) {
