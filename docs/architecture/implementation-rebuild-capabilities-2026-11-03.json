@@ -373,8 +373,8 @@
       ],
       "deliverable": "Draft/accepted Memory \u2192 graph/canonical/lifecycle and first-pass settlement",
       "acceptance": "Correct relations/duplicate policy, zero-link first-cycle and idempotent Freshness birth; no rewire bonus",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\v02-dream-publication-progress-2026-11-04.md"
     },
     {
       "id": "V03",
