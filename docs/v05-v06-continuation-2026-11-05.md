@@ -1,6 +1,6 @@
 # V05 and V06 continuation
 
-V05 is accepted at `62dbdcab`. Its final evidence is recorded in [V05 vector publication and bounded context](v05-vector-context-acceptance-2026-11-05.md). V06 and G2 remain open.
+V05 is accepted at `62dbdcab`. Its final evidence is recorded in [V05 vector publication and bounded context](v05-vector-context-acceptance-2026-11-05.md). The checkpoints below record V06 as it progressed. See [V06 acceptance](v06-acceptance-2026-11-05.md) for the final rebuild scope and evidence. G2 remains open.
 
 V05 adds owner-local profile and Memory vector publication for REL and PHY. The publication path rechecks active profiles, revisions, body identities and exact existing row bytes. An interrupted packed payload write can be resumed through its content identity. Gateway captures sources before calling the embedding endpoint and rechecks authorization before publication. Archive generation preparation now uses retained fragment definitions and the Archive clock. Provider calls use bounded batches, and publication requires complete coverage of the current fragment population.
 

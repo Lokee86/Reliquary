@@ -159,6 +159,14 @@ fn terminal_memory_prune_removes_payload_reopens_and_rejects_live_or_tampered_hi
     );
     assert_eq!(fs::read(&output.0).unwrap(), transformed);
     let backup = Temp::new();
+    let active_writer = PhyWriter::open_path(&source.0, &grant, []).unwrap();
+    assert!(
+        promote_terminal_memory_copy(&plan, &source.0, &backup.0, &[tombstoned], &grant).is_err()
+    );
+    assert!(!backup.0.exists());
+    drop(active_writer);
+    assert_eq!(fs::read(&source.0).unwrap(), snapshot);
+
     assert!(
         promote_terminal_memory_copy(&plan, &source.0, &output.0, &[tombstoned], &grant).is_err()
     );
