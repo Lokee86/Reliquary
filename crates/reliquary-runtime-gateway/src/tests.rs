@@ -564,6 +564,76 @@ fn ungranted_instance_cannot_submit_to_an_owner_queue() {
 }
 
 #[test]
+fn only_the_submitting_principal_can_cancel_and_the_winner_survives_reopen() {
+    let root = std::env::current_dir()
+        .unwrap()
+        .join(".test-tmp")
+        .join(format!(
+            "gateway-cancel-owner-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+    std::fs::create_dir_all(&root).unwrap();
+    let rel_path = root.join("owner.rel");
+    let queue_path = root.join("queue");
+    let raw_owner = [63; 16];
+    initialize_rel(&rel_path, raw_owner);
+
+    let gateway = Gateway::new();
+    let admission = GraphAdmission::for_replay(raw_owner, [], [], [], [], []);
+    let owner = gateway
+        .mount_writable_reliquary(&rel_path, &admission, [], [])
+        .unwrap();
+    let alice = gateway.instance("alice", [owner], []).unwrap();
+    let bob = gateway.instance("bob", [owner], []).unwrap();
+    let id = ConversationSubmissionId::new(
+        "conversation",
+        SubmissionId::new("cancelled-submission").unwrap(),
+    )
+    .unwrap();
+    let mut queue = alice.open_conversation_queue(&queue_path, owner).unwrap();
+    alice
+        .submit_conversation(
+            &mut queue,
+            id.conversation_id.clone(),
+            id.submission_id.clone(),
+            "cancel this submission",
+            0,
+        )
+        .unwrap();
+
+    assert!(matches!(
+        bob.cancel_own_pending_submission(&mut queue, &id, 1),
+        Err(GatewayError::UnauthorizedQueueSubmission { .. })
+    ));
+    let cancelled = alice
+        .cancel_own_pending_submission(&mut queue, &id, 1)
+        .unwrap();
+    assert_eq!(cancelled.state, QueueState::Cancelled);
+    assert_eq!(
+        alice
+            .cancel_own_pending_submission(&mut queue, &id, 0)
+            .unwrap(),
+        cancelled
+    );
+    drop(queue);
+
+    let reopened = alice.open_conversation_queue(&queue_path, owner).unwrap();
+    assert_eq!(
+        alice
+            .conversation_submission_status(&reopened, &id)
+            .unwrap(),
+        Some(cancelled)
+    );
+
+    drop((reopened, alice, bob, gateway));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn ungranted_instance_cannot_claim_insomnia_work() {
     let gateway = Gateway::new();
     let owner = OwnerId::from_bytes([88; 16]);
