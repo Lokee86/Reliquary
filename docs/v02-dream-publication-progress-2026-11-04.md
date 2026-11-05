@@ -76,3 +76,17 @@ This section supersedes the implementation limits and outstanding-code lists abo
 **Verification:** the full locked offline workspace suite passed **433 tests, 0 failed across 47 suites including doctests**. Locked offline workspace check, Rust formatting, whitespace validation and the architecture guard passed; the approved production DAG remains **23 packages and 76 edges**, with no manifest or DAG changes. Tests cover REL/PHY multi-pair publication and settlement, source-only completion, rejected/uncertain frontier behavior, user protection, temporal evidence binding, reopen and byte-stable retry, sync-before-projection interruption, incomplete-tail repair and retry, foreign/stale/unknown cuts, conflicting retries, fabricated direct evidence and corrupted lifecycle replay. Existing compiler warnings remain; successful checks are not a warning-free claim.
 
 **Acceptance boundary:** the requested first-cycle Begin/settlement implementation, Freshness birth/admission and initial evidence work is implemented and verified. New `RELDRC01` passes reopen without external admissions; legacy bare-Begin compatibility still requires its authenticated admission. No cross-owner ingestion or extraction acceptance is implied. Complete V01's own acceptance and the dependency-gated V02 review before marking V02 accepted or advancing G2.
+
+## Formal V02 acceptance — 2026-11-05
+
+V02 is accepted at the post-V01 checkpoint `3692db1e`. The canonical tracker records V01, S03, and S06 as completed. The implementation checkpoint `a24d44b7` supplied the publication path and its regression fixtures.
+
+| Criterion | Evidence |
+| --- | --- |
+| Correct relations and duplicate policy | Frozen Dream classifications, duplicate chain and supersession fixtures, atomic multi-pair Graph and Memory publication, and protection for user-origin relations. |
+| Zero-link first cycle | REL and PHY reopen and byte-stable retry fixtures, a source-only frontier without model or embedding, and rejection of empty settlement while frontier outcomes are unresolved. |
+| Idempotent Freshness birth and no rewire bonus | Initial roots and canonical recipients are checked separately. Retry reuses the original receipt. User edges, preexisting adjacency, and unreceipted rewires cannot earn initial credit. |
+| Provenance and recovery | Exact body, clock and temporal span validation, refusal of foreign or stale cuts and conflicting retries, REL and PHY reopen, sync-before-projection recovery, and incomplete-tail repair. |
+| Bounded discovery | The 1,025-Memory fixture verifies bounded selected reads and byte-stable discovery. Discovery is bounded rather than exhaustive, and reopen index reconstruction remains proportional to history. |
+
+The locked offline workspace passed 445 tests across 47 suites with local loopback for mock HTTP servers. Compilation, locked metadata, formatting, whitespace, and the architecture guard passed. The production DAG remains 23 packages and 76 edges. G2 still requires V03 through V07.
