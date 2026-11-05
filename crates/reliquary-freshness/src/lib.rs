@@ -3,6 +3,7 @@
 
 mod freshness_due;
 pub mod historical_dream;
+pub mod historical_import;
 pub mod historical_planner;
 pub mod historical_propagation;
 pub mod historical_scorer;
