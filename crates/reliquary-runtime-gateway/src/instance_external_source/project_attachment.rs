@@ -10,7 +10,7 @@ impl Instance {
         conversation_id: &str,
         node_id: &str,
         attachment_id: [u8; 32],
-        project_dir: &Path,
+        source: &crate::TrustedProjectSource,
     ) -> Result<VerifiedExternalSource, GatewayError> {
         let prepare = |rel: &RelSession| {
             prepare_project_attachment(
@@ -27,8 +27,11 @@ impl Instance {
             Err(error) => return Err(error),
         }
         .map_err(|error| OwnerSessionError::Record(error.to_string()))?;
+        let repository = prepared.reference().revision.repository.clone();
+        let project_dir = source.authorize(self, owner, &repository)?;
         let verified = prepared.verify(project_dir);
         self.ensure_credential_active()?;
+        source.authorize(self, owner, &repository)?;
         Ok(verified.map_err(|error| OwnerSessionError::Record(error.to_string()))?)
     }
 }

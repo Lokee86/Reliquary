@@ -29,11 +29,18 @@ mod ingest_publication;
 mod maintenance_workflow;
 mod native_insomnia;
 mod native_insomnia_evidence;
+mod project_correlation_workflow;
 pub use native_insomnia::{
     INSOMNIA_EXTRACTOR_CONTRACT_VERSION, NativeInsomniaExtraction, extract_native_insomnia,
 };
 pub use native_insomnia_evidence::{
     ResolvedNativeInsomniaEvidence, resolve_native_insomnia_evidence,
+};
+pub use project_correlation_workflow::{
+    MAX_CORRELATED_PROJECT_FILE_BYTES, PreparedProjectCorrelation, ProjectCorrelatedNativeCommit,
+    ProjectCorrelationError, ProjectCorrelationRequest, commit_project_correlated_native_turn,
+    prepare_project_correlation, validate_project_correlated_native_commit,
+    validate_project_correlation_retry,
 };
 mod retrieval_workflow;
 mod vector_workflow;

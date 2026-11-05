@@ -95,6 +95,7 @@ pub enum GatewayError {
     IncompleteHostContract(RuntimeCapability),
     UnsupportedHostCapability(RuntimeCapability),
     RoutedMemory(String),
+    ProjectSource(String),
     RegistryPoisoned,
     WriterUnavailable,
 }
@@ -157,6 +158,7 @@ impl fmt::Display for GatewayError {
                 write!(f, "host execution is not enabled for {capability:?}")
             }
             Self::RoutedMemory(reason) => write!(f, "routed user Memory failed: {reason}"),
+            Self::ProjectSource(reason) => write!(f, "project source failed: {reason}"),
             Self::RegistryPoisoned => f.write_str("gateway owner registry is unavailable"),
             Self::WriterUnavailable => f.write_str("owner writer session is unavailable"),
         }
@@ -382,6 +384,8 @@ mod insomnia_worker;
 mod instance_conversation;
 mod instance_owner;
 mod instance_passive_retrieval;
+mod instance_project_correlation;
+pub use instance_project_correlation::{AuthorizedProjectCorrelation, TrustedProjectSource};
 mod instance_routing;
 pub use insomnia_worker::{InsomniaWorkerConfig, InsomniaWorkerHandle};
 

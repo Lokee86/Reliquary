@@ -20,6 +20,7 @@ sha2 = "0.10"
 serde_json = "1"
 
 [dev-dependencies]
+lore = { git = "https://github.com/EpicGames/lore.git", rev = "c49390be048fa273ab47ff7d43bc4994ba7be8ce" }
 lodestone-packed = { git = "https://github.com/Lokee86/lodestone.git", rev = "7b4b3e02b2bd3f3e474fef1a31c8632f8bbea49f" }
 reliquary-insomnia-store = { path = "../reliquary-insomnia-store" }
 reliquary-freshness-store = { path = "../reliquary-freshness-store" }

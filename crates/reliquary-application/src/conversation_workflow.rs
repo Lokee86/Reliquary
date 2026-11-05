@@ -27,7 +27,7 @@ pub struct PublishedNativeTurn {
 }
 
 impl NativeConversationCommit {
-    fn into_archive_parts(self) -> (TurnInput, Branch) {
+    pub(crate) fn into_archive_parts(self) -> (TurnInput, Branch) {
         let branch = Branch {
             id: self.branch_id,
             conversation_id: self.conversation_id.clone(),

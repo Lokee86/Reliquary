@@ -4,9 +4,9 @@
 //! concrete store access, and replay/repair entry points remain owner-local.
 
 pub use reliquary_archive::{
-    Branch, ContentId, Episode, EpisodeBoundary, EpisodeId, EpisodeOrigin, ProjectFileRef,
-    ProjectRepositoryKind, ResolvedTurn, SourceAttachment, TurnInput,
-    validate_project_file_reference,
+    Branch, ContentId, Episode, EpisodeBoundary, EpisodeId, EpisodeOrigin, ProjectAttachmentInput,
+    ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef, ResolvedTurn,
+    SourceAttachment, TurnInput, validate_project_file_reference,
 };
 pub use reliquary_freshness_store::FRESHNESS_POLICY_VERSION;
 pub use reliquary_graph::{NodeRef, Relation, RelationKind, RelationOrigin};

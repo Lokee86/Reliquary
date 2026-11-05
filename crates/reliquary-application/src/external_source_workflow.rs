@@ -124,6 +124,10 @@ pub fn prepare_project_attachment(
 }
 
 impl PreparedProjectAttachment {
+    pub fn reference(&self) -> &ProjectFileRef {
+        &self.reference
+    }
+
     pub fn verify(self, project_dir: &Path) -> Result<VerifiedExternalSource, ExternalSourceError> {
         let reference = self.reference;
         let bytes = match reference.revision.repository.kind {
