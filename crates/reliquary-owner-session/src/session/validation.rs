@@ -145,7 +145,7 @@ pub(super) fn validate_grouped_replay_admission(
 }
 
 pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), OwnerSessionError> {
-    const REL_ONLY: [(&[u8; 8], &str); 20] = [
+    const REL_ONLY: [(&[u8; 8], &str); 21] = [
         (b"RELTURN2", "Archive turn"),
         (b"RELFILE1", "Archive file"),
         (b"RELBRCH1", "Archive branch"),
@@ -166,6 +166,7 @@ pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), Owner
         (b"RELVGRC1", "vector generation revision"),
         (b"RELXIDX2", "external source index"),
         (b"RELXMEM2", "external Memory reference"),
+        (b"RELXHST1", "external host evidence receipt"),
     ];
     use std::io::Read;
     let mut cursor = container.physical_cursor()?;

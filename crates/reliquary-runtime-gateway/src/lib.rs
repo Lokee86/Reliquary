@@ -375,3 +375,7 @@ mod instance_routing;
 pub use insomnia_worker::{InsomniaWorkerConfig, InsomniaWorkerHandle};
 
 mod instance_entity;
+
+mod instance_external_source;
+
+pub use instance_external_source::{AuthorizedExternalLexicalIndex, ExternalHostSource};

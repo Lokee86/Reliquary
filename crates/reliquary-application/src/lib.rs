@@ -54,7 +54,8 @@ pub use entity_workflow::{
     resolve_memory_mention,
 };
 pub use external_source_workflow::{
-    ExternalSourceError, VerifiedExternalSource, verify_project_attachment,
+    ExternalSourceError, PreparedProjectAttachment, VerifiedExternalSource,
+    prepare_project_attachment, verify_project_attachment,
 };
 pub use history_workflow::{
     MemoryHistoryLookup, MemoryHistoryRead, MemoryHistoryStatus, MemoryHistoryWorkflowError,
@@ -957,4 +958,19 @@ pub use dream_batch_workflow::{commit_dream_batch, draft_dream_batch_organizatio
 mod dream_frontier_workflow;
 pub use dream_frontier_workflow::{
     PreparedDreamFrontier, begin_prepared_dream_frontier, prepare_explicit_dream_frontier,
+};
+
+mod external_hydration;
+pub use external_hydration::{
+    HydratedExternalChunk, HydratedExternalMessage, validate_external_hydration_request,
+    verify_external_hydration,
+};
+
+mod external_lexical_index;
+pub use external_lexical_index::ExternalLexicalIndex;
+
+mod external_change_feed;
+pub use external_change_feed::{
+    ExternalChangeBatch, ExternalChangeKind, ExternalConversationChange,
+    apply_external_change_batch,
 };

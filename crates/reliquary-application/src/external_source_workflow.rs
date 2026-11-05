@@ -21,6 +21,18 @@ pub struct VerifiedExternalSource {
     pub bytes: Vec<u8>,
 }
 
+/// Owner-authorized immutable attachment metadata. Repository reads can run
+/// after the caller has released the owner session or its writer lock.
+pub struct PreparedProjectAttachment {
+    owner_id: [u8; 16],
+    conversation_id: String,
+    source_node_id: String,
+    attachment_id: [u8; 32],
+    content_id: ContentId,
+    byte_length: u64,
+    reference: ProjectFileRef,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ExternalSourceError {
     OwnerMismatch,
@@ -66,6 +78,23 @@ pub fn verify_project_attachment(
     attachment_id: [u8; 32],
     project_dir: &Path,
 ) -> Result<VerifiedExternalSource, ExternalSourceError> {
+    prepare_project_attachment(
+        rel,
+        authorized_owner_id,
+        conversation_id,
+        source_node_id,
+        attachment_id,
+    )?
+    .verify(project_dir)
+}
+
+pub fn prepare_project_attachment(
+    rel: &RelSession,
+    authorized_owner_id: [u8; 16],
+    conversation_id: &str,
+    source_node_id: &str,
+    attachment_id: [u8; 32],
+) -> Result<PreparedProjectAttachment, ExternalSourceError> {
     let owner_id = rel.owner_id();
     if owner_id != authorized_owner_id {
         return Err(ExternalSourceError::OwnerMismatch);
@@ -83,35 +112,50 @@ pub fn verify_project_attachment(
     if attachment.byte_length > MAX_PROJECT_SOURCE_BYTES {
         return Err(ExternalSourceError::SourceTooLarge);
     }
-    let bytes = match reference.revision.repository.kind {
-        ProjectRepositoryKind::Git => {
-            reliquary_project_environment::read_project_file_reference(project_dir, &reference)
-        }
-        ProjectRepositoryKind::Lore => {
-            reliquary_project_environment::read_lore_project_file(project_dir, &reference)
-        }
-    }
-    .map_err(ExternalSourceError::RepositoryRead)?;
-    if bytes.len() as u64 != attachment.byte_length {
-        return Err(ExternalSourceError::ByteLengthMismatch);
-    }
-    let actual_content_id = ContentId(Sha256::digest(&bytes).into());
-    if actual_content_id != attachment.content_id
-        || reference
-            .content_hash
-            .is_some_and(|expected| expected != actual_content_id.0)
-    {
-        return Err(ExternalSourceError::ContentIdentityMismatch);
-    }
-    Ok(VerifiedExternalSource {
+    Ok(PreparedProjectAttachment {
         owner_id,
         conversation_id: conversation_id.to_owned(),
         source_node_id: source_node_id.to_owned(),
         attachment_id,
-        content_id: actual_content_id,
+        content_id: attachment.content_id,
+        byte_length: attachment.byte_length,
         reference,
-        bytes,
     })
+}
+
+impl PreparedProjectAttachment {
+    pub fn verify(self, project_dir: &Path) -> Result<VerifiedExternalSource, ExternalSourceError> {
+        let reference = self.reference;
+        let bytes = match reference.revision.repository.kind {
+            ProjectRepositoryKind::Git => {
+                reliquary_project_environment::read_project_file_reference(project_dir, &reference)
+            }
+            ProjectRepositoryKind::Lore => {
+                reliquary_project_environment::read_lore_project_file(project_dir, &reference)
+            }
+        }
+        .map_err(ExternalSourceError::RepositoryRead)?;
+        if bytes.len() as u64 != self.byte_length {
+            return Err(ExternalSourceError::ByteLengthMismatch);
+        }
+        let actual_content_id = ContentId(Sha256::digest(&bytes).into());
+        if actual_content_id != self.content_id
+            || reference
+                .content_hash
+                .is_some_and(|expected| expected != actual_content_id.0)
+        {
+            return Err(ExternalSourceError::ContentIdentityMismatch);
+        }
+        Ok(VerifiedExternalSource {
+            owner_id: self.owner_id,
+            conversation_id: self.conversation_id,
+            source_node_id: self.source_node_id,
+            attachment_id: self.attachment_id,
+            content_id: actual_content_id,
+            reference,
+            bytes,
+        })
+    }
 }
 
 #[cfg(test)]
@@ -274,15 +318,12 @@ mod tests {
             .find(|attachment| attachment.project_reference.is_none())
             .unwrap();
 
-        let verified = verify_project_attachment(
-            &rel,
-            owner_id,
-            "conversation",
-            "source-turn",
-            external.id,
-            &repo.join("project"),
-        )
-        .unwrap();
+        let prepared =
+            prepare_project_attachment(&rel, owner_id, "conversation", "source-turn", external.id)
+                .unwrap();
+        drop(rel);
+        let verified = prepared.verify(&repo.join("project")).unwrap();
+        let rel = RelSession::open_path(&rel_path, &admission, [], []).unwrap();
         assert_eq!(verified.bytes, bytes);
         assert_eq!(verified.content_id, content_id);
         assert!(

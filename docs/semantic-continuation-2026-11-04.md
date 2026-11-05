@@ -79,3 +79,13 @@ The locked offline workspace passed 447 tests across 47 suites with local loopba
 REL and PHY share the owner-local evidence reader. It uses the existing rebuildable Memory postings to select lexical support, then Application scores the retained text with Retrieval's lexical scorer. Candidate evidence stays within the mounted owner. The lookup caps token postings, Memory hydration, lexical bytes, selected one-hop neighbors, and supporting IDs. Discovery uses a bounded set of postings, so the result is a ranked subset of owner history. Graph adjacency and Entity names remain owner-local reads.
 
 V01 and S04 are accepted prerequisites. The locked offline workspace passed 448 tests across 47 suites with local loopback for mock HTTP servers. Workspace compilation, locked metadata, formatting, whitespace, and the 23-package, 76-edge architecture guard passed. V03 is accepted.
+
+## V07 external reference receipts and rebuild
+
+Gateway captures an authorized host snapshot and rechecks the host and Instance before recording its descriptor-only receipt. Receipt keys include the REL owner, source namespace, and authorizing principal. Exact retries reuse the receipt, and replay checks the owner, descriptor bounds, monotonic watermark, and digest. A bounded change page is applied against the exact prior receipt and refuses gaps or concurrent changes.
+
+The lexical lookup rebuild hydrates active descriptors in bounded batches. It keeps reference ranges and term hashes as disposable hints. Search requires the original Instance and host authorization. Point-of-use hydration checks the exact descriptor, content hash, and UTF-8 byte range again. Project attachments also have an owned preparation step so repository I/O can run outside the owner lock.
+
+The fixtures exercise host and REL authorization, exact descriptor order and content hash, UTF-8 boundaries, change feed transitions, per-principal receipt replay and conflicts, and rebuilding after owner reopen. The owner file contains descriptor metadata and hashes while the host retains the transcript. V07 remains in progress pending external-to-Memory derivation and durable semantic provenance.
+
+The locked offline workspace passed 457 tests across 47 suites with local loopback for mock HTTP servers. Workspace compilation, locked metadata, formatting, whitespace, and the 23-package, 76-edge architecture guard passed.

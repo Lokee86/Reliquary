@@ -164,6 +164,8 @@ impl RelSession {
             VectorGenerationStore::open(container, &common.profiles, &archive_vectors)?;
         let external_index =
             ExternalIndexStore::open(container).map_err(OwnerSessionError::Record)?;
+        let external_references =
+            ExternalReferenceStore::open(container).map_err(OwnerSessionError::Record)?;
         let container_path = canonical_container_path(container)?;
         let container_file_identity = container.physical_file_identity()?;
         let writer_lease_proof = container.writer_lease_proof();
@@ -178,6 +180,7 @@ impl RelSession {
             archive_vectors,
             generations,
             external_index,
+            external_references,
             grouped_completions,
             write_poisoned: false,
             container_identity: container.identity(),
@@ -275,6 +278,16 @@ impl RelSession {
     }
     pub fn external_source_index(&self, namespace: &str) -> Option<&SourceState> {
         self.external_index.sources.get(namespace)
+    }
+
+    /// Read the latest reference-only host manifest admitted for this exact
+    /// namespace and authorizing principal.
+    pub fn external_reference_snapshot(
+        &self,
+        namespace: &str,
+        principal: &str,
+    ) -> Option<&ExternalReferenceSnapshotReceipt> {
+        self.external_references.get(namespace, principal)
     }
 
     #[cfg(test)]

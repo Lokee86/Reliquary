@@ -9,6 +9,7 @@ pub(crate) mod dream_group;
 pub mod dream_no_link;
 pub(crate) mod dream_supersession;
 pub mod external_index;
+pub(crate) mod external_reference;
 pub mod import;
 mod import_model;
 pub mod insomnia_completion;
@@ -17,6 +18,7 @@ pub mod verified_copy;
 pub use dream::{DreamBeginAdmission, DreamEvidenceStore};
 pub use dream_group::DreamRelationCut;
 pub use dream_no_link::{DreamMemoryCut, DreamNoLinkCut};
+pub use external_reference::{ExternalReferenceSnapshotManifest, ExternalReferenceSnapshotReceipt};
 pub use import::{ImportEpochStore, import_id};
 pub use import_model::{ImportComplete, ImportEpochStatus, ImportStart, ImportWatermarks};
 pub use insomnia_completion::{
