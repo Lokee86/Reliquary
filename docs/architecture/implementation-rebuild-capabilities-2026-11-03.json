@@ -439,8 +439,8 @@
       ],
       "deliverable": "External host source validation and durable reference receipts",
       "acceptance": "No fake native Archive transcript; index rebuild without forging semantic truth",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\semantic-continuation-2026-11-04.md"
     },
     {
       "id": "G2",
