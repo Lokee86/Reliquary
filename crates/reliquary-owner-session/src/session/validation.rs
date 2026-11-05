@@ -62,7 +62,9 @@ pub(super) fn validate_grouped_replay_admission(
         let body = envelope
             .as_ref()
             .map_or(frame.payload.as_slice(), |value| value.body);
-        if body.starts_with(b"RELXMEM") || body.starts_with(b"RELINSC8") {
+        if (body.starts_with(b"RELXMEM") && !body.starts_with(b"RELXMEM3"))
+            || body.starts_with(b"RELINSC8")
+        {
             return Err(OwnerSessionError::Record(
                 "unsupported owner publication requires authenticated replay".into(),
             ));
@@ -145,7 +147,7 @@ pub(super) fn validate_grouped_replay_admission(
 }
 
 pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), OwnerSessionError> {
-    const REL_ONLY: [(&[u8; 8], &str); 21] = [
+    const REL_ONLY: [(&[u8; 8], &str); 23] = [
         (b"RELTURN2", "Archive turn"),
         (b"RELFILE1", "Archive file"),
         (b"RELBRCH1", "Archive branch"),
@@ -166,6 +168,8 @@ pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), Owner
         (b"RELVGRC1", "vector generation revision"),
         (b"RELXIDX2", "external source index"),
         (b"RELXMEM2", "external Memory reference"),
+        (b"RELXMEM3", "external Memory intent"),
+        (b"RELXMRP3", "external Memory receipt"),
         (b"RELXHST1", "external host evidence receipt"),
     ];
     use std::io::Read;

@@ -97,3 +97,21 @@ Gateway hydrates one authorized host conversation window and rechecks access aft
 The external window is transient. Durable external Memory publication and a replayable provenance receipt remain open, so V07 is still in progress.
 
 The focused fixture passed exact UTF-8 range binding, changed-body rejection, and repeated-quote rejection. Workspace compilation, formatting, whitespace, and the unchanged 23-package, 76-edge architecture guard passed.
+
+## V07 publication acceptance matrix
+
+The external host path now reuses Insomnia for one bounded authorized conversation window and records its semantic results through the REL owner. Gateway checks the current host grant, rehydrates exact descriptors and hashes, pins the principal's recorded manifest, and rechecks the same cut under the writer lease. Inference and host calls execute outside the owner lock.
+
+Publication syncs a derived-draft intent with identifier-only external byte ranges before writing Memory. Each Memory creation receives a global publication coordinate. The final receipt binds the actual Memory IDs and source references to the intent digest. Exact retry resumes from the intent or reuses the completed receipt before calling the model. A zero-candidate window receives an empty completion receipt. Reopen checks that the intent preceded the Memory creations and that the creations preceded the receipt. Provenance remains bound to the first revision after later lifecycle changes.
+
+| Acceptance criterion | Evidence |
+| --- | --- |
+| Reference-only host source validation | Separate REL and host grants, exact descriptor and hash checks, UTF-8 byte ranges, bounded ordered windows, and refusal of Archive fallback. |
+| Durable reference receipts | Principal-scoped manifest and publication receipts, source ranges and hashes, conflict refusal, reopen and exact retry without another model call. |
+| Rebuild without forged semantics | Disposable lexical lookup rebuilds from the authorized host snapshot; descriptor feed applies visibility and deletion without native Archive writes. |
+| Recoverable semantic derivation | The partial-write fixture syncs intent and one Memory before reopen, then completes once with retained provenance and one Memory revision. |
+| Privacy and ownership | Host source bytes stay transient; Memory drafts retain their derived bodies and external provenance. REL-only carriers reject PHY placement. |
+
+This closes the previously documented V07 publication gap. With no PHY destination configured, the existing conservative Insomnia default routes these proposals to Project Memory. V01 separately supplies explicit User/PHY routing.
+
+Formal V07 acceptance was verified with V01 already completed. The final locked offline workspace passed 459 tests across 47 suites with local loopback for mock HTTP servers. Workspace compilation, locked metadata, formatting, whitespace, and the unchanged 23-package, 76-edge architecture guard passed. V07 is accepted. G2 remains pending the other semantic/application prerequisites.

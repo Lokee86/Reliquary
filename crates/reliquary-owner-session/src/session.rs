@@ -1,4 +1,5 @@
 use crate::records::external_index::{ExternalIndexStore, SourceState};
+use crate::records::external_memory::ExternalMemoryStore;
 use crate::records::external_reference::ExternalReferenceStore;
 use crate::records::{
     DreamBeginAdmission, DreamEvidenceStore, ExternalReferenceSnapshotManifest,
@@ -184,6 +185,7 @@ pub struct RelSession {
     generations: VectorGenerationStore,
     external_index: ExternalIndexStore,
     external_references: ExternalReferenceStore,
+    external_memories: ExternalMemoryStore,
     grouped_completions: BTreeMap<(WorkEpisodeId, u32), GroupedInsomniaCompletion>,
     write_poisoned: bool,
     container_identity: ContainerIdentity,
@@ -466,6 +468,7 @@ mod archive_evidence;
 mod create;
 pub(crate) mod dream_pairs;
 pub(crate) mod dream_prefix;
+mod external_memory;
 mod external_reference;
 mod phy_writer;
 mod rel_session;

@@ -466,6 +466,27 @@ impl MemoryStore {
         expected_revision: u64,
         draft: MemoryDraft,
     ) -> Result<PublishResult, MemoryError> {
+        self.publish_inner(container, id, expected_revision, draft, None)
+    }
+
+    /// Publish a creation with an owner global coordinate for Dream replay.
+    pub fn publish_versioned_creation(
+        &mut self,
+        container: &mut Container,
+        draft: MemoryDraft,
+        transaction_time_ns: i64,
+    ) -> Result<PublishResult, MemoryError> {
+        self.publish_inner(container, None, 0, draft, Some(transaction_time_ns))
+    }
+
+    fn publish_inner(
+        &mut self,
+        container: &mut Container,
+        id: Option<MemoryId>,
+        expected_revision: u64,
+        draft: MemoryDraft,
+        versioned_at: Option<i64>,
+    ) -> Result<PublishResult, MemoryError> {
         self.validate_owner(container)?;
         validate_draft(&draft)?;
         if !self.initialized {
@@ -594,7 +615,11 @@ impl MemoryStore {
             }
             container.append(&body_bytes)?;
         }
-        container.append(&encoded)?;
+        if let Some(timestamp) = versioned_at {
+            container.append_publication_envelope(&encoded, Some(timestamp))?;
+        } else {
+            container.append(&encoded)?;
+        }
         if self.state.bodies.get(&body_id).is_none() {
             self.state.bodies.insert(body_id, body);
         }

@@ -976,4 +976,6 @@ pub use external_change_feed::{
 };
 
 mod external_processing;
-pub use external_processing::{ExternalMemoryProposal, prepare_external_memory};
+pub use external_processing::{
+    ExternalMemoryProposal, external_window_id, prepare_external_memory,
+};

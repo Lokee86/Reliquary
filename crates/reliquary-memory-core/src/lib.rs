@@ -55,3 +55,8 @@ pub fn history_change_in_frame(bytes: &[u8]) -> Result<Option<(MemoryId, u64)>, 
 
 #[cfg(test)]
 mod tests;
+
+/// Check draft fields before an owner records a recoverable publication intent.
+pub fn validate_memory_draft(draft: &MemoryDraft) -> Result<(), MemoryError> {
+    codec::validate_draft(draft)
+}

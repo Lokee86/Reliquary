@@ -14,6 +14,7 @@ pub use records::{
     ExternalReferenceSnapshotManifest, ExternalReferenceSnapshotReceipt, InitialDreamFrontier,
     VerifiedOwnerCopyPlan, VerifiedOwnerCopyReceipt,
 };
+pub use records::{ExternalMemoryDraft, ExternalMemoryProvenance, ExternalMemoryReceipt};
 mod session;
 /// Bound for durable Insomnia inference checkpoints, owned by the session store.
 pub use reliquary_insomnia_store::MAX_HELD_PAYLOAD_BYTES as MAX_INSOMNIA_CHECKPOINT_BYTES;

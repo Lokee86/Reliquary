@@ -239,3 +239,5 @@ impl Gateway {
         Ok(proposals.map_err(external_error)?)
     }
 }
+
+mod publication;

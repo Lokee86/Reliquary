@@ -166,6 +166,8 @@ impl RelSession {
             ExternalIndexStore::open(container).map_err(OwnerSessionError::Record)?;
         let external_references =
             ExternalReferenceStore::open(container).map_err(OwnerSessionError::Record)?;
+        let external_memories = ExternalMemoryStore::open(container, &common.memories)
+            .map_err(OwnerSessionError::Record)?;
         let container_path = canonical_container_path(container)?;
         let container_file_identity = container.physical_file_identity()?;
         let writer_lease_proof = container.writer_lease_proof();
@@ -181,6 +183,7 @@ impl RelSession {
             generations,
             external_index,
             external_references,
+            external_memories,
             grouped_completions,
             write_poisoned: false,
             container_identity: container.identity(),

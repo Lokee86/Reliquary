@@ -484,17 +484,22 @@ fn replay_rechecks_temporal_spans_when_body_appears_later() {
 #[test]
 fn versioned_memory_creation_reopens_with_its_global_coordinate() {
     let temp = TempDir::new();
-    let (mut source, mut original) = open_new(&temp.0.join("source.rel"));
-    let record = original
-        .publish(&mut source, None, 0, draft("versioned", "Title", "fact"))
+    let (mut container, mut store) = open_new(&temp.0.join("versioned.rel"));
+    let draft = draft("versioned", "Title", "fact");
+    let record = store
+        .publish_versioned_creation(&mut container, draft.clone(), 33)
         .unwrap()
         .revision
         .record;
-    let (mut container, _) = open_new(&temp.0.join("versioned.rel"));
-    let (global, _) = container
-        .append_publication_envelope(&encode_creation(&record).unwrap(), Some(33))
-        .unwrap();
+    let global = container.latest_version();
     assert_eq!(global, 1);
+    assert!(
+        !store
+            .publish_versioned_creation(&mut container, draft, 44)
+            .unwrap()
+            .published
+    );
+    assert_eq!(container.latest_version(), global);
     container.sync().unwrap();
     drop(container);
     let mut container = Container::open_writer(&temp.0.join("versioned.rel")).unwrap();

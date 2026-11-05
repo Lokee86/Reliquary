@@ -41,17 +41,10 @@ pub fn prepare_external_memory<E: GeneralEndpoint>(
     {
         return Err(ExternalSourceError::InvalidContract);
     }
-    let mut hash = Sha256::new();
-    hash.update(b"reliquary-external-insomnia-window-v1");
-    for descriptor in expected {
-        let encoded =
-            serde_json::to_vec(descriptor).map_err(|_| ExternalSourceError::InvalidContract)?;
-        hash.update((encoded.len() as u64).to_le_bytes());
-        hash.update(encoded);
-    }
+    let window_id = external_window_id(expected)?;
     let last = expected.last().ok_or(ExternalSourceError::Bounds)?;
     let window = Episode {
-        id: EpisodeId(hash.finalize().into()),
+        id: EpisodeId(window_id),
         conversation_id: first.conversation_id.clone(),
         start_node_id: first.message_id.clone(),
         end_node_id: last.reference.message_id.clone(),
@@ -112,6 +105,81 @@ pub fn prepare_external_memory<E: GeneralEndpoint>(
             })
         })
         .collect()
+}
+
+/// Stable identity of an ordered descriptor window, including content hashes.
+pub fn external_window_id(
+    expected: &[ExternalMessageDescriptor],
+) -> Result<[u8; 32], ExternalSourceError> {
+    let mut hash = Sha256::new();
+    hash.update(b"reliquary-external-insomnia-window-v1");
+    for descriptor in expected {
+        let encoded =
+            serde_json::to_vec(descriptor).map_err(|_| ExternalSourceError::InvalidContract)?;
+        hash.update((encoded.len() as u64).to_le_bytes());
+        hash.update(encoded);
+    }
+    Ok(hash.finalize().into())
+}
+
+impl ExternalMemoryProposal {
+    /// Prepare a REL Memory draft. Host provenance is carried by the external
+    /// publication record, independently of native Archive source fields.
+    pub fn into_project_draft(
+        self,
+        principal: &str,
+        window_id: [u8; 32],
+        ordinal: usize,
+    ) -> Result<
+        (
+            reliquary_owner_session::model::MemoryDraft,
+            ExternalChunkRef,
+            Option<ExternalChunkRef>,
+            Option<ExternalChunkRef>,
+        ),
+        ExternalSourceError,
+    > {
+        if self.candidate.ownership != reliquary_insomnia::InsomniaOwnership::Project {
+            return Err(ExternalSourceError::Unauthorized);
+        }
+        let mut hash = Sha256::new();
+        hash.update(b"reliquary-external-memory-v1");
+        hash.update((principal.len() as u64).to_le_bytes());
+        hash.update(principal.as_bytes());
+        hash.update(window_id);
+        hash.update((ordinal as u64).to_le_bytes());
+        let key = hash
+            .finalize()
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>();
+        let draft = reliquary_owner_session::model::MemoryDraft {
+            title: self.candidate.title,
+            content: self.candidate.content,
+            category: self.candidate.category,
+            memory_type: self.candidate.memory_type,
+            authority_kind: self.candidate.authority_kind,
+            temporal_status: self.candidate.temporal_status,
+            scope: "project".into(),
+            lifecycle_state: "extracted".into(),
+            archived: false,
+            parent_id: None,
+            superseded_by: None,
+            source_node_id: None,
+            content_source_conversation_id: None,
+            content_source_node_id: None,
+            grounding_source_conversation_id: None,
+            grounding_source_node_id: None,
+            source_episode_id: None,
+            source_ref: None,
+            source_time_ns: Some(self.source_time_ns),
+            temporal_inference: None,
+            mutation_id: format!("external-insomnia:{key}"),
+            created_at_ns: self.source_time_ns,
+            updated_at_ns: self.source_time_ns,
+        };
+        Ok((draft, self.authority, self.content, self.grounding))
+    }
 }
 
 fn bind_quote(
@@ -207,6 +275,21 @@ mod tests {
         assert_eq!(proposal.authority.start, 5);
         assert_eq!(proposal.authority.end as usize, text.len());
         assert_eq!(proposal.source_time_ns, 17);
+        let window = external_window_id(std::slice::from_ref(&descriptor)).unwrap();
+        let (draft, reference, content, grounding) = proposals
+            .into_iter()
+            .next()
+            .unwrap()
+            .into_project_draft("alice", window, 0)
+            .unwrap();
+        assert_eq!(draft.source_time_ns, Some(17));
+        assert!(
+            draft.source_ref.is_none()
+                && draft.source_episode_id.is_none()
+                && draft.source_node_id.is_none()
+        );
+        assert_eq!(reference.message, descriptor.reference);
+        assert!(content.is_none() && grounding.is_none());
         let mut repeated = message.clone();
         repeated.content.push_str(" I prefer concise answers.");
         repeated.descriptor.reference.content_hash =
