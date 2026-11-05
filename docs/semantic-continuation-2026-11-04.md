@@ -89,3 +89,11 @@ The lexical lookup rebuild hydrates active descriptors in bounded batches. It ke
 The fixtures exercise host and REL authorization, exact descriptor order and content hash, UTF-8 boundaries, change feed transitions, per-principal receipt replay and conflicts, and rebuilding after owner reopen. The owner file contains descriptor metadata and hashes while the host retains the transcript. V07 remains in progress pending external-to-Memory derivation and durable semantic provenance.
 
 The locked offline workspace passed 457 tests across 47 suites with local loopback for mock HTTP servers. Workspace compilation, locked metadata, formatting, whitespace, and the 23-package, 76-edge architecture guard passed.
+
+## V07 external Insomnia preparation
+
+Gateway hydrates one authorized host conversation window and rechecks access after evaluation. Application verifies the exact descriptors and bodies, enforces the 256 KiB window limit, and reuses the existing Insomnia ledger and wording passes with transient turn values. Archive fallback requests and rejected batches fail closed. Each accepted proposal carries host-qualified authority, optional content and grounding byte ranges, and source chronology. Quote binding rejects ambiguous repeated ranges.
+
+The external window is transient. Durable external Memory publication and a replayable provenance receipt remain open, so V07 is still in progress.
+
+The focused fixture passed exact UTF-8 range binding, changed-body rejection, and repeated-quote rejection. Workspace compilation, formatting, whitespace, and the unchanged 23-package, 76-edge architecture guard passed.

@@ -218,3 +218,24 @@ fn external_error(error: ExternalSourceError) -> GatewayError {
 
 #[cfg(test)]
 mod tests;
+
+impl Gateway {
+    /// Evaluate the exact host window outside owner locks and recheck access
+    /// before returning its reference-bound proposals.
+    pub fn prepare_external_memory<E: reliquary_switchboard::GeneralEndpoint>(
+        &self,
+        instance: &Instance,
+        owner: OwnerId,
+        source: &dyn ExternalHostSource,
+        expected: &[ExternalMessageDescriptor],
+        endpoint: E,
+    ) -> Result<Vec<reliquary_application::ExternalMemoryProposal>, GatewayError> {
+        let namespace = self.check_external_host(instance, owner, source)?;
+        let hydrated = self.hydrate_external_source(instance, owner, source, expected)?;
+        let proposals = reliquary_application::prepare_external_memory(
+            endpoint, &namespace, expected, &hydrated,
+        );
+        self.recheck_external_host(instance, source, &namespace)?;
+        Ok(proposals.map_err(external_error)?)
+    }
+}

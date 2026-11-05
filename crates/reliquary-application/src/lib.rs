@@ -974,3 +974,6 @@ pub use external_change_feed::{
     ExternalChangeBatch, ExternalChangeKind, ExternalConversationChange,
     apply_external_change_batch,
 };
+
+mod external_processing;
+pub use external_processing::{ExternalMemoryProposal, prepare_external_memory};
