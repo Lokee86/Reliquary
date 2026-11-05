@@ -208,6 +208,39 @@ pub struct EntityResolutionProposal {
     pub outcome: ResolutionOutcome,
 }
 
+/// An owned, same-owner input captured before calling a model.
+pub struct PreparedEntityMention {
+    owner_id: [u8; 16],
+    memory_id: MemoryId,
+    memory_revision: u64,
+    body_id: MemoryBodyId,
+    body: MemoryBody,
+    mention: MentionSpan,
+    candidates: Vec<EntityCandidate>,
+    existing_resolution: Option<MemoryEntityResolution>,
+}
+
+impl PreparedEntityMention {
+    pub fn evaluate<E: GeneralEndpoint>(
+        self,
+        evaluator: &EntityModelEvaluator<E>,
+    ) -> Result<EntityResolutionProposal, EntityWorkflowError> {
+        let outcome = evaluator
+            .resolve(&self.body, &self.mention, &self.candidates)
+            .map_err(|error| EntityWorkflowError::Evaluator(error.to_string()))?;
+        Ok(EntityResolutionProposal {
+            owner_id: self.owner_id,
+            memory_id: self.memory_id,
+            memory_revision: self.memory_revision,
+            body_id: self.body_id,
+            mention: self.mention,
+            candidates: self.candidates,
+            existing_resolution: self.existing_resolution,
+            outcome,
+        })
+    }
+}
+
 /// Resolve one exact Memory span using only that owner's latest body and Entity
 /// records. The endpoint receives no cross-owner context; authorization to
 /// obtain the session remains the caller's responsibility.
@@ -216,6 +249,14 @@ pub fn resolve_memory_mention<E: GeneralEndpoint>(
     owner: EntityOwnerSession<'_>,
     input: EntityMemoryMention,
 ) -> Result<EntityResolutionProposal, EntityWorkflowError> {
+    prepare_memory_mention(owner, input)?.evaluate(evaluator)
+}
+
+/// Read and validate owner-local facts without calling the evaluator.
+pub fn prepare_memory_mention(
+    owner: EntityOwnerSession<'_>,
+    input: EntityMemoryMention,
+) -> Result<PreparedEntityMention, EntityWorkflowError> {
     let owner_id = owner.owner_id();
     if owner_id != input.owner_id {
         return Err(EntityWorkflowError::OwnerMismatch);
@@ -244,9 +285,6 @@ pub fn resolve_memory_mention<E: GeneralEndpoint>(
 
     let mut candidates = build_candidates(&owner.entities(), &mention)?;
     rank_candidates(&mut candidates);
-    let outcome = evaluator
-        .resolve(body, &mention, &candidates)
-        .map_err(|error| EntityWorkflowError::Evaluator(error.to_string()))?;
     let key = MemoryEntityMentionKey {
         memory_id: input.memory_id.0,
         field: match mention.field {
@@ -259,7 +297,7 @@ pub fn resolve_memory_mention<E: GeneralEndpoint>(
             .map_err(|_| EntityWorkflowError::InvalidMention("offset exceeds stored range"))?,
     };
     let existing_resolution = owner.mention(key);
-    Ok(EntityResolutionProposal {
+    Ok(PreparedEntityMention {
         owner_id,
         memory_id: input.memory_id,
         memory_revision: revision.record.revision,
@@ -267,7 +305,7 @@ pub fn resolve_memory_mention<E: GeneralEndpoint>(
         mention,
         candidates,
         existing_resolution,
-        outcome,
+        body: body.clone(),
     })
 }
 

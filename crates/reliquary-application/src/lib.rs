@@ -50,7 +50,7 @@ pub use dream_workflow::{
 };
 pub use entity_workflow::{
     EntityMemoryMention, EntityOwnerSession, EntityResolutionProposal, EntityWorkflowError,
-    resolve_memory_mention,
+    PreparedEntityMention, prepare_memory_mention, resolve_memory_mention,
 };
 pub use external_source_workflow::{
     ExternalSourceError, VerifiedExternalSource, verify_project_attachment,
