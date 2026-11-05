@@ -307,8 +307,8 @@
       ],
       "deliverable": "Hybrid candidate ranking, community routing and turn-scoped query/refine/traverse",
       "acceptance": "Frozen ranks/limits/selected IDs and no reinforcement on read; no hidden provider storage state",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\retrieval-confirmed-use-acceptance-2026-11-05.md"
     },
     {
       "id": "S06",
@@ -400,8 +400,8 @@
       ],
       "deliverable": "Authorized query \u2192 selection \u2192 host handoff \u2192 accepted-use receipt",
       "acceptance": "Same candidate ranking, grants checked twice; no +25 until confirmed external consumption",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\retrieval-confirmed-use-acceptance-2026-11-05.md"
     },
     {
       "id": "V05",
