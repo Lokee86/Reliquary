@@ -785,6 +785,7 @@ fn open_import_epoch_fences_direct_grouped_completion() {
         .append_start(
             &mut container,
             crate::records::ImportStart {
+                format_version: 2,
                 owner_uuid: owner,
                 import_id: crate::records::import_id(owner, &key),
                 import_key: key,
@@ -1539,6 +1540,7 @@ fn compact_dream_uses_direct_birth_intent_and_recorded_global_order() {
     let mut imports = crate::records::ImportEpochStore::open(&container).unwrap();
     let key = "cd".repeat(32);
     let start = crate::records::ImportStart {
+        format_version: 2,
         owner_uuid: owner,
         import_id: crate::records::import_id(owner, &key),
         import_key: key,
@@ -1552,17 +1554,38 @@ fn compact_dream_uses_direct_birth_intent_and_recorded_global_order() {
     };
     imports.append_start(&mut container, start.clone()).unwrap();
     use sha2::{Digest, Sha256};
+    let settlement = crate::records::ImportFreshnessSettlement {
+        owner_uuid: owner,
+        import_id: start.import_id.clone(),
+        start_digest: format!("{:x}", Sha256::digest(serde_json::to_vec(&start).unwrap())),
+        receipt_digest: crate::records::hex_digest(b"fixture-receipt"),
+        prefix_digest: crate::records::import_settlement::source_prefix_digest(&container).unwrap(),
+        rel_turn: 1,
+        global_version: container.latest_version(),
+        memory_version: start.pre.memory_version,
+        graph_version: start.pre.graph_version,
+        freshness_state_digest: crate::records::hex_digest(b"accepted-freshness"),
+        freshness_memory_count: 1,
+    };
+    imports
+        .append_settlement(&mut container, settlement.clone())
+        .unwrap();
+    let completion_version = container.latest_version();
     imports
         .append_complete(
             &mut container,
             crate::records::ImportComplete {
+                format_version: 2,
                 owner_uuid: owner,
                 import_id: start.import_id.clone(),
-                start_digest: format!("{:x}", Sha256::digest(serde_json::to_vec(&start).unwrap())),
-                receipt_digest: "receipt-v1".into(),
+                start_digest: settlement.start_digest.clone(),
+                receipt_digest: settlement.receipt_digest.clone(),
                 completed_at_ns: 2,
-                post: start.pre,
-                historical_freshness_settlement_digest: "settled-v1".into(),
+                post: crate::records::ImportWatermarks {
+                    global_version: completion_version,
+                    ..start.pre
+                },
+                historical_freshness_settlement_digest: settlement.digest().unwrap(),
             },
         )
         .unwrap();
@@ -1608,7 +1631,7 @@ fn compact_dream_uses_direct_birth_intent_and_recorded_global_order() {
     )
     .unwrap();
     for frame in &frames {
-        if !frame.payload.starts_with(b"RELIEPC1") {
+        if !frame.payload.starts_with(b"RELIEPC1") && !frame.payload.starts_with(b"RELIEPC2") {
             open_import.append(&frame.payload).unwrap();
         }
     }
@@ -1625,13 +1648,13 @@ fn compact_dream_uses_direct_birth_intent_and_recorded_global_order() {
     .unwrap();
     let import_start = frames
         .iter()
-        .find(|frame| frame.payload.starts_with(b"RELIEPS1"))
+        .find(|frame| frame.payload.starts_with(b"RELIEPS2"))
         .unwrap();
     for frame in &frames {
         if frame.payload.starts_with(b"RELMTMB1") {
             changed_cut.append(&import_start.payload).unwrap();
         }
-        if !frame.payload.starts_with(b"RELIEPS1") {
+        if !frame.payload.starts_with(b"RELIEPS2") {
             changed_cut.append(&frame.payload).unwrap();
         }
     }

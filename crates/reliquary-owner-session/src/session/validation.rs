@@ -147,7 +147,7 @@ pub(super) fn validate_grouped_replay_admission(
 }
 
 pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), OwnerSessionError> {
-    const REL_ONLY: [(&[u8; 8], &str); 25] = [
+    const REL_ONLY: [(&[u8; 8], &str); 28] = [
         (b"RELTURN2", "Archive turn"),
         (b"RELFILE1", "Archive file"),
         (b"RELBRCH1", "Archive branch"),
@@ -159,6 +159,9 @@ pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), Owner
         (b"RELFRP01", "Freshness policy"),
         (b"RELIEPS1", "import epoch start"),
         (b"RELIEPC1", "import epoch completion"),
+        (b"RELIEPS2", "import epoch start v2"),
+        (b"RELIEPC2", "import epoch completion v2"),
+        (b"RELIFRS1", "import Freshness settlement"),
         (b"RELINSW1", "Insomnia work"),
         (b"RELINSR1", "Insomnia receipt"),
         (b"RELINSC7", "grouped Insomnia completion"),

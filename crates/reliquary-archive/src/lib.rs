@@ -31,6 +31,17 @@ pub use model::{
 pub use archive::file_id_from_bytes;
 pub use archive::validate_project_file_reference;
 
+/// Identify an import receipt at its physical position during owner replay.
+pub fn import_receipt_in_frame(payload: &[u8]) -> Result<Option<ImportReceipt>, ArchiveError> {
+    if !payload.starts_with(b"CVAIMPT1") {
+        return Ok(None);
+    }
+    match codec::decode_record(payload)? {
+        Some(codec::Record::Import(receipt)) => Ok(Some(receipt)),
+        _ => Err(ArchiveError::CorruptRecord("invalid import receipt frame")),
+    }
+}
+
 /// Owner-session source facts needed to validate a physical Archive prefix.
 pub enum SourcePublication {
     Turn {

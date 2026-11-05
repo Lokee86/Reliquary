@@ -38,6 +38,7 @@ mod external_source_workflow;
 mod history_workflow;
 mod ingest_publication;
 mod maintenance_workflow;
+pub mod native_import_workflow;
 mod native_insomnia;
 mod native_insomnia_evidence;
 mod project_correlation_workflow;

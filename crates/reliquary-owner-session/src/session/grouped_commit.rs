@@ -30,15 +30,41 @@ impl RelSession {
         now_ns: i64,
         routed_receipts: &[RoutedUserMemoryReceipt],
     ) -> Result<CompletionCheck, OwnerSessionError> {
+        self.commit_scoped_grouped_completion(
+            container,
+            token,
+            completion,
+            now_ns,
+            routed_receipts,
+            None,
+        )
+    }
+
+    pub(super) fn commit_scoped_grouped_completion(
+        &mut self,
+        container: &mut Container,
+        token: InsomniaLeaseToken,
+        completion: GroupedInsomniaCompletion,
+        now_ns: i64,
+        routed_receipts: &[RoutedUserMemoryReceipt],
+        import_id: Option<&str>,
+    ) -> Result<CompletionCheck, OwnerSessionError> {
         if self.write_poisoned {
             return Err(OwnerSessionError::Record(
                 "owner session requires reopen after an uncertain grouped write".into(),
             ));
         }
-        if self.imports.open_epoch().is_some() {
-            return Err(OwnerSessionError::Record(
-                "owner mutation is fenced by an open import epoch".into(),
-            ));
+        match (self.imports.open_epoch(), import_id) {
+            (Some(epoch), Some(scope))
+                if epoch.import_id == scope
+                    && epoch.format_version == 2
+                    && self.imports.settlement(scope).is_none() => {}
+            (None, None) => {}
+            _ => {
+                return Err(OwnerSessionError::Record(
+                    "owner mutation is fenced by an open import epoch".into(),
+                ));
+            }
         }
         if container.identity().file_kind != FileKind::Reliquary {
             return Err(OwnerSessionError::WrongFileKind {
@@ -95,6 +121,17 @@ impl RelSession {
                 .ok_or(OwnerSessionError::Insomnia(
                     InsomniaError::UnacceptedEpisode,
                 ))?;
+        if import_id.is_some()
+            && (archive_episode.origin != reliquary_archive::EpisodeOrigin::Import
+                || self
+                    .insomnia
+                    .work(episode_id)
+                    .is_none_or(|work| work.priority != InsomniaPriority::Import))
+        {
+            return Err(OwnerSessionError::Record(
+                "import-scoped completion requires import-priority Archive work".into(),
+            ));
+        }
         if accepted_order.source_through_ns != archive_episode.source_through_ns
             || accepted_order.conversation_id != archive_episode.conversation_id
             || accepted_order.start_node_id != archive_episode.start_node_id

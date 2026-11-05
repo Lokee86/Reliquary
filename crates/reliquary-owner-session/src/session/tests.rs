@@ -46,6 +46,7 @@ fn open_import_epoch_fences_mutation_after_writer_reopen() {
     let mut imports = crate::records::ImportEpochStore::open(&container).unwrap();
     let key = "ab".repeat(32);
     let start = crate::records::ImportStart {
+        format_version: 2,
         owner_uuid: owner,
         import_id: crate::records::import_id(owner, &key),
         import_key: key,
@@ -76,20 +77,42 @@ fn open_import_epoch_fences_mutation_after_writer_reopen() {
     use sha2::{Digest, Sha256};
     let mut container = Container::open_writer(&path.0).unwrap();
     let mut imports = crate::records::ImportEpochStore::open(&container).unwrap();
+    let settlement = crate::records::ImportFreshnessSettlement {
+        owner_uuid: owner,
+        import_id: start.import_id.clone(),
+        start_digest: format!("{:x}", Sha256::digest(serde_json::to_vec(&start).unwrap())),
+        receipt_digest: crate::records::hex_digest(b"fixture-receipt"),
+        prefix_digest: crate::records::import_settlement::source_prefix_digest(&container).unwrap(),
+        rel_turn: 0,
+        global_version: container.latest_version(),
+        memory_version: start.pre.memory_version,
+        graph_version: start.pre.graph_version,
+        freshness_state_digest: crate::records::hex_digest(b"empty-freshness"),
+        freshness_memory_count: 0,
+    };
+    imports
+        .append_settlement(&mut container, settlement.clone())
+        .unwrap();
+    let completion_version = container.latest_version();
     imports
         .append_complete(
             &mut container,
             crate::records::ImportComplete {
+                format_version: 2,
                 owner_uuid: owner,
                 import_id: start.import_id.clone(),
-                start_digest: format!("{:x}", Sha256::digest(serde_json::to_vec(&start).unwrap())),
-                receipt_digest: "receipt-v1".into(),
+                start_digest: settlement.start_digest.clone(),
+                receipt_digest: settlement.receipt_digest.clone(),
                 completed_at_ns: 2,
-                post: start.pre,
-                historical_freshness_settlement_digest: "settled-v1".into(),
+                post: crate::records::ImportWatermarks {
+                    global_version: completion_version,
+                    ..start.pre
+                },
+                historical_freshness_settlement_digest: settlement.digest().unwrap(),
             },
         )
         .unwrap();
+    crate::records::ImportEpochStore::open(&container).expect("epoch physical replay");
     drop(container);
     let mut writer = RelWriter::open_path(&path.0, admission, [], []).unwrap();
     assert!(
@@ -461,6 +484,11 @@ fn phy_rejects_rel_only_record_families_without_mutation() {
         b"RELFRP01",
         b"RELIEPS1",
         b"RELIEPC1",
+        b"RELIEPS2",
+        b"RELIEPC2",
+        b"RELIFRS1",
+        b"CVAIMPT1",
+        b"CVAFRG01",
         b"RELINSW1",
         b"RELINSR1",
         b"RELAVFM1",

@@ -494,6 +494,7 @@ pub(crate) mod dream_prefix;
 mod external_memory;
 mod external_reference;
 mod freshness_use;
+mod native_import;
 mod vector_publication;
 pub use archive_vector_publication::{
     ArchiveVectorInput, ArchiveVectorRow, MAX_ARCHIVE_VECTOR_BATCH_ROWS,

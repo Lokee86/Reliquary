@@ -327,6 +327,14 @@ impl RelWriter {
         branch: reliquary_archive::Branch,
     ) -> Result<reliquary_archive::Node, OwnerSessionError> {
         self.ensure_write_ready()?;
+        self.accept_scoped_turn_and_advance_branch(input, branch)
+    }
+
+    pub(super) fn accept_scoped_turn_and_advance_branch(
+        &mut self,
+        input: reliquary_archive::TurnInput,
+        branch: reliquary_archive::Branch,
+    ) -> Result<reliquary_archive::Node, OwnerSessionError> {
         self.validate_turn_branch(&input, &branch)?;
         let already_on_branch = if let Some(current) = self
             .session

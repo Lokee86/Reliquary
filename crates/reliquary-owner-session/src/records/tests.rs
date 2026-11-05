@@ -64,6 +64,7 @@ fn retention(owner: [u8; 16]) -> HistoryPruneManifest {
 fn import_start(owner: [u8; 16]) -> ImportStart {
     let key = "ab".repeat(32);
     ImportStart {
+        format_version: 2,
         owner_uuid: owner,
         import_id: import_id(owner, &key),
         import_key: key,
@@ -73,15 +74,37 @@ fn import_start(owner: [u8; 16]) -> ImportStart {
         pre: ImportWatermarks::default(),
     }
 }
-fn import_complete(start: &ImportStart) -> ImportComplete {
-    ImportComplete {
+fn import_complete(
+    start: &ImportStart,
+    c: &mut Container,
+    s: &mut ImportEpochStore,
+) -> ImportComplete {
+    let settlement = ImportFreshnessSettlement {
         owner_uuid: start.owner_uuid,
         import_id: start.import_id.clone(),
         start_digest: format!("{:x}", Sha256::digest(serde_json::to_vec(start).unwrap())),
-        receipt_digest: "receipt-v1".into(),
+        receipt_digest: hex_digest(b"receipt-v1"),
+        prefix_digest: import_settlement::source_prefix_digest(c).unwrap(),
+        rel_turn: 0,
+        global_version: c.latest_version(),
+        memory_version: start.pre.memory_version,
+        graph_version: start.pre.graph_version,
+        freshness_state_digest: hex_digest(b"empty-freshness"),
+        freshness_memory_count: 0,
+    };
+    s.append_settlement(c, settlement.clone()).unwrap();
+    ImportComplete {
+        format_version: 2,
+        owner_uuid: start.owner_uuid,
+        import_id: start.import_id.clone(),
+        start_digest: settlement.start_digest.clone(),
+        receipt_digest: settlement.receipt_digest.clone(),
         completed_at_ns: 11,
-        post: start.pre,
-        historical_freshness_settlement_digest: "settled-v1".into(),
+        post: ImportWatermarks {
+            global_version: c.latest_version(),
+            ..start.pre
+        },
+        historical_freshness_settlement_digest: settlement.digest().unwrap(),
     }
 }
 
@@ -117,7 +140,7 @@ fn import_epochs_replay_order_digest_and_owner_admission() {
         start = import_start(c.owner_id());
         let mut s = ImportEpochStore::open(&c).unwrap();
         s.append_start(&mut c, start.clone()).unwrap();
-        let complete = import_complete(&start);
+        let complete = import_complete(&start, &mut c, &mut s);
         assert!(s.append_complete(&mut c, complete.clone()).unwrap());
         assert!(!s.append_complete(&mut c, complete).unwrap());
     }

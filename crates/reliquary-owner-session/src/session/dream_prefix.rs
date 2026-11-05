@@ -68,6 +68,7 @@ pub(crate) fn validate_compact_dream_prefix(
             || magic == *b"RELMTMB1"
             || magic == *b"RELFRS02"
             || magic.starts_with(b"RELIEP")
+            || magic == *b"RELIFRS1"
             || magic == *b"RELINSC7"
             || magic == *b"CVDREAM2"
             || magic == *b"RELGRF01"
@@ -86,6 +87,12 @@ pub(crate) fn validate_compact_dream_prefix(
                 .map_err(|error| OwnerSessionError::Record(error.to_string()))?;
             if magic == *b"RELFRS02" {
                 reliquary_freshness_store::validate_journal_frame(&payload, container.owner_id())
+                    .map_err(OwnerSessionError::Record)?;
+                continue;
+            }
+            if magic == *b"RELIFRS1" {
+                imports
+                    .ingest_prefix(&payload)
                     .map_err(OwnerSessionError::Record)?;
                 continue;
             }

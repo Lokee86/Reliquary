@@ -159,6 +159,7 @@ impl RelSession {
                 }))
             })?;
         let imports = ImportEpochStore::open(container).map_err(OwnerSessionError::Record)?;
+        super::native_import::validate_native_import_receipts(container, &imports)?;
         let archive_vectors = ArchiveVectorStore::open(container, &common.packed_vectors)?;
         let generations =
             VectorGenerationStore::open(container, &common.profiles, &archive_vectors)?;

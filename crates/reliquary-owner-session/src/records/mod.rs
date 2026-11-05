@@ -13,6 +13,7 @@ pub(crate) mod external_memory;
 pub(crate) mod external_reference;
 pub mod import;
 mod import_model;
+pub(crate) mod import_settlement;
 pub mod insomnia_completion;
 pub mod maintenance;
 pub mod verified_copy;
@@ -23,6 +24,7 @@ pub use external_memory::{ExternalMemoryDraft, ExternalMemoryProvenance, Externa
 pub use external_reference::{ExternalReferenceSnapshotManifest, ExternalReferenceSnapshotReceipt};
 pub use import::{ImportEpochStore, import_id};
 pub use import_model::{ImportComplete, ImportEpochStatus, ImportStart, ImportWatermarks};
+pub use import_settlement::{ImportFreshnessSettlement, hex_digest};
 pub use insomnia_completion::{
     GroupedExternalMemoryRef, GroupedInsomniaCompletion, GroupedMemoryBody,
     encode_insomnia_memory_creation,
