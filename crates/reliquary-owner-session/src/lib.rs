@@ -10,7 +10,7 @@ pub use reliquary_memory_core::MemoryId;
 pub mod model;
 pub mod records;
 pub use records::{
-    DreamBeginAdmission, DreamMemoryCut, DreamNoLinkCut, VerifiedOwnerCopyPlan,
+    DreamBeginAdmission, DreamMemoryCut, DreamNoLinkCut, DreamRelationCut, VerifiedOwnerCopyPlan,
     VerifiedOwnerCopyReceipt,
 };
 mod session;

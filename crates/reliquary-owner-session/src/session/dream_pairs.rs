@@ -1,5 +1,6 @@
 //! Compact owner-local references for evaluated unordered Dream pairs.
 use super::*;
+use crate::records::dream_group::GroupedDreamRelation;
 use std::collections::{BTreeMap, BTreeSet};
 
 const MEMORY: &[u8; 8] = b"RELDRM01";
@@ -11,6 +12,7 @@ pub(crate) struct DreamPairs {
     ids: Vec<MemoryId>,
     refs: BTreeMap<MemoryId, u32>,
     pairs: BTreeSet<(MemoryId, MemoryId)>,
+    grouped_receipts: BTreeMap<(MemoryId, MemoryId), GroupedDreamRelation>,
 }
 
 impl DreamPairs {
@@ -21,6 +23,7 @@ impl DreamPairs {
             ids: vec![],
             refs: BTreeMap::new(),
             pairs: BTreeSet::new(),
+            grouped_receipts: BTreeMap::new(),
         };
         let mut memories = BTreeSet::new();
         for frame in container.read_frames()? {
@@ -81,6 +84,18 @@ impl DreamPairs {
                     return Err(invalid());
                 }
                 state.pairs.insert((left, right));
+            } else if let Some(group) =
+                GroupedDreamRelation::decode(payload).map_err(OwnerSessionError::Record)?
+            {
+                let (left, right) = group.pair();
+                if !memories.contains(&left) || !memories.contains(&right) {
+                    return Err(invalid());
+                }
+                let pair = ordered(left, right);
+                if !state.pairs.insert(pair) || state.grouped_receipts.insert(pair, group).is_some()
+                {
+                    return Err(invalid());
+                }
             } else if payload.starts_with(b"RELDRM") || payload.starts_with(b"RELDRP") {
                 return Err(invalid());
             }
@@ -95,6 +110,27 @@ impl DreamPairs {
             } else {
                 (right, left)
             })
+    }
+
+    pub(crate) fn grouped_receipt(
+        &self,
+        left: MemoryId,
+        right: MemoryId,
+    ) -> Option<GroupedDreamRelation> {
+        self.grouped_receipts.get(&ordered(left, right)).copied()
+    }
+
+    pub(crate) fn apply_grouped(
+        &mut self,
+        group: GroupedDreamRelation,
+    ) -> Result<(), OwnerSessionError> {
+        let (left, right) = group.pair();
+        let pair = ordered(left, right);
+        if !self.pairs.insert(pair) {
+            return Err(invalid());
+        }
+        self.grouped_receipts.insert(pair, group);
+        Ok(())
     }
 
     pub(super) fn append(
@@ -153,6 +189,10 @@ impl DreamPairs {
         self.refs.insert(id, reference);
         Ok(reference)
     }
+}
+
+fn ordered(a: MemoryId, b: MemoryId) -> (MemoryId, MemoryId) {
+    if a < b { (a, b) } else { (b, a) }
 }
 
 fn invalid() -> OwnerSessionError {

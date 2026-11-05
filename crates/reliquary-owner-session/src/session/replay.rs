@@ -71,7 +71,11 @@ pub(super) fn open_common(
         [],
         [],
     );
-    let graph = GraphStore::open(container, &derived_admission)?;
+    let graph = GraphStore::open_with_grouped_dream(container, &derived_admission, |payload| {
+        crate::records::dream_group::GroupedDreamRelation::decode(payload)
+            .map(|record| record.map(|record| record.relation()))
+            .map_err(|_| GraphError::CorruptRecord("invalid grouped Dream carrier"))
+    })?;
     validate_graph_prefix(container)?;
     for relation in graph.history() {
         for node in [relation.source, relation.target] {
@@ -146,6 +150,7 @@ pub(super) fn open_common(
 fn validate_graph_prefix(container: &Container) -> Result<(), OwnerSessionError> {
     let mut memories = std::collections::BTreeSet::new();
     let mut memory_bodies = std::collections::BTreeSet::new();
+    let mut birth_bodies = std::collections::BTreeMap::new();
     let mut profiles = std::collections::BTreeSet::new();
     let mut packed_vectors = std::collections::BTreeSet::new();
     let mut entities = std::collections::BTreeSet::new();
@@ -158,6 +163,9 @@ fn validate_graph_prefix(container: &Container) -> Result<(), OwnerSessionError>
             let record = reliquary_memory_core::decode_grouped_creation(payload)?;
             memories.insert(record.id.0);
             memory_bodies.insert(record.body_id.0);
+            if record.revision == 1 {
+                birth_bodies.insert(record.id.0, record.body_id.0);
+            }
         } else if payload.starts_with(b"RELINSC7") {
             let completion =
                 GroupedInsomniaCompletion::decode(payload).map_err(OwnerSessionError::Record)?;
@@ -165,6 +173,9 @@ fn validate_graph_prefix(container: &Container) -> Result<(), OwnerSessionError>
                 let record = reliquary_memory_core::decode_grouped_creation(&record)?;
                 memories.insert(record.id.0);
                 memory_bodies.insert(record.body_id.0);
+                if record.revision == 1 {
+                    birth_bodies.insert(record.id.0, record.body_id.0);
+                }
             }
         }
         if let Some(profile) = reliquary_vector_store::profile::decode_profile(payload)? {
@@ -216,6 +227,21 @@ fn validate_graph_prefix(container: &Container) -> Result<(), OwnerSessionError>
                 }
             }
             graph_version = relation.graph_version;
+        } else if let Some(group) =
+            crate::records::dream_group::GroupedDreamRelation::decode(payload)
+                .map_err(OwnerSessionError::Record)?
+        {
+            if group.0.owner_id != container.owner_id()
+                || group.0.graph_version != graph_version
+                || [group.0.source, group.0.candidate]
+                    .iter()
+                    .any(|observed| birth_bodies.get(&observed.id.0) != Some(&observed.body_id.0))
+            {
+                return Err(OwnerSessionError::Record(
+                    "grouped Dream relation lacks owner physical-prefix proof".into(),
+                ));
+            }
+            graph_version = group.relation().graph_version;
         }
         if reliquary_graph::community_graph_version_in_frame(payload)?
             .is_some_and(|version| version > graph_version)

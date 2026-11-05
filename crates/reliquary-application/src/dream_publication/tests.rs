@@ -212,3 +212,63 @@ fn no_link_commit_rechecks_current_graph_cut_before_writing() {
     drop(writer);
     assert_eq!(fs::read(&path.0).unwrap(), before);
 }
+
+#[test]
+fn positive_relation_and_pair_reopen_together_and_retry_is_byte_stable() {
+    let (path, owner, a, b) = fixture();
+    let draft = proposal(&path, owner, a, b, false);
+    let [change] = draft.plan.relation_changes.as_slice() else {
+        panic!("one positive Dream effect expected")
+    };
+    assert!(draft.plan.lifecycle_intents.is_empty());
+    let mut writer =
+        reliquary_owner_session::PhyWriter::open_path(&path.0, &admission(owner), []).unwrap();
+    assert!(commit_dream_relation(&mut DreamOwnerWriter::Phy(&mut writer), owner, &draft).unwrap());
+    drop(writer);
+    let reopened = PhySession::open_path(&path.0, &admission(owner), []).unwrap();
+    assert!(reopened.dream_pair_evaluated(a, b));
+    let relation = reopened
+        .graph_relation(change.source, change.target, change.kind)
+        .unwrap();
+    assert!(relation.active);
+    assert_eq!(relation.origin, RelationOrigin::Dream);
+    assert_eq!(reopened.graph_version(), draft.graph_version + 1);
+    drop(reopened);
+    let accepted = fs::read(&path.0).unwrap();
+    let mut retry =
+        reliquary_owner_session::PhyWriter::open_path(&path.0, &admission(owner), []).unwrap();
+    assert!(!commit_dream_relation(&mut DreamOwnerWriter::Phy(&mut retry), owner, &draft).unwrap());
+    drop(retry);
+    assert_eq!(fs::read(&path.0).unwrap(), accepted);
+}
+
+#[test]
+fn positive_relation_rejects_stale_memory_and_wrong_owner_without_writes() {
+    let (path, owner, a, b) = fixture();
+    let draft = proposal(&path, owner, a, b, false);
+    let original = fs::read(&path.0).unwrap();
+    let mut writer =
+        reliquary_owner_session::PhyWriter::open_path(&path.0, &admission(owner), []).unwrap();
+    assert_eq!(
+        commit_dream_relation(&mut DreamOwnerWriter::Phy(&mut writer), [98; 16], &draft),
+        Err(DreamWorkflowError::OwnerMismatch)
+    );
+    drop(writer);
+    assert_eq!(fs::read(&path.0).unwrap(), original);
+    let mut container = Container::open_writer(&path.0).unwrap();
+    let mut memories = MemoryStore::open(&container).unwrap();
+    memories
+        .publish(&mut container, Some(a), 1, memory("positive-stale-update"))
+        .unwrap();
+    container.sync().unwrap();
+    drop(container);
+    let before = fs::read(&path.0).unwrap();
+    let mut writer =
+        reliquary_owner_session::PhyWriter::open_path(&path.0, &admission(owner), []).unwrap();
+    assert_eq!(
+        commit_dream_relation(&mut DreamOwnerWriter::Phy(&mut writer), owner, &draft),
+        Err(DreamWorkflowError::StaleSnapshot)
+    );
+    drop(writer);
+    assert_eq!(fs::read(&path.0).unwrap(), before);
+}

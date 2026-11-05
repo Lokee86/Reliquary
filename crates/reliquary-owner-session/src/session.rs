@@ -425,5 +425,6 @@ mod replay;
 mod validation;
 use replay::*;
 use validation::*;
+mod dream_group;
 mod dream_no_link;
 mod grouped_commit;

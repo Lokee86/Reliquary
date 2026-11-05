@@ -28,7 +28,7 @@ mod retrieval_workflow;
 mod vector_workflow;
 mod verified_copy_workflow;
 pub use dream_candidates::{draft_ranked_dream_organization, ranked_owner_dream_candidates};
-pub use dream_publication::{DreamOwnerWriter, commit_dream_zero_link};
+pub use dream_publication::{DreamOwnerWriter, commit_dream_relation, commit_dream_zero_link};
 pub use dream_workflow::{
     DreamOrganizationDraft, DreamWorkflowError, MAX_DREAM_CANDIDATES, draft_dream_organization,
 };

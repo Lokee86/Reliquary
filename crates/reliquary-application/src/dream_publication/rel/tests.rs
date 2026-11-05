@@ -181,3 +181,83 @@ fn rel_no_link_commit_rejects_stale_memory_revision_without_mutation() {
     drop(writer);
     assert_eq!(fs::read(&file.0).unwrap(), before);
 }
+
+struct PositiveEndpoint;
+impl GeneralEndpoint for PositiveEndpoint {
+    fn model(&self) -> &str {
+        "dream-rel-positive"
+    }
+    fn complete_json(
+        &self,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: &Value,
+    ) -> Result<Value, GeneralEndpointError> {
+        Ok(json!({
+            "relation":"topical","direction":"undirected",
+            "evidence":[
+                {"side":"a","quote":"Maintenance"},
+                {"side":"b","quote":"Maintenance"}
+            ]
+        }))
+    }
+}
+
+#[test]
+fn rel_grouped_positive_relation_and_pair_replay_and_retry() {
+    let file = Temp::new();
+    let owner = [174; 16];
+    drop(RelWriter::create_path(&file.0, ReliquaryScope::Project, owner).unwrap());
+    let mut container = Container::open_writer(&file.0).unwrap();
+    let mut memories = MemoryStore::open(&container).unwrap();
+    let a = memories
+        .publish(&mut container, None, 0, draft("rel-positive-a"))
+        .unwrap()
+        .revision
+        .record
+        .id;
+    let b = memories
+        .publish(&mut container, None, 0, draft("rel-positive-b"))
+        .unwrap()
+        .revision
+        .record
+        .id;
+    container.sync().unwrap();
+    drop(container);
+    let session = RelSession::open_path(&file.0, &admission(owner), [], []).unwrap();
+    let proposal = draft_dream_organization(
+        &EntityOwnerSession::Rel(&session),
+        owner,
+        a,
+        &[b],
+        &DreamClassifier::new(PositiveEndpoint),
+        None::<&DreamVerifier<PositiveEndpoint>>,
+        DreamVerificationPolicy::default(),
+    )
+    .unwrap();
+    let [change] = proposal.plan.relation_changes.as_slice() else {
+        panic!("expected one relation")
+    };
+    drop(session);
+    let mut writer = RelWriter::open_path(&file.0, admission(owner), [], []).unwrap();
+    assert!(
+        commit_dream_relation(&mut DreamOwnerWriter::Rel(&mut writer), owner, &proposal).unwrap()
+    );
+    drop(writer);
+    let session = RelSession::open_path(&file.0, &admission(owner), [], []).unwrap();
+    assert!(session.dream_pair_evaluated(a, b));
+    let relation = session
+        .graph_relation(change.source, change.target, change.kind)
+        .unwrap();
+    assert_eq!(relation.origin, RelationOrigin::Dream);
+    assert!(relation.active);
+    drop(session);
+    let committed = fs::read(&file.0).unwrap();
+    let mut retry = RelWriter::open_path(&file.0, admission(owner), [], []).unwrap();
+    assert!(
+        !commit_dream_relation(&mut DreamOwnerWriter::Rel(&mut retry), owner, &proposal).unwrap()
+    );
+    drop(retry);
+    assert_eq!(fs::read(&file.0).unwrap(), committed);
+}

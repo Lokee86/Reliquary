@@ -181,6 +181,16 @@ pub struct GraphStore {
 
 impl GraphStore {
     pub fn open(container: &Container, admission: &GraphAdmission) -> Result<Self, GraphError> {
+        Self::open_with_grouped_dream(container, admission, |_| Ok(None))
+    }
+
+    /// Owner-session supplies the decoder for its atomic Dream carrier. Bare
+    /// Graph readers fail closed rather than silently dropping grouped effects.
+    pub fn open_with_grouped_dream(
+        container: &Container,
+        admission: &GraphAdmission,
+        mut grouped: impl FnMut(&[u8]) -> Result<Option<Relation>, GraphError>,
+    ) -> Result<Self, GraphError> {
         if admission.owner_id != Some(container.owner_id()) {
             return Err(GraphError::InvalidClosure(
                 "admission belongs to another owner",
@@ -201,9 +211,70 @@ impl GraphStore {
                     return Err(GraphError::WrongOwner);
                 }
                 store.apply_replay(relation, admission)?;
+            } else if frame.payload.starts_with(b"RELDRG") {
+                let relation = grouped(&frame.payload)?.ok_or(GraphError::CorruptRecord(
+                    "grouped Dream requires owner replay",
+                ))?;
+                store.validate_grouped_relation(admission, relation)?;
+                store.apply_replay(relation, admission)?;
             }
         }
         Ok(store)
+    }
+    /// Validate a caller-owned, already-encoded relation before its grouped
+    /// physical commit; the owner-session holds the writer lease.
+    pub fn validate_grouped_relation(
+        &self,
+        admission: &GraphAdmission,
+        relation: Relation,
+    ) -> Result<(), GraphError> {
+        if admission.owner_id != Some(self.owner) {
+            return Err(GraphError::WrongOwner);
+        }
+        validate_change(
+            admission,
+            RelationChange {
+                source: relation.source,
+                target: relation.target,
+                kind: relation.kind,
+                active: relation.active,
+                origin: relation.origin,
+            },
+            false,
+        )?;
+        if !relation.active || relation.origin != RelationOrigin::Dream {
+            return Err(GraphError::InvalidRelation(
+                "grouped Dream effect must be active Dream",
+            ));
+        }
+        if relation.graph_version
+            != self
+                .graph_version
+                .checked_add(1)
+                .ok_or(GraphError::VersionExhausted)?
+        {
+            return Err(GraphError::CorruptRecord(
+                "stale grouped Dream Graph version",
+            ));
+        }
+        if self
+            .relation(relation.source, relation.target, relation.kind)
+            .is_some_and(|existing| existing.origin == RelationOrigin::User)
+        {
+            return Err(GraphError::InvalidRelation(
+                "Dream cannot replace user-origin relation",
+            ));
+        }
+        Ok(())
+    }
+    /// Apply only after owner-session has synced the complete grouped carrier.
+    pub fn apply_grouped_relation(
+        &mut self,
+        admission: &GraphAdmission,
+        relation: Relation,
+    ) -> Result<(), GraphError> {
+        self.validate_grouped_relation(admission, relation)?;
+        self.apply_relation(relation)
     }
     pub fn graph_version(&self) -> u64 {
         self.graph_version

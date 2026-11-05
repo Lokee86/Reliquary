@@ -5,7 +5,7 @@ use super::*;
 use crate::records::{DreamMemoryCut, DreamNoLinkCut};
 use reliquary_memory_core::PayloadState;
 
-fn validate_memory(
+pub(super) fn validate_memory(
     common: &CommonState,
     observed: DreamMemoryCut,
 ) -> Result<(), OwnerSessionError> {

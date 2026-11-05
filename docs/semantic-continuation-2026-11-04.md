@@ -11,7 +11,7 @@
 
 G2 remains unaccepted. Native routing, Dream, Entity, Retrieval, vector/context, import/history and external-source vertical workflows retain their own acceptance criteria.
 
-**V02 publication update:** [V02 progress evidence](v02-dream-publication-progress-2026-11-04.md) records a checked, durable **single-pair zero-link** admission for REL/PHY, with current-cut validation and idempotent replay. V02 is **not accepted**: grouped Graph/Memory lifecycle/first-cycle Freshness publication is still missing; the implementation explicitly refuses those effects rather than issuing uncoordinated store writes.
+**V02 publication update:** [V02 progress evidence](v02-dream-publication-progress-2026-11-04.md) now records both a checked **single-pair zero-link** admission and a separately admitted **single positive Dream relation plus evaluated-pair receipt in one recoverable frame** for REL/PHY, with owner-cut validation and byte-stable retry. A simulated post-sync, pre-projection interruption reopens both Graph and pair effects. The locked offline workspace suite passed **395 tests** with no failures; architecture remains 23 packages and 76 production edges. V02 is **not accepted**: multi-effect relation/lifecycle publication, first-cycle Freshness settlement, model temporal policy and bounded read cost remain missing; unsupported effects fail closed.
 
 ## Historical S03 owner-backed Dream ranking checkpoint — 2026-11-04 (superseded by S03 acceptance above)
 
