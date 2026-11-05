@@ -58,3 +58,11 @@ The PHY fixture proves a same-owner match, rejects a foreign owner and a stale E
 V03 remains in progress. New identities still need the evaluator's separate admission outcome wired into a recoverable owner publication. Candidate discovery currently uses same-owner name and alias evidence. Source, lexical, and Graph evidence lanes and the remaining S04 acceptance review are open.
 
 The locked offline workspace passed 446 tests across 47 suites with local loopback for mock HTTP servers. Workspace compilation, formatting, whitespace, and the 23-package, 76-edge architecture guard passed.
+
+## S04 evaluator acceptance and V03 new-Entity recovery
+
+S04 meets its evaluator criteria. S01 and C05 are accepted. Fixtures verify exact UTF-8 body/span binding, candidate identity and kind checks, ambiguity, and merge proposals tied to two current revisions and an explicit same-identity judgment. The admission evaluator requires an explicit supported materialization before creating an identity. Generic, transient, and recurrence-gated cases do not fabricate one.
+
+For V03, Application now invokes the separate admission pass outside the owner lock. Owner-session rechecks the Memory and mention revisions, rejects a matching Entity that appeared during inference, and syncs the admitted Entity before linking the mention. The Entity's source-bound mutation ID allows an exact retry to resume from the first synced record. The PHY fixture simulates that interruption, proves the retry uses revision one of the existing Entity, and reopens the final mention receipt. The generic creation path conservatively refuses competing names or aliases.
+
+The locked offline workspace passed 447 tests across 47 suites with local loopback for mock HTTP servers. Compilation, formatting, whitespace, and the architecture check passed. The approved graph remains 23 packages and 76 edges. V03 still needs owner-derived source, lexical, and Graph candidate evidence and the corresponding end-to-end acceptance proof.

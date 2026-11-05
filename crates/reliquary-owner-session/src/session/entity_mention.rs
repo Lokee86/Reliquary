@@ -1,7 +1,7 @@
 use super::*;
 use reliquary_memory_core::PayloadState;
 use reliquary_perception_store::{
-    MemoryEntityResolutionStatus, MemoryTextField, PRINCIPAL_ENTITY_KIND,
+    EntityDraft, MemoryEntityResolutionStatus, MemoryTextField, PRINCIPAL_ENTITY_KIND,
 };
 
 /// A source-bound mention publication against one owner and revision.
@@ -16,12 +16,13 @@ pub struct EntityMentionCommit {
     pub updated_at_ns: i64,
     pub status: MemoryEntityResolutionStatus,
     pub target_revisions: Vec<(EntityId, u64)>,
+    pub new_entity: Option<(String, String)>,
 }
 
 fn commit(
     common: &mut CommonState,
     container: &mut Container,
-    request: EntityMentionCommit,
+    mut request: EntityMentionCommit,
 ) -> Result<MemoryEntityResolution, OwnerSessionError> {
     if request.owner_id != container.owner_id() {
         return Err(OwnerSessionError::Record(
@@ -45,6 +46,98 @@ fn commit(
             != Some(request.surface.as_str())
     {
         return Err(OwnerSessionError::Record("mention source changed".into()));
+    }
+
+    if let Some((kind, summary)) = request.new_entity.take() {
+        let MemoryEntityResolutionStatus::Unresolved { reason } = request.status else {
+            return Err(OwnerSessionError::Record(
+                "invalid Entity creation command".into(),
+            ));
+        };
+        if kind == PRINCIPAL_ENTITY_KIND
+            || kind == "unknown"
+            || !request.target_revisions.is_empty()
+        {
+            return Err(OwnerSessionError::Record(
+                "invalid generic Entity kind or target".into(),
+            ));
+        }
+        let mutation_id = format!(
+            "entity-mention:{}:{}:{}:{}",
+            request
+                .key
+                .memory_id
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>(),
+            match request.key.field {
+                MemoryTextField::Title => "title",
+                MemoryTextField::Content => "content",
+            },
+            request.key.start_byte,
+            request.key.end_byte,
+        );
+        let existing = common.perception.mention(request.key);
+        let actual = existing.map_or(0, |value| value.revision);
+        if actual != request.expected_revision {
+            if let Some(current) = existing {
+                if current.revision.checked_sub(1) == Some(request.expected_revision)
+                    && current.updated_at_ns == request.updated_at_ns
+                    && let MemoryEntityResolutionStatus::Resolved {
+                        entity_id,
+                        reason: stored_reason,
+                    } = current.status
+                    && stored_reason == reason
+                    && common.perception.entity(entity_id).is_some_and(|entity| {
+                        entity.mutation_id == mutation_id
+                            && entity.canonical_name == request.surface
+                            && entity.kind == kind
+                            && entity.summary == summary
+                    })
+                {
+                    return Ok(current.clone());
+                }
+            }
+            return Err(OwnerSessionError::Record(
+                "mention revision changed before Entity creation".into(),
+            ));
+        }
+        if actual == u32::MAX
+            || existing.is_some_and(|value| value.updated_at_ns > request.updated_at_ns)
+        {
+            return Err(OwnerSessionError::Record(
+                "mention cannot advance before Entity creation".into(),
+            ));
+        }
+        let normalized = normalize_surface(&request.surface);
+        if common.perception.entities().any(|entity| {
+            entity.kind != PRINCIPAL_ENTITY_KIND
+                && entity.mutation_id != mutation_id
+                && std::iter::once(&entity.canonical_name)
+                    .chain(&entity.aliases)
+                    .any(|name| normalize_surface(name) == normalized)
+        }) {
+            return Err(OwnerSessionError::Record(
+                "matching Entity appeared before creation".into(),
+            ));
+        }
+        let entity = common.perception.publish_entity(
+            container,
+            EntityDraft {
+                canonical_name: request.surface.clone(),
+                aliases: vec![],
+                kind,
+                summary,
+                mutation_id,
+                created_at_ns: memory.record.created_at_ns,
+                updated_at_ns: memory.record.created_at_ns,
+            },
+        )?;
+        request.status = MemoryEntityResolutionStatus::Resolved {
+            entity_id: entity.id,
+            reason,
+        };
+        request.target_revisions.push((entity.id, entity.revision));
     }
 
     let targets = match &request.status {
@@ -87,6 +180,14 @@ fn commit(
         request.updated_at_ns,
         request.status,
     )?)
+}
+
+fn normalize_surface(value: &str) -> String {
+    value
+        .chars()
+        .filter(|ch| ch.is_alphanumeric())
+        .flat_map(char::to_lowercase)
+        .collect()
 }
 
 impl RelWriter {

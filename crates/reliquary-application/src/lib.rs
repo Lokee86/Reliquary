@@ -656,6 +656,7 @@ mod tests {
                 reason: EntityResolutionReason::InsufficientEvidence,
             },
             target_revisions: vec![],
+            new_entity: None,
         };
         let mut wrong_body = command.clone();
         wrong_body.body_id = memory_body_id("different", "body");

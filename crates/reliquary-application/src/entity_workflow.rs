@@ -206,6 +206,7 @@ pub struct EntityResolutionProposal {
     candidates: Vec<EntityCandidate>,
     existing_resolution: Option<MemoryEntityResolution>,
     outcome: ResolutionOutcome,
+    admission: Option<reliquary_entity_resolution::EntityAdmissionMaterialization>,
 }
 
 impl EntityResolutionProposal {
@@ -253,11 +254,9 @@ impl EntityResolutionProposal {
                     reason: self.outcome.reason,
                 }
             }
-            ResolutionDecision::CreateNew => {
-                return Err(EntityWorkflowError::Evaluator(
-                    "new Entity identity requires a separate owner admission".into(),
-                ));
-            }
+            ResolutionDecision::CreateNew => MemoryEntityResolutionStatus::Unresolved {
+                reason: self.outcome.reason,
+            },
         };
         let targets = match &status {
             MemoryEntityResolutionStatus::Resolved { entity_id, .. } => {
@@ -291,6 +290,9 @@ impl EntityResolutionProposal {
             updated_at_ns,
             status,
             target_revisions,
+            new_entity: self
+                .admission
+                .map(|admission| (admission.kind, admission.summary)),
         })
     }
 }
@@ -319,9 +321,27 @@ impl PreparedEntityMention {
         self,
         evaluator: &EntityModelEvaluator<E>,
     ) -> Result<EntityResolutionProposal, EntityWorkflowError> {
-        let outcome = evaluator
+        let mut outcome = evaluator
             .resolve(&self.body, &self.mention, &self.candidates)
             .map_err(|error| EntityWorkflowError::Evaluator(error.to_string()))?;
+        let admission =
+            if outcome.decision == reliquary_entity_resolution::ResolutionDecision::CreateNew {
+                let admission = evaluator
+                    .admit(&self.body, &self.mention, &[])
+                    .map_err(|error| EntityWorkflowError::Evaluator(error.to_string()))?;
+                outcome.reason = admission.reason;
+                if admission.materialization.is_none() {
+                    outcome.decision = match admission.decision {
+                        reliquary_entity_resolution::AdmissionDecision::Reject => {
+                            reliquary_entity_resolution::ResolutionDecision::Reject
+                        }
+                        _ => reliquary_entity_resolution::ResolutionDecision::Unresolved,
+                    };
+                }
+                admission.materialization
+            } else {
+                None
+            };
         Ok(EntityResolutionProposal {
             owner_id: self.owner_id,
             memory_id: self.memory_id,
@@ -331,6 +351,7 @@ impl PreparedEntityMention {
             candidates: self.candidates,
             existing_resolution: self.existing_resolution,
             outcome,
+            admission,
         })
     }
 }
@@ -559,6 +580,108 @@ mod tests {
                 "mention_kind":"tool"
             }))
         }
+    }
+
+    struct AdmissionEndpoint;
+    impl GeneralEndpoint for AdmissionEndpoint {
+        fn model(&self) -> &str {
+            "entity-admission-fixture"
+        }
+        fn complete_json(
+            &self,
+            _prompt: &str,
+            _payload: &str,
+            schema: &str,
+            _shape: &Value,
+        ) -> Result<Value, GeneralEndpointError> {
+            Ok(match schema {
+                "entity_resolution" => json!({
+                    "decision":"create_new", "reason":"named_referent", "target_candidate_index":-1,
+                    "identity_relation":"related_distinct", "mention_kind":"tool"
+                }),
+                "entity_admission" => json!({
+                    "decision":"create_new", "reason":"first_seen_identity", "promotion_policy":"immediate",
+                    "entity_kind":"tool", "entity_summary":"Atlas is the migration tool."
+                }),
+                other => panic!("unexpected schema: {other}"),
+            })
+        }
+    }
+
+    #[test]
+    fn admitted_entity_and_mention_survive_phy_reopen_and_retry() {
+        let (path, session, memory_id, _, _) = phy_session(
+            [91; 16],
+            "Atlas is the migration tool.",
+            "Other tool",
+            "An unrelated tool.",
+        );
+        let owner_id = session.owner_id();
+        let proposal = resolve_memory_mention(
+            &EntityModelEvaluator::new(AdmissionEndpoint),
+            EntityOwnerSession::Phy(&session),
+            EntityMemoryMention {
+                owner_id,
+                memory_id,
+                field: TextField::Content,
+                start_byte: 0,
+                end_byte: 5,
+                text: "Atlas".into(),
+            },
+        )
+        .unwrap();
+        let command = proposal.into_mention_commit(10).unwrap();
+        assert!(command.new_entity.is_some());
+        drop(session);
+        // Materialize only the first synced record to model interruption
+        // between Entity creation and mention publication.
+        let mut container =
+            Container::open_writer_as(&path.0, reliquary_container::FileKind::Phylactery).unwrap();
+        let mut store = PerceptionStore::open(&container).unwrap();
+        let creation = store
+            .publish_entity(
+                &mut container,
+                EntityDraft {
+                    canonical_name: "Atlas".into(),
+                    aliases: vec![],
+                    kind: "tool".into(),
+                    summary: "Atlas is the migration tool.".into(),
+                    mutation_id: format!(
+                        "entity-mention:{}:content:0:5",
+                        memory_id
+                            .0
+                            .iter()
+                            .map(|byte| format!("{byte:02x}"))
+                            .collect::<String>(),
+                    ),
+                    created_at_ns: 1,
+                    updated_at_ns: 1,
+                },
+            )
+            .unwrap();
+        drop(store);
+        drop(container);
+        let admission = GraphAdmission::for_replay(owner_id, [], [], [], [], []);
+        let mut writer =
+            reliquary_owner_session::PhyWriter::open_path(&path.0, &admission, []).unwrap();
+        let resolution = writer.commit_entity_mention(command.clone()).unwrap();
+        drop(writer);
+        let mut writer =
+            reliquary_owner_session::PhyWriter::open_path(&path.0, &admission, []).unwrap();
+        assert_eq!(writer.commit_entity_mention(command).unwrap(), resolution);
+        drop(writer);
+        let session = PhySession::open_path(&path.0, &admission, []).unwrap();
+        let reliquary_owner_session::model::MemoryEntityResolutionStatus::Resolved {
+            entity_id,
+            ..
+        } = resolution.status
+        else {
+            panic!("admitted Entity did not resolve the mention");
+        };
+        assert_eq!(entity_id, creation.id);
+        assert_eq!(session.entity(entity_id).unwrap().revision, 1);
+        assert_eq!(session.entity(entity_id).unwrap().canonical_name, "Atlas");
+        assert_eq!(session.mention(resolution.key), Some(&resolution));
     }
 
     fn owner_memory_draft(content: &str, mutation_id: &str) -> MemoryDraft {
