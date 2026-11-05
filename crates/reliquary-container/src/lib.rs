@@ -1201,6 +1201,25 @@ mod tests {
         let d = Dir::new();
         let p = d.0.join("cross-process.rel");
         drop(Container::create(&p, rel(), [7; 16]).unwrap());
+        let hardlink = d.0.join("cross-process-hardlink.rel");
+        fs::hard_link(&p, &hardlink).unwrap();
+        let symlink = d.0.join("cross-process-symlink.rel");
+        #[cfg(unix)]
+        let symlink_created = {
+            std::os::unix::fs::symlink(&p, &symlink).unwrap();
+            true
+        };
+        #[cfg(windows)]
+        let symlink_created = match std::os::windows::fs::symlink_file(&p, &symlink) {
+            Ok(()) => true,
+            Err(error) if error.kind() == io::ErrorKind::PermissionDenied => {
+                eprintln!(
+                    "symlink creation requires a Windows privilege; hardlink is still tested"
+                );
+                false
+            }
+            Err(error) => panic!("failed to create symlink fixture: {error}"),
+        };
 
         let mut child = Command::new(std::env::current_exe().unwrap())
             .args([
@@ -1228,6 +1247,25 @@ mod tests {
             Container::open_read_only(&p),
             Err(ContainerError::WriterConflict)
         );
+        let aliases = std::iter::once(&hardlink).chain(symlink_created.then_some(&symlink));
+        for alias in aliases {
+            assert!(
+                matches!(
+                    Container::open_read_only(alias),
+                    Err(ContainerError::WriterConflict)
+                ),
+                "reader entered through alias {}",
+                alias.display()
+            );
+            assert!(
+                matches!(
+                    Container::open_writer(alias),
+                    Err(ContainerError::WriterConflict)
+                ),
+                "writer entered through alias {}",
+                alias.display()
+            );
+        }
         child.stdin.take().unwrap().write_all(b"x").unwrap();
         let status = child.wait().unwrap();
         assert!(ready, "child process failed to acquire its writer lease");
@@ -1236,5 +1274,11 @@ mod tests {
             conflict,
             "a reader entered while another process held the writer lease"
         );
+        for alias in std::iter::once(&hardlink).chain(symlink_created.then_some(&symlink)) {
+            assert!(
+                Container::open_read_only(alias).is_ok(),
+                "alias did not reopen after release"
+            );
+        }
     }
 }

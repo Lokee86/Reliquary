@@ -108,3 +108,81 @@ fn detector_returns_original_byte_span_and_normalized_token() {
     );
     assert_eq!(indication.evidence, "mnoths");
 }
+
+#[test]
+fn retained_calendar_edges_handle_hemispheres_and_leap_day_clamping() {
+    let seasons = analyze(
+        "Northern spring 2027 and southern hemisphere summer 2027.",
+        None,
+    );
+    for (start, end) in [
+        ((2027, Month::March, 1), (2027, Month::June, 1)),
+        ((2027, Month::December, 1), (2028, Month::March, 1)),
+    ] {
+        assert!(seasons.anchors.iter().any(|anchor| {
+            anchor.granularity == TemporalGranularity::Season
+                && anchor.start_ns == day_start_ns(start.0, start.1, start.2)
+                && anchor.end_ns == day_start_ns(end.0, end.1, end.2)
+        }));
+    }
+    assert!(
+        !analyze("The work starts in spring 2027.", None)
+            .anchors
+            .iter()
+            .any(|anchor| anchor.granularity == TemporalGranularity::Season)
+    );
+
+    for (source, reference, expected) in [
+        (
+            "in one month",
+            (2024, Month::January, 31),
+            (2024, Month::February, 29),
+        ),
+        (
+            "one month ago",
+            (2024, Month::March, 31),
+            (2024, Month::February, 29),
+        ),
+        (
+            "in one year",
+            (2024, Month::February, 29),
+            (2025, Month::February, 28),
+        ),
+    ] {
+        let reference_ns = timestamp_ns(reference.0, reference.1, reference.2, 12);
+        let result = analyze(source, Some(reference_ns));
+        assert_eq!(
+            result.anchors.first().map(|anchor| anchor.start_ns),
+            Some(day_start_ns(expected.0, expected.1, expected.2)),
+            "{source}"
+        );
+    }
+}
+
+#[test]
+fn retained_clock_edges_normalize_meridiem_without_fabricating_a_date() {
+    let assessment = super::assess(
+        "Starts 12:00 AM, pauses 12:00 PM, resumes 6:45:30 pm.",
+        None,
+    );
+    assert!(assessment.analysis.anchors.is_empty());
+    let times = &assessment.analysis.times_of_day;
+    assert_eq!(times.len(), 3);
+    assert_eq!((times[0].hour, times[0].minute, times[0].second), (0, 0, 0));
+    assert_eq!(
+        (times[1].hour, times[1].minute, times[1].second),
+        (12, 0, 0)
+    );
+    assert_eq!(
+        (times[2].hour, times[2].minute, times[2].second),
+        (18, 45, 30)
+    );
+    assert_eq!(times[2].precision, super::TemporalClockPrecision::Second);
+
+    let invalid = super::assess("Call at 13:75 PM.", None);
+    assert!(invalid.analysis.times_of_day.is_empty());
+    assert_eq!(
+        invalid.resolution.status,
+        super::TemporalResolutionStatus::Unresolved
+    );
+}

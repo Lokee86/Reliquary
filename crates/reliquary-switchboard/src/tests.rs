@@ -429,3 +429,43 @@ fn configured_embedding_http_is_authenticated_bounded_and_decodes_indices() {
 fn body_string_oversize() -> &'static str {
     "01234567890123456789"
 }
+
+#[test]
+fn codex_stream_rejects_failed_incomplete_and_truncated_responses() {
+    for (body, provider_failed) in [
+        (
+            "data: {\"type\":\"response.output_text.delta\",\"delta\":\"{\\\"ok\\\":true}\"}\n\ndata: {\"type\":\"response.failed\"}\n\n",
+            true,
+        ),
+        ("data: {\"type\":\"response.incomplete\"}\n\n", true),
+        (
+            "data: {\"type\":\"response.output_text.delta\",\"delta\":\"{\\\"ok\\\":true}\"}\n\n",
+            false,
+        ),
+    ] {
+        let (url, server) = mock_server("200 OK", "Content-Type: text/event-stream\r\n", body);
+        let credential = CredentialId::new("codex-failure").unwrap();
+        let route = GeneralModelEndpoint {
+            provider: ModelProvider::OpenAiCodex,
+            model: "codex-model".into(),
+            url,
+            credential_id: credential.clone(),
+        };
+        let mut credentials = CredentialsConfig::default();
+        credentials
+            .insert_codex_oauth(credential, "oauth-secret", "account-42")
+            .unwrap();
+        let endpoint = ConfiguredGeneralEndpoint::from_route(&route, &credentials).unwrap();
+        let result =
+            endpoint.complete_json("system", "payload", "answer", &json!({"type":"object"}));
+        if provider_failed {
+            assert!(matches!(result, Err(GeneralEndpointError::Failure(_))));
+        } else {
+            assert!(matches!(
+                result,
+                Err(GeneralEndpointError::InvalidResponse(_))
+            ));
+        }
+        server.join().unwrap();
+    }
+}
