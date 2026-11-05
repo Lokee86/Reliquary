@@ -115,3 +115,9 @@ Publication syncs a derived-draft intent with identifier-only external byte rang
 This closes the previously documented V07 publication gap. With no PHY destination configured, the existing conservative Insomnia default routes these proposals to Project Memory. V01 separately supplies explicit User/PHY routing.
 
 Formal V07 acceptance was verified with V01 already completed. The final locked offline workspace passed 459 tests across 47 suites with local loopback for mock HTTP servers. Workspace compilation, locked metadata, formatting, whitespace, and the unchanged 23-package, 76-edge architecture guard passed. V07 is accepted. G2 remains pending the other semantic/application prerequisites.
+
+## S05 and V04 acceptance
+
+The [Retrieval and confirmed-use acceptance matrix](retrieval-confirmed-use-acceptance-2026-11-05.md) supersedes the earlier S05/V04 missing-work notes. Hybrid and community ranking now feed owner-derived immutable snapshots; the agentic query/refine/concurrent one-hop traversal controller remains a host-owned local turn value. Gateway validates scope and exact bodies around the existing decision route and trusted external consumption seam. Only confirmed content creates an owner-local accepted-use receipt; internal reads, pending delivery and rejected acknowledgements never reinforce Freshness. Exact manifests and original captured cuts survive interruption and reopen.
+
+An integration regression also closes the missed initial Freshness birth for external Memory publication without changing the existing intent encoding. The final workspace passed 476 tests across 47 suites, locked metadata and compilation, formatting, whitespace and the unchanged 23-package/76-edge architecture guard. S05 and V04 are accepted. S08/V05 and V06 still gate G2.

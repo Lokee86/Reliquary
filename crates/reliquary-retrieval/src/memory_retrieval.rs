@@ -294,4 +294,30 @@ mod tests {
             RetrievalPolicyError::InvalidQueryVector
         );
     }
+
+    #[test]
+    fn routing_is_invariant_to_snapshot_and_vector_insertion_order() {
+        let original = snapshot();
+        let mut permuted = snapshot();
+        let communities = &mut permuted.community_snapshot.as_mut().unwrap().communities;
+        communities.reverse();
+        for community in communities {
+            community.members.reverse();
+        }
+        let mut rows: Vec<_> = permuted.vectors.drain().collect();
+        rows.sort_by(|a, b| b.0.cmp(&a.0));
+        permuted.vectors.extend(rows);
+        for query in [[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]] {
+            assert_eq!(
+                retrieve_memories(&original, &query, MemoryRetrievalConfig::default(), 4),
+                retrieve_memories(&permuted, &query, MemoryRetrievalConfig::default(), 4)
+            );
+        }
+        permuted.community_snapshot.as_mut().unwrap().graph_version = 3;
+        assert!(
+            retrieve_memories(&permuted, &[1.0, 0.0], MemoryRetrievalConfig::default(), 4)
+                .unwrap()
+                .used_global_fallback
+        );
+    }
 }

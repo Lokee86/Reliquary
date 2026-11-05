@@ -67,6 +67,24 @@ pub trait TrustedHostAdapter: Send + Sync {
         capability: RuntimeCapability,
         stable_id: &str,
     ) -> Result<HostCancelOutcome, String>;
+
+    /// Deliver selected Memory content and return only after actual external
+    /// consumption has been confirmed by the trusted host.
+    fn deliver_memory(
+        &self,
+        _operation: &crate::MemoryDeliveryOperation,
+    ) -> Result<crate::MemoryDeliveryReceipt, String> {
+        Err("trusted Memory delivery is unsupported".into())
+    }
+
+    /// Reconcile delivery after an ambiguous result or process restart. Hosts
+    /// must key this lookup by the stable operation ID.
+    fn memory_delivery_status(
+        &self,
+        _stable_id: &str,
+    ) -> Result<crate::MemoryDeliveryStatus, String> {
+        Ok(crate::MemoryDeliveryStatus::Unknown)
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

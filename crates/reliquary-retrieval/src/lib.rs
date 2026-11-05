@@ -768,3 +768,5 @@ mod tests {
         assert_eq!(hits[0].file.content_id, ContentId([3; 32]));
     }
 }
+
+pub mod agentic;

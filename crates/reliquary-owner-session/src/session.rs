@@ -13,7 +13,9 @@ use reliquary_container::{
 use reliquary_ego_store::{
     EgoAnchor, EgoAnchorId, EgoError, EgoIdentity, EgoIdentityId, EgoPersonality, EgoStore,
 };
-use reliquary_freshness_store::{FreshnessMemoryId, FreshnessRecord, FreshnessStore};
+use reliquary_freshness_store::{
+    FreshnessEventProof, FreshnessMemoryId, FreshnessRecord, FreshnessStore, FreshnessUseReceipt,
+};
 use reliquary_graph::{
     CommunitySnapshot, CommunityStore, GraphAdmission, GraphError, GraphStore, NodeRef, Relation,
 };
@@ -202,6 +204,26 @@ pub struct RelSession {
 pub struct RelWriter {
     container: Container,
     session: RelSession,
+}
+
+/// Immutable read cut for retrieval. Reading this value never reinforces
+/// Freshness; only an explicit accepted-use write can do that.
+#[derive(Clone, Debug, PartialEq)]
+pub struct RelRetrievalSnapshot {
+    pub owner_id: [u8; 16],
+    pub rel_turn: u64,
+    pub memory_version: u64,
+    pub graph_version: u64,
+    pub memories: Vec<RelRetrievalMemory>,
+    pub active_relations: Vec<Relation>,
+    pub community: Option<CommunitySnapshot>,
+    pub vectors: BTreeMap<reliquary_memory_core::MemoryBodyId, Vec<f32>>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RelRetrievalMemory {
+    pub revision: MemoryRevision,
+    pub freshness: Option<FreshnessRecord>,
 }
 
 /// Owner-validated work input returned after the durable lease claim commits.
@@ -470,6 +492,7 @@ pub(crate) mod dream_pairs;
 pub(crate) mod dream_prefix;
 mod external_memory;
 mod external_reference;
+mod freshness_use;
 mod phy_writer;
 mod rel_session;
 mod rel_writer;

@@ -979,3 +979,15 @@ mod external_processing;
 pub use external_processing::{
     ExternalMemoryProposal, external_window_id, prepare_external_memory,
 };
+
+mod agentic_retrieval;
+pub use agentic_retrieval::{
+    AgenticMemory, RetrievalAction, RetrievalAnchorReport, RetrievalDirection, RetrievalEvaluation,
+    RetrievalRelationEvidence, evaluate_retrieval,
+};
+pub use reliquary_retrieval::RetrievalConfig;
+pub use reliquary_retrieval::agentic::RetrievalTurn;
+pub use reliquary_retrieval::memory_retrieval::{MemoryRetrievalConfig, MemoryRetrievalResult};
+
+mod owner_retrieval;
+pub use owner_retrieval::{agentic_memories, rank_owner_snapshot, route_owner_snapshot};

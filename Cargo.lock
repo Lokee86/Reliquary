@@ -2777,6 +2777,8 @@ dependencies = [
  "reliquary-application",
  "reliquary-archive",
  "reliquary-container",
+ "reliquary-freshness-store",
+ "reliquary-memory-core",
  "reliquary-owner-session",
  "reliquary-switchboard",
  "reliquary-vector-store",

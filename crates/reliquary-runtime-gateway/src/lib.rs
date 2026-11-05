@@ -89,6 +89,9 @@ pub enum GatewayError {
     HostAdapter(String),
     HostStatusUnknown,
     InvalidHandoffReceipt,
+    InvalidPreparedRetrieval,
+    StaleRetrieval,
+    Retrieval(String),
     IncompleteHostContract(RuntimeCapability),
     UnsupportedHostCapability(RuntimeCapability),
     RoutedMemory(String),
@@ -140,6 +143,13 @@ impl fmt::Display for GatewayError {
             Self::InvalidHandoffReceipt => {
                 f.write_str("host handoff receipt does not match the durable operation")
             }
+            Self::InvalidPreparedRetrieval => {
+                f.write_str("prepared retrieval result is invalid for this Instance")
+            }
+            Self::StaleRetrieval => {
+                f.write_str("retrieval result no longer matches current authorized owner state")
+            }
+            Self::Retrieval(reason) => write!(f, "agentic retrieval failed: {reason}"),
             Self::IncompleteHostContract(capability) => {
                 write!(f, "host queue contract is incomplete for {capability:?}")
             }
@@ -371,11 +381,20 @@ mod gateway_mounts;
 mod insomnia_worker;
 mod instance_conversation;
 mod instance_owner;
+mod instance_passive_retrieval;
 mod instance_routing;
 pub use insomnia_worker::{InsomniaWorkerConfig, InsomniaWorkerHandle};
 
+mod host_memory_delivery;
 mod instance_entity;
+mod instance_retrieval;
 
 mod instance_external_source;
 
+pub use host_memory_delivery::{
+    MemoryDeliveryOperation, MemoryDeliveryReceipt, MemoryDeliveryStatus,
+};
 pub use instance_external_source::{AuthorizedExternalLexicalIndex, ExternalHostSource};
+pub use instance_retrieval::{
+    MemoryRetrievalRoute, MemoryRetrievalTurn, PreparedMemoryDelivery, RetrievalOutcome,
+};

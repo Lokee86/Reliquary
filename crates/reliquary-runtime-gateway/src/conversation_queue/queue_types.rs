@@ -92,14 +92,16 @@ pub enum RuntimeCapability {
     Dream,
     Embedding,
     ProjectEnvironment,
+    MemoryDelivery,
 }
 impl RuntimeCapability {
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 6] = [
         Self::ConversationExecution,
         Self::Insomnia,
         Self::Dream,
         Self::Embedding,
         Self::ProjectEnvironment,
+        Self::MemoryDelivery,
     ];
 }
 

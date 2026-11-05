@@ -15,6 +15,8 @@ reliquary-owner-session = { path = "../reliquary-owner-session" }
 reliquary-switchboard = { path = "../reliquary-switchboard" }
 
 [dev-dependencies]
+reliquary-memory-core = { path = "../reliquary-memory-core" }
+reliquary-freshness-store = { path = "../reliquary-freshness-store" }
 reliquary-archive = { path = "../reliquary-archive" }
 reliquary-container = { path = "../reliquary-container" }
 reliquary-vector-store = { path = "../reliquary-vector-store" }

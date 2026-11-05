@@ -16,13 +16,15 @@ pub use records::{
 };
 pub use records::{ExternalMemoryDraft, ExternalMemoryProvenance, ExternalMemoryReceipt};
 mod session;
+pub use reliquary_freshness_store::{FreshnessEventProof, FreshnessMemoryId, FreshnessUseReceipt};
 /// Bound for durable Insomnia inference checkpoints, owned by the session store.
 pub use reliquary_insomnia_store::MAX_HELD_PAYLOAD_BYTES as MAX_INSOMNIA_CHECKPOINT_BYTES;
 pub use reliquary_insomnia_store::{CompletionCheck, InsomniaLeaseToken};
 pub use session::{
     DreamBatchCut, DreamCandidatePool, DreamLifecyclePublication, DreamPairPublication,
     InitialDreamSnapshot, OwnerSessionError, PhySession, PhyWriter, RelInsomniaClaimInput,
-    RelSession, RelWriter, RoutedUserMemoryProof, RoutedUserMemoryReceipt,
+    RelRetrievalMemory, RelRetrievalSnapshot, RelSession, RelWriter, RoutedUserMemoryProof,
+    RoutedUserMemoryReceipt,
 };
 
 pub use session::EntityMentionCommit;

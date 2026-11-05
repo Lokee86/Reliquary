@@ -16,6 +16,25 @@ fn intent_and_partial_memory_resume_with_provenance_and_no_archive() {
     ));
     let owner = [104; 16];
     let mut writer = crate::RelWriter::create_path(&path, ReliquaryScope::Project, owner).unwrap();
+    writer
+        .session
+        .archive
+        .accept_turn(
+            &mut writer.container,
+            reliquary_archive::TurnInput {
+                id: "source-turn".into(),
+                conversation_id: "conversation".into(),
+                parent_id: None,
+                role: "user".into(),
+                principal_id: Some("alice".into()),
+                timestamp_ns: 5,
+                content: "prior accepted activity".into(),
+                attachments: Vec::new(),
+                project_attachments: Vec::new(),
+            },
+        )
+        .unwrap();
+    writer.session.writer_lease_proof = writer.container.writer_lease_proof();
     let reference = ExternalMessageRef {
         source_namespace: "host".into(),
         conversation_id: "conversation".into(),
@@ -79,7 +98,7 @@ fn intent_and_partial_memory_resume_with_provenance_and_no_archive() {
     writer
         .session
         .external_memories
-        .install_intent(&mut writer.container, intent)
+        .install_intent(&mut writer.container, intent, 1)
         .unwrap();
     let published = writer
         .session
@@ -103,13 +122,51 @@ fn intent_and_partial_memory_resume_with_provenance_and_no_archive() {
         .unwrap()
         .unwrap();
     assert_eq!(receipt.memory_ids(), &[id]);
+    let freshness_id = reliquary_freshness_store::FreshnessMemoryId(id.0);
+    assert!(writer.session.freshness.has_durable_birth(freshness_id));
+    assert!(
+        writer
+            .session
+            .freshness
+            .record_at(freshness_id, 1)
+            .unwrap()
+            .is_some()
+    );
     assert_eq!(
         writer
             .publish_external_memory("alice", window, entries.clone())
             .unwrap(),
         receipt
     );
-    assert_eq!(writer.read_session().rel_turn_count(), 0);
+    assert_eq!(writer.read_session().rel_turn_count(), 1);
+    assert!(
+        writer
+            .record_external_accepted_use(
+                "external-pre-dream-use",
+                vec![freshness_id],
+                1,
+                FreshnessEventProof {
+                    graph_version: 0,
+                    community_generation: None,
+                    community_graph_version: None
+                }
+            )
+            .unwrap()
+    );
+    assert!(
+        !writer
+            .record_external_accepted_use(
+                "external-pre-dream-use",
+                vec![freshness_id],
+                1,
+                FreshnessEventProof {
+                    graph_version: 0,
+                    community_generation: None,
+                    community_graph_version: None
+                }
+            )
+            .unwrap()
+    );
     let mut conflict = entries.clone();
     conflict[0].draft.content.push_str(" conflicting wording");
     assert!(
@@ -165,6 +222,13 @@ fn intent_and_partial_memory_resume_with_provenance_and_no_archive() {
     drop(writer);
     let rel = crate::RelSession::open_path(&path, &admission, [], []).unwrap();
     assert_eq!(rel.external_memory_receipt("alice", window), Some(&receipt));
+    assert!(rel.freshness.has_durable_birth(freshness_id));
+    assert_eq!(
+        rel.accepted_external_use("external-pre-dream-use")
+            .unwrap()
+            .sources,
+        vec![freshness_id]
+    );
     assert_eq!(rel.memory_history(id).unwrap().unwrap().revisions.len(), 1);
     drop(rel);
     std::fs::remove_file(path).unwrap();

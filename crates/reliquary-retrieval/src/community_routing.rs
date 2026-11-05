@@ -18,8 +18,10 @@ pub fn build_subcentroids(
         .communities
         .iter()
         .flat_map(|community| {
-            let points = community
-                .members
+            let mut members = community.members.clone();
+            members.sort();
+            members.dedup();
+            let points = members
                 .iter()
                 .filter_map(|member| vectors.get(&MemoryId(*member)).cloned())
                 .collect::<Vec<_>>();
@@ -63,6 +65,7 @@ pub fn route_communities(
             .0
             .total_cmp(&left.1.0)
             .then_with(|| left.1.1.cmp(&right.1.1))
+            .then_with(|| left.0.cmp(&right.0))
     });
     ranked.truncate(limit.min(ranked.len()));
     ranked.into_iter().map(|(id, _)| id).collect()

@@ -2,6 +2,7 @@ use super::*;
 #[derive(Default)]
 pub(crate) struct ExternalMemoryStore {
     pending: BTreeMap<(String, [u8; 32]), IntentWire>,
+    pending_turns: BTreeMap<(String, [u8; 32]), u64>,
     receipts: BTreeMap<(String, [u8; 32]), ExternalMemoryReceipt>,
     owner: Option<[u8; 16]>,
 }
@@ -15,12 +16,25 @@ impl ExternalMemoryStore {
             ..Self::default()
         };
         let mut seen_external_creations = std::collections::BTreeSet::new();
+        let mut accepted_turns = std::collections::BTreeSet::new();
+        let mut rel_turn = 0u64;
         for f in container.read_frames().map_err(|e| e.to_string())? {
             let publication =
                 reliquary_container::decode_publication(&f.payload).map_err(|e| e.to_string())?;
             let body = publication
                 .as_ref()
                 .map_or(f.payload.as_slice(), |p| p.body);
+            if let Some(reliquary_archive::SourcePublication::Turn {
+                conversation_id,
+                node_id,
+                counts_activity: true,
+            }) = reliquary_archive::source_publication(body).map_err(|e| e.to_string())?
+                && accepted_turns.insert((conversation_id, node_id))
+            {
+                rel_turn = rel_turn
+                    .checked_add(1)
+                    .ok_or("REL activity count overflow")?;
+            }
             if body.starts_with(INTENT) {
                 let i = IntentWire::decode(body)
                     .map_err(|e| format!("invalid external Memory intent: {e}"))?;
@@ -33,6 +47,7 @@ impl ExternalMemoryStore {
                         return Err("conflicting external Memory intent".into());
                     }
                 }
+                s.pending_turns.entry(key.clone()).or_insert(rel_turn);
                 s.pending.insert(key, i);
             } else if body.starts_with(b"RELMCRT1") {
                 let creation = reliquary_memory_core::decode_grouped_creation(body)
@@ -124,6 +139,7 @@ impl ExternalMemoryStore {
         &mut self,
         c: &mut Container,
         i: IntentWire,
+        accepted_turn: u64,
     ) -> Result<(), ExternalSourceError> {
         if self.owner != Some(c.owner_id()) {
             return Err(ExternalSourceError::Unauthorized);
@@ -138,6 +154,7 @@ impl ExternalMemoryStore {
         c.append(&i.encode()?)
             .map_err(|_| ExternalSourceError::Storage)?;
         c.sync().map_err(|_| ExternalSourceError::Storage)?;
+        self.pending_turns.insert(k.clone(), accepted_turn);
         self.pending.insert(k, i);
         Ok(())
     }
@@ -145,18 +162,33 @@ impl ExternalMemoryStore {
         &mut self,
         c: &mut Container,
         memories: &mut MemoryStore,
+        freshness: &mut reliquary_freshness_store::FreshnessStore,
         p: &str,
         w: [u8; 32],
     ) -> Result<ExternalMemoryReceipt, ExternalSourceError> {
         let k = (p.to_owned(), w);
-        if let Some(r) = self.receipts.get(&k) {
-            return Ok(r.clone());
-        }
         let intent = self
             .pending
             .get(&k)
             .cloned()
             .ok_or(ExternalSourceError::Unavailable)?;
+        let accepted_turn = *self
+            .pending_turns
+            .get(&k)
+            .ok_or(ExternalSourceError::Unavailable)?;
+        if let Some(r) = self.receipts.get(&k) {
+            for id in &r.memory_ids {
+                freshness
+                    .create_birth(
+                        c,
+                        reliquary_freshness_store::FreshnessMemoryId(id.0),
+                        accepted_turn,
+                        false,
+                    )
+                    .map_err(|_| ExternalSourceError::Storage)?;
+            }
+            return Ok(r.clone());
+        }
         let entries = intent.entries();
         let mut ids = Vec::with_capacity(entries.len());
         for e in entries {
@@ -173,6 +205,16 @@ impl ExternalMemoryStore {
         c.sync().map_err(|_| ExternalSourceError::Storage)?;
         if !memories_match(&intent, memories, &ids) {
             return Err(ExternalSourceError::InvalidContract);
+        }
+        for id in &ids {
+            freshness
+                .create_birth(
+                    c,
+                    reliquary_freshness_store::FreshnessMemoryId(id.0),
+                    accepted_turn,
+                    false,
+                )
+                .map_err(|_| ExternalSourceError::Storage)?;
         }
         let sources = intent
             .entries

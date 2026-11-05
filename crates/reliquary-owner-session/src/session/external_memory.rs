@@ -115,9 +115,6 @@ impl RelWriter {
                 "REL owner session is stale; reopen before external Memory publication".into(),
             ));
         }
-        if let Some(r) = self.session.external_memories.get(principal, window) {
-            return Ok(Some(r.clone()));
-        }
         if self
             .session
             .external_memories
@@ -129,6 +126,7 @@ impl RelWriter {
         match self.session.external_memories.finish(
             &mut self.container,
             &mut self.session.common.memories,
+            &mut self.session.freshness,
             principal,
             window,
         ) {
@@ -178,26 +176,36 @@ impl RelWriter {
                     "external Memory window conflicts with durable receipt".into(),
                 ));
             }
-            return Ok(receipt.clone());
+            let _ = receipt;
+            return self.finish_external_memory(principal, window);
         }
         if !self
             .session
             .external_memories
             .intent_matches(principal, window, intent.digest())
         {
-            if let Err(error) = self
-                .session
-                .external_memories
-                .install_intent(&mut self.container, intent)
-            {
+            if let Err(error) = self.session.external_memories.install_intent(
+                &mut self.container,
+                intent,
+                self.session.archive.rel_turn_count(),
+            ) {
                 self.session.write_poisoned = true;
                 return Err(OwnerSessionError::Record(error.to_string()));
             }
             self.session.writer_lease_proof = self.container.writer_lease_proof();
         }
+        self.finish_external_memory(principal, window)
+    }
+
+    fn finish_external_memory(
+        &mut self,
+        principal: &str,
+        window: [u8; 32],
+    ) -> Result<ExternalMemoryReceipt, OwnerSessionError> {
         match self.session.external_memories.finish(
             &mut self.container,
             &mut self.session.common.memories,
+            &mut self.session.freshness,
             principal,
             window,
         ) {
