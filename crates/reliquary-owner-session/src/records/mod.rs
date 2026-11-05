@@ -3,6 +3,7 @@
 pub mod dream;
 pub(crate) mod dream_group;
 pub mod dream_no_link;
+pub(crate) mod dream_supersession;
 pub mod external_index;
 pub mod import;
 mod import_model;

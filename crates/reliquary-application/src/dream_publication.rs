@@ -13,7 +13,7 @@ pub enum DreamOwnerWriter<'a> {
 }
 
 impl DreamOwnerWriter<'_> {
-    fn owner_id(&self) -> [u8; 16] {
+    pub(crate) fn owner_id(&self) -> [u8; 16] {
         match self {
             Self::Rel(writer) => writer.owner_id(),
             Self::Phy(writer) => writer.owner_id(),
@@ -88,7 +88,8 @@ pub fn commit_dream_zero_link(
 
 /// Admit one positive classifier-derived, evidence-backed Memory relation
 /// and its evaluated-pair receipt as a single recoverable owner record.
-/// Duplicate, supersession, lifecycle and multi-pair effects remain closed.
+/// Verified DuplicateOf is supported; Supersedes/lifecycle and multi-pair
+/// effects are routed through their separate grouped admission path.
 pub fn commit_dream_relation(
     writer: &mut DreamOwnerWriter<'_>,
     authorized_owner: [u8; 16],
@@ -111,6 +112,7 @@ pub fn commit_dream_relation(
         DreamRelationKind::Factual => RelationKind::Factual,
         DreamRelationKind::Causal => RelationKind::Causal,
         DreamRelationKind::Recurrent => RelationKind::Recurrent,
+        DreamRelationKind::DuplicateOf => RelationKind::DuplicateOf,
         _ => return Err(DreamWorkflowError::UnsupportedPublication),
     };
     if classification.a == classification.b
@@ -127,6 +129,8 @@ pub fn commit_dream_relation(
             check.classification != *classification
                 || check.verdict != DreamVerificationVerdict::Accept
         })
+        || (kind == RelationKind::DuplicateOf
+            && (draft.verifications.len() != 1 || draft.verifications[0].verifier_model.is_empty()))
     {
         return Err(DreamWorkflowError::UnsupportedPublication);
     }
@@ -134,8 +138,11 @@ pub fn commit_dream_relation(
         DreamRelationDirection::BToA => (classification.b, classification.a),
         _ => (classification.a, classification.b),
     };
-    if (change.source, change.target)
-        != (NodeRef::Memory(expected.0.0), NodeRef::Memory(expected.1.0))
+    let expected_endpoints = (NodeRef::Memory(expected.0.0), NodeRef::Memory(expected.1.0));
+    let actual_endpoints = (change.source, change.target);
+    if actual_endpoints != expected_endpoints
+        && !(kind == RelationKind::DuplicateOf
+            && actual_endpoints == (expected_endpoints.1, expected_endpoints.0))
     {
         return Err(DreamWorkflowError::UnsupportedPublication);
     }

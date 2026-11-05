@@ -211,7 +211,7 @@ impl GraphStore {
                     return Err(GraphError::WrongOwner);
                 }
                 store.apply_replay(relation, admission)?;
-            } else if frame.payload.starts_with(b"RELDRG") {
+            } else if frame.payload.starts_with(b"RELDRG") || frame.payload.starts_with(b"RELDRS") {
                 let relation = grouped(&frame.payload)?.ok_or(GraphError::CorruptRecord(
                     "grouped Dream requires owner replay",
                 ))?;

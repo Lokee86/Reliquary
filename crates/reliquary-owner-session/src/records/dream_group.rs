@@ -45,6 +45,7 @@ impl GroupedDreamRelation {
                 | RelationKind::Factual
                 | RelationKind::Causal
                 | RelationKind::Recurrent
+                | RelationKind::DuplicateOf
         ) {
             return Err("grouped Dream lifecycle relation unsupported".into());
         }
@@ -83,6 +84,7 @@ impl GroupedDreamRelation {
             RelationKind::Factual => 2,
             RelationKind::Causal => 3,
             RelationKind::Recurrent => 4,
+            RelationKind::DuplicateOf => 5,
             _ => unreachable!(),
         });
         out.push(u8::from(
@@ -114,6 +116,7 @@ impl GroupedDreamRelation {
             2 => RelationKind::Factual,
             3 => RelationKind::Causal,
             4 => RelationKind::Recurrent,
+            5 => RelationKind::DuplicateOf,
             _ => return Err("invalid grouped Dream relation kind".into()),
         };
         pos += 1;

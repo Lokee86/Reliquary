@@ -261,3 +261,103 @@ fn rel_grouped_positive_relation_and_pair_replay_and_retry() {
     drop(retry);
     assert_eq!(fs::read(&file.0).unwrap(), committed);
 }
+
+struct VerifiedSupersession;
+impl GeneralEndpoint for VerifiedSupersession {
+    fn model(&self) -> &str {
+        "verified-rel-supersession"
+    }
+    fn complete_json(
+        &self,
+        _: &str,
+        _: &str,
+        schema: &str,
+        _: &Value,
+    ) -> Result<Value, GeneralEndpointError> {
+        if schema == "dream_pair_verification" {
+            return Ok(json!({"relation_supported":"yes",
+                "direction_supported":"yes","evidence_supported":"yes"}));
+        }
+        Ok(
+            json!({"relation":"supersedes","direction":"a_to_b","evidence":[
+            {"side":"a","quote":"Maintenance"},
+            {"side":"b","quote":"Maintenance"}]}),
+        )
+    }
+}
+
+#[test]
+fn rel_verified_supersession_reopens_history_and_retries_idempotently() {
+    let file = Temp::new();
+    let owner = [175; 16];
+    drop(RelWriter::create_path(&file.0, ReliquaryScope::Project, owner).unwrap());
+    let mut container = Container::open_writer(&file.0).unwrap();
+    let mut memory = MemoryStore::open(&container).unwrap();
+    let a = memory
+        .publish(&mut container, None, 0, draft("rel-sup-a"))
+        .unwrap()
+        .revision
+        .record
+        .id;
+    let b = memory
+        .publish(&mut container, None, 0, draft("rel-sup-b"))
+        .unwrap()
+        .revision
+        .record
+        .id;
+    container.sync().unwrap();
+    drop(container);
+    let session = RelSession::open_path(&file.0, &admission(owner), [], []).unwrap();
+    let proposal = draft_dream_organization(
+        &EntityOwnerSession::Rel(&session),
+        owner,
+        a,
+        &[b],
+        &DreamClassifier::new(VerifiedSupersession),
+        Some(&DreamVerifier::new(VerifiedSupersession)),
+        DreamVerificationPolicy::default(),
+    )
+    .unwrap();
+    let relation = proposal.plan.relation_changes[0];
+    let old = proposal.plan.lifecycle_intents[0].memory_id;
+    let newer = proposal.plan.lifecycle_intents[0].superseded_by.unwrap();
+    drop(session);
+    let mut writer = RelWriter::open_path(&file.0, admission(owner), [], []).unwrap();
+    assert!(
+        crate::commit_dream_supersession(
+            &mut DreamOwnerWriter::Rel(&mut writer),
+            owner,
+            &proposal,
+            101
+        )
+        .unwrap()
+    );
+    drop(writer);
+    let reopened = RelSession::open_path(&file.0, &admission(owner), [], []).unwrap();
+    assert!(reopened.dream_pair_evaluated(a, b));
+    assert!(
+        reopened
+            .graph_relation(relation.source, relation.target, relation.kind)
+            .unwrap()
+            .active
+    );
+    let history = reopened.memory_history(old).unwrap().unwrap();
+    assert_eq!(history.revisions.len(), 2);
+    assert_eq!(history.revisions[1].record.superseded_by, Some(newer));
+    assert!(history.revisions[1].record.archived);
+    assert_eq!(history.revisions[1].record.updated_at_ns, 101);
+    drop(reopened);
+    let bytes = fs::read(&file.0).unwrap();
+    let mut retry = RelWriter::open_path(&file.0, admission(owner), [], []).unwrap();
+    assert!(
+        !crate::commit_dream_supersession(
+            &mut DreamOwnerWriter::Rel(&mut retry),
+            owner,
+            &proposal,
+            101
+        )
+        .unwrap()
+    );
+    drop(retry);
+    assert_eq!(fs::read(&file.0).unwrap(), bytes);
+}

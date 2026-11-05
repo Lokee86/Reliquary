@@ -6,8 +6,14 @@ pub(super) fn open_common(
     dream_admissions: impl IntoIterator<Item = DreamBeginAdmission>,
     replay_grouped_insomnia: bool,
 ) -> Result<CommonState, OwnerSessionError> {
-    let memories = if replay_grouped_insomnia {
-        MemoryStore::open_with_grouped_completion(container, |payload| {
+    let memories = MemoryStore::open_with_grouped_events(
+        container,
+        |payload| {
+            if !replay_grouped_insomnia {
+                return Err(MemoryError::Corrupt(
+                    "PHY cannot replay REL grouped completion",
+                ));
+            }
             let completion = GroupedInsomniaCompletion::decode(payload)
                 .map_err(|_| MemoryError::Corrupt("grouped completion"))?;
             if !completion.external_memory_refs.is_empty() {
@@ -26,10 +32,13 @@ pub(super) fn open_common(
                 .map(|body| (body.id, body.bytes))
                 .collect();
             Ok(Some((bodies, completion.memory_records)))
-        })?
-    } else {
-        MemoryStore::open(container)?
-    };
+        },
+        |payload| {
+            crate::records::dream_supersession::GroupedDreamSupersession::decode(payload)
+                .map(|record| record.map(|record| record.memory_event()))
+                .map_err(|_| MemoryError::Corrupt("invalid Dream supersession carrier"))
+        },
+    )?;
     let perception = PerceptionStore::open(container)?;
     for mention in perception.mentions() {
         let history = memories
@@ -72,9 +81,15 @@ pub(super) fn open_common(
         [],
     );
     let graph = GraphStore::open_with_grouped_dream(container, &derived_admission, |payload| {
-        crate::records::dream_group::GroupedDreamRelation::decode(payload)
-            .map(|record| record.map(|record| record.relation()))
-            .map_err(|_| GraphError::CorruptRecord("invalid grouped Dream carrier"))
+        if payload.starts_with(b"RELDRS") {
+            crate::records::dream_supersession::GroupedDreamSupersession::decode(payload)
+                .map(|record| record.map(|record| record.relation()))
+                .map_err(|_| GraphError::CorruptRecord("invalid Dream supersession carrier"))
+        } else {
+            crate::records::dream_group::GroupedDreamRelation::decode(payload)
+                .map(|record| record.map(|record| record.relation()))
+                .map_err(|_| GraphError::CorruptRecord("invalid grouped Dream carrier"))
+        }
     })?;
     validate_graph_prefix(container)?;
     for relation in graph.history() {
@@ -239,6 +254,21 @@ fn validate_graph_prefix(container: &Container) -> Result<(), OwnerSessionError>
             {
                 return Err(OwnerSessionError::Record(
                     "grouped Dream relation lacks owner physical-prefix proof".into(),
+                ));
+            }
+            graph_version = group.relation().graph_version;
+        } else if let Some(group) =
+            crate::records::dream_supersession::GroupedDreamSupersession::decode(payload)
+                .map_err(OwnerSessionError::Record)?
+        {
+            if group.cut.owner_id != container.owner_id()
+                || group.cut.graph_version != graph_version
+                || [group.cut.source, group.cut.candidate]
+                    .iter()
+                    .any(|observed| birth_bodies.get(&observed.id.0) != Some(&observed.body_id.0))
+            {
+                return Err(OwnerSessionError::Record(
+                    "Dream supersession lacks owner physical-prefix proof".into(),
                 ));
             }
             graph_version = group.relation().graph_version;

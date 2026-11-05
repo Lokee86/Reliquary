@@ -1,6 +1,8 @@
 //! Compact owner-local references for evaluated unordered Dream pairs.
 use super::*;
-use crate::records::dream_group::GroupedDreamRelation;
+use crate::records::{
+    dream_group::GroupedDreamRelation, dream_supersession::GroupedDreamSupersession,
+};
 use std::collections::{BTreeMap, BTreeSet};
 
 const MEMORY: &[u8; 8] = b"RELDRM01";
@@ -13,6 +15,7 @@ pub(crate) struct DreamPairs {
     refs: BTreeMap<MemoryId, u32>,
     pairs: BTreeSet<(MemoryId, MemoryId)>,
     grouped_receipts: BTreeMap<(MemoryId, MemoryId), GroupedDreamRelation>,
+    supersessions: BTreeMap<(MemoryId, MemoryId), GroupedDreamSupersession>,
 }
 
 impl DreamPairs {
@@ -24,6 +27,7 @@ impl DreamPairs {
             refs: BTreeMap::new(),
             pairs: BTreeSet::new(),
             grouped_receipts: BTreeMap::new(),
+            supersessions: BTreeMap::new(),
         };
         let mut memories = BTreeSet::new();
         for frame in container.read_frames()? {
@@ -96,6 +100,17 @@ impl DreamPairs {
                 {
                     return Err(invalid());
                 }
+            } else if let Some(group) =
+                GroupedDreamSupersession::decode(payload).map_err(OwnerSessionError::Record)?
+            {
+                let (left, right) = group.pair();
+                if !memories.contains(&left) || !memories.contains(&right) {
+                    return Err(invalid());
+                }
+                let pair = ordered(left, right);
+                if !state.pairs.insert(pair) || state.supersessions.insert(pair, group).is_some() {
+                    return Err(invalid());
+                }
             } else if payload.starts_with(b"RELDRM") || payload.starts_with(b"RELDRP") {
                 return Err(invalid());
             }
@@ -130,6 +145,27 @@ impl DreamPairs {
             return Err(invalid());
         }
         self.grouped_receipts.insert(pair, group);
+        Ok(())
+    }
+
+    pub(crate) fn supersession_receipt(
+        &self,
+        left: MemoryId,
+        right: MemoryId,
+    ) -> Option<&GroupedDreamSupersession> {
+        self.supersessions.get(&ordered(left, right))
+    }
+
+    pub(crate) fn apply_supersession(
+        &mut self,
+        group: GroupedDreamSupersession,
+    ) -> Result<(), OwnerSessionError> {
+        let (left, right) = group.pair();
+        let pair = ordered(left, right);
+        if !self.pairs.insert(pair) {
+            return Err(invalid());
+        }
+        self.supersessions.insert(pair, group);
         Ok(())
     }
 

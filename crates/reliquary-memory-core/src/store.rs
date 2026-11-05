@@ -5,6 +5,16 @@ use std::io::Read;
 
 pub type GroupedMemoryReplay = (Vec<(MemoryBodyId, Vec<u8>)>, Vec<Vec<u8>>);
 
+/// Owner-session proof accompanying an atomic Dream lifecycle event.
+pub struct GroupedMemorySupersession {
+    pub older: MemoryId,
+    pub newer: MemoryId,
+    pub previous_revision: u64,
+    pub updated_at_ns: i64,
+    pub mutation_id: String,
+    pub delta: Vec<u8>,
+}
+
 #[derive(Clone)]
 struct State {
     revisions: BTreeMap<MemoryId, Vec<MemoryRecord>>,
@@ -97,7 +107,21 @@ impl MemoryStore {
     /// body and creation invariants.
     pub fn open_with_grouped_completion(
         container: &Container,
+        decode_grouped: impl FnMut(&[u8]) -> Result<Option<GroupedMemoryReplay>, MemoryError>,
+    ) -> Result<Self, MemoryError> {
+        Self::open_with_grouped_events(container, decode_grouped, |_| {
+            Err(MemoryError::Corrupt(
+                "Dream lifecycle requires owner-session replay",
+            ))
+        })
+    }
+
+    /// Owner-session admits a grouped Dream lifecycle delta at its exact
+    /// physical position. Memory reuses normal revision and clock validation.
+    pub fn open_with_grouped_events(
+        container: &Container,
         mut decode_grouped: impl FnMut(&[u8]) -> Result<Option<GroupedMemoryReplay>, MemoryError>,
+        mut decode_dream: impl FnMut(&[u8]) -> Result<Option<GroupedMemorySupersession>, MemoryError>,
     ) -> Result<Self, MemoryError> {
         let mut store = Self {
             owner: Some((container.owner_id(), container.identity())),
@@ -150,6 +174,15 @@ impl MemoryStore {
                 if let Some((bodies, records)) = decode_grouped(&payload)? {
                     store.apply_grouped_completion(bodies, records)?;
                 }
+                continue;
+            }
+            if magic.starts_with(b"RELDRS") {
+                let mut payload = Vec::with_capacity(len);
+                payload.extend_from_slice(&magic);
+                frame.read_to_end(&mut payload)?;
+                let record = decode_dream(&payload)?
+                    .ok_or(MemoryError::Corrupt("unrecognized grouped Dream lifecycle"))?;
+                store.apply_grouped_supersession(&record)?;
                 continue;
             }
             if magic != *BODY && magic != *CREATION && magic != *DELTA && magic != *TOMBSTONE {
@@ -232,6 +265,102 @@ impl MemoryStore {
         for id in &provided_bodies {
             next.validate_body_records(*id)?;
         }
+        *self = next;
+        Ok(())
+    }
+
+    /// Prepare an immutable-body metadata revision for an owner-approved
+    /// supersession; all other fields retain their exact historical values.
+    /// The standard delta codec and replay preflight own revision invariants.
+    pub fn prepare_grouped_supersession(
+        &self,
+        id: MemoryId,
+        expected_revision: u64,
+        newer: MemoryId,
+        mutation_id: String,
+        updated_at_ns: i64,
+    ) -> Result<Vec<u8>, MemoryError> {
+        if id == newer || mutation_id.is_empty() {
+            return Err(MemoryError::InvalidField("supersession_target"));
+        }
+        let newer_history = self.history(newer)?;
+        let newer_current = &newer_history
+            .revisions
+            .last()
+            .ok_or(MemoryError::MissingMemory)?
+            .record;
+        if newer_history.tombstone.is_some()
+            || newer_current.archived
+            || newer_current.superseded_by.is_some()
+        {
+            return Err(MemoryError::RevisionConflict);
+        }
+        let history = self.history(id)?;
+        if history.tombstone.is_some() {
+            return Err(MemoryError::TerminalTombstone);
+        }
+        let current = &history
+            .revisions
+            .last()
+            .ok_or(MemoryError::MissingMemory)?
+            .record;
+        if current.revision != expected_revision
+            || current.archived
+            || current.superseded_by.is_some()
+            || current.updated_at_ns > updated_at_ns
+        {
+            return Err(MemoryError::RevisionConflict);
+        }
+        let mut next = current.clone();
+        next.revision = next
+            .revision
+            .checked_add(1)
+            .ok_or(MemoryError::VersionExhausted)?;
+        next.memory_version = self.state.next_memory_version;
+        next.lifecycle_state = "archived".into();
+        next.archived = true;
+        next.superseded_by = Some(newer);
+        next.mutation_id = mutation_id;
+        next.updated_at_ns = updated_at_ns;
+        let bytes = encode_delta(current, &next)?;
+        self.preflight_grouped_lifecycle_delta(&bytes)?;
+        Ok(bytes)
+    }
+
+    pub fn apply_grouped_supersession(
+        &mut self,
+        record: &GroupedMemorySupersession,
+    ) -> Result<(), MemoryError> {
+        let expected = self.prepare_grouped_supersession(
+            record.older,
+            record.previous_revision,
+            record.newer,
+            record.mutation_id.clone(),
+            record.updated_at_ns,
+        )?;
+        if expected != record.delta {
+            return Err(MemoryError::Corrupt(
+                "Dream lifecycle delta changes unrelated metadata",
+            ));
+        }
+        self.apply_grouped_lifecycle_delta(&record.delta)
+    }
+
+    pub fn preflight_grouped_lifecycle_delta(&self, bytes: &[u8]) -> Result<(), MemoryError> {
+        let mut projection = self.clone();
+        projection.apply_grouped_lifecycle_delta(bytes)
+    }
+
+    pub fn apply_grouped_lifecycle_delta(&mut self, bytes: &[u8]) -> Result<(), MemoryError> {
+        if !bytes.starts_with(DELTA) || !self.initialized {
+            return Err(MemoryError::Corrupt(
+                "grouped Dream requires a Memory delta",
+            ));
+        }
+        // Replay is all-or-nothing in memory, just as normal Memory revision
+        // history replay. No physical append is performed by this method.
+        let mut next = self.clone();
+        next.replay(bytes)?;
         *self = next;
         Ok(())
     }
