@@ -347,6 +347,123 @@ fn grants_cannot_name_unmounted_owners() {
 }
 
 #[test]
+fn duplicate_owner_mount_is_rejected_without_replacing_the_canonical_session() {
+    let root = std::env::current_dir()
+        .unwrap()
+        .join(".test-tmp")
+        .join(format!(
+            "gateway-duplicate-mount-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+    std::fs::create_dir_all(&root).unwrap();
+    let rel_path = root.join("owner.rel");
+    let raw_owner = [44; 16];
+    initialize_rel(&rel_path, raw_owner);
+
+    let gateway = Gateway::new();
+    let admission = GraphAdmission::for_replay(raw_owner, [], [], [], [], []);
+    let owner = gateway
+        .mount_reliquary(&rel_path, &admission, [], [])
+        .unwrap();
+    assert!(matches!(
+        gateway.mount_reliquary(&rel_path, &admission, [], []),
+        Err(GatewayError::DuplicateOwner(duplicate)) if duplicate == owner
+    ));
+    assert_eq!(gateway.mounted_owner_count().unwrap(), 1);
+    assert_eq!(
+        gateway
+            .instance("alice", [owner], [])
+            .unwrap()
+            .reliquary(owner)
+            .unwrap()
+            .owner_id(),
+        raw_owner
+    );
+
+    drop(gateway);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn writable_mount_excludes_a_second_mutable_owner_session() {
+    let root = std::env::current_dir()
+        .unwrap()
+        .join(".test-tmp")
+        .join(format!(
+            "gateway-exclusive-writer-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+    std::fs::create_dir_all(&root).unwrap();
+    let rel_path = root.join("owner.rel");
+    let raw_owner = [45; 16];
+    initialize_rel(&rel_path, raw_owner);
+
+    let gateway = Gateway::new();
+    let admission = GraphAdmission::for_replay(raw_owner, [], [], [], [], []);
+    let owner = gateway
+        .mount_writable_reliquary(&rel_path, &admission, [], [])
+        .unwrap();
+    let instance = gateway.instance("alice", [owner], []).unwrap();
+
+    assert!(matches!(
+        RelWriter::open_path(&rel_path, admission, [], []),
+        Err(OwnerSessionError::Container(
+            reliquary_container::ContainerError::WriterConflict
+        ))
+    ));
+
+    instance
+        .with_rel_writer(owner, |writer| {
+            writer.accept_turn_and_advance_branch(
+                reliquary_archive::TurnInput {
+                    id: "canonical-turn".to_owned(),
+                    conversation_id: "conversation".to_owned(),
+                    parent_id: None,
+                    role: "user".to_owned(),
+                    principal_id: Some("alice".to_owned()),
+                    timestamp_ns: 1,
+                    content: "canonical writer".to_owned(),
+                    attachments: Vec::new(),
+                    project_attachments: Vec::new(),
+                },
+                reliquary_archive::Branch {
+                    id: "main".to_owned(),
+                    conversation_id: "conversation".to_owned(),
+                    leaf_node_id: "canonical-turn".to_owned(),
+                    canonical: true,
+                },
+            )
+        })
+        .unwrap()
+        .unwrap();
+    drop((instance, gateway));
+
+    let reopened = RelSession::open_path(
+        &rel_path,
+        &GraphAdmission::for_replay(raw_owner, [], [], [], [], []),
+        [],
+        [],
+    )
+    .unwrap();
+    assert!(
+        reopened
+            .archive_node("conversation", "canonical-turn")
+            .is_some()
+    );
+
+    drop(reopened);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn blank_or_control_character_principals_are_rejected() {
     let gateway = Gateway::new();
     assert!(matches!(
