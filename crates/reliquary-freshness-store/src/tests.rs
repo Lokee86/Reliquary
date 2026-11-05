@@ -170,6 +170,8 @@ fn births_admissions_uses_and_settled_cuts_survive_reopen() {
     assert_eq!(current.score, 100);
     assert_eq!(current.admitted_at_turn, Some(20));
     assert_eq!(current.accounted_turn, Some(40));
+    assert_eq!(store.record_at(memory, 40).unwrap().unwrap().score, 99);
+    assert_eq!(store.records_through_turn(40).unwrap()[&memory].score, 100);
     let settled = store.record_at(memory, 50).unwrap().unwrap();
     assert_eq!(settled.score, 99);
     assert_eq!(settled.accounted_turn, Some(50));

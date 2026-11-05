@@ -401,6 +401,24 @@ impl FreshnessStore {
         self.project(Some(cut))
     }
 
+    /// Project all accepted events through the given turn, including events
+    /// accepted on that turn. An event cut without an ID instead selects the
+    /// boundary before that turn's events.
+    pub fn records_through_turn(
+        &self,
+        rel_turn: u64,
+    ) -> Result<BTreeMap<FreshnessMemoryId, FreshnessRecord>, String> {
+        self.records_at(&FreshnessEventCut {
+            rel_turn,
+            event_id_inclusive: self
+                .events
+                .values()
+                .rev()
+                .find(|event| event.accepted_turn == rel_turn)
+                .map(|event| event.event_id.clone()),
+        })
+    }
+
     pub fn record_at(
         &self,
         memory_id: FreshnessMemoryId,

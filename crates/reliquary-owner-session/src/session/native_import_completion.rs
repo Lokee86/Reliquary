@@ -6,7 +6,6 @@ use crate::records::{
     ImportComplete, ImportEpochStatus, ImportFreshnessSettlement, ImportWatermarks, hex_digest,
 };
 use reliquary_archive::EpisodeOrigin;
-use reliquary_freshness_store::FreshnessEventCut;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
@@ -67,10 +66,7 @@ impl RelWriter {
             let records = self
                 .session
                 .freshness
-                .records_at(&FreshnessEventCut {
-                    rel_turn: self.session.archive.rel_turn_count(),
-                    event_id_inclusive: None,
-                })
+                .records_through_turn(self.session.archive.rel_turn_count())
                 .map_err(OwnerSessionError::Record)?;
             let cut = self.session.archive.rel_turn_count();
             let mut hash = Sha256::new();
