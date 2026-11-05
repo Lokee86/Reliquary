@@ -199,6 +199,16 @@ pub fn commit_prepared_native_ingest_with_external_refs(
         return Err(IngestPublicationError::EpisodeMismatch);
     }
 
+    if let Some((claimed_episode, claimed_turns)) = &prepared.claim_snapshot {
+        let archived_turns = writer
+            .read_session()
+            .episode_turns(prepared.episode_id)
+            .map_err(|error| IngestPublicationError::OwnerSession(error.to_string()))?;
+        if episode != claimed_episode || archived_turns.as_ref() != Some(claimed_turns) {
+            return Err(IngestPublicationError::EpisodeMismatch);
+        }
+    }
+
     let owner_id = hex(&prepared.owner_id);
     let mut bodies = Vec::with_capacity(prepared.candidates.len());
     let mut records = Vec::with_capacity(prepared.candidates.len());

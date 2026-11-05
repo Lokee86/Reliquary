@@ -121,6 +121,7 @@ pub struct PreparedIngest {
     episode_id: EpisodeId,
     conversation_id: String,
     source_through_ns: i64,
+    claim_snapshot: Option<(Episode, Vec<ResolvedTurn>)>,
     candidates: Vec<InsomniaCandidate>,
     rejected: Vec<reliquary_insomnia::InsomniaRejection>,
 }
@@ -183,6 +184,7 @@ fn prepare_native_ingest(
         episode_id: episode.id,
         conversation_id: episode.conversation_id.clone(),
         source_through_ns: episode.source_through_ns,
+        claim_snapshot: None,
         candidates,
         rejected,
     })
@@ -215,6 +217,7 @@ pub fn prepare_native_ingest_from_claim(
         .collect();
     let mut prepared =
         prepare_native_ingest(claim.owner_id, &claim.episode, &claim.turns, &[], proposals)?;
+    prepared.claim_snapshot = Some((claim.episode.clone(), claim.turns.clone()));
     prepared.rejected.extend(extraction.rejected);
     Ok(prepared)
 }
@@ -549,6 +552,41 @@ mod tests {
             prepare_native_ingest_from_archive(&rel, EpisodeId([255; 32]), &too_many, vec![],),
             Err(IngestError::EvidenceTurnLimit)
         );
+    }
+
+    #[test]
+    fn publication_rejects_forged_claim_source_text() {
+        let (_path, mut writer, episode_id) = accepted_writer();
+        let work = writer
+            .queue_and_claim_insomnia_episode(episode_id, "ingest-test", 10, 1_000)
+            .unwrap();
+        let rel = writer.read_session();
+        let mut claim = reliquary_owner_session::RelInsomniaClaimInput {
+            owner_id: rel.owner_id(),
+            work,
+            episode: rel.episode(episode_id).unwrap().clone(),
+            turns: rel.episode_turns(episode_id).unwrap().unwrap(),
+            started_at_ns: 10,
+        };
+        let quote = "Keep my project plans private.";
+        claim.turns[0].content = quote.into();
+        let extraction =
+            validate_candidates(&claim.episode, &claim.turns, &[], vec![candidate(quote)]).unwrap();
+        let prepared = prepare_native_ingest_from_claim(&claim, extraction).unwrap();
+        assert_eq!(prepared.candidates().len(), 1);
+        let version = writer.next_global_version().unwrap();
+        assert!(matches!(
+            commit_prepared_native_ingest(
+                &mut writer,
+                &prepared,
+                &claim.work,
+                "fixture-model",
+                "v1",
+                20
+            ),
+            Err(IngestPublicationError::EpisodeMismatch)
+        ));
+        assert_eq!(writer.next_global_version().unwrap(), version);
     }
 
     #[test]

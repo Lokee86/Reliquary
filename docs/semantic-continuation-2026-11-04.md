@@ -24,3 +24,11 @@ The owner-backed Dream candidate preparation slice now runs through a named, rea
 ## Current V02 publication continuation — 2026-11-05
 
 The current [V02 evidence](v02-dream-publication-progress-2026-11-04.md) supersedes the older missing-implementation lists above: validated stored temporal inference, bounded candidate discovery, atomic multi-pair Graph/Memory/pair publication, persisted initial frontiers, zero-candidate settlement, canonical Freshness birth/admission and no-reinforcement retry now have executable REL/PHY evidence. The locked offline workspace suite passes **433 tests across 47 suites**; formatting, workspace check, whitespace and architecture checks pass (23 packages, 76 production edges). V02 remains **IN PROGRESS** because V01 is an upstream acceptance prerequisite. S02 extraction fidelity and G2 remain separately unaccepted. Bounded candidate discovery does not promise exhaustive all-owner nearest-neighbor parity, and index reconstruction at reopen remains proportional to history.
+
+## 2026-11-05 V01 source and ledger binding
+
+Claim-based REL publication now compares the prepared Episode and accepted turns against the durable Archive before writing. The regression test supplies a modified turn with a valid lease and checks that publication rejects it before advancing the physical version. Insomnia wording must preserve the count, order, source node, authority, category, type, lifecycle, and attribution nodes of retained clauses. The deterministic fixtures cover omitted and superseded clauses and reject wording that drops, adds, or reclassifies retained clauses.
+
+S02 remains in progress pending full frozen extraction-class fidelity evidence. V01 still needs a compiled extraction worker, authorized bounded Archive evidence resolution, sealed PHY publication and REL completion references, and a mixed-route interruption/retry proof. V02's existing tests cover bounded relation and lifecycle publication, zero-link settlement, and Freshness admission without rewire credit. Its acceptance still depends on V01. G2 also depends on V03 through V07.
+
+The locked offline workspace suite passed with local loopback access for mock HTTP servers (436 tests across 47 suites). Workspace check, formatting, whitespace, and the architecture guard passed. The production graph remains at 23 packages and 76 edges.

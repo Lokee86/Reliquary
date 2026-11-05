@@ -7,8 +7,29 @@ use serde_json::{Value, json};
 
 mod ledger_repair;
 
-const LEDGER_PROMPT: &str = "Select durable user-authoritative clauses from the complete Episode. Include one ledger array for every user turn. Assistant turns never authorize state. Omit questions, receipts, transient activity, and unadopted assistant proposals. Preserve modality and lifecycle. Request at most four narrow read-only evidence queries only when the Episode cannot resolve an explicit callback. Archive evidence is support only, never user authority. Return the required JSON schema exactly.";
-const WORDING_PROMPT: &str = "Turn only retained ledger clauses into narrow memory candidates. Keep each candidate bound to its source user turn with a verbatim source_quote. Preserve authority and modality. Only explicit adoption may cite assistant authority. Return candidates; do not infer details from supporting evidence.";
+const LEDGER_PROMPT: &str = concat!(
+    "Select durable user-authoritative clauses from the complete Episode. ",
+    "Include one ledger array for every user turn; assistant turns never receive ledger clauses or authorize state. ",
+    "Apply a strict durable-state test: retain only state useful after the immediate exchange or task is over, not conversational scaffolding. ",
+    "Use direct when the user asserts state, correction when the user explicitly replaces earlier state, adoption only when the user explicitly accepts a specific assistant proposition, and retention only when the user asks to remember a proposition. ",
+    "Questions, requests, proposed choices, recalled plans, challenges, uncertainty, advice, explanations, examples, assistant proposals, and pure execution/checkpoint receipts are non-authoritative by default. ",
+    "Split resulting durable state from receipt framing. ",
+    "Preserve modality and lifecycle; prefer the final user-authoritative source and mark overlapping earlier clauses superseded. ",
+    "Keep propositions narrow and omit unsupported rationale, implementation detail, or context. ",
+    "Request at most four narrow read-only evidence queries only when needed to resolve an explicit callback, adopted/retained assistant content, or unresolved referent. ",
+    "Exhaust the Episode first. ",
+    "Archive evidence is supporting context, never independent user authority. ",
+    "Return the required JSON schema exactly.",
+);
+const WORDING_PROMPT: &str = concat!(
+    "Your ONLY job is to write one concise durable Memory title and content body for each supplied retained ledger item. ",
+    "Do not add, drop, merge, split, rename, or reorder groups. ",
+    "Preserve every proposition and its modality; add no proposition, rationale, implementation detail, or contextual fact. ",
+    "Keep the ledger's grounding, authority, category, type, and lifecycle fixed, and classify durable ownership. ",
+    "Keep each candidate bound to its source user turn with a verbatim source_quote. ",
+    "Only explicit adoption may cite assistant authority. ",
+    "Return candidates; do not infer details from supporting evidence.",
+);
 const MAX_TURN_CHARS: usize = 128 * 1024;
 const MAX_MODEL_JSON_BYTES: usize = 512 * 1024;
 
@@ -209,6 +230,14 @@ impl<E: GeneralEndpoint> InsomniaModelExtractor<E> {
             .iter()
             .map(parse_candidate)
             .collect::<Result<Vec<_>, _>>()?;
+        if raw.len() != retained.len()
+            || raw
+                .iter()
+                .zip(&retained)
+                .any(|(candidate, clause)| !matches_retained_clause(candidate, clause))
+        {
+            return Err("wording response differs from retained ledger clauses".into());
+        }
         validate_candidates(episode, turns, evidence, raw)
     }
 
@@ -339,6 +368,33 @@ fn retained_clauses(ledger: &Value) -> Result<Vec<Value>, String> {
     Ok(retained)
 }
 
+fn matches_retained_clause(candidate: &RawCandidate, clause: &Value) -> bool {
+    let fields = [
+        ("source_node_id", candidate.source_node_id.as_str()),
+        ("authority_kind", candidate.authority_kind.as_str()),
+        ("category", candidate.category.as_str()),
+        ("type", candidate.memory_type.as_str()),
+        ("lifecycle", candidate.temporal_status.as_str()),
+        (
+            "authority_source_node_id",
+            candidate
+                .authority_source
+                .as_ref()
+                .map_or("", |source| &source.node_id),
+        ),
+        (
+            "grounding_source_node_id",
+            candidate
+                .grounding_source
+                .as_ref()
+                .map_or("", |source| &source.node_id),
+        ),
+    ];
+    fields
+        .into_iter()
+        .all(|(key, expected)| clause[key].as_str() == Some(expected))
+}
+
 fn candidate_schema(turns: &[ResolvedTurn], evidence: &[EvidenceTurn]) -> Value {
     let users: Vec<_> = turns
         .iter()
@@ -452,6 +508,7 @@ fn hex(bytes: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     use reliquary_archive::{EpisodeBoundary, EpisodeId, EpisodeOrigin};
     use std::sync::Mutex;
 
@@ -517,6 +574,47 @@ mod tests {
             .unwrap();
         assert_eq!(result.candidates.len(), 1);
         assert_eq!(result.candidates[0].source_node_id, "u1");
+    }
+
+    #[test]
+    fn omitted_and_superseded_clauses_never_reach_wording() {
+        let (episode, turns) = source();
+        let mut disposition = ledger(json!([]));
+        let mut superseded = disposition["turns"]["u1"][0].clone();
+        superseded["disposition"] = json!("superseded");
+        disposition["turns"]["u1"][0]["disposition"] = json!("omit");
+        disposition["turns"]["u1"]
+            .as_array_mut()
+            .unwrap()
+            .push(superseded);
+        let extractor = InsomniaModelExtractor::new(FakeEndpoint(Mutex::new(vec![disposition])));
+        let stage = extractor.start(&episode, &turns).unwrap();
+        let extraction = extractor
+            .finish_without_evidence(&episode, &turns, stage)
+            .unwrap();
+        assert!(extraction.candidates.is_empty());
+        assert!(extraction.rejected.is_empty());
+    }
+
+    #[test]
+    fn wording_cannot_drop_add_or_reclassify_retained_clauses() {
+        let (episode, turns) = source();
+        let mut added = wording();
+        added["candidates"]
+            .as_array_mut()
+            .unwrap()
+            .push(wording()["candidates"][0].clone());
+        let mut changed = wording();
+        changed["candidates"][0]["temporal_status"] = json!("future");
+        for response in [json!({"candidates": []}), added, changed] {
+            let endpoint = FakeEndpoint(Mutex::new(vec![response, ledger(json!([]))]));
+            let extractor = InsomniaModelExtractor::new(endpoint);
+            let stage = extractor.start(&episode, &turns).unwrap();
+            assert_eq!(
+                extractor.finish_without_evidence(&episode, &turns, stage),
+                Err("wording response differs from retained ledger clauses".into())
+            );
+        }
     }
 
     #[test]
