@@ -427,8 +427,8 @@
       ],
       "deliverable": "Owner-cut history, native import, prune/rewrite/reconcile on verified copies",
       "acceptance": "Historical unavailability and import fencing correct; transformation promoted only after independently reopened validation",
-      "status": "in-progress",
-      "progress_evidence": "C:/!bin/workspace/Reliquary-rebuild/docs/v05-v06-continuation-2026-11-05.md"
+      "status": "completed",
+      "completion_evidence": "C:/!bin/workspace/Reliquary-rebuild/docs/v06-acceptance-2026-11-05.md"
     },
     {
       "id": "V07",
