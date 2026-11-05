@@ -414,8 +414,8 @@
       ],
       "deliverable": "Source-bound vectors/profiles, repository evidence and final context",
       "acceptance": "No model under owner locks, valid sources/profiles and budget; no duplicate host transcript authority",
-      "status": "in-progress",
-      "progress_evidence": "docs/rebuild-implementation-progress.md"
+      "status": "completed",
+      "completion_evidence": "C:\\!bin\\workspace\\Reliquary-rebuild\\docs\\v05-vector-context-acceptance-2026-11-05.md"
     },
     {
       "id": "V06",
