@@ -17,3 +17,9 @@ The locked offline workspace suite passed 504 tests across 23 nonempty suites wh
 ## Archive timeline checkpoint
 
 The Application settlement entry point validates the historical timeline from owner-accepted Archive nodes and activity positions before requesting the existing snapshot. It preserves accepted order when imported timestamps precede previously accepted live turns. The native import test exercises that case and confirms settlement retry and reopen. All 504 local locked offline workspace tests passed. Historical attribution, propagation and durable publication remain open.
+
+## Historical provenance checkpoint
+
+The rebuild now has a pure historical import scorer that combines propagated events with retained live contributions, and the owner snapshot includes accepted events on its final activity turn. The provenance planner now classifies Memory with any unresolved source, content, grounding, or Episode-path evidence as unsupported. The regression covers wholly missing and partially resolved provenance. It verifies a single unsupported result and preserves the missing-evidence diagnostic.
+
+The remaining G2 evidence is a native import that derives its historical events from the accepted owner prefix, applies the resulting scores durably, and verifies after reopen that older eligible Memory receives credit, excluded or later-born Memory receives none, and retry adds no credit. The current native import still records a digest of the existing Freshness projection.

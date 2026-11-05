@@ -423,7 +423,13 @@ impl HistoricalProvenancePlan {
             .collect::<BTreeMap<_, _>>();
         let mut plans = Vec::with_capacity(memories.len());
         let mut coverage = BTreeMap::new();
-        for memory in memories {
+        let positions: BTreeMap<_, _> = timeline
+            .activity_order
+            .iter()
+            .enumerate()
+            .map(|(index, key)| (key, index as u64 + 1))
+            .collect();
+        'memory: for memory in memories {
             if memory.archived || memory.superseded {
                 plans.push(MemoryPlan {
                     memory_id: memory.memory_id.clone(),
@@ -480,7 +486,7 @@ impl HistoricalProvenancePlan {
             }
             let mut max_position = 0_u64;
             for key in evidence {
-                let Some(position) = timeline.position(key) else {
+                let Some(&position) = positions.get(key) else {
                     coverage.insert(
                         memory.memory_id.clone(),
                         format!("missing-evidence:{}", key.node_id),
@@ -494,7 +500,7 @@ impl HistoricalProvenancePlan {
                             .or_else(|| memory.episode_id.clone())
                             .unwrap_or_else(|| memory.memory_id.clone()),
                     });
-                    continue;
+                    continue 'memory;
                 };
                 max_position = max_position.max(position);
             }
@@ -503,7 +509,7 @@ impl HistoricalProvenancePlan {
                 .clone()
                 .or_else(|| memory.episode_id.clone())
                 .unwrap_or_else(|| memory.memory_id.clone());
-            if memory.provisional_replaceable == false && max_position > 0 {
+            if !memory.provisional_replaceable {
                 return Err(PlannerError::UnsafeProvisionalReplacement(
                     memory.memory_id.clone(),
                 ));
@@ -511,7 +517,7 @@ impl HistoricalProvenancePlan {
             plans.push(MemoryPlan {
                 memory_id: memory.memory_id.clone(),
                 availability: MemoryAvailability::Supported {
-                    position: max_position.max(1),
+                    position: max_position,
                 },
                 cohort_id,
             });
@@ -654,6 +660,36 @@ mod tests {
             timeline.validate_archive_clock(&positions, 1),
             Err(PlannerError::ArchiveClockMismatch { .. })
         ));
+    }
+    #[test]
+    fn missing_provenance_evidence_never_produces_a_supported_recipient() {
+        let source = src("c", "known", None, "user", 1);
+        let missing = src("c", "missing", None, "user", 2).key;
+        let timeline = HistoricalTimeline::plan(vec![source.clone()]).unwrap();
+        for known in [None, Some(source.key)] {
+            let plan = HistoricalProvenancePlan::plan(
+                &timeline,
+                &[],
+                &[MemoryEvidence {
+                    memory_id: "m".into(),
+                    source: known,
+                    content: Some(missing.clone()),
+                    grounding: None,
+                    episode_id: None,
+                    cohort_id: None,
+                    archived: false,
+                    superseded: false,
+                    provisional_replaceable: true,
+                }],
+            )
+            .unwrap();
+            assert_eq!(plan.memories.len(), 1);
+            assert_eq!(
+                plan.memories[0].availability,
+                MemoryAvailability::Unsupported
+            );
+            assert_eq!(plan.coverage["m"], "missing-evidence:missing");
+        }
     }
     #[test]
     fn non_activity_ancestry_bridges_and_provenance_reports_coverage() {
