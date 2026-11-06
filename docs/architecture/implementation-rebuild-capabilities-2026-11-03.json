@@ -569,8 +569,9 @@
       ],
       "deliverable": "Evidence-based 2.1 supported historical REL/PHY cuts, owner projections and preserved-history verification after rewrite/prune/reconcile",
       "acceptance": "Supported Archive, Memory, Entity/Relationship, Graph, Ego, Freshness and vector historical observations agree semantically with reference or have an explicit supported-format distinction; unavailable/unauthorized/corrupt cuts fail closed",
-      "status": "not-started",
-      "breakdown": "docs/architecture/maintenance-history-parity-phase-2026-11-05.md"
+      "status": "complete",
+      "breakdown": "docs/architecture/maintenance-history-parity-phase-2026-11-05.md",
+      "acceptance_evidence": "Reliquary-rebuild/docs/m04-historical-read-proof-parity-acceptance-2026-11-06.md"
     },
     {
       "id": "GM",
