@@ -163,6 +163,7 @@ impl RelSession {
         let archive_vectors = ArchiveVectorStore::open(container, &common.packed_vectors)?;
         let generations =
             VectorGenerationStore::open(container, &common.profiles, &archive_vectors)?;
+        super::archive_prune::validate_archive_prune(&archive, &common.maintenance)?;
         super::retired_profile_prune::validate_archive_profile_prune(
             &common.profiles,
             &common.packed_vectors,
@@ -231,6 +232,15 @@ impl RelSession {
 
     pub fn archive_node(&self, conversation: &str, node: &str) -> Option<&Node> {
         self.archive.node(conversation, node)
+    }
+    pub fn archive_version(&self) -> u64 {
+        self.archive.archive_version()
+    }
+    pub fn conversation_tombstone(
+        &self,
+        conversation: &str,
+    ) -> Option<&reliquary_archive::ConversationTombstone> {
+        self.archive.conversation_tombstone(conversation)
     }
     /// Read immutable Echo evidence for one exact conversation/message source.
     pub fn echo_for_turn(

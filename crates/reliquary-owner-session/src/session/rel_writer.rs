@@ -67,6 +67,28 @@ impl RelWriter {
     pub fn owner_id(&self) -> [u8; 16] {
         self.session.owner_id()
     }
+    pub fn tombstone_conversation(
+        &mut self,
+        conversation_id: &str,
+    ) -> Result<bool, OwnerSessionError> {
+        self.ensure_write_ready()?;
+        let result = self
+            .session
+            .archive
+            .tombstone_conversation(&mut self.container, conversation_id);
+        match result {
+            Ok(value) => {
+                self.session.writer_lease_proof = self.container.writer_lease_proof();
+                Ok(value)
+            }
+            Err(error) => {
+                if matches!(error, reliquary_archive::ArchiveError::Container(_)) {
+                    self.session.write_poisoned = true;
+                }
+                Err(error.into())
+            }
+        }
+    }
     /// Record an evaluated pair after the application has accepted its result.
     pub fn record_dream_pair(
         &mut self,

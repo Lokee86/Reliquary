@@ -573,6 +573,7 @@ common_reads!(PhySession, common);
 mod tests;
 
 mod archive_evidence;
+mod archive_prune;
 mod archive_vector_publication;
 mod create;
 pub(crate) mod dream_pairs;
@@ -591,6 +592,7 @@ mod maintenance_prune_proof;
 mod profile_repair;
 mod retired_profile_prune;
 mod storage_reclamation;
+pub use archive_prune::{ArchivePruneReport, prune_terminal_archive_copy};
 pub use profile_repair::{
     ProfileRepairError, ProfileRepairPlan, ProfileRepairReport, execute_profile_repair,
     plan_profile_repair,

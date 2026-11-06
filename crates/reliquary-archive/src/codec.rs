@@ -11,6 +11,8 @@ const BRANCH_MAGIC: [u8; 8] = *b"RELBRCH1";
 const EPISODE_MAGIC: [u8; 8] = *b"RELEPIS1";
 const IMPORT_MAGIC: [u8; 8] = *b"CVAIMPT1";
 const FRAGMENT_DEFINITION_MAGIC: [u8; 8] = *b"CVAFRG01";
+const TOMBSTONE_MAGIC: [u8; 8] = *b"RELCTM01";
+const PRUNED_TURN_MAGIC: [u8; 8] = *b"RELTPR01";
 const MIN_ATTACHMENT_RECORD_LEN: usize = 32 + 32 + 8 + 4 + 1 + 1;
 
 pub(crate) enum Record {
@@ -20,6 +22,36 @@ pub(crate) enum Record {
     Episode(Episode),
     Import(ImportReceipt),
     FragmentDefinitions(Vec<FragmentDefinition>),
+    ConversationTombstone(String),
+    PrunedTurn(Node, Vec<SourceAttachment>, [u8; 32]),
+}
+
+pub fn prune_turn_frame(
+    bytes: &[u8],
+    manifest_digest: [u8; 32],
+) -> Result<Option<(Vec<u8>, Node)>, ArchiveError> {
+    let Some(Record::Turn(node, _, attachments)) = decode_record(bytes)? else {
+        return Ok(None);
+    };
+    let mut encoded = encode_turn(&node, "", &attachments)?;
+    encoded[..8].copy_from_slice(&PRUNED_TURN_MAGIC);
+    encoded.splice(8..8, manifest_digest);
+    Ok(Some((encoded, node)))
+}
+
+pub fn archive_turn_prune_marker(bytes: &[u8]) -> Result<Option<(Node, [u8; 32])>, ArchiveError> {
+    let Some(Record::PrunedTurn(node, _, digest)) = decode_record(bytes)? else {
+        return Ok(None);
+    };
+    Ok(Some((node, digest)))
+}
+
+pub(crate) fn encode_conversation_tombstone(
+    conversation_id: &str,
+) -> Result<Vec<u8>, ArchiveError> {
+    let mut out = TOMBSTONE_MAGIC.to_vec();
+    write_string(&mut out, conversation_id)?;
+    Ok(out)
 }
 
 pub(crate) fn encode_turn(
@@ -143,6 +175,28 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<Record>, ArchiveError
         let definitions = serde_json::from_slice(bytes.get(8..).unwrap_or_default())
             .map_err(|_| ArchiveError::CorruptRecord("invalid fragment definition"))?;
         Ok(Some(Record::FragmentDefinitions(definitions)))
+    } else if magic == TOMBSTONE_MAGIC {
+        let mut cursor = 8;
+        let id = read_string(bytes, &mut cursor)?;
+        require_end(bytes, cursor)?;
+        Ok(Some(Record::ConversationTombstone(id)))
+    } else if magic == PRUNED_TURN_MAGIC {
+        if bytes.len() < 40 {
+            return Err(ArchiveError::CorruptRecord("short pruned turn"));
+        }
+        let digest: [u8; 32] = bytes[8..40].try_into().unwrap();
+        if digest == [0; 32] {
+            return Err(ArchiveError::CorruptRecord("empty pruned turn proof"));
+        }
+        let mut restored = TURN_MAGIC.to_vec();
+        restored.extend_from_slice(&bytes[40..]);
+        let Record::Turn(node, content, attachments) = decode_turn(&restored)? else {
+            unreachable!()
+        };
+        if !content.is_empty() {
+            return Err(ArchiveError::CorruptRecord("pruned turn carries content"));
+        }
+        Ok(Some(Record::PrunedTurn(node, attachments, digest)))
     } else {
         Ok(None)
     }

@@ -31,6 +31,7 @@ pub struct Archive {
     container_identity: Option<ContainerIdentity>,
     nodes: HashMap<(String, String), Node>,
     content: HashMap<ContentId, String>,
+    pruned_nodes: HashMap<(String, String), [u8; 32]>,
     accepted_node_order: Vec<(String, String)>,
     node_archive_versions: HashMap<(String, String), u64>,
     activity_position_by_node: HashMap<(String, String), u64>,
@@ -41,6 +42,7 @@ pub struct Archive {
     episodes: BTreeMap<EpisodeId, Episode>,
     import_receipts: BTreeMap<[u8; 32], ImportReceipt>,
     fragment_definitions: BTreeMap<crate::FragmentId, crate::FragmentDefinition>,
+    conversation_tombstones: BTreeMap<String, crate::ConversationTombstone>,
     archive_version: u64,
 }
 
@@ -51,6 +53,7 @@ impl Archive {
             container_identity: None,
             nodes: HashMap::new(),
             content: HashMap::new(),
+            pruned_nodes: HashMap::new(),
             accepted_node_order: Vec::new(),
             node_archive_versions: HashMap::new(),
             activity_position_by_node: HashMap::new(),
@@ -61,6 +64,7 @@ impl Archive {
             episodes: BTreeMap::new(),
             import_receipts: BTreeMap::new(),
             fragment_definitions: BTreeMap::new(),
+            conversation_tombstones: BTreeMap::new(),
             archive_version: 0,
         }
     }
@@ -94,6 +98,12 @@ impl Archive {
         validate_text(&input.id, "node id")?;
         validate_text(&input.conversation_id, "conversation id")?;
         validate_text(&input.role, "role")?;
+        if self
+            .conversation_tombstones
+            .contains_key(&input.conversation_id)
+        {
+            return Err(ArchiveError::InvalidField("terminal conversation"));
+        }
         if input.parent_id.as_deref() == Some("") || input.principal_id.as_deref() == Some("") {
             return Err(ArchiveError::InvalidField("optional turn field"));
         }
@@ -219,6 +229,12 @@ impl Archive {
         self.bind_container(container)?;
         validate_text(&branch.id, "branch id")?;
         validate_text(&branch.conversation_id, "conversation id")?;
+        if self
+            .conversation_tombstones
+            .contains_key(&branch.conversation_id)
+        {
+            return Err(ArchiveError::InvalidField("terminal conversation"));
+        }
         validate_text(&branch.leaf_node_id, "branch leaf node id")?;
         self.require_node(&branch.conversation_id, &branch.leaf_node_id)?;
         if let Some(existing) = self
@@ -257,6 +273,9 @@ impl Archive {
     ) -> Result<EpisodeId, ArchiveError> {
         self.bind_container(container)?;
         validate_text(conversation_id, "conversation id")?;
+        if self.conversation_tombstones.contains_key(conversation_id) {
+            return Err(ArchiveError::InvalidField("terminal conversation"));
+        }
         let end = self.require_node(conversation_id, end_node_id)?;
         if !self
             .branch_path(conversation_id, end_node_id)?
@@ -303,6 +322,12 @@ impl Archive {
         self.bind_container(container)?;
         if receipt.owner_uuid != container.owner_id() {
             return Err(ArchiveError::WrongOwner);
+        }
+        if receipt.conversations.iter().any(|conversation| {
+            self.conversation_tombstones
+                .contains_key(&conversation.conversation_id)
+        }) {
+            return Err(ArchiveError::InvalidField("terminal conversation"));
         }
         receipt.receipt_digest = import_receipt_digest(&receipt)?;
         self.validate_import_receipt(&receipt)?;
@@ -373,6 +398,9 @@ impl Archive {
         close_tail: bool,
     ) -> Result<Vec<crate::FragmentDefinition>, ArchiveError> {
         self.bind_container(container)?;
+        if self.conversation_tombstones.contains_key(conversation_id) {
+            return Err(ArchiveError::InvalidField("terminal conversation"));
+        }
         let fragments =
             self.branch_fragment_windows(conversation_id, branch_id, config, close_tail)?;
         let proposed = fragments
@@ -455,6 +483,12 @@ impl Archive {
         let Some(node) = self.node(conversation_id, node_id) else {
             return Ok(None);
         };
+        if self
+            .pruned_nodes
+            .contains_key(&(conversation_id.to_owned(), node_id.to_owned()))
+        {
+            return Err(ArchiveError::MissingContent);
+        }
         let content = self
             .content
             .get(&node.content_id)
@@ -506,6 +540,12 @@ impl Archive {
     /// Read canonical turn text by immutable source identity. Derived indexes
     /// use this to validate byte spans and must still rehydrate on retrieval.
     pub fn content_for_node(&self, conversation_id: &str, node_id: &str) -> Option<&str> {
+        if self
+            .pruned_nodes
+            .contains_key(&(conversation_id.to_owned(), node_id.to_owned()))
+        {
+            return None;
+        }
         let node = self.node(conversation_id, node_id)?;
         self.content.get(&node.content_id).map(String::as_str)
     }
@@ -513,6 +553,48 @@ impl Archive {
     pub fn node(&self, conversation_id: &str, node_id: &str) -> Option<&Node> {
         self.nodes
             .get(&(conversation_id.to_owned(), node_id.to_owned()))
+    }
+
+    pub fn conversation_tombstone(
+        &self,
+        conversation_id: &str,
+    ) -> Option<&crate::ConversationTombstone> {
+        self.conversation_tombstones.get(conversation_id)
+    }
+
+    pub fn tombstone_conversation(
+        &mut self,
+        container: &mut Container,
+        conversation_id: &str,
+    ) -> Result<bool, ArchiveError> {
+        self.validate_owner(container)?;
+        validate_text(conversation_id, "conversation id")?;
+        if self.conversation_tombstones.contains_key(conversation_id) {
+            return Ok(false);
+        }
+        if !self
+            .nodes
+            .keys()
+            .any(|(conversation, _)| conversation == conversation_id)
+        {
+            return Err(ArchiveError::MissingNode);
+        }
+        let bytes = crate::codec::encode_conversation_tombstone(conversation_id)?;
+        container.append(&bytes)?;
+        container.sync()?;
+        self.apply_record(Record::ConversationTombstone(conversation_id.to_owned()))?;
+        Ok(true)
+    }
+
+    pub fn pruned_turns(&self) -> Vec<(Node, [u8; 32])> {
+        let mut values = self
+            .pruned_nodes
+            .iter()
+            .filter_map(|(key, digest)| self.nodes.get(key).cloned().map(|node| (node, *digest)))
+            .collect::<Vec<_>>();
+        values
+            .sort_by(|a, b| (&a.0.conversation_id, &a.0.id).cmp(&(&b.0.conversation_id, &b.0.id)));
+        values
     }
 
     pub fn rel_turn_count(&self) -> u64 {
@@ -577,6 +659,12 @@ impl Archive {
     fn apply_record(&mut self, record: Record) -> Result<(), ArchiveError> {
         match record {
             Record::Turn(node, content, attachments) => {
+                if self
+                    .conversation_tombstones
+                    .contains_key(&node.conversation_id)
+                {
+                    return Err(ArchiveError::CorruptRecord("turn after terminal tombstone"));
+                }
                 validate_text(&node.id, "node id")?;
                 validate_text(&node.conversation_id, "conversation id")?;
                 validate_text(&node.role, "role")?;
@@ -660,6 +748,53 @@ impl Archive {
                 }
                 self.archive_version = archive_version;
             }
+            Record::PrunedTurn(node, mut attachments, manifest_digest) => {
+                validate_text(&node.id, "node id")?;
+                validate_text(&node.conversation_id, "conversation id")?;
+                validate_text(&node.role, "role")?;
+                let key = (node.conversation_id.clone(), node.id.clone());
+                if self.nodes.contains_key(&key) || self.pruned_nodes.contains_key(&key) {
+                    return Err(ArchiveError::ConflictingNode);
+                }
+                if let Some(parent_id) = node.parent_id.as_deref()
+                    && !self
+                        .nodes
+                        .contains_key(&(node.conversation_id.clone(), parent_id.to_owned()))
+                {
+                    return Err(ArchiveError::MissingParent);
+                }
+                for attachment in &mut attachments {
+                    if attachment.project_reference.is_none() {
+                        attachment.bytes = self
+                            .file_content
+                            .get(&attachment.content_id)
+                            .ok_or(ArchiveError::MissingContent)?
+                            .clone();
+                    }
+                }
+                validate_source_attachments(&attachments)?;
+                let archive_version = self.next_archive_version()?;
+                let position = if activity_role(&node.role) {
+                    Some(
+                        self.rel_turn_count
+                            .checked_add(1)
+                            .ok_or(ArchiveError::ActivityPositionExhausted)?,
+                    )
+                } else {
+                    None
+                };
+                self.nodes.insert(key.clone(), node);
+                self.pruned_nodes.insert(key.clone(), manifest_digest);
+                self.source_attachments.insert(key.clone(), attachments);
+                self.accepted_node_order.push(key.clone());
+                self.node_archive_versions
+                    .insert(key.clone(), archive_version);
+                if let Some(position) = position {
+                    self.activity_position_by_node.insert(key, position);
+                    self.rel_turn_count = position;
+                }
+                self.archive_version = archive_version;
+            }
             Record::FileBlob(content_id, bytes) => {
                 if ContentId(Sha256::digest(&bytes).into()) != content_id {
                     return Err(ArchiveError::CorruptContent);
@@ -673,6 +808,14 @@ impl Archive {
                 }
             }
             Record::Branch(branch) => {
+                if self
+                    .conversation_tombstones
+                    .contains_key(&branch.conversation_id)
+                {
+                    return Err(ArchiveError::CorruptRecord(
+                        "branch after terminal tombstone",
+                    ));
+                }
                 validate_text(&branch.id, "branch id")?;
                 validate_text(&branch.conversation_id, "conversation id")?;
                 validate_text(&branch.leaf_node_id, "branch leaf node id")?;
@@ -695,6 +838,14 @@ impl Archive {
                 self.archive_version = archive_version;
             }
             Record::Episode(episode) => {
+                if self
+                    .conversation_tombstones
+                    .contains_key(&episode.conversation_id)
+                {
+                    return Err(ArchiveError::CorruptRecord(
+                        "Episode after terminal tombstone",
+                    ));
+                }
                 validate_text(&episode.conversation_id, "conversation id")?;
                 validate_text(&episode.start_node_id, "Episode start node id")?;
                 validate_text(&episode.end_node_id, "Episode end node id")?;
@@ -725,6 +876,14 @@ impl Archive {
                 }
             }
             Record::Import(receipt) => {
+                if receipt.conversations.iter().any(|conversation| {
+                    self.conversation_tombstones
+                        .contains_key(&conversation.conversation_id)
+                }) {
+                    return Err(ArchiveError::CorruptRecord(
+                        "import after terminal tombstone",
+                    ));
+                }
                 self.validate_import_receipt(&receipt)?;
                 if let Some(existing) = self.import_receipts.get(&receipt.import_key) {
                     return if existing == &receipt {
@@ -744,6 +903,14 @@ impl Archive {
                     ));
                 }
                 let archive_cut = self.archive_version;
+                if definitions.iter().any(|definition| {
+                    self.conversation_tombstones
+                        .contains_key(&definition.fragment.conversation_id)
+                }) {
+                    return Err(ArchiveError::CorruptRecord(
+                        "fragment after terminal tombstone",
+                    ));
+                }
                 let mut expected = BTreeMap::new();
                 for definition in &definitions {
                     if definition.archive_cut != archive_cut {
@@ -776,6 +943,30 @@ impl Archive {
                     self.fragment_definitions
                         .insert(definition.fragment.id, definition);
                 }
+                self.archive_version = archive_version;
+            }
+            Record::ConversationTombstone(conversation_id) => {
+                validate_text(&conversation_id, "conversation id")?;
+                if !self
+                    .nodes
+                    .keys()
+                    .any(|(conversation, _)| conversation == &conversation_id)
+                {
+                    return Err(ArchiveError::MissingNode);
+                }
+                if self.conversation_tombstones.contains_key(&conversation_id) {
+                    return Err(ArchiveError::CorruptRecord(
+                        "duplicate conversation tombstone",
+                    ));
+                }
+                let archive_version = self.next_archive_version()?;
+                self.conversation_tombstones.insert(
+                    conversation_id.clone(),
+                    crate::ConversationTombstone {
+                        conversation_id,
+                        archive_version,
+                    },
+                );
                 self.archive_version = archive_version;
             }
         }

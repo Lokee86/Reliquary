@@ -19,6 +19,12 @@ pub struct Node {
     pub content_id: ContentId,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConversationTombstone {
+    pub conversation_id: String,
+    pub archive_version: u64,
+}
+
 /// Source-to-native mapping receipt for one complete normalized import.
 /// Transcript and artifact bodies remain in their ordinary Archive records.
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
