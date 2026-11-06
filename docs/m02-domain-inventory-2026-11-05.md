@@ -1,6 +1,8 @@
 # M02 domain inventory — 2026-11-05
 
-M02 is in progress. This inventory is not acceptance evidence.
+M02 is accepted as of 2026-11-06. This file remains the pre-acceptance domain
+inventory; final evidence is in
+`m02-multidomain-pruning-reclamation-acceptance-2026-11-06.md`.
 
 | Reference contract | Rebuild starting point | Remaining proof |
 | --- | --- | --- |
@@ -58,6 +60,14 @@ Entity pruning refuses active mentions, Graph edges and Relationship participant
 The complete evidence and deliberate 2.1 differences are in
 `m02-semantic-description-prune-verification-2026-11-06.md`.
 
-**M02 itself remains open**: broader reclamation reachability and fault
-injection are not yet accepted, and separately verified single-domain prune
-copies do not imply a combined multi-domain prune/reconciliation contract.
+## 2026-11-06 final acceptance
+
+Reclamation now covers orphan Memory bodies, unmapped packed vectors and
+unreferenced Archive file bodies, with REL receipt relocation and explicit PHY
+coverage. Referenced Archive files survive an exact no-op copy. Unactivated
+generations and unknown carriers fail closed. Injected copy, sync and reopen
+failures leave the source exact and publish no destination. The architecture,
+formatting, locked offline build and complete serialized workspace tests pass.
+
+M02 is accepted. This does not imply a combined multi-domain transform API or
+M03 reconciliation; each prune remains an explicit owner-verified operation.

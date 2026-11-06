@@ -447,16 +447,27 @@ fn rel_fixture() -> (
 #[test]
 fn storage_reclamation_relocates_rel_generation_receipts_and_reopens_history() {
     use reliquary_owner_session::{VerifiedOwnerCopyPlan, reclaim_storage_copy};
+    use sha2::{Digest, Sha256};
 
     let (source, session, memory, profile) = rel_fixture();
     let graph = GraphAdmission::for_replay(session.owner_id(), [], [], [], [], []);
     let destination = Fixture::new();
-    let before = fs::read(&source.0).unwrap();
     let history = session.memory_history(memory).unwrap();
     let vector = session.archive_vector_infos();
+    drop(session);
+    let orphan = b"unreferenced attachment bytes";
+    let mut frame = b"RELFILE1".to_vec();
+    frame.extend_from_slice(&Sha256::digest(orphan));
+    frame.extend_from_slice(&(orphan.len() as u32).to_le_bytes());
+    frame.extend_from_slice(orphan);
+    let mut writer = Container::open_writer(&source.0).unwrap();
+    writer.append(&frame).unwrap();
+    writer.sync().unwrap();
+    drop(writer);
+    let before = fs::read(&source.0).unwrap();
     let plan = VerifiedOwnerCopyPlan::prepare(&source.0).unwrap();
     let report = reclaim_storage_copy(&plan, &source.0, &destination.0, &graph).unwrap();
-    assert_eq!(report.removed_frames, 1);
+    assert_eq!(report.removed_frames, 2);
     assert!(report.candidate_bytes < report.source_bytes);
     assert_eq!(fs::read(&source.0).unwrap(), before);
     let reopened = RelSession::open_path(&destination.0, &graph, [], []).unwrap();
@@ -486,6 +497,28 @@ fn storage_reclamation_relocates_rel_generation_receipts_and_reopens_history() {
     assert!(error.contains("unsupported reclamation frame family"));
     assert!(!refused.0.exists());
     assert_eq!(fs::read(&noop.0).unwrap(), untouched);
+}
+
+#[test]
+fn storage_reclamation_detects_unactivated_generation_and_leaves_no_output() {
+    use reliquary_owner_session::{VerifiedOwnerCopyPlan, reclaim_storage_copy};
+
+    let (source, session, _, _) = rel_fixture();
+    let graph = GraphAdmission::for_replay(session.owner_id(), [], [], [], [], []);
+    drop(session);
+    let mut writer = Container::open_writer(&source.0).unwrap();
+    let mut orphan_generation = vec![0u8; 112];
+    orphan_generation[..8].copy_from_slice(b"RELVGEN1");
+    writer.append(&orphan_generation).unwrap();
+    writer.sync().unwrap();
+    drop(writer);
+    let before = fs::read(&source.0).unwrap();
+    let destination = Fixture::new();
+    let plan = VerifiedOwnerCopyPlan::prepare(&source.0).unwrap();
+    let error = reclaim_storage_copy(&plan, &source.0, &destination.0, &graph).unwrap_err();
+    assert!(error.contains("unactivated vector generation"));
+    assert!(!destination.0.exists());
+    assert_eq!(fs::read(&source.0).unwrap(), before);
 }
 
 #[test]
