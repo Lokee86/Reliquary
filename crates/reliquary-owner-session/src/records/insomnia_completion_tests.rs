@@ -1566,6 +1566,7 @@ fn compact_dream_uses_direct_birth_intent_and_recorded_global_order() {
         graph_version: start.pre.graph_version,
         freshness_state_digest: crate::records::hex_digest(b"accepted-freshness"),
         freshness_memory_count: 1,
+        replay_source_authority: None,
     };
     imports
         .append_settlement(&mut container, settlement.clone())

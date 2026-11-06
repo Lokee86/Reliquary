@@ -122,6 +122,9 @@ pub struct InsomniaStore {
     identity: ContainerIdentity,
     accepted: BTreeMap<EpisodeId, AcceptedEpisodeOrder>,
     work: BTreeMap<EpisodeId, InsomniaWork>,
+    /// Canonical chain binding every retained accepted work revision, not just
+    /// the final projected status. Does not include grouped completion receipts.
+    work_history_digests: BTreeMap<EpisodeId, [u8; 32]>,
     orders: BTreeMap<EpisodeId, AcceptedEpisodeOrder>,
     receipts: BTreeMap<(EpisodeId, u32), AcceptedCompletionState>,
 }

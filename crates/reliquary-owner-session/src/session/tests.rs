@@ -89,6 +89,7 @@ fn open_import_epoch_fences_mutation_after_writer_reopen() {
         graph_version: start.pre.graph_version,
         freshness_state_digest: crate::records::hex_digest(b"empty-freshness"),
         freshness_memory_count: 0,
+        replay_source_authority: None,
     };
     imports
         .append_settlement(&mut container, settlement.clone())

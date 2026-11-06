@@ -181,7 +181,13 @@ pub fn reconcile_divergent_rel_copy(
     left_plan
         .copy_to(left_path, &staged.path)
         .map_err(RelReconciliationError::Verification)?;
-    let replayed = replay::replay_right(&left, &right, &staged.path, &left_dream_admissions)?;
+    let replayed = replay::replay_right(
+        &left,
+        &right,
+        &right_container,
+        &staged.path,
+        &left_dream_admissions,
+    )?;
     let counts = replayed.counts;
     let merged_admission = replay::merged_graph_admission(&left, &right);
     let reopened = RelSession::open_path(

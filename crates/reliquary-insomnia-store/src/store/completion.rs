@@ -83,6 +83,7 @@ impl InsomniaStore {
             identity: self.identity,
             accepted: self.accepted.clone(),
             work: self.work.clone(),
+            work_history_digests: self.work_history_digests.clone(),
             orders: self.orders.clone(),
             receipts: self.receipts.clone(),
         }
@@ -136,8 +137,20 @@ impl InsomniaStore {
         {
             return Err(InsomniaError::CorruptRecord("Episode order changed"));
         }
+        let bytes = encode_work(self.owner, &order, &w)?;
+        let mut hasher = Sha256::new();
+        hasher.update(b"reliquary:insomnia-work-history:v1\\0");
+        hasher.update(
+            self.work_history_digests
+                .get(&w.episode_id)
+                .copied()
+                .unwrap_or([0; 32]),
+        );
+        hasher.update(bytes);
+        let digest: [u8; 32] = hasher.finalize().into();
         self.orders.insert(w.episode_id, order);
         let id = w.episode_id;
+        self.work_history_digests.insert(id, digest);
         self.work.insert(id, w);
         self.project_receipt(id);
         Ok(())

@@ -7,6 +7,9 @@ use reliquary_freshness_store::FreshnessMemoryId;
 use reliquary_memory_core::{decode_grouped_creation, encode_grouped_creation};
 use std::collections::{BTreeMap, BTreeSet};
 
+#[path = "imports/work.rs"]
+mod work;
+
 pub(super) struct ImportReplay {
     pub counts: ReplayCounts,
     pub rebased_freshness: BTreeSet<FreshnessMemoryId>,
@@ -27,7 +30,8 @@ pub(super) fn validate(
     let right_epochs = completed(right)?;
     for (id, right_epoch) in &right_epochs {
         if let Some(left_epoch) = left_epochs.get(id)
-            && !same_authority(left_epoch, right_epoch, left, right)?
+            && (!same_authority(left_epoch, right_epoch, left, right)?
+                || freshness_authority(left, id)? != freshness_authority(right, id)?)
         {
             return Err(conflict(format!("conflicting completed import epoch {id}")));
         }
@@ -38,6 +42,7 @@ pub(super) fn validate(
 pub(super) fn replay(
     left: &RelSession,
     right: &RelSession,
+    right_container: &Container,
     target_path: &Path,
     left_dream_admissions: &[DreamBeginAdmission],
 ) -> Result<ImportReplay, RelReconciliationError> {
@@ -134,14 +139,24 @@ pub(super) fn replay(
         replay_grouped_completions(
             &mut writer,
             right,
+            right_container,
             &destination_start.import_id,
             &episodes,
             &mut counts,
             &mut rebased_freshness,
             &mut destination_dream_admissions,
         )?;
+        let source_authority = right
+            .imports
+            .settlement(&epoch.start.import_id)
+            .ok_or_else(|| conflict("completed import has no accepted Freshness settlement"))?
+            .reconciliation_authority();
         writer
-            .complete_native_import(&destination_start.import_id, epoch.complete.completed_at_ns)
+            .complete_replayed_native_import(
+                &destination_start.import_id,
+                epoch.complete.completed_at_ns,
+                source_authority,
+            )
             .map_err(verification)?;
         source_archive_cursor = post;
     }
@@ -221,7 +236,10 @@ pub(super) fn verify(
         let retained = output_epochs
             .get(&epoch.start.import_id)
             .ok_or_else(|| conflict("reconciliation lost a replayed import epoch"))?;
-        if !same_authority(retained, epoch, output, right)? {
+        if !same_authority(retained, epoch, output, right)?
+            || freshness_authority(output, &epoch.start.import_id)?
+                != freshness_authority(right, &epoch.start.import_id)?
+        {
             return Err(conflict("replayed import authority changed"));
         }
     }
@@ -261,7 +279,8 @@ fn same_authority(
         && left.complete.completed_at_ns == right.complete.completed_at_ns
         && output_receipt(left, left_session)? == output_receipt(right, right_session)?
         && archive_evidence(left_session, left)? == archive_evidence(right_session, right)?
-        && grouped_evidence(left_session, left)? == grouped_evidence(right_session, right)?)
+        && grouped_evidence(left_session, left)? == grouped_evidence(right_session, right)?
+        && work_evidence(left_session, left)? == work_evidence(right_session, right)?)
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -365,6 +384,34 @@ fn grouped_evidence(
     }
     completions.sort_by_key(|completion| (completion.episode_id, completion.attempt));
     Ok(completions)
+}
+
+fn work_evidence(
+    session: &RelSession,
+    epoch: &CompletedEpoch,
+) -> Result<Vec<(EpisodeId, [u8; 32])>, RelReconciliationError> {
+    imported_episodes(&session.archive, epoch)?
+        .into_iter()
+        .map(|episode| {
+            session
+                .insomnia
+                .work_history_digest(WorkEpisodeId(episode.0))
+                .map(|digest| (episode, digest))
+                .ok_or_else(|| conflict("completed import has no retained Insomnia journal"))
+        })
+        .collect()
+}
+
+fn freshness_authority(
+    session: &RelSession,
+    import_id: &str,
+) -> Result<(String, u64), RelReconciliationError> {
+    let settlement = session
+        .imports
+        .settlement(import_id)
+        .ok_or_else(|| conflict("completed import has no accepted Freshness settlement"))?;
+    let authority = settlement.reconciliation_authority();
+    Ok((authority.state_digest, authority.memory_count))
 }
 
 fn output_receipt<'a>(
@@ -594,6 +641,7 @@ fn reject_unhandled_archive_changes(
 fn replay_grouped_completions(
     writer: &mut RelWriter,
     source: &RelSession,
+    source_container: &Container,
     import_id: &str,
     episodes: &[EpisodeId],
     counts: &mut ReplayCounts,
@@ -621,22 +669,26 @@ fn replay_grouped_completions(
                 "import grouped completion crosses an unsupported owner boundary",
             ));
         }
-        let duration = source_completion
-            .completed_at_ns
-            .saturating_sub(source_completion.started_at_ns)
-            .saturating_add(1)
-            .max(1);
-        let claim = writer
-            .claim_native_import_episode(
-                import_id,
-                *episode,
-                "semantic-reconciliation",
-                source_completion.started_at_ns,
-                duration,
-            )
-            .map_err(verification)?;
+        let work_id = WorkEpisodeId(episode.0);
+        let token = work::replay_before_completion(writer, source_container, *episode, import_id)?;
+        let source_work = source
+            .insomnia_work(work_id)
+            .ok_or_else(|| conflict("import Episode has no accepted source work"))?;
+        let current_work = writer
+            .session
+            .insomnia
+            .work(work_id)
+            .ok_or_else(|| conflict("import Episode work disappeared during replay"))?;
+        if current_work.state != reliquary_insomnia_store::InsomniaWorkState::Processing
+            || current_work.attempt_count != source_completion.attempt
+            || source_work.attempt_count != source_completion.attempt
+        {
+            return Err(conflict(
+                "import completion attempt differs from replayed work journal",
+            ));
+        }
         let mut completion = source_completion;
-        completion.attempt = claim.work.attempt_count;
+        completion.attempt = current_work.attempt_count;
         completion.global_version_start = writer.next_global_version().map_err(verification)?;
         let base_memory_version = writer.session.common.memories.memory_version();
         completion.memory_records = completion
@@ -661,10 +713,6 @@ fn replay_grouped_completions(
                     .map(FreshnessMemoryId),
             );
         }
-        let token = claim
-            .work
-            .lease_token
-            .ok_or_else(|| conflict("replayed import claim lacks a lease"))?;
         writer
             .commit_native_import_completion_with_routed_receipts(
                 import_id,
@@ -674,6 +722,11 @@ fn replay_grouped_completions(
                 &[],
             )
             .map_err(verification)?;
+        if writer.session.insomnia.work(work_id) != Some(source_work) {
+            return Err(conflict(
+                "replayed Insomnia journal differs from accepted source state",
+            ));
+        }
         counts.memory += completion.memory_records.len();
         counts.freshness += completion.freshness_birth_memory_ids.len();
         replay_initial_dreams(

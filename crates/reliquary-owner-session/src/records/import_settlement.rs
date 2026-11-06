@@ -9,6 +9,13 @@ pub const MAGIC: &[u8; 8] = b"RELIFRS1";
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct ImportFreshnessAuthority {
+    pub state_digest: String,
+    pub memory_count: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ImportFreshnessSettlement {
     pub owner_uuid: [u8; 16],
     pub import_id: String,
@@ -21,9 +28,22 @@ pub struct ImportFreshnessSettlement {
     pub graph_version: u64,
     pub freshness_state_digest: String,
     pub freshness_memory_count: u64,
+    /// Original completed-epoch authority when reconciliation rebases the
+    /// settlement onto a destination that already has independent Freshness.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub replay_source_authority: Option<ImportFreshnessAuthority>,
 }
 
 impl ImportFreshnessSettlement {
+    pub fn reconciliation_authority(&self) -> ImportFreshnessAuthority {
+        self.replay_source_authority
+            .clone()
+            .unwrap_or_else(|| ImportFreshnessAuthority {
+                state_digest: self.freshness_state_digest.clone(),
+                memory_count: self.freshness_memory_count,
+            })
+    }
+
     pub fn encode(&self) -> Result<Vec<u8>, String> {
         let body = serde_json::to_vec(self).map_err(|e| e.to_string())?;
         let len = u32::try_from(body.len()).map_err(|_| "import settlement too large")?;

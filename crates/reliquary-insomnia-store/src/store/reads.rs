@@ -55,6 +55,7 @@ impl InsomniaStore {
             identity: container.identity(),
             accepted: orders,
             work: BTreeMap::new(),
+            work_history_digests: BTreeMap::new(),
             orders: BTreeMap::new(),
             receipts: BTreeMap::new(),
         };
@@ -83,6 +84,40 @@ impl InsomniaStore {
         }
         Ok(store)
     }
+    /// Decode every retained work-journal revision for one Episode. Used by
+    /// verified owner maintenance to replay terminal/retry history through the
+    /// same state machine, rather than copying opaque physical frames.
+    pub fn work_history(
+        container: &Container,
+        episode_id: EpisodeId,
+    ) -> Result<Vec<InsomniaWork>, InsomniaError> {
+        let mut history = Vec::new();
+        let mut order = None;
+        for frame in container.read_frames()? {
+            if !(frame.payload.starts_with(WORK_MAGIC) || frame.payload.starts_with(WORK_MAGIC_V2))
+            {
+                continue;
+            }
+            let (owner, candidate_order, work) = decode_work(&frame.payload)?;
+            if owner != container.owner_id() {
+                return Err(InsomniaError::WrongOwner);
+            }
+            if work.episode_id != episode_id {
+                continue;
+            }
+            if order.as_ref().is_some_and(|old| old != &candidate_order)
+                || work.revision != history.len() as u64 + 1
+            {
+                return Err(InsomniaError::CorruptRecord(
+                    "historical Insomnia work order or revision changed",
+                ));
+            }
+            order = Some(candidate_order);
+            history.push(work);
+        }
+        Ok(history)
+    }
+
     pub fn owner_id(&self) -> [u8; 16] {
         self.owner
     }
@@ -114,6 +149,10 @@ impl InsomniaStore {
     }
     pub fn work(&self, id: EpisodeId) -> Option<&InsomniaWork> {
         self.work.get(&id)
+    }
+    /// SHA-256 chain of accepted work-journal revisions in exact owner order.
+    pub fn work_history_digest(&self, id: EpisodeId) -> Option<[u8; 32]> {
+        self.work_history_digests.get(&id).copied()
     }
     pub fn receipt(&self, id: EpisodeId, attempt: u32) -> Option<&AcceptedCompletionState> {
         self.receipts.get(&(id, attempt))

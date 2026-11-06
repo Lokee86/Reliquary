@@ -60,10 +60,17 @@ pub(super) fn require_compatible_fixed_state(
 pub(super) fn replay_right(
     left: &RelSession,
     right: &RelSession,
+    right_container: &Container,
     target_path: &Path,
     left_dream_admissions: &[DreamBeginAdmission],
 ) -> Result<ReplayOutcome, RelReconciliationError> {
-    let imported = imports::replay(left, right, target_path, left_dream_admissions)?;
+    let imported = imports::replay(
+        left,
+        right,
+        right_container,
+        target_path,
+        left_dream_admissions,
+    )?;
     let mut writer = RelWriter::open_path(
         target_path,
         merged_graph_admission(left, right),
@@ -155,6 +162,17 @@ pub(super) fn verify_merged(
     let rebased_freshness = imports::rebased_freshness(left, right)?;
     freshness_verify::verify_merged(left, right, output, &rebased_freshness)?;
     for source in [left, right] {
+        for work in source.insomnia.work_items() {
+            let id = work.episode_id;
+            if output.insomnia_work(id) != Some(work)
+                || output.insomnia.work_history_digest(id)
+                    != source.insomnia.work_history_digest(id)
+            {
+                return Err(conflict(
+                    "reconciliation lost retained Insomnia work-journal revisions",
+                ));
+            }
+        }
         for expected in source.common.dreams.initial_settlements() {
             let actual = output
                 .common

@@ -269,6 +269,10 @@ impl ImportEpochStore {
             ]
             .iter()
             .all(|s| valid_digest(s))
+            || value
+                .replay_source_authority
+                .as_ref()
+                .is_some_and(|authority| !valid_digest(&authority.state_digest))
             || value.start_digest
                 != format!(
                     "{:x}",

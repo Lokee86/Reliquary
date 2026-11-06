@@ -91,6 +91,7 @@ fn import_complete(
         graph_version: start.pre.graph_version,
         freshness_state_digest: hex_digest(b"empty-freshness"),
         freshness_memory_count: 0,
+        replay_source_authority: None,
     };
     s.append_settlement(c, settlement.clone()).unwrap();
     ImportComplete {

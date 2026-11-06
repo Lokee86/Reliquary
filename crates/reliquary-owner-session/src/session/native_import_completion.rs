@@ -4,7 +4,8 @@ use super::work::{mapped_source_nodes, source_path_is_mapped};
 use super::*;
 use crate::records::import_settlement::source_prefix_digest;
 use crate::records::{
-    ImportComplete, ImportEpochStatus, ImportFreshnessSettlement, ImportWatermarks, hex_digest,
+    ImportComplete, ImportEpochStatus, ImportFreshnessAuthority, ImportFreshnessSettlement,
+    ImportWatermarks, hex_digest,
 };
 use reliquary_archive::EpisodeOrigin;
 use sha2::{Digest, Sha256};
@@ -17,6 +18,14 @@ impl RelWriter {
     pub fn settle_native_import(
         &mut self,
         import_id: &str,
+    ) -> Result<ImportFreshnessSettlement, OwnerSessionError> {
+        self.settle_native_import_with_authority(import_id, None)
+    }
+
+    fn settle_native_import_with_authority(
+        &mut self,
+        import_id: &str,
+        replay_source_authority: Option<ImportFreshnessAuthority>,
     ) -> Result<ImportFreshnessSettlement, OwnerSessionError> {
         if self.session.write_poisoned
             || self.container.writer_lease_proof() != self.session.writer_lease_proof
@@ -57,6 +66,7 @@ impl RelWriter {
                 || accepted.rel_turn != self.session.archive.rel_turn_count()
                 || accepted.memory_version != self.session.common.memories.memory_version()
                 || accepted.graph_version != self.session.common.graph.graph_version()
+                || accepted.replay_source_authority != replay_source_authority
             {
                 return Err(OwnerSessionError::Record(
                     "native import Freshness settlement is stale or mismatched".into(),
@@ -105,6 +115,7 @@ impl RelWriter {
                 graph_version: self.session.common.graph.graph_version(),
                 freshness_state_digest: format!("{:x}", hash.finalize()),
                 freshness_memory_count: records.len() as u64,
+                replay_source_authority,
             };
             if let Err(error) = self
                 .session
@@ -128,6 +139,28 @@ impl RelWriter {
         &mut self,
         import_id: &str,
         completed_at_ns: i64,
+    ) -> Result<(ImportComplete, bool), OwnerSessionError> {
+        self.complete_native_import_with_authority(import_id, completed_at_ns, None)
+    }
+
+    pub(crate) fn complete_replayed_native_import(
+        &mut self,
+        import_id: &str,
+        completed_at_ns: i64,
+        source_authority: ImportFreshnessAuthority,
+    ) -> Result<(ImportComplete, bool), OwnerSessionError> {
+        self.complete_native_import_with_authority(
+            import_id,
+            completed_at_ns,
+            Some(source_authority),
+        )
+    }
+
+    fn complete_native_import_with_authority(
+        &mut self,
+        import_id: &str,
+        completed_at_ns: i64,
+        replay_source_authority: Option<ImportFreshnessAuthority>,
     ) -> Result<(ImportComplete, bool), OwnerSessionError> {
         if self.session.write_poisoned
             || self.container.writer_lease_proof() != self.session.writer_lease_proof
@@ -156,7 +189,8 @@ impl RelWriter {
                 "import completion precedes durable start".into(),
             ));
         }
-        let settlement = self.settle_native_import(import_id)?;
+        let settlement =
+            self.settle_native_import_with_authority(import_id, replay_source_authority)?;
 
         let complete = ImportComplete {
             format_version: 2,

@@ -165,6 +165,7 @@ fn complete_grouped_memory_import(
     owner: [u8; 16],
     key_byte: u8,
     with_dream: bool,
+    work_retry: bool,
 ) -> (
     String,
     MemoryId,
@@ -242,8 +243,32 @@ fn complete_grouped_memory_import(
             },
         )
         .unwrap();
+    if work_retry {
+        let first = writer
+            .claim_native_import_episode(&start.import_id, episode, "fixture-first", 202, 100)
+            .unwrap();
+        writer
+            .session
+            .insomnia
+            .terminal(
+                &mut writer.container,
+                WorkEpisodeId(episode.0),
+                first.work.lease_token.unwrap(),
+                203,
+                "retry retained journal history".into(),
+            )
+            .unwrap();
+        writer.session.writer_lease_proof = writer.container.writer_lease_proof();
+        writer
+            .session
+            .insomnia
+            .retry_terminal(&mut writer.container, WorkEpisodeId(episode.0), 204)
+            .unwrap();
+        writer.session.writer_lease_proof = writer.container.writer_lease_proof();
+    }
+    let completed_at = 206;
     let claim = writer
-        .claim_native_import_episode(&start.import_id, episode, "fixture", 202, 100)
+        .claim_native_import_episode(&start.import_id, episode, "fixture", 205, 100)
         .unwrap();
     let mutation = format!("reconciled-grouped-memory-{key_byte:02x}");
     let id = memory_id(&mutation);
@@ -283,8 +308,8 @@ fn complete_grouped_memory_import(
                 episode_id: episode.0,
                 attempt: claim.work.attempt_count,
                 started_at_ns: claim.started_at_ns,
-                completed_at_ns: 203,
-                transaction_time_ns: 203,
+                completed_at_ns: completed_at,
+                transaction_time_ns: completed_at,
                 extractor_model: "fixture".into(),
                 extractor_version: "v1".into(),
                 rejected_count: 0,
@@ -301,7 +326,7 @@ fn complete_grouped_memory_import(
                 freshness_policy_version: Some(1),
                 freshness_birth_memory_ids: vec![id.0],
             },
-            203,
+            completed_at,
             &[],
         )
         .unwrap();
@@ -332,7 +357,7 @@ fn complete_grouped_memory_import(
             .unwrap();
     }
     writer
-        .complete_native_import(&start.import_id, 204)
+        .complete_native_import(&start.import_id, completed_at + 1)
         .unwrap();
     (start.import_id, id, episode, dream_admission)
 }
@@ -541,7 +566,7 @@ fn completed_grouped_memory_epoch_replays_through_destination_owners() {
     let (left, right, owner) = owner_pair();
     complete_empty_import(&left.0, owner, 0xf1, 100);
     let (right_id, memory, episode, _) =
-        complete_grouped_memory_import(&right.0, owner, 0xf2, false);
+        complete_grouped_memory_import(&right.0, owner, 0xf2, false, false);
     let graph = GraphAdmission::for_replay(owner, [memory.0], [], [], [], []);
     let output = Temp::new("grouped-import-output");
     reconcile_divergent_rel_copy(&left.0, &right.0, &output.0, &graph, &[], &[]).unwrap();
@@ -638,7 +663,8 @@ fn unrelated_live_insomnia_work_must_not_disappear_during_import_merge() {
 fn completed_import_initial_dream_pass_is_preserved_in_divergent_merge() {
     let (left, right, owner) = owner_pair();
     complete_empty_import(&left.0, owner, 0xf3, 100);
-    let (import_id, memory, _, dream) = complete_grouped_memory_import(&right.0, owner, 0xf4, true);
+    let (import_id, memory, _, dream) =
+        complete_grouped_memory_import(&right.0, owner, 0xf4, true, false);
     let dream = dream.unwrap();
     let pass = format!("import-initial-{import_id}");
     let admission = GraphAdmission::for_replay(owner, [memory.0], [], [], [], []);
@@ -697,7 +723,7 @@ fn replayed_import_dream_preserves_source_population_with_extra_left_birth() {
     let right = Temp::new("dream-pop-right");
     let owner = [0x62; 16];
     drop(RelWriter::create_path(&left.0, ReliquaryScope::Connection, owner).unwrap());
-    let (_, baseline, _, _) = complete_grouped_memory_import(&left.0, owner, 0xe1, false);
+    let (_, baseline, _, _) = complete_grouped_memory_import(&left.0, owner, 0xe1, false, false);
     fs::copy(&left.0, &right.0).unwrap();
     let left_only = {
         let graph = GraphAdmission::for_replay(owner, [baseline.0], [], [], [], []);
@@ -723,7 +749,7 @@ fn replayed_import_dream_preserves_source_population_with_extra_left_birth() {
         id
     };
     let (_, source_id, _, source_dream) =
-        complete_grouped_memory_import(&right.0, owner, 0xe2, true);
+        complete_grouped_memory_import(&right.0, owner, 0xe2, true, false);
     let dream = source_dream.unwrap();
     assert_eq!(dream.preexisting_ids, [baseline].into());
     let graph = GraphAdmission::for_replay(
@@ -759,10 +785,161 @@ fn replayed_import_dream_preserves_source_population_with_extra_left_birth() {
     admissions.push(dream);
     let repeated =
         reconcile_divergent_rel_copy(&output.0, &right.0, &repeat.0, &graph, &[], &admissions);
-    // A rebased source birth changes the import's recipient base. This may
-    // remain an explicit conflict, but never a silent population expansion.
     match repeated {
         Ok(_) => assert_eq!(fs::read(&repeat.0).unwrap(), output_before),
         Err(_) => assert!(!repeat.0.exists()),
     }
+}
+
+#[test]
+fn repeated_import_preserves_source_freshness_authority_byte_stably() {
+    let left = Temp::new("freshness-authority-left");
+    let right = Temp::new("freshness-authority-right");
+    let owner = [0x63; 16];
+    drop(RelWriter::create_path(&left.0, ReliquaryScope::Connection, owner).unwrap());
+    let (_, baseline, _, _) = complete_grouped_memory_import(&left.0, owner, 0xe3, false, false);
+    fs::copy(&left.0, &right.0).unwrap();
+    let left_only = {
+        let graph = GraphAdmission::for_replay(owner, [baseline.0], [], [], [], []);
+        let mut writer = RelWriter::open_path(&left.0, graph, [], []).unwrap();
+        let published = writer
+            .session
+            .common
+            .memories
+            .publish(
+                &mut writer.container,
+                None,
+                0,
+                draft("freshness-authority-left-only", None),
+            )
+            .unwrap();
+        let id = published.revision.record.id;
+        writer
+            .session
+            .freshness
+            .create_birth(&mut writer.container, FreshnessMemoryId(id.0), 1, true)
+            .unwrap();
+        writer.container.sync().unwrap();
+        id
+    };
+    let (source_import_id, source_id, _, _) =
+        complete_grouped_memory_import(&right.0, owner, 0xe4, false, false);
+    let graph = GraphAdmission::for_replay(
+        owner,
+        [baseline.0, left_only.0, source_id.0],
+        [],
+        [],
+        [],
+        [],
+    );
+    let output = Temp::new("freshness-authority-output");
+    reconcile_divergent_rel_copy(&left.0, &right.0, &output.0, &graph, &[], &[]).unwrap();
+    let source = RelSession::open_path(&right.0, &graph, [], []).unwrap();
+    let merged = RelSession::open_path(&output.0, &graph, [], []).unwrap();
+    let source_import = source.imports.settlement(&source_import_id).unwrap();
+    let merged_import = merged.imports.settlement(&source_import_id).unwrap();
+    assert_eq!(
+        merged_import.reconciliation_authority(),
+        source_import.reconciliation_authority()
+    );
+    assert!(merged_import.freshness_memory_count > source_import.freshness_memory_count);
+    drop((source, merged));
+    let output_before = fs::read(&output.0).unwrap();
+    let repeat = Temp::new("freshness-authority-repeat");
+    let repeated =
+        reconcile_divergent_rel_copy(&output.0, &right.0, &repeat.0, &graph, &[], &[]).unwrap();
+    assert_eq!(repeated.replayed_memory_revisions, 0);
+    assert_eq!(fs::read(&repeat.0).unwrap(), output_before);
+    assert_eq!(fs::read(&output.0).unwrap(), output_before);
+}
+
+#[test]
+fn completed_import_terminal_retry_insomnia_history_is_replayed() {
+    let (left, right, owner) = owner_pair();
+    complete_empty_import(&left.0, owner, 0x91, 100);
+    let (import_id, memory, episode, _) =
+        complete_grouped_memory_import(&right.0, owner, 0x92, false, true);
+    let graph = GraphAdmission::for_replay(owner, [memory.0], [], [], [], []);
+    let source_container = Container::open_read_only_as(&right.0, FileKind::Reliquary).unwrap();
+    let source_history = reliquary_insomnia_store::InsomniaStore::work_history(
+        &source_container,
+        WorkEpisodeId(episode.0),
+    )
+    .unwrap();
+    assert_eq!(
+        source_history.iter().map(|w| w.state).collect::<Vec<_>>(),
+        [
+            reliquary_insomnia_store::InsomniaWorkState::Pending,
+            reliquary_insomnia_store::InsomniaWorkState::Processing,
+            reliquary_insomnia_store::InsomniaWorkState::Terminal,
+            reliquary_insomnia_store::InsomniaWorkState::Pending,
+            reliquary_insomnia_store::InsomniaWorkState::Processing,
+        ]
+    );
+    let source = RelSession::open_path(&right.0, &graph, [], []).unwrap();
+    let source_work = source
+        .insomnia_work(WorkEpisodeId(episode.0))
+        .unwrap()
+        .clone();
+    let right_bytes = fs::read(&right.0).unwrap();
+    let destination = Temp::new("retry-history-output");
+    let report =
+        reconcile_divergent_rel_copy(&left.0, &right.0, &destination.0, &graph, &[], &[]).unwrap();
+    assert_eq!(report.replayed_memory_revisions, 1);
+    let merged = RelSession::open_path(&destination.0, &graph, [], []).unwrap();
+    assert_eq!(
+        merged.insomnia_work(WorkEpisodeId(episode.0)),
+        Some(&source_work)
+    );
+    assert!(matches!(
+        merged.import_status(&import_id),
+        Some(ImportEpochStatus::Completed { .. })
+    ));
+    drop(merged);
+    let reopened = Container::open_read_only_as(&destination.0, FileKind::Reliquary).unwrap();
+    let replayed_history =
+        reliquary_insomnia_store::InsomniaStore::work_history(&reopened, WorkEpisodeId(episode.0))
+            .unwrap();
+    assert_eq!(replayed_history, source_history);
+    let before = fs::read(&destination.0).unwrap();
+    let repeated = Temp::new("retry-history-repeated");
+    let repeated_report =
+        reconcile_divergent_rel_copy(&destination.0, &right.0, &repeated.0, &graph, &[], &[])
+            .unwrap();
+    assert_eq!(repeated_report.replayed_memory_revisions, 0);
+    assert_eq!(fs::read(&repeated.0).unwrap(), before);
+    assert_eq!(fs::read(&right.0).unwrap(), right_bytes);
+}
+
+#[test]
+fn same_import_id_with_divergent_insomnia_journal_conflicts_without_output() {
+    let (left, right, owner) = owner_pair();
+    let (left_id, left_memory, left_episode, _) =
+        complete_grouped_memory_import(&left.0, owner, 0x93, false, false);
+    let (right_id, right_memory, right_episode, _) =
+        complete_grouped_memory_import(&right.0, owner, 0x93, false, true);
+    assert_eq!(left_id, right_id);
+    assert_eq!(left_memory, right_memory);
+    assert_eq!(left_episode, right_episode);
+    let grant = GraphAdmission::for_replay(owner, [left_memory.0], [], [], [], []);
+    let first = RelSession::open_path(&left.0, &grant, [], []).unwrap();
+    let second = RelSession::open_path(&right.0, &grant, [], []).unwrap();
+    assert_ne!(
+        first
+            .insomnia
+            .work_history_digest(WorkEpisodeId(left_episode.0)),
+        second
+            .insomnia
+            .work_history_digest(WorkEpisodeId(right_episode.0)),
+    );
+    let left_before = fs::read(&left.0).unwrap();
+    let right_before = fs::read(&right.0).unwrap();
+    let output = Temp::new("same-import-different-work-history");
+    assert!(matches!(
+        reconcile_divergent_rel_copy(&left.0, &right.0, &output.0, &grant, &[], &[]),
+        Err(RelReconciliationError::SemanticConflict(_))
+    ));
+    assert!(!output.0.exists());
+    assert_eq!(fs::read(&left.0).unwrap(), left_before);
+    assert_eq!(fs::read(&right.0).unwrap(), right_before);
 }
