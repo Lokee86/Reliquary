@@ -85,6 +85,6 @@ manifest or approved production dependency edge changed.
 
 ## Acceptance boundary
 
-M03 is complete. M04 historical read/proof parity, GM combined maintenance
-acceptance, P01 public facade/CLI exposure and D01–D03 conversion/cutover remain
-separate gates.
+M03 is complete. M04 and the combined GM decision remain separately evidenced
+in their own acceptance records. P01 public facade/CLI exposure and D01–D03
+conversion/cutover remain separate work.

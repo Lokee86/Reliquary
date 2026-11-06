@@ -1,6 +1,10 @@
 # M02 — multi-domain pruning, repair and reclamation acceptance
 
-Status: **accepted** on `rebuild/clean-architecture` (2026-11-06).
+Status: **corrected and accepted** after the 2026-11-06 independent audit.
+Unactivated Archive mappings, native external-index reachability, referenced
+packed matrices and valid unreceipted generations now have owner-aware
+reclamation coverage. Final combined review:
+`gm-independent-reacceptance-2026-11-06.md`.
 
 Authority: `maintenance-history-parity-phase-2026-11-05.md` and capability
 `M02` in the canonical rebuild tracker. Normal runtime remains native REL/PHY
@@ -16,7 +20,7 @@ Authority: `maintenance-history-parity-phase-2026-11-05.md` and capability
 | Archive | REL-only terminal conversation pruning replaces selected turn text with typed markers after lifecycle, provenance, Episode, file and vector closure. PHY has no Archive authority. Attachment/file bodies remain when referenced. |
 | Entity | REL/PHY terminal Entity description pruning covers every revision, preserves stable identity and clocks and refuses active mentions, Graph edges or Relationship participants. |
 | Relationship | REL/PHY native 2.1 Relationship descriptions can be pruned only after terminal proof; participant, evidence and revision structure remain. This is not Graph-edge deletion. |
-| Reclamation | A separate verified-copy operation removes unreachable standalone Memory bodies, unmapped packed matrices and unreferenced REL Archive file bodies. Retained vector-generation receipts are relocated and validated after reopen. |
+| Reclamation | A separate verified-copy operation removes unreachable standalone Memory bodies, unactivated Archive mappings, superseded native external-index snapshots, exclusively owned packed matrices, valid unreceipted generations and unreferenced REL Archive file bodies. Retained mappings, current index heads/barriers, referenced matrices and vector-generation receipts are preserved and validated after reopen. |
 
 Graph and Ego payload destruction are not claimed: the reference inventory did
 not establish a supported independent destruction contract for them. Archive
@@ -32,8 +36,9 @@ families fail closed.
   still available after independent REL reopen.
 - PHY coverage removes an unmapped packed matrix, leaves the source exact and
   independently reopens the candidate.
-- A physically present vector generation without an activation receipt is a
-  typed recovery stop. It is not guessed unreachable or silently discarded.
+- A structurally valid, deterministically identified vector generation without
+  any activation receipt is reclaimed. Malformed, ambiguously referenced or
+  incorrectly receipted generation evidence remains a typed recovery stop.
 - Deterministic copy, sync and reopen fault injection proves no destination is
   published, the source remains byte-for-byte exact and the source still
   passes owner admission after each failure.
@@ -47,8 +52,8 @@ The final verification used the repository-local `target-codex-check` cache
 and serialized locked/offline execution. Windows hard-link access was enabled
 for verified-copy publication tests.
 
-- `cargo test -p reliquary-owner-session storage_reclamation --locked --offline -j 1 -- --test-threads=1`: **4 passed**.
-- `cargo test -p reliquary-owner-session --locked --offline -j 1 -- --test-threads=1`: **118 unit + 6 integration passed** after the final reclamation additions.
+- `cargo test -p reliquary-owner-session storage_reclamation --locked --offline -j 1 --target-dir target-codex-check -- --test-threads=1`: **10 passed**.
+- `cargo test -p reliquary-owner-session --locked --offline -j 1 --target-dir target-codex-check -- --test-threads=1`: **154 unit + 6 integration passed** in the final GM run.
 - `cargo test -p reliquary-application storage_reclamation --locked --offline -j 1 -- --test-threads=1`: **2 passed**.
 - `python scripts/check_architecture.py`: **passed**, 23 production packages and 76 approved edges.
 - `cargo fmt --all --check`: **passed**.
@@ -60,6 +65,6 @@ outside M02. No new package or production dependency edge was added.
 
 ## Acceptance boundary
 
-M02 is complete. M03 divergent REL semantic reconciliation, M04 broader
-historical-query parity, GM combined parity evidence, P01 public facade/CLI
-exposure and D01–D03 conversion/cutover remain separate gates.
+M02 is complete. M03, M04 and the combined GM decision remain separately
+evidenced in their own acceptance records. P01 public facade/CLI exposure and
+D01–D03 conversion/cutover remain separate work.

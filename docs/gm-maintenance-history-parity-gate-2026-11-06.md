@@ -1,6 +1,9 @@
 # GM — maintenance, history and reconciliation parity gate
 
-Status: **accepted** on `rebuild/clean-architecture` (2026-11-06).
+Status: **accepted after independent audit and correction** on
+`rebuild/clean-architecture` (2026-11-06). The original acceptance was reopened
+by `gm-independent-implementation-audit-2026-11-06.md`; current authority is the
+post-correction review `gm-independent-reacceptance-2026-11-06.md`.
 
 Authority: capability `GM` and
 `maintenance-history-parity-phase-2026-11-05.md` in the canonical planning
@@ -17,8 +20,8 @@ archived 2.0 corpus.
 | `src/facade/cva_archive_history_prune.rs` and Archive prune fixtures | Terminal REL conversation content | `terminal_archive_prune_copy` retains turns, branches, Episodes, attachments, clocks and historical structure while marking unavailable text | Active lifecycle, Memory/file/vector provenance, shared content and forged markers refuse publication | PHY never gains Archive authority; attachment/file bodies are not implicitly deleted. |
 | `src/facade/cva_description_prune.rs`, `entity_compact_prune_tests.rs`, `relationship_compact_prune_tests.rs` | Terminal Entity and Relationship description payloads | Owner-session Entity/Relationship prune preserves stable identities, participants, evidence, revisions and clocks in REL/PHY | Active mentions, Graph/Relationship references, stale plans and forged/missing evidence stop | Graph edges and Ego are not destruction targets; no independent supported reference contract was found for them. |
 | `src/facade/{cva_compatibility_profiles,phylactery_compatibility_profiles}.rs`, `cli/src/repair_cmd.rs` | Profile retirement/repair and retired packed vectors | Owner-level repair freezes the active set and verifies Memory/Archive coverage; vector prune retains mappings and generation receipts and reopens | Shared/active backing, stale plan, incomplete coverage and unactivated generations stop | No inference or re-embedding; CLI exposure remains P01. |
-| `src/facade/{storage_reclamation,storage_reclamation_scan}.rs` and reclamation fixtures | Proven unreachable Memory/vector/Archive backing | Verified REL/PHY copy reclaims only unreachable storage, relocates retained generation evidence and independently reopens; a second pass is exact no-op | Unknown carriers, inbound references, copy/sync/reopen injection, source change and destination collision retain source and publish nothing | Reclamation is separate from semantic prune. No generic offset relocator or old-format runtime reader is introduced. |
-| `src/facade/cva_reconcile*.rs`, `src/imports/*reconcile*` | Same-owner REL identical, extension and supported nonconflicting divergence | `compare_rel_histories`, verified-copy fast paths and `reconcile_divergent_rel_copy` replay Archive/Memory/Perception/Graph/Freshness/Echo evidence exactly once; merged proof is stable on repeat | Owner/scope/generation mismatch, identity conflict, open/divergent import authority, unsupported state and existing destination leave both inputs unchanged | No PHY, cross-owner or arbitrary merge; unsupported operational/maintenance divergence is a typed conflict rather than a chosen winner. |
+| `src/facade/{storage_reclamation,storage_reclamation_scan}.rs` and reclamation fixtures | Proven unreachable Memory/vector/Archive/index backing | Verified REL/PHY copy reclaims only unreachable storage, including unactivated Archive mappings, superseded native external indexes and valid unreceipted generations; retained generation/index evidence relocates and independently reopens; a second pass is exact no-op | Unknown carriers, malformed/ambiguous references, copy/sync/reopen injection, source change and destination collision retain source and publish nothing | Reclamation is separate from semantic prune. No generic offset relocator or old-format runtime reader is introduced. |
+| `src/facade/cva_reconcile*.rs`, `src/imports/*reconcile*` | Same-owner REL identical, extension and supported nonconflicting divergence | `compare_rel_histories`, verified-copy fast paths and `reconcile_divergent_rel_copy` replay Archive/Memory/Perception/Graph/Freshness/Echo plus completed-import Archive/Insomnia/grouped-Memory/Dream evidence exactly once; source Freshness authority survives destination rebasing and repeat is byte-stable | Owner/scope/generation mismatch, identity conflict, open import, conflicting settlement/work journal, unsupported state and existing destination leave both inputs unchanged | No PHY, cross-owner or arbitrary merge; unsupported operational/maintenance divergence is a typed conflict rather than a chosen winner. |
 | `src/facade/historical_*fingerprint.rs`, `historical_*tests.rs`, historical Cva/Phylactery reads | Early/middle/final cuts, tombstones, pruning, imported chronology, private Ego and whole-owner proof | Store-owned 2.1 projections feed bounded owner-session SHA-256 proof over Archive, Memory, Perception, Graph, Ego, Freshness and retained vector generations | Wrong owner/kind, future/inconsistent cuts, grouped interiors, ambiguous Freshness authority and over-limit proof fail closed | Semantic cuts replace raw 2.0 offsets and Cva names. Missing/pruned payloads remain unavailable; broad restore-and-continue is not claimed. |
 
 No reference helper or test-only diagnostic outside these supported scenarios is
@@ -71,9 +74,9 @@ presented as rebuilt parity.
 These are deterministic test-fixture observations, not production SLOs; G5
 owns release-scale latency and memory baselines.
 
-- The 14 focused Application rewrite/reclamation tests execute in **0.44 s**
+- The 15 focused Application rewrite/reclamation tests execute in **0.44 s**
   after build on this Windows host.
-- The owner-session gate suite executes 125 unit tests in **3.67 s** and six
+- The owner-session gate suite executes 154 unit tests and six
   integration tests in **0.15 s** after build.
 - Archive prune, retired-vector prune and REL/PHY orphan reclamation assert the
   operation report's candidate byte count is strictly lower than its source
@@ -83,8 +86,8 @@ owns release-scale latency and memory baselines.
 
 ## Verification
 
-- `cargo test -p reliquary-application rewrite_workflow::tests --locked --offline -j 1 --target-dir target-codex-check -- --test-threads=1`: **14 passed**.
-- `cargo test -p reliquary-owner-session --locked --offline -j 1 --target-dir target-codex-check -- --test-threads=1`: **125 unit + 6 integration passed**.
+- `cargo test -p reliquary-application rewrite_workflow::tests --locked --offline -j 1 --target-dir target-codex-check -- --test-threads=1`: **15 passed**.
+- `cargo test -p reliquary-owner-session --locked --offline -j 1 --target-dir target-codex-check -- --test-threads=1`: **154 unit + 6 integration passed**.
 - `python scripts/check_architecture.py`: **passed**, 23 production packages and 76 approved edges.
 - `cargo fmt --all --check`: **passed**.
 - `cargo check --workspace --locked --offline -j 1 --target-dir target-codex-check`: **passed**.
@@ -100,10 +103,11 @@ changed.
 - Unknown or unproven carrier families remain typed stops for rewrite,
   reclamation, reconciliation and historical proof. That fail-closed behavior
   is accepted; it is not a hidden deferral of a supported case.
-- Divergent native-import authority is supported only where shared accepted
-  evidence can be replayed without invention. Divergent settlement, Community,
-  Ego, Dream/Insomnia, external-source, maintenance and pruned-payload state
-  remains an explicit M03 conflict.
+- Completed native-import authority is supported only where accepted Archive,
+  grouped Memory, terminal/retry Insomnia, initial Dream and Freshness evidence
+  can be replayed without invention. Open imports, other Dream/work transitions,
+  Community, Ego, external-source, maintenance and pruned-payload divergence
+  remain explicit M03 typed stops.
 - Promotion requires same-volume no-replace/hard-link semantics. Filesystems
   without that facility cannot perform destructive promotion, but verified
   candidate construction and source recovery remain available.

@@ -1,6 +1,9 @@
 # M01 Fresh-History Rewrite Acceptance — 2026-11-05
 
-Status: accepted for current REL/PHY 2.1 owners.
+Status: **corrected and accepted** after the 2026-11-06 independent audit.
+Memory-linked Relationship/Entity closure, complete retained revision replay and
+no-replace publication are now covered by executable regressions. Final combined
+review: `gm-independent-reacceptance-2026-11-06.md`.
 
 Authority: `docs/architecture/maintenance-history-parity-phase-2026-11-05.md`
 in the crate-first planning worktree. Implementation: `rebuild/clean-architecture`.
@@ -16,11 +19,13 @@ in the crate-first planning worktree. Implementation: `rebuild/clean-architectur
   effective REL Freshness threshold; current/all/since-cut revisions; and zero
   or explicitly selected active embedding profiles. Contradictions, unknown
   IDs, unavailable profiles, and incomplete selected vector coverage stop.
-- Closure expands stable parent/supersession references and active Graph
-  Memory endpoints. Execution replays stable selected Memory IDs and chosen
-  revisions, terminal tombstones, verified Entity/mention/Graph/Community/Ego
-  state, selected Memory vectors, and REL Archive vectors for retained
-  fragments. No inference, model call, or re-embedding occurs.
+- Closure expands stable parent/supersession references, active Graph Memory
+  endpoints, and every Relationship whose local Memory evidence intersects the
+  retained selection, including its Entity participants. Execution replays
+  stable selected Memory IDs and chosen revisions, complete retained
+  Entity/mention/Relationship histories and tombstones, verified
+  Graph/Community/Ego state, selected Memory vectors, and REL Archive vectors
+  for retained fragments. No inference, model call, or re-embedding occurs.
 - REL provenance mode retains required source turns and ancestors, branches,
   Episodes, fragment definitions, attachments, and project references. REL
   may instead retain all Archive state or require it to be empty. PHY cannot
@@ -50,7 +55,7 @@ work where an exact evidence contract exists.
 
 | Contract | Rebuild proof | Negative proof |
 | --- | --- | --- |
-| Dry-run and closure | explicit child selection adds its parent without writes | contradictory and unknown IDs stop |
+| Dry-run and closure | explicit child selection adds its parent; retained Memory evidence adds Relationship/Entity history without writes | contradictory, cross-owner and unknown IDs stop |
 | NewOwner | stable selected IDs reopen under a distinct owner | stale source and destination collision leave no output |
 | PreserveOwner | predecessor/new generation lineage survives reopen | cross-generation prefix reconciliation stops |
 | REL provenance/Freshness | required turn, branch fragment, effective record reopen | PHY REL-only policy stops |
@@ -72,8 +77,8 @@ the default target link does not permit writes on this Windows filesystem.
   76 expected edges.
 - `cargo fmt --all --check` — passed.
 - `cargo check --workspace --locked --offline -j 1` — passed.
-- `cargo test -p reliquary-application rewrite_workflow::tests -- --test-threads=1`
-  — passed, 11/11 focused M01 cases.
+- `cargo test -p reliquary-application rewrite_workflow::tests --locked --offline -j 1 --target-dir target-codex-check -- --test-threads=1`
+  — passed, 15/15 focused M01 cases.
 - `cargo test --workspace --locked --offline -j 1 -- --test-threads=1` — passed,
   including doc tests. The final run allowed loopback networking solely for the
   switchboard's local mock HTTP servers; dependency resolution remained offline.
@@ -88,4 +93,5 @@ the owner lease; filesystems that reject hard links cannot perform promotion.
 - Operational Dream/import/Insomnia/Echo/external evidence is an intentional
   typed stop, not accepted rewrite coverage.
 - M01 does not expose CLI/public gateway commands; P01 remains blocked on GM.
-- M02–M04 and GM remain separate acceptance gates.
+- M02–M04 and the combined GM decision remain separately evidenced in their
+  own acceptance records; current GM authority is the post-correction review.

@@ -1,6 +1,9 @@
 # M04 — historical read/proof parity acceptance
 
-Status: **accepted** on `rebuild/clean-architecture` (2026-11-06).
+Status: **corrected and accepted** after the 2026-11-06 independent audit.
+Canonical versioned proof encoding now binds complete retained Entity,
+Relationship, Graph, Ego and Archive Branch revision streams. Final combined
+review: `gm-independent-reacceptance-2026-11-06.md`.
 
 Authority: `maintenance-history-parity-phase-2026-11-05.md` and capability
 `M04` in the canonical rebuild tracker. This gate establishes bounded,
@@ -70,7 +73,8 @@ restart parity; and M01/M02/M03 transformed-history parity.
 
 ## Verification
 
-- `cargo test --workspace --locked --offline -j 1 --target-dir target-codex-check -- --test-threads=1`: **passed**, including 125 owner-session unit tests, 6 owner-session integration tests and all workspace/documentation suites.
+- `cargo test -p reliquary-owner-session historical_proof --locked --offline -j 1 --target-dir target-codex-check -- --test-threads=1`: **9 passed**.
+- `cargo test --workspace --locked --offline -j 1 --target-dir target-codex-check -- --test-threads=1`: **passed**, including 154 owner-session unit tests, 6 owner-session integration tests and all workspace/documentation suites.
 - `cargo check --workspace --locked --offline -j 1 --target-dir target-codex-check`: **passed**.
 - `python scripts/check_architecture.py`: **passed**, 23 production packages and 76 approved edges.
 - `cargo fmt --all --check`: **passed**.
@@ -80,5 +84,6 @@ No package, manifest or approved production dependency edge changed.
 
 ## Acceptance boundary
 
-M04 is complete. GM combined maintenance acceptance, P01 public facade/CLI
-exposure and D01–D03 conversion/cutover remain separate gates.
+M04 is complete. The combined GM decision remains separately evidenced in the
+post-correction review. P01 public facade/CLI exposure and D01–D03
+conversion/cutover remain separate work.
