@@ -24,6 +24,16 @@ pub enum OwnerWorkerKind {
     Vector,
     Freshness,
 }
+impl OwnerWorkerKind {
+    const fn lease_id(self) -> u8 {
+        match self {
+            Self::Dream => 1,
+            Self::Entity => 2,
+            Self::Vector => 3,
+            Self::Freshness => 4,
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum OwnerWorkerPoll {
@@ -60,6 +70,8 @@ struct WorkerControl {
 pub struct OwnerWorkerCoordinator {
     control: Arc<WorkerControl>,
     workers: Vec<JoinHandle<()>>,
+    leases: Arc<Mutex<BTreeSet<(OwnerId, u8)>>>,
+    lease_keys: Vec<(OwnerId, u8)>,
 }
 
 impl Gateway {
@@ -95,7 +107,30 @@ impl Gateway {
                 "duplicate owner worker specialty".into(),
             ));
         }
-        OwnerWorkerCoordinator::start(instance, owner, drivers, config)
+        let lease_keys = kinds
+            .into_iter()
+            .map(|kind| (owner, kind.lease_id()))
+            .collect::<Vec<_>>();
+        {
+            let mut leases = self
+                .owner_worker_leases
+                .lock()
+                .map_err(|_| GatewayError::RegistryPoisoned)?;
+            if lease_keys.iter().any(|key| leases.contains(key)) {
+                return Err(GatewayError::HostAdapter(
+                    "owner worker specialty is already active".into(),
+                ));
+            }
+            leases.extend(lease_keys.iter().copied());
+        }
+        OwnerWorkerCoordinator::start(
+            instance,
+            owner,
+            drivers,
+            config,
+            Arc::clone(&self.owner_worker_leases),
+            lease_keys,
+        )
     }
 }
 
@@ -105,24 +140,40 @@ impl OwnerWorkerCoordinator {
         owner: OwnerId,
         drivers: Vec<Arc<dyn OwnerWorkerDriver>>,
         config: OwnerWorkerConfig,
+        leases: Arc<Mutex<BTreeSet<(OwnerId, u8)>>>,
+        lease_keys: Vec<(OwnerId, u8)>,
     ) -> Result<Self, GatewayError> {
         let control = Arc::new(WorkerControl {
             stopping: AtomicBool::new(false),
             wait: (Mutex::new(()), Condvar::new()),
         });
-        let workers = drivers
-            .into_iter()
-            .map(|driver| {
-                let instance = Arc::clone(&instance);
-                let control = Arc::clone(&control);
-                let config = config.clone();
-                thread::Builder::new()
-                    .name(format!("reliquary-{:?}", driver.kind()).to_lowercase())
-                    .spawn(move || worker_loop(instance, owner, driver, config, control))
-                    .map_err(|error| GatewayError::HostAdapter(error.to_string()))
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok(Self { control, workers })
+        let mut workers = Vec::with_capacity(drivers.len());
+        for driver in drivers {
+            let instance = Arc::clone(&instance);
+            let thread_control = Arc::clone(&control);
+            let config = config.clone();
+            match thread::Builder::new()
+                .name(format!("reliquary-{:?}", driver.kind()).to_lowercase())
+                .spawn(move || worker_loop(instance, owner, driver, config, thread_control))
+            {
+                Ok(worker) => workers.push(worker),
+                Err(error) => {
+                    control.stopping.store(true, Ordering::Release);
+                    control.wait.1.notify_all();
+                    for worker in workers {
+                        let _ = worker.join();
+                    }
+                    release_leases(&leases, &lease_keys);
+                    return Err(GatewayError::HostAdapter(error.to_string()));
+                }
+            }
+        }
+        Ok(Self {
+            control,
+            workers,
+            leases,
+            lease_keys,
+        })
     }
 
     /// Fence new polls and join every in-flight specialty operation.
@@ -133,6 +184,8 @@ impl OwnerWorkerCoordinator {
         for worker in self.workers.drain(..) {
             panicked |= worker.join().is_err();
         }
+        release_leases(&self.leases, &self.lease_keys);
+        self.lease_keys.clear();
         if panicked {
             Err(GatewayError::HostAdapter(
                 "owner specialty worker panicked".into(),
@@ -145,6 +198,14 @@ impl OwnerWorkerCoordinator {
     pub fn is_stopped(&self) -> bool {
         self.control.stopping.load(Ordering::Acquire)
             && self.workers.iter().all(JoinHandle::is_finished)
+    }
+}
+
+fn release_leases(leases: &Mutex<BTreeSet<(OwnerId, u8)>>, keys: &[(OwnerId, u8)]) {
+    if let Ok(mut leases) = leases.lock() {
+        for key in keys {
+            leases.remove(key);
+        }
     }
 }
 impl Drop for OwnerWorkerCoordinator {

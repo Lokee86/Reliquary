@@ -39,7 +39,7 @@ use std::{
     fmt,
     path::Path,
     sync::{
-        Arc, RwLock,
+        Arc, Mutex, RwLock,
         atomic::{AtomicBool, Ordering},
     },
 };
@@ -200,6 +200,7 @@ impl MountedOwner {
 #[derive(Clone, Default)]
 pub struct Gateway {
     owners: Arc<RwLock<HashMap<OwnerId, MountedOwner>>>,
+    owner_worker_leases: Arc<Mutex<BTreeSet<(OwnerId, u8)>>>,
 }
 fn validate_principal(principal: &str) -> Result<(), GatewayError> {
     if principal.trim().is_empty() || principal.chars().any(char::is_control) {

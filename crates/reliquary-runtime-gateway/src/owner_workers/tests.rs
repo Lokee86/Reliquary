@@ -172,6 +172,45 @@ fn specialty_workers_reject_foreign_instance_duplicate_kind_and_bad_bounds() {
             )
             .is_err()
     );
+    let mut active_coordinator = gateway
+        .start_owner_workers(
+            Arc::clone(&instance),
+            owner,
+            [driver(OwnerWorkerKind::Vector, &polls, &active, &peak)],
+            OwnerWorkerConfig::default(),
+        )
+        .unwrap();
+    assert!(
+        gateway
+            .start_owner_workers(
+                Arc::clone(&instance),
+                owner,
+                [driver(OwnerWorkerKind::Vector, &polls, &active, &peak)],
+                OwnerWorkerConfig::default()
+            )
+            .is_err()
+    );
+    assert!(
+        gateway
+            .clone()
+            .start_owner_workers(
+                Arc::clone(&instance),
+                owner,
+                [driver(OwnerWorkerKind::Vector, &polls, &active, &peak)],
+                OwnerWorkerConfig::default()
+            )
+            .is_err()
+    );
+    active_coordinator.stop().unwrap();
+    let mut replacement = gateway
+        .start_owner_workers(
+            Arc::clone(&instance),
+            owner,
+            [driver(OwnerWorkerKind::Vector, &polls, &active, &peak)],
+            OwnerWorkerConfig::default(),
+        )
+        .unwrap();
+    replacement.stop().unwrap();
     assert!(
         gateway
             .start_owner_workers(
