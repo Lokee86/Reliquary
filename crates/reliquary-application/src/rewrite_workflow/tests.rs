@@ -597,6 +597,10 @@ fn rel_rewrite_retains_required_archive_provenance_and_effective_freshness() {
     let body = reopened.current_memory(memory).unwrap().record.body_id;
     assert!(reopened.memory_vector_row(profile, body).unwrap().is_some());
     assert_eq!(reopened.archive_vector_infos().len(), 1);
+    let cut = reopened.current_historical_cut();
+    let proof = reopened.historical_proof([52; 16], &cut).unwrap();
+    assert_eq!(proof.owner_id, [52; 16]);
+    assert!(proof.retained_records > 0);
 }
 
 #[test]
@@ -634,6 +638,10 @@ fn new_owner_execution_replays_selected_history_and_reopens_independently() {
     let reopened = PhySession::open_path(&destination.0, &destination_graph, []).unwrap();
     assert_eq!(reopened.current_memory(parent).unwrap().record.id, parent);
     assert_eq!(reopened.current_memory(child).unwrap().record.id, child);
+    let cut = reopened.current_historical_cut();
+    let proof = reopened.historical_proof([42; 16], cut).unwrap();
+    assert_eq!(proof.owner_id, [42; 16]);
+    assert!(proof.retained_records >= 2);
 }
 
 #[test]
@@ -643,6 +651,10 @@ fn preserve_owner_records_a_new_generation_and_refuses_destination_collision() {
     let mut policy = phy_policy();
     policy.identity = RewriteIdentityMode::PreserveOwner;
     let plan = plan_phy_rewrite(&source.0, &session, policy).unwrap();
+    let source_cut = session.current_historical_cut();
+    let source_proof = session
+        .historical_proof(session.owner_id(), source_cut)
+        .unwrap();
     let source_graph = GraphAdmission::for_replay(session.owner_id(), [], [], [], [], []);
     let report =
         execute_memory_rewrite(&plan, &source.0, &destination.0, None, &source_graph).unwrap();
@@ -652,6 +664,18 @@ fn preserve_owner_records_a_new_generation_and_refuses_destination_collision() {
         .unwrap();
     assert_eq!(lineage.destination_owner_id, session.owner_id());
     assert_ne!(lineage.predecessor_generation, lineage.history_generation);
+    let rewritten = PhySession::open_path(&destination.0, &source_graph, []).unwrap();
+    let rewritten_cut = rewritten.current_historical_cut();
+    let rewritten_proof = rewritten
+        .historical_proof(session.owner_id(), rewritten_cut)
+        .unwrap();
+    assert_eq!(rewritten_cut, source_cut);
+    assert_eq!(rewritten_proof.owner_id, source_proof.owner_id);
+    assert_ne!(rewritten_proof.digest, source_proof.digest);
+    assert_ne!(
+        rewritten_proof.history_generation,
+        source_proof.history_generation
+    );
     let merge_error =
         reliquary_owner_session::VerifiedOwnerCopyPlan::prepare_prefix_reconciliation(
             &source.0,
