@@ -556,8 +556,9 @@
       ],
       "deliverable": "Same-owner REL compare/prefix/divergent semantic replay with typed conflicts and independently verified output",
       "acceptance": "Nonconflicting divergent owner records merge exactly once without lost provenance or Freshness credit; generation, imports, Entity/Ego and unsupported-state conflicts reject without mutation; both source files survive every failure",
-      "status": "not-started",
-      "breakdown": "docs/architecture/maintenance-history-parity-phase-2026-11-05.md"
+      "status": "complete",
+      "breakdown": "docs/architecture/maintenance-history-parity-phase-2026-11-05.md",
+      "acceptance_evidence": "Reliquary-rebuild/docs/m03-divergent-rel-reconciliation-acceptance-2026-11-06.md"
     },
     {
       "id": "M04",
