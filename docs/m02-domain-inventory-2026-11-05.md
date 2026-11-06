@@ -46,3 +46,18 @@ local mock-server and hard-link access.
 M02 acceptance still requires owner-level retirement-backed packed-vector
 pruning, terminal Archive and Entity/Relationship pruning, broader reclamation
 proofs, and failure-injection coverage at the copy, sync, and reopen boundaries.
+
+## 2026-11-06 Step 3 — terminal semantic descriptions
+
+The Entity and Relationship description-pruning slices are implemented and
+owner-session verified. Entity summaries and native 2.1 Relationship summaries
+are removed only after terminal tombstone proof, exhaustive retained revision
+descriptors and independent owner reopen. Both REL and PHY are covered;
+Relationship is first-class Perception data, not a Graph-edge description.
+Entity pruning refuses active mentions, Graph edges and Relationship participants.
+The complete evidence and deliberate 2.1 differences are in
+`m02-semantic-description-prune-verification-2026-11-06.md`.
+
+**M02 itself remains open**: broader reclamation reachability and fault
+injection are not yet accepted, and separately verified single-domain prune
+copies do not imply a combined multi-domain prune/reconciliation contract.

@@ -13,18 +13,27 @@ pub(super) fn validate_memory_prune(
     memory_vectors: &MemoryVectorStore,
     maintenance: &OwnerMaintenanceStore,
 ) -> Result<BTreeSet<MemoryBodyId>, OwnerSessionError> {
-    let mut manifests = maintenance.manifests().values();
+    let absent: BTreeSet<_> = memories.unbacked_body_ids().collect();
+    let mut manifests = maintenance.manifests().values().filter(|manifest| {
+        manifest
+            .descriptors
+            .iter()
+            .any(|descriptor| descriptor.target.domain == RetentionDomain::Memory)
+    });
     let Some(manifest) = manifests.next() else {
         // Grouped and externally routed Memory provenance can retain
         // metadata without a local body when no prune manifest exists.
-        return Ok(BTreeSet::new());
+        return if maintenance.is_empty() || absent.is_empty() {
+            Ok(BTreeSet::new())
+        } else {
+            Err(invalid("missing Memory prune retention evidence"))
+        };
     };
     if manifests.next().is_some() {
         return Err(invalid(
             "multiple prune manifests have no supported reconciliation",
         ));
     }
-    let absent: BTreeSet<_> = memories.unbacked_body_ids().collect();
     if manifest.owner_uuid != container.owner_id()
         || manifest.source_global_version > container.latest_version()
     {

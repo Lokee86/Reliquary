@@ -10,6 +10,8 @@ use std::collections::BTreeMap;
 use std::fmt;
 
 const MAGIC: &[u8; 8] = b"RELPER01";
+const ENTITY_TOMBSTONE_MAGIC: &[u8; 8] = b"RELETM01";
+const ENTITY_PRUNE_MAGIC: &[u8; 8] = b"RELEPR01";
 pub const MAX_ENTITY_ALIASES: usize = 32;
 pub const MAX_ENTITY_NAME_BYTES: usize = 512;
 pub const MAX_ENTITY_KIND_BYTES: usize = 128;
@@ -25,8 +27,21 @@ pub fn principal_entity_id(principal_id: &str) -> EntityId {
     EntityId(hash.finalize().into())
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct EntityId(pub [u8; 32]);
+
+mod relationship_codec;
+mod relationship_model;
+mod relationship_replay;
+mod relationship_store;
+pub use relationship_codec::redact_relationship_description_frame;
+pub use relationship_model::{
+    MAX_RELATIONSHIP_EVIDENCE, MAX_RELATIONSHIP_PARTICIPANTS, MAX_RELATIONSHIP_SUMMARY_BYTES,
+    Relationship, RelationshipDescriptionPrune, RelationshipDraft, RelationshipEntityRef,
+    RelationshipId, RelationshipMemoryRef, RelationshipParticipant, RelationshipTombstone,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EntityDraft {
@@ -50,6 +65,21 @@ pub struct Entity {
     pub mutation_id: String,
     pub created_at_ns: i64,
     pub updated_at_ns: i64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EntityTombstone {
+    pub id: EntityId,
+    pub revision: u64,
+    pub perception_version: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EntityDescriptionPrune {
+    pub id: EntityId,
+    pub revision: u64,
+    pub summary_digest: [u8; 32],
+    pub manifest_digest: [u8; 32],
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -397,6 +427,44 @@ pub fn source_publication(payload: &[u8]) -> Result<Option<SourcePublication>, P
     }
 }
 
+/// Redact one Entity summary while retaining its exact structural revision.
+/// The returned proof marker must be written immediately after the redacted
+/// record and is admitted only with matching owner maintenance evidence.
+pub fn redact_entity_description_frame(
+    payload: &[u8],
+    selected: EntityId,
+    manifest_digest: [u8; 32],
+) -> Result<Option<(Vec<u8>, Vec<u8>, EntityDescriptionPrune)>, PerceptionError> {
+    let Some(Record::Entity {
+        version,
+        owner,
+        mut value,
+    }) = Record::decode(payload)?
+    else {
+        return Ok(None);
+    };
+    if value.id != selected {
+        return Ok(None);
+    }
+    if value.summary.is_empty() || manifest_digest == [0; 32] {
+        return Err(PerceptionError::InvalidField("Entity description prune"));
+    }
+    let proof = EntityDescriptionPrune {
+        id: value.id,
+        revision: value.revision,
+        summary_digest: Sha256::digest(value.summary.as_bytes()).into(),
+        manifest_digest,
+    };
+    value.summary.clear();
+    let redacted = Record::Entity {
+        version,
+        owner,
+        value,
+    }
+    .encode()?;
+    Ok(Some((redacted, encode_entity_prune(owner, proof), proof)))
+}
+
 /// Per-container canonical entities and exact source-span resolution facts.
 pub struct PerceptionStore {
     owner_id: [u8; 16],
@@ -404,6 +472,14 @@ pub struct PerceptionStore {
     version: u64,
     entities: BTreeMap<EntityId, Entity>,
     entity_history: BTreeMap<(EntityId, u64), Entity>,
+    entity_tombstones: BTreeMap<EntityId, EntityTombstone>,
+    pruned_descriptions: BTreeMap<(EntityId, u64), EntityDescriptionPrune>,
+    relationships: BTreeMap<RelationshipId, Relationship>,
+    relationship_history: BTreeMap<(RelationshipId, u64), Relationship>,
+    relationship_mutations: BTreeMap<String, (RelationshipId, u64)>,
+    relationship_tombstones: BTreeMap<RelationshipId, RelationshipTombstone>,
+    pruned_relationship_descriptions: BTreeMap<(RelationshipId, u64), RelationshipDescriptionPrune>,
+    relationship_version: u64,
     mutations: BTreeMap<String, (EntityId, u64)>,
     mentions: BTreeMap<MemoryEntityMentionKey, MemoryEntityResolution>,
     mention_history: BTreeMap<(MemoryEntityMentionKey, u32), MemoryEntityResolution>,
@@ -417,18 +493,43 @@ impl PerceptionStore {
             version: 0,
             entities: BTreeMap::new(),
             entity_history: BTreeMap::new(),
+            entity_tombstones: BTreeMap::new(),
+            pruned_descriptions: BTreeMap::new(),
+            relationships: BTreeMap::new(),
+            relationship_history: BTreeMap::new(),
+            relationship_mutations: BTreeMap::new(),
+            relationship_tombstones: BTreeMap::new(),
+            pruned_relationship_descriptions: BTreeMap::new(),
+            relationship_version: 0,
             mutations: BTreeMap::new(),
             mentions: BTreeMap::new(),
             mention_history: BTreeMap::new(),
         };
         for frame in container.read_frames()? {
-            let Some(record) = Record::decode(&frame.payload)? else {
+            if let Some(record) = relationship_codec::RelationshipRecord::decode(&frame.payload)? {
+                store.apply_relationship_record(record)?;
                 continue;
-            };
-            if record.owner() != store.owner_id {
-                return Err(PerceptionError::OwnerMismatch);
             }
-            store.apply(record)?;
+            if let Some((owner, tombstone)) = decode_entity_tombstone(&frame.payload)? {
+                if owner != store.owner_id {
+                    return Err(PerceptionError::OwnerMismatch);
+                }
+                store.apply_tombstone(tombstone)?;
+                continue;
+            }
+            if let Some((owner, proof)) = decode_entity_prune(&frame.payload)? {
+                if owner != store.owner_id {
+                    return Err(PerceptionError::OwnerMismatch);
+                }
+                store.apply_prune(proof)?;
+                continue;
+            }
+            if let Some(record) = Record::decode(&frame.payload)? {
+                if record.owner() != store.owner_id {
+                    return Err(PerceptionError::OwnerMismatch);
+                }
+                store.apply(record)?;
+            }
         }
         Ok(store)
     }
@@ -454,6 +555,58 @@ impl PerceptionStore {
     }
     pub fn entities(&self) -> impl Iterator<Item = &Entity> {
         self.entities.values()
+    }
+    pub fn historical_entities(&self) -> impl Iterator<Item = EntityId> + '_ {
+        self.entity_tombstones.keys().copied()
+    }
+    pub fn entity_tombstone(&self, id: EntityId) -> Option<EntityTombstone> {
+        self.entity_tombstones.get(&id).copied()
+    }
+    pub fn description_prunes(&self) -> impl Iterator<Item = EntityDescriptionPrune> + '_ {
+        self.pruned_descriptions.values().copied()
+    }
+    pub fn description_prune(&self, id: EntityId, revision: u64) -> Option<EntityDescriptionPrune> {
+        self.pruned_descriptions.get(&(id, revision)).copied()
+    }
+    pub fn tombstone_entity(
+        &mut self,
+        container: &mut Container,
+        id: EntityId,
+        expected_revision: u64,
+    ) -> Result<EntityTombstone, PerceptionError> {
+        self.check_owner(container)?;
+        if let Some(tombstone) = self.entity_tombstones.get(&id).copied() {
+            return if tombstone.revision == expected_revision {
+                Ok(tombstone)
+            } else {
+                Err(PerceptionError::EntityRevisionConflict {
+                    expected: expected_revision,
+                    actual: tombstone.revision,
+                })
+            };
+        }
+        let entity = self
+            .entities
+            .get(&id)
+            .ok_or(PerceptionError::MissingEntity(id))?;
+        if entity.revision != expected_revision {
+            return Err(PerceptionError::EntityRevisionConflict {
+                expected: expected_revision,
+                actual: entity.revision,
+            });
+        }
+        if entity.kind == PRINCIPAL_ENTITY_KIND {
+            return Err(PerceptionError::InvalidField("principal Entity tombstone"));
+        }
+        let tombstone = EntityTombstone {
+            id,
+            revision: expected_revision,
+            perception_version: self.next_version()?,
+        };
+        container.append(&encode_entity_tombstone(self.owner_id, tombstone))?;
+        container.sync()?;
+        self.apply_tombstone(tombstone)?;
+        Ok(tombstone)
     }
     pub fn mentions_for_memory(
         &self,
@@ -678,6 +831,11 @@ impl PerceptionStore {
         }
         match &record {
             Record::Entity { value, .. } => {
+                if self.entity_tombstones.contains_key(&value.id) {
+                    return Err(PerceptionError::CorruptRecord(
+                        "Entity revision after tombstone",
+                    ));
+                }
                 validate_entity(value)?;
                 self.validate_principal_scope(&value.kind)?;
                 if value.kind == PRINCIPAL_ENTITY_KIND
@@ -744,6 +902,103 @@ impl PerceptionStore {
         self.version = expected;
         Ok(())
     }
+
+    fn apply_tombstone(&mut self, tombstone: EntityTombstone) -> Result<(), PerceptionError> {
+        let expected = self.next_version()?;
+        if tombstone.perception_version != expected
+            || self.entity_tombstones.contains_key(&tombstone.id)
+        {
+            return Err(PerceptionError::CorruptRecord("Entity tombstone version"));
+        }
+        let current = self
+            .entities
+            .get(&tombstone.id)
+            .ok_or(PerceptionError::CorruptRecord("Entity tombstone target"))?;
+        if current.revision != tombstone.revision {
+            return Err(PerceptionError::CorruptRecord("Entity tombstone revision"));
+        }
+        self.entities.remove(&tombstone.id);
+        self.entity_tombstones.insert(tombstone.id, tombstone);
+        self.version = expected;
+        Ok(())
+    }
+
+    fn apply_prune(&mut self, proof: EntityDescriptionPrune) -> Result<(), PerceptionError> {
+        if proof.summary_digest == [0; 32]
+            || proof.manifest_digest == [0; 32]
+            || self
+                .entity_history
+                .get(&(proof.id, proof.revision))
+                .is_none_or(|entity| !entity.summary.is_empty())
+            || self
+                .pruned_descriptions
+                .insert((proof.id, proof.revision), proof)
+                .is_some()
+        {
+            return Err(PerceptionError::CorruptRecord(
+                "Entity description prune proof",
+            ));
+        }
+        Ok(())
+    }
+}
+
+fn encode_entity_tombstone(owner: [u8; 16], value: EntityTombstone) -> Vec<u8> {
+    let mut out = ENTITY_TOMBSTONE_MAGIC.to_vec();
+    out.extend_from_slice(&owner);
+    out.extend_from_slice(&value.id.0);
+    out.extend_from_slice(&value.revision.to_le_bytes());
+    out.extend_from_slice(&value.perception_version.to_le_bytes());
+    out
+}
+
+fn decode_entity_tombstone(
+    bytes: &[u8],
+) -> Result<Option<([u8; 16], EntityTombstone)>, PerceptionError> {
+    if !bytes.starts_with(ENTITY_TOMBSTONE_MAGIC) {
+        return Ok(None);
+    }
+    if bytes.len() != 72 {
+        return Err(PerceptionError::CorruptRecord("Entity tombstone framing"));
+    }
+    Ok(Some((
+        bytes[8..24].try_into().unwrap(),
+        EntityTombstone {
+            id: EntityId(bytes[24..56].try_into().unwrap()),
+            revision: u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
+            perception_version: u64::from_le_bytes(bytes[64..72].try_into().unwrap()),
+        },
+    )))
+}
+
+fn encode_entity_prune(owner: [u8; 16], value: EntityDescriptionPrune) -> Vec<u8> {
+    let mut out = ENTITY_PRUNE_MAGIC.to_vec();
+    out.extend_from_slice(&owner);
+    out.extend_from_slice(&value.id.0);
+    out.extend_from_slice(&value.revision.to_le_bytes());
+    out.extend_from_slice(&value.summary_digest);
+    out.extend_from_slice(&value.manifest_digest);
+    out
+}
+
+fn decode_entity_prune(
+    bytes: &[u8],
+) -> Result<Option<([u8; 16], EntityDescriptionPrune)>, PerceptionError> {
+    if !bytes.starts_with(ENTITY_PRUNE_MAGIC) {
+        return Ok(None);
+    }
+    if bytes.len() != 128 {
+        return Err(PerceptionError::CorruptRecord("Entity prune framing"));
+    }
+    Ok(Some((
+        bytes[8..24].try_into().unwrap(),
+        EntityDescriptionPrune {
+            id: EntityId(bytes[24..56].try_into().unwrap()),
+            revision: u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
+            summary_digest: bytes[64..96].try_into().unwrap(),
+            manifest_digest: bytes[96..128].try_into().unwrap(),
+        },
+    )))
 }
 
 fn entity_id(mutation_id: &str) -> EntityId {

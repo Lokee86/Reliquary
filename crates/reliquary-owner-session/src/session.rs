@@ -418,6 +418,12 @@ macro_rules! common_reads {
             pub fn entity_revision(&self, id: EntityId, revision: u64) -> Option<&Entity> {
                 self.$field.perception.entity_revision(id, revision)
             }
+            pub fn entity_tombstone(&self, id: EntityId) -> Option<reliquary_perception_store::EntityTombstone> {
+                self.$field.perception.entity_tombstone(id)
+            }
+            pub fn entity_description_prune(&self, id: EntityId, revision: u64) -> Option<reliquary_perception_store::EntityDescriptionPrune> {
+                self.$field.perception.description_prune(id, revision)
+            }
             pub fn entities(&self) -> Vec<Entity> {
                 self.$field.perception.entities().cloned().collect()
             }
@@ -578,15 +584,21 @@ mod archive_vector_publication;
 mod create;
 pub(crate) mod dream_pairs;
 pub(crate) mod dream_prefix;
+mod entity_prune;
 mod external_memory;
 mod external_reference;
 mod fresh_history_rewrite;
 mod freshness_use;
 mod maintenance_prune;
+mod relationship_prune;
+pub use entity_prune::{EntityPruneReport, prune_terminal_entity_descriptions_copy};
 pub use fresh_history_rewrite::{
     FreshHistoryArchive, FreshHistoryFreshness, FreshHistoryIdentity, FreshHistoryLineage,
     FreshHistoryRequest, FreshHistoryRewriteReport, fresh_history_lineage,
     owner_history_generation, rewrite_memory_history_copy,
+};
+pub use relationship_prune::{
+    RelationshipPruneReport, prune_terminal_relationship_descriptions_copy,
 };
 mod maintenance_prune_proof;
 mod profile_repair;

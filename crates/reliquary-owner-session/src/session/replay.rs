@@ -86,7 +86,7 @@ pub(super) fn open_common(
                 entity.kind == reliquary_perception_store::PRINCIPAL_ENTITY_KIND,
             )
         }),
-        [],
+        perception.historical_entities().map(|id| id.0),
         [],
     );
     let graph = GraphStore::open_with_dream_batches(
@@ -126,7 +126,10 @@ pub(super) fn open_common(
         for node in [relation.source, relation.target] {
             let exists = match node {
                 NodeRef::Memory(id) => memories.contains_memory(MemoryId(id)),
-                NodeRef::Entity(id) => perception.entity(EntityId(id)).is_some(),
+                NodeRef::Entity(id) => {
+                    perception.entity(EntityId(id)).is_some()
+                        || perception.entity_tombstone(EntityId(id)).is_some()
+                }
             };
             if !exists {
                 return Err(OwnerSessionError::Record(
@@ -149,6 +152,8 @@ pub(super) fn open_common(
         ));
     }
     let maintenance = OwnerMaintenanceStore::open(container).map_err(OwnerSessionError::Record)?;
+    super::entity_prune::validate_entity_prune(&perception, &maintenance)?;
+    super::relationship_prune::validate_relationship_prune(&perception, &maintenance)?;
     let pruned_bodies = super::maintenance_prune_proof::validate_memory_prune(
         container,
         &memories,

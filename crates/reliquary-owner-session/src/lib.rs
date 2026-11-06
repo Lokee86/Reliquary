@@ -42,11 +42,13 @@ pub use session::{
     ArchiveVectorInput, ArchiveVectorRow, MAX_ARCHIVE_VECTOR_BATCH_ROWS,
     MAX_ARCHIVE_VECTOR_RESPONSE_BYTES,
 };
+pub use session::{EntityPruneReport, prune_terminal_entity_descriptions_copy};
 pub use session::{MemoryVectorInput, MemoryVectorRow};
 pub use session::{
     ProfileRepairError, ProfileRepairPlan, ProfileRepairReport, execute_profile_repair,
     plan_profile_repair,
 };
+pub use session::{RelationshipPruneReport, prune_terminal_relationship_descriptions_copy};
 pub use session::{RetiredProfilePruneReport, prune_retired_profile_vectors_copy};
 pub use session::{StorageReclamationReport, reclaim_storage_copy};
 
