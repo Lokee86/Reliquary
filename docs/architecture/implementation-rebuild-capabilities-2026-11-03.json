@@ -529,8 +529,9 @@
       ],
       "deliverable": "Policy/dry-run planner plus independently reopened 2.1 fresh-history executor for NewOwner and PreserveOwner generations",
       "acceptance": "Selected Memory/provenance closure, REL Archive, PHY Ego, profile/Freshness/derived-state policy, stable retained IDs, preserved generation lineage, fresh output verification, source immutability and negative cases match supported reference behavior; no inference or 2.0 runtime reader",
-      "status": "not-started",
-      "breakdown": "docs/architecture/maintenance-history-parity-phase-2026-11-05.md"
+      "status": "complete",
+      "breakdown": "docs/architecture/maintenance-history-parity-phase-2026-11-05.md",
+      "acceptance_evidence": "Reliquary-rebuild/docs/m01-fresh-history-rewrite-acceptance-2026-11-05.md"
     },
     {
       "id": "M02",
