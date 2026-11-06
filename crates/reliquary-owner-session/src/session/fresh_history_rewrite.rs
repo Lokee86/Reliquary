@@ -3,7 +3,7 @@ use crate::staged_copy::StagedCopy;
 use reliquary_memory_core::{MemoryDraft, PayloadState};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeSet, fs, path::Path};
+use std::{collections::BTreeSet, fs, io::ErrorKind, path::Path};
 
 mod semantic;
 use semantic::SemanticClosure;
@@ -300,8 +300,12 @@ pub fn rewrite_memory_history_copy(
     if reopened_count != selected.len() {
         return Err("independent rewrite reopen changed selected Memory count".into());
     }
-    fs::rename(&staged.path, destination_path)
-        .map_err(|error| format!("could not publish verified rewritten owner: {error}"))?;
+    // The staged candidate has been synced and independently reopened. Never
+    // replace a destination created by another writer since the initial check.
+    let output_bytes = fs::metadata(&staged.path)
+        .map_err(|error| error.to_string())?
+        .len();
+    publish_rewrite_candidate(&staged, destination_path)?;
     Ok(FreshHistoryRewriteReport {
         source_owner_id: source.owner_id(),
         destination_owner_id,
@@ -309,11 +313,23 @@ pub fn rewrite_memory_history_copy(
         retained_memories: selected.len(),
         retained_revisions,
         retained_tombstones,
-        output_bytes: fs::metadata(destination_path)
-            .map_err(|e| e.to_string())?
-            .len(),
+        output_bytes,
     })
 }
+
+fn publish_rewrite_candidate(staged: &StagedCopy, destination: &Path) -> Result<(), String> {
+    match fs::hard_link(&staged.path, destination) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == ErrorKind::AlreadyExists => {
+            Err("rewrite destination already exists".into())
+        }
+        Err(error) => Err(format!("could not publish verified rewritten owner: {error}")),
+    }
+}
+
+#[cfg(test)]
+#[path = "fresh_history_rewrite/publication_tests.rs"]
+mod publication_tests;
 
 fn reject_unsupported_operational_state(source: &Container) -> Result<(), String> {
     const UNSUPPORTED: [&[u8]; 8] = [
