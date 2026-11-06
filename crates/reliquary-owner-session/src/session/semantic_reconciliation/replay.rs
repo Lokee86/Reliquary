@@ -4,6 +4,7 @@ use std::{collections::BTreeSet, path::Path};
 
 mod archive_memory;
 mod freshness_verify;
+mod imports;
 mod perception_graph;
 
 #[derive(Default)]
@@ -22,10 +23,21 @@ pub(super) fn require_compatible_fixed_state(
     left: &RelSession,
     right: &RelSession,
 ) -> Result<(), RelReconciliationError> {
-    if left.imports.statuses() != right.imports.statuses() {
-        return Err(RelReconciliationError::UnsupportedState(
-            "divergent native import settlement authority",
-        ));
+    imports::validate(left, right)?;
+    // Only completed native-import Episode journals are replayed through
+    // destination owner admission. Live Insomnia work must not disappear when
+    // a right-only operational tail is merged into the staged left owner.
+    for episode in right.archive.episodes() {
+        if episode.origin == reliquary_archive::EpisodeOrigin::Live {
+            let id = WorkEpisodeId(episode.id.0);
+            if let Some(right_work) = right.insomnia_work(id)
+                && left.insomnia_work(id) != Some(right_work)
+            {
+                return Err(RelReconciliationError::UnsupportedState(
+                    "divergent live Insomnia journal",
+                ));
+            }
+        }
     }
     if left.common.communities.current() != right.common.communities.current() {
         return Err(RelReconciliationError::UnsupportedState(
@@ -45,22 +57,38 @@ pub(super) fn replay_right(
     right: &RelSession,
     target_path: &Path,
 ) -> Result<ReplayCounts, RelReconciliationError> {
-    let mut target =
-        Container::open_writer_as(target_path, FileKind::Reliquary).map_err(verification)?;
-    let mut counts = ReplayCounts::default();
-    archive_memory::replay_archive(&mut target, &right.archive, &mut counts)?;
-    archive_memory::replay_echo(&mut target, &right.echo, &mut counts)?;
-    archive_memory::replay_memories(&mut target, &right.common.memories, &mut counts)?;
-    perception_graph::replay_perception(&mut target, &right.common.perception, &mut counts)?;
+    let imported = imports::replay(left, right, target_path)?;
+    let mut writer = RelWriter::open_path(target_path, merged_graph_admission(left, right), [], [])
+        .map_err(verification)?;
+    let mut counts = imported.counts;
+    archive_memory::replay_archive(&mut writer.container, &right.archive, &mut counts)?;
+    archive_memory::replay_echo(&mut writer.container, &right.echo, &mut counts)?;
+    archive_memory::replay_memories(
+        &mut writer.container,
+        &right.common.memories,
+        &mut writer.session.common.memories,
+        &mut counts,
+    )?;
+    perception_graph::replay_perception(
+        &mut writer.container,
+        &right.common.perception,
+        &mut counts,
+    )?;
     perception_graph::replay_graph(
-        &mut target,
+        &mut writer.container,
         &left.common.graph,
         &right.common.graph,
         &merged_graph_admission(left, right),
         &mut counts,
     )?;
-    freshness_verify::replay_freshness(&mut target, &right.freshness, &mut counts)?;
-    target.sync().map_err(verification)?;
+    freshness_verify::replay_freshness(
+        &mut writer.container,
+        &right.freshness,
+        &mut writer.session.freshness,
+        &imported.rebased_freshness,
+        &mut counts,
+    )?;
+    writer.container.sync().map_err(verification)?;
     counts.semantic_change = counts.archive
         + counts.memory
         + counts.entities
@@ -110,7 +138,9 @@ pub(super) fn verify_merged(
     right: &RelSession,
     output: &RelSession,
 ) -> Result<(), RelReconciliationError> {
-    freshness_verify::verify_merged(left, right, output)
+    let rebased_freshness = imports::rebased_freshness(left, right)?;
+    freshness_verify::verify_merged(left, right, output, &rebased_freshness)?;
+    imports::verify(left, right, output)
 }
 
 pub(super) fn has_vectors(left: &RelSession, right: &RelSession) -> bool {

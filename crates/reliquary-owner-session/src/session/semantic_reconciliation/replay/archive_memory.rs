@@ -99,9 +99,9 @@ pub(super) fn replay_archive(
 pub(super) fn replay_memories(
     target: &mut Container,
     source: &MemoryStore,
+    destination: &mut MemoryStore,
     counts: &mut ReplayCounts,
 ) -> Result<(), RelReconciliationError> {
-    let mut destination = MemoryStore::open(target).map_err(conflict)?;
     for id in source.memory_ids() {
         let history = source.history(id).map_err(conflict)?;
         for revision in &history.revisions {

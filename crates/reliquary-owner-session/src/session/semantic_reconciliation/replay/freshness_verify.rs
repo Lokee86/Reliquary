@@ -4,10 +4,30 @@ use reliquary_freshness_store::FreshnessReplayEntry;
 pub(super) fn replay_freshness(
     target: &mut Container,
     source: &FreshnessStore,
+    destination: &mut FreshnessStore,
+    rebased: &BTreeSet<FreshnessMemoryId>,
     counts: &mut ReplayCounts,
 ) -> Result<(), RelReconciliationError> {
-    let mut destination = FreshnessStore::open(target).map_err(conflict)?;
     for entry in source.replay_entries() {
+        if let FreshnessReplayEntry::Birth {
+            memory_id,
+            admitted_at_birth,
+            ..
+        } = &entry
+            && rebased.contains(memory_id)
+        {
+            let retained = destination.replay_entries().into_iter().any(|candidate| {
+                matches!(candidate, FreshnessReplayEntry::Birth {
+                    memory_id: candidate_id,
+                    admitted_at_birth: candidate_admitted,
+                    ..
+                } if candidate_id == *memory_id && candidate_admitted == *admitted_at_birth)
+            });
+            if !retained {
+                return Err(conflict("rebased import Freshness birth changed"));
+            }
+            continue;
+        }
         let inserted = match entry {
             FreshnessReplayEntry::Birth {
                 memory_id,
@@ -37,6 +57,7 @@ pub(super) fn verify_merged(
     left: &RelSession,
     right: &RelSession,
     output: &RelSession,
+    rebased: &BTreeSet<FreshnessMemoryId>,
 ) -> Result<(), RelReconciliationError> {
     for source in [left, right] {
         for accepted in source.archive.accepted_turn_sources() {
@@ -69,15 +90,28 @@ pub(super) fn verify_merged(
         }
         let output_freshness = output.freshness.replay_entries();
         for entry in source.freshness.replay_entries() {
+            if let FreshnessReplayEntry::Birth {
+                memory_id,
+                admitted_at_birth,
+                ..
+            } = &entry
+                && rebased.contains(memory_id)
+                && output_freshness.iter().any(|candidate| {
+                    matches!(candidate, FreshnessReplayEntry::Birth {
+                        memory_id: candidate_id,
+                        admitted_at_birth: candidate_admitted,
+                        ..
+                    } if candidate_id == memory_id && candidate_admitted == admitted_at_birth)
+                })
+            {
+                continue;
+            }
             if !output_freshness.contains(&entry) {
                 return Err(conflict(
                     "reopened Freshness history lost accepted evidence",
                 ));
             }
         }
-    }
-    if output.imports.statuses() != left.imports.statuses() {
-        return Err(conflict("reopened import settlement authority changed"));
     }
     Ok(())
 }

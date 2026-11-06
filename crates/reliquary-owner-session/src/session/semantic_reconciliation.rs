@@ -2,7 +2,7 @@ use super::*;
 use crate::VerifiedOwnerCopyPlan;
 use crate::staged_copy::StagedCopy;
 use sha2::{Digest, Sha256};
-use std::{fs, path::Path};
+use std::{fs, io::ErrorKind, path::Path};
 
 #[cfg(test)]
 mod acceptance_tests;
@@ -195,8 +195,7 @@ pub fn reconcile_divergent_rel_copy(
     let bytes = fs::read(&staged.path)
         .map_err(|error| RelReconciliationError::Verification(error.to_string()))?;
     let output_digest = Sha256::digest(&bytes).into();
-    fs::rename(&staged.path, destination_path)
-        .map_err(|error| RelReconciliationError::Verification(error.to_string()))?;
+    publish_reconciled_copy(&staged, destination_path)?;
     Ok(RelReconciliationReport {
         comparison,
         replayed_archive_records: counts.archive,
@@ -209,6 +208,19 @@ pub fn reconcile_divergent_rel_copy(
         vector_rebuild_required: counts.semantic_change && replay::has_vectors(&left, &right),
         output_digest,
     })
+}
+
+fn publish_reconciled_copy(
+    staged: &StagedCopy,
+    destination_path: &Path,
+) -> Result<(), RelReconciliationError> {
+    match fs::hard_link(&staged.path, destination_path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == ErrorKind::AlreadyExists => {
+            Err(RelReconciliationError::DestinationExists)
+        }
+        Err(error) => Err(RelReconciliationError::Verification(error.to_string())),
+    }
 }
 
 fn stable_rel(path: &Path) -> Result<(VerifiedOwnerCopyPlan, Container), RelReconciliationError> {
@@ -236,7 +248,7 @@ fn semantic_records(container: &Container) -> Result<Vec<Vec<u8>>, RelReconcilia
 }
 
 fn require_supported_tail(records: &[Vec<u8>]) -> Result<(), RelReconciliationError> {
-    const SUPPORTED: [&[u8]; 19] = [
+    const SUPPORTED: [&[u8]; 26] = [
         b"RELTURN2",
         b"RELFILE1",
         b"RELBRCH1",
@@ -256,6 +268,13 @@ fn require_supported_tail(records: &[Vec<u8>]) -> Result<(), RelReconciliationEr
         b"RELFRP01",
         b"RELECHO1",
         b"RELINIT1",
+        b"RELIEPS2",
+        b"RELIFRS1",
+        b"RELIEPC2",
+        b"RELINSW1",
+        b"RELINSW2",
+        b"RELINSR1",
+        b"RELINSC7",
     ];
     for record in records {
         if !SUPPORTED.iter().any(|magic| record.starts_with(magic)) {
