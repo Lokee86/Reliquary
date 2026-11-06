@@ -323,7 +323,9 @@ fn publish_rewrite_candidate(staged: &StagedCopy, destination: &Path) -> Result<
         Err(error) if error.kind() == ErrorKind::AlreadyExists => {
             Err("rewrite destination already exists".into())
         }
-        Err(error) => Err(format!("could not publish verified rewritten owner: {error}")),
+        Err(error) => Err(format!(
+            "could not publish verified rewritten owner: {error}"
+        )),
     }
 }
 

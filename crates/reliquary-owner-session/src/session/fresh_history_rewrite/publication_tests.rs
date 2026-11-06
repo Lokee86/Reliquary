@@ -37,8 +37,14 @@ fn intervening_destination_is_not_replaced_by_verified_rewrite() {
     let error = publish_rewrite_candidate(&candidate, &destination.0).unwrap_err();
 
     assert_eq!(error, "rewrite destination already exists");
-    assert_eq!(fs::read(&destination.0).unwrap(), b"existing unrelated owner");
-    assert_eq!(fs::read(&candidate.path).unwrap(), b"verified rewritten owner");
+    assert_eq!(
+        fs::read(&destination.0).unwrap(),
+        b"existing unrelated owner"
+    );
+    assert_eq!(
+        fs::read(&candidate.path).unwrap(),
+        b"verified rewritten owner"
+    );
 }
 
 #[test]
@@ -49,10 +55,16 @@ fn verified_rewrite_publishes_without_replacing_any_existing_file() {
 
     publish_rewrite_candidate(&candidate, &destination.0).unwrap();
 
-    assert_eq!(fs::read(&destination.0).unwrap(), b"verified rewritten owner");
+    assert_eq!(
+        fs::read(&destination.0).unwrap(),
+        b"verified rewritten owner"
+    );
     assert_eq!(
         publish_rewrite_candidate(&candidate, &destination.0).unwrap_err(),
         "rewrite destination already exists"
     );
-    assert_eq!(fs::read(&destination.0).unwrap(), b"verified rewritten owner");
+    assert_eq!(
+        fs::read(&destination.0).unwrap(),
+        b"verified rewritten owner"
+    );
 }
