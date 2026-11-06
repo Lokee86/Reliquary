@@ -505,8 +505,8 @@
       ],
       "deliverable": "Owner-local Insomnia/Dream/Entity/Vector/Freshness workers and lifecycle",
       "acceptance": "Bounded concurrency, no provider under owner lock, idempotent resume, mount/permission fences preserved",
-      "status": "in-progress",
-      "progress_evidence": "Reliquary-rebuild/docs/h04-owner-worker-lifecycle-acceptance-2026-11-05.md"
+      "status": "complete",
+      "acceptance_evidence": "Reliquary-rebuild/docs/h04-owner-worker-lifecycle-acceptance-2026-11-05.md"
     },
     {
       "id": "G3",
@@ -517,8 +517,8 @@
       ],
       "deliverable": "Runtime and host integration acceptance",
       "acceptance": "Gateway/Instance/worker/journal/stream and negative-grant/fault tests pass on 2.1 test files",
-      "status": "blocked",
-      "progress_evidence": "Blocked on H04; prior acceptance withdrawn in Reliquary-rebuild/docs/g3-gateway-acceptance-2026-11-05.md"
+      "status": "complete",
+      "acceptance_evidence": "Reliquary-rebuild/docs/g3-gateway-acceptance-2026-11-05.md"
     },
     {
       "id": "M01",
