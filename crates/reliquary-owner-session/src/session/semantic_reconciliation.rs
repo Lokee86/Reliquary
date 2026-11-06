@@ -75,6 +75,9 @@ pub struct RelReconciliationReport {
     pub replayed_freshness_records: usize,
     pub vector_rebuild_required: bool,
     pub output_digest: [u8; 32],
+    /// Destination-authenticated Dream begins required when reopening a merge
+    /// containing newly replayed first-cycle import settlements.
+    pub destination_dream_admissions: Vec<DreamBeginAdmission>,
 }
 
 pub fn compare_rel_histories(
@@ -155,18 +158,20 @@ pub fn reconcile_divergent_rel_copy(
     require_supported_tail(&left_records[comparison.common_record_count..])?;
     require_supported_tail(&right_records[comparison.common_record_count..])?;
 
+    let left_dream_admissions = applicable_dream_admissions(&left_container, dream_admissions)?;
+    let right_dream_admissions = applicable_dream_admissions(&right_container, dream_admissions)?;
     let left = RelSession::open(
         &left_container,
         graph_admission,
         accepted_episodes.iter().cloned(),
-        dream_admissions.iter().cloned(),
+        left_dream_admissions.iter().cloned(),
     )
     .map_err(|error| RelReconciliationError::Verification(error.to_string()))?;
     let right = RelSession::open(
         &right_container,
         graph_admission,
         accepted_episodes.iter().cloned(),
-        dream_admissions.iter().cloned(),
+        right_dream_admissions.iter().cloned(),
     )
     .map_err(|error| RelReconciliationError::Verification(error.to_string()))?;
     replay::require_compatible_fixed_state(&left, &right)?;
@@ -176,13 +181,14 @@ pub fn reconcile_divergent_rel_copy(
     left_plan
         .copy_to(left_path, &staged.path)
         .map_err(RelReconciliationError::Verification)?;
-    let counts = replay::replay_right(&left, &right, &staged.path)?;
+    let replayed = replay::replay_right(&left, &right, &staged.path, &left_dream_admissions)?;
+    let counts = replayed.counts;
     let merged_admission = replay::merged_graph_admission(&left, &right);
     let reopened = RelSession::open_path(
         &staged.path,
         &merged_admission,
         accepted_episodes.iter().cloned(),
-        dream_admissions.iter().cloned(),
+        replayed.destination_dream_admissions.iter().cloned(),
     )
     .map_err(|error| RelReconciliationError::Verification(error.to_string()))?;
     replay::verify_merged(&left, &right, &reopened)?;
@@ -207,7 +213,62 @@ pub fn reconcile_divergent_rel_copy(
         replayed_freshness_records: counts.freshness,
         vector_rebuild_required: counts.semantic_change && replay::has_vectors(&left, &right),
         output_digest,
+        destination_dream_admissions: replayed.destination_dream_admissions,
     })
+}
+
+fn applicable_dream_admissions(
+    source: &Container,
+    supplied: &[DreamBeginAdmission],
+) -> Result<Vec<DreamBeginAdmission>, RelReconciliationError> {
+    use crate::records::dream::dream_begin_codec::{self, BeginPopulation};
+    let mut begins = std::collections::BTreeMap::new();
+    for frame in source
+        .read_frames()
+        .map_err(|e| RelReconciliationError::Verification(e.to_string()))?
+    {
+        if frame.payload.starts_with(b"CVDREAM2") {
+            let begin = dream_begin_codec::decode(&frame.payload)
+                .map_err(|e| RelReconciliationError::Verification(e.to_string()))?;
+            if begins.insert(begin.pass_id.clone(), begin).is_some() {
+                return Err(RelReconciliationError::Verification(
+                    "duplicate physical Dream Begin".into(),
+                ));
+            }
+        }
+    }
+    let mut accepted = Vec::new();
+    for begin in begins.values() {
+        let matching = supplied
+            .iter()
+            .filter(|admission| {
+                admission.owner_uuid == begin.owner_uuid
+                    && admission.pass_id == begin.pass_id
+                    && admission.source_id == begin.source_id
+                    && admission.turn == begin.turn
+                    && admission.graph_version_before == begin.graph_version_before
+                    && match &begin.population {
+                        BeginPopulation::ExplicitSet(ids) => &admission.preexisting_ids == ids,
+                        BeginPopulation::CompactCut { memory_cut, digest } => {
+                            admission.memory_cut == *memory_cut
+                                && crate::records::dream::population_digest(
+                                    &admission.preexisting_ids,
+                                ) == *digest
+                        }
+                    }
+            })
+            .collect::<Vec<_>>();
+        // A repeated merge can supply the same authenticated Begin from both
+        // the merged owner and the original branch. Identical evidence is not
+        // conflicting authority; distinct matches remain an explicit error.
+        if matching.is_empty() || matching.iter().any(|value| **value != *matching[0]) {
+            return Err(RelReconciliationError::Verification(
+                "reconciliation Dream Begin lacks unambiguous source admission".into(),
+            ));
+        }
+        accepted.push((*matching[0]).clone());
+    }
+    Ok(accepted)
 }
 
 fn publish_reconciled_copy(
@@ -248,7 +309,7 @@ fn semantic_records(container: &Container) -> Result<Vec<Vec<u8>>, RelReconcilia
 }
 
 fn require_supported_tail(records: &[Vec<u8>]) -> Result<(), RelReconciliationError> {
-    const SUPPORTED: [&[u8]; 26] = [
+    const SUPPORTED: [&[u8]; 28] = [
         b"RELTURN2",
         b"RELFILE1",
         b"RELBRCH1",
@@ -275,6 +336,8 @@ fn require_supported_tail(records: &[Vec<u8>]) -> Result<(), RelReconciliationEr
         b"RELINSW2",
         b"RELINSR1",
         b"RELINSC7",
+        b"CVDREAM2",
+        b"RELDRF02",
     ];
     for record in records {
         if !SUPPORTED.iter().any(|magic| record.starts_with(magic)) {

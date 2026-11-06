@@ -10,6 +10,7 @@ use std::collections::{BTreeMap, BTreeSet};
 pub(super) struct ImportReplay {
     pub counts: ReplayCounts,
     pub rebased_freshness: BTreeSet<FreshnessMemoryId>,
+    pub destination_dream_admissions: Vec<DreamBeginAdmission>,
 }
 
 #[derive(Clone)]
@@ -38,6 +39,7 @@ pub(super) fn replay(
     left: &RelSession,
     right: &RelSession,
     target_path: &Path,
+    left_dream_admissions: &[DreamBeginAdmission],
 ) -> Result<ImportReplay, RelReconciliationError> {
     validate(left, right)?;
     let known = completed(left)?;
@@ -57,11 +59,18 @@ pub(super) fn replay(
         return Ok(ImportReplay {
             counts: ReplayCounts::default(),
             rebased_freshness: BTreeSet::new(),
+            destination_dream_admissions: left_dream_admissions.to_vec(),
         });
     }
 
-    let mut writer = RelWriter::open_path(target_path, merged_graph_admission(left, right), [], [])
-        .map_err(verification)?;
+    let mut writer = RelWriter::open_path(
+        target_path,
+        merged_graph_admission(left, right),
+        [],
+        left_dream_admissions.iter().cloned(),
+    )
+    .map_err(verification)?;
+    let mut destination_dream_admissions = left_dream_admissions.to_vec();
     let mut counts = ReplayCounts::default();
     let mut rebased_freshness = BTreeSet::new();
     let mut source_archive_cursor = 0;
@@ -129,6 +138,7 @@ pub(super) fn replay(
             &episodes,
             &mut counts,
             &mut rebased_freshness,
+            &mut destination_dream_admissions,
         )?;
         writer
             .complete_native_import(&destination_start.import_id, epoch.complete.completed_at_ns)
@@ -155,6 +165,7 @@ pub(super) fn replay(
     Ok(ImportReplay {
         counts,
         rebased_freshness,
+        destination_dream_admissions,
     })
 }
 
@@ -587,6 +598,7 @@ fn replay_grouped_completions(
     episodes: &[EpisodeId],
     counts: &mut ReplayCounts,
     rebased_freshness: &mut BTreeSet<FreshnessMemoryId>,
+    destination_dream_admissions: &mut Vec<DreamBeginAdmission>,
 ) -> Result<(), RelReconciliationError> {
     for episode in episodes {
         let mut completions = source
@@ -664,6 +676,98 @@ fn replay_grouped_completions(
             .map_err(verification)?;
         counts.memory += completion.memory_records.len();
         counts.freshness += completion.freshness_birth_memory_ids.len();
+        replay_initial_dreams(
+            writer,
+            source,
+            import_id,
+            &completion.memory_ids,
+            destination_dream_admissions,
+        )?;
+    }
+    Ok(())
+}
+
+fn replay_initial_dreams(
+    writer: &mut RelWriter,
+    source: &RelSession,
+    import_id: &str,
+    memory_ids: &[[u8; 32]],
+    admissions: &mut Vec<DreamBeginAdmission>,
+) -> Result<(), RelReconciliationError> {
+    let ids = memory_ids
+        .iter()
+        .copied()
+        .map(MemoryId)
+        .collect::<BTreeSet<_>>();
+    for settlement in source
+        .common
+        .dreams
+        .initial_settlements()
+        .filter(|record| ids.contains(&record.source))
+    {
+        let source_begin = source
+            .common
+            .dreams
+            .begin(&settlement.pass_id)
+            .ok_or_else(|| conflict("source initial Dream has no authenticated Begin"))?;
+        if source_begin.source_id != settlement.source
+            || !settlement.roots.is_empty()
+            || !settlement.credit_roots.is_empty()
+            || settlement.memory_delta.is_some()
+        {
+            return Err(RelReconciliationError::UnsupportedState(
+                "import initial Dream requires semantic relation replay",
+            ));
+        }
+        let cut = crate::DreamMemoryCut {
+            id: settlement.source,
+            revision: settlement.revision,
+            body_id: settlement.body,
+        };
+        let source_admission = source
+            .common
+            .dreams
+            .admission(&settlement.pass_id)
+            .ok_or_else(|| conflict("source initial Dream has no population admission"))?;
+        let turn = writer.read_session().rel_turn_count();
+        let admission = writer
+            .begin_replayed_native_import_initial_dream_pass(
+                import_id,
+                settlement.pass_id.clone(),
+                cut,
+                turn,
+                &source_admission.preexisting_ids,
+            )
+            .map_err(verification)?;
+        let graph_version = writer.read_session().common.graph.graph_version();
+        writer
+            .commit_native_import_initial_dream_pass(
+                import_id,
+                &settlement.pass_id,
+                cut,
+                graph_version,
+                turn,
+                BTreeMap::new(),
+                false,
+            )
+            .map_err(verification)?;
+        let actual = writer
+            .session
+            .common
+            .dreams
+            .settlement_record(&settlement.pass_id)
+            .ok_or_else(|| conflict("destination initial Dream settlement is absent"))?;
+        if actual.source != settlement.source
+            || actual.revision != settlement.revision
+            || actual.body != settlement.body
+            || actual.roots != settlement.roots
+            || actual.credit_roots != settlement.credit_roots
+            || actual.admit != settlement.admit
+            || actual.memory_delta.is_some()
+        {
+            return Err(conflict("replayed import initial Dream semantics changed"));
+        }
+        admissions.push(admission);
     }
     Ok(())
 }

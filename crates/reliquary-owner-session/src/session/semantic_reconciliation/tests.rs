@@ -164,7 +164,15 @@ fn complete_grouped_memory_import(
     path: &Path,
     owner: [u8; 16],
     key_byte: u8,
-) -> (String, MemoryId, reliquary_archive::EpisodeId) {
+    with_dream: bool,
+) -> (
+    String,
+    MemoryId,
+    reliquary_archive::EpisodeId,
+    Option<crate::DreamBeginAdmission>,
+) {
+    let conversation = format!("grouped-conversation-{key_byte:02x}");
+    let turn_id = format!("grouped-turn-{key_byte:02x}");
     let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
     let mut writer = RelWriter::open_path(path, admission, [], []).unwrap();
     let key = format!("{key_byte:02x}").repeat(32);
@@ -178,8 +186,8 @@ fn complete_grouped_memory_import(
         .accept_native_import_turn(
             &start.import_id,
             TurnInput {
-                id: "grouped-turn".into(),
-                conversation_id: "grouped-conversation".into(),
+                id: turn_id.clone(),
+                conversation_id: conversation.clone(),
                 parent_id: None,
                 role: "user".into(),
                 principal_id: Some("alice".into()),
@@ -190,20 +198,14 @@ fn complete_grouped_memory_import(
             },
             reliquary_archive::Branch {
                 id: "main".into(),
-                conversation_id: "grouped-conversation".into(),
-                leaf_node_id: "grouped-turn".into(),
+                conversation_id: conversation.clone(),
+                leaf_node_id: turn_id.clone(),
                 canonical: true,
             },
         )
         .unwrap();
     let episode = writer
-        .finalize_native_import_episode(
-            &start.import_id,
-            "grouped-conversation",
-            "grouped-turn",
-            "grouped-turn",
-            201,
-        )
+        .finalize_native_import_episode(&start.import_id, &conversation, &turn_id, &turn_id, 201)
         .unwrap();
     writer
         .commit_native_import_receipt(
@@ -217,7 +219,7 @@ fn complete_grouped_memory_import(
                 source_digest: [key_byte; 32],
                 conversations: vec![crate::model::ImportedConversation {
                     source_id: "source-conversation".into(),
-                    conversation_id: "grouped-conversation".into(),
+                    conversation_id: conversation.clone(),
                     title: None,
                     messages: vec![crate::model::ImportedMessage {
                         source_id: "source-turn".into(),
@@ -225,14 +227,14 @@ fn complete_grouped_memory_import(
                         source_parent_id: None,
                         replaces: None,
                         deleted: false,
-                        node_id: Some("grouped-turn".into()),
+                        node_id: Some(turn_id.clone()),
                         fingerprint: [0x44; 32],
                         artifacts: vec![],
                     }],
                     branches: vec![crate::model::ImportedBranch {
                         source_id: "source-main".into(),
                         branch_id: "main".into(),
-                        leaf_node_id: Some("grouped-turn".into()),
+                        leaf_node_id: Some(turn_id.clone()),
                         canonical: true,
                     }],
                 }],
@@ -243,8 +245,8 @@ fn complete_grouped_memory_import(
     let claim = writer
         .claim_native_import_episode(&start.import_id, episode, "fixture", 202, 100)
         .unwrap();
-    let mutation = "reconciled-grouped-memory";
-    let id = memory_id(mutation);
+    let mutation = format!("reconciled-grouped-memory-{key_byte:02x}");
+    let id = memory_id(&mutation);
     let body_id = memory_body_id("grouped title", "grouped body");
     let record = MemoryRecord {
         id,
@@ -259,16 +261,16 @@ fn complete_grouped_memory_import(
         archived: false,
         parent_id: None,
         superseded_by: None,
-        source_node_id: Some("grouped-turn".into()),
-        content_source_conversation_id: Some("grouped-conversation".into()),
-        content_source_node_id: Some("grouped-turn".into()),
+        source_node_id: Some(turn_id.clone()),
+        content_source_conversation_id: Some(conversation.clone()),
+        content_source_node_id: Some(turn_id.clone()),
         grounding_source_conversation_id: None,
         grounding_source_node_id: None,
         source_episode_id: Some(episode.0),
         source_ref: None,
         source_time_ns: Some(200),
         temporal_inference: None,
-        mutation_id: mutation.into(),
+        mutation_id: mutation.clone(),
         created_at_ns: 203,
         updated_at_ns: 203,
         memory_version: writer.read_session().memory_version() + 1,
@@ -303,10 +305,36 @@ fn complete_grouped_memory_import(
             &[],
         )
         .unwrap();
+    let mut dream_admission = None;
+    if with_dream {
+        let cut = crate::DreamMemoryCut {
+            id,
+            revision: 1,
+            body_id: reliquary_memory_core::MemoryBodyId(body_id.0),
+        };
+        let pass = format!("import-initial-{}", start.import_id);
+        let turn = writer.read_session().rel_turn_count();
+        dream_admission = Some(
+            writer
+                .begin_native_import_initial_dream_pass(&start.import_id, pass.clone(), cut, turn)
+                .unwrap(),
+        );
+        writer
+            .commit_native_import_initial_dream_pass(
+                &start.import_id,
+                &pass,
+                cut,
+                0,
+                turn,
+                BTreeMap::new(),
+                false,
+            )
+            .unwrap();
+    }
     writer
         .complete_native_import(&start.import_id, 204)
         .unwrap();
-    (start.import_id, id, episode)
+    (start.import_id, id, episode, dream_admission)
 }
 
 #[test]
@@ -512,7 +540,8 @@ fn multiple_completed_import_epochs_replay_across_live_activity() {
 fn completed_grouped_memory_epoch_replays_through_destination_owners() {
     let (left, right, owner) = owner_pair();
     complete_empty_import(&left.0, owner, 0xf1, 100);
-    let (right_id, memory, episode) = complete_grouped_memory_import(&right.0, owner, 0xf2);
+    let (right_id, memory, episode, _) =
+        complete_grouped_memory_import(&right.0, owner, 0xf2, false);
     let graph = GraphAdmission::for_replay(owner, [memory.0], [], [], [], []);
     let output = Temp::new("grouped-import-output");
     reconcile_divergent_rel_copy(&left.0, &right.0, &output.0, &graph, &[], &[]).unwrap();
@@ -604,4 +633,136 @@ fn unrelated_live_insomnia_work_must_not_disappear_during_import_merge() {
     assert!(!output.0.exists());
     assert_eq!(fs::read(&right.0).unwrap(), right_before);
     assert_eq!(fs::read(&left.0).unwrap(), left_before);
+}
+#[test]
+fn completed_import_initial_dream_pass_is_preserved_in_divergent_merge() {
+    let (left, right, owner) = owner_pair();
+    complete_empty_import(&left.0, owner, 0xf3, 100);
+    let (import_id, memory, _, dream) = complete_grouped_memory_import(&right.0, owner, 0xf4, true);
+    let dream = dream.unwrap();
+    let pass = format!("import-initial-{import_id}");
+    let admission = GraphAdmission::for_replay(owner, [memory.0], [], [], [], []);
+    let source = RelSession::open_path(&right.0, &admission, [], [dream.clone()]).unwrap();
+    assert!(
+        source
+            .common
+            .dreams
+            .initial_settlements()
+            .any(|r| r.pass_id == pass)
+    );
+    drop(source);
+    let right_before = fs::read(&right.0).unwrap();
+    let output = Temp::new("import-initial-dream");
+    let report = reconcile_divergent_rel_copy(
+        &left.0,
+        &right.0,
+        &output.0,
+        &admission,
+        &[],
+        &[dream.clone()],
+    )
+    .unwrap();
+    let mut destination_admissions = report.destination_dream_admissions;
+    let merged =
+        RelSession::open_path(&output.0, &admission, [], destination_admissions.clone()).unwrap();
+    assert!(
+        merged
+            .common
+            .dreams
+            .initial_settlements()
+            .any(|r| r.pass_id == pass)
+    );
+    drop(merged);
+    let before = fs::read(&output.0).unwrap();
+    destination_admissions.push(dream);
+    let repeated = Temp::new("import-initial-dream-repeat");
+    let retry = reconcile_divergent_rel_copy(
+        &output.0,
+        &right.0,
+        &repeated.0,
+        &admission,
+        &[],
+        &destination_admissions,
+    )
+    .unwrap();
+    assert_eq!(retry.replayed_memory_revisions, 0);
+    assert_eq!(retry.replayed_freshness_records, 0);
+    assert_eq!(fs::read(&repeated.0).unwrap(), before);
+    assert_eq!(fs::read(&right.0).unwrap(), right_before);
+}
+
+#[test]
+fn replayed_import_dream_preserves_source_population_with_extra_left_birth() {
+    let left = Temp::new("dream-pop-left");
+    let right = Temp::new("dream-pop-right");
+    let owner = [0x62; 16];
+    drop(RelWriter::create_path(&left.0, ReliquaryScope::Connection, owner).unwrap());
+    let (_, baseline, _, _) = complete_grouped_memory_import(&left.0, owner, 0xe1, false);
+    fs::copy(&left.0, &right.0).unwrap();
+    let left_only = {
+        let graph = GraphAdmission::for_replay(owner, [baseline.0], [], [], [], []);
+        let mut writer = RelWriter::open_path(&left.0, graph, [], []).unwrap();
+        let published = writer
+            .session
+            .common
+            .memories
+            .publish(
+                &mut writer.container,
+                None,
+                0,
+                draft("left-extra-memory", None),
+            )
+            .unwrap();
+        let id = published.revision.record.id;
+        writer
+            .session
+            .freshness
+            .create_birth(&mut writer.container, FreshnessMemoryId(id.0), 1, true)
+            .unwrap();
+        writer.container.sync().unwrap();
+        id
+    };
+    let (_, source_id, _, source_dream) =
+        complete_grouped_memory_import(&right.0, owner, 0xe2, true);
+    let dream = source_dream.unwrap();
+    assert_eq!(dream.preexisting_ids, [baseline].into());
+    let graph = GraphAdmission::for_replay(
+        owner,
+        [baseline.0, left_only.0, source_id.0],
+        [],
+        [],
+        [],
+        [],
+    );
+    let output = Temp::new("dream-pop-output");
+    let report =
+        reconcile_divergent_rel_copy(&left.0, &right.0, &output.0, &graph, &[], &[dream.clone()])
+            .unwrap();
+    let merged = RelSession::open_path(
+        &output.0,
+        &graph,
+        [],
+        report.destination_dream_admissions.clone(),
+    )
+    .unwrap();
+    let retained = merged.common.dreams.admission(&dream.pass_id).unwrap();
+    assert_eq!(retained.preexisting_ids, dream.preexisting_ids);
+    assert!(!retained.preexisting_ids.contains(&left_only));
+    assert_eq!(
+        merged.current_memory(source_id).unwrap().record.id,
+        source_id
+    );
+    drop(merged);
+    let output_before = fs::read(&output.0).unwrap();
+    let repeat = Temp::new("dream-pop-repeat");
+    let mut admissions = report.destination_dream_admissions;
+    admissions.push(dream);
+    let repeated =
+        reconcile_divergent_rel_copy(&output.0, &right.0, &repeat.0, &graph, &[], &admissions);
+    // A rebased source birth changes the import's recipient base. This may
+    // remain an explicit conflict, but never a silent population expansion.
+    match repeated {
+        Ok(_) => assert_eq!(fs::read(&repeat.0).unwrap(), output_before),
+        Err(_) => assert!(!repeat.0.exists()),
+    }
 }

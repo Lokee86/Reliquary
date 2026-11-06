@@ -19,6 +19,11 @@ pub(super) struct ReplayCounts {
     pub semantic_change: bool,
 }
 
+pub(super) struct ReplayOutcome {
+    pub counts: ReplayCounts,
+    pub destination_dream_admissions: Vec<DreamBeginAdmission>,
+}
+
 pub(super) fn require_compatible_fixed_state(
     left: &RelSession,
     right: &RelSession,
@@ -56,10 +61,16 @@ pub(super) fn replay_right(
     left: &RelSession,
     right: &RelSession,
     target_path: &Path,
-) -> Result<ReplayCounts, RelReconciliationError> {
-    let imported = imports::replay(left, right, target_path)?;
-    let mut writer = RelWriter::open_path(target_path, merged_graph_admission(left, right), [], [])
-        .map_err(verification)?;
+    left_dream_admissions: &[DreamBeginAdmission],
+) -> Result<ReplayOutcome, RelReconciliationError> {
+    let imported = imports::replay(left, right, target_path, left_dream_admissions)?;
+    let mut writer = RelWriter::open_path(
+        target_path,
+        merged_graph_admission(left, right),
+        [],
+        imported.destination_dream_admissions.iter().cloned(),
+    )
+    .map_err(verification)?;
     let mut counts = imported.counts;
     archive_memory::replay_archive(&mut writer.container, &right.archive, &mut counts)?;
     archive_memory::replay_echo(&mut writer.container, &right.echo, &mut counts)?;
@@ -96,7 +107,10 @@ pub(super) fn replay_right(
         + counts.graph
         + counts.freshness
         > 0;
-    Ok(counts)
+    Ok(ReplayOutcome {
+        counts,
+        destination_dream_admissions: imported.destination_dream_admissions,
+    })
 }
 
 pub(super) fn merged_graph_admission(left: &RelSession, right: &RelSession) -> GraphAdmission {
@@ -140,6 +154,37 @@ pub(super) fn verify_merged(
 ) -> Result<(), RelReconciliationError> {
     let rebased_freshness = imports::rebased_freshness(left, right)?;
     freshness_verify::verify_merged(left, right, output, &rebased_freshness)?;
+    for source in [left, right] {
+        for expected in source.common.dreams.initial_settlements() {
+            let actual = output
+                .common
+                .dreams
+                .settlement_record(&expected.pass_id)
+                .ok_or_else(|| conflict("reconciliation lost accepted initial Dream settlement"))?;
+            if output
+                .common
+                .dreams
+                .admission(&expected.pass_id)
+                .map(|a| &a.preexisting_ids)
+                != source
+                    .common
+                    .dreams
+                    .admission(&expected.pass_id)
+                    .map(|a| &a.preexisting_ids)
+                || actual.source != expected.source
+                || actual.revision != expected.revision
+                || actual.body != expected.body
+                || actual.roots != expected.roots
+                || actual.credit_roots != expected.credit_roots
+                || actual.admit != expected.admit
+                || actual.memory_delta.is_some() != expected.memory_delta.is_some()
+            {
+                return Err(conflict(
+                    "reconciliation changed initial Dream settlement semantics",
+                ));
+            }
+        }
+    }
     imports::verify(left, right, output)
 }
 

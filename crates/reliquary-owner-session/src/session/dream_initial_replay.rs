@@ -157,8 +157,20 @@ pub(super) fn validate(
             let admission = dreams
                 .admission(&record.pass_id)
                 .ok_or(OwnerSessionError::StaleDreamCut)?;
-            let population =
+            let physical_population =
                 super::dream_initial::birth_population(container, memories, record.source)?;
+            // A destination replay can preserve a verified source Dream's
+            // explicit population even after introducing independent left-side
+            // births. Compact populations remain exact physical-prefix proofs.
+            let population = &admission.preexisting_ids;
+            let population_valid = match &begin.population {
+                crate::records::dream::dream_begin_codec::BeginPopulation::CompactCut {
+                    ..
+                } => population == &physical_population,
+                crate::records::dream::dream_begin_codec::BeginPopulation::ExplicitSet(_) => {
+                    population.is_subset(&physical_population)
+                }
+            };
             let roots: BTreeSet<_> = receipts
                 .iter()
                 .filter_map(|receipt| {
@@ -247,7 +259,7 @@ pub(super) fn validate(
                         .map(|(generation, _)| generation)
                 || record.graph_version != graph
                 || bodies.get(&record.source) != Some(&record.body)
-                || admission.preexisting_ids != population
+                || !population_valid
                 || roots != record.roots
             {
                 return Err(OwnerSessionError::Record(

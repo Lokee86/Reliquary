@@ -49,6 +49,30 @@ impl RelWriter {
         self.begin_initial_dream_pass_after_fence(pass_id, source, turn)
     }
 
+    /// Import replay preserves the source-authenticated historical population.
+    /// New left-only births may precede this imported Dream in the destination;
+    /// those births must not become members of the original Dream pass.
+    pub(crate) fn begin_replayed_native_import_initial_dream_pass(
+        &mut self,
+        import_id: &str,
+        pass_id: String,
+        source: DreamMemoryCut,
+        turn: u64,
+        retained_preexisting: &BTreeSet<MemoryId>,
+    ) -> Result<DreamBeginAdmission, OwnerSessionError> {
+        self.ensure_import_scope(import_id)?;
+        let mut admission =
+            initial_admission(&self.container, &self.session.common, source, pass_id, turn)?;
+        // The caller has independently reopened and authenticated the source
+        // Begin. Only identities already eligible at this destination birth
+        // may retain membership; new left-side births are not added.
+        if !retained_preexisting.is_subset(&admission.preexisting_ids) {
+            return Err(OwnerSessionError::StaleDreamCut);
+        }
+        admission.preexisting_ids = retained_preexisting.clone();
+        self.append_checked_initial_begin(admission)
+    }
+
     fn begin_initial_dream_pass_after_fence(
         &mut self,
         pass_id: String,
@@ -57,6 +81,13 @@ impl RelWriter {
     ) -> Result<DreamBeginAdmission, OwnerSessionError> {
         let admission =
             initial_admission(&self.container, &self.session.common, source, pass_id, turn)?;
+        self.append_checked_initial_begin(admission)
+    }
+
+    fn append_checked_initial_begin(
+        &mut self,
+        admission: DreamBeginAdmission,
+    ) -> Result<DreamBeginAdmission, OwnerSessionError> {
         if self.container.writer_lease_proof().is_none()
             || self.container.writer_lease_proof() != self.session.writer_lease_proof
         {
