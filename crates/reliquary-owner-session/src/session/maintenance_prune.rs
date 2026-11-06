@@ -220,20 +220,13 @@ fn transform_terminal_memory_copy(
     plan.verify_source(&source, source_path)?;
     let transformed_bytes = fs::metadata(&staged.path).map_err(|e| e.to_string())?.len();
     if replace_source {
-        plan.verify_source(&source, source_path)?;
-        drop(copy);
-        drop(source);
-        fs::rename(source_path, destination_path)
+        fs::hard_link(source_path, destination_path)
             .map_err(|error| format!("could not retain original owner as backup: {error}"))?;
-        if let Err(error) = fs::rename(&staged.path, source_path) {
-            let restored = fs::rename(destination_path, source_path);
-            return Err(match restored {
-                Ok(()) => format!("could not replace verified owner; original restored: {error}"),
-                Err(restore) => format!(
-                    "could not replace verified owner; original remains at backup ({error}); restore failed: {restore}"
-                ),
-            });
-        }
+        plan.verify_source(&source, destination_path)?;
+        plan.verify_source(&source, source_path)?;
+        fs::rename(&staged.path, source_path).map_err(|error| {
+            format!("could not replace verified owner; original retained at backup: {error}")
+        })?;
     } else {
         let publication = VerifiedOwnerCopyPlan::prepare(&staged.path)?
             .copy_to(&staged.path, destination_path)

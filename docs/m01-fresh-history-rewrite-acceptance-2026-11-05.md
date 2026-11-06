@@ -79,10 +79,9 @@ the default target link does not permit writes on this Windows filesystem.
   switchboard's local mock HTTP servers; dependency resolution remained offline.
 
 The full gate also exposed that this filesystem rejects hard links. Verified
-copy and maintenance-candidate publication now use create-new verified copies;
-offline prune promotion uses a same-volume rename to the retained backup before
-installing the verified candidate. Corresponding existing copy/prune and
-cross-process lease tests pass.
+copy and maintenance-candidate publication now use create-new verified copies.
+Offline prune promotion retains the original through a hard link while holding
+the owner lease; filesystems that reject hard links cannot perform promotion.
 
 ## Residual risks
 
