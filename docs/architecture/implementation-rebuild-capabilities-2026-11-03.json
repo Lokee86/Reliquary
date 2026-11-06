@@ -599,7 +599,8 @@
       ],
       "deliverable": "Thin public package, REL-only CLI and trusted host integration",
       "acceptance": "Only needed public operations; no Cva aliases, empty forwarding crates, original Root dependency or external consumer contract break without approval; expose GM-accepted rewrite/prune/reclaim/reconcile/history contracts via supported Rel/PHY API and CLI without dropping existing behavior",
-      "status": "not-started"
+      "status": "not-started",
+      "breakdown": "docs/architecture/p01-public-product-api-cli-implementation-spec-2026-11-06.md"
     },
     {
       "id": "G4",

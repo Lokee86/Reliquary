@@ -11,6 +11,7 @@
 - [Supported behavior inventory](supported-behavior-inventory.md) — selected rebuild behavior and evidence.
 
 - [Post-G3 Maintenance, History and Reconciliation Parity phase](architecture/maintenance-history-parity-phase-2026-11-05.md) — M01–M04 and mandatory GM acceptance before P01/G4.
+- [P01 public product API, trusted host and REL CLI specification](architecture/p01-public-product-api-cli-implementation-spec-2026-11-06.md) — ordered implementation slices, retained consumer contracts and G4 handoff.
 
 - [Current system implementation inventory (2026-11-03)](current-system-inventory-2026-11-03.md) — live crate/dependency map, durable ownership, processing paths, Root coupling, capability status, and redesign inputs.
 
