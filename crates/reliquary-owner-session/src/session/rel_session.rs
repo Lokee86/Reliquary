@@ -185,6 +185,8 @@ impl RelSession {
         let external_memories = ExternalMemoryStore::open(container, &common.memories)
             .map_err(OwnerSessionError::Record)?;
         let container_path = canonical_container_path(container)?;
+        let history_generation = owner_history_generation_from_container(container)
+            .map_err(OwnerSessionError::Record)?;
         let container_file_identity = container.physical_file_identity()?;
         let writer_lease_proof = container.writer_lease_proof();
         Ok(Self {
@@ -204,6 +206,7 @@ impl RelSession {
             write_poisoned: false,
             container_identity: container.identity(),
             container_path,
+            history_generation,
             container_file_identity,
             writer_lease_proof,
             #[cfg(test)]

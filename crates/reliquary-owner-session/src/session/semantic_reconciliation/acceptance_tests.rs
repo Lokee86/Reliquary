@@ -59,7 +59,22 @@ fn preserve_owner_rewrite_is_a_different_history_generation() {
         profile_ids: Vec::new(),
     };
     let graph = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let source_session = RelSession::open_path(&source, &graph, [], []).unwrap();
+    let source_cut = source_session.current_historical_cut();
+    let source_proof = source_session.historical_proof(owner, &source_cut).unwrap();
+    drop(source_session);
     rewrite_memory_history_copy(&source, &rewritten, &request, &graph).unwrap();
+    let rewritten_session = RelSession::open_path(&rewritten, &graph, [], []).unwrap();
+    let rewritten_cut = rewritten_session.current_historical_cut();
+    let rewritten_proof = rewritten_session
+        .historical_proof(owner, &rewritten_cut)
+        .unwrap();
+    assert_eq!(source_cut, rewritten_cut);
+    assert_eq!(source_proof.digest, rewritten_proof.digest);
+    assert_ne!(
+        source_proof.history_generation,
+        rewritten_proof.history_generation
+    );
     assert_eq!(
         compare_rel_histories(&source, &rewritten).unwrap_err(),
         RelReconciliationError::HistoryGenerationConflict

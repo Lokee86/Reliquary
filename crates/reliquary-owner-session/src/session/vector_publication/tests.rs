@@ -353,6 +353,24 @@ fn retired_profile_prune_preserves_rel_generation_receipts() {
 
     let original = RelSession::open_path(&repaired, &grant, [], []).unwrap();
     let reopened = RelSession::open_path(&output, &grant, [], []).unwrap();
+    let final_cut = original.current_historical_cut();
+    let final_proof = original.historical_proof(owner, &final_cut).unwrap();
+    assert_eq!(
+        reopened.historical_proof(owner, &final_cut).unwrap(),
+        final_proof
+    );
+    let mut first_generation_cut = final_cut.clone();
+    first_generation_cut.owner.vector_version = 1;
+    let first_generation = original
+        .historical_proof(owner, &first_generation_cut)
+        .unwrap();
+    assert_ne!(first_generation.digest, final_proof.digest);
+    assert_eq!(
+        reopened
+            .historical_proof(owner, &first_generation_cut)
+            .unwrap(),
+        first_generation
+    );
     assert_eq!(
         reopened.generations.generations(),
         original.generations.generations()

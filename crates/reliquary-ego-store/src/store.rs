@@ -4,6 +4,8 @@ use crate::{
 };
 use reliquary_container::{Container, ContainerError, ContainerIdentity, FileKind};
 use std::collections::BTreeMap;
+
+mod history;
 use std::fmt;
 
 const RECORD_MAGIC: &[u8; 8] = b"RELEGO01";
@@ -276,6 +278,7 @@ pub struct EgoStore {
     anchors: BTreeMap<EgoAnchorId, EgoAnchor>,
     anchor_history: BTreeMap<(EgoAnchorId, u64), EgoAnchor>,
     anchor_tombstones: BTreeMap<EgoAnchorId, u64>,
+    records: Vec<EgoRecord>,
 }
 
 impl EgoStore {
@@ -313,6 +316,7 @@ impl EgoStore {
             anchors: BTreeMap::new(),
             anchor_history: BTreeMap::new(),
             anchor_tombstones: BTreeMap::new(),
+            records: Vec::new(),
         }
     }
 
@@ -715,6 +719,7 @@ impl EgoStore {
     }
 
     fn apply(&mut self, record: EgoRecord, replay: bool) -> Result<(), EgoError> {
+        let accepted = record.clone();
         let version = record.version();
         match record {
             EgoRecord::Identity {
@@ -827,6 +832,7 @@ impl EgoStore {
         if replay || version == self.next_version()? {
             self.version = version;
         }
+        self.records.push(accepted);
         Ok(())
     }
 }

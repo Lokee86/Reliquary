@@ -14,6 +14,7 @@ use reliquary_container::{Container, ContainerError, ContainerIdentity};
 use std::collections::BTreeMap;
 use std::io::Read;
 
+mod history_cut;
 #[path = "initial_dream.rs"]
 mod initial_dream;
 
@@ -459,15 +460,7 @@ impl FreshnessStore {
         &self,
         rel_turn: u64,
     ) -> Result<BTreeMap<FreshnessMemoryId, FreshnessRecord>, String> {
-        self.records_at(&FreshnessEventCut {
-            rel_turn,
-            event_id_inclusive: self
-                .events
-                .values()
-                .rev()
-                .find(|event| event.accepted_turn == rel_turn)
-                .map(|event| event.event_id.clone()),
-        })
+        self.records_at(&self.cut_through_turn(rel_turn))
     }
 
     pub fn record_at(

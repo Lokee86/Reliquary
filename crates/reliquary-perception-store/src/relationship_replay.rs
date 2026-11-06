@@ -57,6 +57,8 @@ impl PerceptionStore {
                     .insert(value.mutation_id.clone(), (value.id, value.revision));
                 self.relationship_history
                     .insert((value.id, value.revision), value.clone());
+                self.relationship_versions
+                    .insert((value.id, value.revision), perception_version);
                 self.relationships.insert(value.id, value.clone());
                 self.relationship_version = value.relationship_version;
                 self.version = perception_version;
@@ -83,6 +85,8 @@ impl PerceptionStore {
                     ));
                 }
                 self.relationships.remove(&value.id);
+                self.relationship_tombstone_versions
+                    .insert(value.id, perception_version);
                 self.relationship_tombstones.insert(value.id, value);
                 self.relationship_version = value.relationship_version;
                 self.version = perception_version;

@@ -169,6 +169,26 @@ pub struct AcceptedTurnSource {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HistoricalArchiveTurn {
+    pub node: Node,
+    pub content: Option<String>,
+    pub attachments: Vec<SourceAttachment>,
+    pub activity_position: Option<u64>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ArchiveHistorySnapshot {
+    pub archive_version: u64,
+    pub activity_cut: u64,
+    pub turns: Vec<HistoricalArchiveTurn>,
+    pub branches: Vec<Branch>,
+    pub episodes: Vec<Episode>,
+    pub import_receipts: Vec<ImportReceipt>,
+    pub fragment_definitions: Vec<crate::FragmentDefinition>,
+    pub conversation_tombstones: Vec<ConversationTombstone>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolvedTurn {
     pub node_id: String,
     pub role: String,

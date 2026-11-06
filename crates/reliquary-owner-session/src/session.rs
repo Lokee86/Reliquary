@@ -43,6 +43,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use self::fresh_history_rewrite::owner_history_generation_from_container;
+
 #[derive(Debug)]
 pub enum OwnerSessionError {
     WrongFileKind {
@@ -192,6 +194,7 @@ pub struct RelSession {
     write_poisoned: bool,
     container_identity: ContainerIdentity,
     container_path: PathBuf,
+    history_generation: [u8; 32],
     container_file_identity: (u64, u64),
     writer_lease_proof: Option<WriterLeaseProof>,
     #[cfg(test)]
@@ -284,6 +287,7 @@ pub struct NativeImportFreshnessInput {
 pub struct PhySession {
     owner_id: [u8; 16],
     common: CommonState,
+    history_generation: [u8; 32],
 }
 
 /// Narrow PHY writer for user-owned Memories routed from an authorized REL.
@@ -557,6 +561,8 @@ impl PhySession {
         Ok(Self {
             owner_id: container.owner_id(),
             common,
+            history_generation: owner_history_generation_from_container(container)
+                .map_err(OwnerSessionError::Record)?,
         })
     }
 
@@ -589,6 +595,7 @@ mod external_memory;
 mod external_reference;
 mod fresh_history_rewrite;
 mod freshness_use;
+mod historical_proof;
 mod maintenance_prune;
 mod relationship_prune;
 mod semantic_reconciliation;
@@ -597,6 +604,9 @@ pub use fresh_history_rewrite::{
     FreshHistoryArchive, FreshHistoryFreshness, FreshHistoryIdentity, FreshHistoryLineage,
     FreshHistoryRequest, FreshHistoryRewriteReport, fresh_history_lineage,
     owner_history_generation, rewrite_memory_history_copy,
+};
+pub use historical_proof::{
+    HistoricalOwnerCut, HistoricalOwnerProof, HistoricalProofError, RelHistoricalCut,
 };
 pub use relationship_prune::{
     RelationshipPruneReport, prune_terminal_relationship_descriptions_copy,

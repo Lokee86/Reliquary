@@ -968,6 +968,12 @@ fn count_memories(owner: &impl MemoryPages) -> Result<usize, String> {
 /// Read and authenticate the single rewrite lineage attached to an owner.
 pub fn fresh_history_lineage(path: &Path) -> Result<Option<FreshHistoryLineage>, String> {
     let container = Container::open_read_only(path).map_err(|error| error.to_string())?;
+    fresh_history_lineage_from_container(&container)
+}
+
+fn fresh_history_lineage_from_container(
+    container: &Container,
+) -> Result<Option<FreshHistoryLineage>, String> {
     let mut found = None;
     for frame in container.read_frames().map_err(|error| error.to_string())? {
         if !frame.payload.starts_with(LINEAGE_MAGIC) {
@@ -1004,11 +1010,18 @@ pub fn fresh_history_lineage(path: &Path) -> Result<Option<FreshHistoryLineage>,
 /// Owners without rewrite lineage share a stable genesis derived from owner
 /// identity and kind; a rewrite always records and advances that generation.
 pub fn owner_history_generation(path: &Path) -> Result<[u8; 32], String> {
-    if let Some(lineage) = fresh_history_lineage(path)? {
+    let container = Container::open_read_only(path).map_err(|error| error.to_string())?;
+    owner_history_generation_from_container(&container)
+}
+
+pub(super) fn owner_history_generation_from_container(
+    container: &Container,
+) -> Result<[u8; 32], String> {
+    if let Some(lineage) = fresh_history_lineage_from_container(container)? {
         return Ok(lineage.history_generation);
     }
-    let container = Container::open_read_only(path).map_err(|error| error.to_string())?;
     let identity = container.identity();
+    let owner_id = container.owner_id();
     let kind = match identity.file_kind {
         FileKind::Reliquary => 1u8,
         FileKind::Phylactery => 2u8,
@@ -1022,7 +1035,7 @@ pub fn owner_history_generation(path: &Path) -> Result<[u8; 32], String> {
     Ok(Sha256::digest(
         [
             b"reliquary-history-genesis-v1\0".as_slice(),
-            container.owner_id().as_slice(),
+            owner_id.as_slice(),
             &[kind, scope],
         ]
         .concat(),

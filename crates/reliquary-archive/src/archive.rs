@@ -3,6 +3,7 @@
 //! This crate owns accepted turn, branch, and Episode semantics. Container owns
 //! framing and bytes; Archive does not depend on the application or other owners.
 
+mod history;
 #[cfg(test)]
 #[path = "archive_tests.rs"]
 mod tests;
@@ -39,9 +40,13 @@ pub struct Archive {
     source_attachments: HashMap<(String, String), Vec<SourceAttachment>>,
     file_content: HashMap<ContentId, Vec<u8>>,
     branches: BTreeMap<(String, String), Branch>,
+    branch_history: Vec<(u64, Branch)>,
     episodes: BTreeMap<EpisodeId, Episode>,
+    episode_versions: BTreeMap<EpisodeId, u64>,
     import_receipts: BTreeMap<[u8; 32], ImportReceipt>,
+    import_receipt_versions: BTreeMap<[u8; 32], u64>,
     fragment_definitions: BTreeMap<crate::FragmentId, crate::FragmentDefinition>,
+    fragment_versions: BTreeMap<crate::FragmentId, u64>,
     conversation_tombstones: BTreeMap<String, crate::ConversationTombstone>,
     archive_version: u64,
 }
@@ -61,9 +66,13 @@ impl Archive {
             source_attachments: HashMap::new(),
             file_content: HashMap::new(),
             branches: BTreeMap::new(),
+            branch_history: Vec::new(),
             episodes: BTreeMap::new(),
+            episode_versions: BTreeMap::new(),
             import_receipts: BTreeMap::new(),
+            import_receipt_versions: BTreeMap::new(),
             fragment_definitions: BTreeMap::new(),
+            fragment_versions: BTreeMap::new(),
             conversation_tombstones: BTreeMap::new(),
             archive_version: 0,
         }
@@ -253,6 +262,7 @@ impl Archive {
         let encoded = encode_branch(&branch)?;
         container.append(&encoded)?;
         container.sync()?;
+        self.branch_history.push((archive_version, branch.clone()));
         self.branches
             .insert((branch.conversation_id.clone(), branch.id.clone()), branch);
         self.archive_version = archive_version;
@@ -307,6 +317,7 @@ impl Archive {
         container.append(&encoded)?;
         container.sync()?;
         self.episodes.insert(episode.id, episode.clone());
+        self.episode_versions.insert(episode.id, archive_version);
         self.archive_version = archive_version;
         Ok(episode.id)
     }
@@ -344,6 +355,8 @@ impl Archive {
         container.sync()?;
         self.import_receipts
             .insert(receipt.import_key, receipt.clone());
+        self.import_receipt_versions
+            .insert(receipt.import_key, next_version);
         self.archive_version = next_version;
         Ok(receipt)
     }
@@ -436,6 +449,8 @@ impl Archive {
         for definition in &new_definitions {
             self.fragment_definitions
                 .insert(definition.fragment.id, definition.clone());
+            self.fragment_versions
+                .insert(definition.fragment.id, next_version);
         }
         self.archive_version = next_version;
         Ok(output)
@@ -834,6 +849,7 @@ impl Archive {
                     }
                 }
                 let archive_version = self.next_archive_version()?;
+                self.branch_history.push((archive_version, branch.clone()));
                 self.branches.insert(key, branch);
                 self.archive_version = archive_version;
             }
@@ -871,6 +887,7 @@ impl Archive {
                     }
                 } else {
                     let archive_version = self.next_archive_version()?;
+                    self.episode_versions.insert(episode.id, archive_version);
                     self.episodes.insert(episode.id, episode);
                     self.archive_version = archive_version;
                 }
@@ -893,6 +910,8 @@ impl Archive {
                     };
                 }
                 let archive_version = self.next_archive_version()?;
+                self.import_receipt_versions
+                    .insert(receipt.import_key, archive_version);
                 self.import_receipts.insert(receipt.import_key, receipt);
                 self.archive_version = archive_version;
             }
@@ -940,6 +959,8 @@ impl Archive {
                 }
                 let archive_version = self.next_archive_version()?;
                 for definition in definitions {
+                    self.fragment_versions
+                        .insert(definition.fragment.id, archive_version);
                     self.fragment_definitions
                         .insert(definition.fragment.id, definition);
                 }

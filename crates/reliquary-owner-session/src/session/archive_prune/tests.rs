@@ -63,6 +63,11 @@ fn terminal_archive_prune_retains_structure_clock_and_proof() {
     let mut writer = RelWriter::open_path(&source.0, grant.clone(), [], []).unwrap();
     assert!(writer.tombstone_conversation("terminal").unwrap());
     let source_version = writer.session.archive.archive_version();
+    let source_cut = writer.read_session().current_historical_cut();
+    let source_proof = writer
+        .read_session()
+        .historical_proof(owner, &source_cut)
+        .unwrap();
     drop(writer);
     let plan = VerifiedOwnerCopyPlan::prepare(&source.0).unwrap();
     let before = fs::read(&source.0).unwrap();
@@ -86,6 +91,14 @@ fn terminal_archive_prune_retains_structure_clock_and_proof() {
             .retention_manifest(&report.manifest_digest)
             .is_some()
     );
+    let pruned_proof = reopened.historical_proof(owner, &source_cut).unwrap();
+    assert_eq!(
+        source_proof.history_generation,
+        pruned_proof.history_generation
+    );
+    assert_eq!(source_proof.retained_records, pruned_proof.retained_records);
+    assert_ne!(source_proof.digest, pruned_proof.digest);
+    assert!(pruned_proof.unavailable_payloads > source_proof.unavailable_payloads);
 }
 #[test]
 fn terminal_archive_prune_preserves_episode_and_attachment_history() {

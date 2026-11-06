@@ -209,6 +209,55 @@ fn births_admissions_uses_and_settled_cuts_survive_reopen() {
 }
 
 #[test]
+fn accepted_use_cut_exposes_only_the_complete_group_boundary() {
+    let temp = TempDir::new();
+    let path = temp.0.join("grouped-cut.rel");
+    let owner = [0x27; 16];
+    let first = FreshnessMemoryId([1; 32]);
+    let second = FreshnessMemoryId([2; 32]);
+    let mut container = Container::create(
+        &path,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    let mut store = FreshnessStore::new(Some(owner));
+    store.initialize(&mut container).unwrap();
+    store.create_birth(&mut container, first, 1, true).unwrap();
+    store.create_birth(&mut container, second, 1, true).unwrap();
+    store
+        .accept_use(
+            &mut container,
+            "grouped".into(),
+            2,
+            vec![first, second],
+            FreshnessEventProof {
+                graph_version: 1,
+                community_generation: None,
+                community_graph_version: None,
+            },
+        )
+        .unwrap();
+
+    let mut ids = store
+        .accepted_events()
+        .into_iter()
+        .filter(|event| event.accepted_turn == 2)
+        .map(|event| event.event_id)
+        .collect::<Vec<_>>();
+    ids.sort();
+    assert_eq!(ids.len(), 2);
+    assert!(!store.is_authoritative_cut(&FreshnessEventCut {
+        rel_turn: 2,
+        event_id_inclusive: Some(ids[0].clone()),
+    }));
+    let complete = store.cut_through_turn(2);
+    assert_eq!(complete.event_id_inclusive.as_ref(), ids.last());
+    assert!(store.is_authoritative_cut(&complete));
+    assert_eq!(store.records_at(&complete).unwrap().len(), 2);
+}
+
+#[test]
 fn owner_mismatch_and_forged_event_provenance_are_rejected() {
     let temp = TempDir::new();
     let path = temp.0.join("owner-bound.rel");

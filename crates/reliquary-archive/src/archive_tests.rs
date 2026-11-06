@@ -63,6 +63,101 @@ fn file_identity_matches_f03_reference_vector() {
 }
 
 #[test]
+fn historical_projection_preserves_branch_cuts_tombstones_and_pruned_unavailability() {
+    let temp = TestDirectory::new();
+    let path = temp.file("archive-history.rel");
+    let mut container = Container::create(
+        &path,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [0xB4; 16],
+    )
+    .unwrap();
+    let mut archive = Archive::empty();
+    archive
+        .accept_turn(&mut container, turn("user1", None, 1, "first"))
+        .unwrap();
+    archive
+        .put_branch(
+            &mut container,
+            Branch {
+                id: "main".into(),
+                conversation_id: "conversation-1".into(),
+                leaf_node_id: "user1".into(),
+                canonical: true,
+            },
+        )
+        .unwrap();
+    archive
+        .accept_turn(
+            &mut container,
+            turn("assistant1", Some("user1"), 2, "second"),
+        )
+        .unwrap();
+    archive
+        .put_branch(
+            &mut container,
+            Branch {
+                id: "main".into(),
+                conversation_id: "conversation-1".into(),
+                leaf_node_id: "assistant1".into(),
+                canonical: true,
+            },
+        )
+        .unwrap();
+    archive
+        .tombstone_conversation(&mut container, "conversation-1")
+        .unwrap();
+
+    assert_eq!(archive.history_at(1).unwrap().turns.len(), 1);
+    assert!(archive.history_at(1).unwrap().branches.is_empty());
+    assert_eq!(
+        archive.history_at(2).unwrap().branches[0].leaf_node_id,
+        "user1"
+    );
+    assert_eq!(archive.history_at(3).unwrap().turns.len(), 2);
+    assert_eq!(
+        archive.history_at(4).unwrap().branches[0].leaf_node_id,
+        "assistant1"
+    );
+    assert!(
+        archive
+            .history_at(4)
+            .unwrap()
+            .conversation_tombstones
+            .is_empty()
+    );
+    assert_eq!(
+        archive.history_at(5).unwrap().conversation_tombstones.len(),
+        1
+    );
+    assert!(archive.history_at(6).is_err());
+
+    let frames = container.read_frames().unwrap();
+    drop(container);
+    let copy_path = temp.file("archive-history-pruned.rel");
+    let mut copy = Container::create(
+        &copy_path,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [0xB4; 16],
+    )
+    .unwrap();
+    for frame in frames {
+        let transformed = crate::prune_turn_frame(&frame.payload, [0x44; 32])
+            .unwrap()
+            .filter(|(_, node)| node.id == "user1")
+            .map_or(frame.payload, |(bytes, _)| bytes);
+        copy.append(&transformed).unwrap();
+    }
+    copy.sync().unwrap();
+    drop(copy);
+    let container = Container::open_read_only(&copy_path).unwrap();
+    let reopened = Archive::open(&container).unwrap();
+    let early = reopened.history_at(1).unwrap();
+    assert_eq!(early.turns.len(), 1);
+    assert!(early.turns[0].content.is_none());
+}
+
+#[test]
 fn archive_version_tracks_new_turn_branch_and_episode_across_reopen() {
     let temp = TestDirectory::new();
     let mut container = Container::create(
@@ -261,6 +356,11 @@ fn import_receipt_binds_source_mapping_to_archive_nodes_branches_and_files() {
         .put_import_receipt(&mut container, receipt.clone())
         .unwrap();
     assert_ne!(accepted.receipt_digest, [0; 32]);
+    assert!(archive.history_at(2).unwrap().import_receipts.is_empty());
+    let imported_cut = archive.history_at(3).unwrap();
+    assert_eq!(imported_cut.turns[0].node.id, "native-node");
+    assert_eq!(imported_cut.branches[0].leaf_node_id, "native-node");
+    assert_eq!(imported_cut.import_receipts, vec![accepted.clone()]);
     assert_eq!(
         archive
             .put_import_receipt(&mut container, receipt.clone())
@@ -284,6 +384,7 @@ fn import_receipt_binds_source_mapping_to_archive_nodes_branches_and_files() {
         reopened.import_receipt(&accepted.import_key),
         Some(&accepted)
     );
+    assert_eq!(reopened.history_at(3).unwrap(), imported_cut);
 }
 
 #[test]

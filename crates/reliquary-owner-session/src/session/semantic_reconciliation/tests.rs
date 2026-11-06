@@ -159,6 +159,9 @@ fn compares_all_four_relations_and_replays_independent_semantics() {
     assert_eq!(merged.accepted_turn_sources().len(), 2);
     assert_eq!(merged.memory_ids_page(None, 16).unwrap().1.len(), 3);
     assert_eq!(merged.common.graph.active_relations().count(), 2);
+    let merged_cut = merged.current_historical_cut();
+    let merged_proof = merged.historical_proof(owner, &merged_cut).unwrap();
+    drop(merged);
 
     let repeated = Temp::new("repeated");
     let repeated_report =
@@ -167,6 +170,13 @@ fn compares_all_four_relations_and_replays_independent_semantics() {
     assert_eq!(repeated_report.replayed_graph_mutations, 0);
     assert_eq!(repeated_report.replayed_freshness_records, 0);
     assert_eq!(fs::read(&repeated.0).unwrap(), fs::read(&output.0).unwrap());
+    let repeated_session = RelSession::open_path(&repeated.0, &graph, [], []).unwrap();
+    assert_eq!(
+        repeated_session
+            .historical_proof(owner, &merged_cut)
+            .unwrap(),
+        merged_proof
+    );
 }
 
 #[test]

@@ -6,6 +6,8 @@
 use reliquary_container::{Container, ContainerError, ContainerIdentity};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
+
+mod history;
 use std::fmt;
 
 type Id = [u8; 32];
@@ -580,6 +582,7 @@ pub struct CommunityStore {
     owner: [u8; 16],
     identity: ContainerIdentity,
     current: Option<CommunitySnapshot>,
+    history: Vec<CommunitySnapshot>,
 }
 impl CommunityStore {
     pub fn open(container: &Container, graph: &GraphStore) -> Result<Self, GraphError> {
@@ -588,6 +591,7 @@ impl CommunityStore {
             owner: container.owner_id(),
             identity: container.identity(),
             current: None,
+            history: Vec::new(),
         };
         for frame in container.read_frames()? {
             if let Some((owner, snapshot)) = decode_community(&frame.payload)? {
@@ -610,6 +614,7 @@ impl CommunityStore {
                         "Community graph version regressed",
                     ));
                 }
+                store.history.push(snapshot.clone());
                 store.current = Some(snapshot);
             }
         }
@@ -617,6 +622,12 @@ impl CommunityStore {
     }
     pub fn current(&self) -> Option<&CommunitySnapshot> {
         self.current.as_ref()
+    }
+    pub fn at_graph_version(&self, graph_version: u64) -> Option<&CommunitySnapshot> {
+        self.history
+            .iter()
+            .rev()
+            .find(|snapshot| snapshot.graph_version <= graph_version)
     }
     pub fn publish(
         &mut self,
@@ -646,6 +657,7 @@ impl CommunityStore {
         let bytes = encode_community(self.owner, &snapshot)?;
         container.append(&bytes)?;
         container.sync()?;
+        self.history.push(snapshot.clone());
         self.current = Some(snapshot);
         Ok(())
     }
@@ -1008,6 +1020,34 @@ mod tests {
         assert_eq!(g.graph_version(), 2);
         assert_eq!(g.outgoing(NodeRef::Memory(m1)).len(), 2);
         assert!(g.outgoing(NodeRef::Entity(e)).is_empty());
+    }
+
+    #[test]
+    fn graph_history_projects_active_state_at_each_version() {
+        let path = Temp::new();
+        let left = [0x21; 32];
+        let right = [0x22; 32];
+        let mut container = container(&path.0, 0x23);
+        let admission = GraphAdmission::for_changes(container.owner_id(), [left, right], []);
+        let mut graph = GraphStore::open(&container, &admission).unwrap();
+        let change = |active| RelationChange {
+            source: NodeRef::Memory(left),
+            target: NodeRef::Memory(right),
+            kind: RelationKind::Topical,
+            active,
+            origin: RelationOrigin::User,
+        };
+        graph
+            .put(&mut container, &admission, &[change(true)])
+            .unwrap();
+        graph
+            .put(&mut container, &admission, &[change(false)])
+            .unwrap();
+
+        assert!(graph.relations_at(0).unwrap().is_empty());
+        assert_eq!(graph.relations_at(1).unwrap().len(), 1);
+        assert!(graph.relations_at(2).unwrap().is_empty());
+        assert!(graph.relations_at(3).is_err());
     }
 
     #[test]

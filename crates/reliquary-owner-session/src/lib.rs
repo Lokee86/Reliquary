@@ -35,6 +35,9 @@ pub use session::{
     owner_history_generation, rewrite_memory_history_copy,
 };
 pub use session::{
+    HistoricalOwnerCut, HistoricalOwnerProof, HistoricalProofError, RelHistoricalCut,
+};
+pub use session::{
     RelHistoryComparison, RelHistoryRelation, RelReconciliationError, RelReconciliationReport,
     compare_rel_histories, reconcile_divergent_rel_copy,
 };

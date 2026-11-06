@@ -32,6 +32,7 @@ pub fn principal_entity_id(principal_id: &str) -> EntityId {
 )]
 pub struct EntityId(pub [u8; 32]);
 
+mod history;
 mod relationship_codec;
 mod relationship_model;
 mod relationship_replay;
@@ -188,6 +189,18 @@ pub struct MemoryEntityResolution {
     pub revision: u32,
     pub updated_at_ns: i64,
     pub status: MemoryEntityResolutionStatus,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PerceptionHistorySnapshot {
+    pub perception_version: u64,
+    pub entities: Vec<Entity>,
+    pub entity_tombstones: Vec<EntityTombstone>,
+    pub entity_description_prunes: Vec<EntityDescriptionPrune>,
+    pub mentions: Vec<MemoryEntityResolution>,
+    pub relationships: Vec<Relationship>,
+    pub relationship_tombstones: Vec<RelationshipTombstone>,
+    pub relationship_description_prunes: Vec<RelationshipDescriptionPrune>,
 }
 
 #[derive(Debug)]
@@ -472,17 +485,21 @@ pub struct PerceptionStore {
     version: u64,
     entities: BTreeMap<EntityId, Entity>,
     entity_history: BTreeMap<(EntityId, u64), Entity>,
+    entity_versions: BTreeMap<(EntityId, u64), u64>,
     entity_tombstones: BTreeMap<EntityId, EntityTombstone>,
     pruned_descriptions: BTreeMap<(EntityId, u64), EntityDescriptionPrune>,
     relationships: BTreeMap<RelationshipId, Relationship>,
     relationship_history: BTreeMap<(RelationshipId, u64), Relationship>,
+    relationship_versions: BTreeMap<(RelationshipId, u64), u64>,
     relationship_mutations: BTreeMap<String, (RelationshipId, u64)>,
     relationship_tombstones: BTreeMap<RelationshipId, RelationshipTombstone>,
+    relationship_tombstone_versions: BTreeMap<RelationshipId, u64>,
     pruned_relationship_descriptions: BTreeMap<(RelationshipId, u64), RelationshipDescriptionPrune>,
     relationship_version: u64,
     mutations: BTreeMap<String, (EntityId, u64)>,
     mentions: BTreeMap<MemoryEntityMentionKey, MemoryEntityResolution>,
     mention_history: BTreeMap<(MemoryEntityMentionKey, u32), MemoryEntityResolution>,
+    mention_versions: BTreeMap<(MemoryEntityMentionKey, u32), u64>,
 }
 
 impl PerceptionStore {
@@ -493,17 +510,21 @@ impl PerceptionStore {
             version: 0,
             entities: BTreeMap::new(),
             entity_history: BTreeMap::new(),
+            entity_versions: BTreeMap::new(),
             entity_tombstones: BTreeMap::new(),
             pruned_descriptions: BTreeMap::new(),
             relationships: BTreeMap::new(),
             relationship_history: BTreeMap::new(),
+            relationship_versions: BTreeMap::new(),
             relationship_mutations: BTreeMap::new(),
             relationship_tombstones: BTreeMap::new(),
+            relationship_tombstone_versions: BTreeMap::new(),
             pruned_relationship_descriptions: BTreeMap::new(),
             relationship_version: 0,
             mutations: BTreeMap::new(),
             mentions: BTreeMap::new(),
             mention_history: BTreeMap::new(),
+            mention_versions: BTreeMap::new(),
         };
         for frame in container.read_frames()? {
             if let Some(record) = relationship_codec::RelationshipRecord::decode(&frame.payload)? {
@@ -881,6 +902,8 @@ impl PerceptionStore {
                     .insert(value.mutation_id.clone(), (value.id, value.revision));
                 self.entity_history
                     .insert((value.id, value.revision), value.clone());
+                self.entity_versions
+                    .insert((value.id, value.revision), expected);
                 self.entities.insert(value.id, value.clone());
             }
             Record::Mention { value, .. } => {
@@ -896,6 +919,8 @@ impl PerceptionStore {
                 validate_status(&value.status, &self.entities)?;
                 self.mention_history
                     .insert((value.key, value.revision), value.clone());
+                self.mention_versions
+                    .insert((value.key, value.revision), expected);
                 self.mentions.insert(value.key, value.clone());
             }
         }
@@ -1259,6 +1284,36 @@ mod tests {
             created_at_ns: 10,
             updated_at_ns: 10,
         }
+    }
+
+    #[test]
+    fn perception_history_projects_revisions_and_tombstone_cuts() {
+        let path = TempFile::new();
+        let mut container = create(&path.0, 0x41);
+        let mut store = PerceptionStore::open(&container).unwrap();
+        let first = store
+            .publish_entity(&mut container, draft("history-1", "First"))
+            .unwrap();
+        let mut update = draft("history-2", "Second");
+        update.created_at_ns = first.created_at_ns;
+        update.updated_at_ns = first.updated_at_ns + 1;
+        store
+            .update_entity(&mut container, first.id, 1, update)
+            .unwrap();
+        store.tombstone_entity(&mut container, first.id, 2).unwrap();
+
+        assert_eq!(
+            store.history_at(1).unwrap().entities[0].canonical_name,
+            "First"
+        );
+        assert_eq!(
+            store.history_at(2).unwrap().entities[0].canonical_name,
+            "Second"
+        );
+        let deleted = store.history_at(3).unwrap();
+        assert!(deleted.entities.is_empty());
+        assert_eq!(deleted.entity_tombstones.len(), 1);
+        assert!(store.history_at(4).is_err());
     }
     fn key() -> MemoryEntityMentionKey {
         MemoryEntityMentionKey {

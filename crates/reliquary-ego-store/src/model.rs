@@ -50,4 +50,15 @@ pub enum EgoLifecycleState {
     Tombstoned { ego_version: Option<u64> },
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EgoHistorySnapshot {
+    pub ego_version: u64,
+    pub identities: Vec<EgoIdentity>,
+    pub tombstoned_identities: Vec<EgoIdentityId>,
+    pub personality: Option<EgoPersonality>,
+    pub synthesis: Option<EgoWebSynthesis>,
+    pub anchors: Vec<EgoAnchor>,
+    pub tombstoned_anchors: Vec<EgoAnchorId>,
+}
+
 pub const MAX_EGO_ANCHOR_CHARS: usize = 2_500;

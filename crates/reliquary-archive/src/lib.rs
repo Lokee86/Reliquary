@@ -21,11 +21,12 @@ pub use fragment::{
     Fragment, FragmentConfig, FragmentDefinition, FragmentId, fragment_id, path_fragment_windows,
 };
 pub use model::{
-    AcceptedTurnSource, ArchiveError, AttachmentInput, Branch, ContentId, ConversationTombstone,
-    Episode, EpisodeBoundary, EpisodeId, EpisodeOrigin, ImportReceipt, ImportedArtifact,
-    ImportedBranch, ImportedConversation, ImportedMessage, Node, ProjectAttachmentInput,
-    ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef, ResolvedTurn,
-    SourceAttachment, TurnAcceptance, TurnInput,
+    AcceptedTurnSource, ArchiveError, ArchiveHistorySnapshot, AttachmentInput, Branch, ContentId,
+    ConversationTombstone, Episode, EpisodeBoundary, EpisodeId, EpisodeOrigin,
+    HistoricalArchiveTurn, ImportReceipt, ImportedArtifact, ImportedBranch, ImportedConversation,
+    ImportedMessage, Node, ProjectAttachmentInput, ProjectFileRef, ProjectRepositoryKind,
+    ProjectRepositoryRef, ProjectRevisionRef, ResolvedTurn, SourceAttachment, TurnAcceptance,
+    TurnInput,
 };
 
 pub use codec::{archive_turn_prune_marker, prune_turn_frame};

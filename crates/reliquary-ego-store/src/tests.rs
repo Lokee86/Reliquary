@@ -144,6 +144,28 @@ fn phy_private_state_and_revision_history_survive_reopen() {
 }
 
 #[test]
+fn ego_history_projects_pre_update_and_post_tombstone_cuts() {
+    let path = TempFile::new();
+    let id = identity(0x31);
+    let mut container = create(FileKind::Phylactery, path.path());
+    let mut store = EgoStore::open(&container).unwrap();
+    store
+        .create_identity(&mut container, id, "private".into(), "first".into())
+        .unwrap();
+    store
+        .update_identity(&mut container, id, 1, "private".into(), "second".into())
+        .unwrap();
+    store.delete_identity(&mut container, id, 2).unwrap();
+
+    assert_eq!(store.history_at(1).unwrap().identities[0].text, "first");
+    assert_eq!(store.history_at(2).unwrap().identities[0].text, "second");
+    let deleted = store.history_at(3).unwrap();
+    assert!(deleted.identities.is_empty());
+    assert_eq!(deleted.tombstoned_identities, vec![id]);
+    assert!(store.history_at(4).is_err());
+}
+
+#[test]
 fn rel_rejects_private_identity_and_personality_writes() {
     let path = TempFile::new();
     let mut container = create(FileKind::Reliquary, path.path());
