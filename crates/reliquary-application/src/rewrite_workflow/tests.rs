@@ -504,7 +504,7 @@ fn storage_reclamation_relocates_rel_generation_receipts_and_reopens_history() {
 }
 
 #[test]
-fn storage_reclamation_detects_unactivated_generation_and_leaves_no_output() {
+fn storage_reclamation_refuses_malformed_unreceipted_generation_without_output() {
     use reliquary_owner_session::{VerifiedOwnerCopyPlan, reclaim_storage_copy};
 
     let (source, session, _, _) = rel_fixture();
@@ -520,7 +520,7 @@ fn storage_reclamation_detects_unactivated_generation_and_leaves_no_output() {
     let destination = Fixture::new();
     let plan = VerifiedOwnerCopyPlan::prepare(&source.0).unwrap();
     let error = reclaim_storage_copy(&plan, &source.0, &destination.0, &graph).unwrap_err();
-    assert!(error.contains("unactivated vector generation"));
+    assert!(error.contains("invalid unactivated generation identity"));
     assert!(!destination.0.exists());
     assert_eq!(fs::read(&source.0).unwrap(), before);
 }

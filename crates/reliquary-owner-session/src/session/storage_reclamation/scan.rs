@@ -7,10 +7,18 @@ use std::io::Read;
 pub(super) fn open_state(
     source: &Container,
     admission: &GraphAdmission,
-) -> Result<(CommonState, Vec<ArchiveVectorInfo>, BTreeSet<[u8; 32]>), String> {
+) -> Result<
+    (
+        CommonState,
+        Vec<ArchiveVectorInfo>,
+        BTreeSet<[u8; 32]>,
+        BTreeSet<[u8; 32]>,
+    ),
+    String,
+> {
     match source.identity().file_kind {
         FileKind::Phylactery => PhySession::open(source, admission, [])
-            .map(|session| (session.common, Vec::new(), BTreeSet::new())),
+            .map(|session| (session.common, Vec::new(), BTreeSet::new(), BTreeSet::new())),
         FileKind::Reliquary => RelSession::open(source, admission, [], []).map(|session| {
             let files = session
                 .archive
@@ -23,7 +31,18 @@ pub(super) fn open_state(
                 })
                 .map(|file| file.content_id.0)
                 .collect();
-            (session.common, session.archive_vectors.infos(), files)
+            let retained_archive_vectors = session
+                .generations
+                .generations()
+                .iter()
+                .map(|generation| generation.archive_vector_id.0)
+                .collect();
+            (
+                session.common,
+                session.archive_vectors.infos(),
+                retained_archive_vectors,
+                files,
+            )
         }),
     }
     .map_err(|e| e.to_string())
@@ -33,6 +52,7 @@ pub(super) fn removable_backing(
     bytes: &[u8],
     memories: &MemoryStore,
     packed: &BTreeSet<[u8; 32]>,
+    archive_vectors: &BTreeSet<[u8; 32]>,
     archive_files: &BTreeSet<[u8; 32]>,
 ) -> Result<bool, String> {
     let magic = bytes.get(..8).ok_or("short frame in reclamation source")?;
@@ -48,6 +68,12 @@ pub(super) fn removable_backing(
             } else {
                 !packed.contains(&id)
             })
+        }
+        b"RELAVEC1" => {
+            let (id, _) = reliquary_vector_store::archive_vector_object_packed_id(bytes)
+                .map_err(|e| e.to_string())?
+                .ok_or("missing Archive-vector mapping identity")?;
+            Ok(!archive_vectors.contains(&id.0))
         }
         b"RELFILE1" => {
             let id: [u8; 32] = bytes
@@ -66,8 +92,8 @@ pub(super) fn removable_backing(
             }
             Ok(false)
         }
-        b"RELAVEC1" | b"RELMVEC1" | b"RELCPRO1" | b"RELCPRT1" | b"RELCPRP1" | b"RELRECL1"
-        | b"RELFRS02" | b"RELVGEN1" | b"RELVGRC1" => Ok(false),
+        b"RELMVEC1" | b"RELCPRO1" | b"RELCPRT1" | b"RELCPRP1" | b"RELRECL1" | b"RELFRS02"
+        | b"RELVGEN1" | b"RELVGRC1" | b"RELXIDX2" => Ok(false),
         _ if pointer_free_frame(magic) => Ok(false),
         _ => Err(format!(
             "unsupported reclamation frame family {}",
@@ -76,22 +102,48 @@ pub(super) fn removable_backing(
     }
 }
 
-pub(super) fn reject_unactivated_generations(source: &Container) -> Result<(), String> {
-    let mut generations = BTreeSet::new();
+/// Only a structurally valid, wholly unreceipted generation is discardable.
+/// A dangling receipt, incorrect identity or ambiguous physical target stops.
+pub(super) fn unactivated_generation_offsets(source: &Container) -> Result<BTreeSet<u64>, String> {
+    use reliquary_vector_store::generation::{decode_generation, vector_generation_id};
+    let mut generations = BTreeMap::new();
     let mut activated = BTreeSet::new();
     for_each_frame(source, |object, bytes| {
         if bytes.starts_with(b"RELVGEN1") {
-            generations.insert(object.offset);
+            if source.identity().file_kind != FileKind::Reliquary {
+                return Err("generation frame is not valid in PHY".into());
+            }
+            let generation = decode_generation(bytes)
+                .map_err(|e| e.to_string())?
+                .ok_or("missing generation identity")?;
+            let expected = vector_generation_id(
+                generation.compatibility_profile_id,
+                generation.archive_vector_id,
+                generation.source_archive_version,
+            );
+            if expected != generation.id {
+                return Err("invalid unactivated generation identity".into());
+            }
+            if generations.insert(object.offset, object).is_some() {
+                return Err("duplicate generation frame offset".into());
+            }
         }
         if let Some(target) = generation_receipt_target(bytes).map_err(|e| e.to_string())? {
+            let actual = generations
+                .get(&target.offset)
+                .ok_or("generation receipt has no physical target")?;
+            if *actual != target {
+                return Err("generation receipt target length mismatch".into());
+            }
             activated.insert(target.offset);
         }
         Ok(())
     })?;
-    if generations.iter().any(|offset| !activated.contains(offset)) {
-        return Err("unactivated vector generation requires recovery before reclamation".into());
-    }
-    Ok(())
+    Ok(generations
+        .keys()
+        .filter(|offset| !activated.contains(offset))
+        .copied()
+        .collect())
 }
 
 pub(super) fn for_each_frame(

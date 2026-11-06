@@ -6,8 +6,12 @@ use reliquary_vector_store::generation::{generation_receipt_target, relocate_gen
 use sha2::{Digest, Sha256};
 use std::fs;
 
+mod external_index;
+mod sanitize;
 mod scan;
-use scan::{for_each_frame, open_state, reject_unactivated_generations, removable_backing};
+use external_index::scan_indexes;
+use sanitize::write_filtered_without_manifest;
+use scan::{for_each_frame, open_state, removable_backing, unactivated_generation_offsets};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct StorageReclamationReport {
@@ -23,8 +27,8 @@ struct ReclamationFaults {
     reopen: bool,
 }
 
-/// Rebuild a separately admitted copy. Keep all accepted generations and
-/// mappings, including historical bindings under retired profiles.
+/// Rebuild a separately admitted copy. Keep every accepted generation and
+/// its mapping, including historical bindings under retired profiles.
 pub fn reclaim_storage_copy(
     plan: &VerifiedOwnerCopyPlan,
     source_path: &Path,
@@ -49,8 +53,25 @@ fn reclaim_storage_copy_inner(
 ) -> Result<StorageReclamationReport, String> {
     let source = Container::open_read_only(source_path).map_err(|e| e.to_string())?;
     plan.verify_source(&source, source_path)?;
-    reject_unactivated_generations(&source)?;
-    let (common, archive_vectors, archive_files) = open_state(&source, admission)?;
+    let orphan_generations = unactivated_generation_offsets(&source)?;
+    // A valid but unreceipted generation cannot be opened through the normal
+    // owner reader. Inspect its fully admitted semantic state after filtering
+    // only those physically validated, unpublished generation frames.
+    let scrubbed = if orphan_generations.is_empty() {
+        None
+    } else {
+        let temp = StagedCopy::create(destination)?;
+        write_filtered_without_manifest(&source, &temp.path, &orphan_generations)?;
+        Some(temp)
+    };
+    let semantic_copy = if let Some(temp) = &scrubbed {
+        Some(Container::open_read_only(&temp.path).map_err(|e| e.to_string())?)
+    } else {
+        None
+    };
+    let (common, archive_vectors, retained_archive_vectors, archive_files) =
+        open_state(semantic_copy.as_ref().unwrap_or(&source), admission)?;
+    let external = scan_indexes(&source)?;
     let mut referenced_packed = common
         .memory_vectors
         .infos()
@@ -60,12 +81,23 @@ fn reclaim_storage_copy_inner(
     referenced_packed.extend(
         archive_vectors
             .into_iter()
+            .filter(|info| retained_archive_vectors.contains(&info.id.0))
             .map(|info| info.packed_vector_id.0),
     );
+    referenced_packed.extend(external.packed_ids.iter().copied());
     let mut removed = BTreeSet::new();
     let mut gross = 0u64;
     for_each_frame(&source, |object, bytes| {
-        if removable_backing(bytes, &common.memories, &referenced_packed, &archive_files)? {
+        if orphan_generations.contains(&object.offset)
+            || external.discard_offsets.contains(&object.offset)
+            || removable_backing(
+                bytes,
+                &common.memories,
+                &referenced_packed,
+                &retained_archive_vectors,
+                &archive_files,
+            )?
+        {
             removed.insert(object.offset);
             gross += object.length + 8;
         }
@@ -184,6 +216,13 @@ fn write_candidate(
         return Err("reclamation candidate changed retained owner history".into());
     }
     open_state(&copy, admission)?;
+    if source.identity().file_kind == FileKind::Reliquary {
+        let before = ExternalIndexStore::open(source)?;
+        let after = ExternalIndexStore::open(&copy)?;
+        if before.sources != after.sources || before.damaged != after.damaged {
+            return Err("reclamation changed retained external-index state".into());
+        }
+    }
     Ok(())
 }
 
@@ -195,3 +234,9 @@ fn hash_frame(digest: &mut Sha256, bytes: &[u8]) {
 #[cfg(test)]
 #[path = "storage_reclamation/tests.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "storage_reclamation/tests_external.rs"]
+mod tests_external;
+#[cfg(test)]
+#[path = "storage_reclamation/tests_generations.rs"]
+mod tests_generations;

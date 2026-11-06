@@ -200,6 +200,48 @@ fn gm_audit_historical_proof_distinguishes_retained_intermediate_entity_revision
     let _ = std::fs::remove_file(right);
 }
 #[test]
+fn gm_audit_reclamation_handles_native_external_index_discard() {
+    let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".owner-session-test-tmp");
+    std::fs::create_dir_all(&dir).unwrap();
+    let source = dir.join(format!(
+        "gm-audit-external-index-source-{}.rel",
+        std::process::id()
+    ));
+    let output = dir.join(format!(
+        "gm-audit-external-index-output-{}.rel",
+        std::process::id()
+    ));
+    let _cleanup = AuditFixtures(vec![source.clone(), output.clone()]);
+    let _ = std::fs::remove_file(&source);
+    let _ = std::fs::remove_file(&output);
+    let owner = [0xe2; 16];
+    drop(
+        RelWriter::create_path(&source, reliquary_container::ReliquaryScope::Project, owner)
+            .unwrap(),
+    );
+    let mut container = Container::open_writer_as(&source, FileKind::Reliquary).unwrap();
+    let content = vec![0x5a; 512];
+    let mut orphan = b"RELFILE1".to_vec();
+    orphan.extend_from_slice(&Sha256::digest(&content));
+    orphan.extend_from_slice(&(content.len() as u32).to_le_bytes());
+    orphan.extend_from_slice(&content);
+    container.append(&orphan).unwrap();
+    container
+        .append(&crate::records::external_index::compact_index::discard())
+        .unwrap();
+    container.sync().unwrap();
+    drop(container);
+    let before = std::fs::read(&source).unwrap();
+    let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    RelSession::open_path(&source, &admission, [], []).unwrap();
+    let plan = crate::VerifiedOwnerCopyPlan::prepare(&source).unwrap();
+    let report = super::reclaim_storage_copy(&plan, &source, &output, &admission).unwrap();
+    assert_eq!(report.removed_frames, 1);
+    assert_eq!(std::fs::read(&source).unwrap(), before);
+    RelSession::open_path(&output, &admission, [], []).unwrap();
+}
+
+#[test]
 fn gm_audit_reclamation_removes_unactivated_archive_vector_mapping_and_backing() {
     use reliquary_container::ReliquaryScope;
     use reliquary_vector_store::{AcceptedArchiveMapping, ArchiveFragmentId};

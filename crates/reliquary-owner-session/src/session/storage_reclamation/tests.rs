@@ -1,13 +1,40 @@
 use super::*;
-use reliquary_archive::{Archive, AttachmentInput, TurnInput};
+use reliquary_archive::{Archive, AttachmentInput, Branch, TurnInput};
 use reliquary_container::ReliquaryScope;
-use reliquary_vector_store::PackedVectorStore;
+use reliquary_vector_store::{
+    AcceptedArchiveMapping, ArchiveFragmentId, CompatibilityProbeReference, CompatibilityProfile,
+    EmbeddingMode, PackedVectorStore, VectorNormalization,
+};
 use std::{
     path::PathBuf,
     sync::atomic::{AtomicU64, Ordering},
 };
 
 static NEXT: AtomicU64 = AtomicU64::new(1);
+
+fn archive_profile() -> CompatibilityProfile {
+    let mut profile = CompatibilityProfile {
+        id: CompatibilityProfileId([0; 32]),
+        dimensions: 2,
+        normalization: VectorNormalization::L2,
+        probe_suite_version: 1,
+        compatibility_policy_version: 3,
+        references: [
+            EmbeddingMode::Query,
+            EmbeddingMode::Query,
+            EmbeddingMode::Document,
+            EmbeddingMode::Document,
+        ]
+        .into_iter()
+        .map(|mode| CompatibilityProbeReference {
+            mode,
+            vector: vec![1.0, 0.0],
+        })
+        .collect(),
+    };
+    profile.id = reliquary_vector_store::profile::compatibility_profile_id(&profile);
+    profile
+}
 
 struct Temp(PathBuf);
 
@@ -166,4 +193,132 @@ fn phy_reclamation_removes_unmapped_packed_backing_and_reopens() {
     assert!(report.candidate_bytes < report.source_bytes);
     assert_eq!(fs::read(&source.0).unwrap(), before);
     PhySession::open_path(&destination.0, &admission, []).unwrap();
+}
+
+#[test]
+fn unactivated_archive_mapping_and_exclusive_backing_are_reclaimed() {
+    let source = Temp::new("orphan-archive-vector");
+    let destination = Temp::new("orphan-archive-vector-reclaimed");
+    let owner = [0x75; 16];
+    drop(RelWriter::create_path(&source.0, ReliquaryScope::Project, owner).unwrap());
+    let mut container = Container::open_writer_as(&source.0, FileKind::Reliquary).unwrap();
+    let mut packed = PackedVectorStore::open(&container).unwrap();
+    let packed_id = packed
+        .put_f32_rows(&mut container, &[vec![0.5; 128]])
+        .unwrap();
+    let mut mappings = ArchiveVectorStore::open(&container, &packed).unwrap();
+    mappings
+        .put(
+            &mut container,
+            &packed,
+            AcceptedArchiveMapping {
+                packed_vector_id: packed_id,
+                packed_rows: 1,
+                fragment_ids: vec![ArchiveFragmentId([0xf2; 32])],
+                max_fragment_archive_version: 0,
+            },
+        )
+        .unwrap();
+    container.sync().unwrap();
+    drop(container);
+
+    let before = fs::read(&source.0).unwrap();
+    let plan = VerifiedOwnerCopyPlan::prepare(&source.0).unwrap();
+    let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let report = reclaim_storage_copy(&plan, &source.0, &destination.0, &admission).unwrap();
+    assert_eq!(report.removed_frames, 2);
+    assert!(report.candidate_bytes < report.source_bytes);
+    assert_eq!(fs::read(&source.0).unwrap(), before);
+    let reopened = RelSession::open_path(&destination.0, &admission, [], []).unwrap();
+    assert!(reopened.archive_vector_infos().is_empty());
+    assert!(reopened.common.packed_vectors.infos().is_empty());
+}
+
+#[test]
+fn activated_mapping_and_shared_backing_are_retained() {
+    let source = Temp::new("active-and-orphan-archive-vector");
+    let destination = Temp::new("active-and-orphan-archive-vector-reclaimed");
+    let owner = [0x76; 16];
+    let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let mut writer = RelWriter::create_path(&source.0, ReliquaryScope::Project, owner).unwrap();
+    writer
+        .accept_turn_and_advance_branch(
+            TurnInput {
+                id: "turn".into(),
+                conversation_id: "conversation".into(),
+                parent_id: None,
+                role: "user".into(),
+                principal_id: Some("principal".into()),
+                timestamp_ns: 1,
+                content: "retained Archive-vector source".into(),
+                attachments: vec![],
+                project_attachments: vec![],
+            },
+            Branch {
+                id: "main".into(),
+                conversation_id: "conversation".into(),
+                leaf_node_id: "turn".into(),
+                canonical: true,
+            },
+        )
+        .unwrap();
+    let profile = writer
+        .publish_compatibility_profile(archive_profile())
+        .unwrap();
+    let input = writer.archive_vector_input(profile).unwrap();
+    let rows = input
+        .sources()
+        .iter()
+        .map(|source| ArchiveVectorRow {
+            fragment_id: source.fragment_id,
+            max_archive_version: source.max_archive_version,
+            vector: vec![1.0, 0.0],
+        })
+        .collect::<Vec<_>>();
+    let generation = writer
+        .publish_archive_vector_batch(owner, profile, input.source_archive_version(), &rows)
+        .unwrap()
+        .unwrap();
+    let active = writer
+        .session
+        .archive_vectors
+        .get(generation.archive_vector_id)
+        .unwrap();
+    writer
+        .session
+        .archive_vectors
+        .put(
+            &mut writer.container,
+            &writer.session.common.packed_vectors,
+            AcceptedArchiveMapping {
+                packed_vector_id: active.packed_vector_id,
+                packed_rows: 1,
+                fragment_ids: vec![ArchiveFragmentId([0xf3; 32])],
+                max_fragment_archive_version: 0,
+            },
+        )
+        .unwrap();
+    writer.container.sync().unwrap();
+    drop(writer);
+
+    let before = fs::read(&source.0).unwrap();
+    let plan = VerifiedOwnerCopyPlan::prepare(&source.0).unwrap();
+    let report = reclaim_storage_copy(&plan, &source.0, &destination.0, &admission).unwrap();
+    assert_eq!(report.removed_frames, 1);
+    assert_eq!(fs::read(&source.0).unwrap(), before);
+    let reopened = RelSession::open_path(&destination.0, &admission, [], []).unwrap();
+    assert_eq!(reopened.archive_vector_infos().len(), 1);
+    assert_eq!(reopened.vector_generation(generation.id), Some(generation));
+    let retained = reopened
+        .archive_vectors
+        .get(generation.archive_vector_id)
+        .unwrap();
+    assert_eq!(
+        reopened
+            .common
+            .packed_vectors
+            .read_f32_row(retained.packed_vector_id, 0)
+            .unwrap(),
+        vec![1.0, 0.0]
+    );
 }
