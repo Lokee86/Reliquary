@@ -542,8 +542,9 @@
       ],
       "deliverable": "Verified-copy terminal Archive/Memory/Entity/Relationship/profile pruning plus proven unreachable-space reclamation and owner-level profile repair",
       "acceptance": "REL/PHY retention evidence, source/active-reference closure, typed prune markers, offset relocation, clock/history parity, independently reopened candidate and failure-safe rollback; unsupported domains fail closed",
-      "status": "in-progress",
-      "breakdown": "docs/architecture/maintenance-history-parity-phase-2026-11-05.md"
+      "status": "complete",
+      "breakdown": "docs/architecture/maintenance-history-parity-phase-2026-11-05.md",
+      "acceptance_evidence": "Reliquary-rebuild/docs/m02-multidomain-pruning-reclamation-acceptance-2026-11-06.md"
     },
     {
       "id": "M03",
