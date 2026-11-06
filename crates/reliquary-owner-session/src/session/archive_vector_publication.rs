@@ -575,6 +575,25 @@ pub(super) fn validate_generation_sources(
         if mapping.fragment_ids.is_empty() {
             return Err(vector_invalid("Archive generation has no sources"));
         }
+        let packed = common
+            .packed_vectors
+            .info(mapping.packed_vector_id)
+            .ok_or_else(|| vector_invalid("Archive generation matrix is missing"))?;
+        if packed.schema.dimensions != profile.dimensions
+            || packed.count != mapping.fragment_ids.len() as u64
+        {
+            return Err(vector_invalid("Archive generation matrix shape changed"));
+        }
+        let pruned = common.packed_vectors.is_pruned(mapping.packed_vector_id);
+        if pruned
+            && !common
+                .profiles
+                .is_retired(generation.compatibility_profile_id)
+        {
+            return Err(vector_invalid(
+                "active Archive generation has pruned backing",
+            ));
+        }
         for (index, id) in mapping.fragment_ids.iter().enumerate() {
             let definition = archive
                 .fragment_definition(reliquary_archive::FragmentId(id.0))
@@ -591,10 +610,15 @@ pub(super) fn validate_generation_sources(
                 ));
             }
             max_version = max_version.max(version);
-            let row = common
-                .packed_vectors
-                .read_f32_row(mapping.packed_vector_id, index as u64)?;
-            validate_archive_vector_row(profile, &row)?;
+            // Terminal, retired-profile backing is intentionally unavailable.
+            // Its marker and owner-exclusive retention manifest are validated
+            // by RelSession before this source/fragment history check.
+            if !pruned {
+                let row = common
+                    .packed_vectors
+                    .read_f32_row(mapping.packed_vector_id, index as u64)?;
+                validate_archive_vector_row(profile, &row)?;
+            }
         }
         if info.max_fragment_archive_version != max_version {
             return Err(vector_invalid(

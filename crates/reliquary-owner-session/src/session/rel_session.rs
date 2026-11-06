@@ -163,6 +163,14 @@ impl RelSession {
         let archive_vectors = ArchiveVectorStore::open(container, &common.packed_vectors)?;
         let generations =
             VectorGenerationStore::open(container, &common.profiles, &archive_vectors)?;
+        super::retired_profile_prune::validate_archive_profile_prune(
+            &common.profiles,
+            &common.packed_vectors,
+            &common.memory_vectors,
+            &archive_vectors,
+            &generations,
+            &common.maintenance,
+        )?;
         super::archive_vector_publication::validate_generation_sources(
             &archive,
             &common,

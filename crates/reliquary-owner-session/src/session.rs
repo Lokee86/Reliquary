@@ -542,6 +542,12 @@ impl PhySession {
         require_kind(container, FileKind::Phylactery)?;
         reject_rel_only_records(container)?;
         let common = open_common(container, graph_admission, dream_admissions, false)?;
+        retired_profile_prune::validate_common_profile_prune(
+            &common.profiles,
+            &common.packed_vectors,
+            &common.memory_vectors,
+            &common.maintenance,
+        )?;
         Ok(Self {
             owner_id: container.owner_id(),
             common,
@@ -583,11 +589,13 @@ pub use fresh_history_rewrite::{
 };
 mod maintenance_prune_proof;
 mod profile_repair;
+mod retired_profile_prune;
 mod storage_reclamation;
 pub use profile_repair::{
     ProfileRepairError, ProfileRepairPlan, ProfileRepairReport, execute_profile_repair,
     plan_profile_repair,
 };
+pub use retired_profile_prune::{RetiredProfilePruneReport, prune_retired_profile_vectors_copy};
 pub use storage_reclamation::{StorageReclamationReport, reclaim_storage_copy};
 mod native_import;
 pub use maintenance_prune::{

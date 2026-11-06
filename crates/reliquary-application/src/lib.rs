@@ -107,8 +107,9 @@ pub use maintenance_workflow::{
 pub use reliquary_dream::{DreamClassifier, DreamVerificationPolicy, DreamVerifier};
 pub use reliquary_entity_resolution::TextField;
 pub use reliquary_owner_session::{
-    ProfileRepairError, ProfileRepairPlan, ProfileRepairReport, StorageReclamationReport,
-    execute_profile_repair, plan_profile_repair, reclaim_storage_copy,
+    ProfileRepairError, ProfileRepairPlan, ProfileRepairReport, RetiredProfilePruneReport,
+    StorageReclamationReport, execute_profile_repair, plan_profile_repair,
+    prune_retired_profile_vectors_copy, reclaim_storage_copy,
 };
 pub use retrieval_workflow::{
     OwnerMemoryEvidence, OwnerMemorySelection, RetrievalWorkflowError, SelectedMemory,

@@ -139,6 +139,318 @@ fn profile_repair_keeps_exact_covered_set_and_fences_stale_plans() {
 }
 
 #[test]
+fn retired_profile_prune_replaces_only_exclusive_backing_and_reopens() {
+    use crate::{
+        VerifiedOwnerCopyPlan, execute_profile_repair, plan_profile_repair,
+        prune_retired_profile_vectors_copy,
+    };
+
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".test-tmp");
+    fs::create_dir_all(&dir).unwrap();
+    let stem = format!("profile-prune-{}", std::process::id());
+    let source = dir.join(format!("{stem}.phy"));
+    let repaired = dir.join(format!("{stem}-repaired.phy"));
+    let output = dir.join(format!("{stem}-pruned.phy"));
+    let owner = [174; 16];
+    let grant = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let mut writer = PhyWriter::create_path(&source, owner).unwrap();
+    let memory = writer
+        .common
+        .memories
+        .publish_versioned_creation(&mut writer.container, draft(), 1)
+        .unwrap()
+        .revision
+        .record;
+    writer.writer_lease_proof = writer.container.writer_lease_proof();
+    let kept = writer.publish_compatibility_profile(profile()).unwrap();
+    let mut old = profile();
+    old.dimensions = 512;
+    for probe in &mut old.references {
+        probe.vector = vec![0.0; 512];
+        probe.vector[0] = 1.0;
+    }
+    old.id = reliquary_vector_store::profile::compatibility_profile_id(&old);
+    let retired = writer.publish_compatibility_profile(old).unwrap();
+    for (profile, vector) in [
+        (kept, vec![1.0, 0.0]),
+        (retired, {
+            let mut vector = vec![0.0; 512];
+            vector[0] = 1.0;
+            vector
+        }),
+    ] {
+        writer
+            .publish_memory_vectors(
+                profile,
+                &[MemoryVectorRow {
+                    memory_id: memory.id,
+                    revision: memory.revision,
+                    body_id: memory.body_id,
+                    vector,
+                }],
+            )
+            .unwrap();
+    }
+    drop(writer);
+    let repair = plan_profile_repair(&source, &grant, &[kept]).unwrap();
+    execute_profile_repair(&repair, &source, &repaired, &grant).unwrap();
+    let before = fs::read(&repaired).unwrap();
+    let plan = VerifiedOwnerCopyPlan::prepare(&repaired).unwrap();
+    let report =
+        prune_retired_profile_vectors_copy(&plan, &repaired, &output, &[retired], &grant).unwrap();
+    assert_eq!(report.retired_profiles, [retired]);
+    assert_eq!(report.pruned_packed_vectors, 1);
+    assert!(report.transformed_bytes < report.source_bytes);
+    assert_eq!(fs::read(&repaired).unwrap(), before);
+    let reopened = PhySession::open_path(&output, &grant, []).unwrap();
+    assert_eq!(
+        reopened.memory_vector_row(kept, memory.body_id).unwrap(),
+        Some(vec![1.0, 0.0])
+    );
+    assert!(reopened.memory_vector_row(retired, memory.body_id).is_err());
+    assert!(
+        prune_retired_profile_vectors_copy(&plan, &repaired, &output, &[retired], &grant,).is_err()
+    );
+    fs::remove_file(&output).unwrap();
+    fs::remove_file(&repaired).unwrap();
+    fs::remove_file(&source).unwrap();
+}
+
+#[test]
+fn retired_profile_prune_refuses_shared_active_backing() {
+    use crate::{VerifiedOwnerCopyPlan, prune_retired_profile_vectors_copy};
+
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".test-tmp");
+    fs::create_dir_all(&dir).unwrap();
+    let stem = format!("profile-shared-{}", std::process::id());
+    let source = dir.join(format!("{stem}.phy"));
+    let output = dir.join(format!("{stem}-pruned.phy"));
+    let owner = [175; 16];
+    let grant = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let mut writer = PhyWriter::create_path(&source, owner).unwrap();
+    let memory = writer
+        .common
+        .memories
+        .publish_versioned_creation(&mut writer.container, draft(), 1)
+        .unwrap()
+        .revision
+        .record;
+    writer.writer_lease_proof = writer.container.writer_lease_proof();
+    let kept = writer.publish_compatibility_profile(profile()).unwrap();
+    let mut other = profile();
+    for probe in &mut other.references {
+        probe.vector = vec![0.0, 1.0];
+    }
+    other.id = reliquary_vector_store::profile::compatibility_profile_id(&other);
+    let retired = writer.publish_compatibility_profile(other).unwrap();
+    for profile in [kept, retired] {
+        writer
+            .publish_memory_vectors(
+                profile,
+                &[MemoryVectorRow {
+                    memory_id: memory.id,
+                    revision: memory.revision,
+                    body_id: memory.body_id,
+                    vector: vec![1.0, 0.0],
+                }],
+            )
+            .unwrap();
+    }
+    writer
+        .common
+        .profiles
+        .retire(&mut writer.container, retired)
+        .unwrap();
+    writer.container.sync().unwrap();
+    drop(writer);
+
+    let before = fs::read(&source).unwrap();
+    let plan = VerifiedOwnerCopyPlan::prepare(&source).unwrap();
+    let error = prune_retired_profile_vectors_copy(&plan, &source, &output, &[retired], &grant)
+        .unwrap_err();
+    assert!(error.contains("shared by another profile"), "{error}");
+    assert!(!output.exists());
+    assert_eq!(fs::read(&source).unwrap(), before);
+    fs::remove_file(&source).unwrap();
+}
+
+#[test]
+fn retired_profile_prune_preserves_rel_generation_receipts() {
+    use crate::{
+        VerifiedOwnerCopyPlan, execute_profile_repair, plan_profile_repair,
+        prune_retired_profile_vectors_copy,
+    };
+
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".test-tmp");
+    fs::create_dir_all(&dir).unwrap();
+    let stem = format!("rel-profile-prune-{}", std::process::id());
+    let source = dir.join(format!("{stem}.rel"));
+    let repaired = dir.join(format!("{stem}-repaired.rel"));
+    let output = dir.join(format!("{stem}-pruned.rel"));
+    let owner = [176; 16];
+    let grant = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let mut writer = RelWriter::create_path(&source, ReliquaryScope::Project, owner).unwrap();
+    writer
+        .accept_turn_and_advance_branch(
+            reliquary_archive::TurnInput {
+                id: "turn-1".into(),
+                conversation_id: "conversation-1".into(),
+                parent_id: None,
+                role: "user".into(),
+                principal_id: None,
+                timestamp_ns: 1,
+                content: "Archive text retained across profile pruning".into(),
+                attachments: Vec::new(),
+                project_attachments: Vec::new(),
+            },
+            reliquary_archive::Branch {
+                id: "main".into(),
+                conversation_id: "conversation-1".into(),
+                leaf_node_id: "turn-1".into(),
+                canonical: true,
+            },
+        )
+        .unwrap();
+    let kept = writer.publish_compatibility_profile(profile()).unwrap();
+    let mut old = profile();
+    old.dimensions = 512;
+    for probe in &mut old.references {
+        probe.vector = vec![0.0; 512];
+        probe.vector[0] = 1.0;
+    }
+    old.id = reliquary_vector_store::profile::compatibility_profile_id(&old);
+    let retired = writer.publish_compatibility_profile(old).unwrap();
+    for (profile, dimensions) in [(kept, 2), (retired, 512)] {
+        let input = writer.archive_vector_input(profile).unwrap();
+        let mut vector = vec![0.0; dimensions];
+        vector[0] = 1.0;
+        let rows = input
+            .sources()
+            .iter()
+            .map(|source| ArchiveVectorRow {
+                fragment_id: source.fragment_id,
+                max_archive_version: source.max_archive_version,
+                vector: vector.clone(),
+            })
+            .collect::<Vec<_>>();
+        assert!(!rows.is_empty());
+        writer
+            .publish_archive_vector_batch(owner, profile, input.source_archive_version(), &rows)
+            .unwrap()
+            .unwrap();
+    }
+    drop(writer);
+
+    let repair = plan_profile_repair(&source, &grant, &[kept]).unwrap();
+    execute_profile_repair(&repair, &source, &repaired, &grant).unwrap();
+    let before = fs::read(&repaired).unwrap();
+    let plan = VerifiedOwnerCopyPlan::prepare(&repaired).unwrap();
+    let report =
+        prune_retired_profile_vectors_copy(&plan, &repaired, &output, &[retired], &grant).unwrap();
+    assert_eq!(report.pruned_packed_vectors, 1);
+    assert!(report.transformed_bytes < report.source_bytes);
+    assert_eq!(fs::read(&repaired).unwrap(), before);
+
+    let original = RelSession::open_path(&repaired, &grant, [], []).unwrap();
+    let reopened = RelSession::open_path(&output, &grant, [], []).unwrap();
+    assert_eq!(
+        reopened.generations.generations(),
+        original.generations.generations()
+    );
+    assert_eq!(
+        reopened.archive.archive_version(),
+        original.archive.archive_version()
+    );
+    assert_eq!(reopened.archive.node_count(), original.archive.node_count());
+    let active_generation = reopened.generations.current_generation(kept).unwrap();
+    let active_mapping = reopened
+        .archive_vectors
+        .get(active_generation.archive_vector_id)
+        .unwrap();
+    assert_eq!(
+        reopened
+            .common
+            .packed_vectors
+            .read_f32_row(active_mapping.packed_vector_id, 0)
+            .unwrap(),
+        vec![1.0, 0.0]
+    );
+    let retired_generation = reopened.generations.current_generation(retired).unwrap();
+    let retired_mapping = reopened
+        .archive_vectors
+        .get(retired_generation.archive_vector_id)
+        .unwrap();
+    assert!(
+        reopened
+            .common
+            .packed_vectors
+            .is_pruned(retired_mapping.packed_vector_id)
+    );
+    assert!(
+        reopened
+            .common
+            .packed_vectors
+            .read_f32_row(retired_mapping.packed_vector_id, 0)
+            .is_err()
+    );
+
+    drop(reopened);
+    drop(original);
+
+    // A mapping published without an owning generation cannot be attributed
+    // to the retired profile, even if its matrix is also used by that profile.
+    let orphan_repaired = dir.join(format!("{stem}-orphan-repaired.rel"));
+    let orphan_output = dir.join(format!("{stem}-orphan-pruned.rel"));
+    let mut writer = RelWriter::open_path(&source, grant.clone(), [], []).unwrap();
+    let generation = writer
+        .session
+        .generations
+        .current_generation(retired)
+        .unwrap();
+    let mapping = writer
+        .session
+        .archive_vectors
+        .get(generation.archive_vector_id)
+        .unwrap();
+    writer
+        .session
+        .archive_vectors
+        .put(
+            &mut writer.container,
+            &writer.session.common.packed_vectors,
+            reliquary_vector_store::AcceptedArchiveMapping {
+                packed_vector_id: mapping.packed_vector_id,
+                packed_rows: 1,
+                fragment_ids: vec![reliquary_vector_store::ArchiveFragmentId([97; 32])],
+                max_fragment_archive_version: 0,
+            },
+        )
+        .unwrap();
+    writer.container.sync().unwrap();
+    drop(writer);
+    let repair = plan_profile_repair(&source, &grant, &[kept]).unwrap();
+    execute_profile_repair(&repair, &source, &orphan_repaired, &grant).unwrap();
+    let before_orphan = fs::read(&orphan_repaired).unwrap();
+    let plan = VerifiedOwnerCopyPlan::prepare(&orphan_repaired).unwrap();
+    let err = prune_retired_profile_vectors_copy(
+        &plan,
+        &orphan_repaired,
+        &orphan_output,
+        &[retired],
+        &grant,
+    )
+    .unwrap_err();
+    assert!(err.contains("unowned Archive mapping"), "{err}");
+    assert!(!orphan_output.exists());
+    assert_eq!(fs::read(&orphan_repaired).unwrap(), before_orphan);
+
+    fs::remove_file(&orphan_repaired).unwrap();
+    fs::remove_file(&output).unwrap();
+    fs::remove_file(&repaired).unwrap();
+    fs::remove_file(&source).unwrap();
+}
+
+#[test]
 fn vector_publication_recovers_orphan_packed_bytes_and_rejects_invalid_sources() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".test-tmp");
     fs::create_dir_all(&root).unwrap();

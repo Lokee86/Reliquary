@@ -46,6 +46,7 @@ pub use session::{
     ProfileRepairError, ProfileRepairPlan, ProfileRepairReport, execute_profile_repair,
     plan_profile_repair,
 };
+pub use session::{RetiredProfilePruneReport, prune_retired_profile_vectors_copy};
 pub use session::{StorageReclamationReport, reclaim_storage_copy};
 
 pub use session::{EntityCandidateMemory, EntityMentionInputs};
