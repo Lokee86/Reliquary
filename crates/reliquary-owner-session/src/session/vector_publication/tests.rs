@@ -55,6 +55,90 @@ fn draft() -> MemoryDraft {
 }
 
 #[test]
+fn profile_repair_keeps_exact_covered_set_and_fences_stale_plans() {
+    use crate::{ProfileRepairError, execute_profile_repair, plan_profile_repair};
+
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".test-tmp");
+    fs::create_dir_all(&dir).unwrap();
+    let stem = format!("profile-repair-{}", std::process::id());
+    let source = dir.join(format!("{stem}.phy"));
+    let destination = dir.join(format!("{stem}-candidate.phy"));
+    let owner = [172; 16];
+    let grant = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let mut writer = PhyWriter::create_path(&source, owner).unwrap();
+    let memory = writer
+        .common
+        .memories
+        .publish_versioned_creation(&mut writer.container, draft(), 1)
+        .unwrap()
+        .revision
+        .record;
+    writer.writer_lease_proof = writer.container.writer_lease_proof();
+    let kept = writer.publish_compatibility_profile(profile()).unwrap();
+    let mut alternative = profile();
+    for probe in &mut alternative.references {
+        probe.vector = vec![0.0, 1.0];
+    }
+    alternative.id = reliquary_vector_store::profile::compatibility_profile_id(&alternative);
+    let retired = writer.publish_compatibility_profile(alternative).unwrap();
+    writer
+        .publish_memory_vectors(
+            kept,
+            &[MemoryVectorRow {
+                memory_id: memory.id,
+                revision: memory.revision,
+                body_id: memory.body_id,
+                vector: vec![1.0, 0.0],
+            }],
+        )
+        .unwrap();
+    drop(writer);
+
+    assert_eq!(
+        plan_profile_repair(&source, &grant, &[kept, kept]),
+        Err(ProfileRepairError::InvalidRetainedSet)
+    );
+    assert_eq!(
+        plan_profile_repair(&source, &grant, &[retired]),
+        Err(ProfileRepairError::IncompleteMemoryCoverage(retired))
+    );
+    let foreign = GraphAdmission::for_replay([173; 16], [], [], [], [], []);
+    assert_eq!(
+        plan_profile_repair(&source, &foreign, &[kept]),
+        Err(ProfileRepairError::OwnerMismatch)
+    );
+    let plan = plan_profile_repair(&source, &grant, &[kept]).unwrap();
+    assert_eq!(plan.retiring(), &[retired]);
+    let before = fs::read(&source).unwrap();
+    assert!(!destination.exists());
+    let report = execute_profile_repair(&plan, &source, &destination, &grant).unwrap();
+    assert_eq!(report.retired, [retired]);
+    let after = fs::read(&destination).unwrap();
+    assert!(after.starts_with(&before));
+    assert_eq!(fs::read(&source).unwrap(), before);
+    let reopened = PhySession::open_path(&destination, &grant, []).unwrap();
+    assert!(reopened.active_compatibility_profile(retired).is_none());
+    assert!(reopened.compatibility_profile(retired).is_some());
+    assert_eq!(reopened.current_memory(memory.id).unwrap().record, memory);
+    assert_eq!(
+        reopened.memory_vector_row(kept, memory.body_id).unwrap(),
+        Some(vec![1.0, 0.0])
+    );
+    assert!(execute_profile_repair(&plan, &source, &destination, &grant).is_err());
+    assert_eq!(fs::read(&destination).unwrap(), after);
+    drop(reopened);
+    fs::remove_file(&destination).unwrap();
+
+    let mut writer = Container::open_writer(&source).unwrap();
+    writer.append(b"M02STALE").unwrap();
+    writer.sync().unwrap();
+    drop(writer);
+    assert!(execute_profile_repair(&plan, &source, &destination, &grant).is_err());
+    assert!(!destination.exists());
+    fs::remove_file(&source).unwrap();
+}
+
+#[test]
 fn vector_publication_recovers_orphan_packed_bytes_and_rejects_invalid_sources() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".test-tmp");
     fs::create_dir_all(&root).unwrap();

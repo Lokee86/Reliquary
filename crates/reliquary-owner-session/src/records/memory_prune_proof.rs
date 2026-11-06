@@ -134,7 +134,7 @@ pub(crate) fn memory_structure_digest(
     Ok(hash.finalize().into())
 }
 
-fn memory_history_record(bytes: &[u8]) -> bool {
+pub(crate) fn memory_history_record(bytes: &[u8]) -> bool {
     matches!(
         bytes.get(..8),
         Some(b"RELMCRT1" | b"RELMDLT1" | b"RELMTMB1")
@@ -172,28 +172,7 @@ pub(crate) fn safe_memory_only_frames(
             frame.read_exact(&mut raw).map_err(|e| e.to_string())?;
             version = version.max(u64::from_le_bytes(raw));
         }
-        if !matches!(
-            &magic,
-            b"RELMFMT1"
-                | b"RELMBOD1"
-                | b"RELMCRT1"
-                | b"RELMDLT1"
-                | b"RELMTMB1"
-                | b"RELPVFM1"
-                | b"RELMVFM1"
-                | b"RELCPFM1"
-                | b"RELAVFM1"
-                | b"RELVGFM1"
-                | b"RELFRP01"
-                | b"RELTURN2"
-                | b"RELFILE1"
-                | b"RELBRCH1"
-                | b"RELEPIS1"
-                | b"CVAFRG01"
-                | b"RELECHO1"
-                | b"RELVERS1"
-                | b"RELVERS2"
-        ) {
+        if !pointer_free_frame(&magic) {
             return Err(format!(
                 "transform needs an owner proof for frame family {}",
                 String::from_utf8_lossy(&magic)
@@ -204,4 +183,29 @@ pub(crate) fn safe_memory_only_frames(
         return Err("missing prune manifest".into());
     }
     Ok(version)
+}
+
+pub(crate) fn pointer_free_frame(magic: &[u8]) -> bool {
+    matches!(
+        magic,
+        b"RELMFMT1"
+            | b"RELMBOD1"
+            | b"RELMCRT1"
+            | b"RELMDLT1"
+            | b"RELMTMB1"
+            | b"RELPVFM1"
+            | b"RELMVFM1"
+            | b"RELCPFM1"
+            | b"RELAVFM1"
+            | b"RELVGFM1"
+            | b"RELFRP01"
+            | b"RELTURN2"
+            | b"RELFILE1"
+            | b"RELBRCH1"
+            | b"RELEPIS1"
+            | b"CVAFRG01"
+            | b"RELECHO1"
+            | b"RELVERS1"
+            | b"RELVERS2"
+    )
 }

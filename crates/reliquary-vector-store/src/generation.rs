@@ -100,6 +100,28 @@ fn decode_version(bytes: &[u8]) -> Result<Option<GenerationVersion>, GenerationS
     }))
 }
 
+/// Inspect the physical inbound reference of a generation receipt.
+pub fn generation_receipt_target(bytes: &[u8]) -> Result<Option<ObjectRef>, GenerationStoreError> {
+    Ok(decode_version(bytes)?.map(|receipt| receipt.generation_record))
+}
+
+/// Re-encode a retained receipt after its backing generation moves.
+pub fn relocate_generation_receipt(
+    bytes: &[u8],
+    target: ObjectRef,
+) -> Result<[u8; 32], GenerationStoreError> {
+    let mut receipt = decode_version(bytes)?.ok_or(GenerationStoreError::CorruptRecord(
+        "missing generation receipt",
+    ))?;
+    if receipt.generation_record.length != target.length {
+        return Err(GenerationStoreError::CorruptRecord(
+            "relocated generation length",
+        ));
+    }
+    receipt.generation_record = target;
+    Ok(encode_version(receipt))
+}
+
 pub fn vector_generation_id(
     profile: CompatibilityProfileId,
     archive: ArchiveVectorId,

@@ -582,6 +582,13 @@ pub use fresh_history_rewrite::{
     owner_history_generation, rewrite_memory_history_copy,
 };
 mod maintenance_prune_proof;
+mod profile_repair;
+mod storage_reclamation;
+pub use profile_repair::{
+    ProfileRepairError, ProfileRepairPlan, ProfileRepairReport, execute_profile_repair,
+    plan_profile_repair,
+};
+pub use storage_reclamation::{StorageReclamationReport, reclaim_storage_copy};
 mod native_import;
 pub use maintenance_prune::{
     PrunedOwnerCopyReport, promote_terminal_memory_copy, prune_terminal_memory_copy,

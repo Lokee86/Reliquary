@@ -12,6 +12,7 @@ use reliquary_vector_store::{
 };
 use reliquary_vector_store::{ArchiveVectorStore, VectorGenerationStore};
 use std::{
+    fs,
     path::PathBuf,
     sync::atomic::{AtomicU64, Ordering},
 };
@@ -415,6 +416,9 @@ fn rel_fixture() -> (
             },
         )
         .unwrap();
+    packed
+        .put_f32_rows(&mut container, &[vec![4.0; 128]])
+        .unwrap();
     let mut generations =
         VectorGenerationStore::open(&container, &profiles, &archive_vectors).unwrap();
     generations
@@ -438,6 +442,89 @@ fn rel_fixture() -> (
     let graph = GraphAdmission::for_replay(owner, [], [], [], [], []);
     let session = RelSession::open_path(&path.0, &graph, [], []).unwrap();
     (path, session, id, profile.id)
+}
+
+#[test]
+fn storage_reclamation_relocates_rel_generation_receipts_and_reopens_history() {
+    use reliquary_owner_session::{VerifiedOwnerCopyPlan, reclaim_storage_copy};
+
+    let (source, session, memory, profile) = rel_fixture();
+    let graph = GraphAdmission::for_replay(session.owner_id(), [], [], [], [], []);
+    let destination = Fixture::new();
+    let before = fs::read(&source.0).unwrap();
+    let history = session.memory_history(memory).unwrap();
+    let vector = session.archive_vector_infos();
+    let plan = VerifiedOwnerCopyPlan::prepare(&source.0).unwrap();
+    let report = reclaim_storage_copy(&plan, &source.0, &destination.0, &graph).unwrap();
+    assert_eq!(report.removed_frames, 1);
+    assert!(report.candidate_bytes < report.source_bytes);
+    assert_eq!(fs::read(&source.0).unwrap(), before);
+    let reopened = RelSession::open_path(&destination.0, &graph, [], []).unwrap();
+    assert_eq!(reopened.memory_history(memory).unwrap(), history);
+    assert_eq!(reopened.archive_vector_infos(), vector);
+    let body = reopened.current_memory(memory).unwrap().record.body_id;
+    assert_eq!(
+        reopened.memory_vector_row(profile, body).unwrap(),
+        Some(vec![3.0, 1.0])
+    );
+    let noop = Fixture::new();
+    let plan = VerifiedOwnerCopyPlan::prepare(&destination.0).unwrap();
+    let report = reclaim_storage_copy(&plan, &destination.0, &noop.0, &graph).unwrap();
+    assert_eq!(report.removed_frames, 0);
+    assert_eq!(
+        fs::read(&noop.0).unwrap(),
+        fs::read(&destination.0).unwrap()
+    );
+    let mut unknown = Container::open_writer(&noop.0).unwrap();
+    unknown.append(b"UNKNOWN1").unwrap();
+    unknown.sync().unwrap();
+    drop(unknown);
+    let untouched = fs::read(&noop.0).unwrap();
+    let refused = Fixture::new();
+    let plan = VerifiedOwnerCopyPlan::prepare(&noop.0).unwrap();
+    let error = reclaim_storage_copy(&plan, &noop.0, &refused.0, &graph).unwrap_err();
+    assert!(error.contains("unsupported reclamation frame family"));
+    assert!(!refused.0.exists());
+    assert_eq!(fs::read(&noop.0).unwrap(), untouched);
+}
+
+#[test]
+fn profile_repair_checks_current_rel_archive_generation() {
+    use reliquary_owner_session::{ProfileRepairError, plan_profile_repair};
+
+    let (source, session, _, profile) = rel_fixture();
+    let graph = GraphAdmission::for_replay(session.owner_id(), [], [], [], [], []);
+    assert_eq!(
+        plan_profile_repair(&source.0, &graph, &[profile])
+            .unwrap()
+            .retained(),
+        &[profile]
+    );
+    drop(session);
+    let mut container = Container::open_writer(&source.0).unwrap();
+    let mut archive = Archive::open(&container).unwrap();
+    archive
+        .accept_turn(
+            &mut container,
+            TurnInput {
+                id: "turn-2".into(),
+                conversation_id: "conversation".into(),
+                parent_id: Some("turn-1".into()),
+                role: "user".into(),
+                principal_id: Some("principal".into()),
+                timestamp_ns: 20,
+                content: "New accepted Archive activity.".into(),
+                attachments: vec![],
+                project_attachments: vec![],
+            },
+        )
+        .unwrap();
+    container.sync().unwrap();
+    drop(container);
+    assert_eq!(
+        plan_profile_repair(&source.0, &graph, &[profile]),
+        Err(ProfileRepairError::IncompleteArchiveCoverage(profile))
+    );
 }
 
 #[test]

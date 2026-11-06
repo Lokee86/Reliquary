@@ -42,5 +42,10 @@ pub use session::{
     MAX_ARCHIVE_VECTOR_RESPONSE_BYTES,
 };
 pub use session::{MemoryVectorInput, MemoryVectorRow};
+pub use session::{
+    ProfileRepairError, ProfileRepairPlan, ProfileRepairReport, execute_profile_repair,
+    plan_profile_repair,
+};
+pub use session::{StorageReclamationReport, reclaim_storage_copy};
 
 pub use session::{EntityCandidateMemory, EntityMentionInputs};

@@ -130,7 +130,7 @@ impl RelWriter {
     }
 }
 
-fn archive_vector_input(
+pub(super) fn archive_vector_input(
     owner_id: [u8; 16],
     archive: &Archive,
     packed: &PackedVectorStore,

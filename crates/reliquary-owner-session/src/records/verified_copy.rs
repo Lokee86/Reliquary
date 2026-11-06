@@ -122,6 +122,10 @@ impl VerifiedOwnerCopyPlan {
         self.source_owner_id
     }
 
+    pub(crate) fn source_digest(&self) -> [u8; 32] {
+        self.source_digest
+    }
+
     pub fn file_kind(&self) -> FileKind {
         self.source_identity.file_kind
     }
