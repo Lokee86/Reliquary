@@ -585,8 +585,9 @@
       ],
       "deliverable": "Reference-to-rebuild behavioral parity matrix, independently reopened REL/PHY transformed outputs, failure-safety and regression evidence",
       "acceptance": "M01\u2013M04 accepted; supported rewrite, terminal multi-domain prune, reclamation, divergent REL and historical cases proven with source immutability, provenance/privacy and stable IDs; locked workspace tests, formatting and approved dependency graph pass; no uncovered required behavior silently deferred",
-      "status": "not-started",
-      "breakdown": "docs/architecture/maintenance-history-parity-phase-2026-11-05.md"
+      "status": "complete",
+      "breakdown": "docs/architecture/maintenance-history-parity-phase-2026-11-05.md",
+      "acceptance_evidence": "Reliquary-rebuild/docs/gm-maintenance-history-parity-gate-2026-11-06.md"
     },
     {
       "id": "P01",
