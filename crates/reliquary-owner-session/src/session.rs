@@ -591,6 +591,7 @@ mod fresh_history_rewrite;
 mod freshness_use;
 mod maintenance_prune;
 mod relationship_prune;
+mod semantic_reconciliation;
 pub use entity_prune::{EntityPruneReport, prune_terminal_entity_descriptions_copy};
 pub use fresh_history_rewrite::{
     FreshHistoryArchive, FreshHistoryFreshness, FreshHistoryIdentity, FreshHistoryLineage,
@@ -599,6 +600,10 @@ pub use fresh_history_rewrite::{
 };
 pub use relationship_prune::{
     RelationshipPruneReport, prune_terminal_relationship_descriptions_copy,
+};
+pub use semantic_reconciliation::{
+    RelHistoryComparison, RelHistoryRelation, RelReconciliationError, RelReconciliationReport,
+    compare_rel_histories, reconcile_divergent_rel_copy,
 };
 mod maintenance_prune_proof;
 mod profile_repair;

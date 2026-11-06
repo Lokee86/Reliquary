@@ -43,6 +43,7 @@ pub mod native_import_workflow;
 mod native_insomnia;
 mod native_insomnia_evidence;
 mod project_correlation_workflow;
+mod rel_reconciliation_workflow;
 mod rewrite_workflow;
 pub use native_insomnia::{
     INSOMNIA_EXTRACTOR_CONTRACT_VERSION, NativeInsomniaExtraction, extract_native_insomnia,
@@ -103,6 +104,9 @@ pub use maintenance_workflow::{
     MaintenanceBlocker, MaintenanceWorkflowError, MemoryMaintenancePreparation,
     MemoryPruneCandidate, prepare_tombstoned_memory_maintenance, promote_verified_memory_copy,
     prune_verified_memory_copy, recheck_tombstoned_memory_maintenance,
+};
+pub use rel_reconciliation_workflow::{
+    ReconciledRelOwner, RelReconciliationEvidence, reconcile_rel_owner,
 };
 pub use reliquary_dream::{DreamClassifier, DreamVerificationPolicy, DreamVerifier};
 pub use reliquary_entity_resolution::TextField;

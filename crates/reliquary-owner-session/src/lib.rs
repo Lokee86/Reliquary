@@ -34,6 +34,10 @@ pub use session::{
     FreshHistoryRequest, FreshHistoryRewriteReport, fresh_history_lineage,
     owner_history_generation, rewrite_memory_history_copy,
 };
+pub use session::{
+    RelHistoryComparison, RelHistoryRelation, RelReconciliationError, RelReconciliationReport,
+    compare_rel_histories, reconcile_divergent_rel_copy,
+};
 
 pub use reliquary_vector_store::VectorGeneration;
 pub use session::EntityMentionCommit;
