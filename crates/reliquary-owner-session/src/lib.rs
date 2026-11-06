@@ -29,6 +29,11 @@ pub use session::{
     RelRetrievalSnapshot, RelSession, RelWriter, RoutedUserMemoryProof, RoutedUserMemoryReceipt,
     promote_terminal_memory_copy, prune_terminal_memory_copy,
 };
+pub use session::{
+    FreshHistoryArchive, FreshHistoryFreshness, FreshHistoryIdentity, FreshHistoryLineage,
+    FreshHistoryRequest, FreshHistoryRewriteReport, fresh_history_lineage,
+    owner_history_generation, rewrite_memory_history_copy,
+};
 
 pub use reliquary_vector_store::VectorGeneration;
 pub use session::EntityMentionCommit;

@@ -29,5 +29,6 @@ reliquary-perception-store = { path = "../reliquary-perception-store" }
 reliquary-vector-store = { path = "../reliquary-vector-store" }
 reliquary-memory-core = { path = "../reliquary-memory-core" }
 reliquary-graph = { path = "../reliquary-graph" }
+reliquary-ego-store = { path = "../reliquary-ego-store" }
 reliquary-archive = { path = "../reliquary-archive" }
 reliquary-container = { path = "../reliquary-container" }

@@ -431,6 +431,12 @@ macro_rules! common_reads {
             ) -> Option<&MemoryEntityResolution> {
                 self.$field.perception.mention_revision(key, revision)
             }
+            pub fn entity_resolutions(&self) -> Vec<MemoryEntityResolution> {
+                self.$field.perception.mentions().cloned().collect()
+            }
+            pub fn graph_relations(&self) -> Vec<Relation> {
+                self.$field.graph.active_relations().copied().collect()
+            }
             pub fn graph_relation(
                 &self,
                 source: NodeRef,
@@ -567,8 +573,14 @@ pub(crate) mod dream_pairs;
 pub(crate) mod dream_prefix;
 mod external_memory;
 mod external_reference;
+mod fresh_history_rewrite;
 mod freshness_use;
 mod maintenance_prune;
+pub use fresh_history_rewrite::{
+    FreshHistoryArchive, FreshHistoryFreshness, FreshHistoryIdentity, FreshHistoryLineage,
+    FreshHistoryRequest, FreshHistoryRewriteReport, fresh_history_lineage,
+    owner_history_generation, rewrite_memory_history_copy,
+};
 mod maintenance_prune_proof;
 mod native_import;
 pub use maintenance_prune::{

@@ -305,6 +305,9 @@ impl GraphStore {
     pub fn history(&self) -> impl Iterator<Item = &Relation> {
         self.history.iter()
     }
+    pub fn active_relations(&self) -> impl Iterator<Item = &Relation> {
+        self.states.values().filter(|relation| relation.active)
+    }
     pub fn relation(
         &self,
         source: NodeRef,

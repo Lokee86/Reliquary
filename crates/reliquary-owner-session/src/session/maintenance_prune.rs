@@ -74,6 +74,9 @@ fn transform_terminal_memory_copy(
     if selected_memory_ids.is_empty() || selected_memory_ids.len() > 128 {
         return Err("pruning requires between 1 and 128 explicit terminal Memories".into());
     }
+    if destination_path.exists() {
+        return Err("maintenance destination already exists".into());
+    }
     let source = if replace_source {
         if fs::symlink_metadata(source_path)
             .map_err(|error| error.to_string())?
@@ -87,6 +90,7 @@ fn transform_terminal_memory_copy(
     }
     .map_err(|e| e.to_string())?;
     plan.verify_source(&source, source_path)?;
+    let owner_id = source.owner_id();
     if !OwnerMaintenanceStore::open(&source)?.is_empty() {
         return Err("repeated destructive pruning requires a new lineage contract".into());
     }
@@ -216,19 +220,34 @@ fn transform_terminal_memory_copy(
     plan.verify_source(&source, source_path)?;
     let transformed_bytes = fs::metadata(&staged.path).map_err(|e| e.to_string())?.len();
     if replace_source {
-        fs::hard_link(source_path, destination_path)
-            .map_err(|error| format!("could not retain original owner as backup: {error}"))?;
-        plan.verify_source(&source, destination_path)?;
         plan.verify_source(&source, source_path)?;
-        fs::rename(&staged.path, source_path).map_err(|error| {
-            format!("could not replace verified owner; original retained at backup: {error}")
-        })?;
+        drop(copy);
+        drop(source);
+        fs::rename(source_path, destination_path)
+            .map_err(|error| format!("could not retain original owner as backup: {error}"))?;
+        if let Err(error) = fs::rename(&staged.path, source_path) {
+            let restored = fs::rename(destination_path, source_path);
+            return Err(match restored {
+                Ok(()) => format!("could not replace verified owner; original restored: {error}"),
+                Err(restore) => format!(
+                    "could not replace verified owner; original remains at backup ({error}); restore failed: {restore}"
+                ),
+            });
+        }
     } else {
-        fs::hard_link(&staged.path, destination_path)
+        let publication = VerifiedOwnerCopyPlan::prepare(&staged.path)?
+            .copy_to(&staged.path, destination_path)
             .map_err(|error| format!("could not publish verified maintenance snapshot: {error}"))?;
+        if publication.owner_id != source.owner_id()
+            || publication.identity != source.identity()
+            || publication.byte_len != transformed_bytes
+        {
+            let _ = fs::remove_file(destination_path);
+            return Err("published maintenance snapshot differs from verified candidate".into());
+        }
     }
     Ok(PrunedOwnerCopyReport {
-        owner_id: source.owner_id(),
+        owner_id,
         pruned_memories: selected.len(),
         source_bytes,
         transformed_bytes,

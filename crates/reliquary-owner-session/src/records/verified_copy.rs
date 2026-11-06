@@ -50,6 +50,11 @@ impl VerifiedOwnerCopyPlan {
         if left.identity() != right.identity() || left.owner_id() != right.owner_id() {
             return Err("reconciliation owners differ".into());
         }
+        if crate::owner_history_generation(left_path)?
+            != crate::owner_history_generation(right_path)?
+        {
+            return Err("reconciliation history generations differ".into());
+        }
         let mut left = left.physical_cursor().map_err(|e| e.to_string())?;
         let mut right = right.physical_cursor().map_err(|e| e.to_string())?;
         let mut common_frames = 0u64;
@@ -203,8 +208,17 @@ impl VerifiedOwnerCopyPlan {
         let staged = StagedCopy::create(destination)?;
         let receipt = self.copy_to(source, &staged.path)?;
         let admitted = admit(&staged.path, &receipt)?;
-        fs::hard_link(&staged.path, destination)
+        let publication = Self::prepare(&staged.path)?
+            .copy_to(&staged.path, destination)
             .map_err(|error| format!("could not publish verified owner copy: {error}"))?;
+        if publication.owner_id != receipt.owner_id
+            || publication.identity != receipt.identity
+            || publication.byte_len != receipt.byte_len
+            || publication.copy_digest != receipt.copy_digest
+        {
+            let _ = fs::remove_file(destination);
+            return Err("published owner differs from the admitted candidate".into());
+        }
         Ok((receipt, admitted))
     }
 

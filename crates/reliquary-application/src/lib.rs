@@ -43,6 +43,7 @@ pub mod native_import_workflow;
 mod native_insomnia;
 mod native_insomnia_evidence;
 mod project_correlation_workflow;
+mod rewrite_workflow;
 pub use native_insomnia::{
     INSOMNIA_EXTRACTOR_CONTRACT_VERSION, NativeInsomniaExtraction, extract_native_insomnia,
 };
@@ -108,6 +109,12 @@ pub use reliquary_entity_resolution::TextField;
 pub use retrieval_workflow::{
     OwnerMemoryEvidence, OwnerMemorySelection, RetrievalWorkflowError, SelectedMemory,
     select_owner_memories,
+};
+pub use rewrite_workflow::{
+    ArchiveRewriteMode, DerivedStateRewriteMode, FreshnessRewriteMode, MemoryRewriteFilter,
+    OwnerRewriteKind, RewriteError, RewriteIdentityMode, RewritePlan, RewritePolicy,
+    RewriteSelection, execute_memory_rewrite, plan_phy_rewrite, plan_rel_rewrite,
+    verify_rewrite_source,
 };
 pub use vector_workflow::{
     MemoryEmbeddingBatch, MemoryEmbeddingSource, VectorWorkflowError, prepare_memory_embeddings,

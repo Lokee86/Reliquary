@@ -328,6 +328,10 @@ impl EgoStore {
         self.identities.get(&id)
     }
 
+    pub fn identities(&self) -> impl Iterator<Item = &EgoIdentity> {
+        self.identities.values()
+    }
+
     pub fn identity_revision(&self, id: EgoIdentityId, revision: u64) -> Option<&EgoIdentity> {
         self.identity_history.get(&(id, revision))
     }
@@ -363,6 +367,10 @@ impl EgoStore {
 
     pub fn anchor(&self, id: EgoAnchorId) -> Option<&EgoAnchor> {
         self.anchors.get(&id)
+    }
+
+    pub fn anchors(&self) -> impl Iterator<Item = &EgoAnchor> {
+        self.anchors.values()
     }
 
     pub fn anchor_revision(&self, id: EgoAnchorId, revision: u64) -> Option<&EgoAnchor> {

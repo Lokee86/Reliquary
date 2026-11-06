@@ -2563,6 +2563,7 @@ dependencies = [
  "reliquary-container",
  "reliquary-context-engine",
  "reliquary-dream",
+ "reliquary-ego-store",
  "reliquary-entity-resolution",
  "reliquary-freshness",
  "reliquary-freshness-store",

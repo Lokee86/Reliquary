@@ -417,6 +417,10 @@ impl Archive {
         self.fragment_definitions.get(&id)
     }
 
+    pub fn fragment_definitions(&self) -> Vec<crate::FragmentDefinition> {
+        self.fragment_definitions.values().cloned().collect()
+    }
+
     pub fn historical_turns(
         &self,
         conversation_id: &str,
