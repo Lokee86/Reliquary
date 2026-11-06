@@ -1,20 +1,39 @@
-# H04 owner worker lifecycle audit (2026-11-05)
+# H04 owner worker lifecycle acceptance (2026-11-05)
 
-H04 is **not accepted**. Commit `e4ac3b18` added a bounded polling coordinator, but its callback-only API does not implement the H04 deliverable.
+H04 is accepted after correction of the callback-only coordinator introduced by `e4ac3b18`.
 
-## Verified implementation
+## Accepted behavior
 
-- Insomnia is a functional worker. Its durable Episode claim/checkpoint is reconstructed from the REL owner, external inference occurs outside the owner lock, and publication revalidates owner authority and the current lease.
-- Gateway now owns an atomic `(owner, specialty)` lease registry shared by every clone and coordinator. A second Dream, Entity, Vector, or Freshness lane for the same owner is rejected until the first lane has quiesced and released its lease.
-- Stop and drop fence new polls, wake idle threads, join in-flight work, and release leases only after joining.
+- Insomnia retains its durable Episode claim/checkpoint worker, with provider work outside the owner lock and lease/authority revalidation before publication.
+- Dream, Entity, Vector, and Freshness now have concrete Gateway worker types and are started through `OwnerWorkflowSet`; the generic driver trait and raw scheduler are no longer public integration APIs.
+- Dream publishes an evaluated Application batch through an authenticated REL/PHY route. Owner-session rechecks the owner, graph and Memory cut and uses the durable publication identity for idempotent retry.
+- Entity prepares owner-bound facts, releases owner access for model work, and publishes through the durable mention receipt. A reopened retry detects the accepted receipt before invoking the endpoint.
+- Vector prepares owner-bound sources, performs bounded embedding without an owner lock, and publishes through durable profile/body rows. A reopened retry reuses accepted rows without inference.
+- Freshness rebuilds its volatile bounded due scan from the current durable REL retrieval cut and owner policy. Notifications remain derived at-least-once hints; owner Freshness records, not the queue, are authority.
+- Writable REL and PHY owners are supported where the specialty workflow is eligible. Missing grants, read-only mounts, foreign Instances, and revoked credentials fail at authenticated owner operations.
+- Gateway owns one atomic `(owner, specialty)` lease registry shared across all Gateway clones and coordinators. Duplicate active lanes are rejected and leases are released only after quiescent join.
+- Stop/drop fence new polls, wake idle workers, wait for in-flight workflow operations, join all threads, and then release specialty leases.
 
-## Missing behavior
+## Recovery and negative evidence
 
-- `OwnerWorkerDriver` remains an injected polling callback. No production Dream, Entity, Vector, or Freshness driver exists and no mounted-owner lifecycle starts one.
-- Dream inference is not split into owner snapshot, unlocked provider evaluation, and revalidated publication. The current `draft_dream_organization` API receives an owner session while calling classifier/verifier endpoints, so using it from a worker would violate the no-provider-under-owner-lock requirement.
-- Entity and Vector have real prepare/evaluate/commit workflows and durable owner-session receipts, but no durable work-discovery source or worker integration consumes them.
-- Freshness has a rebuildable `FreshnessDueDispatcher`, but Gateway does not rebuild it from durable owner records, drain it in bounded batches, or publish lifecycle notifications/receipts.
-- Restart tests for the specialty coordinator retain an injected in-memory counter; they do not recover eligible work from durable owner projections or prove idempotent publication.
-- The coordinator currently admits only writable REL owners, while the runtime design calls for eligible REL/PHY owner-local workers.
+Focused tests reopen synthetic owners and prove:
 
-H04 may be accepted only after these gaps have production paths and restart, authorization, quiescence, and duplicate-publication tests over reopened synthetic owners.
+- Dream batch retry is idempotent after Gateway teardown/reopen.
+- Entity and Vector retries make zero provider calls after their durable receipts/rows reopen.
+- Freshness rescans the same durable owner clock after reopen rather than trusting an ephemeral wake.
+- duplicate specialties are rejected across independent coordinators and cloned Gateway handles;
+- quiescence leaves no active poll and allows a replacement coordinator;
+- foreign Instances, invalid bounds, unavailable writers and permission fences fail closed.
+
+## Verification
+
+From `C:\!bin\workspace\Reliquary-rebuild`:
+
+```powershell
+python scripts/check_architecture.py
+cargo fmt --all --check
+cargo check --workspace --locked --offline -j 1
+cargo test --workspace --locked --offline -j 1 -- --test-threads=1
+```
+
+All commands passed. The architecture guard reports 23 packages and 76 approved production dependency edges; the complete Gateway suite reports 51 passing tests.

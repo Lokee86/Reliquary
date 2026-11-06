@@ -36,7 +36,7 @@ impl OwnerWorkerKind {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum OwnerWorkerPoll {
+pub(crate) enum OwnerWorkerPoll {
     Progress,
     Idle,
 }
@@ -45,7 +45,7 @@ pub enum OwnerWorkerPoll {
 ///
 /// Implementations prepare external work without an owner mutation lock and
 /// use authenticated Instance operations to revalidate before commit.
-pub trait OwnerWorkerDriver: Send + Sync + 'static {
+pub(crate) trait OwnerWorkerDriver: Send + Sync + 'static {
     fn kind(&self) -> OwnerWorkerKind;
     fn poll(&self) -> Result<OwnerWorkerPoll, String>;
 }
@@ -77,7 +77,7 @@ pub struct OwnerWorkerCoordinator {
 impl Gateway {
     /// Start one lifecycle lane per supplied specialty. Duplicate specialties
     /// are rejected so one owner has one scheduling authority for each kind.
-    pub fn start_owner_workers(
+    pub(crate) fn start_owner_workers(
         &self,
         instance: Arc<Instance>,
         owner: OwnerId,
@@ -94,7 +94,7 @@ impl Gateway {
                 "owner worker idle poll must be nonzero".into(),
             ));
         }
-        instance.with_writable_reliquary(owner, |_| ())?;
+        require_writable_owner(&instance, owner)?;
         let drivers = drivers.into_iter().collect::<Vec<_>>();
         if drivers.is_empty() || drivers.len() > MAX_SPECIALTY_WORKERS {
             return Err(GatewayError::HostAdapter(
@@ -222,15 +222,23 @@ fn worker_loop(
     control: Arc<WorkerControl>,
 ) {
     while !control.stopping.load(Ordering::Acquire) {
-        if instance.with_writable_reliquary(owner, |_| ()).is_err() {
+        if require_writable_owner(&instance, owner).is_err() {
             wait(&control, config.idle_poll);
             continue;
         }
         let idle = !matches!(driver.poll(), Ok(OwnerWorkerPoll::Progress));
-        let authorized = instance.with_writable_reliquary(owner, |_| ()).is_ok();
+        let authorized = require_writable_owner(&instance, owner).is_ok();
         if idle || !authorized {
             wait(&control, config.idle_poll);
         }
+    }
+}
+
+fn require_writable_owner(instance: &Instance, owner: OwnerId) -> Result<(), GatewayError> {
+    if instance.rel_grants.contains(&owner) {
+        instance.with_writable_reliquary(owner, |_| ())
+    } else {
+        instance.with_entity_phy_writer(owner, |_| ())
     }
 }
 

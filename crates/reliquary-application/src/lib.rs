@@ -35,6 +35,7 @@ pub use conversation_workflow::{
 };
 mod entity_workflow;
 mod external_source_workflow;
+mod freshness_due_workflow;
 mod history_workflow;
 mod ingest_publication;
 mod maintenance_workflow;
@@ -58,7 +59,9 @@ mod retrieval_workflow;
 mod vector_publication;
 pub use vector_publication::evaluate_archive_vectors;
 mod vector_workflow;
-pub use reliquary_vectors::{EmbeddingEndpoint, EmbeddingEndpointError, VectorNormalization};
+pub use reliquary_vectors::{
+    EmbeddingEndpoint, EmbeddingEndpointError, SwitchboardEmbeddingEndpoint, VectorNormalization,
+};
 pub use vector_publication::{
     PreparedMemoryVectors, commit_phy_memory_vectors, commit_rel_memory_vectors,
     evaluate_memory_vectors, prepare_compatibility_profile,
@@ -83,6 +86,9 @@ pub use external_source_workflow::{
     ExternalSourceError, PreparedProjectAttachment, VerifiedExternalSource,
     prepare_project_attachment, verify_project_attachment,
 };
+pub use freshness_due_workflow::{
+    FreshnessLifecycleState, FreshnessTransition, due_freshness_transitions,
+};
 pub use history_workflow::{
     MemoryHistoryLookup, MemoryHistoryRead, MemoryHistoryStatus, MemoryHistoryWorkflowError,
     read_owner_memory_history, read_owner_memory_history_at_cut,
@@ -97,6 +103,8 @@ pub use maintenance_workflow::{
     MemoryPruneCandidate, prepare_tombstoned_memory_maintenance, promote_verified_memory_copy,
     prune_verified_memory_copy, recheck_tombstoned_memory_maintenance,
 };
+pub use reliquary_dream::{DreamClassifier, DreamVerificationPolicy, DreamVerifier};
+pub use reliquary_entity_resolution::TextField;
 pub use retrieval_workflow::{
     OwnerMemoryEvidence, OwnerMemorySelection, RetrievalWorkflowError, SelectedMemory,
     select_owner_memories,

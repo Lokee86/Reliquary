@@ -314,6 +314,10 @@ pub struct PreparedEntityMention {
 }
 
 impl PreparedEntityMention {
+    pub fn existing_resolution(&self) -> Option<&MemoryEntityResolution> {
+        self.existing_resolution.as_ref()
+    }
+
     pub fn evaluate_with_endpoint<E: GeneralEndpoint>(
         self,
         endpoint: E,

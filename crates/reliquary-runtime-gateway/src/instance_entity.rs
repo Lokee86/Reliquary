@@ -25,6 +25,9 @@ impl Instance {
             self.with_entity_phy_writer(owner, |writer| prepare_phy_writer_mention(writer, input))?
         }
         .map_err(mention_error)?;
+        if let Some(existing) = prepared.existing_resolution() {
+            return Ok(existing.clone());
+        }
         let proposal = prepared
             .evaluate_with_endpoint(endpoint)
             .map_err(mention_error)?;

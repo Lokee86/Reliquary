@@ -384,7 +384,9 @@ mod gateway_mounts;
 mod insomnia_worker;
 mod instance_context;
 mod instance_conversation;
+mod instance_dream;
 mod owner_workers;
+mod workflow_workers;
 pub use instance_context::{
     AuthorizedContextCheckpoint, AuthorizedContextWorkflow, ContextMemoryOwnerKind,
     ContextMemoryRef, ProjectContextAttachmentRef,
@@ -395,8 +397,9 @@ mod instance_project_correlation;
 pub use instance_project_correlation::{AuthorizedProjectCorrelation, TrustedProjectSource};
 mod instance_routing;
 pub use insomnia_worker::{InsomniaWorkerConfig, InsomniaWorkerHandle};
-pub use owner_workers::{
-    OwnerWorkerConfig, OwnerWorkerCoordinator, OwnerWorkerDriver, OwnerWorkerKind, OwnerWorkerPoll,
+pub use owner_workers::{OwnerWorkerConfig, OwnerWorkerCoordinator, OwnerWorkerKind};
+pub use workflow_workers::{
+    DreamWorker, EntityWorker, FreshnessWorker, OwnerWorkflowSet, VectorWorker,
 };
 
 mod host_memory_delivery;
