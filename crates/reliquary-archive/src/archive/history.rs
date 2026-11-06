@@ -47,6 +47,15 @@ impl Archive {
                 .max()
                 .unwrap_or(0),
             turns,
+            branch_revisions: self
+                .branch_history
+                .iter()
+                .take_while(|(accepted, _)| *accepted <= version)
+                .map(|(archive_version, branch)| crate::HistoricalArchiveBranch {
+                    archive_version: *archive_version,
+                    branch: branch.clone(),
+                })
+                .collect(),
             branches: branches.into_values().collect(),
             episodes: self
                 .episodes

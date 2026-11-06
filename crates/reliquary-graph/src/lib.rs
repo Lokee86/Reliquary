@@ -629,6 +629,15 @@ impl CommunityStore {
             .rev()
             .find(|snapshot| snapshot.graph_version <= graph_version)
     }
+    /// Return every accepted Community generation whose Graph authority is at
+    /// or before the selected cut.
+    pub fn history_at_graph_version(&self, graph_version: u64) -> Vec<CommunitySnapshot> {
+        self.history
+            .iter()
+            .take_while(|snapshot| snapshot.graph_version <= graph_version)
+            .cloned()
+            .collect()
+    }
     pub fn publish(
         &mut self,
         container: &mut Container,

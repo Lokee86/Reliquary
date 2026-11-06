@@ -44,8 +44,48 @@ impl PerceptionStore {
                 relationships.insert(*id, value.clone());
             }
         }
+        let mut entity_revisions = self
+            .entity_history
+            .iter()
+            .filter_map(|(key, value)| {
+                self.entity_versions.get(key).and_then(|seen| {
+                    (*seen <= version).then(|| HistoricalEntityRevision {
+                        perception_version: *seen,
+                        value: value.clone(),
+                    })
+                })
+            })
+            .collect::<Vec<_>>();
+        entity_revisions.sort_by_key(|revision| revision.perception_version);
+        let mut mention_revisions = self
+            .mention_history
+            .iter()
+            .filter_map(|(key, value)| {
+                self.mention_versions.get(key).and_then(|seen| {
+                    (*seen <= version).then(|| HistoricalMentionRevision {
+                        perception_version: *seen,
+                        value: value.clone(),
+                    })
+                })
+            })
+            .collect::<Vec<_>>();
+        mention_revisions.sort_by_key(|revision| revision.perception_version);
+        let mut relationship_revisions = self
+            .relationship_history
+            .iter()
+            .filter_map(|(key, value)| {
+                self.relationship_versions.get(key).and_then(|seen| {
+                    (*seen <= version).then(|| HistoricalRelationshipRevision {
+                        perception_version: *seen,
+                        value: value.clone(),
+                    })
+                })
+            })
+            .collect::<Vec<_>>();
+        relationship_revisions.sort_by_key(|revision| revision.perception_version);
         Ok(PerceptionHistorySnapshot {
             perception_version: version,
+            entity_revisions,
             entities: entities.into_values().collect(),
             entity_tombstones: self
                 .entity_tombstones
@@ -63,7 +103,9 @@ impl PerceptionStore {
                 })
                 .map(|(_, value)| *value)
                 .collect(),
+            mention_revisions,
             mentions: mentions.into_values().collect(),
+            relationship_revisions,
             relationships: relationships.into_values().collect(),
             relationship_tombstones: self
                 .relationship_tombstones

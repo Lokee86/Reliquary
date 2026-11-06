@@ -1,6 +1,9 @@
 use super::*;
 use reliquary_archive::{Branch, TurnInput};
 use reliquary_container::ReliquaryScope;
+use reliquary_perception_store::{
+    EntityDraft, RelationshipDraft, RelationshipEntityRef, RelationshipParticipant,
+};
 use std::{
     fs,
     path::PathBuf,
@@ -49,6 +52,34 @@ fn branch(leaf: &str) -> Branch {
         conversation_id: "history".into(),
         leaf_node_id: leaf.into(),
         canonical: true,
+    }
+}
+
+fn proof_memory(mutation_id: &str) -> MemoryDraft {
+    MemoryDraft {
+        title: mutation_id.into(),
+        content: format!("content for {mutation_id}"),
+        category: "fact".into(),
+        memory_type: "semantic".into(),
+        authority_kind: "direct".into(),
+        temporal_status: "current".into(),
+        scope: "private".into(),
+        lifecycle_state: "knowledge".into(),
+        archived: false,
+        parent_id: None,
+        superseded_by: None,
+        source_node_id: None,
+        content_source_conversation_id: None,
+        content_source_node_id: None,
+        grounding_source_conversation_id: None,
+        grounding_source_node_id: None,
+        source_episode_id: None,
+        source_ref: None,
+        source_time_ns: None,
+        temporal_inference: None,
+        mutation_id: mutation_id.into(),
+        created_at_ns: 1,
+        updated_at_ns: 1,
     }
 }
 
@@ -178,4 +209,275 @@ fn phy_proofs_keep_private_ego_history_and_typed_boundaries() {
         ),
         Err(HistoricalProofError::FutureCut("vector"))
     ));
+}
+
+#[test]
+fn phy_proof_distinguishes_converged_relationship_revision_histories() {
+    let left = Temp::new("relationship-left");
+    let right = Temp::new("relationship-right");
+    let owner = [0xb1; 16];
+    for (path, middle) in [(&left.0, "middle-left"), (&right.0, "middle-right")] {
+        let mut writer = PhyWriter::create_path(path, owner).unwrap();
+        let entity = writer
+            .common
+            .perception
+            .publish_entity(
+                &mut writer.container,
+                EntityDraft {
+                    canonical_name: "Subject".into(),
+                    aliases: vec![],
+                    kind: "person".into(),
+                    summary: "stable entity".into(),
+                    mutation_id: "subject-create".into(),
+                    created_at_ns: 1,
+                    updated_at_ns: 1,
+                },
+            )
+            .unwrap();
+        let draft = |mutation: &str, summary: &str, updated_at_ns| RelationshipDraft {
+            kind: "knows".into(),
+            participants: vec![RelationshipParticipant {
+                entity: RelationshipEntityRef {
+                    owner_id: "local".into(),
+                    entity_id: entity.id,
+                },
+                role: Some("subject".into()),
+            }],
+            evidence: vec![],
+            summary: summary.into(),
+            mutation_id: mutation.into(),
+            created_at_ns: 1,
+            updated_at_ns,
+        };
+        let relationship = writer
+            .common
+            .perception
+            .publish_relationship(
+                &mut writer.container,
+                draft("relationship-create", "initial", 1),
+            )
+            .unwrap();
+        writer
+            .common
+            .perception
+            .update_relationship(
+                &mut writer.container,
+                relationship.id,
+                1,
+                draft("relationship-middle", middle, 2),
+            )
+            .unwrap();
+        writer
+            .common
+            .perception
+            .update_relationship(
+                &mut writer.container,
+                relationship.id,
+                2,
+                draft("relationship-final", "same final", 3),
+            )
+            .unwrap();
+    }
+    let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let a = PhySession::open_path(&left.0, &admission, []).unwrap();
+    let b = PhySession::open_path(&right.0, &admission, []).unwrap();
+    let cut = a.current_historical_cut();
+    assert_eq!(cut, b.current_historical_cut());
+    assert_ne!(
+        a.historical_proof(owner, cut).unwrap().digest,
+        b.historical_proof(owner, cut).unwrap().digest
+    );
+}
+
+#[test]
+fn phy_proof_binds_cross_identity_perception_acceptance_order() {
+    let left = Temp::new("entity-order-left");
+    let right = Temp::new("entity-order-right");
+    let owner = [0xb4; 16];
+    for (path, order) in [
+        (&left.0, ["entity-a", "entity-b"]),
+        (&right.0, ["entity-b", "entity-a"]),
+    ] {
+        let mut writer = PhyWriter::create_path(path, owner).unwrap();
+        for mutation in order {
+            writer
+                .common
+                .perception
+                .publish_entity(
+                    &mut writer.container,
+                    EntityDraft {
+                        canonical_name: mutation.into(),
+                        aliases: vec![],
+                        kind: "concept".into(),
+                        summary: format!("stable {mutation}"),
+                        mutation_id: mutation.into(),
+                        created_at_ns: 1,
+                        updated_at_ns: 1,
+                    },
+                )
+                .unwrap();
+        }
+    }
+    let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let a = PhySession::open_path(&left.0, &admission, []).unwrap();
+    let b = PhySession::open_path(&right.0, &admission, []).unwrap();
+    let cut = a.current_historical_cut();
+    assert_eq!(cut, b.current_historical_cut());
+    assert_ne!(
+        a.historical_proof(owner, cut).unwrap().digest,
+        b.historical_proof(owner, cut).unwrap().digest
+    );
+}
+
+#[test]
+fn phy_proof_distinguishes_converged_graph_publication_histories() {
+    let left = Temp::new("graph-left");
+    let right = Temp::new("graph-right");
+    let owner = [0xb2; 16];
+    for (path, middle_active) in [(&left.0, false), (&right.0, true)] {
+        let mut writer = PhyWriter::create_path(path, owner).unwrap();
+        let first = writer
+            .common
+            .memories
+            .publish_versioned_creation(&mut writer.container, proof_memory("graph-first"), 1)
+            .unwrap()
+            .revision
+            .record
+            .id;
+        let second = writer
+            .common
+            .memories
+            .publish_versioned_creation(&mut writer.container, proof_memory("graph-second"), 2)
+            .unwrap()
+            .revision
+            .record
+            .id;
+        let admission = GraphAdmission::for_changes(owner, [first.0, second.0], []);
+        let change = |active| reliquary_graph::RelationChange {
+            source: NodeRef::Memory(first.0),
+            target: NodeRef::Memory(second.0),
+            kind: reliquary_graph::RelationKind::Topical,
+            active,
+            origin: reliquary_graph::RelationOrigin::User,
+        };
+        writer
+            .common
+            .graph
+            .put(&mut writer.container, &admission, &[change(true)])
+            .unwrap();
+        writer
+            .common
+            .graph
+            .put(&mut writer.container, &admission, &[change(middle_active)])
+            .unwrap();
+        writer
+            .common
+            .graph
+            .put(&mut writer.container, &admission, &[change(true)])
+            .unwrap();
+    }
+    let first = reliquary_memory_core::memory_id("graph-first");
+    let second = reliquary_memory_core::memory_id("graph-second");
+    let admission = GraphAdmission::for_replay(owner, [first.0, second.0], [], [], [], []);
+    let a = PhySession::open_path(&left.0, &admission, []).unwrap();
+    let b = PhySession::open_path(&right.0, &admission, []).unwrap();
+    let cut = a.current_historical_cut();
+    assert_eq!(cut, b.current_historical_cut());
+    assert_ne!(
+        a.historical_proof(owner, cut).unwrap().digest,
+        b.historical_proof(owner, cut).unwrap().digest
+    );
+}
+
+#[test]
+fn phy_proof_distinguishes_converged_ego_revision_histories_and_reopens_stably() {
+    let left = Temp::new("ego-left");
+    let right = Temp::new("ego-right");
+    let owner = [0xb3; 16];
+    let identity = EgoIdentityId([0x45; 16]);
+    for (path, middle) in [(&left.0, "middle-left"), (&right.0, "middle-right")] {
+        let mut writer = PhyWriter::create_path(path, owner).unwrap();
+        writer
+            .common
+            .ego
+            .create_identity(
+                &mut writer.container,
+                identity,
+                "private".into(),
+                "initial".into(),
+            )
+            .unwrap();
+        writer
+            .common
+            .ego
+            .update_identity(
+                &mut writer.container,
+                identity,
+                1,
+                "private".into(),
+                middle.into(),
+            )
+            .unwrap();
+        writer
+            .common
+            .ego
+            .update_identity(
+                &mut writer.container,
+                identity,
+                2,
+                "private".into(),
+                "same final".into(),
+            )
+            .unwrap();
+    }
+    let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let a = PhySession::open_path(&left.0, &admission, []).unwrap();
+    let b = PhySession::open_path(&right.0, &admission, []).unwrap();
+    let cut = a.current_historical_cut();
+    assert_eq!(cut, b.current_historical_cut());
+    let proof_a = a.historical_proof(owner, cut).unwrap();
+    let proof_b = b.historical_proof(owner, cut).unwrap();
+    assert_ne!(proof_a.digest, proof_b.digest);
+    drop(a);
+    let reopened = PhySession::open_path(&left.0, &admission, []).unwrap();
+    assert_eq!(reopened.historical_proof(owner, cut).unwrap(), proof_a);
+}
+#[test]
+fn rel_proof_binds_intermediate_archive_branch_revisions() {
+    let left = Temp::new("branch-history-left");
+    let right = Temp::new("branch-history-right");
+    let owner = [0xb5; 16];
+    for (path, middle) in [(&left.0, "b"), (&right.0, "c")] {
+        drop(RelWriter::create_path(path, ReliquaryScope::Project, owner).unwrap());
+        let mut container = Container::open_writer_as(path, FileKind::Reliquary).unwrap();
+        let mut archive = Archive::open(&container).unwrap();
+        for (id, parent) in [
+            ("a", None),
+            ("b", Some("a")),
+            ("c", Some("b")),
+            ("d", Some("c")),
+        ] {
+            archive
+                .accept_turn(&mut container, turn(id, parent, "user", 10))
+                .unwrap();
+        }
+        for leaf in ["a", middle, "d"] {
+            archive.put_branch(&mut container, branch(leaf)).unwrap();
+        }
+        container.sync().unwrap();
+    }
+
+    let grant = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let first = RelSession::open_path(&left.0, &grant, [], []).unwrap();
+    let second = RelSession::open_path(&right.0, &grant, [], []).unwrap();
+    let cut = first.current_historical_cut();
+    assert_eq!(cut, second.current_historical_cut());
+    assert_eq!(
+        first.archive.branch("history", "main"),
+        second.archive.branch("history", "main")
+    );
+    assert_ne!(
+        first.historical_proof(owner, &cut).unwrap().digest,
+        second.historical_proof(owner, &cut).unwrap().digest
+    );
 }

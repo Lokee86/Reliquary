@@ -43,6 +43,40 @@ pub struct EgoWebSynthesis {
     pub text: String,
 }
 
+/// One accepted Ego publication at its owner-local version. Historical proofs
+/// use this sequence rather than only the final projected values.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum EgoHistoryRecord {
+    Identity {
+        ego_version: u64,
+        id: EgoIdentityId,
+        revision: u64,
+        deleted: bool,
+        name: String,
+        text: String,
+    },
+    Personality {
+        ego_version: u64,
+        revision: u64,
+        source_memory_version: u64,
+        text: String,
+    },
+    Anchor {
+        ego_version: u64,
+        id: EgoAnchorId,
+        revision: u64,
+        deleted: bool,
+        priority: EgoAnchorPriority,
+        text: String,
+    },
+    Synthesis {
+        ego_version: u64,
+        revision: u64,
+        source_memory_version: u64,
+        text: String,
+    },
+}
+
 /// Ego-local lifecycle facts, mapped into the product lifecycle at the root.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EgoLifecycleState {
@@ -53,6 +87,7 @@ pub enum EgoLifecycleState {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EgoHistorySnapshot {
     pub ego_version: u64,
+    pub records: Vec<EgoHistoryRecord>,
     pub identities: Vec<EgoIdentity>,
     pub tombstoned_identities: Vec<EgoIdentityId>,
     pub personality: Option<EgoPersonality>,

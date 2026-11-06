@@ -23,10 +23,10 @@ pub use fragment::{
 pub use model::{
     AcceptedTurnSource, ArchiveError, ArchiveHistorySnapshot, AttachmentInput, Branch, ContentId,
     ConversationTombstone, Episode, EpisodeBoundary, EpisodeId, EpisodeOrigin,
-    HistoricalArchiveTurn, ImportReceipt, ImportedArtifact, ImportedBranch, ImportedConversation,
-    ImportedMessage, Node, ProjectAttachmentInput, ProjectFileRef, ProjectRepositoryKind,
-    ProjectRepositoryRef, ProjectRevisionRef, ResolvedTurn, SourceAttachment, TurnAcceptance,
-    TurnInput,
+    HistoricalArchiveBranch, HistoricalArchiveTurn, ImportReceipt, ImportedArtifact,
+    ImportedBranch, ImportedConversation, ImportedMessage, Node, ProjectAttachmentInput,
+    ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef, ResolvedTurn,
+    SourceAttachment, TurnAcceptance, TurnInput,
 };
 
 pub use codec::{archive_turn_prune_marker, prune_turn_frame};

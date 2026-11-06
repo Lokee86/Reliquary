@@ -177,10 +177,18 @@ pub struct HistoricalArchiveTurn {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HistoricalArchiveBranch {
+    pub archive_version: u64,
+    pub branch: Branch,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ArchiveHistorySnapshot {
     pub archive_version: u64,
     pub activity_cut: u64,
     pub turns: Vec<HistoricalArchiveTurn>,
+    /// Every accepted Branch revision through the cut.
+    pub branch_revisions: Vec<HistoricalArchiveBranch>,
     pub branches: Vec<Branch>,
     pub episodes: Vec<Episode>,
     pub import_receipts: Vec<ImportReceipt>,

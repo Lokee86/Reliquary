@@ -192,12 +192,39 @@ pub struct MemoryEntityResolution {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HistoricalEntityRevision {
+    pub perception_version: u64,
+    pub value: Entity,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HistoricalMentionRevision {
+    pub perception_version: u64,
+    pub value: MemoryEntityResolution,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HistoricalRelationshipRevision {
+    pub perception_version: u64,
+    pub value: Relationship,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PerceptionHistorySnapshot {
     pub perception_version: u64,
+    /// Every retained Entity revision accepted through the cut, ordered by
+    /// stable Entity identity and revision.
+    pub entity_revisions: Vec<HistoricalEntityRevision>,
     pub entities: Vec<Entity>,
     pub entity_tombstones: Vec<EntityTombstone>,
     pub entity_description_prunes: Vec<EntityDescriptionPrune>,
+    /// Every retained mention decision accepted through the cut, ordered by
+    /// mention identity and revision.
+    pub mention_revisions: Vec<HistoricalMentionRevision>,
     pub mentions: Vec<MemoryEntityResolution>,
+    /// Every retained Relationship revision accepted through the cut, ordered
+    /// by stable Relationship identity and revision.
+    pub relationship_revisions: Vec<HistoricalRelationshipRevision>,
     pub relationships: Vec<Relationship>,
     pub relationship_tombstones: Vec<RelationshipTombstone>,
     pub relationship_description_prunes: Vec<RelationshipDescriptionPrune>,

@@ -18,6 +18,65 @@ impl EgoStore {
         }
         Ok(crate::EgoHistorySnapshot {
             ego_version: version,
+            records: self
+                .records
+                .iter()
+                .take_while(|record| record.version() <= version)
+                .map(|record| match record {
+                    EgoRecord::Identity {
+                        version,
+                        id,
+                        revision,
+                        deleted,
+                        name,
+                        text,
+                    } => crate::EgoHistoryRecord::Identity {
+                        ego_version: *version,
+                        id: *id,
+                        revision: *revision,
+                        deleted: *deleted,
+                        name: name.clone(),
+                        text: text.clone(),
+                    },
+                    EgoRecord::Personality {
+                        version,
+                        revision,
+                        source_memory_version,
+                        text,
+                    } => crate::EgoHistoryRecord::Personality {
+                        ego_version: *version,
+                        revision: *revision,
+                        source_memory_version: *source_memory_version,
+                        text: text.clone(),
+                    },
+                    EgoRecord::Anchor {
+                        version,
+                        id,
+                        revision,
+                        deleted,
+                        priority,
+                        text,
+                    } => crate::EgoHistoryRecord::Anchor {
+                        ego_version: *version,
+                        id: *id,
+                        revision: *revision,
+                        deleted: *deleted,
+                        priority: *priority,
+                        text: text.clone(),
+                    },
+                    EgoRecord::Synthesis {
+                        version,
+                        revision,
+                        source_memory_version,
+                        text,
+                    } => crate::EgoHistoryRecord::Synthesis {
+                        ego_version: *version,
+                        revision: *revision,
+                        source_memory_version: *source_memory_version,
+                        text: text.clone(),
+                    },
+                })
+                .collect(),
             identities: projected.identities.into_values().collect(),
             tombstoned_identities: projected.identity_tombstones.into_keys().collect(),
             personality: projected.personality,

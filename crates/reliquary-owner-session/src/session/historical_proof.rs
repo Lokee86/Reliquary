@@ -68,8 +68,9 @@ impl std::error::Error for HistoricalProofError {}
 pub(super) struct CommonHistory {
     pub(super) memories: Vec<(MemoryId, MemoryHistory)>,
     pub(super) perception: reliquary_perception_store::PerceptionHistorySnapshot,
+    pub(super) graph_history: Vec<Relation>,
     pub(super) graph: Vec<Relation>,
-    pub(super) community: Option<CommunitySnapshot>,
+    pub(super) community_history: Vec<CommunitySnapshot>,
     pub(super) ego: reliquary_ego_store::EgoHistorySnapshot,
     pub(super) generations: Vec<VectorGeneration>,
     pub(super) unavailable_payloads: usize,
@@ -120,10 +121,16 @@ impl RelSession {
             .freshness
             .records_at(&cut.freshness)
             .map_err(HistoricalProofError::InvalidState)?;
+        let freshness_evidence = self.freshness.replay_entries_at(&cut.freshness);
         validate_rel_cut(&common, &archive, &freshness)?;
         let retained = common_count(&common)
             .checked_add(archive.turns.len())
-            .and_then(|count| count.checked_add(freshness.len()))
+            .and_then(|count| count.checked_add(archive.branch_revisions.len()))
+            .and_then(|count| count.checked_add(archive.episodes.len()))
+            .and_then(|count| count.checked_add(archive.import_receipts.len()))
+            .and_then(|count| count.checked_add(archive.fragment_definitions.len()))
+            .and_then(|count| count.checked_add(archive.conversation_tombstones.len()))
+            .and_then(|count| count.checked_add(freshness_evidence.len()))
             .ok_or(HistoricalProofError::LimitExceeded)?;
         if retained > MAX_PROOF_RECORDS {
             return Err(HistoricalProofError::LimitExceeded);
@@ -132,7 +139,14 @@ impl RelSession {
             owner_id: self.owner_id,
             file_kind: FileKind::Reliquary,
             history_generation: self.history_generation,
-            digest: fingerprint::rel(self.owner_id, &common, &archive, &freshness, cut),
+            digest: fingerprint::rel(
+                self.owner_id,
+                &common,
+                &archive,
+                &freshness,
+                &freshness_evidence,
+                cut,
+            ),
             retained_records: retained,
             unavailable_payloads: common.unavailable_payloads
                 + archive

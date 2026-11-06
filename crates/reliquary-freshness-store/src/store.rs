@@ -516,6 +516,27 @@ impl FreshnessStore {
         entries
     }
 
+    /// Return the accepted Freshness evidence that is authoritative at an
+    /// exact historical event cut.
+    pub fn replay_entries_at(&self, cut: &FreshnessEventCut) -> Vec<FreshnessReplayEntry> {
+        let owner = self.owner_uuid.unwrap_or([0; 16]);
+        self.replay_entries()
+            .into_iter()
+            .filter(|entry| match entry {
+                FreshnessReplayEntry::Birth { accepted_turn, .. }
+                | FreshnessReplayEntry::Admission { accepted_turn, .. } => {
+                    *accepted_turn <= cut.rel_turn
+                }
+                FreshnessReplayEntry::Event(event) => event_in_cut(event, Some(cut)),
+                FreshnessReplayEntry::AcceptedUse(receipt, proof) => {
+                    accepted_use_events(owner, receipt, *proof, &self.policy)
+                        .iter()
+                        .all(|event| event_in_cut(event, Some(cut)))
+                }
+            })
+            .collect()
+    }
+
     pub fn accepted_events(&self) -> Vec<FreshnessEvent> {
         self.events.values().cloned().collect()
     }

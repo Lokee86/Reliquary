@@ -45,10 +45,13 @@ pub(super) fn common_history(
         .graph
         .relations_at(cut.graph_version)
         .map_err(|_| HistoricalProofError::FutureCut("Graph"))?;
-    let community = common
+    let graph_history = common
+        .graph
+        .history_at(cut.graph_version)
+        .map_err(|_| HistoricalProofError::FutureCut("Graph"))?;
+    let community_history = common
         .communities
-        .at_graph_version(cut.graph_version)
-        .cloned();
+        .history_at_graph_version(cut.graph_version);
     let ego = common
         .ego
         .history_at(cut.ego_version)
@@ -73,8 +76,9 @@ pub(super) fn common_history(
     let history = CommonHistory {
         memories,
         perception,
+        graph_history,
         graph,
-        community,
+        community_history,
         ego,
         generations: generation_history,
         unavailable_payloads,
@@ -157,15 +161,21 @@ pub(super) fn validate_rel_cut(
 }
 
 pub(super) fn common_count(history: &CommonHistory) -> usize {
-    history.memories.len()
-        + history.perception.entities.len()
+    history
+        .memories
+        .iter()
+        .map(|(_, memory)| memory.revisions.len() + usize::from(memory.tombstone.is_some()))
+        .sum::<usize>()
+        + history.perception.entity_revisions.len()
+        + history.perception.entity_tombstones.len()
         + history.perception.entity_description_prunes.len()
-        + history.perception.mentions.len()
-        + history.perception.relationships.len()
+        + history.perception.mention_revisions.len()
+        + history.perception.relationship_revisions.len()
+        + history.perception.relationship_tombstones.len()
         + history.perception.relationship_description_prunes.len()
-        + history.graph.len()
-        + history.ego.identities.len()
-        + history.ego.anchors.len()
+        + history.graph_history.len()
+        + history.community_history.len()
+        + history.ego.records.len()
         + history.generations.len()
 }
 
