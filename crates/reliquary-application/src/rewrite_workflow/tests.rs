@@ -5,6 +5,10 @@ use reliquary_ego_store::{EgoIdentityId, EgoStore};
 use reliquary_freshness_store::{FreshnessMemoryId, FreshnessStore};
 use reliquary_memory_core::{MemoryDraft, MemoryStore};
 use reliquary_owner_session::GraphAdmission;
+use reliquary_perception_store::{
+    EntityDraft, PerceptionStore, RelationshipDraft, RelationshipEntityRef, RelationshipMemoryRef,
+    RelationshipParticipant,
+};
 use reliquary_vector_store::{
     AcceptedArchiveMapping, AcceptedMemoryMapping, ArchiveFragmentId, CompatibilityProbeReference,
     CompatibilityProfile, CompatibilityProfileStore, EmbeddingMode, MemoryVectorStore,
@@ -746,6 +750,150 @@ fn explicit_selection_expands_referential_closure_without_writing() {
     assert!(plan.selection.dropped_memory_ids.is_empty());
     assert_eq!(std::fs::read(&path.0).unwrap(), before);
     assert_ne!(plan.plan_digest, [0; 32]);
+}
+
+#[test]
+fn relationship_closure_expands_memory_and_replays_history_tombstone_and_owner_refs() {
+    let (source, session, parent, child) = phy_fixture();
+    let source_owner = session.owner_id();
+    drop(session);
+
+    let mut container = Container::open_writer(&source.0).unwrap();
+    let mut perception = PerceptionStore::open(&container).unwrap();
+    let entity = perception
+        .publish_entity(
+            &mut container,
+            EntityDraft {
+                canonical_name: "Closure entity".into(),
+                aliases: vec![],
+                kind: "person".into(),
+                summary: "retained".into(),
+                mutation_id: "closure-entity".into(),
+                created_at_ns: 1,
+                updated_at_ns: 1,
+            },
+        )
+        .unwrap();
+    perception
+        .update_entity(
+            &mut container,
+            entity.id,
+            entity.revision,
+            EntityDraft {
+                canonical_name: "Closure entity".into(),
+                aliases: vec!["Closure alias".into()],
+                kind: "person".into(),
+                summary: "retained revision".into(),
+                mutation_id: "closure-entity-update".into(),
+                created_at_ns: 1,
+                updated_at_ns: 2,
+            },
+        )
+        .unwrap();
+    let local_owner = "29292929-2929-2929-2929-292929292929".to_string();
+    let foreign_owner = "ffffffff-ffff-ffff-ffff-ffffffffffff".to_string();
+    let mut evidence = vec![
+        RelationshipMemoryRef {
+            owner_id: local_owner.clone(),
+            memory_id: parent.0,
+        },
+        RelationshipMemoryRef {
+            owner_id: local_owner.clone(),
+            memory_id: child.0,
+        },
+        RelationshipMemoryRef {
+            owner_id: foreign_owner.clone(),
+            memory_id: [0xee; 32],
+        },
+    ];
+    evidence.sort_by(|left, right| {
+        (&left.owner_id, left.memory_id).cmp(&(&right.owner_id, right.memory_id))
+    });
+    let first = perception
+        .publish_relationship(
+            &mut container,
+            RelationshipDraft {
+                kind: "association".into(),
+                participants: vec![RelationshipParticipant {
+                    entity: RelationshipEntityRef {
+                        owner_id: local_owner.clone(),
+                        entity_id: entity.id,
+                    },
+                    role: None,
+                }],
+                evidence,
+                summary: "first".into(),
+                mutation_id: "closure-relationship".into(),
+                created_at_ns: 1,
+                updated_at_ns: 1,
+            },
+        )
+        .unwrap();
+    let mut second = first.clone();
+    second.summary = "second".into();
+    second.mutation_id = "closure-relationship-update".into();
+    second.updated_at_ns = 2;
+    perception
+        .update_relationship(
+            &mut container,
+            first.id,
+            first.revision,
+            RelationshipDraft {
+                kind: second.kind,
+                participants: second.participants,
+                evidence: second.evidence,
+                summary: second.summary,
+                mutation_id: second.mutation_id,
+                created_at_ns: second.created_at_ns,
+                updated_at_ns: second.updated_at_ns,
+            },
+        )
+        .unwrap();
+    perception
+        .tombstone_relationship(&mut container, first.id, 2)
+        .unwrap();
+    container.sync().unwrap();
+    drop(container);
+
+    let graph = GraphAdmission::for_replay(source_owner, [], [], [], [], []);
+    let session = PhySession::open_path(&source.0, &graph, []).unwrap();
+    let mut policy = phy_policy();
+    policy.memories.include.insert(parent.0);
+    policy.derived_state = DerivedStateRewriteMode::RetainVerified;
+    let plan = plan_phy_rewrite(&source.0, &session, policy).unwrap();
+    assert_eq!(plan.selection.closure_expansions, vec![child.0]);
+
+    let destination = Fixture::new();
+    execute_memory_rewrite(&plan, &source.0, &destination.0, Some([66; 16]), &graph).unwrap();
+    let output = Container::open_read_only(&destination.0).unwrap();
+    let perception = PerceptionStore::open(&output).unwrap();
+    assert_eq!(perception.entity(entity.id).unwrap().revision, 2);
+    assert_eq!(
+        perception.entity_revision(entity.id, 1).unwrap().summary,
+        "retained"
+    );
+    assert!(perception.relationship(first.id).is_none());
+    assert_eq!(
+        perception
+            .relationship_tombstone(first.id)
+            .unwrap()
+            .revision,
+        2
+    );
+    let replayed = perception.relationship_revision(first.id, 2).unwrap();
+    assert_eq!(replayed.summary, "second");
+    assert!(
+        replayed
+            .evidence
+            .iter()
+            .any(|reference| reference.owner_id == "42424242-4242-4242-4242-424242424242")
+    );
+    assert!(
+        replayed
+            .evidence
+            .iter()
+            .any(|reference| reference.owner_id == foreign_owner)
+    );
 }
 
 #[test]

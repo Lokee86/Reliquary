@@ -1,13 +1,21 @@
 use super::*;
 use crate::staged_copy::StagedCopy;
-use reliquary_graph::{CommunitySnapshot, RelationChange};
 use reliquary_memory_core::{MemoryDraft, PayloadState};
-use reliquary_perception_store::{
-    EntityDraft, MemoryEntityResolutionStatus, PRINCIPAL_ENTITY_KIND,
-};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeSet, fs, path::Path};
+
+mod semantic;
+use semantic::SemanticClosure;
+
+pub(super) fn semantic_memory_closure(
+    source: &CommonState,
+    source_owner: [u8; 16],
+    retained: BTreeSet<MemoryId>,
+) -> Result<Vec<MemoryId>, String> {
+    SemanticClosure::build(source, source_owner, retained)
+        .map(|closure| closure.memories.into_iter().collect())
+}
 
 const LINEAGE_MAGIC: &[u8; 8] = b"RELREW01";
 
@@ -142,6 +150,16 @@ pub fn rewrite_memory_history_copy(
             .history(*id)
             .map_err(|error| error.to_string())?;
     }
+    let semantic_closure = request
+        .retain_derived_state
+        .then(|| SemanticClosure::build(&source_common, source.owner_id(), selected.clone()))
+        .transpose()?;
+    if semantic_closure
+        .as_ref()
+        .is_some_and(|closure| closure.memories != selected)
+    {
+        return Err("fresh-history plan lacks complete semantic Memory closure".into());
+    }
 
     let staged = StagedCopy::create(destination_path)?;
     let mut target = Container::create(&staged.path, source.identity(), destination_owner_id)
@@ -153,10 +171,10 @@ pub fn rewrite_memory_history_copy(
     }
     let mut retained_revisions = 0u64;
     let mut retained_tombstones = 0u64;
-    for id in selected {
+    for id in &selected {
         let history = source_common
             .memories
-            .history(id)
+            .history(*id)
             .map_err(|error| error.to_string())?;
         let revisions = selected_history_revisions(&history, request)?;
         let mut expected_revision = 0;
@@ -166,9 +184,9 @@ pub fn rewrite_memory_history_copy(
             };
             let draft = draft_from(revision, body);
             let published = target_memories
-                .publish(&mut target, Some(id), expected_revision, draft)
+                .publish(&mut target, Some(*id), expected_revision, draft)
                 .map_err(|error| error.to_string())?;
-            if published.revision.record.id != id {
+            if published.revision.record.id != *id {
                 return Err("fresh-history replay changed stable Memory identity".into());
             }
             expected_revision = published.revision.record.revision;
@@ -176,19 +194,31 @@ pub fn rewrite_memory_history_copy(
         }
         if history.tombstone.is_some() {
             target_memories
-                .tombstone(&mut target, id, expected_revision)
+                .tombstone(&mut target, *id, expected_revision)
                 .map_err(|error| error.to_string())?;
             retained_tombstones += 1;
         }
     }
-    if request.retain_derived_state {
-        copy_derived_state(
+    if let Some(closure) = &semantic_closure {
+        closure.copy_to(
             &source_common,
+            source.owner_id(),
             &mut target,
             &mut target_memories,
-            &request.retained_memory_ids.iter().copied().collect(),
         )?;
     } else if source_common.perception.entities().next().is_some()
+        || source_common
+            .perception
+            .historical_entities()
+            .next()
+            .is_some()
+        || source_common.perception.mentions().next().is_some()
+        || source_common.perception.relationships().next().is_some()
+        || source_common
+            .perception
+            .historical_relationships()
+            .next()
+            .is_some()
         || source_common.graph.graph_version() != 0
         || source_common.communities.current().is_some()
         || source_common.ego.version() != 0
@@ -235,18 +265,39 @@ pub fn rewrite_memory_history_copy(
     {
         return Err("rewrite source changed during execution".into());
     }
-    let reopened_graph = GraphAdmission::for_replay(destination_owner_id, [], [], [], [], []);
-    let reopened_count = match source.identity().file_kind {
-        FileKind::Reliquary => count_memories(
-            &RelSession::open_path(&staged.path, &reopened_graph, [], [])
-                .map_err(|error| error.to_string())?,
-        )?,
-        FileKind::Phylactery => count_memories(
-            &PhySession::open_path(&staged.path, &reopened_graph, [])
-                .map_err(|error| error.to_string())?,
-        )?,
+    let reopened_graph = match &semantic_closure {
+        Some(closure) => closure.replay_admission(&source_common, destination_owner_id)?,
+        None => GraphAdmission::for_replay(destination_owner_id, [], [], [], [], []),
     };
-    if reopened_count != request.retained_memory_ids.len() {
+    let reopened_count = match source.identity().file_kind {
+        FileKind::Reliquary => {
+            let reopened = RelSession::open_path(&staged.path, &reopened_graph, [], [])
+                .map_err(|error| error.to_string())?;
+            if let Some(closure) = &semantic_closure {
+                closure.verify_reopened(
+                    &source_common,
+                    &reopened.common,
+                    source.owner_id(),
+                    destination_owner_id,
+                )?;
+            }
+            count_memories(&reopened)?
+        }
+        FileKind::Phylactery => {
+            let reopened = PhySession::open_path(&staged.path, &reopened_graph, [])
+                .map_err(|error| error.to_string())?;
+            if let Some(closure) = &semantic_closure {
+                closure.verify_reopened(
+                    &source_common,
+                    &reopened.common,
+                    source.owner_id(),
+                    destination_owner_id,
+                )?;
+            }
+            count_memories(&reopened)?
+        }
+    };
+    if reopened_count != selected.len() {
         return Err("independent rewrite reopen changed selected Memory count".into());
     }
     fs::rename(&staged.path, destination_path)
@@ -255,7 +306,7 @@ pub fn rewrite_memory_history_copy(
         source_owner_id: source.owner_id(),
         destination_owner_id,
         history_generation,
-        retained_memories: request.retained_memory_ids.len(),
+        retained_memories: selected.len(),
         retained_revisions,
         retained_tombstones,
         output_bytes: fs::metadata(destination_path)
@@ -280,148 +331,6 @@ fn reject_unsupported_operational_state(source: &Container) -> Result<(), String
             );
         }
     }
-    Ok(())
-}
-
-fn copy_derived_state(
-    source: &CommonState,
-    target: &mut Container,
-    target_memories: &mut MemoryStore,
-    retained: &BTreeSet<MemoryId>,
-) -> Result<(), String> {
-    let mut entity_ids = BTreeSet::new();
-    let resolutions = source
-        .perception
-        .mentions()
-        .filter(|resolution| retained.contains(&MemoryId(resolution.key.memory_id)))
-        .cloned()
-        .collect::<Vec<_>>();
-    for resolution in &resolutions {
-        match &resolution.status {
-            MemoryEntityResolutionStatus::Resolved { entity_id, .. } => {
-                entity_ids.insert(*entity_id);
-            }
-            MemoryEntityResolutionStatus::Ambiguous { candidates } => {
-                entity_ids.extend(candidates.iter().copied());
-            }
-            MemoryEntityResolutionStatus::Unresolved { .. } => {}
-        }
-    }
-    let relations = source
-        .graph
-        .active_relations()
-        .filter(|relation| {
-            [relation.source, relation.target]
-                .into_iter()
-                .all(|node| match node {
-                    NodeRef::Memory(id) => retained.contains(&MemoryId(id)),
-                    NodeRef::Entity(_) => true,
-                })
-        })
-        .copied()
-        .collect::<Vec<_>>();
-    for relation in &relations {
-        for node in [relation.source, relation.target] {
-            if let NodeRef::Entity(id) = node {
-                entity_ids.insert(EntityId(id));
-            }
-        }
-    }
-    let mut perception = PerceptionStore::open(target).map_err(|error| error.to_string())?;
-    for id in &entity_ids {
-        let entity = source
-            .perception
-            .entity(*id)
-            .ok_or("selected semantic closure references a missing Entity")?;
-        let published = perception
-            .publish_entity(
-                target,
-                EntityDraft {
-                    canonical_name: entity.canonical_name.clone(),
-                    aliases: entity.aliases.clone(),
-                    kind: entity.kind.clone(),
-                    summary: entity.summary.clone(),
-                    mutation_id: entity.mutation_id.clone(),
-                    created_at_ns: entity.created_at_ns,
-                    updated_at_ns: entity.updated_at_ns,
-                },
-            )
-            .map_err(|error| error.to_string())?;
-        if published.id != *id {
-            return Err("fresh-history replay changed stable Entity identity".into());
-        }
-    }
-    for resolution in resolutions {
-        perception
-            .put_mention_resolution(
-                target,
-                resolution.key,
-                0,
-                resolution.updated_at_ns,
-                resolution.status,
-            )
-            .map_err(|error| error.to_string())?;
-    }
-    let admission = GraphAdmission::for_changes(
-        target.owner_id(),
-        retained.iter().map(|id| id.0),
-        entity_ids.iter().map(|id| {
-            let principal = perception
-                .entity(*id)
-                .is_some_and(|entity| entity.kind == PRINCIPAL_ENTITY_KIND);
-            (id.0, principal)
-        }),
-    );
-    let mut graph = GraphStore::open(target, &admission).map_err(|error| error.to_string())?;
-    if !relations.is_empty() {
-        let changes = relations
-            .iter()
-            .map(|relation| RelationChange {
-                source: relation.source,
-                target: relation.target,
-                kind: relation.kind,
-                active: true,
-                origin: relation.origin,
-            })
-            .collect::<Vec<_>>();
-        graph
-            .put(target, &admission, &changes)
-            .map_err(|error| error.to_string())?;
-    }
-    if let Some(current) = source.communities.current() {
-        let communities = current
-            .communities
-            .iter()
-            .filter_map(|community| {
-                let members = community
-                    .members
-                    .iter()
-                    .copied()
-                    .filter(|id| retained.contains(&MemoryId(*id)))
-                    .collect::<Vec<_>>();
-                (!members.is_empty()).then_some(reliquary_graph::Community {
-                    id: community.id,
-                    members,
-                })
-            })
-            .collect::<Vec<_>>();
-        if !communities.is_empty() {
-            let mut store =
-                CommunityStore::open(target, &graph).map_err(|error| error.to_string())?;
-            store
-                .publish(
-                    target,
-                    &graph,
-                    CommunitySnapshot {
-                        generation: 1,
-                        graph_version: graph.graph_version(),
-                        communities,
-                    },
-                )
-                .map_err(|error| error.to_string())?;
-        }
-    }
-    copy_ego(&source.ego, target, target_memories.memory_version())?;
     Ok(())
 }
 

@@ -172,6 +172,10 @@ trait RewriteOwnerView {
         id: MemoryId,
     ) -> Result<Option<reliquary_owner_session::model::MemoryHistory>, String>;
     fn graph_relations(&self) -> Vec<Relation>;
+    fn semantic_memory_closure(
+        &self,
+        retained: &BTreeSet<[u8; 32]>,
+    ) -> Result<Vec<MemoryId>, String>;
     fn has_profile(&self, id: [u8; 32]) -> bool;
     fn has_memory_vector(&self, profile: [u8; 32], body: [u8; 32]) -> Result<bool, String>;
     fn effective_freshness(&self, id: MemoryId) -> Result<Option<i16>, String>;
@@ -202,6 +206,13 @@ macro_rules! owner_view {
             }
             fn graph_relations(&self) -> Vec<Relation> {
                 self.graph_relations()
+            }
+            fn semantic_memory_closure(
+                &self,
+                retained: &BTreeSet<[u8; 32]>,
+            ) -> Result<Vec<MemoryId>, String> {
+                self.fresh_history_memory_closure(retained.iter().copied().map(MemoryId))
+                    .map_err(|error| error.to_string())
             }
             fn has_profile(&self, id: [u8; 32]) -> bool {
                 self.active_compatibility_profile(
@@ -465,6 +476,18 @@ fn plan_rewrite(
                         closure_expansions.insert(id);
                         changed = true;
                     }
+                }
+            }
+        }
+        if policy.derived_state == DerivedStateRewriteMode::RetainVerified {
+            for id in owner
+                .semantic_memory_closure(&retained)
+                .map_err(RewriteError::OwnerRead)?
+            {
+                if retained.insert(id.0) {
+                    dropped.remove(&id.0);
+                    closure_expansions.insert(id.0);
+                    changed = true;
                 }
             }
         }

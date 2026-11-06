@@ -444,6 +444,20 @@ macro_rules! common_reads {
             pub fn entity_resolutions(&self) -> Vec<MemoryEntityResolution> {
                 self.$field.perception.mentions().cloned().collect()
             }
+            /// Expand selected Memories through the owner-local semantic closure
+            /// used by fresh-history reconstruction.
+            pub fn fresh_history_memory_closure(
+                &self,
+                retained: impl IntoIterator<Item = MemoryId>,
+            ) -> Result<Vec<MemoryId>, OwnerSessionError> {
+                let retained = retained.into_iter().collect::<BTreeSet<_>>();
+                fresh_history_rewrite::semantic_memory_closure(
+                    &self.$field,
+                    self.owner_id,
+                    retained,
+                )
+                .map_err(OwnerSessionError::Record)
+            }
             pub fn graph_relations(&self) -> Vec<Relation> {
                 self.$field.graph.active_relations().copied().collect()
             }
@@ -595,6 +609,9 @@ mod external_memory;
 mod external_reference;
 mod fresh_history_rewrite;
 mod freshness_use;
+#[cfg(test)]
+#[path = "session/gm_parity_regressions.rs"]
+mod gm_parity_regressions;
 mod historical_proof;
 mod maintenance_prune;
 mod relationship_prune;
