@@ -814,3 +814,48 @@ fn dream_admission_cannot_name_absent_owner_history() {
     ));
     assert_eq!(writer.container.read_frames().unwrap().len(), before);
 }
+
+#[test]
+fn phy_current_open_rejects_orphan_pruned_packed_vector_marker() {
+    use lodestone_packed::{ScalarType, VectorSchema};
+
+    let path = Temp::new();
+    let owner = [0xA7; 16];
+    drop(PhyWriter::create_path(&path.0, owner).unwrap());
+
+    let mut container = Container::open_writer_as(&path.0, FileKind::Phylactery).unwrap();
+    let marker_anchor = container.append(b"synthetic marker anchor").unwrap();
+    let info = PackedVectorInfo {
+        id: reliquary_vector_store::PackedVectorId([0x5C; 32]),
+        schema: VectorSchema::new(1, ScalarType::F32).unwrap(),
+        count: 1,
+        byte_len: 4,
+    };
+    let digest = [0x93; 32];
+    let mut packed = PackedVectorStore::default();
+    packed
+        .insert_pruned(info, marker_anchor, digest)
+        .expect("well-formed synthetic pruned-marker state");
+    let marker = packed.marker_bytes(info.id, digest).unwrap();
+    container.append(&marker).unwrap();
+    container.sync().unwrap();
+    drop(container);
+
+    let before = fs::read(&path.0).unwrap();
+    let container = Container::open_read_only_as(&path.0, FileKind::Phylactery).unwrap();
+    let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    assert!(matches!(
+        PhySession::open(&container, &admission, []),
+        Err(OwnerSessionError::Record(message))
+            if message == "pruned packed payload lacks retention evidence"
+    ));
+    drop(container);
+    assert_eq!(fs::read(&path.0).unwrap(), before);
+
+    assert!(matches!(
+        PhySession::open_path_current(&path.0),
+        Err(OwnerSessionError::Record(message))
+            if message == "pruned packed payload lacks retention evidence"
+    ));
+    assert_eq!(fs::read(&path.0).unwrap(), before);
+}
