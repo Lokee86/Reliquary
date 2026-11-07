@@ -1,6 +1,6 @@
 {
   "schema": "reliquary-d01-pgc01-binding-provisional-v1",
-  "status": "provisional-not-accepted",
+  "status": "accepted-synthetic-v1",
   "pg_c01_commit": "0f824a09fe01f5ff327ab56f3296f36d8f4d7c87",
   "pg_c01_parent": "dd77dfa8f7d3c73e3e03cd07b2f4f0f7c9850fae",
   "contract_root": "tools/corpus-evidence-v1",
@@ -23,5 +23,12 @@
     "evidence_scope": "synthetic_fixture",
     "source_admission": "forbidden"
   },
-  "d01_review_record": "pgc01-d01-review.provisional.json"
+  "d01_review_record": "pgc01-d01-review.provisional.json",
+  "accepted_record": {
+    "planning_commit": "b6332a8ff5396a7725c73cbe7643c32950e2de7e",
+    "path": "docs/architecture/pg-c01-synthetic-contract-acceptance-evidence-2026-11-07.md",
+    "scope": "synthetic-v1-only",
+    "contract_bundle_sha256": "7a1abda477874b2a1ff78f75520e075f909750d45a17ce3d6528110334f33688",
+    "authentic_admission": false
+  }
 }

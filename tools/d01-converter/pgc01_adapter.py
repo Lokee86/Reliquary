@@ -1,4 +1,4 @@
-"""Strict read-only adapter for the pinned provisional PG-C01 contract."""
+"""Strict read-only adapter for the pinned accepted synthetic PG-C01 contract."""
 
 from __future__ import annotations
 
@@ -82,6 +82,7 @@ def _load_binding(path: Path) -> dict[str, Any]:
         "physical_carrier_inventory",
         "synthetic_contract_example",
         "d01_review_record",
+        "accepted_record",
     }
     if set(value) != expected:
         raise ContractSnapshotError("D01 PG-C01 pin has unexpected fields")
@@ -89,8 +90,16 @@ def _load_binding(path: Path) -> dict[str, Any]:
         raise ContractSnapshotError("D01 scoped review record is missing")
     if value["schema"] != "reliquary-d01-pgc01-binding-provisional-v1":
         raise ContractSnapshotError("unsupported D01 PG-C01 pin schema")
-    if value["status"] != "provisional-not-accepted":
-        raise ContractSnapshotError("PG-C01 is not accepted by this provisional lane")
+    if value["status"] != "accepted-synthetic-v1":
+        raise ContractSnapshotError("PG-C01 synthetic v1 acceptance record is required")
+    if value["accepted_record"] != {
+        "planning_commit": "b6332a8ff5396a7725c73cbe7643c32950e2de7e",
+        "path": "docs/architecture/pg-c01-synthetic-contract-acceptance-evidence-2026-11-07.md",
+        "scope": "synthetic-v1-only",
+        "contract_bundle_sha256": PINNED_REGISTRY_HASHES["contract_bundle"],
+        "authentic_admission": False,
+    }:
+        raise ContractSnapshotError("PG-C01 acceptance record is missing or out of scope")
     if value["pg_c01_commit"] != PINNED_COMMIT or value["pg_c01_parent"] != PINNED_PARENT:
         raise ContractSnapshotError("PG-C01 revision differs from the reviewed provisional pin")
     if value["contract_root"] != "tools/corpus-evidence-v1":
@@ -125,10 +134,11 @@ def _load_binding(path: Path) -> dict[str, Any]:
         or review.get("review_lane") != "D01-T01"
         or review.get("exact_commit") != PINNED_COMMIT
         or review.get("parent_commit") != PINNED_PARENT
-        or review.get("outcome") != "D01-reviewed-provisional-input-unmodified"
+        or review.get("outcome") != "D01-reviewed-accepted-synthetic-contract"
         or review.get("reviewed_contract_inputs_unchanged") is not True
         or review.get("authentic_admission") is not False
         or review.get("registry_hashes") != PINNED_REGISTRY_HASHES
+        or review.get("planning_acceptance_record") != value["accepted_record"]
     ):
         raise ContractSnapshotError("D01 review record differs from the pinned PG-C01 snapshot")
     return value

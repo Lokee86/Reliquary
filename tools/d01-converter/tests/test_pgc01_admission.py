@@ -3,13 +3,17 @@ import os
 import sys
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from admission import (
     AdmissionDenied,
-    ClassificationKind,
+    AdmissionScope,
+    CarrierClassification,
+    CarrierKind,
+    admit_for_scope,
     classify_source_marker,
     classify_synthetic_frame,
     require_source_admission,
@@ -43,23 +47,59 @@ class PGC01AdmissionTests(unittest.TestCase):
         self.assertEqual(self.snapshot.carriers["unclassified_carriers"], [])
         self.assertFalse(self.snapshot.authentic_admission)
 
-    def test_marker_candidate_is_only_unclassified_metadata(self):
+    def test_candidate_marker_is_unclassified_not_a_synthetic_or_authentic_carrier(self):
         result = classify_source_marker("CVAAFMT2", self.snapshot)
-        self.assertEqual(result.kind, ClassificationKind.UNCLASSIFIED_SOURCE_MARKER)
+        self.assertEqual(result.kind, CarrierKind.UNCLASSIFIED_SOURCE_MARKER)
+        self.assertIsNone(result.family_id)
+        self.assertIsNone(result.target_schema_id)
         self.assertFalse(result.source_admissible)
-        with self.assertRaisesRegex(AdmissionDenied, "admission is closed"):
+        with self.assertRaisesRegex(AdmissionDenied, "unclassified source markers"):
+            admit_for_scope(result, self.snapshot, AdmissionScope.SYNTHETIC_FIXTURE_TEST)
+        with self.assertRaisesRegex(AdmissionDenied, "F03-V04"):
             require_source_admission(result, self.snapshot)
 
-    def test_synthetic_fixture_is_never_source_admissible(self):
+    def test_known_synthetic_fixture_maps_to_contract_schema_but_never_source_admits(self):
         frame = build_frame(
             "synthetic.archive_turn.v1",
             {"conversation_id": "fixture", "node_id": "node", "text": "not source"},
         )
-        result = classify_synthetic_frame(frame)
-        self.assertEqual(result.kind, ClassificationKind.SYNTHETIC_FIXTURE_ONLY)
+        result = classify_synthetic_frame(frame, self.snapshot)
+        self.assertEqual(result.kind, CarrierKind.SYNTHETIC_FIXTURE)
+        self.assertEqual(result.marker, "D01SYN01")
+        self.assertEqual(result.carrier_version, 1)
+        self.assertEqual(result.target_schema_id, "fixture.archive_turn_revision.v1")
         self.assertFalse(result.source_admissible)
-        with self.assertRaisesRegex(AdmissionDenied, "cannot be admitted"):
+
+        grant = admit_for_scope(result, self.snapshot, AdmissionScope.SYNTHETIC_FIXTURE_TEST)
+        self.assertTrue(grant.allowed_for_synthetic_tests)
+        self.assertFalse(grant.authentic_source_admission)
+        self.assertEqual(grant.contract_revision, PINNED_COMMIT)
+        self.assertEqual(
+            grant.contract_bundle_sha256,
+            PINNED_REGISTRY_HASHES["contract_bundle"],
+        )
+        with self.assertRaisesRegex(AdmissionDenied, "F03-V04"):
             require_source_admission(result, self.snapshot)
+
+    def test_forged_classification_cannot_expand_synthetic_grant(self):
+        frame = build_frame(
+            "synthetic.memory_revision.v1",
+            {"memory_id": "fixture-m", "revision": "1", "title": "title", "body": "body"},
+        )
+        result = classify_synthetic_frame(frame, self.snapshot)
+        unsealed = CarrierClassification(
+            kind=CarrierKind.SYNTHETIC_FIXTURE,
+            marker="D01SYN01",
+            family_id="synthetic.memory_revision.v1",
+            target_schema_id="fixture.memory_revision.v1",
+            carrier_version=1,
+            evidence_scope="synthetic_fixture",
+        )
+        with self.assertRaisesRegex(AdmissionDenied, "not produced by the closed D01 fixture parser"):
+            admit_for_scope(unsealed, self.snapshot, AdmissionScope.SYNTHETIC_FIXTURE_TEST)
+        forged = replace(result, source_admissible=True)
+        with self.assertRaisesRegex(AdmissionDenied, "closed D01 fixture map"):
+            admit_for_scope(forged, self.snapshot, AdmissionScope.SYNTHETIC_FIXTURE_TEST)
 
     def test_incomplete_report_uses_official_contract_and_has_no_source_bindings(self):
         report = build_incomplete_report(
@@ -92,7 +132,8 @@ class PGC01AdmissionTests(unittest.TestCase):
         self.assertEqual(example["status"], "PASS")
         self.assertEqual(example["evidence_scope"], "synthetic_fixture")
         result = classify_source_marker("example-only-marker", self.snapshot)
-        self.assertEqual(result.kind, ClassificationKind.UNCLASSIFIED_SOURCE_MARKER)
+        with self.assertRaises(AdmissionDenied):
+            admit_for_scope(result, self.snapshot, AdmissionScope.SYNTHETIC_FIXTURE_TEST)
         with self.assertRaises(AdmissionDenied):
             require_source_admission(result, self.snapshot)
 

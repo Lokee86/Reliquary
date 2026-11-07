@@ -10,7 +10,7 @@
     "production_package_dag_changed": false
   },
   "shared_contract": {
-    "pg_c01_status": "provisional-not-accepted",
+    "pg_c01_status": "accepted-synthetic-v1",
     "pinned_snapshot_at_inspection": "0f824a09fe01f5ff327ab56f3296f36d8f4d7c87",
     "pinned_parent": "dd77dfa8f7d3c73e3e03cd07b2f4f0f7c9850fae",
     "contract_code_sha256": "af6763707b5f7918b5295dc0fbcce9a2d55e975abe29f4eedaa00a9584e24245",
@@ -25,10 +25,12 @@
     "unclassified_carrier_entries": 0,
     "authentic_admission": false,
     "synthetic_positive_example_scope": "synthetic_fixture",
-    "synthetic_positive_example_source_admission": "forbidden"
+    "synthetic_positive_example_source_admission": "forbidden",
+    "accepted_planning_record_commit": "b6332a8ff5396a7725c73cbe7643c32950e2de7e",
+    "accepted_scope": "synthetic-v1-only"
   },
   "source_inventory": {
-    "authenticated_status": "pending-f03-source-witness",
+    "authenticated_status": "pending-f03-v02-v04-historical-source-witness",
     "admitted_carriers": [],
     "lexical_search_hint": {
       "path": "docs/architecture/cva-source-wire-inventory-2026-11-03.json",
@@ -127,7 +129,7 @@
         "reliquary-owner-session keeps Container and concrete stores behind RelSession/PhySession and RelWriter/PhyWriter.",
         "The current writer API is workflow-specific (turn/episode, grouped completion, native import, routed PHY memory) rather than a generic exact-history restore interface."
       ],
-      "required_resolution": "For each synthetic source value, first try the lawful typed owner operation. If a required accepted value cannot be represented, add only a narrow value-based owner-session operation with replay and reopen tests. Do not expose Container or mutable stores."
+      "required_resolution": "For each hand-authored synthetic value, first try the lawful typed owner operation. If a required accepted value cannot be represented, add only a narrow value-based owner-session operation with replay and reopen tests. Do not expose Container or mutable stores."
     },
     {
       "id": "grouped-history-and-version-allocation",
@@ -152,10 +154,11 @@
     }
   ],
   "next_gates": [
-    "PG-C01 must be independently reviewed and accepted before its schemas/goldens become the converter's shared contract; the exact dd77 snapshot is still provisional.",
-    "F03 must authenticate the pinned FRS07 source reader and derive a complete source-frame inventory; lexical candidates are not an allowlist.",
-    "D01 must replace this provisional target-seam draft with the reviewed codec-coverage.json covering every accepted source carrier and nested family.",
-    "Only synthetic work proceeds before F03-V04; authentic conversion is D01-T05 and remains gated by F03-V04 plus G4."
+    "PG-C01 synthetic v1 is accepted at planning record b6332a8ff5396a7725c73cbe7643c32950e2de7e; any new schema, registry, or golden revision needs its own pin and review.",
+    "F03-V02..V04 must export, independently reconcile, and freeze the complete source frame inventory; the 173 lexical candidates are not a carrier allowlist.",
+    "D01 must replace this provisional draft with codec-coverage.json mapping every observed physical carrier and nested family to accepted versions, source/target codecs, identity behavior, digest changes, relocation, proofs, and tests.",
+    "D01-T01 remains incomplete until full inventory-based classification, explicit target primitive gaps, separate-process tooling, and exact code/schema/map hashes are reviewed.",
+    "D01-T04 transaction and fault acceptance is a later predecessor; authentic D01-T05 conversion remains gated by D01-T04, F03-V04, and G4."
   ],
   "d01_synthetic_evidence_path": {
     "pin": "tools/d01-converter/pgc01-binding.provisional.json",
@@ -170,7 +173,28 @@
   "d01_pgc01_review": {
     "path": "tools/d01-converter/pgc01-d01-review.provisional.json",
     "reviewed_commit": "0f824a09fe01f5ff327ab56f3296f36d8f4d7c87",
-    "outcome": "D01-reviewed-provisional-input-unmodified",
-    "pg_c01_overall_acceptance": "pending-independent-gates"
+    "outcome": "D01-reviewed-accepted-synthetic-contract",
+    "pg_c01_overall_acceptance": "accepted-synthetic-v1"
+  },
+  "synthetic_fixture_map": [
+    {
+      "d01_fixture_family": "synthetic.archive_turn.v1",
+      "fixture_carrier": "D01SYN01",
+      "pg_c01_schema": "fixture.archive_turn_revision.v1",
+      "observed_source_carrier": false
+    },
+    {
+      "d01_fixture_family": "synthetic.memory_revision.v1",
+      "fixture_carrier": "D01SYN01",
+      "pg_c01_schema": "fixture.memory_revision.v1",
+      "observed_source_carrier": false
+    }
+  ],
+  "synthetic_create_only_test_seam": {
+    "path": "tools/d01-converter/synthetic_transaction.py",
+    "writes_only_under_system_temporary_directory": true,
+    "uses_atomic_no_replace_link": true,
+    "models_crash_durability_or_resume": false,
+    "satisfies_D01_T04": false
   }
 }

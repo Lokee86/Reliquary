@@ -4,7 +4,7 @@
   "exact_commit": "0f824a09fe01f5ff327ab56f3296f36d8f4d7c87",
   "parent_commit": "dd77dfa8f7d3c73e3e03cd07b2f4f0f7c9850fae",
   "prior_d01_pin": "dd77dfa8f7d3c73e3e03cd07b2f4f0f7c9850fae",
-  "outcome": "D01-reviewed-provisional-input-unmodified",
+  "outcome": "D01-reviewed-accepted-synthetic-contract",
   "commit_delta_paths": [
     "tools/corpus-evidence-v1/tests/test_corpus_evidence_v1.py"
   ],
@@ -26,8 +26,15 @@
   "physical_carrier_entries": 0,
   "authentic_admission": false,
   "scope_limits": [
-    "This is the D01 lane review of the exact 0f824a09 snapshot for the three-lane gate, not overall PG-C01 acceptance.",
-    "The review does not authenticate any FRS07 source inventory or authorize authentic source admission.",
+    "D01 review is limited to the accepted synthetic v1 contract and does not create an authentic source-carrier allowlist.",
+    "The review does not authenticate an FRS07 source inventory or authorize authentic source admission.",
     "The positive PG-C01 comparator example remains synthetic_fixture evidence."
-  ]
+  ],
+  "planning_acceptance_record": {
+    "planning_commit": "b6332a8ff5396a7725c73cbe7643c32950e2de7e",
+    "path": "docs/architecture/pg-c01-synthetic-contract-acceptance-evidence-2026-11-07.md",
+    "scope": "synthetic-v1-only",
+    "contract_bundle_sha256": "7a1abda477874b2a1ff78f75520e075f909750d45a17ce3d6528110334f33688",
+    "authentic_admission": false
+  }
 }
