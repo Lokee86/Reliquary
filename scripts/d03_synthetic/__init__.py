@@ -1,0 +1,1 @@
+"""D03 synthetic-only rehearsal support; not wired to product consumers."""
