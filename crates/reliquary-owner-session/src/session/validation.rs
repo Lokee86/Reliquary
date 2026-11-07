@@ -148,7 +148,11 @@ pub(super) fn validate_grouped_replay_admission(
 }
 
 pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), OwnerSessionError> {
-    const REL_ONLY: [(&[u8; 8], &str); 30] = [
+    const REL_ONLY: [(&[u8; 8], &str); 31] = [
+        (
+            reliquary_freshness_store::RETAINED_FRESHNESS_AUTHORITY_MARKER,
+            "retained Freshness settlement",
+        ),
         (
             reliquary_archive::PROJECT_CORRELATION_MARKER,
             "Archive project correlation",
