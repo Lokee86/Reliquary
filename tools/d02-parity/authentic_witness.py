@@ -60,23 +60,26 @@ def read_source(coverage_path: Path, coverage_digest: str, manifest_digest: str,
 
 
 def retained_records(directory: Path, source: dict, artifacts: dict):
-    expected = source["native"]["record_stream"]
+    return witness_batches(directory, source, artifacts, "records", source["native"]["record_stream"])
+
+
+def witness_batches(directory: Path, source: dict, artifacts: dict, stream: str, expected: dict):
     predecessor, ordinal = "0" * 64, 0
     for index in range(unsigned(expected["batches"])):
-        name = f'{source["copy_id"]}-records-{index:06}.json'
+        name = f'{source["copy_id"]}-{stream}-{index:06}.json'
         digest = artifacts[name]
         batch = pinned_document(directory / name, digest, 16 * 1024 * 1024)
         rows = batch["rows"]
         require(isinstance(rows, list) and 0 < len(rows) <= 128 and batch == {
             "schema_id": SCHEMA, "copy_id": source["copy_id"], "source_sha256": source["source_sha256"],
-            "stream": "records", "batch_index": str(index), "previous_sha256": predecessor,
+            "stream": stream, "batch_index": str(index), "previous_sha256": predecessor,
             "first_ordinal": str(ordinal), "rows": rows,
-        }, f"invalid F03 record batch chain at {name}")
+        }, f"invalid F03 batch chain at {name}")
         yield from rows
         ordinal += len(rows)
         predecessor = digest
     require(ordinal == unsigned(expected["rows"]) and predecessor == expected["last_batch_sha256"],
-            "F03 native record population differs")
+            "F03 native stream population differs")
 
 
 def index_rows(rows, domain: str, families: set[str]) -> dict:
