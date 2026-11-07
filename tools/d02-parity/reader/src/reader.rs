@@ -222,6 +222,7 @@ pub struct CliArgs {
     pub memory_cursor: Option<String>,
     pub archive_cut: Option<u64>,
     pub archive_binding_cut: Option<u64>,
+    pub archive_owner_history: bool,
     pub memory_history: Option<(MemoryId, u64)>,
     pub memory_owner_history: bool,
 }
@@ -238,6 +239,7 @@ where
     let mut memory_cursor = None;
     let mut archive_cut = None;
     let mut archive_binding_cut = None;
+    let mut archive_owner_history = false;
     let mut memory_history = None;
     let mut memory_owner_history = false;
     while let Some(flag) = args.next() {
@@ -287,6 +289,12 @@ where
                 }
                 memory_history = Some((MemoryId(id), version_number));
             }
+            "--archive-owner-history" => {
+                if archive_owner_history {
+                    return Err("duplicate Archive owner history option".into());
+                }
+                archive_owner_history = true;
+            }
             "--archive-cut" | "--archive-binding-cut" => {
                 let value = args
                     .next()
@@ -312,6 +320,7 @@ where
     if [
         archive_cut.is_some(),
         archive_binding_cut.is_some(),
+        archive_owner_history,
         memory_cursor.is_some(),
         memory_history.is_some(),
         memory_owner_history,
@@ -330,6 +339,7 @@ where
         memory_cursor,
         archive_cut,
         archive_binding_cut,
+        archive_owner_history,
         memory_history,
         memory_owner_history,
     })

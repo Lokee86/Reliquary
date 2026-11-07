@@ -74,3 +74,9 @@ The bulk observer opens a current-only candidate once under a shared read-only l
 `compare_authentic_memory.py` compares those rows with the independently verified F03 v2 witness. Supply the candidate SHA-256, legacy owner SHA-256, and pinned source coverage and manifest SHA-256 values. It verifies the source batch chain, reopens the current candidate in two fresh processes, and compares the retained row population by stable key, canonical value, origin, and availability.
 
 The comparator reports unobserved routing metadata and external Memory evidence separately. If either family has source rows, the report stays `INCOMPLETE` with exit code 2 even when all comparable Memory rows match. Candidate or source mismatch returns `FAIL`. The result applies to the stated Memory families for one owner.
+
+## Authentic retained Archive history
+
+The current reader's `--archive-owner-history` mode emits commitments for all accepted Archive publications and content at the owner head, plus native project correlations and embedded project file references. The projection checks turn body identities and inline attachment extents before hashing. Publication commitments preserve each local and global coordinate, signed transaction time, and typed retained value, including intermediate branch changes.
+
+`compare_authentic_archive.py` compares that output with the hash-pinned F03 v2 source witness. It matches both Archive and project rows by stable key and checks their exact value, origin, and availability. The check opens the current REL twice and verifies the file hash under each held read-only lease. Its pass applies to the two stated domains for one owner. Run `compare_archive_bindings.py` separately for reservation and first-applying publication checks.

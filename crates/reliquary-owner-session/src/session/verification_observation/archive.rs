@@ -3,6 +3,8 @@ use reliquary_archive::ArchiveHistorySnapshot;
 use std::collections::BTreeMap;
 
 mod bindings;
+mod owner;
+pub use owner::ArchiveOwnerHistoryObservation;
 
 pub struct ArchiveCutObservation {
     pub archive_head: u64,

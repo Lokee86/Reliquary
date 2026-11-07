@@ -1,7 +1,8 @@
 use crate::{
     CandidateKind,
     cut::{fields, observe_cut},
-    evidence_encoding::{hex, sha256},
+    evidence_encoding::hex,
+    retained_commitment::commitment,
 };
 use reliquary_memory_core::{MemoryRecord, MemorySourceRef, MemoryTemporalInference, PayloadState};
 use reliquary_owner_session::{MemoryOwnerHistoryObservation, MemoryPublicationOrigin};
@@ -47,6 +48,7 @@ fn retained_rows(mut observation: MemoryOwnerHistoryObservation) -> Result<Vec<V
                 id,
             )?;
             rows.push(commitment(
+                "memory",
                 "revision",
                 &record.memory_version.to_be_bytes(),
                 revision_value(record, &origin),
@@ -67,7 +69,7 @@ fn retained_rows(mut observation: MemoryOwnerHistoryObservation) -> Result<Vec<V
                 tombstone.memory_version,
                 id,
             )?;
-            rows.push(commitment("terminal", &id.0, json!({
+            rows.push(commitment("memory", "terminal", &id.0, json!({
                 "id": hex(&id.0), "revision": tombstone.revision,
                 "global_version": origin.global_version, "memory_version": tombstone.memory_version,
                 "transaction_time_ns": origin.transaction_time_ns,
@@ -78,6 +80,7 @@ fn retained_rows(mut observation: MemoryOwnerHistoryObservation) -> Result<Vec<V
                 .last()
                 .ok_or("empty_retained_memory_history")?;
             rows.push(commitment(
+                "memory",
                 "current",
                 &id.0,
                 json!(latest.record.revision),
@@ -90,6 +93,7 @@ fn retained_rows(mut observation: MemoryOwnerHistoryObservation) -> Result<Vec<V
     }
     for (id, body) in bodies {
         rows.push(commitment(
+            "memory",
             "body",
             &id.0,
             json!({
@@ -112,34 +116,6 @@ fn origin(
             "memory_owner_origin_unavailable_at_local_version:{version}"
         )),
     }
-}
-
-fn commitment(
-    family: &str,
-    key: &[u8],
-    mut value: Value,
-    availability: &str,
-) -> Result<Value, String> {
-    let coordinate: BTreeMap<_, _> = ["global_version", "memory_version", "transaction_time_ns"]
-        .into_iter()
-        .filter_map(|name| {
-            value
-                .get(name)?
-                .as_number()
-                .map(|number| (name, number.to_string()))
-        })
-        .collect();
-    value.sort_all_objects();
-    let canonical = serde_json::to_vec(&value).map_err(|_| "memory_owner_row_encoding_failed")?;
-    Ok(json!({
-        "projection_domain": "memory",
-        "family": family,
-        "stable_key_sha256": hex(&sha256(key)),
-        "canonical_value_sha256": hex(&sha256(&canonical)),
-        "canonical_byte_length": canonical.len().to_string(),
-        "origin_coordinate": coordinate,
-        "availability": availability,
-    }))
 }
 
 fn revision_value(record: &MemoryRecord, origin: &MemoryPublicationOrigin) -> Value {

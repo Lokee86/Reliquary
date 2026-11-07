@@ -3,7 +3,7 @@ use reliquary_container::{Container, FileKind};
 use std::path::{Path, PathBuf};
 
 mod archive;
-pub use archive::{ArchiveCutObservation, ArchiveTurnOrigin};
+pub use archive::{ArchiveCutObservation, ArchiveOwnerHistoryObservation, ArchiveTurnOrigin};
 
 mod memory;
 pub use memory::{
