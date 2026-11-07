@@ -38,6 +38,9 @@ impl fmt::Display for ContainerError {
                 f,
                 "container source changed while snapshot evidence was being used"
             ),
+            Self::ScanResourceLimitExceeded => {
+                write!(f, "bounded physical scan resource limit exceeded")
+            }
         }
     }
 }

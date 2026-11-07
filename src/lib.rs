@@ -20,6 +20,10 @@ mod cva_semantic_fragment;
 mod cva_semantic_live;
 #[path = "facade/cva_semantic_source.rs"]
 mod cva_semantic_source;
+#[cfg(feature = "history-oracle-fixtures")]
+pub mod f03_identity_observation;
+#[cfg(feature = "history-oracle-fixtures")]
+pub mod f03_source_witness;
 pub use cva_semantic_live::SemanticFreshnessReport;
 #[path = "archive/archive_import.rs"]
 mod archive_import;

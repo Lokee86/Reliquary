@@ -495,6 +495,14 @@ impl Container {
         Ok(self.lease.as_ref().and_then(Lease::identity_pair))
     }
 
+    pub(crate) fn clone_backing_file(&self) -> Result<File, io::Error> {
+        self.file.try_clone()
+    }
+
+    pub(crate) fn identity_for_file(file: &File) -> Result<Option<(u64, u64)>, ContainerError> {
+        Ok(file_identity(file)?.as_pair())
+    }
+
     pub fn path(&self) -> &Path {
         &self.path
     }
@@ -566,6 +574,7 @@ pub enum ContainerError {
     UnstableSnapshot,
     StaleIdentity,
     InvalidPrefixBoundary,
+    ScanResourceLimitExceeded,
 }
 
 impl From<io::Error> for ContainerError {

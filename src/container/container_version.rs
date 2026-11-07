@@ -159,6 +159,7 @@ impl Container {
             start,
             count,
             transaction_time_ns,
+            None,
         )
     }
 }
@@ -168,10 +169,16 @@ pub(crate) fn observe_version_payload_state(
     transaction_times: &mut BTreeMap<u64, i64>,
     standalone_reservations: &mut BTreeSet<u64>,
     payload: &[u8],
+    max_state_entries: Option<usize>,
 ) -> Result<(), ContainerError> {
     if let Some((version, transaction_time_ns)) = decode_version(payload)? {
         observe_version_range(next_version, version, 1)?;
         if let Some(transaction_time_ns) = transaction_time_ns {
+            ensure_bounded_insert(
+                transaction_times.len(),
+                transaction_times.contains_key(&version),
+                max_state_entries,
+            )?;
             observe_transaction_time(
                 *next_version,
                 transaction_times,
@@ -181,6 +188,11 @@ pub(crate) fn observe_version_payload_state(
         }
         // Only standalone tickets authorize a later physical envelope binding.
         // Existing semantic links are still validated by their concrete owners.
+        ensure_bounded_insert(
+            standalone_reservations.len(),
+            standalone_reservations.contains(&version),
+            max_state_entries,
+        )?;
         standalone_reservations.insert(version);
         return Ok(());
     }
@@ -191,6 +203,11 @@ pub(crate) fn observe_version_payload_state(
             } => {
                 observe_version_range(next_version, envelope.global_version, 1)?;
                 if let Some(time) = transaction_time_ns {
+                    ensure_bounded_insert(
+                        transaction_times.len(),
+                        transaction_times.contains_key(&envelope.global_version),
+                        max_state_entries,
+                    )?;
                     observe_transaction_time(
                         *next_version,
                         transaction_times,
@@ -220,6 +237,7 @@ pub(crate) fn observe_version_payload_state(
                 start,
                 count,
                 transaction_time_ns,
+                max_state_entries,
             )?;
         }
     }
@@ -234,6 +252,7 @@ pub(crate) fn observe_version_payload_state(
             start,
             u64::from(count),
             transaction_ns,
+            max_state_entries,
         )?;
     }
     Ok(())
@@ -273,13 +292,38 @@ fn observe_transaction_time(
     Ok(())
 }
 
+fn ensure_bounded_insert(
+    current_entries: usize,
+    already_present: bool,
+    limit: Option<usize>,
+) -> Result<(), ContainerError> {
+    if let Some(limit) = limit {
+        let required = if already_present {
+            current_entries
+        } else {
+            current_entries.saturating_add(1)
+        };
+        if required > limit {
+            return Err(ContainerError::ScanResourceLimitExceeded);
+        }
+    }
+    Ok(())
+}
+
 fn observe_transaction_time_range(
     next_version: u64,
     transaction_times: &mut BTreeMap<u64, i64>,
     start: u64,
     count: u64,
     transaction_time_ns: i64,
+    max_state_entries: Option<usize>,
 ) -> Result<(), ContainerError> {
+    if let Some(limit) = max_state_entries {
+        let additional = usize::try_from(count).unwrap_or(usize::MAX);
+        if transaction_times.len().saturating_add(additional) > limit {
+            return Err(ContainerError::ScanResourceLimitExceeded);
+        }
+    }
     for offset in 0..count {
         let version = start
             .checked_add(offset)

@@ -1,6 +1,7 @@
 use super::{CHUNK_HEADER_LEN, ChunkRef, Container, ContainerError, ObjectRef, read_header};
 use crate::container_version::observe_version_payload_state;
 use std::collections::{BTreeMap, BTreeSet};
+use std::fs::File;
 use std::io;
 use std::path::Path;
 
@@ -23,6 +24,8 @@ pub(crate) struct PhysicalCursor<'a> {
     standalone_reservations: BTreeSet<u64>,
     next_version: u64,
     transaction_times: BTreeMap<u64, i64>,
+    max_frame_payload_bytes: Option<u64>,
+    max_clock_state_entries: Option<usize>,
     done: bool,
 }
 
@@ -31,7 +34,17 @@ impl Container {
     /// immediate; payload framing and clock validation happen as the cursor advances.
     pub(crate) fn open_read_only_for_scan(path: impl AsRef<Path>) -> Result<Self, ContainerError> {
         let path = path.as_ref();
-        let mut file = std::fs::OpenOptions::new().read(true).open(path)?;
+        let file = std::fs::OpenOptions::new().read(true).open(path)?;
+        Self::open_read_only_for_scan_from_file(path, file)
+    }
+
+    /// Reads the header from a caller-held read-only file handle. This keeps the
+    /// parsed header bound to the exact file object the caller verified and locked.
+    pub(crate) fn open_read_only_for_scan_from_file(
+        path: impl AsRef<Path>,
+        mut file: File,
+    ) -> Result<Self, ContainerError> {
+        let path = path.as_ref();
         let lease = super::lease::Lease::shared(&file)?;
         let (version, identity, owner_uuid, header_len) = read_header(&mut file)?;
         Ok(Self {
@@ -59,6 +72,27 @@ impl Container {
         &self,
         prefix_end: u64,
     ) -> Result<PhysicalCursor<'_>, ContainerError> {
+        self.physical_cursor_with_limits(prefix_end, None, None)
+    }
+
+    pub(crate) fn physical_cursor_for_source_witness(
+        &self,
+        max_frame_payload_bytes: u64,
+        max_clock_state_entries: usize,
+    ) -> Result<PhysicalCursor<'_>, ContainerError> {
+        self.physical_cursor_with_limits(
+            u64::MAX,
+            Some(max_frame_payload_bytes),
+            Some(max_clock_state_entries),
+        )
+    }
+
+    fn physical_cursor_with_limits(
+        &self,
+        prefix_end: u64,
+        max_frame_payload_bytes: Option<u64>,
+        max_clock_state_entries: Option<usize>,
+    ) -> Result<PhysicalCursor<'_>, ContainerError> {
         let guard = self.read_gate()?;
         self.validate_path_identity()?;
         let physical_len = self.file.metadata()?.len();
@@ -83,6 +117,8 @@ impl Container {
             standalone_reservations: BTreeSet::new(),
             next_version: 1,
             transaction_times: BTreeMap::new(),
+            max_frame_payload_bytes,
+            max_clock_state_entries,
             done: false,
         })
     }
@@ -243,6 +279,12 @@ impl PhysicalCursor<'_> {
         let mut length_bytes = [0_u8; CHUNK_HEADER_LEN as usize];
         self.container.read_exact_at(&mut length_bytes, start)?;
         let len = u64::from_le_bytes(length_bytes);
+        if self
+            .max_frame_payload_bytes
+            .is_some_and(|limit| len > limit)
+        {
+            return Err(ContainerError::ScanResourceLimitExceeded);
+        }
         let end = start
             .checked_add(CHUNK_HEADER_LEN)
             .and_then(|v| v.checked_add(len))
@@ -263,6 +305,7 @@ impl PhysicalCursor<'_> {
             &mut self.transaction_times,
             &mut self.standalone_reservations,
             &payload,
+            self.max_clock_state_entries,
         )?;
         self.offset = end;
         Ok(Some(PhysicalFrame {
