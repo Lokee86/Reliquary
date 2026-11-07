@@ -1,0 +1,60 @@
+{
+  "schema_id": "reliquary-d02-independent-synthetic-checks-v1",
+  "reporting_date_local": "2026-11-07",
+  "checker_commit": "517b2edcfb652b0675cb9c0c4b000c128bd99148",
+  "production_package_count": 23,
+  "production_edge_count": 76,
+  "archive": {
+    "candidate_sha256": "eddaf73ded99abd2e79945f977f0278c5b2fb60b5031e51748a82d956551d488",
+    "cuts": [
+      {
+        "archive_version": "0",
+        "projection_sha256": "ec9c3efe1e4f7f79fbeeaeef1005e92e23a59e4631e8c1238697f017753d377e"
+      },
+      {
+        "archive_version": "1",
+        "projection_sha256": "443cf51867bbf4d50958d8e5cf645ac1e1c3386fa2b0fe5efce9557a8e67b462"
+      },
+      {
+        "archive_version": "2",
+        "projection_sha256": "218968d4f3b215a6fd331a7fa26b3ee97d79a71edfc2ffd3a572e72f1e460303"
+      },
+      {
+        "archive_version": "3",
+        "projection_sha256": "e43cf836c9360c1d907f04132251b4065749f4acbd63f79b5158881d2e0ffdfd"
+      },
+      {
+        "archive_version": "4",
+        "projection_sha256": "54ae1ed3e6105b3d249f86b26efc6de5166a189da2f218f17b54d0ef8e4ff04a"
+      }
+    ],
+    "fresh_process_repeats": "2",
+    "oracle_sha256": "abc1728356e323f46d11bdf9c224412e4cd3f181bfee7d5cdfdbfbabb1b9f2a4",
+    "reader_sha256": "e3a05210e967ced4a0640463bf0040f0ae23d41366fbdf75f9d3c96e9dd5f648",
+    "scope": "synthetic_ordered_archive_fixture_only",
+    "status": "PASS"
+  },
+  "phy_memory": {
+    "candidate_sha256": "478ec4fc99697a37f1f212140399c82b216569b59bd0b5d2df43a82b37ce4df8",
+    "cuts": [
+      {
+        "memory_version": "0",
+        "projection_sha256": "557dae7e192686dd6c750c4d991e666b938452f88f27fd8193cde894cbfdb9f4"
+      },
+      {
+        "memory_version": "1",
+        "projection_sha256": "3ca1f4239faec79b547b76d138332d290759608f21b6b52cc82b54bcd8ead10a"
+      },
+      {
+        "memory_version": "2",
+        "projection_sha256": "35ae5621750cf95394d149811bc3787fbaa7f12ab0131642abedfb973db9d336"
+      }
+    ],
+    "fresh_process_repeats": "2",
+    "oracle_sha256": "472bb6cb6ea36be51563f8d70acc031c41bef7f307c4e02b530510c348ecd56d",
+    "reader_sha256": "e3a05210e967ced4a0640463bf0040f0ae23d41366fbdf75f9d3c96e9dd5f648",
+    "scope": "synthetic_ordered_phy_memory_fixture_only",
+    "status": "PASS"
+  },
+  "authentic_parity_status": "INCOMPLETE"
+}

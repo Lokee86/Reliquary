@@ -2,7 +2,7 @@ use super::*;
 use reliquary_freshness_store::FreshnessEventCut;
 
 mod fingerprint;
-mod grouped;
+pub(super) mod grouped;
 #[cfg(test)]
 mod grouped_tests;
 mod projection;

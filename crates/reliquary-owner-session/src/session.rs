@@ -690,6 +690,11 @@ impl PhySession {
         let container = Container::open_read_only_as(path, FileKind::Phylactery)?;
         Self::open_current(&container)
     }
+
+    #[cfg(feature = "d02-observation")]
+    pub(super) fn verification_history_generation(&self) -> [u8; 32] {
+        self.history_generation
+    }
     pub fn owner_id(&self) -> [u8; 16] {
         self.owner_id
     }
@@ -767,6 +772,16 @@ mod management;
 mod phy_memory_import;
 mod phy_writer;
 mod rel_session;
+#[cfg(feature = "d02-observation")]
+mod verification_observation;
+#[cfg(feature = "d02-observation")]
+pub use verification_observation::{
+    ArchiveCutObservation, ArchiveOwnerHistoryObservation, ArchiveTurnOrigin,
+    CurrentOwnerFinalization, CurrentOwnerKind, CurrentOwnerObservation,
+    MAX_MEMORY_ID_CURSOR_BYTES, MAX_MEMORY_ID_PAGE_COUNT, MAX_MEMORY_ID_PAGE_PAYLOAD_BYTES,
+    MemoryHistoryCutObservation, MemoryIdPage, MemoryOwnerHistoryObservation,
+    MemoryPublicationOrigin, ReadOnlyCurrentOwnerObserver,
+};
 mod rel_writer;
 pub use management::{RelConversationSummary, RelTranscriptTurn};
 

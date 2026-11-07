@@ -1,0 +1,127 @@
+{
+  "schema_id": "reliquary-d02-synthetic-archive-binding-checks-v1",
+  "reporting_date_local": "2026-11-07",
+  "checker_commit": "ce3d4cee25ad58675cb89f8edc153b28b963e27b",
+  "native_replay_source_commit": "d21c575f9e8bc51d1a1c1f0f273c3ce4459f3f1a",
+  "synthetic_oracle_frozen_before_candidate": "a7d21d72",
+  "synthetic_comparison": {
+    "all_cuts": {
+      "candidate_sha256": "80214f488ab28d080486071dc548fa9b0d2a0bc329afbb4b0c9deb8848069558",
+      "cuts": [
+        {
+          "archive_version": "0",
+          "binding_projection_sha256": "6a64c1fc81f93eec5d41e961190c80ffc5a20960c277124de545c930e7223d73",
+          "projection_sha256": "ec9c3efe1e4f7f79fbeeaeef1005e92e23a59e4631e8c1238697f017753d377e"
+        },
+        {
+          "archive_version": "1",
+          "binding_projection_sha256": "82ccaa3e707b53aadafe990077eb9a37cbf4e51df862db9a519e0a5c37b7891a",
+          "projection_sha256": "443cf51867bbf4d50958d8e5cf645ac1e1c3386fa2b0fe5efce9557a8e67b462"
+        },
+        {
+          "archive_version": "2",
+          "binding_projection_sha256": "e044196cde92d1e21ac87203df3016e0290ed5b8ca7123309ad4d7c7372fbd89",
+          "projection_sha256": "0305a10ba402c00bb357bd0115deccad7189db80948bea52c26258db7ea6344d"
+        },
+        {
+          "archive_version": "3",
+          "binding_projection_sha256": "c2b9ca2468d2ebed49400bced108377e60a2d696b31ed371e09d7c468869e844",
+          "projection_sha256": "663edbff28cb7d75ca092360a498d17d0ca2a1d2cd47f6b177ffdd749ff3817d"
+        },
+        {
+          "archive_version": "4",
+          "binding_projection_sha256": "80ac46bc559342d280c8ed199091f4ff7903a3e486843aa1489d509d03704230",
+          "projection_sha256": "a5da2048039fe0a7e08f75bdeca6a9577344a2b5df75bd4fac87265c860b2f97"
+        },
+        {
+          "archive_version": "5",
+          "binding_projection_sha256": "0e619f369da2b728d6496a59fdd8d1758b5678922f738b79c5e2eece243a7cd1",
+          "projection_sha256": "f1a80536cfb045f35c4510f1b165c6bad64ffc3833d3a7b5b505f0f908b9e94d"
+        },
+        {
+          "archive_version": "6",
+          "binding_projection_sha256": "bbd6337eaaf1d63454331ced47d7aba360f90921a89ca41821b8303a05053604",
+          "projection_sha256": "9615d201d161a14a0cc85c9858c936cb087e078b3eaaae4d9ef8bdbb97a61ed9"
+        }
+      ],
+      "fresh_process_repeats": "2",
+      "oracle_sha256": "6603a0d36746f286d1481586d54bce77267c1032c79ed3431912d8cc43802722",
+      "reader_sha256": "3c4cf2cbd5e008042b79736d3c83b841a72feb7787eac47a99b9cc02940f0c59",
+      "scope": "synthetic_bound_archive_fixture_only",
+      "semantic_oracle_sha256": "abc1728356e323f46d11bdf9c224412e4cd3f181bfee7d5cdfdbfbabb1b9f2a4",
+      "status": "PASS"
+    },
+    "full_projection": {
+      "archive_version": "6",
+      "binding_projection_sha256": "bbd6337eaaf1d63454331ced47d7aba360f90921a89ca41821b8303a05053604",
+      "candidate_sha256": "80214f488ab28d080486071dc548fa9b0d2a0bc329afbb4b0c9deb8848069558",
+      "cohort_parity_status": "INCOMPLETE",
+      "expectation_sha256": "f4cb5673045389cb65cf775c1d29d989a69db8495fa03b8d4e3c1233291d60b6",
+      "fresh_process_repeats": "2",
+      "owner": {
+        "kind": "REL",
+        "owner_uuid": "32323232323232323232323232323232",
+        "scope": "project"
+      },
+      "reader_sha256": "3c4cf2cbd5e008042b79736d3c83b841a72feb7787eac47a99b9cc02940f0c59",
+      "schema_id": "reliquary-d02-archive-binding-comparison-v1",
+      "scope": "one_owner_archive_publication_bindings_only",
+      "source_file_sha256": "452c30a705f9b5fe6f6ddcc31d56ffc72d76051310bd0981755db39ce8e6614b",
+      "status": "PASS",
+      "target_history_generation_sha256": "e1df88795ef889209b94ec297e22596fc172a2ff5096a2ed8d5cf980eeaa686c"
+    },
+    "changed_candidate_sha256": "c98f4f670d691cc67637e9a937c979406df80064e966b0da91897f24c2ddb186",
+    "changed_binding_sha256": "7d7ba2d479a62fbad297b67f8c907a9aa8b016f6889faf5ea9c4243b5bc5480f",
+    "same_semantic_sha256": "9615d201d161a14a0cc85c9858c936cb087e078b3eaaae4d9ef8bdbb97a61ed9",
+    "negative_control": {
+      "reason": "Archive binding differs at local version 2",
+      "schema_id": "reliquary-d02-archive-binding-comparison-v1",
+      "status": "FAIL"
+    }
+  },
+  "tests": {
+    "rust_standalone": 21,
+    "python": 37,
+    "production_packages": 23,
+    "production_edges": 76
+  },
+  "authentic_cohort_parity_status": "INCOMPLETE",
+  "reverified_after_native_admission_fix": {
+    "native_replay_followup_source_commit": "60f70356ce9c4095b9e8530f9ec2efeea063933d",
+    "checker_replay_commit": "3e9ea36507391c97d75bd08f273d4cddeef76f4a",
+    "reader_sha256": "c60af9e7f9fd764a43bf106555afab318b1a24fcb57bb2363483199d64845fb9",
+    "all_seven_cuts_match": true,
+    "binding_projection_sha256": "bbd6337eaaf1d63454331ced47d7aba360f90921a89ca41821b8303a05053604",
+    "changed_candidate_rejected_at_local_version": "2",
+    "rust_standalone_tests": 21
+  },
+  "protected_source_expectation_compatibility": {
+    "status": "PASS",
+    "scope": "verified_F03_Archive_binding_expectation_parser_only",
+    "source_expectations": [
+      {
+        "archive_rows": 7526,
+        "copy": "copy-0001",
+        "expectation_bytes": 1397261,
+        "projection_sha256": "5a6bf6724fc91c3f1b84caff69bdefccdba0dddbd773aee6260494ab4acfd710",
+        "scope": "project"
+      },
+      {
+        "archive_rows": 21068,
+        "copy": "copy-0003",
+        "expectation_bytes": 3966163,
+        "projection_sha256": "c5b8bb8a70cce9788013b3b2ebfc796262eea663813cd836d2360cc7c7a73044",
+        "scope": "project"
+      },
+      {
+        "archive_rows": 3763,
+        "copy": "copy-0005",
+        "expectation_bytes": 759760,
+        "projection_sha256": "f80a08c979a7e73d7855c33223e28f5359cbf6dc0e72b3ce5473f494f6a225be",
+        "scope": "unspecified"
+      }
+    ],
+    "malformed_controls_rejected": 6,
+    "authentic_candidate_verification": "INCOMPLETE"
+  }
+}

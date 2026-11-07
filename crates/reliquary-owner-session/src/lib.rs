@@ -65,3 +65,12 @@ pub use session::{RetiredProfilePruneReport, prune_retired_profile_vectors_copy}
 pub use session::{StorageReclamationReport, reclaim_storage_copy};
 
 pub use session::{EntityCandidateMemory, EntityMentionInputs};
+
+#[cfg(feature = "d02-observation")]
+pub use session::{
+    ArchiveCutObservation, ArchiveOwnerHistoryObservation, ArchiveTurnOrigin,
+    CurrentOwnerFinalization, CurrentOwnerKind, CurrentOwnerObservation,
+    MAX_MEMORY_ID_CURSOR_BYTES, MAX_MEMORY_ID_PAGE_COUNT, MAX_MEMORY_ID_PAGE_PAYLOAD_BYTES,
+    MemoryHistoryCutObservation, MemoryIdPage, MemoryOwnerHistoryObservation,
+    MemoryPublicationOrigin, ReadOnlyCurrentOwnerObserver,
+};
