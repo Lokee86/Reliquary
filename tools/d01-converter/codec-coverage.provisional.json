@@ -157,7 +157,7 @@
     "PG-C01 synthetic v1 is accepted at planning record b6332a8ff5396a7725c73cbe7643c32950e2de7e; any new schema, registry, or golden revision needs its own pin and review.",
     "F03-V02..V04 must export, independently reconcile, and freeze the complete source frame inventory; the 173 lexical candidates are not a carrier allowlist.",
     "D01 must replace this provisional draft with codec-coverage.json mapping every observed physical carrier and nested family to accepted versions, source/target codecs, identity behavior, digest changes, relocation, proofs, and tests.",
-    "D01-T01 remains incomplete until full inventory-based classification, explicit target primitive gaps, separate-process tooling, and exact code/schema/map hashes are reviewed.",
+    "D01-T01 remains incomplete until inventory-based classification, explicit target primitive gaps, separate old-reader and target-writer workspaces/processes, and exact code/schema/map hashes are reviewed.",
     "D01-T04 transaction and fault acceptance is a later predecessor; authentic D01-T05 conversion remains gated by D01-T04, F03-V04, and G4."
   ],
   "d01_synthetic_evidence_path": {
@@ -168,7 +168,8 @@
     "allowed_report_status": "INCOMPLETE",
     "source_owner_bindings": 0,
     "admitted_source_carriers": 0,
-    "authentic_admission": false
+    "authentic_admission": false,
+    "cli": "tools/d01-converter/cli.py"
   },
   "d01_pgc01_review": {
     "path": "tools/d01-converter/pgc01-d01-review.provisional.json",
@@ -196,5 +197,28 @@
     "uses_atomic_no_replace_link": true,
     "models_crash_durability_or_resume": false,
     "satisfies_D01_T04": false
+  },
+  "target_primitive_gap_ledger": {
+    "path": "tools/d01-converter/target-primitive-gaps.provisional.json",
+    "status": "open-provisional",
+    "gap_count": 6,
+    "d02_phy_gap_owner": "D02"
+  },
+  "command_surface": {
+    "path": "tools/d01-converter/cli.py",
+    "subcommands": [
+      "inspect",
+      "convert",
+      "verify-structure"
+    ],
+    "each_requires_synthetic_fixture_flag": true,
+    "separate_invocation_process": true,
+    "reader_writer_process_separation_established": false,
+    "input_output_receipt_scope": "system-temporary-directory-only",
+    "structured_json_stdout": true,
+    "structured_nonzero_stderr": true,
+    "payload_logging": false,
+    "real_target_owner_candidate": false,
+    "resume_command": "explicitly-refused"
   }
 }

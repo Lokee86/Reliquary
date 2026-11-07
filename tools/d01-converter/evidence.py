@@ -13,7 +13,7 @@ from pgc01_adapter import PGC01Snapshot
 
 
 _ZERO_SHA256 = "0" * 64
-_CODE_FILES = ("admission.py", "evidence.py", "pgc01_adapter.py", "synthetic.py", "synthetic_transaction.py")
+_CODE_FILES = ("admission.py", "cli.py", "evidence.py", "pgc01_adapter.py", "synthetic.py", "synthetic_transaction.py")
 
 
 def _sha256(data: bytes) -> str:

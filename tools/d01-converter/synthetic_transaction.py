@@ -45,11 +45,15 @@ def create_only_synthetic_artifact(
     snapshot: PGC01Snapshot,
 ) -> SyntheticArtifactReceipt:
     """Write one verified D01SYN01 fixture under a TemporaryDirectory with no replacement."""
-    if not isinstance(workspace, tempfile.TemporaryDirectory):
-        raise TypeError("synthetic output requires an active TemporaryDirectory")
+    if isinstance(workspace, tempfile.TemporaryDirectory):
+        workspace_path = workspace.name
+    elif isinstance(workspace, (str, os.PathLike)):
+        workspace_path = os.fspath(workspace)
+    else:
+        raise TypeError("synthetic output requires a temporary directory path")
     if not isinstance(file_name, str) or not _FILE_NAME.fullmatch(file_name):
         raise ValueError("file_name must be one safe leaf name")
-    root = Path(workspace.name).resolve(strict=True)
+    root = Path(workspace_path).resolve(strict=True)
     allowed_temp_root = Path(tempfile.gettempdir()).resolve(strict=True)
     try:
         root.relative_to(allowed_temp_root)
