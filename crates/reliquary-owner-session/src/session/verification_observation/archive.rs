@@ -2,6 +2,8 @@ use super::{CurrentOwnerSession, ReadOnlyCurrentOwnerObserver};
 use reliquary_archive::ArchiveHistorySnapshot;
 use std::collections::BTreeMap;
 
+mod bindings;
+
 pub struct ArchiveCutObservation {
     pub archive_head: u64,
     pub snapshot: ArchiveHistorySnapshot,

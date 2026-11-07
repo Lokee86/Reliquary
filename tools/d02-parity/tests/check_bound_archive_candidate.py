@@ -2,16 +2,17 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 import subprocess
+import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from archive_binding_evidence import READER_SCHEMA as SCHEMA, validate_binding_projection
 from check_ordered_archive_candidate import OWNER, digest_file, expected_projection, projection_digest
+from compare_archive_bindings import run_reader
 
 
-SCHEMA = "reliquary-d02-archive-binding-cut-observation-v1"
-BINDING_DOMAIN = b"reliquary:d02:archive-publication-bindings:v1\0"
 # Local order is not global reservation order. The repeats point directly to
 # the applying rows; the last repeat must leave the current branch unchanged.
 EXPECTED_BINDINGS = (
@@ -65,23 +66,6 @@ def expected_semantic_projection(cut: int) -> dict:
     }
 
 
-def binding_digest(value: dict) -> str:
-    encoded = json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
-    return hashlib.sha256(BINDING_DOMAIN + encoded.encode("utf-8")).hexdigest()
-
-
-def run_reader(reader: Path, candidate: Path, cut: int) -> dict:
-    process = subprocess.run(
-        [str(reader), "--kind", "rel", "--candidate", str(candidate), "--archive-binding-cut", str(cut)],
-        capture_output=True,
-        timeout=30,
-        check=False,
-    )
-    if process.returncode != 2 or process.stderr:
-        raise ValueError(f"unexpected reader exit/output at Archive binding cut {cut}")
-    return json.loads(process.stdout)
-
-
 def verify_report(report: dict, candidate_sha256: str, cut: int) -> dict:
     required = {
         "schema_id": SCHEMA,
@@ -102,7 +86,7 @@ def verify_report(report: dict, candidate_sha256: str, cut: int) -> dict:
     if report.get("projection") != expected or report.get("projection_sha256") != semantic_hash:
         raise ValueError(f"Archive semantic projection differs at cut {cut}")
     bindings = expected_binding_projection(cut)
-    binding_hash = binding_digest(bindings)
+    binding_hash = validate_binding_projection(bindings)
     if report.get("binding_projection") != bindings or report.get("binding_projection_sha256") != binding_hash:
         raise ValueError(f"Archive publication binding projection differs at cut {cut}")
     return {
@@ -116,8 +100,8 @@ def check(reader: Path, candidate: Path) -> dict:
     before = digest_file(candidate)
     cuts = []
     for cut in range(7):
-        report = run_reader(reader, candidate, cut)
-        if report != run_reader(reader, candidate, cut):
+        report = run_reader(reader, candidate, str(cut))
+        if report != run_reader(reader, candidate, str(cut)):
             raise ValueError(f"fresh-process repeat differs at Archive binding cut {cut}")
         cuts.append(verify_report(report, before, cut))
     if digest_file(candidate) != before:

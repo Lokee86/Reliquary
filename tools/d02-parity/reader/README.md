@@ -51,3 +51,18 @@ python tools/d02-parity/tests/check_ordered_memory_candidate.py --reader tools/d
 ```
 
 The Python oracle uses separately authored exact observations for the ordered synthetic PHY fixture from D01. It checks genesis and both revisions in twice-repeated fresh processes, including global/Memory clocks, signed source time and distinct transaction times above 2^53.
+
+
+## Archive publication bindings
+
+Use `--archive-binding-cut VERSION` when the source requires exact local and global publication history. The report retains the selected semantic Archive projection and emits a separate binding projection. Each ordered binding carries the local and global versions, nullable signed transaction time, allocation or reservation mode, and first-applying local and global versions. A repeat has its own coordinates and resolves directly to the earlier applying publication. Global versions can be out of order in Archive local order when a later publication binds a prior reservation.
+
+The reader reconciles every local version in the requested prefix between current Archive replay and an independent physical frame-header walk under one read-only lease. It resolves signed timestamps from preceding standalone reservation frames, compares the result with the Container clock, and checks that each accepted object reference resolves to the right envelope. An incomplete binding prefix emits no observation. The local Archive observation still runs full owner replay and does not bound total memory.
+
+```powershell
+& tools/d02-parity/reader/target/debug/d02-current-reader.exe --kind rel --candidate $candidate --archive-binding-cut 6
+python tools/d02-parity/tests/check_bound_archive_candidate.py --reader tools/d02-parity/reader/target/debug/d02-current-reader.exe --candidate $syntheticCandidate
+python tools/d02-parity/compare_archive_bindings.py --reader tools/d02-parity/reader/target/debug/d02-current-reader.exe --candidate $candidate --candidate-sha256 $candidateHash --expectation $sourceExpectation --expectation-sha256 $expectationHash
+```
+
+The comparison expects a hash-pinned `reliquary-archive-binding-expectation-v1` JSON document containing `source_file_sha256`, an `owner` with `kind`, `owner_uuid` and `scope`, and the canonical `binding_projection` with an `archive_version` and ordered `bindings` array. It repeats the target read in two fresh processes at the expected head and compares every binding. The SHA-256 digest uses the domain `reliquary:d02:archive-publication-bindings:v1` followed by NUL and compact, key-sorted UTF-8 JSON of the projection. The result applies to one owner's Archive bindings. Cohort parity remains `INCOMPLETE`.

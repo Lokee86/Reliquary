@@ -3,9 +3,12 @@ use crate::{
     cut::{fields, observe_cut},
     evidence_encoding::{hex, sha256},
 };
-use serde_json::{Value, json};
+use reliquary_owner_session::ArchiveCutObservation;
+use serde_json::{Map, Value, json};
 use std::path::Path;
 
+mod bindings;
+pub use bindings::observe_archive_binding_cut;
 mod values;
 
 const SCHEMA: &str = "reliquary-d02-archive-cut-observation-v1";
@@ -29,15 +32,19 @@ pub fn observe_archive_cut(kind: CandidateKind, path: &Path, cut: u64) -> Value 
     });
     observe_cut(kind, path, report, |observer| {
         let observation = observer.archive_cut(cut)?;
-        let projection = values::projection(&observation);
-        let mut preimage = b"reliquary:d02:archive-cut:v1\0".to_vec();
-        preimage.extend(serde_json::to_vec(&projection).expect("Archive projection is JSON"));
-        Ok(fields(json!({
-            "archive_head": observation.archive_head.to_string(),
-            "projection_sha256": hex(&sha256(&preimage)),
-            "projection": projection,
-            "archive_observation_status": "OBSERVED",
-            "reason": "one_archive_cut_only; other families and admission incomplete",
-        })))
+        Ok(projection_fields(&observation))
     })
+}
+
+fn projection_fields(observation: &ArchiveCutObservation) -> Map<String, Value> {
+    let projection = values::projection(observation);
+    let mut preimage = b"reliquary:d02:archive-cut:v1\0".to_vec();
+    preimage.extend(serde_json::to_vec(&projection).expect("Archive projection is JSON"));
+    fields(json!({
+        "archive_head": observation.archive_head.to_string(),
+        "projection_sha256": hex(&sha256(&preimage)),
+        "projection": projection,
+        "archive_observation_status": "OBSERVED",
+        "reason": "one_archive_cut_only; other families and admission incomplete",
+    }))
 }

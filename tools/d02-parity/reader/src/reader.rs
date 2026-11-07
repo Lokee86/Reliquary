@@ -221,6 +221,7 @@ pub struct CliArgs {
     pub output: Option<PathBuf>,
     pub memory_cursor: Option<String>,
     pub archive_cut: Option<u64>,
+    pub archive_binding_cut: Option<u64>,
     pub memory_history: Option<(MemoryId, u64)>,
 }
 
@@ -235,6 +236,7 @@ where
     let mut output = None;
     let mut memory_cursor = None;
     let mut archive_cut = None;
+    let mut archive_binding_cut = None;
     let mut memory_history = None;
     while let Some(flag) = args.next() {
         match flag.as_str() {
@@ -277,21 +279,31 @@ where
                 }
                 memory_history = Some((MemoryId(id), version_number));
             }
-            "--archive-cut" => {
-                let value = args.next().ok_or("--archive-cut requires a version")?;
+            "--archive-cut" | "--archive-binding-cut" => {
+                let value = args
+                    .next()
+                    .ok_or("Archive observation requires a version")?;
                 let cut = value
                     .parse::<u64>()
                     .map_err(|_| "invalid Archive version")?;
                 if value != cut.to_string() {
                     return Err("Archive version must use canonical unsigned decimal".into());
                 }
-                archive_cut = Some(cut);
+                let selected = if flag == "--archive-cut" {
+                    &mut archive_cut
+                } else {
+                    &mut archive_binding_cut
+                };
+                if selected.replace(cut).is_some() {
+                    return Err("duplicate Archive observation option".into());
+                }
             }
             _ => return Err(format!("unknown argument: {flag}")),
         }
     }
     if [
         archive_cut.is_some(),
+        archive_binding_cut.is_some(),
         memory_cursor.is_some(),
         memory_history.is_some(),
     ]
@@ -308,6 +320,7 @@ where
         output,
         memory_cursor,
         archive_cut,
+        archive_binding_cut,
         memory_history,
     })
 }
