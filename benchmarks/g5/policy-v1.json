@@ -1,0 +1,92 @@
+{
+  "schema_id": "reliquary-g5-measurement-policy-v1",
+  "policy_version": 1,
+  "status": "frozen-before-measurement",
+  "authority": {
+    "ticket": "G5-T01",
+    "spec_commit": "b6332a8ff5396a7725c73be7643c32950e2de7e",
+    "spec_path_at_spec_commit": "docs/architecture/g5-performance-release-acceptance-spec-2026-11-06.md",
+    "pg_c01_reviewed_commit": "0f824a09"
+  },
+  "thresholds": {
+    "unexplained_correctness_privacy_history_recovery_differences_max": 0,
+    "median_latency_candidate_over_reference_max": 1.10,
+    "p95_latency_candidate_over_reference_max": 1.25,
+    "sustained_throughput_candidate_over_reference_min": 0.90,
+    "peak_memory_candidate_over_reference_max": 1.15,
+    "peak_memory_metrics": ["private_bytes", "working_set_bytes"],
+    "report_both_memory_metrics_when_available": true,
+    "p99": "diagnostic_only",
+    "structural_guards": [
+      "No new whole-file copy/materialization on ordinary bounded retrieval or per-turn operation.",
+      "No provider call under an owner mutation lock.",
+      "No unbounded queue or stale-owner retry loop."
+    ],
+    "tighter_baseline_rule": "Existing tighter, directly applicable accepted baselines take precedence; record the accepted baseline and scope."
+  },
+  "comparison": {
+    "pair_key": ["case_id", "workload_input_sha256", "session_id", "pair_index"],
+    "pair_definition": "One old and one new sample for the same case, frozen input, machine profile, and session; record arm order and alternate which arm runs first.",
+    "quantile_method": { "median": "Conventional median; average the two middle observations when the count is even.", "p95_and_ci_endpoints": "nearest-rank-v1: rank = ceil(percentile * sample_count / 100), one-based." },
+    "bootstrap": {
+      "algorithm": "session-stratified paired percentile bootstrap v1",
+      "unit": "Aligned old/new sample pairs; resample pair indexes with replacement within each of three sessions.",
+      "confidence_level_percent": 95,
+      "interval_percentiles": [2.5, 97.5],
+      "replicates": 10000,
+      "index_rng": "SplitMix64-v1 with rejection sampling for unbiased bounded indexes.",
+      "seed": "First 64 bits big-endian of SHA-256(UTF-8(policy_schema_id + NUL + case_id + NUL + metric_id + NUL + session_id)); separate stream per session.",
+      "latency": "Compute p50 and p95 ratio per resample.",
+      "throughput": "Compute p50 candidate/reference ratio per resample.",
+      "memory": "Compute p50 ratio of per-sample process peak bytes; also report every sample and observed maximum."
+    },
+    "rules": {
+      "maximum_ratio_pass": "upper 95% interval bound <= limit",
+      "maximum_ratio_fail": "lower 95% interval bound > limit",
+      "minimum_ratio_pass": "lower 95% interval bound >= limit",
+      "minimum_ratio_fail": "upper 95% interval bound < limit",
+      "otherwise": "INCONCLUSIVE",
+      "incomplete_evidence": "INCOMPLETE, not a pass.",
+      "unsupported_old_capability": "NOT_COMPARABLE; never treat as zero cost.",
+      "no_trustworthy_reference": "UNBASELINED; freeze a case-specific absolute limit and rationale before release measurement and keep the G5 item open until reviewed.",
+      "incomparable_build_or_inputs": "INCONCLUSIVE; rerun under comparable host and input conditions without changing limits.",
+      "measurement_window_violation": "INCONCLUSIVE; do not accept a run with overlapping work or forbidden machine changes.",
+      "correctness": "Any unexplained semantic, privacy, history, or recovery difference is FAIL regardless of speed."
+    },
+    "near_zero_reference": "Batch a repeatable operation until the total timed interval exceeds measured monotonic-clock resolution; record batch size and resolution. No ratio exemption."
+  },
+  "sampling": {
+    "independent_sessions": 3,
+    "short_operations": {
+      "warmups_per_arm_per_session_min": 5,
+      "measured_pairs_per_session_min": 30,
+      "measured_pairs_per_session_cap": 90,
+      "interpretation": "One pair contains one old and one new sample; this conservative per-session reading meets or exceeds the stated minimum."
+    },
+    "costly_open_or_maintenance": {
+      "alternating_old_new_pairs_per_session_min": 10,
+      "alternating_old_new_pairs_per_session_cap": 30,
+      "interpretation": "One pair contains one old and one new sample; alternate which arm runs first across pairs and sessions."
+    },
+    "cap_rule": "If the 95% interval still straddles the threshold at the explicit cap, report INCONCLUSIVE; do not extend the cap or change a threshold after results.",
+    "outliers": "Retain and report every sample; never silently remove or replace an outlier.",
+    "session_rule": "Preserve raw samples and session IDs; never pool away session boundaries."
+  },
+  "machine_safety": {
+    "exclusive_measurement_window": "Required for release measurements, not merely a separate worktree.",
+    "no_overlap": ["CPU-heavy build/test", "disk scan", "model inference", "another benchmark"],
+    "normal_editing": "Allowed only when it does not create competing CPU/disk load.",
+    "prohibited": ["flush OS caches", "disable security tools", "alter global performance settings", "kill unrelated workloads"],
+    "cold_start": "Fresh process only; no cold-OS-cache claim.",
+    "build": "Release mode with locked dependencies; record compiler, optimization/features, source and binary hashes.",
+    "storage": "Check free space before release compilation; reuse an isolated cache per incompatible runtime; serialize Cargo; do not create per-ticket target directories or delete another lane's cache.",
+    "mutation": "Run mutations on copies and recheck source/candidate custody hashes afterward."
+  },
+  "evidence": {
+    "per_run": ["policy and workload hashes", "case/input/session/pair/order", "machine profile", "source/binary/toolchain/features", "commands/args/exit/duration/log hashes", "raw samples and units", "correctness witness", "bootstrap seed/count/interval/classification", "resource maxima", "custody recheck"],
+    "privacy": "Report hashes, IDs, and counts; never conversation text, credentials, or raw private payloads.",
+    "runner_interface": "benchmark --workloads <manifest> --old <binary> --new <binary> --cohort <approved-manifest> --output <directory>"
+  },
+  "machine_profile_schema": "machine-profile-v1.schema.json",
+  "statistics_selftests": "statistics-selftests-v1.json"
+}

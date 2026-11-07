@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "reliquary-g5-machine-profile-v1",
+  "title": "G5 benchmark machine and paired-build session profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "session_id", "captured_at_utc", "machine", "builds", "inputs", "conditions", "custody", "measurement_eligibility"],
+  "properties": {
+    "schema_id": { "const": "reliquary-g5-machine-profile-v1" },
+    "session_id": { "type": "string", "minLength": 1 },
+    "captured_at_utc": { "type": "string", "format": "date-time" },
+    "machine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alias", "os_name", "os_version", "architecture", "cpu_model", "logical_cpu_count", "physical_memory_bytes", "storage"],
+      "properties": {
+        "alias": { "type": "string", "minLength": 1, "description": "Use a stable non-identifying label; omit serial numbers, account names, and credentials." },
+        "os_name": { "type": "string", "minLength": 1 },
+        "os_version": { "type": "string", "minLength": 1 },
+        "architecture": { "type": "string", "minLength": 1 },
+        "cpu_model": { "type": "string", "minLength": 1 },
+        "logical_cpu_count": { "type": "integer", "minimum": 1 },
+        "physical_memory_bytes": { "type": "integer", "minimum": 1 },
+        "process_affinity_logical_cpu_ids": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "array", "items": { "type": "integer", "minimum": 0 }, "uniqueItems": true }
+          ]
+        },
+        "storage": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["role", "medium", "filesystem", "capacity_bytes", "free_before_build_bytes", "free_before_measurement_bytes"],
+            "properties": {
+              "role": { "type": "string", "enum": ["repository", "build_cache", "input_copy", "output"] },
+              "medium": { "type": "string", "enum": ["nvme", "ssd", "hdd", "network", "unknown"] },
+              "filesystem": { "type": "string", "minLength": 1 },
+              "capacity_bytes": { "type": "integer", "minimum": 1 },
+              "free_before_build_bytes": { "type": "integer", "minimum": 0 },
+              "free_before_measurement_bytes": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    "builds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate", "baseline"],
+      "properties": {
+        "candidate": { "$ref": "#/$defs/build" },
+        "baseline": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/build" }] }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workload_manifest_sha256", "policy_sha256", "cohort_manifest_sha256", "file_hashes", "dataset_counts", "model_fixture_sha256"],
+      "properties": {
+        "workload_manifest_sha256": { "$ref": "#/$defs/sha256" },
+        "policy_sha256": { "$ref": "#/$defs/sha256" },
+        "cohort_manifest_sha256": { "$ref": "#/$defs/sha256" },
+        "model_fixture_sha256": { "$ref": "#/$defs/sha256" },
+        "file_hashes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["role", "sha256"],
+            "properties": { "role": { "type": "string", "minLength": 1 }, "sha256": { "$ref": "#/$defs/sha256" } }
+          }
+        },
+        "dataset_counts": { "type": "object", "minProperties": 1, "additionalProperties": { "type": "integer", "minimum": 0 } }
+      }
+    },
+    "conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cache_semantics", "exclusive_window", "overlapping_compilation", "overlapping_benchmark", "overlapping_disk_scan", "overlapping_model_inference", "security_tools_changed", "global_performance_settings_changed", "unrelated_workloads_killed"],
+      "properties": {
+        "cache_semantics": { "type": "string", "enum": ["fresh-process-os-cache-unspecified", "warm-in-process", "other-explicitly-described"] },
+        "cache_notes": { "type": "string" },
+        "exclusive_window": { "type": "boolean" },
+        "overlapping_compilation": { "type": "boolean" },
+        "overlapping_benchmark": { "type": "boolean" },
+        "overlapping_disk_scan": { "type": "boolean" },
+        "overlapping_model_inference": { "type": "boolean" },
+        "security_tools_changed": { "type": "boolean" },
+        "global_performance_settings_changed": { "type": "boolean" },
+        "unrelated_workloads_killed": { "type": "boolean" },
+        "machine_match_group": { "type": "string", "minLength": 1 },
+        "load_observation": { "type": "string" }
+      }
+    },
+    "custody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mutation_uses_disposable_copy", "source_hashes_before", "source_hashes_after"],
+      "properties": {
+        "mutation_uses_disposable_copy": { "type": "boolean" },
+        "source_hashes_before": { "type": "array", "items": { "$ref": "#/$defs/sha256" } },
+        "source_hashes_after": { "type": "array", "items": { "$ref": "#/$defs/sha256" } },
+        "candidate_hashes_before": { "type": "array", "items": { "$ref": "#/$defs/sha256" } },
+        "candidate_hashes_after": { "type": "array", "items": { "$ref": "#/$defs/sha256" } },
+        "custody_result": { "type": "string", "enum": ["PASS", "FAIL", "INCOMPLETE"] }
+      }
+    },
+    "measurement_eligibility": { "type": "string", "enum": ["ELIGIBLE", "INCONCLUSIVE", "INCOMPLETE", "NOT_COMPARABLE", "UNBASELINED"] }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_commit", "binary_sha256", "rustc_version", "cargo_version", "cargo_lock_sha256", "profile", "target_triple", "features", "optimization_flags"],
+      "properties": {
+        "source_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "binary_sha256": { "$ref": "#/$defs/sha256" },
+        "rustc_version": { "type": "string", "minLength": 1 },
+        "cargo_version": { "type": "string", "minLength": 1 },
+        "cargo_lock_sha256": { "$ref": "#/$defs/sha256" },
+        "profile": { "type": "string", "enum": ["release", "bench", "optimized"] },
+        "target_triple": { "type": "string", "minLength": 1 },
+        "features": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "optimization_flags": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

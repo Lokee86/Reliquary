@@ -1,0 +1,613 @@
+{
+  "schema_id": "reliquary-g5-workloads-v1",
+  "manifest_version": 1,
+  "measurement_status": "NOT_STARTED",
+  "authority": {
+    "ticket": "G5-T01",
+    "spec_commit": "b6332a8ff5396a7725c73be7643c32950e2de7e",
+    "spec_path_at_spec_commit": "docs/architecture/g5-performance-release-acceptance-spec-2026-11-06.md",
+    "pg_c01_reviewed_commit": "0f824a09"
+  },
+  "scope": {
+    "live_provider_calls": false,
+    "private_source_corpus": false,
+    "measurement_results": false,
+    "hermes": false
+  },
+  "synthetic_g4_cohort": {
+    "cohort_id": "g4-native-rel21-corpus-v1",
+    "seed": "g4-rel21-v1",
+    "fresh_disposable_cohort_per_run": true,
+    "owner_binaries_committed": false,
+    "owners": [
+      {
+        "alias": "rel-lantern",
+        "kind": "REL",
+        "scope": "Project"
+      },
+      {
+        "alias": "rel-cascade",
+        "kind": "REL",
+        "scope": "Connection"
+      },
+      {
+        "alias": "phy-reader-a",
+        "kind": "PHY",
+        "principal": "principal-a"
+      },
+      {
+        "alias": "phy-reader-b",
+        "kind": "PHY",
+        "principal": "principal-b"
+      }
+    ],
+    "minimum_shape": {
+      "conversations": 12,
+      "accepted_turns": 40,
+      "branch_forks": 3,
+      "episodes_per_rel": 1
+    },
+    "owner_ids": "Record actual API-minted IDs in per-run output; test stable aliases after close/reopen.",
+    "source_scenarios": [
+      {
+        "id": "L-01",
+        "owner": "rel-lantern",
+        "clause": "Project release label Lantern."
+      },
+      {
+        "id": "L-02",
+        "owner": "rel-lantern",
+        "clause": "Principal A prefers afternoons.",
+        "memory_route": "phy-reader-a"
+      },
+      {
+        "id": "L-05",
+        "owner": "rel-lantern",
+        "clause": "Synthetic person Mira appears as an Entity mention."
+      },
+      {
+        "id": "L-07",
+        "owner": "rel-lantern",
+        "clause": "Distinct project Memory with fixed lexical phrase and deterministic vector."
+      },
+      {
+        "id": "C-01",
+        "owner": "rel-cascade",
+        "clause": "A different project's versioned operating plan."
+      },
+      {
+        "id": "C-02",
+        "owner": "rel-cascade",
+        "clause": "Principal B's private evidence belongs only in phy-reader-b.",
+        "memory_route": "phy-reader-b"
+      }
+    ]
+  },
+  "synthetic_probe_data": {
+    "vector_profile": {
+      "id": "g5-synthetic-f32-4d-v1",
+      "dimensions": 4,
+      "scalar": "f32",
+      "encoding": "lowercase little-endian IEEE-754 bit strings",
+      "provider_calls": false
+    },
+    "records": [
+      {
+        "alias": "memory-lantern-release",
+        "owner": "rel-lantern",
+        "source": "L-01",
+        "body": "Synthetic project release label Lantern.",
+        "vector_bits": [
+          "3f800000",
+          "00000000",
+          "00000000",
+          "00000000"
+        ]
+      },
+      {
+        "alias": "memory-afternoons",
+        "owner": "phy-reader-a",
+        "source": "L-02",
+        "body": "Synthetic principal-a preference: afternoons.",
+        "vector_bits": [
+          "00000000",
+          "3f800000",
+          "00000000",
+          "00000000"
+        ]
+      },
+      {
+        "alias": "memory-mira-mention",
+        "owner": "rel-lantern",
+        "source": "L-05",
+        "body": "Synthetic person Mira appears as an Entity mention.",
+        "vector_bits": [
+          "00000000",
+          "00000000",
+          "3f800000",
+          "00000000"
+        ]
+      },
+      {
+        "alias": "memory-cascade-plan",
+        "owner": "rel-cascade",
+        "source": "C-01",
+        "body": "Synthetic Cascade operating plan.",
+        "vector_bits": [
+          "00000000",
+          "00000000",
+          "00000000",
+          "3f800000"
+        ]
+      },
+      {
+        "alias": "memory-private-a",
+        "owner": "phy-reader-a",
+        "source": "L-02",
+        "body": "Synthetic private control item for principal-a.",
+        "vector_bits": [
+          "3f3504f3",
+          "3f3504f3",
+          "00000000",
+          "00000000"
+        ]
+      },
+      {
+        "alias": "memory-private-b",
+        "owner": "phy-reader-b",
+        "source": "C-02",
+        "body": "Synthetic private control item for principal-b.",
+        "vector_bits": [
+          "00000000",
+          "3f3504f3",
+          "3f3504f3",
+          "00000000"
+        ]
+      }
+    ],
+    "queries": [
+      {
+        "id": "q-lantern-lexical",
+        "kind": "lexical",
+        "text": "Lantern release label",
+        "expected_alias_order": [
+          "memory-lantern-release"
+        ]
+      },
+      {
+        "id": "q-afternoons-vector",
+        "kind": "vector",
+        "vector_bits": [
+          "00000000",
+          "3f800000",
+          "00000000",
+          "00000000"
+        ],
+        "expected_alias_order": [
+          "memory-afternoons"
+        ]
+      },
+      {
+        "id": "q-lantern-hybrid",
+        "kind": "hybrid",
+        "text": "Lantern project release",
+        "vector_bits": [
+          "3f800000",
+          "00000000",
+          "00000000",
+          "00000000"
+        ],
+        "expected_alias_order": [
+          "memory-lantern-release"
+        ]
+      },
+      {
+        "id": "q-mira-agentic",
+        "kind": "agentic_refine_traverse",
+        "text": "Mira entity mention in the Lantern project",
+        "vector_bits": [
+          "00000000",
+          "00000000",
+          "3f800000",
+          "00000000"
+        ],
+        "expected_alias_order": [
+          "memory-mira-mention"
+        ]
+      }
+    ],
+    "model_fixtures": [
+      {
+        "id": "extract-afternoons-v1",
+        "kind": "insomnia_extraction",
+        "source": "L-02",
+        "decision": "accept",
+        "owner": "phy-reader-a",
+        "record": "memory-afternoons",
+        "quote": "afternoons"
+      },
+      {
+        "id": "dream-lantern-v1",
+        "kind": "dream_population",
+        "decision": "accept_once_then_idempotent",
+        "source": "L-01",
+        "record": "memory-lantern-release"
+      },
+      {
+        "id": "entity-mira-v1",
+        "kind": "entity_resolution",
+        "decisions": [
+          "known",
+          "new",
+          "ambiguous"
+        ],
+        "source": "L-05"
+      },
+      {
+        "id": "host-outcomes-v1",
+        "kind": "host_delivery",
+        "outcomes": [
+          "accepted",
+          "unknown",
+          "rejected"
+        ],
+        "accepted_consumption_receipt_count": 1
+      },
+      {
+        "id": "freshness-settlement-v1",
+        "kind": "freshness_settlement",
+        "birth_record": "memory-lantern-release",
+        "confirmed_use_source": "host-outcomes-v1 accepted outcome",
+        "expected_accepted_use_receipts": 1,
+        "read_only_retrieval_grants_no_credit": true
+      }
+    ],
+    "queue_fault_script": [
+      "prepare",
+      "persist_checkpoint",
+      "disconnect",
+      "reconnect",
+      "replay_exact_checkpoint_prefix",
+      "resume_once",
+      "finalize_once"
+    ],
+    "d03_rehearsal": {
+      "id": "g5-d03-rehearsal-v1",
+      "environment": "disposable fake deployment directory only",
+      "state_sequence": [
+        "Unverified",
+        "VerifiedCandidate",
+        "StagedReadOnly",
+        "Rehearsed"
+      ],
+      "prewrite_fault": "after_selector_replacement_before_health_checks",
+      "prewrite_expected": "restore the exact prior selector/configuration and preserve source hashes",
+      "postwrite_boundary": {
+        "simulated": true,
+        "expected": "fence and preserve new generation; refuse blind rollback"
+      },
+      "activation_states_not_entered": [
+        "ReleaseReady",
+        "ActivatedReadOnly",
+        "Writable"
+      ],
+      "selector_write": false,
+      "enable_writes": false
+    }
+  },
+  "population_generator": {
+    "id": "g5-memory-population-v1",
+    "seed": "g5-memory-population-v1",
+    "sizes": [
+      1000,
+      10000,
+      50000
+    ],
+    "memory_id": "First 16 bytes of SHA-256(UTF-8(seed + NUL + decimal index)), lowercase hex.",
+    "body": "Synthetic memory {index:06d} cohort-{index_mod_16:02d}; no private or provider-derived text.",
+    "vector": "One of the four one-hot f32 vectors above, by index modulo 4.",
+    "retrieval_candidate_limit": 30,
+    "retrieval_result_limit": 10,
+    "retrieval_limit_source": "crates/reliquary-retrieval/src/lib.rs DEFAULT_SEARCH_CANDIDATE_LIMIT and DEFAULT_SEARCH_RESULT_LIMIT",
+    "accuracy_claim": false
+  },
+  "historical_input_policy": {
+    "status": "BLOCKED_UNTIL_ADMITTED",
+    "measurement_ticket": "G5-T03",
+    "hard_predecessors": [
+      "F03-V04",
+      "D02-T04"
+    ],
+    "old_reference_candidate": "c6010fd3 or separately validated FRS07-capable source",
+    "rejected_old_reference": "f62b1fb4 (F01 reader with three REL failures)",
+    "source_rule": "Use only the exact F03-admitted and D02-accepted cohort; no historical paths, hashes, or payloads are in this synthetic manifest."
+  },
+  "case_ids": [
+    "G5-01",
+    "G5-02",
+    "G5-03",
+    "G5-04",
+    "G5-05",
+    "G5-06",
+    "G5-07",
+    "G5-08",
+    "G5-09"
+  ],
+  "paired_comparison": {
+    "g5_t03_cases": [
+      "G5-01",
+      "G5-02",
+      "G5-03",
+      "G5-04",
+      "G5-05",
+      "G5-06",
+      "G5-07",
+      "G5-08"
+    ],
+    "pairing_requires": [
+      "same_machine_profile",
+      "same_case",
+      "same_input_hash",
+      "same_semantic_workload",
+      "F03-V04",
+      "D02-T04"
+    ],
+    "unsupported_old_capability": "NOT_COMPARABLE; never encode as zero cost.",
+    "supported_without_trustworthy_reference": "UNBASELINED; freeze a case-specific absolute limit and rationale before release measurement.",
+    "incomparable_build_or_inputs": "INCONCLUSIVE; correct the mismatch and rerun without changing thresholds."
+  },
+  "cases": [
+    {
+      "id": "G5-01",
+      "name": "open-replay-reopen",
+      "inputs": [
+        "synthetic_g4_cohort",
+        "admitted_historical_cohort_when_eligible"
+      ],
+      "operations": [
+        "first_process_open_replay",
+        "repeated_read_only_reopen"
+      ],
+      "measurements": [
+        "wall_ns",
+        "cpu_ns",
+        "peak_private_bytes",
+        "peak_working_set_bytes",
+        "io_read_bytes",
+        "io_write_bytes"
+      ],
+      "checks": [
+        "exact_heads",
+        "history_witness_hashes",
+        "source_hashes"
+      ],
+      "mutation": false
+    },
+    {
+      "id": "G5-02",
+      "name": "retrieval-refine-traverse",
+      "inputs": [
+        "q-lantern-lexical",
+        "q-afternoons-vector",
+        "q-lantern-hybrid",
+        "q-mira-agentic"
+      ],
+      "operations": [
+        "lexical",
+        "vector",
+        "hybrid",
+        "agentic_refine",
+        "agentic_traverse"
+      ],
+      "measurements": [
+        "p50_latency_ns",
+        "p95_latency_ns",
+        "p99_diagnostic_ns",
+        "allocation_count",
+        "peak_memory_bytes",
+        "candidate_count"
+      ],
+      "checks": [
+        "exact_frozen_alias_order",
+        "exact_resolved_ids",
+        "bounded_hydration"
+      ]
+    },
+    {
+      "id": "G5-03",
+      "name": "accepted-turn-episode-extraction-publication",
+      "inputs": [
+        "extract-afternoons-v1"
+      ],
+      "operations": [
+        "accepted_turn",
+        "episode",
+        "scripted_extraction",
+        "publication"
+      ],
+      "measurements": [
+        "end_to_end_local_latency_ns",
+        "stage_latency_ns"
+      ],
+      "checks": [
+        "bounded_evidence",
+        "correct_owner_routing",
+        "one_durable_completion",
+        "local_fixture_only"
+      ]
+    },
+    {
+      "id": "G5-04",
+      "name": "dream-entity-vector-freshness-workers",
+      "inputs": [
+        "dream-lantern-v1",
+        "entity-mira-v1",
+        "g5-synthetic-f32-4d-v1",
+        "freshness-settlement-v1"
+      ],
+      "operations": [
+        "dream",
+        "entity",
+        "vector",
+        "freshness"
+      ],
+      "measurements": [
+        "throughput_ops_per_second",
+        "queue_lag_ns",
+        "peak_memory_bytes",
+        "mutation_lock_held_ns"
+      ],
+      "checks": [
+        "idempotent_resume",
+        "no_provider_call_under_mutation_lock",
+        "exact_receipts"
+      ]
+    },
+    {
+      "id": "G5-05",
+      "name": "concurrent-sessions-and-owners",
+      "inputs": [
+        "synthetic_g4_cohort"
+      ],
+      "client_counts": [
+        1,
+        2,
+        8,
+        16
+      ],
+      "owner_topologies": [
+        "one_shared_owner",
+        "separate_owner_per_client"
+      ],
+      "requests_per_client_per_session": 40,
+      "request_source": "First 40 accepted-turn aliases from the fixed G4 cohort.",
+      "measurements": [
+        "throughput_ops_per_second",
+        "fairness_by_client",
+        "p95_latency_ns"
+      ],
+      "checks": [
+        "no_duplicate_writer",
+        "owner_privacy",
+        "cancellation_semantics"
+      ],
+      "operation_schedule": {
+        "repeats_per_client": 10,
+        "operations_per_repeat": [
+          "bounded_read:q-lantern-lexical",
+          "append_and_finalize:synthetic_turn_id(client_index, repeat_index, \"accepted\")",
+          "cancel_provisional:synthetic_turn_id(client_index, repeat_index, \"cancelled\")",
+          "bounded_read:q-afternoons-vector"
+        ],
+        "turn_id_rule": "SHA-256 of cohort seed, client index, repeat index, and operation kind; aliases are unique across clients and repeats.",
+        "one_shared_owner": "Distinct explicitly authorized sessions share one owner; no writer session is duplicated.",
+        "separate_owner_per_client": "Each client uses its own generated owner with the same source-controlled operation sequence."
+      }
+    },
+    {
+      "id": "G5-06",
+      "name": "queue-stream-reconnect-recovery",
+      "inputs": [
+        "queue_fault_script",
+        "host-outcomes-v1"
+      ],
+      "operations": [
+        "checkpoint_to_visible",
+        "disconnect",
+        "reconnect",
+        "replay",
+        "recovery"
+      ],
+      "measurements": [
+        "checkpoint_to_visible_latency_ns",
+        "replay_event_count",
+        "recovery_time_ns"
+      ],
+      "checks": [
+        "no_unsynced_text",
+        "no_blind_redispatch",
+        "no_duplicate_credit",
+        "exact_replay_prefix"
+      ]
+    },
+    {
+      "id": "G5-07",
+      "name": "history-maintenance-verified-copy",
+      "inputs": [
+        "synthetic_g4_cohort"
+      ],
+      "operations": [
+        "read_history",
+        "maintenance_on_copy",
+        "verified_copy",
+        "second_pass"
+      ],
+      "measurements": [
+        "runtime_ns",
+        "peak_memory_bytes",
+        "temporary_disk_bytes"
+      ],
+      "checks": [
+        "source_hashes_unchanged",
+        "exact_reference_closure",
+        "second_pass_no_op"
+      ],
+      "mutation": "copies_only"
+    },
+    {
+      "id": "G5-08",
+      "name": "bounded-generated-population",
+      "inputs": [
+        "g5-memory-population-v1",
+        "q-lantern-hybrid"
+      ],
+      "sizes": [
+        1000,
+        10000,
+        50000
+      ],
+      "query_candidate_limit": 30,
+      "evidence_result_limit": 10,
+      "measurements": [
+        "scaling_by_population_size",
+        "peak_memory_bytes",
+        "hydrated_candidate_count"
+      ],
+      "checks": [
+        "fixed_query_window",
+        "fixed_evidence_window",
+        "bounded_hydration"
+      ],
+      "accuracy_claim": false
+    },
+    {
+      "id": "G5-09",
+      "name": "quiesce-remount-staged-generation-rehearsal",
+      "inputs": [
+        "g5-d03-rehearsal-v1"
+      ],
+      "operations": [
+        "drain",
+        "hold",
+        "restart",
+        "read_only_health",
+        "prewrite_rollback_boundary",
+        "postwrite_fence_boundary"
+      ],
+      "measurements": [
+        "drain_time_ns",
+        "hold_time_ns",
+        "restart_time_ns",
+        "read_only_health_latency_ns"
+      ],
+      "checks": [
+        "D03_state_transitions",
+        "rollback_boundary",
+        "selector_unchanged",
+        "read_only_only",
+        "no_activation"
+      ],
+      "comparison": "native rehearsal outside G5-T03; UNBASELINED until its absolute limit is reviewed."
+    }
+  ]
+}
