@@ -55,7 +55,7 @@
       "acceptance": "Capture golden ID inputs/outputs; independently verify the six-file corpus on copies OR record exact FRS07 blocker. A failed corpus proof blocks only later conversion, not construction of unrelated new capabilities.",
       "status": "completed",
       "completion_evidence": "docs/rebuild-f03-identity-and-corpus-evidence-2026-11-03.md",
-      "corpus_status": "historical FRS07 implementation reopened all six copies and matched pinned heads; pinned F01 reference still rejects three REL files; full historical fingerprint and conversion remain unverified",
+      "corpus_status": "F03-V01 accepted copy-only current-head admission on six verified copies from pinned FRS07 source; six source/copy hashes, sizes and mtimes and head tuples matched (see docs/architecture/f03-v01-current-head-admission-evidence-2026-11-07.md). Pinned F01 reference still rejects three REL files; full historical fingerprint and conversion remain unverified",
       "verification_breakdown": "docs/architecture/f03-historical-verification-implementation-spec-2026-11-06.md"
     },
     {

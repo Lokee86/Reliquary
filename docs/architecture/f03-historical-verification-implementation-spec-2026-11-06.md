@@ -2,7 +2,7 @@
 
 Parent index: [Architecture](INDEX.md). Parent plan: [post-G4 execution](post-g4-parallel-execution-plan-2026-11-06.md).
 
-**Status: implementation-ready continuation; deep corpus proof not accepted.** This does not reopen or rename the already completed original F03 capability, which permitted recording its precise FRS07 blocker. Tickets `F03-V01..V04` close the additional source assurance needed by D01/D02. No source conversion, mutation or activation is authorized here.
+**Status: implementation-ready continuation; F03-V01 copy-only current-head admission is accepted; full deep corpus proof remains open.** This does not reopen or rename the already completed original F03 capability, which permitted recording its precise FRS07 blocker. Tickets `F03-V01..V04` close the additional source assurance needed by D01/D02. No source conversion, mutation or activation is authorized here.
 
 ## Purpose
 
@@ -17,7 +17,7 @@ Read authoritative files only as ordinary immutable bytes. Run historical semant
 - F01 reference: `Reliquary-reference`, `f62b1fb4`, detached/locked. It cannot open the three promoted FRS07 RELs; do not repair it in place.
 - Historical reader: `Reliquary-frs07-validation`, exported from `c6010fd3`. `tests/frs07_copy_proof.rs` previously opened all six copies and checked heads.
 - Authoritative corpus: `reliquary-fixtures/local/authoritative`, three REL/PHY pairs. Exact file names/hashes/heads are in [the original F03 record](../rebuild-f03-identity-and-corpus-evidence-2026-11-03.md).
-- Fresh custody script: `scripts/verify_f03_corpus_custody.py`; six sources and six copies matched, totaling 124,664,599 bytes. The latest Rust rerun timed out in cold compilation before tests ran; it is not a new semantic pass.
+- Fresh custody script: `scripts/verify_f03_corpus_custody.py`; six sources and six copies matched, totaling 124,664,599 bytes. The 2026-11-07 F03-V01 replay passed against verified copies and matched all six current heads; it does not establish complete historical semantic coverage.
 - Existing historical helpers include `src/facade/historical_current_corpus_tests.rs`, `historical_*_fingerprint.rs`, `historical_cut_enumeration.rs`, and `historical_global_cuts.rs` in the historical snapshot. Many are test-only, and the complete corpus test is gated by `history-oracle-fixtures`.
 
 ## Target architecture and ownership
@@ -50,11 +50,11 @@ Repeat the export in a separate process on fresh identical copies with no shared
 
 ## Tickets
 
-All tickets are not started unless their new evidence is recorded; earlier custody work is reusable evidence, not completion of these larger tickets.
+F03-V01 is complete per the linked copy-only current-head evidence. F03-V02-V04 remain not started; earlier custody work does not complete the larger semantic/history tickets.
 
 | Ticket | Hard predecessors | Deliverable and scope | Executable acceptance / evidence |
 | --- | --- | --- | --- |
-| F03-V01 — authenticate reader and source | None | Six-source custody inventory; pinned historical decoder provenance; fresh copy-only admission | Existing custody script and `frs07_copy_proof` both exit 0; exact six head tuples and unchanged before/after hashes; binary/source/toolchain digests |
+| F03-V01 — authenticate reader and source | None | Six-source custody inventory; pinned historical decoder provenance; fresh copy-only admission | Existing custody script and `frs07_copy_proof` both exit 0; exact six head tuples and unchanged before/after hashes; binary/source/toolchain digests; [accepted V01 evidence](f03-v01-current-head-admission-evidence-2026-11-07.md) |
 | F03-V02 — complete source witness | PG-C01, F03-V01 | Test-only old-reader exporter and full source coverage, including unavailable cuts | Export each source in bounded batches; exhaustive family/cut census, no omissions/unknown carriers, no inference/writes; reviewed source witness manifest |
 | F03-V03 — independently reconcile history | F03-V02 | Separate-process repeat, archived-oracle difference ledger and negative fixtures | Exact repeat equality; historical intermediate mutation is detected; all negative cases fail closed; no unexplained semantic or availability difference |
 | F03-V04 — freeze source admission | F03-V03 | Reviewed `source-admission.json` binding six source/witness/schema/code digests | Independent review of coverage and authority, immutable private artifact custody, repeatable commands, evidence committed; no D01/D02/G5 completion claim |

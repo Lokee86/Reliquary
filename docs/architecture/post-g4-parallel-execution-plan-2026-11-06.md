@@ -2,7 +2,7 @@
 
 Parent index: [Architecture](INDEX.md). Canonical capability tracker: [rebuild capabilities](implementation-rebuild-capabilities-2026-11-03.json).
 
-**Status: execution specifications complete; PG-C02 acceptance remains in progress pending retained raw console logs; all other ticket and capability statuses remain unchanged.** Baseline: rebuilt `a3c3a964` accepts G4, with production/test changes through `31e7adb2`. The original F03 capability is complete under its limited historical evidence contract; its deeper source verification remains open. D01, D02, D03 and G5 remain not started. Hermes provider/UI are a separate new-native-data product track.
+**Status: execution specifications complete; PG-C01, PG-C02 and F03-V01 are completed at their scoped acceptance boundaries; all remaining ticket and capability statuses remain unchanged.** Baseline: rebuilt `a3c3a964` accepts G4, with production/test changes through `31e7adb2`. The original F03 capability remains complete under its limited historical evidence contract. F03-V01 now accepts copy-only current-head admission; V02-V04 and full historical assurance remain open. D01, D02, D03 and G5 remain not started. Hermes provider/UI are a separate new-native-data product track.
 
 ## Purpose
 
@@ -57,7 +57,7 @@ HP05 + HU03 -> HU04 real UI acceptance
 HP06 + HU04 -> HP07 real demo/submission evidence
 ```
 
-F03-V01 and PG-C02 can start immediately. PG-C01 is a short schema/golden-fixture implementation task, not another architecture discovery phase. HP01 can proceed independently now. After PG-C01, converter/verifier/staging/benchmark implementation is parallel-ready; actual authentic conversion remains gated by source proof. A missing acceptance result is not a reason to abandon safe predecessor work.
+PG-C01 synthetic contract, F03-V01 copy-only current-head admission, and PG-C02 runner repair are now recorded complete at their scoped boundaries. F03-V02 can proceed with its two hard predecessors satisfied. HP01 can proceed independently now. Converter/verifier/staging/benchmark implementation is parallel-ready; actual authentic conversion remains gated by F03-V04 and accepted G4. A missing acceptance result is not a reason to abandon safe predecessor work.
 
 Canonical capability dependencies remain `G4/F03 -> D01 -> D02 -> D03 -> G5`. The graph above permits provisional implementation where appropriate without declaring those gates complete early. It introduces no circular acceptance dependency between converter and verifier, staged generation and release, or provider and UI demo.
 

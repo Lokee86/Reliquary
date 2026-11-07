@@ -2,30 +2,29 @@
 
 ## Purpose
 
-Record the reviewed PG-C02 runner results and the evidence limit. This planning-side note links to, but does not replace, the execution receipt. PG-C02 remains in progress rather than accepted until the required raw console output is retained.
+Record the accepted cross-shell runner repair and the source-side test evidence. The test outputs live in the execution repository; this planning record links to the committed receipt and summarizes its scope.
 
 ## Overview
 
 - Planning/specification revision: 5d96db991a130d84bf76a720b445295f95ec0204.
 - Execution baseline: a3c3a9643f494bced51faf92ba057b16bcdac8a7.
 - Implementation: fix/postg4-pgc02-acceptance, commit 5169c4293d8531f961591282b61772cde0b31caa.
-- Labeled execution receipt and integration head: commit 26e84f45b54985d5aa1ceb3ab8e7fd7f183b8b0a.
-- Receipt: Reliquary-rebuild@26e84f45b54985d5aa1ceb3ab8e7fd7f183b8b0a:tests/g4-acceptance-pgc02-receipt-2026-11-07.json.
-- The receipt commit is the reviewed implementation branch's fast-forwarded head. The planning revision identifies the specification reviewed; it is not asserted as an ancestor of the execution branch.
+- Reviewed integration checkpoint: C:\!bin\workspace\Reliquary-postg4-pgc02-integration-2026-11-07, branch codex/postg4-pgc02-integration-2026-11-07, HEAD 6bf398b9fd005d6f870413111f20bbc40504ace6, tree 3c0069e7cfde98b0375744c35aa2480f65c0bc81. It was clean at verification.
+- Receipt: Reliquary-rebuild@6bf398b9fd005d6f870413111f20bbc40504ace6:tests/g4-acceptance-pgc02-receipt-2026-11-07.json.
 
 ## Observed test results
 
-The receipt records full acceptance runs in Windows PowerShell 5.1.26100.9711 and PowerShell 7.6.9. Each run reports exit code 0, two filtered G4 test invocations with two cases passed, one external-consumer reopen case passed, 25 CLI observations, and eight negative CLI invocations that all exited non-zero with structured JSON errors. Both report unchanged source bytes. The exact resolved commands, witness paths, and SHA-256 values are in the linked receipt.
+Windows PowerShell 5.1.26100.9711 and PowerShell 7.6.9 full acceptance runs report exit code 0. Each records two filtered G4 test invocations with two cases passed, one external-consumer reopen case passed, 25 CLI observations, and eight negative CLI invocations that all exited non-zero with structured JSON errors. Both report unchanged source bytes.
 
-The focused native-capture regression script also reports exit code 0 under both shells. Its eight checks cover runner parsing, preservation of the eight original negative calls, stdout/stderr JSON and exit-code handling, rejection of mixed output, Windows argument quoting, and concurrent 200 KB stdout/stderr capture.
+The focused native-capture regression script reports exit code 0 in both shells. Its eight checks cover runner parsing; retention of all eight negative calls; stdout/stderr JSON and exit-code handling; mixed-output rejection; Windows argument quoting; and concurrent 200 KB stdout/stderr capture.
 
-A separate review reported no code defects and independently verified the recorded artifact hashes and counts.
+The first Windows PowerShell attempt with a contaminated process module path stopped before CLI observation; the receipt preserves it as a failed diagnostic, not acceptance evidence. A clean process-local module-path rerun passed without changing machine/user settings. The source receipt and focused tests were independently reviewed as accepted.
+
+The rerun directory tests/evidence/pgc02-rerun-2026-11-07 contains 24 stdout/stderr logs. Git attribute /tests/evidence/pgc02-rerun-2026-11-07/*.log -text preserves their bytes. All 24 log hashes match their per-run metadata and the exact Git blob bytes at the 6bf398b9 integration head.
 
 ## Notes
 
-The receipt's raw_console_log_files is empty; it explicitly says no standalone raw console logs were persisted. The outcome summary and hashes are reviewable, but the execution transcript is not a retained raw log. The plan says partially logged runs remain incomplete, so this record does not claim PG-C02 acceptance.
-
-Next: rerun the full acceptance and focused checks in both supported shells, retain their complete raw console output alongside the receipt, and request another independent review. Update only the PG-C02 status after that evidence is committed. No Cargo build or product test was rerun for this planning record.
+PG-C02 is completed at the runner-repair acceptance boundary only. The receipt's top-level planning_revision field remains null; this planning record binds the run to the full plan revision above, while the run metadata carries its abbreviated prefix. The receipt commit records all test results and artifact hashes; no Cargo command was rerun for this planning update.
 
 ## Related docs
 
