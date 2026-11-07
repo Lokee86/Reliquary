@@ -14,7 +14,7 @@
     "p95_latency_candidate_over_reference_max": 1.25,
     "sustained_throughput_candidate_over_reference_min": 0.90,
     "peak_memory_candidate_over_reference_max": 1.15,
-    "peak_memory_metrics": ["private_bytes", "working_set_bytes"],
+    "peak_memory_metrics": ["peak_private_bytes", "peak_working_set_bytes"],
     "report_both_memory_metrics_when_available": true,
     "p99": "diagnostic_only",
     "structural_guards": [
@@ -85,8 +85,56 @@
   "evidence": {
     "per_run": ["policy and workload hashes", "case/input/session/pair/order", "machine profile", "source/binary/toolchain/features", "commands/args/exit/duration/log hashes", "raw samples and units", "correctness witness", "bootstrap seed/count/interval/classification", "resource maxima", "custody recheck"],
     "privacy": "Report hashes, IDs, and counts; never conversation text, credentials, or raw private payloads.",
-    "runner_interface": "benchmark --workloads <manifest> --old <binary> --new <binary> --cohort <approved-manifest> --output <directory>"
+    "runner_interface": "benchmark --workloads <manifest> --old <binary> --new <binary> --cohort <approved-manifest> --output <directory>",
+    "memory_metric_record": {
+      "location": "per-run result evidence.memory_metrics[]",
+      "record_key": ["case_id", "workload_input_sha256", "session_id", "pair_index", "metric_id"],
+      "required_fields": ["metric_id", "comparability_status", "sample_sufficiency_status", "units", "subject_process_scope", "sample_window", "reference_arm", "candidate_arm", "unavailable_reason"],
+      "arm_fields": ["collector_name", "collector_version", "collector_api_or_source", "collector_semantics", "raw_samples"],
+      "comparability_status_values": ["COMPARABLE", "INCOMPLETE", "NOT_COMPARABLE", "UNBASELINED"],
+      "sample_sufficiency_status_values": ["SUFFICIENT", "INCOMPLETE"],
+      "unavailable_reason": "Required for INCOMPLETE, NOT_COMPARABLE, or UNBASELINED; null when COMPARABLE.",
+      "sample_sufficiency": "COMPARABLE alone is not sufficient for release classification. Separately meet the warmup, per-session measured-pair, three-session, and cap requirements in sampling; under-minimum evidence is INCOMPLETE."
+    }
   },
   "machine_profile_schema": "machine-profile-v1.schema.json",
-  "statistics_selftests": "statistics-selftests-v1.json"
+  "statistics_selftests": "statistics-selftests-v1.json",
+  "memory_measurement_contract": {
+    "applies_to_workload_ids": [
+      "G5-01",
+      "G5-02",
+      "G5-04",
+      "G5-07",
+      "G5-08"
+    ],
+    "metrics": {
+      "peak_private_bytes": {
+        "workload_measurement": "peak_private_bytes",
+        "units": "bytes",
+        "scope": "subject workload process only, excluding the external runner; one measured operation/sample",
+        "definition": "Maximum private committed bytes for the subject process during the exact measured operation/sample interval. Record collector/API name, version, and semantics; a process-lifetime high-water value that cannot be isolated to this interval is unavailable for this sample."
+      },
+      "peak_working_set_bytes": {
+        "workload_measurement": "peak_working_set_bytes",
+        "units": "bytes",
+        "scope": "subject workload process only, excluding the external runner; one measured operation/sample",
+        "definition": "Maximum resident working-set bytes for the subject process during the exact measured operation/sample interval. Record collector/API name, version, and semantics; a process-lifetime high-water value that cannot be isolated to this interval is unavailable for this sample."
+      }
+    },
+    "comparison": {
+      "independent_metrics": true,
+      "threshold_key": "thresholds.peak_memory_candidate_over_reference_max",
+      "statistic": "For each metric independently, compute the paired-bootstrap ratio of p50 per-sample process peak bytes; retain every raw sample and report the observed maximum.",
+      "both_metrics_required_for_memory_gate_pass": true,
+      "never_substitute_one_metric_for_the_other": true,
+      "comparability_status_does_not_mean_sample_sufficiency": "COMPARABLE confirms only that this metric has semantically comparable paired samples; independently meet the required warmups, measured-pair minima, three sessions, and caps in sampling before ratio classification. Under-minimum evidence is INCOMPLETE."
+    },
+    "comparability": {
+      "requirement": "A metric is COMPARABLE only when old and candidate have complete paired samples for the same case/input/session/sample phase, byte units, and semantically equivalent documented collectors.",
+      "missing_or_incompatible_collector_or_sample": "INCOMPLETE; do not compute a partial ratio, infer zero, or substitute the other memory metric.",
+      "case_memory_gate": "FAIL if either COMPARABLE metric meets the failure rule; INCONCLUSIVE if both are COMPARABLE but either interval straddles its limit; PASS only when both metrics are COMPARABLE and independently meet the pass rule. Otherwise preserve the relevant INCOMPLETE, NOT_COMPARABLE, or UNBASELINED status; never substitute one metric for the other.",
+      "unsupported_old_product_capability": "NOT_COMPARABLE under comparison.rules.unsupported_old_capability; not zero cost and not a memory pass.",
+      "no_trustworthy_reference": "UNBASELINED under comparison.rules.no_trustworthy_reference; freeze and review a workload-specific absolute limit before release measurement."
+    }
+  }
 }

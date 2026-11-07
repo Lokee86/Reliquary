@@ -131,6 +131,31 @@ def classify(lower: float, upper: float, direction: str, limit: float) -> str:
     return "INCONCLUSIVE"
 
 
+def memory_metric_comparability(
+    reference_samples: list[float],
+    candidate_samples: list[float],
+    *,
+    collector_semantics_match: bool,
+    old_capability_supported: bool,
+    trustworthy_reference: bool,
+) -> str:
+    """Classify metric comparability only, not release sample sufficiency."""
+    if not old_capability_supported:
+        return "NOT_COMPARABLE"
+    if not trustworthy_reference:
+        return "UNBASELINED"
+    if (
+        not collector_semantics_match
+        or not reference_samples
+        or not candidate_samples
+        or len(reference_samples) != len(candidate_samples)
+    ):
+        return "INCOMPLETE"
+    if any(not math.isfinite(value) or value <= 0 for value in reference_samples + candidate_samples):
+        return "INCOMPLETE"
+    return "COMPARABLE"
+
+
 class G5PolicyTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -184,6 +209,61 @@ class G5PolicyTests(unittest.TestCase):
         self.assertEqual(thresholds["sustained_throughput_candidate_over_reference_min"], 0.90)
         self.assertEqual(thresholds["peak_memory_candidate_over_reference_max"], 1.15)
         self.assertEqual(thresholds["p99"], "diagnostic_only")
+
+    def test_memory_measurements_are_distinct_and_mapped_per_case(self) -> None:
+        contract = self.policy["memory_measurement_contract"]
+        expected_metrics = ["peak_private_bytes", "peak_working_set_bytes"]
+        self.assertEqual(self.policy["thresholds"]["peak_memory_metrics"], expected_metrics)
+        self.assertEqual(contract["applies_to_workload_ids"], ["G5-01", "G5-02", "G5-04", "G5-07", "G5-08"])
+        self.assertTrue(contract["comparison"]["both_metrics_required_for_memory_gate_pass"])
+        self.assertTrue(contract["comparison"]["never_substitute_one_metric_for_the_other"])
+        for metric_id in expected_metrics:
+            with self.subTest(metric=metric_id):
+                spec = contract["metrics"][metric_id]
+                self.assertEqual(spec["workload_measurement"], metric_id)
+                self.assertEqual(spec["units"], "bytes")
+        for case in self.manifest["cases"]:
+            if case["id"] in contract["applies_to_workload_ids"]:
+                with self.subTest(case=case["id"]):
+                    self.assertIn("peak_private_bytes", case["measurements"])
+                    self.assertIn("peak_working_set_bytes", case["measurements"])
+                    self.assertNotIn("peak_memory_bytes", case["measurements"])
+
+    def test_memory_metric_comparability_is_distinct_from_sample_sufficiency(self) -> None:
+        comparable_inputs = dict(collector_semantics_match=True, old_capability_supported=True, trustworthy_reference=True)
+        self.assertEqual(memory_metric_comparability([100.0], [110.0], **comparable_inputs), "COMPARABLE")
+        self.assertEqual(memory_metric_comparability([100.0], [], **comparable_inputs), "INCOMPLETE")
+        self.assertEqual(memory_metric_comparability([100.0], [110.0], collector_semantics_match=False, old_capability_supported=True, trustworthy_reference=True), "INCOMPLETE")
+        self.assertEqual(memory_metric_comparability([100.0], [110.0, 111.0], **comparable_inputs), "INCOMPLETE")
+        self.assertEqual(memory_metric_comparability([100.0], [110.0], collector_semantics_match=True, old_capability_supported=False, trustworthy_reference=True), "NOT_COMPARABLE")
+        self.assertEqual(memory_metric_comparability([100.0], [110.0], collector_semantics_match=True, old_capability_supported=True, trustworthy_reference=False), "UNBASELINED")
+        contract = self.policy["memory_measurement_contract"]
+        self.assertIn("INCOMPLETE", contract["comparability"]["missing_or_incompatible_collector_or_sample"])
+        self.assertIn("do not", contract["comparability"]["missing_or_incompatible_collector_or_sample"])
+        self.assertIn("NOT_COMPARABLE", contract["comparability"]["unsupported_old_product_capability"])
+        self.assertIn("UNBASELINED", contract["comparability"]["no_trustworthy_reference"])
+        gate = contract["comparability"]["case_memory_gate"]
+        self.assertIn("FAIL if either", gate)
+        self.assertIn("INCONCLUSIVE", gate)
+        self.assertIn("PASS only when both", gate)
+
+    def test_memory_metric_report_records_provenance_and_separate_sample_sufficiency(self) -> None:
+        record = self.policy["evidence"]["memory_metric_record"]
+        self.assertEqual(record["location"], "per-run result evidence.memory_metrics[]")
+        self.assertEqual(record["record_key"], ["case_id", "workload_input_sha256", "session_id", "pair_index", "metric_id"])
+        self.assertIn("comparability_status", record["required_fields"])
+        self.assertIn("sample_sufficiency_status", record["required_fields"])
+        self.assertIn("COMPARABLE", record["comparability_status_values"])
+        self.assertIn("SUFFICIENT", record["sample_sufficiency_status_values"])
+        self.assertIn("INCOMPLETE", record["sample_sufficiency_status_values"])
+        self.assertIn("collector_api_or_source", record["arm_fields"])
+        self.assertIn("collector_name", record["arm_fields"])
+        self.assertIn("collector_version", record["arm_fields"])
+        self.assertIn("collector_semantics", record["arm_fields"])
+        self.assertIn("COMPARABLE alone is not sufficient", record["sample_sufficiency"])
+        self.assertIn("measured-pair", record["sample_sufficiency"])
+        self.assertGreaterEqual(self.policy["sampling"]["short_operations"]["measured_pairs_per_session_min"], 30)
+        self.assertEqual(self.policy["sampling"]["independent_sessions"], 3)
 
     def test_sample_minima_caps_and_sessions_are_explicit(self) -> None:
         sampling = self.policy["sampling"]

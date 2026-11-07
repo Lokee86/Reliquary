@@ -403,8 +403,9 @@
         "p50_latency_ns",
         "p95_latency_ns",
         "p99_diagnostic_ns",
+        "peak_private_bytes",
+        "peak_working_set_bytes",
         "allocation_count",
-        "peak_memory_bytes",
         "candidate_count"
       ],
       "checks": [
@@ -454,7 +455,8 @@
       "measurements": [
         "throughput_ops_per_second",
         "queue_lag_ns",
-        "peak_memory_bytes",
+        "peak_private_bytes",
+        "peak_working_set_bytes",
         "mutation_lock_held_ns"
       ],
       "checks": [
@@ -544,7 +546,8 @@
       ],
       "measurements": [
         "runtime_ns",
-        "peak_memory_bytes",
+        "peak_private_bytes",
+        "peak_working_set_bytes",
         "temporary_disk_bytes"
       ],
       "checks": [
@@ -570,7 +573,8 @@
       "evidence_result_limit": 10,
       "measurements": [
         "scaling_by_population_size",
-        "peak_memory_bytes",
+        "peak_private_bytes",
+        "peak_working_set_bytes",
         "hydrated_candidate_count"
       ],
       "checks": [
