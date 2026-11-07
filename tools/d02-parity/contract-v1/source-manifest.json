@@ -1,0 +1,10 @@
+{
+  "source_repository": "Reliquary-pg-c01-v1",
+  "source_commit": "dd77dfa8f7d3c73e3e03cd07b2f4f0f7c9850fae",
+  "source_paths": [
+    "tools/corpus-evidence-v1/schemas/semantic-row-v1.schema.json",
+    "tools/corpus-evidence-v1/fixtures/comparator-pass-source-rows.v1.jsonl",
+    "tools/corpus-evidence-v1/fixtures/comparator-pass-target-rows.v1.jsonl"
+  ],
+  "scope": "synthetic_fixture_only"
+}
