@@ -461,7 +461,7 @@ fn rel_terminal_memory_prune_reclaims_body_embedded_in_grouped_insomnia_carrier(
     let old_body = memory_body_id("terminal grouped title", &secret);
     let successor_body = memory_body_id("retained grouped title", successor_content);
     let first_memory_version = writer.read_session().memory_version() + 1;
-    let record = |id, body_id, mutation: &str, title: &str, content: &str, version| MemoryRecord {
+    let record = |id, body_id, mutation: &str, version| MemoryRecord {
         id,
         revision: 1,
         body_id,
@@ -497,20 +497,11 @@ fn rel_terminal_memory_prune_reclaims_body_embedded_in_grouped_insomnia_carrier(
         updated_at_ns: 12,
         memory_version: version,
     };
-    let old_record = record(
-        old_id,
-        old_body,
-        old_mutation,
-        "terminal grouped title",
-        &secret,
-        first_memory_version,
-    );
+    let old_record = record(old_id, old_body, old_mutation, first_memory_version);
     let successor_record = record(
         successor_id,
         successor_body,
         new_mutation,
-        "retained grouped title",
-        successor_content,
         first_memory_version + 1,
     );
     let grouped_records = vec![
@@ -562,7 +553,7 @@ fn rel_terminal_memory_prune_reclaims_body_embedded_in_grouped_insomnia_carrier(
             completion_at,
         )
         .unwrap();
-    let observed = [old_id, successor_id].map(|id| {
+    let observed = [successor_id, old_id].map(|id| {
         let record = writer.read_session().current_memory(id).unwrap().record;
         crate::DreamMemoryCut {
             id,
