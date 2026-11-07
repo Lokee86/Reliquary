@@ -55,6 +55,7 @@ dependencies = [
  "hex",
  "reliquary-archive",
  "reliquary-container",
+ "reliquary-graph",
  "reliquary-memory-core",
  "reliquary-owner-session",
  "serde",

@@ -3,6 +3,7 @@ mod dream_lifecycle;
 pub use dream_lifecycle::GroupedMemoryLifecycle;
 #[path = "initial_promotion.rs"]
 mod initial_promotion;
+use crate::routing::{MemoryRoutingMetadata, ROUTING_MARKER, decode_routing_metadata};
 use crate::{codec::*, decode_grouped_creation, error::MemoryError, model::*};
 pub use initial_promotion::GroupedMemoryInitialPromotion;
 use reliquary_container::{Container, ContainerIdentity};
@@ -48,6 +49,7 @@ impl Default for State {
 pub struct MemoryStore {
     state: State,
     pruned_bodies: BTreeSet<MemoryBodyId>,
+    routing: BTreeMap<MemoryId, MemoryRoutingMetadata>,
     initialized: bool,
     owner: Option<([u8; 16], ContainerIdentity)>,
 }
@@ -85,6 +87,7 @@ impl MemoryStore {
                 || magic == *CREATION
                 || magic == *DELTA
                 || magic == *TOMBSTONE
+                || magic == *ROUTING_MARKER
                 || magic == *b"RELINSC7"
             {
                 return Err(MemoryError::Corrupt(
@@ -201,6 +204,16 @@ impl MemoryStore {
                 store.initialized = true;
                 continue;
             }
+            if magic.starts_with(b"RELMRTE") {
+                if len > 64 * 1024 {
+                    return Err(MemoryError::FieldTooLarge);
+                }
+                let mut payload = Vec::with_capacity(len);
+                payload.extend_from_slice(&magic);
+                frame.read_to_end(&mut payload)?;
+                store.apply_routing(decode_routing_metadata(&payload)?)?;
+                continue;
+            }
             if magic == *b"RELINSC7" {
                 let mut payload = Vec::with_capacity(len);
                 payload.extend_from_slice(&magic);
@@ -255,6 +268,40 @@ impl MemoryStore {
         }
         store.validate_backed_records()?;
         Ok(store)
+    }
+
+    pub fn routing_metadata(&self, memory_id: MemoryId) -> Option<&MemoryRoutingMetadata> {
+        self.routing.get(&memory_id)
+    }
+
+    fn apply_routing(&mut self, route: MemoryRoutingMetadata) -> Result<(), MemoryError> {
+        let record = self
+            .state
+            .revisions
+            .get(&route.memory_id)
+            .and_then(|revisions| revisions.first())
+            .ok_or(MemoryError::Corrupt(
+                "Memory routing precedes its Memory identity",
+            ))?;
+        if record.body_id != route.body_id {
+            return Err(MemoryError::Corrupt("Memory routing body identity differs"));
+        }
+        let body = self
+            .state
+            .bodies
+            .get(&route.body_id)
+            .ok_or(MemoryError::Corrupt(
+                "Memory routing requires the original body",
+            ))?;
+        route.validate_body(body)?;
+        if let Some(existing) = self.routing.get(&route.memory_id) {
+            if existing != &route {
+                return Err(MemoryError::Corrupt("conflicting Memory routing metadata"));
+            }
+        } else {
+            self.routing.insert(route.memory_id, route);
+        }
+        Ok(())
     }
 
     pub fn preflight_grouped_completion(

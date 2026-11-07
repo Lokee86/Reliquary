@@ -287,6 +287,9 @@ pub(crate) fn safe_memory_only_frames(
             if !memory_history_record(envelope.body)
                 && !reliquary_archive::is_archive_publication_body(envelope.body)
                     .map_err(|e| e.to_string())?
+                && reliquary_graph::clocked_graph_in_frame(&payload)
+                    .map_err(|e| e.to_string())?
+                    .is_none()
             {
                 return Err("transform needs an owner proof for publication body".into());
             }

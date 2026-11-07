@@ -9,6 +9,7 @@ publish = false
 
 [dependencies]
 reliquary-container = { path = "../../../crates/reliquary-container" }
+reliquary-graph = { path = "../../../crates/reliquary-graph" }
 reliquary-memory-core = { path = "../../../crates/reliquary-memory-core" }
 reliquary-archive = { path = "../../../crates/reliquary-archive" }
 reliquary-owner-session = { path = "../../../crates/reliquary-owner-session" }

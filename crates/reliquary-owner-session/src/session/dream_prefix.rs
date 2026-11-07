@@ -169,6 +169,9 @@ pub(crate) fn validate_compact_dream_prefix(
                     if !unsupported {
                         advance_memory_history(&mut head, &visible_memories, id, version)?;
                     }
+                } else if let Some(publication) = reliquary_graph::clocked_graph_in_frame(&payload)?
+                {
+                    graph_head = publication.graph_version;
                 } else if !reliquary_archive::is_archive_publication_body(envelope.body)? {
                     // Other publication forms need their own ordered owner proof.
                     unsupported = true;

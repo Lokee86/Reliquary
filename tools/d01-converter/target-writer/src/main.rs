@@ -9,6 +9,8 @@ use std::{
 };
 
 mod archive;
+mod authentic;
+mod authentic_values;
 mod episode;
 mod memory;
 mod memory_transfer;
@@ -21,6 +23,9 @@ const MAX_TRANSFER_BYTES: u64 = 4 * 1024 * 1024;
 fn main() -> ExitCode {
     let arguments: Vec<_> = std::env::args_os().skip(1).collect();
     let result = match arguments.as_slice() {
+        [mode, source, expected, output] if mode == "--authentic-frames" => {
+            authentic::convert(Path::new(source), expected.to_str(), Path::new(output))
+        }
         [mode, source, expected, output] if mode == "--synthetic-fixture" => write(
             Path::new(source),
             expected.to_str(),

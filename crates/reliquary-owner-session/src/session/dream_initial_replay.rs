@@ -115,7 +115,9 @@ pub(super) fn validate(
             memory_head = version;
             changed.insert(id);
         }
-        if let Some(relation) = reliquary_graph::relation_in_frame(payload)? {
+        if let Some(publication) = reliquary_graph::clocked_graph_in_frame(payload)? {
+            graph = publication.graph_version;
+        } else if let Some(relation) = reliquary_graph::relation_in_frame(payload)? {
             graph = relation.graph_version;
         }
         if let Some(receipt) =

@@ -8,6 +8,8 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 mod history;
+mod publication;
+pub use publication::{ClockedGraphPublication, clocked_graph_in_frame, encode_clocked_graph_body};
 use std::fmt;
 
 type Id = [u8; 32];
@@ -223,7 +225,9 @@ impl GraphStore {
             duplicate_incident: BTreeMap::new(),
         };
         for frame in container.read_frames()? {
-            if frame.payload.starts_with(b"RELDRB") {
+            if let Some(publication) = clocked_graph_in_frame(&frame.payload)? {
+                store.replay_clocked(publication, admission)?;
+            } else if frame.payload.starts_with(b"RELDRB") {
                 for relation in batch(&frame.payload, &store)? {
                     store.apply_dream_relation(admission, relation)?;
                 }
@@ -940,6 +944,60 @@ mod tests {
             id,
         )
         .unwrap()
+    }
+
+    #[test]
+    fn bound_graph_batch_reopens_as_one_local_cut() {
+        let path = Temp::new();
+        let mut writer = container(&path.0, 31);
+        let owner = writer.owner_id();
+        let [a, b, c] = [[1; 32], [2; 32], [3; 32]];
+        let admission = GraphAdmission::for_changes(owner, [a, b, c], []);
+        let changes = [
+            RelationChange {
+                source: NodeRef::Memory(a),
+                target: NodeRef::Memory(b),
+                kind: RelationKind::Topical,
+                active: true,
+                origin: RelationOrigin::Dream,
+            },
+            RelationChange {
+                source: NodeRef::Memory(c),
+                target: NodeRef::Memory(b),
+                kind: RelationKind::Causal,
+                active: true,
+                origin: RelationOrigin::User,
+            },
+        ];
+        assert!(encode_clocked_graph_body(owner, 1, &[changes[0], changes[0]]).is_err());
+        let body = encode_clocked_graph_body(owner, 1, &changes).unwrap();
+        let version = writer.reserve_version(Some(-17)).unwrap();
+        writer.reserve_version(None).unwrap();
+        writer
+            .append_bound_publication_envelope(version, &body)
+            .unwrap();
+        writer.sync().unwrap();
+        drop(writer);
+
+        let reader = Container::open_read_only(&path.0).unwrap();
+        let frames = reader.read_frames().unwrap();
+        let publication = clocked_graph_in_frame(&frames[2].payload).unwrap().unwrap();
+        assert_eq!(publication.graph_version, 1);
+        assert_eq!(publication.global_version, 1);
+        assert!(publication.bound_reservation);
+        assert_eq!(
+            reader.transaction_time_ns(publication.global_version),
+            Some(-17)
+        );
+        assert_eq!(reader.latest_version(), 2);
+        assert_eq!(publication.relations.len(), 2);
+        let graph = GraphStore::open(&reader, &admission).unwrap();
+        assert!(graph.history_at(0).unwrap().is_empty());
+        assert_eq!(graph.history_at(1).unwrap(), publication.relations);
+        assert!(graph.history_at(2).is_err());
+        assert!(
+            GraphStore::open(&reader, &GraphAdmission::for_changes(owner, [a, b], [])).is_err()
+        );
     }
 
     #[test]
