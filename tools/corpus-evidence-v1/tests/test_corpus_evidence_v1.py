@@ -585,6 +585,19 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
             contract.validate_artifact_report(report,ROOT,evidence)
 
         report,evidence,refresh,source_owner,target_owner,source_catalog,target_catalog=self._comparator_pass_fixture()
+        for owner_evidence in (source_owner,target_owner):
+            owner_evidence["family_rows"]={family:[] for family in owner_evidence["family_rows"]}
+            for family_coverage in owner_evidence["family_coverage"]:
+                family_coverage["row_count"]="0"
+                family_coverage["row_cut_memberships"]=[]
+                for cut in family_coverage["cuts"]:
+                    cut["row_count"]="0"
+        report["coverage"]=contract._witness_coverage([source_owner])
+        refresh()
+        with self.assertRaisesRegex(contract.ContractError,"nonempty semantic expected rows"):
+            contract.validate_artifact_report(report,ROOT,evidence)
+
+        report,evidence,refresh,source_owner,target_owner,source_catalog,target_catalog=self._comparator_pass_fixture()
         target_witness=evidence["target_witness"]
         target_witness["expected_owner_catalog"]=[]
         target_witness["owners"]=[]

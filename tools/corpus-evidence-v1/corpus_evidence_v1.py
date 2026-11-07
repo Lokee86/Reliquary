@@ -1032,6 +1032,10 @@ def _validate_comparator_witness_bundle(
     if report["status"] == "PASS":
         if not source_catalog or not source["owners"] or not target["owners"]:
             raise ContractError("comparator PASS requires nonempty source and target witness evidence")
+        source_row_count = sum(len(rows) for item in source["owners"] for rows in item["family_rows"].values())
+        target_row_count = sum(len(rows) for item in target["owners"] for rows in item["family_rows"].values())
+        if source_row_count == 0 or target_row_count == 0:
+            raise ContractError("comparator PASS requires nonempty semantic expected rows on both witnesses")
         if source_coverage != target_coverage:
             raise ContractError("comparator PASS source/target witness coverage differs")
         if source_hash != target_hash:
