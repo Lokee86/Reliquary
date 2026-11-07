@@ -159,7 +159,7 @@ impl Archive {
         let key = (input.conversation_id.clone(), input.id.clone());
         let mut attachments = prepare_attachments(input.attachments)?;
         attachments.extend(prepare_project_attachments(input.project_attachments)?);
-        validate_source_attachments(&attachments)?;
+        validate_source_attachments(&attachments, false)?;
         if let Some(parent_id) = input.parent_id.as_deref()
             && !self
                 .nodes
@@ -828,7 +828,7 @@ impl Archive {
                 {
                     return Err(ArchiveError::HashCollision);
                 }
-                validate_source_attachments(&attachments)?;
+                validate_source_attachments(&attachments, true)?;
                 let archive_version = self.next_archive_version()?;
                 self.accepted_node_order
                     .try_reserve(1)
@@ -885,7 +885,7 @@ impl Archive {
                             .clone();
                     }
                 }
-                validate_source_attachments(&attachments)?;
+                validate_source_attachments(&attachments, true)?;
                 let archive_version = self.next_archive_version()?;
                 let position = if activity_role(&node.role) {
                     Some(
@@ -1374,7 +1374,7 @@ fn prepare_attachments(
             project_reference: None,
         });
     }
-    validate_source_attachments(&attachments)?;
+    validate_source_attachments(&attachments, false)?;
     Ok(attachments)
 }
 
@@ -1409,7 +1409,10 @@ fn prepare_project_attachments(
         .collect()
 }
 
-fn validate_source_attachments(attachments: &[SourceAttachment]) -> Result<(), ArchiveError> {
+fn validate_source_attachments(
+    attachments: &[SourceAttachment],
+    allow_retained_project_identity: bool,
+) -> Result<(), ArchiveError> {
     let mut ids = std::collections::HashSet::new();
     for attachment in attachments {
         if !ids.insert(attachment.id) {
@@ -1437,7 +1440,16 @@ fn validate_source_attachments(attachments: &[SourceAttachment]) -> Result<(), A
                 attachment.byte_length,
                 reference,
             );
-            if expected != attachment.id {
+            // Older owners could move inline content into Git without changing the file ID.
+            let retained_identity = allow_retained_project_identity
+                && reference.content_hash == Some(attachment.content_id.0)
+                && file_id(
+                    &attachment.filename,
+                    attachment.mime_type.as_deref(),
+                    attachment.content_id,
+                    attachment.byte_length,
+                ) == attachment.id;
+            if expected != attachment.id && !retained_identity {
                 return Err(ArchiveError::InvalidAttachment);
             }
             continue;
