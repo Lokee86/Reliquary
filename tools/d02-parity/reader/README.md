@@ -37,3 +37,17 @@ python tools/d02-parity/tests/check_ordered_archive_candidate.py --reader tools/
 ```
 
 Its `PASS` applies only to that synthetic Archive fixture.
+
+
+## Memory history at a cut
+
+Use `--memory-history ID:VERSION` to read all retained revisions of a single Memory through an explicit owner-local cut on a current REL or PHY. The ID is 64 lowercase hex digits and the version is an unsigned decimal string. The report preserves ordered revisions, body digests and lengths, lifecycle, tombstones, provenance and temporal evidence. A known terminal prune cites its manifest. A missing local body without prune evidence stays distinct from a terminal prune. An unsupported future or grouped-interior cut emits no projection.
+
+For recognized standalone publication envelopes, the observer resolves each retained revision or tombstone's local version to its global version and transaction time through the held Container. A null standalone origin indicates this scan found no standalone envelope. It makes no claim about grouped or other unobserved origin formats. This is a one-Memory, one-cut observation, with full owner replay and no total memory bound. It never returns a corpus parity pass.
+
+```powershell
+& tools/d02-parity/reader/target/debug/d02-current-reader.exe --kind phy --candidate $candidate --memory-history "${id}:2"
+python tools/d02-parity/tests/check_ordered_memory_candidate.py --reader tools/d02-parity/reader/target/debug/d02-current-reader.exe --candidate $candidate
+```
+
+The Python oracle uses separately authored exact observations for the ordered synthetic PHY fixture from D01. It checks genesis and both revisions in twice-repeated fresh processes, including global/Memory clocks, signed source time and distinct transaction times above 2^53.

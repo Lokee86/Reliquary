@@ -8,6 +8,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
+reliquary-memory-core = { path = "../../../crates/reliquary-memory-core" }
 reliquary-archive = { path = "../../../crates/reliquary-archive" }
 reliquary-owner-session = { path = "../../../crates/reliquary-owner-session", features = ["d02-observation"] }
 serde_json = "1"
@@ -15,4 +16,4 @@ sha2 = "0.10"
 
 [dev-dependencies]
 tempfile = "3"
-reliquary-memory-core = { path = "../../../crates/reliquary-memory-core" }
+reliquary-container = { path = "../../../crates/reliquary-container" }

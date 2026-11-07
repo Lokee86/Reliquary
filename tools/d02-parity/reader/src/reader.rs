@@ -1,6 +1,6 @@
-use crate::memory::observe_memory_id_page;
+use crate::{evidence_encoding::parse_hex, memory::observe_memory_id_page};
 use reliquary_owner_session::{
-    CurrentOwnerKind, MAX_MEMORY_ID_CURSOR_BYTES, ReadOnlyCurrentOwnerObserver,
+    CurrentOwnerKind, MAX_MEMORY_ID_CURSOR_BYTES, MemoryId, ReadOnlyCurrentOwnerObserver,
 };
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
@@ -221,6 +221,7 @@ pub struct CliArgs {
     pub output: Option<PathBuf>,
     pub memory_cursor: Option<String>,
     pub archive_cut: Option<u64>,
+    pub memory_history: Option<(MemoryId, u64)>,
 }
 
 pub fn parse_cli_args<I, S>(args: I) -> Result<CliArgs, String>
@@ -234,6 +235,7 @@ where
     let mut output = None;
     let mut memory_cursor = None;
     let mut archive_cut = None;
+    let mut memory_history = None;
     while let Some(flag) = args.next() {
         match flag.as_str() {
             "--kind" => {
@@ -258,6 +260,23 @@ where
                 }
                 memory_cursor = Some(value);
             }
+            "--memory-history" => {
+                let value = args.next().ok_or("--memory-history requires ID:VERSION")?;
+                let (id_text, version) = value
+                    .split_once(':')
+                    .ok_or("--memory-history requires ID:VERSION")?;
+                let id = parse_hex::<32>(id_text).ok_or("invalid Memory ID")?;
+                let version_number = version
+                    .parse::<u64>()
+                    .map_err(|_| "invalid Memory version")?;
+                if id_text != hex(&id) || version != version_number.to_string() {
+                    return Err(
+                        "Memory history requires lowercase hex and canonical unsigned decimal"
+                            .into(),
+                    );
+                }
+                memory_history = Some((MemoryId(id), version_number));
+            }
             "--archive-cut" => {
                 let value = args.next().ok_or("--archive-cut requires a version")?;
                 let cut = value
@@ -271,8 +290,17 @@ where
             _ => return Err(format!("unknown argument: {flag}")),
         }
     }
-    if archive_cut.is_some() && memory_cursor.is_some() {
-        return Err("--archive-cut and --memory-cursor cannot be used together".into());
+    if [
+        archive_cut.is_some(),
+        memory_cursor.is_some(),
+        memory_history.is_some(),
+    ]
+    .into_iter()
+    .filter(|selected| *selected)
+    .count()
+        > 1
+    {
+        return Err("select only one Archive cut, Memory history cut, or Memory ID cursor".into());
     }
     Ok(CliArgs {
         kind: kind.ok_or("--kind rel|phy is required")?,
@@ -280,5 +308,6 @@ where
         output,
         memory_cursor,
         archive_cut,
+        memory_history,
     })
 }

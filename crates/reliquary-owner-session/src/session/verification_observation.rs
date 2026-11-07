@@ -5,6 +5,9 @@ use std::path::{Path, PathBuf};
 mod archive;
 pub use archive::{ArchiveCutObservation, ArchiveTurnOrigin};
 
+mod memory;
+pub use memory::{MemoryHistoryCutObservation, MemoryPublicationOrigin};
+
 mod hash;
 use hash::hash_open_container;
 mod session;

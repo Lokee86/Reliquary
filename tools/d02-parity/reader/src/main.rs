@@ -1,4 +1,6 @@
-use d02_current_reader::{observe_archive_cut, parse_cli_args, probe_candidate_page};
+use d02_current_reader::{
+    observe_archive_cut, observe_memory_history, parse_cli_args, probe_candidate_page,
+};
 use std::{
     env,
     fs::OpenOptions,
@@ -14,9 +16,12 @@ fn main() -> ExitCode {
             return ExitCode::from(2);
         }
     };
-    let report = match args.archive_cut {
-        Some(cut) => observe_archive_cut(args.kind, &args.candidate, cut),
-        None => probe_candidate_page(args.kind, &args.candidate, args.memory_cursor.as_deref()),
+    let report = match (args.archive_cut, args.memory_history) {
+        (Some(cut), _) => observe_archive_cut(args.kind, &args.candidate, cut),
+        (_, Some((id, cut))) => observe_memory_history(args.kind, &args.candidate, id, cut),
+        (None, None) => {
+            probe_candidate_page(args.kind, &args.candidate, args.memory_cursor.as_deref())
+        }
     };
     let mut bytes = match serde_json::to_vec_pretty(&report) {
         Ok(value) => value,
