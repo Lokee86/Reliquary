@@ -50,7 +50,19 @@ A scoped discovery found no queue, owner-operation, stream or external-processin
 
 The first execution receipt is target/f03-private/checked-witness-execution-receipt.json in the source worktree. The independent run is under .test-tmp/f03-archive-1efb937a23494549b1648f53dc3cf557/repeat-final-checked in the isolated FRS07 validation checkout. Its independent-match.json binds both manifests and the corrected exporter. The coverage digest is 37959b2c3efe3e46aef962d13b3e2e66bb66987112e430ce29af362f8a3e15e6. The independent match report digest is d1ceb9326e6e48ea8690f634eadce22de3d91f22c92175fa8e072bbb1bef021d. The original and repeat copy pins still matched after the runs.
 
-The exact artifact hashes, command exits and full logs are retained under protected scratch directories. All 47 focused F03 tests passed. The full historical worktree architecture guard reports a pre-existing raw-file capability escape. The owner and historical read boundaries passed. Source admission remains incomplete. The shared interchange still needs exhaustive typed cut membership and composed historical projections, and activation requires a verified deployment population and operational-state binding.
+The exact artifact hashes, command exits and full logs are retained under protected scratch directories. All 47 focused F03 tests passed. The earlier historical architecture check reported a raw-file capability escape. The subsequent source check validates hashing inside the existing container read capability. The owner, historical read, and physical boundary guards passed. Source admission remains incomplete. The shared interchange still needs exhaustive typed cut membership and composed historical projections, and activation requires a verified deployment population and operational-state binding.
+
+## Independently verified v2 scope
+
+The corrected v2 resume and a fresh independent run matched 8,445 artifacts. The checks independently reconstructed physical clock high-water marks and signed transaction timestamps from all 266,507 pinned frames. They matched all 91,997 global coordinates, 264,402 native typed commitments, and 623,020 prior witness rows.
+
+The clocked interval verifier checked 298,367 membership intervals and every clocked composition digest. Independent decoding of the old Archive bytes matched all 32,357 binding rows and 32,360 ordered prefixes. Every authentic source binding points to an earlier standalone reservation. The protected Archive expectation documents preserve the actual scope and original source digest for each separate file, including the two files that share an owner ID.
+
+A separate read of the Dream pair carriers verified first admission of 36,108 distinct retained pairs and matched the six native head digests. The private pair-cut evidence maps each membership to the exact physical frontier at each global coordinate. The Freshness difference ledger reconciles all 111 retained event cuts to the same unavailable intra-settlement trajectory. Seven negative copy sets failed at custody admission, including an ambiguous Archive binding mode and an intermediate reservation timestamp change that leaves the version heads intact.
+
+The fixture-scope audit binds the six owner headers to the exact committed authoritative inventory. Operational sidecars are absent within that inventory. External host state was outside the scope of that proof.
+
+The independent receipts and expected Archive documents are under .test-tmp/f03-archive-df62bcc78ef3445c9e215063d2fb1476 in the FRS07 validation checkout. The witness coverage digest is b7119e8577bd9ae6e73e7a7d186e45676dc4c7df6f378a6575521541a867b718. These are scoped source evidence. Whole-owner as-of composition for the remaining clock-neutral families and complete shared semantic value coverage are still required for source admission.
 
 ## Related docs
 

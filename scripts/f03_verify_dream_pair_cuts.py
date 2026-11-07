@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
+from f03_legacy_frame_clock import LegacyFrameClock
 from f03_verify_archived_oracle import PINS, require
 from f03_verify_independent_repeat import (
     MANIFEST, SCHEMAS, open_header, read_document, read_frame, regular, snapshot, take_stream,
@@ -59,14 +60,14 @@ def observe(output, artifacts, owner, schema, path, kind):
     ids = set()
     pairs = {}
     pair_frames = 0
-    head = 0
+    clock = LegacyFrameClock()
     with path.open("rb") as source:
         source_hash = open_header(source, kind, owner)
         for ordinal, frame in take_stream(output, artifacts, owner, "frames", owner["frame_stream"], schema_id=schema):
             payload = read_frame(source, frame, source_hash, before.st_size)
             global_ = int(frame["latest_global"])
-            require(global_ >= head, "physical frontier regressed")
-            head = global_
+            require(global_ == clock.consume(payload),
+                    "Dream pair frontier differs from reconstructed physical clock")
             marker = payload[:8]
             if marker == b"CVADRM01":
                 admit_mapping(payload, mappings, ids)
@@ -82,6 +83,7 @@ def observe(output, artifacts, owner, schema, path, kind):
     digest = native_head(owner, pairs)
     require(len(native) == 1 and native[0]["sha256"] == digest and native[0]["rows"] == str(len(pairs)),
             "retained physical Dream pairs differ from the native head")
+    head = clock.head
     intervals = []
     for pair, (first, ordinal) in sorted(pairs.items(), key=lambda item: item[1]):
         left, right = pair

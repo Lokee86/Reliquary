@@ -30,7 +30,7 @@ Destructive maintenance is authorized by shared owner-maintenance evidence, whil
 
 ## Historical source observation invariant
 
-Feature-gated F03 observations use a read-only lease on the verified copy. Native Archive, Freshness, project binding and other owner records supply the evidence, with independent digest checks on a second copy set. Observation preserves recorded identity and distinguishes unavailable historical state from an empty family. An admission decision requires complete source evidence and a comparable target reader. [Historical source witness](f03-source-witness-v02.md).
+Feature-gated F03 observations use a read-only lease on the verified copy. The Container hashes the held bytes under its read gate and returns the digest. Native Archive, Freshness, project binding and other owner records supply the evidence, with independent digest checks on a second copy set. Observation preserves recorded identity and distinguishes unavailable historical state from an empty family. An admission decision requires complete source evidence and a comparable target reader. [Historical source witness](f03-source-witness-v02.md).
 
 ## Compact-history acceptance invariant
 

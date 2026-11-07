@@ -11,6 +11,7 @@ from pathlib import Path
 import re
 import stat
 
+from f03_legacy_frame_clock import LegacyFrameClock
 from f03_verify_archived_oracle import PINS, READER, require
 
 SCHEMA = "reliquary-f03-historical-state-v1"
@@ -191,17 +192,17 @@ def verify_owner(output, artifacts, owner, path, relative, digest, head, schema_
         source_hash = open_header(file, kind, owner)
         counts = Counter()
         groups = Counter()
-        global_max = 0
+        physical_clock = LegacyFrameClock()
         for _, row in take_stream(output, artifacts, owner, "frames", owner["frame_stream"], schema_id=schema_id):
-            read_frame(file, row, source_hash, before.st_size)
+            payload = read_frame(file, row, source_hash, before.st_size)
             counts[row["carrier"]] += 1
             groups[row["group"]] += 1
             latest = decimal(row["latest_global"])
-            require(global_max <= latest <= head, "invalid frame high-water clock")
-            global_max = latest
+            require(latest <= head and latest == physical_clock.consume(payload),
+                    "frame high-water clock differs from independently reconstructed physical clock")
         require(file.tell() == before.st_size and source_hash.hexdigest() == digest
                 and snapshot(before) == snapshot(regular(path)), "frame scan did not consume stable pinned bytes")
-    require(global_max == head and dict(counts) == {
+    require(physical_clock.head == head and dict(counts) == {
         key: decimal(value) for key, value in owner["physical_carrier_counts"].items()
     }, "frame carrier or clock counts differ from coverage")
     require(all(groups[key] == decimal(value["physical_carrier_count"])
@@ -212,7 +213,9 @@ def verify_owner(output, artifacts, owner, path, relative, digest, head, schema_
     global_stream = native["global_stream"]
     require(decimal(global_stream["rows"]) == head + 1, "global coordinate count differs from V01 head")
     for ordinal, row in take_stream(output, artifacts, owner, "global", global_stream, schema_id=schema_id):
-        require(decimal(row["global_version"]) == ordinal, "global coordinate is missing or out of order")
+        require(decimal(row["global_version"]) == ordinal
+                and row["transaction_time_ns"] == physical_clock.times.get(ordinal),
+                "global coordinate or transaction time differs from reconstructed physical clock")
     freshness_stream = native["freshness_stream"]
     if kind == 1:
         require(decimal(freshness_stream["rows"]) > 0, "REL has no Freshness witness")
