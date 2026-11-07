@@ -12,6 +12,9 @@
 
 - [Post-G3 Maintenance, History and Reconciliation Parity phase](architecture/maintenance-history-parity-phase-2026-11-05.md) — M01–M04 and mandatory GM acceptance before P01/G4.
 - [P01 public product API, trusted host and REL CLI specification](architecture/p01-public-product-api-cli-implementation-spec-2026-11-06.md) — ordered implementation slices, retained consumer contracts and G4 handoff.
+- [G4 complete-product acceptance specification](architecture/g4-complete-product-acceptance-spec-2026-11-06.md) — native REL/PHY 2.1 integration boundaries and final gate.
+- [G4 generated corpus acceptance matrix](architecture/g4-generated-2-1-corpus-acceptance-matrix-2026-11-06.md) — fixed scenario cohort and independent positive/negative proof requirements.
+- [G4 executable ticket DAG](architecture/g4-product-acceptance-execution-plan-2026-11-06.md) — implementation slices, dependency edges and acceptance commands.
 
 - [Current system implementation inventory (2026-11-03)](current-system-inventory-2026-11-03.md) — live crate/dependency map, durable ownership, processing paths, Root coupling, capability status, and redesign inputs.
 

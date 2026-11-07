@@ -613,7 +613,10 @@
       ],
       "deliverable": "Whole new product baseline",
       "acceptance": "Locked Rust/CLI checks, supported scenarios and target Cargo DAG pass; no 2.0 runtime reader",
-      "status": "not-started"
+      "status": "not-started",
+      "breakdown": "docs/architecture/g4-complete-product-acceptance-spec-2026-11-06.md",
+      "acceptance_matrix": "docs/architecture/g4-generated-2-1-corpus-acceptance-matrix-2026-11-06.md",
+      "execution_plan": "docs/architecture/g4-product-acceptance-execution-plan-2026-11-06.md"
     },
     {
       "id": "D01",
