@@ -173,6 +173,115 @@ fn referenced_archive_file_is_retained_in_an_exact_noop_copy() {
 }
 
 #[test]
+fn reclamation_retains_admitted_insomnia_v2_history_while_removing_orphan_backing() {
+    let source = Temp::new("insomnia-v2-source");
+    let owner = [0x7a; 16];
+    let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let mut rel = RelWriter::create_path(&source.0, ReliquaryScope::Project, owner).unwrap();
+    rel.accept_turn_and_advance_branch(
+        TurnInput {
+            id: "work-turn".into(),
+            conversation_id: "work-conversation".into(),
+            parent_id: None,
+            role: "user".into(),
+            principal_id: Some("worker-principal".into()),
+            timestamp_ns: 10,
+            content: "accepted work source".into(),
+            attachments: vec![],
+            project_attachments: vec![],
+        },
+        Branch {
+            id: "main".into(),
+            conversation_id: "work-conversation".into(),
+            leaf_node_id: "work-turn".into(),
+            canonical: true,
+        },
+    )
+    .unwrap();
+    let episode = rel
+        .finalize_episode(
+            "work-conversation",
+            "work-turn",
+            "work-turn",
+            reliquary_archive::EpisodeOrigin::Live,
+            reliquary_archive::EpisodeBoundary::Explicit,
+            11,
+        )
+        .unwrap();
+    rel.claim_next_insomnia_input("worker", 12, 100, 1)
+        .unwrap()
+        .unwrap();
+    rel.container.sync().unwrap();
+    drop(rel);
+
+    let orphan = vec![0x4d; 256];
+    let mut frame = b"RELFILE1".to_vec();
+    frame.extend_from_slice(&Sha256::digest(&orphan));
+    frame.extend_from_slice(&(orphan.len() as u32).to_le_bytes());
+    frame.extend_from_slice(&orphan);
+    let mut container = Container::open_writer(&source.0).unwrap();
+    container.append(&frame).unwrap();
+    container.sync().unwrap();
+    drop(container);
+
+    let source_container = Container::open_read_only(&source.0).unwrap();
+    let history = reliquary_insomnia_store::InsomniaStore::work_history(
+        &source_container,
+        WorkEpisodeId(episode.0),
+    )
+    .unwrap();
+    assert_eq!(history.len(), 2);
+    assert_eq!(
+        history.iter().map(|work| work.state).collect::<Vec<_>>(),
+        [
+            reliquary_insomnia_store::InsomniaWorkState::Pending,
+            reliquary_insomnia_store::InsomniaWorkState::Processing,
+        ]
+    );
+    drop(source_container);
+
+    let plan = VerifiedOwnerCopyPlan::prepare(&source.0).unwrap();
+    let output = Temp::new("insomnia-v2-reclaimed");
+    let report = reclaim_storage_copy(&plan, &source.0, &output.0, &admission).unwrap();
+    assert_eq!(report.removed_frames, 1);
+    let output_container = Container::open_read_only(&output.0).unwrap();
+    assert_eq!(
+        reliquary_insomnia_store::InsomniaStore::work_history(
+            &output_container,
+            WorkEpisodeId(episode.0),
+        )
+        .unwrap(),
+        history
+    );
+    drop(output_container);
+
+    let repeat = Temp::new("insomnia-v2-reclaimed-repeat");
+    let repeat_plan = VerifiedOwnerCopyPlan::prepare(&output.0).unwrap();
+    let repeat_report = reclaim_storage_copy(&repeat_plan, &output.0, &repeat.0, &admission).unwrap();
+    assert_eq!(repeat_report.removed_frames, 0);
+    assert_eq!(fs::read(&repeat.0).unwrap(), fs::read(&output.0).unwrap());
+}
+
+#[test]
+fn malformed_insomnia_v2_is_rejected_before_reclamation_output() {
+    let source = Temp::new("malformed-insomnia-v2");
+    let owner = [0x7b; 16];
+    drop(RelWriter::create_path(&source.0, ReliquaryScope::Project, owner).unwrap());
+    let mut container = Container::open_writer(&source.0).unwrap();
+    container.append(b"RELINSW2").unwrap();
+    container.sync().unwrap();
+    drop(container);
+
+    let before = fs::read(&source.0).unwrap();
+    let plan = VerifiedOwnerCopyPlan::prepare(&source.0).unwrap();
+    let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let output = Temp::new("malformed-insomnia-v2-output");
+    assert!(reclaim_storage_copy(&plan, &source.0, &output.0, &admission).is_err());
+    assert!(!output.0.exists());
+    assert_eq!(fs::read(&source.0).unwrap(), before);
+}
+
+#[test]
 fn phy_reclamation_removes_unmapped_packed_backing_and_reopens() {
     let source = Temp::new("phy-source");
     let owner = [0x74; 16];
