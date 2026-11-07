@@ -142,7 +142,7 @@ impl RelSession {
                     .map_err(|_| InsomniaError::CorruptRecord("grouped completion"))?;
                 let episode_id = WorkEpisodeId(completion.episode_id);
                 completion
-                    .validate_replay_episode(episode_id.0)
+                    .validate_replay_episode_layout(episode_id.0, payload.starts_with(b"RELINSC8"))
                     .map_err(|_| InsomniaError::CorruptRecord("grouped completion proof"))?;
                 Ok(Some(AcceptedCompletionState {
                     episode_id,
