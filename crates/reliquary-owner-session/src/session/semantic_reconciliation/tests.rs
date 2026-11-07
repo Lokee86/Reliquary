@@ -1092,6 +1092,11 @@ fn divergent_reconciliation_reuses_owner_admitted_shared_dream_batch_graph() {
     let merged = RelSession::open_path(&output.0, &admission, [], [dream_admission]).unwrap();
     assert!(
         merged
+            .initial_dream_frontier("shared-dream-frontier")
+            .is_some()
+    );
+    assert!(
+        merged
             .resolved_archive_turn("conversation", "left-dream-tail")
             .unwrap()
             .is_some()
@@ -1103,6 +1108,14 @@ fn divergent_reconciliation_reuses_owner_admitted_shared_dream_batch_graph() {
             .is_some()
     );
     for candidate in memories.iter().skip(1) {
+        assert_eq!(
+            merged
+                .current_memory(candidate.id)
+                .unwrap()
+                .record
+                .superseded_by,
+            Some(memories[0].id)
+        );
         assert!(merged.dream_pair_evaluated(memories[0].id, candidate.id));
         assert!(
             merged

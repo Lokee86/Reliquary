@@ -134,7 +134,7 @@ try {
     $duplicate = Join-Path $negativeDir 'duplicate-option.rel'
     Expect-Failure $cli @('rel', 'create', $duplicate, '--scope', 'project', '--scope', 'connection')
     $duplicateFailure = $observations[$observations.Count - 1].result
-    if ($duplicateFailure.error -notmatch 'duplicate') { throw 'Recognized duplicate CLI option was not rejected specifically.' }
+    if ($duplicateFailure.error.message -notmatch 'duplicate') { throw 'Recognized duplicate CLI option was not rejected specifically.' }
     if (Test-Path -LiteralPath $duplicate) { throw 'Duplicate CLI option published an owner.' }
     $wrongKind = Join-Path $exportDir 'phy-reader-a.phy'
     Expect-Failure $cli @('rel', 'info', $wrongKind)

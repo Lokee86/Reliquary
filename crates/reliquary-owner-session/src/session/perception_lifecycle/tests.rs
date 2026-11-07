@@ -247,6 +247,12 @@ fn entity_retirement_rejects_active_mentions_and_reopens_after_supported_unresol
     let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
     let reopened = RelSession::open_path(&temp.0, &admission, [], []).unwrap();
     assert_eq!(reopened.entity_tombstone(entity.id), Some(tombstone));
+    assert_eq!(
+        reopened.mention(key).unwrap().status,
+        MemoryEntityResolutionStatus::Unresolved {
+            reason: EntityResolutionReason::UserWithdrawal,
+        }
+    );
 }
 
 #[test]
