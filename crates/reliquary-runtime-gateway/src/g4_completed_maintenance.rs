@@ -6,7 +6,7 @@ use super::*;
 use reliquary_application::{
     ArchiveRewriteMode, DerivedStateRewriteMode, FreshnessRewriteMode, RewriteIdentityMode,
     RewritePolicy, execute_memory_rewrite, plan_phy_rewrite, plan_rel_rewrite, reconcile_rel_owner,
-    reconcile_rel_prefix,
+    reconcile_rel_prefix, verify_rewrite_source,
 };
 #[cfg(test)]
 use reliquary_archive::{Branch, TurnInput};
@@ -49,13 +49,17 @@ pub(crate) fn verify_completed_cohort(
                 .owner_id();
             let graph = GraphAdmission::for_replay(owner, [], [], [], [], []);
             let session = RelSession::open_path(source, &graph, [], []).expect("open REL reader");
+            let source_cut = session.current_historical_cut();
+            let source_proof = session
+                .historical_proof(owner, &source_cut)
+                .expect("capture completed REL history proof");
             // The completed cohort uses one shared REL/PHY embedding profile
             // for Memory and Archive vectors, so selecting it retains both.
             let profiles = [memory_profile.0].into_iter().collect();
             let policy = RewritePolicy {
                 identity: RewriteIdentityMode::NewOwner,
                 profile_ids: profiles,
-                archive: ArchiveRewriteMode::RetainRequiredProvenance,
+                archive: ArchiveRewriteMode::RetainAll,
                 freshness: FreshnessRewriteMode::PreserveEffectiveCurrent,
                 derived_state: DerivedStateRewriteMode::RetainVerified,
                 ..RewritePolicy::default()
@@ -65,6 +69,20 @@ pub(crate) fn verify_completed_cohort(
             let new_owner = [0xD0u8.wrapping_add(index as u8); 16];
             execute_memory_rewrite(&plan, source, &new_path, Some(new_owner), &graph)
                 .expect("execute NewOwner REL rewrite");
+            let collision_bytes = digest(&new_path);
+            assert!(
+                execute_memory_rewrite(&plan, source, &new_path, Some(new_owner), &graph).is_err()
+            );
+            assert_eq!(digest(&new_path), collision_bytes);
+            let stale_source = output.join(format!("{kind}-{index}-stale-source.rel"));
+            VerifiedOwnerCopyPlan::prepare(source)
+                .expect("prepare stale-plan fixture copy")
+                .copy_to(source, &stale_source)
+                .expect("copy stale-plan fixture");
+            let stale_plan = plan_rel_rewrite(&stale_source, &session, plan.policy.clone())
+                .expect("plan stale-source fixture");
+            append_orphan_file(&stale_source);
+            assert!(verify_rewrite_source(&stale_plan, &stale_source).is_err());
             let new_graph = GraphAdmission::for_replay(new_owner, [], [], [], [], []);
             let reopened = RelSession::open_path(&new_path, &new_graph, [], [])
                 .expect("independently reopen NewOwner REL");
@@ -82,6 +100,10 @@ pub(crate) fn verify_completed_cohort(
             let preserved = RelSession::open_path(&preserve_path, &graph, [], [])
                 .expect("independently reopen PreserveOwner REL");
             assert_eq!(reopened.owner_id(), preserved.owner_id());
+            assert_eq!(
+                preserved.historical_proof(owner, &source_cut).unwrap(),
+                source_proof
+            );
             drop((reopened, preserved, session));
             owners.push(json!({"alias": index, "kind": kind, "new_owner": hex(&new_owner), "preserve_owner": "verified"}));
             (new_path, new_owner, kind.to_owned())
@@ -104,6 +126,11 @@ pub(crate) fn verify_completed_cohort(
             let new_owner = [0xD0u8.wrapping_add(index as u8); 16];
             execute_memory_rewrite(&plan, source, &new_path, Some(new_owner), &graph)
                 .expect("execute NewOwner PHY rewrite");
+            let collision_bytes = digest(&new_path);
+            assert!(
+                execute_memory_rewrite(&plan, source, &new_path, Some(new_owner), &graph).is_err()
+            );
+            assert_eq!(digest(&new_path), collision_bytes);
             let new_graph = GraphAdmission::for_replay(new_owner, [], [], [], [], []);
             let reopened =
                 PhySession::open_path(&new_path, &new_graph, []).expect("reopen NewOwner PHY");
@@ -210,6 +237,13 @@ pub(crate) fn verify_completed_cohort(
             assert_eq!(fs::read(&reclamation).unwrap(), fs::read(&no_op).unwrap());
 
             let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+            let baseline = RelSession::open_path(paths[0], &admission, [], [])
+                .expect("open original REL proof source");
+            let baseline_cut = baseline.current_historical_cut();
+            let baseline_proof = baseline
+                .historical_proof(owner, &baseline_cut)
+                .expect("capture baseline history proof");
+            drop(baseline);
             let prefix_left = output.join("rel-prefix-left.rel");
             let prefix_right = output.join("rel-prefix-right.rel");
             let prefix_source =
@@ -237,6 +271,13 @@ pub(crate) fn verify_completed_cohort(
                     .resolved_archive_turn("g4-prefix", "prefix-turn")
                     .unwrap()
                     .is_some()
+            );
+            assert_eq!(
+                prefix
+                    .session
+                    .historical_proof(owner, &baseline_cut)
+                    .unwrap(),
+                baseline_proof
             );
             drop(prefix.session);
 
@@ -273,6 +314,13 @@ pub(crate) fn verify_completed_cohort(
                     .resolved_archive_turn("g4-divergent-right", "right-turn")
                     .unwrap()
                     .is_some()
+            );
+            assert_eq!(
+                divergent
+                    .session
+                    .historical_proof(owner, &baseline_cut)
+                    .unwrap(),
+                baseline_proof
             );
             drop(divergent.session);
 
