@@ -109,11 +109,19 @@ impl FreshnessStore {
                     if policy != u64::from(FRESHNESS_POLICY_VERSION) {
                         return Err("unsupported grouped Freshness policy".into());
                     }
-                    store.apply_grouped_births(owner, turn, memory_ids)?;
+                    // Retained completions used default v1 before the explicit policy record.
+                    if payload.starts_with(b"RELINSC8") && !store.policy_persisted {
+                        store.apply_grouped_births_at(owner, turn, memory_ids)?;
+                    } else {
+                        store.apply_grouped_births(owner, turn, memory_ids)?;
+                    }
                 }
                 continue;
             }
             store.ingest_payload(&payload)?;
+        }
+        if !store.policy_persisted && !store.births.is_empty() {
+            return Err("retained grouped Freshness births have no explicit owner policy".into());
         }
         Ok(store)
     }
@@ -134,14 +142,23 @@ impl FreshnessStore {
         accepted_turn: u64,
         memory_ids: Vec<FreshnessMemoryId>,
     ) -> Result<(), String> {
+        if !self.policy_persisted {
+            return Err("grouped Freshness birth precedes owner policy".into());
+        }
+        self.apply_grouped_births_at(owner, accepted_turn, memory_ids)
+    }
+
+    fn apply_grouped_births_at(
+        &mut self,
+        owner: [u8; 16],
+        accepted_turn: u64,
+        memory_ids: Vec<FreshnessMemoryId>,
+    ) -> Result<(), String> {
         if self.owner_uuid.is_some_and(|actual| actual != owner) {
             return Err("grouped Freshness birth belongs to another owner".into());
         }
         if self.owner_uuid.is_none() {
             return Err("grouped Freshness owner identity is required".into());
-        }
-        if !self.policy_persisted {
-            return Err("grouped Freshness birth precedes owner policy".into());
         }
         let mut next = self.clone();
         for memory_id in memory_ids {
@@ -377,6 +394,9 @@ impl FreshnessStore {
                 } else {
                     "Freshness owner policy changed within history".into()
                 });
+            }
+            if !self.births.is_empty() && policy != self.policy {
+                return Err("Freshness policy differs from retained birth policy".into());
             }
             self.owner_uuid.get_or_insert(owner);
             self.policy = policy;
