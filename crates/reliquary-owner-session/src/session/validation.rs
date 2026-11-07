@@ -69,9 +69,11 @@ pub(super) fn validate_grouped_replay_admission(
             crate::records::owner_metadata::decode_retained_owner_metadata(body)
                 .map_err(OwnerSessionError::Record)?;
         }
-        if (body.starts_with(b"RELXMEM") && !body.starts_with(b"RELXMEM3"))
-            || (envelope.is_some() && body.starts_with(b"RELINSC"))
-        {
+        let unsupported_group = body.starts_with(b"RELINSC")
+            && (envelope.is_some()
+                || !(body.starts_with(b"RELINSC7")
+                    || (body.starts_with(b"RELINSC8") && matches!(body.get(8), Some(3 | 5 | 6)))));
+        if (body.starts_with(b"RELXMEM") && !body.starts_with(b"RELXMEM3")) || unsupported_group {
             return Err(OwnerSessionError::Record(
                 "unsupported owner publication requires authenticated replay".into(),
             ));

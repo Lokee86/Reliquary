@@ -1,8 +1,16 @@
-# D01 provisional synthetic tooling
-
-Status: **T01 remains incomplete**. This lane contains synthetic fixtures and test command surfaces, including native 2.1 writers for ordered synthetic REL Archive and ungrouped PHY Memory history. Source traversal and authentic conversion are pending.
+# D01 offline converter
 
 Converter tools live under tools/d01-converter/, outside the explicit 23-package production DAG. The native writer has its own Cargo workspace and depends on current 2.1 codecs and owner-session.
+
+## Reviewed disposable copies
+
+The authentic path composes the pinned historical physical witness with per-family source transfers. The composer requires a disposition for every source ordinal, verifies the held copy and transfer checksums, and writes a create-only private JSONL stream. Provide the Memory, Graph, Entity, Resolution, Community, vector, Archive, Insomnia work, and Freshness transfer receipts in the protected transfer root. Archive, Insomnia work, and Freshness apply to REL.
+
+    python -B tools/d01-converter/compose_authentic.py --source-tools <historical-source-worktree/scripts> --source-coverage <protected-source-coverage.json> --source-copies <disposable-copy-root> --transfer-root <protected-transfer-root> --fixture <reviewed-relative-path> --output <new-private-transfer.jsonl>
+    cargo build --manifest-path tools/d01-converter/target-writer/Cargo.toml --locked --offline -j 1 --target-dir target-codex-check
+    target-codex-check/debug/d01-synthetic-target-writer.exe --authentic-frames <transfer.jsonl> <composer-transfer-sha256> <new-private-candidate.rel-or-phy>
+
+The writer validates current typed records, preserves explicit global reservations and grouped clocks, and relocates vector-generation receipts. It syncs and normally reopens the private staged file before publishing the requested path with a no-replace hard link. The receipt reports structural current-only reopen. D02 separately checks retained values and history.
 
 ## Accepted contract and admission boundary
 
@@ -12,7 +20,7 @@ PG-C01 synthetic v1 was accepted at planning record b6332a8ff5396a7725c73cbe7643
 
 pgc01_adapter.py verifies the exact contract revision, parent, reviewed test-only delta, validator hash, registry hashes, and contract blobs. pgc01-binding.provisional.json and pgc01-d01-review.provisional.json record the accepted synthetic scope and D01's exact-version review. Neither file grants source admission.
 
-admission.py maps only two hand-built D01 fixture families to representative PG-C01 fixture schemas. Its typed grant permits fixture testing only. Caller-supplied markers such as CVAAFMT2 remain unclassified; the lexical marker inventory is discovery material, not a carrier allowlist. Authentic source admission always refuses pending F03-V04.
+admission.py maps only two hand-built D01 fixture families to representative PG-C01 fixture schemas. Its typed grant permits fixture testing only. Caller-supplied markers such as CVAAFMT2 remain unclassified; the lexical marker inventory is discovery material, not a carrier allowlist. This synthetic admission path does not grant access to the separate authentic converter.
 
 ## Synthetic command surfaces
 
