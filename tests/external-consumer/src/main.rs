@@ -206,6 +206,12 @@ fn inspect(args: &[String]) -> Result<String, String> {
         phy_a.owner_id(),
         phy_b.owner_id(),
     ];
+    let proofs = [
+        lantern.current_historical_proof().map_err(|e| e.to_string())?,
+        cascade.current_historical_proof().map_err(|e| e.to_string())?,
+        phy_a.current_historical_proof().map_err(|e| e.to_string())?,
+        phy_b.current_historical_proof().map_err(|e| e.to_string())?,
+    ];
     for (index, info) in infos.iter().enumerate() {
         let kind = if index < 2 {
             OwnerKind::Rel
@@ -228,6 +234,12 @@ fn inspect(args: &[String]) -> Result<String, String> {
             ));
         }
         let entry = entry.unwrap();
+        if entry["memory_count"].as_u64() != Some(info.memory_count as u64)
+            || entry["history_digest"].as_str() != Some(proofs[index].digest.as_str())
+            || (index < 2 && entry["accepted_sources"].as_u64() != info.rel_turn_count)
+        {
+            return Err(format!("owner {alias} count or retained history differs after process reopen"));
+        }
         let expected_kind = if index < 2 { "rel" } else { "phy" };
         if entry.get("owner_id").and_then(Value::as_str) != Some(ids[index].to_string().as_str())
             || entry.get("kind").and_then(Value::as_str) != Some(expected_kind)
@@ -340,7 +352,7 @@ fn inspect(args: &[String]) -> Result<String, String> {
     let imported_title = cascade_page
         .items
         .iter()
-        .find(|conversation| conversation.conversation_id == "conv-c03")
+        .find(|conversation| conversation.conversation_id == "conv-c03-additive-import")
         .and_then(|conversation| conversation.title.as_deref());
     if imported_title != Some("Cascade native import") {
         return Err("Cascade native import title differs from the authored manifest result".into());
@@ -417,6 +429,20 @@ fn inspect(args: &[String]) -> Result<String, String> {
     }
     for page in [&lantern_page, &cascade_page] {
         for conversation in &page.items {
+            let extension_leaf = match conversation.conversation_id.as_str() {
+                "conv-l06" => Some("source-doc"),
+                "conv-l07" => Some("accepted"),
+                "conv-c03-additive-import" => Some("C03-t4"),
+                "g4-conversation" => Some("accepted-turn"),
+                "g4-race" => Some("exclusive-turn"),
+                _ => None,
+            };
+            if let Some(leaf) = extension_leaf {
+                if conversation.branch.leaf_node_id != leaf || !conversation.branch.canonical {
+                    return Err(format!("completed branch extension differs for {}", conversation.conversation_id));
+                }
+                continue;
+            }
             let selected = expected_paths
                 .iter()
                 .find(|path| {

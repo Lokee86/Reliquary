@@ -238,6 +238,7 @@ fn reason_value(value: reliquary_perception_store::EntityResolutionReason) -> &'
         Ambiguous => "ambiguous",
         RecurrenceRequired => "recurrence_required",
         PrincipalIdentity => "principal_identity",
+        UserWithdrawal => "user_withdrawal",
     }
 }
 

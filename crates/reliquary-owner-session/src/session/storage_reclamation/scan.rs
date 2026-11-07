@@ -83,6 +83,16 @@ pub(super) fn removable_backing(
                 .unwrap();
             Ok(!archive_files.contains(&id))
         }
+        b"RELCTM01" => {
+            validate_conversation_tombstone(bytes)?;
+            Ok(false)
+        }
+        b"RELTPR01" => {
+            reliquary_archive::archive_turn_prune_marker(bytes)
+                .map_err(|error| format!("invalid Archive prune marker: {error}"))?
+                .ok_or("invalid Archive prune marker")?;
+            Ok(false)
+        }
         b"RELPUB01" => {
             let publication = decode_publication(bytes)
                 .map_err(|e| e.to_string())?
@@ -92,14 +102,42 @@ pub(super) fn removable_backing(
             }
             Ok(false)
         }
+        // These are logical, pointer-free operation/history records. The
+        // owner reader above has already decoded and replay-validated them;
+        // retain them byte-for-byte as journals and authority evidence.
         b"RELMVEC1" | b"RELCPRO1" | b"RELCPRT1" | b"RELCPRP1" | b"RELRECL1" | b"RELFRS02"
-        | b"RELVGEN1" | b"RELVGRC1" | b"RELXIDX2" => Ok(false),
+        | b"RELVGEN1" | b"RELVGRC1" | b"RELXIDX2" | b"RELIEPS2" | b"RELIEPC2"
+        | b"RELIFRS1" | b"CVAIMPT1" | b"RELINSW1" | b"RELINSW2" | b"RELINSR1" | b"RELINSC7"
+        | b"CVDREAM1" | b"CVDREAM2" | b"RELDRM01" | b"RELDRP02" | b"RELDRG01"
+        | b"RELDRS01" | b"RELDRF01" | b"RELDRF02" | b"RELDRB01" | b"RELDRC01"
+        | b"RELXMEM2" | b"RELXMEM3" | b"RELXMRP3" | b"RELXHST1" | b"RELPER01"
+        | b"RELETM01" | b"RELRLP01" | b"RELGRF01" | b"RELCOM01" => Ok(false),
         _ if pointer_free_frame(magic) => Ok(false),
         _ => Err(format!(
             "unsupported reclamation frame family {}",
             String::from_utf8_lossy(magic)
         )),
     }
+}
+
+fn validate_conversation_tombstone(bytes: &[u8]) -> Result<(), String> {
+    let length = bytes
+        .get(8..12)
+        .ok_or("truncated Archive conversation tombstone")?;
+    let length = u32::from_le_bytes(length.try_into().unwrap()) as usize;
+    let end = 12usize
+        .checked_add(length)
+        .ok_or("invalid Archive conversation tombstone length")?;
+    let conversation_id = bytes
+        .get(12..end)
+        .ok_or("truncated Archive conversation tombstone id")?;
+    if end != bytes.len()
+        || conversation_id.is_empty()
+        || std::str::from_utf8(conversation_id).is_err()
+    {
+        return Err("invalid Archive conversation tombstone".into());
+    }
+    Ok(())
 }
 
 /// Only a structurally valid, wholly unreceipted generation is discardable.
@@ -158,4 +196,30 @@ pub(super) fn for_each_frame(
         visit(frame.object(), &bytes)?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod marker_tests {
+    use super::validate_conversation_tombstone;
+
+    #[test]
+    fn archive_tombstone_marker_is_validated_and_retained() {
+        let id = b"conv-terminal";
+        let mut marker = b"RELCTM01".to_vec();
+        marker.extend_from_slice(&(id.len() as u32).to_le_bytes());
+        marker.extend_from_slice(id);
+        assert_eq!(validate_conversation_tombstone(&marker), Ok(()));
+
+        marker.pop();
+        assert!(validate_conversation_tombstone(&marker).is_err());
+        marker.push(*id.last().unwrap());
+        marker.push(0);
+        assert!(validate_conversation_tombstone(&marker).is_err());
+    }
+
+    #[test]
+    fn archive_prune_marker_decoder_rejects_malformed_payload() {
+        let marker = [b"RELTPR01".as_slice(), &[0; 32], b"not-a-turn"].concat();
+        assert!(reliquary_archive::archive_turn_prune_marker(&marker).is_err());
+    }
 }

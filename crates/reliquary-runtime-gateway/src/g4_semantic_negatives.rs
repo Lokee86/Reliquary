@@ -220,7 +220,9 @@ pub(crate) fn verify_semantic_negatives(
                 receipt.memory_ids.len(),
                 receipt.rejected_count,
                 rel.insomnia_work(InsomniaEpisodeId(claim.episode.id.0))
-                    .is_some_and(|work| format!("{:?}", work.state) == "Complete"),
+                    .is_some_and(|work| work.lease_token.is_none()
+                        && work.retry_after_ns.is_none() && work.held_payload.is_none()
+                        && work.attempt_count == receipt.attempt),
             )
         })
         .unwrap();
@@ -250,7 +252,8 @@ pub(crate) fn verify_semantic_negatives(
             PrivateEntityEndpoint,
             2_000_002,
         ),
-        Err(GatewayError::UnauthorizedRel { .. })
+        Err(GatewayError::UnauthorizedRel { owner, .. }
+            | GatewayError::UnauthorizedPhy { owner, .. }) if owner == cascade
     ));
 
     let private_source = find_source(witness, "src-private-afternoons");

@@ -54,6 +54,29 @@ pub(crate) fn frame_history_digest(
             hash.update(len.to_le_bytes());
             hash.update(prefix);
             hash.update(raw_id);
+        } else if &prefix == b"RELVGRC1" {
+            // A copy transform relocates this receipt's physical ObjectRef.
+            // Hash the same receipt with only its offset canonicalized; the
+            // generation frame and receipt length remain bound by the digest,
+            // and owner replay validates the relocated target after copying.
+            let mut receipt = prefix.to_vec();
+            frame
+                .read_to_end(&mut receipt)
+                .map_err(|e| e.to_string())?;
+            let target = reliquary_vector_store::generation::generation_receipt_target(&receipt)
+                .map_err(|e| e.to_string())?
+                .ok_or("missing vector generation receipt target")?;
+            let canonical = reliquary_vector_store::generation::relocate_generation_receipt(
+                &receipt,
+                reliquary_container::ObjectRef {
+                    offset: 0,
+                    length: target.length,
+                },
+            )
+            .map_err(|e| e.to_string())?;
+            hash.update(len.to_le_bytes());
+            hash.update(canonical);
+            continue;
         } else {
             hash.update(len.to_le_bytes());
             hash.update(prefix);
@@ -167,6 +190,18 @@ pub(crate) fn safe_memory_only_frames(
             version = version.max(envelope.version);
             continue;
         }
+        if &magic == b"RELVGRC1" {
+            let mut receipt = magic.to_vec();
+            frame
+                .read_to_end(&mut receipt)
+                .map_err(|e| e.to_string())?;
+            reliquary_vector_store::generation::generation_receipt_target(&receipt)
+                .map_err(|e| e.to_string())?
+                .ok_or("missing vector generation receipt target")?;
+            // This exact pointer-bearing family is accepted only because
+            // memory pruning relocates it through the generation codec.
+            continue;
+        }
         if matches!(&magic, b"RELVERS1" | b"RELVERS2") {
             let mut raw = [0; 8];
             frame.read_exact(&mut raw).map_err(|e| e.to_string())?;
@@ -207,5 +242,43 @@ pub(crate) fn pointer_free_frame(magic: &[u8]) -> bool {
             | b"RELECHO1"
             | b"RELVERS1"
             | b"RELVERS2"
+            | b"RELMVEC1"
+            | b"RELAVEC1"
+            | b"RELVGEN1"
+            | b"RELCPRO1"
+            | b"RELCPRT1"
+            | b"RELCPRP1"
+            | b"RELFRS02"
+            | b"RELCTM01"
+            | b"RELTPR01"
+            | b"RELPVEC1"
+            | b"RELIEPS2"
+            | b"RELIEPC2"
+            | b"RELIFRS1"
+            | b"CVAIMPT1"
+            | b"RELINSW1"
+            | b"RELINSW2"
+            | b"RELINSR1"
+            | b"RELINSC7"
+            | b"CVDREAM1"
+            | b"CVDREAM2"
+            | b"RELDRM01"
+            | b"RELDRP02"
+            | b"RELDRG01"
+            | b"RELDRS01"
+            | b"RELDRF01"
+            | b"RELDRF02"
+            | b"RELDRB01"
+            | b"RELDRC01"
+            | b"RELXIDX2"
+            | b"RELXMEM2"
+            | b"RELXMEM3"
+            | b"RELXMRP3"
+            | b"RELXHST1"
+            | b"RELPER01"
+            | b"RELETM01"
+            | b"RELRLP01"
+            | b"RELGRF01"
+            | b"RELCOM01"
     )
 }
