@@ -25,11 +25,14 @@ use reliquary_insomnia_store::{
     MemoryId as WorkMemoryId,
 };
 use reliquary_memory_core::{
-    MemoryDraft, MemoryError, MemoryHistory, MemoryId, MemoryRevision, MemoryStore,
+    MemoryBodyId, MemoryDraft, MemoryError, MemoryHistory, MemoryId, MemoryRevision, MemoryStore,
+    PayloadState, TerminalTombstone,
 };
 use reliquary_perception_store::{
-    Entity, EntityId, MemoryEntityMentionKey, MemoryEntityResolution, PerceptionError,
-    PerceptionStore,
+    Entity, EntityId, EntityResolutionReason, EntityTombstone, MemoryEntityMentionKey,
+    MemoryEntityResolution, MemoryEntityResolutionStatus, MemoryTextField, PerceptionError,
+    PerceptionStore, Relationship, RelationshipDraft, RelationshipEntityRef, RelationshipId,
+    RelationshipMemoryRef, RelationshipParticipant, RelationshipTombstone,
 };
 use reliquary_vector_store::{
     ArchiveVectorError, ArchiveVectorInfo, ArchiveVectorStore, CompatibilityProfile,
@@ -695,6 +698,7 @@ mod freshness_use;
 mod gm_parity_regressions;
 mod historical_proof;
 mod maintenance_prune;
+mod perception_lifecycle;
 mod relationship_prune;
 mod semantic_reconciliation;
 pub use entity_prune::{EntityPruneReport, prune_terminal_entity_descriptions_copy};
@@ -705,6 +709,10 @@ pub use fresh_history_rewrite::{
 };
 pub use historical_proof::{
     HistoricalOwnerCut, HistoricalOwnerProof, HistoricalProofError, RelHistoricalCut,
+};
+pub use perception_lifecycle::{
+    CreateRelationshipRequest, EntityRetirementRequest, MemoryRetirementRequest,
+    RelationshipParticipantEvidence, RelationshipRetirementRequest, WithdrawEntityMentionRequest,
 };
 pub use relationship_prune::{
     RelationshipPruneReport, prune_terminal_relationship_descriptions_copy,

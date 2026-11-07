@@ -415,6 +415,7 @@ pub use workflow_workers::{
 
 mod host_memory_delivery;
 mod instance_entity;
+mod instance_perception_lifecycle;
 mod instance_vectors;
 pub use instance_vectors::PreparedVectorPublication;
 mod instance_retrieval;
