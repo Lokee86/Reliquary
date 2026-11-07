@@ -1,0 +1,691 @@
+   Compiling unicode-ident v1.0.24
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling syn v2.0.119
+   Compiling cfg-if v1.0.4
+   Compiling syn v3.0.3
+   Compiling serde_derive v1.0.229
+   Compiling windows-link v0.2.1
+   Compiling serde v1.0.229
+   Compiling getrandom v0.4.3
+   Compiling jobserver v0.1.35
+   Compiling find-msvc-tools v0.1.11
+   Compiling cc v1.4.3
+   Compiling windows-sys v0.61.2
+   Compiling log v0.4.33
+   Compiling smallvec v1.15.2
+   Compiling bytes v1.12.1
+   Compiling zerocopy-derive v0.8.61
+   Compiling zerocopy v0.8.61
+   Compiling parking_lot_core v0.9.12
+   Compiling parking_lot v0.12.5
+   Compiling socket2 v0.6.5
+   Compiling hashbrown v0.17.1
+   Compiling indexmap v2.14.2
+   Compiling mio v1.2.2
+   Compiling tokio-macros v2.7.2
+   Compiling tokio v1.53.1
+   Compiling libc v0.2.189
+   Compiling futures-macro v0.3.34
+   Compiling tracing-attributes v0.1.31
+   Compiling futures-util v0.3.34
+   Compiling tracing v0.1.44
+   Compiling synstructure v0.13.2
+   Compiling ring v0.17.14
+   Compiling zerofrom-derive v0.1.7
+   Compiling zeroize v1.9.0
+   Compiling zerofrom v0.1.8
+   Compiling uuid v1.26.0
+   Compiling yoke-derive v0.8.2
+   Compiling yoke v0.8.3
+   Compiling tokio-util v0.7.19
+   Compiling http v1.5.0
+   Compiling getrandom v0.2.17
+   Compiling rustls-pki-types v1.15.1
+   Compiling zerovec-derive v0.11.4
+   Compiling bitflags v2.13.1
+   Compiling zerovec v0.11.7
+   Compiling http-body v1.1.0
+   Compiling displaydoc v0.2.7
+   Compiling serde_json v1.0.151
+   Compiling base64 v0.22.1
+   Compiling thiserror-impl v2.0.20
+   Compiling want v0.3.1
+   Compiling h2 v0.4.20
+   Compiling rustls v0.23.43
+   Compiling thiserror v2.0.20
+   Compiling tinystr v0.8.4
+   Compiling rustls-webpki v0.103.14
+   Compiling powerfmt v0.2.0
+   Compiling icu_locale_core v2.3.0
+   Compiling hyper v1.11.0
+   Compiling zerotrie v0.2.5
+   Compiling potential_utf v0.1.6
+   Compiling ipnet v2.12.1
+   Compiling hyper-util v0.1.20
+   Compiling icu_collections v2.3.0
+   Compiling icu_provider v2.3.0
+   Compiling darling_core v0.20.11
+   Compiling windows-interface v0.59.3
+   Compiling windows-implement v0.60.2
+   Compiling windows-core v0.61.2
+   Compiling darling_macro v0.20.11
+   Compiling tower v0.5.3
+   Compiling http-body-util v0.1.5
+   Compiling cpufeatures v0.2.17
+   Compiling serde_urlencoded v0.7.1
+   Compiling sha2 v0.10.9
+   Compiling icu_normalizer v2.3.0
+   Compiling icu_properties v2.3.0
+   Compiling darling v0.20.11
+   Compiling getrandom v0.3.4
+   Compiling tokio-rustls v0.26.4
+   Compiling webpki-roots v1.0.9
+   Compiling rand_core v0.9.5
+   Compiling derive_builder_core v0.20.2
+   Compiling idna_adapter v1.2.2
+   Compiling windows_x86_64_msvc v0.52.6
+   Compiling reliquary-container v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-container)
+   Compiling ppv-lite86 v0.2.21
+   Compiling rand_chacha v0.9.0
+   Compiling windows-future v0.2.1
+   Compiling windows-targets v0.52.6
+   Compiling idna v1.1.0
+   Compiling derive_builder_macro v0.20.2
+   Compiling winapi v0.3.9
+   Compiling prost-derive v0.14.4
+   Compiling windows-numerics v0.2.0
+   Compiling windows-collections v0.2.0
+   Compiling windows v0.61.3
+   Compiling ntapi v0.4.3
+   Compiling derive_builder v0.20.2
+   Compiling url v2.5.8
+   Compiling windows-sys v0.52.0
+   Compiling rand v0.9.5
+   Compiling tempfile v3.27.0
+   Compiling cargo_metadata v0.23.1
+   Compiling vergen-lib v9.1.0
+   Compiling sysinfo v0.37.2
+   Compiling time v0.3.55
+   Compiling vergen v9.1.0
+   Compiling blake3 v1.8.7
+   Compiling pin-project-internal v1.1.13
+   Compiling foldhash v0.1.5
+   Compiling winnow v1.0.4
+   Compiling prost v0.14.4
+   Compiling pulldown-cmark v0.13.4
+   Compiling toml_parser v1.1.4+spec-1.1.0
+   Compiling hashbrown v0.15.5
+   Compiling pin-project v1.1.13
+   Compiling prettyplease v0.2.37
+   Compiling petgraph v0.8.3
+   Compiling axum-core v0.5.6
+   Compiling pulldown-cmark-to-cmark v22.0.3
+   Compiling prost-types v0.14.4
+   Compiling darling_core v0.24.1
+   Compiling tokio-stream v0.1.19
+   Compiling schannel v0.1.29
+   Compiling lore-error-set-macro v0.1.0 (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling axum v0.8.9
+   Compiling dirs-sys v0.5.0
+   Compiling prost-build v0.14.4
+   Compiling lore-error-set v0.1.0 (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling rustls-native-certs v0.8.4
+   Compiling darling_macro v0.24.1
+   Compiling tonic-build v0.14.6
+   Compiling lore-base v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling hyper-timeout v0.5.2
+   Compiling async-trait v0.1.92
+   Compiling backtrace v0.3.76
+   Compiling tonic v0.14.6
+   Compiling tonic-prost-build v0.14.6
+   Compiling darling v0.24.1
+   Compiling directories v6.0.0
+   Compiling chrono v0.4.45
+   Compiling futures-executor v0.3.34
+   Compiling lore-io v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling zstd-sys v2.1.0+zstd.1.5.7
+   Compiling tinyvec v1.12.0
+   Compiling fastbloom v0.14.1
+   Compiling serde_with_macros v3.24.0
+   Compiling windows-sys v0.60.2
+   Compiling lore-proto v0.1.62 (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling simple_asn1 v0.6.4
+   Compiling pem v3.0.6
+   Compiling lz4-sys v1.11.1+lz4-1.10.0
+   Compiling lru-slab v0.1.2
+   Compiling base64 v0.23.1
+   Compiling hashbrown v0.14.5
+   Compiling quinn-proto v0.11.13 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\vendor\quinn-proto)
+   Compiling toml v0.9.12+spec-1.1.0
+   Compiling dashmap v6.2.1
+   Compiling pem v4.0.0
+   Compiling jsonwebtoken v9.3.1
+   Compiling keyring v3.6.3
+   Compiling serde_with v3.24.0
+   Compiling quinn-udp v0.5.15
+   Compiling tonic-prost v0.14.6
+   Compiling yasna v0.6.0
+   Compiling tower-http v0.6.11
+   Compiling hyper-rustls v0.27.9
+   Compiling opentelemetry v0.31.0
+   Compiling async-stream-impl v0.3.6
+   Compiling async-stream v0.3.6
+   Compiling opentelemetry_sdk v0.31.0
+   Compiling reqwest v0.12.23
+   Compiling rcgen v0.14.10
+   Compiling quinn v0.11.9
+   Compiling lore-credential v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling futures v0.3.34
+   Compiling reliquary-archive v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-archive)
+   Compiling reliquary-memory-core v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-memory-core)
+   Compiling raw-cpuid v11.6.0
+   Compiling lore-storage v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling reliquary-vector-store v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-vector-store)
+   Compiling lore-telemetry v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling quanta v0.12.6
+   Compiling lore-transport v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling reliquary-switchboard v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-switchboard)
+   Compiling cfb v0.7.3
+   Compiling reliquary-graph v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-graph)
+   Compiling nu-ansi-term v0.50.3
+   Compiling governor v0.10.4
+   Compiling lore-revision v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling diffy v0.4.2
+   Compiling cbindgen v0.29.2
+   Compiling infer v0.19.0
+   Compiling lore-macro v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling lore v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling reliquary-vectors v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-vectors)
+   Compiling bitcode_derive v0.6.9
+   Compiling bitcode v0.6.9
+   Compiling lore-notification v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling reliquary-freshness-store v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-freshness-store)
+   Compiling reliquary-perception-store v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-perception-store)
+   Compiling enum_dispatch v0.3.13
+   Compiling reliquary-retrieval v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-retrieval)
+   Compiling reliquary-chronos v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-chronos)
+   Compiling reliquary-ego-store v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-ego-store)
+   Compiling reliquary-insomnia-store v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-insomnia-store)
+   Compiling reliquary-owner-session v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-owner-session)
+warning: unused import: `PathBuf`
+  --> crates\reliquary-owner-session\src\records\verified_copy.rs:12:18
+   |
+12 |     path::{Path, PathBuf},
+   |                  ^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::io::Read`
+ --> crates\reliquary-owner-session\src\session\dream_initial_replay.rs:8:5
+  |
+8 | use std::io::Read;
+  |     ^^^^^^^^^^^^^
+
+warning: `reliquary-owner-session` (lib) generated 2 warnings (run `cargo fix --lib -p reliquary-owner-session` to apply 1 suggestion)
+   Compiling reliquary-dream v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-dream)
+warning: unused import: `MemoryBodyId`
+ --> crates\reliquary-dream\src\lib.rs:7:29
+  |
+7 | use reliquary_memory_core::{MemoryBodyId, MemoryId};
+  |                             ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `reliquary-dream` (lib) generated 1 warning (run `cargo fix --lib -p reliquary-dream` to apply 1 suggestion)
+   Compiling reliquary-entity-resolution v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-entity-resolution)
+   Compiling reliquary-project-environment v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-project-environment)
+   Compiling reliquary-freshness v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-freshness)
+   Compiling reliquary-insomnia v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-insomnia)
+   Compiling reliquary-context-engine v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-context-engine)
+   Compiling reliquary-application v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application)
+warning: function `recheck_dream_draft` is never used
+   --> crates\reliquary-application\src\dream_workflow.rs:336:8
+    |
+336 | pub fn recheck_dream_draft(
+    |        ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `memory_ids_page` is never used
+   --> crates\reliquary-application\src\entity_workflow.rs:107:19
+    |
+ 36 | impl EntityOwnerSession<'_> {
+    | --------------------------- method in this implementation
+...
+107 |     pub(crate) fn memory_ids_page(
+    |                   ^^^^^^^^^^^^^^^
+
+warning: function `recheck_memory_embedding_batch` is never used
+   --> crates\reliquary-application\src\vector_workflow.rs:161:8
+    |
+161 | pub fn recheck_memory_embedding_batch(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `reliquary-application` (lib) generated 3 warnings
+   Compiling reliquary-runtime-gateway v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-runtime-gateway)
+warning: linker stdout: LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `reliquary-runtime-gateway` (lib test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 22m 14s
+     Running unittests src\lib.rs (target-codex-check\debug\deps\reliquary_runtime_gateway-22957b9b024d40d4.exe)
+warning: unused import: `PathBuf`
+  --> crates\reliquary-owner-session\src\records\verified_copy.rs:12:18
+   |
+12 |     path::{Path, PathBuf},
+   |                  ^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::io::Read`
+ --> crates\reliquary-owner-session\src\session\dream_initial_replay.rs:8:5
+  |
+8 | use std::io::Read;
+  |     ^^^^^^^^^^^^^
+
+warning: `reliquary-owner-session` (lib) generated 2 warnings (run `cargo fix --lib -p reliquary-owner-session` to apply 1 suggestion)
+warning: unused import: `MemoryBodyId`
+ --> crates\reliquary-dream\src\lib.rs:7:29
+  |
+7 | use reliquary_memory_core::{MemoryBodyId, MemoryId};
+  |                             ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `reliquary-dream` (lib) generated 1 warning (run `cargo fix --lib -p reliquary-dream` to apply 1 suggestion)
+warning: function `recheck_dream_draft` is never used
+   --> crates\reliquary-application\src\dream_workflow.rs:336:8
+    |
+336 | pub fn recheck_dream_draft(
+    |        ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `memory_ids_page` is never used
+   --> crates\reliquary-application\src\entity_workflow.rs:107:19
+    |
+ 36 | impl EntityOwnerSession<'_> {
+    | --------------------------- method in this implementation
+...
+107 |     pub(crate) fn memory_ids_page(
+    |                   ^^^^^^^^^^^^^^^
+
+warning: function `recheck_memory_embedding_batch` is never used
+   --> crates\reliquary-application\src\vector_workflow.rs:161:8
+    |
+161 | pub fn recheck_memory_embedding_batch(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `reliquary-application` (lib) generated 3 warnings
+warning: linker stdout: LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `reliquary-runtime-gateway` (lib test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.59s
+     Running unittests src\lib.rs (target-codex-check\debug\deps\reliquary_runtime_gateway-22957b9b024d40d4.exe)
+   Compiling syn v2.0.119
+   Compiling getrandom v0.4.3
+   Compiling serde v1.0.229
+   Compiling jobserver v0.1.35
+   Compiling cc v1.6.0
+   Compiling bytes v1.12.1
+   Compiling zerocopy-derive v0.8.61
+   Compiling zerocopy v0.8.61
+   Compiling parking_lot_core v0.9.12
+   Compiling parking_lot v0.12.5
+   Compiling mio v1.2.4
+   Compiling tokio v1.53.2
+   Compiling tracing-attributes v0.1.31
+   Compiling tracing v0.1.44
+   Compiling ring v0.17.14
+   Compiling uuid v1.27.0
+   Compiling tokio-util v0.7.19
+   Compiling http v1.5.0
+   Compiling getrandom v0.2.17
+   Compiling http-body v1.1.0
+   Compiling h2 v0.4.20
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling hyper v1.12.0
+   Compiling hyper-util v0.1.21
+   Compiling darling_core v0.20.11
+   Compiling windows-interface v0.59.3
+   Compiling windows-implement v0.60.2
+   Compiling windows-core v0.61.2
+   Compiling darling_macro v0.20.11
+   Compiling tower v0.5.3
+   Compiling http-body-util v0.1.5
+   Compiling sha2 v0.10.9
+   Compiling serde_urlencoded v0.7.1
+   Compiling darling v0.20.11
+   Compiling tokio-rustls v0.26.6
+   Compiling derive_builder_core v0.20.2
+   Compiling reliquary-container v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-container)
+   Compiling ppv-lite86 v0.2.21
+   Compiling rand_chacha v0.9.0
+   Compiling windows-future v0.2.1
+   Compiling derive_builder_macro v0.20.2
+   Compiling prost-derive v0.14.4
+   Compiling windows-collections v0.2.0
+   Compiling windows-numerics v0.2.0
+   Compiling windows v0.61.3
+   Compiling derive_builder v0.20.2
+   Compiling rand v0.9.5
+   Compiling windows-sys v0.61.2
+   Compiling tempfile v3.27.0
+   Compiling vergen-lib v9.1.0
+   Compiling sysinfo v0.37.2
+   Compiling time v0.3.55
+   Compiling vergen v9.1.0
+   Compiling blake3 v1.8.7
+   Compiling pin-project-internal v1.1.13
+   Compiling prost v0.14.4
+   Compiling pin-project v1.1.13
+   Compiling prettyplease v0.2.37
+   Compiling axum-core v0.5.6
+   Compiling prost-types v0.14.4
+   Compiling tokio-stream v0.1.19
+   Compiling lore-error-set-macro v0.1.0 (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling prost-build v0.14.4
+   Compiling axum v0.8.9
+   Compiling lore-error-set v0.1.0 (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling rustls-native-certs v0.8.4
+   Compiling tonic-build v0.14.6
+   Compiling lore-base v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling hyper-timeout v0.5.2
+   Compiling backtrace v0.3.76
+   Compiling tonic v0.14.6
+   Compiling tonic-prost-build v0.14.6
+   Compiling lore-io v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling fastbloom v0.14.1
+   Compiling zstd-sys v2.1.0+zstd.1.5.7
+   Compiling lore-proto v0.1.62 (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling lz4-sys v1.11.1+lz4-1.10.0
+   Compiling quinn-proto v0.11.13 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\vendor\quinn-proto)
+   Compiling dashmap v6.2.1
+   Compiling jsonwebtoken v9.3.1
+   Compiling keyring v3.6.3
+   Compiling quinn-udp v0.5.16
+   Compiling tonic-prost v0.14.6
+   Compiling tower-http v0.6.11
+   Compiling hyper-rustls v0.27.10
+   Compiling opentelemetry v0.31.0
+   Compiling async-stream-impl v0.3.6
+   Compiling async-stream v0.3.6
+   Compiling rcgen v0.14.10
+   Compiling opentelemetry_sdk v0.31.0
+   Compiling reqwest v0.12.23
+   Compiling quinn v0.11.9
+   Compiling lore-credential v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling reliquary-archive v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-archive)
+   Compiling reliquary-memory-core v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-memory-core)
+   Compiling lore-storage v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling reliquary-vector-store v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-vector-store)
+   Compiling lore-telemetry v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling lore-transport v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling reliquary-switchboard v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-switchboard)
+   Compiling cfb v0.7.3
+   Compiling reliquary-graph v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-graph)
+   Compiling lore-revision v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling governor v0.10.4
+   Compiling cbindgen v0.29.2
+   Compiling infer v0.19.0
+   Compiling lore-macro v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling lore v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling reliquary-vectors v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-vectors)
+   Compiling bitcode_derive v0.6.9
+   Compiling bitcode v0.6.9
+   Compiling lore-notification v0.9.1-nightly (https://github.com/EpicGames/lore.git?rev=c49390be048fa273ab47ff7d43bc4994ba7be8ce#c49390be)
+   Compiling reliquary-perception-store v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-perception-store)
+   Compiling reliquary-freshness-store v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-freshness-store)
+   Compiling enum_dispatch v0.3.13
+   Compiling reliquary-retrieval v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-retrieval)
+   Compiling reliquary-ego-store v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-ego-store)
+   Compiling reliquary-insomnia-store v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-insomnia-store)
+   Compiling reliquary-owner-session v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-owner-session)
+warning: unused import: `PathBuf`
+  --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-owner-session\src\records\verified_copy.rs:12:18
+   |
+12 |     path::{Path, PathBuf},
+   |                  ^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::io::Read`
+ --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-owner-session\src\session\dream_initial_replay.rs:8:5
+  |
+8 | use std::io::Read;
+  |     ^^^^^^^^^^^^^
+
+warning: `reliquary-owner-session` (lib) generated 2 warnings (run `cargo fix --lib -p reliquary-owner-session` to apply 1 suggestion)
+   Compiling reliquary-dream v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-dream)
+warning: unused import: `MemoryBodyId`
+ --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-dream\src\lib.rs:7:29
+  |
+7 | use reliquary_memory_core::{MemoryBodyId, MemoryId};
+  |                             ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `reliquary-dream` (lib) generated 1 warning (run `cargo fix --lib -p reliquary-dream` to apply 1 suggestion)
+   Compiling reliquary-entity-resolution v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-entity-resolution)
+   Compiling reliquary-project-environment v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-project-environment)
+   Compiling reliquary-freshness v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-freshness)
+   Compiling reliquary-insomnia v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-insomnia)
+   Compiling reliquary-context-engine v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-context-engine)
+   Compiling reliquary-application v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application)
+warning: function `recheck_dream_draft` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application\src\dream_workflow.rs:336:8
+    |
+336 | pub fn recheck_dream_draft(
+    |        ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `memory_ids_page` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application\src\entity_workflow.rs:107:19
+    |
+ 36 | impl EntityOwnerSession<'_> {
+    | --------------------------- method in this implementation
+...
+107 |     pub(crate) fn memory_ids_page(
+    |                   ^^^^^^^^^^^^^^^
+
+warning: function `recheck_memory_embedding_batch` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application\src\vector_workflow.rs:161:8
+    |
+161 | pub fn recheck_memory_embedding_batch(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `reliquary-application` (lib) generated 3 warnings
+   Compiling reliquary-runtime-gateway v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-runtime-gateway)
+warning: unused imports: `HandoffReceipt`, `HostCancelOutcome`, `HostOperationStatus`, and `HostOperation`
+ --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-runtime-gateway\src\host_lifecycle.rs:6:5
+  |
+6 |     HandoffReceipt, HostCancelOutcome, HostOperationStatus, RuntimeCapability,
+  |     ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+7 |     host_runtime::{HostOperation, HostQueueGuarantees, HostReconcileStatus, TrustedHostAdapter},
+  |                    ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `pending_in_order` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-runtime-gateway\src\conversation_queue\queue_reads.rs:150:19
+    |
+  3 | impl ConversationQueue {
+    | ---------------------- method in this implementation
+...
+150 |     pub(crate) fn pending_in_order(
+    |                   ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `reliquary-runtime-gateway` (lib) generated 2 warnings (run `cargo fix --lib -p reliquary-runtime-gateway` to apply 1 suggestion)
+   Compiling reliquary-memory v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted)
+   Compiling reliquary-cli v0.1.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\cli)
+warning: linker stdout: LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `reliquary-cli` (bin "reliquary") generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 16m 20s
+warning: unused import: `PathBuf`
+  --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-owner-session\src\records\verified_copy.rs:12:18
+   |
+12 |     path::{Path, PathBuf},
+   |                  ^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::io::Read`
+ --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-owner-session\src\session\dream_initial_replay.rs:8:5
+  |
+8 | use std::io::Read;
+  |     ^^^^^^^^^^^^^
+
+warning: `reliquary-owner-session` (lib) generated 2 warnings (run `cargo fix --lib -p reliquary-owner-session` to apply 1 suggestion)
+warning: unused import: `MemoryBodyId`
+ --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-dream\src\lib.rs:7:29
+  |
+7 | use reliquary_memory_core::{MemoryBodyId, MemoryId};
+  |                             ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `reliquary-dream` (lib) generated 1 warning (run `cargo fix --lib -p reliquary-dream` to apply 1 suggestion)
+warning: function `recheck_dream_draft` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application\src\dream_workflow.rs:336:8
+    |
+336 | pub fn recheck_dream_draft(
+    |        ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `memory_ids_page` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application\src\entity_workflow.rs:107:19
+    |
+ 36 | impl EntityOwnerSession<'_> {
+    | --------------------------- method in this implementation
+...
+107 |     pub(crate) fn memory_ids_page(
+    |                   ^^^^^^^^^^^^^^^
+
+warning: function `recheck_memory_embedding_batch` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application\src\vector_workflow.rs:161:8
+    |
+161 | pub fn recheck_memory_embedding_batch(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `reliquary-application` (lib) generated 3 warnings
+warning: unused imports: `HandoffReceipt`, `HostCancelOutcome`, `HostOperationStatus`, and `HostOperation`
+ --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-runtime-gateway\src\host_lifecycle.rs:6:5
+  |
+6 |     HandoffReceipt, HostCancelOutcome, HostOperationStatus, RuntimeCapability,
+  |     ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+7 |     host_runtime::{HostOperation, HostQueueGuarantees, HostReconcileStatus, TrustedHostAdapter},
+  |                    ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `pending_in_order` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-runtime-gateway\src\conversation_queue\queue_reads.rs:150:19
+    |
+  3 | impl ConversationQueue {
+    | ---------------------- method in this implementation
+...
+150 |     pub(crate) fn pending_in_order(
+    |                   ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `reliquary-runtime-gateway` (lib) generated 2 warnings (run `cargo fix --lib -p reliquary-runtime-gateway` to apply 1 suggestion)
+   Compiling reliquary-external-consumer-check v0.0.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\tests\external-consumer)
+warning: linker stdout: LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `reliquary-external-consumer-check` (bin "reliquary-external-consumer-check") generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 26.60s
+warning: unused import: `PathBuf`
+  --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-owner-session\src\records\verified_copy.rs:12:18
+   |
+12 |     path::{Path, PathBuf},
+   |                  ^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::io::Read`
+ --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-owner-session\src\session\dream_initial_replay.rs:8:5
+  |
+8 | use std::io::Read;
+  |     ^^^^^^^^^^^^^
+
+warning: `reliquary-owner-session` (lib) generated 2 warnings (run `cargo fix --lib -p reliquary-owner-session` to apply 1 suggestion)
+warning: unused import: `MemoryBodyId`
+ --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-dream\src\lib.rs:7:29
+  |
+7 | use reliquary_memory_core::{MemoryBodyId, MemoryId};
+  |                             ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `reliquary-dream` (lib) generated 1 warning (run `cargo fix --lib -p reliquary-dream` to apply 1 suggestion)
+warning: function `recheck_dream_draft` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application\src\dream_workflow.rs:336:8
+    |
+336 | pub fn recheck_dream_draft(
+    |        ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `memory_ids_page` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application\src\entity_workflow.rs:107:19
+    |
+ 36 | impl EntityOwnerSession<'_> {
+    | --------------------------- method in this implementation
+...
+107 |     pub(crate) fn memory_ids_page(
+    |                   ^^^^^^^^^^^^^^^
+
+warning: function `recheck_memory_embedding_batch` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application\src\vector_workflow.rs:161:8
+    |
+161 | pub fn recheck_memory_embedding_batch(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `reliquary-application` (lib) generated 3 warnings
+warning: unused imports: `HandoffReceipt`, `HostCancelOutcome`, `HostOperationStatus`, and `HostOperation`
+ --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-runtime-gateway\src\host_lifecycle.rs:6:5
+  |
+6 |     HandoffReceipt, HostCancelOutcome, HostOperationStatus, RuntimeCapability,
+  |     ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+7 |     host_runtime::{HostOperation, HostQueueGuarantees, HostReconcileStatus, TrustedHostAdapter},
+  |                    ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `pending_in_order` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-runtime-gateway\src\conversation_queue\queue_reads.rs:150:19
+    |
+  3 | impl ConversationQueue {
+    | ---------------------- method in this implementation
+...
+150 |     pub(crate) fn pending_in_order(
+    |                   ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `reliquary-runtime-gateway` (lib) generated 2 warnings (run `cargo fix --lib -p reliquary-runtime-gateway` to apply 1 suggestion)
+warning: linker stdout: LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `reliquary-external-consumer-check` (bin "reliquary-external-consumer-check") generated 1 warning
+   Compiling reliquary-external-consumer-check v0.0.0 (C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\tests\external-consumer)
+warning: `reliquary-external-consumer-check` (bin "reliquary-external-consumer-check" test) generated 1 warning (1 duplicate)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 14.77s
+     Running unittests src\main.rs (target-codex-check\debug\deps\reliquary_external_consumer_check-bb3c3c0dfc804d34.exe)
+     Running tests\process_reopen.rs (target-codex-check\debug\deps\process_reopen-bdfcd39b4cc804f2.exe)

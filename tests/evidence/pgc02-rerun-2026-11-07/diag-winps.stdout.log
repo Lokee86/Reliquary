@@ -1,0 +1,21 @@
+SNAPSHOT=before_process_helper
+PSVersion=5.1.26100.9711
+PSModulePath=C:\Users\archa\OneDrive\Documents\PowerShell\Modules;C:\Program Files\PowerShell\Modules;c:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules;C:\Users\archa\OneDrive\Documents\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules
+PSModuleAutoLoadingPreference=<unset>
+UtilityLoaded=True
+UtilityAvailableCount=2
+PROCESS_HELPER_EXIT=17;OUT_LENGTH=11;ERR_LENGTH=11
+SNAPSHOT=after_process_helper
+PSVersion=5.1.26100.9711
+PSModulePath=C:\Users\archa\OneDrive\Documents\PowerShell\Modules;C:\Program Files\PowerShell\Modules;c:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules;C:\Users\archa\OneDrive\Documents\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules
+PSModuleAutoLoadingPreference=<unset>
+UtilityLoaded=True
+UtilityAvailableCount=2
+HASH_PIPELINE=FAIL;DIR=g4-completed-56596a5f52ee42c5baf4b2c7fa103002;ERROR=The term 'Get-FileHash' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+HASH_PIPELINE=FAIL;DIR=g4-completed-b13db49b4b984d68b8d505838a5cbd94;ERROR=The term 'Get-FileHash' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+SNAPSHOT=after_hash_attempt
+PSVersion=5.1.26100.9711
+PSModulePath=C:\Users\archa\OneDrive\Documents\PowerShell\Modules;C:\Program Files\PowerShell\Modules;c:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules;C:\Users\archa\OneDrive\Documents\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules
+PSModuleAutoLoadingPreference=<unset>
+UtilityLoaded=True
+UtilityAvailableCount=2

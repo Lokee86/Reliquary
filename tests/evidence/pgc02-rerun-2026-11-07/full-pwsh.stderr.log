@@ -1,0 +1,341 @@
+warning: unused import: `PathBuf`
+  --> crates\reliquary-owner-session\src\records\verified_copy.rs:12:18
+   |
+12 |     path::{Path, PathBuf},
+   |                  ^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::io::Read`
+ --> crates\reliquary-owner-session\src\session\dream_initial_replay.rs:8:5
+  |
+8 | use std::io::Read;
+  |     ^^^^^^^^^^^^^
+
+warning: `reliquary-owner-session` (lib) generated 2 warnings (run `cargo fix --lib -p reliquary-owner-session` to apply 1 suggestion)
+warning: unused import: `MemoryBodyId`
+ --> crates\reliquary-dream\src\lib.rs:7:29
+  |
+7 | use reliquary_memory_core::{MemoryBodyId, MemoryId};
+  |                             ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `reliquary-dream` (lib) generated 1 warning (run `cargo fix --lib -p reliquary-dream` to apply 1 suggestion)
+warning: function `recheck_dream_draft` is never used
+   --> crates\reliquary-application\src\dream_workflow.rs:336:8
+    |
+336 | pub fn recheck_dream_draft(
+    |        ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `memory_ids_page` is never used
+   --> crates\reliquary-application\src\entity_workflow.rs:107:19
+    |
+ 36 | impl EntityOwnerSession<'_> {
+    | --------------------------- method in this implementation
+...
+107 |     pub(crate) fn memory_ids_page(
+    |                   ^^^^^^^^^^^^^^^
+
+warning: function `recheck_memory_embedding_batch` is never used
+   --> crates\reliquary-application\src\vector_workflow.rs:161:8
+    |
+161 | pub fn recheck_memory_embedding_batch(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `reliquary-application` (lib) generated 3 warnings
+warning: linker stdout: LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `reliquary-runtime-gateway` (lib test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.80s
+     Running unittests src\lib.rs (target-codex-check\debug\deps\reliquary_runtime_gateway-22957b9b024d40d4.exe)
+warning: unused import: `PathBuf`
+  --> crates\reliquary-owner-session\src\records\verified_copy.rs:12:18
+   |
+12 |     path::{Path, PathBuf},
+   |                  ^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::io::Read`
+ --> crates\reliquary-owner-session\src\session\dream_initial_replay.rs:8:5
+  |
+8 | use std::io::Read;
+  |     ^^^^^^^^^^^^^
+
+warning: `reliquary-owner-session` (lib) generated 2 warnings (run `cargo fix --lib -p reliquary-owner-session` to apply 1 suggestion)
+warning: unused import: `MemoryBodyId`
+ --> crates\reliquary-dream\src\lib.rs:7:29
+  |
+7 | use reliquary_memory_core::{MemoryBodyId, MemoryId};
+  |                             ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `reliquary-dream` (lib) generated 1 warning (run `cargo fix --lib -p reliquary-dream` to apply 1 suggestion)
+warning: function `recheck_dream_draft` is never used
+   --> crates\reliquary-application\src\dream_workflow.rs:336:8
+    |
+336 | pub fn recheck_dream_draft(
+    |        ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `memory_ids_page` is never used
+   --> crates\reliquary-application\src\entity_workflow.rs:107:19
+    |
+ 36 | impl EntityOwnerSession<'_> {
+    | --------------------------- method in this implementation
+...
+107 |     pub(crate) fn memory_ids_page(
+    |                   ^^^^^^^^^^^^^^^
+
+warning: function `recheck_memory_embedding_batch` is never used
+   --> crates\reliquary-application\src\vector_workflow.rs:161:8
+    |
+161 | pub fn recheck_memory_embedding_batch(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `reliquary-application` (lib) generated 3 warnings
+warning: linker stdout: LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `reliquary-runtime-gateway` (lib test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.79s
+     Running unittests src\lib.rs (target-codex-check\debug\deps\reliquary_runtime_gateway-22957b9b024d40d4.exe)
+warning: unused import: `PathBuf`
+  --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-owner-session\src\records\verified_copy.rs:12:18
+   |
+12 |     path::{Path, PathBuf},
+   |                  ^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::io::Read`
+ --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-owner-session\src\session\dream_initial_replay.rs:8:5
+  |
+8 | use std::io::Read;
+  |     ^^^^^^^^^^^^^
+
+warning: `reliquary-owner-session` (lib) generated 2 warnings (run `cargo fix --lib -p reliquary-owner-session` to apply 1 suggestion)
+warning: unused import: `MemoryBodyId`
+ --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-dream\src\lib.rs:7:29
+  |
+7 | use reliquary_memory_core::{MemoryBodyId, MemoryId};
+  |                             ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `reliquary-dream` (lib) generated 1 warning (run `cargo fix --lib -p reliquary-dream` to apply 1 suggestion)
+warning: function `recheck_dream_draft` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application\src\dream_workflow.rs:336:8
+    |
+336 | pub fn recheck_dream_draft(
+    |        ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `memory_ids_page` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application\src\entity_workflow.rs:107:19
+    |
+ 36 | impl EntityOwnerSession<'_> {
+    | --------------------------- method in this implementation
+...
+107 |     pub(crate) fn memory_ids_page(
+    |                   ^^^^^^^^^^^^^^^
+
+warning: function `recheck_memory_embedding_batch` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application\src\vector_workflow.rs:161:8
+    |
+161 | pub fn recheck_memory_embedding_batch(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `reliquary-application` (lib) generated 3 warnings
+warning: unused imports: `HandoffReceipt`, `HostCancelOutcome`, `HostOperationStatus`, and `HostOperation`
+ --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-runtime-gateway\src\host_lifecycle.rs:6:5
+  |
+6 |     HandoffReceipt, HostCancelOutcome, HostOperationStatus, RuntimeCapability,
+  |     ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+7 |     host_runtime::{HostOperation, HostQueueGuarantees, HostReconcileStatus, TrustedHostAdapter},
+  |                    ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `pending_in_order` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-runtime-gateway\src\conversation_queue\queue_reads.rs:150:19
+    |
+  3 | impl ConversationQueue {
+    | ---------------------- method in this implementation
+...
+150 |     pub(crate) fn pending_in_order(
+    |                   ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `reliquary-runtime-gateway` (lib) generated 2 warnings (run `cargo fix --lib -p reliquary-runtime-gateway` to apply 1 suggestion)
+warning: linker stdout: LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `reliquary-cli` (bin "reliquary") generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.01s
+warning: unused import: `PathBuf`
+  --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-owner-session\src\records\verified_copy.rs:12:18
+   |
+12 |     path::{Path, PathBuf},
+   |                  ^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::io::Read`
+ --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-owner-session\src\session\dream_initial_replay.rs:8:5
+  |
+8 | use std::io::Read;
+  |     ^^^^^^^^^^^^^
+
+warning: `reliquary-owner-session` (lib) generated 2 warnings (run `cargo fix --lib -p reliquary-owner-session` to apply 1 suggestion)
+warning: unused import: `MemoryBodyId`
+ --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-dream\src\lib.rs:7:29
+  |
+7 | use reliquary_memory_core::{MemoryBodyId, MemoryId};
+  |                             ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `reliquary-dream` (lib) generated 1 warning (run `cargo fix --lib -p reliquary-dream` to apply 1 suggestion)
+warning: function `recheck_dream_draft` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application\src\dream_workflow.rs:336:8
+    |
+336 | pub fn recheck_dream_draft(
+    |        ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `memory_ids_page` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application\src\entity_workflow.rs:107:19
+    |
+ 36 | impl EntityOwnerSession<'_> {
+    | --------------------------- method in this implementation
+...
+107 |     pub(crate) fn memory_ids_page(
+    |                   ^^^^^^^^^^^^^^^
+
+warning: function `recheck_memory_embedding_batch` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application\src\vector_workflow.rs:161:8
+    |
+161 | pub fn recheck_memory_embedding_batch(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `reliquary-application` (lib) generated 3 warnings
+warning: unused imports: `HandoffReceipt`, `HostCancelOutcome`, `HostOperationStatus`, and `HostOperation`
+ --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-runtime-gateway\src\host_lifecycle.rs:6:5
+  |
+6 |     HandoffReceipt, HostCancelOutcome, HostOperationStatus, RuntimeCapability,
+  |     ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+7 |     host_runtime::{HostOperation, HostQueueGuarantees, HostReconcileStatus, TrustedHostAdapter},
+  |                    ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `pending_in_order` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-runtime-gateway\src\conversation_queue\queue_reads.rs:150:19
+    |
+  3 | impl ConversationQueue {
+    | ---------------------- method in this implementation
+...
+150 |     pub(crate) fn pending_in_order(
+    |                   ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `reliquary-runtime-gateway` (lib) generated 2 warnings (run `cargo fix --lib -p reliquary-runtime-gateway` to apply 1 suggestion)
+warning: linker stdout: LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `reliquary-external-consumer-check` (bin "reliquary-external-consumer-check") generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.86s
+warning: unused import: `PathBuf`
+  --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-owner-session\src\records\verified_copy.rs:12:18
+   |
+12 |     path::{Path, PathBuf},
+   |                  ^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::io::Read`
+ --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-owner-session\src\session\dream_initial_replay.rs:8:5
+  |
+8 | use std::io::Read;
+  |     ^^^^^^^^^^^^^
+
+warning: `reliquary-owner-session` (lib) generated 2 warnings (run `cargo fix --lib -p reliquary-owner-session` to apply 1 suggestion)
+warning: unused import: `MemoryBodyId`
+ --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-dream\src\lib.rs:7:29
+  |
+7 | use reliquary_memory_core::{MemoryBodyId, MemoryId};
+  |                             ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `reliquary-dream` (lib) generated 1 warning (run `cargo fix --lib -p reliquary-dream` to apply 1 suggestion)
+warning: function `recheck_dream_draft` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application\src\dream_workflow.rs:336:8
+    |
+336 | pub fn recheck_dream_draft(
+    |        ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `memory_ids_page` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application\src\entity_workflow.rs:107:19
+    |
+ 36 | impl EntityOwnerSession<'_> {
+    | --------------------------- method in this implementation
+...
+107 |     pub(crate) fn memory_ids_page(
+    |                   ^^^^^^^^^^^^^^^
+
+warning: function `recheck_memory_embedding_batch` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-application\src\vector_workflow.rs:161:8
+    |
+161 | pub fn recheck_memory_embedding_batch(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `reliquary-application` (lib) generated 3 warnings
+warning: unused imports: `HandoffReceipt`, `HostCancelOutcome`, `HostOperationStatus`, and `HostOperation`
+ --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-runtime-gateway\src\host_lifecycle.rs:6:5
+  |
+6 |     HandoffReceipt, HostCancelOutcome, HostOperationStatus, RuntimeCapability,
+  |     ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+7 |     host_runtime::{HostOperation, HostQueueGuarantees, HostReconcileStatus, TrustedHostAdapter},
+  |                    ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `pending_in_order` is never used
+   --> C:\!bin\workspace\Reliquary-postg4-pgc02-accepted\crates\reliquary-runtime-gateway\src\conversation_queue\queue_reads.rs:150:19
+    |
+  3 | impl ConversationQueue {
+    | ---------------------- method in this implementation
+...
+150 |     pub(crate) fn pending_in_order(
+    |                   ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `reliquary-runtime-gateway` (lib) generated 2 warnings (run `cargo fix --lib -p reliquary-runtime-gateway` to apply 1 suggestion)
+warning: linker stdout: LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `reliquary-external-consumer-check` (bin "reliquary-external-consumer-check") generated 1 warning
+warning: `reliquary-external-consumer-check` (bin "reliquary-external-consumer-check" test) generated 1 warning (1 duplicate)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.81s
+     Running unittests src\main.rs (target-codex-check\debug\deps\reliquary_external_consumer_check-bb3c3c0dfc804d34.exe)
+     Running tests\process_reopen.rs (target-codex-check\debug\deps\process_reopen-bdfcd39b4cc804f2.exe)

@@ -1,0 +1,20 @@
+{
+  "kind": "full_acceptance",
+  "shell_version": "5.1.26100.9711",
+  "resolved_executable": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+  "working_directory": "C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted",
+  "arguments": "-NoLogo -NoProfile -File \"C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\scripts\\run_g4_acceptance.ps1\"",
+  "command": "\"C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -NoLogo -NoProfile -File \"C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\scripts\\run_g4_acceptance.ps1\"",
+  "launched_utc": "2026-11-07T09:48:36.0209878Z",
+  "planning_spec_revision": "5d96db99",
+  "tested_source_commit": "26e84f45b54985d5aa1ceb3ab8e7fd7f183b8b0a",
+  "runner_sha256": "54BACA4B819A951A94A01EC02338C352459EDB1587AFA6CC0A149E8BAED77E41",
+  "focused_harness_sha256": "8D6966A1EABD2B67BAEEE3D299FFA5142C2BF40CF6CB74BBE3483B8D16369DAB",
+  "target_cache": "C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\target-codex-check",
+  "stdout_log": "full-winps.stdout.log",
+  "stderr_log": "full-winps.stderr.log",
+  "exit_code": 1,
+  "completed_utc": "2026-11-07T09:49:15.6865706Z",
+  "stdout_sha256": "068C2052415A9398FF87E4A6B31C8D03F5777903F45C20AF8076D7CA9FFBBDFA",
+  "stderr_sha256": "A6AFE0603C38113CEEA9B8C6B3E505B96A82C8820C60A618ACA0C6E0E27EE3B7"
+}

@@ -1,0 +1,39 @@
+SNAPSHOT=before_helper
+PSVersion=5.1.26100.9711
+PSModulePath=C:\Users\archa\OneDrive\Documents\PowerShell\Modules;C:\Program Files\PowerShell\Modules;c:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules;C:\Users\archa\OneDrive\Documents\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules
+PSModuleAutoLoadingPreference=<unset>
+UtilityAvailableCount=2
+UTILITY_AVAILABLE=7.0.0.0;PATH=C:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1
+UTILITY_AVAILABLE=3.1.0.0;PATH=C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1
+UTILITY_LOADED=7.0.0.0;PATH=C:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1;EXPORTS_FILEHASH=False
+GET_FILE_HASH_IMPORTED_COUNT=0
+HASH_BEFORE_HELPER=FAIL;The term 'Get-FileHash' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+SNAPSHOT=after_pre_hash
+PSVersion=5.1.26100.9711
+PSModulePath=C:\Users\archa\OneDrive\Documents\PowerShell\Modules;C:\Program Files\PowerShell\Modules;c:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules;C:\Users\archa\OneDrive\Documents\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules
+PSModuleAutoLoadingPreference=<unset>
+UtilityAvailableCount=2
+UTILITY_AVAILABLE=7.0.0.0;PATH=C:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1
+UTILITY_AVAILABLE=3.1.0.0;PATH=C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1
+UTILITY_LOADED=7.0.0.0;PATH=C:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1;EXPORTS_FILEHASH=False
+GET_FILE_HASH_IMPORTED_COUNT=0
+PROCESS_HELPER_EXIT=17;OUT_LENGTH=11;ERR_LENGTH=11
+SNAPSHOT=after_helper
+PSVersion=5.1.26100.9711
+PSModulePath=C:\Users\archa\OneDrive\Documents\PowerShell\Modules;C:\Program Files\PowerShell\Modules;c:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules;C:\Users\archa\OneDrive\Documents\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules
+PSModuleAutoLoadingPreference=<unset>
+UtilityAvailableCount=2
+UTILITY_AVAILABLE=7.0.0.0;PATH=C:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1
+UTILITY_AVAILABLE=3.1.0.0;PATH=C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1
+UTILITY_LOADED=7.0.0.0;PATH=C:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1;EXPORTS_FILEHASH=False
+GET_FILE_HASH_IMPORTED_COUNT=0
+HASH_AFTER_HELPER=FAIL;The term 'Get-FileHash' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+SNAPSHOT=after_post_hash
+PSVersion=5.1.26100.9711
+PSModulePath=C:\Users\archa\OneDrive\Documents\PowerShell\Modules;C:\Program Files\PowerShell\Modules;c:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules;C:\Users\archa\OneDrive\Documents\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules
+PSModuleAutoLoadingPreference=<unset>
+UtilityAvailableCount=2
+UTILITY_AVAILABLE=7.0.0.0;PATH=C:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1
+UTILITY_AVAILABLE=3.1.0.0;PATH=C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1
+UTILITY_LOADED=7.0.0.0;PATH=C:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1;EXPORTS_FILEHASH=False
+GET_FILE_HASH_IMPORTED_COUNT=0

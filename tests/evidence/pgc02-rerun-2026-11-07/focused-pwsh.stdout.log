@@ -1,0 +1,1 @@
+PASS: 8 negative-call preservation, JSON/exit validation, mixed-stream rejection, Windows argv quoting, and 200KB dual-stream capture (PowerShell 7.6.9).

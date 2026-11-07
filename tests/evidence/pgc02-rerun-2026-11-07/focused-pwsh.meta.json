@@ -1,0 +1,20 @@
+{
+  "kind": "focused_regression",
+  "shell_version": "7.6.9",
+  "resolved_executable": "C:\\Users\\archa\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+  "working_directory": "C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted",
+  "arguments": "-NoLogo -NoProfile -File \"C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\scripts\\test_g4_acceptance_native_capture.ps1\"",
+  "command": "\"C:\\Users\\archa\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe\" -NoLogo -NoProfile -File \"C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\scripts\\test_g4_acceptance_native_capture.ps1\"",
+  "launched_utc": "2026-11-07T09:51:30.9818359Z",
+  "planning_spec_revision": "5d96db99",
+  "tested_source_commit": "26e84f45b54985d5aa1ceb3ab8e7fd7f183b8b0a",
+  "runner_sha256": "54BACA4B819A951A94A01EC02338C352459EDB1587AFA6CC0A149E8BAED77E41",
+  "focused_harness_sha256": "8D6966A1EABD2B67BAEEE3D299FFA5142C2BF40CF6CB74BBE3483B8D16369DAB",
+  "target_cache": "C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\target-codex-check",
+  "stdout_log": "focused-pwsh.stdout.log",
+  "stderr_log": "focused-pwsh.stderr.log",
+  "exit_code": 0,
+  "completed_utc": "2026-11-07T09:51:34.2826756Z",
+  "stdout_sha256": "F0F4AE24F116F855BC383251053D1EB68A1282BF5B02EF5550573D26D53C5D96",
+  "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+}

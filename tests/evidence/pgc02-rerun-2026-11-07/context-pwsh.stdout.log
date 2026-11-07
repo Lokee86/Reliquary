@@ -1,0 +1,35 @@
+SNAPSHOT=before_helper
+PSVersion=7.6.9
+PSModulePath=C:\Users\archa\OneDrive\Documents\PowerShell\Modules;C:\Program Files\PowerShell\Modules;c:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules;C:\Users\archa\OneDrive\Documents\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules
+PSModuleAutoLoadingPreference=<unset>
+UtilityAvailableCount=1
+UTILITY_AVAILABLE=7.0.0.0;PATH=C:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1
+UTILITY_LOADED=7.0.0.0;PATH=C:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1;EXPORTS_FILEHASH=True
+GET_FILE_HASH_IMPORTED_COUNT=1
+HASH_BEFORE_HELPER=PASS;29058D7AEF72DD4FC0963BA2B7D98675CA381A2511BC6777CB8BD62DAC732CE8
+SNAPSHOT=after_pre_hash
+PSVersion=7.6.9
+PSModulePath=C:\Users\archa\OneDrive\Documents\PowerShell\Modules;C:\Program Files\PowerShell\Modules;c:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules;C:\Users\archa\OneDrive\Documents\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules
+PSModuleAutoLoadingPreference=<unset>
+UtilityAvailableCount=1
+UTILITY_AVAILABLE=7.0.0.0;PATH=C:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1
+UTILITY_LOADED=7.0.0.0;PATH=C:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1;EXPORTS_FILEHASH=True
+GET_FILE_HASH_IMPORTED_COUNT=1
+PROCESS_HELPER_EXIT=17;OUT_LENGTH=11;ERR_LENGTH=11
+SNAPSHOT=after_helper
+PSVersion=7.6.9
+PSModulePath=C:\Users\archa\OneDrive\Documents\PowerShell\Modules;C:\Program Files\PowerShell\Modules;c:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules;C:\Users\archa\OneDrive\Documents\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules
+PSModuleAutoLoadingPreference=<unset>
+UtilityAvailableCount=1
+UTILITY_AVAILABLE=7.0.0.0;PATH=C:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1
+UTILITY_LOADED=7.0.0.0;PATH=C:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1;EXPORTS_FILEHASH=True
+GET_FILE_HASH_IMPORTED_COUNT=1
+HASH_AFTER_HELPER=PASS;29058D7AEF72DD4FC0963BA2B7D98675CA381A2511BC6777CB8BD62DAC732CE8
+SNAPSHOT=after_post_hash
+PSVersion=7.6.9
+PSModulePath=C:\Users\archa\OneDrive\Documents\PowerShell\Modules;C:\Program Files\PowerShell\Modules;c:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules;C:\Users\archa\OneDrive\Documents\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules
+PSModuleAutoLoadingPreference=<unset>
+UtilityAvailableCount=1
+UTILITY_AVAILABLE=7.0.0.0;PATH=C:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1
+UTILITY_LOADED=7.0.0.0;PATH=C:\users\archa\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1;EXPORTS_FILEHASH=True
+GET_FILE_HASH_IMPORTED_COUNT=1

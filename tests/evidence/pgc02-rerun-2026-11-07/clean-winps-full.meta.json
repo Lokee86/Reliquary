@@ -1,0 +1,83 @@
+{
+  "kind": "full_acceptance",
+  "shell_version": "5.1.26100.9711",
+  "resolved_executable": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+  "wrapper_shell_version": "7.6.9",
+  "working_directory": "C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted",
+  "process_local_PSModulePath": "C:\\Program Files\\WindowsPowerShell\\Modules;C:\\WINDOWS\\system32\\WindowsPowerShell\\v1.0\\Modules",
+  "arguments": "-NoLogo -NoProfile -File \"C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\scripts\\run_g4_acceptance.ps1\"",
+  "command": "\"C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -NoLogo -NoProfile -File \"C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\scripts\\run_g4_acceptance.ps1\"",
+  "launched_utc": "2026-11-07T10:17:51.1831073Z",
+  "planning_spec_revision": "5d96db99",
+  "tested_source_commit": "26e84f45b54985d5aa1ceb3ab8e7fd7f183b8b0a",
+  "runner_sha256": "54BACA4B819A951A94A01EC02338C352459EDB1587AFA6CC0A149E8BAED77E41",
+  "focused_harness_sha256": "8D6966A1EABD2B67BAEEE3D299FFA5142C2BF40CF6CB74BBE3483B8D16369DAB",
+  "target_cache": "C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\target-codex-check",
+  "stdout_log": "clean-winps-full.stdout.log",
+  "stderr_log": "clean-winps-full.stderr.log",
+  "exit_code": 0,
+  "completed_utc": "2026-11-07T10:57:51.5514721Z",
+  "stdout_sha256": "AF38161D566B553401C4FDBD458CDEAF727838D009B7429A59B07F1D59236B67",
+  "stderr_sha256": "6EF0BCA356DEC6000C09EE05D27C3EE4041EB52FA61CF7BFD19205B5A2887C9D",
+  "prior_unfiltered_attempt": {
+    "metadata": "full-winps.meta.json",
+    "exit_code": 1,
+    "exact_error": "Get-FileHash was not recognized at scripts/run_g4_acceptance.ps1:153.",
+    "diagnosed_environment": "PS5.1 loaded Microsoft.PowerShell.Utility 7.0.0.0 from the Codex PowerShell 7 module path; that module did not export Get-FileHash. The normal WindowsPowerShell Utility 3.1.0.0 module was later in PSModulePath.",
+    "change_for_this_attempt": "Only this wrapper process local PSModulePath is restricted to the WindowsPowerShell module roots; no system or user setting is changed."
+  },
+  "evidence_checks": {
+    "runner_exit_zero": true,
+    "completion_path_found": true,
+    "cli_observation_count": 25,
+    "negative_cli_count": 8,
+    "negative_structured_json_error_count": 8,
+    "source_bytes_unchanged": true,
+    "source_file_hashes": [
+      {
+        "path": "C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\.test-tmp\\g4-completed-f632368c846a4322a03ae169d7eaed81\\rel-lantern.rel",
+        "expected_sha256": "2742502bd4da2fe3e5a32e3879fb36bbb8b5893c5367e34c973711b50a0eaf10",
+        "actual_sha256": "2742502BD4DA2FE3E5A32E3879FB36BBB8B5893C5367E34C973711B50A0EAF10",
+        "matches": true
+      },
+      {
+        "path": "C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\.test-tmp\\g4-completed-f632368c846a4322a03ae169d7eaed81\\rel-cascade.rel",
+        "expected_sha256": "5a7be1c19635c04011ed7be30a8d388d2f80fd1773031f8b5b3f28e2973b18b6",
+        "actual_sha256": "5A7BE1C19635C04011ED7BE30A8D388D2F80FD1773031F8B5B3F28E2973B18B6",
+        "matches": true
+      },
+      {
+        "path": "C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\.test-tmp\\g4-completed-f632368c846a4322a03ae169d7eaed81\\phy-reader-a.phy",
+        "expected_sha256": "017684166b5ddd1ae75d945351d505476cb61624c8d7dcd56c5df5934a61c770",
+        "actual_sha256": "017684166B5DDD1AE75D945351D505476CB61624C8D7DCD56C5DF5934A61C770",
+        "matches": true
+      },
+      {
+        "path": "C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\.test-tmp\\g4-completed-f632368c846a4322a03ae169d7eaed81\\phy-reader-b.phy",
+        "expected_sha256": "148eef6d2f1b3a431556fc3c97cfa2477f27c13f383a0299e531bf446683eb0f",
+        "actual_sha256": "148EEF6D2F1B3A431556FC3C97CFA2477F27C13F383A0299E531BF446683EB0F",
+        "matches": true
+      }
+    ],
+    "repeat_semantics_equal": true,
+    "artifacts": [
+      {
+        "path": "C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\.test-tmp\\g4-completed-f632368c846a4322a03ae169d7eaed81\\witness.json",
+        "sha256": "5A96E245952C9D638468E3BE5B0B07AC0DB8E6832DC0D9E44B8D486C3FC25926"
+      },
+      {
+        "path": "C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\.test-tmp\\g4-completed-f632368c846a4322a03ae169d7eaed81\\process-witness.json",
+        "sha256": "3175FF9F8F3ACCAEB35BCB8E3A562599C379F81A0D1976BA805EB5726EBCE42B"
+      },
+      {
+        "path": "C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\.test-tmp\\g4-completed-f632368c846a4322a03ae169d7eaed81\\cli-witness.json",
+        "sha256": "FA965703091FC68B539D0F8D3B6D2F09B76243EA44DEFD3B5120BD073E62AB11"
+      },
+      {
+        "path": "C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\.test-tmp\\g4-completed-f632368c846a4322a03ae169d7eaed81-repeat\\witness.json",
+        "sha256": "0E49FCD8C3A7A0457647F2434F31EAC4C33CCA9ED388C2A00C6E368BA6D09889"
+      }
+    ]
+  },
+  "accepted": true
+}
