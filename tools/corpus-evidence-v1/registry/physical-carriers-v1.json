@@ -1,0 +1,10 @@
+{
+  "schema_id": "reliquary-corpus-physical-carriers-v1",
+  "contract_id": "reliquary-corpus-evidence-v1",
+  "status": "unclassified-no-authenticated-inventory",
+  "authentic_admission": false,
+  "inventory_state": "not_started",
+  "coverage": "incomplete",
+  "entries": [],
+  "unclassified_carriers": []
+}

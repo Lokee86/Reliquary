@@ -1,0 +1,35 @@
+{
+  "contract_id": "reliquary-corpus-evidence-v1",
+  "status": "independently-computed-synthetic-goldens",
+  "vectors": {
+    "jcs_utf16": {
+      "input_json_escaped": "{\"\\uE000\":\"bmp\",\"\\uD800\\uDC00\":\"nonbmp\",\"a\":\"M\\u00fcnchen e\\u0301\"}",
+      "canonical_utf8_hex": "7b2261223a224dc3bc6e6368656e2065cc81222c22f0908080223a226e6f6e626d70222c22ee8080223a22626d70227d"
+    },
+    "u64be": {
+      "decimal_values": ["2", "10"],
+      "bytes_hex": ["0000000000000002", "000000000000000a"]
+    },
+    "length_prefix": {
+      "payload_utf8": "abc",
+      "encoded_hex": "0000000000000003616263"
+    },
+    "empty_family_digest": {
+      "owner": {
+        "owner_kind": "REL",
+        "owner_uuid": "00112233445566778899aabbccddeeff",
+        "scope": "project"
+      },
+      "coverage": {
+        "family": "fixture.memory_revision.v1",
+        "group_id": "memory",
+        "presence": "supported",
+        "completeness": "exhaustive",
+        "row_count": "0",
+        "cuts": []
+      },
+      "preimage_hex": "72656c6971756172793a636f727075732d65766964656e63653a76310000000000000000567b226f776e65725f6b696e64223a2252454c222c226f776e65725f75756964223a223030313132323333343435353636373738383939616162626363646465656666222c2273636f7065223a2270726f6a656374227d000000000000001a666978747572652e6d656d6f72795f7265766973696f6e2e763100000000000000887b22636f6d706c6574656e657373223a2265786861757374697665222c2263757473223a5b5d2c2266616d696c79223a22666978747572652e6d656d6f72795f7265766973696f6e2e7631222c2267726f75705f6964223a226d656d6f7279222c2270726573656e6365223a22737570706f72746564222c22726f775f636f756e74223a2230227d0000000000000000",
+      "sha256": "827bb87bacda3f1ce394171183c8bf8ee2337611e8db565bf211c1e2d30255a1"
+    }
+  }
+}

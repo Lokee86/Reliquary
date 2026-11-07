@@ -1,0 +1,280 @@
+{
+  "$id": "https://reliquary.invalid/corpus-evidence/artifact-report-v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "captured_at_utc": {
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z$",
+      "type": "string"
+    },
+    "command_argv": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "contract_id": {
+      "const": "reliquary-corpus-evidence-v1"
+    },
+    "coverage": {
+      "additionalProperties": false,
+      "properties": {
+        "completeness": {
+          "enum": [
+            "exhaustive",
+            "sampled",
+            "incomplete"
+          ]
+        },
+        "cut_count": {
+          "pattern": "^(?:0|[1-9][0-9]*)$",
+          "type": "string"
+        },
+        "family_count": {
+          "pattern": "^(?:0|[1-9][0-9]*)$",
+          "type": "string"
+        },
+        "owner_count": {
+          "pattern": "^(?:0|[1-9][0-9]*)$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner_count",
+        "family_count",
+        "cut_count",
+        "completeness"
+      ],
+      "type": "object"
+    },
+    "diagnostics": {
+      "additionalProperties": false,
+      "properties": {
+        "sample": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "cut_id": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "expected_availability": {
+                "enum": [
+                  "present",
+                  "missing",
+                  "tombstoned",
+                  "pruned",
+                  "unavailable",
+                  "unauthorized",
+                  "corrupt"
+                ]
+              },
+              "expected_sha256": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "family": {
+                "enum": [
+                  "fixture.archive_turn_revision.v1",
+                  "fixture.memory_revision.v1",
+                  "fixture.vector_probe.v1",
+                  "fixture.freshness_event.v1",
+                  "fixture.ego_anchor.v1"
+                ]
+              },
+              "observed_availability": {
+                "enum": [
+                  "present",
+                  "missing",
+                  "tombstoned",
+                  "pruned",
+                  "unavailable",
+                  "unauthorized",
+                  "corrupt"
+                ]
+              },
+              "observed_sha256": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "owner_uuid": {
+                "pattern": "^[0-9a-f]{32}$",
+                "type": "string"
+              },
+              "revision_or_event": {
+                "type": "string"
+              },
+              "stable_key": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner_uuid",
+              "family",
+              "stable_key",
+              "revision_or_event",
+              "cut_id",
+              "expected_availability",
+              "observed_availability",
+              "expected_sha256",
+              "observed_sha256"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "sample_limit": {
+          "pattern": "^(?:0|[1-9][0-9]*)$",
+          "type": "string"
+        },
+        "total_count": {
+          "pattern": "^(?:0|[1-9][0-9]*)$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "total_count",
+        "sample_limit",
+        "sample"
+      ],
+      "type": "object"
+    },
+    "evidence_scope": {
+      "enum": [
+        "synthetic_fixture",
+        "authentic_source",
+        "target_candidate",
+        "benchmark"
+      ]
+    },
+    "exit_status": {
+      "pattern": "^(?:0|[1-9][0-9]*|-[1-9][0-9]*)$",
+      "type": "string"
+    },
+    "lockfile_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "parent_artifact_hashes": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "producer_binary_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "producer_code_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "producer_revision": {
+      "pattern": "^[0-9a-f]{40}$",
+      "type": "string"
+    },
+    "producer_role": {
+      "enum": [
+        "source_reader",
+        "converter",
+        "target_reader",
+        "comparator",
+        "staging",
+        "benchmark"
+      ]
+    },
+    "registry_hashes": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_bundle": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "physical_carriers": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "record_schemas": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "semantic_groups": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "semantic_groups",
+        "record_schemas",
+        "physical_carriers",
+        "contract_bundle"
+      ],
+      "type": "object"
+    },
+    "reporting_date_local": {
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "type": "string"
+    },
+    "reporting_timezone": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema_id": {
+      "const": "reliquary-corpus-artifact-report-v1"
+    },
+    "source_hashes": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "INCOMPLETE"
+      ]
+    },
+    "toolchain_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "validation_patch_sha256": {
+      "oneOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "schema_id",
+    "contract_id",
+    "producer_role",
+    "evidence_scope",
+    "producer_revision",
+    "producer_binary_sha256",
+    "producer_code_sha256",
+    "validation_patch_sha256",
+    "lockfile_sha256",
+    "toolchain_id",
+    "registry_hashes",
+    "status",
+    "captured_at_utc",
+    "reporting_date_local",
+    "reporting_timezone",
+    "command_argv",
+    "exit_status",
+    "source_hashes",
+    "parent_artifact_hashes",
+    "coverage",
+    "diagnostics"
+  ],
+  "type": "object"
+}

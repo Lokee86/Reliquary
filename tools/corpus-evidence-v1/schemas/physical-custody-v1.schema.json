@@ -1,0 +1,87 @@
+{
+  "$id": "https://reliquary.invalid/corpus-evidence/physical-custody-v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "relocations": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "family": {
+            "enum": [
+              "fixture.archive_turn_revision.v1",
+              "fixture.memory_revision.v1",
+              "fixture.vector_probe.v1",
+              "fixture.freshness_event.v1",
+              "fixture.ego_anchor.v1"
+            ]
+          },
+          "owner_uuid": {
+            "pattern": "^[0-9a-f]{32}$",
+            "type": "string"
+          },
+          "payload_identity": {
+            "pattern": "^(?:[0-9a-f]{2})+$",
+            "type": "string"
+          },
+          "reference_kind": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "source_length": {
+            "pattern": "^(?:0|[1-9][0-9]*)$",
+            "type": "string"
+          },
+          "source_object_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "source_offset": {
+            "pattern": "^(?:0|[1-9][0-9]*)$",
+            "type": "string"
+          },
+          "target_length": {
+            "pattern": "^(?:0|[1-9][0-9]*)$",
+            "type": "string"
+          },
+          "target_object_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "target_offset": {
+            "pattern": "^(?:0|[1-9][0-9]*)$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "owner_uuid",
+          "family",
+          "source_object_sha256",
+          "source_offset",
+          "source_length",
+          "target_object_sha256",
+          "target_offset",
+          "target_length",
+          "payload_identity",
+          "reference_kind"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "source_file_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "target_file_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "source_file_sha256",
+    "target_file_sha256",
+    "relocations"
+  ],
+  "type": "object"
+}
