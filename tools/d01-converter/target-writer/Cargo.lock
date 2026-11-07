@@ -54,6 +54,8 @@ version = "0.1.0"
 dependencies = [
  "hex",
  "reliquary-archive",
+ "reliquary-container",
+ "reliquary-memory-core",
  "reliquary-owner-session",
  "serde",
  "serde_json",

@@ -8,6 +8,8 @@ edition = "2024"
 publish = false
 
 [dependencies]
+reliquary-container = { path = "../../../crates/reliquary-container" }
+reliquary-memory-core = { path = "../../../crates/reliquary-memory-core" }
 reliquary-archive = { path = "../../../crates/reliquary-archive" }
 reliquary-owner-session = { path = "../../../crates/reliquary-owner-session" }
 serde = { version = "1", features = ["derive"] }

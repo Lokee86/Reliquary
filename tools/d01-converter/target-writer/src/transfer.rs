@@ -155,7 +155,7 @@ pub fn decode_hex<const N: usize>(value: &str) -> Result<[u8; N], &'static str> 
     Ok(bytes)
 }
 
-fn decimal<T: std::str::FromStr + ToString>(value: &str) -> Result<T, &'static str> {
+pub fn decimal<T: std::str::FromStr + ToString>(value: &str) -> Result<T, &'static str> {
     let parsed: T = value.parse().map_err(|_| "invalid decimal field")?;
     if parsed.to_string() != value {
         return Err("noncanonical decimal field");

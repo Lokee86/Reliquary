@@ -66,8 +66,8 @@
     {
       "id": "current-only-target-reopen",
       "owner_boundary": "accepted 2.1 owner-session admission",
-      "status": "synthetic-archive-current-reopen-only",
-      "current_evidence": "The native Archive fixture writer reopens via normal current-only REL admission and checks every synthetic Archive cut. The earlier D01SYN01 CLI remains fixture framing only.",
+      "status": "synthetic-archive-and-ungrouped-phy-memory",
+      "current_evidence": "The native writer checks every synthetic Archive cut and the ungrouped PHY Memory revision and global clock bindings through current-only reopen. The earlier D01SYN01 CLI remains fixture framing only.",
       "required_synthetic_proof": "T02/T03 must create synthetic owners through accepted 2.1 APIs and reopen via ordinary current-only admission.",
       "permitted_resolution": "Separate target-only process/workspace once predecessor tickets are satisfied.",
       "forbidden_shortcuts": [

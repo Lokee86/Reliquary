@@ -522,7 +522,7 @@ impl MemoryStore {
         expected_revision: u64,
         draft: MemoryDraft,
     ) -> Result<PublishResult, MemoryError> {
-        self.publish_inner(container, id, expected_revision, draft, None)
+        self.publish_inner(container, id, expected_revision, draft, None, None)
     }
 
     /// Publish a creation with an owner global coordinate for Dream replay.
@@ -532,7 +532,38 @@ impl MemoryStore {
         draft: MemoryDraft,
         transaction_time_ns: i64,
     ) -> Result<PublishResult, MemoryError> {
-        self.publish_inner(container, None, 0, draft, Some(transaction_time_ns))
+        self.publish_inner(container, None, 0, draft, Some(transaction_time_ns), None)
+    }
+
+    /// Write an ungrouped accepted creation or delta using its exact native coordinates.
+    pub fn publish_accepted_versioned_revision(
+        &mut self,
+        container: &mut Container,
+        global_version: u64,
+        transaction_time_ns: i64,
+        accepted: &MemoryRecord,
+        draft: MemoryDraft,
+    ) -> Result<(), MemoryError> {
+        let previous = accepted
+            .revision
+            .checked_sub(1)
+            .ok_or(MemoryError::RevisionConflict)?;
+        if self.state.next_memory_version != accepted.memory_version
+            || container.latest_version().checked_add(1) != Some(global_version)
+            || self.state.mutations.contains_key(&accepted.mutation_id)
+        {
+            return Err(MemoryError::RevisionConflict);
+        }
+        let id = (previous != 0).then_some(accepted.id);
+        self.publish_inner(
+            container,
+            id,
+            previous,
+            draft,
+            Some(transaction_time_ns),
+            Some(accepted),
+        )?;
+        Ok(())
     }
 
     fn publish_inner(
@@ -542,6 +573,7 @@ impl MemoryStore {
         expected_revision: u64,
         draft: MemoryDraft,
         versioned_at: Option<i64>,
+        accepted: Option<&MemoryRecord>,
     ) -> Result<PublishResult, MemoryError> {
         self.validate_owner(container)?;
         validate_draft(&draft)?;
@@ -650,6 +682,9 @@ impl MemoryStore {
             updated_at_ns: draft.updated_at_ns,
             memory_version,
         };
+        if accepted.is_some_and(|expected| *expected != record) {
+            return Err(MemoryError::RevisionConflict);
+        }
         let body = MemoryBody {
             title: draft.title.clone(),
             content: draft.content.clone(),

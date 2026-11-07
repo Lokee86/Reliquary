@@ -1,6 +1,6 @@
 # D01 provisional synthetic tooling
 
-Status: **T01 remains incomplete**. This lane contains synthetic fixtures and test command surfaces, including a native 2.1 writer for an ordered synthetic REL Archive history. Source traversal and authentic conversion are pending.
+Status: **T01 remains incomplete**. This lane contains synthetic fixtures and test command surfaces, including native 2.1 writers for ordered synthetic REL Archive and ungrouped PHY Memory history. Source traversal and authentic conversion are pending.
 
 Converter tools live under tools/d01-converter/, outside the explicit 23-package production DAG. The native writer has its own Cargo workspace and depends on current 2.1 codecs and owner-session.
 
@@ -41,7 +41,7 @@ corpus inputs. The target process accepts the fixture SHA-256 explicitly.
 The writer uses the current Archive codec through narrow owner-session
 operations. It captures a proof at each revision, releases the writer, and
 reopens the staged REL through ordinary current-only admission. Each cut must
-produce the same proof after reopen. A same-directory hard link publishes the
+produce the same proof after reopen. A same-filesystem hard link publishes the
 file only after proof and source checks pass and fails on a collision. The
 synthetic receipt includes the hashes of the transfer, writer and candidate,
 and the per-cut proof digests.
@@ -75,6 +75,28 @@ synthetic transfers that supply a global binding, even when their local
 history matches a supported fixture. Exact authentic replay needs an Archive
 representation and normal read-path support for the binding, plus review of
 the source publication families and repeats.
+
+## Native 2.1 synthetic PHY Memory writer
+
+The same isolated writer accepts a separate fixture containing ungrouped
+private Memory creation and delta publications. It carries the original stable
+Memory and body IDs, per-Memory revisions, owner-local Memory versions, dense
+global versions and exact transaction times. The writer checks each accepted
+record against the current Memory codec before appending it. Ordinary current
+PHY admission must reproduce every typed revision and the physical
+publication scan must reproduce every local/global binding and timestamp
+before a candidate is published.
+
+    $fixture = 'tools/d01-converter/target-writer/tests/phy-memory-transfer.json'
+    New-Item -Force -ItemType Directory '.test-tmp' | Out-Null
+    cargo run --manifest-path tools/d01-converter/target-writer/Cargo.toml --locked --offline -j 1 -- --synthetic-memory-fixture $fixture (Get-FileHash $fixture -Algorithm SHA256).Hash.ToLowerInvariant() '.test-tmp/synthetic-memory.phy'
+
+The receipt is synthetic and provisional. This fixture exercises an available
+immutable body, two retained revisions, changed metadata, and transaction
+times above 2^53. Pruned or unavailable bodies, sparse global clocks,
+reserved/bound publications, cross-owner provenance and grouped work need
+additional typed conversion paths. This path does not resolve the Archive
+global binding gap.
 
 ## Coverage and target gaps
 

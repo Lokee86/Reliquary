@@ -970,7 +970,7 @@ pub(super) fn owner_history_generation_from_container(
     .into())
 }
 
-fn draft_from(
+pub(super) fn draft_from(
     revision: &reliquary_memory_core::MemoryRevision,
     body: &reliquary_memory_core::MemoryBody,
 ) -> MemoryDraft {

@@ -1,4 +1,3 @@
-use reliquary_owner_session::{RelSession, RelWriter};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
@@ -9,18 +8,33 @@ use std::{
     time::SystemTime,
 };
 
+mod archive;
+mod memory;
+mod memory_transfer;
 mod transfer;
-use transfer::{Transfer, decode_hex};
+use transfer::decode_hex;
 
 const MAX_TRANSFER_BYTES: u64 = 4 * 1024 * 1024;
 
 fn main() -> ExitCode {
     let arguments: Vec<_> = std::env::args_os().skip(1).collect();
     let result = match arguments.as_slice() {
-        [mode, source, expected, output] if mode == "--synthetic-fixture" => {
-            write(Path::new(source), expected.to_str(), Path::new(output))
-        }
-        _ => Err((2, "expected --synthetic-fixture TRANSFER SHA256 NEW-REL")),
+        [mode, source, expected, output] if mode == "--synthetic-fixture" => write(
+            Path::new(source),
+            expected.to_str(),
+            Path::new(output),
+            Fixture::Archive,
+        ),
+        [mode, source, expected, output] if mode == "--synthetic-memory-fixture" => write(
+            Path::new(source),
+            expected.to_str(),
+            Path::new(output),
+            Fixture::Memory,
+        ),
+        _ => Err((
+            2,
+            "expected --synthetic-fixture or --synthetic-memory-fixture TRANSFER SHA256 CANDIDATE",
+        )),
     };
     match result {
         Ok(receipt) => {
@@ -36,7 +50,17 @@ fn main() -> ExitCode {
 
 type Failure = (u8, &'static str);
 
-fn write(source: &Path, expected: Option<&str>, output: &Path) -> Result<Value, Failure> {
+enum Fixture {
+    Archive,
+    Memory,
+}
+
+fn write(
+    source: &Path,
+    expected: Option<&str>,
+    output: &Path,
+    fixture: Fixture,
+) -> Result<Value, Failure> {
     let expected: [u8; 32] = expected
         .and_then(|value| decode_hex(value).ok())
         .ok_or((3, "a canonical source SHA-256 is required"))?;
@@ -45,11 +69,6 @@ fn write(source: &Path, expected: Option<&str>, output: &Path) -> Result<Value, 
     if hash != expected {
         return Err((3, "transfer hash does not match"));
     }
-    let transfer: Transfer =
-        serde_json::from_slice(&bytes).map_err(|_| (4, "invalid synthetic Archive transfer"))?;
-    let owner = transfer.owner().map_err(|reason| (4, reason))?;
-    let scope = transfer.scope();
-    let generation = transfer.generation().map_err(|reason| (4, reason))?;
     let name = output
         .file_name()
         .ok_or((2, "candidate file name is required"))?;
@@ -69,31 +88,14 @@ fn write(source: &Path, expected: Option<&str>, output: &Path) -> Result<Value, 
         .prefix(".d01-synthetic-")
         .tempdir_in(&parent)
         .map_err(|_| (7, "could not create candidate staging directory"))?;
-    let staged_file = stage.path().join("owner.rel");
-    let mut writer = RelWriter::create_current_path(&staged_file, scope, owner)
-        .map_err(|_| (7, "could not initialize a current owner"))?;
-    let cuts = transfer.replay(&mut writer).map_err(|reason| (4, reason))?;
-    if cuts[0].1.history_generation != generation {
-        return Err((4, "unsupported synthetic owner history generation"));
-    }
-    drop(writer);
-
-    let reader = RelSession::open_path_current(&staged_file)
-        .map_err(|_| (6, "candidate failed normal current-only reopen"))?;
-    if reader.owner_id() != owner || reader.scope() != scope {
-        return Err((6, "candidate owner identity changed on reopen"));
-    }
-    for (cut, proof) in &cuts {
-        if reader.historical_proof(owner, cut).as_ref() != Ok(proof)
-            || proof.history_generation != generation
-        {
-            return Err((6, "candidate historical proof changed on reopen"));
-        }
-    }
-    if cuts.last().map(|(cut, _)| cut) != Some(&reader.current_historical_cut()) {
-        return Err((6, "candidate head changed on reopen"));
-    }
-    drop(reader);
+    let staged_file = stage.path().join(match fixture {
+        Fixture::Archive => "owner.rel",
+        Fixture::Memory => "owner.phy",
+    });
+    let mut receipt = match fixture {
+        Fixture::Archive => archive::materialize(&bytes, &staged_file)?,
+        Fixture::Memory => memory::materialize(&bytes, &staged_file)?,
+    };
 
     let candidate_digest =
         file_hash(&staged_file).map_err(|_| (7, "could not hash reopened candidate"))?;
@@ -111,30 +113,14 @@ fn write(source: &Path, expected: Option<&str>, output: &Path) -> Result<Value, 
             (7, "atomic no-replace candidate publication failed")
         }
     })?;
-    let history = cuts
-        .iter()
-        .map(|(cut, proof)| {
-            json!({
-                "archive_version": cut.archive_version.to_string(),
-                "retained_records": proof.retained_records.to_string(),
-                "proof_sha256": hex::encode(proof.digest)
-            })
-        })
-        .collect::<Vec<_>>();
-    Ok(json!({
-        "schema_id": "reliquary-d01-synthetic-archive-receipt-v1",
-        "status": "INCOMPLETE",
-        "scope": "synthetic_archive_only",
-        "authentic_source_admission": false,
-        "current_only_owner_reopen": true,
-        "owner": hex::encode(owner),
-        "history_generation": hex::encode(generation),
-        "source_sha256_before": hex::encode(expected),
-        "source_sha256_after": hex::encode(expected),
-        "candidate_sha256": candidate_digest,
-        "writer_sha256": writer_digest,
-        "archive_history": history
-    }))
+    receipt["status"] = json!("INCOMPLETE");
+    receipt["authentic_source_admission"] = json!(false);
+    receipt["current_only_owner_reopen"] = json!(true);
+    receipt["source_sha256_before"] = json!(hex::encode(expected));
+    receipt["source_sha256_after"] = json!(hex::encode(expected));
+    receipt["candidate_sha256"] = json!(candidate_digest);
+    receipt["writer_sha256"] = json!(writer_digest);
+    Ok(receipt)
 }
 
 fn read_source(path: &Path) -> Result<(Vec<u8>, (u64, SystemTime)), Failure> {
