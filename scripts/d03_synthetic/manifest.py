@@ -4,7 +4,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from .files import D03Error, canonical_bytes, sha256, write_new
+from .files import D03Error, canonical_bytes, make_directory, sha256, write_new
 
 CONTRACT_ID = "reliquary-corpus-evidence-v1"
 SCHEMA_ID = "reliquary-d03-synthetic-generation-manifest-v1"
@@ -33,10 +33,10 @@ def _owner_path(owner_id: str, kind: str) -> str:
 def create_generation(path: Path, generation_id: str, previous_id: str | None) -> str:
     if path.exists():
         raise D03Error("generation destination already exists")
-    path.mkdir(parents=True)
-    (path / "owners").mkdir()
-    (path / "runtime").mkdir()
-    (path / "evidence").mkdir()
+    make_directory(path)
+    make_directory(path / "owners")
+    make_directory(path / "runtime")
+    make_directory(path / "evidence")
 
     runtime_bytes = b"D03 SYNTHETIC RUNTIME FIXTURE ONLY\nformat=2.1\n"
     runtime_path = "runtime/runtime.fake"

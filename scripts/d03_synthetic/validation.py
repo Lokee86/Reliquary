@@ -4,26 +4,38 @@ import os
 from pathlib import Path
 from typing import Any
 
-from .files import D03Error, canonical_bytes, member, parse_json, sha256
+from .files import (
+    D03Error, canonical_bytes, is_reparse_point, member, parse_json,
+    read_bytes, reject_reparse, reject_reparse_chain, sha256,
+)
 from .manifest import (
-    CANDIDATE,
-    CONTRACT_ID,
-    OWNER_FIXTURE_SCHEMA,
-    OWNER_SPECS,
-    PREVIOUS,
-    REPORT_SCHEMA,
-    SCHEMA_ID,
-    owner_uuid,
+    CANDIDATE, CONTRACT_ID, OWNER_FIXTURE_SCHEMA, OWNER_SPECS,
+    PREVIOUS, REPORT_SCHEMA, SCHEMA_ID, owner_uuid,
 )
 
 
-def validate_generation(generation: Path, expected_digest: str | None = None) -> dict[str, Any]:
-    if generation.is_symlink() or not generation.is_dir():
+def validate_generation(generation: Path, expected_digest: str) -> dict[str, Any]:
+    reject_reparse_chain(generation, "generation path")
+    if not generation.is_dir():
         raise D03Error("generation directory is missing or aliased")
-    raw = (generation / "generation-manifest.json").read_bytes()
+    manifest_path = generation / "generation-manifest.json"
+    reject_reparse(manifest_path, "generation manifest")
+    raw = read_bytes(manifest_path, "generation manifest")
     manifest = parse_json(raw)
-    if not isinstance(manifest, dict) or raw != canonical_bytes(manifest) + b"\n":
+    if not isinstance(manifest, dict):
+        raise D03Error("generation manifest must be a JSON object")
+    try:
+        canonical_manifest = canonical_bytes(manifest)
+    except (TypeError, ValueError, RecursionError) as error:
+        raise D03Error(f"generation manifest is not canonicalizable JSON: {error}") from error
+    if raw != canonical_manifest + b"\n":
         raise D03Error("generation manifest is not canonical JSON")
+    if (
+        not isinstance(expected_digest, str)
+        or len(expected_digest) != 64
+        or any(character not in "0123456789abcdef" for character in expected_digest)
+    ):
+        raise D03Error("expected manifest digest is missing or invalid")
     if generation.name != manifest.get("generation_id"):
         raise D03Error("generation directory and manifest ID differ")
     if manifest["generation_id"] not in {PREVIOUS, CANDIDATE}:
@@ -39,14 +51,18 @@ def validate_generation(generation: Path, expected_digest: str | None = None) ->
         raise D03Error("unsupported manifest or evidence contract")
     if manifest["evidence_scope"] != "synthetic_fixture":
         raise D03Error("only synthetic-fixture manifests are accepted by this harness")
-    digest = sha256(canonical_bytes(manifest))
-    if expected_digest is not None and digest != expected_digest:
+    digest = sha256(canonical_manifest)
+    if digest != expected_digest:
         raise D03Error("manifest digest differs from the recorded digest")
 
     runtime = manifest["runtime"]
     if not isinstance(runtime, dict) or set(runtime) != {"version", "path", "sha256"}:
         raise D03Error("runtime descriptor has missing or unknown fields")
-    if runtime["version"] != "2.1" or not isinstance(runtime["sha256"], str):
+    if (
+        runtime["version"] != "2.1"
+        or not isinstance(runtime["path"], str)
+        or not isinstance(runtime["sha256"], str)
+    ):
         raise D03Error("synthetic runtime version/digest is invalid")
     report = manifest["d02_report"]
     if not isinstance(report, dict) or set(report) != {"path", "sha256", "status", "evidence_scope"}:
@@ -54,6 +70,7 @@ def validate_generation(generation: Path, expected_digest: str | None = None) ->
     if (
         report["status"] != "PASS"
         or report["evidence_scope"] != "synthetic_fixture"
+        or not isinstance(report["path"], str)
         or not isinstance(report["sha256"], str)
     ):
         raise D03Error("only the explicit synthetic D02 report fixture is accepted")
@@ -128,9 +145,13 @@ def validate_generation(generation: Path, expected_digest: str | None = None) ->
     expected_files = {"generation-manifest.json", runtime["path"], report["path"]}
     expected_files.update(entry["path"] for entry in entries)
     actual_files: set[str] = set()
-    for item in generation.rglob("*"):
-        if item.is_symlink():
-            raise D03Error("symlink in synthetic generation")
+    try:
+        items = list(generation.rglob("*"))
+    except OSError as error:
+        raise D03Error(f"synthetic generation contents could not be listed: {error}") from error
+    for item in items:
+        if is_reparse_point(item):
+            raise D03Error("reparse point in synthetic generation")
         if item.is_file():
             actual_files.add(item.relative_to(generation).as_posix())
     if actual_files != expected_files:
@@ -139,10 +160,13 @@ def validate_generation(generation: Path, expected_digest: str | None = None) ->
     members = [member(generation, relative) for relative in sorted(expected_files)]
     for index, left in enumerate(members):
         for right in members[index + 1 :]:
-            if os.path.samefile(left, right):
-                raise D03Error("generation member paths alias the same file")
+            try:
+                if os.path.samefile(left, right):
+                    raise D03Error("generation member paths alias the same file")
+            except OSError as error:
+                raise D03Error(f"generation member identity check failed: {error}") from error
     for entry in entries:
-        data = member(generation, entry["path"]).read_bytes()
+        data = read_bytes(member(generation, entry["path"]), "owner fixture")
         if sha256(data) != entry["sha256"]:
             raise D03Error("owner file digest mismatch")
         owner = parse_json(data)
@@ -154,10 +178,10 @@ def validate_generation(generation: Path, expected_digest: str | None = None) ->
             "scope": entry["scope"],
         }:
             raise D03Error("owner fixture identity/kind/scope does not match manifest")
-    runtime_data = member(generation, runtime["path"]).read_bytes()
+    runtime_data = read_bytes(member(generation, runtime["path"]), "runtime fixture")
     if sha256(runtime_data) != runtime["sha256"] or not runtime_data.startswith(b"D03 SYNTHETIC RUNTIME FIXTURE ONLY"):
         raise D03Error("runtime fixture hash/type mismatch")
-    report_data = member(generation, report["path"]).read_bytes()
+    report_data = read_bytes(member(generation, report["path"]), "D02 report fixture")
     if sha256(report_data) != report["sha256"]:
         raise D03Error("D02 report fixture digest mismatch")
     d02 = parse_json(report_data)

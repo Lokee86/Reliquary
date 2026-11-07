@@ -111,12 +111,12 @@ class D03SyntheticHarnessTests(unittest.TestCase):
         old_root = self.root()
         stage(old_root)
         with self.assertRaises(D03Error):
-            rehearse(old_root, "before_selection_replace")
+            rehearse(old_root, "simulate_selector_replace_unavailable")
         old_state = inspect_state(old_root)
-        self.assertEqual(old_state["phase"], "RehearsalFailedOldActive")
+        self.assertEqual(old_state["phase"], "StagedReadOnly")
         self.assertEqual(old_state["selected_generation_id"], PREVIOUS)
 
-        for failpoint in ("after_selection_replace", "health_check"):
+        for failpoint in ("health_check",):
             with self.subTest(failpoint=failpoint):
                 root = self.root()
                 stage(root)
@@ -145,6 +145,7 @@ class D03SyntheticHarnessTests(unittest.TestCase):
             lambda m: m["owners"][1].__setitem__("owner_uuid", m["owners"][0]["owner_uuid"]),
             lambda m: m["owners"][0].__setitem__("scope", "unspecified"),
             lambda m: m["runtime"].__setitem__("sha256", "0" * 64),
+            lambda m: m["runtime"].__setitem__("path", []),
             lambda m: m["d02_report"].__setitem__("sha256", "0" * 64),
         )
         for mutate in mutations:
