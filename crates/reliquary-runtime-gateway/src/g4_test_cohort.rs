@@ -73,33 +73,70 @@ pub(crate) fn replay_scoped_authored_manifest(
             {
                 historical.push(capture_cut(instance, owner, cut["id"].as_str().unwrap()));
             }
-            let submission = SubmissionId::new(node).unwrap();
-            let id = ConversationSubmissionId::new(conversation, submission.clone()).unwrap();
-            let revision = queue.conversation_revision(conversation);
-            instance
-                .submit_conversation(
-                    queue,
-                    conversation,
-                    submission,
-                    turn["content"].as_str().unwrap(),
-                    revision,
-                )
-                .unwrap();
-            let revision = queue.conversation_revision(conversation);
             let (branch_id, parent_node_id) = manifest_branch(turns, branch, index, node);
-            instance
-                .finalize_conversation_submission(
-                    queue,
-                    &id,
-                    revision,
-                    FinalizeCapture {
-                        branch_id,
-                        parent_node_id,
-                        committed_timestamp_ns: timestamp,
-                        verified_principal_id: instance.principal().to_owned(),
-                    },
-                )
-                .unwrap();
+            let fork_child = branch.is_some_and(|fork| {
+                fork["child_turn_ids"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|child| child.as_str() == Some(node))
+            });
+            if fork_child {
+                // G4-T02 permits accepted owner-session fixture entry points.
+                // This proves authored reply persistence, not live host output.
+                instance
+                    .with_rel_writer(owner, |writer| {
+                        writer.accept_turn_and_advance_branch(
+                            reliquary_owner_session::model::TurnInput {
+                                id: node.into(),
+                                conversation_id: conversation.into(),
+                                parent_id: parent_node_id,
+                                role: turn["speaker"].as_str().unwrap().into(),
+                                principal_id: Some(instance.principal().to_owned()),
+                                timestamp_ns: timestamp,
+                                content: turn["content"].as_str().unwrap().into(),
+                                attachments: vec![],
+                                project_attachments: vec![],
+                            },
+                            reliquary_owner_session::model::Branch {
+                                canonical: branch_id == "main",
+                                id: branch_id,
+                                conversation_id: conversation.into(),
+                                leaf_node_id: node.into(),
+                            },
+                        )
+                    })
+                    .unwrap()
+                    .unwrap();
+            } else {
+                assert_eq!(turn["speaker"], "user");
+                let submission = SubmissionId::new(node).unwrap();
+                let id = ConversationSubmissionId::new(conversation, submission.clone()).unwrap();
+                let revision = queue.conversation_revision(conversation);
+                instance
+                    .submit_conversation(
+                        queue,
+                        conversation,
+                        submission,
+                        turn["content"].as_str().unwrap(),
+                        revision,
+                    )
+                    .unwrap();
+                let revision = queue.conversation_revision(conversation);
+                instance
+                    .finalize_conversation_submission(
+                        queue,
+                        &id,
+                        revision,
+                        FinalizeCapture {
+                            branch_id,
+                            parent_node_id,
+                            committed_timestamp_ns: timestamp,
+                            verified_principal_id: instance.principal().to_owned(),
+                        },
+                    )
+                    .unwrap();
+            }
             timestamp += 1;
             for cut in manifest["logical_history_cuts"]
                 .as_array()
@@ -112,7 +149,7 @@ pub(crate) fn replay_scoped_authored_manifest(
         }
     }
     assert_eq!(lantern_queue.conversation_revision("conv-l01"), 12);
-    assert_eq!(cascade_queue.conversation_revision("conv-c04"), 12);
+    assert_eq!(cascade_queue.conversation_revision("conv-c04"), 6);
     assert_eq!(
         lantern_instance
             .with_writable_reliquary(lantern, |rel| rel.accepted_turn_sources().len())

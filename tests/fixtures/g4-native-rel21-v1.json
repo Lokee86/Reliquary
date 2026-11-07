@@ -49,8 +49,8 @@
     {"id":"L-03-branches","conversation_id":"conv-l03","owner":"rel-lantern","topic":"canonical and noncanonical reply branches","turns":[
       {"id":"L03-t1","speaker":"user","accepted":true,"content":"We need a short summary of the Lantern rollout."},
       {"id":"L03-t2","speaker":"user","accepted":true,"content":"Include the observatory migration and its completion window."},
-      {"id":"L03-t3","speaker":"user","accepted":true,"content":"Canonical reply: the rollout is ready after calibration."},
-      {"id":"L03-t4","speaker":"user","accepted":true,"content":"Alternate reply: the rollout remains under review until Friday."}],"branches":[{"id":"fork-L03","parent_turn_id":"L03-t2","child_turn_ids":["L03-t3","L03-t4"],"canonical_child_id":"L03-t3"}]},
+      {"id":"L03-t3","speaker":"assistant","accepted":true,"content":"Canonical reply: the rollout is ready after calibration."},
+      {"id":"L03-t4","speaker":"assistant","accepted":true,"content":"Alternate reply: the rollout remains under review until Friday."}],"branches":[{"id":"fork-L03","parent_turn_id":"L03-t2","child_turn_ids":["L03-t3","L03-t4"],"canonical_child_id":"L03-t3"}]},
     {"id":"L-04-correction","conversation_id":"conv-l04","owner":"rel-lantern","topic":"forked deployment correction","turns":[
       {"id":"L04-t1","speaker":"user","accepted":true,"content":"The first deployment note names the north lab."},
       {"id":"L04-t2","speaker":"user","accepted":true,"content":"A deployment target was proposed, then checked against the project plan."},

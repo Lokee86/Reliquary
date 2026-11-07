@@ -265,6 +265,19 @@ pub(crate) fn safe_memory_only_frames(
         if has_manifest && &magic == MANIFEST {
             return Ok(version);
         }
+        if &magic == b"RELINSC7" {
+            let mut payload = magic.to_vec();
+            frame.read_to_end(&mut payload).map_err(|e| e.to_string())?;
+            let completion = GroupedInsomniaCompletion::decode(&payload)?;
+            if !completion.memory_records.is_empty() {
+                let last = completion
+                    .global_version_start
+                    .checked_add(completion.memory_records.len() as u64 - 1)
+                    .ok_or("grouped publication range overflow")?;
+                version = version.max(last);
+            }
+            continue;
+        }
         if &magic == b"RELPUB01" {
             let mut payload = magic.to_vec();
             frame.read_to_end(&mut payload).map_err(|e| e.to_string())?;
