@@ -10,12 +10,12 @@ struct Representative {
     end_offset: u64,
     activity: u64,
     stage: String,
+    members: u64,
     input_chain_sha256: String,
     physical_prefix_sha256: String,
 }
 
 #[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
 struct SourcePlan {
     copy_id: String,
     source_sha256: String,
@@ -23,14 +23,16 @@ struct SourcePlan {
 }
 
 #[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
 struct Plan {
+    schema_id: String,
+    authentic_admission: bool,
     sources: Vec<SourcePlan>,
 }
 
 fn observe_one(copy: &VerifiedCopy, prefix_path: &Path, row: &Representative) -> ToolResult<Value> {
     if row.end_offset < 40
         || row.end_offset > copy.expected.byte_length
+        || row.members == 0
         || !matches!(row.stage.as_str(), "birth_only" | "journal")
     {
         return Err("invalid Freshness representative boundary or stage".into());
@@ -81,6 +83,7 @@ fn observe_one(copy: &VerifiedCopy, prefix_path: &Path, row: &Representative) ->
         "physical_global": owner.latest_global_version(),
         "activity": row.activity,
         "stage": row.stage,
+        "members": row.members,
         "input_chain_sha256": row.input_chain_sha256,
         "physical_prefix_sha256": row.physical_prefix_sha256,
         "rows": proof.rows,
@@ -104,7 +107,10 @@ pub(super) fn observe(
     let (bytes, plan_snapshot, _guard) =
         read_bounded_snapshot(plan_path, MAX_CUSTODY_BYTES, "Freshness prefix plan")?;
     let plan: Plan = serde_json::from_slice(&bytes).map_err(|_| "invalid Freshness prefix plan")?;
-    if plan.sources.len() != 3 {
+    if plan.schema_id != "reliquary-f03-freshness-prefix-reduction-v1"
+        || plan.authentic_admission
+        || plan.sources.len() != 3
+    {
         return Err("Freshness prefix plan must bind the three reviewed RELs".into());
     }
     let mut seen = BTreeSet::new();
