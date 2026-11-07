@@ -378,6 +378,16 @@ pub struct Instance {
     credential_active: Option<Arc<AtomicBool>>,
 }
 #[cfg(test)]
+mod g4_gateway_acceptance;
+#[cfg(test)]
+mod g4_retrieval_acceptance;
+#[cfg(test)]
+mod g4_semantic_acceptance;
+#[cfg(test)]
+mod g4_semantic_completion;
+#[cfg(test)]
+mod g4_test_cohort;
+#[cfg(test)]
 mod tests;
 
 mod gateway_mounts;
