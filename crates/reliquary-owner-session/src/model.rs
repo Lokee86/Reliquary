@@ -18,8 +18,10 @@ pub use reliquary_memory_core::{
     TemporalInference, TemporalInferenceResolution, TerminalTombstone, memory_body_id, memory_id,
 };
 pub use reliquary_perception_store::{
-    Entity, EntityId, MAX_MENTION_CANDIDATES, MemoryEntityMentionKey, MemoryEntityResolution,
-    MemoryTextField,
+    Entity, EntityId, EntityTombstone, MAX_MENTION_CANDIDATES, MemoryEntityMentionKey,
+    MemoryEntityResolution, MemoryTextField, Relationship, RelationshipDraft,
+    RelationshipEntityRef, RelationshipId, RelationshipMemoryRef, RelationshipParticipant,
+    RelationshipTombstone,
 };
 pub use reliquary_vector_store::{CompatibilityProfile, CompatibilityProfileId, EmbeddingMode};
 
