@@ -1,0 +1,30 @@
+{
+  "schema_id": "reliquary-g5-adapter-handshake-response-provisional-v1",
+  "protocol_status": "READY_FOR_PROTOCOL_SELFTEST",
+  "synthetic_only": true,
+  "measurement_results": false,
+  "request_echo": {
+    "schema_id": "reliquary-g5-adapter-handshake-request-provisional-v1",
+    "request_id": "g5-runner-self-test-v1",
+    "operation": "handshake_only",
+    "synthetic_only": true,
+    "measurement_results": false
+  },
+  "build_provenance": {
+    "adapter_id": "synthetic-fixture-only",
+    "adapter_version": "provisional-v1",
+    "synthetic_fixture": true,
+    "build_mode": "synthetic-fixture",
+    "source_revision": "synthetic-fixture",
+    "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "binary_sha256": null,
+    "lockfile_sha256": null,
+    "compiler": {
+      "name": "synthetic-fixture",
+      "version": "not-a-build"
+    },
+    "optimization": "not-applicable",
+    "features": [],
+    "target": "synthetic-test-host"
+  }
+}

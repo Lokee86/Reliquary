@@ -2,15 +2,30 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import json
 import sys
+import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 from unittest import mock
+
+sys.dont_write_bytecode = True
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from benchmarks.g5.adapter_protocol import (
+    AdapterProtocolError,
+    MAX_FRAME_BYTES,
+    PROVENANCE_VALIDATION_SCOPE,
+    load_synthetic_handshake_fixture,
+    parse_handshake_response,
+    validate_build_provenance_format,
+    validate_handshake_response,
+)
 from benchmarks.g5.runner import (
     MEMORY_METRIC_IDS,
     assess_sample_sufficiency,
@@ -32,6 +47,7 @@ from benchmarks.g5.statistics import (
     paired_sessions,
 )
 from benchmarks.g5.workload import ContractError
+from scripts.benchmark_g5 import main as benchmark_g5_main
 
 POLICY = ROOT / "benchmarks" / "g5" / "policy-v1.json"
 WORKLOADS = ROOT / "benchmarks" / "g5" / "workloads-v1.json"
@@ -107,11 +123,136 @@ class G5RunnerContractTests(unittest.TestCase):
     def test_benchmark_preflight_blocks_before_process_or_corpus_access(self) -> None:
         result = preflight_result(self.policy, self.workloads)
         self.assertEqual(result["measurement_status"], "INCOMPLETE")
-        self.assertEqual(result["blockers"], ["F03-V04", "D02-T04"])
+        self.assertEqual(
+            result["blockers"],
+            ["F03-V04", "D02-T04", "G5-09_NATIVE_REHEARSAL", "G5-09_ABSOLUTE_LIMIT_REVIEW"],
+        )
         self.assertFalse(result["measurement_results"])
         self.assertFalse(result["adapter_processes_started"])
+        self.assertFalse(result["adapter_launch_allowed"])
+        self.assertFalse(result["historical_cohort_accessed"])
+        self.assertFalse(result["cohort_manifest_opened"])
+        self.assertFalse(result["old_binary_opened"])
+        self.assertFalse(result["new_binary_opened"])
+        self.assertFalse(result["output_created"])
         self.assertFalse(result["private_inputs_read"])
+        self.assertEqual(len(result["per_case_results"]), len(self.workloads["case_ids"]))
+        historical_cases = [item for item in result["per_case_results"] if item["case_id"] != "G5-09"]
+        self.assertTrue(all(item["status"] == "INCOMPLETE" for item in historical_cases))
+        self.assertTrue(all(item["blockers"] == ["F03-V04", "D02-T04"] for item in historical_cases))
+        g5_09 = next(item for item in result["per_case_results"] if item["case_id"] == "G5-09")
+        self.assertEqual(g5_09["status"], "UNBASELINED")
+        self.assertEqual(g5_09["blockers"], ["G5-09_NATIVE_REHEARSAL", "G5-09_ABSOLUTE_LIMIT_REVIEW"])
 
+    def test_cohort_admission_gate_cannot_be_relaxed(self) -> None:
+        for field, changed_value in (
+            ("status", "ADMITTED"),
+            ("hard_predecessors", []),
+            ("source_rule", "use a local path"),
+        ):
+            with self.subTest(field=field):
+                workloads = copy.deepcopy(self.workloads)
+                workloads["historical_input_policy"][field] = changed_value
+                with self.assertRaises(ContractError):
+                    preflight_result(self.policy, workloads)
+
+    def test_benchmark_cli_does_not_open_binary_or_cohort_paths_before_admission(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="g5-preflight-") as temp_dir:
+            temp = Path(temp_dir)
+            old_binary = temp / "missing-old-binary"
+            new_binary = temp / "missing-new-binary"
+            cohort = temp / "missing-approved-cohort.json"
+            output = temp / "must-not-be-created"
+            stdout = StringIO()
+            arguments = [
+                "benchmark_g5.py",
+                "benchmark",
+                "--workloads",
+                str(WORKLOADS),
+                "--old",
+                str(old_binary),
+                "--new",
+                str(new_binary),
+                "--cohort",
+                str(cohort),
+                "--output",
+                str(output),
+            ]
+            with mock.patch.object(sys, "argv", arguments), redirect_stdout(stdout):
+                exit_code = benchmark_g5_main()
+
+            self.assertEqual(exit_code, 2)
+            result = json.loads(stdout.getvalue())
+            self.assertEqual(result["measurement_status"], "INCOMPLETE")
+            self.assertEqual(
+                result["blockers"],
+                ["F03-V04", "D02-T04", "G5-09_NATIVE_REHEARSAL", "G5-09_ABSOLUTE_LIMIT_REVIEW"],
+            )
+            self.assertFalse(result["old_binary_opened"])
+            self.assertFalse(result["new_binary_opened"])
+            self.assertFalse(result["cohort_manifest_opened"])
+            self.assertFalse(result["adapter_processes_started"])
+            self.assertFalse(result["output_created"])
+            self.assertFalse(output.exists())
+
+    def test_static_synthetic_adapter_fixture_is_protocol_only(self) -> None:
+        response = load_synthetic_handshake_fixture()
+        self.assertEqual(response["protocol_status"], "READY_FOR_PROTOCOL_SELFTEST")
+        self.assertTrue(response["synthetic_only"])
+        self.assertFalse(response["measurement_results"])
+        self.assertEqual(response["request_echo"]["operation"], "handshake_only")
+        self.assertTrue(response["build_provenance"]["synthetic_fixture"])
+        self.assertEqual(PROVENANCE_VALIDATION_SCOPE, "format_only_not_artifact_verified")
+        self.assertEqual(validate_handshake_response(response), [])
+
+    def test_adapter_frame_parser_rejects_duplicate_keys_and_oversize_frames(self) -> None:
+        for payload in (
+            '{"schema_id":"a","schema_id":"b"}',
+            '{"outer":{"key":1,"key":2}}',
+        ):
+            with self.subTest(payload=payload), self.assertRaisesRegex(AdapterProtocolError, "duplicate JSON"):
+                parse_handshake_response(payload)
+
+        with self.assertRaisesRegex(AdapterProtocolError, "byte limit"):
+            parse_handshake_response(b" " * (MAX_FRAME_BYTES + 1))
+        with self.assertRaisesRegex(AdapterProtocolError, "valid JSON"):
+            parse_handshake_response("not-json")
+
+    def test_adapter_response_and_nested_provenance_reject_unknown_fields(self) -> None:
+        response = load_synthetic_handshake_fixture()
+        response["unexpected"] = True
+        self.assertTrue(any("handshake response has unknown fields" in error for error in validate_handshake_response(response)))
+
+        response = load_synthetic_handshake_fixture()
+        response["build_provenance"]["unexpected"] = True
+        self.assertTrue(any("build provenance has unknown fields" in error for error in validate_handshake_response(response)))
+
+        response = load_synthetic_handshake_fixture()
+        response["build_provenance"]["compiler"]["unexpected"] = True
+        self.assertTrue(any("compiler has unknown fields" in error for error in validate_handshake_response(response)))
+
+    def test_build_provenance_checks_format_without_claiming_artifact_verification(self) -> None:
+        release = {
+            "adapter_id": "reliquary-native-adapter",
+            "adapter_version": "1",
+            "synthetic_fixture": False,
+            "build_mode": "release",
+            "source_revision": "b" * 40,
+            "source_sha256": "a" * 64,
+            "binary_sha256": "c" * 64,
+            "lockfile_sha256": "d" * 64,
+            "compiler": {"name": "rustc", "version": "1.90.0"},
+            "optimization": "release",
+            "features": ["default"],
+            "target": "x86_64-pc-windows-msvc",
+        }
+        self.assertEqual(PROVENANCE_VALIDATION_SCOPE, "format_only_not_artifact_verified")
+        self.assertEqual(validate_build_provenance_format(release), [])
+        release["binary_sha256"] = None
+        self.assertTrue(validate_build_provenance_format(release))
+        release["binary_sha256"] = "c" * 64
+        release["compiler"]["unexpected"] = "not-accepted"
+        self.assertTrue(any("compiler has unknown fields" in error for error in validate_build_provenance_format(release)))
     def test_frozen_manifest_is_synthetic_and_not_measured(self) -> None:
         validate_g5_contract(self.policy, self.workloads)
         result = run_synthetic_selftests(POLICY, WORKLOADS, SELFTESTS)

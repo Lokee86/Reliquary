@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 MEMORY_METRIC_IDS = ("peak_private_bytes", "peak_working_set_bytes")
+REQUIRED_HISTORICAL_BLOCKERS = ("F03-V04", "D02-T04")
 
 FROZEN_POLICY_EXPECTATIONS = (
     (("schema_id",), "reliquary-g5-measurement-policy-v1"),
@@ -253,9 +254,17 @@ def validate_g5_contract(policy: Mapping[str, Any], workloads: Mapping[str, Any]
     _require(freshness.get("read_only_retrieval_grants_no_credit") is True, "read-only retrieval must not grant freshness credit")
 
     historical = workloads.get("historical_input_policy", {})
+    _require(historical.get("status") == "BLOCKED_UNTIL_ADMITTED", "historical cohort gate must remain blocked")
     _require(historical.get("measurement_ticket") == "G5-T03", "historical cohort gate must remain assigned to G5-T03")
-    _require("F03-V04" in historical.get("hard_predecessors", []), "F03 source admission must gate authentic comparisons")
-    _require("D02-T04" in historical.get("hard_predecessors", []), "D02 parity acceptance must gate authentic comparisons")
+    _require(
+        historical.get("hard_predecessors") == list(REQUIRED_HISTORICAL_BLOCKERS),
+        "F03 source admission and D02 parity acceptance must both gate authentic comparisons",
+    )
+    _require(
+        historical.get("source_rule")
+        == "Use only the exact F03-admitted and D02-accepted cohort; no historical paths, hashes, or payloads are in this synthetic manifest.",
+        "historical source custody rule changed",
+    )
 
 
 def generated_population_item(workloads: Mapping[str, Any], index: int) -> dict[str, Any]:

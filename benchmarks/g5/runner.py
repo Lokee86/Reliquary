@@ -19,6 +19,7 @@ from .statistics import (
 from .workload import (
     ContractError,
     MEMORY_METRIC_IDS,
+    REQUIRED_HISTORICAL_BLOCKERS,
     generated_population_item,
     iter_generated_population,
     read_json,
@@ -109,19 +110,65 @@ def verify_statistics_selftests(
     return errors
 
 
+G5_09_BLOCKERS = ("G5-09_NATIVE_REHEARSAL", "G5-09_ABSOLUTE_LIMIT_REVIEW")
+
+
 def preflight_result(policy: Mapping[str, Any], workloads: Mapping[str, Any]) -> dict[str, Any]:
-    """Return a no-measurement gate result without opening binaries or cohort data."""
+    """Return per-case no-measurement gates without opening binaries or cohort data."""
     validate_g5_contract(policy, workloads)
-    blockers = workloads["historical_input_policy"].get("hard_predecessors", [])
+    historical_reason = "historical source admission and independent parity have not authorized comparative measurements"
+    g5_09_reason = (
+        "G5-09 requires its own native rehearsal and a reviewed case-specific absolute limit; "
+        "it remains UNBASELINED and is not part of the G5-T03 historical cohort comparison."
+    )
+    case_results = []
+    for case_id in workloads["case_ids"]:
+        if case_id == "G5-09":
+            case_results.append(
+                {
+                    "case_id": case_id,
+                    "status": "UNBASELINED",
+                    "measurement_results": False,
+                    "blockers": list(G5_09_BLOCKERS),
+                    "reason": g5_09_reason,
+                }
+            )
+        else:
+            case_results.append(
+                {
+                    "case_id": case_id,
+                    "status": "INCOMPLETE",
+                    "measurement_results": False,
+                    "blockers": list(REQUIRED_HISTORICAL_BLOCKERS),
+                    "reason": historical_reason,
+                }
+            )
+    blockers = list(
+        dict.fromkeys(
+            blocker
+            for item in case_results
+            for blocker in item["blockers"]
+        )
+    )
     return {
         "schema_id": "reliquary-g5-runner-preflight-v1",
         "measurement_status": "INCOMPLETE",
         "measurement_results": False,
         "comparison_performed": False,
         "private_inputs_read": False,
+        "historical_cohort_accessed": False,
+        "cohort_manifest_opened": False,
+        "old_binary_opened": False,
+        "new_binary_opened": False,
+        "adapter_launch_allowed": False,
         "adapter_processes_started": False,
+        "output_created": False,
         "blockers": blockers,
-        "reason": "historical source admission and independent parity have not authorized comparative measurements",
+        "per_case_results": case_results,
+        "reason": (
+            "No measurements were taken. Historical G5-T03 cases remain gated by F03-V04 and D02-T04; "
+            "G5-09 remains separately UNBASELINED pending its native rehearsal and absolute-limit review."
+        ),
     }
 
 
