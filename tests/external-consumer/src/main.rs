@@ -1,8 +1,9 @@
 use reliquary_memory::{
-    Gateway, HostCredentialBinding, MemoryHistoryLookup, MemoryId, OwnerGrant, OwnerKind,
-    OwnerScope, Phylactery, Rel, TrustedHostAdmission,
+    ConversationSubmissionId, DurableHostOperationPhase, Gateway, GenerationReplay,
+    HostCredentialBinding, MemoryHistoryLookup, MemoryId, OwnerGrant, OwnerKind, OwnerScope,
+    Phylactery, QueueState, Rel, RuntimeCapability, SubmissionId, TrustedHostAdmission,
 };
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::{env, fs, path::Path, process::ExitCode};
 
 fn quoted(value: &str) -> String {
@@ -31,17 +32,39 @@ fn field<'a>(value: &'a Value, name: &str) -> Result<&'a str, String> {
         .ok_or_else(|| format!("missing manifest field {name}"))
 }
 
-fn manifest_paths(
-    manifest: &Value,
-) -> Result<Vec<(String, String, Vec<(String, String)>)>, String> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ExpectedTurn {
+    node_id: String,
+    role: String,
+    principal_id: String,
+    timestamp_ns: i64,
+    content: String,
+}
+
+#[derive(Clone, Debug)]
+struct ExpectedTranscript {
+    owner: String,
+    conversation: String,
+    leaf: String,
+    canonical: bool,
+    turns: Vec<ExpectedTurn>,
+}
+
+fn manifest_paths(manifest: &Value) -> Result<Vec<ExpectedTranscript>, String> {
     let scripts = manifest
         .get("conversation_scripts")
         .and_then(Value::as_array)
         .ok_or("missing conversation scripts")?;
     let mut result = Vec::new();
+    let mut timestamp_ns = 1_i64;
     for script in scripts {
         let conversation = field(script, "conversation_id")?.to_owned();
         let owner = field(script, "owner")?.to_owned();
+        let principal = match owner.as_str() {
+            "rel-lantern" => "principal-a",
+            "rel-cascade" => "principal-b",
+            _ => return Err(format!("unexpected authored owner alias {owner}")),
+        };
         let turns = script
             .get("turns")
             .and_then(Value::as_array)
@@ -65,7 +88,7 @@ fn manifest_paths(
             }
         }
         let mut parent = std::collections::BTreeMap::new();
-        let mut content = std::collections::BTreeMap::new();
+        let mut turns_by_id = std::collections::BTreeMap::new();
         let mut previous: Option<String> = None;
         for turn in turns {
             let id = field(turn, "id")?.to_owned();
@@ -73,12 +96,25 @@ fn manifest_paths(
                 id.clone(),
                 child_parent.get(&id).cloned().or_else(|| previous.clone()),
             );
-            content.insert(id.clone(), field(turn, "content")?.to_owned());
+            turns_by_id.insert(
+                id.clone(),
+                ExpectedTurn {
+                    node_id: id.clone(),
+                    role: field(turn, "speaker")?.to_owned(),
+                    principal_id: principal.to_owned(),
+                    timestamp_ns,
+                    content: field(turn, "content")?.to_owned(),
+                },
+            );
+            timestamp_ns += 1;
             previous = Some(id);
         }
         if leaves.is_empty() {
             leaves.push(previous.ok_or("empty authored script")?);
         }
+        let canonical_leaf = branches
+            .iter()
+            .find_map(|branch| branch.get("canonical_child_id").and_then(Value::as_str));
         for leaf in leaves {
             let mut ids = Vec::new();
             let mut cursor = Some(leaf);
@@ -90,17 +126,27 @@ fn manifest_paths(
                 ids.push(id);
             }
             ids.reverse();
-            let path = ids
+            let turns = ids
                 .into_iter()
                 .map(|id| {
-                    let body = content
+                    turns_by_id
                         .get(&id)
                         .cloned()
-                        .ok_or_else(|| format!("missing authored body for {id}"))?;
-                    Ok((id, body))
+                        .ok_or_else(|| format!("missing authored turn {id}"))
                 })
                 .collect::<Result<Vec<_>, String>>()?;
-            result.push((owner.clone(), conversation.clone(), path));
+            let leaf = turns
+                .last()
+                .ok_or("manifest branch path is empty")?
+                .node_id
+                .clone();
+            result.push(ExpectedTranscript {
+                owner: owner.clone(),
+                conversation: conversation.clone(),
+                leaf: leaf.clone(),
+                canonical: canonical_leaf.is_none_or(|canonical| canonical == leaf),
+                turns,
+            });
         }
     }
     Ok(result)
@@ -238,6 +284,7 @@ fn inspect(args: &[String]) -> Result<String, String> {
     let operator_token = "external-g4-operator-token-000000000000000000000";
     let viewer_token = "external-g4-viewer-token-000000000000000000000000";
     let outsider_token = "external-g4-outsider-token-00000000000000000000000";
+    let queue_manager_token = "external-g4-queue-manager-token-0000000000000000000000";
     let (adapter, control) = TrustedHostAdmission::new([
         HostCredentialBinding::new(
             "operator",
@@ -262,6 +309,14 @@ fn inspect(args: &[String]) -> Result<String, String> {
             outsider_token,
             [OwnerGrant::ViewRel(cascade_id)],
         ),
+        HostCredentialBinding::new(
+            "principal-a",
+            queue_manager_token,
+            [
+                OwnerGrant::ManageRel(lantern_id),
+                OwnerGrant::OperateRel(lantern_id),
+            ],
+        ),
     ])
     .install(&gateway)
     .map_err(|e| e.to_string())?;
@@ -273,6 +328,9 @@ fn inspect(args: &[String]) -> Result<String, String> {
         .map_err(|e| e.to_string())?;
     let outsider = adapter
         .authenticate(outsider_token)
+        .map_err(|e| e.to_string())?;
+    let queue_manager = adapter
+        .authenticate(queue_manager_token)
         .map_err(|e| e.to_string())?;
     let lantern_management = operator
         .workspace_management(lantern_id)
@@ -288,7 +346,34 @@ fn inspect(args: &[String]) -> Result<String, String> {
         .map_err(|e| e.to_string())?;
     if lantern_page.total < 8 || cascade_page.total < 4 {
         return Err(
-            "authored owner allocation differs from 8 Lantern and 4 Cascade conversations".into(),
+            "completed cohort is missing the authored 8 Lantern and 4 Cascade conversations".into(),
+        );
+    }
+    let imported_title = cascade_page
+        .items
+        .iter()
+        .find(|conversation| conversation.conversation_id == "conv-c03-additive-import")
+        .and_then(|conversation| conversation.title.as_deref());
+    if imported_title != Some("Cascade native import") {
+        return Err("Cascade native import title differs from the authored manifest result".into());
+    }
+    let lantern_title = lantern_page
+        .items
+        .iter()
+        .find(|conversation| conversation.conversation_id == "conv-l01")
+        .and_then(|conversation| conversation.title.as_deref());
+    if lantern_title != Some("Lantern release") {
+        return Err("Lantern public management title differs from the accepted title".into());
+    }
+    let lantern_health = lantern_management.health().map_err(|e| e.to_string())?;
+    let cascade_health = cascade_management.health().map_err(|e| e.to_string())?;
+    if !lantern_health.admitted
+        || !cascade_health.admitted
+        || lantern_health.conversations != lantern_page.total
+        || cascade_health.conversations != cascade_page.total
+    {
+        return Err(
+            "public REL health does not match the independently reopened conversation pages".into(),
         );
     }
     let lantern_authored_turns = infos[0].rel_turn_count.unwrap_or(0);
@@ -297,36 +382,70 @@ fn inspect(args: &[String]) -> Result<String, String> {
         return Err("completed cohort is missing authored base turns".into());
     }
     let mut expected_sources = std::collections::BTreeMap::<String, String>::new();
-    for (owner, conversation, expected) in &expected_paths {
-        let management = match owner.as_str() {
+    for expected in &expected_paths {
+        let management = match expected.owner.as_str() {
             "rel-lantern" => &lantern_management,
             "rel-cascade" => &cascade_management,
-            _ => return Err(format!("unexpected authored owner alias {owner}")),
+            _ => {
+                return Err(format!(
+                    "unexpected authored owner alias {}",
+                    expected.owner
+                ));
+            }
         };
-        let leaf = expected
-            .last()
-            .ok_or("manifest branch path is empty")?
-            .0
-            .as_str();
         management
-            .select_conversation(conversation, leaf)
+            .select_conversation(&expected.conversation, &expected.leaf)
             .map_err(|e| e.to_string())?;
         let actual = management.transcript(0, 128).map_err(|e| e.to_string())?;
         let actual: Vec<_> = actual
             .items
             .into_iter()
-            .map(|turn| (turn.node_id, turn.content))
+            .map(|turn| ExpectedTurn {
+                node_id: turn.node_id,
+                role: turn.role,
+                principal_id: turn.principal_id.unwrap_or_default(),
+                timestamp_ns: turn.timestamp_ns,
+                content: turn.content,
+            })
             .collect();
-        if actual.as_slice() != expected.as_slice() {
+        if actual.as_slice() != expected.turns.as_slice() {
             return Err(format!(
-                "fresh reader transcript differs from authored path {conversation}/{leaf}"
+                "fresh reader transcript differs from authored path {}/{}",
+                expected.conversation, expected.leaf
             ));
         }
-        for (node, body) in expected {
-            if let Some(previous) = expected_sources.insert(node.clone(), body.clone()) {
-                if previous != *body {
-                    return Err(format!("manifest changes the authored body for {node}"));
+        for turn in &expected.turns {
+            if let Some(previous) =
+                expected_sources.insert(turn.node_id.clone(), turn.content.clone())
+            {
+                if previous != turn.content {
+                    return Err(format!(
+                        "manifest changes the authored body for {}",
+                        turn.node_id
+                    ));
                 }
+            }
+        }
+    }
+    for page in [&lantern_page, &cascade_page] {
+        for conversation in &page.items {
+            let selected = expected_paths
+                .iter()
+                .find(|path| {
+                    path.conversation == conversation.conversation_id
+                        && path.leaf == conversation.branch.leaf_node_id
+                })
+                .ok_or_else(|| {
+                    format!(
+                        "public branch head is not an authored path for {}",
+                        conversation.conversation_id,
+                    )
+                })?;
+            if conversation.branch.canonical != selected.canonical {
+                return Err(format!(
+                    "public branch canonical metadata differs from the manifest for {}",
+                    conversation.conversation_id
+                ));
             }
         }
     }
@@ -355,6 +474,13 @@ fn inspect(args: &[String]) -> Result<String, String> {
     let cascade_memories = cascade_management
         .memories(0, 128)
         .map_err(|e| e.to_string())?;
+    if lantern_health.memories != lantern_memories.total
+        || cascade_health.memories != cascade_memories.total
+    {
+        return Err(
+            "public REL health Memory totals differ from the bounded management pages".into(),
+        );
+    }
     let memory = lantern_memories
         .items
         .first()
@@ -413,6 +539,115 @@ fn inspect(args: &[String]) -> Result<String, String> {
     {
         return Err("revoked viewer retained read access".into());
     }
+
+    let lifecycle = witness
+        .get("lifecycle")
+        .ok_or("exported witness has no Gateway lifecycle results")?;
+    let race_finalize_won = lifecycle
+        .get("race_finalize_won")
+        .and_then(Value::as_bool)
+        .ok_or("Gateway lifecycle witness has no race winner")?;
+    let queue = queue_manager
+        .open_conversation_queue(root.join("lifecycle-queue"), lantern_id)
+        .map_err(|e| e.to_string())?;
+    let submission = |name: &str| -> Result<ConversationSubmissionId, String> {
+        ConversationSubmissionId::new(
+            "g4-conversation",
+            SubmissionId::new(name).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| e.to_string())
+    };
+    for (name, expected) in [
+        ("accepted-turn", QueueState::Committed),
+        ("cancelled-turn", QueueState::Cancelled),
+    ] {
+        let id = submission(name)?;
+        let status = queue_manager
+            .conversation_submission_status(&queue, &id)
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| format!("exported queue is missing {name}"))?;
+        if status.state != expected {
+            return Err(format!(
+                "queue submission {name} has the wrong reopened state"
+            ));
+        }
+    }
+    let race_queue = queue_manager
+        .open_conversation_queue(root.join("lifecycle-race-queue"), lantern_id)
+        .map_err(|e| e.to_string())?;
+    let race_id = ConversationSubmissionId::new(
+        "g4-race",
+        SubmissionId::new("exclusive-turn").map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    let race_status = queue_manager
+        .conversation_submission_status(&race_queue, &race_id)
+        .map_err(|e| e.to_string())?
+        .ok_or("exported race queue is missing its winning submission")?;
+    if race_status.state
+        != if race_finalize_won {
+            QueueState::Committed
+        } else {
+            QueueState::Cancelled
+        }
+    {
+        return Err("fresh process race state differs from the recorded winner".into());
+    }
+    let held_id = submission("host-held-turn")?;
+    let operation = queue_manager
+        .host_operation_status(&queue, &held_id, RuntimeCapability::ConversationExecution)
+        .map_err(|e| e.to_string())?
+        .ok_or("exported queue is missing the held host operation")?;
+    if operation.phase != DurableHostOperationPhase::Held {
+        return Err("fresh process did not recover the host operation as Held".into());
+    }
+    let checkpoint = queue_manager
+        .generation_checkpoint_snapshot(&queue, &held_id)
+        .map_err(|e| e.to_string())?
+        .ok_or("exported queue is missing its generation checkpoint")?;
+    if checkpoint.content_prefix != "private provisional prefix" {
+        return Err("fresh process checkpoint prefix differs from the durable witness".into());
+    }
+    let replay = queue_manager
+        .replay_generation_checkpoints(&queue, &held_id, 0, 8)
+        .map_err(|e| e.to_string())?;
+    let GenerationReplay::Checkpoints {
+        latest_cursor,
+        items,
+    } = replay
+    else {
+        return Err("fresh queue reader requires a resync instead of replay".into());
+    };
+    if items.len() != 1
+        || items[0].content_prefix != checkpoint.content_prefix
+        || latest_cursor < items[0].delivery_cursor
+    {
+        return Err("fresh queue checkpoint replay or resume cursor is inconsistent".into());
+    }
+    let resumed = queue_manager
+        .replay_generation_checkpoints(&queue, &held_id, latest_cursor, 8)
+        .map_err(|e| e.to_string())?;
+    if !matches!(resumed, GenerationReplay::Checkpoints { items, .. } if items.is_empty()) {
+        return Err("checkpoint resume cursor replayed already-consumed private output".into());
+    }
+    drop((queue, race_queue));
+
+    let queue_manager_management = queue_manager
+        .workspace_management(lantern_id)
+        .map_err(|e| e.to_string())?;
+    queue_manager_management
+        .quiesce()
+        .map_err(|e| e.to_string())?;
+    control
+        .revoke(queue_manager_token)
+        .map_err(|e| e.to_string())?;
+    if queue_manager_management.conversations(0, 1).is_ok()
+        || queue_manager_management.reopen().is_ok()
+    {
+        return Err("revoked manage-capable principal retained REL read or reopen access".into());
+    }
+    lantern_management.reopen().map_err(|e| e.to_string())?;
+
     lantern_management.quiesce().map_err(|e| e.to_string())?;
     cascade_management.quiesce().map_err(|e| e.to_string())?;
     if lantern_management
@@ -441,24 +676,38 @@ fn inspect(args: &[String]) -> Result<String, String> {
             "a public read, denial, revocation, quiesce, or reopen changed source bytes".into(),
         );
     }
-    Ok(format!(
-        "{{\"rel_lantern\":{{\"owner_id\":{},\"scope\":\"project\",\"conversations\":{},\"turns\":{},\"memories\":{},\"provenance_source_node\":{},\"history_digest\":{}}},\"rel_cascade\":{{\"owner_id\":{},\"scope\":\"connection\",\"conversations\":{},\"turns\":{},\"memories\":{}}},\"phy_a\":{{\"owner_id\":{},\"scope\":\"unspecified\",\"memory_count\":{}}},\"phy_b\":{{\"owner_id\":{},\"scope\":\"unspecified\",\"memory_count\":{}}},\"authored_turns_checked\":{},\"source_bytes_unchanged\":true}}",
-        quoted(&ids[0].to_string()),
-        lantern_page.total,
-        lantern_authored_turns,
-        lantern_memories.total,
-        quoted(&provenance.source_node_id),
-        quoted(&proof.digest),
-        quoted(&ids[1].to_string()),
-        cascade_page.total,
-        cascade_authored_turns,
-        cascade_memories.total,
-        quoted(&ids[2].to_string()),
-        infos[2].memory_count,
-        quoted(&ids[3].to_string()),
-        infos[3].memory_count,
-        expected_sources.len()
-    ))
+    Ok(json!({
+        "rel_lantern": {
+            "owner_id": ids[0].to_string(), "scope": "project",
+            "conversations": lantern_page.total, "turns": lantern_authored_turns,
+            "memories": lantern_memories.total,
+            "provenance_source_node": provenance.source_node_id,
+            "history_digest": proof.digest,
+            "health_admitted": lantern_health.admitted,
+            "health_conversations": lantern_health.conversations,
+            "health_memories": lantern_health.memories,
+            "title": lantern_title,
+        },
+        "rel_cascade": {
+            "owner_id": ids[1].to_string(), "scope": "connection",
+            "conversations": cascade_page.total, "turns": cascade_authored_turns,
+            "memories": cascade_memories.total,
+            "health_admitted": cascade_health.admitted,
+            "health_conversations": cascade_health.conversations,
+            "health_memories": cascade_health.memories,
+            "title": imported_title,
+        },
+        "phy_a": {"owner_id": ids[2].to_string(), "scope": "unspecified", "memory_count": infos[2].memory_count},
+        "phy_b": {"owner_id": ids[3].to_string(), "scope": "unspecified", "memory_count": infos[3].memory_count},
+        "gateway_queue": {
+            "accepted": "committed", "cancelled": "cancelled",
+            "race": if race_finalize_won { "committed" } else { "cancelled" },
+            "host_operation": "held", "checkpoint_prefix": checkpoint.content_prefix,
+            "checkpoint_resume_cursor": latest_cursor,
+        },
+        "authored_turns_checked": expected_sources.len(),
+        "source_bytes_unchanged": true,
+    }).to_string())
 }
 
 fn main() -> ExitCode {

@@ -18,7 +18,6 @@ use reliquary_owner_session::{
 };
 use serde_json::{Value, json};
 use std::{fs, path::PathBuf};
-use serde_json::{Value, json};
 
 struct ImportTemp(PathBuf);
 
@@ -194,10 +193,14 @@ pub(crate) fn complete_authored_native_import(instance: &Instance, cascade: Owne
         .unwrap()
         .unwrap();
     let retry = instance
-        .with_rel_writer(cascade, |writer| stage_native_import(writer, retry_batch))
+        .with_rel_writer(cascade, |writer| stage_native_import(writer, retry_batch.clone()))
         .unwrap()
         .unwrap();
     assert!(retry.already_completed);
+    let mut conflicting = retry_batch;
+    conflicting.turns[0].0.content = "Conflicting native import retry".into();
+    assert!(instance.with_rel_writer(cascade, |writer| stage_native_import(writer, conflicting)).unwrap().is_err());
+    assert_eq!(instance.with_writable_reliquary(cascade, |rel| rel.resolved_archive_turn(&imported_conversation, "C03-t1")).unwrap().unwrap().unwrap().content, "Import the supported native 2.1 input for Cascade.");
     json!({
         "import_id": staged.import_id,
         "conversation_id": imported_conversation,
