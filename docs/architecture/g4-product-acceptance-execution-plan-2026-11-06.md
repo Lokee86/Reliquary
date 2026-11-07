@@ -14,15 +14,17 @@ The tickets below are **verification slices, not a new permanent architecture**.
 G4-T01 (freeze authored oracle)
   └─ G4-T02 (generate native 2.1 cohort)
        ├─ G4-T03 (native ingest, import, Dream, Entity)
-       │    ├─ G4-T04 (vectors, context, retrieval/use)
-       │    └─ G4-T06 (GM operations/history on copies)
-       ├─ G4-T05 (Gateway host/worker/recovery)
-       └─ G4-T07 (external consumer and REL CLI)
-             └─ G4-T08 (cross-scenario audit; after T04/T05/T06/T07)
-                  └─ G4-T09 (full integration and acceptance)
+       │    └─ G4-T04 (vectors, context, retrieval/use)
+       └─ G4-T05 (Gateway host/worker/recovery)
+
+G4-T04 + G4-T05
+       ├─ G4-T06 (GM on completed cohort copies)
+       └─ G4-T07 (full-cohort external consumer and REL CLI)
+             [both T06 and T07] → G4-T08 (independent audit)
+                                     → G4-T09 (final acceptance)
 ```
 
-T03, T05 and T07 are **parallel-ready** after T02 where isolated test directories and a reproducible source manifest make them noninterfering. T04 and T06 require T03's source-grounded and completed-import evidence. T08 needs all four strands; T09 is the only final acceptance gate. Do not run parallel Cargo jobs in the same Windows target directory; serialize `-j 1` or use isolated directories.
+T03 and T05 are **parallel-ready** after T02 where isolated test directories and a reproducible source manifest make them noninterfering. T04 follows T03. Both T06 and T07 require **T04 and T05** so their maintenance/CLI evidence uses the completed product cohort, including accepted-use Freshness and host-recovery receipts, rather than a partially populated owner. T06 and T07 can then proceed in parallel. T08 joins both; T09 is the only final acceptance gate. Do not run parallel Cargo jobs in the same Windows target directory; serialize `-j 1` or use isolated directories.
 
 ## Tickets
 
@@ -77,8 +79,8 @@ T03, T05 and T07 are **parallel-ready** after T02 where isolated test directorie
 
 ### G4-T06 — run supported GM history/maintenance on cohort copies
 
-- **Predecessors:** G4-T03 (which provides the generated completed-import/Dream/Insomnia recipe).
-- **Deliverable:** verified-copy rewrite (REL/PHY), terminal prune, profile repair, proven reclamation and same-owner prefix/divergent reconciliation using the generated cohort, plus historical comparison before/after.
+- **Predecessors:** G4-T04 and G4-T05 (the completed native corpus includes import, Dream/Insomnia, vector, retrieval/accepted-use and host/worker evidence).
+- **Deliverable:** verified-copy rewrite (REL/PHY), terminal prune, profile repair, proven reclamation and same-owner prefix/divergent reconciliation using **copies of the completed product cohort**, plus historical comparison before/after.
 - **Owner/seam:** public `reliquary_memory` maintenance/history where available, accepted Application/owner-session GM seams for exact deep replay evidence.
 - **Checks:** before/after source digest and cut, selected evidence closure, fixed Identity/History generation, independently reopened destination, exact no-replace collision, reclaim second no-op, preserved legitimate Dream/Insomnia/Freshness and rejection of unsupported conflicting divergence. No active owner file modified by offline candidate transformation.
 - **Coverage:** G4-13–17.
@@ -87,8 +89,8 @@ T03, T05 and T07 are **parallel-ready** after T02 where isolated test directorie
 
 ### G4-T07 — independent public consumer and REL CLI process replay
 
-- **Predecessors:** G4-T02.
-- **Deliverable:** separate Cargo consumer and fresh CLI process open a generated current-format owner and compare observed bounded public results with authored scenario invariants. CLI must use P01 exported library only.
+- **Predecessors:** G4-T04 and G4-T05.
+- **Deliverable:** separate Cargo consumer and fresh CLI process open an **independently reopened, fully populated** current-format cohort owner and compare observed bounded public results with authored scenario invariants. CLI must use P01 exported library only.
 - **Owner/seam:** Root `reliquary-memory`; standalone `cli/Cargo.toml` and `tests/external-consumer` (no direct lower-crate imports).
 - **Checks:** public management title/provenance/health, user/privacy gates and quiesce/reopen; CLI info/verify/history proof, dry-run, supported copy command and fail-closed wrong kind/2.0/unknown flag/output collision; no in-process test double masquerading as CLI result.
 - **Coverage:** G4-18, G4-19 and part of G4-01.
