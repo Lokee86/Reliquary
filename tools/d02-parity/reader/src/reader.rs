@@ -5,7 +5,8 @@ use reliquary_owner_session::{
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 
-const CONTRACT_COMMIT: &str = "0f824a09fe01f5ff327ab56f3296f36d8f4d7c87";
+pub(crate) const CONTRACT_COMMIT: &str = "0f824a09fe01f5ff327ab56f3296f36d8f4d7c87";
+pub(crate) const PROBE_SCHEMA_ID: &str = "reliquary-d02-current-reader-probe-v3";
 const FIXTURE_FAMILIES: [&str; 5] = [
     "fixture.archive_turn_revision.v1",
     "fixture.ego_anchor.v1",
@@ -99,7 +100,7 @@ pub fn probe_candidate_page(
 
 fn incomplete_open_report(kind: CandidateKind, reason: String) -> Value {
     json!({
-        "schema_id": "reliquary-d02-current-reader-probe-v2",
+        "schema_id": PROBE_SCHEMA_ID,
         "contract_commit": CONTRACT_COMMIT,
         "evidence_scope": "reader_probe_not_parity_evidence",
         "status": "INCOMPLETE",
@@ -141,7 +142,7 @@ fn incomplete_observation_report(
         .as_ref()
         .map(|value| value.path_matches_open_file_after);
     json!({
-        "schema_id": "reliquary-d02-current-reader-probe-v2",
+        "schema_id": PROBE_SCHEMA_ID,
         "contract_commit": CONTRACT_COMMIT,
         "evidence_scope": "reader_probe_not_parity_evidence",
         "status": "INCOMPLETE",

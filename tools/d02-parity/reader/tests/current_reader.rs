@@ -6,7 +6,7 @@ use std::{fs, path::Path};
 use tempfile::tempdir;
 
 fn assert_probe_is_incomplete(report: &serde_json::Value) {
-    assert_eq!(report["schema_id"], "reliquary-d02-current-reader-probe-v2");
+    assert_eq!(report["schema_id"], "reliquary-d02-current-reader-probe-v3");
     assert_eq!(report["evidence_scope"], "reader_probe_not_parity_evidence");
     assert_eq!(report["status"], "INCOMPLETE");
     assert_eq!(report["semantic_rows"], json!([]));
@@ -161,10 +161,24 @@ fn memory_pages_are_count_and_byte_bounded_and_cursor_bound() {
     assert_probe_is_incomplete(&second);
     assert_eq!(second["memory_observation"]["returned_count"], "1");
     assert_eq!(second["memory_observation"]["raw_payload_bytes"], "32");
-    assert_eq!(second["memory_observation"]["next_cursor"], Value::Null);
+    assert!(second["memory_observation"]["next_cursor"].is_string());
     let second_id = second["memory_observation"]["ids"][0].as_str().unwrap();
     assert!(first_ids.last().unwrap().as_str() < second_id);
     assert_final_hash_unchanged(&second);
+    assert_eq!(fs::read(&path).unwrap(), before);
+
+    let second_cursor = second["memory_observation"]["next_cursor"]
+        .as_str()
+        .expect("partial data page continues until an empty terminal page");
+    let terminal = probe_candidate_page(CandidateKind::Rel, &path, Some(second_cursor));
+    assert_probe_is_incomplete(&terminal);
+    assert_eq!(terminal["memory_observation"]["returned_count"], "0");
+    assert_eq!(terminal["memory_observation"]["next_cursor"], Value::Null);
+    assert_eq!(
+        terminal["memory_observation"]["page_chain"]["terminal_empty"],
+        true
+    );
+    assert_final_hash_unchanged(&terminal);
     assert_eq!(fs::read(&path).unwrap(), before);
 
     let other = directory.path().join("different-owner.rel");
