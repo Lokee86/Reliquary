@@ -54,10 +54,31 @@ pub(super) fn source_memory(
 pub(super) fn contains_normalized(haystack: &str, needle: &str) -> bool {
     let normalize = |value: &str| {
         value
-            .chars()
-            .filter(|ch| ch.is_alphanumeric())
-            .flat_map(char::to_lowercase)
-            .collect::<String>()
+            .split(|ch: char| !ch.is_alphanumeric())
+            .filter(|token| !token.is_empty())
+            .map(str::to_lowercase)
+            .collect::<Vec<_>>()
     };
-    !normalize(needle).is_empty() && normalize(haystack).contains(&normalize(needle))
+    let needle = normalize(needle);
+    !needle.is_empty()
+        && normalize(haystack)
+            .windows(needle.len())
+            .any(|tokens| tokens == needle)
+}
+
+#[cfg(test)]
+#[test]
+fn evidence_names_require_complete_contiguous_unicode_tokens() {
+    assert!(!contains_normalized("planning a party", "Ann"));
+    assert!(!contains_normalized("planning a party", "Art"));
+    assert!(!contains_normalized(
+        "Mary reviews Jane's plan",
+        "Mary Jane"
+    ));
+    assert!(contains_normalized("ÉLODIE's release notes", "Élodie"));
+    assert!(contains_normalized(
+        "Dr. Mira-Lantern reviews it",
+        "Mira Lantern"
+    ));
+    assert!(!contains_normalized("Mira", "---"));
 }

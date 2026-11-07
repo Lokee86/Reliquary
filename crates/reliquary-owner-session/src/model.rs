@@ -19,9 +19,8 @@ pub use reliquary_memory_core::{
 };
 pub use reliquary_perception_store::{
     Entity, EntityId, EntityTombstone, MAX_MENTION_CANDIDATES, MemoryEntityMentionKey,
-    MemoryEntityResolution, MemoryTextField, Relationship, RelationshipDraft,
-    RelationshipEntityRef, RelationshipId, RelationshipMemoryRef, RelationshipParticipant,
-    RelationshipTombstone,
+    MemoryEntityResolution, MemoryTextField, Relationship, RelationshipEntityRef, RelationshipId,
+    RelationshipMemoryRef, RelationshipParticipant, RelationshipTombstone,
 };
 pub use reliquary_vector_store::{CompatibilityProfile, CompatibilityProfileId, EmbeddingMode};
 
