@@ -64,6 +64,23 @@ The fixture-scope audit binds the six owner headers to the exact committed autho
 
 The independent receipts and expected Archive documents are under .test-tmp/f03-archive-df62bcc78ef3445c9e215063d2fb1476 in the FRS07 validation checkout. The witness coverage digest is b7119e8577bd9ae6e73e7a7d186e45676dc4c7df6f378a6575521541a867b718. These are scoped source evidence. Whole-owner as-of composition for the remaining clock-neutral families and complete shared semantic value coverage are still required for source admission.
 
+## Independently verified clock-neutral components
+
+The physical frontier verifier in scripts/f03_verify_prefix_availability.py classifies every global cut against the old reader's Archive backing rule. Of 91,997 cuts, missing backing blocks 67,879. The other 24,118 cuts satisfy that rule or belong to PHY, where it does not apply. Their complete whole-owner projections remain unevaluated. The availability outcomes agree with all 18 archived REL samples. Separate physical cohorts reproduced all 12 proof artifacts. The protected prefix-availability-report.json digest is 6b4b55100780b74a1ce33f36ea4aaa1fe9ee3812c9ae170d2db9834520d9b06b.
+
+The independent Project audit matched three native REL heads, including 194 file bindings and two revision correlations at their physical frontiers. Project history is inapplicable to the three PHY copies. Separate physical cohorts reproduced all 12 proof artifacts and the protected project-cut-membership-checked-report.json digest 0cd0edbe5dc0bed694725088e2ed63fac6342a5a1c39b3074dc65dbe0d1fb408.
+
+The Community verifier matched all ten retained snapshots and six lineage transitions with no retained semantic name. The stored-vector verifier matched 159 native objects and five profile retirements. Both reports reproduced exact typed cut evidence across distinct physical copies. The two receipts in the protected archive run have digests 444d4083dcac322055aa9d99ea5fae659170236a8d365923b0bd667fec8d7cfb and fdde027bc46835172d1c4bd4e761c0ecfc29867fd69ba23637dff44131b70b15.
+
+The Entity Resolution verifier matched 8,134 retained revisions, including 109 with inherited fields and 893 tombstones, plus 169 inert records. It verified 7,236 current-state intervals against all 91,997 global cuts. All 18 artifacts reproduced byte for byte across distinct copy cohorts. The protected resolution-cuts-independent-match.json digest is 7df717c3c57fc88e775a89876c885d91aa9887d8e5770f86c94742173bf8a0df.
+
+The Dream journal verifier independently reconstructed 114 compact Begin populations, 114 completed proofs, three resume-state records, and 6,405 ordered journal transitions. Grouped Insomnia birth proof covers 1,497 cohorts and 4,695 Memory IDs. The separately observed copy cohorts reproduced the protected journal receipt digest b6e68fd1c520462e14b137aa48ece28e1bd6d7cfe452a4eac60f076abceafb13. Stored Graph proof references are bound by the journal verification. Graph internals need their own verification.
+
+The independent Archive value audit matched 32,357 publication values and 21,271 inline content values at 32,360 Archive cuts. It reproduced all 3,776 frozen native Archive snapshot digests, including the exhaustive Ellis series and the two sampled project series. Distinct protected copies reproduced all six proof files and the report digest 4594a403ef9be88a45f4f2af9391d29ad5ea8ba1501a8430399522938c109d55. A changed historical title altered the value digest even when the final title matched.
+
+## Admission status
+
+The historical repeat and the independent components establish scoped source facts. The protected Archive binding expectations can be verified independently per REL. Authentic admission still requires supported whole-owner composition and a shared canonical schema for the retained semantic values. The current PG-C01 registry admits synthetic fixtures only. Its owner key also groups the two project REL variants and the two PHY variants. A six-file custody index must keep the distinct specimens while preserving their original owner IDs and exact scope observations.
 ## Related docs
 
 - [f03 identity observation v1](f03-identity-observation-v1.md)
