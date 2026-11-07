@@ -213,6 +213,47 @@ impl GeneralEndpoint for AmbiguousEntityEndpoint {
     }
 }
 
+struct DreamRelationEndpoint(&'static str);
+
+impl GeneralEndpoint for DreamRelationEndpoint {
+    fn model(&self) -> &str {
+        "g4-manifest-dream"
+    }
+
+    fn complete_json(
+        &self,
+        _: &str,
+        _: &str,
+        schema_name: &str,
+        _: &Value,
+    ) -> Result<Value, GeneralEndpointError> {
+        if schema_name == "dream_pair_verification" {
+            return Ok(
+                json!({"relation_supported":"yes", "direction_supported":"yes",
+                "evidence_supported":"yes"}),
+            );
+        }
+        let (direction, evidence) = match self.0 {
+            "none" => ("none", json!([])),
+            "supersedes" => (
+                "b_to_a",
+                json!([
+                    {"side":"a", "quote":"rehearsal"},
+                    {"side":"b", "quote":"rehearsal"}
+                ]),
+            ),
+            _ => (
+                "undirected",
+                json!([
+                    {"side":"a", "quote":"Lantern"},
+                    {"side":"b", "quote":"Lantern"}
+                ]),
+            ),
+        };
+        Ok(json!({"relation":self.0, "direction":direction, "evidence":evidence}))
+    }
+}
+
 struct CohortDir(PathBuf);
 
 impl CohortDir {
@@ -682,6 +723,8 @@ pub(crate) fn complete_authored_semantics(
     cascade: OwnerId,
     phy_a: OwnerId,
     phy_b: OwnerId,
+    principal_a: &Instance,
+    principal_b: &Instance,
 ) -> Value {
     let manifest: Value = serde_json::from_str(G4_AUTHORED_MANIFEST).unwrap();
     let scripts = manifest["conversation_scripts"].as_array().unwrap();
@@ -711,16 +754,21 @@ pub(crate) fn complete_authored_semantics(
             "rel-cascade" => cascade,
             other => panic!("unexpected REL owner alias {other}"),
         };
+        let actor = if owner == lantern {
+            principal_a
+        } else {
+            principal_b
+        };
         let conversation = script["conversation_id"].as_str().unwrap();
         let node = source["turn_id"].as_str().unwrap();
         let expected = source["exact_span"].as_str().unwrap();
-        let turn = instance
+        let turn = actor
             .with_writable_reliquary(owner, |rel| rel.resolved_archive_turn(conversation, node))
             .unwrap()
             .unwrap()
             .expect("manifest source turn was replayed into its REL");
         assert!(turn.content.contains(expected), "{}", source["id"]);
-        let episode = instance
+        let episode = actor
             .finalize_conversation_episode(
                 owner,
                 conversation,
@@ -741,7 +789,7 @@ pub(crate) fn complete_authored_semantics(
         };
         let destination =
             matches!(route["owner_kind"].as_str(), Some("PHY")).then_some(routed_owner.as_bytes());
-        let claim = instance
+        let claim = actor
             .claim_next_insomnia_input(owner, "g4-authored-semantic", timestamp, 100, 1)
             .unwrap()
             .expect("the manifest Episode is claimable");
@@ -752,7 +800,7 @@ pub(crate) fn complete_authored_semantics(
             owner: route["owner"].as_str().unwrap().to_owned(),
         };
         let extraction = extract_native_insomnia(endpoint, &claim, destination, |requests| {
-            instance
+            actor
                 .with_writable_reliquary(owner, |rel| {
                     resolve_native_insomnia_evidence(rel, &claim, requests)
                 })
@@ -761,10 +809,10 @@ pub(crate) fn complete_authored_semantics(
         .unwrap();
         let checkpoint = extraction.checkpoint(&claim).unwrap();
         let mut active_claim = claim.clone();
-        active_claim.work = instance
+        active_claim.work = actor
             .checkpoint_insomnia_claim(owner, &claim, timestamp + 1, checkpoint)
             .unwrap();
-        let prepared = instance
+        let prepared = actor
             .with_writable_reliquary(owner, |rel| extraction.prepare(rel, &claim))
             .unwrap()
             .unwrap();
@@ -777,7 +825,7 @@ pub(crate) fn complete_authored_semantics(
             usize::from(destination.is_none())
         );
         let completion = if destination.is_some() {
-            instance.commit_routed_insomnia_claim(
+            actor.commit_routed_insomnia_claim(
                 owner,
                 routed_owner,
                 &active_claim,
@@ -787,7 +835,7 @@ pub(crate) fn complete_authored_semantics(
                 timestamp + 2,
             )
         } else {
-            instance.commit_prepared_insomnia_claim(
+            actor.commit_prepared_insomnia_claim(
                 owner,
                 &active_claim,
                 &prepared,
@@ -798,7 +846,7 @@ pub(crate) fn complete_authored_semantics(
         }
         .unwrap();
         assert_eq!(completion, CompletionCheck::Apply);
-        let receipt = instance
+        let receipt = actor
             .with_writable_reliquary(owner, |rel| {
                 rel.insomnia_receipt(
                     InsomniaEpisodeId(episode.0),
@@ -825,16 +873,25 @@ pub(crate) fn complete_authored_semantics(
         };
         for id in &produced_ids {
             let record = if destination.is_some() {
-                instance
+                actor
                     .with_entity_phy_writer(routed_owner, |writer| writer.memory_history(*id))
                     .unwrap()
                     .unwrap()
-                    .unwrap().revisions.last().unwrap().clone()
+                    .unwrap()
+                    .revisions
+                    .last()
+                    .expect("routed Memory has a current revision")
+                    .clone()
             } else {
-                instance
-                    .with_writable_reliquary(owner, |rel| rel.current_memory(*id))
+                actor
+                    .with_writable_reliquary(owner, |rel| rel.memory_history(*id))
                     .unwrap()
                     .unwrap()
+                    .unwrap()
+                    .revisions
+                    .last()
+                    .expect("REL Memory has a current revision")
+                    .clone()
             };
             sources.push(json!({
                 "source_id": source["id"],
@@ -912,6 +969,23 @@ pub(crate) fn complete_authored_semantics(
         dream_first && !dream_retry,
         "Dream publication is idempotent"
     );
+    let no_link = instance
+        .with_writable_reliquary(lantern, |rel| {
+            draft_dream_batch_organization(
+                &EntityOwnerSession::Rel(rel),
+                lantern.as_bytes(),
+                dream_cuts[0].id,
+                &[dream_cuts[1].id],
+                &DreamClassifier::new(DreamRelationEndpoint("none")),
+                Some(&DreamVerifier::new(DreamRelationEndpoint("none"))),
+                DreamVerificationPolicy::default(),
+            )
+        })
+        .unwrap()
+        .unwrap();
+    let no_link_published = instance
+        .publish_dream_batch(lantern, [0xd6; 32], &no_link, timestamp + 12)
+        .unwrap();
 
     let mira = authored_memory_refs
         .iter()
@@ -974,12 +1048,50 @@ pub(crate) fn complete_authored_semantics(
                 reason: EntityResolutionReason::Ambiguous
             }
     ));
-    let native_import = crate::g4_semantic_completion::complete_authored_native_import(instance, cascade);
+    let rehearsal_pair = ["src-rehearsal-pending", "src-rehearsal-complete"].map(|source_id| {
+        authored_memory_refs
+            .iter()
+            .find(|(candidate, owner, _)| candidate == source_id && *owner == lantern)
+            .map(|(_, _, id)| *id)
+            .expect("manifest rehearsal source Memory was published")
+    });
+    let rehearsal_cuts = instance
+        .with_writable_reliquary(lantern, |rel| {
+            rehearsal_pair.map(|id| {
+                let record = rel.current_memory(id).unwrap().record;
+                DreamMemoryCut {
+                    id,
+                    revision: record.revision,
+                    body_id: record.body_id,
+                }
+            })
+        })
+        .unwrap();
+    let supersession = instance
+        .with_writable_reliquary(lantern, |rel| {
+            draft_dream_batch_organization(
+                &EntityOwnerSession::Rel(rel),
+                lantern.as_bytes(),
+                rehearsal_cuts[0].id,
+                &[rehearsal_cuts[1].id],
+                &DreamClassifier::new(DreamRelationEndpoint("supersedes")),
+                Some(&DreamVerifier::new(DreamRelationEndpoint("supersedes"))),
+                DreamVerificationPolicy::default(),
+            )
+        })
+        .unwrap()
+        .unwrap();
+    let supersession_published = instance
+        .publish_dream_batch(lantern, [0xd7; 32], &supersession, timestamp + 15)
+        .unwrap();
+    let native_import =
+        crate::g4_semantic_completion::complete_authored_native_import(instance, cascade);
     json!({
         "manifest_seed": manifest["fixture_seed"],
         "episodes": episodes,
         "sources": sources,
-        "dream": {"first_publish": dream_first, "idempotent_retry": !dream_retry},
+        "dream": {"first_publish": dream_first, "idempotent_retry": !dream_retry,
+            "no_link_published": no_link_published, "supersession_published": supersession_published},
         "entity": {"mira_entity_id": mira_entity_id.0, "known": true, "ambiguous": true},
         "native_import": native_import,
     })

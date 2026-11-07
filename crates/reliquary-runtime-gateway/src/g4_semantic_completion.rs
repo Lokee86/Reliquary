@@ -16,6 +16,7 @@ use reliquary_owner_session::{
     CompletionCheck, GraphAdmission,
     records::{GroupedInsomniaCompletion, ImportEpochStatus},
 };
+use serde_json::{Value, json};
 use std::{fs, path::PathBuf};
 use serde_json::{Value, json};
 
@@ -138,12 +139,19 @@ pub(crate) fn complete_authored_native_import(instance: &Instance, cascade: Owne
         branch.conversation_id = imported_conversation.clone();
     }
     batch.episodes[0].conversation_id = imported_conversation.clone();
+    let retry_batch = batch.clone();
     let staged = instance
         .with_rel_writer(cascade, |writer| stage_native_import(writer, batch))
         .unwrap()
         .unwrap();
+    assert!(!staged.already_completed);
     let (claim, settlement) = instance
         .with_rel_writer(cascade, |writer| {
+            assert!(
+                writer
+                    .complete_native_import(&staged.import_id, 199_999)
+                    .is_err()
+            );
             let claim = writer.claim_native_import_episode(
                 &staged.import_id,
                 staged.episodes[0],
@@ -178,11 +186,18 @@ pub(crate) fn complete_authored_native_import(instance: &Instance, cascade: Owne
                 &[],
             )?;
             let settlement = settle_native_import(writer, &staged.import_id)?;
-            let _ = writer.complete_native_import(&staged.import_id, 200_002)?;
+            let (_, did_complete) = writer.complete_native_import(&staged.import_id, 200_002)?;
+            assert!(did_complete);
+            assert!(!writer.complete_native_import(&staged.import_id, 200_003)?.1);
             Ok::<_, reliquary_owner_session::OwnerSessionError>((claim, settlement))
         })
         .unwrap()
         .unwrap();
+    let retry = instance
+        .with_rel_writer(cascade, |writer| stage_native_import(writer, retry_batch))
+        .unwrap()
+        .unwrap();
+    assert!(retry.already_completed);
     json!({
         "import_id": staged.import_id,
         "conversation_id": imported_conversation,
@@ -190,6 +205,7 @@ pub(crate) fn complete_authored_native_import(instance: &Instance, cascade: Owne
         "attempt": claim.work.attempt_count,
         "settlement": settlement.import_id,
         "already_completed": staged.already_completed,
+        "exact_retry_completed": retry.already_completed,
     })
 }
 
