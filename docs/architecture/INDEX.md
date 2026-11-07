@@ -12,6 +12,7 @@
 - [Hermes provider/service](hermes-reliquary-plugin-implementation-spec-2026-11-06.md) — standalone plugin, copied-source ingestion, scoped memory and consumption proof.
 - [Hermes dashboard UI](hermes-reliquary-ui-implementation-spec-2026-11-06.md) — Warlock graph/inspector/scopes port through authenticated current APIs.
 - [Execution ticket DAG](post-g4-execution-tickets-2026-11-06.json) — machine-readable dependencies; specification tables own detailed acceptance.
+- [PG-C02 cross-shell acceptance evidence](post-g4-pgc02-acceptance-evidence-2026-11-07.md) — reviewed run summary and the retained-output gap.
 
 
 

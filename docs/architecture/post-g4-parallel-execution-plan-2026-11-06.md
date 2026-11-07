@@ -2,7 +2,7 @@
 
 Parent index: [Architecture](INDEX.md). Canonical capability tracker: [rebuild capabilities](implementation-rebuild-capabilities-2026-11-03.json).
 
-**Status: execution specifications complete; implementation/acceptance statuses are unchanged.** Baseline: rebuilt `a3c3a964` accepts G4, with production/test changes through `31e7adb2`. The original F03 capability is complete under its limited historical evidence contract; its deeper source verification remains open. D01, D02, D03 and G5 remain not started. Hermes provider/UI are a separate new-native-data product track.
+**Status: execution specifications complete; PG-C02 acceptance remains in progress pending retained raw console logs; all other ticket and capability statuses remain unchanged.** Baseline: rebuilt `a3c3a964` accepts G4, with production/test changes through `31e7adb2`. The original F03 capability is complete under its limited historical evidence contract; its deeper source verification remains open. D01, D02, D03 and G5 remain not started. Hermes provider/UI are a separate new-native-data product track.
 
 ## Purpose
 
