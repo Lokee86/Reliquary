@@ -13,6 +13,142 @@ sys.path.insert(0, str(ROOT))
 import corpus_evidence_v1 as contract
 
 
+def reference_jcs(value):
+    """Independent RFC 8785 subset encoder: strings, bool/null, arrays, and objects only."""
+    def quoted(text):
+        pieces=['"']
+        short={8:r"\b",9:r"\t",10:r"\n",12:r"\f",13:r"\r"}
+        for char in text:
+            code=ord(char)
+            if 0xD800<=code<=0xDFFF:
+                raise ValueError("unpaired surrogate in reference JCS input")
+            if char=='"':
+                pieces.append(r'\"')
+            elif char=="\\":
+                pieces.append(r"\\")
+            elif code in short:
+                pieces.append(short[code])
+            elif code<0x20:
+                pieces.append("\\u%04x"%code)
+            else:
+                pieces.append(char)
+        pieces.append('"')
+        return "".join(pieces)
+
+    def emit(item):
+        if item is None:
+            return "null"
+        if item is True:
+            return "true"
+        if item is False:
+            return "false"
+        if isinstance(item,str):
+            return quoted(item)
+        if isinstance(item,list):
+            return "["+",".join(emit(child) for child in item)+"]"
+        if isinstance(item,dict):
+            if any(not isinstance(key,str) for key in item):
+                raise TypeError("reference JCS object keys must be strings")
+            ordered=sorted(item,key=lambda key:key.encode("utf-16-be","strict"))
+            return "{"+",".join(quoted(key)+":"+emit(item[key]) for key in ordered)+"}"
+        raise TypeError("reference JCS rejects numeric or non-JSON values")
+
+    return emit(value).encode("utf-8","strict")
+
+
+def reference_u64be(value):
+    if type(value) is not int or value<0 or value>=(1<<64):
+        raise ValueError("reference u64 overflow")
+    return value.to_bytes(8,"big")
+
+
+def reference_decimal_u64(value):
+    if not isinstance(value,str) or not value or (len(value)>1 and value[0]=="0") or any(ch<"0" or ch>"9" for ch in value):
+        raise ValueError("reference decimal is not canonical u64")
+    number=int(value)
+    reference_u64be(number)
+    return number
+
+
+def reference_lp(payload):
+    if not isinstance(payload,bytes):
+        raise TypeError("reference LP expects bytes")
+    return reference_u64be(len(payload))+payload
+
+
+def reference_owner_key(owner):
+    return reference_jcs({key:owner[key] for key in ("owner_uuid","owner_kind","scope")})
+
+
+def reference_family_preimage(owner,coverage,rows):
+    ordered=sorted(rows,key=lambda row:(
+        row["family"].encode("utf-8"),
+        row["stable_key"].encode("utf-8"),
+        row["revision_or_event"].encode("utf-8"),
+        reference_u64be(reference_decimal_u64(row["ordinal"])),
+    ))
+    encoded=[reference_jcs(dict(row)) for row in ordered]
+    return (
+        b"reliquary:corpus-evidence:v1\x00"
+        +reference_lp(reference_owner_key(owner))
+        +reference_lp(coverage["family"].encode("utf-8"))
+        +reference_lp(reference_jcs(dict(coverage)))
+        +reference_u64be(len(encoded))
+        +b"".join(reference_lp(row) for row in encoded)
+    )
+
+
+def reference_registry_identity(groups,records,carriers):
+    return reference_jcs({
+        "contract_id":"reliquary-corpus-evidence-v1",
+        "semantic_groups_sha256":hashlib.sha256(reference_jcs(dict(groups))).hexdigest(),
+        "record_schemas_sha256":hashlib.sha256(reference_jcs(dict(records))).hexdigest(),
+        "physical_carriers_sha256":hashlib.sha256(reference_jcs(dict(carriers))).hexdigest(),
+    })
+
+
+def reference_owner_preimage(descriptor,group_coverage,family_coverage,family_rows,groups,records,carriers):
+    identity=reference_registry_identity(groups,records,carriers)
+    owner={key:descriptor[key] for key in ("owner_uuid","owner_kind","scope")}
+    semantic_descriptor={key:value for key,value in descriptor.items() if key!="source_file_sha256"}
+    ordered_groups=sorted(group_coverage,key=lambda row:row["group_id"].encode("utf-8"))
+    ordered_families=sorted(family_coverage,key=lambda row:row["family"].encode("utf-8"))
+    parts=[b"reliquary:corpus-evidence:owner:v1\x00",reference_lp(identity),
+           reference_lp(reference_owner_key(owner)),reference_lp(reference_jcs(semantic_descriptor)),
+           reference_u64be(len(ordered_groups))]
+    parts.extend(reference_lp(reference_jcs(dict(row))) for row in ordered_groups)
+    parts.append(reference_u64be(len(ordered_families)))
+    for coverage in ordered_families:
+        family=coverage["family"]
+        family_bytes=reference_family_preimage(owner,coverage,family_rows[family])
+        parts.extend((reference_lp(family.encode("utf-8")),reference_lp(reference_jcs(dict(coverage))),
+                      reference_u64be(len(coverage["cuts"]))))
+        parts.extend(reference_lp(reference_jcs(dict(cut))) for cut in coverage["cuts"])
+        parts.append(hashlib.sha256(family_bytes).digest())
+    return b"".join(parts)
+
+
+def reference_corpus_preimage(owners,expected_catalog,groups,records,carriers):
+    identity=reference_registry_identity(groups,records,carriers)
+    catalog=sorted(expected_catalog,key=reference_owner_key)
+    ordered=sorted(owners,key=lambda evidence:reference_owner_key(evidence["descriptor"]))
+    catalog_keys=[reference_owner_key(entry) for entry in catalog]
+    parts=[b"reliquary:corpus-evidence:corpus:v1\x00",reference_lp(identity),
+           reference_u64be(len(catalog))]
+    parts.extend(reference_lp(key) for key in catalog_keys)
+    parts.append(reference_u64be(len(ordered)))
+    for evidence in ordered:
+        descriptor=evidence["descriptor"]
+        key=reference_owner_key(descriptor)
+        owner_bytes=reference_owner_preimage(
+            descriptor,evidence["group_coverage"],evidence["family_coverage"],evidence["family_rows"],
+            groups,records,carriers)
+        semantic_descriptor={name:value for name,value in descriptor.items() if name!="source_file_sha256"}
+        parts.extend((reference_lp(key),reference_lp(reference_jcs(semantic_descriptor)),
+                      hashlib.sha256(owner_bytes).digest()))
+    return b"".join(parts)
+
+
 class CorpusEvidenceV1Tests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -34,6 +170,7 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
         bad = [
             b"\xef\xbb\xbf{}",
             b'{"a":1}',
+            b'{"timestamp":9007199254740993}',
             b'{"a":NaN}',
             b'{"a":"x","\\u0061":"y"}',
             b'{"a":"\\ud800"}',
@@ -43,10 +180,80 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
                 with self.assertRaises(contract.ContractError):
                     contract.strict_json_loads(raw)
 
+    def test_u64_boundaries_reject_overflow_negative_and_boolean(self):
+        maximum=(1<<64)-1
+        self.assertEqual(contract.u64be(0),b"\x00"*8)
+        self.assertEqual(contract.u64be(maximum),reference_u64be(maximum))
+        self.assertEqual(contract.decimal_u64(str(maximum),"maximum"),maximum)
+        for value in (maximum+1,-1,True):
+            with self.subTest(value=value):
+                with self.assertRaises(contract.ContractError):
+                    contract.u64be(value)
+        for value in (str(maximum+1),"-1","01",True):
+            with self.subTest(decimal=value):
+                with self.assertRaises(contract.ContractError):
+                    contract.decimal_u64(value,"boundary")
+
     def test_jcs_uses_utf16_code_unit_key_order(self):
         value = {"\ue000": "bmp", "\U00010000": "nonbmp", "a": "M\u00fcnchen e\u0301"}
         expected = b'{"a":"M\xc3\xbcnchen e\xcc\x81","\xf0\x90\x80\x80":"nonbmp","\xee\x80\x80":"bmp"}'
         self.assertEqual(contract.canonical_json_bytes(value), expected)
+
+    def test_independent_reference_encoder_matches_family_owner_corpus_goldens(self):
+        golden=json.loads((ROOT/"fixtures"/"golden-vectors-v1.json").read_bytes())["vectors"]
+        jcs_value={"\ue000":"bmp","\U00010000":"nonbmp","a":"M\u00fcnchen e\u0301"}
+        jcs_expected=bytes.fromhex(golden["jcs_utf16"]["canonical_utf8_hex"])
+        self.assertEqual(reference_jcs(jcs_value),jcs_expected)
+        self.assertEqual(contract.canonical_json_bytes(jcs_value),jcs_expected)
+        independently_sorted=sorted(self.rows,key=lambda row:(
+            row["family"].encode("utf-8"),row["stable_key"].encode("utf-8"),
+            row["revision_or_event"].encode("utf-8"),reference_u64be(reference_decimal_u64(row["ordinal"]))))
+        reference_rows=[reference_jcs(row) for row in independently_sorted]
+        self.assertEqual(contract.canonical_rows(self.rows,self.groups,self.records,self.domains),reference_rows)
+
+        empty=golden["empty_family_digest"]
+        empty_reference=reference_family_preimage(empty["owner"],empty["coverage"],[])
+        empty_production,empty_digest=contract.family_digest(
+            empty["owner"],empty["coverage"],[],self.groups,self.records,self.domains,set())
+        self.assertEqual(empty_reference.hex(),empty["preimage_hex"])
+        self.assertEqual(empty_production,empty_reference)
+        self.assertEqual(hashlib.sha256(empty_reference).hexdigest(),empty["sha256"])
+        self.assertEqual(empty_digest,empty["sha256"])
+
+        descriptor,group_coverage,family_coverage,family_rows=self._owner_fixture()
+        for coverage in family_coverage:
+            family=coverage["family"]
+            owner={key:descriptor[key] for key in ("owner_uuid","owner_kind","scope")}
+            reference_preimage=reference_family_preimage(owner,coverage,family_rows[family])
+            owner_cut_ids={cut["cut_id"] for cut in descriptor["supported_cuts"]}
+            production_preimage,production_digest=contract.family_digest(
+                owner,coverage,family_rows[family],self.groups,self.records,self.domains,owner_cut_ids)
+            self.assertEqual(production_preimage,reference_preimage,family)
+            self.assertEqual(production_digest,hashlib.sha256(reference_preimage).hexdigest(),family)
+            if family=="fixture.memory_revision.v1":
+                self.assertEqual(production_digest,"e2eb279767fbf9b0ce587d9beee5386d19738283b1406550e308b1d62f436792")
+
+        owner_golden=golden["owner_corpus"]
+        reference_owner=reference_owner_preimage(
+            descriptor,group_coverage,family_coverage,family_rows,self.groups,self.records,self.carriers)
+        production_owner,production_owner_digest=contract.owner_digest(
+            descriptor,group_coverage,family_coverage,family_rows,self.groups,self.records,self.domains,self.carriers)
+        self.assertEqual(reference_owner.hex(),owner_golden["owner_preimage_hex"])
+        self.assertEqual(production_owner,reference_owner)
+        self.assertEqual(hashlib.sha256(reference_owner).hexdigest(),owner_golden["owner_sha256"])
+        self.assertEqual(production_owner_digest,owner_golden["owner_sha256"])
+
+        catalog=[{key:descriptor[key] for key in ("owner_uuid","owner_kind","scope","source_file_sha256")}]
+        owner_evidence={"descriptor":descriptor,"group_coverage":group_coverage,
+                        "family_coverage":family_coverage,"family_rows":family_rows}
+        reference_corpus=reference_corpus_preimage(
+            [owner_evidence],catalog,self.groups,self.records,self.carriers)
+        production_corpus,production_corpus_digest=contract.corpus_digest(
+            [owner_evidence],catalog,self.groups,self.records,self.domains,self.carriers)
+        self.assertEqual(reference_corpus.hex(),owner_golden["corpus_preimage_hex"])
+        self.assertEqual(production_corpus,reference_corpus)
+        self.assertEqual(hashlib.sha256(reference_corpus).hexdigest(),owner_golden["corpus_sha256"])
+        self.assertEqual(production_corpus_digest,owner_golden["corpus_sha256"])
 
     def test_independent_golden_vectors_and_alternate_target_encoding(self):
         golden = json.loads((ROOT / "fixtures" / "golden-vectors-v1.json").read_bytes())["vectors"]
@@ -102,6 +309,27 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
         self.assertNotEqual(encoded[0], encoded[1])
         with self.assertRaisesRegex(contract.ContractError,"duplicate semantic row key"):
             contract.canonical_rows([events[0],copy.deepcopy(events[0])],self.groups,self.records,self.domains)
+
+    def test_reordering_a_typed_ordered_array_changes_semantic_digest(self):
+        memory_rows=[row for row in self.rows if row["family"]=="fixture.memory_revision.v1"]
+        coverage=self._family_fixture_coverage("fixture.memory_revision.v1","memory",memory_rows)
+        owner=memory_rows[0]["owner"]
+        before=copy.deepcopy(memory_rows)
+        ordered=[{"kind":"bytes","hex":"11"*16},{"kind":"bytes","hex":"22"*16}]
+        before[0]["value"]["fields"]["source_refs"]={"kind":"array","ordering":"ordered","items":ordered}
+        after=copy.deepcopy(before)
+        after[0]["value"]["fields"]["source_refs"]["items"].reverse()
+        owner_cut_ids={cut["cut_id"] for cut in coverage["cuts"]}
+        before_reference=reference_family_preimage(owner,coverage,before)
+        after_reference=reference_family_preimage(owner,coverage,after)
+        before_production,before_digest=contract.family_digest(
+            owner,coverage,before,self.groups,self.records,self.domains,owner_cut_ids)
+        after_production,after_digest=contract.family_digest(
+            owner,coverage,after,self.groups,self.records,self.domains,owner_cut_ids)
+        self.assertEqual(before_production,before_reference)
+        self.assertEqual(after_production,after_reference)
+        self.assertNotEqual(before_reference,after_reference)
+        self.assertNotEqual(before_digest,after_digest)
 
     def test_empty_stream_and_supported_empty_are_distinct_from_absent(self):
         empty_path = ROOT / "fixtures" / "empty-ego-rows.v1.jsonl"
