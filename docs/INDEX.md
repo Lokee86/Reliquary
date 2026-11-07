@@ -4,7 +4,8 @@
 
 - [Rebuild implementation progress](rebuild-implementation-progress.md) — incomplete slices and verification.
 
-- [Identity and corpus evidence](rebuild-f03-identity-and-corpus-evidence-2026-11-03.md) — F03 findings and unresolved proof.
+- [Identity and corpus evidence](rebuild-f03-identity-and-corpus-evidence-2026-11-03.md) — F03 baseline and historical FRS07 source status.
+- [Independent F03 corpus verification continuation](f03-independent-verification-continuation-2026-11-06.md) — read-only six-file hash custody, historical decoder rerun status and remaining full-history proof.
 
 - [Rebuild workspace setup evidence](rebuild-workspace-setup-evidence.md) — isolated workspace and initial dependency graph.
 
