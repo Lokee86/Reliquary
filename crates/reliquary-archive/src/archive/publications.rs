@@ -27,7 +27,7 @@ impl Archive {
         let (first_local, first_global) = match publication.body {
             Body::Applying(payload) => {
                 let record = decode_record(payload)?.ok_or_else(invalid_coordinate)?;
-                if matches!(record, Record::FileBlob(..)) {
+                if matches!(record, Record::FileBlob(..) | Record::ProjectCorrelation(_)) {
                     return Err(invalid_coordinate());
                 }
                 self.apply_record(record)?;

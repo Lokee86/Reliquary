@@ -169,7 +169,11 @@ pub(crate) fn validate_compact_dream_prefix(
                     if !unsupported {
                         advance_memory_history(&mut head, &visible_memories, id, version)?;
                     }
-                } else if !reliquary_archive::is_archive_publication_body(envelope.body)? {
+                } else if !reliquary_archive::is_archive_publication_body(envelope.body)?
+                    && !reliquary_vector_store::generation::is_generation_publication_body(
+                        envelope.body,
+                    )?
+                {
                     // Other publication forms need their own ordered owner proof.
                     unsupported = true;
                 }

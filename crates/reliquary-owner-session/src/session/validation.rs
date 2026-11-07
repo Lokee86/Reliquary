@@ -147,7 +147,11 @@ pub(super) fn validate_grouped_replay_admission(
 }
 
 pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), OwnerSessionError> {
-    const REL_ONLY: [(&[u8; 8], &str); 29] = [
+    const REL_ONLY: [(&[u8; 8], &str); 30] = [
+        (
+            reliquary_archive::PROJECT_CORRELATION_MARKER,
+            "Archive project correlation",
+        ),
         (
             reliquary_archive::ARCHIVE_PUBLICATION_MARKER,
             "versioned Archive publication",

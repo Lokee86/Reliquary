@@ -176,20 +176,14 @@ pub(super) fn archive_vector_input(
         existing_max_fragment_archive_version = info.max_fragment_archive_version;
         let mut verified_max = 0;
         for (row, fragment_id) in binding.fragment_ids.into_iter().enumerate() {
-            let definition = archive
-                .fragment_definition(reliquary_archive::FragmentId(fragment_id.0))
-                .ok_or_else(|| {
-                    vector_invalid("accepted vector has no Archive fragment definition")
-                })?;
-            let source = &definition.fragment;
             let version = archive
-                .node_archive_version(&source.conversation_id, &source.end_node_id)
-                .ok_or_else(|| vector_invalid("accepted vector has no Archive source version"))?;
-            if version > generation.source_archive_version {
-                return Err(vector_invalid(
-                    "accepted vector source is newer than its generation",
-                ));
-            }
+                .fragment_vector_source_version(
+                    reliquary_archive::FragmentId(fragment_id.0),
+                    generation.source_archive_version,
+                )
+                .ok_or_else(|| {
+                    vector_invalid("accepted vector has no Archive fragment at its cut")
+                })?;
             verified_max = verified_max.max(version);
             if existing_rows.contains_key(&fragment_id) {
                 return Err(vector_invalid(
@@ -595,20 +589,11 @@ pub(super) fn validate_generation_sources(
             ));
         }
         for (index, id) in mapping.fragment_ids.iter().enumerate() {
-            let definition = archive
-                .fragment_definition(reliquary_archive::FragmentId(id.0))
-                .ok_or_else(|| vector_invalid("Archive generation has an unknown fragment"))?;
-            let fragment = &definition.fragment;
             let version = archive
-                .node_archive_version(&fragment.conversation_id, &fragment.end_node_id)
+                .fragment_vector_source_version(reliquary_archive::FragmentId(id.0), cut)
                 .ok_or_else(|| {
-                    vector_invalid("Archive generation fragment has no source version")
+                    vector_invalid("Archive generation has no fragment at its source cut")
                 })?;
-            if version > cut || definition.archive_cut >= cut {
-                return Err(vector_invalid(
-                    "Archive generation references a later fragment",
-                ));
-            }
             max_version = max_version.max(version);
             // Terminal, retired-profile backing is intentionally unavailable.
             // Its marker and owner-exclusive retention manifest are validated
