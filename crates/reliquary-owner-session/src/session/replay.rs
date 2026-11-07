@@ -26,6 +26,7 @@ pub(super) fn open_common_for_owner(
     if expected_owner_id != container.owner_id() {
         return Err(OwnerSessionError::Graph(GraphError::WrongOwner));
     }
+    let mut grouped_body_ids = BTreeSet::new();
     let mut memories = MemoryStore::open_with_dream_batches(
         container,
         |payload| {
@@ -40,6 +41,10 @@ pub(super) fn open_common_for_owner(
                 return Err(MemoryError::Corrupt(
                     "grouped routing metadata replay is unsupported",
                 ));
+            }
+            for bytes in &completion.memory_records {
+                grouped_body_ids
+                    .insert(reliquary_memory_core::decode_grouped_creation(bytes)?.body_id);
             }
             let bodies = completion
                 .bodies
@@ -176,6 +181,7 @@ pub(super) fn open_common_for_owner(
         &memories,
         &memory_vectors,
         &maintenance,
+        &grouped_body_ids,
     )?;
     memories.retain_pruned_body_fence(pruned_bodies);
     let mut dream_admissions = dream_admissions.into_iter().collect::<Vec<_>>();

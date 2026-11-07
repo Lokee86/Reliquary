@@ -12,6 +12,7 @@ pub(super) fn validate_memory_prune(
     memories: &MemoryStore,
     memory_vectors: &MemoryVectorStore,
     maintenance: &OwnerMaintenanceStore,
+    grouped_body_ids: &BTreeSet<MemoryBodyId>,
 ) -> Result<BTreeSet<MemoryBodyId>, OwnerSessionError> {
     let absent: BTreeSet<_> = memories.unbacked_body_ids().collect();
     let mut manifests = maintenance.manifests().values().filter(|manifest| {
@@ -21,9 +22,12 @@ pub(super) fn validate_memory_prune(
             .any(|descriptor| descriptor.target.domain == RetentionDomain::Memory)
     });
     let Some(manifest) = manifests.next() else {
-        // Grouped source metadata may name a body without a backing payload
-        // only when an exact terminal-prune manifest authorizes that absence.
-        return if absent.is_empty() {
+        // Standalone provenance metadata has always been allowed without local
+        // body backing. The relaxed grouped replay requires prune authority for
+        // its missing bodies; do not broaden that rule to standalone history.
+        return if absent.is_empty()
+            || (maintenance.is_empty() && absent.is_disjoint(grouped_body_ids))
+        {
             Ok(BTreeSet::new())
         } else {
             Err(invalid("missing Memory prune retention evidence"))
