@@ -1395,6 +1395,10 @@ fn compact_dream_population_uses_physical_grouped_births_and_excludes_siblings()
         )
         .is_ok()
     );
+    assert_eq!(
+        crate::session::dream_prefix::observe_compact_dream_prefix(&container, &[]).unwrap(),
+        [admission.clone()]
+    );
     let mut forged = admission.clone();
     forged.preexisting_ids.insert(sibling.id);
     assert!(

@@ -214,7 +214,13 @@ pub(super) fn open_common_for_owner(
         let Some(begin) = begin else { continue };
         let population = match &begin.population {
             crate::records::dream::dream_begin_codec::BeginPopulation::CompactCut { .. } => {
-                super::dream_population::birth_population(container, &memories, begin.source_id)?
+                if frontier_cut.is_some() {
+                    return Err(OwnerSessionError::Record(
+                        "embedded Dream Begin requires explicit population".into(),
+                    ));
+                }
+                // The ordered prefix reader below derives the exact retained set.
+                continue;
             }
             crate::records::dream::dream_begin_codec::BeginPopulation::ExplicitSet(ids) => {
                 ids.clone()
@@ -248,6 +254,8 @@ pub(super) fn open_common_for_owner(
         }
     }
 
+    let compact = super::dream_prefix::observe_compact_dream_prefix(container, &dream_admissions)?;
+    dream_admissions.extend(compact);
     for admission in &dream_admissions {
         if admission.owner_uuid != container.owner_id()
             || !memories.contains_memory(admission.source_id)
@@ -271,7 +279,6 @@ pub(super) fn open_common_for_owner(
             ));
         }
     }
-    super::dream_prefix::validate_compact_dream_prefix(container, &dream_admissions)?;
     let dreams =
         DreamEvidenceStore::open(container, dream_admissions).map_err(OwnerSessionError::Record)?;
     super::dream_initial_replay::validate(container, &dreams, &memories, &graph)?;

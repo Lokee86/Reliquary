@@ -16,13 +16,28 @@ struct Birth {
     mutation: Option<String>,
 }
 
-/// Verify compact Begin populations against evidence strictly before each Begin.
-/// Direct, imported and journal births require additional owner proof and are
-/// explicitly unsupported here rather than inferred from a caller's admission.
+/// Resolve compact Begin populations from evidence strictly before each Begin.
+pub(crate) fn observe_compact_dream_prefix(
+    container: &Container,
+    admissions: &[DreamBeginAdmission],
+) -> Result<Vec<DreamBeginAdmission>, OwnerSessionError> {
+    collect_compact_dream_prefix(container, admissions, true)
+}
+
+#[cfg(test)]
 pub(crate) fn validate_compact_dream_prefix(
     container: &Container,
     admissions: &[DreamBeginAdmission],
 ) -> Result<(), OwnerSessionError> {
+    collect_compact_dream_prefix(container, admissions, false).map(|_| ())
+}
+
+fn collect_compact_dream_prefix(
+    container: &Container,
+    admissions: &[DreamBeginAdmission],
+    derive: bool,
+) -> Result<Vec<DreamBeginAdmission>, OwnerSessionError> {
+    let mut observed: Vec<DreamBeginAdmission> = Vec::new();
     let mut births = BTreeMap::<MemoryId, Birth>::new();
     let mut visible_memories = BTreeSet::new();
     let mut head = 0u64;
@@ -286,28 +301,41 @@ pub(crate) fn validate_compact_dream_prefix(
                     (birth.global < source.global && outside_source_cohort && proven).then_some(*id)
                 })
                 .collect();
-            let admission = admissions
-                .iter()
-                .find(|admission| admission.pass_id == begin.pass_id)
-                .ok_or_else(|| {
-                    OwnerSessionError::Record("Dream Begin lacks owner admission".into())
-                })?;
-            if begin.owner_uuid != container.owner_id()
-                || admission.owner_uuid != begin.owner_uuid
-                || admission.source_id != begin.source_id
-                || admission.turn != begin.turn
-                || admission.graph_version_before != begin.graph_version_before
-                || admission.memory_cut != memory_cut
-                || admission.preexisting_ids != population
-                || digest != population_digest(&population)
+            if begin.owner_uuid != container.owner_id() || digest != population_digest(&population)
             {
                 return Err(OwnerSessionError::Record(
                     "Dream compact population differs from physical prefix".into(),
                 ));
             }
+            let exact = DreamBeginAdmission {
+                owner_uuid: begin.owner_uuid,
+                pass_id: begin.pass_id,
+                source_id: begin.source_id,
+                turn: begin.turn,
+                graph_version_before: begin.graph_version_before,
+                preexisting_ids: population,
+                memory_cut,
+            };
+            if let Some(admission) = admissions
+                .iter()
+                .chain(observed.iter())
+                .find(|admission| admission.pass_id == exact.pass_id)
+            {
+                if admission != &exact {
+                    return Err(OwnerSessionError::Record(
+                        "Dream compact admission differs from physical prefix".into(),
+                    ));
+                }
+            } else if derive {
+                observed.push(exact);
+            } else {
+                return Err(OwnerSessionError::Record(
+                    "Dream Begin lacks owner admission".into(),
+                ));
+            }
         }
     }
-    Ok(())
+    Ok(observed)
 }
 
 fn advance_memory_history(
