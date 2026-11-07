@@ -581,50 +581,32 @@ fn hash_container_handle(
     container: &crate::Container,
     expected_identity: (u64, u64),
 ) -> ToolResult<HashedFile> {
-    let mut file = container
-        .clone_backing_file()
-        .map_err(|_| "historical reader handle could not be cloned".to_string())?;
-    let before = file
-        .metadata()
+    let before = container
+        .backing_metadata()
         .map_err(|_| "historical reader metadata is unavailable".to_string())?;
-    let held_identity = file_identity(&file)?;
+    let held_identity = container
+        .backing_file_identity()
+        .map_err(|_| "historical reader identity is unavailable".to_string())?
+        .ok_or("historical reader identity is unavailable")?;
     if held_identity != expected_identity || before.len() > MAX_SOURCE_FILE_BYTES {
         return Err("historical reader identity or size is outside custody bounds".to_string());
     }
     let modified = modified_unix_ns(&before)?;
-    file.seek(SeekFrom::Start(0))
-        .map_err(|_| "historical reader handle could not seek".to_string())?;
-    let mut hasher = Sha256::new();
-    let mut buffer = [0_u8; HASH_BUFFER_BYTES];
-    let mut total = 0_u64;
-    loop {
-        let count = file
-            .read(&mut buffer)
-            .map_err(|_| "historical reader handle read failed".to_string())?;
-        if count == 0 {
-            break;
-        }
-        total = total
-            .checked_add(count as u64)
-            .ok_or_else(|| "historical reader byte count overflow".to_string())?;
-        if total > MAX_SOURCE_FILE_BYTES {
-            return Err("historical reader source exceeds bounded scan size".to_string());
-        }
-        hasher.update(&buffer[..count]);
-    }
-    let after = file
-        .metadata()
+    let digest = container
+        .physical_digest()
+        .map_err(|_| "historical reader handle hashing failed".to_string())?;
+    let after = container
+        .backing_metadata()
         .map_err(|_| "historical reader metadata reread failed".to_string())?;
-    if file_identity(&file)? != expected_identity
-        || total != before.len()
+    if container.backing_file_identity().ok().flatten() != Some(expected_identity)
         || after.len() != before.len()
         || modified_unix_ns(&after)? != modified
     {
         return Err("historical reader source changed during handle hashing".to_string());
     }
     Ok(HashedFile {
-        sha256: lower_hex(&hasher.finalize()),
-        byte_length: total,
+        sha256: lower_hex(&digest),
+        byte_length: before.len(),
         modified_unix_ns: modified,
         file_identity: held_identity,
     })
