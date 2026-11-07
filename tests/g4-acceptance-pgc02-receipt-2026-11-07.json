@@ -1,0 +1,145 @@
+{
+  "ticket": "PG-C02",
+  "receipt_version": 1,
+  "recorded_date_utc": "2026-11-07",
+  "repository": "Reliquary",
+  "worktree": "C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted",
+  "branch": "fix/postg4-pgc02-acceptance",
+  "base_commit": "a3c3a9643f494bced51faf92ba057b16bcdac8a7",
+  "tested_source_commit": "5169c4293d8531f961591282b61772cde0b31caa",
+  "target_cache": "C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\target-codex-check",
+  "full_acceptance_runs": [
+    {
+      "shell": "Windows PowerShell",
+      "version": "5.1.26100.9711",
+      "resolved_executable": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "wrapper_invocation": "& $winps -NoLogo -NoProfile -File $runner",
+      "resolved_command": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoLogo -NoProfile -File C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\scripts\\run_g4_acceptance.ps1",
+      "exit_code": 0,
+      "g4_filtered_test_invocations": 2,
+      "g4_filtered_test_cases_passed": 2,
+      "external_consumer_reopen_test_cases_passed": 1,
+      "cli_observations": 25,
+      "negative_cli_invocations": 8,
+      "negative_cli_nonzero_exits": 8,
+      "negative_cli_structured_json_errors": 8,
+      "source_bytes_unchanged": true,
+      "primary_evidence_directory": ".test-tmp\\g4-completed-ae8245db59124d6db6f53bb95b4663d4",
+      "repeat_evidence_directory": ".test-tmp\\g4-completed-ae8245db59124d6db6f53bb95b4663d4-repeat",
+      "primary_artifacts": [
+        {
+          "path": ".test-tmp\\g4-completed-ae8245db59124d6db6f53bb95b4663d4\\witness.json",
+          "sha256": "7E59453971FE11F6D03F877897FD1901344A4A70A7B73EA9B0EEA476E88A6DE3"
+        },
+        {
+          "path": ".test-tmp\\g4-completed-ae8245db59124d6db6f53bb95b4663d4\\process-witness.json",
+          "sha256": "768E4E6A11955B90B5B38D58FCAC99DBEE9B8E861EF9AA6314AA75370B181E13"
+        },
+        {
+          "path": ".test-tmp\\g4-completed-ae8245db59124d6db6f53bb95b4663d4\\cli-witness.json",
+          "sha256": "6E97F955FB93F9563618FDA486F7E950D3A19A60DAA261517FA05D93A8C6AB66"
+        }
+      ],
+      "repeat_artifacts": [
+        {
+          "path": ".test-tmp\\g4-completed-ae8245db59124d6db6f53bb95b4663d4-repeat\\witness.json",
+          "sha256": "F9D5DAD34486567148087C252F1EE7BB1EB231B27BB32319EEC8D4A2F474EAAF"
+        }
+      ]
+    },
+    {
+      "shell": "PowerShell",
+      "version": "7.6.9",
+      "resolved_executable": "C:\\Users\\archa\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+      "wrapper_invocation": "& $pwsh -NoLogo -NoProfile -File $runner",
+      "resolved_command": "C:\\Users\\archa\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe -NoLogo -NoProfile -File C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\scripts\\run_g4_acceptance.ps1",
+      "exit_code": 0,
+      "g4_filtered_test_invocations": 2,
+      "g4_filtered_test_cases_passed": 2,
+      "external_consumer_reopen_test_cases_passed": 1,
+      "cli_observations": 25,
+      "negative_cli_invocations": 8,
+      "negative_cli_nonzero_exits": 8,
+      "negative_cli_structured_json_errors": 8,
+      "source_bytes_unchanged": true,
+      "primary_evidence_directory": ".test-tmp\\g4-completed-c782aee70960467ea9bfa7db6e479880",
+      "repeat_evidence_directory": ".test-tmp\\g4-completed-c782aee70960467ea9bfa7db6e479880-repeat",
+      "primary_artifacts": [
+        {
+          "path": ".test-tmp\\g4-completed-c782aee70960467ea9bfa7db6e479880\\witness.json",
+          "sha256": "7C22C6B9368CCFA6C9009DB6044F0242F95923A863002E650B80191644A3A07E"
+        },
+        {
+          "path": ".test-tmp\\g4-completed-c782aee70960467ea9bfa7db6e479880\\process-witness.json",
+          "sha256": "5CBA09F021EFB7EF46115A9B5262E90B077192735D938EFACF8E2382AFFD8359"
+        },
+        {
+          "path": ".test-tmp\\g4-completed-c782aee70960467ea9bfa7db6e479880\\cli-witness.json",
+          "sha256": "A75091DB9628B8587C14FD16487BF1838E0E19A193EAE09D8597908792689592"
+        }
+      ],
+      "repeat_artifacts": [
+        {
+          "path": ".test-tmp\\g4-completed-c782aee70960467ea9bfa7db6e479880-repeat\\witness.json",
+          "sha256": "C61FC943AA3AD42E94A22E6419D65F9FB3195A491AF4226CF5F1A284CDEDC3F4"
+        }
+      ]
+    }
+  ],
+  "focused_regression_runs": [
+    {
+      "shell": "Windows PowerShell",
+      "version": "5.1.26100.9711",
+      "resolved_executable": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "wrapper_invocation": "& $exe -NoLogo -NoProfile -File $test",
+      "resolved_command": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoLogo -NoProfile -File C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\scripts\\test_g4_acceptance_native_capture.ps1",
+      "exit_code": 0,
+      "checks": [
+        "The G4 runner parses without PowerShell syntax errors.",
+        "Exactly eight original Expect-Failure $cli invocations remain.",
+        "Invoke-Json accepts stdout JSON at exit 0.",
+        "Expect-Failure accepts structured JSON on stderr at exit 23 and stdout at exit 25.",
+        "Invoke-Json rejects a nonzero exit 26.",
+        "Mixed stdout JSON and stderr diagnostics are rejected without adding an observation.",
+        "Windows argument quoting round-trips spaces, an empty argument, an embedded quote, and a trailing backslash.",
+        "Concurrent 200 KB stdout and stderr streams are fully captured with exit 17."
+      ]
+    },
+    {
+      "shell": "PowerShell",
+      "version": "7.6.9",
+      "resolved_executable": "C:\\Users\\archa\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+      "wrapper_invocation": "& $exe -NoLogo -NoProfile -File $test",
+      "resolved_command": "C:\\Users\\archa\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe -NoLogo -NoProfile -File C:\\!bin\\workspace\\Reliquary-postg4-pgc02-accepted\\scripts\\test_g4_acceptance_native_capture.ps1",
+      "exit_code": 0,
+      "checks": [
+        "The G4 runner parses without PowerShell syntax errors.",
+        "Exactly eight original Expect-Failure $cli invocations remain.",
+        "Invoke-Json accepts stdout JSON at exit 0.",
+        "Expect-Failure accepts structured JSON on stderr at exit 23 and stdout at exit 25.",
+        "Invoke-Json rejects a nonzero exit 26.",
+        "Mixed stdout JSON and stderr diagnostics are rejected without adding an observation.",
+        "Windows argument quoting round-trips spaces, an empty argument, an embedded quote, and a trailing backslash.",
+        "Concurrent 200 KB stdout and stderr streams are fully captured with exit 17."
+      ]
+    }
+  ],
+  "transcript_and_log_provenance": {
+    "full_runner_exec_session_id": 25304,
+    "focused_results": "The focused commands returned PASS output in the retained subagent task transcript.",
+    "raw_console_log_files": [],
+    "evidence_artifact_note": "The generated witness directories do not label their shell version internally. This receipt maps each directory to the observed shell invocation and records artifact hashes. No standalone raw console logs were persisted."
+  },
+  "warnings": [
+    "The full run emitted pre-existing Rust unused-import and dead-code warnings.",
+    "The MSVC linker emitted warning LNK4098.",
+    "PowerShell 7 emitted a non-failing ConvertTo-Json depth-2 warning in the final display."
+  ],
+  "unavailable_checks": [],
+  "post_run_checks": {
+    "git_diff_check": "passed",
+    "trailing_whitespace_scan": "passed",
+    "final_status_after_runner_commit": "clean",
+    "remote_push": "not performed"
+  }
+}
