@@ -187,11 +187,15 @@ impl PerceptionStore {
                 entity_version,
                 entity,
                 ..
-            } => self.apply(Record::Entity {
-                version: entity_version,
-                owner: publication.owner,
-                value: entity,
-            }),
+            } => self.apply(
+                Record::Entity {
+                    version: entity_version,
+                    owner: publication.owner,
+                    value: entity,
+                },
+                // Historical publications could explicitly supply the first stable Entity ID.
+                true,
+            ),
             RetainedEntity::Terminal {
                 terminal,
                 replacement,
