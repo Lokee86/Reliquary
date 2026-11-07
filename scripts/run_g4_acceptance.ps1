@@ -7,25 +7,112 @@ $manifest = Join-Path $repo 'tests\fixtures\g4-native-rel21-v1.json'
 $env:G4_EXPORT_DIR = $exportDir
 $observations = [System.Collections.Generic.List[object]]::new()
 
-function Invoke-Cargo([string[]] $Arguments) {
-    & cargo @Arguments
-    if ($LASTEXITCODE -ne 0) { throw "cargo exited with code ${LASTEXITCODE}: $Arguments" }
+# Capture native stdout and stderr as data instead of PowerShell Error records.
+# Windows PowerShell 5.1 can terminate on redirected native stderr when ErrorActionPreference is Stop.
+function ConvertTo-NativeArgumentString([string[]] $Arguments) {
+    $quoted = [System.Collections.Generic.List[string]]::new()
+    foreach ($argument in $Arguments) {
+        if ($null -eq $argument) { $argument = '' }
+        $builder = New-Object System.Text.StringBuilder
+        [void]$builder.Append([char]'"')
+        $backslashes = 0
+        foreach ($character in $argument.ToCharArray()) {
+            if ($character -eq [char]'\') {
+                $backslashes++
+                continue
+            }
+            if ($character -eq [char]'"') {
+                [void]$builder.Append([char]'\', (2 * $backslashes) + 1)
+                [void]$builder.Append([char]'"')
+            }
+            else {
+                if ($backslashes -gt 0) { [void]$builder.Append([char]'\', $backslashes) }
+                [void]$builder.Append($character)
+            }
+            $backslashes = 0
+        }
+        if ($backslashes -gt 0) { [void]$builder.Append([char]'\', 2 * $backslashes) }
+        [void]$builder.Append([char]'"')
+        $quoted.Add($builder.ToString())
+    }
+    return [string]::Join(' ', $quoted.ToArray())
 }
+
+function Invoke-NativeCommand([string] $Executable, [string[]] $Arguments) {
+    if ([System.IO.Path]::IsPathRooted($Executable)) {
+        $resolvedExecutable = $Executable
+    }
+    else {
+        $command = Get-Command -Name $Executable -CommandType Application -ErrorAction Stop | Select-Object -First 1
+        $resolvedExecutable = $command.Path
+    }
+
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = $resolvedExecutable
+    $startInfo.Arguments = ConvertTo-NativeArgumentString $Arguments
+    $startInfo.WorkingDirectory = (Get-Location).ProviderPath
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $startInfo.StandardOutputEncoding = [System.Text.UTF8Encoding]::new($false)
+    $startInfo.StandardErrorEncoding = [System.Text.UTF8Encoding]::new($false)
+
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $startInfo
+    try {
+        if (-not $process.Start()) { throw "Could not start native executable: $resolvedExecutable" }
+        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+        $stderrTask = $process.StandardError.ReadToEndAsync()
+        $process.WaitForExit()
+        return [pscustomobject]@{
+            ExitCode = $process.ExitCode
+            Stdout = $stdoutTask.Result
+            Stderr = $stderrTask.Result
+        }
+    }
+    finally {
+        $process.Dispose()
+    }
+}
+
+function Write-NativeOutput([object] $Result) {
+    if ($Result.Stdout.Length -gt 0) { [System.Console]::Out.Write($Result.Stdout) }
+    if ($Result.Stderr.Length -gt 0) { [System.Console]::Error.Write($Result.Stderr) }
+}
+
+function Invoke-Cargo([string[]] $Arguments) {
+    $result = Invoke-NativeCommand 'cargo' $Arguments
+    Write-NativeOutput $result
+    if ($result.ExitCode -ne 0) { throw "cargo exited with code $($result.ExitCode): $Arguments" }
+}
+function Get-NativeJsonText([object] $Result) {
+    $streams = [System.Collections.Generic.List[string]]::new()
+    if (-not [string]::IsNullOrWhiteSpace($Result.Stdout)) { $streams.Add($Result.Stdout.Trim()) }
+    if (-not [string]::IsNullOrWhiteSpace($Result.Stderr)) { $streams.Add($Result.Stderr.Trim()) }
+    if ($streams.Count -gt 1) {
+        throw 'CLI wrote both stdout and stderr; structured JSON must be emitted on one stream.'
+    }
+    if ($streams.Count -eq 0) { return '' }
+    return $streams[0]
+}
+
 function Invoke-Json([string] $Executable, [string[]] $Arguments) {
-    $output = & $Executable @Arguments 2>&1
-    $exit = $LASTEXITCODE
-    $text = ($output | Out-String).Trim()
-    if ($exit -ne 0) { throw "$Executable failed ($exit): $text" }
-    $result = $text | ConvertFrom-Json
-    $observations.Add(@{ arguments = $Arguments; exit_code = $exit; result = $result })
-    return $result
+    $result = Invoke-NativeCommand $Executable $Arguments
+    $text = Get-NativeJsonText $result
+    if ($result.ExitCode -ne 0) { throw "$Executable failed ($($result.ExitCode)): $text" }
+    $parsed = $text | ConvertFrom-Json
+    $observations.Add(@{ arguments = $Arguments; exit_code = $result.ExitCode; result = $parsed })
+    return $parsed
 }
 function Expect-Failure([string] $Executable, [string[]] $Arguments) {
-    $output = & $Executable @Arguments 2>&1
-    if ($LASTEXITCODE -eq 0) { throw "Expected failure: $Executable $Arguments" }
-    $result = ($output | Out-String) | ConvertFrom-Json
-    if ($null -eq $result.error) { throw 'CLI failure did not return a structured JSON error.' }
-    $observations.Add(@{ arguments = $Arguments; exit_code = $LASTEXITCODE; result = $result })
+    $result = Invoke-NativeCommand $Executable $Arguments
+    if ($result.ExitCode -eq 0) { throw "Expected failure: $Executable $Arguments" }
+    $text = Get-NativeJsonText $result
+    if ([string]::IsNullOrWhiteSpace($text)) { throw 'CLI failure did not return a structured JSON error.' }
+    $parsed = $text | ConvertFrom-Json
+    if ($null -eq $parsed.error) { throw 'CLI failure did not return a structured JSON error.' }
+    $observations.Add(@{ arguments = $Arguments; exit_code = $result.ExitCode; result = $parsed })
 }
 function Normalize-Archive([object[]] $Items) {
     $normalized = @($Items | Sort-Object conversation_id | ForEach-Object {
