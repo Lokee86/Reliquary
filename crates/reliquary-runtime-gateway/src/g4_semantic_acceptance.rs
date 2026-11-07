@@ -921,14 +921,27 @@ pub(crate) fn complete_authored_semantics(
     }
     // Publish source-bound rows before any source can become terminal. Retained
     // historical bodies keep their accepted vectors after supersession.
-    let embedding = crate::g4_retrieval_acceptance::Embed { calls: std::sync::atomic::AtomicUsize::new(0), dimensions: 2 };
+    let embedding = crate::g4_retrieval_acceptance::Embed {
+        calls: std::sync::atomic::AtomicUsize::new(0),
+        dimensions: 2,
+    };
     let mut vector_profile = None;
     for owner in [lantern, cascade, phy_a, phy_b] {
-        let actor = if owner == lantern || owner == phy_a { principal_a } else { principal_b };
+        let actor = if owner == lantern || owner == phy_a {
+            principal_a
+        } else {
+            principal_b
+        };
         let profile = actor.publish_embedding_profile(owner, &embedding).unwrap();
         vector_profile = Some(profile);
-        let ids = authored_memory_refs.iter().filter(|(_, candidate, _)| *candidate == owner).map(|(_, _, id)| *id).collect::<Vec<_>>();
-        let prepared = actor.prepare_owner_memory_vectors(owner, profile, &ids, &embedding).unwrap();
+        let ids = authored_memory_refs
+            .iter()
+            .filter(|(_, candidate, _)| *candidate == owner)
+            .map(|(_, _, id)| *id)
+            .collect::<Vec<_>>();
+        let prepared = actor
+            .prepare_owner_memory_vectors(owner, profile, &ids, &embedding)
+            .unwrap();
         assert!(actor.publish_owner_memory_vectors(&prepared).unwrap());
     }
     let vector_profile = vector_profile.unwrap();
@@ -986,7 +999,13 @@ pub(crate) fn complete_authored_semantics(
         dream_first && !dream_retry,
         "Dream publication is idempotent"
     );
-    let no_link_pair = ["src-cobalt-protocol", "src-mira"].map(|alias| authored_memory_refs.iter().find(|(source, _, _)| source == alias).unwrap().2);
+    let no_link_pair = ["src-cobalt-protocol", "src-mira"].map(|alias| {
+        authored_memory_refs
+            .iter()
+            .find(|(source, _, _)| source == alias)
+            .unwrap()
+            .2
+    });
     let no_link = instance
         .with_writable_reliquary(lantern, |rel| {
             draft_dream_batch_organization(
@@ -1032,7 +1051,11 @@ pub(crate) fn complete_authored_semantics(
         .resolve_and_publish_entity_mention(
             EntityMemoryMention {
                 owner_id: lantern.as_bytes(),
-                memory_id: authored_memory_refs.iter().find(|(source, _, _)| source == "src-mira-known").unwrap().2,
+                memory_id: authored_memory_refs
+                    .iter()
+                    .find(|(source, _, _)| source == "src-mira-known")
+                    .unwrap()
+                    .2,
                 field: TextField::Content,
                 start_byte: 0,
                 end_byte: 4,
@@ -1085,19 +1108,47 @@ pub(crate) fn complete_authored_semantics(
             })
         })
         .unwrap();
-    let stale_vectors = instance.prepare_owner_memory_vectors(lantern, vector_profile, &[rehearsal_pair[0]], &embedding).unwrap();
-    let stale_mention = instance.with_writable_reliquary(lantern, |rel| {
-        let memory = rel.current_memory(rehearsal_pair[0]).unwrap();
-        let reliquary_owner_session::model::PayloadState::Available(body) = memory.payload else { panic!("pending rehearsal source unavailable") };
-        let start = body.content.find("rehearsal").unwrap();
-        reliquary_application::prepare_memory_mention(EntityOwnerSession::Rel(rel), EntityMemoryMention {
-            owner_id: lantern.as_bytes(), memory_id: rehearsal_pair[0], field: TextField::Content,
-            start_byte: start, end_byte: start + "rehearsal".len(), text: "rehearsal".into(),
-        }).unwrap().evaluate_with_endpoint(CohortEndpoint).unwrap()
-    }).unwrap();
-    let stale_turn = instance.begin_memory_retrieval_turn(lantern, "g4-stale-rehearsal").unwrap();
-    let stale_delivery = instance.prepare_agentic_memory_delivery(&stale_turn, &crate::g4_retrieval_acceptance::retrieval_route(),
-        reliquary_application::RetrievalAction::Query("rehearsal".into()), Some(vector_profile), Some(&[1.0, 0.0])).unwrap().prepared.unwrap();
+    let stale_vectors = instance
+        .prepare_owner_memory_vectors(lantern, vector_profile, &[rehearsal_pair[0]], &embedding)
+        .unwrap();
+    let stale_mention = instance
+        .with_writable_reliquary(lantern, |rel| {
+            let memory = rel.current_memory(rehearsal_pair[0]).unwrap();
+            let reliquary_owner_session::model::PayloadState::Available(body) = memory.payload
+            else {
+                panic!("pending rehearsal source unavailable")
+            };
+            let start = body.content.find("rehearsal").unwrap();
+            reliquary_application::prepare_memory_mention(
+                EntityOwnerSession::Rel(rel),
+                EntityMemoryMention {
+                    owner_id: lantern.as_bytes(),
+                    memory_id: rehearsal_pair[0],
+                    field: TextField::Content,
+                    start_byte: start,
+                    end_byte: start + "rehearsal".len(),
+                    text: "rehearsal".into(),
+                },
+            )
+            .unwrap()
+            .evaluate_with_endpoint(CohortEndpoint)
+            .unwrap()
+        })
+        .unwrap();
+    let stale_turn = instance
+        .begin_memory_retrieval_turn(lantern, "g4-stale-rehearsal")
+        .unwrap();
+    let stale_delivery = instance
+        .prepare_agentic_memory_delivery(
+            &stale_turn,
+            &crate::g4_retrieval_acceptance::retrieval_route(),
+            reliquary_application::RetrievalAction::Query("rehearsal".into()),
+            Some(vector_profile),
+            Some(&[1.0, 0.0]),
+        )
+        .unwrap()
+        .prepared
+        .unwrap();
     let supersession = instance
         .with_writable_reliquary(lantern, |rel| {
             draft_dream_batch_organization(
@@ -1116,19 +1167,46 @@ pub(crate) fn complete_authored_semantics(
         .publish_dream_batch(lantern, [0xd7; 32], &supersession, timestamp + 15)
         .unwrap();
     assert!(supersession_published);
-    assert!(instance.publish_owner_memory_vectors(&stale_vectors).is_err());
-    assert!(instance.publish_entity_mention(stale_mention, timestamp + 16).is_err());
+    assert!(
+        instance
+            .publish_owner_memory_vectors(&stale_vectors)
+            .is_err()
+    );
+    assert!(
+        instance
+            .publish_entity_mention(stale_mention, timestamp + 16)
+            .is_err()
+    );
     let stale_host = std::sync::Arc::new(crate::g4_retrieval_acceptance::Host::default());
     let stale_router = CapabilityRouter::connect(stale_host, instance.gateway_binding());
-    assert!(instance.deliver_agentic_memory(&stale_turn, &stale_delivery, &stale_router).is_err());
-    assert!(instance.with_writable_reliquary(lantern, |rel| rel.accepted_external_use(stale_delivery.stable_id()).cloned()).unwrap().is_none());
+    assert!(
+        instance
+            .deliver_agentic_memory(&stale_turn, &stale_delivery, &stale_router)
+            .is_err()
+    );
+    assert!(
+        instance
+            .with_writable_reliquary(lantern, |rel| rel
+                .accepted_external_use(stale_delivery.stable_id())
+                .cloned())
+            .unwrap()
+            .is_none()
+    );
     let native_import =
         crate::g4_semantic_completion::complete_authored_native_import(instance, cascade);
     for (source, (_, owner, memory)) in sources.iter_mut().zip(authored_memory_refs.iter()) {
         let history = if *owner == phy_a || *owner == phy_b {
-            instance.with_entity_phy_writer(*owner, |writer| writer.memory_history(*memory)).unwrap().unwrap().unwrap()
+            instance
+                .with_entity_phy_writer(*owner, |writer| writer.memory_history(*memory))
+                .unwrap()
+                .unwrap()
+                .unwrap()
         } else {
-            instance.with_writable_reliquary(*owner, |rel| rel.memory_history(*memory)).unwrap().unwrap().unwrap()
+            instance
+                .with_writable_reliquary(*owner, |rel| rel.memory_history(*memory))
+                .unwrap()
+                .unwrap()
+                .unwrap()
         };
         let latest = &history.revisions.last().unwrap().record;
         source["body_revision"] = json!(latest.revision);

@@ -390,6 +390,8 @@ mod g4_semantic_acceptance;
 #[cfg(test)]
 mod g4_semantic_completion;
 #[cfg(test)]
+mod g4_semantic_negatives;
+#[cfg(test)]
 mod g4_test_cohort;
 #[cfg(test)]
 mod tests;

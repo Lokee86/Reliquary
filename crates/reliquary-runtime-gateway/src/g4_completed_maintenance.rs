@@ -1,8 +1,6 @@
 //! G4 maintenance proof on an independently completed native cohort.
 
 #[cfg(test)]
-use super::*;
-#[cfg(test)]
 use reliquary_application::{
     ArchiveRewriteMode, DerivedStateRewriteMode, FreshnessRewriteMode, RewriteIdentityMode,
     RewritePolicy, execute_memory_rewrite, plan_phy_rewrite, plan_rel_rewrite, reconcile_rel_owner,
@@ -48,27 +46,101 @@ pub(crate) fn verify_completed_cohort(
         // GM explicitly excludes operational Dream/Insomnia/import/external
         // carriers from fresh-history reconstruction. Exercise both policies
         // on the completed owner and require their exact fail-closed contract.
-        for identity in [RewriteIdentityMode::NewOwner, RewriteIdentityMode::PreserveOwner] {
+        for identity in [
+            RewriteIdentityMode::NewOwner,
+            RewriteIdentityMode::PreserveOwner,
+        ] {
             let policy = RewritePolicy {
-                identity, profile_ids: [memory_profile.0].into_iter().collect(),
-                archive: if index < 2 { ArchiveRewriteMode::RetainAll } else { ArchiveRewriteMode::Omit },
-                freshness: if index < 2 { FreshnessRewriteMode::PreserveEffectiveCurrent } else { FreshnessRewriteMode::Reset },
+                identity,
+                profile_ids: [memory_profile.0].into_iter().collect(),
+                archive: if index < 2 {
+                    ArchiveRewriteMode::RetainAll
+                } else {
+                    ArchiveRewriteMode::Omit
+                },
+                freshness: if index < 2 {
+                    FreshnessRewriteMode::PreserveEffectiveCurrent
+                } else {
+                    FreshnessRewriteMode::Reset
+                },
                 derived_state: DerivedStateRewriteMode::RetainVerified,
                 ..RewritePolicy::default()
             };
             let plan = if index < 2 {
-                plan_rel_rewrite(source, &RelSession::open_path_current(source).unwrap(), policy).unwrap()
+                plan_rel_rewrite(
+                    source,
+                    &RelSession::open_path_current(source).unwrap(),
+                    policy,
+                )
+                .unwrap()
             } else {
-                plan_phy_rewrite(source, &PhySession::open_path_current(source).unwrap(), policy).unwrap()
+                plan_phy_rewrite(
+                    source,
+                    &PhySession::open_path_current(source).unwrap(),
+                    policy,
+                )
+                .unwrap()
             };
             let destination = output.join(format!("{kind}-{index}-{identity:?}"));
-            let result = execute_memory_rewrite(&plan, source, &destination,
-                (identity == RewriteIdentityMode::NewOwner).then_some([0xa0 + index as u8; 16]), &graph);
-            let error = result.expect_err("operational-carrier rewrite is an explicit GM typed stop");
-            assert!(error.to_string().contains("operational evidence"), "{error}");
-            assert!(!destination.exists());
+            let result = execute_memory_rewrite(
+                &plan,
+                source,
+                &destination,
+                (identity == RewriteIdentityMode::NewOwner).then_some([0xa0 + index as u8; 16]),
+                &graph,
+            );
+            if index < 2 {
+                let error =
+                    result.expect_err("operational REL rewrite is an explicit GM typed stop");
+                assert!(
+                    error.to_string().contains("operational evidence"),
+                    "{error}"
+                );
+                assert!(!destination.exists());
+            } else {
+                let report = result.expect("supported populated PHY fresh-history rewrite");
+                let original = PhySession::open_path_current(source).unwrap();
+                let reopened = PhySession::open_path_current(&destination).unwrap();
+                let expected_owner = if identity == RewriteIdentityMode::NewOwner {
+                    [0xa0 + index as u8; 16]
+                } else {
+                    owner
+                };
+                assert_eq!(reopened.owner_id(), expected_owner);
+                let ids = original.memory_ids_page(None, 128).unwrap().1;
+                assert_eq!(reopened.memory_ids_page(None, 128).unwrap().1, ids);
+                assert_eq!(report.retained_memories, ids.len());
+                for id in ids {
+                    let old = original.current_memory(id).unwrap();
+                    let new = reopened.current_memory(id).unwrap();
+                    assert_eq!(old.payload, new.payload);
+                    assert_eq!(old.record.source_ref, new.record.source_ref);
+                    assert_eq!(old.record.source_node_id, new.record.source_node_id);
+                }
+                let original_proof = original
+                    .historical_proof(owner, original.current_historical_cut())
+                    .unwrap();
+                let proof = reopened
+                    .historical_proof(expected_owner, reopened.current_historical_cut())
+                    .unwrap();
+                assert_ne!(original_proof.history_generation, proof.history_generation);
+                assert!(
+                    execute_memory_rewrite(
+                        &plan,
+                        source,
+                        &destination,
+                        (identity == RewriteIdentityMode::NewOwner)
+                            .then_some([0xa0 + index as u8; 16]),
+                        &graph
+                    )
+                    .is_err()
+                );
+            }
             let stale = output.join(format!("{kind}-{index}-{identity:?}-stale"));
-            VerifiedOwnerCopyPlan::prepare(source).unwrap().copy_to(source, &stale).unwrap();
+            VerifiedOwnerCopyPlan::prepare(source)
+                .unwrap()
+                .copy_to(source, &stale)
+                .unwrap();
             append_orphan_file(&stale);
             assert!(verify_rewrite_source(&plan, &stale).is_err());
         }
@@ -81,15 +153,21 @@ pub(crate) fn verify_completed_cohort(
             let original = RelSession::open_path_current(source).unwrap();
             let reopened = RelSession::open_path_current(&copy).unwrap();
             let cut = original.current_historical_cut();
-            assert_eq!(original.historical_proof(owner, &cut).unwrap(), reopened.historical_proof(owner, &cut).unwrap());
+            assert_eq!(
+                original.historical_proof(owner, &cut).unwrap(),
+                reopened.historical_proof(owner, &cut).unwrap()
+            );
         } else {
             let original = PhySession::open_path_current(source).unwrap();
             let reopened = PhySession::open_path_current(&copy).unwrap();
             let cut = original.current_historical_cut();
-            assert_eq!(original.historical_proof(owner, cut).unwrap(), reopened.historical_proof(owner, cut).unwrap());
+            assert_eq!(
+                original.historical_proof(owner, cut).unwrap(),
+                reopened.historical_proof(owner, cut).unwrap()
+            );
         }
         owners.push(json!({"alias": index, "kind": kind, "owner_id": hex(&owner),
-            "fresh_history": "UnsupportedOperationalState", "policies_checked": ["NewOwner", "PreserveOwner"],
+            "fresh_history": if index < 2 { "UnsupportedOperationalState" } else { "VerifiedNewAndPreserveOwner" }, "policies_checked": ["NewOwner", "PreserveOwner"],
             "verified_copy_history_equal": true}));
         let source_session = (copy, owner, kind.to_owned());
 
@@ -143,22 +221,42 @@ pub(crate) fn verify_completed_cohort(
                 .tombstone_conversation("conv-l08")
                 .expect("tombstone authored terminal conversation on copy");
             drop(terminal_writer);
+            // L08 still grounds retained semantic history and vectors. Its
+            // refusal is required even after the conversation is terminal.
+            let protected_plan = VerifiedOwnerCopyPlan::prepare(&terminal_source).unwrap();
+            let protected_output = output.join("l08-provenance-must-survive.rel");
+            assert!(
+                prune_terminal_archive_copy(
+                    &protected_plan,
+                    &terminal_source,
+                    &protected_output,
+                    &["conv-l08".into()],
+                    &admission
+                )
+                .is_err()
+            );
+            assert!(!protected_output.exists());
+            append_maintenance_turn(&terminal_source, "conv-g4-prune", "terminal-turn");
+            RelWriter::open_path_current(&terminal_source)
+                .unwrap()
+                .tombstone_conversation("conv-g4-prune")
+                .unwrap();
             let plan =
                 VerifiedOwnerCopyPlan::prepare(&terminal_source).expect("prepare Archive prune");
             let pruned = prune_terminal_archive_copy(
                 &plan,
                 &terminal_source,
                 &prune_path,
-                &["conv-l08".to_owned()],
+                &["conv-g4-prune".to_owned()],
                 &admission,
             )
-            .expect("prune terminal conv-l08 on copy");
+            .expect("prune unreferenced terminal conversation on completed copy");
             assert_eq!(pruned.pruned_conversations, 1);
             assert!(pruned.pruned_turns > 0);
             let reopened = RelSession::open_path(&prune_path, &admission, [], [])
                 .expect("independently reopen Archive-pruned REL");
             assert_eq!(reopened.owner_id(), owner);
-            assert!(reopened.conversation_tombstone("conv-l08").is_some());
+            assert!(reopened.conversation_tombstone("conv-g4-prune").is_some());
             drop(reopened);
 
             // Reclaim the pruned copy so both retained Archive marker families
@@ -265,22 +363,99 @@ pub(crate) fn verify_completed_cohort(
                 baseline_proof
             );
             drop(divergent.session);
+            let retry_output = output.join("rel-divergent-retry.rel");
+            drop(
+                reconcile_rel_owner(
+                    &divergent_output,
+                    &divergent_right,
+                    &retry_output,
+                    &admission,
+                    [],
+                    [],
+                )
+                .unwrap()
+                .session,
+            );
+            assert_eq!(
+                fs::read(&divergent_output).unwrap(),
+                fs::read(&retry_output).unwrap()
+            );
 
             let wrong_owner_output = output.join("rel-wrong-owner-rejected.rel");
-            let error = reconcile_rel_prefix(
-                paths[0],
-                &source_session.0,
-                &wrong_owner_output,
-                &admission,
-                [],
-                [],
-            )
-            .err()
-            .expect("reject reconciliation across owner identities");
+            let error =
+                reconcile_rel_prefix(paths[0], paths[1], &wrong_owner_output, &admission, [], [])
+                    .err()
+                    .expect("reject reconciliation across owner identities");
             assert!(!error.is_empty());
             assert!(!wrong_owner_output.exists());
         }
     }
+
+    // Cascade carries the completed native import epoch, so its independent
+    // divergence/retry proves import authority as well as Lantern's semantics.
+    let cascade = RelSession::open_path_current(paths[1]).unwrap();
+    let cascade_owner = cascade.owner_id();
+    let cascade_cut = cascade.current_historical_cut();
+    let cascade_proof = cascade
+        .historical_proof(cascade_owner, &cascade_cut)
+        .unwrap();
+    drop(cascade);
+    let cascade_admission = GraphAdmission::for_replay(cascade_owner, [], [], [], [], []);
+    let cascade_plan = VerifiedOwnerCopyPlan::prepare(paths[1]).unwrap();
+    let cascade_left = output.join("cascade-divergent-left.rel");
+    let cascade_right = output.join("cascade-divergent-right.rel");
+    cascade_plan.copy_to(paths[1], &cascade_left).unwrap();
+    cascade_plan.copy_to(paths[1], &cascade_right).unwrap();
+    append_maintenance_turn(&cascade_left, "g4-cascade-left", "cascade-left");
+    append_maintenance_turn(&cascade_right, "g4-cascade-right", "cascade-right");
+    let cascade_output = output.join("cascade-divergent-output.rel");
+    let merged = reconcile_rel_owner(
+        &cascade_left,
+        &cascade_right,
+        &cascade_output,
+        &cascade_admission,
+        [],
+        [],
+    )
+    .unwrap();
+    assert_eq!(
+        merged
+            .session
+            .historical_proof(cascade_owner, &cascade_cut)
+            .unwrap(),
+        cascade_proof
+    );
+    for (conversation, node) in [
+        ("g4-cascade-left", "cascade-left"),
+        ("g4-cascade-right", "cascade-right"),
+        ("conv-c03-additive-import", "C03-t1"),
+    ] {
+        assert!(
+            merged
+                .session
+                .resolved_archive_turn(conversation, node)
+                .unwrap()
+                .is_some()
+        );
+    }
+    drop(merged.session);
+    let cascade_retry = output.join("cascade-divergent-retry.rel");
+    drop(
+        reconcile_rel_owner(
+            &cascade_output,
+            &cascade_right,
+            &cascade_retry,
+            &cascade_admission,
+            [],
+            [],
+        )
+        .unwrap()
+        .session,
+    );
+    assert_eq!(
+        fs::read(&cascade_output).unwrap(),
+        fs::read(&cascade_retry).unwrap()
+    );
 
     for (path, expected) in paths.iter().zip(before) {
         assert_eq!(digest(path), expected, "maintenance changed cohort source");

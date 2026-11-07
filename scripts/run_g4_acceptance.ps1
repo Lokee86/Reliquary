@@ -72,6 +72,13 @@ try {
         if ($hash -ne $owner.sha256) { throw "Exported source hash differs for $($owner.file)." }
     }
     $null = Invoke-Json $cli @('rel', 'verify', $source)
+    $memoryId = ($witness.semantics.sources | Where-Object { $_.source_id -eq 'src-release-label' }).memory_id
+    $memoryHistory = Invoke-Json $cli @('rel', 'history', 'memory', $source, $memoryId)
+    if ($memoryHistory.result.status -ne 'available') { throw 'Authored Memory history is unavailable in the CLI.' }
+    $created = Join-Path $negativeDir 'cli-created.rel'
+    $createdInfo = Invoke-Json $cli @('rel', 'create', $created, '--scope', 'project')
+    $createdReopen = Invoke-Json $cli @('rel', 'verify', $created)
+    if ($createdInfo.owner.owner_id -ne $createdReopen.owner.owner_id) { throw 'CLI create identity changed after reopen.' }
     $policy = Join-Path $negativeDir 'rewrite-policy.json'
     $witness.rewrite_policy | ConvertTo-Json -Depth 16 | Set-Content -LiteralPath $policy -Encoding utf8
     $dryRun = Join-Path $negativeDir 'dry-run.rel'

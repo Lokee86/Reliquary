@@ -349,7 +349,7 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
     let semantic_operator = gateway
         .instance("operator", [rel, cascade], [phy, phy_b])
         .unwrap();
-    let semantic_witness = crate::g4_semantic_acceptance::complete_authored_semantics(
+    let mut semantic_witness = crate::g4_semantic_acceptance::complete_authored_semantics(
         &semantic_operator,
         rel,
         cascade,
@@ -358,6 +358,17 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
         &instance,
         &principal_b,
     );
+    let semantic_negatives = crate::g4_semantic_negatives::verify_semantic_negatives(
+        &semantic_operator,
+        &instance,
+        &principal_b,
+        rel,
+        cascade,
+        phy,
+        phy_b,
+        &semantic_witness,
+    );
+    semantic_witness["negative_and_private_entity"] = semantic_negatives;
     drop(principal_b);
     let source_memory = |alias: &str| {
         let source = semantic_witness["sources"]
@@ -389,7 +400,11 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
             &private_embedding,
         )
         .unwrap();
-    assert!(!semantic_operator.publish_owner_memory_vectors(&private_vectors).unwrap());
+    assert!(
+        !semantic_operator
+            .publish_owner_memory_vectors(&private_vectors)
+            .unwrap()
+    );
     assert!(
         instance
             .prepare_owner_memory_vectors(
@@ -432,13 +447,38 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
     );
     let mut expected_mira = [source_memory("src-mira"), source_memory("src-mira-known")];
     expected_mira.sort();
-    let mira_rank = instance.rank_rel_memories(rel, "Mira", None, None, RetrievalConfig::default()).unwrap();
-    assert_eq!(mira_rank.selected.iter().map(|row| row.memory_id).collect::<Vec<_>>(), expected_mira);
+    let mira_rank = instance
+        .rank_rel_memories(rel, "Mira", None, None, RetrievalConfig::default())
+        .unwrap();
+    assert_eq!(
+        mira_rank
+            .selected
+            .iter()
+            .map(|row| row.memory_id)
+            .collect::<Vec<_>>(),
+        expected_mira
+    );
     let retired = source_memory("src-rehearsal-pending");
-    let rehearsal_rank = instance.rank_rel_memories(rel, "rehearsal", None, None, RetrievalConfig::default()).unwrap();
-    assert_eq!(rehearsal_rank.selected.iter().map(|row| row.memory_id).collect::<Vec<_>>(), vec![source_memory("src-rehearsal-complete")]);
-    assert!(rehearsal_rank.selected.iter().all(|row| row.memory_id != retired));
-    instance.management_set_title(rel, "conv-l01", "Lantern release").unwrap();
+    let rehearsal_rank = instance
+        .rank_rel_memories(rel, "rehearsal", None, None, RetrievalConfig::default())
+        .unwrap();
+    assert_eq!(
+        rehearsal_rank
+            .selected
+            .iter()
+            .map(|row| row.memory_id)
+            .collect::<Vec<_>>(),
+        vec![source_memory("src-rehearsal-complete")]
+    );
+    assert!(
+        rehearsal_rank
+            .selected
+            .iter()
+            .all(|row| row.memory_id != retired)
+    );
+    instance
+        .management_set_title(rel, "conv-l01", "Lantern release")
+        .unwrap();
     let mut queue = instance
         .open_conversation_queue(&temp.0.join("rel.queue"), rel)
         .unwrap();
@@ -678,7 +718,14 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
         rank.selected[0].body.content,
         "Lantern release uses the amber checklist."
     );
-    let community_route = instance.route_rel_memories(rel, profile, &[1.0, 0.0], reliquary_application::MemoryRetrievalConfig::default()).unwrap();
+    let community_route = instance
+        .route_rel_memories(
+            rel,
+            profile,
+            &[1.0, 0.0],
+            reliquary_application::MemoryRetrievalConfig::default(),
+        )
+        .unwrap();
     assert_eq!(community_route.memories, vec![rel_memory]);
     assert!(
         outsider
@@ -738,7 +785,10 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
         .unwrap()
         .clone();
     let delivery_manifest: Value = serde_json::from_slice(&delivered.payload).unwrap();
-    let delivered_memory = delivery_manifest["memories"].as_array().unwrap().iter()
+    let delivered_memory = delivery_manifest["memories"]
+        .as_array()
+        .unwrap()
+        .iter()
         .find(|memory| memory["memory_id"] == crate::hex(&rel_memory.0))
         .expect("delivery contains the exact selected amber Memory");
     let history = instance
@@ -751,22 +801,10 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
     let PayloadState::Available(current_body) = &current_revision.payload else {
         panic!("current retrieval Memory payload is unavailable")
     };
-    assert_eq!(
-        delivered_memory["memory_id"],
-        crate::hex(&rel_memory.0)
-    );
-    assert_eq!(
-        delivered_memory["revision"],
-        current.revision
-    );
-    assert_eq!(
-        delivered_memory["body_id"],
-        crate::hex(&current.body_id.0)
-    );
-    assert_eq!(
-        delivered_memory["content"],
-        current_body.content
-    );
+    assert_eq!(delivered_memory["memory_id"], crate::hex(&rel_memory.0));
+    assert_eq!(delivered_memory["revision"], current.revision);
+    assert_eq!(delivered_memory["body_id"], crate::hex(&current.body_id.0));
+    assert_eq!(delivered_memory["content"], current_body.content);
     let use_after = instance
         .with_writable_reliquary(rel, |session| {
             session.accepted_external_use(delivery.stable_id()).cloned()
@@ -1208,34 +1246,99 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
     );
 }
 
-fn complete_vector_coverage(paths: [&Path; 4], profile: reliquary_owner_session::model::CompatibilityProfileId) {
+fn complete_vector_coverage(
+    paths: [&Path; 4],
+    profile: reliquary_owner_session::model::CompatibilityProfileId,
+) {
     let mut owners = Vec::new();
     for (index, path) in paths.iter().enumerate() {
         let (owner, memories) = if index < 2 {
             let session = RelSession::open_path_current(path).unwrap();
-            (session.owner_id(), session.memory_ids_page(None, 128).unwrap().1.into_iter()
-                .filter(|id| { let memory = session.current_memory(*id).unwrap(); !memory.record.archived && matches!(memory.payload, PayloadState::Available(_)) }).collect::<Vec<_>>())
+            (
+                session.owner_id(),
+                session
+                    .memory_ids_page(None, 128)
+                    .unwrap()
+                    .1
+                    .into_iter()
+                    .filter(|id| {
+                        let memory = session.current_memory(*id).unwrap();
+                        !memory.record.archived
+                            && matches!(memory.payload, PayloadState::Available(_))
+                    })
+                    .collect::<Vec<_>>(),
+            )
         } else {
             let session = PhySession::open_path_current(path).unwrap();
-            (session.owner_id(), session.memory_ids_page(None, 128).unwrap().1.into_iter()
-                .filter(|id| { let memory = session.current_memory(*id).unwrap(); !memory.record.archived && matches!(memory.payload, PayloadState::Available(_)) }).collect::<Vec<_>>())
+            (
+                session.owner_id(),
+                session
+                    .memory_ids_page(None, 128)
+                    .unwrap()
+                    .1
+                    .into_iter()
+                    .filter(|id| {
+                        let memory = session.current_memory(*id).unwrap();
+                        !memory.record.archived
+                            && matches!(memory.payload, PayloadState::Available(_))
+                    })
+                    .collect::<Vec<_>>(),
+            )
         };
         owners.push((OwnerId::from_bytes(owner), memories));
     }
     let gateway = Gateway::new();
     for (index, (path, (owner, _))) in paths.iter().zip(&owners).enumerate() {
         let admission = GraphAdmission::for_replay(owner.as_bytes(), [], [], [], [], []);
-        if index < 2 { gateway.mount_writable_reliquary(path, &admission, [], []).unwrap(); }
-        else { gateway.mount_writable_phylactery(path, &admission, []).unwrap(); }
+        if index < 2 {
+            gateway
+                .mount_writable_reliquary(path, &admission, [], [])
+                .unwrap();
+        } else {
+            gateway
+                .mount_writable_phylactery(path, &admission, [])
+                .unwrap();
+        }
     }
-    let instance = gateway.instance("operator", owners[..2].iter().map(|(owner, _)| *owner), owners[2..].iter().map(|(owner, _)| *owner)).unwrap();
-    let embedding = Embed { calls: AtomicUsize::new(0), dimensions: 2 };
+    let instance = gateway
+        .instance(
+            "operator",
+            owners[..2].iter().map(|(owner, _)| *owner),
+            owners[2..].iter().map(|(owner, _)| *owner),
+        )
+        .unwrap();
+    let embedding = Embed {
+        calls: AtomicUsize::new(0),
+        dimensions: 2,
+    };
     for (index, (owner, ids)) in owners.iter().enumerate() {
-        assert_eq!(instance.publish_embedding_profile(*owner, &embedding).unwrap(), profile);
-        let prepared = instance.prepare_owner_memory_vectors(*owner, profile, ids, &embedding).unwrap();
+        assert_eq!(
+            instance
+                .publish_embedding_profile(*owner, &embedding)
+                .unwrap(),
+            profile
+        );
+        let prepared = instance
+            .prepare_owner_memory_vectors(*owner, profile, ids, &embedding)
+            .unwrap();
         instance.publish_owner_memory_vectors(&prepared).unwrap();
-        if index < 2 { assert!(instance.publish_archive_vectors(*owner, profile, &embedding).unwrap().is_some()); }
+        if index < 2 {
+            assert!(
+                instance
+                    .publish_archive_vectors(*owner, profile, &embedding)
+                    .unwrap()
+                    .is_some()
+            );
+        }
     }
-    let obsolete = instance.publish_embedding_profile(owners[0].0, &Embed { calls: AtomicUsize::new(0), dimensions: 3 }).unwrap();
+    let obsolete = instance
+        .publish_embedding_profile(
+            owners[0].0,
+            &Embed {
+                calls: AtomicUsize::new(0),
+                dimensions: 3,
+            },
+        )
+        .unwrap();
     assert_ne!(obsolete, profile);
 }
