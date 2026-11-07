@@ -58,5 +58,6 @@ fn dream_pairs(
     })
 }
 
+#[cfg(test)]
 #[path = "historical_dream_pair_fingerprint_tests.rs"]
 mod tests;

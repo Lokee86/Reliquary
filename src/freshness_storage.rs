@@ -6,10 +6,10 @@ use std::collections::BTreeMap;
 const MAGIC: &[u8; 8] = b"CVAFRS02";
 const POLICY_MAGIC: &[u8; 8] = b"CVAFRP01";
 
-#[cfg(test)]
+#[cfg(any(test, feature = "history-oracle-fixtures"))]
 #[path = "freshness/historical_oracle.rs"]
 mod historical_oracle;
-#[cfg(test)]
+#[cfg(any(test, feature = "history-oracle-fixtures"))]
 pub(crate) use historical_oracle::FreshnessOracleState;
 
 #[cfg(test)]

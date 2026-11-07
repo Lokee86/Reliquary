@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 const MAGIC: &[u8; 8] = b"CVDREAM1";
 
-#[cfg(test)]
+#[cfg(any(test, feature = "history-oracle-fixtures"))]
 pub(crate) fn historical_pass_value(pass: &InitialDreamPass) -> serde_json::Value {
     let InitialDreamPass {
         pass_id,
@@ -48,7 +48,7 @@ pub(crate) struct DreamFreshnessJournal {
 
 impl DreamFreshnessJournal {
     /// Clock-neutral accepted resume state for the test-only equivalence oracle.
-    #[cfg(test)]
+    #[cfg(any(test, feature = "history-oracle-fixtures"))]
     pub(crate) fn historical_oracle_value(&self) -> serde_json::Value {
         use serde_json::json;
         json!({

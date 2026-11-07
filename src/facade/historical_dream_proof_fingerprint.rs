@@ -28,5 +28,6 @@ pub(crate) fn dream_proof_state(cva: &Cva) -> Result<HistoricalFingerprint, Stri
     projection.fingerprint()
 }
 
+#[cfg(test)]
 #[path = "historical_dream_proof_fingerprint_tests.rs"]
 mod tests;

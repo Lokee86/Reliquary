@@ -112,5 +112,6 @@ fn project(
     })
 }
 
+#[cfg(test)]
 #[path = "historical_freshness_fingerprint_tests.rs"]
 mod tests;

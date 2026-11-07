@@ -223,5 +223,6 @@ fn record_value(record: &EgoRecord) -> Value {
     }
 }
 
+#[cfg(test)]
 #[path = "historical_ego_fingerprint_tests.rs"]
 mod tests;

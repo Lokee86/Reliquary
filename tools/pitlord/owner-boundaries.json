@@ -434,6 +434,11 @@
       "classification": "production"
     },
     {
+      "path": "src/freshness/historical_oracle.rs",
+      "component": "freshness-store",
+      "classification": "test"
+    },
+    {
       "path": "src/freshness/policy.rs",
       "component": "freshness-store",
       "classification": "production"

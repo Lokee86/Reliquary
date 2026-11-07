@@ -1,5 +1,8 @@
 # Reliquary Memory v2 Documentation
 
+- [F03 historical source witness](f03-source-witness-v02.md) — read-only typed history evidence for the six pinned owner files.
+- [F03 copy identity observations](f03-identity-observation-v1.md) — custody-bound header observations.
+- [F03 physical copy census](f03-preconversion-physical-census.md) — isolated physical framing evidence.
 - [Phase 3 historical/Maintenance/Import convergence — execution spec](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md) — 119 correction-only execution tasks (98 original plus 21 counted lifecycle/History/Maintenance/Import tasks), retaining the approved semantic settlement hard cut.
 - [Phase 3 execution realignment — lower lifecycle and evidence checkpoints](dependency-convergence-phase3-execution-realignment-2026-10-22.md) — 21 additional counted L/H/M/I execution tasks, evidence-backed 35/119 progress and the paused M3 handoff; original 98 IDs and twelve gates retained.
 - [Phase 2 owner-local boundaries — execution spec](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md) — 91 bounded tasks to isolate durable semantic ownership without new roadmap work.

@@ -159,5 +159,6 @@ fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
+#[cfg(test)]
 #[path = "historical_archive_fingerprint_tests.rs"]
 mod tests;

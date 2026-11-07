@@ -59,5 +59,6 @@ fn dream_processing(
     })
 }
 
+#[cfg(test)]
 #[path = "historical_dream_processing_fingerprint_tests.rs"]
 mod tests;

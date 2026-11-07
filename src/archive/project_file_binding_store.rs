@@ -70,6 +70,11 @@ impl ProjectFileStore {
         Ok(true)
     }
 
+    #[cfg(feature = "history-oracle-fixtures")]
+    pub(crate) fn witness_bindings(&self) -> impl Iterator<Item = (&FileId, &ProjectFileRef)> {
+        self.records.iter()
+    }
+
     pub(crate) fn get(&self, file_id: FileId) -> Option<&ProjectFileRef> {
         self.records.get(&file_id)
     }

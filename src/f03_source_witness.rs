@@ -62,6 +62,11 @@ const EMBEDDED_CONTAINER_ERROR_RS: &[u8] = include_bytes!("container/container_e
 const EMBEDDED_CONTAINER_SCAN_RS: &[u8] = include_bytes!("container/container_scan.rs");
 const EMBEDDED_CONTAINER_VERSION_RS: &[u8] = include_bytes!("container/container_version.rs");
 
+/// One-shot pre-conversion physical-only census. It has a distinct report schema
+/// and never loads or infers the strict PG-C01 full-custody document.
+#[path = "f03_preconversion_physical_census.rs"]
+pub mod preconversion_physical_census;
+
 type ToolResult<T> = Result<T, String>;
 
 #[derive(Debug)]

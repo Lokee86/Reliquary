@@ -22,26 +22,26 @@ const HASH_BUFFER_BYTES: usize = 64 * 1024;
 const REPORT_NAME: &str = "identity-observation.json";
 const MAX_REPORT_BYTES: usize = 64 * 1024;
 
-const V01_SOURCE_COMMIT: &str = "c6010fd30dd52acb81c667f7aed99b831307e49f";
-const V01_PLANNING_COMMIT: &str = "deb6ce6ee7dc94dd97e2fa58d3e910541240b9dd";
-const V01_PLANNING_RECORD_BLOB_SHA1: &str = "47a0f58da7a4011ed39ed59d29399c7492410652";
-const V01_COPY_PROOF_SHA256: &str =
+pub(crate) const V01_SOURCE_COMMIT: &str = "c6010fd30dd52acb81c667f7aed99b831307e49f";
+pub(crate) const V01_PLANNING_COMMIT: &str = "deb6ce6ee7dc94dd97e2fa58d3e910541240b9dd";
+pub(crate) const V01_PLANNING_RECORD_BLOB_SHA1: &str = "47a0f58da7a4011ed39ed59d29399c7492410652";
+pub(crate) const V01_COPY_PROOF_SHA256: &str =
     "6568bb11fe9993d59f0129bfbe3613676de24442fba263ec2387741e11a475fd";
-const V01_CUSTODY_RECEIPT_SHA256: &str =
+pub(crate) const V01_CUSTODY_RECEIPT_SHA256: &str =
     "bd2c6bee9966a3e62bdd1deb6a0e29e34f74cc13bad622f7898c151084153c5d";
-const V01_EXPECTED_COPY_TABLE_SHA256: &str =
+pub(crate) const V01_EXPECTED_COPY_TABLE_SHA256: &str =
     "51731c7965b029cc26ff4d15e705f9cfbb0ca37e1f9cd29007e08ed2604d333d";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct ExpectedCopy {
-    relative_path: &'static str,
-    sha256: &'static str,
-    byte_length: u64,
+pub(crate) struct ExpectedCopy {
+    pub(crate) relative_path: &'static str,
+    pub(crate) sha256: &'static str,
+    pub(crate) byte_length: u64,
 }
 
 // These paths, hashes, and lengths are pinned from the reviewed V01 copy-proof
 // test and custody receipt. This table carries no owner UUID/kind/scope claim.
-const V01_EXPECTED_COPIES: [ExpectedCopy; 6] = [
+pub(crate) const V01_EXPECTED_COPIES: [ExpectedCopy; 6] = [
     ExpectedCopy {
         relative_path: "chatgpt-first14d/project.prj.rel",
         sha256: "a02c8696db754c53a73c896133b06df9828a32923aee610c9f918a16698f76d0",
@@ -180,7 +180,7 @@ struct Options {
     output: PathBuf,
 }
 
-fn v01_specs() -> Vec<ExpectedCopy> {
+pub(crate) fn v01_specs() -> Vec<ExpectedCopy> {
     let mut copies = V01_EXPECTED_COPIES.to_vec();
     copies.sort_by(|left, right| {
         left.relative_path
@@ -190,7 +190,7 @@ fn v01_specs() -> Vec<ExpectedCopy> {
     copies
 }
 
-fn expected_table_digest(specs: &[ExpectedCopy]) -> String {
+pub(crate) fn expected_table_digest(specs: &[ExpectedCopy]) -> String {
     let mut ordered = specs.to_vec();
     ordered.sort_by(|left, right| {
         left.relative_path

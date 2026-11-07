@@ -44,7 +44,7 @@ mod owner_maintenance;
 #[path = "facade/semantic_maintenance.rs"]
 mod semantic_maintenance;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "history-oracle-fixtures"))]
 #[path = "facade/historical_archive_fingerprint.rs"]
 mod historical_archive_fingerprint;
 #[cfg(all(test, feature = "history-oracle-fixtures"))]
@@ -53,41 +53,41 @@ mod historical_current_corpus_tests;
 #[cfg(test)]
 #[path = "facade/historical_cut_enumeration.rs"]
 mod historical_cut_enumeration;
-#[cfg(test)]
+#[cfg(any(test, feature = "history-oracle-fixtures"))]
 #[path = "facade/historical_dream_pair_fingerprint.rs"]
 mod historical_dream_pair_fingerprint;
-#[cfg(test)]
+#[cfg(any(test, feature = "history-oracle-fixtures"))]
 #[path = "facade/historical_dream_processing_fingerprint.rs"]
 mod historical_dream_processing_fingerprint;
-#[cfg(test)]
+#[cfg(any(test, feature = "history-oracle-fixtures"))]
 #[path = "facade/historical_dream_proof_fingerprint.rs"]
 mod historical_dream_proof_fingerprint;
-#[cfg(test)]
+#[cfg(any(test, feature = "history-oracle-fixtures"))]
 #[path = "facade/historical_ego_fingerprint.rs"]
 mod historical_ego_fingerprint;
-#[cfg(test)]
+#[cfg(any(test, feature = "history-oracle-fixtures"))]
 #[path = "facade/historical_entity_fingerprint.rs"]
 mod historical_entity_fingerprint;
-#[cfg(test)]
+#[cfg(any(test, feature = "history-oracle-fixtures"))]
 #[path = "facade/historical_fingerprint.rs"]
 mod historical_fingerprint;
-#[cfg(test)]
+#[cfg(any(test, feature = "history-oracle-fixtures"))]
 #[path = "facade/historical_freshness_fingerprint.rs"]
 mod historical_freshness_fingerprint;
 #[cfg(test)]
 #[path = "facade/historical_global_cuts.rs"]
 mod historical_global_cuts;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "history-oracle-fixtures"))]
 #[path = "facade/historical_graph_fingerprint.rs"]
 mod historical_graph_fingerprint;
-#[cfg(test)]
+#[cfg(any(test, feature = "history-oracle-fixtures"))]
 #[path = "facade/historical_memory_fingerprint.rs"]
 mod historical_memory_fingerprint;
-#[cfg(test)]
+#[cfg(any(test, feature = "history-oracle-fixtures"))]
 #[path = "facade/historical_relationship_fingerprint.rs"]
 mod historical_relationship_fingerprint;
-#[cfg(test)]
+#[cfg(any(test, feature = "history-oracle-fixtures"))]
 #[path = "facade/historical_vector_generation_fingerprint.rs"]
 mod historical_vector_generation_fingerprint;
 #[cfg(test)]

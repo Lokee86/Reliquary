@@ -66,6 +66,11 @@ name = "f03_identity_observation"
 path = "examples/f03_identity_observation.rs"
 required-features = ["history-oracle-fixtures"]
 
+[[example]]
+name = "f03_preconversion_physical_census"
+path = "examples/f03_preconversion_physical_census.rs"
+required-features = ["history-oracle-fixtures"]
+
 [dependencies]
 arcana = { git = "https://github.com/Lokee86/lexicon-arcana.git", rev = "66b4e96ecf18cc79dfd6b1ea30232bef7c86bba3" }
 lodestone-packed = { git = "https://github.com/Lokee86/lodestone.git", rev = "7b4b3e02b2bd3f3e474fef1a31c8632f8bbea49f" }

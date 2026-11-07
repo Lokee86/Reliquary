@@ -344,5 +344,6 @@ fn relation_value(relation: SemanticGraphRelation) -> serde_json::Value {
         "global_version": global_version, "graph_version": graph_version})
 }
 
+#[cfg(test)]
 #[path = "historical_graph_fingerprint_tests.rs"]
 mod tests;

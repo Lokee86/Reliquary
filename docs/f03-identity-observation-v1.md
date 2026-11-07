@@ -1,6 +1,10 @@
 # F03 identity observation v1
 
+## Purpose
+
 This is a separate, header-only identity observation probe for the six disposable copies bound by the reviewed V01 receipt. It is not an expected-custody document, source-authenticity claim, historical replay, or admission result. Its only successful status is `IDENTITY_OBSERVATION_ONLY`; `authentic_admission`, `semantic_history_assessed`, `owner_identity_independently_authenticated`, and `scope_independently_authenticated` are all false.
+
+## Overview
 
 The expected six-copy path, SHA-256, and byte-length table is embedded in the probe and pinned to the V01 copy-proof test, custody receipt SHA-256, planning commit, and planning-record blob. A canonical table digest is also checked before any observation. The probe does not accept caller-supplied UUID, owner-kind, or scope expectations. It reports kind, UUID, and scope only as values parsed from the stored header. It never derives them from a filename. A missing identity header and a typed header with no scope value remain distinct explicit unknown states. A malformed or unsupported header fails closed and produces no report.
 
@@ -13,5 +17,11 @@ Invocation:
 ```text
 cargo run --example f03_identity_observation --features history-oracle-fixtures --locked --offline -- --source-root <verified-disposable-copies> --output <fresh-protected-output>
 ```
+
+## Related docs
+
+- [f03 source witness v02](f03-source-witness-v02.md)
+
+## Notes
 
 An identity observation alone does not close the empty authentic carrier/scope inventory, the F03 semantic family/cut coverage, the historical replay requirements, or any later admission gate. Do not interpret an observed scope value as independently authenticated native scope.

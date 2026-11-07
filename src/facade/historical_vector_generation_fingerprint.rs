@@ -184,5 +184,6 @@ fn hex(bytes: &[u8]) -> String {
     out
 }
 
+#[cfg(test)]
 #[path = "historical_vector_generation_fingerprint_tests.rs"]
 mod tests;

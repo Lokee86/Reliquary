@@ -82,7 +82,12 @@ impl OwnerProjection {
         for ((family, key), value) in &self.rows {
             hash_field(&mut hash, family.as_bytes());
             hash_field(&mut hash, key);
-            hash_field(&mut hash, &canonical_value(value)?);
+            let canonical = canonical_value(value)?;
+            hash_field(&mut hash, &canonical);
+            #[cfg(feature = "history-oracle-fixtures")]
+            crate::f03_source_witness::preconversion_physical_census::historical_state::row_commitment::observe(
+                &self.domain, family, key, value, &canonical,
+            )?;
         }
         Ok(HistoricalFingerprint {
             schema: 1,
@@ -141,5 +146,6 @@ pub(crate) fn canonical_value(value: &Value) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 
+#[cfg(test)]
 #[path = "historical_fingerprint_tests.rs"]
 mod tests;
