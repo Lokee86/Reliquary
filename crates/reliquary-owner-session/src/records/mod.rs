@@ -17,6 +17,7 @@ pub(crate) mod import_settlement;
 pub mod insomnia_completion;
 pub mod maintenance;
 pub(crate) mod memory_prune_proof;
+pub mod owner_metadata;
 pub mod verified_copy;
 pub use dream::{DreamBeginAdmission, DreamEvidenceStore};
 pub use dream_group::DreamRelationCut;

@@ -62,6 +62,13 @@ pub(super) fn validate_grouped_replay_admission(
         let body = envelope
             .as_ref()
             .map_or(frame.payload.as_slice(), |value| value.body);
+        if body.starts_with(b"RELRELM") {
+            if envelope.is_some() {
+                return Err(OwnerSessionError::Record("wrapped REL metadata".into()));
+            }
+            crate::records::owner_metadata::decode_retained_owner_metadata(body)
+                .map_err(OwnerSessionError::Record)?;
+        }
         if (body.starts_with(b"RELXMEM") && !body.starts_with(b"RELXMEM3"))
             || (envelope.is_some() && body.starts_with(b"RELINSC"))
         {
@@ -148,7 +155,8 @@ pub(super) fn validate_grouped_replay_admission(
 }
 
 pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), OwnerSessionError> {
-    const REL_ONLY: [(&[u8; 8], &str); 31] = [
+    const REL_ONLY: &[(&[u8; 8], &str)] = &[
+        (b"RELRELM1", "retained REL metadata"),
         (
             reliquary_freshness_store::RETAINED_FRESHNESS_AUTHORITY_MARKER,
             "retained Freshness settlement",
@@ -224,7 +232,7 @@ pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), Owner
             prefix.copy_from_slice(&envelope.body[..8]);
         }
         if length == prefix.len() {
-            for (marker, domain) in REL_ONLY {
+            for &(marker, domain) in REL_ONLY {
                 if &prefix == marker {
                     return Err(OwnerSessionError::RelOnlyRecordInPhylactery(domain));
                 }

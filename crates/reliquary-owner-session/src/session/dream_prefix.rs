@@ -176,6 +176,7 @@ pub(crate) fn validate_compact_dream_prefix(
                     && !reliquary_vector_store::generation::is_generation_publication_body(
                         envelope.body,
                     )?
+                    && reliquary_perception_store::clocked_entity_in_frame(&payload)?.is_none()
                 {
                     // Other publication forms need their own ordered owner proof.
                     unsupported = true;

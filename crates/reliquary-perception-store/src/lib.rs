@@ -38,6 +38,10 @@ pub fn principal_entity_id(principal_id: &str) -> EntityId {
 )]
 pub struct EntityId(pub [u8; 32]);
 
+mod entity_publication;
+pub use entity_publication::{
+    ClockedEntityPublication, RetainedEntity, clocked_entity_in_frame, encode_retained_entity_body,
+};
 mod history;
 mod relationship_codec;
 mod relationship_model;
@@ -471,6 +475,14 @@ pub enum SourcePublication {
 }
 
 pub fn source_publication(payload: &[u8]) -> Result<Option<SourcePublication>, PerceptionError> {
+    if let Some(publication) = clocked_entity_in_frame(payload)? {
+        return Ok(match publication.accepted {
+            RetainedEntity::Revision { entity, .. } if entity.revision == 1 => {
+                Some(SourcePublication::EntityCreation(entity.id))
+            }
+            _ => None,
+        });
+    }
     if let Some((_, row)) = retained_resolution::decode(payload)? {
         return Ok(match row.value {
             RetainedResolutionValue::Revision(value) => Some(SourcePublication::Mention(value.key)),
@@ -575,6 +587,10 @@ impl PerceptionStore {
             retained_resolution: retained_resolution::History::default(),
         };
         for frame in container.read_frames()? {
+            if let Some(publication) = clocked_entity_in_frame(&frame.payload)? {
+                store.replay_retained_entity(publication)?;
+                continue;
+            }
             if let Some((owner, row)) = retained_resolution::decode(&frame.payload)? {
                 if owner != store.owner_id {
                     return Err(PerceptionError::OwnerMismatch);
@@ -995,6 +1011,14 @@ impl PerceptionStore {
     }
 
     fn apply_tombstone(&mut self, tombstone: EntityTombstone) -> Result<(), PerceptionError> {
+        self.apply_tombstone_revision(tombstone, 0)
+    }
+
+    fn apply_tombstone_revision(
+        &mut self,
+        tombstone: EntityTombstone,
+        terminal_revision_offset: u64,
+    ) -> Result<(), PerceptionError> {
         let expected = self.next_version()?;
         if tombstone.perception_version != expected
             || self.entity_tombstones.contains_key(&tombstone.id)
@@ -1005,7 +1029,7 @@ impl PerceptionStore {
             .entities
             .get(&tombstone.id)
             .ok_or(PerceptionError::CorruptRecord("Entity tombstone target"))?;
-        if current.revision != tombstone.revision {
+        if current.revision.checked_add(terminal_revision_offset) != Some(tombstone.revision) {
             return Err(PerceptionError::CorruptRecord("Entity tombstone revision"));
         }
         self.entities.remove(&tombstone.id);
