@@ -13,6 +13,8 @@ mod insomnia;
 mod membership;
 #[path = "historical_state/native.rs"]
 mod native;
+#[path = "historical_state/prefix_freshness.rs"]
+mod prefix_freshness;
 #[path = "historical_state/project.rs"]
 mod project;
 #[path = "historical_state/row_commitment.rs"]
@@ -22,6 +24,7 @@ mod vector_objects;
 
 use super::*;
 use crate::FileKind;
+use crate::f03_source_witness::{DirectoryGuard, HashedFile};
 use serde_json::{Value, json};
 
 const SCHEMA: &str = "reliquary-f03-historical-state-v2";
@@ -222,7 +225,17 @@ fn observe_copy(
     }))
 }
 
-fn run(options: super::super::Options, exhaustive_freshness: bool) -> ToolResult<Value> {
+fn run(
+    options: super::super::Options,
+    exhaustive_freshness: bool,
+    prefix_plan: Option<&Path>,
+) -> ToolResult<Value> {
+    if prefix_plan.is_some() && (options.verify_only || options.resume || exhaustive_freshness) {
+        return Err(
+            "Freshness prefix replay requires a fresh protected output directory and a single mode"
+                .into(),
+        );
+    }
     let (specs, binding) = production_v01_inputs()?;
     let (_, receipt, receipt_guard) = super::super::read_bounded_snapshot(
         &options.expected_custody,
@@ -260,6 +273,22 @@ fn run(options: super::super::Options, exhaustive_freshness: bool) -> ToolResult
         total_bytes: 0,
         guards: Vec::new(),
     };
+    if let Some(plan) = prefix_plan {
+        let report = prefix_freshness::observe(plan, &copies, &output)?;
+        let _final_inventory = verify_inputs(
+            &options,
+            &copies,
+            &source_root,
+            &specs,
+            &inventory,
+            &receipt,
+            &directory_guards,
+        )?;
+        sink.store("freshness-prefix-proofs.json".into(), &report)?;
+        verify_output_membership(&output, &sink.digests.keys().cloned().collect())?;
+        let _held = (receipt_guard, sink.guards);
+        return Ok(report);
+    }
     let mut sources = Vec::with_capacity(copies.len());
     let mut source_file_stats = BTreeMap::new();
     for copy in &copies {
@@ -299,6 +328,7 @@ fn run(options: super::super::Options, exhaustive_freshness: bool) -> ToolResult
             include_bytes!("../f03_preconversion_physical_census.rs").as_slice(),
             include_bytes!("historical_state/archive_bindings.rs").as_slice(),
             include_bytes!("historical_state/freshness_cuts.rs").as_slice(),
+            include_bytes!("historical_state/prefix_freshness.rs").as_slice(),
             include_bytes!("historical_state/membership.rs").as_slice(),
             include_bytes!("historical_state/carrier.rs").as_slice(),
             include_bytes!("historical_state/native.rs").as_slice(),
@@ -326,15 +356,15 @@ fn run(options: super::super::Options, exhaustive_freshness: bool) -> ToolResult
         "artifact_sha256": sink.digests,
     });
     sink.store(MANIFEST.into(), &manifest)?;
-    for copy in &copies {
-        verify_copy_stable(copy)?;
-    }
-    if !snapshots_match(&hash_file_snapshot(&options.expected_custody)?, &receipt) {
-        return Err("V01 receipt changed during historical observation".into());
-    }
-    let final_inventory = verify_source_inventory(&source_root, &inventory)?;
-    verify_exact_layout(&specs, &final_inventory)?;
-    ensure_directory_guards(&directory_guards)?;
+    let final_inventory = verify_inputs(
+        &options,
+        &copies,
+        &source_root,
+        &specs,
+        &inventory,
+        &receipt,
+        &directory_guards,
+    )?;
     if let Some(output) = sink.output {
         verify_output_membership(output, &sink.digests.keys().cloned().collect())?;
     }
@@ -348,8 +378,42 @@ fn run(options: super::super::Options, exhaustive_freshness: bool) -> ToolResult
     }))
 }
 
+fn verify_inputs(
+    options: &super::super::Options,
+    copies: &[VerifiedCopy],
+    source_root: &Path,
+    specs: &[CopySpec],
+    inventory: &SourceTreeInventory,
+    receipt: &HashedFile,
+    directory_guards: &[DirectoryGuard],
+) -> ToolResult<SourceTreeInventory> {
+    for copy in copies {
+        verify_copy_stable(copy)?;
+    }
+    if !snapshots_match(&hash_file_snapshot(&options.expected_custody)?, receipt) {
+        return Err("V01 receipt changed during historical observation".into());
+    }
+    let final_inventory = verify_source_inventory(source_root, inventory)?;
+    verify_exact_layout(specs, &final_inventory)?;
+    ensure_directory_guards(directory_guards)?;
+    Ok(final_inventory)
+}
+
 pub fn cli_main() -> i32 {
     let mut arguments: Vec<_> = env::args().skip(1).collect();
+    let prefix_plan = if arguments
+        .first()
+        .is_some_and(|value| value == "--prefix-freshness")
+    {
+        if arguments.len() < 2 {
+            eprintln!("--prefix-freshness needs the independently verified plan path");
+            return 1;
+        }
+        arguments.remove(0);
+        Some(PathBuf::from(arguments.remove(0)))
+    } else {
+        None
+    };
     let exhaustive_freshness = arguments
         .first()
         .is_some_and(|value| value == "--exhaustive-freshness");
@@ -359,14 +423,14 @@ pub fn cli_main() -> i32 {
     match super::super::parse_options(arguments.into_iter()) {
         Ok(None) => {
             println!(
-                "f03_source_witness [--exhaustive-freshness] --source-root PATH --expected-custody V01_RECEIPT --output PATH [--resume | --verify-only]"
+                "f03_source_witness [--exhaustive-freshness | --prefix-freshness PLAN] --source-root PATH --expected-custody V01_RECEIPT --output PATH [--resume | --verify-only]"
             );
             0
         }
-        Ok(Some(options)) => match run(options, exhaustive_freshness) {
+        Ok(Some(options)) => match run(options, exhaustive_freshness, prefix_plan.as_deref()) {
             Ok(report) => {
                 println!("{report}");
-                2
+                if prefix_plan.is_some() { 0 } else { 2 }
             }
             Err(error) => {
                 eprintln!("F03 historical source witness failed: {error}");
