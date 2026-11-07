@@ -895,6 +895,155 @@ def _report_completeness(owners: Sequence[Mapping[str, Any]]) -> str:
     return {0: "exhaustive", 1: "sampled", 2: "incomplete"}[result]
 
 
+def _validate_diagnostics(value: Mapping[str, Any]) -> None:
+    _exact(value, {"total_count", "sample_limit", "sample"}, "report diagnostics")
+    total = decimal_u64(value["total_count"], "diagnostics total_count")
+    limit = decimal_u64(value["sample_limit"], "diagnostics sample_limit")
+    sample = value["sample"]
+    if not isinstance(sample, list):
+        raise ContractError("diagnostic sample must be an array")
+    expected_sample_count = min(total, limit)
+    if len(sample) != expected_sample_count:
+        raise ContractError("diagnostic sample length must equal min(total_count, sample_limit)")
+    keys = []
+    for index, entry in enumerate(sample):
+        _exact(entry, {"owner_uuid", "family", "stable_key", "revision_or_event", "cut_id",
+                       "expected_availability", "observed_availability", "expected_sha256", "observed_sha256"},
+               f"diagnostic sample {index}")
+        _uuid(entry["owner_uuid"], f"diagnostic sample {index} owner")
+        _hash(entry["expected_sha256"], f"diagnostic sample {index} expected hash")
+        _hash(entry["observed_sha256"], f"diagnostic sample {index} observed hash")
+        _hash(entry["cut_id"], f"diagnostic sample {index} cut ID")
+        _check_unicode(entry)
+        if (entry["expected_availability"] == entry["observed_availability"]
+                and entry["expected_sha256"] == entry["observed_sha256"]):
+            raise ContractError("diagnostic sample row does not describe a discrepancy")
+        keys.append((
+            bytes.fromhex(entry["owner_uuid"]),
+            entry["family"].encode("utf-8"),
+            bytes.fromhex(entry["cut_id"]),
+            entry["stable_key"].encode("utf-8"),
+            entry["revision_or_event"].encode("utf-8"),
+        ))
+    if keys != sorted(set(keys)):
+        raise ContractError("diagnostic sample must have unique rows in canonical owner/family/cut/key order")
+
+
+def _witness_binding_hash(witness: Mapping[str, Any], semantic_hash: str, expected_role: str) -> str:
+    _exact(witness, {"producer_role", "producer_code_sha256", "producer_binary_sha256", "expected_owner_catalog", "owners"},
+           f"{expected_role} witness")
+    if witness["producer_role"] != expected_role:
+        raise ContractError(f"{expected_role} witness has the wrong producer role")
+    _hash(witness["producer_code_sha256"], f"{expected_role} producer code hash")
+    _hash(witness["producer_binary_sha256"], f"{expected_role} producer binary hash")
+    catalog = sorted(witness["expected_owner_catalog"], key=_catalog_owner_key)
+    if not catalog:
+        raise ContractError(f"{expected_role} witness owner catalog is empty")
+    # Versioned canonical commitment binds both independent reader identity and its
+    # recomputed semantic digest to the full per-owner physical input catalog.
+    body = {
+        "schema_id": "reliquary-corpus-witness-binding-v1",
+        "producer_role": expected_role,
+        "producer_code_sha256": witness["producer_code_sha256"],
+        "producer_binary_sha256": witness["producer_binary_sha256"],
+        "semantic_corpus_sha256": semantic_hash,
+        "owner_catalog": catalog,
+    }
+    return hashlib.sha256(canonical_json_bytes(body)).hexdigest()
+
+
+def _witness_coverage(owners: Sequence[Mapping[str, Any]]) -> dict[str, str]:
+    return {
+        "owner_count": str(len(owners)),
+        "family_count": str(sum(len(item["family_coverage"]) for item in owners)),
+        "cut_count": str(sum(len(item["descriptor"]["supported_cuts"]) for item in owners)),
+        "row_count": str(sum(len(rows) for item in owners for rows in item["family_rows"].values())),
+        "completeness": _report_completeness(owners),
+    }
+
+
+def _catalog_bindings(catalog: Sequence[Mapping[str, Any]]) -> list[dict[str, str]]:
+    ordered = sorted(catalog, key=_catalog_owner_key)
+    return [
+        {key: entry[key] for key in ("owner_uuid", "owner_kind", "scope", "source_file_sha256")}
+        for entry in ordered
+    ]
+
+
+def _validate_comparator_witness_bundle(
+    evidence: Mapping[str, Any], report: Mapping[str, Any], root: Path
+) -> tuple[dict[str, str], set[str]]:
+    _exact(evidence, {"source_witness", "target_witness", "custody"}, "comparator witness evidence bundle")
+    groups, records, carriers = load_registries(root)
+    domains = domain_ids_from_registry(records)
+    source = evidence["source_witness"]
+    target = evidence["target_witness"]
+    witness_fields = {"producer_role", "producer_code_sha256", "producer_binary_sha256", "expected_owner_catalog", "owners"}
+    _exact(source, witness_fields, "source_reader witness")
+    _exact(target, witness_fields, "target_reader witness")
+    source_pre, source_hash = corpus_digest(
+        source["owners"], source["expected_owner_catalog"], groups, records, domains, carriers
+    )
+    target_pre, target_hash = corpus_digest(
+        target["owners"], target["expected_owner_catalog"], groups, records, domains, carriers
+    )
+    # Parse and bind reader role/code/binary identity plus each independently
+    # recomputed corpus digest and exact physical owner catalog.
+    source_binding_hash = _witness_binding_hash(source, source_hash, "source_reader")
+    target_binding_hash = _witness_binding_hash(target, target_hash, "target_reader")
+    source_catalog = _catalog_bindings(source["expected_owner_catalog"])
+    target_catalog = _catalog_bindings(target["expected_owner_catalog"])
+    source_keys = [owner_key({key: item[key] for key in ("owner_uuid", "owner_kind", "scope")}) for item in source_catalog]
+    target_keys = [owner_key({key: item[key] for key in ("owner_uuid", "owner_kind", "scope")}) for item in target_catalog]
+    if source_keys != target_keys:
+        raise ContractError("source and target witness owner catalogs differ")
+    if report["source_owner_bindings"] != source_catalog:
+        raise ContractError("report source owner bindings differ from source witness catalog")
+    if report["source_hashes"] != [item["source_file_sha256"] for item in source_catalog]:
+        raise ContractError("report source hashes differ from source witness catalog")
+    _, custody_hash = custody_digest(evidence["custody"], records)
+    custody_files = sorted(
+        evidence["custody"]["owner_files"],
+        key=lambda row: owner_key({key: row[key] for key in ("owner_uuid", "owner_kind", "scope")}),
+    )
+    source_files = [
+        {key: item[key] for key in ("owner_uuid", "owner_kind", "scope", "source_file_sha256")}
+        for item in custody_files
+    ]
+    target_files = [
+        {"owner_uuid": item["owner_uuid"], "owner_kind": item["owner_kind"], "scope": item["scope"],
+         "source_file_sha256": item["target_file_sha256"]}
+        for item in custody_files
+    ]
+    if source_catalog != source_files or target_catalog != target_files:
+        raise ContractError("source/target witness catalogs differ from per-owner custody files")
+    source_coverage = _witness_coverage(source["owners"])
+    target_coverage = _witness_coverage(target["owners"])
+    if report["coverage"] != source_coverage:
+        raise ContractError("report coverage differs from recomputed source witness")
+    code_hashes = {
+        source["producer_code_sha256"], target["producer_code_sha256"], report["producer_code_sha256"]
+    }
+    binary_hashes = {
+        source["producer_binary_sha256"], target["producer_binary_sha256"], report["producer_binary_sha256"]
+    }
+    if len(code_hashes) != 3 or len(binary_hashes) != 3:
+        raise ContractError("comparator requires distinct source-reader, target-reader and comparator builds")
+    if report["status"] == "PASS":
+        if not source_catalog or not source["owners"] or not target["owners"]:
+            raise ContractError("comparator PASS requires nonempty source and target witness evidence")
+        if source_coverage != target_coverage:
+            raise ContractError("comparator PASS source/target witness coverage differs")
+        if source_hash != target_hash:
+            raise ContractError("comparator PASS source and target semantic corpus digests differ")
+        if report["diagnostics"]["total_count"] != "0" or report["diagnostics"]["sample"]:
+            raise ContractError("comparator PASS requires zero discrepancy diagnostics")
+    required_parents = {source_hash, target_hash, custody_hash, source_binding_hash, target_binding_hash}
+    if not required_parents.issubset(set(report["parent_artifact_hashes"])):
+        raise ContractError("report parent hashes omit a source/target witness binding or custody digest")
+    return source_coverage, required_parents
+
+
 def validate_artifact_report(report: Mapping[str, Any], root: Path, evidence: Mapping[str, Any] | None = None) -> None:
     try:
         import jsonschema
@@ -922,6 +1071,7 @@ def validate_artifact_report(report: Mapping[str, Any], root: Path, evidence: Ma
     }
     if report["evidence_scope"] not in allowed_scopes[report["producer_role"]]:
         raise ContractError("producer_role cannot claim this evidence_scope")
+    _validate_diagnostics(report["diagnostics"])
     bindings = report["source_owner_bindings"]
     binding_keys = []
     for index, binding in enumerate(bindings):
@@ -934,41 +1084,45 @@ def validate_artifact_report(report: Mapping[str, Any], root: Path, evidence: Ma
         raise ContractError("report source_hashes differ from ordered per-owner source bindings")
     if decimal_u64(report["coverage"]["owner_count"], "report owner_count") != len(bindings):
         raise ContractError("report owner_count differs from per-owner source bindings")
-    if report["status"] == "PASS" and (report["coverage"]["completeness"] != "exhaustive" or report["exit_status"] != "0"):
-        raise ContractError("PASS report requires exhaustive coverage and zero exit status")
     if report["status"] == "PASS" and evidence is None:
         raise ContractError("PASS report requires recomputable owner/custody evidence")
-    if evidence is not None:
+    if report["status"] == "PASS" and report["producer_role"] == "comparator":
+        if report["diagnostics"]["total_count"] != "0" or report["diagnostics"]["sample"]:
+            raise ContractError("comparator PASS requires zero discrepancy diagnostics")
+        if not isinstance(evidence, Mapping) or set(evidence) != {"source_witness", "target_witness", "custody"}:
+            raise ContractError("comparator PASS requires separate source and target witness evidence")
+        _validate_comparator_witness_bundle(evidence, report, root)
+    if report["status"] == "PASS":
+        if not bindings:
+            raise ContractError("PASS report requires a nonempty owner witness catalog")
+        if report["coverage"]["completeness"] != "exhaustive" or report["exit_status"] != "0":
+            raise ContractError("PASS report requires exhaustive coverage and zero exit status")
+    if evidence is not None and not (report["status"] == "PASS" and report["producer_role"] == "comparator"):
+        if not isinstance(evidence, Mapping):
+            raise ContractError("report evidence bundle must be an object")
+        full_witness_bundle = isinstance(evidence, Mapping) and set(evidence) == {"source_witness", "target_witness", "custody"}
+        if full_witness_bundle:
+            _validate_comparator_witness_bundle(evidence, report, root)
+            return
+        # The source-only form remains useful for incomplete/source-admission reports.
         _exact(evidence, {"expected_owner_catalog", "owners", "custody"}, "report evidence bundle")
         groups, records, carriers = load_registries(root)
         domains = domain_ids_from_registry(records)
         _, semantic_hash = corpus_digest(evidence["owners"], evidence["expected_owner_catalog"], groups, records, domains, carriers)
         _, custody_hash = custody_digest(evidence["custody"], records)
-        catalog = sorted(evidence["expected_owner_catalog"], key=_catalog_owner_key)
+        catalog = _catalog_bindings(evidence["expected_owner_catalog"])
         custody_files = sorted(evidence["custody"]["owner_files"], key=lambda row: owner_key({key: row[key] for key in ("owner_uuid", "owner_kind", "scope")}))
-        catalog_bindings = [{"owner_uuid": item["owner_uuid"], "owner_kind": item["owner_kind"], "scope": item["scope"], "source_file_sha256": item["source_file_sha256"]} for item in catalog]
         custody_bindings = [{"owner_uuid": item["owner_uuid"], "owner_kind": item["owner_kind"], "scope": item["scope"], "source_file_sha256": item["source_file_sha256"]} for item in custody_files]
-        if catalog_bindings != custody_bindings or bindings != catalog_bindings:
+        if catalog != custody_bindings or bindings != catalog:
             raise ContractError("report, source owner catalog and custody owner-file bindings differ")
-        family_count = sum(len(item["family_coverage"]) for item in evidence["owners"])
-        cut_count = sum(len(item["descriptor"]["supported_cuts"]) for item in evidence["owners"])
-        row_count = sum(len(rows) for item in evidence["owners"] for rows in item["family_rows"].values())
-        expected_coverage = {
-            "owner_count": str(len(catalog)),
-            "family_count": str(family_count),
-            "cut_count": str(cut_count),
-            "row_count": str(row_count),
-            "completeness": _report_completeness(evidence["owners"]),
-        }
+        expected_coverage = _witness_coverage(evidence["owners"])
         if dict(report["coverage"]) != expected_coverage:
             raise ContractError("report coverage counts/completeness differ from recomputed evidence")
-        required_parents = {semantic_hash, custody_hash}
-        if not required_parents.issubset(set(report["parent_artifact_hashes"])):
+        if not {semantic_hash, custody_hash}.issubset(set(report["parent_artifact_hashes"])):
             raise ContractError("report parent hashes omit recomputed semantic or custody evidence")
     if report["evidence_scope"] == "authentic_source":
         groups, records, carriers = load_registries(root)
         validate_authentic_admission(groups, records, carriers)
-
 
 def domain_ids_from_registry(records: Mapping[str, Any]) -> set[str]:
     return set(records["domain_ids"])

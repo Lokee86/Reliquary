@@ -493,6 +493,123 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
         with self.assertRaisesRegex(contract.ContractError,"requires recomputable owner/custody evidence"):
             contract.validate_artifact_report(pass_without_evidence,ROOT)
 
+    def test_diagnostic_samples_are_bounded_ordered_and_actual_mismatches(self):
+        empty={"total_count":"0","sample_limit":"4","sample":[]}
+        contract._validate_diagnostics(empty)
+        diagnostic={"owner_uuid":"00112233445566778899aabbccddeeff",
+                    "family":"fixture.memory_revision.v1","stable_key":"memory-1",
+                    "revision_or_event":"revision-2","cut_id":"1"*64,
+                    "expected_availability":"present","observed_availability":"present",
+                    "expected_sha256":"a"*64,"observed_sha256":"b"*64}
+        bounded={"total_count":"2","sample_limit":"1","sample":[diagnostic]}
+        contract._validate_diagnostics(bounded)
+        with self.assertRaisesRegex(contract.ContractError,"sample length"):
+            contract._validate_diagnostics({"total_count":"2","sample_limit":"1","sample":[]})
+        with self.assertRaisesRegex(contract.ContractError,"sample length"):
+            contract._validate_diagnostics({"total_count":"0","sample_limit":"1","sample":[diagnostic]})
+        same={"total_count":"1","sample_limit":"1","sample":[{**diagnostic,"observed_sha256":"a"*64}]}
+        with self.assertRaisesRegex(contract.ContractError,"does not describe a discrepancy"):
+            contract._validate_diagnostics(same)
+
+    def test_witness_binding_has_independent_literal_golden(self):
+        witness={"producer_role":"source_reader","producer_code_sha256":"1"*64,
+                 "producer_binary_sha256":"2"*64,
+                 "expected_owner_catalog":[{"owner_uuid":"00112233445566778899aabbccddeeff",
+                                            "owner_kind":"REL","scope":"project","source_file_sha256":"3"*64}],
+                 "owners":[]}
+        body={"schema_id":"reliquary-corpus-witness-binding-v1",
+              "producer_role":"source_reader","producer_code_sha256":"1"*64,
+              "producer_binary_sha256":"2"*64,"semantic_corpus_sha256":"a"*64,
+              "owner_catalog":witness["expected_owner_catalog"]}
+        independent_preimage=json.dumps(body,ensure_ascii=False,separators=(",",":"),sort_keys=True).encode("utf-8")
+        expected="295d69f9ea9ca5b902f5edc6504c6562d442497d8614971816d7b5870cd5af2b"
+        self.assertEqual(hashlib.sha256(independent_preimage).hexdigest(),expected)
+        self.assertEqual(contract._witness_binding_hash(witness,"a"*64,"source_reader"),expected)
+
+    def _comparator_pass_fixture(self):
+        descriptor,groups,families,rows=self._owner_fixture()
+        source_hash=descriptor["source_file_sha256"]
+        target_bytes=(ROOT/"fixtures"/"target-rows.v1.jsonl").read_bytes()
+        target_hash=hashlib.sha256(target_bytes).hexdigest()
+        source_catalog=[{key:descriptor[key] for key in ("owner_uuid","owner_kind","scope","source_file_sha256")}]
+        target_descriptor=copy.deepcopy(descriptor)
+        target_descriptor["source_file_sha256"]=target_hash
+        source_owner={"descriptor":descriptor,"group_coverage":groups,"family_coverage":families,"family_rows":rows}
+        target_owner={"descriptor":target_descriptor,"group_coverage":copy.deepcopy(groups),
+                      "family_coverage":copy.deepcopy(families),"family_rows":copy.deepcopy(rows)}
+        target_catalog=[{**{key:descriptor[key] for key in ("owner_uuid","owner_kind","scope")},
+                         "source_file_sha256":target_hash}]
+        source_witness={"producer_role":"source_reader","producer_code_sha256":"1"*64,
+                        "producer_binary_sha256":"2"*64,"expected_owner_catalog":source_catalog,
+                        "owners":[source_owner]}
+        target_witness={"producer_role":"target_reader","producer_code_sha256":"3"*64,
+                        "producer_binary_sha256":"4"*64,"expected_owner_catalog":target_catalog,
+                        "owners":[target_owner]}
+        custody={"schema_id":"reliquary-corpus-physical-custody-v1","contract_id":contract.CONTRACT_ID,
+                 "owner_files":[{"owner_uuid":descriptor["owner_uuid"],"owner_kind":descriptor["owner_kind"],
+                                 "scope":descriptor["scope"],"source_file_sha256":source_hash,
+                                 "source_byte_length":str((ROOT/"fixtures"/"source-rows.v1.jsonl").stat().st_size),
+                                 "target_file_sha256":target_hash,"target_byte_length":str(len(target_bytes))}],
+                 "relocations":[]}
+        evidence={"source_witness":source_witness,"target_witness":target_witness,"custody":custody}
+        report=json.loads((ROOT/"fixtures"/"report-example-incomplete.v1.json").read_bytes())
+        report["status"]="PASS"
+        report["producer_role"]="comparator"
+        report["producer_code_sha256"]="5"*64
+        report["producer_binary_sha256"]="6"*64
+        report["exit_status"]="0"
+        report["source_owner_bindings"]=source_catalog
+        report["source_hashes"]=[source_hash]
+        report["coverage"]=contract._witness_coverage([source_owner])
+        def refresh_parents():
+            _,source_semantic=contract.corpus_digest([source_owner],source_catalog,self.groups,self.records,self.domains,self.carriers)
+            _,target_semantic=contract.corpus_digest([target_owner],target_catalog,self.groups,self.records,self.domains,self.carriers)
+            _,custody_hash=contract.custody_digest(custody,self.records)
+            source_binding=contract._witness_binding_hash(source_witness,source_semantic,"source_reader")
+            target_binding=contract._witness_binding_hash(target_witness,target_semantic,"target_reader")
+            report["parent_artifact_hashes"]=sorted({source_semantic,target_semantic,custody_hash,source_binding,target_binding})
+        refresh_parents()
+        return report,evidence,refresh_parents,source_owner,target_owner,source_catalog,target_catalog
+
+    def test_comparator_pass_rejects_empty_self_produced_and_mismatched_witnesses(self):
+        report,evidence,refresh,source_owner,target_owner,source_catalog,target_catalog=self._comparator_pass_fixture()
+        with self.assertRaisesRegex(contract.ContractError,"distinct source-reader"):
+            evidence["source_witness"]["producer_code_sha256"]=report["producer_code_sha256"]
+            refresh()
+            contract.validate_artifact_report(report,ROOT,evidence)
+
+        report,evidence,refresh,source_owner,target_owner,source_catalog,target_catalog=self._comparator_pass_fixture()
+        target_owner["family_rows"]["fixture.memory_revision.v1"][0]["value"]["fields"]["body"]["value"]["value"]="wrong target body"
+        refresh()
+        with self.assertRaisesRegex(contract.ContractError,"semantic corpus digests differ"):
+            contract.validate_artifact_report(report,ROOT,evidence)
+
+        report,evidence,refresh,source_owner,target_owner,source_catalog,target_catalog=self._comparator_pass_fixture()
+        target_witness=evidence["target_witness"]
+        target_witness["expected_owner_catalog"]=[]
+        target_witness["owners"]=[]
+        evidence["custody"]["owner_files"]=[]
+        report["source_owner_bindings"]=[]
+        report["source_hashes"]=[]
+        report["coverage"]={"owner_count":"0","family_count":"0","cut_count":"0","row_count":"0","completeness":"exhaustive"}
+        report["parent_artifact_hashes"]=[]
+        with self.assertRaisesRegex(contract.ContractError,"owner catalog is empty"):
+            contract.validate_artifact_report(report,ROOT,evidence)
+
+    def test_comparator_pass_rejects_nonzero_or_inconsistent_diagnostics(self):
+        report,evidence,refresh,*_=self._comparator_pass_fixture()
+        diagnostic={"owner_uuid":"00112233445566778899aabbccddeeff",
+                    "family":"fixture.memory_revision.v1","stable_key":"memory-1",
+                    "revision_or_event":"revision-2","cut_id":"1"*64,
+                    "expected_availability":"present","observed_availability":"present",
+                    "expected_sha256":"a"*64,"observed_sha256":"b"*64}
+        report["diagnostics"]={"total_count":"1","sample_limit":"1","sample":[diagnostic]}
+        with self.assertRaisesRegex(contract.ContractError,"comparator PASS requires zero discrepancy diagnostics"):
+            contract.validate_artifact_report(report,ROOT,evidence)
+        report["diagnostics"]={"total_count":"2","sample_limit":"1","sample":[]}
+        with self.assertRaisesRegex(contract.ContractError,"sample length"):
+            contract.validate_artifact_report(report,ROOT,evidence)
+
     def test_registry_bundle_is_bound_and_hash_is_stable(self):
         first = contract.registry_hashes(ROOT)
         second = contract.registry_hashes(ROOT)
