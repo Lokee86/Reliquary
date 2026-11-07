@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
+from coverage_map import ProvisionalCoverageMap, is_bound_to_snapshot
 from pgc01_adapter import PGC01Snapshot
 from synthetic import parse_frame
 
@@ -12,12 +13,6 @@ from synthetic import parse_frame
 # These are test-envelope to shared synthetic-schema mappings only.
 # They are not observations of physical source carriers.
 _CLASSIFICATION_SEAL = object()
-
-_D01_FIXTURE_SCHEMA_MAP = {
-    "synthetic.archive_turn.v1": "fixture.archive_turn_revision.v1",
-    "synthetic.memory_revision.v1": "fixture.memory_revision.v1",
-}
-
 
 class CarrierKind(str, Enum):
     SYNTHETIC_FIXTURE = "synthetic_fixture"
@@ -69,10 +64,16 @@ def _record_schema(snapshot: PGC01Snapshot, schema_id: str) -> dict[str, object]
     raise AdmissionDenied("the mapped target schema is not an admissible PG-C01 fixture family")
 
 
-def classify_synthetic_frame(data: bytes, snapshot: PGC01Snapshot) -> CarrierClassification:
-    """Parse only D01SYN01 and map its known fixture family to a PG-C01 fixture schema."""
+def classify_synthetic_frame(
+    data: bytes,
+    snapshot: PGC01Snapshot,
+    coverage_map: ProvisionalCoverageMap,
+) -> CarrierClassification:
+    """Parse only D01SYN01 using the exact-byte-pinned provisional fixture map."""
+    if not is_bound_to_snapshot(coverage_map, snapshot):
+        raise AdmissionDenied("coverage map is not pinned to the supplied PG-C01 snapshot")
     frame = parse_frame(data)
-    target_schema_id = _D01_FIXTURE_SCHEMA_MAP.get(frame.family)
+    target_schema_id = coverage_map.target_schema_for(frame.family)
     if target_schema_id is None:
         raise AdmissionDenied("synthetic family has no explicit fixture-schema mapping")
     _record_schema(snapshot, target_schema_id)
@@ -113,6 +114,7 @@ def admit_for_scope(
     classification: CarrierClassification,
     snapshot: PGC01Snapshot,
     scope: AdmissionScope,
+    coverage_map: ProvisionalCoverageMap | None = None,
 ) -> AdmissionGrant:
     """Grant fixture-test use only; authentic source admission is intentionally absent."""
     if scope is AdmissionScope.AUTHENTIC_SOURCE:
@@ -125,13 +127,15 @@ def admit_for_scope(
         raise AdmissionDenied("unclassified source markers cannot enter the synthetic fixture path")
     if classification._seal is not _CLASSIFICATION_SEAL:
         raise AdmissionDenied("classification was not produced by the closed D01 fixture parser")
+    if not is_bound_to_snapshot(coverage_map, snapshot):
+        raise AdmissionDenied("coverage map is not pinned to the supplied PG-C01 snapshot")
     if (
         classification.source_admissible
         or classification.evidence_scope != "synthetic_fixture"
         or classification.marker != "D01SYN01"
         or classification.carrier_version != 1
-        or classification.family_id not in _D01_FIXTURE_SCHEMA_MAP
-        or classification.target_schema_id != _D01_FIXTURE_SCHEMA_MAP[classification.family_id]
+        or classification.family_id is None
+        or coverage_map.target_schema_for(classification.family_id) != classification.target_schema_id
     ):
         raise AdmissionDenied("synthetic classification does not match the closed D01 fixture map")
     _record_schema(snapshot, classification.target_schema_id)

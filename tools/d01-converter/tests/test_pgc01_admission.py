@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import sys
@@ -18,6 +19,7 @@ from admission import (
     classify_synthetic_frame,
     require_source_admission,
 )
+from coverage_map import load_provisional_coverage_map
 from evidence import build_incomplete_report, validate_incomplete_report
 from pgc01_adapter import (
     PINNED_COMMIT,
@@ -38,6 +40,9 @@ class PGC01AdmissionTests(unittest.TestCase):
         cls.contract_root = Path(_CONTRACT_ROOT)
         cls.snapshot = load_pinned_snapshot(cls.contract_root)
         cls.tool_root = Path(__file__).resolve().parents[1]
+        cls.coverage_map = load_provisional_coverage_map(
+            cls.tool_root / "codec-coverage.provisional.json", cls.snapshot
+        )
 
     def test_current_contract_pin_is_exact_and_authentic_admission_stays_closed(self):
         self.assertEqual(self.snapshot.revision, PINNED_COMMIT)
@@ -63,14 +68,16 @@ class PGC01AdmissionTests(unittest.TestCase):
             "synthetic.archive_turn.v1",
             {"conversation_id": "fixture", "node_id": "node", "text": "not source"},
         )
-        result = classify_synthetic_frame(frame, self.snapshot)
+        result = classify_synthetic_frame(frame, self.snapshot, self.coverage_map)
         self.assertEqual(result.kind, CarrierKind.SYNTHETIC_FIXTURE)
         self.assertEqual(result.marker, "D01SYN01")
         self.assertEqual(result.carrier_version, 1)
         self.assertEqual(result.target_schema_id, "fixture.archive_turn_revision.v1")
         self.assertFalse(result.source_admissible)
 
-        grant = admit_for_scope(result, self.snapshot, AdmissionScope.SYNTHETIC_FIXTURE_TEST)
+        grant = admit_for_scope(
+            result, self.snapshot, AdmissionScope.SYNTHETIC_FIXTURE_TEST, self.coverage_map
+        )
         self.assertTrue(grant.allowed_for_synthetic_tests)
         self.assertFalse(grant.authentic_source_admission)
         self.assertEqual(grant.contract_revision, PINNED_COMMIT)
@@ -86,7 +93,7 @@ class PGC01AdmissionTests(unittest.TestCase):
             "synthetic.memory_revision.v1",
             {"memory_id": "fixture-m", "revision": "1", "title": "title", "body": "body"},
         )
-        result = classify_synthetic_frame(frame, self.snapshot)
+        result = classify_synthetic_frame(frame, self.snapshot, self.coverage_map)
         unsealed = CarrierClassification(
             kind=CarrierKind.SYNTHETIC_FIXTURE,
             marker="D01SYN01",
@@ -99,7 +106,9 @@ class PGC01AdmissionTests(unittest.TestCase):
             admit_for_scope(unsealed, self.snapshot, AdmissionScope.SYNTHETIC_FIXTURE_TEST)
         forged = replace(result, source_admissible=True)
         with self.assertRaisesRegex(AdmissionDenied, "closed D01 fixture map"):
-            admit_for_scope(forged, self.snapshot, AdmissionScope.SYNTHETIC_FIXTURE_TEST)
+            admit_for_scope(
+                forged, self.snapshot, AdmissionScope.SYNTHETIC_FIXTURE_TEST, self.coverage_map
+            )
 
     def test_incomplete_report_uses_official_contract_and_has_no_source_bindings(self):
         report = build_incomplete_report(
@@ -114,6 +123,10 @@ class PGC01AdmissionTests(unittest.TestCase):
         self.assertEqual(report["status"], "INCOMPLETE")
         self.assertEqual(report["source_hashes"], [])
         self.assertEqual(report["source_owner_bindings"], [])
+        coverage_hash = hashlib.sha256(
+            (self.tool_root / "codec-coverage.provisional.json").read_bytes()
+        ).hexdigest()
+        self.assertIn(coverage_hash, report["parent_artifact_hashes"])
         self.assertEqual(report["coverage"]["owner_count"], "0")
         self.assertEqual(report["coverage"]["completeness"], "incomplete")
         report["status"] = "PASS"

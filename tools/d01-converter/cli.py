@@ -22,6 +22,11 @@ from admission import (
     admit_for_scope,
     classify_synthetic_frame,
 )
+from coverage_map import (
+    CoverageMapError,
+    ProvisionalCoverageMap,
+    load_provisional_coverage_map,
+)
 from evidence import _code_digest
 from pgc01_adapter import ContractSnapshotError, PGC01Snapshot, load_pinned_snapshot
 from synthetic import SyntheticFrameError, UnsupportedSyntheticFamily
@@ -35,7 +40,7 @@ from synthetic_transaction import (
 _MAX_FRAME_BYTES = 1_049_000
 _MAX_RECEIPT_BYTES = 65_536
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
-_RECEIPT_SCHEMA = "reliquary-d01-synthetic-command-receipt-v1"
+_RECEIPT_SCHEMA = "reliquary-d01-synthetic-command-receipt-v2"
 
 
 class CliFailure(Exception):
@@ -158,9 +163,25 @@ def _snapshot(contract_root: str | None) -> PGC01Snapshot:
         raise CliFailure("contract_mismatch", "accepted synthetic PG-C01 snapshot verification failed", 3) from error
 
 
-def _classify(data: bytes, snapshot: PGC01Snapshot):
+def _coverage_map(
+    snapshot: PGC01Snapshot,
+    path: Path | None = None,
+) -> ProvisionalCoverageMap:
+    if path is None:
+        path = Path(__file__).resolve().parent / "codec-coverage.provisional.json"
     try:
-        return classify_synthetic_frame(data, snapshot)
+        return load_provisional_coverage_map(path, snapshot)
+    except CoverageMapError as error:
+        raise CliFailure(error.error_code, error.message, 3) from error
+
+
+def _classify(
+    data: bytes,
+    snapshot: PGC01Snapshot,
+    coverage_map: ProvisionalCoverageMap,
+):
+    try:
+        return classify_synthetic_frame(data, snapshot, coverage_map)
     except UnsupportedSyntheticFamily as error:
         raise CliFailure("unsupported_family", "synthetic family is not in the closed fixture map", 4) from error
     except SyntheticFrameError as error:
@@ -198,6 +219,7 @@ def _synthetic_receipt(
     output_name: str,
     classification: Any,
     snapshot: PGC01Snapshot,
+    coverage_map: ProvisionalCoverageMap,
 ) -> dict[str, Any]:
     return {
         "schema_id": _RECEIPT_SCHEMA,
@@ -218,18 +240,26 @@ def _synthetic_receipt(
         "target_schema_id": classification.target_schema_id,
         "contract_revision": snapshot.revision,
         "registry_hashes": dict(snapshot.registry_hashes),
+        "coverage_map_schema": coverage_map.schema_id,
+        "coverage_map_status": coverage_map.status,
+        "coverage_map_sha256": coverage_map.sha256,
+        "d01_t01_acceptance": coverage_map.t01_acceptance,
         "producer_code_sha256": _code_digest(Path(__file__).resolve().parent),
         "payload_emitted": False,
         "current_only_owner_reopen": False,
     }
 
 
-def _inspect(args: argparse.Namespace, snapshot: PGC01Snapshot) -> dict[str, Any]:
+def _inspect(
+    args: argparse.Namespace,
+    snapshot: PGC01Snapshot,
+    coverage_map: ProvisionalCoverageMap,
+) -> dict[str, Any]:
     input_path = _input_path(args.input)
     data, _ = _read_input(input_path)
-    classification = _classify(data, snapshot)
+    classification = _classify(data, snapshot, coverage_map)
     return {
-        "schema_id": "reliquary-d01-synthetic-command-report-v1",
+        "schema_id": "reliquary-d01-synthetic-command-report-v2",
         "command": "inspect",
         "status": "INCOMPLETE",
         "evidence_scope": "synthetic_fixture",
@@ -244,20 +274,30 @@ def _inspect(args: argparse.Namespace, snapshot: PGC01Snapshot) -> dict[str, Any
         "payload_emitted": False,
         "target_candidate": False,
         "registry_hashes": dict(snapshot.registry_hashes),
+        "coverage_map_schema": coverage_map.schema_id,
+        "coverage_map_status": coverage_map.status,
+        "coverage_map_sha256": coverage_map.sha256,
+        "d01_t01_acceptance": coverage_map.t01_acceptance,
+        "producer_code_sha256": _code_digest(Path(__file__).resolve().parent),
     }
 
 
-def _convert(args: argparse.Namespace, snapshot: PGC01Snapshot) -> dict[str, Any]:
+def _convert(
+    args: argparse.Namespace,
+    snapshot: PGC01Snapshot,
+    coverage_map: ProvisionalCoverageMap,
+) -> dict[str, Any]:
     input_path = _input_path(args.input)
     data, before_token = _read_input(input_path)
     digest = _sha256(data)
     if not _SHA256.fullmatch(args.expected_sha256) or args.expected_sha256 != digest:
         raise CliFailure("input_admission_mismatch", "expected input hash does not match the fixture", 3)
-    classification = _classify(data, snapshot)
+    classification = _classify(data, snapshot, coverage_map)
     grant = admit_for_scope(
         classification,
         snapshot,
         AdmissionScope.SYNTHETIC_FIXTURE_TEST,
+        coverage_map,
     )
     if not grant.allowed_for_synthetic_tests or grant.authentic_source_admission:
         raise CliFailure("admission_closed", "synthetic fixture grant is not valid", 3)
@@ -270,6 +310,7 @@ def _convert(args: argparse.Namespace, snapshot: PGC01Snapshot) -> dict[str, Any
             output_path.name,
             data,
             snapshot,
+            coverage_map,
         )
     except CandidateAlreadyExists as error:
         raise CliFailure("conflict_collision", "output already exists; no overwrite was attempted", 5) from error
@@ -288,14 +329,19 @@ def _convert(args: argparse.Namespace, snapshot: PGC01Snapshot) -> dict[str, Any
         artifact.file_name,
         classification,
         snapshot,
+        coverage_map,
     )
 
 
-def _verify_structure(args: argparse.Namespace, snapshot: PGC01Snapshot) -> dict[str, Any]:
+def _verify_structure(
+    args: argparse.Namespace,
+    snapshot: PGC01Snapshot,
+    coverage_map: ProvisionalCoverageMap,
+) -> dict[str, Any]:
     candidate_path = _input_path(args.candidate)
     receipt_path = _receipt_path(args.receipt)
     data, _ = _read_input(candidate_path)
-    classification = _classify(data, snapshot)
+    classification = _classify(data, snapshot, coverage_map)
     receipt = _read_receipt(receipt_path)
     expected_keys = {
         "schema_id",
@@ -316,6 +362,10 @@ def _verify_structure(args: argparse.Namespace, snapshot: PGC01Snapshot) -> dict
         "target_schema_id",
         "contract_revision",
         "registry_hashes",
+        "coverage_map_schema",
+        "coverage_map_status",
+        "coverage_map_sha256",
+        "d01_t01_acceptance",
         "producer_code_sha256",
         "payload_emitted",
         "current_only_owner_reopen",
@@ -342,13 +392,17 @@ def _verify_structure(args: argparse.Namespace, snapshot: PGC01Snapshot) -> dict
         or receipt["target_schema_id"] != classification.target_schema_id
         or receipt["contract_revision"] != snapshot.revision
         or receipt["registry_hashes"] != snapshot.registry_hashes
+        or receipt["coverage_map_schema"] != coverage_map.schema_id
+        or receipt["coverage_map_status"] != coverage_map.status
+        or receipt["coverage_map_sha256"] != coverage_map.sha256
+        or receipt["d01_t01_acceptance"] != coverage_map.t01_acceptance
         or receipt["producer_code_sha256"] != _code_digest(Path(__file__).resolve().parent)
         or receipt["payload_emitted"] is not False
         or receipt["current_only_owner_reopen"] is not False
     ):
         raise CliFailure("target_mismatch", "synthetic fixture and receipt do not agree", 6)
     return {
-        "schema_id": "reliquary-d01-synthetic-command-report-v1",
+        "schema_id": "reliquary-d01-synthetic-command-report-v2",
         "command": "verify-structure",
         "status": "INCOMPLETE",
         "evidence_scope": "synthetic_fixture",
@@ -362,6 +416,11 @@ def _verify_structure(args: argparse.Namespace, snapshot: PGC01Snapshot) -> dict
         "current_only_owner_reopen": False,
         "payload_emitted": False,
         "registry_hashes": dict(snapshot.registry_hashes),
+        "coverage_map_schema": coverage_map.schema_id,
+        "coverage_map_status": coverage_map.status,
+        "coverage_map_sha256": coverage_map.sha256,
+        "d01_t01_acceptance": coverage_map.t01_acceptance,
+        "producer_code_sha256": _code_digest(Path(__file__).resolve().parent),
     }
 
 
@@ -409,12 +468,13 @@ def main(argv: list[str] | None = None) -> int:
                 3,
             )
         snapshot = _snapshot(args.contract_root)
+        coverage_map = _coverage_map(snapshot)
         if args.command == "inspect":
-            result = _inspect(args, snapshot)
+            result = _inspect(args, snapshot, coverage_map)
         elif args.command == "convert":
-            result = _convert(args, snapshot)
+            result = _convert(args, snapshot, coverage_map)
         elif args.command == "verify-structure":
-            result = _verify_structure(args, snapshot)
+            result = _verify_structure(args, snapshot, coverage_map)
         else:
             raise CliFailure("invalid_arguments", "command is unavailable", 2)
         print(_json_line(result))

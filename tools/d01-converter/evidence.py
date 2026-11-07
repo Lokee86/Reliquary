@@ -9,11 +9,12 @@ import subprocess
 import sys
 from typing import Any
 
+from coverage_map import load_provisional_coverage_map
 from pgc01_adapter import PGC01Snapshot
 
 
 _ZERO_SHA256 = "0" * 64
-_CODE_FILES = ("admission.py", "cli.py", "evidence.py", "pgc01_adapter.py", "synthetic.py", "synthetic_transaction.py")
+_CODE_FILES = ("admission.py", "cli.py", "coverage_map.py", "evidence.py", "pgc01_adapter.py", "synthetic.py", "synthetic_transaction.py")
 
 
 def _sha256(data: bytes) -> str:
@@ -74,7 +75,10 @@ def build_incomplete_report(
         raise ValueError("captured_at_utc must be a whole-second UTC timestamp") from error
 
     binding_hash = _sha256((tool_root / "pgc01-binding.provisional.json").read_bytes())
-    coverage_hash = _sha256((tool_root / "codec-coverage.provisional.json").read_bytes())
+    coverage_map = load_provisional_coverage_map(
+        tool_root / "codec-coverage.provisional.json", snapshot
+    )
+    coverage_hash = coverage_map.sha256
     lock_hash = _sha256((tool_root / "requirements.lock").read_bytes())
     report: dict[str, Any] = {
         "schema_id": "reliquary-corpus-artifact-report-v1",

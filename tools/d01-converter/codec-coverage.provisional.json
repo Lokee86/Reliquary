@@ -219,6 +219,16 @@
     "structured_nonzero_stderr": true,
     "payload_logging": false,
     "real_target_owner_candidate": false,
-    "resume_command": "explicitly-refused"
-  }
+    "resume_command": "explicitly-refused",
+    "coverage_map_contract": {
+      "schema_id": "reliquary-d01-codec-coverage-provisional-v0",
+      "status": "provisional-incomplete",
+      "binding": "pinned-exact-file-bytes",
+      "digest_field": "coverage_map_sha256",
+      "missing_error_code": "coverage_map_unavailable",
+      "changed_error_code": "coverage_map_changed",
+      "t01_acceptance": "not-accepted"
+    }
+  },
+  "d01_t01_acceptance": "not-accepted"
 }

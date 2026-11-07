@@ -14,6 +14,7 @@ import re
 import tempfile
 
 from admission import AdmissionScope, admit_for_scope, classify_synthetic_frame
+from coverage_map import ProvisionalCoverageMap
 from pgc01_adapter import PGC01Snapshot
 
 
@@ -43,6 +44,7 @@ def create_only_synthetic_artifact(
     file_name: str,
     data: bytes,
     snapshot: PGC01Snapshot,
+    coverage_map: ProvisionalCoverageMap,
 ) -> SyntheticArtifactReceipt:
     """Write one verified D01SYN01 fixture under a TemporaryDirectory with no replacement."""
     if isinstance(workspace, tempfile.TemporaryDirectory):
@@ -62,11 +64,12 @@ def create_only_synthetic_artifact(
     if not root.is_dir():
         raise ValueError("synthetic output root must be a directory")
 
-    classification = classify_synthetic_frame(data, snapshot)
+    classification = classify_synthetic_frame(data, snapshot, coverage_map)
     grant = admit_for_scope(
         classification,
         snapshot,
         AdmissionScope.SYNTHETIC_FIXTURE_TEST,
+        coverage_map,
     )
     if not grant.allowed_for_synthetic_tests or grant.authentic_source_admission:
         raise SyntheticPublicationError("synthetic fixture gate returned an unsafe grant")

@@ -11,6 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 
+from coverage_map import load_provisional_coverage_map
 from pgc01_adapter import load_pinned_snapshot
 from synthetic import SyntheticFrameError, build_frame, parse_frame
 from synthetic_transaction import (
@@ -44,12 +45,16 @@ class SyntheticCreateOnlyTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.snapshot = load_pinned_snapshot(Path(_CONTRACT_ROOT))
+        tool_root = Path(__file__).resolve().parents[1]
+        cls.coverage_map = load_provisional_coverage_map(
+            tool_root / "codec-coverage.provisional.json", cls.snapshot
+        )
 
     def test_create_only_writes_only_a_test_artifact_under_temporary_directory(self):
         data = _frame("synthetic.archive_turn.v1", "fixture body")
         with _temporary_workspace() as workspace:
             receipt = create_only_synthetic_artifact(
-                workspace, "owner.d01synthetic", data, self.snapshot
+                workspace, "owner.d01synthetic", data, self.snapshot, self.coverage_map
             )
             output = Path(workspace.name) / receipt.file_name
             self.assertEqual(output.read_bytes(), data)
@@ -66,7 +71,7 @@ class SyntheticCreateOnlyTests(unittest.TestCase):
             output.write_bytes(b"pre-existing-sentinel")
             with self.assertRaises(CandidateAlreadyExists):
                 create_only_synthetic_artifact(
-                    workspace, output.name, data, self.snapshot
+                    workspace, output.name, data, self.snapshot, self.coverage_map
                 )
             self.assertEqual(output.read_bytes(), b"pre-existing-sentinel")
             self.assertEqual(list(Path(workspace.name).glob(".d01-synthetic-stage-*")), [])
@@ -80,7 +85,7 @@ class SyntheticCreateOnlyTests(unittest.TestCase):
             def attempt(data):
                 try:
                     return create_only_synthetic_artifact(
-                        workspace, "same-name.d01synthetic", data, self.snapshot
+                        workspace, "same-name.d01synthetic", data, self.snapshot, self.coverage_map
                     )
                 except CandidateAlreadyExists as error:
                     return error
@@ -101,12 +106,12 @@ class SyntheticCreateOnlyTests(unittest.TestCase):
         with _temporary_workspace() as workspace:
             with self.assertRaises(SyntheticFrameError):
                 create_only_synthetic_artifact(
-                    workspace, "source", b"CVAAFMT2", self.snapshot
+                    workspace, "source", b"CVAAFMT2", self.snapshot, self.coverage_map
                 )
             good_frame = _frame("synthetic.archive_turn.v1", "valid")
             for name in ("../escape", "subdir/file", "", "."):
                 with self.subTest(name=name), self.assertRaises(ValueError):
-                    create_only_synthetic_artifact(workspace, name, good_frame, self.snapshot)
+                    create_only_synthetic_artifact(workspace, name, good_frame, self.snapshot, self.coverage_map)
             self.assertEqual(list(Path(workspace.name).iterdir()), [])
 
     def test_no_replace_failure_does_not_fall_back_to_overwrite(self):
@@ -115,7 +120,7 @@ class SyntheticCreateOnlyTests(unittest.TestCase):
             output = Path(workspace.name) / "candidate"
             with patch("synthetic_transaction.os.link", side_effect=OSError("link unsupported")):
                 with self.assertRaises(SyntheticPublicationError):
-                    create_only_synthetic_artifact(workspace, output.name, data, self.snapshot)
+                    create_only_synthetic_artifact(workspace, output.name, data, self.snapshot, self.coverage_map)
             self.assertFalse(output.exists())
             self.assertEqual(list(Path(workspace.name).glob(".d01-synthetic-stage-*")), [])
 

@@ -6,6 +6,8 @@ The D01 worktree is isolated from the product workspace. These files are under t
 
 ## Accepted contract and admission boundary
 
+coverage_map.py loads and verifies the exact-byte-pinned provisional coverage map used by synthetic classification and reports. The map is versioned as provisional-incomplete, requires the accepted PG-C01 synthetic snapshot, and explicitly marks D01-T01 not accepted. Missing or changed map bytes fail closed; this pin does not establish source inventory or T01 acceptance.
+
 PG-C01 synthetic v1 was accepted at planning record b6332a8ff5396a7725c73cbe7643c32950e2de7e for implementation commit 0f824a09fe01f5ff327ab56f3296f36d8f4d7c87 and bundle digest 7a1abda477874b2a1ff78f75520e075f909750d45a17ce3d6528110334f33688. The accepted scope is synthetic schemas, representative fixtures, independent goldens, and strict validation. Authentic admission remains false; the physical-carrier registry is intentionally empty.
 
 pgc01_adapter.py verifies the exact contract revision, parent, reviewed test-only delta, validator hash, registry hashes, and contract blobs. pgc01-binding.provisional.json and pgc01-d01-review.provisional.json record the accepted synthetic scope and D01's exact-version review. Neither file grants source admission.
@@ -14,7 +16,7 @@ admission.py maps only two hand-built D01 fixture families to representative PG-
 
 ## Synthetic command surfaces
 
-cli.py provides separate-process synthetic-only inspect, convert, and verify-structure commands. Every subcommand requires --synthetic-fixture. Inputs, outputs, and receipts must be under the system temporary directory. The command prints one structured JSON result to stdout, structured nonzero diagnostics to stderr, and never prints fixture payloads.
+cli.py provides separate-process synthetic-only inspect, convert, and verify-structure commands. Every subcommand requires --synthetic-fixture. Inputs, outputs, and receipts must be under the system temporary directory. The command prints one structured JSON result to stdout, structured nonzero diagnostics to stderr, and never prints fixture payloads. Every report and receipt binds the exact byte SHA-256 and schema ID of codec-coverage.provisional.json and labels D01-T01 not accepted. coverage_map.py validates the byte pin, accepted PG-C01 synthetic snapshot, and closed fixture-only map; a missing or changed map fails with a structured diagnostic before input is processed.
 
 Example invocations from the product repo root:
 
