@@ -1,9 +1,8 @@
 //! Joined G4-T04 vector, context, retrieval, and accepted-use scenario.
 //!
 //! The fixture creates Archive evidence through accepted queue and Insomnia
-//! workflows. Community-aware multi-result ordering remains covered by the
-//! focused retrieval suite; this joined scenario proves the exact single-result
-//! selection, host-status, revocation, receipt, and reopen boundaries.
+//! workflows. Authored multi-result ordering and the documented missing-community
+//! fallback share the same owner cohort as host-status, revocation and reopen.
 
 #[cfg(test)]
 use super::*;
@@ -416,6 +415,32 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
             .is_err()
     );
     drop(semantic_operator);
+    let authored_route = instance
+        .route_rel_memories(
+            rel,
+            private_profile,
+            &[0.0, 1.0],
+            reliquary_application::MemoryRetrievalConfig {
+                seed_limit: 128,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    let mut expected_route = [
+        "src-release-label",
+        "src-mira",
+        "src-mira-known",
+        "src-pinned-doc",
+        "src-cobalt-protocol",
+        "src-rehearsal-complete",
+    ]
+    .map(source_memory)
+    .to_vec();
+    expected_route.sort();
+    assert_eq!(authored_route.memories, expected_route);
+    assert!(authored_route.used_global_fallback);
+    assert!(authored_route.selected_communities.is_empty());
+    assert!(authored_route.seeds.iter().all(|hit| hit.score == 1.0));
     let manifest_rank = instance
         .rank_rel_memories(
             rel,
@@ -535,6 +560,29 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
         filename: "release-notes.txt".into(),
         mime_type: Some("text/plain".into()),
     };
+    let correlation_cut = instance
+        .with_writable_reliquary(rel, |session| session.current_historical_cut())
+        .unwrap();
+    let mut forged_revision = correlation.clone();
+    forged_revision.revision = "0000000000000000000000000000000000000000".into();
+    assert!(
+        instance
+            .prepare_project_correlation(rel, forged_revision, &source)
+            .is_err()
+    );
+    let mut forged_hash = correlation.clone();
+    forged_hash.expected_content_hash = [0xff; 32];
+    assert!(
+        instance
+            .prepare_project_correlation(rel, forged_hash, &source)
+            .is_err()
+    );
+    assert_eq!(
+        instance
+            .with_writable_reliquary(rel, |session| session.current_historical_cut())
+            .unwrap(),
+        correlation_cut
+    );
     let proof = instance
         .prepare_project_correlation(rel, correlation, &source)
         .unwrap();
@@ -1254,15 +1302,15 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
     ];
     let lifecycle_witness = crate::g4_gateway_acceptance::complete_cohort_lifecycle(&temp.0, paths);
     complete_vector_coverage(paths, profile);
-    let terminal_witness = crate::g4_terminal_acceptance::verify_terminal_semantics(
-        &temp.0,
-        paths[0],
-        &semantic_witness,
-    );
     let maintenance_witness = crate::g4_completed_maintenance::verify_completed_cohort(
         &temp.0,
         paths,
         profile,
+        &semantic_witness,
+    );
+    let terminal_witness = crate::g4_terminal_acceptance::verify_terminal_semantics(
+        &temp.0,
+        paths[0],
         &semantic_witness,
     );
     crate::g4_export::export_completed_cohort(
@@ -1274,7 +1322,10 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
             "maintenance": maintenance_witness,
             "terminal_maintenance": terminal_witness,
             "historical_cuts": historical_cuts.iter().map(|(name, owner, _, proof)| json!({"name": name, "owner_id": crate::hex(&owner.as_bytes()), "digest": crate::hex(&proof.digest), "retained_records": proof.retained_records, "reopen_equal": true})).collect::<Vec<_>>(),
-            "retrieval": {"memory_id": crate::hex(&rel_memory.0), "accepted_use_reopened": true, "host_calls": host.calls.load(Ordering::Relaxed)}
+            "retrieval": {"memory_id": crate::hex(&rel_memory.0), "accepted_use_reopened": true, "host_calls": host.calls.load(Ordering::Relaxed),
+                "authored_route_order": authored_route.memories.iter().map(|id| crate::hex(&id.0)).collect::<Vec<_>>(),
+                "missing_community_global_fallback": authored_route.used_global_fallback,
+                "forged_repository_revision_and_hash_rejected": true}
         }),
     );
 }

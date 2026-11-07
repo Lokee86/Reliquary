@@ -306,6 +306,81 @@ pub(crate) fn verify_semantic_negatives(
         MemoryEntityResolutionStatus::Resolved { entity_id, .. } => hex(&entity_id.0),
         _ => unreachable!("resolution status was checked above"),
     };
+    // A valid source cut cannot authorize a target Entity from another owner.
+    let MemoryEntityResolutionStatus::Resolved {
+        entity_id: foreign_entity,
+        reason,
+    } = resolved.status.clone()
+    else {
+        unreachable!()
+    };
+    let foreign_revision = principal_a
+        .with_entity_phy_writer(phy_a, |writer| {
+            writer
+                .entity_mention_inputs(resolved.key)
+                .unwrap()
+                .entities
+                .into_iter()
+                .find(|entity| entity.id == foreign_entity)
+                .unwrap()
+                .revision
+        })
+        .unwrap();
+    let mira = memory_id(find_source(witness, "src-mira"));
+    let (foreign_target, cut_before) = principal_a
+        .with_writable_reliquary(lantern, |rel| {
+            let mention = rel
+                .entity_resolutions()
+                .into_iter()
+                .find(|mention| mention.key.memory_id == mira.0)
+                .unwrap();
+            let memory = rel.current_memory(mira).unwrap();
+            assert!(rel.entity(foreign_entity).is_none());
+            let reliquary_owner_session::model::PayloadState::Available(body) = memory.payload
+            else {
+                panic!("retained source")
+            };
+            let text = match mention.key.field {
+                reliquary_owner_session::model::MemoryTextField::Title => body.title,
+                reliquary_owner_session::model::MemoryTextField::Content => body.content,
+            };
+            (
+                reliquary_owner_session::EntityMentionCommit {
+                    owner_id: lantern.as_bytes(),
+                    memory_revision: memory.record.revision,
+                    body_id: memory.record.body_id,
+                    key: mention.key,
+                    surface: text[mention.key.start_byte as usize..mention.key.end_byte as usize]
+                        .to_owned(),
+                    expected_revision: mention.revision,
+                    updated_at_ns: 2_000_005,
+                    status: MemoryEntityResolutionStatus::Resolved {
+                        entity_id: foreign_entity,
+                        reason,
+                    },
+                    target_revisions: vec![(foreign_entity, foreign_revision)],
+                    new_entity: None,
+                },
+                rel.current_historical_cut(),
+            )
+        })
+        .unwrap();
+    let foreign_error = principal_a
+        .with_rel_writer(lantern, |writer| {
+            writer.commit_entity_mention(foreign_target)
+        })
+        .unwrap()
+        .unwrap_err();
+    assert!(
+        matches!(foreign_error, reliquary_owner_session::OwnerSessionError::Record(message)
+        if message == "mention target is unavailable to generic Entity resolution")
+    );
+    assert_eq!(
+        principal_a
+            .with_writable_reliquary(lantern, |rel| rel.current_historical_cut())
+            .unwrap(),
+        cut_before
+    );
     let private_b_memory = memory_id(find_source(witness, "src-private-morning"));
     assert!(matches!(
         principal_a.resolve_and_publish_entity_mention(
@@ -344,6 +419,7 @@ pub(crate) fn verify_semantic_negatives(
             "end_byte": resolved.key.end_byte
         },
         "principal_a_phy_b_entity_denied": true
+        ,"foreign_entity_target_rejected_without_mutation": true
     })
 }
 

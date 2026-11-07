@@ -328,7 +328,8 @@ pub(crate) fn verify_terminal_semantics(
             "retired_memory_id": hex(&retired_memory.0),
             "successor_memory_id": hex(&positive_memory.0),
             "pruned_memories": memory_prune_report.pruned_memories,
-            "terminal_history_reopened": true
+            "terminal_history_reopened": true,
+            "retired_and_pruned_memory_excluded_from_retrieval": true
         },
         "vector_reference_prune_refusal": vector_refusal,
         "positive_entity_prune": {
@@ -507,11 +508,37 @@ fn retire_and_prune_l04(
     drop(instance);
     drop(gateway);
 
+    assert_terminal_retrieval(path, successor_memory, source_memory);
     let admission = GraphAdmission::for_replay(owner.as_bytes(), [], [], [], [], []);
     let plan = VerifiedOwnerCopyPlan::prepare(path).unwrap();
     let report = prune_terminal_memory_copy(&plan, path, pruned_path, &[source_memory], &admission)
         .expect("independent terminal L04 Memory with no vector references prunes");
+    assert_terminal_retrieval(pruned_path, successor_memory, source_memory);
     (successor_memory, source_memory, report)
+}
+
+fn assert_terminal_retrieval(path: &Path, successor: MemoryId, retired: MemoryId) {
+    let gateway = Gateway::new();
+    let owner = gateway.mount_reliquary_current(path).unwrap();
+    let instance = gateway.instance("principal-a", [owner], []).unwrap();
+    let selected = instance
+        .rank_rel_memories(
+            owner,
+            "deployment target",
+            None,
+            None,
+            reliquary_application::RetrievalConfig::default(),
+        )
+        .unwrap();
+    assert_eq!(
+        selected
+            .selected
+            .iter()
+            .map(|hit| hit.memory_id)
+            .collect::<Vec<_>>(),
+        vec![successor]
+    );
+    assert!(selected.selected.iter().all(|hit| hit.memory_id != retired));
 }
 
 fn complete_empty_claim(
