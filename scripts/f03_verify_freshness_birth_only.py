@@ -101,7 +101,7 @@ def birth_inputs(path, output, artifacts, owner, representatives):
     return results, len(all_births)
 
 
-def bind_points(path, plan, results):
+def bind_points(path, plan, results, *, stage="birth_only"):
     before = regular(path)
     require(0 < before.st_size <= 16 * 1024 * 1024, "invalid checked point stream length")
     data = path.read_bytes()
@@ -111,16 +111,16 @@ def bind_points(path, plan, results):
     counts = Counter()
     for raw in data.splitlines():
         row = json.loads(raw, object_pairs_hook=exact_object)
-        if row["stage"] != "birth_only":
+        if row["stage"] != stage:
             continue
         representative = results[row["representative_global"]]
         require(representative["input_chain_sha256"] == row["input_chain_sha256"]
-                and representative["activity"] == row["activity"], "cut differs from its exact birth-only inputs")
+                and representative["activity"] == row["activity"], "cut differs from its exact physical Freshness inputs")
         counts[representative["global"]] += 1
         points.append({**row, "freshness_fingerprint": representative["freshness_fingerprint"]})
-    require(len(points) == plan["counts"]["birth_only"]
+    require(len(points) == plan["counts"][stage]
             and dict(counts) == {r["global"]: r["members"] for r in results.values()},
-            "birth-only replay plan does not account for every backing-cleared birth-only point")
+            "replay plan does not account for every backing-cleared point in this stage")
     return points
 
 

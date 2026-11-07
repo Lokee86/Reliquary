@@ -136,7 +136,7 @@ def verify_commitments(output, artifacts, owner, committed):
     return dict(sorted(families.items()))
 
 
-def scan_owner(output, artifacts, owner, path):
+def scan_owner(output, artifacts, owner, path, *, observe_journal=None):
     global_rows = [r for _, r in take_stream(output, artifacts, owner, "global", owner["native"]["global_stream"],
                                              schema_id=SCHEMA_V2)]
     require(all(decimal(row["global_version"]) == index for index, row in enumerate(global_rows)),
@@ -202,6 +202,8 @@ def scan_owner(output, artifacts, owner, path):
                 identity = family, sha(key)
                 require(identity not in commitments, "repeated Freshness receipt identity outside the pinned scope")
                 commitments[identity] = encode(value)
+                if observe_journal is not None:
+                    observe_journal(source.tell(), family, key, value)
                 counts[f"{carrier}:{family}"] += 1
                 relevant = True
             elif carrier == "CVAFRS07":
