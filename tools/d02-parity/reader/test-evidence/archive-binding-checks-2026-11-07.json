@@ -85,5 +85,14 @@
     "production_packages": 23,
     "production_edges": 76
   },
-  "authentic_cohort_parity_status": "INCOMPLETE"
+  "authentic_cohort_parity_status": "INCOMPLETE",
+  "reverified_after_native_admission_fix": {
+    "native_replay_followup_source_commit": "60f70356ce9c4095b9e8530f9ec2efeea063933d",
+    "checker_replay_commit": "3e9ea36507391c97d75bd08f273d4cddeef76f4a",
+    "reader_sha256": "c60af9e7f9fd764a43bf106555afab318b1a24fcb57bb2363483199d64845fb9",
+    "all_seven_cuts_match": true,
+    "binding_projection_sha256": "bbd6337eaaf1d63454331ced47d7aba360f90921a89ca41821b8303a05053604",
+    "changed_candidate_rejected_at_local_version": "2",
+    "rust_standalone_tests": 21
+  }
 }
