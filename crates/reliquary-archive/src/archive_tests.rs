@@ -1045,3 +1045,56 @@ fn archive_rejects_other_rel_scope_with_same_owner_id() {
     ));
     assert!(other.read_frames().unwrap().is_empty());
 }
+
+#[test]
+fn archive_replay_has_no_binding_for_versioned_turn_envelopes() {
+    let temp = TestDirectory::new();
+    let owner = ContainerIdentity::reliquary(ReliquaryScope::Project);
+    let node = Node {
+        id: "user1".into(),
+        conversation_id: "conversation-1".into(),
+        parent_id: None,
+        role: "user".into(),
+        principal_id: None,
+        timestamp_ns: 9,
+        content_id: ContentId(Sha256::digest(b"body").into()),
+    };
+    let body = encode_turn(&node, "body", &[]).unwrap();
+    for global in [1, 2] {
+        let path = temp.file(&format!("archive-binding-{global}.rel"));
+        let mut writer = Container::create(&path, owner, [0xB4; 16]).unwrap();
+        assert_eq!(writer.reserve_version(Some(5)).unwrap(), 1);
+        assert_eq!(writer.reserve_version(Some(7)).unwrap(), 2);
+        let object = writer
+            .append_bound_publication_envelope(global, &body)
+            .unwrap();
+        writer.sync().unwrap();
+        drop(writer);
+
+        let reader = Container::open_read_only(&path).unwrap();
+        let frame = reader
+            .read_frames()
+            .unwrap()
+            .into_iter()
+            .find(|frame| frame.object == object)
+            .unwrap();
+        let envelope = reliquary_container::decode_publication(&frame.payload)
+            .unwrap()
+            .unwrap();
+        assert_eq!(envelope.version, global);
+        assert_eq!(envelope.body, body);
+        let archive = Archive::open(&reader).unwrap();
+        assert_eq!(archive.archive_version(), 0);
+        assert!(archive.node("conversation-1", "user1").is_none());
+    }
+
+    let path = temp.file("plain-archive-turn.rel");
+    let mut writer = Container::create(&path, owner, [0xB4; 16]).unwrap();
+    writer.append(&body).unwrap();
+    writer.sync().unwrap();
+    drop(writer);
+    let reader = Container::open_read_only(&path).unwrap();
+    let archive = Archive::open(&reader).unwrap();
+    assert_eq!(archive.archive_version(), 1);
+    assert_eq!(archive.node("conversation-1", "user1"), Some(&node));
+}

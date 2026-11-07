@@ -1,5 +1,7 @@
 use super::*;
 
+mod archive_import;
+
 impl RelWriter {
     pub(super) fn ensure_write_ready(&self) -> Result<(), OwnerSessionError> {
         if self.session.write_poisoned {

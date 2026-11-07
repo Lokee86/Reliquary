@@ -17,7 +17,7 @@
       "id": "rel-exact-history-value-import",
       "owner_boundary": "reliquary-owner-session::RelWriter",
       "status": "synthetic-value-probes-pending",
-      "current_evidence": "Current REL writer methods are workflow-specific; no generic exact-history restore API was found in the inspected 2.1 seam.",
+      "current_evidence": "The native writer preserves synthetic attachment-free Archive turn and branch cuts with exact local revisions. FRS07 Archive publications bind local and global coordinates. Current Archive replay ignores an Archive body in a generic current physical publication envelope. A versioned Archive representation with normal replay support is required. Conversation metadata policy and the 16-byte historical versus 32-byte current history generation require separate value mapping.",
       "required_synthetic_proof": "Show a lawful value-based operation preserves original owner identity, generation, stable IDs, transaction times, branch/episode history, accepted version allocation and grouped publication boundaries.",
       "permitted_resolution": "If a hand-authored synthetic accepted value cannot pass the normal owner workflow, request only the narrow typed value operation at RelWriter with replay and reopen tests.",
       "forbidden_shortcuts": [
@@ -66,8 +66,8 @@
     {
       "id": "current-only-target-reopen",
       "owner_boundary": "accepted 2.1 owner-session admission",
-      "status": "target-writer-not-implemented",
-      "current_evidence": "This D01 branch has no target writer and the fixture CLI must not claim owner creation or current-only reopen.",
+      "status": "synthetic-archive-current-reopen-only",
+      "current_evidence": "The native Archive fixture writer reopens via normal current-only REL admission and checks every synthetic Archive cut. The earlier D01SYN01 CLI remains fixture framing only.",
       "required_synthetic_proof": "T02/T03 must create synthetic owners through accepted 2.1 APIs and reopen via ordinary current-only admission.",
       "permitted_resolution": "Separate target-only process/workspace once predecessor tickets are satisfied.",
       "forbidden_shortcuts": [

@@ -1,8 +1,8 @@
-# D01-T01 provisional synthetic tooling
+# D01 provisional synthetic tooling
 
-Status: **T01 remains incomplete**. This tools-only lane contains synthetic fixtures and test command surfaces. It does not implement the FRS07 reader, accepted 2.1 owner writer, source traversal, real candidate creation, or authentic conversion.
+Status: **T01 remains incomplete**. This lane contains synthetic fixtures and test command surfaces, including a native 2.1 writer for an ordered synthetic REL Archive history. Source traversal and authentic conversion are pending.
 
-The D01 worktree is isolated from the product workspace. These files are under tools/d01-converter/, outside the explicit 23-package production DAG; there is no Cargo manifest here.
+Converter tools live under tools/d01-converter/, outside the explicit 23-package production DAG. The native writer has its own Cargo workspace and depends on current 2.1 codecs and owner-session.
 
 ## Accepted contract and admission boundary
 
@@ -16,7 +16,7 @@ admission.py maps only two hand-built D01 fixture families to representative PG-
 
 ## Synthetic command surfaces
 
-cli.py provides separate-process synthetic-only inspect, convert, and verify-structure commands. Every subcommand requires --synthetic-fixture. Inputs, outputs, and receipts must be under the system temporary directory. The command prints one structured JSON result to stdout, structured nonzero diagnostics to stderr, and never prints fixture payloads. Every report and receipt binds the exact byte SHA-256 and schema ID of codec-coverage.provisional.json and labels D01-T01 not accepted. coverage_map.py validates the byte pin, accepted PG-C01 synthetic snapshot, and closed fixture-only map; a missing or changed map fails with a structured diagnostic before input is processed.
+cli.py provides separate-process synthetic-only inspect, convert, and verify-structure commands. Every subcommand requires --synthetic-fixture. Inputs, outputs, and receipts must be under the system temporary directory. Set TEMP and TMP to a directory inside the active worktree when running these commands on Windows. The command prints one structured JSON result to stdout, structured nonzero diagnostics to stderr, and never prints fixture payloads. Every report and receipt binds the exact byte SHA-256 and schema ID of codec-coverage.provisional.json and labels D01-T01 not accepted. coverage_map.py validates the byte pin, accepted PG-C01 synthetic snapshot, and closed fixture-only map; a missing or changed map fails with a structured diagnostic before input is processed.
 
 Example invocations from the product repo root:
 
@@ -28,6 +28,53 @@ Example invocations from the product repo root:
 The convert command only materializes the same D01SYN01 test envelope as a temporary synthetic artifact. It returns an INCOMPLETE synthetic receipt and never creates a 2.1 owner candidate. verify-structure checks the synthetic envelope, hash, contract binding, and receipt; it does not perform normal current-only owner reopen. The resume command is explicitly unsupported and returns a structured resume_unsupported failure; no checkpoint or resumable conversion state exists. These invocations do not establish the future separate old-reader and target-writer workspaces or processes.
 
 synthetic_transaction.py uses a same-directory hard link for atomic no-replace output under a system temporary directory. Tests cover existing-path collisions, concurrent writers, malformed inputs, and refusing an unsupported no-replace operation. This helper does not sync the containing directory, checkpoint/resume work, inject crash faults, issue owner receipts, or satisfy D01-T04.
+
+## Native 2.1 synthetic Archive writer
+
+The separate Rust package under `target-writer/` writes an attachment-free
+synthetic REL Archive history. Its private transfer format orders accepted
+turns and branch revisions independently, carries exact local versions and
+nanosecond timestamps as decimal strings, and binds owner identity, scope,
+genesis generation and content IDs. The checked-in synthetic transfer has no
+corpus inputs. The target process accepts the fixture SHA-256 explicitly.
+
+The writer uses the current Archive codec through narrow owner-session
+operations. It captures a proof at each revision, releases the writer, and
+reopens the staged REL through ordinary current-only admission. Each cut must
+produce the same proof after reopen. A same-directory hard link publishes the
+file only after proof and source checks pass and fails on a collision. The
+synthetic receipt includes the hashes of the transfer, writer and candidate,
+and the per-cut proof digests.
+
+Run from the D01 worktree:
+
+    cargo test --manifest-path tools/d01-converter/target-writer/Cargo.toml --locked --offline -j 1 -- --test-threads=1
+    $fixture = 'tools/d01-converter/target-writer/tests/ordered-archive-transfer.json'
+    New-Item -Force -ItemType Directory '.test-tmp' | Out-Null
+    cargo run --manifest-path tools/d01-converter/target-writer/Cargo.toml --locked --offline -j 1 -- --synthetic-fixture $fixture (Get-FileHash $fixture -Algorithm SHA256).Hash.ToLowerInvariant() '.test-tmp/synthetic-archive.rel'
+
+The native test verifies exact node, parent, content and clock identity, checks
+current-only reopening and detects histories with the same final branch but
+different intermediate cuts. Its negative cases cover conflicting IDs,
+noncanonical clocks, stale versions, dangling leaves, unknown families, input
+hash mismatch and output collisions.
+
+Native synthetic scope is limited to attachment-free Archive turns and branch
+revisions with genesis lineage. Source FRS07 traversal, other retained
+families, global clock reservations, grouped writes, retained physical
+reference relocation and authentic source admission remain open. The
+create-only fixture publication does not establish the D01-T04 crash matrix.
+
+FRS07 Archive publications carry local and global coordinates together.
+`Container::append_bound_publication_envelope` can bind a current physical
+version, but the current Archive reader only decodes top-level Archive records.
+The product-level probe binds the same typed turn to two distinct reservations.
+Both physical envelopes reopen at their respective global versions, while
+neither binding enters the Archive history. The converter therefore rejects
+synthetic transfers that supply a global binding, even when their local
+history matches a supported fixture. Exact authentic replay needs an Archive
+representation and normal read-path support for the binding, plus review of
+the source publication families and repeats.
 
 ## Coverage and target gaps
 

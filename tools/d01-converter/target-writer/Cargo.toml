@@ -1,0 +1,17 @@
+[workspace]
+resolver = "3"
+
+[package]
+name = "d01-synthetic-target-writer"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+reliquary-archive = { path = "../../../crates/reliquary-archive" }
+reliquary-owner-session = { path = "../../../crates/reliquary-owner-session" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tempfile = "3"
+hex = "0.4"
