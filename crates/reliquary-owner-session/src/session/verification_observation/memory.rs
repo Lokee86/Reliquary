@@ -5,8 +5,10 @@ use reliquary_memory_core::{MemoryBodyId, MemoryHistory, MemoryId, PayloadState}
 use std::collections::BTreeMap;
 
 mod origins;
+mod owner;
 pub use origins::MemoryPublicationOrigin;
 use origins::memory_origins;
+pub use owner::MemoryOwnerHistoryObservation;
 
 pub struct MemoryHistoryCutObservation {
     pub memory_head: u64,

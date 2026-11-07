@@ -137,16 +137,20 @@ fn temporal_value(temporal: &MemoryTemporalInference) -> Value {
         "resolutions": temporal.inference.resolutions.iter().map(|resolution| json!({
             "start_byte": resolution.start_byte.to_string(),
             "end_byte": resolution.end_byte.to_string(),
-            "kind": match resolution.kind {
-                TemporalIndicationKind::Explicit => "explicit",
-                TemporalIndicationKind::Calendar => "calendar",
-                TemporalIndicationKind::Relative => "relative",
-                TemporalIndicationKind::Boundary => "boundary",
-                TemporalIndicationKind::Recurrence => "recurrence",
-                TemporalIndicationKind::Duration => "duration",
-            },
+            "kind": temporal_kind(resolution.kind),
             "evidence_sha256": hex(&sha256(resolution.evidence.as_bytes())),
             "canonical_expression": resolution.canonical_expression,
         })).collect::<Vec<_>>(),
     })
+}
+
+pub(crate) fn temporal_kind(kind: TemporalIndicationKind) -> &'static str {
+    match kind {
+        TemporalIndicationKind::Explicit => "explicit",
+        TemporalIndicationKind::Calendar => "calendar",
+        TemporalIndicationKind::Relative => "relative",
+        TemporalIndicationKind::Boundary => "boundary",
+        TemporalIndicationKind::Recurrence => "recurrence",
+        TemporalIndicationKind::Duration => "duration",
+    }
 }

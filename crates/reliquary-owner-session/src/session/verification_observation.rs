@@ -6,7 +6,9 @@ mod archive;
 pub use archive::{ArchiveCutObservation, ArchiveTurnOrigin};
 
 mod memory;
-pub use memory::{MemoryHistoryCutObservation, MemoryPublicationOrigin};
+pub use memory::{
+    MemoryHistoryCutObservation, MemoryOwnerHistoryObservation, MemoryPublicationOrigin,
+};
 
 mod hash;
 use hash::hash_open_container;

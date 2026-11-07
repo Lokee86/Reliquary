@@ -223,6 +223,7 @@ pub struct CliArgs {
     pub archive_cut: Option<u64>,
     pub archive_binding_cut: Option<u64>,
     pub memory_history: Option<(MemoryId, u64)>,
+    pub memory_owner_history: bool,
 }
 
 pub fn parse_cli_args<I, S>(args: I) -> Result<CliArgs, String>
@@ -238,6 +239,7 @@ where
     let mut archive_cut = None;
     let mut archive_binding_cut = None;
     let mut memory_history = None;
+    let mut memory_owner_history = false;
     while let Some(flag) = args.next() {
         match flag.as_str() {
             "--kind" => {
@@ -261,6 +263,12 @@ where
                     return Err("memory cursor exceeds its byte limit".into());
                 }
                 memory_cursor = Some(value);
+            }
+            "--memory-owner-history" => {
+                if memory_owner_history {
+                    return Err("duplicate Memory owner history option".into());
+                }
+                memory_owner_history = true;
             }
             "--memory-history" => {
                 let value = args.next().ok_or("--memory-history requires ID:VERSION")?;
@@ -306,13 +314,14 @@ where
         archive_binding_cut.is_some(),
         memory_cursor.is_some(),
         memory_history.is_some(),
+        memory_owner_history,
     ]
     .into_iter()
     .filter(|selected| *selected)
     .count()
         > 1
     {
-        return Err("select only one Archive cut, Memory history cut, or Memory ID cursor".into());
+        return Err("select only one Archive or Memory observation".into());
     }
     Ok(CliArgs {
         kind: kind.ok_or("--kind rel|phy is required")?,
@@ -322,5 +331,6 @@ where
         archive_cut,
         archive_binding_cut,
         memory_history,
+        memory_owner_history,
     })
 }

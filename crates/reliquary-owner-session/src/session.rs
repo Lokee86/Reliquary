@@ -778,7 +778,7 @@ pub use verification_observation::{
     ArchiveCutObservation, ArchiveTurnOrigin, CurrentOwnerFinalization, CurrentOwnerKind,
     CurrentOwnerObservation, MAX_MEMORY_ID_CURSOR_BYTES, MAX_MEMORY_ID_PAGE_COUNT,
     MAX_MEMORY_ID_PAGE_PAYLOAD_BYTES, MemoryHistoryCutObservation, MemoryIdPage,
-    MemoryPublicationOrigin, ReadOnlyCurrentOwnerObserver,
+    MemoryOwnerHistoryObservation, MemoryPublicationOrigin, ReadOnlyCurrentOwnerObserver,
 };
 mod rel_writer;
 pub use management::{RelConversationSummary, RelTranscriptTurn};

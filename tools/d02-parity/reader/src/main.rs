@@ -1,6 +1,6 @@
 use d02_current_reader::{
-    observe_archive_binding_cut, observe_archive_cut, observe_memory_history, parse_cli_args,
-    probe_candidate_page,
+    observe_archive_binding_cut, observe_archive_cut, observe_memory_history,
+    observe_memory_owner_history, parse_cli_args, probe_candidate_page,
 };
 use std::{
     env,
@@ -21,11 +21,13 @@ fn main() -> ExitCode {
         args.archive_cut,
         args.archive_binding_cut,
         args.memory_history,
+        args.memory_owner_history,
     ) {
-        (Some(cut), _, _) => observe_archive_cut(args.kind, &args.candidate, cut),
-        (_, Some(cut), _) => observe_archive_binding_cut(args.kind, &args.candidate, cut),
-        (_, _, Some((id, cut))) => observe_memory_history(args.kind, &args.candidate, id, cut),
-        (None, None, None) => {
+        (Some(cut), _, _, _) => observe_archive_cut(args.kind, &args.candidate, cut),
+        (_, Some(cut), _, _) => observe_archive_binding_cut(args.kind, &args.candidate, cut),
+        (_, _, Some((id, cut)), _) => observe_memory_history(args.kind, &args.candidate, id, cut),
+        (_, _, _, true) => observe_memory_owner_history(args.kind, &args.candidate),
+        (None, None, None, false) => {
             probe_candidate_page(args.kind, &args.candidate, args.memory_cursor.as_deref())
         }
     };
