@@ -148,6 +148,7 @@ fn replay_relationships(
 
 pub(super) fn replay_graph(
     target: &mut Container,
+    destination: &mut GraphStore,
     left: &GraphStore,
     right: &GraphStore,
     admission: &GraphAdmission,
@@ -161,7 +162,6 @@ pub(super) fn replay_graph(
         .take_while(|(left, right)| same_relation(left, right))
         .count();
     let left_tail = &left_history[common..];
-    let mut destination = GraphStore::open(target, admission).map_err(conflict)?;
     for relation in &right_history[common..] {
         if left_tail.iter().any(|left| same_relation(left, relation)) {
             continue;
