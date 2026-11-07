@@ -1030,6 +1030,7 @@ fn inspect(args: &[String]) -> Result<String, String> {
         },
         "rel_cascade": {
             "owner_id": ids[1].to_string(), "scope": "connection",
+            "history_digest": proofs[1].digest,
             "conversations": cascade_page.total, "turns": cascade_authored_turns,
             "memories": cascade_memories.total,
             "archive": cascade_page.items.iter().map(|conversation| json!({
