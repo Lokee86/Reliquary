@@ -1,4 +1,4 @@
-use reliquary_archive::{Branch, ContentId, Node};
+use reliquary_archive::{ArchivePublicationCoordinate, Branch, ContentId, Node};
 use reliquary_owner_session::{HistoricalOwnerProof, OwnerScope, RelHistoricalCut, RelWriter};
 use serde::Deserialize;
 
@@ -20,7 +20,7 @@ enum Format {
 
 #[derive(Clone, Copy, Deserialize)]
 #[serde(rename_all = "snake_case")]
-enum Scope {
+pub enum Scope {
     Unspecified,
     Organization,
     Project,
@@ -40,7 +40,7 @@ impl From<Scope> for OwnerScope {
 
 #[derive(Deserialize)]
 #[serde(tag = "family", rename_all = "snake_case", deny_unknown_fields)]
-enum Revision {
+pub enum Revision {
     Turn {
         version: String,
         conversation: String,
@@ -86,54 +86,78 @@ impl Transfer {
         }
         let mut cuts = vec![proof(writer)?];
         for revision in self.revisions {
-            match revision {
-                Revision::Turn {
-                    version,
-                    conversation,
-                    node,
-                    parent,
-                    role,
-                    principal,
-                    timestamp_ns,
-                    content_id,
-                    content,
-                } => writer.import_accepted_archive_turn(
-                    decimal(&version)?,
-                    Node {
-                        id: node,
-                        conversation_id: conversation,
-                        parent_id: parent,
-                        role,
-                        principal_id: principal,
-                        timestamp_ns: decimal(&timestamp_ns)?,
-                        content_id: ContentId(decode_hex(&content_id)?),
-                    },
-                    content,
-                ),
-                Revision::Branch {
-                    version,
-                    conversation,
-                    branch,
-                    leaf,
-                    canonical,
-                } => writer.import_accepted_archive_branch(
-                    decimal(&version)?,
-                    Branch {
-                        id: branch,
-                        conversation_id: conversation,
-                        leaf_node_id: leaf,
-                        canonical,
-                    },
-                ),
-            }
-            .map_err(|_| "accepted Archive revision refused by current owner")?;
+            revision.write(writer, None)?;
             cuts.push(proof(writer)?);
         }
         Ok(cuts)
     }
 }
 
-fn proof(writer: &RelWriter) -> Result<(RelHistoricalCut, HistoricalOwnerProof), &'static str> {
+impl Revision {
+    pub fn archive_version(&self) -> Result<u64, &'static str> {
+        match self {
+            Self::Turn { version, .. } | Self::Branch { version, .. } => decimal(version),
+        }
+    }
+
+    pub fn write(
+        self,
+        writer: &mut RelWriter,
+        coordinate: Option<ArchivePublicationCoordinate>,
+    ) -> Result<(), &'static str> {
+        let version = self.archive_version()?;
+        match self {
+            Self::Turn {
+                conversation,
+                node,
+                parent,
+                role,
+                principal,
+                timestamp_ns,
+                content_id,
+                content,
+                ..
+            } => {
+                let node = Node {
+                    id: node,
+                    conversation_id: conversation,
+                    parent_id: parent,
+                    role,
+                    principal_id: principal,
+                    timestamp_ns: decimal(&timestamp_ns)?,
+                    content_id: ContentId(decode_hex(&content_id)?),
+                };
+                match coordinate {
+                    Some(coordinate) => {
+                        writer.import_versioned_archive_turn(coordinate, node, content)
+                    }
+                    None => writer.import_accepted_archive_turn(version, node, content),
+                }
+            }
+            Self::Branch {
+                conversation,
+                branch,
+                leaf,
+                canonical,
+                ..
+            } => {
+                let branch = Branch {
+                    id: branch,
+                    conversation_id: conversation,
+                    leaf_node_id: leaf,
+                    canonical,
+                };
+                match coordinate {
+                    Some(coordinate) => writer.import_versioned_archive_branch(coordinate, branch),
+                    None => writer.import_accepted_archive_branch(version, branch),
+                }
+            }
+        }
+        .map_err(|_| "accepted Archive revision refused by current owner")
+    }
+}
+
+pub fn proof(writer: &RelWriter) -> Result<(RelHistoricalCut, HistoricalOwnerProof), &'static str> {
     let reader = writer.read_session();
     let cut = reader.current_historical_cut();
     let proof = reader
@@ -142,7 +166,9 @@ fn proof(writer: &RelWriter) -> Result<(RelHistoricalCut, HistoricalOwnerProof),
     Ok((cut, proof))
 }
 
-fn present_option<'de, D: serde::Deserializer<'de>>(input: D) -> Result<Option<String>, D::Error> {
+pub fn present_option<'de, D: serde::Deserializer<'de>>(
+    input: D,
+) -> Result<Option<String>, D::Error> {
     Option::deserialize(input)
 }
 

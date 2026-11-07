@@ -1098,3 +1098,37 @@ fn archive_replay_has_no_binding_for_versioned_turn_envelopes() {
     assert_eq!(archive.archive_version(), 1);
     assert_eq!(archive.node("conversation-1", "user1"), Some(&node));
 }
+
+#[test]
+fn current_archive_replay_refuses_a_repeat_without_an_accepted_origin() {
+    use crate::publication::{Body, encode};
+
+    let temp = TestDirectory::new();
+    let path = temp.file("forged-archive-origin.rel");
+    let mut writer = Container::create(
+        &path,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [0xB4; 16],
+    )
+    .unwrap();
+    let mut archive = Archive::empty();
+    archive
+        .accept_turn(&mut writer, turn("user1", None, 1, "plain turn"))
+        .unwrap();
+    let version = writer.reserve_version(Some(-7)).unwrap();
+    // The reservation is valid physically; a plain turn has no bound origin.
+    writer
+        .append_bound_publication_envelope(version, &encode(2, Body::Repeat(1)))
+        .unwrap();
+    writer.sync().unwrap();
+    drop(writer);
+
+    let reopened = Container::open_read_only(&path).unwrap();
+    assert_eq!(reopened.transaction_time_ns(version), Some(-7));
+    assert!(matches!(
+        Archive::open(&reopened),
+        Err(ArchiveError::CorruptRecord(
+            "invalid Archive publication coordinate"
+        ))
+    ));
+}

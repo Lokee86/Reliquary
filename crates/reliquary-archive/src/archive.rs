@@ -926,33 +926,7 @@ impl Archive {
                 self.archive_version = archive_version;
             }
             Record::Episode(episode) => {
-                if self
-                    .conversation_tombstones
-                    .contains_key(&episode.conversation_id)
-                {
-                    return Err(ArchiveError::CorruptRecord(
-                        "Episode after terminal tombstone",
-                    ));
-                }
-                validate_text(&episode.conversation_id, "conversation id")?;
-                validate_text(&episode.start_node_id, "Episode start node id")?;
-                validate_text(&episode.end_node_id, "Episode end node id")?;
-                let end = self.require_node(&episode.conversation_id, &episode.end_node_id)?;
-                if episode.id
-                    != Episode::stable_id(
-                        &episode.conversation_id,
-                        &episode.start_node_id,
-                        &episode.end_node_id,
-                    )
-                    || episode.source_through_ns != end.timestamp_ns
-                    || episode.finalized_at_ns < episode.source_through_ns
-                    || !self
-                        .branch_path(&episode.conversation_id, &episode.end_node_id)?
-                        .iter()
-                        .any(|node| node.id == episode.start_node_id)
-                {
-                    return Err(ArchiveError::InvalidEpisodeRange);
-                }
+                self.validate_replayed_episode(&episode)?;
                 if let Some(existing) = self.episodes.get(&episode.id) {
                     if existing != &episode {
                         return Err(ArchiveError::ConflictingEpisode);

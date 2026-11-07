@@ -17,7 +17,7 @@
       "id": "rel-exact-history-value-import",
       "owner_boundary": "reliquary-owner-session::RelWriter",
       "status": "synthetic-value-probes-pending",
-      "current_evidence": "The native writer preserves synthetic attachment-free Archive turn and branch cuts with exact local revisions. FRS07 Archive publications bind local and global coordinates. Current Archive replay ignores an Archive body in a generic current physical publication envelope. A versioned Archive representation with normal replay support is required. Conversation metadata policy and the 16-byte historical versus 32-byte current history generation require separate value mapping.",
+      "current_evidence": "The native writer preserves synthetic attachment-free Archive turn and branch cuts with exact local revisions. FRS07 Archive publications bind local and global coordinates. Native current Archive publications preserve the local/global coordinate, allocation or reservation, signed clock, and repeat origin. The synthetic writer proves turn, branch, and Episode replay. Authentic Archive carrier/value mapping remains open. Conversation metadata policy and the 16-byte historical versus 32-byte current history generation require separate value mapping.",
       "required_synthetic_proof": "Show a lawful value-based operation preserves original owner identity, generation, stable IDs, transaction times, branch/episode history, accepted version allocation and grouped publication boundaries.",
       "permitted_resolution": "If a hand-authored synthetic accepted value cannot pass the normal owner workflow, request only the narrow typed value operation at RelWriter with replay and reopen tests.",
       "forbidden_shortcuts": [

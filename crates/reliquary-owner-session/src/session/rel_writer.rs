@@ -445,6 +445,14 @@ impl RelWriter {
             }
         };
         self.session.writer_lease_proof = self.container.writer_lease_proof();
+        self.admit_finalized_archive_episode(id)?;
+        Ok(id)
+    }
+
+    fn admit_finalized_archive_episode(
+        &mut self,
+        id: reliquary_archive::EpisodeId,
+    ) -> Result<(), OwnerSessionError> {
         let episode = self
             .session
             .archive
@@ -460,7 +468,7 @@ impl RelWriter {
             self.session.write_poisoned = true;
             return Err(error.into());
         }
-        Ok(id)
+        Ok(())
     }
 
     /// Check that an accepted turn would advance this owner's current branch

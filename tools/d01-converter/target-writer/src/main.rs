@@ -9,9 +9,11 @@ use std::{
 };
 
 mod archive;
+mod episode;
 mod memory;
 mod memory_transfer;
 mod transfer;
+mod versioned_archive;
 use transfer::decode_hex;
 
 const MAX_TRANSFER_BYTES: u64 = 4 * 1024 * 1024;
@@ -31,9 +33,15 @@ fn main() -> ExitCode {
             Path::new(output),
             Fixture::Memory,
         ),
+        [mode, source, expected, output] if mode == "--synthetic-archive-bindings" => write(
+            Path::new(source),
+            expected.to_str(),
+            Path::new(output),
+            Fixture::VersionedArchive,
+        ),
         _ => Err((
             2,
-            "expected --synthetic-fixture or --synthetic-memory-fixture TRANSFER SHA256 CANDIDATE",
+            "expected a synthetic fixture mode followed by TRANSFER SHA256 CANDIDATE",
         )),
     };
     match result {
@@ -52,6 +60,7 @@ type Failure = (u8, &'static str);
 
 enum Fixture {
     Archive,
+    VersionedArchive,
     Memory,
 }
 
@@ -89,11 +98,12 @@ fn write(
         .tempdir_in(&parent)
         .map_err(|_| (7, "could not create candidate staging directory"))?;
     let staged_file = stage.path().join(match fixture {
-        Fixture::Archive => "owner.rel",
+        Fixture::Archive | Fixture::VersionedArchive => "owner.rel",
         Fixture::Memory => "owner.phy",
     });
     let mut receipt = match fixture {
         Fixture::Archive => archive::materialize(&bytes, &staged_file)?,
+        Fixture::VersionedArchive => versioned_archive::materialize(&bytes, &staged_file)?,
         Fixture::Memory => memory::materialize(&bytes, &staged_file)?,
     };
 

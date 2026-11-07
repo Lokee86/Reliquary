@@ -141,6 +141,23 @@ impl RelWriter {
         self.finish_archive_import(result.map(|_| true))
     }
 
+    /// Import the accepted Episode and register its Archive-derived work order.
+    pub fn import_versioned_archive_episode(
+        &mut self,
+        coordinate: reliquary_archive::ArchivePublicationCoordinate,
+        episode: reliquary_archive::Episode,
+    ) -> Result<(), OwnerSessionError> {
+        self.require_archive_import_version(coordinate.archive_version)?;
+        let id = episode.id;
+        let result = self.session.archive.append_accepted_episode_at(
+            &mut self.container,
+            coordinate,
+            episode,
+        );
+        self.finish_archive_import(result.map(|_| true))?;
+        self.admit_finalized_archive_episode(id)
+    }
+
     fn finish_archive_import(
         &mut self,
         result: Result<bool, reliquary_archive::ArchiveError>,

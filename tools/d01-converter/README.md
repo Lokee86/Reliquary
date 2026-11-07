@@ -59,22 +59,42 @@ different intermediate cuts. Its negative cases cover conflicting IDs,
 noncanonical clocks, stale versions, dangling leaves, unknown families, input
 hash mismatch and output collisions.
 
-Native synthetic scope is limited to attachment-free Archive turns and branch
-revisions with genesis lineage. Source FRS07 traversal, other retained
-families, global clock reservations, grouped writes, retained physical
+The original fixture covers attachment-free turns and branch revisions with
+genesis lineage. Source FRS07 traversal, remaining retained families, physical
 reference relocation and authentic source admission remain open. The
 create-only fixture publication does not establish the D01-T04 crash matrix.
 
-FRS07 Archive publications carry local and global coordinates together.
-`Container::append_bound_publication_envelope` can bind a current physical
-version, but the current Archive reader only decodes top-level Archive records.
-The product-level probe binds the same typed turn to two distinct reservations.
-Both physical envelopes reopen at their respective global versions, while
-neither binding enters the Archive history. The converter therefore rejects
-synthetic transfers that supply a global binding, even when their local
-history matches a supported fixture. Exact authentic replay needs an Archive
-representation and normal read-path support for the binding, plus review of
-the source publication families and repeats.
+## Native 2.1 Archive publication bindings
+
+The clocked fixture exercises accepted Archive publications in their original
+local order, including global allocation, binding an earlier standalone
+reservation, a null transaction time, signed timestamps, and repeated
+first-applying origins. Repeat records retain their own coordinates without
+changing the original turn, branch, or activity again. A separate Episode
+test checks a grouped Memory and Freshness publication after reopen.
+
+The current carrier uses an ordinary `RELPUB01` envelope. Its Archive body
+starts with `RELAPB01`, an eight-byte little-endian local version and a one-byte
+kind. Kind 0 carries an existing typed current Archive record. Kind 1 carries
+the eight-byte local version of a previously accepted first-applying record.
+The envelope and native reservation retain the global coordinate and clock.
+
+The current Archive reader validates the Archive publication carrier within the
+ordinary current container envelope. Existing direct Archive frames retain
+their original local history. The clocked history proof adds the accepted
+coordinates and origins without binding physical offsets, which may move
+during verified pruning. Terminal Archive pruning rewrites the typed turn to
+its unavailable-body marker while retaining the original publication envelope
+and reservation. Divergent reconciliation and fresh-history rewrite refuse
+clocked history they cannot safely reproduce.
+
+    $fixture = 'tools/d01-converter/target-writer/tests/archive-bindings-transfer.json'
+    New-Item -Force -ItemType Directory '.test-tmp' | Out-Null
+    cargo run --manifest-path tools/d01-converter/target-writer/Cargo.toml --locked --offline -j 1 -- --synthetic-archive-bindings $fixture (Get-FileHash $fixture -Algorithm SHA256).Hash.ToLowerInvariant() '.test-tmp/synthetic-archive-bindings.rel'
+
+This command verifies every requested cut through normal current-only REL
+reopen before publishing a synthetic candidate. Authentic transfer generation,
+family coverage and source admission have separate acceptance gates.
 
 ## Native 2.1 synthetic PHY Memory writer
 
@@ -95,14 +115,13 @@ The receipt is synthetic and provisional. This fixture exercises an available
 immutable body, two retained revisions, changed metadata, and transaction
 times above 2^53. Pruned or unavailable bodies, sparse global clocks,
 reserved/bound publications, cross-owner provenance and grouped work need
-additional typed conversion paths. This path does not resolve the Archive
-global binding gap.
+additional typed conversion paths.
 
 ## Coverage and target gaps
 
 codec-coverage.provisional.json lists inspected target seams and clearly records zero observed/admitted source carriers. It is not the required codec-coverage.json. F03-V02..V04 must provide and independently reconcile the actual source-frame inventory before a full physical/nested family map can be produced.
 
-target-primitive-gaps.provisional.json records unresolved REL/PHY owner import needs, grouped settlement/version semantics, reference relocation, current-only reopen, and create-only crash-safety work. The D02-owned PHY profile-prune authority fix is a blocker for later synthetic PHY mapping; this lane does not edit owner-session.
+target-primitive-gaps.provisional.json records unresolved REL/PHY owner import needs, grouped settlement/version semantics, reference relocation, current-only reopen, and create-only crash-safety work. The D02 PHY profile-prune authority fix remains a separate prerequisite for importing pruned profiles.
 
 ## Local checks
 
