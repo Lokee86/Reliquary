@@ -84,7 +84,7 @@ $env:CARGO_TARGET_DIR = Join-Path $ValidationRoot 'target'
 $env:TEMP = Join-Path $run 'temp'
 $env:TMP = $env:TEMP
 [void][IO.Directory]::CreateDirectory($env:TEMP)
-$arguments = @('test', '--lib', '--features', 'history-oracle-fixtures', '--locked', '--offline', '-j', '1',
+$arguments = @('test', '--release', '--lib', '--features', 'history-oracle-fixtures', '--locked', '--offline', '-j', '1',
     'canonical_current_corpus_matches_frozen_history_oracle', '--', '--ignored', '--nocapture', '--test-threads=1')
 $inputs = [ordered]@{
     reader_commit = $base
