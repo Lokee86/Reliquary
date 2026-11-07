@@ -37,7 +37,7 @@ impl CandidateKind {
         }
     }
 
-    fn matches(self, observed: CurrentOwnerKind) -> bool {
+    pub(crate) fn matches(self, observed: CurrentOwnerKind) -> bool {
         matches!(
             (self, observed),
             (Self::Rel, CurrentOwnerKind::Rel) | (Self::Phy, CurrentOwnerKind::Phy)
@@ -215,9 +215,15 @@ fn hex(bytes: &[u8]) -> String {
     out
 }
 
-pub fn parse_cli_args<I, S>(
-    args: I,
-) -> Result<(CandidateKind, PathBuf, Option<PathBuf>, Option<String>), String>
+pub struct CliArgs {
+    pub kind: CandidateKind,
+    pub candidate: PathBuf,
+    pub output: Option<PathBuf>,
+    pub memory_cursor: Option<String>,
+    pub archive_cut: Option<u64>,
+}
+
+pub fn parse_cli_args<I, S>(args: I) -> Result<CliArgs, String>
 where
     I: IntoIterator<Item = S>,
     S: Into<String>,
@@ -227,6 +233,7 @@ where
     let mut candidate = None;
     let mut output = None;
     let mut memory_cursor = None;
+    let mut archive_cut = None;
     while let Some(flag) = args.next() {
         match flag.as_str() {
             "--kind" => {
@@ -251,13 +258,27 @@ where
                 }
                 memory_cursor = Some(value);
             }
+            "--archive-cut" => {
+                let value = args.next().ok_or("--archive-cut requires a version")?;
+                let cut = value
+                    .parse::<u64>()
+                    .map_err(|_| "invalid Archive version")?;
+                if value != cut.to_string() {
+                    return Err("Archive version must use canonical unsigned decimal".into());
+                }
+                archive_cut = Some(cut);
+            }
             _ => return Err(format!("unknown argument: {flag}")),
         }
     }
-    Ok((
-        kind.ok_or("--kind rel|phy is required")?,
-        candidate.ok_or("--candidate PATH is required")?,
+    if archive_cut.is_some() && memory_cursor.is_some() {
+        return Err("--archive-cut and --memory-cursor cannot be used together".into());
+    }
+    Ok(CliArgs {
+        kind: kind.ok_or("--kind rel|phy is required")?,
+        candidate: candidate.ok_or("--candidate PATH is required")?,
         output,
         memory_cursor,
-    ))
+        archive_cut,
+    })
 }

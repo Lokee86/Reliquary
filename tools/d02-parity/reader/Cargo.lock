@@ -52,6 +52,7 @@ dependencies = [
 name = "d02-current-reader"
 version = "0.1.0"
 dependencies = [
+ "reliquary-archive",
  "reliquary-memory-core",
  "reliquary-owner-session",
  "serde_json",

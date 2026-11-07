@@ -2,6 +2,9 @@ use crate::{MemoryId, OwnerScope, OwnerSessionError, PhySession, RelSession};
 use reliquary_container::{Container, FileKind};
 use std::path::{Path, PathBuf};
 
+mod archive;
+pub use archive::{ArchiveCutObservation, ArchiveTurnOrigin};
+
 mod hash;
 use hash::hash_open_container;
 mod session;

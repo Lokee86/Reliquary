@@ -15,3 +15,25 @@ The probe and page-chain validator always return INCOMPLETE, emit no semantic pa
 Synthetic Rust tests create disposable current-format REL and PHY owners. They check same-handle hash/path identity behavior and read-only output, then build 129 direct synthetic Memories to verify the 128-item/4-KiB page bound, short-page continuation through an explicit empty terminal page, ordered chain validation and rejection of missing/reordered/duplicated/tampered/unterminated chains.
 
 The exact schema/fixture inputs remain pinned to PG-C01 commit 0f824a09fe01f5ff327ab56f3296f36d8f4d7c87. No converter crate or converter traversal is imported. --output uses exclusive creation and refuses existing destinations; it never writes to the candidate.
+
+
+## Archive cut observation
+
+A separate current-only command captures one explicit REL Archive version:
+
+```powershell
+cargo build --manifest-path tools/d02-parity/reader/Cargo.toml --locked --offline
+& tools/d02-parity/reader/target/debug/d02-current-reader.exe --kind rel --candidate $candidate --archive-cut 2
+```
+
+The report preserves accepted turn and Branch revision order, immutable node/content IDs, parentage, exact decimal timestamps, Archive and activity coordinates, source attachments and explicit pruned-body evidence. It includes typed Episodes, fragments, import receipts and conversation tombstones exposed by the selected Archive snapshot. Retained UTF-8 body and inline attachment bytes are represented by independently computed SHA-256 and lengths. The witness remains private since identifiers and metadata can be sensitive.
+
+The reader uses the current owner session and validates candidate SHA-256 and path identity under one read-only lease. It rejects future cuts and never substitutes a head for the requested cut. This is a per-cut projection, with full owner replay and no total memory bound. It does not enumerate global authority or validate cut completeness, Echo or conversation title history, other stores, physical relocations, or consumer parity. A successful projection is marked `OBSERVED` and the overall report and exit code remain `INCOMPLETE` and `2`.
+
+Use the separately authored oracle to compare the synthetic ordered Archive candidate created by D01. The oracle covers the genesis, both turn publications and both branch revisions. It opens each cut twice in fresh processes and compares exact projections against literals, including intermediate state with no current branch and timestamps above 2^53.
+
+```powershell
+python tools/d02-parity/tests/check_ordered_archive_candidate.py --reader tools/d02-parity/reader/target/debug/d02-current-reader.exe --candidate $candidate
+```
+
+Its `PASS` applies only to that synthetic Archive fixture.

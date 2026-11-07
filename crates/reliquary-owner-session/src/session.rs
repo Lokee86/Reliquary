@@ -775,9 +775,9 @@ mod rel_session;
 mod verification_observation;
 #[cfg(feature = "d02-observation")]
 pub use verification_observation::{
-    CurrentOwnerFinalization, CurrentOwnerKind, CurrentOwnerObservation,
-    MAX_MEMORY_ID_CURSOR_BYTES, MAX_MEMORY_ID_PAGE_COUNT, MAX_MEMORY_ID_PAGE_PAYLOAD_BYTES,
-    MemoryIdPage, ReadOnlyCurrentOwnerObserver,
+    ArchiveCutObservation, ArchiveTurnOrigin, CurrentOwnerFinalization, CurrentOwnerKind,
+    CurrentOwnerObservation, MAX_MEMORY_ID_CURSOR_BYTES, MAX_MEMORY_ID_PAGE_COUNT,
+    MAX_MEMORY_ID_PAGE_PAYLOAD_BYTES, MemoryIdPage, ReadOnlyCurrentOwnerObserver,
 };
 mod rel_writer;
 pub use management::{RelConversationSummary, RelTranscriptTurn};
