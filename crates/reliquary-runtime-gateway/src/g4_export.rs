@@ -85,8 +85,11 @@ fn copy_tree(source: &Path, destination: &Path) {
     for entry in fs::read_dir(source).unwrap() {
         let entry = entry.unwrap();
         let target = destination.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() { copy_tree(&entry.path(), &target); }
-        else { fs::copy(entry.path(), target).unwrap(); }
+        if entry.file_type().unwrap().is_dir() {
+            copy_tree(&entry.path(), &target);
+        } else {
+            fs::copy(entry.path(), target).unwrap();
+        }
     }
 }
 
@@ -103,6 +106,34 @@ fn verify_semantic_reopen(paths: [&Path; 4], witness: &Value) {
         "../../../tests/fixtures/g4-native-rel21-v1.json"
     ))
     .unwrap();
+    verify_dream_and_entity_reopen(&rels[0], witness);
+    let private = &witness["negative_and_private_entity"];
+    let encoded = private["private_phy_memory_id"].as_str().unwrap();
+    let memory_id =
+        std::array::from_fn(|i| u8::from_str_radix(&encoded[i * 2..i * 2 + 2], 16).unwrap());
+    let key = reliquary_owner_session::model::MemoryEntityMentionKey {
+        memory_id,
+        field: reliquary_owner_session::model::MemoryTextField::Content,
+        start_byte: private["private_phy_mention_key"]["start_byte"]
+            .as_u64()
+            .unwrap().try_into().unwrap(),
+        end_byte: private["private_phy_mention_key"]["end_byte"]
+            .as_u64()
+            .unwrap().try_into().unwrap(),
+    };
+    let mention = phys[0].mention(key).unwrap();
+    let reliquary_owner_session::model::MemoryEntityResolutionStatus::Resolved {
+        entity_id, ..
+    } = mention.status
+    else {
+        panic!("private PHY Entity did not survive reopen")
+    };
+    assert_eq!(
+        crate::hex(&entity_id.0),
+        private["private_phy_entity_id"].as_str().unwrap()
+    );
+    assert!(phys[1].entity(entity_id).is_none());
+    assert!(rels.iter().all(|rel| rel.entity(entity_id).is_none()));
     for expected in manifest["source_references"].as_array().unwrap() {
         let observed = witness["sources"]
             .as_array()
@@ -155,4 +186,97 @@ fn verify_semantic_reopen(paths: [&Path; 4], witness: &Value) {
             assert!(record.record.source_ref.is_some());
         }
     }
+}
+
+fn verify_dream_and_entity_reopen(rel: &RelSession, witness: &Value) {
+    use reliquary_owner_session::model::{
+        EntityResolutionReason, MemoryEntityMentionKey, MemoryEntityResolutionStatus,
+        MemoryTextField, NodeRef, RelationKind, RelationOrigin,
+    };
+    let source_id = |alias: &str| {
+        let source = witness["sources"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|source| source["source_id"] == alias)
+            .unwrap();
+        let encoded = source["memory_id"].as_str().unwrap();
+        MemoryId(std::array::from_fn(|i| {
+            u8::from_str_radix(&encoded[i * 2..i * 2 + 2], 16).unwrap()
+        }))
+    };
+    let release = source_id("src-release-label");
+    let intro = source_id("src-lantern-intro");
+    let frontier = rel
+        .initial_dream_frontier("g4-authored-first-dream")
+        .unwrap();
+    assert_eq!(frontier.source.id, release);
+    assert_eq!(
+        frontier
+            .candidates
+            .iter()
+            .map(|cut| cut.id)
+            .collect::<Vec<_>>(),
+        vec![intro]
+    );
+    assert!(rel.dream_pair_evaluated(release, intro));
+    let duplicate_edges = rel
+        .graph_relations()
+        .into_iter()
+        .filter(|edge| {
+            edge.kind == RelationKind::DuplicateOf
+                && [edge.source, edge.target].contains(&NodeRef::Memory(release.0))
+                && [edge.source, edge.target].contains(&NodeRef::Memory(intro.0))
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(duplicate_edges.len(), 1);
+    assert_eq!(duplicate_edges[0].origin, RelationOrigin::Dream);
+    let cobalt = source_id("src-cobalt-protocol");
+    let mira = source_id("src-mira");
+    assert!(rel.dream_pair_evaluated(cobalt, mira));
+    assert!(!rel.graph_relations().iter().any(|edge| {
+        [edge.source, edge.target].contains(&NodeRef::Memory(cobalt.0))
+            && [edge.source, edge.target].contains(&NodeRef::Memory(mira.0))
+    }));
+    let pending = source_id("src-rehearsal-pending");
+    let complete = source_id("src-rehearsal-complete");
+    let old = rel.current_memory(pending).unwrap().record;
+    assert!(old.archived);
+    assert_eq!(old.lifecycle_state, "archived");
+    assert_eq!(old.superseded_by, Some(complete));
+    assert!(!rel.current_memory(complete).unwrap().record.archived);
+    assert!(
+        rel.graph_relation(
+            NodeRef::Memory(complete.0),
+            NodeRef::Memory(pending.0),
+            RelationKind::Supersedes
+        )
+        .is_some()
+    );
+    assert!(rel.dream_pair_evaluated(pending, complete));
+    let entity =
+        serde_json::from_value::<[u8; 32]>(witness["entity"]["mira_entity_id"].clone()).unwrap();
+    for memory in [mira, source_id("src-mira-known")] {
+        let key = MemoryEntityMentionKey {
+            memory_id: memory.0,
+            field: MemoryTextField::Content,
+            start_byte: 0,
+            end_byte: 4,
+        };
+        assert!(matches!(rel.mention(key).unwrap().status,
+            MemoryEntityResolutionStatus::Resolved { entity_id, .. } if entity_id.0 == entity));
+    }
+    let ambiguous = MemoryEntityMentionKey {
+        memory_id: mira.0,
+        field: MemoryTextField::Content,
+        start_byte: 10,
+        end_byte: 20,
+    };
+    assert!(matches!(
+        rel.mention(ambiguous).unwrap().status,
+        MemoryEntityResolutionStatus::Ambiguous { .. }
+            | MemoryEntityResolutionStatus::Unresolved {
+                reason: EntityResolutionReason::Ambiguous
+            }
+    ));
 }

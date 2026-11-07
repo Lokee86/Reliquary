@@ -50,6 +50,10 @@ pub use session::{
     ArchiveVectorInput, ArchiveVectorRow, MAX_ARCHIVE_VECTOR_BATCH_ROWS,
     MAX_ARCHIVE_VECTOR_RESPONSE_BYTES,
 };
+pub use session::{
+    CreateRelationshipRequest, EntityRetirementRequest, MemoryRetirementRequest,
+    RelationshipParticipantEvidence, RelationshipRetirementRequest, WithdrawEntityMentionRequest,
+};
 pub use session::{EntityPruneReport, prune_terminal_entity_descriptions_copy};
 pub use session::{MemoryVectorInput, MemoryVectorRow};
 pub use session::{

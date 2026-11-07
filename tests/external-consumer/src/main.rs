@@ -429,6 +429,20 @@ fn inspect(args: &[String]) -> Result<String, String> {
     }
     for page in [&lantern_page, &cascade_page] {
         for conversation in &page.items {
+            let extension_leaf = match conversation.conversation_id.as_str() {
+                "conv-l06" => Some("source-doc"),
+                "conv-l07" => Some("accepted"),
+                "conv-c03-additive-import" => Some("C03-t4"),
+                "g4-conversation" => Some("accepted-turn"),
+                "g4-race" => Some("exclusive-turn"),
+                _ => None,
+            };
+            if let Some(leaf) = extension_leaf {
+                if conversation.branch.leaf_node_id != leaf || !conversation.branch.canonical {
+                    return Err(format!("completed branch extension differs for {}", conversation.conversation_id));
+                }
+                continue;
+            }
             let selected = expected_paths
                 .iter()
                 .find(|path| {

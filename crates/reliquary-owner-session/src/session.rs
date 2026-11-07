@@ -25,11 +25,14 @@ use reliquary_insomnia_store::{
     MemoryId as WorkMemoryId,
 };
 use reliquary_memory_core::{
-    MemoryDraft, MemoryError, MemoryHistory, MemoryId, MemoryRevision, MemoryStore,
+    MemoryBodyId, MemoryDraft, MemoryError, MemoryHistory, MemoryId, MemoryRevision, MemoryStore,
+    PayloadState, TerminalTombstone,
 };
 use reliquary_perception_store::{
-    Entity, EntityId, MemoryEntityMentionKey, MemoryEntityResolution, PerceptionError,
-    PerceptionStore,
+    Entity, EntityId, EntityResolutionReason, EntityTombstone, MemoryEntityMentionKey,
+    MemoryEntityResolution, MemoryEntityResolutionStatus, MemoryTextField, PerceptionError,
+    PerceptionStore, Relationship, RelationshipDraft, RelationshipEntityRef, RelationshipId,
+    RelationshipMemoryRef, RelationshipParticipant, RelationshipTombstone,
 };
 use reliquary_vector_store::{
     ArchiveVectorError, ArchiveVectorInfo, ArchiveVectorStore, CompatibilityProfile,
@@ -494,6 +497,15 @@ macro_rules! common_reads {
             pub fn entities(&self) -> Vec<Entity> {
                 self.$field.perception.entities().cloned().collect()
             }
+            pub fn relationship_revision(&self, id: RelationshipId, revision: u64) -> Option<&Relationship> {
+                self.$field.perception.relationship_revision(id, revision)
+            }
+            pub fn relationship_tombstone(&self, id: RelationshipId) -> Option<RelationshipTombstone> {
+                self.$field.perception.relationship_tombstone(id)
+            }
+            pub fn relationship_description_prune(&self, id: RelationshipId, revision: u64) -> Option<reliquary_perception_store::RelationshipDescriptionPrune> {
+                self.$field.perception.relationship_description_prune(id, revision)
+            }
             pub fn mention(&self, key: MemoryEntityMentionKey) -> Option<&MemoryEntityResolution> {
                 self.$field.perception.mention(key)
             }
@@ -695,6 +707,7 @@ mod freshness_use;
 mod gm_parity_regressions;
 mod historical_proof;
 mod maintenance_prune;
+mod perception_lifecycle;
 mod relationship_prune;
 mod semantic_reconciliation;
 pub use entity_prune::{EntityPruneReport, prune_terminal_entity_descriptions_copy};
@@ -705,6 +718,10 @@ pub use fresh_history_rewrite::{
 };
 pub use historical_proof::{
     HistoricalOwnerCut, HistoricalOwnerProof, HistoricalProofError, RelHistoricalCut,
+};
+pub use perception_lifecycle::{
+    CreateRelationshipRequest, EntityRetirementRequest, MemoryRetirementRequest,
+    RelationshipParticipantEvidence, RelationshipRetirementRequest, WithdrawEntityMentionRequest,
 };
 pub use relationship_prune::{
     RelationshipPruneReport, prune_terminal_relationship_descriptions_copy,

@@ -40,6 +40,7 @@ mod history_workflow;
 mod ingest_publication;
 mod maintenance_workflow;
 mod management_workflow;
+mod perception_lifecycle_workflow;
 pub use management_workflow::{
     ConversationInspection, MAX_MANAGEMENT_PAGE_BYTES, MAX_MANAGEMENT_PAGE_ITEMS, ManagedBranch,
     ManagementError, ManagementPage, ManagementVersions, MemoryProvenance, MemoryStatistics,
@@ -114,6 +115,7 @@ pub use maintenance_workflow::{
     MemoryPruneCandidate, prepare_tombstoned_memory_maintenance, promote_verified_memory_copy,
     prune_verified_memory_copy, recheck_tombstoned_memory_maintenance,
 };
+pub use perception_lifecycle_workflow::PerceptionLifecycleWriter;
 pub use rel_reconciliation_workflow::{
     ReconciledRelOwner, RelReconciliationEvidence, reconcile_rel_owner,
 };

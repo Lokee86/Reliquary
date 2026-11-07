@@ -257,7 +257,8 @@ fn reclamation_retains_admitted_insomnia_v2_history_while_removing_orphan_backin
 
     let repeat = Temp::new("insomnia-v2-reclaimed-repeat");
     let repeat_plan = VerifiedOwnerCopyPlan::prepare(&output.0).unwrap();
-    let repeat_report = reclaim_storage_copy(&repeat_plan, &output.0, &repeat.0, &admission).unwrap();
+    let repeat_report =
+        reclaim_storage_copy(&repeat_plan, &output.0, &repeat.0, &admission).unwrap();
     assert_eq!(repeat_report.removed_frames, 0);
     assert_eq!(fs::read(&repeat.0).unwrap(), fs::read(&output.0).unwrap());
 }

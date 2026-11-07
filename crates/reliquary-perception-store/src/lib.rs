@@ -124,6 +124,7 @@ pub enum EntityResolutionReason {
     Ambiguous,
     RecurrenceRequired,
     PrincipalIdentity,
+    UserWithdrawal,
 }
 
 impl EntityResolutionReason {
@@ -144,6 +145,7 @@ impl EntityResolutionReason {
             Self::Ambiguous => 13,
             Self::RecurrenceRequired => 14,
             Self::PrincipalIdentity => 15,
+            Self::UserWithdrawal => 16,
         }
     }
 
@@ -164,6 +166,7 @@ impl EntityResolutionReason {
             13 => Ok(Self::Ambiguous),
             14 => Ok(Self::RecurrenceRequired),
             15 => Ok(Self::PrincipalIdentity),
+            16 => Ok(Self::UserWithdrawal),
             _ => Err(PerceptionError::CorruptRecord("unknown resolution reason")),
         }
     }

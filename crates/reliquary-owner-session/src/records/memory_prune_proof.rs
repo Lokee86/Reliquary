@@ -60,9 +60,7 @@ pub(crate) fn frame_history_digest(
             // generation frame and receipt length remain bound by the digest,
             // and owner replay validates the relocated target after copying.
             let mut receipt = prefix.to_vec();
-            frame
-                .read_to_end(&mut receipt)
-                .map_err(|e| e.to_string())?;
+            frame.read_to_end(&mut receipt).map_err(|e| e.to_string())?;
             let target = reliquary_vector_store::generation::generation_receipt_target(&receipt)
                 .map_err(|e| e.to_string())?
                 .ok_or("missing vector generation receipt target")?;
@@ -192,9 +190,7 @@ pub(crate) fn safe_memory_only_frames(
         }
         if &magic == b"RELVGRC1" {
             let mut receipt = magic.to_vec();
-            frame
-                .read_to_end(&mut receipt)
-                .map_err(|e| e.to_string())?;
+            frame.read_to_end(&mut receipt).map_err(|e| e.to_string())?;
             reliquary_vector_store::generation::generation_receipt_target(&receipt)
                 .map_err(|e| e.to_string())?
                 .ok_or("missing vector generation receipt target")?;
