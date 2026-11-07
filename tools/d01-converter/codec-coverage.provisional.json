@@ -1,0 +1,138 @@
+{
+  "schema": "reliquary-d01-codec-coverage-provisional-v0",
+  "status": "provisional-incomplete",
+  "authoritative_spec": {
+    "planning_commit": "5d96db991a130d84bf76a720b445295f95ec0204",
+    "path": "docs/architecture/d01-offline-converter-implementation-spec-2026-11-06.md"
+  },
+  "target_base": {
+    "product_integration_commit": "26e84f45b54985d5aa1ceb3ab8e7fd7f183b8b0a",
+    "production_package_dag_changed": false
+  },
+  "shared_contract": {
+    "pg_c01_status": "provisional-not-accepted",
+    "pinned_snapshot_at_inspection": "56981d00bd6dd12fd9c074eaa45ce1fb32aca880",
+    "physical_carrier_registry_status": "unclassified-no-authenticated-inventory",
+    "authentic_admission": false
+  },
+  "source_inventory": {
+    "authenticated_status": "pending-f03-source-witness",
+    "admitted_carriers": [],
+    "lexical_search_hint": {
+      "path": "docs/architecture/cva-source-wire-inventory-2026-11-03.json",
+      "source_head": "51579a9f",
+      "kind": "tracked_Rust_lexical_wire_and_identity_inventory",
+      "candidate_marker_count": 173,
+      "allowlist": false
+    },
+    "note": "A lexical marker candidate is not evidence that a carrier occurs in an accepted source owner. No source marker or family is admitted by this draft."
+  },
+  "target_seam_inventory": [
+    {
+      "scope": "REL/PHY format admission and aggregate replay",
+      "crates": ["reliquary-container", "reliquary-owner-session"],
+      "files": [
+        "crates/reliquary-container/src/lib.rs",
+        "crates/reliquary-owner-session/src/session.rs",
+        "crates/reliquary-owner-session/src/session/rel_session.rs",
+        "crates/reliquary-owner-session/src/session/rel_writer.rs",
+        "crates/reliquary-owner-session/src/session/phy_writer.rs"
+      ],
+      "status": "inspected-current-2-1-owner-seam"
+    },
+    {
+      "scope": "Archive turns, branches, episodes, fragments, receipts and Echo",
+      "crates": ["reliquary-archive", "reliquary-owner-session"],
+      "files": [
+        "crates/reliquary-archive/src/archive.rs",
+        "crates/reliquary-archive/src/codec.rs",
+        "crates/reliquary-owner-session/src/session/rel_writer.rs",
+        "crates/reliquary-owner-session/src/session/native_import_writer.rs"
+      ],
+      "status": "target-codec-locations-found-source-family-mapping-pending"
+    },
+    {
+      "scope": "Memory, Graph, Entity, Relationship, Ego and Dream history",
+      "crates": [
+        "reliquary-memory-core",
+        "reliquary-graph",
+        "reliquary-perception-store",
+        "reliquary-ego-store",
+        "reliquary-dream",
+        "reliquary-owner-session"
+      ],
+      "files": [
+        "crates/reliquary-memory-core/src/store.rs",
+        "crates/reliquary-graph/src/lib.rs",
+        "crates/reliquary-perception-store/src/lib.rs",
+        "crates/reliquary-ego-store/src/lib.rs",
+        "crates/reliquary-owner-session/src/session/grouped_commit.rs",
+        "crates/reliquary-owner-session/src/records/insomnia_completion.rs"
+      ],
+      "status": "target-codec-locations-found-source-family-mapping-pending"
+    },
+    {
+      "scope": "Freshness, import settlements and accepted grouped work",
+      "crates": ["reliquary-freshness-store", "reliquary-insomnia-store", "reliquary-owner-session"],
+      "files": [
+        "crates/reliquary-freshness-store/src/codec.rs",
+        "crates/reliquary-owner-session/src/records/import.rs",
+        "crates/reliquary-owner-session/src/records/import_settlement.rs",
+        "crates/reliquary-owner-session/src/session/native_import_completion.rs",
+        "crates/reliquary-owner-session/src/session/native_import_freshness.rs"
+      ],
+      "status": "target-codec-locations-found-exact-translation-pending"
+    },
+    {
+      "scope": "Vectors, compatibility profiles, external references and source indexes",
+      "crates": [
+        "reliquary-vector-store",
+        "reliquary-owner-session"
+      ],
+      "files": [
+        "crates/reliquary-vector-store/src/codec.rs",
+        "crates/reliquary-vector-store/src/profile.rs",
+        "crates/reliquary-owner-session/src/records/external_reference.rs",
+        "crates/reliquary-owner-session/src/records/external_index/store.rs"
+      ],
+      "status": "target-codec-locations-found-source-family-mapping-pending"
+    }
+  ],
+  "candidate_target_gaps": [
+    {
+      "id": "owner-session-import-boundary",
+      "evidence": [
+        "reliquary-owner-session keeps Container and concrete stores behind RelSession/PhySession and RelWriter/PhyWriter.",
+        "The current writer API is workflow-specific (turn/episode, grouped completion, native import, routed PHY memory) rather than a generic exact-history restore interface."
+      ],
+      "required_resolution": "For each synthetic source value, first try the lawful typed owner operation. If a required accepted value cannot be represented, add only a narrow value-based owner-session operation with replay and reopen tests. Do not expose Container or mutable stores."
+    },
+    {
+      "id": "grouped-history-and-version-allocation",
+      "evidence": [
+        "The D01 spec explicitly requires typed translation for original grouped Insomnia/Dream, FRS07 import-settlement authority, and accepted version allocation."
+      ],
+      "required_resolution": "Exercise these as hand-authored synthetic cases before deciding which narrowly scoped target operation is missing; detached row insertion is not an acceptable substitute."
+    },
+    {
+      "id": "reference-relocation",
+      "evidence": [
+        "Current target stores are owner-local and the converter spec requires an inventory/relocation pass for physical references."
+      ],
+      "required_resolution": "Keep the old-to-new physical relocation map in offline tooling; validate reference closure and owner scope before target publication. No target store handle may escape."
+    },
+    {
+      "id": "candidate-publication",
+      "evidence": [
+        "The D01 spec requires unique create-only candidates, source before/after hashes, writer lease closure, current-only reopen, and structural proofs."
+      ],
+      "required_resolution": "This is later T04 work; do not treat this synthetic frame harness as a candidate writer or receipt implementation."
+    }
+  ],
+  "next_gates": [
+    "PG-C01 must be independently reviewed and accepted before its schemas/goldens become the converter's shared contract.",
+    "F03 must authenticate the pinned FRS07 source reader and derive a complete source-frame inventory; the lexical inventory is not an allowlist.",
+    "D01 must replace this provisional target-seam draft with the reviewed codec-coverage.json covering every accepted source carrier and nested family.",
+    "Only synthetic work proceeds before F03-V04; authentic conversion is D01-T05 and remains gated by F03-V04 plus G4."
+  ]
+}
