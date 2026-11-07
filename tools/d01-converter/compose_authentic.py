@@ -66,7 +66,12 @@ def memory_events(ordinal, frame, rows):
     row = rows[0]
     require(row["carrier"] == frame["carrier"] and row["source_payload_sha256"] == frame["payload_sha256"],
             "Memory source transfer differs from held physical frame")
-    require(row["group"] is None, "retained grouped Insomnia translation is required")
+    if row["group"] is not None:
+        revisions = [{"record": item["record"], "body": {"body_id": item["record"]["body_id"], **item["body"]}}
+                     for item in row["revisions"]]
+        yield event(ordinal, "group", group=row["group"], bodies=row["bodies"], revisions=revisions,
+                    routing=row["routing"])
+        return
     for body in row["bodies"]:
         yield event(ordinal, "memory_body", body=body)
     for revision in row["revisions"]:
@@ -140,6 +145,13 @@ def compose(args, witness):
     community, community_handled = adapter(args.transfer_root / "community-transfer-v1", "community",
                                            source_sha, "source_ordinal")
     native_adapters = [(archive, archive_handled), (vector, vector_handled), (community, community_handled)]
+    native_adapters.append(adapter(args.transfer_root / "entity-resolution-transfer-v1", "resolution",
+                                   source_sha, "source_ordinal"))
+    if kind == 1:
+        native_adapters.extend([
+            adapter(args.transfer_root / "insomnia-work-transfer-v1", "insomnia-work", source_sha, "source_ordinal"),
+            adapter(args.transfer_root / "freshness-target-transfer-v1", "freshness-target", source_sha, "source_ordinal"),
+        ])
     artifacts = manifest["artifact_sha256"].copy()
     native = owner["native"]
     header = {
@@ -177,7 +189,8 @@ def compose(args, witness):
                     records = values.pop(ordinal, [])
                     if not records:
                         require(disposition[0]["disposition"] in ("source_archive_format_replaced",
-                                "retained_in_current_archive_body", "retained_in_current_project_attachment"),
+                                 "retained_in_current_archive_body", "retained_in_current_project_attachment",
+                                "source_insomnia_format_replaced"),
                                 "source disposition lacks its target body")
                         records = [event(ordinal, "embedded", carrier=frame["carrier"])]
                 else:

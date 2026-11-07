@@ -27,7 +27,7 @@ pub(super) fn open_common_for_owner(
         return Err(OwnerSessionError::Graph(GraphError::WrongOwner));
     }
     let mut grouped_body_ids = BTreeSet::new();
-    let mut memories = MemoryStore::open_with_dream_batches(
+    let mut memories = MemoryStore::open_with_retained_dream_batches(
         container,
         |payload| {
             if !replay_grouped_insomnia {
@@ -37,11 +37,16 @@ pub(super) fn open_common_for_owner(
             }
             let completion = GroupedInsomniaCompletion::decode(payload)
                 .map_err(|_| MemoryError::Corrupt("grouped completion"))?;
-            if !completion.routing_metadata.is_empty() {
+            if !payload.starts_with(b"RELINSC8") && !completion.routing_metadata.is_empty() {
                 return Err(MemoryError::Corrupt(
                     "grouped routing metadata replay is unsupported",
                 ));
             }
+            let routing = completion
+                .routing_metadata
+                .iter()
+                .map(|value| reliquary_memory_core::decode_routing_metadata(value))
+                .collect::<Result<Vec<_>, _>>()?;
             for bytes in &completion.memory_records {
                 grouped_body_ids
                     .insert(reliquary_memory_core::decode_grouped_creation(bytes)?.body_id);
@@ -51,7 +56,7 @@ pub(super) fn open_common_for_owner(
                 .into_iter()
                 .map(|body| (body.id, body.bytes))
                 .collect();
-            Ok(Some((bodies, completion.memory_records)))
+            Ok(Some((bodies, completion.memory_records, routing)))
         },
         |payload| {
             crate::records::dream_supersession::GroupedDreamSupersession::decode(payload)

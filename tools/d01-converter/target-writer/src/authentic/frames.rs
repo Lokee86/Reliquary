@@ -1,3 +1,4 @@
+use super::group;
 use crate::{
     Failure,
     authentic_values::{Body, GraphChange, Memory, Routing},
@@ -36,10 +37,10 @@ pub(super) enum Event {
     },
     Group {
         source_ordinal: String,
-        global_version_start: String,
-        global_version_count: String,
-        transaction_time_ns: Option<String>,
-        body_hex: String,
+        group: group::Group,
+        bodies: Vec<Body>,
+        revisions: Vec<group::Revision>,
+        routing: Vec<Routing>,
     },
     MemoryBody {
         source_ordinal: String,
@@ -147,10 +148,13 @@ fn admitted_plain_body(bytes: &[u8]) -> bool {
             | b"RELFRP01"
             | b"RELFRS02"
             | b"RELHFRS1"
+            | b"RELHFA01"
             | b"RELINSW1"
             | b"RELINSW2"
             | b"RELINSR1"
             | b"RELCOM02"
+            | b"RELERH01"
+            | b"RELERL01"
             | b"RELPVFM1"
             | b"RELPVEC1"
             | b"RELCPFM1"
@@ -260,25 +264,13 @@ pub(super) fn append(
                 .map_err(|_| invalid("native reservation could not be written"))?;
         }
         Event::Group {
-            global_version_start,
-            global_version_count,
-            transaction_time_ns,
-            body_hex,
+            group,
+            bodies,
+            revisions,
+            routing,
             ..
         } => {
-            let start = number(&global_version_start)?;
-            let count = number(&global_version_count)?;
-            let transaction_time = time(transaction_time_ns)?;
-            let bytes = payload(&body_hex)?;
-            if !bytes.starts_with(b"RELINSC7") && !bytes.starts_with(b"RELINSC8") {
-                return Err(invalid("unsupported grouped conversion carrier"));
-            }
-            output
-                .append(&bytes)
-                .map_err(|_| invalid("native group could not be written"))?;
-            output
-                .commit_embedded_version_range_at(start, count, transaction_time)
-                .map_err(|_| invalid("native grouped range differs from source global order"))?;
+            group::append(output, memories, group, bodies, revisions, routing)?;
         }
         Event::MemoryBody { body, .. } => {
             let (id, body) = body.into_native().map_err(invalid)?;

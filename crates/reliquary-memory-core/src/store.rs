@@ -11,6 +11,11 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::io::Read;
 
 pub type GroupedMemoryReplay = (Vec<(MemoryBodyId, Vec<u8>)>, Vec<Vec<u8>>);
+type RetainedGroupedMemoryReplay = (
+    Vec<(MemoryBodyId, Vec<u8>)>,
+    Vec<Vec<u8>>,
+    Vec<MemoryRoutingMetadata>,
+);
 
 /// Owner-session proof accompanying an atomic Dream lifecycle event.
 pub struct GroupedMemorySupersession {
@@ -88,7 +93,7 @@ impl MemoryStore {
                 || magic == *DELTA
                 || magic == *TOMBSTONE
                 || magic == *ROUTING_MARKER
-                || magic == *b"RELINSC7"
+                || matches!(&magic, b"RELINSC7" | b"RELINSC8")
             {
                 return Err(MemoryError::Corrupt(
                     "Memory owner already contains records",
@@ -153,6 +158,27 @@ impl MemoryStore {
     pub fn open_with_dream_batches(
         container: &Container,
         mut decode_grouped: impl FnMut(&[u8]) -> Result<Option<GroupedMemoryReplay>, MemoryError>,
+        decode_dream: impl FnMut(&[u8]) -> Result<Option<GroupedMemorySupersession>, MemoryError>,
+        decode_initial: impl FnMut(&[u8]) -> Result<Option<GroupedMemoryInitialPromotion>, MemoryError>,
+        decode_batch: impl FnMut(&[u8]) -> Result<Vec<GroupedMemoryLifecycle>, MemoryError>,
+    ) -> Result<Self, MemoryError> {
+        Self::open_with_retained_dream_batches(
+            container,
+            |bytes| {
+                Ok(decode_grouped(bytes)?.map(|(bodies, records)| (bodies, records, Vec::new())))
+            },
+            decode_dream,
+            decode_initial,
+            decode_batch,
+        )
+    }
+
+    pub fn open_with_retained_dream_batches(
+        container: &Container,
+        mut decode_grouped: impl FnMut(
+            &[u8],
+        )
+            -> Result<Option<RetainedGroupedMemoryReplay>, MemoryError>,
         mut decode_dream: impl FnMut(&[u8]) -> Result<Option<GroupedMemorySupersession>, MemoryError>,
         mut decode_initial: impl FnMut(
             &[u8],
@@ -214,14 +240,17 @@ impl MemoryStore {
                 store.apply_routing(decode_routing_metadata(&payload)?)?;
                 continue;
             }
-            if magic == *b"RELINSC7" {
+            if matches!(&magic, b"RELINSC7" | b"RELINSC8") {
                 let mut payload = Vec::with_capacity(len);
                 payload.extend_from_slice(&magic);
                 frame.read_to_end(&mut payload)?;
-                if let Some((bodies, records)) = decode_grouped(&payload)? {
+                if let Some((bodies, records, routing)) = decode_grouped(&payload)? {
                     // Owner replay validates any missing grouped payload only
                     // after it has admitted the exact terminal-prune manifest.
                     store.apply_grouped_completion_replay(bodies, records)?;
+                    for route in routing {
+                        store.apply_routing(route)?;
+                    }
                 }
                 continue;
             }

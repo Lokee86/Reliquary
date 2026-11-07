@@ -1,4 +1,5 @@
 mod frames;
+mod group;
 use crate::{Failure, file_hash, transfer::decode_hex};
 use frames::{Event, append, invalid, number};
 use reliquary_container::{Container, ContainerIdentity, FileKind, ReliquaryScope};

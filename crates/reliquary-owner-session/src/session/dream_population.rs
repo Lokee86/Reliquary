@@ -17,7 +17,7 @@ pub(super) fn birth_population(
         let mut cohort = Vec::new();
         if payload.starts_with(b"RELMCRT1") {
             cohort.push(reliquary_memory_core::decode_grouped_creation(payload)?);
-        } else if payload.starts_with(b"RELINSC7") {
+        } else if crate::records::insomnia_completion::is_grouped_completion(payload) {
             for record in GroupedInsomniaCompletion::decode(payload)
                 .map_err(OwnerSessionError::Record)?
                 .memory_records

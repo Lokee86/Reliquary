@@ -53,7 +53,7 @@ impl DreamPairs {
                 state.apply_batch(batch)?;
             } else if payload.starts_with(b"RELMCRT1") {
                 memories.insert(reliquary_memory_core::decode_grouped_creation(payload)?.id);
-            } else if payload.starts_with(b"RELINSC7") {
+            } else if crate::records::insomnia_completion::is_grouped_completion(payload) {
                 let completion = GroupedInsomniaCompletion::decode(payload)
                     .map_err(OwnerSessionError::Record)?;
                 for record in completion.memory_records {

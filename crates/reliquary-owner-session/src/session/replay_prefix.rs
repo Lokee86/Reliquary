@@ -119,7 +119,7 @@ pub(super) fn validate_graph_prefix(
                 if record.revision == 1 {
                     birth_bodies.insert(record.id.0, record.body_id.0);
                 }
-            } else if payload.starts_with(b"RELINSC7") {
+            } else if crate::records::insomnia_completion::is_grouped_completion(payload) {
                 let completion = GroupedInsomniaCompletion::decode(payload)
                     .map_err(OwnerSessionError::Record)?;
                 for record in completion.memory_records {

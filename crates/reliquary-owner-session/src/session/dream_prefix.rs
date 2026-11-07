@@ -69,7 +69,7 @@ pub(crate) fn validate_compact_dream_prefix(
             || magic == *b"RELFRS02"
             || magic.starts_with(b"RELIEP")
             || magic == *b"RELIFRS1"
-            || magic == *b"RELINSC7"
+            || matches!(&magic, b"RELINSC7" | b"RELINSC8")
             || magic == *b"CVDREAM2"
             || magic == *b"RELGRF01"
             || magic == *b"CVDREAM1"
@@ -188,12 +188,12 @@ pub(crate) fn validate_compact_dream_prefix(
                 graph_head = relation.graph_version;
                 continue;
             }
-            if magic == *b"RELINSC7" {
+            if matches!(&magic, b"RELINSC7" | b"RELINSC8") {
                 let completion = GroupedInsomniaCompletion::decode(&payload)
                     .map_err(OwnerSessionError::Record)?;
                 if !completion.memory_records.is_empty()
                     && (completion.freshness_birth_turn.is_none()
-                        || !completion.routing_metadata.is_empty())
+                        || (magic == *b"RELINSC7" && !completion.routing_metadata.is_empty()))
                 {
                     unsupported = true;
                 }
