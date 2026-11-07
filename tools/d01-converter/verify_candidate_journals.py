@@ -128,6 +128,8 @@ def journal(frames, owner, legacy):
         elif marker == (b"CVAINSC8" if legacy else b"RELINSC8"):
             require(payload[9:41] in episodes, "grouped receipt precedes accepted Episode")
             yield group(payload, legacy)
+        elif marker == (b"CVARELM1" if legacy else b"RELRELM1"):
+            yield ("owner_metadata", payload[8:])
         elif marker in (b"CVDREAM1", b"CVDREAM2"):
             yield ("dream_journal", payload)
         elif marker in ((b"CVADRM01", b"CVADRP02") if legacy else (b"RELDRM01", b"RELDRP02")):
@@ -145,8 +147,8 @@ def main():
         header = file.read(40)
     source = list(journal(open_frames(args.source_copy, LEGACY, args.source_sha256, header[16:]), header[24:], True))
     target = list(journal(open_frames(args.candidate, CURRENT, args.candidate_sha256, header[16:]), header[24:], False))
-    require(source == target, "retained Insomnia or Dream journal values/order differ")
-    print(json.dumps({"status": "PASS", "scope": "retained Insomnia and Dream journal history",
+    require(source == target, "retained Insomnia, Dream or owner metadata values/order differ")
+    print(json.dumps({"status": "PASS", "scope": "retained Insomnia and Dream journal history and owner metadata",
                       "source_sha256": args.source_sha256, "candidate_sha256": args.candidate_sha256,
                       "rows": dict(Counter(row[0] for row in target))}))
 
