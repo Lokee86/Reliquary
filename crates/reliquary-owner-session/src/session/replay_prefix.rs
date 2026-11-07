@@ -182,8 +182,17 @@ pub(super) fn validate_graph_prefix(
                 }
                 _ => {}
             }
-            if let Some(relation) = reliquary_graph::relation_in_frame(payload)? {
-                for endpoint in [relation.source, relation.target] {
+            let relations = match reliquary_graph::clocked_graph_in_frame(payload)? {
+                Some(publication) => publication.relations,
+                None => reliquary_graph::relation_in_frame(payload)?
+                    .into_iter()
+                    .collect(),
+            };
+            if !relations.is_empty() {
+                for endpoint in relations
+                    .iter()
+                    .flat_map(|relation| [relation.source, relation.target])
+                {
                     let found = match endpoint {
                         NodeRef::Memory(id) => memories.contains(&id),
                         NodeRef::Entity(id) => entities.contains(&id),
@@ -194,7 +203,7 @@ pub(super) fn validate_graph_prefix(
                         ));
                     }
                 }
-                graph_version = relation.graph_version;
+                graph_version = relations[0].graph_version;
             } else if let Some(group) =
                 crate::records::dream_group::GroupedDreamRelation::decode(payload)
                     .map_err(OwnerSessionError::Record)?
