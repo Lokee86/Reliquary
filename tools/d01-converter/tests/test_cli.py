@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from cli import CliFailure, _coverage_map
 from pgc01_adapter import load_pinned_snapshot
-from synthetic import build_frame
+from synthetic import _frame_bytes_unchecked_for_tests, build_frame
 
 
 _CONTRACT_ROOT = os.environ.get("RELIQUARY_PG_C01_ROOT")
@@ -28,6 +28,13 @@ def _fixture(text: str) -> bytes:
     return build_frame(
         "synthetic.archive_turn.v1",
         {"conversation_id": "fixture-c", "node_id": "fixture-n", "text": text},
+    )
+
+
+def _memory_fixture(text: str) -> bytes:
+    return build_frame(
+        "synthetic.memory_revision.v1",
+        {"memory_id": "fixture-m", "revision": "1", "title": "fixture title", "body": text},
     )
 
 
@@ -174,8 +181,80 @@ class SyntheticCommandTests(unittest.TestCase):
             self.assertEqual(diagnostic["error_code"], "conflict_collision")
             self.assertEqual(output.read_bytes(), data)
 
-    def test_verify_rejects_receipt_bound_to_a_different_map(self):
-        data = _fixture("map-binding-check")
+    def test_memory_revision_round_trips_through_separate_cli_processes(self):
+        secret_fixture_text = "synthetic-memory-body"
+        data = _memory_fixture(secret_fixture_text)
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            source = root / "memory.d01synthetic"
+            output = root / "memory-copy.d01synthetic"
+            receipt_path = root / "memory-receipt.json"
+            source.write_bytes(data)
+
+            inspect = self.run_cli(
+                "inspect",
+                "--synthetic-fixture",
+                "--input",
+                str(source),
+                "--contract-root",
+                str(_CONTRACT_ROOT),
+            )
+            self.assertEqual(inspect.returncode, 0, inspect.stderr)
+            inspection = json.loads(inspect.stdout)
+            self.assertEqual(inspection["family_id"], "synthetic.memory_revision.v1")
+            self.assertEqual(inspection["target_schema_id"], "fixture.memory_revision.v1")
+            self.assertEqual(inspection["coverage_map_sha256"], _coverage_map_sha256())
+            self.assertEqual(inspection["d01_t01_acceptance"], "not-accepted")
+            self.assertNotIn(secret_fixture_text, inspect.stdout)
+            self.assertNotIn(secret_fixture_text, inspect.stderr)
+
+            convert = self.run_cli(
+                "convert",
+                "--synthetic-fixture",
+                "--input",
+                str(source),
+                "--expected-sha256",
+                hashlib.sha256(data).hexdigest(),
+                "--output",
+                str(output),
+                "--contract-root",
+                str(_CONTRACT_ROOT),
+            )
+            self.assertEqual(convert.returncode, 0, convert.stderr)
+            receipt = json.loads(convert.stdout)
+            self.assertEqual(receipt["family_id"], "synthetic.memory_revision.v1")
+            self.assertEqual(receipt["target_schema_id"], "fixture.memory_revision.v1")
+            self.assertEqual(receipt["output_sha256"], hashlib.sha256(data).hexdigest())
+            self.assertFalse(receipt["target_candidate"])
+            self.assertFalse(receipt["authentic_source_admission"])
+            self.assertFalse(receipt["payload_emitted"])
+            self.assertNotIn(secret_fixture_text, convert.stdout)
+            self.assertNotIn(secret_fixture_text, convert.stderr)
+            receipt_path.write_text(convert.stdout, encoding="utf-8")
+
+            verify = self.run_cli(
+                "verify-structure",
+                "--synthetic-fixture",
+                "--candidate",
+                str(output),
+                "--receipt",
+                str(receipt_path),
+                "--contract-root",
+                str(_CONTRACT_ROOT),
+            )
+            self.assertEqual(verify.returncode, 0, verify.stderr)
+            structure = json.loads(verify.stdout)
+            self.assertTrue(structure["structure_valid"])
+            self.assertEqual(structure["family_id"], "synthetic.memory_revision.v1")
+            self.assertEqual(structure["target_schema_id"], "fixture.memory_revision.v1")
+            self.assertFalse(structure["target_candidate"])
+            self.assertFalse(structure["payload_emitted"])
+            self.assertNotIn(secret_fixture_text, verify.stdout)
+            self.assertNotIn(secret_fixture_text, verify.stderr)
+
+    def test_verify_rejects_tampered_receipt_evidence_fields(self):
+        secret_fixture_text = "tamper-matrix-synthetic-only"
+        data = _fixture(secret_fixture_text)
         with tempfile.TemporaryDirectory() as workspace:
             root = Path(workspace)
             source = root / "input.d01synthetic"
@@ -196,9 +275,58 @@ class SyntheticCommandTests(unittest.TestCase):
             )
             self.assertEqual(convert.returncode, 0, convert.stderr)
             receipt = json.loads(convert.stdout)
-            receipt["coverage_map_sha256"] = "0" * 64
-            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
-            verify = self.run_cli(
+            mutations = (
+                ("schema_id", "unknown-receipt-v9"),
+                ("command", "resume"),
+                ("status", "PASS"),
+                ("evidence_scope", "authentic_source"),
+                ("artifact_state", "owner-candidate"),
+                ("target_candidate", True),
+                ("authentic_source_admission", True),
+                ("source_sha256_before", "0" * 64),
+                ("source_sha256_after", "0" * 64),
+                ("output_sha256", "0" * 64),
+                ("byte_count", "0"),
+                ("output_name", "different.d01synthetic"),
+                ("carrier_marker", "CVAAFMT2"),
+                ("carrier_version", "99"),
+                ("family_id", "synthetic.memory_revision.v1"),
+                ("target_schema_id", "fixture.memory_revision.v1"),
+                ("contract_revision", "0" * 40),
+                ("registry_hashes", {"semantic_groups": "0" * 64}),
+                ("coverage_map_schema", "unknown-map-v9"),
+                ("coverage_map_status", "accepted"),
+                ("coverage_map_sha256", "0" * 64),
+                ("d01_t01_acceptance", "accepted"),
+                ("producer_code_sha256", "0" * 64),
+                ("payload_emitted", True),
+                ("current_only_owner_reopen", True),
+            )
+            for field, value in mutations:
+                with self.subTest(field=field):
+                    changed = dict(receipt)
+                    changed[field] = value
+                    receipt_path.write_text(json.dumps(changed), encoding="utf-8")
+                    verify = self.run_cli(
+                        "verify-structure",
+                        "--synthetic-fixture",
+                        "--candidate",
+                        str(output),
+                        "--receipt",
+                        str(receipt_path),
+                        "--contract-root",
+                        str(_CONTRACT_ROOT),
+                    )
+                    self.assertEqual(verify.returncode, 6, f"{field}: {verify.stderr}")
+                    diagnostic = json.loads(verify.stderr)
+                    self.assertEqual(diagnostic["error_code"], "target_mismatch")
+                    self.assertFalse(diagnostic["payload_emitted"])
+                    self.assertNotIn(secret_fixture_text, verify.stdout)
+                    self.assertNotIn(secret_fixture_text, verify.stderr)
+
+            duplicate = json.dumps(receipt)[:-1] + ',"command":"resume"}'
+            receipt_path.write_text(duplicate, encoding="utf-8")
+            duplicate_result = self.run_cli(
                 "verify-structure",
                 "--synthetic-fixture",
                 "--candidate",
@@ -208,11 +336,82 @@ class SyntheticCommandTests(unittest.TestCase):
                 "--contract-root",
                 str(_CONTRACT_ROOT),
             )
-        self.assertEqual(verify.returncode, 6)
-        diagnostic = json.loads(verify.stderr)
-        self.assertEqual(diagnostic["error_code"], "target_mismatch")
-        self.assertFalse(diagnostic["payload_emitted"])
+            self.assertEqual(duplicate_result.returncode, 6)
+            self.assertEqual(
+                json.loads(duplicate_result.stderr)["error_code"], "receipt_invalid"
+            )
+            self.assertNotIn(secret_fixture_text, duplicate_result.stderr)
 
+            missing_field = dict(receipt)
+            missing_field.pop("family_id")
+            receipt_path.write_text(json.dumps(missing_field), encoding="utf-8")
+            missing_result = self.run_cli(
+                "verify-structure",
+                "--synthetic-fixture",
+                "--candidate",
+                str(output),
+                "--receipt",
+                str(receipt_path),
+                "--contract-root",
+                str(_CONTRACT_ROOT),
+            )
+            self.assertEqual(missing_result.returncode, 6)
+            self.assertEqual(
+                json.loads(missing_result.stderr)["error_code"], "target_mismatch"
+            )
+
+    def test_well_framed_unknown_family_and_version_fail_in_cli(self):
+        unknown_family = _frame_bytes_unchecked_for_tests(
+            "synthetic.unlisted_family.v1", b'{"value":"unknown-family-secret"}'
+        )
+        unsupported_version = _frame_bytes_unchecked_for_tests(
+            "synthetic.archive_turn.v1",
+            b'{"conversation_id":"fixture-c","node_id":"fixture-n","text":"version-secret"}',
+            version=2,
+        )
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            unknown_path = root / "well-framed-unknown.d01synthetic"
+            unknown_path.write_bytes(unknown_family)
+            unknown_result = self.run_cli(
+                "inspect",
+                "--synthetic-fixture",
+                "--input",
+                str(unknown_path),
+                "--contract-root",
+                str(_CONTRACT_ROOT),
+            )
+            self.assertEqual(unknown_result.returncode, 4)
+            unknown_diagnostic = json.loads(unknown_result.stderr)
+            self.assertEqual(unknown_diagnostic["error_code"], "unsupported_family")
+            self.assertFalse(unknown_diagnostic["payload_emitted"])
+            self.assertNotIn("unknown-family-secret", unknown_result.stdout)
+            self.assertNotIn("unknown-family-secret", unknown_result.stderr)
+
+            version_path = root / "unsupported-version.d01synthetic"
+            output = root / "must-not-be-created.d01synthetic"
+            version_path.write_bytes(unsupported_version)
+            version_result = self.run_cli(
+                "convert",
+                "--synthetic-fixture",
+                "--input",
+                str(version_path),
+                "--expected-sha256",
+                hashlib.sha256(unsupported_version).hexdigest(),
+                "--output",
+                str(output),
+                "--contract-root",
+                str(_CONTRACT_ROOT),
+            )
+            self.assertEqual(version_result.returncode, 4)
+            version_diagnostic = json.loads(version_result.stderr)
+            self.assertEqual(
+                version_diagnostic["error_code"], "unclassified_or_malformed_input"
+            )
+            self.assertFalse(version_diagnostic["payload_emitted"])
+            self.assertFalse(output.exists())
+            self.assertNotIn("version-secret", version_result.stdout)
+            self.assertNotIn("version-secret", version_result.stderr)
 
     def test_unclassified_marker_and_wrong_expected_hash_fail_structured(self):
         with tempfile.TemporaryDirectory() as workspace:
