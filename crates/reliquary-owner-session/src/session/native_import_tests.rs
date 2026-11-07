@@ -371,6 +371,33 @@ fn reopen_rejects_archive_import_receipt_without_an_epoch() {
             },
         )
         .unwrap();
+    let receipt = writer
+        .container
+        .read_frames()
+        .unwrap()
+        .into_iter()
+        .find(|frame| frame.payload.starts_with(b"CVAIMPT1"))
+        .unwrap()
+        .payload;
+    let wrapped_path = Temp::new();
+    let mut wrapped =
+        RelWriter::create_path(&wrapped_path.0, ReliquaryScope::Project, owner).unwrap();
+    let mut body = b"RELAPB01".to_vec();
+    body.extend_from_slice(&1u64.to_le_bytes());
+    body.push(0);
+    body.extend_from_slice(&receipt);
+    let global_version = wrapped.container.reserve_version(Some(-9)).unwrap();
+    wrapped
+        .container
+        .append_bound_publication_envelope(global_version, &body)
+        .unwrap();
+    wrapped.container.sync().unwrap();
+    drop(wrapped);
+    assert!(matches!(
+        RelSession::open_path_current(&wrapped_path.0),
+        Err(OwnerSessionError::Record(message)) if message.contains("no owner epoch at its physical position")
+    ));
+
     drop(writer);
     let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
     assert!(matches!(

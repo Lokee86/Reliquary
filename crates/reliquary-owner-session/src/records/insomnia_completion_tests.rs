@@ -1718,3 +1718,125 @@ fn compact_dream_uses_direct_birth_intent_and_recorded_global_order() {
         matches!(crate::RelSession::open(&missing, &graph, [], [admission]), Err(crate::OwnerSessionError::Record(message)) if message.contains("population differs from physical prefix"))
     );
 }
+
+#[test]
+fn normal_compact_dream_reopen_admits_clocked_archive_and_memory_prefixes() {
+    use crate::records::dream::{
+        dream_begin_codec::{BeginPopulation, BeginRecord, encode},
+        population_digest,
+    };
+    use crate::{RelSession, RelWriter};
+    use reliquary_archive::{ArchivePublicationCoordinate, ContentId, Node};
+    use reliquary_memory_core::{MemoryDraft, MemoryStore};
+    use sha2::{Digest, Sha256};
+
+    let temp = Temp::new();
+    let owner = [0x76; 16];
+    let mut writer = RelWriter::create_path(&temp.0, ReliquaryScope::Project, owner).unwrap();
+    writer
+        .reserve_archive_publication_version(1, Some(-17))
+        .unwrap();
+    let content = "clocked Archive prefix".to_string();
+    writer
+        .import_versioned_archive_turn(
+            ArchivePublicationCoordinate {
+                archive_version: 1,
+                global_version: 1,
+                transaction_time_ns: Some(-17),
+                bound_reservation: true,
+            },
+            Node {
+                id: "bound-node".into(),
+                conversation_id: "bound-conversation".into(),
+                parent_id: None,
+                role: "user".into(),
+                principal_id: None,
+                timestamp_ns: 1,
+                content_id: ContentId(Sha256::digest(content.as_bytes()).into()),
+            },
+            content,
+        )
+        .unwrap();
+    drop(writer);
+
+    let mut container = Container::open_writer(&temp.0).unwrap();
+    let mut store = MemoryStore::open(&container).unwrap();
+    let mut draft = MemoryDraft {
+        title: "fixture".into(),
+        content: "retained body".into(),
+        category: "fact".into(),
+        memory_type: "semantic".into(),
+        authority_kind: "direct".into(),
+        temporal_status: "current".into(),
+        scope: "project".into(),
+        lifecycle_state: "knowledge".into(),
+        archived: false,
+        parent_id: None,
+        superseded_by: None,
+        source_node_id: None,
+        content_source_conversation_id: None,
+        content_source_node_id: None,
+        grounding_source_conversation_id: None,
+        grounding_source_node_id: None,
+        source_episode_id: None,
+        source_ref: None,
+        source_time_ns: None,
+        temporal_inference: None,
+        mutation_id: "compact-clocked-memory".into(),
+        created_at_ns: 1,
+        updated_at_ns: 1,
+    };
+    let mut revision = store
+        .publish_versioned_creation(&mut container, draft.clone(), 2)
+        .unwrap()
+        .revision
+        .record;
+    draft.mutation_id = "compact-clocked-delta".into();
+    draft.category = "reviewed".into();
+    draft.updated_at_ns = 3;
+    revision.mutation_id = draft.mutation_id.clone();
+    revision.category = draft.category.clone();
+    revision.updated_at_ns = draft.updated_at_ns;
+    revision.revision = 2;
+    revision.memory_version = 2;
+    store
+        .publish_accepted_versioned_revision(&mut container, 3, 3, &revision, draft)
+        .unwrap();
+
+    let begin = BeginRecord {
+        owner_uuid: owner,
+        pass_id: "compact-bound-prefix".into(),
+        source_id: revision.id,
+        turn: 1,
+        graph_version_before: 0,
+        population: BeginPopulation::CompactCut {
+            memory_cut: 2,
+            digest: population_digest(&Default::default()),
+        },
+    };
+    container.append(&encode(&begin).unwrap()).unwrap();
+    let frontier = crate::records::dream_frontier::FrontierRecord {
+        owner,
+        pass_id: begin.pass_id,
+        begin: None,
+        source: crate::records::dream_batch::Observation {
+            id: revision.id.0,
+            revision: revision.revision,
+            body: revision.body_id.0,
+        },
+        candidates: Vec::new(),
+        graph_version: 0,
+        memory_version: 2,
+    };
+    container.append(&frontier.encode().unwrap()).unwrap();
+    container.sync().unwrap();
+    drop(container);
+
+    let reader = RelSession::open_path_current(&temp.0).unwrap();
+    assert_eq!(
+        reader.archive_publication_bindings()[0].transaction_time_ns,
+        Some(-17)
+    );
+    assert_eq!(reader.memory_version(), 2);
+    assert_eq!(reader.current_memory(revision.id).unwrap().record, revision);
+}

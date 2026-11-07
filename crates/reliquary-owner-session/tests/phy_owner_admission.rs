@@ -70,6 +70,8 @@ fn rel_replay_rejects_unsupported_publication_carriers_without_mutation() {
 fn phy_rejects_wrapped_rel_only_records_without_mutation() {
     for (body, time) in [
         (b"RELTURN2".as_slice(), None),
+        (b"RELAPB01".as_slice(), Some(-7)),
+        (b"RELAPB02".as_slice(), None),
         (b"RELXMEM2".as_slice(), Some(3)),
     ] {
         let path = Temp::new();

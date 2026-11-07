@@ -129,14 +129,7 @@ pub(crate) fn validate_compact_dream_prefix(
                     // but must not reject an otherwise valid owner replay.
                     continue;
                 }
-                head = head.checked_add(1).ok_or_else(|| {
-                    OwnerSessionError::Record("Dream Memory head exhausted".into())
-                })?;
-                if !visible_memories.contains(&id) || version != head {
-                    return Err(OwnerSessionError::Record(
-                        "Memory history change differs from its physical prefix".into(),
-                    ));
-                }
+                advance_memory_history(&mut head, &visible_memories, id, version)?;
                 continue;
             }
             if magic == *b"CVDREAM1" {
@@ -170,7 +163,13 @@ pub(crate) fn validate_compact_dream_prefix(
                     {
                         unsupported = true;
                     }
-                } else {
+                } else if let Some((id, version)) =
+                    reliquary_memory_core::history_change_in_frame(envelope.body)?
+                {
+                    if !unsupported {
+                        advance_memory_history(&mut head, &visible_memories, id, version)?;
+                    }
+                } else if !reliquary_archive::is_archive_publication_body(envelope.body)? {
                     // Other publication forms need their own ordered owner proof.
                     unsupported = true;
                 }
@@ -300,5 +299,23 @@ pub(crate) fn validate_compact_dream_prefix(
             }
         }
     }
+    Ok(())
+}
+
+fn advance_memory_history(
+    head: &mut u64,
+    visible: &BTreeSet<MemoryId>,
+    id: MemoryId,
+    version: u64,
+) -> Result<(), OwnerSessionError> {
+    let next = head
+        .checked_add(1)
+        .ok_or_else(|| OwnerSessionError::Record("Dream Memory head exhausted".into()))?;
+    if !visible.contains(&id) || version != next {
+        return Err(OwnerSessionError::Record(
+            "Memory history change differs from its physical prefix".into(),
+        ));
+    }
+    *head = next;
     Ok(())
 }
