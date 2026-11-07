@@ -1,0 +1,3 @@
+# D01 fixture framing and typed gates use only the Python standard library.
+# This pinned dependency is used only when calling the PG-C01 report validator.
+jsonschema==4.26.0

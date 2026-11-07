@@ -11,9 +11,21 @@
   },
   "shared_contract": {
     "pg_c01_status": "provisional-not-accepted",
-    "pinned_snapshot_at_inspection": "56981d00bd6dd12fd9c074eaa45ce1fb32aca880",
+    "pinned_snapshot_at_inspection": "0f824a09fe01f5ff327ab56f3296f36d8f4d7c87",
+    "pinned_parent": "dd77dfa8f7d3c73e3e03cd07b2f4f0f7c9850fae",
+    "contract_code_sha256": "af6763707b5f7918b5295dc0fbcce9a2d55e975abe29f4eedaa00a9584e24245",
+    "registry_hashes": {
+      "semantic_groups": "8ca5594e463de065622ff4f3caccc17f0a61d1a95477f0284a48419f342032b0",
+      "record_schemas": "0963412591cc2d202a613584fd458ed14d5888e9e381d5283177eae40b41c79d",
+      "physical_carriers": "d7d782f7701a363fb0c4b75c6eabd04200a3889cac370d122d66ea31b0080dc5",
+      "contract_bundle": "7a1abda477874b2a1ff78f75520e075f909750d45a17ce3d6528110334f33688"
+    },
     "physical_carrier_registry_status": "unclassified-no-authenticated-inventory",
-    "authentic_admission": false
+    "physical_carrier_entries": 0,
+    "unclassified_carrier_entries": 0,
+    "authentic_admission": false,
+    "synthetic_positive_example_scope": "synthetic_fixture",
+    "synthetic_positive_example_source_admission": "forbidden"
   },
   "source_inventory": {
     "authenticated_status": "pending-f03-source-witness",
@@ -30,7 +42,10 @@
   "target_seam_inventory": [
     {
       "scope": "REL/PHY format admission and aggregate replay",
-      "crates": ["reliquary-container", "reliquary-owner-session"],
+      "crates": [
+        "reliquary-container",
+        "reliquary-owner-session"
+      ],
       "files": [
         "crates/reliquary-container/src/lib.rs",
         "crates/reliquary-owner-session/src/session.rs",
@@ -42,7 +57,10 @@
     },
     {
       "scope": "Archive turns, branches, episodes, fragments, receipts and Echo",
-      "crates": ["reliquary-archive", "reliquary-owner-session"],
+      "crates": [
+        "reliquary-archive",
+        "reliquary-owner-session"
+      ],
       "files": [
         "crates/reliquary-archive/src/archive.rs",
         "crates/reliquary-archive/src/codec.rs",
@@ -73,7 +91,11 @@
     },
     {
       "scope": "Freshness, import settlements and accepted grouped work",
-      "crates": ["reliquary-freshness-store", "reliquary-insomnia-store", "reliquary-owner-session"],
+      "crates": [
+        "reliquary-freshness-store",
+        "reliquary-insomnia-store",
+        "reliquary-owner-session"
+      ],
       "files": [
         "crates/reliquary-freshness-store/src/codec.rs",
         "crates/reliquary-owner-session/src/records/import.rs",
@@ -130,9 +152,25 @@
     }
   ],
   "next_gates": [
-    "PG-C01 must be independently reviewed and accepted before its schemas/goldens become the converter's shared contract.",
-    "F03 must authenticate the pinned FRS07 source reader and derive a complete source-frame inventory; the lexical inventory is not an allowlist.",
+    "PG-C01 must be independently reviewed and accepted before its schemas/goldens become the converter's shared contract; the exact dd77 snapshot is still provisional.",
+    "F03 must authenticate the pinned FRS07 source reader and derive a complete source-frame inventory; lexical candidates are not an allowlist.",
     "D01 must replace this provisional target-seam draft with the reviewed codec-coverage.json covering every accepted source carrier and nested family.",
     "Only synthetic work proceeds before F03-V04; authentic conversion is D01-T05 and remains gated by F03-V04 plus G4."
-  ]
+  ],
+  "d01_synthetic_evidence_path": {
+    "pin": "tools/d01-converter/pgc01-binding.provisional.json",
+    "adapter": "tools/d01-converter/pgc01_adapter.py",
+    "typed_gate": "tools/d01-converter/admission.py",
+    "report_builder": "tools/d01-converter/evidence.py",
+    "allowed_report_status": "INCOMPLETE",
+    "source_owner_bindings": 0,
+    "admitted_source_carriers": 0,
+    "authentic_admission": false
+  },
+  "d01_pgc01_review": {
+    "path": "tools/d01-converter/pgc01-d01-review.provisional.json",
+    "reviewed_commit": "0f824a09fe01f5ff327ab56f3296f36d8f4d7c87",
+    "outcome": "D01-reviewed-provisional-input-unmodified",
+    "pg_c01_overall_acceptance": "pending-independent-gates"
+  }
 }

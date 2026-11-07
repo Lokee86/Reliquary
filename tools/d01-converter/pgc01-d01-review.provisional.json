@@ -1,0 +1,33 @@
+{
+  "schema": "reliquary-pgc01-d01-review-provisional-v1",
+  "review_lane": "D01-T01",
+  "exact_commit": "0f824a09fe01f5ff327ab56f3296f36d8f4d7c87",
+  "parent_commit": "dd77dfa8f7d3c73e3e03cd07b2f4f0f7c9850fae",
+  "prior_d01_pin": "dd77dfa8f7d3c73e3e03cd07b2f4f0f7c9850fae",
+  "outcome": "D01-reviewed-provisional-input-unmodified",
+  "commit_delta_paths": [
+    "tools/corpus-evidence-v1/tests/test_corpus_evidence_v1.py"
+  ],
+  "reviewed_contract_inputs_unchanged": true,
+  "contract_blob_ids": {
+    "validator": "68e1a110486d1aa0d88e0642f56224a288f9594c",
+    "semantic_groups": "ee966ee261a5ba5c38d3faf964daf3e6561debc5",
+    "record_schemas": "a9d8787d2ce8578993d1d8dad2ce2625ccecffc7",
+    "physical_carriers": "fdf55b0b27bdfc828cf33872bb37efd751d22f8a",
+    "bundle_file": "6e8a6a8eb67ac40107a545d8e8cb76f2333a7ab7"
+  },
+  "registry_hashes": {
+    "semantic_groups": "8ca5594e463de065622ff4f3caccc17f0a61d1a95477f0284a48419f342032b0",
+    "record_schemas": "0963412591cc2d202a613584fd458ed14d5888e9e381d5283177eae40b41c79d",
+    "physical_carriers": "d7d782f7701a363fb0c4b75c6eabd04200a3889cac370d122d66ea31b0080dc5",
+    "contract_bundle": "7a1abda477874b2a1ff78f75520e075f909750d45a17ce3d6528110334f33688"
+  },
+  "physical_carrier_status": "unclassified-no-authenticated-inventory",
+  "physical_carrier_entries": 0,
+  "authentic_admission": false,
+  "scope_limits": [
+    "This is the D01 lane review of the exact 0f824a09 snapshot for the three-lane gate, not overall PG-C01 acceptance.",
+    "The review does not authenticate any FRS07 source inventory or authorize authentic source admission.",
+    "The positive PG-C01 comparator example remains synthetic_fixture evidence."
+  ]
+}
