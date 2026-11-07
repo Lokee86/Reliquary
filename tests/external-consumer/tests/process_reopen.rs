@@ -4,7 +4,8 @@ use std::{env, path::PathBuf, process::Command};
 #[test]
 #[ignore = "requires completed cohort; executed by scripts/run_g4_acceptance.ps1"]
 fn external_root_crate_consumer_reopens_the_exported_authored_cohort() {
-    let export_dir = env::var("G4_EXPORT_DIR").expect("run scripts/run_g4_acceptance.ps1 to generate the completed cohort");
+    let export_dir = env::var("G4_EXPORT_DIR")
+        .expect("run scripts/run_g4_acceptance.ps1 to generate the completed cohort");
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("..")
         .join("..")
@@ -29,5 +30,13 @@ fn external_root_crate_consumer_reopens_the_exported_authored_cohort() {
     assert!(report["rel_cascade"]["turns"].as_u64().unwrap() >= 16);
     assert!(report["phy_a"]["memory_count"].as_u64().unwrap() > 0);
     assert!(report["phy_b"]["memory_count"].as_u64().unwrap() > 0);
+    assert_eq!(report["phy_privacy"]["private_routing_verified"], true);
+    assert_eq!(
+        report["rel_lantern"]["committed_queue_archive_verified"],
+        true
+    );
+    assert_eq!(report["rel_lantern"]["uncommitted_queue_text_absent"], true);
+    assert_eq!(report["rel_lantern"]["reopen_observations_match"], true);
+    assert_eq!(report["rel_lantern"]["manifest_provenance_verified"], true);
     assert_eq!(report["source_bytes_unchanged"], true);
 }
