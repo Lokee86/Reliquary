@@ -377,6 +377,8 @@ pub(crate) fn pointer_free_frame(magic: &[u8]) -> bool {
             | b"RELXMEM3"
             | b"RELXMRP3"
             | b"RELXHST1"
+            | b"RELERH01"
+            | b"RELERL01"
             | b"RELPER01"
             | b"RELETM01"
             | b"RELRLP01"

@@ -113,8 +113,8 @@ pub(super) fn removable_backing(
         | b"RELIFRS1" | b"CVAIMPT1" | b"RELINSW1" | b"RELINSW2" | b"RELINSR1" | b"RELINSC7"
         | b"CVDREAM1" | b"CVDREAM2" | b"RELDRM01" | b"RELDRP02" | b"RELDRG01" | b"RELDRS01"
         | b"RELDRF01" | b"RELDRF02" | b"RELDRB01" | b"RELDRC01" | b"RELXMEM2" | b"RELXMEM3"
-        | b"RELXMRP3" | b"RELXHST1" | b"RELPER01" | b"RELETM01" | b"RELRLP01" | b"RELGRF01"
-        | b"RELCOM01" | b"RELCOM02" => Ok(false),
+        | b"RELXMRP3" | b"RELXHST1" | b"RELERH01" | b"RELERL01" | b"RELPER01" | b"RELETM01"
+        | b"RELRLP01" | b"RELGRF01" | b"RELCOM01" | b"RELCOM02" => Ok(false),
         _ if pointer_free_frame(magic) => Ok(false),
         _ => Err(format!(
             "unsupported reclamation frame family {}",

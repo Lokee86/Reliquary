@@ -9,6 +9,12 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fmt;
 
+mod retained_resolution;
+pub use retained_resolution::{
+    RetainedResolutionDecision, RetainedResolutionRecord, RetainedResolutionRevision,
+    RetainedResolutionValue, RetainedUnresolvedEvidence,
+};
+
 const MAGIC: &[u8; 8] = b"RELPER01";
 const ENTITY_TOMBSTONE_MAGIC: &[u8; 8] = b"RELETM01";
 const ENTITY_PRUNE_MAGIC: &[u8; 8] = b"RELEPR01";
@@ -94,6 +100,14 @@ impl MemoryTextField {
         match self {
             Self::Title => 1,
             Self::Content => 2,
+        }
+    }
+
+    fn from_tag(tag: u8) -> Result<Self, PerceptionError> {
+        match tag {
+            1 => Ok(Self::Title),
+            2 => Ok(Self::Content),
+            _ => Err(PerceptionError::CorruptRecord("unknown Memory field")),
         }
     }
 }
@@ -402,11 +416,7 @@ impl Record {
             }
             2 => {
                 let memory_id = get_array::<32>(bytes, &mut at)?;
-                let field = match get_u8(bytes, &mut at)? {
-                    1 => MemoryTextField::Title,
-                    2 => MemoryTextField::Content,
-                    _ => return Err(PerceptionError::CorruptRecord("unknown Memory field")),
-                };
+                let field = MemoryTextField::from_tag(get_u8(bytes, &mut at)?)?;
                 let start_byte = get_u32(bytes, &mut at)?;
                 let end_byte = get_u32(bytes, &mut at)?;
                 let revision = get_u32(bytes, &mut at)?;
@@ -461,6 +471,12 @@ pub enum SourcePublication {
 }
 
 pub fn source_publication(payload: &[u8]) -> Result<Option<SourcePublication>, PerceptionError> {
+    if let Some((_, row)) = retained_resolution::decode(payload)? {
+        return Ok(match row.value {
+            RetainedResolutionValue::Revision(value) => Some(SourcePublication::Mention(value.key)),
+            RetainedResolutionValue::Inert(_) => None,
+        });
+    }
     match Record::decode(payload)? {
         Some(Record::Entity { value, .. }) if value.revision == 1 => {
             Ok(Some(SourcePublication::EntityCreation(value.id)))
@@ -530,6 +546,7 @@ pub struct PerceptionStore {
     mentions: BTreeMap<MemoryEntityMentionKey, MemoryEntityResolution>,
     mention_history: BTreeMap<(MemoryEntityMentionKey, u32), MemoryEntityResolution>,
     mention_versions: BTreeMap<(MemoryEntityMentionKey, u32), u64>,
+    retained_resolution: retained_resolution::History,
 }
 
 impl PerceptionStore {
@@ -555,8 +572,18 @@ impl PerceptionStore {
             mentions: BTreeMap::new(),
             mention_history: BTreeMap::new(),
             mention_versions: BTreeMap::new(),
+            retained_resolution: retained_resolution::History::default(),
         };
         for frame in container.read_frames()? {
+            if let Some((owner, row)) = retained_resolution::decode(&frame.payload)? {
+                if owner != store.owner_id {
+                    return Err(PerceptionError::OwnerMismatch);
+                }
+                store
+                    .retained_resolution
+                    .accept(row, container.latest_version())?;
+                continue;
+            }
             if let Some(record) = relationship_codec::RelationshipRecord::decode(&frame.payload)? {
                 store.apply_relationship_record(record)?;
                 continue;
@@ -593,6 +620,15 @@ impl PerceptionStore {
     }
     pub fn entity_revision(&self, id: EntityId, revision: u64) -> Option<&Entity> {
         self.entity_history.get(&(id, revision))
+    }
+    pub fn retained_resolution_history(&self) -> &[RetainedResolutionRecord] {
+        &self.retained_resolution.records
+    }
+    pub fn retained_resolution_at_head(
+        &self,
+        key: MemoryEntityMentionKey,
+    ) -> Option<&RetainedResolutionRevision> {
+        self.retained_resolution.current(key)
     }
     pub fn mention(&self, key: MemoryEntityMentionKey) -> Option<&MemoryEntityResolution> {
         self.mentions.get(&key)
@@ -1236,6 +1272,88 @@ mod tests {
             id,
         )
         .unwrap()
+    }
+
+    #[test]
+    fn imported_resolution_keeps_decisions_and_inert_bytes_without_an_entity_clock_write() {
+        let path = TempFile::new();
+        let mut container = create(&path.0, 7);
+        let owner = container.owner_id();
+        let g = container.reserve_version(Some(-4)).unwrap();
+        let key = MemoryEntityMentionKey {
+            memory_id: [17; 32],
+            field: MemoryTextField::Content,
+            start_byte: 2,
+            end_byte: 9,
+        };
+        let mut pending = b"RELERH01".to_vec();
+        pending.extend_from_slice(&owner);
+        pending.extend_from_slice(&g.to_le_bytes());
+        pending.extend_from_slice(&37u64.to_le_bytes());
+        pending.extend_from_slice(&key.memory_id);
+        pending.push(key.field.tag());
+        pending.extend_from_slice(&key.start_byte.to_le_bytes());
+        pending.extend_from_slice(&key.end_byte.to_le_bytes());
+        pending.extend_from_slice(&1u32.to_le_bytes());
+        pending.extend_from_slice(&10i64.to_le_bytes());
+        let decision_at = pending.len();
+        pending.extend_from_slice(&[3, 1]);
+        pending.extend_from_slice(&[23; 32]);
+        pending.push(7);
+        pending.extend_from_slice(&[31; 32]);
+        pending.extend_from_slice(&[47; 32]);
+        pending.extend_from_slice(&5i64.to_le_bytes());
+        pending.extend_from_slice(&10i64.to_le_bytes());
+        pending.extend_from_slice(&2u16.to_le_bytes());
+        let mut terminal = pending[..decision_at].to_vec();
+        terminal[32..40].copy_from_slice(&39u64.to_le_bytes());
+        terminal[81..85].copy_from_slice(&2u32.to_le_bytes());
+        terminal.push(0);
+        assert!(
+            matches!(source_publication(&pending).unwrap(), Some(SourcePublication::Mention(found)) if found == key)
+        );
+        let payload = b"CVAERS02-inert-retained-bytes";
+        let mut inert = b"RELERL01".to_vec();
+        inert.extend_from_slice(&owner);
+        inert.extend_from_slice(&g.to_le_bytes());
+        inert.extend_from_slice(&38u64.to_le_bytes());
+        inert.extend_from_slice(&(payload.len() as u32).to_le_bytes());
+        inert.extend_from_slice(payload);
+        inert.extend_from_slice(&Sha256::digest(&inert));
+        assert!(source_publication(&inert).unwrap().is_none());
+        let mut corrupt = inert.clone();
+        corrupt[44] ^= 1;
+        assert!(source_publication(&corrupt).is_err());
+        for bytes in [pending, inert, terminal] {
+            container.append(&bytes).unwrap();
+        }
+        drop(container);
+        let container = Container::open_read_only(&path.0).unwrap();
+        let store = PerceptionStore::open(&container).unwrap();
+        assert_eq!(store.version(), 0);
+        assert!(store.retained_resolution_at_head(key).is_none());
+        let history = store.retained_resolution_history();
+        assert_eq!(history.len(), 3);
+        assert_eq!(history[0].source_ordinal, 37);
+        assert_eq!(history[0].source_global_version, g);
+        assert!(matches!(
+            &history[0].value,
+            RetainedResolutionValue::Revision(RetainedResolutionRevision {
+                decision: RetainedResolutionDecision::Pending(evidence),
+                ..
+            }) if evidence.attempt_count == 2 && evidence.context_fingerprint == [47; 32]
+        ));
+        assert_eq!(
+            history[1].value,
+            RetainedResolutionValue::Inert(payload.to_vec())
+        );
+        assert!(matches!(
+            &history[2].value,
+            RetainedResolutionValue::Revision(RetainedResolutionRevision {
+                decision: RetainedResolutionDecision::Tombstoned,
+                ..
+            })
+        ));
     }
 
     #[test]
