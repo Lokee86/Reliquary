@@ -114,6 +114,58 @@ impl Archive {
         Ok(())
     }
 
+    /// Import an accepted Episode using its exact Archive/global publication coordinate.
+    pub fn append_accepted_episode_at(
+        &mut self,
+        container: &mut Container,
+        coordinate: ArchivePublicationCoordinate,
+        episode: Episode,
+    ) -> Result<(), ArchiveError> {
+        self.bind_container(container)?;
+        self.validate_replayed_episode(&episode)?;
+        if self.episodes.contains_key(&episode.id) {
+            return Err(invalid_coordinate());
+        }
+        let archive_version = self.next_archive_version()?;
+        self.check_publication(container, archive_version, Some(coordinate))?;
+        self.persist_applying(container, Some(coordinate), &encode_episode(&episode)?)?;
+        self.episode_versions.insert(episode.id, archive_version);
+        self.episodes.insert(episode.id, episode);
+        self.archive_version = archive_version;
+        Ok(())
+    }
+
+    pub(super) fn validate_replayed_episode(&self, episode: &Episode) -> Result<(), ArchiveError> {
+        if self
+            .conversation_tombstones
+            .contains_key(&episode.conversation_id)
+        {
+            return Err(ArchiveError::CorruptRecord(
+                "Episode after terminal tombstone",
+            ));
+        }
+        validate_text(&episode.conversation_id, "conversation id")?;
+        validate_text(&episode.start_node_id, "Episode start node id")?;
+        validate_text(&episode.end_node_id, "Episode end node id")?;
+        let end = self.require_node(&episode.conversation_id, &episode.end_node_id)?;
+        if episode.id
+            != Episode::stable_id(
+                &episode.conversation_id,
+                &episode.start_node_id,
+                &episode.end_node_id,
+            )
+            || episode.source_through_ns != end.timestamp_ns
+            || episode.finalized_at_ns < episode.source_through_ns
+            || !self
+                .branch_path(&episode.conversation_id, &episode.end_node_id)?
+                .iter()
+                .any(|node| node.id == episode.start_node_id)
+        {
+            return Err(ArchiveError::InvalidEpisodeRange);
+        }
+        Ok(())
+    }
+
     fn first_applying(&self, version: u64) -> Result<&ArchivePublicationBinding, ArchiveError> {
         self.publication_bindings
             .binary_search_by_key(&version, |binding| binding.archive_version)
