@@ -970,11 +970,29 @@ fn inspect(args: &[String]) -> Result<String, String> {
         return Err("public title, Memory, provenance, or history changed across reopen".into());
     }
 
+    // Release mounted owner leases before the independent byte-for-byte read.
+    // Windows enforces those leases even for reads from this same process.
+    drop((
+        lantern_management,
+        cascade_management,
+        queue_manager_management,
+        principal_a_phy,
+        principal_b_phy,
+        operator,
+        viewer,
+        outsider,
+        queue_manager,
+        principal_a,
+        principal_b,
+        adapter,
+        control,
+        gateway,
+    ));
     let after: Vec<Vec<u8>> = paths
         .iter()
         .map(fs::read)
         .collect::<Result<_, _>>()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("cannot compare cohort bytes after releasing owner leases: {e}"))?;
     if after != source_bytes {
         return Err(
             "a public read, denial, revocation, quiesce, or reopen changed source bytes".into(),
