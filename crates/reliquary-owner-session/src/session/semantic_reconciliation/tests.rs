@@ -991,6 +991,19 @@ fn divergent_reconciliation_reuses_owner_admitted_shared_dream_batch_graph() {
             body_id: record.body_id,
         })
         .collect::<Vec<_>>();
+    let dream_admission = {
+        let mut writer = RelWriter::open_path(&left.0, admission.clone(), [], []).unwrap();
+        let admission = writer
+            .begin_initial_dream_frontier(
+                "shared-dream-frontier".into(),
+                observed[0],
+                vec![observed[1]],
+                20,
+            )
+            .unwrap();
+        writer.container.sync().unwrap();
+        admission
+    };
     let pairs = observed[1..]
         .iter()
         .map(|candidate| DreamPairPublication {
@@ -1037,7 +1050,8 @@ fn divergent_reconciliation_reuses_owner_admitted_shared_dream_batch_graph() {
         lifecycles,
         updated_at_ns: 20,
     };
-    let mut writer = RelWriter::open_path(&left.0, admission.clone(), [], []).unwrap();
+    let mut writer =
+        RelWriter::open_path(&left.0, admission.clone(), [], [dream_admission.clone()]).unwrap();
     assert!(writer.commit_dream_batch(batch).unwrap());
     drop(writer);
     assert!(
@@ -1048,14 +1062,29 @@ fn divergent_reconciliation_reuses_owner_admitted_shared_dream_batch_graph() {
             .iter()
             .any(|frame| frame.payload.starts_with(b"RELDRB01"))
     );
+    assert!(
+        Container::open_read_only(&left.0)
+            .unwrap()
+            .read_frames()
+            .unwrap()
+            .iter()
+            .any(|frame| frame.payload.starts_with(b"RELDRC01"))
+    );
     fs::copy(&left.0, &right.0).unwrap();
     append_branch(&left.0, "left-dream-tail", "left authored branch", &[]);
     append_branch(&right.0, "right-dream-tail", "right authored branch", &[]);
 
     let output = Temp::new("shared-dream-batch");
-    reconcile_divergent_rel_copy(&left.0, &right.0, &output.0, &admission, &[], &[])
-        .expect("replay shared Dream authority through the admitted owner session");
-    let merged = RelSession::open_path(&output.0, &admission, [], []).unwrap();
+    reconcile_divergent_rel_copy(
+        &left.0,
+        &right.0,
+        &output.0,
+        &admission,
+        &[],
+        &[dream_admission.clone()],
+    )
+    .expect("replay shared Dream authority through the admitted owner session");
+    let merged = RelSession::open_path(&output.0, &admission, [], [dream_admission]).unwrap();
     assert!(
         merged
             .resolved_archive_turn("conversation", "left-dream-tail")
