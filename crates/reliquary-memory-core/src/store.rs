@@ -206,7 +206,9 @@ impl MemoryStore {
                 payload.extend_from_slice(&magic);
                 frame.read_to_end(&mut payload)?;
                 if let Some((bodies, records)) = decode_grouped(&payload)? {
-                    store.apply_grouped_completion(bodies, records)?;
+                    // Owner replay validates any missing grouped payload only
+                    // after it has admitted the exact terminal-prune manifest.
+                    store.apply_grouped_completion_replay(bodies, records)?;
                 }
                 continue;
             }
@@ -269,6 +271,23 @@ impl MemoryStore {
         bodies: Vec<(MemoryBodyId, Vec<u8>)>,
         records: Vec<Vec<u8>>,
     ) -> Result<(), MemoryError> {
+        self.apply_grouped_completion_inner(bodies, records, false)
+    }
+
+    fn apply_grouped_completion_replay(
+        &mut self,
+        bodies: Vec<(MemoryBodyId, Vec<u8>)>,
+        records: Vec<Vec<u8>>,
+    ) -> Result<(), MemoryError> {
+        self.apply_grouped_completion_inner(bodies, records, true)
+    }
+
+    fn apply_grouped_completion_inner(
+        &mut self,
+        bodies: Vec<(MemoryBodyId, Vec<u8>)>,
+        records: Vec<Vec<u8>>,
+        allow_missing_body_for_owner_admission: bool,
+    ) -> Result<(), MemoryError> {
         if !records.is_empty() && !self.initialized {
             return Err(MemoryError::Corrupt(
                 "grouped creation precedes Memory format",
@@ -305,7 +324,9 @@ impl MemoryStore {
                 used_provided_bodies.insert(record.body_id);
             }
             next.replay(&bytes)?;
-            if !next.state.bodies.contains_key(&record.body_id) {
+            if !allow_missing_body_for_owner_admission
+                && !next.state.bodies.contains_key(&record.body_id)
+            {
                 return Err(MemoryError::Corrupt("grouped creation has no body backing"));
             }
         }

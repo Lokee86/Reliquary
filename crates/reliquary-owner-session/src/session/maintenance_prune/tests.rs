@@ -1,8 +1,12 @@
 use super::*;
 use crate::ArchiveVectorRow;
+use crate::records::{GroupedInsomniaCompletion, GroupedMemoryBody};
 use reliquary_archive::{Branch, TurnInput};
 use reliquary_container::{ContainerIdentity, ReliquaryScope};
-use reliquary_memory_core::{MemoryDraft, MemoryStore};
+use reliquary_memory_core::{
+    MemoryBodyId, MemoryDraft, MemoryRecord, MemorySourceRef, MemoryStore, encode_grouped_creation,
+    memory_body_bytes, memory_body_id, memory_id,
+};
 use reliquary_vector_store::{
     CompatibilityProbeReference, CompatibilityProfile, CompatibilityProfileStore, EmbeddingMode,
     MemoryVectorStore, PackedVectorStore, VectorNormalization,
@@ -401,6 +405,370 @@ fn rel_terminal_memory_prune_retains_validated_operations_and_relocates_vector_r
     let history = reopened.memory_history(memory).unwrap().unwrap();
     assert!(history.tombstone.is_some());
     assert!(matches!(history.revisions[0].payload, PayloadState::Absent));
+}
+
+#[test]
+fn rel_terminal_memory_prune_reclaims_body_embedded_in_grouped_insomnia_carrier() {
+    let source = Temp::new();
+    let output = Temp::new();
+    let no_manifest = Temp::new();
+    let forged_proof = Temp::new();
+    let owner = [0xb7; 16];
+    let secret = "grouped terminal secret that must be removed ".repeat(900);
+    let successor_content = "source-grounded successor retained after terminal pruning";
+    let conversation = "g4-grouped-prune";
+    let node = "g4-grouped-prune-source";
+    let mut writer = RelWriter::create_path(&source.0, ReliquaryScope::Project, owner).unwrap();
+    writer
+        .accept_turn_and_advance_branch(
+            TurnInput {
+                id: node.into(),
+                conversation_id: conversation.into(),
+                parent_id: None,
+                role: "user".into(),
+                principal_id: Some("maintenance-principal".into()),
+                timestamp_ns: 10,
+                content: "The accepted source supports two extracted memories.".into(),
+                attachments: vec![],
+                project_attachments: vec![],
+            },
+            Branch {
+                id: "main".into(),
+                conversation_id: conversation.into(),
+                leaf_node_id: node.into(),
+                canonical: true,
+            },
+        )
+        .unwrap();
+    let episode = writer
+        .finalize_episode(
+            conversation,
+            node,
+            node,
+            reliquary_archive::EpisodeOrigin::Live,
+            reliquary_archive::EpisodeBoundary::Explicit,
+            11,
+        )
+        .unwrap();
+    let claim = writer
+        .claim_next_insomnia_input("maintenance-worker", 12, 100, 1)
+        .unwrap()
+        .unwrap();
+    let old_mutation = "g4-grouped-prune-terminal";
+    let new_mutation = "g4-grouped-prune-successor";
+    let old_id = memory_id(old_mutation);
+    let successor_id = memory_id(new_mutation);
+    let old_body = memory_body_id("terminal grouped title", &secret);
+    let successor_body = memory_body_id("retained grouped title", successor_content);
+    let first_memory_version = writer.read_session().memory_version() + 1;
+    let record = |id, body_id, mutation: &str, title: &str, content: &str, version| MemoryRecord {
+        id,
+        revision: 1,
+        body_id,
+        category: "fact".into(),
+        memory_type: "semantic".into(),
+        authority_kind: "direct".into(),
+        temporal_status: "current".into(),
+        scope: "project".into(),
+        lifecycle_state: "extracted".into(),
+        archived: false,
+        parent_id: None,
+        superseded_by: None,
+        source_node_id: Some(node.into()),
+        content_source_conversation_id: Some(conversation.into()),
+        content_source_node_id: Some(node.into()),
+        grounding_source_conversation_id: None,
+        grounding_source_node_id: None,
+        source_episode_id: Some(episode.0),
+        source_ref: Some(MemorySourceRef {
+            owner_id: owner.iter().map(|byte| format!("{byte:02x}")).collect(),
+            principal_id: Some("maintenance-principal".into()),
+            source_episode_id: episode.0,
+            source_node_id: node.into(),
+            content_source_conversation_id: Some(conversation.into()),
+            content_source_node_id: Some(node.into()),
+            grounding_source_conversation_id: None,
+            grounding_source_node_id: None,
+        }),
+        source_time_ns: Some(10),
+        temporal_inference: None,
+        mutation_id: mutation.into(),
+        created_at_ns: 12,
+        updated_at_ns: 12,
+        memory_version: version,
+    };
+    let old_record = record(
+        old_id,
+        old_body,
+        old_mutation,
+        "terminal grouped title",
+        &secret,
+        first_memory_version,
+    );
+    let successor_record = record(
+        successor_id,
+        successor_body,
+        new_mutation,
+        "retained grouped title",
+        successor_content,
+        first_memory_version + 1,
+    );
+    let grouped_records = vec![
+        encode_grouped_creation(&old_record).unwrap(),
+        encode_grouped_creation(&successor_record).unwrap(),
+    ];
+    assert!(matches!(
+        writer
+            .session
+            .common
+            .memories
+            .preflight_grouped_completion(Vec::new(), grouped_records.clone()),
+        Err(reliquary_memory_core::MemoryError::Corrupt(
+            "grouped creation has no body backing"
+        ))
+    ));
+    let completion_at = 13;
+    writer
+        .commit_grouped_insomnia_completion(
+            claim.work.lease_token.unwrap(),
+            GroupedInsomniaCompletion {
+                episode_id: episode.0,
+                attempt: claim.work.attempt_count,
+                started_at_ns: claim.started_at_ns,
+                completed_at_ns: completion_at,
+                transaction_time_ns: completion_at,
+                extractor_model: "g4-maintenance-fixture".into(),
+                extractor_version: "v1".into(),
+                rejected_count: 0,
+                memory_ids: vec![old_id.0, successor_id.0],
+                external_memory_refs: vec![],
+                global_version_start: writer.next_global_version().unwrap(),
+                bodies: vec![
+                    GroupedMemoryBody {
+                        id: MemoryBodyId(old_body.0),
+                        bytes: memory_body_bytes("terminal grouped title", &secret),
+                    },
+                    GroupedMemoryBody {
+                        id: MemoryBodyId(successor_body.0),
+                        bytes: memory_body_bytes("retained grouped title", successor_content),
+                    },
+                ],
+                memory_records: grouped_records,
+                routing_metadata: vec![],
+                freshness_birth_turn: Some(writer.read_session().rel_turn_count()),
+                freshness_policy_version: Some(1),
+                freshness_birth_memory_ids: vec![old_id.0, successor_id.0],
+            },
+            completion_at,
+        )
+        .unwrap();
+    let observed = [old_id, successor_id].map(|id| {
+        let record = writer.read_session().current_memory(id).unwrap().record;
+        crate::DreamMemoryCut {
+            id,
+            revision: record.revision,
+            body_id: record.body_id,
+        }
+    });
+    writer
+        .commit_dream_batch(crate::DreamBatchCut {
+            owner,
+            publication_id: [0xd3; 32],
+            graph_version: writer.read_session().graph_version(),
+            observed: observed.to_vec(),
+            pairs: vec![crate::DreamPairPublication {
+                source: successor_id,
+                candidate: old_id,
+                kind: Some(reliquary_graph::RelationKind::Supersedes),
+                rejected: false,
+            }],
+            changes: vec![reliquary_graph::RelationChange {
+                source: reliquary_graph::NodeRef::Memory(successor_id.0),
+                target: reliquary_graph::NodeRef::Memory(old_id.0),
+                kind: reliquary_graph::RelationKind::Supersedes,
+                active: true,
+                origin: reliquary_graph::RelationOrigin::Dream,
+            }],
+            lifecycles: vec![
+                crate::DreamLifecyclePublication {
+                    memory_id: successor_id,
+                    lifecycle_state: "canonical".into(),
+                    archived: false,
+                    superseded_by: None,
+                },
+                crate::DreamLifecyclePublication {
+                    memory_id: old_id,
+                    lifecycle_state: "archived".into(),
+                    archived: true,
+                    superseded_by: Some(successor_id),
+                },
+            ],
+            updated_at_ns: 14,
+        })
+        .unwrap();
+    let old_current = writer.read_session().current_memory(old_id).unwrap().record;
+    let successor_current = writer
+        .read_session()
+        .current_memory(successor_id)
+        .unwrap()
+        .record;
+    writer
+        .retire_memory(crate::MemoryRetirementRequest {
+            owner_id: owner,
+            memory_id: old_id,
+            memory_revision: old_current.revision,
+            body_id: old_current.body_id,
+            superseded_by: successor_id,
+            successor_revision: successor_current.revision,
+            successor_body_id: successor_current.body_id,
+        })
+        .unwrap();
+    writer.container.sync().unwrap();
+    drop(writer);
+
+    let admission = GraphAdmission::for_replay(owner, [old_id.0, successor_id.0], [], [], [], []);
+    let source_bytes = fs::read(&source.0).unwrap();
+    let source_container = Container::open_read_only(&source.0).unwrap();
+    let source_frames = source_container.read_frames().unwrap();
+    assert!(
+        source_frames
+            .iter()
+            .any(|frame| frame.payload.starts_with(b"RELINSC7"))
+    );
+    assert!(
+        !source_frames
+            .iter()
+            .any(|frame| frame.payload.starts_with(b"RELMBOD1")
+                && frame.payload.get(8..40) == Some(&old_body.0))
+    );
+    let work_history = reliquary_insomnia_store::InsomniaStore::work_history(
+        &source_container,
+        reliquary_insomnia_store::EpisodeId(episode.0),
+    )
+    .unwrap();
+    let source_rel = RelSession::open_path(&source.0, &admission, [], []).unwrap();
+    let source_target = source_rel.memory_history(old_id).unwrap().unwrap();
+    let source_successor = source_rel.memory_history(successor_id).unwrap().unwrap();
+    let source_receipt = source_rel
+        .insomnia_receipt(reliquary_insomnia_store::EpisodeId(episode.0), 1)
+        .unwrap()
+        .clone();
+    drop(source_rel);
+    drop(source_container);
+
+    let plan = VerifiedOwnerCopyPlan::prepare(&source.0).unwrap();
+    let report =
+        prune_terminal_memory_copy(&plan, &source.0, &output.0, &[old_id], &admission).unwrap();
+    assert_eq!(report.pruned_memories, 1);
+    assert!(report.transformed_bytes < report.source_bytes);
+    assert_eq!(fs::read(&source.0).unwrap(), source_bytes);
+    let output_bytes = fs::read(&output.0).unwrap();
+    assert!(
+        !output_bytes
+            .windows(secret.len())
+            .any(|part| part == secret.as_bytes())
+    );
+    let output_container = Container::open_read_only(&output.0).unwrap();
+    let output_completion = output_container
+        .read_frames()
+        .unwrap()
+        .into_iter()
+        .find(|frame| frame.payload.starts_with(b"RELINSC7"))
+        .map(|frame| GroupedInsomniaCompletion::decode(&frame.payload).unwrap())
+        .unwrap();
+    assert!(
+        !output_completion
+            .bodies
+            .iter()
+            .any(|body| body.id == MemoryBodyId(old_body.0))
+    );
+    assert!(
+        output_completion
+            .bodies
+            .iter()
+            .any(|body| body.id == MemoryBodyId(successor_body.0))
+    );
+    let output_work_history = reliquary_insomnia_store::InsomniaStore::work_history(
+        &output_container,
+        reliquary_insomnia_store::EpisodeId(episode.0),
+    )
+    .unwrap();
+    assert_eq!(output_work_history, work_history);
+    drop(output_container);
+
+    let reopened = RelSession::open_path(&output.0, &admission, [], []).unwrap();
+    let pruned_history = reopened.memory_history(old_id).unwrap().unwrap();
+    assert_eq!(
+        pruned_history
+            .revisions
+            .iter()
+            .map(|revision| &revision.record)
+            .collect::<Vec<_>>(),
+        source_target
+            .revisions
+            .iter()
+            .map(|revision| &revision.record)
+            .collect::<Vec<_>>(),
+    );
+    assert_eq!(pruned_history.tombstone, source_target.tombstone);
+    assert!(
+        pruned_history
+            .revisions
+            .iter()
+            .all(|revision| matches!(revision.payload, PayloadState::Absent))
+    );
+    let retained_history = reopened.memory_history(successor_id).unwrap().unwrap();
+    assert_eq!(
+        retained_history
+            .revisions
+            .iter()
+            .map(|revision| &revision.record)
+            .collect::<Vec<_>>(),
+        source_successor
+            .revisions
+            .iter()
+            .map(|revision| &revision.record)
+            .collect::<Vec<_>>(),
+    );
+    let PayloadState::Available(body) = &retained_history.revisions[0].payload else {
+        panic!("untargeted grouped Memory body must remain available")
+    };
+    assert_eq!(body.content, successor_content);
+    assert_eq!(
+        reopened.insomnia_receipt(reliquary_insomnia_store::EpisodeId(episode.0), 1),
+        Some(&source_receipt)
+    );
+    drop(reopened);
+
+    let pruned_container = Container::open_read_only(&output.0).unwrap();
+    let mut without_manifest =
+        Container::create(&no_manifest.0, pruned_container.identity(), owner).unwrap();
+    for frame in pruned_container.read_frames().unwrap() {
+        if !frame.payload.starts_with(b"RELHPR01") {
+            without_manifest.append(&frame.payload).unwrap();
+        }
+    }
+    without_manifest.sync().unwrap();
+    drop(without_manifest);
+    drop(pruned_container);
+    assert!(RelSession::open_path(&no_manifest.0, &admission, [], []).is_err());
+
+    let pruned_container = Container::open_read_only(&output.0).unwrap();
+    let mut tampered =
+        Container::create(&forged_proof.0, pruned_container.identity(), owner).unwrap();
+    for frame in pruned_container.read_frames().unwrap() {
+        if frame.payload.starts_with(b"RELHPR01") {
+            let mut manifest = HistoryPruneManifest::decode(&frame.payload).unwrap();
+            manifest.descriptors[0].retained_structure_digest[0] ^= 1;
+            tampered.append(&manifest.encode().unwrap()).unwrap();
+        } else {
+            tampered.append(&frame.payload).unwrap();
+        }
+    }
+    tampered.sync().unwrap();
+    drop(tampered);
+    drop(pruned_container);
+    assert!(RelSession::open_path(&forged_proof.0, &admission, [], []).is_err());
 }
 
 #[test]
