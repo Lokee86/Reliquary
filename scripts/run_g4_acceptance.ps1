@@ -5,6 +5,7 @@ $exportDir = Join-Path $repo ".test-tmp\g4-completed-$runId"
 $target = Join-Path $repo 'target-codex-check'
 $manifest = Join-Path $repo 'tests\fixtures\g4-native-rel21-v1.json'
 $env:G4_EXPORT_DIR = $exportDir
+$observations = [System.Collections.Generic.List[object]]::new()
 
 function Invoke-Cargo([string[]] $Arguments) {
     & cargo @Arguments
@@ -15,18 +16,27 @@ function Invoke-Json([string] $Executable, [string[]] $Arguments) {
     $exit = $LASTEXITCODE
     $text = ($output | Out-String).Trim()
     if ($exit -ne 0) { throw "$Executable failed ($exit): $text" }
-    return ($text | ConvertFrom-Json)
+    $result = $text | ConvertFrom-Json
+    $observations.Add(@{ arguments = $Arguments; exit_code = $exit; result = $result })
+    return $result
 }
 function Expect-Failure([string] $Executable, [string[]] $Arguments) {
     $output = & $Executable @Arguments 2>&1
     if ($LASTEXITCODE -eq 0) { throw "Expected failure: $Executable $Arguments" }
     $result = ($output | Out-String) | ConvertFrom-Json
     if ($null -eq $result.error) { throw 'CLI failure did not return a structured JSON error.' }
+    $observations.Add(@{ arguments = $Arguments; exit_code = $LASTEXITCODE; result = $result })
 }
 
 Push-Location $repo
 try {
     Invoke-Cargo @('test', '-p', 'reliquary-runtime-gateway', '--locked', '--offline', '-j', '1', '--target-dir', $target, 'g4_t04_joined_vectors_context_retrieval_and_confirmed_use', '--', '--test-threads=1')
+    $env:G4_EXPORT_DIR = "$exportDir-repeat"
+    Invoke-Cargo @('test', '-p', 'reliquary-runtime-gateway', '--locked', '--offline', '-j', '1', '--target-dir', $target, 'g4_t04_joined_vectors_context_retrieval_and_confirmed_use', '--', '--test-threads=1')
+    $first = Get-Content -LiteralPath (Join-Path $exportDir 'witness.json') -Raw | ConvertFrom-Json
+    $second = Get-Content -LiteralPath (Join-Path $env:G4_EXPORT_DIR 'witness.json') -Raw | ConvertFrom-Json
+    if (($first.semantics.sources | ConvertTo-Json -Depth 16 -Compress) -ne ($second.semantics.sources | ConvertTo-Json -Depth 16 -Compress)) { throw 'Regenerated authored semantic witnesses are not deterministic.' }
+    $env:G4_EXPORT_DIR = $exportDir
     Invoke-Cargo @('build', '--manifest-path', 'cli/Cargo.toml', '--locked', '--offline', '-j', '1', '--target-dir', $target)
     Invoke-Cargo @('build', '--manifest-path', 'tests/external-consumer/Cargo.toml', '--locked', '--offline', '-j', '1', '--target-dir', $target)
     Invoke-Cargo @('test', '--manifest-path', 'tests/external-consumer/Cargo.toml', '--locked', '--offline', '-j', '1', '--target-dir', $target, '--', '--ignored', '--test-threads=1')
@@ -79,7 +89,9 @@ try {
     Expect-Failure $cli @('rel', 'info', $wrongKind)
     $legacyPath = Join-Path $negativeDir 'synthetic-2.0.rel'
     [System.IO.File]::WriteAllBytes($legacyPath, [byte[]](70, 82, 83, 48, 55, 0, 2, 0))
+    $legacyHash = (Get-FileHash -LiteralPath $legacyPath -Algorithm SHA256).Hash
     Expect-Failure $cli @('rel', 'info', $legacyPath)
+    if ((Get-FileHash -LiteralPath $legacyPath -Algorithm SHA256).Hash -ne $legacyHash) { throw 'Legacy rejection changed its source bytes.' }
     Expect-Failure $cli @('rel', 'info', (Join-Path $exportDir 'rel-lantern.rel'), '--unknown')
     $collision = Join-Path $negativeDir 'collision.rel'
     Copy-Item -LiteralPath (Join-Path $exportDir 'rel-lantern.rel') -Destination $collision
@@ -89,6 +101,8 @@ try {
     $afterHashes = $sourceFiles | ForEach-Object { (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }
     if (($sourceHashes -join ',') -ne ($afterHashes -join ',')) { throw 'CLI reads or negative cases changed source owner bytes.' }
     $after | ConvertTo-Json -Depth 16 | Set-Content -LiteralPath (Join-Path $exportDir 'process-witness.json') -Encoding utf8
+    $observations | ConvertTo-Json -Depth 32 | Set-Content -LiteralPath (Join-Path $exportDir 'cli-witness.json') -Encoding utf8
+    Write-Output "Completed corpus evidence: $exportDir"
     Write-Output ('G4 fresh-process witness passed: ' + ($after | ConvertTo-Json -Compress))
 }
 finally {

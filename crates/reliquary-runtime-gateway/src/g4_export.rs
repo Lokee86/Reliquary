@@ -5,7 +5,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{fs, path::Path};
 
-pub(crate) fn export_completed_cohort(paths: [&Path; 4], mut witness: Value) {
+pub(crate) fn export_completed_cohort(root: &Path, paths: [&Path; 4], mut witness: Value) {
     verify_semantic_reopen(paths, &witness["semantics"]);
     let destination = std::env::var_os("G4_EXPORT_DIR").map(std::path::PathBuf::from);
     if let Some(destination) = &destination {
@@ -64,16 +64,30 @@ pub(crate) fn export_completed_cohort(paths: [&Path; 4], mut witness: Value) {
     witness["schema_version"] = json!(1);
     witness["owners"] = json!(owners);
     witness["semantic_reopen_verified"] = json!(true);
-    witness["rewrite_policy"] = serde_json::to_value(reliquary_application::RewritePolicy::default()).unwrap();
+    witness["rewrite_policy"] =
+        serde_json::to_value(reliquary_application::RewritePolicy::default()).unwrap();
     let Some(destination) = destination else {
         return;
     };
+    for name in ["lifecycle-queue", "lifecycle-race-queue"] {
+        copy_tree(&root.join(name), &destination.join(name));
+    }
     let witness_path = destination.join("witness.json");
     assert!(
         !witness_path.exists(),
         "export never replaces an existing witness"
     );
     fs::write(witness_path, serde_json::to_vec_pretty(&witness).unwrap()).unwrap();
+}
+
+fn copy_tree(source: &Path, destination: &Path) {
+    fs::create_dir(destination).unwrap();
+    for entry in fs::read_dir(source).unwrap() {
+        let entry = entry.unwrap();
+        let target = destination.join(entry.file_name());
+        if entry.file_type().unwrap().is_dir() { copy_tree(&entry.path(), &target); }
+        else { fs::copy(entry.path(), target).unwrap(); }
+    }
 }
 
 fn verify_semantic_reopen(paths: [&Path; 4], witness: &Value) {

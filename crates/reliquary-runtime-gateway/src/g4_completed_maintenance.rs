@@ -43,113 +43,55 @@ pub(crate) fn verify_completed_cohort(
 
     for (index, source) in paths.iter().enumerate() {
         let kind = if index < 2 { "rel" } else { "phy" };
-        let source_session = if kind == "rel" {
-            let owner = Container::open_read_only(source)
-                .expect("open REL source")
-                .owner_id();
-            let graph = GraphAdmission::for_replay(owner, [], [], [], [], []);
-            let session = RelSession::open_path(source, &graph, [], []).expect("open REL reader");
-            let source_cut = session.current_historical_cut();
-            let source_proof = session
-                .historical_proof(owner, &source_cut)
-                .expect("capture completed REL history proof");
-            // The completed cohort uses one shared REL/PHY embedding profile
-            // for Memory and Archive vectors, so selecting it retains both.
-            let profiles = [memory_profile.0].into_iter().collect();
+        let owner = Container::open_read_only(source).unwrap().owner_id();
+        let graph = GraphAdmission::for_replay(owner, [], [], [], [], []);
+        // GM explicitly excludes operational Dream/Insomnia/import/external
+        // carriers from fresh-history reconstruction. Exercise both policies
+        // on the completed owner and require their exact fail-closed contract.
+        for identity in [RewriteIdentityMode::NewOwner, RewriteIdentityMode::PreserveOwner] {
             let policy = RewritePolicy {
-                identity: RewriteIdentityMode::NewOwner,
-                profile_ids: profiles,
-                archive: ArchiveRewriteMode::RetainAll,
-                freshness: FreshnessRewriteMode::PreserveEffectiveCurrent,
+                identity, profile_ids: [memory_profile.0].into_iter().collect(),
+                archive: if index < 2 { ArchiveRewriteMode::RetainAll } else { ArchiveRewriteMode::Omit },
+                freshness: if index < 2 { FreshnessRewriteMode::PreserveEffectiveCurrent } else { FreshnessRewriteMode::Reset },
                 derived_state: DerivedStateRewriteMode::RetainVerified,
                 ..RewritePolicy::default()
             };
-            let plan = plan_rel_rewrite(source, &session, policy).expect("plan REL rewrite");
-            let new_path = output.join(format!("{kind}-{index}-new.rel"));
-            let new_owner = [0xD0u8.wrapping_add(index as u8); 16];
-            execute_memory_rewrite(&plan, source, &new_path, Some(new_owner), &graph)
-                .expect("execute NewOwner REL rewrite");
-            let collision_bytes = digest(&new_path);
-            assert!(
-                execute_memory_rewrite(&plan, source, &new_path, Some(new_owner), &graph).is_err()
-            );
-            assert_eq!(digest(&new_path), collision_bytes);
-            let stale_source = output.join(format!("{kind}-{index}-stale-source.rel"));
-            VerifiedOwnerCopyPlan::prepare(source)
-                .expect("prepare stale-plan fixture copy")
-                .copy_to(source, &stale_source)
-                .expect("copy stale-plan fixture");
-            let stale_plan = plan_rel_rewrite(&stale_source, &session, plan.policy.clone())
-                .expect("plan stale-source fixture");
-            append_orphan_file(&stale_source);
-            assert!(verify_rewrite_source(&stale_plan, &stale_source).is_err());
-            let new_graph = GraphAdmission::for_replay(new_owner, [], [], [], [], []);
-            let reopened = RelSession::open_path(&new_path, &new_graph, [], [])
-                .expect("independently reopen NewOwner REL");
-            assert_eq!(reopened.owner_id(), new_owner);
-            drop(reopened);
-            let preserve_path = output.join(format!("{kind}-{index}-preserve.rel"));
-            let mut preserve_policy = plan.policy.clone();
-            preserve_policy.identity = RewriteIdentityMode::PreserveOwner;
-            let preserve_plan = plan_rel_rewrite(source, &session, preserve_policy)
-                .expect("plan PreserveOwner REL rewrite");
-            execute_memory_rewrite(&preserve_plan, source, &preserve_path, None, &graph)
-                .expect("execute PreserveOwner REL rewrite");
-            let reopened =
-                RelSession::open_path(source, &graph, [], []).expect("reopen source REL");
-            let preserved = RelSession::open_path(&preserve_path, &graph, [], [])
-                .expect("independently reopen PreserveOwner REL");
-            assert_eq!(reopened.owner_id(), preserved.owner_id());
-            assert_eq!(
-                preserved.historical_proof(owner, &source_cut).unwrap(),
-                source_proof
-            );
-            drop((reopened, preserved, session));
-            owners.push(json!({"alias": index, "kind": kind, "new_owner": hex(&new_owner), "preserve_owner": "verified"}));
-            (new_path, new_owner, kind.to_owned())
+            let plan = if index < 2 {
+                plan_rel_rewrite(source, &RelSession::open_path_current(source).unwrap(), policy).unwrap()
+            } else {
+                plan_phy_rewrite(source, &PhySession::open_path_current(source).unwrap(), policy).unwrap()
+            };
+            let destination = output.join(format!("{kind}-{index}-{identity:?}"));
+            let result = execute_memory_rewrite(&plan, source, &destination,
+                (identity == RewriteIdentityMode::NewOwner).then_some([0xa0 + index as u8; 16]), &graph);
+            let error = result.expect_err("operational-carrier rewrite is an explicit GM typed stop");
+            assert!(error.to_string().contains("operational evidence"), "{error}");
+            assert!(!destination.exists());
+            let stale = output.join(format!("{kind}-{index}-{identity:?}-stale"));
+            VerifiedOwnerCopyPlan::prepare(source).unwrap().copy_to(source, &stale).unwrap();
+            append_orphan_file(&stale);
+            assert!(verify_rewrite_source(&plan, &stale).is_err());
+        }
+        let copy = output.join(format!("{kind}-{index}-verified-copy"));
+        let copy_plan = VerifiedOwnerCopyPlan::prepare(source).unwrap();
+        copy_plan.copy_to(source, &copy).unwrap();
+        assert_eq!(digest(source), digest(&copy));
+        assert!(copy_plan.copy_to(source, &copy).is_err());
+        if index < 2 {
+            let original = RelSession::open_path_current(source).unwrap();
+            let reopened = RelSession::open_path_current(&copy).unwrap();
+            let cut = original.current_historical_cut();
+            assert_eq!(original.historical_proof(owner, &cut).unwrap(), reopened.historical_proof(owner, &cut).unwrap());
         } else {
-            let owner = Container::open_read_only(source)
-                .expect("open PHY source")
-                .owner_id();
-            let graph = GraphAdmission::for_replay(owner, [], [], [], [], []);
-            let session = PhySession::open_path(source, &graph, []).expect("open PHY reader");
-            let policy = RewritePolicy {
-                identity: RewriteIdentityMode::NewOwner,
-                profile_ids: [memory_profile.0].into_iter().collect(),
-                archive: ArchiveRewriteMode::Omit,
-                freshness: FreshnessRewriteMode::Reset,
-                derived_state: DerivedStateRewriteMode::RetainVerified,
-                ..RewritePolicy::default()
-            };
-            let plan = plan_phy_rewrite(source, &session, policy).expect("plan PHY rewrite");
-            let new_path = output.join(format!("{kind}-{index}-new.phy"));
-            let new_owner = [0xD0u8.wrapping_add(index as u8); 16];
-            execute_memory_rewrite(&plan, source, &new_path, Some(new_owner), &graph)
-                .expect("execute NewOwner PHY rewrite");
-            let collision_bytes = digest(&new_path);
-            assert!(
-                execute_memory_rewrite(&plan, source, &new_path, Some(new_owner), &graph).is_err()
-            );
-            assert_eq!(digest(&new_path), collision_bytes);
-            let new_graph = GraphAdmission::for_replay(new_owner, [], [], [], [], []);
-            let reopened =
-                PhySession::open_path(&new_path, &new_graph, []).expect("reopen NewOwner PHY");
-            assert_eq!(reopened.owner_id(), new_owner);
-            drop(reopened);
-            let mut preserve_policy = plan.policy.clone();
-            preserve_policy.identity = RewriteIdentityMode::PreserveOwner;
-            let preserve_plan = plan_phy_rewrite(source, &session, preserve_policy)
-                .expect("plan PreserveOwner PHY rewrite");
-            let preserve_path = output.join(format!("{kind}-{index}-preserve.phy"));
-            execute_memory_rewrite(&preserve_plan, source, &preserve_path, None, &graph)
-                .expect("execute PreserveOwner PHY rewrite");
-            let preserved = PhySession::open_path(&preserve_path, &graph, [])
-                .expect("reopen PreserveOwner PHY");
-            assert_eq!(preserved.owner_id(), owner);
-            drop((preserved, session));
-            owners.push(json!({"alias": index, "kind": kind, "new_owner": hex(&new_owner), "preserve_owner": "verified"}));
-            (new_path, new_owner, kind.to_owned())
-        };
+            let original = PhySession::open_path_current(source).unwrap();
+            let reopened = PhySession::open_path_current(&copy).unwrap();
+            let cut = original.current_historical_cut();
+            assert_eq!(original.historical_proof(owner, cut).unwrap(), reopened.historical_proof(owner, cut).unwrap());
+        }
+        owners.push(json!({"alias": index, "kind": kind, "owner_id": hex(&owner),
+            "fresh_history": "UnsupportedOperationalState", "policies_checked": ["NewOwner", "PreserveOwner"],
+            "verified_copy_history_equal": true}));
+        let source_session = (copy, owner, kind.to_owned());
 
         if kind == "rel" && index == 0 {
             // Add a valid, unreachable backing object to a copy, then prove the
