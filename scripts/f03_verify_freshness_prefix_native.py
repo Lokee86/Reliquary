@@ -36,14 +36,17 @@ def source_index(sources):
     return rows
 
 
-def observe(plan, native, birth, points):
-    require(plan["source_sha256"] == native["source_sha256"] == birth["source_sha256"],
+def observe(plan, native, birth, journal, points):
+    require(plan["source_sha256"] == native["source_sha256"] == birth["source_sha256"] == journal["source_sha256"],
             "Freshness component source differs")
     native_rows = native["representatives"]
     planned = plan["representatives"]
     require(len(native_rows) == len(planned), "native Freshness representative count differs")
-    birth_rows = {row["global"]: row for row in birth["representatives"]}
-    require(len(birth_rows) == len(birth["representatives"]), "duplicate birth-only representative")
+    expectations = {}
+    for stage, evidence in (("birth_only", birth), ("journal", journal)):
+        rows = {row["global"]: row for row in evidence["representatives"]}
+        require(len(rows) == len(evidence["representatives"]), "duplicate independent Freshness representative")
+        expectations[stage] = rows
     representatives = {}
     for got, want in zip(native_rows, planned):
         require(all(got[field] == want[field] for field in COORDINATES)
@@ -52,14 +55,13 @@ def observe(plan, native, birth, points):
                 "native Freshness representative differs from the independent plan")
         key = got["global"]
         require(key not in representatives, "duplicate native Freshness representative")
-        if got["stage"] == "birth_only":
-            old = birth_rows.pop(key, None)
-            require(old == {field: got[field] for field in ("global", "activity", "rows", "sha256")},
-                    "native Freshness birth-only proof differs from independent decoded values")
-        else:
-            require(got["stage"] == "journal", "unrecognized native Freshness stage")
+        stage = got["stage"]
+        require(stage in expectations, "unrecognized native Freshness stage")
+        old = expectations[stage].pop(key, None)
+        require(old is not None and all(old[field] == got[field] for field in ("global", "activity", "rows", "sha256")),
+                "native Freshness proof differs from independent decoded values")
         representatives[key] = got
-    require(not birth_rows, "native replay omitted independent birth-only expectations")
+    require(not any(expectations.values()), "native replay omitted independent Freshness expectations")
 
     root = hashlib.sha256(DOMAIN + bytes.fromhex(plan["source_sha256"]))
     previous_global = -1
@@ -101,25 +103,27 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--plan", type=Path, required=True)
     parser.add_argument("--birth-expectations", type=Path, required=True)
+    parser.add_argument("--journal-expectations", type=Path, required=True)
     parser.add_argument("--first-replay", type=Path, required=True)
     parser.add_argument("--repeat-replay", type=Path, required=True)
     args = parser.parse_args()
     plan, plan_sha = read_document(args.plan, 2 * 1024 * 1024)
     birth, birth_sha = read_document(args.birth_expectations, 2 * 1024 * 1024)
+    journal, journal_sha = read_document(args.journal_expectations, 2 * 1024 * 1024)
     first, first_sha = read_document(args.first_replay, 2 * 1024 * 1024)
     repeat, repeat_sha = read_document(args.repeat_replay, 2 * 1024 * 1024)
     require(first == repeat and first_sha == repeat_sha and first["status"] == "PASS"
-            and not first["authentic_admission"] and first["plan_sha256"] == birth["prefix_plan_sha256"] == plan_sha
+            and not first["authentic_admission"] and first["plan_sha256"] == birth["prefix_plan_sha256"] == journal["prefix_plan_sha256"] == plan_sha
             and plan["schema_id"] == "reliquary-f03-freshness-prefix-reduction-v1"
             and not plan["authentic_admission"],
             "native repeats or independent plan bindings differ")
-    plans, native, births = map(source_index, (plan["sources"], first["sources"], birth["sources"]))
-    require(plans.keys() == native.keys() == births.keys(), "Freshness source keys differ")
+    plans, native, births, journals = map(source_index, (plan["sources"], first["sources"], birth["sources"], journal["sources"]))
+    require(plans.keys() == native.keys() == births.keys() == journals.keys(), "Freshness source keys differ")
     results = []
     for key, source in sorted(plans.items()):
         stream = args.plan.parent / f"{key}-freshness-prefix-points.jsonl"
         points = read_points(stream, source["point_stream_sha256"])
-        results.append(observe(source, native[key], births[key], points))
+        results.append(observe(source, native[key], births[key], journals[key], points))
     counts = Counter()
     representatives = Counter()
     for result in results:
@@ -131,6 +135,7 @@ def main():
         "status": "PASS", "scope": "Freshness component on the backing-cleared pinned REL frontiers",
         "authentic_admission": False, "whole_owner_positive_availability_assessed": False,
         "plan_sha256": plan_sha, "independent_birth_expectations_sha256": birth_sha,
+        "independent_journal_expectations_sha256": journal_sha,
         "native_repeat_receipt_sha256": first_sha, "cut_count": sum(counts.values()),
         "stage_counts": counts, "native_representatives": representatives, "owners": results,
     }, indent=2))
