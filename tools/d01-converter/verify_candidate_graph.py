@@ -25,7 +25,15 @@ def source_graph(transfer, expected):
 
 
 def current_graph(frames, owner):
+    reservations = {}
     for _, payload in frames:
+        if payload[:8] in {b"RELVERS1", b"RELVERS2"}:
+            timed = payload[:8] == b"RELVERS2"
+            require(len(payload) == (24 if timed else 16), "invalid current clock reservation")
+            global_, = unpack("<Q", payload[8:16])
+            require(global_ not in reservations, "duplicate current clock reservation")
+            reservations[global_] = unpack("<q", payload[16:])[0] if timed else None
+            continue
         require(payload[:8] not in {b"RELGPB01", b"RELGRF01"},
                 "converted Graph publication lost its source global envelope")
         if payload[:8] != b"RELPUB01":
@@ -38,7 +46,11 @@ def current_graph(frames, owner):
             continue
         require(body[8:24] == owner, "Graph publication names a different owner")
         global_, = unpack("<Q", payload[8:16])
-        time = unpack("<q", payload[17:25])[0] if mode == 1 else None
+        if mode == 2:
+            require(global_ in reservations, "Graph binding has no original clock reservation")
+            time = reservations.pop(global_)
+        else:
+            time = unpack("<q", payload[17:25])[0] if mode == 1 else None
         local, count = unpack("<QI", body[24:36])
         require(count > 0 and len(body) == 36 + 70 * count, "invalid current atomic Graph extent")
         changes = []
