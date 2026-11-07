@@ -629,8 +629,12 @@ def owner_digest(
         if decimal_u64(group["family_count"], "group family_count") != expected_group_counts[group["group_id"]]:
             raise ContractError("group coverage family_count differs from versioned family catalog")
         children = [family_by_id[family_id] for family_id, schema in semantic_families.items() if schema["group_id"] == group["group_id"]]
-        if not children and group["presence"] in {"supported", "absent"}:
-            raise ContractError("group with no reviewed family schemas cannot claim supported or absent")
+        if not children and group["presence"] == "supported":
+            raise ContractError("group with no reviewed family schemas cannot claim supported")
+        if not children and group["presence"] == "absent":
+            if (records["status"] != "synthetic-fixture-only" or records["authentic_admission"] is not False
+                    or not group["reason"].startswith("outside synthetic population fixture.")):
+                raise ContractError("group with no family schemas may be absent only in an explicitly named synthetic population")
         if group["presence"] == "supported" and not any(child["presence"] == "supported" for child in children):
             raise ContractError("supported group must have at least one supported registered family")
         if group["presence"] == "absent" and any(child["presence"] != "absent" for child in children):

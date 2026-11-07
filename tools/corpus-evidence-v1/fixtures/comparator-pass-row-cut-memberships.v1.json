@@ -1,0 +1,92 @@
+{
+  "schema_id": "fixture.comparator-pass-row-cut-memberships.v1",
+  "contract_id": "reliquary-corpus-evidence-v1",
+  "status": "synthetic-fixture-only",
+  "owner_uuid": "00112233445566778899aabbccddeeff",
+  "entries": [
+    {
+      "family": "fixture.archive_turn_revision.v1",
+      "stable_key": "44444444444444444444444444444444",
+      "revision_or_event": "turn:1/revision:1",
+      "ordinal": "2",
+      "observation_cut_ids": [
+        "6b77e0a298a88f9fc906a7c6b0d2938994ed3042e3883f404d79b38c9ffc7a2e",
+        "84f64a07fb495814b3e2834544557ac5997f5bdf03623ba45440565018264ed7",
+        "94686d439bd1ba550a933e0b328908864e65ba276615d1efa874129f770c65b4"
+      ]
+    },
+    {
+      "family": "fixture.ego_anchor.v1",
+      "stable_key": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "revision_or_event": "anchor:1",
+      "ordinal": "1",
+      "observation_cut_ids": [
+        "6b77e0a298a88f9fc906a7c6b0d2938994ed3042e3883f404d79b38c9ffc7a2e",
+        "84f64a07fb495814b3e2834544557ac5997f5bdf03623ba45440565018264ed7",
+        "94686d439bd1ba550a933e0b328908864e65ba276615d1efa874129f770c65b4"
+      ]
+    },
+    {
+      "family": "fixture.freshness_event.v1",
+      "stable_key": "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
+      "revision_or_event": "accepted-event:aa",
+      "ordinal": "2",
+      "observation_cut_ids": [
+        "84f64a07fb495814b3e2834544557ac5997f5bdf03623ba45440565018264ed7",
+        "94686d439bd1ba550a933e0b328908864e65ba276615d1efa874129f770c65b4"
+      ]
+    },
+    {
+      "family": "fixture.freshness_event.v1",
+      "stable_key": "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
+      "revision_or_event": "accepted-event:aa",
+      "ordinal": "10",
+      "observation_cut_ids": [
+        "84f64a07fb495814b3e2834544557ac5997f5bdf03623ba45440565018264ed7",
+        "94686d439bd1ba550a933e0b328908864e65ba276615d1efa874129f770c65b4"
+      ]
+    },
+    {
+      "family": "fixture.freshness_event.v1",
+      "stable_key": "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
+      "revision_or_event": "settlement:intra",
+      "ordinal": "11",
+      "observation_cut_ids": [
+        "84f64a07fb495814b3e2834544557ac5997f5bdf03623ba45440565018264ed7",
+        "94686d439bd1ba550a933e0b328908864e65ba276615d1efa874129f770c65b4"
+      ]
+    },
+    {
+      "family": "fixture.memory_revision.v1",
+      "stable_key": "77777777777777777777777777777777",
+      "revision_or_event": "revision-0",
+      "ordinal": "1",
+      "observation_cut_ids": [
+        "6b77e0a298a88f9fc906a7c6b0d2938994ed3042e3883f404d79b38c9ffc7a2e",
+        "84f64a07fb495814b3e2834544557ac5997f5bdf03623ba45440565018264ed7",
+        "94686d439bd1ba550a933e0b328908864e65ba276615d1efa874129f770c65b4"
+      ]
+    },
+    {
+      "family": "fixture.memory_revision.v1",
+      "stable_key": "77777777777777777777777777777777",
+      "revision_or_event": "revision-1",
+      "ordinal": "2",
+      "observation_cut_ids": [
+        "6b77e0a298a88f9fc906a7c6b0d2938994ed3042e3883f404d79b38c9ffc7a2e",
+        "84f64a07fb495814b3e2834544557ac5997f5bdf03623ba45440565018264ed7",
+        "94686d439bd1ba550a933e0b328908864e65ba276615d1efa874129f770c65b4"
+      ]
+    },
+    {
+      "family": "fixture.memory_revision.v1",
+      "stable_key": "77777777777777777777777777777777",
+      "revision_or_event": "revision-2",
+      "ordinal": "10",
+      "observation_cut_ids": [
+        "84f64a07fb495814b3e2834544557ac5997f5bdf03623ba45440565018264ed7",
+        "94686d439bd1ba550a933e0b328908864e65ba276615d1efa874129f770c65b4"
+      ]
+    }
+  ]
+}

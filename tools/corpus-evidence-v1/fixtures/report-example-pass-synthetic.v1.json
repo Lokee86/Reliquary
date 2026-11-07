@@ -1,0 +1,66 @@
+{
+  "schema_id": "reliquary-corpus-artifact-report-v1",
+  "contract_id": "reliquary-corpus-evidence-v1",
+  "producer_role": "comparator",
+  "evidence_scope": "synthetic_fixture",
+  "producer_revision": "0000000000000000000000000000000000000000",
+  "producer_binary_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+  "producer_code_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+  "validation_patch_sha256": null,
+  "lockfile_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+  "toolchain_id": "synthetic-offline-test-only",
+  "registry_hashes": {
+    "semantic_groups": "8ca5594e463de065622ff4f3caccc17f0a61d1a95477f0284a48419f342032b0",
+    "record_schemas": "0963412591cc2d202a613584fd458ed14d5888e9e381d5283177eae40b41c79d",
+    "physical_carriers": "d7d782f7701a363fb0c4b75c6eabd04200a3889cac370d122d66ea31b0080dc5",
+    "contract_bundle": "7a1abda477874b2a1ff78f75520e075f909750d45a17ce3d6528110334f33688"
+  },
+  "status": "PASS",
+  "captured_at_utc": "2026-11-07T00:00:00Z",
+  "reporting_date_local": "2026-11-07",
+  "reporting_timezone": "Etc/UTC",
+  "command_argv": [
+    "python",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tools/corpus-evidence-v1/tests",
+    "-p",
+    "test_*.py",
+    "-k",
+    "complete_synthetic_population_has_valid_nonvacuous_pass_example",
+    "-v"
+  ],
+  "exit_status": "0",
+  "source_hashes": [
+    "551903971be3ca8858ab8c12928206f3e203a7c6ddf3feb02f635f400f6ae552"
+  ],
+  "parent_artifact_hashes": [
+    "0579dba5368714c6be8c56da6586a91c11ebec9f9d3422c6a7ef7da2efe95ee3",
+    "41f520f378dedf6c06a7359b140f4a3b937b8d65cb10af759280b8c85ee16bbc",
+    "5f195a3c3108715cec0013e475a2afe800654187c01e26bbd11cff2be493b310",
+    "6a94e3c52a7b668ca576c82d4628b4045ec2b96bc7788b22187459141e12c821"
+  ],
+  "coverage": {
+    "owner_count": "1",
+    "family_count": "5",
+    "cut_count": "3",
+    "row_count": "8",
+    "completeness": "exhaustive"
+  },
+  "diagnostics": {
+    "total_count": "0",
+    "sample_limit": "10",
+    "sample": []
+  },
+  "source_owner_bindings": [
+    {
+      "owner_uuid": "00112233445566778899aabbccddeeff",
+      "owner_kind": "REL",
+      "scope": "project",
+      "source_file_sha256": "551903971be3ca8858ab8c12928206f3e203a7c6ddf3feb02f635f400f6ae552"
+    }
+  ]
+}

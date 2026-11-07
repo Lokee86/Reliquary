@@ -273,13 +273,14 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
         with self.assertRaises(contract.ContractError):
             contract.validate_authentic_admission(self.groups, self.records, self.carriers)
 
-    def _family_fixture_coverage(self,family,group,rows,owner_cut_ids=None):
+    def _family_fixture_coverage(self,family,group,rows,owner_cut_ids=None,membership_path=None):
         catalog=json.loads((ROOT/"fixtures"/"owner-cuts.v1.json").read_bytes())
         cuts=catalog["cuts"]
         all_cut_ids={entry["cut_id"] for entry in cuts}
         if owner_cut_ids is not None and set(owner_cut_ids)!=all_cut_ids:
             raise AssertionError("fixture coverage must use the complete explicit owner cut catalog")
-        table=json.loads((ROOT/"fixtures"/"row-cut-memberships.v1.json").read_bytes())
+        table_path=membership_path or (ROOT/"fixtures"/"row-cut-memberships.v1.json")
+        table=json.loads(table_path.read_bytes())
         entries=[entry for entry in table["entries"] if entry["family"]==family]
         memberships=[]
         for entry in entries:
@@ -321,6 +322,26 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
             else:
                 group_coverage.append({"group_id":group["id"],"presence":"unclassified","completeness":"incomplete","family_count":"0","reason":"no reviewed synthetic fixture schema"})
         return descriptor,group_coverage,family_coverage,family_rows
+
+    def _synthetic_pass_owner_fixture(self,rows_path):
+        population=json.loads((ROOT/"fixtures"/"comparator-pass-population.v1.json").read_bytes())
+        descriptor,_,_,_=self._owner_fixture()
+        rows=contract.parse_jsonl(rows_path.read_bytes())
+        descriptor["source_file_sha256"]=hashlib.sha256(rows_path.read_bytes()).hexdigest()
+        cut_ids={entry["cut_id"] for entry in descriptor["supported_cuts"]}
+        family_rows={}
+        family_coverage=[]
+        for schema in self.records["records"]:
+            if schema["semantic_family"] is not True:
+                continue
+            family=schema["schema_id"]
+            values=[row for row in rows if row["family"]==family]
+            family_rows[family]=values
+            family_coverage.append(self._family_fixture_coverage(
+                family,schema["group_id"],values,cut_ids,ROOT/"fixtures"/population["row_cut_memberships_path"]))
+        group_coverage=[{key:row[key] for key in ("group_id","presence","completeness","family_count","reason")}
+                        for row in population["group_catalog"]]
+        return descriptor,group_coverage,family_coverage,family_rows,rows
 
     def test_owner_and_corpus_digests_bind_complete_catalog_and_cuts(self):
         descriptor,groups,families,rows=self._owner_fixture()
@@ -419,6 +440,7 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
     def test_all_contract_schemas_validate_examples(self):
         descriptor,groups,families,rows=self._owner_fixture()
         report=json.loads((ROOT/"fixtures"/"report-example-incomplete.v1.json").read_bytes())
+        pass_report=json.loads((ROOT/"fixtures"/"report-example-pass-synthetic.v1.json").read_bytes())
         custody={"schema_id":"reliquary-corpus-physical-custody-v1","contract_id":contract.CONTRACT_ID,"owner_files":[{"owner_uuid":"00112233445566778899aabbccddeeff","owner_kind":"REL","scope":"project","source_file_sha256":"a"*64,"source_byte_length":"100","target_file_sha256":"b"*64,"target_byte_length":"120"}],"relocations":[{"owner_uuid":"00112233445566778899aabbccddeeff","owner_kind":"REL","scope":"project","family":"fixture.memory_revision.v1","source_object_sha256":"1"*64,"source_offset":"100","source_length":"20","target_object_sha256":"2"*64,"target_offset":"300","target_length":"20","payload_identity":"abcd","reference_kind":"body"}]}
         examples={
             "semantic-owner-v1.schema.json":descriptor,
@@ -433,6 +455,8 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
             validator.check_schema(schema)
             if path.name in examples:
                 validator.validate(examples[path.name])
+            if path.name=="artifact-report-v1.schema.json":
+                validator.validate(pass_report)
         contract.validate_artifact_report(report,ROOT)
         tampered=copy.deepcopy(report)
         tampered["registry_hashes"]["record_schemas"]="0"*64
@@ -449,6 +473,74 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
         row_schema=json.loads((ROOT/"schemas"/"semantic-row-v1.schema.json").read_bytes())
         for row in self.rows:
             jsonschema.validate(row,row_schema)
+
+    def test_empty_unregistered_group_requires_named_synthetic_population(self):
+        descriptor,groups,families,rows=self._owner_fixture()
+        coverage=copy.deepcopy(groups)
+        lineage=next(item for item in coverage if item["group_id"]=="container_lineage")
+        lineage.update({"presence":"absent","completeness":"exhaustive","reason":"no fixture schema"})
+        with self.assertRaisesRegex(contract.ContractError,"only in an explicitly named synthetic population"):
+            contract.owner_digest(descriptor,coverage,families,rows,self.groups,self.records,self.domains,self.carriers)
+
+    def test_complete_synthetic_population_has_valid_nonvacuous_pass_example(self):
+        population=json.loads((ROOT/"fixtures"/"comparator-pass-population.v1.json").read_bytes())
+        source_path=ROOT/"fixtures"/population["source_rows_path"]
+        target_path=ROOT/"fixtures"/population["target_rows_path"]
+        source_descriptor,source_groups,source_families,source_rows_map,source_rows=self._synthetic_pass_owner_fixture(source_path)
+        target_descriptor,target_groups,target_families,target_rows_map,target_rows=self._synthetic_pass_owner_fixture(target_path)
+        self.assertFalse(population["authentic_admission"])
+        self.assertEqual(population["status"],"complete-synthetic-fixture")
+        self.assertEqual({row["group_id"] for row in population["group_catalog"]},set(contract.GROUP_IDS))
+        self.assertEqual(len(population["family_catalog"]),5)
+        self.assertEqual({row["family_id"] for row in population["family_catalog"]},
+                         {schema["schema_id"] for schema in self.records["records"] if schema["semantic_family"]})
+        self.assertEqual({row["family_id"] for row in population["family_catalog"] if row["row_count"]=="0"},
+                         {"fixture.vector_probe.v1"})
+        self.assertEqual(hashlib.sha256(source_path.read_bytes()).hexdigest(),population["source_rows_sha256"])
+        self.assertEqual(hashlib.sha256(target_path.read_bytes()).hexdigest(),population["target_rows_sha256"])
+        membership_path=ROOT/"fixtures"/population["row_cut_memberships_path"]
+        self.assertEqual(hashlib.sha256(membership_path.read_bytes()).hexdigest(),population["row_cut_memberships_sha256"])
+        self.assertNotEqual(source_path.read_bytes(),target_path.read_bytes())
+        self.assertEqual(contract.canonical_rows(source_rows,self.groups,self.records,self.domains),
+                         contract.canonical_rows(target_rows,self.groups,self.records,self.domains))
+        self.assertEqual(len(source_rows),8)
+        self.assertEqual({row["family_id"]:row["row_count"] for row in population["family_catalog"]},
+                         {family:str(len(values)) for family,values in source_rows_map.items()})
+        self.assertEqual({row["family_id"]:row["row_count"] for row in population["family_catalog"]},
+                         {family:str(len(values)) for family,values in target_rows_map.items()})
+        self.assertEqual(source_rows_map["fixture.vector_probe.v1"],[])
+        self.assertEqual(target_rows_map["fixture.vector_probe.v1"],[])
+        self.assertEqual(next(f for f in source_families if f["family"]=="fixture.vector_probe.v1")["presence"],"supported")
+        self.assertEqual(next(f for f in source_families if f["family"]=="fixture.vector_probe.v1")["row_count"],"0")
+        self.assertEqual(source_groups,population["group_catalog"])
+        source_owner={"descriptor":source_descriptor,"group_coverage":source_groups,
+                      "family_coverage":source_families,"family_rows":source_rows_map}
+        target_owner={"descriptor":target_descriptor,"group_coverage":target_groups,
+                      "family_coverage":target_families,"family_rows":target_rows_map}
+        source_catalog=[{key:source_descriptor[key] for key in ("owner_uuid","owner_kind","scope","source_file_sha256")}]
+        target_catalog=[{key:target_descriptor[key] for key in ("owner_uuid","owner_kind","scope","source_file_sha256")}]
+        source_meta=population["reader_identities"]["source"]
+        target_meta=population["reader_identities"]["target"]
+        source_witness={**source_meta,"expected_owner_catalog":source_catalog,"owners":[source_owner]}
+        target_witness={**target_meta,"expected_owner_catalog":target_catalog,"owners":[target_owner]}
+        custody={"schema_id":"reliquary-corpus-physical-custody-v1","contract_id":contract.CONTRACT_ID,
+                 "owner_files":[{"owner_uuid":source_descriptor["owner_uuid"],"owner_kind":source_descriptor["owner_kind"],
+                                 "scope":source_descriptor["scope"],"source_file_sha256":source_descriptor["source_file_sha256"],
+                                 "source_byte_length":str(source_path.stat().st_size),
+                                 "target_file_sha256":target_descriptor["source_file_sha256"],
+                                 "target_byte_length":str(target_path.stat().st_size)}],
+                 "relocations":[]}
+        evidence={"source_witness":source_witness,"target_witness":target_witness,"custody":custody}
+        report=json.loads((ROOT/"fixtures"/"report-example-pass-synthetic.v1.json").read_bytes())
+        reader_code_hashes={source_meta["producer_code_sha256"],target_meta["producer_code_sha256"],report["producer_code_sha256"]}
+        reader_binary_hashes={source_meta["producer_binary_sha256"],target_meta["producer_binary_sha256"],report["producer_binary_sha256"]}
+        self.assertEqual(len(reader_code_hashes),3)
+        self.assertEqual(len(reader_binary_hashes),3)
+        self.assertEqual(report["status"],"PASS")
+        self.assertEqual(report["evidence_scope"],"synthetic_fixture")
+        self.assertEqual(report["coverage"]["completeness"],"exhaustive")
+        self.assertEqual(report["coverage"]["row_count"],"8")
+        contract.validate_artifact_report(report,ROOT,evidence)
 
     def test_report_reconciles_expected_owners_counts_sources_and_custody(self):
         descriptor,groups,families,rows=self._owner_fixture()
