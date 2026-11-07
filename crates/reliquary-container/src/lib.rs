@@ -17,7 +17,7 @@ const CURRENT_VERSION: FormatVersion = FormatVersion { major: 2, minor: 1 };
 
 mod grouped_clock;
 mod publication_envelope;
-pub use publication_envelope::{PublicationEnvelope, decode_publication};
+pub use publication_envelope::{PublicationEnvelope, decode_publication, replace_publication_body};
 mod version_clock;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -499,6 +499,11 @@ impl Container {
 
     pub fn transaction_time_ns(&self, version: u64) -> Option<i64> {
         self.transaction_times.get(&version).copied()
+    }
+
+    /// Whether a current clock ticket is still available to bind.
+    pub fn has_unbound_version_reservation(&self, version: u64) -> bool {
+        self.standalone_reservations.contains(&version)
     }
 
     /// Reserve the next physical version as a standalone ticket. A later

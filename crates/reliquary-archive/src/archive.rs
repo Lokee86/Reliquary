@@ -4,6 +4,7 @@
 //! framing and bytes; Archive does not depend on the application or other owners.
 
 mod history;
+mod publications;
 #[cfg(test)]
 #[path = "archive_tests.rs"]
 mod tests;
@@ -13,9 +14,10 @@ use crate::codec::{
     encode_fragment_definitions, encode_import_receipt, encode_turn,
 };
 use crate::{
-    AcceptedTurnSource, ArchiveError, AttachmentInput, Branch, ContentId, Episode, EpisodeBoundary,
-    EpisodeId, EpisodeOrigin, ImportReceipt, Node, ProjectAttachmentInput, ProjectFileRef,
-    ProjectRepositoryKind, ResolvedTurn, SourceAttachment, TurnAcceptance, TurnInput,
+    AcceptedTurnSource, ArchiveError, ArchivePublicationBinding, ArchivePublicationCoordinate,
+    AttachmentInput, Branch, ContentId, Episode, EpisodeBoundary, EpisodeId, EpisodeOrigin,
+    ImportReceipt, Node, ProjectAttachmentInput, ProjectFileRef, ProjectRepositoryKind,
+    ResolvedTurn, SourceAttachment, TurnAcceptance, TurnInput,
 };
 use reliquary_container::{Container, ContainerError, ContainerIdentity, FileKind};
 use sha2::{Digest, Sha256};
@@ -50,6 +52,7 @@ pub struct Archive {
     conversation_tombstones: BTreeMap<String, crate::ConversationTombstone>,
     conversation_titles: BTreeMap<String, crate::ConversationTitle>,
     archive_version: u64,
+    publication_bindings: Vec<ArchivePublicationBinding>,
 }
 
 impl Archive {
@@ -77,6 +80,7 @@ impl Archive {
             conversation_tombstones: BTreeMap::new(),
             conversation_titles: BTreeMap::new(),
             archive_version: 0,
+            publication_bindings: Vec::new(),
         }
     }
 
@@ -90,7 +94,9 @@ impl Archive {
         archive.owner_id = Some(container.owner_id());
         archive.container_identity = Some(container.identity());
         for frame in container.read_frames()? {
-            if let Some(record) = decode_record(&frame.payload)? {
+            if let Some(publication) = crate::publication::in_frame(&frame.payload)? {
+                archive.replay_publication(container, frame.object, publication)?;
+            } else if let Some(record) = decode_record(&frame.payload)? {
                 archive.apply_record(record)?;
             }
         }
@@ -104,6 +110,16 @@ impl Archive {
         &mut self,
         container: &mut Container,
         input: TurnInput,
+    ) -> Result<TurnAcceptance<Node>, ArchiveError> {
+        self.accept_turn_at(container, input, None)
+    }
+
+    /// Accept a turn at a supplied Archive/global publication coordinate.
+    pub fn accept_turn_at(
+        &mut self,
+        container: &mut Container,
+        input: TurnInput,
+        coordinate: Option<ArchivePublicationCoordinate>,
     ) -> Result<TurnAcceptance<Node>, ArchiveError> {
         self.bind_container(container)?;
         validate_text(&input.id, "node id")?;
@@ -185,6 +201,7 @@ impl Archive {
         };
         let encoded = encode_turn(&node, &input.content, &attachments)?;
         let archive_version = self.next_archive_version()?;
+        self.check_publication(container, archive_version, coordinate)?;
         let mut new_file_content = HashMap::new();
         for attachment in &attachments {
             if attachment.project_reference.is_some() {
@@ -208,8 +225,7 @@ impl Archive {
         for (content_id, bytes) in &new_file_content {
             container.append(&encode_file_blob(*content_id, bytes)?)?;
         }
-        container.append(&encoded)?;
-        container.sync()?;
+        self.persist_applying(container, coordinate, &encoded)?;
         self.file_content.extend(new_file_content);
         self.nodes.insert(key.clone(), node.clone());
         self.content.entry(content_id).or_insert(input.content);
@@ -237,6 +253,16 @@ impl Archive {
         container: &mut Container,
         branch: Branch,
     ) -> Result<bool, ArchiveError> {
+        self.put_branch_at(container, branch, None)
+    }
+
+    /// Accept a Branch revision at a supplied Archive/global publication coordinate.
+    pub fn put_branch_at(
+        &mut self,
+        container: &mut Container,
+        branch: Branch,
+        coordinate: Option<ArchivePublicationCoordinate>,
+    ) -> Result<bool, ArchiveError> {
         self.bind_container(container)?;
         validate_text(&branch.id, "branch id")?;
         validate_text(&branch.conversation_id, "conversation id")?;
@@ -262,8 +288,8 @@ impl Archive {
         }
         let archive_version = self.next_archive_version()?;
         let encoded = encode_branch(&branch)?;
-        container.append(&encoded)?;
-        container.sync()?;
+        self.check_publication(container, archive_version, coordinate)?;
+        self.persist_applying(container, coordinate, &encoded)?;
         self.branch_history.push((archive_version, branch.clone()));
         self.branches
             .insert((branch.conversation_id.clone(), branch.id.clone()), branch);

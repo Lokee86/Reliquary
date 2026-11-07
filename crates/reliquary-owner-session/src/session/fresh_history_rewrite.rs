@@ -342,7 +342,9 @@ fn reject_unsupported_operational_state(source: &Container) -> Result<(), String
             .map_err(|error| error.to_string())?
             .map(|publication| publication.body)
             .unwrap_or(frame.payload.as_slice());
-        if UNSUPPORTED.iter().any(|prefix| body.starts_with(prefix)) {
+        if UNSUPPORTED.iter().any(|prefix| body.starts_with(prefix))
+            || reliquary_archive::is_archive_publication_body(body).map_err(|e| e.to_string())?
+        {
             return Err(
                 "fresh-history source contains operational evidence that cannot be safely replayed"
                     .into(),

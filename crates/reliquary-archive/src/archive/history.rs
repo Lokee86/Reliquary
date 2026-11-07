@@ -41,6 +41,12 @@ impl Archive {
             .collect::<Vec<_>>();
         Ok(crate::ArchiveHistorySnapshot {
             archive_version: version,
+            publication_bindings: self
+                .publication_bindings
+                .iter()
+                .take_while(|binding| binding.archive_version <= version)
+                .copied()
+                .collect(),
             activity_cut: turns
                 .iter()
                 .filter_map(|turn| turn.activity_position)

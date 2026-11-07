@@ -25,6 +25,16 @@ impl RelWriter {
         node: Node,
         content: String,
     ) -> Result<(), OwnerSessionError> {
+        self.import_archive_turn(version, None, node, content)
+    }
+
+    fn import_archive_turn(
+        &mut self,
+        version: u64,
+        coordinate: Option<reliquary_archive::ArchivePublicationCoordinate>,
+        node: Node,
+        content: String,
+    ) -> Result<(), OwnerSessionError> {
         self.require_archive_import_version(version)?;
         if node.content_id != ContentId(Sha256::digest(content.as_bytes()).into())
             || self
@@ -48,7 +58,10 @@ impl RelWriter {
             attachments: Vec::new(),
             project_attachments: Vec::new(),
         };
-        let result = self.session.archive.accept_turn(&mut self.container, input);
+        let result = self
+            .session
+            .archive
+            .accept_turn_at(&mut self.container, input, coordinate);
         self.finish_archive_import(result.map(|turn| turn.inserted))
     }
 
@@ -61,6 +74,71 @@ impl RelWriter {
         self.require_archive_import_version(version)?;
         let result = self.session.archive.put_branch(&mut self.container, branch);
         self.finish_archive_import(result)
+    }
+
+    /// Reserve the next native global version for an already accepted Archive publication.
+    pub fn reserve_archive_publication_version(
+        &mut self,
+        global_version: u64,
+        transaction_time_ns: Option<i64>,
+    ) -> Result<(), OwnerSessionError> {
+        self.require_archive_import_version(
+            self.session
+                .archive_version()
+                .checked_add(1)
+                .ok_or_else(|| OwnerSessionError::Record("Archive version exhausted".into()))?,
+        )?;
+        if self.next_global_version()? != global_version {
+            return Err(OwnerSessionError::Record(
+                "Archive reservation does not follow the global clock".into(),
+            ));
+        }
+        let result = self
+            .container
+            .reserve_version(transaction_time_ns)
+            .and_then(|_| self.container.sync())
+            .map(|_| true)
+            .map_err(reliquary_archive::ArchiveError::from);
+        self.finish_archive_import(result)
+    }
+
+    /// Append an exact current-format Archive publication for an available turn.
+    pub fn import_versioned_archive_turn(
+        &mut self,
+        coordinate: reliquary_archive::ArchivePublicationCoordinate,
+        node: Node,
+        content: String,
+    ) -> Result<(), OwnerSessionError> {
+        self.import_archive_turn(coordinate.archive_version, Some(coordinate), node, content)
+    }
+
+    /// Append a Branch revision with its native Archive/global publication coordinate.
+    pub fn import_versioned_archive_branch(
+        &mut self,
+        coordinate: reliquary_archive::ArchivePublicationCoordinate,
+        branch: Branch,
+    ) -> Result<(), OwnerSessionError> {
+        self.require_archive_import_version(coordinate.archive_version)?;
+        let result =
+            self.session
+                .archive
+                .put_branch_at(&mut self.container, branch, Some(coordinate));
+        self.finish_archive_import(result)
+    }
+
+    /// Retain a repeated publication without rerunning its origin's mutation.
+    pub fn import_archive_repeat(
+        &mut self,
+        coordinate: reliquary_archive::ArchivePublicationCoordinate,
+        first_applying_archive_version: u64,
+    ) -> Result<(), OwnerSessionError> {
+        self.require_archive_import_version(coordinate.archive_version)?;
+        let result = self.session.archive.append_publication_repeat(
+            &mut self.container,
+            coordinate,
+            first_applying_archive_version,
+        );
+        self.finish_archive_import(result.map(|_| true))
     }
 
     fn finish_archive_import(

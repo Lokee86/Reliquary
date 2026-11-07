@@ -22,6 +22,21 @@ pub(super) fn verify_reopened(
     {
         return Err("Archive pruning changed retained owner state or version cuts".into());
     }
+    let source_bindings = archive.publication_bindings();
+    let target_bindings = retained.publication_bindings();
+    if source_bindings.len() != target_bindings.len()
+        || source_bindings
+            .iter()
+            .zip(target_bindings)
+            .any(|(source, target)| {
+                let mut relocated = *source;
+                relocated.object = target.object;
+                relocated != *target
+            })
+    {
+        return Err("Archive pruning changed publication bindings".into());
+    }
+
     for source in archive.accepted_turn_sources() {
         let conversation = &source.conversation_id;
         let id = &source.node_id;
