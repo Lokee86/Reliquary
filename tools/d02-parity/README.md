@@ -5,10 +5,9 @@ Status: provisional fixture-only prototype. This is not an accepted D02 implemen
 Run:
 python -m unittest discover -s tools/d02-parity/tests -p "test_*.py" -v
 
-Example:
-python tools/d02-parity/compare_synthetic.py --source tools/d02-parity/fixtures/comparator-pass-source-rows.v1.jsonl --target tools/d02-parity/fixtures/comparator-pass-target-rows.v1.jsonl
+The comparator imports no Reliquary converter or product traversal. It consumes strict semantic-row JSONL plus the exact pinned JSON Schema, an independently supplied expected owner/family/cut inventory, and a separately supplied target-coverage sidecar. Row identity includes owner, family, stable key, revision/event, and ordinal. A row's coordinate remains its immutable publication/origin coordinate; explicit sidecar memberships separately state which snapshot cuts contain that row. It rejects duplicate rows, rows absent from either independent envelope, unknown schema bytes/IDs, family/group/value-schema mismatches, invalid typed integer ranges, non-finite IEEE values, malformed byte/digest hex, unknown or unordered/duplicate domain coordinates, invalid provenance spans, and unavailable-reason mismatches. It preserves nested array order and ignores JSONL file-line order. Diagnostics omit field values.
 
-The comparator imports no Reliquary converter or product traversal. It consumes strict semantic-row JSONL plus an explicit JSON Schema, compares semantic row sets keyed by owner/family/stable key/revision-or-event/ordinal, rejects duplicates and empty expected data, preserves array order, and ignores JSONL file-line order. Diagnostics omit field values. Tests use only hand-authored synthetic fixtures from the pinned contract revision.
+The synthetic oracle and target-coverage sidecar are separately hand-authored in tests/synthetic_inventory.py, with fixed SHA-256 pins asserted by the test harness. They are test-only, non-authoritative inputs; the fixture deliberately has REL/project and PHY/unspecified owner tuples without asserting a universal kind/scope rule. Real D02 admission must bind completeness and expected values to the accepted preconversion F03 witness, not these fixtures.
 
 ## Contract provenance
 

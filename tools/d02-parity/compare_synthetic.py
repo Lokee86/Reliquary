@@ -12,72 +12,24 @@ import sys
 from pathlib import Path
 from typing import Any, Iterable
 
+from evidence_io import WitnessInputError, read_jsonl as _read_jsonl
+from inventory_v1 import (
+    CONTRACT_COMMIT,
+    FAMILY_GROUPS,
+    INVENTORY_SCHEMA_ID,
+    INVENTORY_TRUST_NOTE,
+    SEMANTIC_SCHEMA_ID,
+    TARGET_COVERAGE_SCHEMA_ID,
+    TARGET_TRUST_NOTE,
+    inventory_key,
+    validate_coverage_bytes,
+    validate_supported_semantic_schema,
+)
+from typed_values import validate_semantic_row_consistency
+
 REPORT_SCHEMA = "reliquary-d02-synthetic-row-diff-v1"
 U64_MAX = (1 << 64) - 1
 ORDINAL = re.compile(r"^(?:0|[1-9][0-9]*)$")
-
-
-class WitnessInputError(ValueError):
-    """An input is not a complete, strict witness fixture."""
-
-
-def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for key, value in pairs:
-        if key in result:
-            raise WitnessInputError(f"duplicate decoded JSON object key: {key!r}")
-        result[key] = value
-    return result
-
-
-def _reject_json_number(token: str) -> Any:
-    raise WitnessInputError(f"JSON numeric tokens are forbidden in evidence: {token}")
-
-
-def _reject_surrogates(value: Any, location: str = "$") -> None:
-    if isinstance(value, str):
-        if any(0xD800 <= ord(char) <= 0xDFFF for char in value):
-            raise WitnessInputError(f"unpaired surrogate in evidence string at {location}")
-    elif isinstance(value, list):
-        for index, item in enumerate(value):
-            _reject_surrogates(item, f"{location}[{index}]")
-    elif isinstance(value, dict):
-        for key, item in value.items():
-            _reject_surrogates(key, f"{location}.<key>")
-            _reject_surrogates(item, f"{location}.{key}")
-
-
-def _strict_json_line(raw: bytes, line_number: int) -> dict[str, Any]:
-    try:
-        text = raw.decode("utf-8", "strict")
-        value = json.loads(
-            text,
-            object_pairs_hook=_unique_object,
-            parse_int=_reject_json_number,
-            parse_float=_reject_json_number,
-            parse_constant=_reject_json_number,
-        )
-    except (UnicodeDecodeError, json.JSONDecodeError, WitnessInputError) as exc:
-        raise WitnessInputError(f"line {line_number}: {exc}") from exc
-    if not isinstance(value, dict):
-        raise WitnessInputError(f"line {line_number}: each semantic row must be an object")
-    _reject_surrogates(value, f"$line[{line_number}]")
-    return value
-
-
-def _read_jsonl(raw: bytes, label: str) -> list[dict[str, Any]]:
-    if raw.startswith(b"\xef\xbb\xbf"):
-        raise WitnessInputError(f"{label}: UTF-8 BOM is forbidden")
-    if not raw:
-        return []
-    if not raw.endswith(b"\n"):
-        raise WitnessInputError(f"{label}: nonempty JSONL must end with LF")
-    if b"\r" in raw:
-        raise WitnessInputError(f"{label}: CR bytes are forbidden; JSONL uses LF")
-    lines = raw[:-1].split(b"\n")
-    if any(not line for line in lines):
-        raise WitnessInputError(f"{label}: blank JSONL lines are forbidden")
-    return [_strict_json_line(line, number) for number, line in enumerate(lines, 1)]
 
 
 def _row_key(row: dict[str, Any]) -> tuple[bytes, ...]:
@@ -99,10 +51,12 @@ def _row_key(row: dict[str, Any]) -> tuple[bytes, ...]:
     ordinal_text = strings[-1]
     if not ORDINAL.fullmatch(ordinal_text):
         raise WitnessInputError(f"ordinal is not canonical unsigned decimal: {ordinal_text!r}")
+    if len(ordinal_text) > 20:
+        raise WitnessInputError(f"ordinal exceeds u64: {ordinal_text[:32]}")
     ordinal = int(ordinal_text)
     if ordinal > U64_MAX:
         raise WitnessInputError(f"ordinal exceeds u64: {ordinal_text}")
-    return tuple(value.encode("utf-8", "strict") for value in strings[:-1]) + (ordinal.to_bytes(8, "big"),)
+    return inventory_key(owner, row["family"], row)
 
 
 def _validated_rows(raw: bytes, label: str, validator: Any) -> dict[tuple[bytes, ...], dict[str, Any]]:
@@ -117,6 +71,12 @@ def _validated_rows(raw: bytes, label: str, validator: Any) -> dict[tuple[bytes,
             error = errors[0]
             pointer = "/".join(str(part) for part in error.absolute_path) or "$"
             raise WitnessInputError(f"{label} line {number}: schema violation at {pointer}: {error.message}")
+        family = row["family"]
+        if row["group_id"] != FAMILY_GROUPS.get(family):
+            raise WitnessInputError(f"{label} line {number}: family/group mapping differs from PG-C01 v1")
+        if row["value"].get("schema_id") != family:
+            raise WitnessInputError(f"{label} line {number}: value.schema_id does not match family")
+        validate_semantic_row_consistency(row, f"{label} line {number}")
         key = _row_key(row)
         if key in keyed:
             raise WitnessInputError(f"{label} line {number}: duplicate semantic row key")
@@ -151,8 +111,13 @@ def _difference_paths(expected: Any, observed: Any, path: tuple[Any, ...] = ()) 
 
 
 def _display_key(key: tuple[bytes, ...]) -> dict[str, str]:
-    labels = ("owner_uuid", "owner_kind", "scope", "family", "stable_key", "revision_or_event", "ordinal")
-    values = [part.decode("utf-8") for part in key[:-1]] + [str(int.from_bytes(key[-1], "big"))]
+    labels = (
+        "owner_uuid", "owner_kind", "scope", "family", "stable_key",
+        "revision_or_event", "ordinal",
+    )
+    values = [part.decode("utf-8") for part in key[:6]] + [
+        str(int.from_bytes(key[6], "big")),
+    ]
     return dict(zip(labels, values))
 
 
@@ -161,6 +126,8 @@ def compare_bytes(
     target_bytes: bytes,
     schema: dict[str, Any],
     schema_bytes: bytes,
+    inventory_bytes: bytes,
+    target_coverage_bytes: bytes,
     source_label: str = "source",
     target_label: str = "target",
 ) -> dict[str, Any]:
@@ -168,8 +135,25 @@ def compare_bytes(
         from jsonschema import Draft202012Validator
     except ImportError as exc:
         raise WitnessInputError("jsonschema 4.26.0 is required; see requirements-test.txt") from exc
+    pinned_schema_hash = validate_supported_semantic_schema(schema, schema_bytes)
     Draft202012Validator.check_schema(schema)
     validator = Draft202012Validator(schema)
+    inventory_doc, expected_rows = validate_coverage_bytes(
+        inventory_bytes,
+        schema,
+        INVENTORY_SCHEMA_ID,
+        INVENTORY_TRUST_NOTE,
+        "expected inventory",
+    )
+    target_coverage_doc, target_rows = validate_coverage_bytes(
+        target_coverage_bytes,
+        schema,
+        TARGET_COVERAGE_SCHEMA_ID,
+        TARGET_TRUST_NOTE,
+        "target coverage",
+    )
+    if inventory_doc["owners"] != target_coverage_doc["owners"] or expected_rows != target_rows:
+        raise WitnessInputError("target coverage does not reconcile to the independent expected inventory")
     source = _validated_rows(source_bytes, source_label, validator)
     target = _validated_rows(target_bytes, target_label, validator)
 
@@ -179,20 +163,41 @@ def compare_bytes(
         "status": "INCOMPLETE",
         "source_sha256": hashlib.sha256(source_bytes).hexdigest(),
         "target_sha256": hashlib.sha256(target_bytes).hexdigest(),
-        "schema_sha256": hashlib.sha256(schema_bytes).hexdigest(),
+        "semantic_schema_id": SEMANTIC_SCHEMA_ID,
+        "semantic_schema_sha256": pinned_schema_hash,
+        "contract_commit": CONTRACT_COMMIT,
+        "inventory_sha256": hashlib.sha256(inventory_bytes).hexdigest(),
+        "target_coverage_sha256": hashlib.sha256(target_coverage_bytes).hexdigest(),
+        "inventory_authority": "synthetic_only_not_authenticated",
         "source_row_count": str(len(source)),
         "target_row_count": str(len(target)),
         "mismatch_count": "0",
         "diagnostics": [],
     }
-    if not source:
-        report["reason"] = "empty expected witness is not a valid PASS"
-        return report
-
     missing = sorted(source.keys() - target.keys())
     extra = sorted(target.keys() - source.keys())
     diagnostics: list[dict[str, Any]] = []
-    mismatch_count = len(missing) + len(extra)
+    mismatch_keys = set(missing) | set(extra)
+    inventory_missing_source = sorted(expected_rows.keys() - source.keys())
+    inventory_extra_source = sorted(source.keys() - expected_rows.keys())
+    inventory_missing_target = sorted(expected_rows.keys() - target.keys())
+    inventory_extra_target = sorted(target.keys() - expected_rows.keys())
+    for key in inventory_missing_source:
+        mismatch_keys.add(key)
+        diagnostics.append({"kind": "source_omits_independent_inventory_row", "key": _display_key(key)})
+    for key in inventory_extra_source:
+        mismatch_keys.add(key)
+        diagnostics.append({"kind": "source_row_not_in_independent_inventory", "key": _display_key(key)})
+    for key in inventory_missing_target:
+        mismatch_keys.add(key)
+        diagnostics.append({"kind": "target_omits_independent_inventory_row", "key": _display_key(key)})
+    for key in inventory_extra_target:
+        mismatch_keys.add(key)
+        diagnostics.append({"kind": "target_row_not_in_independent_inventory", "key": _display_key(key)})
+    if not source and expected_rows:
+        report["reason"] = "empty source omits independently inventoried rows"
+    elif not source and not expected_rows:
+        report["reason"] = "empty source has no independently inventoried rows"
     for key in missing:
         diagnostics.append({"kind": "missing_target_row", "key": _display_key(key)})
     for key in extra:
@@ -200,17 +205,22 @@ def compare_bytes(
     for key in sorted(source.keys() & target.keys()):
         paths = _difference_paths(source[key], target[key])
         if paths:
-            mismatch_count += 1
+            mismatch_keys.add(key)
             diagnostics.append({
                 "kind": "changed_row",
                 "key": _display_key(key),
                 "different_fields": paths[:20],
                 "different_field_count": str(len(paths)),
             })
-    report["status"] = "PASS" if mismatch_count == 0 else "FAIL"
+    mismatch_count = len(mismatch_keys)
     report["mismatch_count"] = str(mismatch_count)
     report["diagnostics"] = diagnostics[:100]
     report["diagnostic_count"] = str(len(diagnostics))
+    if not source and not expected_rows and not target:
+        report["status"] = "INCOMPLETE"
+        report["reason"] = "empty witnesses are not a valid synthetic PASS"
+        return report
+    report["status"] = "PASS" if mismatch_count == 0 else "FAIL"
     return report
 
 
@@ -224,6 +234,7 @@ def load_schema(path: Path) -> tuple[dict[str, Any], bytes]:
         raise WitnessInputError(f"invalid JSON schema file: {exc}") from exc
     if not isinstance(schema, dict):
         raise WitnessInputError("JSON schema root must be an object")
+    validate_supported_semantic_schema(schema, raw)
     return schema, raw
 
 
@@ -231,6 +242,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Compare hand-authored synthetic semantic-row witnesses.")
     parser.add_argument("--source", required=True, type=Path)
     parser.add_argument("--target", required=True, type=Path)
+    parser.add_argument("--inventory", required=True, type=Path)
+    parser.add_argument("--target-coverage", required=True, type=Path)
     parser.add_argument(
         "--schema",
         type=Path,
@@ -245,6 +258,8 @@ def main(argv: list[str] | None = None) -> int:
             args.target.read_bytes(),
             schema,
             schema_bytes,
+            args.inventory.read_bytes(),
+            args.target_coverage.read_bytes(),
             str(args.source),
             str(args.target),
         )
