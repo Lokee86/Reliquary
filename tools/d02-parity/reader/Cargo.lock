@@ -238,6 +238,7 @@ name = "reliquary-freshness-store"
 version = "0.1.0"
 dependencies = [
  "reliquary-container",
+ "sha2",
 ]
 
 [[package]]
