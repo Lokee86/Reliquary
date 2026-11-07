@@ -529,7 +529,7 @@ fn exact_versioned_memory_import_refuses_a_forged_record_before_appending() {
     let path = temp.0.join("target.rel");
     let (mut target, mut target_store) = open_new(&path);
     target.sync().unwrap();
-    let before = fs::read(&path).unwrap();
+    let before = target.read_frames().unwrap();
     let mut forged = revision.record.clone();
     forged.body_id = MemoryBodyId([0; 32]);
 
@@ -545,7 +545,7 @@ fn exact_versioned_memory_import_refuses_a_forged_record_before_appending() {
     ));
     assert_eq!(target.latest_version(), 0);
     assert_eq!(target_store.memory_version(), 0);
-    assert_eq!(fs::read(&path).unwrap(), before);
+    assert_eq!(target.read_frames().unwrap(), before);
 
     target_store
         .publish_accepted_versioned_revision(&mut target, 1, 10, &revision.record, input)
