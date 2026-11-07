@@ -94,5 +94,34 @@
     "binding_projection_sha256": "bbd6337eaaf1d63454331ced47d7aba360f90921a89ca41821b8303a05053604",
     "changed_candidate_rejected_at_local_version": "2",
     "rust_standalone_tests": 21
+  },
+  "protected_source_expectation_compatibility": {
+    "status": "PASS",
+    "scope": "verified_F03_Archive_binding_expectation_parser_only",
+    "source_expectations": [
+      {
+        "archive_rows": 7526,
+        "copy": "copy-0001",
+        "expectation_bytes": 1397261,
+        "projection_sha256": "5a6bf6724fc91c3f1b84caff69bdefccdba0dddbd773aee6260494ab4acfd710",
+        "scope": "project"
+      },
+      {
+        "archive_rows": 21068,
+        "copy": "copy-0003",
+        "expectation_bytes": 3966163,
+        "projection_sha256": "c5b8bb8a70cce9788013b3b2ebfc796262eea663813cd836d2360cc7c7a73044",
+        "scope": "project"
+      },
+      {
+        "archive_rows": 3763,
+        "copy": "copy-0005",
+        "expectation_bytes": 759760,
+        "projection_sha256": "f80a08c979a7e73d7855c33223e28f5359cbf6dc0e72b3ce5473f494f6a225be",
+        "scope": "unspecified"
+      }
+    ],
+    "malformed_controls_rejected": 6,
+    "authentic_candidate_verification": "INCOMPLETE"
   }
 }
