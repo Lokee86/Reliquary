@@ -610,7 +610,7 @@ impl CommunityStore {
                 if owner != store.owner {
                     return Err(GraphError::WrongOwner);
                 }
-                store.validate(&snapshot, graph)?;
+                store.validate(&snapshot, graph, derivation.is_some())?;
                 let expected = store.current.as_ref().map_or(1, |s: &CommunitySnapshot| {
                     s.generation.checked_add(1).unwrap_or(0)
                 });
@@ -680,7 +680,7 @@ impl CommunityStore {
         {
             return Err(GraphError::InvalidCommunity("graph version regressed"));
         }
-        self.validate(&snapshot, graph)?;
+        self.validate(&snapshot, graph, false)?;
         let bytes = encode_community(self.owner, &snapshot)?;
         container.append(&bytes)?;
         container.sync()?;
@@ -688,7 +688,12 @@ impl CommunityStore {
         self.current = Some(snapshot);
         Ok(())
     }
-    fn validate(&self, snapshot: &CommunitySnapshot, graph: &GraphStore) -> Result<(), GraphError> {
+    fn validate(
+        &self,
+        snapshot: &CommunitySnapshot,
+        graph: &GraphStore,
+        retained_derivation: bool,
+    ) -> Result<(), GraphError> {
         let closure = graph.active_memory_nodes_at(snapshot.graph_version)?;
         let mut seen = BTreeSet::new();
         let mut ids = BTreeSet::new();
@@ -717,11 +722,27 @@ impl CommunityStore {
                 return Err(GraphError::InvalidCommunity("community identity"));
             }
         }
-        if seen != closure {
+        if retained_derivation {
+            // Retained historical Community partitions can include registered
+            // Memory nodes which had no active relation at the selected cut.
+            let historical: BTreeSet<_> = graph
+                .history()
+                .flat_map(|relation| [relation.source, relation.target])
+                .filter_map(|node| match node {
+                    NodeRef::Memory(id) => Some(id),
+                    NodeRef::Entity(_) => None,
+                })
+                .collect();
+            if !closure.is_subset(&seen) || !seen.is_subset(&historical) {
+                return Err(GraphError::InvalidCommunity(
+                    "retained snapshot memory closure",
+                ));
+            }
+        } else if seen != closure {
             return Err(GraphError::InvalidCommunity(
                 "snapshot does not cover active graph memory closure",
             ));
-        };
+        }
         Ok(())
     }
 }
@@ -1187,6 +1208,64 @@ mod tests {
             })
         );
         assert_eq!(communities.retained_derivation(2), None);
+    }
+
+    #[test]
+    fn retained_community_can_include_historical_inactive_memory_members() {
+        let path = Temp::new();
+        let mut c = container(&path.0, 4);
+        let owner = c.owner_id();
+        let members = [[1; 32], [2; 32]];
+        let admission = GraphAdmission::for_changes(owner, members, []);
+        let mut graph = GraphStore::open(&c, &admission).unwrap();
+        let active = RelationChange {
+            source: NodeRef::Memory(members[0]),
+            target: NodeRef::Memory(members[1]),
+            kind: RelationKind::References,
+            active: true,
+            origin: RelationOrigin::User,
+        };
+        graph.put(&mut c, &admission, &[active]).unwrap();
+        graph
+            .put(
+                &mut c,
+                &admission,
+                &[RelationChange {
+                    active: false,
+                    ..active
+                }],
+            )
+            .unwrap();
+        let mut communities = CommunityStore::open(&c, &graph).unwrap();
+        let snapshot = CommunitySnapshot {
+            generation: 1,
+            graph_version: 2,
+            communities: vec![Community {
+                id: community_id(owner, &members),
+                members: members.to_vec(),
+            }],
+        };
+        assert!(
+            communities
+                .publish(&mut c, &graph, snapshot.clone())
+                .is_err()
+        );
+        let mut raw = encode_community(owner, &snapshot).unwrap();
+        raw[..8].copy_from_slice(RETAINED_COMMUNITY_MAGIC);
+        let evidence = [
+            1u32.to_le_bytes().as_slice(),
+            &1u64.to_le_bytes(),
+            &1.0f64.to_bits().to_le_bytes(),
+            &0.0f64.to_bits().to_le_bytes(),
+        ]
+        .concat();
+        raw.splice(40..40, evidence);
+        c.append(&raw).unwrap();
+        drop(c);
+        let c = Container::open_read_only(&path.0).unwrap();
+        let graph = GraphStore::open(&c, &admission).unwrap();
+        let communities = CommunityStore::open(&c, &graph).unwrap();
+        assert_eq!(communities.current(), Some(&snapshot));
     }
 
     #[test]
