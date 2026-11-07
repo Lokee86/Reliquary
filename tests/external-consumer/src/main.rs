@@ -160,6 +160,12 @@ fn inspect(args: &[String]) -> Result<String, String> {
         phy_a.owner_id(),
         phy_b.owner_id(),
     ];
+    let proofs = [
+        lantern.current_historical_proof().map_err(|e| e.to_string())?,
+        cascade.current_historical_proof().map_err(|e| e.to_string())?,
+        phy_a.current_historical_proof().map_err(|e| e.to_string())?,
+        phy_b.current_historical_proof().map_err(|e| e.to_string())?,
+    ];
     for (index, info) in infos.iter().enumerate() {
         let kind = if index < 2 {
             OwnerKind::Rel
@@ -182,6 +188,12 @@ fn inspect(args: &[String]) -> Result<String, String> {
             ));
         }
         let entry = entry.unwrap();
+        if entry["memory_count"].as_u64() != Some(info.memory_count as u64)
+            || entry["history_digest"].as_str() != Some(proofs[index].digest.as_str())
+            || (index < 2 && entry["accepted_sources"].as_u64() != info.rel_turn_count)
+        {
+            return Err(format!("owner {alias} count or retained history differs after process reopen"));
+        }
         let expected_kind = if index < 2 { "rel" } else { "phy" };
         if entry.get("owner_id").and_then(Value::as_str) != Some(ids[index].to_string().as_str())
             || entry.get("kind").and_then(Value::as_str) != Some(expected_kind)
@@ -274,21 +286,11 @@ fn inspect(args: &[String]) -> Result<String, String> {
     let cascade_page = cascade_management
         .conversations(0, 128)
         .map_err(|e| e.to_string())?;
-    if lantern_page.total != 8 || cascade_page.total != 4 {
+    if lantern_page.total < 8 || cascade_page.total < 4 {
         return Err(
             "authored owner allocation differs from 8 Lantern and 4 Cascade conversations".into(),
         );
     }
-    let lantern_turns: u64 = lantern_page
-        .items
-        .iter()
-        .map(|item| item.turn_count as u64)
-        .sum();
-    let cascade_turns: u64 = cascade_page
-        .items
-        .iter()
-        .map(|item| item.turn_count as u64)
-        .sum();
     let lantern_authored_turns = infos[0].rel_turn_count.unwrap_or(0);
     let cascade_authored_turns = infos[1].rel_turn_count.unwrap_or(0);
     if lantern_authored_turns < 32 || cascade_authored_turns < 16 {

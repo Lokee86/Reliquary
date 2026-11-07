@@ -114,7 +114,7 @@ impl GeneralEndpoint for CohortEndpoint {
 struct ManifestEndpoint {
     source_id: String,
     span: String,
-    owner: &'static str,
+    owner: String,
 }
 
 impl GeneralEndpoint for ManifestEndpoint {
@@ -749,7 +749,7 @@ pub(crate) fn complete_authored_semantics(
         let endpoint = ManifestEndpoint {
             source_id: node.to_owned(),
             span: expected.to_owned(),
-            owner: route["owner"].as_str().unwrap(),
+            owner: route["owner"].as_str().unwrap().to_owned(),
         };
         let extraction = extract_native_insomnia(endpoint, &claim, destination, |requests| {
             instance
@@ -767,8 +767,7 @@ pub(crate) fn complete_authored_semantics(
         let prepared = instance
             .with_writable_reliquary(owner, |rel| extraction.prepare(rel, &claim))
             .unwrap()
-            .unwrap()
-            .expect("manifest source creates one Memory");
+            .unwrap();
         assert_eq!(
             prepared.user_memories().count(),
             usize::from(destination.is_some())
@@ -777,7 +776,7 @@ pub(crate) fn complete_authored_semantics(
             prepared.project_memories().count(),
             usize::from(destination.is_none())
         );
-        let completion = if let Some(destination) = destination {
+        let completion = if destination.is_some() {
             instance.commit_routed_insomnia_claim(
                 owner,
                 routed_owner,
@@ -811,25 +810,26 @@ pub(crate) fn complete_authored_semantics(
             .unwrap();
         let produced_ids = if destination.is_some() {
             assert_eq!(receipt.memory_ids.len(), 0);
-            let expected_owner = hex(routed_owner.as_bytes());
+            let expected_owner = hex(&routed_owner.as_bytes());
             vec![MemoryId(
                 receipt
                     .external_memory_refs
                     .iter()
                     .find(|reference| reference.owner_id == expected_owner)
                     .expect("REL receipt names the declared routed PHY")
-                    .memory_id,
+                    .memory_id.0,
             )]
         } else {
             assert_eq!(receipt.memory_ids.len(), 1);
-            receipt.memory_ids.iter().map(|id| MemoryId(*id)).collect()
+            receipt.memory_ids.iter().map(|id| MemoryId(id.0)).collect()
         };
         for id in &produced_ids {
             let record = if destination.is_some() {
                 instance
-                    .with_entity_phy_writer(routed_owner, |writer| writer.current_memory(*id))
+                    .with_entity_phy_writer(routed_owner, |writer| writer.memory_history(*id))
                     .unwrap()
                     .unwrap()
+                    .unwrap().revisions.last().unwrap().clone()
             } else {
                 instance
                     .with_writable_reliquary(owner, |rel| rel.current_memory(*id))
@@ -840,7 +840,7 @@ pub(crate) fn complete_authored_semantics(
                 "source_id": source["id"],
                 "memory_id": hex(&id.0),
                 "owner_alias": route["owner"],
-                "owner_id": hex(routed_owner.as_bytes()),
+                "owner_id": hex(&routed_owner.as_bytes()),
                 "body_revision": record.record.revision,
                 "body_id": hex(&record.record.body_id.0),
             }));
@@ -883,7 +883,7 @@ pub(crate) fn complete_authored_semantics(
                 "g4-authored-first-dream".into(),
                 dream_cuts[0],
                 vec![dream_cuts[1]],
-                timestamp + 10,
+                (timestamp + 10) as u64,
             )
         })
         .unwrap()
@@ -974,7 +974,7 @@ pub(crate) fn complete_authored_semantics(
                 reason: EntityResolutionReason::Ambiguous
             }
     ));
-    let native_import = super::complete_authored_native_import(instance, cascade);
+    let native_import = crate::g4_semantic_completion::complete_authored_native_import(instance, cascade);
     json!({
         "manifest_seed": manifest["fixture_seed"],
         "episodes": episodes,

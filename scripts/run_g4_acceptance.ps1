@@ -18,8 +18,10 @@ function Invoke-Json([string] $Executable, [string[]] $Arguments) {
     return ($text | ConvertFrom-Json)
 }
 function Expect-Failure([string] $Executable, [string[]] $Arguments) {
-    & $Executable @Arguments *> $null
+    $output = & $Executable @Arguments 2>&1
     if ($LASTEXITCODE -eq 0) { throw "Expected failure: $Executable $Arguments" }
+    $result = ($output | Out-String) | ConvertFrom-Json
+    if ($null -eq $result.error) { throw 'CLI failure did not return a structured JSON error.' }
 }
 
 Push-Location $repo
@@ -27,7 +29,7 @@ try {
     Invoke-Cargo @('test', '-p', 'reliquary-runtime-gateway', '--locked', '--offline', '-j', '1', '--target-dir', $target, 'g4_t04_joined_vectors_context_retrieval_and_confirmed_use', '--', '--test-threads=1')
     Invoke-Cargo @('build', '--manifest-path', 'cli/Cargo.toml', '--locked', '--offline', '-j', '1', '--target-dir', $target)
     Invoke-Cargo @('build', '--manifest-path', 'tests/external-consumer/Cargo.toml', '--locked', '--offline', '-j', '1', '--target-dir', $target)
-    Invoke-Cargo @('test', '--manifest-path', 'tests/external-consumer/Cargo.toml', '--locked', '--offline', '-j', '1', '--target-dir', $target, '--', '--test-threads=1')
+    Invoke-Cargo @('test', '--manifest-path', 'tests/external-consumer/Cargo.toml', '--locked', '--offline', '-j', '1', '--target-dir', $target, '--', '--ignored', '--test-threads=1')
 
     $cli = Join-Path $target 'debug\reliquary.exe'
     $consumer = Join-Path $target 'debug\reliquary-external-consumer-check.exe'
@@ -53,6 +55,26 @@ try {
 
     $negativeDir = Join-Path $repo ".test-tmp\g4-negative-$runId"
     New-Item -ItemType Directory -Force -Path $negativeDir | Out-Null
+    $source = Join-Path $exportDir 'rel-lantern.rel'
+    $witness = Get-Content -LiteralPath (Join-Path $exportDir 'witness.json') -Raw | ConvertFrom-Json
+    foreach ($owner in $witness.owners) {
+        $hash = (Get-FileHash -LiteralPath (Join-Path $exportDir $owner.file) -Algorithm SHA256).Hash
+        if ($hash -ne $owner.sha256) { throw "Exported source hash differs for $($owner.file)." }
+    }
+    $null = Invoke-Json $cli @('rel', 'verify', $source)
+    $policy = Join-Path $negativeDir 'rewrite-policy.json'
+    $witness.rewrite_policy | ConvertTo-Json -Depth 16 | Set-Content -LiteralPath $policy -Encoding utf8
+    $dryRun = Join-Path $negativeDir 'dry-run.rel'
+    $plan = Invoke-Json $cli @('rel', 'rewrite', $source, $dryRun, '--policy', $policy, '--dry-run')
+    if ($plan.operation -ne 'rewrite_plan' -or (Test-Path -LiteralPath $dryRun)) { throw 'CLI dry-run published output or returned the wrong operation.' }
+    $copy = Join-Path $negativeDir 'reconciled.rel'
+    $null = Invoke-Json $cli @('rel', 'reconcile', $source, $source, $copy)
+    $copyProof = Invoke-Json $cli @('rel', 'history', 'proof', $copy)
+    if ($copyProof.proof.digest -ne $public.rel_lantern.history_digest) { throw 'CLI copy changed retained history.' }
+    Expect-Failure $cli @('rel', 'reconcile', $source, $source, $copy)
+    Expect-Failure $cli @('cva', 'info', $source)
+    Expect-Failure $cli @('phy', 'info', (Join-Path $exportDir 'phy-reader-a.phy'))
+    Expect-Failure $cli @('rel', 'info', $source, '--unknown', 'x', '--unknown', 'y')
     $wrongKind = Join-Path $exportDir 'phy-reader-a.phy'
     Expect-Failure $cli @('rel', 'info', $wrongKind)
     $legacyPath = Join-Path $negativeDir 'synthetic-2.0.rel'
@@ -66,6 +88,7 @@ try {
     if (-not $after.source_bytes_unchanged -or $after.rel_lantern.owner_id -ne $public.rel_lantern.owner_id) { throw 'Negative checks changed the completed source cohort.' }
     $afterHashes = $sourceFiles | ForEach-Object { (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }
     if (($sourceHashes -join ',') -ne ($afterHashes -join ',')) { throw 'CLI reads or negative cases changed source owner bytes.' }
+    $after | ConvertTo-Json -Depth 16 | Set-Content -LiteralPath (Join-Path $exportDir 'process-witness.json') -Encoding utf8
     Write-Output ('G4 fresh-process witness passed: ' + ($after | ConvertTo-Json -Compress))
 }
 finally {
