@@ -107,7 +107,9 @@ pub(super) fn validate_graph_prefix(
         };
         for child in children {
             let payload = reliquary_container::decode_publication(child)?
-                .filter(|envelope| envelope.body.starts_with(b"RELMCRT1"))
+                .filter(|envelope| {
+                    crate::records::memory_prune_proof::memory_history_record(envelope.body)
+                })
                 .map_or(child, |envelope| envelope.body);
             if payload.starts_with(b"RELMCRT1") {
                 let record = reliquary_memory_core::decode_grouped_creation(payload)?;

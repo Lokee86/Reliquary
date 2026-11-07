@@ -30,8 +30,10 @@ impl RelSession {
 pub(super) fn validate_native_import_receipts(
     container: &Container,
     imports: &ImportEpochStore,
+    archive: &Archive,
 ) -> Result<(), OwnerSessionError> {
     let mut prefix = ImportEpochStore::prefix(container.owner_id());
+    let mut publications = archive.publication_bindings().iter().peekable();
     let mut cursor = container.physical_cursor()?;
     while let Some(mut frame) = cursor.next_frame()? {
         use std::io::Read;
@@ -46,7 +48,13 @@ pub(super) fn validate_native_import_receipts(
             &magic,
             b"RELIEPS1" | b"RELIEPC1" | b"RELIEPS2" | b"RELIEPC2" | b"RELIFRS1"
         );
-        if !epoch_marker && &magic != b"CVAIMPT1" {
+        let archive_publication = publications
+            .peek()
+            .is_some_and(|entry| entry.object == frame.object());
+        if archive_publication {
+            publications.next();
+        }
+        if !epoch_marker && !archive_publication && &magic != b"CVAIMPT1" {
             continue;
         }
         let mut payload = magic.to_vec();
@@ -59,8 +67,14 @@ pub(super) fn validate_native_import_receipts(
                 .map_err(OwnerSessionError::Record)?;
             continue;
         }
-        let receipt = reliquary_archive::import_receipt_in_frame(&payload)?
-            .ok_or_else(|| OwnerSessionError::Record("missing Archive import receipt".into()))?;
+        let Some(receipt) = reliquary_archive::import_receipt_in_frame(&payload)? else {
+            if archive_publication {
+                continue;
+            }
+            return Err(OwnerSessionError::Record(
+                "missing Archive import receipt".into(),
+            ));
+        };
         let key = receipt
             .import_key
             .iter()
