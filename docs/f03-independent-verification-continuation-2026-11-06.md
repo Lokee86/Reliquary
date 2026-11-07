@@ -24,6 +24,8 @@ Do not run concurrent Cargo builds in the active G4 target directory or discard 
 
 ## What still needs independent proof
 
+Execution now follows the [F03 historical verification specification](architecture/f03-historical-verification-implementation-spec-2026-11-06.md) and its F03-V01–V04 tickets. This link adds an execution contract; it does not upgrade the evidence below.
+
 1. Re-run the six-file historical decoder test on copies and retain the exact test exit result and owner-head observations.
 2. Produce a versioned **FRS07 source-state semantic witness** for each owner: owner identity, canonical per-domain history and cuts, Archive source bytes/branches/Episodes, Memory body/provenance and revisions, Entity/Relationship/Graph/Ego state, Freshness events and import settlements, Dream/Insomnia work receipts, vector/profile IDs, source references and typed unavailable history. Hash stable semantic rows; exclude physical offsets and potentially sensitive raw content from the report.
 3. Compare the FRS07 witness with the prior frozen `canonical-history-equivalence-2026-10-21.json` oracle where semantics are unchanged. **The old oracle describes the pre-FRS07 canonical physical files** (its REL SHA values differ from the promoted FRS07 SHA values): differences in FRS07 settlement encoding and retained-history availability require explicit accepted explanations, not blanket equivalence or silent normalization.

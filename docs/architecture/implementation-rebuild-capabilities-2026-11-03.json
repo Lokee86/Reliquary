@@ -55,7 +55,8 @@
       "acceptance": "Capture golden ID inputs/outputs; independently verify the six-file corpus on copies OR record exact FRS07 blocker. A failed corpus proof blocks only later conversion, not construction of unrelated new capabilities.",
       "status": "completed",
       "completion_evidence": "docs/rebuild-f03-identity-and-corpus-evidence-2026-11-03.md",
-      "corpus_status": "historical FRS07 implementation reopened all six copies and matched pinned heads; pinned F01 reference still rejects three REL files; full historical fingerprint and conversion remain unverified"
+      "corpus_status": "historical FRS07 implementation reopened all six copies and matched pinned heads; pinned F01 reference still rejects three REL files; full historical fingerprint and conversion remain unverified",
+      "verification_breakdown": "docs/architecture/f03-historical-verification-implementation-spec-2026-11-06.md"
     },
     {
       "id": "F04",
@@ -629,6 +630,7 @@
       ],
       "deliverable": "Isolated disposable 2.0 \u2192 2.1 converter that is not part of rebuilt runtime",
       "acceptance": "Before conversion, all six source files MUST reopen under validated old-format semantics including FRS07; only verified source records converted to 2.1 with owner identities and offsets preserved.",
+      "breakdown": "docs/architecture/d01-offline-converter-implementation-spec-2026-11-06.md",
       "status": "not-started"
     },
     {
@@ -640,6 +642,7 @@
       ],
       "deliverable": "Independent 2.1 reader reopens all supported REL/PHY files",
       "acceptance": "Exact historical/owner/ID/vector/source/freshness/gateway receipt parity and privacy across all six known files",
+      "breakdown": "docs/architecture/d02-independent-parity-verifier-implementation-spec-2026-11-06.md",
       "status": "not-started"
     },
     {
@@ -651,6 +654,7 @@
       ],
       "deliverable": "Generation-level cutover and rollback plan, no shipped legacy reader/converter",
       "acceptance": "No mixed format promotion, all source/target hashes preserved, inactive old data untouched",
+      "breakdown": "docs/architecture/d03-safe-activation-implementation-spec-2026-11-06.md",
       "status": "not-started"
     },
     {
@@ -662,6 +666,7 @@
       ],
       "deliverable": "Release-cutover acceptance report",
       "acceptance": "Measured latency/memory and host privacy/queue/stream behavior within accepted baselines; new code owns no obsolete pathway",
+      "breakdown": "docs/architecture/g5-performance-release-acceptance-spec-2026-11-06.md",
       "status": "not-started"
     }
   ]

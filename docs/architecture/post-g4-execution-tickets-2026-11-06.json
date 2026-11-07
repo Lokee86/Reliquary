@@ -1,0 +1,53 @@
+{
+  "schema": "reliquary-post-g4-execution-tickets-v1",
+  "status": "specified-not-accepted",
+  "baseline": "a3c3a9643f494bced51faf92ba057b16bcdac8a7",
+  "plan": "post-g4-parallel-execution-plan-2026-11-06.md",
+  "external_gates": {
+    "G4": "accepted; retain canonical tracker authority",
+    "operator-authorization": "required before actual activation; not granted by planning"
+  },
+  "semantics": {
+    "depends_on": "Hard predecessors for this ticket's deliverable/acceptance; earlier safe implementation is described in its specification.",
+    "specification": "Ticket table in the named document owns deliverable, acceptance checks and evidence requirements.",
+    "canonical_status": "This DAG does not change F03/D01/D02/D03/G5 acceptance statuses.",
+    "artifact_independence": "D02 must not import converter traversal or generate expected truth from converted output."
+  },
+  "tickets": [
+    {"id":"PG-C01","lane":"shared","depends_on":[],"status":"not-started","title":"Freeze schemas and independent evidence goldens","specification":"post-g4-parallel-execution-plan-2026-11-06.md"},
+    {"id":"PG-C02","lane":"shared","depends_on":["G4"],"status":"not-started","title":"Repair cross-shell acceptance runner without weakening negatives","specification":"post-g4-parallel-execution-plan-2026-11-06.md"},
+    {"id":"F03-V01","lane":"source","depends_on":[],"status":"not-started","title":"Authenticate source and historical reader","specification":"f03-historical-verification-implementation-spec-2026-11-06.md","prior_evidence":"Six-file custody already passes; earlier decoder head check exists; fresh replay/deeper proof incomplete."},
+    {"id":"F03-V02","lane":"source","depends_on":["PG-C01","F03-V01"],"status":"not-started","title":"Export complete source semantic/history witness","specification":"f03-historical-verification-implementation-spec-2026-11-06.md"},
+    {"id":"F03-V03","lane":"source","depends_on":["F03-V02"],"status":"not-started","title":"Repeat independently and reconcile archived oracle","specification":"f03-historical-verification-implementation-spec-2026-11-06.md"},
+    {"id":"F03-V04","lane":"source","depends_on":["F03-V03"],"status":"not-started","title":"Freeze reviewed authentic source admission","specification":"f03-historical-verification-implementation-spec-2026-11-06.md"},
+    {"id":"D01-T01","lane":"converter","depends_on":["PG-C01"],"status":"not-started","title":"Isolate converter and classify retained families","specification":"d01-offline-converter-implementation-spec-2026-11-06.md"},
+    {"id":"D01-T02","lane":"converter","depends_on":["D01-T01"],"status":"not-started","title":"Preserve complete synthetic owner history","specification":"d01-offline-converter-implementation-spec-2026-11-06.md"},
+    {"id":"D01-T03","lane":"converter","depends_on":["D01-T02"],"status":"not-started","title":"Complete typed families and reference relocation","specification":"d01-offline-converter-implementation-spec-2026-11-06.md"},
+    {"id":"D01-T04","lane":"converter","depends_on":["D01-T03"],"status":"not-started","title":"Prove create-only candidate transaction and crash safety","specification":"d01-offline-converter-implementation-spec-2026-11-06.md"},
+    {"id":"D01-T05","lane":"converter","depends_on":["D01-T04","F03-V04","G4"],"status":"not-started","title":"Convert all six authenticated sources on copies","specification":"d01-offline-converter-implementation-spec-2026-11-06.md"},
+    {"id":"D02-T01","lane":"verifier","depends_on":["PG-C01"],"status":"not-started","title":"Implement independent current-only reader and comparator","specification":"d02-independent-parity-verifier-implementation-spec-2026-11-06.md"},
+    {"id":"D02-T02","lane":"verifier","depends_on":["D02-T01"],"status":"not-started","title":"Detect adversarial history and relocation loss","specification":"d02-independent-parity-verifier-implementation-spec-2026-11-06.md"},
+    {"id":"D02-T03","lane":"verifier","depends_on":["D02-T02"],"status":"not-started","title":"Verify consumer, retrieval and privacy parity","specification":"d02-independent-parity-verifier-implementation-spec-2026-11-06.md"},
+    {"id":"D02-T04","lane":"verifier","depends_on":["D02-T03","D01-T05","F03-V04"],"status":"not-started","title":"Independently accept the six converted owners","specification":"d02-independent-parity-verifier-implementation-spec-2026-11-06.md"},
+    {"id":"D03-T01","lane":"activation","depends_on":["PG-C01"],"status":"not-started","title":"Bind actual consumers to generation/rollback contract","specification":"d03-safe-activation-implementation-spec-2026-11-06.md"},
+    {"id":"D03-T02","lane":"activation","depends_on":["D03-T01"],"status":"not-started","title":"Rehearse staging and transition faults on fake deployments","specification":"d03-safe-activation-implementation-spec-2026-11-06.md"},
+    {"id":"D03-T03","lane":"activation","depends_on":["D03-T02","D02-T04"],"status":"not-started","title":"Stage verified authentic generation without activation","specification":"d03-safe-activation-implementation-spec-2026-11-06.md"},
+    {"id":"D03-T04","lane":"activation","depends_on":["D03-T03"],"status":"not-started","title":"Retire shipping converter paths and freeze custody","specification":"d03-safe-activation-implementation-spec-2026-11-06.md"},
+    {"id":"G5-T01","lane":"performance","depends_on":["PG-C01"],"status":"not-started","title":"Freeze workloads and performance acceptance policy","specification":"g5-performance-release-acceptance-spec-2026-11-06.md"},
+    {"id":"G5-T02","lane":"performance","depends_on":["G5-T01"],"status":"not-started","title":"Build native and reference measurement adapters","specification":"g5-performance-release-acceptance-spec-2026-11-06.md"},
+    {"id":"G5-T03","lane":"performance","depends_on":["G5-T02","F03-V04","D02-T04"],"status":"not-started","title":"Measure matched authenticated old/new corpus workloads","specification":"g5-performance-release-acceptance-spec-2026-11-06.md"},
+    {"id":"G5-T04","lane":"performance","depends_on":["G5-T03","D03-T04","PG-C02"],"status":"not-started","title":"Verify exact packaged runtime and release recovery","specification":"g5-performance-release-acceptance-spec-2026-11-06.md"},
+    {"id":"G5-T05","lane":"release","depends_on":["G5-T04","operator-authorization"],"status":"not-started","title":"Record release decision and perform authorized activation","specification":"g5-performance-release-acceptance-spec-2026-11-06.md"},
+    {"id":"HP01","lane":"hermes","depends_on":["G4"],"status":"not-started","title":"Pin real host identity and DTO/consumption contract","specification":"hermes-reliquary-plugin-implementation-spec-2026-11-06.md"},
+    {"id":"HP02","lane":"hermes","depends_on":["HP01"],"status":"not-started","title":"Expose required narrow public product operations","specification":"hermes-reliquary-plugin-implementation-spec-2026-11-06.md"},
+    {"id":"HP03","lane":"hermes","depends_on":["HP02"],"status":"not-started","title":"Build authenticated local service and provider lifecycle","specification":"hermes-reliquary-plugin-implementation-spec-2026-11-06.md"},
+    {"id":"HP04","lane":"hermes","depends_on":["HP03"],"status":"not-started","title":"Ingest copied Hermes snapshots with source authority and recovery","specification":"hermes-reliquary-plugin-implementation-spec-2026-11-06.md"},
+    {"id":"HP05","lane":"hermes","depends_on":["HP04"],"status":"not-started","title":"Wire retrieval and exact confirmed consumption","specification":"hermes-reliquary-plugin-implementation-spec-2026-11-06.md"},
+    {"id":"HP06","lane":"hermes","depends_on":["HP05"],"status":"not-started","title":"Package and validate standalone plugin","specification":"hermes-reliquary-plugin-implementation-spec-2026-11-06.md"},
+    {"id":"HP07","lane":"hermes-demo","depends_on":["HP06","HU04"],"status":"not-started","title":"Prove real-provider UI demo and submission artifacts","specification":"hermes-reliquary-plugin-implementation-spec-2026-11-06.md"},
+    {"id":"HU01","lane":"ui","depends_on":["HP01"],"status":"not-started","title":"Pin UI donors and dashboard tab contract","specification":"hermes-reliquary-ui-implementation-spec-2026-11-06.md"},
+    {"id":"HU02","lane":"ui","depends_on":["HU01"],"status":"not-started","title":"Port bounded graph/list and provenance inspector","specification":"hermes-reliquary-ui-implementation-spec-2026-11-06.md"},
+    {"id":"HU03","lane":"ui","depends_on":["HU02","HP02"],"status":"not-started","title":"Wire scoped edits and actual operational state","specification":"hermes-reliquary-ui-implementation-spec-2026-11-06.md"},
+    {"id":"HU04","lane":"ui","depends_on":["HU03","HP05"],"status":"not-started","title":"Accept dashboard against real Hermes and Reliquary service","specification":"hermes-reliquary-ui-implementation-spec-2026-11-06.md"}
+  ]
+}

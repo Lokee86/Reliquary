@@ -1,5 +1,7 @@
 # Reliquary Memory v2 Documentation
 
+- [Post-G4 parallel execution specifications](architecture/post-g4-parallel-execution-plan-2026-11-06.md) — F03 deep source proof, D01 conversion, D02 independent parity, D03 staging/rollback, G5 performance/release, and a separate Hermes provider/dashboard track; includes a 35-ticket dependency DAG.
+
 - [Rebuild continuation checkpoint (2026-11-04)](rebuild-continuation-2026-11-04.md) — active worktree, verified architecture correction, exact agent handoff and pending gates.
 
 - [Rebuild implementation progress](rebuild-implementation-progress.md) — incomplete slices and verification.

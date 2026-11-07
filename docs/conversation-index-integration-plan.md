@@ -55,6 +55,10 @@ The current external-source core includes:
 
 See [External sources](subsystems/external-sources.md).
 
+## Initial Hermes plugin scope
+
+The newer [Hermes Reliquary plugin specification](architecture/hermes-reliquary-plugin-implementation-spec-2026-11-06.md) records the user's November 6 choice to begin with source-ID-preserving conversation copies while Hermes remains canonical. That explicitly scoped copied-input mode is an exception to this document's reference-only body-storage policy, not a second transcript authority. H1–H8 below remain the long-term reference-only integration plan; the new plugin spec defines the later cutover and retirement boundary. The [dashboard port](architecture/hermes-reliquary-ui-implementation-spec-2026-11-06.md) is a separate presentation track.
+
 ## H1 — Hermes source contract
 
 Inventory Hermes's real source/session model and freeze the adapter contract for:
