@@ -1,0 +1,58 @@
+{
+  "$id": "https://reliquary.invalid/corpus-evidence/group-coverage-v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "completeness": {
+      "enum": [
+        "exhaustive",
+        "sampled",
+        "incomplete"
+      ]
+    },
+    "family_count": {
+      "pattern": "^(?:0|[1-9][0-9]*)$",
+      "type": "string"
+    },
+    "group_id": {
+      "enum": [
+        "container_lineage",
+        "archive_echo",
+        "memory",
+        "entity_relationship",
+        "graph_community",
+        "ego",
+        "freshness",
+        "insomnia_dream_import",
+        "vectors",
+        "external_project_operational",
+        "maintenance"
+      ]
+    },
+    "presence": {
+      "enum": [
+        "supported",
+        "absent",
+        "unsupported",
+        "unavailable",
+        "corrupt",
+        "unaudited",
+        "unclassified"
+      ]
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "group_id",
+    "presence",
+    "completeness",
+    "family_count",
+    "reason"
+  ],
+  "type": "object"
+}

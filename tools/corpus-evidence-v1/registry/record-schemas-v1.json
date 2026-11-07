@@ -1,0 +1,214 @@
+{
+  "schema_id": "reliquary-corpus-record-schemas-v1",
+  "contract_id": "reliquary-corpus-evidence-v1",
+  "status": "synthetic-fixture-only",
+  "authentic_admission": false,
+  "version_policy": "A reviewed schema change requires a new contract/schema version and regenerated goldens from unchanged source bytes.",
+  "domain_ids": [
+    "fixture.activity",
+    "fixture.archive",
+    "fixture.global",
+    "fixture.memory"
+  ],
+  "records": [
+    {
+      "schema_id": "fixture.archive_turn_revision.v1",
+      "group_id": "archive_echo",
+      "semantic_family": true,
+      "requires_source_binding": true,
+      "authentic_admission": false,
+      "fields": [
+        {
+          "name": "conversation_id",
+          "type": "hex"
+        },
+        {
+          "name": "branch_id",
+          "type": "hex"
+        },
+        {
+          "name": "revision",
+          "type": "u64"
+        },
+        {
+          "name": "role",
+          "type": "text"
+        },
+        {
+          "name": "author",
+          "type": "text"
+        },
+        {
+          "name": "body",
+          "type": "optional_text"
+        },
+        {
+          "name": "transaction_time",
+          "type": "i64"
+        },
+        {
+          "name": "source_refs",
+          "type": "hex_array"
+        }
+      ]
+    },
+    {
+      "schema_id": "fixture.memory_revision.v1",
+      "group_id": "memory",
+      "semantic_family": true,
+      "requires_source_binding": true,
+      "authentic_admission": false,
+      "fields": [
+        {
+          "name": "memory_id",
+          "type": "hex"
+        },
+        {
+          "name": "body_id",
+          "type": "hex"
+        },
+        {
+          "name": "revision",
+          "type": "u64"
+        },
+        {
+          "name": "body",
+          "type": "optional_text"
+        },
+        {
+          "name": "lifecycle",
+          "type": "text"
+        },
+        {
+          "name": "source_refs",
+          "type": "hex_array"
+        }
+      ]
+    },
+    {
+      "schema_id": "fixture.vector_probe.v1",
+      "group_id": "vectors",
+      "semantic_family": true,
+      "requires_source_binding": true,
+      "authentic_admission": false,
+      "fields": [
+        {
+          "name": "profile_id",
+          "type": "hex"
+        },
+        {
+          "name": "packed_vector_id",
+          "type": "hex"
+        },
+        {
+          "name": "dimensions",
+          "type": "u64"
+        },
+        {
+          "name": "scalar_bits",
+          "type": "float_bits"
+        }
+      ]
+    },
+    {
+      "schema_id": "fixture.freshness_event.v1",
+      "group_id": "freshness",
+      "semantic_family": true,
+      "requires_source_binding": true,
+      "authentic_admission": false,
+      "fields": [
+        {
+          "name": "event_id",
+          "type": "hex"
+        },
+        {
+          "name": "accepted_order",
+          "type": "u64"
+        },
+        {
+          "name": "score_bits",
+          "type": "float_bits"
+        },
+        {
+          "name": "basis_id",
+          "type": "hex"
+        },
+        {
+          "name": "accepted_event_boundary",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "schema_id": "fixture.ego_anchor.v1",
+      "group_id": "ego",
+      "semantic_family": true,
+      "requires_source_binding": true,
+      "authentic_admission": false,
+      "fields": [
+        {
+          "name": "anchor_id",
+          "type": "hex"
+        },
+        {
+          "name": "revision",
+          "type": "u64"
+        },
+        {
+          "name": "value",
+          "type": "optional_text"
+        }
+      ]
+    },
+    {
+      "schema_id": "fixture.logical_provenance.v1",
+      "group_id": "provenance",
+      "semantic_family": false,
+      "requires_source_binding": false,
+      "authentic_admission": false,
+      "fields": [
+        {
+          "name": "source_identity",
+          "type": "hex"
+        },
+        {
+          "name": "source_body_sha256",
+          "type": "sha256"
+        },
+        {
+          "name": "source_body_span_start",
+          "type": "u64"
+        },
+        {
+          "name": "source_body_span_end",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "schema_id": "fixture.owner_lineage.v1",
+      "group_id": "container_lineage",
+      "semantic_family": false,
+      "requires_source_binding": false,
+      "authentic_admission": false,
+      "fields": [
+        {
+          "name": "parent_owner_uuid",
+          "type": "hex"
+        },
+        {
+          "name": "parent_generation",
+          "type": "u64"
+        },
+        {
+          "name": "lineage_relation",
+          "type": "text"
+        },
+        {
+          "name": "proof_sha256",
+          "type": "sha256"
+        }
+      ]
+    }
+  ]
+}

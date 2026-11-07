@@ -1,0 +1,21 @@
+{
+  "schema_id": "reliquary-corpus-semantic-groups-v1",
+  "contract_id": "reliquary-corpus-evidence-v1",
+  "status": "provisional-review-required",
+  "authentic_admission": false,
+  "carrier_registry_ref": "physical-carriers-v1.json",
+  "record_schema_registry_ref": "record-schemas-v1.json",
+  "groups": [
+    {"id":"container_lineage","contract_label":"Container/lineage","retained_value_obligations":["Owner kind/scope/UUID, generation, accepted reservation ordering, transaction times, grouped publication boundaries, lineage proof."]},
+    {"id":"archive_echo","contract_label":"Archive/Echo","retained_value_obligations":["Conversations, branches/parents/canonical selection, every retained turn revision/body/role/author/time, Episodes/fragments, files/attachments, Echo/compaction records and typed terminal/unavailable payload state."]},
+    {"id":"memory","contract_label":"Memory","retained_value_obligations":["IDs, body IDs, all retained revisions, lifecycle/tombstones/supersession, categories/type/authority/scope, temporal evidence, source refs and routing receipts."]},
+    {"id":"entity_relationship","contract_label":"Entity/Relationship","retained_value_obligations":["Stable IDs, aliases/participants, full revision streams, source-body/spans, resolution/withdrawal/merge/retirement evidence and retained descriptions."]},
+    {"id":"graph_community","contract_label":"Graph/Community","retained_value_obligations":["Nodes/edges/origins/active state, full accepted mutations, version cuts, membership generations, user versus inferred names and lineage."]},
+    {"id":"ego","contract_label":"Ego","retained_value_obligations":["Identity, Personality, Anchors, retained revisions and owner scope; no new synthesis."]},
+    {"id":"freshness","contract_label":"Freshness","retained_value_obligations":["Policy, accepted birth/use/settlement events, original authority, activity clock, scores, propagation inputs, event cuts, FRS07 causal basis and explicit intra-settlement unavailability."]},
+    {"id":"insomnia_dream_import","contract_label":"Insomnia/Dream/import","retained_value_obligations":["Work identities, claims/retries/held/terminal receipts, source Episodes, initial populations/frontiers/pairs, completed import scope and accepted prefix proofs."]},
+    {"id":"vectors","contract_label":"Vectors","retained_value_obligations":["Packed bits, dimensions/scalar, all six stable hash-derived identities, profile probes/normalization, ordered row bindings, active/retired generations and coverage."]},
+    {"id":"external_project_operational","contract_label":"External/project/operational","retained_value_obligations":["Host namespaces/message identities/revisions/hashes, repository revision/file refs, acknowledged delivery, queue/stream receipts and sidecar references actually present."]},
+    {"id":"maintenance","contract_label":"Maintenance","retained_value_obligations":["Prune/retention proofs, exact removed versus retained payload state, repair/rewrite/reconcile lineage and source authority."]}
+  ]
+}

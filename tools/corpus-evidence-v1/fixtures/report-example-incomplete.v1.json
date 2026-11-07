@@ -1,0 +1,50 @@
+{
+  "schema_id": "reliquary-corpus-artifact-report-v1",
+  "contract_id": "reliquary-corpus-evidence-v1",
+  "producer_role": "comparator",
+  "evidence_scope": "synthetic_fixture",
+  "producer_revision": "0000000000000000000000000000000000000000",
+  "producer_binary_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "producer_code_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "validation_patch_sha256": null,
+  "lockfile_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "toolchain_id": "synthetic-example-not-a-production-run",
+  "registry_hashes": {
+    "semantic_groups": "8ca5594e463de065622ff4f3caccc17f0a61d1a95477f0284a48419f342032b0",
+    "record_schemas": "0963412591cc2d202a613584fd458ed14d5888e9e381d5283177eae40b41c79d",
+    "physical_carriers": "d7d782f7701a363fb0c4b75c6eabd04200a3889cac370d122d66ea31b0080dc5",
+    "contract_bundle": "7a1abda477874b2a1ff78f75520e075f909750d45a17ce3d6528110334f33688"
+  },
+  "status": "INCOMPLETE",
+  "captured_at_utc": "2026-11-07T00:00:00Z",
+  "reporting_date_local": "2026-11-07",
+  "reporting_timezone": "Etc/UTC",
+  "command_argv": [
+    "synthetic example, not executed"
+  ],
+  "exit_status": "0",
+  "source_hashes": [
+    "b8025392ee6221bd2a1a7d28c0a32d70a884f5abe754ec9d79e662e3026cff26"
+  ],
+  "parent_artifact_hashes": [],
+  "coverage": {
+    "owner_count": "1",
+    "family_count": "5",
+    "cut_count": "3",
+    "row_count": "9",
+    "completeness": "incomplete"
+  },
+  "diagnostics": {
+    "total_count": "0",
+    "sample_limit": "0",
+    "sample": []
+  },
+  "source_owner_bindings": [
+    {
+      "owner_uuid": "00112233445566778899aabbccddeeff",
+      "owner_kind": "REL",
+      "scope": "project",
+      "source_file_sha256": "b8025392ee6221bd2a1a7d28c0a32d70a884f5abe754ec9d79e662e3026cff26"
+    }
+  ]
+}

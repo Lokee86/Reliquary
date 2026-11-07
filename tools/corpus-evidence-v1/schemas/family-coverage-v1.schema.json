@@ -1,0 +1,146 @@
+{
+  "$defs": {
+    "cutCoverage": {
+      "additionalProperties": false,
+      "properties": {
+        "completeness": {
+          "enum": [
+            "exhaustive",
+            "sampled",
+            "incomplete"
+          ]
+        },
+        "cut_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "presence": {
+          "enum": [
+            "supported",
+            "absent",
+            "unsupported",
+            "unavailable",
+            "corrupt",
+            "unaudited",
+            "unclassified"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "row_count": {
+          "$ref": "#/$defs/decimalU64"
+        }
+      },
+      "required": [
+        "cut_id",
+        "presence",
+        "completeness",
+        "row_count",
+        "reason"
+      ],
+      "type": "object"
+    },
+    "decimalU64": {
+      "pattern": "^(?:0|[1-9][0-9]*)$",
+      "type": "string"
+    }
+  },
+  "$id": "https://reliquary.invalid/corpus-evidence/family-coverage-v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "completeness": {
+      "enum": [
+        "exhaustive",
+        "sampled",
+        "incomplete"
+      ]
+    },
+    "cuts": {
+      "items": {
+        "$ref": "#/$defs/cutCoverage"
+      },
+      "type": "array"
+    },
+    "family": {
+      "enum": [
+        "fixture.archive_turn_revision.v1",
+        "fixture.memory_revision.v1",
+        "fixture.vector_probe.v1",
+        "fixture.freshness_event.v1",
+        "fixture.ego_anchor.v1"
+      ]
+    },
+    "group_id": {
+      "enum": [
+        "container_lineage",
+        "archive_echo",
+        "memory",
+        "entity_relationship",
+        "graph_community",
+        "ego",
+        "freshness",
+        "insomnia_dream_import",
+        "vectors",
+        "external_project_operational",
+        "maintenance"
+      ]
+    },
+    "presence": {
+      "enum": [
+        "supported",
+        "absent",
+        "unsupported",
+        "unavailable",
+        "corrupt",
+        "unaudited",
+        "unclassified"
+      ]
+    },
+    "row_count": {
+      "$ref": "#/$defs/decimalU64"
+    },
+    "row_cut_memberships": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "cut_id": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "ordinal": {
+            "$ref": "#/$defs/decimalU64"
+          },
+          "revision_or_event": {
+            "type": "string"
+          },
+          "stable_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "stable_key",
+          "revision_or_event",
+          "ordinal",
+          "cut_id"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "family",
+    "group_id",
+    "presence",
+    "completeness",
+    "row_count",
+    "cuts",
+    "row_cut_memberships"
+  ],
+  "type": "object"
+}

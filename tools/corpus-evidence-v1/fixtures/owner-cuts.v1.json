@@ -1,0 +1,56 @@
+{
+  "schema_id": "fixture.owner-cut-catalog.v1",
+  "contract_id": "reliquary-corpus-evidence-v1",
+  "status": "synthetic-fixture-only",
+  "owner_uuid": "00112233445566778899aabbccddeeff",
+  "cuts": [
+    {
+      "cut_id": "6b77e0a298a88f9fc906a7c6b0d2938994ed3042e3883f404d79b38c9ffc7a2e",
+      "coordinate": {
+        "global_version": "10",
+        "domain_versions": [
+          {"domain_id": "fixture.archive", "version": "4"},
+          {"domain_id": "fixture.memory", "version": "2"}
+        ],
+        "transaction_time": {"state": "present", "value": "9007199254740993"},
+        "rel_activity_position": {"state": "present", "value": "8"},
+        "accepted_event_boundary": {"state": "absent"}
+      },
+      "availability": "present",
+      "completeness": "exhaustive",
+      "reason": null
+    },
+    {
+      "cut_id": "84f64a07fb495814b3e2834544557ac5997f5bdf03623ba45440565018264ed7",
+      "coordinate": {
+        "global_version": "13",
+        "domain_versions": [
+          {"domain_id": "fixture.archive", "version": "6"},
+          {"domain_id": "fixture.memory", "version": "4"}
+        ],
+        "transaction_time": {"state": "present", "value": "9007199254740997"},
+        "rel_activity_position": {"state": "present", "value": "12"},
+        "accepted_event_boundary": {"state": "present", "value": "8"}
+      },
+      "availability": "present",
+      "completeness": "exhaustive",
+      "reason": null
+    },
+    {
+      "cut_id": "94686d439bd1ba550a933e0b328908864e65ba276615d1efa874129f770c65b4",
+      "coordinate": {
+        "global_version": "12",
+        "domain_versions": [
+          {"domain_id": "fixture.archive", "version": "6"},
+          {"domain_id": "fixture.memory", "version": "4"}
+        ],
+        "transaction_time": {"state": "present", "value": "9007199254740995"},
+        "rel_activity_position": {"state": "present", "value": "11"},
+        "accepted_event_boundary": {"state": "present", "value": "7"}
+      },
+      "availability": "present",
+      "completeness": "exhaustive",
+      "reason": null
+    }
+  ]
+}

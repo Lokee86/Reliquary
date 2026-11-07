@@ -1,0 +1,2656 @@
+{
+  "$defs": {
+    "coordinate": {
+      "additionalProperties": false,
+      "properties": {
+        "accepted_event_boundary": {
+          "oneOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "const": "absent"
+                }
+              },
+              "required": [
+                "state"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "const": "present"
+                },
+                "value": {
+                  "$ref": "#/$defs/decimalU64"
+                }
+              },
+              "required": [
+                "state",
+                "value"
+              ],
+              "type": "object"
+            }
+          ]
+        },
+        "domain_versions": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "domain_id": {
+                "enum": [
+                  "fixture.activity",
+                  "fixture.archive",
+                  "fixture.global",
+                  "fixture.memory"
+                ],
+                "type": "string"
+              },
+              "version": {
+                "$ref": "#/$defs/decimalU64"
+              }
+            },
+            "required": [
+              "domain_id",
+              "version"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "global_version": {
+          "$ref": "#/$defs/decimalU64"
+        },
+        "rel_activity_position": {
+          "oneOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "const": "absent"
+                }
+              },
+              "required": [
+                "state"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "const": "present"
+                },
+                "value": {
+                  "$ref": "#/$defs/decimalU64"
+                }
+              },
+              "required": [
+                "state",
+                "value"
+              ],
+              "type": "object"
+            }
+          ]
+        },
+        "transaction_time": {
+          "oneOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "const": "absent"
+                }
+              },
+              "required": [
+                "state"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "const": "present"
+                },
+                "value": {
+                  "$ref": "#/$defs/decimalI64"
+                }
+              },
+              "required": [
+                "state",
+                "value"
+              ],
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "required": [
+        "global_version",
+        "domain_versions",
+        "transaction_time",
+        "rel_activity_position",
+        "accepted_event_boundary"
+      ],
+      "type": "object"
+    },
+    "cut": {
+      "additionalProperties": false,
+      "properties": {
+        "availability": {
+          "enum": [
+            "present",
+            "missing",
+            "tombstoned",
+            "pruned",
+            "unavailable",
+            "unauthorized",
+            "corrupt"
+          ]
+        },
+        "completeness": {
+          "enum": [
+            "exhaustive",
+            "sampled",
+            "incomplete"
+          ]
+        },
+        "coordinate": {
+          "$ref": "#/$defs/coordinate",
+          "description": "Record publication/source-origin coordinate only; snapshot/as-of cut membership is represented separately in family coverage."
+        },
+        "cut_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "cut_id",
+        "coordinate",
+        "availability",
+        "completeness",
+        "reason"
+      ],
+      "type": "object"
+    },
+    "decimalI64": {
+      "pattern": "^(?:0|[1-9][0-9]*|-[1-9][0-9]*)$",
+      "type": "string"
+    },
+    "decimalU64": {
+      "pattern": "^(?:0|[1-9][0-9]*)$",
+      "type": "string"
+    },
+    "fixture_archive_turn_revision_v1": {
+      "additionalProperties": false,
+      "properties": {
+        "fields": {
+          "additionalProperties": false,
+          "properties": {
+            "author": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "text"
+                },
+                "value": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "value"
+              ],
+              "type": "object"
+            },
+            "body": {
+              "oneOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "optional"
+                    },
+                    "state": {
+                      "const": "absent"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "state"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "optional"
+                    },
+                    "state": {
+                      "const": "present"
+                    },
+                    "value": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "text"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "value"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "state",
+                    "value"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            "branch_id": {
+              "additionalProperties": false,
+              "properties": {
+                "hex": {
+                  "pattern": "^(?:[0-9a-f]{2})+$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "bytes"
+                }
+              },
+              "required": [
+                "kind",
+                "hex"
+              ],
+              "type": "object"
+            },
+            "conversation_id": {
+              "additionalProperties": false,
+              "properties": {
+                "hex": {
+                  "pattern": "^(?:[0-9a-f]{2})+$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "bytes"
+                }
+              },
+              "required": [
+                "kind",
+                "hex"
+              ],
+              "type": "object"
+            },
+            "revision": {
+              "additionalProperties": false,
+              "properties": {
+                "decimal": {
+                  "pattern": "^(?:0|[1-9][0-9]*)$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "integer"
+                },
+                "signed": {
+                  "const": false
+                }
+              },
+              "required": [
+                "kind",
+                "signed",
+                "decimal"
+              ],
+              "type": "object"
+            },
+            "role": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "text"
+                },
+                "value": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "value"
+              ],
+              "type": "object"
+            },
+            "source_refs": {
+              "additionalProperties": false,
+              "properties": {
+                "items": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "hex": {
+                        "pattern": "^(?:[0-9a-f]{2})+$",
+                        "type": "string"
+                      },
+                      "kind": {
+                        "const": "bytes"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "hex"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "kind": {
+                  "const": "array"
+                },
+                "ordering": {
+                  "const": "ordered"
+                }
+              },
+              "required": [
+                "kind",
+                "ordering",
+                "items"
+              ],
+              "type": "object"
+            },
+            "transaction_time": {
+              "additionalProperties": false,
+              "properties": {
+                "decimal": {
+                  "pattern": "^(?:0|[1-9][0-9]*|-[1-9][0-9]*)$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "integer"
+                },
+                "signed": {
+                  "const": true
+                }
+              },
+              "required": [
+                "kind",
+                "signed",
+                "decimal"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "conversation_id",
+            "branch_id",
+            "revision",
+            "role",
+            "author",
+            "body",
+            "transaction_time",
+            "source_refs"
+          ],
+          "type": "object"
+        },
+        "kind": {
+          "const": "record"
+        },
+        "schema_id": {
+          "const": "fixture.archive_turn_revision.v1"
+        }
+      },
+      "required": [
+        "kind",
+        "schema_id",
+        "fields"
+      ],
+      "type": "object"
+    },
+    "fixture_ego_anchor_v1": {
+      "additionalProperties": false,
+      "properties": {
+        "fields": {
+          "additionalProperties": false,
+          "properties": {
+            "anchor_id": {
+              "additionalProperties": false,
+              "properties": {
+                "hex": {
+                  "pattern": "^(?:[0-9a-f]{2})+$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "bytes"
+                }
+              },
+              "required": [
+                "kind",
+                "hex"
+              ],
+              "type": "object"
+            },
+            "revision": {
+              "additionalProperties": false,
+              "properties": {
+                "decimal": {
+                  "pattern": "^(?:0|[1-9][0-9]*)$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "integer"
+                },
+                "signed": {
+                  "const": false
+                }
+              },
+              "required": [
+                "kind",
+                "signed",
+                "decimal"
+              ],
+              "type": "object"
+            },
+            "value": {
+              "oneOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "optional"
+                    },
+                    "state": {
+                      "const": "absent"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "state"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "optional"
+                    },
+                    "state": {
+                      "const": "present"
+                    },
+                    "value": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "text"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "value"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "state",
+                    "value"
+                  ],
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "required": [
+            "anchor_id",
+            "revision",
+            "value"
+          ],
+          "type": "object"
+        },
+        "kind": {
+          "const": "record"
+        },
+        "schema_id": {
+          "const": "fixture.ego_anchor.v1"
+        }
+      },
+      "required": [
+        "kind",
+        "schema_id",
+        "fields"
+      ],
+      "type": "object"
+    },
+    "fixture_freshness_event_v1": {
+      "additionalProperties": false,
+      "properties": {
+        "fields": {
+          "additionalProperties": false,
+          "properties": {
+            "accepted_event_boundary": {
+              "additionalProperties": false,
+              "properties": {
+                "decimal": {
+                  "pattern": "^(?:0|[1-9][0-9]*)$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "integer"
+                },
+                "signed": {
+                  "const": false
+                }
+              },
+              "required": [
+                "kind",
+                "signed",
+                "decimal"
+              ],
+              "type": "object"
+            },
+            "accepted_order": {
+              "additionalProperties": false,
+              "properties": {
+                "decimal": {
+                  "pattern": "^(?:0|[1-9][0-9]*)$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "integer"
+                },
+                "signed": {
+                  "const": false
+                }
+              },
+              "required": [
+                "kind",
+                "signed",
+                "decimal"
+              ],
+              "type": "object"
+            },
+            "basis_id": {
+              "additionalProperties": false,
+              "properties": {
+                "hex": {
+                  "pattern": "^(?:[0-9a-f]{2})+$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "bytes"
+                }
+              },
+              "required": [
+                "kind",
+                "hex"
+              ],
+              "type": "object"
+            },
+            "event_id": {
+              "additionalProperties": false,
+              "properties": {
+                "hex": {
+                  "pattern": "^(?:[0-9a-f]{2})+$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "bytes"
+                }
+              },
+              "required": [
+                "kind",
+                "hex"
+              ],
+              "type": "object"
+            },
+            "score_bits": {
+              "oneOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "endianness": {
+                      "enum": [
+                        "little",
+                        "big"
+                      ]
+                    },
+                    "hex": {
+                      "pattern": "^[0-9a-f]{8}$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "float_bits"
+                    },
+                    "scalar": {
+                      "const": "f32"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "scalar",
+                    "endianness",
+                    "hex"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "endianness": {
+                      "enum": [
+                        "little",
+                        "big"
+                      ]
+                    },
+                    "hex": {
+                      "pattern": "^[0-9a-f]{16}$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "float_bits"
+                    },
+                    "scalar": {
+                      "const": "f64"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "scalar",
+                    "endianness",
+                    "hex"
+                  ],
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "required": [
+            "event_id",
+            "accepted_order",
+            "score_bits",
+            "basis_id",
+            "accepted_event_boundary"
+          ],
+          "type": "object"
+        },
+        "kind": {
+          "const": "record"
+        },
+        "schema_id": {
+          "const": "fixture.freshness_event.v1"
+        }
+      },
+      "required": [
+        "kind",
+        "schema_id",
+        "fields"
+      ],
+      "type": "object"
+    },
+    "fixture_logical_provenance_v1": {
+      "additionalProperties": false,
+      "properties": {
+        "fields": {
+          "additionalProperties": false,
+          "properties": {
+            "source_body_sha256": {
+              "additionalProperties": false,
+              "properties": {
+                "hex": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "bytes"
+                }
+              },
+              "required": [
+                "kind",
+                "hex"
+              ],
+              "type": "object"
+            },
+            "source_body_span_end": {
+              "additionalProperties": false,
+              "properties": {
+                "decimal": {
+                  "pattern": "^(?:0|[1-9][0-9]*)$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "integer"
+                },
+                "signed": {
+                  "const": false
+                }
+              },
+              "required": [
+                "kind",
+                "signed",
+                "decimal"
+              ],
+              "type": "object"
+            },
+            "source_body_span_start": {
+              "additionalProperties": false,
+              "properties": {
+                "decimal": {
+                  "pattern": "^(?:0|[1-9][0-9]*)$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "integer"
+                },
+                "signed": {
+                  "const": false
+                }
+              },
+              "required": [
+                "kind",
+                "signed",
+                "decimal"
+              ],
+              "type": "object"
+            },
+            "source_identity": {
+              "additionalProperties": false,
+              "properties": {
+                "hex": {
+                  "pattern": "^(?:[0-9a-f]{2})+$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "bytes"
+                }
+              },
+              "required": [
+                "kind",
+                "hex"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "source_identity",
+            "source_body_sha256",
+            "source_body_span_start",
+            "source_body_span_end"
+          ],
+          "type": "object"
+        },
+        "kind": {
+          "const": "record"
+        },
+        "schema_id": {
+          "const": "fixture.logical_provenance.v1"
+        }
+      },
+      "required": [
+        "kind",
+        "schema_id",
+        "fields"
+      ],
+      "type": "object"
+    },
+    "fixture_memory_revision_v1": {
+      "additionalProperties": false,
+      "properties": {
+        "fields": {
+          "additionalProperties": false,
+          "properties": {
+            "body": {
+              "oneOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "optional"
+                    },
+                    "state": {
+                      "const": "absent"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "state"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "optional"
+                    },
+                    "state": {
+                      "const": "present"
+                    },
+                    "value": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "text"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "value"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "state",
+                    "value"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            "body_id": {
+              "additionalProperties": false,
+              "properties": {
+                "hex": {
+                  "pattern": "^(?:[0-9a-f]{2})+$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "bytes"
+                }
+              },
+              "required": [
+                "kind",
+                "hex"
+              ],
+              "type": "object"
+            },
+            "lifecycle": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "text"
+                },
+                "value": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "value"
+              ],
+              "type": "object"
+            },
+            "memory_id": {
+              "additionalProperties": false,
+              "properties": {
+                "hex": {
+                  "pattern": "^(?:[0-9a-f]{2})+$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "bytes"
+                }
+              },
+              "required": [
+                "kind",
+                "hex"
+              ],
+              "type": "object"
+            },
+            "revision": {
+              "additionalProperties": false,
+              "properties": {
+                "decimal": {
+                  "pattern": "^(?:0|[1-9][0-9]*)$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "integer"
+                },
+                "signed": {
+                  "const": false
+                }
+              },
+              "required": [
+                "kind",
+                "signed",
+                "decimal"
+              ],
+              "type": "object"
+            },
+            "source_refs": {
+              "additionalProperties": false,
+              "properties": {
+                "items": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "hex": {
+                        "pattern": "^(?:[0-9a-f]{2})+$",
+                        "type": "string"
+                      },
+                      "kind": {
+                        "const": "bytes"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "hex"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "kind": {
+                  "const": "array"
+                },
+                "ordering": {
+                  "const": "ordered"
+                }
+              },
+              "required": [
+                "kind",
+                "ordering",
+                "items"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "memory_id",
+            "body_id",
+            "revision",
+            "body",
+            "lifecycle",
+            "source_refs"
+          ],
+          "type": "object"
+        },
+        "kind": {
+          "const": "record"
+        },
+        "schema_id": {
+          "const": "fixture.memory_revision.v1"
+        }
+      },
+      "required": [
+        "kind",
+        "schema_id",
+        "fields"
+      ],
+      "type": "object"
+    },
+    "fixture_owner_lineage_v1": {
+      "additionalProperties": false,
+      "properties": {
+        "fields": {
+          "additionalProperties": false,
+          "properties": {
+            "lineage_relation": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "text"
+                },
+                "value": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "value"
+              ],
+              "type": "object"
+            },
+            "parent_generation": {
+              "additionalProperties": false,
+              "properties": {
+                "decimal": {
+                  "pattern": "^(?:0|[1-9][0-9]*)$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "integer"
+                },
+                "signed": {
+                  "const": false
+                }
+              },
+              "required": [
+                "kind",
+                "signed",
+                "decimal"
+              ],
+              "type": "object"
+            },
+            "parent_owner_uuid": {
+              "additionalProperties": false,
+              "properties": {
+                "hex": {
+                  "pattern": "^(?:[0-9a-f]{2})+$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "bytes"
+                }
+              },
+              "required": [
+                "kind",
+                "hex"
+              ],
+              "type": "object"
+            },
+            "proof_sha256": {
+              "additionalProperties": false,
+              "properties": {
+                "hex": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "bytes"
+                }
+              },
+              "required": [
+                "kind",
+                "hex"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "parent_owner_uuid",
+            "parent_generation",
+            "lineage_relation",
+            "proof_sha256"
+          ],
+          "type": "object"
+        },
+        "kind": {
+          "const": "record"
+        },
+        "schema_id": {
+          "const": "fixture.owner_lineage.v1"
+        }
+      },
+      "required": [
+        "kind",
+        "schema_id",
+        "fields"
+      ],
+      "type": "object"
+    },
+    "fixture_vector_probe_v1": {
+      "additionalProperties": false,
+      "properties": {
+        "fields": {
+          "additionalProperties": false,
+          "properties": {
+            "dimensions": {
+              "additionalProperties": false,
+              "properties": {
+                "decimal": {
+                  "pattern": "^(?:0|[1-9][0-9]*)$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "integer"
+                },
+                "signed": {
+                  "const": false
+                }
+              },
+              "required": [
+                "kind",
+                "signed",
+                "decimal"
+              ],
+              "type": "object"
+            },
+            "packed_vector_id": {
+              "additionalProperties": false,
+              "properties": {
+                "hex": {
+                  "pattern": "^(?:[0-9a-f]{2})+$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "bytes"
+                }
+              },
+              "required": [
+                "kind",
+                "hex"
+              ],
+              "type": "object"
+            },
+            "profile_id": {
+              "additionalProperties": false,
+              "properties": {
+                "hex": {
+                  "pattern": "^(?:[0-9a-f]{2})+$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "bytes"
+                }
+              },
+              "required": [
+                "kind",
+                "hex"
+              ],
+              "type": "object"
+            },
+            "scalar_bits": {
+              "oneOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "endianness": {
+                      "enum": [
+                        "little",
+                        "big"
+                      ]
+                    },
+                    "hex": {
+                      "pattern": "^[0-9a-f]{8}$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "float_bits"
+                    },
+                    "scalar": {
+                      "const": "f32"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "scalar",
+                    "endianness",
+                    "hex"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "endianness": {
+                      "enum": [
+                        "little",
+                        "big"
+                      ]
+                    },
+                    "hex": {
+                      "pattern": "^[0-9a-f]{16}$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "float_bits"
+                    },
+                    "scalar": {
+                      "const": "f64"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "scalar",
+                    "endianness",
+                    "hex"
+                  ],
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "required": [
+            "profile_id",
+            "packed_vector_id",
+            "dimensions",
+            "scalar_bits"
+          ],
+          "type": "object"
+        },
+        "kind": {
+          "const": "record"
+        },
+        "schema_id": {
+          "const": "fixture.vector_probe.v1"
+        }
+      },
+      "required": [
+        "kind",
+        "schema_id",
+        "fields"
+      ],
+      "type": "object"
+    },
+    "optionalLineage": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "optional"
+            },
+            "state": {
+              "const": "absent"
+            }
+          },
+          "required": [
+            "kind",
+            "state"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "optional"
+            },
+            "state": {
+              "const": "present"
+            },
+            "value": {
+              "$ref": "#/$defs/fixture_owner_lineage_v1"
+            }
+          },
+          "required": [
+            "kind",
+            "state",
+            "value"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "optionalProvenance": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "optional"
+            },
+            "state": {
+              "const": "absent"
+            }
+          },
+          "required": [
+            "kind",
+            "state"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "optional"
+            },
+            "state": {
+              "const": "present"
+            },
+            "value": {
+              "$ref": "#/$defs/fixture_logical_provenance_v1"
+            }
+          },
+          "required": [
+            "kind",
+            "state",
+            "value"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "ownerKey": {
+      "additionalProperties": false,
+      "properties": {
+        "owner_kind": {
+          "enum": [
+            "REL",
+            "PHY"
+          ]
+        },
+        "owner_uuid": {
+          "pattern": "^[0-9a-f]{32}$",
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner_uuid",
+        "owner_kind",
+        "scope"
+      ],
+      "type": "object"
+    },
+    "recordValue": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "fields": {
+              "additionalProperties": false,
+              "properties": {
+                "author": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "text"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "value"
+                  ],
+                  "type": "object"
+                },
+                "body": {
+                  "oneOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "optional"
+                        },
+                        "state": {
+                          "const": "absent"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "state"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "optional"
+                        },
+                        "state": {
+                          "const": "present"
+                        },
+                        "value": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "text"
+                            },
+                            "value": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "value"
+                          ],
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "state",
+                        "value"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "branch_id": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hex": {
+                      "pattern": "^(?:[0-9a-f]{2})+$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "bytes"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "hex"
+                  ],
+                  "type": "object"
+                },
+                "conversation_id": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hex": {
+                      "pattern": "^(?:[0-9a-f]{2})+$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "bytes"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "hex"
+                  ],
+                  "type": "object"
+                },
+                "revision": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "decimal": {
+                      "pattern": "^(?:0|[1-9][0-9]*)$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "integer"
+                    },
+                    "signed": {
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "signed",
+                    "decimal"
+                  ],
+                  "type": "object"
+                },
+                "role": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "text"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "value"
+                  ],
+                  "type": "object"
+                },
+                "source_refs": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "hex": {
+                            "pattern": "^(?:[0-9a-f]{2})+$",
+                            "type": "string"
+                          },
+                          "kind": {
+                            "const": "bytes"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "hex"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "kind": {
+                      "const": "array"
+                    },
+                    "ordering": {
+                      "const": "ordered"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "ordering",
+                    "items"
+                  ],
+                  "type": "object"
+                },
+                "transaction_time": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "decimal": {
+                      "pattern": "^(?:0|[1-9][0-9]*|-[1-9][0-9]*)$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "integer"
+                    },
+                    "signed": {
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "signed",
+                    "decimal"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "conversation_id",
+                "branch_id",
+                "revision",
+                "role",
+                "author",
+                "body",
+                "transaction_time",
+                "source_refs"
+              ],
+              "type": "object"
+            },
+            "kind": {
+              "const": "record"
+            },
+            "schema_id": {
+              "const": "fixture.archive_turn_revision.v1"
+            }
+          },
+          "required": [
+            "kind",
+            "schema_id",
+            "fields"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "fields": {
+              "additionalProperties": false,
+              "properties": {
+                "body": {
+                  "oneOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "optional"
+                        },
+                        "state": {
+                          "const": "absent"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "state"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "optional"
+                        },
+                        "state": {
+                          "const": "present"
+                        },
+                        "value": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "text"
+                            },
+                            "value": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "value"
+                          ],
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "state",
+                        "value"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "body_id": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hex": {
+                      "pattern": "^(?:[0-9a-f]{2})+$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "bytes"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "hex"
+                  ],
+                  "type": "object"
+                },
+                "lifecycle": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "text"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "value"
+                  ],
+                  "type": "object"
+                },
+                "memory_id": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hex": {
+                      "pattern": "^(?:[0-9a-f]{2})+$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "bytes"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "hex"
+                  ],
+                  "type": "object"
+                },
+                "revision": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "decimal": {
+                      "pattern": "^(?:0|[1-9][0-9]*)$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "integer"
+                    },
+                    "signed": {
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "signed",
+                    "decimal"
+                  ],
+                  "type": "object"
+                },
+                "source_refs": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "hex": {
+                            "pattern": "^(?:[0-9a-f]{2})+$",
+                            "type": "string"
+                          },
+                          "kind": {
+                            "const": "bytes"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "hex"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "kind": {
+                      "const": "array"
+                    },
+                    "ordering": {
+                      "const": "ordered"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "ordering",
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "memory_id",
+                "body_id",
+                "revision",
+                "body",
+                "lifecycle",
+                "source_refs"
+              ],
+              "type": "object"
+            },
+            "kind": {
+              "const": "record"
+            },
+            "schema_id": {
+              "const": "fixture.memory_revision.v1"
+            }
+          },
+          "required": [
+            "kind",
+            "schema_id",
+            "fields"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "fields": {
+              "additionalProperties": false,
+              "properties": {
+                "dimensions": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "decimal": {
+                      "pattern": "^(?:0|[1-9][0-9]*)$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "integer"
+                    },
+                    "signed": {
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "signed",
+                    "decimal"
+                  ],
+                  "type": "object"
+                },
+                "packed_vector_id": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hex": {
+                      "pattern": "^(?:[0-9a-f]{2})+$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "bytes"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "hex"
+                  ],
+                  "type": "object"
+                },
+                "profile_id": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hex": {
+                      "pattern": "^(?:[0-9a-f]{2})+$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "bytes"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "hex"
+                  ],
+                  "type": "object"
+                },
+                "scalar_bits": {
+                  "oneOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "endianness": {
+                          "enum": [
+                            "little",
+                            "big"
+                          ]
+                        },
+                        "hex": {
+                          "pattern": "^[0-9a-f]{8}$",
+                          "type": "string"
+                        },
+                        "kind": {
+                          "const": "float_bits"
+                        },
+                        "scalar": {
+                          "const": "f32"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "scalar",
+                        "endianness",
+                        "hex"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "endianness": {
+                          "enum": [
+                            "little",
+                            "big"
+                          ]
+                        },
+                        "hex": {
+                          "pattern": "^[0-9a-f]{16}$",
+                          "type": "string"
+                        },
+                        "kind": {
+                          "const": "float_bits"
+                        },
+                        "scalar": {
+                          "const": "f64"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "scalar",
+                        "endianness",
+                        "hex"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "profile_id",
+                "packed_vector_id",
+                "dimensions",
+                "scalar_bits"
+              ],
+              "type": "object"
+            },
+            "kind": {
+              "const": "record"
+            },
+            "schema_id": {
+              "const": "fixture.vector_probe.v1"
+            }
+          },
+          "required": [
+            "kind",
+            "schema_id",
+            "fields"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "fields": {
+              "additionalProperties": false,
+              "properties": {
+                "accepted_event_boundary": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "decimal": {
+                      "pattern": "^(?:0|[1-9][0-9]*)$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "integer"
+                    },
+                    "signed": {
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "signed",
+                    "decimal"
+                  ],
+                  "type": "object"
+                },
+                "accepted_order": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "decimal": {
+                      "pattern": "^(?:0|[1-9][0-9]*)$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "integer"
+                    },
+                    "signed": {
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "signed",
+                    "decimal"
+                  ],
+                  "type": "object"
+                },
+                "basis_id": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hex": {
+                      "pattern": "^(?:[0-9a-f]{2})+$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "bytes"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "hex"
+                  ],
+                  "type": "object"
+                },
+                "event_id": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hex": {
+                      "pattern": "^(?:[0-9a-f]{2})+$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "bytes"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "hex"
+                  ],
+                  "type": "object"
+                },
+                "score_bits": {
+                  "oneOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "endianness": {
+                          "enum": [
+                            "little",
+                            "big"
+                          ]
+                        },
+                        "hex": {
+                          "pattern": "^[0-9a-f]{8}$",
+                          "type": "string"
+                        },
+                        "kind": {
+                          "const": "float_bits"
+                        },
+                        "scalar": {
+                          "const": "f32"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "scalar",
+                        "endianness",
+                        "hex"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "endianness": {
+                          "enum": [
+                            "little",
+                            "big"
+                          ]
+                        },
+                        "hex": {
+                          "pattern": "^[0-9a-f]{16}$",
+                          "type": "string"
+                        },
+                        "kind": {
+                          "const": "float_bits"
+                        },
+                        "scalar": {
+                          "const": "f64"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "scalar",
+                        "endianness",
+                        "hex"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "event_id",
+                "accepted_order",
+                "score_bits",
+                "basis_id",
+                "accepted_event_boundary"
+              ],
+              "type": "object"
+            },
+            "kind": {
+              "const": "record"
+            },
+            "schema_id": {
+              "const": "fixture.freshness_event.v1"
+            }
+          },
+          "required": [
+            "kind",
+            "schema_id",
+            "fields"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "fields": {
+              "additionalProperties": false,
+              "properties": {
+                "anchor_id": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hex": {
+                      "pattern": "^(?:[0-9a-f]{2})+$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "bytes"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "hex"
+                  ],
+                  "type": "object"
+                },
+                "revision": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "decimal": {
+                      "pattern": "^(?:0|[1-9][0-9]*)$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "integer"
+                    },
+                    "signed": {
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "signed",
+                    "decimal"
+                  ],
+                  "type": "object"
+                },
+                "value": {
+                  "oneOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "optional"
+                        },
+                        "state": {
+                          "const": "absent"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "state"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "optional"
+                        },
+                        "state": {
+                          "const": "present"
+                        },
+                        "value": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "text"
+                            },
+                            "value": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "value"
+                          ],
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "state",
+                        "value"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "anchor_id",
+                "revision",
+                "value"
+              ],
+              "type": "object"
+            },
+            "kind": {
+              "const": "record"
+            },
+            "schema_id": {
+              "const": "fixture.ego_anchor.v1"
+            }
+          },
+          "required": [
+            "kind",
+            "schema_id",
+            "fields"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "fields": {
+              "additionalProperties": false,
+              "properties": {
+                "source_body_sha256": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hex": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "bytes"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "hex"
+                  ],
+                  "type": "object"
+                },
+                "source_body_span_end": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "decimal": {
+                      "pattern": "^(?:0|[1-9][0-9]*)$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "integer"
+                    },
+                    "signed": {
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "signed",
+                    "decimal"
+                  ],
+                  "type": "object"
+                },
+                "source_body_span_start": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "decimal": {
+                      "pattern": "^(?:0|[1-9][0-9]*)$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "integer"
+                    },
+                    "signed": {
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "signed",
+                    "decimal"
+                  ],
+                  "type": "object"
+                },
+                "source_identity": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hex": {
+                      "pattern": "^(?:[0-9a-f]{2})+$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "bytes"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "hex"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "source_identity",
+                "source_body_sha256",
+                "source_body_span_start",
+                "source_body_span_end"
+              ],
+              "type": "object"
+            },
+            "kind": {
+              "const": "record"
+            },
+            "schema_id": {
+              "const": "fixture.logical_provenance.v1"
+            }
+          },
+          "required": [
+            "kind",
+            "schema_id",
+            "fields"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "fields": {
+              "additionalProperties": false,
+              "properties": {
+                "lineage_relation": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "text"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "value"
+                  ],
+                  "type": "object"
+                },
+                "parent_generation": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "decimal": {
+                      "pattern": "^(?:0|[1-9][0-9]*)$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "integer"
+                    },
+                    "signed": {
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "signed",
+                    "decimal"
+                  ],
+                  "type": "object"
+                },
+                "parent_owner_uuid": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hex": {
+                      "pattern": "^(?:[0-9a-f]{2})+$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "bytes"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "hex"
+                  ],
+                  "type": "object"
+                },
+                "proof_sha256": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hex": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "bytes"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "hex"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "parent_owner_uuid",
+                "parent_generation",
+                "lineage_relation",
+                "proof_sha256"
+              ],
+              "type": "object"
+            },
+            "kind": {
+              "const": "record"
+            },
+            "schema_id": {
+              "const": "fixture.owner_lineage.v1"
+            }
+          },
+          "required": [
+            "kind",
+            "schema_id",
+            "fields"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "unavailableValue": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "evidence_sha256": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "unavailable"
+            },
+            "reason_code": {
+              "enum": [
+                "missing",
+                "tombstoned",
+                "pruned",
+                "unavailable",
+                "unauthorized",
+                "corrupt",
+                "intra_settlement_unavailable"
+              ]
+            },
+            "schema_id": {
+              "const": "fixture.archive_turn_revision.v1"
+            }
+          },
+          "required": [
+            "kind",
+            "schema_id",
+            "reason_code",
+            "evidence_sha256"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "evidence_sha256": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "unavailable"
+            },
+            "reason_code": {
+              "enum": [
+                "missing",
+                "tombstoned",
+                "pruned",
+                "unavailable",
+                "unauthorized",
+                "corrupt",
+                "intra_settlement_unavailable"
+              ]
+            },
+            "schema_id": {
+              "const": "fixture.memory_revision.v1"
+            }
+          },
+          "required": [
+            "kind",
+            "schema_id",
+            "reason_code",
+            "evidence_sha256"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "evidence_sha256": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "unavailable"
+            },
+            "reason_code": {
+              "enum": [
+                "missing",
+                "tombstoned",
+                "pruned",
+                "unavailable",
+                "unauthorized",
+                "corrupt",
+                "intra_settlement_unavailable"
+              ]
+            },
+            "schema_id": {
+              "const": "fixture.vector_probe.v1"
+            }
+          },
+          "required": [
+            "kind",
+            "schema_id",
+            "reason_code",
+            "evidence_sha256"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "evidence_sha256": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "unavailable"
+            },
+            "reason_code": {
+              "enum": [
+                "missing",
+                "tombstoned",
+                "pruned",
+                "unavailable",
+                "unauthorized",
+                "corrupt",
+                "intra_settlement_unavailable"
+              ]
+            },
+            "schema_id": {
+              "const": "fixture.freshness_event.v1"
+            }
+          },
+          "required": [
+            "kind",
+            "schema_id",
+            "reason_code",
+            "evidence_sha256"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "evidence_sha256": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "unavailable"
+            },
+            "reason_code": {
+              "enum": [
+                "missing",
+                "tombstoned",
+                "pruned",
+                "unavailable",
+                "unauthorized",
+                "corrupt",
+                "intra_settlement_unavailable"
+              ]
+            },
+            "schema_id": {
+              "const": "fixture.ego_anchor.v1"
+            }
+          },
+          "required": [
+            "kind",
+            "schema_id",
+            "reason_code",
+            "evidence_sha256"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "$id": "https://reliquary.invalid/corpus-evidence/owner-v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "history_generation": {
+      "$ref": "#/$defs/decimalU64"
+    },
+    "lineage": {
+      "$ref": "#/$defs/optionalLineage"
+    },
+    "owner_kind": {
+      "enum": [
+        "REL",
+        "PHY"
+      ]
+    },
+    "owner_uuid": {
+      "pattern": "^[0-9a-f]{32}$",
+      "type": "string"
+    },
+    "scope": {
+      "type": "string"
+    },
+    "source_file_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "supported_cuts": {
+      "items": {
+        "$ref": "#/$defs/cut"
+      },
+      "type": "array"
+    },
+    "version_heads": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "domain_id": {
+            "enum": [
+              "fixture.activity",
+              "fixture.archive",
+              "fixture.global",
+              "fixture.memory"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "$ref": "#/$defs/decimalU64"
+          }
+        },
+        "required": [
+          "domain_id",
+          "version"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "owner_uuid",
+    "owner_kind",
+    "scope",
+    "source_file_sha256",
+    "history_generation",
+    "lineage",
+    "version_heads",
+    "supported_cuts"
+  ],
+  "title": "Semantic owner descriptor v1",
+  "type": "object"
+}

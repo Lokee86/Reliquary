@@ -1,0 +1,151 @@
+{
+  "schema_id": "fixture.complete-synthetic-population.v1",
+  "contract_id": "reliquary-corpus-evidence-v1",
+  "population_id": "fixture.pg_c01_comparator_pass.v1",
+  "status": "complete-synthetic-fixture",
+  "authentic_admission": false,
+  "scope": "synthetic_fixture_only",
+  "owner": {
+    "owner_uuid": "00112233445566778899aabbccddeeff",
+    "owner_kind": "REL",
+    "scope": "project"
+  },
+  "source_rows_path": "comparator-pass-source-rows.v1.jsonl",
+  "target_rows_path": "comparator-pass-target-rows.v1.jsonl",
+  "row_cut_memberships_path": "comparator-pass-row-cut-memberships.v1.json",
+  "owner_cut_catalog_path": "owner-cuts.v1.json",
+  "source_rows_sha256": "551903971be3ca8858ab8c12928206f3e203a7c6ddf3feb02f635f400f6ae552",
+  "target_rows_sha256": "37a8353b934c4518fef6b61db79ce165b30f116aa340151f074f934c4d10edc6",
+  "row_cut_memberships_sha256": "12d38c87b51cf1f81c401c41f4d020d114d5446f44b782ebf84a34cde64341fe",
+  "family_catalog": [
+    {
+      "family_id": "fixture.archive_turn_revision.v1",
+      "group_id": "archive_echo",
+      "presence": "supported",
+      "completeness": "exhaustive",
+      "row_count": "1"
+    },
+    {
+      "family_id": "fixture.ego_anchor.v1",
+      "group_id": "ego",
+      "presence": "supported",
+      "completeness": "exhaustive",
+      "row_count": "1"
+    },
+    {
+      "family_id": "fixture.freshness_event.v1",
+      "group_id": "freshness",
+      "presence": "supported",
+      "completeness": "exhaustive",
+      "row_count": "3"
+    },
+    {
+      "family_id": "fixture.memory_revision.v1",
+      "group_id": "memory",
+      "presence": "supported",
+      "completeness": "exhaustive",
+      "row_count": "3"
+    },
+    {
+      "family_id": "fixture.vector_probe.v1",
+      "group_id": "vectors",
+      "presence": "supported",
+      "completeness": "exhaustive",
+      "row_count": "0"
+    }
+  ],
+  "group_catalog": [
+    {
+      "group_id": "archive_echo",
+      "presence": "supported",
+      "completeness": "exhaustive",
+      "family_count": "1",
+      "reason": null
+    },
+    {
+      "group_id": "container_lineage",
+      "presence": "absent",
+      "completeness": "exhaustive",
+      "family_count": "0",
+      "reason": "outside synthetic population fixture.pg_c01_comparator_pass.v1"
+    },
+    {
+      "group_id": "ego",
+      "presence": "supported",
+      "completeness": "exhaustive",
+      "family_count": "1",
+      "reason": null
+    },
+    {
+      "group_id": "entity_relationship",
+      "presence": "absent",
+      "completeness": "exhaustive",
+      "family_count": "0",
+      "reason": "outside synthetic population fixture.pg_c01_comparator_pass.v1"
+    },
+    {
+      "group_id": "external_project_operational",
+      "presence": "absent",
+      "completeness": "exhaustive",
+      "family_count": "0",
+      "reason": "outside synthetic population fixture.pg_c01_comparator_pass.v1"
+    },
+    {
+      "group_id": "freshness",
+      "presence": "supported",
+      "completeness": "exhaustive",
+      "family_count": "1",
+      "reason": null
+    },
+    {
+      "group_id": "graph_community",
+      "presence": "absent",
+      "completeness": "exhaustive",
+      "family_count": "0",
+      "reason": "outside synthetic population fixture.pg_c01_comparator_pass.v1"
+    },
+    {
+      "group_id": "insomnia_dream_import",
+      "presence": "absent",
+      "completeness": "exhaustive",
+      "family_count": "0",
+      "reason": "outside synthetic population fixture.pg_c01_comparator_pass.v1"
+    },
+    {
+      "group_id": "maintenance",
+      "presence": "absent",
+      "completeness": "exhaustive",
+      "family_count": "0",
+      "reason": "outside synthetic population fixture.pg_c01_comparator_pass.v1"
+    },
+    {
+      "group_id": "memory",
+      "presence": "supported",
+      "completeness": "exhaustive",
+      "family_count": "1",
+      "reason": null
+    },
+    {
+      "group_id": "vectors",
+      "presence": "supported",
+      "completeness": "exhaustive",
+      "family_count": "1",
+      "reason": null
+    }
+  ],
+  "supported_empty_families": [
+    "fixture.vector_probe.v1"
+  ],
+  "reader_identities": {
+    "source": {
+      "producer_role": "source_reader",
+      "producer_code_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "producer_binary_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "target": {
+      "producer_role": "target_reader",
+      "producer_code_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "producer_binary_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+    }
+  }
+}
