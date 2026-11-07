@@ -69,11 +69,11 @@ The comparison expects a hash-pinned `reliquary-archive-binding-expectation-v1` 
 
 ## Authentic retained Memory history
 
-The bulk observer opens a current-only candidate once under a shared read-only lease, enumerates all retained Memory histories including terminal IDs, and scans physical standalone and grouped Insomnia publication origins once. It emits canonical commitments for every typed revision, retained body, current revision pointer and terminal tombstone. Revision commitments include provenance and temporal fields, publication clocks, and exact signed times. Missing bodies or unresolved revision origins prevent an observation.
+The bulk observer opens a current-only candidate once under a shared read-only lease, enumerates all retained Memory histories including terminal IDs, and scans physical standalone and grouped Insomnia publication origins once. It emits canonical commitments for every typed revision, retained body, current revision pointer, terminal tombstone and routing value. Revision commitments include provenance and temporal fields, publication clocks, and exact signed times. Missing bodies or unresolved revision origins prevent an observation.
 
 `compare_authentic_memory.py` compares those rows with the independently verified F03 v2 witness. Supply the candidate SHA-256, legacy owner SHA-256, and pinned source coverage and manifest SHA-256 values. It verifies the source batch chain, reopens the current candidate in two fresh processes, and compares the retained row population by stable key, canonical value, origin, and availability.
 
-The comparator reports unobserved routing metadata and external Memory evidence separately. If either family has source rows, the report stays `INCOMPLETE` with exit code 2 even when all comparable Memory rows match. Candidate or source mismatch returns `FAIL`. The result applies to the stated Memory families for one owner.
+The comparator reports unobserved external Memory evidence separately. If that family has source rows, the report stays `INCOMPLETE` with exit code 2 even when all comparable Memory rows match. Candidate or source mismatch returns `FAIL`. The result applies to the stated Memory families for one owner.
 
 ## Authentic retained Archive history
 

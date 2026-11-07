@@ -4,7 +4,10 @@ use crate::{
     evidence_encoding::hex,
     retained_commitment::commitment,
 };
-use reliquary_memory_core::{MemoryRecord, MemorySourceRef, MemoryTemporalInference, PayloadState};
+use reliquary_memory_core::{
+    MemoryRecord, MemoryRoutingField, MemoryRoutingMetadata, MemorySourceRef,
+    MemoryTemporalInference, PayloadState,
+};
 use reliquary_owner_session::{MemoryOwnerHistoryObservation, MemoryPublicationOrigin};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, path::Path};
@@ -31,7 +34,7 @@ pub fn observe_memory_owner_history(kind: CandidateKind, path: &Path) -> Value {
             "observation_status": "OBSERVED",
             "memory_head": head.to_string(),
             "rows": retained_rows(history)?,
-            "reason": "revision_body_current_terminal_only",
+            "reason": "revision_body_current_terminal_and_routing",
         })))
     })
 }
@@ -40,6 +43,16 @@ fn retained_rows(mut observation: MemoryOwnerHistoryObservation) -> Result<Vec<V
     let mut rows = Vec::new();
     let mut bodies = BTreeMap::new();
     for (id, history) in observation.histories {
+        rows.push(commitment(
+            "memory",
+            "routing",
+            &id.0,
+            observation
+                .routing
+                .get(&id)
+                .map_or(Value::Null, routing_value),
+            "retained",
+        )?);
         for revision in &history.revisions {
             let record = &revision.record;
             let origin = origin(
@@ -184,6 +197,19 @@ fn temporal_value(temporal: &MemoryTemporalInference) -> Value {
             "start": resolution.start_byte, "end": resolution.end_byte,
             "kind": temporal_kind(resolution.kind), "evidence": resolution.evidence,
             "canonical_expression": resolution.canonical_expression,
+        })).collect::<Vec<_>>(),
+    })
+}
+
+fn routing_value(metadata: &MemoryRoutingMetadata) -> Value {
+    json!({
+        "memory_id": hex(&metadata.memory_id.0), "body_id": hex(&metadata.body_id.0),
+        "mentions": metadata.mentions.iter().map(|mention| json!({
+            "field": match mention.field {
+                MemoryRoutingField::Title => 1,
+                MemoryRoutingField::Content => 2,
+            },
+            "start": mention.start_byte, "end": mention.end_byte, "text": mention.text,
         })).collect::<Vec<_>>(),
     })
 }

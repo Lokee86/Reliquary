@@ -16,8 +16,8 @@ from evidence_io import WitnessInputError, strict_json_document
 
 READER_SCHEMA = "reliquary-d02-memory-owner-history-v1"
 REPORT_SCHEMA = "reliquary-d02-authentic-memory-history-comparison-v1"
-OBSERVED = {"revision", "body", "current", "terminal"}
-OTHER_SOURCE = {"routing", "external_evidence"}
+OBSERVED = {"revision", "body", "current", "terminal", "routing"}
+OTHER_SOURCE = {"external_evidence"}
 
 
 def source_memory(coverage_path, coverage_digest, manifest_digest, source_digest):
@@ -83,7 +83,7 @@ def compare(reader, candidate, candidate_digest, coverage_path, coverage_digest,
     unresolved = Counter(family for family, _ in expected if family in OTHER_SOURCE)
     return {
         "schema_id": REPORT_SCHEMA, "status": "INCOMPLETE" if unresolved else "PASS",
-        "comparison_status": "PASS", "scope": "one_owner_retained_memory_revisions_bodies_current_terminals",
+        "comparison_status": "PASS", "scope": "one_owner_retained_memory_revisions_bodies_current_terminals_and_routing",
         "cohort_parity_status": "INCOMPLETE", "owner": owner, "target_history_generation_sha256": generation,
         "source_file_sha256": source_digest, "candidate_sha256": candidate_digest, "reader_sha256": reader_digest,
         "source_coverage_sha256": coverage_digest, "source_manifest_sha256": manifest_digest,

@@ -30,17 +30,17 @@ class AuthenticMemoryComparisonTests(unittest.TestCase):
         self.report = {
             "schema_id": READER_SCHEMA, "status": "INCOMPLETE", "observation_status": "OBSERVED",
             "memory_head": "2", "candidate_sha256_before": CANDIDATE, "candidate_sha256_after": CANDIDATE,
-            "candidate_unchanged": True, "rows": [copy.deepcopy(ROW)],
+            "candidate_unchanged": True, "rows": [copy.deepcopy(ROW), copy.deepcopy(ROUTING)],
             "owner": {**OWNER, "history_generation_sha256": "55" * 32},
         }
 
     def check(self):
         return verify_observation(self.report, OWNER, HEAD, CANDIDATE, self.expected)
 
-    def test_retained_revision_matches_with_unobserved_routing(self):
+    def test_retained_revision_and_routing_match(self):
         generation, counts = self.check()
         self.assertEqual(generation, "55" * 32)
-        self.assertEqual(counts, {"revision": 1})
+        self.assertEqual(counts, {"revision": 1, "routing": 1})
 
     def test_changed_intermediate_coordinate_rejected_at_same_head(self):
         self.report["rows"][0]["origin_coordinate"]["transaction_time_ns"] = "-9007199254740994"
@@ -48,7 +48,7 @@ class AuthenticMemoryComparisonTests(unittest.TestCase):
             self.check()
 
     def test_missing_and_unexpected_rows_rejected(self):
-        self.report["rows"] = [{**ROW, "stable_key_sha256": "66" * 32}]
+        self.report["rows"][0] = {**ROW, "stable_key_sha256": "66" * 32}
         with self.assertRaisesRegex(WitnessInputError, "1 missing, 1 extra"):
             self.check()
 

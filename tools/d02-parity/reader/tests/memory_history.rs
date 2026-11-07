@@ -234,3 +234,58 @@ fn wrapped_revisions_resolve_own_global_and_reserved_transaction_coordinates() {
     );
     assert_ne!(expected["projection_sha256"], observed["projection_sha256"]);
 }
+
+#[test]
+fn bulk_observation_preserves_native_routing_body_and_span() {
+    use d02_current_reader::observe_memory_owner_history;
+    use reliquary_memory_core::{
+        MemoryRoutingField, MemoryRoutingMention, MemoryRoutingMetadata, encode_routing_metadata,
+        memory_body_id,
+    };
+    use sha2::{Digest, Sha256};
+
+    let directory = tempdir().unwrap();
+    let unwrapped = directory.path().join("unwrapped.phy");
+    let routed = directory.path().join("routed.phy");
+    let id = build(&unwrapped, "past", false);
+    envelope_copy(&unwrapped, &routed, -9_007_199_254_740_995);
+    let body_id = memory_body_id("fixture memory title", "same retained body");
+    let mut container = Container::open_writer(&routed).unwrap();
+    let metadata = MemoryRoutingMetadata {
+        memory_id: id,
+        body_id,
+        mentions: vec![MemoryRoutingMention {
+            field: MemoryRoutingField::Title,
+            start_byte: 0,
+            end_byte: 7,
+            text: "fixture".into(),
+        }],
+    };
+    container
+        .append(&encode_routing_metadata(&metadata).unwrap())
+        .unwrap();
+    container.sync().unwrap();
+    drop(container);
+    let observed = observe_memory_owner_history(CandidateKind::Phy, &routed);
+    assert_eq!(observed["observation_status"], "OBSERVED", "{observed}");
+    assert_eq!(observed["memory_head"], "3");
+    let rows = observed["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), 6);
+    let routing = rows.iter().find(|row| row["family"] == "routing").unwrap();
+    let as_hex = |bytes: [u8; 32]| {
+        bytes
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>()
+    };
+    let value = json!({
+        "memory_id": as_hex(id.0),
+        "body_id": as_hex(body_id.0),
+        "mentions": [{"field": 1, "start": 0, "end": 7, "text": "fixture"}],
+    });
+    let canonical = serde_json::to_vec(&value).unwrap();
+    assert_eq!(
+        routing["canonical_value_sha256"],
+        format!("{:x}", Sha256::digest(canonical))
+    );
+}
