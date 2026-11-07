@@ -10,6 +10,12 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
 const MAGIC: &[u8; 8] = b"RELINSC7";
+const RETAINED: &[u8; 8] = b"RELINSC8";
+
+pub(crate) fn is_grouped_completion(bytes: &[u8]) -> bool {
+    bytes.starts_with(MAGIC) || bytes.starts_with(RETAINED)
+}
+
 const MAX_ITEMS: usize = 100_000;
 const MAX_CARRIER_BYTES: usize = 128 * 1024 * 1024;
 const MAX_ITEM_BYTES: usize = 64 * 1024 * 1024;
@@ -70,12 +76,37 @@ pub struct GroupedInsomniaCompletion {
 
 impl GroupedInsomniaCompletion {
     pub fn encode(&self) -> Result<Vec<u8>, String> {
-        self.validate_structure()?;
+        self.encode_layout(None)
+    }
+
+    /// Encode a retained current-format completion with an exact optional clock.
+    /// Layouts 3 and 5 contain no retained local birth proof.
+    pub fn encode_retained(&self, layout: u8, time: Option<i64>) -> Result<Vec<u8>, String> {
+        let has_birth = self.freshness_birth_turn.is_some();
+        if !matches!(layout, 3 | 5 | 6)
+            || (layout == 3) != time.is_none()
+            || (layout == 6) != has_birth
+            || time.is_some_and(|time| time != self.transaction_time_ns)
+            || (layout == 3 && !self.routing_metadata.is_empty())
+            || (!has_birth && !self.memory_records.is_empty())
+        {
+            return Err("invalid retained Insomnia layout or clock".into());
+        }
+        self.encode_layout(Some(layout))
+    }
+
+    fn encode_layout(&self, retained: Option<u8>) -> Result<Vec<u8>, String> {
+        self.validate_structure(retained.is_some())?;
         let count = u32::try_from(self.memory_records.len())
             .map_err(|_| "too many grouped Memory records")?;
         let has_birth = self.freshness_birth_turn.is_some();
         let mut out = Vec::new();
-        out.extend_from_slice(MAGIC);
+        if let Some(layout) = retained {
+            out.extend_from_slice(RETAINED);
+            out.push(layout);
+        } else {
+            out.extend_from_slice(MAGIC);
+        }
         out.extend_from_slice(&self.episode_id);
         out.extend_from_slice(&self.attempt.to_le_bytes());
         out.extend_from_slice(&self.started_at_ns.to_le_bytes());
@@ -83,8 +114,12 @@ impl GroupedInsomniaCompletion {
         out.extend_from_slice(&self.rejected_count.to_le_bytes());
         out.extend_from_slice(&self.global_version_start.to_le_bytes());
         out.extend_from_slice(&count.to_le_bytes());
-        out.extend_from_slice(&self.transaction_time_ns.to_le_bytes());
-        out.push(u8::from(has_birth));
+        if retained != Some(3) {
+            out.extend_from_slice(&self.transaction_time_ns.to_le_bytes());
+        }
+        if retained.is_none() {
+            out.push(u8::from(has_birth));
+        }
         put_string(&mut out, &self.extractor_model)?;
         put_string(&mut out, &self.extractor_version)?;
         put_ids(&mut out, &self.memory_ids)?;
@@ -107,11 +142,13 @@ impl GroupedInsomniaCompletion {
         for record in &self.memory_records {
             put_bytes(&mut out, record)?;
         }
-        let routing_count =
-            u32::try_from(self.routing_metadata.len()).map_err(|_| "too many routing records")?;
-        out.extend_from_slice(&routing_count.to_le_bytes());
-        for record in &self.routing_metadata {
-            put_bytes(&mut out, record)?;
+        if retained != Some(3) {
+            let routing_count = u32::try_from(self.routing_metadata.len())
+                .map_err(|_| "too many routing records")?;
+            out.extend_from_slice(&routing_count.to_le_bytes());
+            for record in &self.routing_metadata {
+                put_bytes(&mut out, record)?;
+            }
         }
         if has_birth {
             out.extend_from_slice(&self.freshness_birth_turn.unwrap().to_le_bytes());
@@ -128,10 +165,19 @@ impl GroupedInsomniaCompletion {
         if bytes.len() > MAX_CARRIER_BYTES {
             return Err("grouped completion is too large".into());
         }
-        if bytes.get(..8) != Some(MAGIC.as_slice()) {
+        if !is_grouped_completion(bytes) {
             return Err("unsupported grouped completion marker".into());
         }
         let mut r = Reader { bytes, at: 8 };
+        let retained = if bytes.starts_with(RETAINED) {
+            let layout = r.u8()?;
+            if !matches!(layout, 3 | 5 | 6) {
+                return Err("unsupported retained grouped completion layout".into());
+            }
+            Some(layout)
+        } else {
+            None
+        };
         let episode_id = r.array()?;
         let attempt = r.u32()?;
         let started_at_ns = r.i64()?;
@@ -139,11 +185,16 @@ impl GroupedInsomniaCompletion {
         let rejected_count = r.u32()?;
         let global_version_start = r.u64()?;
         let global_count = r.u32()? as usize;
-        let transaction_time_ns = r.i64()?;
-        let has_birth = match r.u8()? {
-            0 => false,
-            1 => true,
-            _ => return Err("invalid Freshness proof flag".into()),
+        // The actual presence of the physical time is bound by the retained
+        // layout and observed by Container. Layout 3 has no timestamp.
+        let transaction_time_ns = if retained == Some(3) { 0 } else { r.i64()? };
+        let has_birth = match retained {
+            Some(layout) => layout == 6,
+            None => match r.u8()? {
+                0 => false,
+                1 => true,
+                _ => return Err("invalid Freshness proof flag".into()),
+            },
         };
         let extractor_model = r.string()?;
         let extractor_version = r.string()?;
@@ -169,7 +220,7 @@ impl GroupedInsomniaCompletion {
         for _ in 0..record_count {
             memory_records.push(r.bytes()?);
         }
-        let routing_count = r.count()?;
+        let routing_count = if retained == Some(3) { 0 } else { r.count()? };
         let mut routing_metadata = Vec::with_capacity(routing_count);
         for _ in 0..routing_count {
             routing_metadata.push(r.bytes()?);
@@ -205,7 +256,10 @@ impl GroupedInsomniaCompletion {
         if global_count != value.memory_records.len() {
             return Err("grouped physical range count mismatch".into());
         }
-        value.validate_structure()?;
+        if retained.is_some() && !has_birth && !value.memory_records.is_empty() {
+            return Err("retained grouped births lack exact Freshness authority".into());
+        }
+        value.validate_structure(retained.is_some())?;
         Ok(value)
     }
 
@@ -213,11 +267,19 @@ impl GroupedInsomniaCompletion {
     /// This does not authenticate the supplied Episode or external owner at
     /// write time; routed publication receipts are checked by RelSession.
     pub fn validate_replay_episode(&self, accepted_episode: [u8; 32]) -> Result<(), String> {
-        self.validate_structure()?;
+        self.validate_replay_episode_layout(accepted_episode, false)
+    }
+
+    pub(crate) fn validate_replay_episode_layout(
+        &self,
+        accepted_episode: [u8; 32],
+        retained: bool,
+    ) -> Result<(), String> {
+        self.validate_structure(retained)?;
         if self.episode_id != accepted_episode {
             return Err("grouped completion Episode mismatch".into());
         }
-        if !self.routing_metadata.is_empty() {
+        if !retained && !self.routing_metadata.is_empty() {
             return Err("routed completion metadata requires separate owner authentication".into());
         }
         let births = self
@@ -235,7 +297,7 @@ impl GroupedInsomniaCompletion {
         Ok(())
     }
 
-    fn validate_structure(&self) -> Result<(), String> {
+    fn validate_structure(&self, retained: bool) -> Result<(), String> {
         if self.attempt == 0 || self.completed_at_ns < self.started_at_ns {
             return Err("invalid grouped completion attempt or timestamps".into());
         }
@@ -273,6 +335,7 @@ impl GroupedInsomniaCompletion {
             }
         }
         let mut records = BTreeSet::new();
+        let mut record_bodies = std::collections::BTreeMap::new();
         for bytes in &self.memory_records {
             let record = decode_grouped_creation(bytes).map_err(|e| e.to_string())?;
             if record.source_episode_id != Some(self.episode_id) {
@@ -283,6 +346,21 @@ impl GroupedInsomniaCompletion {
             }
             if !records.insert(record.id.0) {
                 return Err("duplicate grouped Memory creation".into());
+            }
+            if retained {
+                record_bodies.insert(record.id, record.body_id);
+            }
+        }
+        if retained {
+            let mut seen = BTreeSet::new();
+            for raw in &self.routing_metadata {
+                let route = reliquary_memory_core::decode_routing_metadata(raw)
+                    .map_err(|e| e.to_string())?;
+                if record_bodies.get(&route.memory_id) != Some(&route.body_id)
+                    || !seen.insert(route.memory_id)
+                {
+                    return Err("retained grouped routing identity or cohort differs".into());
+                }
             }
         }
         if self.freshness_birth_turn.is_some() != self.freshness_policy_version.is_some()
@@ -306,7 +384,9 @@ impl GroupedInsomniaCompletion {
         }
         let mut external_refs = BTreeSet::new();
         for reference in &self.external_memory_refs {
-            if !is_owner_id(&reference.owner_id) {
+            if !is_owner_id(&reference.owner_id)
+                && !(retained && is_retained_phy_id(&reference.owner_id))
+            {
                 return Err("invalid external Memory owner ID".into());
             }
             if memory_ids.contains(&reference.memory_id) {
@@ -325,6 +405,19 @@ fn is_owner_id(owner_id: &str) -> bool {
         && owner_id
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn is_retained_phy_id(owner_id: &str) -> bool {
+    owner_id.strip_prefix("phy-").is_some_and(|value| {
+        value.len() == 36
+            && value.bytes().enumerate().all(|(index, byte)| {
+                if matches!(index, 8 | 13 | 18 | 23) {
+                    byte == b'-'
+                } else {
+                    byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)
+                }
+            })
+    })
 }
 
 fn put_string(out: &mut Vec<u8>, value: &str) -> Result<(), String> {

@@ -85,6 +85,69 @@ fn fixture() -> GroupedInsomniaCompletion {
 }
 
 #[test]
+fn retained_group_preserves_optional_clock_external_identity_and_typed_routing() {
+    let mut completion = fixture();
+    let memory =
+        reliquary_memory_core::decode_grouped_creation(&completion.memory_records[0]).unwrap();
+    let route = reliquary_memory_core::MemoryRoutingMetadata {
+        memory_id: memory.id,
+        body_id: memory.body_id,
+        mentions: vec![reliquary_memory_core::MemoryRoutingMention {
+            field: reliquary_memory_core::MemoryRoutingField::Title,
+            start_byte: 0,
+            end_byte: 5,
+            text: "title".into(),
+        }],
+    };
+    completion.routing_metadata =
+        vec![reliquary_memory_core::encode_routing_metadata(&route).unwrap()];
+    completion.external_memory_refs = vec![GroupedExternalMemoryRef {
+        owner_id: "phy-01010101-0101-0101-0101-010101010101".into(),
+        memory_id: [7; 32],
+    }];
+    let timed = completion.encode_retained(6, Some(25)).unwrap();
+    assert_eq!(&timed[..9], b"RELINSC8\x06");
+    assert_eq!(
+        GroupedInsomniaCompletion::decode(&timed).unwrap(),
+        completion
+    );
+    assert!(completion.encode_retained(6, None).is_err());
+
+    let path = Temp::new();
+    let mut writer = Container::create(
+        &path.0,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [8; 16],
+    )
+    .unwrap();
+    writer.append(&timed).unwrap();
+    writer.sync().unwrap();
+    drop(writer);
+    let reader = Container::open_read_only(&path.0).unwrap();
+    assert_eq!(reader.latest_version(), 1);
+    assert_eq!(reader.transaction_time_ns(1), Some(25));
+
+    completion.bodies.clear();
+    completion.memory_records.clear();
+    completion.memory_ids.clear();
+    completion.routing_metadata.clear();
+    completion.freshness_birth_turn = None;
+    completion.freshness_policy_version = None;
+    completion.freshness_birth_memory_ids.clear();
+    completion.transaction_time_ns = 0;
+    let untimed = completion.encode_retained(3, None).unwrap();
+    assert_eq!(&untimed[..9], b"RELINSC8\x03");
+    assert_eq!(
+        GroupedInsomniaCompletion::decode(&untimed).unwrap(),
+        completion
+    );
+    assert_eq!(
+        completion.encode_retained(5, Some(0)).unwrap().len(),
+        untimed.len() + 12
+    );
+}
+
+#[test]
 fn current_rel_grouped_completion_roundtrips_and_exposes_physical_clock() {
     let completion = fixture();
     let encoded = completion.encode().unwrap();

@@ -74,7 +74,9 @@ impl InsomniaStore {
                 };
                 store.accept_episode(receipt.episode_id)?;
                 store.apply_receipt(receipt)?;
-            } else if frame.payload.starts_with(b"RELINSC7") {
+            } else if frame.payload.starts_with(b"RELINSC7")
+                || frame.payload.starts_with(b"RELINSC8")
+            {
                 if let Some(receipt) = decode_grouped(&frame.payload)? {
                     validate_receipt(&receipt)?;
                     store.accept_episode(receipt.episode_id)?;

@@ -96,7 +96,7 @@ pub(super) fn validate(
             }
             memory_head = record.memory_version;
             bodies.insert(record.id, record.body_id);
-        } else if payload.starts_with(b"RELINSC7") {
+        } else if crate::records::insomnia_completion::is_grouped_completion(payload) {
             for record in GroupedInsomniaCompletion::decode(payload)
                 .map_err(OwnerSessionError::Record)?
                 .memory_records

@@ -63,7 +63,7 @@ pub(super) fn validate_grouped_replay_admission(
             .as_ref()
             .map_or(frame.payload.as_slice(), |value| value.body);
         if (body.starts_with(b"RELXMEM") && !body.starts_with(b"RELXMEM3"))
-            || body.starts_with(b"RELINSC8")
+            || (envelope.is_some() && body.starts_with(b"RELINSC"))
         {
             return Err(OwnerSessionError::Record(
                 "unsupported owner publication requires authenticated replay".into(),
@@ -93,9 +93,10 @@ pub(super) fn validate_grouped_replay_admission(
             let creation = reliquary_memory_core::decode_grouped_creation(payload)?;
             visible_memories.insert(creation.id.0);
         }
-        if !payload.starts_with(b"RELINSC7") {
+        if !crate::records::insomnia_completion::is_grouped_completion(payload) {
             continue;
         }
+        let retained = payload.starts_with(b"RELINSC8");
         let completion =
             GroupedInsomniaCompletion::decode(payload).map_err(OwnerSessionError::Record)?;
         let episode_id = reliquary_archive::EpisodeId(completion.episode_id);
@@ -112,7 +113,7 @@ pub(super) fn validate_grouped_replay_admission(
             ));
         }
         completion
-            .validate_replay_episode(completion.episode_id)
+            .validate_replay_episode_layout(completion.episode_id, retained)
             .map_err(OwnerSessionError::Record)?;
         let births = completion
             .memory_records
@@ -131,7 +132,7 @@ pub(super) fn validate_grouped_replay_admission(
             ));
         }
         visible_memories.extend(births);
-        if !completion.routing_metadata.is_empty() {
+        if !retained && !completion.routing_metadata.is_empty() {
             return Err(OwnerSessionError::Record(
                 "grouped routing metadata replay is unsupported".into(),
             ));
