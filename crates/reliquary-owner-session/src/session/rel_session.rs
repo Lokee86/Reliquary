@@ -167,6 +167,18 @@ impl RelSession {
                     rejected_count: completion.rejected_count,
                 }))
             })?;
+        if freshness
+            .retained_import_authority()
+            .is_some_and(|authority| {
+                authority.global_version > container.latest_version()
+                    || authority.archive_version > archive.archive_version()
+                    || authority.graph_version > common.graph.graph_version()
+            })
+        {
+            return Err(OwnerSessionError::Record(
+                "retained Freshness authority exceeds the owner cut".into(),
+            ));
+        }
         let imports = ImportEpochStore::open(container).map_err(OwnerSessionError::Record)?;
         super::native_import::validate_native_import_receipts(container, &imports, &archive)?;
         let archive_vectors = ArchiveVectorStore::open(container, &common.packed_vectors)?;
@@ -349,6 +361,19 @@ impl RelSession {
             .get(&id)
             .copied())
     }
+    pub fn retained_freshness_import(
+        &self,
+    ) -> Option<(
+        &reliquary_freshness_store::RetainedFreshnessAuthority,
+        &reliquary_freshness_store::HistoricalFreshnessSnapshot,
+    )> {
+        let authority = self.freshness.retained_import_authority()?;
+        Some((
+            authority,
+            self.freshness.historical_snapshot(&authority.import_id)?,
+        ))
+    }
+
     pub fn freshness_policy(&self) -> reliquary_freshness_store::FreshnessPolicy {
         self.freshness.policy()
     }

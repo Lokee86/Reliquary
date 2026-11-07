@@ -32,6 +32,7 @@ pub struct FreshnessStore {
     uses: BTreeMap<String, (FreshnessUseReceipt, FreshnessEventProof)>,
     journal: Vec<JournalEntry>,
     historical_snapshots: Vec<HistoricalFreshnessSnapshot>,
+    retained_authority: Option<crate::RetainedFreshnessAuthority>,
 }
 
 impl Default for FreshnessStore {
@@ -53,6 +54,7 @@ impl FreshnessStore {
             uses: BTreeMap::new(),
             journal: Vec::new(),
             historical_snapshots: Vec::new(),
+            retained_authority: None,
         }
     }
 
@@ -102,7 +104,7 @@ impl FreshnessStore {
                 }
                 continue;
             }
-            if payload.starts_with(b"RELINSC7") {
+            if matches!(payload.get(..8), Some(b"RELINSC7" | b"RELINSC8")) {
                 if let Some((turn, policy, memory_ids)) = decode_grouped(&payload)? {
                     if policy != u64::from(FRESHNESS_POLICY_VERSION) {
                         return Err("unsupported grouped Freshness policy".into());
@@ -192,7 +194,10 @@ impl FreshnessStore {
             frame
                 .read_exact(&mut magic)
                 .map_err(|error| error.to_string())?;
-            if magic == *POLICY_MAGIC || magic == *JOURNAL_MAGIC || magic == *b"RELINSC7" {
+            if magic == *POLICY_MAGIC
+                || magic == *JOURNAL_MAGIC
+                || matches!(&magic, b"RELINSC7" | b"RELINSC8")
+            {
                 return Err(
                     "Freshness owner already contains records; reopen before writing".into(),
                 );
@@ -378,8 +383,20 @@ impl FreshnessStore {
             self.policy_persisted = true;
             return Ok(());
         }
+        if let Some((snapshot, authority)) = crate::retained_import::decode(payload, &self.policy)?
+        {
+            if !self.policy_persisted
+                || self.retained_authority.is_some()
+                || !self.historical_snapshots.is_empty()
+            {
+                return Err("conflicting retained Freshness authority".into());
+            }
+            self.apply_historical_snapshot(snapshot, true)?;
+            self.retained_authority = Some(authority);
+            return Ok(());
+        }
         if let Some(snapshot) = HistoricalFreshnessSnapshot::decode(payload, &self.policy)? {
-            return self.apply_historical_snapshot(snapshot);
+            return self.apply_historical_snapshot(snapshot, false);
         }
         if !payload.starts_with(JOURNAL_MAGIC) && payload.starts_with(b"RELFRS") {
             return Err("unsupported Freshness journal version".into());
@@ -434,6 +451,10 @@ impl FreshnessStore {
         let payload = snapshot.encode(&self.policy)?;
         self.append_then_ingest(container, payload)?;
         Ok(true)
+    }
+
+    pub fn retained_import_authority(&self) -> Option<&crate::RetainedFreshnessAuthority> {
+        self.retained_authority.as_ref()
     }
 
     pub fn historical_snapshot(&self, import_id: &str) -> Option<&HistoricalFreshnessSnapshot> {
@@ -782,6 +803,7 @@ impl FreshnessStore {
     fn apply_historical_snapshot(
         &mut self,
         snapshot: HistoricalFreshnessSnapshot,
+        retained: bool,
     ) -> Result<(), String> {
         let owner = self
             .owner_uuid
@@ -809,12 +831,24 @@ impl FreshnessStore {
         let current = self.project(None)?;
         if snapshot.records.len() != current.len()
             || snapshot.records.iter().any(|(id, record)| {
-                current
-                    .get(id)
-                    .is_none_or(|known| known.admitted_at_turn != record.admitted_at_turn)
+                current.get(id).is_none_or(|known| {
+                    !retained && known.admitted_at_turn != record.admitted_at_turn
+                })
             })
         {
             return Err("historical Freshness snapshot changes owner enrollment".into());
+        }
+        if retained {
+            self.admissions = snapshot
+                .records
+                .iter()
+                .filter_map(|(id, record)| {
+                    record
+                        .admitted_at_turn
+                        .filter(|_| !self.births[id].1)
+                        .map(|turn| (*id, turn))
+                })
+                .collect();
         }
         self.historical_snapshots.push(snapshot);
         Ok(())
@@ -833,7 +867,11 @@ impl FreshnessStore {
         let selected = self.historical_snapshots.iter().rev().find(|snapshot| {
             cut.is_none_or(|cut| {
                 snapshot.settlement_cut < cut.rel_turn
-                    || (snapshot.settlement_cut == cut.rel_turn && cut.event_id_inclusive.is_some())
+                    || (snapshot.settlement_cut == cut.rel_turn
+                        && (cut.event_id_inclusive.is_some()
+                            || self.retained_authority.as_ref().is_some_and(|authority| {
+                                authority.import_id == snapshot.import_id
+                            })))
             })
         });
         let mut records = selected
@@ -974,7 +1012,7 @@ fn event_in_cut(event: &FreshnessEvent, cut: Option<&FreshnessEventCut>) -> bool
     })
 }
 
-fn hex(bytes: &[u8]) -> String {
+pub(crate) fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
