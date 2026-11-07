@@ -1,0 +1,2 @@
+# Keep captured PowerShell console logs byte-for-byte for SHA-256 evidence.
+/tests/evidence/pgc02-rerun-2026-11-07/*.log -text
