@@ -116,10 +116,14 @@ fn verify_semantic_reopen(paths: [&Path; 4], witness: &Value) {
         field: reliquary_owner_session::model::MemoryTextField::Content,
         start_byte: private["private_phy_mention_key"]["start_byte"]
             .as_u64()
-            .unwrap().try_into().unwrap(),
+            .unwrap()
+            .try_into()
+            .unwrap(),
         end_byte: private["private_phy_mention_key"]["end_byte"]
             .as_u64()
-            .unwrap().try_into().unwrap(),
+            .unwrap()
+            .try_into()
+            .unwrap(),
     };
     let mention = phys[0].mention(key).unwrap();
     let reliquary_owner_session::model::MemoryEntityResolutionStatus::Resolved {
@@ -169,6 +173,18 @@ fn verify_semantic_reopen(paths: [&Path; 4], witness: &Value) {
             other => panic!("unexpected source owner {other}"),
         };
         assert_eq!(json!(record.record.revision), observed["body_revision"]);
+        if manifest["expected_state"]["active"]
+            .as_array()
+            .unwrap()
+            .contains(&expected["id"])
+        {
+            assert!(
+                !record.record.archived,
+                "authored active source was archived: {}",
+                expected["id"]
+            );
+            assert!(record.record.superseded_by.is_none());
+        }
         let PayloadState::Available(body) = record.payload else {
             panic!("authored Memory has no retained body")
         };
@@ -210,14 +226,14 @@ fn verify_dream_and_entity_reopen(rel: &RelSession, witness: &Value) {
     let frontier = rel
         .initial_dream_frontier("g4-authored-first-dream")
         .unwrap();
-    assert_eq!(frontier.source.id, release);
+    assert_eq!(frontier.source.id, intro);
     assert_eq!(
         frontier
             .candidates
             .iter()
             .map(|cut| cut.id)
             .collect::<Vec<_>>(),
-        vec![intro]
+        vec![release]
     );
     assert!(rel.dream_pair_evaluated(release, intro));
     let duplicate_edges = rel
@@ -231,6 +247,10 @@ fn verify_dream_and_entity_reopen(rel: &RelSession, witness: &Value) {
         .collect::<Vec<_>>();
     assert_eq!(duplicate_edges.len(), 1);
     assert_eq!(duplicate_edges[0].origin, RelationOrigin::Dream);
+    let canonical = rel.current_memory(release).unwrap().record;
+    assert_eq!(canonical.lifecycle_state, "canonical");
+    assert!(!canonical.archived);
+    assert!(rel.current_memory(intro).unwrap().record.archived);
     let cobalt = source_id("src-cobalt-protocol");
     let mira = source_id("src-mira");
     assert!(rel.dream_pair_evaluated(cobalt, mira));

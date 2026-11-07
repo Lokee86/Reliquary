@@ -1,4 +1,6 @@
+use super::support::owner_hex;
 use super::*;
+use crate::model::RelationKind;
 
 pub(super) fn retire(
     common: &mut CommonState,

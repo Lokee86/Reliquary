@@ -945,7 +945,9 @@ pub(crate) fn complete_authored_semantics(
         assert!(actor.publish_owner_memory_vectors(&prepared).unwrap());
     }
     let vector_profile = vector_profile.unwrap();
-    let dream_pair = ["src-release-label", "src-lantern-intro"].map(|source_id| {
+    // The authored release label remains the active canonical fact; the
+    // broader introduction is the newly processed duplicate.
+    let dream_pair = ["src-lantern-intro", "src-release-label"].map(|source_id| {
         authored_memory_refs
             .iter()
             .find(|(candidate, owner, _)| candidate == source_id && *owner == lantern)

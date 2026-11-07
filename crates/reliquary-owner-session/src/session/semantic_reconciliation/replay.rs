@@ -94,6 +94,7 @@ pub(super) fn replay_right(
     )?;
     perception_graph::replay_graph(
         &mut writer.container,
+        &mut writer.session.common.graph,
         &left.common.graph,
         &right.common.graph,
         &merged_graph_admission(left, right),

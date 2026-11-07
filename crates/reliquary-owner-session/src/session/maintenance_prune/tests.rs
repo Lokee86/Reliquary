@@ -5,8 +5,7 @@ use reliquary_container::{ContainerIdentity, ReliquaryScope};
 use reliquary_memory_core::{MemoryDraft, MemoryStore};
 use reliquary_vector_store::{
     CompatibilityProbeReference, CompatibilityProfile, CompatibilityProfileStore, EmbeddingMode,
-    MemoryVectorStore, PackedVectorStore,
-    VectorNormalization,
+    MemoryVectorStore, PackedVectorStore, VectorNormalization,
 };
 use std::{
     path::PathBuf,
@@ -255,8 +254,7 @@ fn rel_terminal_memory_prune_retains_validated_operations_and_relocates_vector_r
     let generation;
     let episode;
     {
-        let mut writer =
-            RelWriter::create_path(&source.0, ReliquaryScope::Project, owner).unwrap();
+        let mut writer = RelWriter::create_path(&source.0, ReliquaryScope::Project, owner).unwrap();
         writer
             .accept_turn_and_advance_branch(
                 TurnInput {
@@ -284,7 +282,10 @@ fn rel_terminal_memory_prune_retains_validated_operations_and_relocates_vector_r
             .memories
             .publish_versioned_creation(
                 &mut writer.container,
-                draft("terminal-memory", &"terminal body retained only as proof ".repeat(120)),
+                draft(
+                    "terminal-memory",
+                    &"terminal body retained only as proof ".repeat(120),
+                ),
                 1,
             )
             .unwrap()
@@ -313,7 +314,9 @@ fn rel_terminal_memory_prune_retains_validated_operations_and_relocates_vector_r
             .unwrap();
         assert_eq!(claim.episode.id, episode);
 
-        profile = writer.publish_compatibility_profile(archive_profile()).unwrap();
+        profile = writer
+            .publish_compatibility_profile(archive_profile())
+            .unwrap();
         let input = writer.archive_vector_input(profile).unwrap();
         let rows = input
             .sources()
@@ -325,12 +328,7 @@ fn rel_terminal_memory_prune_retains_validated_operations_and_relocates_vector_r
             })
             .collect::<Vec<_>>();
         generation = writer
-            .publish_archive_vector_batch(
-                owner,
-                profile,
-                input.source_archive_version(),
-                &rows,
-            )
+            .publish_archive_vector_batch(owner, profile, input.source_archive_version(), &rows)
             .unwrap()
             .unwrap();
         writer.container.sync().unwrap();
@@ -348,15 +346,15 @@ fn rel_terminal_memory_prune_retains_validated_operations_and_relocates_vector_r
         .iter()
         .find(|frame| frame.payload.starts_with(b"RELVGRC1"))
         .and_then(|frame| {
-            reliquary_vector_store::generation::generation_receipt_target(&frame.payload)
-                .unwrap()
+            reliquary_vector_store::generation::generation_receipt_target(&frame.payload).unwrap()
         })
         .unwrap();
     drop(source_container);
 
     let source_bytes = fs::read(&source.0).unwrap();
     let plan = VerifiedOwnerCopyPlan::prepare(&source.0).unwrap();
-    let report = prune_terminal_memory_copy(&plan, &source.0, &output.0, &[memory], &grant).unwrap();
+    let report =
+        prune_terminal_memory_copy(&plan, &source.0, &output.0, &[memory], &grant).unwrap();
     assert_eq!(report.pruned_memories, 1);
     assert!(report.transformed_bytes < report.source_bytes);
     assert_eq!(fs::read(&source.0).unwrap(), source_bytes);
@@ -368,8 +366,7 @@ fn rel_terminal_memory_prune_retains_validated_operations_and_relocates_vector_r
         .iter()
         .find(|frame| frame.payload.starts_with(b"RELVGRC1"))
         .and_then(|frame| {
-            reliquary_vector_store::generation::generation_receipt_target(&frame.payload)
-                .unwrap()
+            reliquary_vector_store::generation::generation_receipt_target(&frame.payload).unwrap()
         })
         .unwrap();
     assert_ne!(new_receipt.offset, old_receipt.offset);
@@ -385,7 +382,10 @@ fn rel_terminal_memory_prune_retains_validated_operations_and_relocates_vector_r
     drop(output_container);
 
     let reopened = RelSession::open_path(&output.0, &grant, [], []).unwrap();
-    assert_eq!(reopened.generations.current_generation(profile), Some(generation));
+    assert_eq!(
+        reopened.generations.current_generation(profile),
+        Some(generation)
+    );
     let mapping = reopened
         .archive_vectors
         .get(generation.archive_vector_id)

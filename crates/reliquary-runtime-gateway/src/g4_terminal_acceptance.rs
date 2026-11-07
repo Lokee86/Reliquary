@@ -13,11 +13,11 @@ use reliquary_owner_session::model::{
     MemoryTextField, RelationshipId,
 };
 use reliquary_owner_session::{
-    CreateRelationshipRequest, DreamMemoryCut, EntityPruneReport, EntityRetirementRequest,
-    GraphAdmission, MemoryRetirementRequest, PrunedOwnerCopyReport, RelSession,
-    RelationshipParticipantEvidence, RelationshipPruneReport, RelationshipRetirementRequest,
-    VerifiedOwnerCopyPlan, WithdrawEntityMentionRequest, prune_terminal_entity_descriptions_copy,
-    prune_terminal_memory_copy, prune_terminal_relationship_descriptions_copy,
+    CreateRelationshipRequest, DreamMemoryCut, EntityRetirementRequest, GraphAdmission,
+    MemoryRetirementRequest, RelSession, RelationshipParticipantEvidence, RelationshipPruneReport,
+    RelationshipRetirementRequest, VerifiedOwnerCopyPlan, WithdrawEntityMentionRequest,
+    prune_terminal_entity_descriptions_copy, prune_terminal_memory_copy,
+    prune_terminal_relationship_descriptions_copy,
 };
 use reliquary_switchboard::{GeneralEndpoint, GeneralEndpointError};
 use serde_json::{Value, json};
@@ -39,7 +39,7 @@ impl GeneralEndpoint for L04MemoryEndpoint {
     fn complete_json(
         &self,
         _: &str,
-        _: &str,
+        payload: &str,
         schema: &str,
         _: &Value,
     ) -> Result<Value, GeneralEndpointError> {
@@ -59,18 +59,26 @@ impl GeneralEndpoint for L04MemoryEndpoint {
                             };
                             json!([{
                                 "disposition":"retain", "authority_kind":"direct",
-                                "category":"correction", "type":"project",
+                                "category":"fact", "type":"project",
                                 "lifecycle":"current", "proposition":proposition,
                                 "authority_source_node_id":"", "grounding_source_node_id":"",
                                 "reason":"direct accepted user statement"
                             }])
                         } else {
-                            json!([])
+                            omitted_clause()
                         };
                         (turn.node_id.clone(), clauses)
                     })
                     .collect::<serde_json::Map<String, Value>>();
                 Ok(json!({"turns":turns,"evidence_requests":[]}))
+            }
+            "insomnia_memory_ownership" => {
+                let input: Value = serde_json::from_str(payload).unwrap();
+                let count = input["synthesis_groups"].as_array().unwrap().len();
+                let ownership = (0..count)
+                    .map(|i| (format!("g{i:03}"), json!("project")))
+                    .collect::<serde_json::Map<_, _>>();
+                Ok(json!({"ownership":ownership}))
             }
             "insomnia_memory_wording" => {
                 let candidates = self
@@ -90,7 +98,7 @@ impl GeneralEndpoint for L04MemoryEndpoint {
                             )
                         };
                         json!({
-                            "authority_kind":"direct", "category":"correction",
+                            "authority_kind":"direct", "category":"fact",
                             "memory_type":"project", "temporal_status":"current",
                             "ownership":"project", "title":title, "content":content,
                             "source_node_id":turn.node_id,
@@ -126,13 +134,20 @@ impl GeneralEndpoint for EmptyLedgerEndpoint {
         let turns = self
             .0
             .iter()
-            .map(|id| (id.clone(), json!([])))
+            .map(|id| (id.clone(), omitted_clause()))
             .collect::<serde_json::Map<String, Value>>();
         Ok(json!({"turns":turns,"evidence_requests":[]}))
     }
 }
 
 struct TerminalEntityEndpoint;
+
+fn omitted_clause() -> Value {
+    json!([{"disposition":"omit", "authority_kind":"none", "category":"none",
+        "type":"none", "lifecycle":"none", "proposition":"",
+        "authority_source_node_id":"", "grounding_source_node_id":"",
+        "reason":"No additional enduring fact in this context turn"}])
+}
 
 impl GeneralEndpoint for TerminalEntityEndpoint {
     fn model(&self) -> &str {
@@ -167,7 +182,9 @@ impl GeneralEndpoint for TerminalEntityEndpoint {
     }
 }
 
-struct TerminalDreamEndpoint;
+struct TerminalDreamEndpoint {
+    older_is_a: bool,
+}
 
 impl GeneralEndpoint for TerminalDreamEndpoint {
     fn model(&self) -> &str {
@@ -188,10 +205,15 @@ impl GeneralEndpoint for TerminalDreamEndpoint {
             }))
         } else {
             assert_eq!(schema, "dream_pair_classification");
+            let (direction, a, b) = if self.older_is_a {
+                ("b_to_a", "north lab", "south lab")
+            } else {
+                ("a_to_b", "south lab", "north lab")
+            };
             Ok(json!({
-                "relation":"supersedes", "direction":"b_to_a",
-                "evidence":[{"side":"a","quote":"north lab"},
-                    {"side":"b","quote":"south lab"}]
+                "relation":"supersedes", "direction":direction,
+                "evidence":[{"side":"a","quote":a},
+                    {"side":"b","quote":b}]
             }))
         }
     }
@@ -210,31 +232,6 @@ pub(crate) fn verify_terminal_semantics(
     let completed = work.join("completed-lantern.rel");
     copy_verified(source, &completed);
     let completed_owner = owner_id(&completed);
-
-    let memory_lineage = work.join("memory-lineage.rel");
-    copy_verified(&completed, &memory_lineage);
-    let (positive_memory, retired_memory, memory_prune_report) =
-        retire_and_prune_l04(&memory_lineage, &work.join("memory-pruned.rel"));
-    let memory_pruned = RelSession::open_path_current(&work.join("memory-pruned.rel"))
-        .expect("open pruned terminal Memory copy");
-    let history = memory_pruned
-        .memory_history(retired_memory)
-        .unwrap()
-        .expect("terminal Memory history remains present after body prune");
-    assert!(history.tombstone.is_some());
-    assert!(history.revisions.iter().all(|revision| matches!(
-        revision.payload,
-        reliquary_owner_session::model::PayloadState::Absent
-    )));
-    assert!(
-        memory_pruned
-            .current_memory(positive_memory)
-            .unwrap()
-            .record
-            .id
-            == positive_memory
-    );
-    drop(memory_pruned);
 
     let vector_lineage = work.join("vector-negative-lineage.rel");
     copy_verified(&completed, &vector_lineage);
@@ -299,6 +296,31 @@ pub(crate) fn verify_terminal_semantics(
     let authorization = verify_lifecycle_denials(&denied_lineage, semantic_witness);
     assert_eq!(owner_id(&completed), completed_owner);
 
+    let memory_lineage = work.join("memory-lineage.rel");
+    copy_verified(&completed, &memory_lineage);
+    let (positive_memory, retired_memory, memory_prune_report) =
+        retire_and_prune_l04(&memory_lineage, &work.join("memory-pruned.rel"));
+    let memory_pruned = RelSession::open_path_current(&work.join("memory-pruned.rel"))
+        .expect("open pruned terminal Memory copy");
+    let history = memory_pruned
+        .memory_history(retired_memory)
+        .unwrap()
+        .expect("terminal Memory history remains present after body prune");
+    assert!(history.tombstone.is_some());
+    assert!(history.revisions.iter().all(|revision| matches!(
+        revision.payload,
+        reliquary_owner_session::model::PayloadState::Absent
+    )));
+    assert_eq!(
+        memory_pruned
+            .current_memory(positive_memory)
+            .unwrap()
+            .record
+            .id,
+        positive_memory
+    );
+    drop(memory_pruned);
+
     json!({
         "completed_copy_owner_id": hex(&completed_owner),
         "completed_copy_bytes_match_source": fs::read(&completed).unwrap() == fs::read(source).unwrap(),
@@ -341,7 +363,7 @@ fn retire_and_prune_l04(
         .finalize_conversation_episode(
             owner,
             "conv-l04",
-            "L04-t3",
+            "L04-t1",
             "L04-t4",
             reliquary_owner_session::model::EpisodeBoundary::Explicit,
             300_000,
@@ -363,14 +385,14 @@ fn retire_and_prune_l04(
     }
     let claim = target_claim.expect("L04 accepted Episode becomes claimable");
     assert_eq!(claim.episode.conversation_id, "conv-l04");
-    assert_eq!(claim.episode.start_node_id, "L04-t3");
+    assert_eq!(claim.episode.start_node_id, "L04-t1");
     assert_eq!(claim.episode.end_node_id, "L04-t4");
     let turn_by_id = claim
         .turns
         .iter()
         .map(|turn| (turn.node_id.clone(), turn.clone()))
         .collect::<std::collections::BTreeMap<_, _>>();
-    let selected = ["L04-t3".to_owned(), "L04-t4".to_owned()];
+    let selected = ["L04-t1".to_owned(), "L04-t4".to_owned()];
     for node in &selected {
         assert!(turn_by_id.contains_key(node));
     }
@@ -418,7 +440,7 @@ fn retire_and_prune_l04(
                 .collect::<Vec<_>>()
         })
         .unwrap();
-    let source_memory = ids_for_source(&instance, owner, &ids, "L04-t3");
+    let source_memory = ids_for_source(&instance, owner, &ids, "L04-t1");
     let successor_memory = ids_for_source(&instance, owner, &ids, "L04-t4");
     let source_cut = cuts.iter().find(|cut| cut.id == source_memory).unwrap();
     let successor_cut = cuts.iter().find(|cut| cut.id == successor_memory).unwrap();
@@ -440,8 +462,12 @@ fn retire_and_prune_l04(
                 owner.as_bytes(),
                 source_memory,
                 &[successor_memory],
-                &DreamClassifier::new(TerminalDreamEndpoint),
-                Some(&DreamVerifier::new(TerminalDreamEndpoint)),
+                &DreamClassifier::new(TerminalDreamEndpoint {
+                    older_is_a: source_memory < successor_memory,
+                }),
+                Some(&DreamVerifier::new(TerminalDreamEndpoint {
+                    older_is_a: source_memory < successor_memory,
+                })),
                 DreamVerificationPolicy::default(),
             )
         })
@@ -709,7 +735,7 @@ fn create_retire_and_prune_relationship(
         .with_writable_reliquary(owner, |rel| {
             let memory = rel.current_memory(memory_id).unwrap();
             let body = available_body(&memory.payload);
-            let span = manifest_source_span("src-mira-known");
+            let span = manifest_turn_content("L05-t2");
             let start = body
                 .content
                 .find(&span)
@@ -814,9 +840,19 @@ fn create_retire_and_prune_relationship(
 }
 
 fn verify_lifecycle_denials(path: &Path, witness: &Value) -> Value {
+    let before = fs::read(path).unwrap();
     let gateway = Gateway::new();
     let owner = gateway.mount_writable_reliquary_current(path).unwrap();
-    let authorized = gateway.instance("principal-a", [owner], []).unwrap();
+    let token = "g4 semantic lifecycle authorized credential";
+    let (admission, control) = TrustedHostAdmission::new([HostCredentialBinding::new(
+        "principal-a",
+        token,
+        [owner],
+        [],
+    )])
+    .install(&gateway)
+    .unwrap();
+    let authorized = admission.authenticate(token).unwrap();
     let outsider = gateway.instance("outsider", [], []).unwrap();
     let pending = source_memory_id(witness, "src-rehearsal-pending");
     let complete = source_memory_id(witness, "src-rehearsal-complete");
@@ -849,7 +885,8 @@ fn verify_lifecycle_denials(path: &Path, witness: &Value) -> Value {
                     MemoryEntityResolutionStatus::Resolved { entity_id, .. }
                         if mention.key.memory_id == mira.0 =>
                     {
-                        Some((mention, *entity_id))
+                        let entity_id = *entity_id;
+                        Some((mention, entity_id))
                     }
                     _ => None,
                 })
@@ -909,7 +946,9 @@ fn verify_lifecycle_denials(path: &Path, witness: &Value) -> Value {
         mutation_id: "g4-terminal-auth-denial".into(),
         updated_at_ns: 800_001,
     };
-    let before = fs::read(path).unwrap();
+    let cut_before = authorized
+        .with_writable_reliquary(owner, |rel| rel.current_historical_cut())
+        .unwrap();
     assert!(matches!(
         outsider.retire_semantic_memory(owner, retire_request.clone()),
         Err(GatewayError::UnauthorizedRel { .. } | GatewayError::UnauthorizedPhy { .. })
@@ -922,7 +961,11 @@ fn verify_lifecycle_denials(path: &Path, witness: &Value) -> Value {
         outsider.publish_semantic_relationship(owner, relationship_request.clone()),
         Err(GatewayError::UnauthorizedRel { .. } | GatewayError::UnauthorizedPhy { .. })
     ));
-    let mut wrong_owner = retire_request;
+    assert!(matches!(
+        outsider.retire_semantic_entity(owner, entity_request.clone()),
+        Err(GatewayError::UnauthorizedRel { .. } | GatewayError::UnauthorizedPhy { .. })
+    ));
+    let mut wrong_owner = retire_request.clone();
     wrong_owner.owner_id = [0xFF; 16];
     assert!(
         authorized
@@ -930,9 +973,10 @@ fn verify_lifecycle_denials(path: &Path, witness: &Value) -> Value {
             .is_err()
     );
     assert_eq!(
-        fs::read(path).unwrap(),
-        before,
-        "denied writes preserve owner bytes"
+        authorized
+            .with_writable_reliquary(owner, |rel| rel.current_historical_cut())
+            .unwrap(),
+        cut_before
     );
     let memory_version = authorized
         .with_writable_reliquary(owner, |rel| rel.memory_version())
@@ -953,13 +997,38 @@ fn verify_lifecycle_denials(path: &Path, witness: &Value) -> Value {
         memory_version
     );
     drop(outsider);
+    control.revoke(token).unwrap();
+    assert!(matches!(
+        authorized.retire_semantic_memory(owner, retire_request),
+        Err(GatewayError::CredentialRevoked)
+    ));
+    assert!(matches!(
+        authorized.retire_semantic_entity(owner, entity_request),
+        Err(GatewayError::CredentialRevoked)
+    ));
+    assert!(matches!(
+        authorized.withdraw_semantic_entity_mention(owner, withdraw_request),
+        Err(GatewayError::CredentialRevoked)
+    ));
+    assert!(matches!(
+        authorized.publish_semantic_relationship(owner, relationship_request),
+        Err(GatewayError::CredentialRevoked)
+    ));
     drop(authorized);
+    drop(admission);
+    drop(control);
     drop(gateway);
+    assert_eq!(
+        fs::read(path).unwrap(),
+        before,
+        "denied writes preserve owner bytes"
+    );
     json!({
         "outsider_retire_denied": true,
         "outsider_withdraw_denied": true,
         "outsider_create_relationship_denied": true,
         "wrong_request_owner_denied": true,
+        "revoked_lifecycle_writes_denied":true,
         "owner_bytes_unchanged": true,
         "mention_remains_resolved": true
     })
@@ -985,14 +1054,15 @@ fn entity_id(value: &Value) -> EntityId {
     EntityId(bytes.try_into().expect("32-byte Entity identity"))
 }
 
-fn manifest_source_span(source_id: &str) -> String {
+fn manifest_turn_content(turn_id: &str) -> String {
     let manifest: Value = serde_json::from_str(G4_AUTHORED_MANIFEST).unwrap();
-    manifest["source_references"]
+    manifest["conversation_scripts"]
         .as_array()
         .unwrap()
         .iter()
-        .find(|source| source["id"] == source_id)
-        .unwrap_or_else(|| panic!("manifest source missing {source_id}"))["exact_span"]
+        .flat_map(|conversation| conversation["turns"].as_array().unwrap())
+        .find(|turn| turn["id"] == turn_id)
+        .unwrap_or_else(|| panic!("manifest turn missing {turn_id}"))["content"]
         .as_str()
         .unwrap()
         .to_owned()

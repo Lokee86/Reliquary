@@ -497,6 +497,15 @@ macro_rules! common_reads {
             pub fn entities(&self) -> Vec<Entity> {
                 self.$field.perception.entities().cloned().collect()
             }
+            pub fn relationship_revision(&self, id: RelationshipId, revision: u64) -> Option<&Relationship> {
+                self.$field.perception.relationship_revision(id, revision)
+            }
+            pub fn relationship_tombstone(&self, id: RelationshipId) -> Option<RelationshipTombstone> {
+                self.$field.perception.relationship_tombstone(id)
+            }
+            pub fn relationship_description_prune(&self, id: RelationshipId, revision: u64) -> Option<reliquary_perception_store::RelationshipDescriptionPrune> {
+                self.$field.perception.relationship_description_prune(id, revision)
+            }
             pub fn mention(&self, key: MemoryEntityMentionKey) -> Option<&MemoryEntityResolution> {
                 self.$field.perception.mention(key)
             }

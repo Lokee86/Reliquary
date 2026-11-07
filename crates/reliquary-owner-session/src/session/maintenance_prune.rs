@@ -13,7 +13,12 @@ use crate::records::{
 use crate::staged_copy::StagedCopy;
 use reliquary_memory_core::{MemoryBodyId, PayloadState};
 use reliquary_vector_store::generation::{generation_receipt_target, relocate_generation_receipt};
-use std::{collections::{BTreeMap, BTreeSet}, fs, io::Read, path::Path};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fs,
+    io::Read,
+    path::Path,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrunedOwnerCopyReport {
@@ -193,17 +198,19 @@ fn transform_terminal_memory_copy(
             }
         }
         let is_generation = payload.starts_with(b"RELVGEN1");
-        let relocated = if let Some(old) = generation_receipt_target(&payload)
-            .map_err(|error| error.to_string())?
+        let relocated = if let Some(old) =
+            generation_receipt_target(&payload).map_err(|error| error.to_string())?
         {
             let new = *relocated_generations
                 .get(&old.offset)
                 .ok_or("Memory prune lost vector generation")?;
-            relocate_generation_receipt(&payload, new)
-                .map_err(|error| error.to_string())?
-                .to_vec()
+            std::borrow::Cow::Owned(
+                relocate_generation_receipt(&payload, new)
+                    .map_err(|error| error.to_string())?
+                    .to_vec(),
+            )
         } else {
-            payload
+            std::borrow::Cow::Borrowed(payload.as_slice())
         };
         let written = target.append(&relocated).map_err(|e| e.to_string())?;
         if is_generation {

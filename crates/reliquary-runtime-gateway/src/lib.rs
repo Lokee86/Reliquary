@@ -384,6 +384,8 @@ mod g4_export;
 #[cfg(test)]
 mod g4_gateway_acceptance;
 #[cfg(test)]
+mod g4_maintenance_observations;
+#[cfg(test)]
 mod g4_retrieval_acceptance;
 #[cfg(test)]
 mod g4_semantic_acceptance;
@@ -391,6 +393,8 @@ mod g4_semantic_acceptance;
 mod g4_semantic_completion;
 #[cfg(test)]
 mod g4_semantic_negatives;
+#[cfg(test)]
+mod g4_terminal_acceptance;
 #[cfg(test)]
 mod g4_test_cohort;
 #[cfg(test)]

@@ -1,4 +1,5 @@
 use super::*;
+use crate::DreamMemoryCut;
 use crate::staged_copy::StagedCopy;
 use reliquary_archive::{ImportReceipt, TurnInput};
 use reliquary_container::ReliquaryScope;
@@ -77,6 +78,10 @@ fn append_branch(path: &Path, node: &str, content: &str, mutations: &[&str]) {
             },
         )
         .unwrap();
+    if mutations.is_empty() {
+        container.sync().unwrap();
+        return;
+    }
     let mut memories = MemoryStore::open(&container).unwrap();
     let mut freshness = FreshnessStore::open(&container).unwrap();
     let mut ids = Vec::new();
@@ -942,4 +947,171 @@ fn same_import_id_with_divergent_insomnia_journal_conflicts_without_output() {
     assert!(!output.0.exists());
     assert_eq!(fs::read(&left.0).unwrap(), left_before);
     assert_eq!(fs::read(&right.0).unwrap(), right_before);
+}
+
+#[test]
+fn divergent_reconciliation_reuses_owner_admitted_shared_dream_batch_graph() {
+    let (left, right, owner) = owner_pair();
+    let memories = {
+        let mut writer = RelWriter::open_path(
+            &left.0,
+            GraphAdmission::for_replay(owner, [], [], [], [], []),
+            [],
+            [],
+        )
+        .unwrap();
+        let records = (0..3)
+            .map(|index| {
+                writer
+                    .session
+                    .common
+                    .memories
+                    .publish(
+                        &mut writer.container,
+                        None,
+                        0,
+                        draft(&format!("dream-batch-{index}"), None),
+                    )
+                    .unwrap()
+                    .revision
+                    .record
+            })
+            .collect::<Vec<_>>();
+        writer.container.sync().unwrap();
+        records
+    };
+    let admission = GraphAdmission::for_replay(
+        owner,
+        memories.iter().map(|record| record.id.0),
+        [],
+        [],
+        [],
+        [],
+    );
+    let observed = memories
+        .iter()
+        .map(|record| DreamMemoryCut {
+            id: record.id,
+            revision: record.revision,
+            body_id: record.body_id,
+        })
+        .collect::<Vec<_>>();
+    let dream_admission = {
+        let mut writer = RelWriter::open_path(&left.0, admission.clone(), [], []).unwrap();
+        let admission = writer
+            .begin_initial_dream_frontier(
+                "shared-dream-frontier".into(),
+                observed[0],
+                vec![observed[1]],
+                20,
+            )
+            .unwrap();
+        writer.container.sync().unwrap();
+        admission
+    };
+    let pairs = observed[1..]
+        .iter()
+        .map(|candidate| DreamPairPublication {
+            source: observed[0].id,
+            candidate: candidate.id,
+            kind: Some(RelationKind::Supersedes),
+            rejected: false,
+        })
+        .collect::<Vec<_>>();
+    let changes = observed[1..]
+        .iter()
+        .map(|candidate| RelationChange {
+            source: NodeRef::Memory(observed[0].id.0),
+            target: NodeRef::Memory(candidate.id.0),
+            kind: RelationKind::Supersedes,
+            active: true,
+            origin: RelationOrigin::Dream,
+        })
+        .collect::<Vec<_>>();
+    let lifecycles = std::iter::once(DreamLifecyclePublication {
+        memory_id: observed[0].id,
+        lifecycle_state: "canonical".into(),
+        archived: false,
+        superseded_by: None,
+    })
+    .chain(
+        observed[1..]
+            .iter()
+            .map(|candidate| DreamLifecyclePublication {
+                memory_id: candidate.id,
+                lifecycle_state: "archived".into(),
+                archived: true,
+                superseded_by: Some(observed[0].id),
+            }),
+    )
+    .collect();
+    let batch = DreamBatchCut {
+        owner,
+        publication_id: [0x6d; 32],
+        graph_version: 0,
+        observed,
+        pairs,
+        changes,
+        lifecycles,
+        updated_at_ns: 20,
+    };
+    let mut writer =
+        RelWriter::open_path(&left.0, admission.clone(), [], [dream_admission.clone()]).unwrap();
+    assert!(writer.commit_dream_batch(batch).unwrap());
+    drop(writer);
+    assert!(
+        Container::open_read_only(&left.0)
+            .unwrap()
+            .read_frames()
+            .unwrap()
+            .iter()
+            .any(|frame| frame.payload.starts_with(b"RELDRB01"))
+    );
+    assert!(
+        Container::open_read_only(&left.0)
+            .unwrap()
+            .read_frames()
+            .unwrap()
+            .iter()
+            .any(|frame| frame.payload.starts_with(b"RELDRC01"))
+    );
+    fs::copy(&left.0, &right.0).unwrap();
+    append_branch(&left.0, "left-dream-tail", "left authored branch", &[]);
+    append_branch(&right.0, "right-dream-tail", "right authored branch", &[]);
+
+    let output = Temp::new("shared-dream-batch");
+    reconcile_divergent_rel_copy(
+        &left.0,
+        &right.0,
+        &output.0,
+        &admission,
+        &[],
+        &[dream_admission.clone()],
+    )
+    .expect("replay shared Dream authority through the admitted owner session");
+    let merged = RelSession::open_path(&output.0, &admission, [], [dream_admission]).unwrap();
+    assert!(
+        merged
+            .resolved_archive_turn("conversation", "left-dream-tail")
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        merged
+            .resolved_archive_turn("conversation", "right-dream-tail")
+            .unwrap()
+            .is_some()
+    );
+    for candidate in memories.iter().skip(1) {
+        assert!(merged.dream_pair_evaluated(memories[0].id, candidate.id));
+        assert!(
+            merged
+                .graph_relation(
+                    NodeRef::Memory(memories[0].id.0),
+                    NodeRef::Memory(candidate.id.0),
+                    RelationKind::Supersedes,
+                )
+                .is_some()
+        );
+    }
 }
