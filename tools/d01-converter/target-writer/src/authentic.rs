@@ -116,6 +116,7 @@ pub fn convert(transfer: &Path, expected: Option<&str>, output: &Path) -> Result
     let mut last = None;
     let mut emitted = 0u64;
     let mut memories = BTreeMap::new();
+    let mut generations = BTreeMap::new();
     while line(&mut reader, &mut bytes, &mut digest)? {
         let event: Event =
             serde_json::from_slice(&bytes).map_err(|_| invalid("invalid native transfer event"))?;
@@ -131,7 +132,7 @@ pub fn convert(transfer: &Path, expected: Option<&str>, output: &Path) -> Result
             ));
         }
         last = Some(ordinal);
-        if append(event, &mut writer, &mut memories)? {
+        if append(event, &mut writer, &mut memories, &mut generations)? {
             emitted += 1;
         }
     }

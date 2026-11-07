@@ -58,6 +58,7 @@ dependencies = [
  "reliquary-graph",
  "reliquary-memory-core",
  "reliquary-owner-session",
+ "reliquary-vector-store",
  "serde",
  "serde_json",
  "sha2",

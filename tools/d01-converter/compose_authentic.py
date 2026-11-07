@@ -137,6 +137,9 @@ def compose(args, witness):
                   "source_ordinal")
     vector, vector_handled = adapter(args.transfer_root / "vector-transfer-v1", "vector", source_sha, "source_ordinal")
     archive, archive_handled = adapter(args.transfer_root / "archive-transfer-v1", "archive", source_sha, "source_ordinal") if kind == 1 else ({}, {})
+    community, community_handled = adapter(args.transfer_root / "community-transfer-v1", "community",
+                                           source_sha, "source_ordinal")
+    native_adapters = [(archive, archive_handled), (vector, vector_handled), (community, community_handled)]
     artifacts = manifest["artifact_sha256"].copy()
     native = owner["native"]
     header = {
@@ -159,14 +162,15 @@ def compose(args, witness):
             for ordinal, frame in verify.take_stream(output_dir, artifacts, owner, "frames", owner["frame_stream"],
                                                      schema_id=coverage["schema_id"]):
                 payload = verify.read_frame(source, frame, source_hash, before.st_size)
-                selected = [lane for lane in (memory, graph, vector_handled, archive_handled) if ordinal in lane]
-                require(len(selected) <= 1, "source frame has ambiguous target mapping")
+                matched_adapters = [(values, handled) for values, handled in native_adapters if ordinal in handled]
+                selected = sum(ordinal in lane for lane in (memory, graph)) + len(matched_adapters)
+                require(selected <= 1, "source frame has ambiguous target mapping")
                 if ordinal in memory:
                     records = memory_events(ordinal, frame, memory.pop(ordinal))
                 elif ordinal in graph:
                     records = graph.pop(ordinal)
-                elif ordinal in archive_handled or ordinal in vector_handled:
-                    values, handled = (archive, archive_handled) if ordinal in archive_handled else (vector, vector_handled)
+                elif matched_adapters:
+                    values, handled = matched_adapters[0]
                     disposition = handled.pop(ordinal)
                     require(len(disposition) == 1 and disposition[0]["source_carrier"] == frame["carrier"],
                             "source disposition differs from held frame")
@@ -188,7 +192,7 @@ def compose(args, witness):
                 require(count > 0, "unclassified retained source frame")
             require(source.tell() == before.st_size and source_hash.hexdigest() == source_sha
                     and verify.snapshot(before) == verify.snapshot(verify.regular(path)), "source copy changed during transfer")
-            require(not any((memory, graph, archive, archive_handled, vector, vector_handled)),
+            require(not memory and not graph and not any(values or handled for values, handled in native_adapters),
                     "target transfer contains unbound source events")
             destination.flush()
             os.fsync(destination.fileno())

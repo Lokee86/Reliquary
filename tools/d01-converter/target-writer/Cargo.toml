@@ -13,6 +13,7 @@ reliquary-graph = { path = "../../../crates/reliquary-graph" }
 reliquary-memory-core = { path = "../../../crates/reliquary-memory-core" }
 reliquary-archive = { path = "../../../crates/reliquary-archive" }
 reliquary-owner-session = { path = "../../../crates/reliquary-owner-session" }
+reliquary-vector-store = { path = "../../../crates/reliquary-vector-store" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"

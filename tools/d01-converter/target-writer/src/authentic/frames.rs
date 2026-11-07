@@ -3,7 +3,7 @@ use crate::{
     authentic_values::{Body, GraphChange, Memory, Routing},
     transfer::decimal,
 };
-use reliquary_container::Container;
+use reliquary_container::{Container, ObjectRef};
 use reliquary_memory_core::{
     MemoryId, MemoryRecord, encode_retained_memory_body, encode_retained_memory_revision,
     encode_routing_metadata,
@@ -63,6 +63,12 @@ pub(super) enum Event {
         transaction_time_ns: Option<String>,
         changes: Vec<GraphChange>,
     },
+    VectorReceipt {
+        source_ordinal: String,
+        global_version: String,
+        vector_version: String,
+        generation_source_ordinal: String,
+    },
     Embedded {
         source_ordinal: String,
         carrier: String,
@@ -81,6 +87,7 @@ impl Event {
             | Self::MemoryRevision { source_ordinal, .. }
             | Self::MemoryRouting { source_ordinal, .. }
             | Self::Graph { source_ordinal, .. }
+            | Self::VectorReceipt { source_ordinal, .. }
             | Self::Embedded { source_ordinal, .. } => source_ordinal,
         };
         number(value)
@@ -189,16 +196,27 @@ pub(super) fn append(
     event: Event,
     output: &mut Container,
     memories: &mut BTreeMap<MemoryId, MemoryRecord>,
+    generations: &mut BTreeMap<u64, ObjectRef>,
 ) -> Result<bool, Failure> {
     match event {
-        Event::Frame { body_hex, .. } => {
+        Event::Frame {
+            source_ordinal,
+            body_hex,
+        } => {
             let bytes = payload(&body_hex)?;
             if !admitted_plain_body(&bytes) {
                 return Err(invalid("unclassified plain native carrier"));
             }
-            output
+            let target = output
                 .append(&bytes)
                 .map_err(|_| invalid("native frame could not be written"))?;
+            if bytes.starts_with(b"RELVGEN1")
+                && generations
+                    .insert(number(&source_ordinal)?, target)
+                    .is_some()
+            {
+                return Err(invalid("duplicate relocated vector generation"));
+            }
         }
         Event::Allocate {
             global_version,
@@ -321,6 +339,27 @@ pub(super) fn append(
                 time(transaction_time_ns)?,
                 &bytes,
             )?;
+        }
+        Event::VectorReceipt {
+            source_ordinal,
+            global_version,
+            vector_version,
+            generation_source_ordinal,
+        } => {
+            let generation = number(&generation_source_ordinal)?;
+            if generation >= number(&source_ordinal)? {
+                return Err(invalid(
+                    "vector generation receipt requires an earlier source object",
+                ));
+            }
+            let relocated = generations
+                .get(&generation)
+                .ok_or_else(|| invalid("vector generation receipt backing is unrelocated"))?;
+            let body = reliquary_vector_store::generation::encode_generation_receipt(
+                number(&vector_version)?,
+                *relocated,
+            );
+            append_publication(output, number(&global_version)?, true, None, &body)?;
         }
         Event::Embedded { carrier, .. } => {
             if ![
