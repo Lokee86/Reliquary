@@ -4,6 +4,7 @@ import hashlib
 import unittest
 
 from f03_verify_prefix_availability import Attachment, cut_rows, file_gate, turn_references
+from f03_verify_project_cuts import cut_rows as project_cuts, membership_rows
 
 
 class AvailabilityTests(unittest.TestCase):
@@ -43,6 +44,15 @@ class AvailabilityTests(unittest.TestCase):
         rows = list(cut_rows(frontiers, defaultdict(Counter), 3, 1))
         self.assertEqual([row["physical_frontier_end"] for row in rows], ["44", "44", "44", "97"])
         self.assertEqual([row["physical_frame_count"] for row in rows], ["1", "1", "1", "2"])
+
+    def test_project_correlation_belongs_to_physical_frontier_not_declared_cut(self):
+        value = {"sequence": 1, "global_version": 1, "archive_version": 1, "memory_version": 0}
+        accepted = {("project_revision_correlation", (1).to_bytes(8, "big")): (3, 10, value)}
+        first = list(project_cuts(list(membership_rows(accepted, 4)), 4, 1))
+        extended = list(project_cuts(list(membership_rows(accepted, 5)), 5, 1))
+        self.assertEqual(first[1]["latest_correlation_sequence"], "0")
+        self.assertEqual(first[3]["latest_correlation_sequence"], "1")
+        self.assertEqual(first, extended[:len(first)])
 
     def test_malformed_turn_attachment_count_fails(self):
         wire = b"CVATUR03" + (1).to_bytes(8, "little") + b"\0" * 40
