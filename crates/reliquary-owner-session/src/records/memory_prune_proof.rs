@@ -284,7 +284,10 @@ pub(crate) fn safe_memory_only_frames(
             let envelope = decode_publication(&payload)
                 .map_err(|e| e.to_string())?
                 .ok_or("missing publication envelope")?;
-            if !memory_history_record(envelope.body) {
+            if !memory_history_record(envelope.body)
+                && !reliquary_archive::is_archive_publication_body(envelope.body)
+                    .map_err(|e| e.to_string())?
+            {
                 return Err("transform needs an owner proof for publication body".into());
             }
             version = version.max(envelope.version);

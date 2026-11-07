@@ -364,7 +364,7 @@ fn generation_value(value: &VectorGeneration) -> Value {
 }
 
 fn archive_value(value: &reliquary_archive::ArchiveHistorySnapshot) -> Value {
-    json!({
+    let mut encoded = json!({
         "archive_version": value.archive_version, "activity_cut": value.activity_cut,
         "turns": value.turns.iter().map(archive_turn_value).collect::<Vec<_>>(),
         "branch_revisions": value.branch_revisions.iter().map(|revision| json!({
@@ -376,7 +376,24 @@ fn archive_value(value: &reliquary_archive::ArchiveHistorySnapshot) -> Value {
         "conversation_tombstones": value.conversation_tombstones.iter().map(|terminal| json!({
             "conversation_id": terminal.conversation_id, "archive_version": terminal.archive_version,
         })).collect::<Vec<_>>(),
-    })
+    });
+    if !value.publication_bindings.is_empty() {
+        encoded["publication_bindings"] = json!(
+            value
+                .publication_bindings
+                .iter()
+                .map(|binding| json!({
+                    "archive_version": binding.archive_version,
+                    "global_version": binding.global_version,
+                    "transaction_time_ns": binding.transaction_time_ns,
+                    "bound_reservation": binding.bound_reservation,
+                    "first_applying_archive_version": binding.first_applying_archive_version,
+                    "first_applying_global_version": binding.first_applying_global_version,
+                }))
+                .collect::<Vec<_>>()
+        );
+    }
+    encoded
 }
 
 fn archive_turn_value(value: &reliquary_archive::HistoricalArchiveTurn) -> Value {

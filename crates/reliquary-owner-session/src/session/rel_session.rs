@@ -267,6 +267,11 @@ impl RelSession {
     pub fn archive_version(&self) -> u64 {
         self.archive.archive_version()
     }
+    /// Accepted Archive publications with their validated current physical bindings.
+    pub fn archive_publication_bindings(&self) -> &[reliquary_archive::ArchivePublicationBinding] {
+        self.archive.publication_bindings()
+    }
+
     pub fn conversation_tombstone(
         &self,
         conversation: &str,

@@ -72,7 +72,7 @@ pub(super) fn validate_grouped_replay_admission(
         let payload = envelope
             .filter(|envelope| envelope.body.starts_with(b"RELMCRT1"))
             .map_or(frame.payload.as_slice(), |envelope| envelope.body);
-        match reliquary_archive::source_publication(payload)? {
+        match reliquary_archive::source_publication(&frame.payload)? {
             Some(reliquary_archive::SourcePublication::Episode(id)) => {
                 visible_episodes.insert(id);
             }
@@ -147,7 +147,11 @@ pub(super) fn validate_grouped_replay_admission(
 }
 
 pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), OwnerSessionError> {
-    const REL_ONLY: [(&[u8; 8], &str); 28] = [
+    const REL_ONLY: [(&[u8; 8], &str); 29] = [
+        (
+            reliquary_archive::ARCHIVE_PUBLICATION_MARKER,
+            "versioned Archive publication",
+        ),
         (b"RELTURN2", "Archive turn"),
         (b"RELFILE1", "Archive file"),
         (b"RELBRCH1", "Archive branch"),
@@ -216,6 +220,11 @@ pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), Owner
                     return Err(OwnerSessionError::RelOnlyRecordInPhylactery(domain));
                 }
             }
+        }
+        if length >= 6 && &prefix[..6] == b"RELAPB" {
+            return Err(OwnerSessionError::RelOnlyRecordInPhylactery(
+                "versioned Archive publication",
+            ));
         }
         if length >= 6 && &prefix[..6] == b"RELFRS" {
             return Err(OwnerSessionError::RelOnlyRecordInPhylactery(

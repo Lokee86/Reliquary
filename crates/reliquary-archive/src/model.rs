@@ -194,6 +194,7 @@ pub struct HistoricalArchiveBranch {
 pub struct ArchiveHistorySnapshot {
     pub archive_version: u64,
     pub activity_cut: u64,
+    pub publication_bindings: Vec<ArchivePublicationBinding>,
     pub turns: Vec<HistoricalArchiveTurn>,
     /// Every accepted Branch revision through the cut.
     pub branch_revisions: Vec<HistoricalArchiveBranch>,
@@ -399,3 +400,24 @@ impl fmt::Display for ArchiveError {
 }
 
 impl std::error::Error for ArchiveError {}
+
+/// An exact current Archive publication coordinate for an accepted value.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ArchivePublicationCoordinate {
+    pub archive_version: u64,
+    pub global_version: u64,
+    pub transaction_time_ns: Option<i64>,
+    pub bound_reservation: bool,
+}
+
+/// Immutable binding observed during ordinary current-only Archive replay.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ArchivePublicationBinding {
+    pub archive_version: u64,
+    pub global_version: u64,
+    pub transaction_time_ns: Option<i64>,
+    pub bound_reservation: bool,
+    pub first_applying_archive_version: u64,
+    pub first_applying_global_version: u64,
+    pub object: reliquary_container::ObjectRef,
+}
