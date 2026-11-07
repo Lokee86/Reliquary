@@ -4,14 +4,16 @@ from collections import Counter, defaultdict
 import hashlib
 import io
 import json
+from itertools import zip_longest
+import re
 from pathlib import Path
 
 from f03_compare_archived_projections import ARCHIVED_SHA256
 from f03_legacy_frame_clock import integer
 from f03_verify_archived_oracle import PINS, READER, require, rows
 from f03_verify_independent_repeat import (
-    COVERAGE, MANIFEST, SCHEMAS, open_header, read_document, read_exact, read_frame,
-    regular, snapshot, take_stream,
+    COVERAGE, MANIFEST, SCHEMAS, bad_constant, decimal, exact_object, open_header,
+    read_document, read_exact, read_frame, regular, snapshot, take_stream,
 )
 from f03_verify_prefix_availability import ARCHIVE_PUBLICATIONS, field, hash_field, write_jsonl
 from f03_verify_project_backing import PROJECT, REPOSITORY_ID, REVISION, file_binding
@@ -251,7 +253,88 @@ def cut_commitments(by_cut, head):
         yield {"archive_version": str(cut), "retained_rows": str(count), "prefix_sha256": digest.hexdigest()}
 
 
-def verify(copies, coverage_path, archived_path, destination):
+def availability_rows(path, expected_sha, head):
+    before = regular(path)
+    require(0 < before.st_size <= 64 * 1024 * 1024, "invalid prefix availability evidence size")
+    digest = hashlib.sha256()
+    with path.open("rb") as file:
+        for ordinal, line in enumerate(file):
+            require(len(line) <= 4096 and line.endswith(b"\n"), "malformed prefix availability row")
+            digest.update(line)
+            row = json.loads(line.decode("utf-8"), object_pairs_hook=exact_object, parse_constant=bad_constant)
+            require(row.keys() == {
+                "global_version", "physical_frontier_end", "physical_frame_count",
+                "physical_prefix_sha256", "archive_backing_gate", "missing_node_backing",
+                "missing_file_backing", "invalid_file_identity", "whole_owner_availability",
+            } and decimal(row["global_version"]) == ordinal and ordinal <= head,
+                    "misordered or unknown prefix availability row")
+            require(decimal(row["physical_frontier_end"]) >= 40
+                    and decimal(row["physical_frame_count"]) >= 0
+                    and re.fullmatch(r"[0-9a-f]{64}", row["physical_prefix_sha256"]),
+                    "invalid physical prefix coordinate")
+            blocked = any(decimal(row[field]) for field in
+                          ("missing_node_backing", "missing_file_backing", "invalid_file_identity"))
+            require((row["archive_backing_gate"], row["whole_owner_availability"]) ==
+                    (("blocked", "archive_backing_rejects_prefix") if blocked else ("satisfied", "not_evaluated")),
+                    "prefix availability gate disagrees with backing evidence")
+            yield row
+    require(digest.hexdigest() == expected_sha and snapshot(before) == snapshot(regular(path)),
+            "prefix availability evidence changed or differs from its receipt")
+
+
+def compose_backing_cleared(output, artifacts, owner, schema, model, cache, availability, directory, destination):
+    native = owner["native"]
+    metadata = native["global_stream"]
+    head = decimal(metadata["rows"]) - 1
+    local_head = len(model.row_counts) - 1
+    require(availability["source_sha256"] == owner["source_sha256"]
+            and availability["global_cuts"] == head + 1,
+            "prefix availability receipt differs from the source owner or global head")
+    copy = owner["copy_id"]
+    evidence = directory / f"{copy}-prefix-availability.jsonl"
+    global_rows = take_stream(output, artifacts, owner, "global", metadata, schema_id=schema)
+    frontiers = availability_rows(evidence, availability["cut_rows_sha256"], head)
+    supported = []
+    distinct = set()
+    previous_local = 0
+    for coordinate, prefix in zip_longest(global_rows, frontiers):
+        require(coordinate is not None and prefix is not None,
+                "incomplete global or backing availability stream")
+        ordinal, global_ = coordinate
+        require(global_["global_version"] == prefix["global_version"] == str(ordinal),
+                "prefix availability and global coordinate disagree")
+        local = decimal(global_["domain_versions"]["archive"])
+        require(previous_local <= local <= local_head, "global point has an invalid Archive local cut")
+        previous_local = local
+        if prefix["archive_backing_gate"] != "satisfied":
+            continue
+        distinct.add(local)
+        if local not in cache:
+            cache[local] = model.at(local)
+        supported.append({
+            "global_version": str(ordinal), "transaction_time_ns": global_["transaction_time_ns"],
+            "physical_frontier_end": prefix["physical_frontier_end"],
+            "physical_prefix_sha256": prefix["physical_prefix_sha256"],
+            "archive_version": str(local), "archive_backing_gate": "satisfied",
+            "archive_native_snapshot": cache[local],
+            "whole_owner_availability": "not_evaluated",
+        })
+    require(len(supported) == availability["archive_backing_satisfied_cuts"]
+            and head + 1 - len(supported) == availability["archive_backing_blocked_cuts"]
+            and previous_local == local_head,
+            "backing-cleared Archive composition differs from the complete source inventory")
+    path = destination / f"{copy}-backing-cleared-archive-digests.jsonl"
+    return {
+        "scope": "exact retained Archive component on backing-cleared physical frontiers",
+        "backing_cleared_global_points": len(supported),
+        "distinct_native_archive_cuts": len(distinct),
+        "source_global_stream_sha256": metadata["last_batch_sha256"],
+        "availability_stream_sha256": availability["cut_rows_sha256"],
+        "composed_archive_digests_sha256": write_jsonl(path, supported),
+    }
+
+
+def verify(copies, coverage_path, archived_path, destination, availability_path=None, availability_dir=None):
     output = coverage_path.parent
     coverage, coverage_sha = read_document(coverage_path, 2 * 1024 * 1024)
     manifest, manifest_sha = read_document(output / MANIFEST, 2 * 1024 * 1024)
@@ -262,12 +345,28 @@ def verify(copies, coverage_path, archived_path, destination):
             and coverage_sha == manifest["source_coverage_sha256"] == manifest["artifact_sha256"][COVERAGE],
             "unrecognized source witness or archive custody")
     archived = rows(archive)
+    availability = {}
+    availability_sha = None
+    if availability_path is not None:
+        receipt, availability_sha = read_document(availability_path, 2 * 1024 * 1024)
+        require(receipt["status"] == "PASS" and receipt["authentic_admission"] is False
+                and receipt["whole_owner_positive_availability_assessed"] is False
+                and receipt["source_manifest_sha256"] == manifest_sha
+                and receipt["source_coverage_sha256"] == coverage_sha
+                and receipt["archived_oracle_sha256"] == archive_sha,
+                "unrecognized prefix availability receipt")
+        availability = {owner["source_sha256"]: owner for owner in receipt["owners"]}
+        require(len(receipt["owners"]) == 6 and availability.keys() == set(PINS.values()),
+                "prefix availability receipt differs from the pinned source cohort")
+        regular(availability_dir, directory=True)
     owners = {row["source_sha256"]: row for row in coverage["sources"]}
     require(len(coverage["sources"]) == 6 and owners.keys() == set(PINS.values()), "source coverage differs from reviewed pins")
     regular(destination.parent, directory=True)
     resolved = destination.resolve()
-    require(not any(resolved == parent or resolved.is_relative_to(parent)
-                    for parent in (copies.resolve(), output.resolve())),
+    protected_inputs = [copies.resolve(), output.resolve()]
+    if availability_dir is not None:
+        protected_inputs.append(availability_dir.resolve())
+    require(not any(resolved == parent or resolved.is_relative_to(parent) for parent in protected_inputs),
             "Archive value evidence destination overlaps source custody")
     destination.mkdir()
     artifacts = dict(manifest["artifact_sha256"])
@@ -290,8 +389,12 @@ def verify(copies, coverage_path, archived_path, destination):
         actual = model.at(head)
         require(actual["sha256"] == known["sha256"] and str(actual["rows"]) == known["rows"],
                 "independent Archive head differs from native projection")
+        snapshot_cache = {head: actual}
         for cut in expected["snapshots"]:
-            require(model.at(cut["cut"]) == cut, "independent Archive snapshot differs from the frozen cut")
+            local = cut["cut"]
+            if local not in snapshot_cache:
+                snapshot_cache[local] = model.at(local)
+            require(snapshot_cache[local] == cut, "independent Archive snapshot differs from the frozen cut")
         by_cut = defaultdict(list)
         members = []
         for (family, key), (first, value) in sorted(indexed.items()):
@@ -299,7 +402,7 @@ def verify(copies, coverage_path, archived_path, destination):
             by_cut[first].append(row)
             members.append({"row": row, "first_archive_version": str(first), "last_archive_version": str(head)})
         copy = owner["copy_id"]
-        results.append({
+        result = {
             "copy_id": copy, "source_sha256": pin, "archive_publication_values": head,
             "inline_content_values": len(indexed) - head, "repository_backed_files": len(projects),
             "retained_archive_cuts": head + 1, "native_archive_head_sha256": actual["sha256"],
@@ -307,14 +410,24 @@ def verify(copies, coverage_path, archived_path, destination):
             "archived_native_snapshots_exhaustive": expected["snapshot_queries_exhaustive"],
             "value_memberships_sha256": write_jsonl(destination / f"{copy}-archive-value-memberships.jsonl", members),
             "value_cuts_sha256": write_jsonl(destination / f"{copy}-archive-value-cuts.jsonl", cut_commitments(by_cut, head)),
-        })
-    return {
+        }
+        if availability:
+            require(availability[pin]["copy_id"] == copy, "prefix availability copy identity differs")
+            result["backing_cleared_archive_component"] = compose_backing_cleared(
+                output, artifacts, owner, schema, model, snapshot_cache, availability[pin],
+                availability_dir, destination)
+        results.append(result)
+    report = {
         "status": "PASS", "authentic_admission": False,
         "scope": "retained Archive native value and local-cut membership for the three pinned RELs",
         "physical_prefix_availability_assessed": False,
         "archive_oracle_sha256": archive_sha, "source_manifest_sha256": manifest_sha,
         "source_coverage_sha256": coverage_sha, "owners": results,
     }
+    if availability:
+        report["prefix_availability_receipt_sha256"] = availability_sha
+        report["whole_owner_positive_availability_assessed"] = False
+    return report
 
 
 def main():
@@ -324,8 +437,14 @@ def main():
     parser.add_argument("--archived-oracle", type=Path, required=True)
     parser.add_argument("--private-output", type=Path, required=True,
                         help="fresh directory under the caller's protected evidence root")
+    parser.add_argument("--prefix-availability-report", type=Path)
+    parser.add_argument("--prefix-availability-dir", type=Path)
     args = parser.parse_args()
-    print(json.dumps(verify(args.source_copies, args.source_coverage, args.archived_oracle, args.private_output), indent=2))
+    if (args.prefix_availability_report is None) != (args.prefix_availability_dir is None):
+        parser.error("supply both prefix availability inputs together")
+    report = verify(args.source_copies, args.source_coverage, args.archived_oracle, args.private_output,
+                    args.prefix_availability_report, args.prefix_availability_dir)
+    print(json.dumps(report, indent=2))
 
 
 if __name__ == "__main__":
