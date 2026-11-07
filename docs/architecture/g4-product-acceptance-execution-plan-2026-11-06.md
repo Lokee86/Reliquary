@@ -1,6 +1,6 @@
 # G4 — implementation ticket DAG and integration gates
 
-**Status:** implementation plan; **all tickets not started**.
+**Status:** accepted; **G4-T01–G4-T09 complete**. Native 2.1 product acceptance is closed; D01 remains a separate unstarted gate.
 **Parent:** [G4 product acceptance specification](g4-complete-product-acceptance-spec-2026-11-06.md).
 **Non-negotiable scenario oracle:** [G4 2.1 corpus/matrix](g4-generated-2-1-corpus-acceptance-matrix-2026-11-06.md).
 **Execution worktree:** `C:\!bin\workspace\Reliquary-rebuild`.
@@ -35,7 +35,8 @@ T03 and T05 are **parallel-ready** after T02 where isolated test directories and
 - **Owner/seam:** test fixture contract; no production code mutation.
 - **Checks:** hand-authored source references, principal/owner routing and negative result types are fixed independently of runtime output; 2 REL/2 PHY owner aliases, 8+4 conversations, ≥40 turns and ≥3 branch forks; no real secrets/old corpus data; static schema validation rejects missing/duplicate script IDs, unclear owner grants and inconsistent parent refs.
 - **Evidence:** manifest revision/digest and passing fixture-schema test.
-- **State:** not started.
+- **State:** complete.
+- **Verified evidence:** Fixture `tests/fixtures/g4-native-rel21-v1.json`, seed `g4-rel21-v1`, SHA-256 `FF996170B657EDEC07CD96DD6EE65D8FB6D6DA6643360D160DB0687AC267E2CD`; schema tests pass in the final workspace suite.
 
 ### G4-T02 — build a replayable native 2.1 cohort
 
@@ -45,7 +46,8 @@ T03 and T05 are **parallel-ready** after T02 where isolated test directories and
 - **Checks:** four owners are independently reopened; owner IDs/scope, source-turn hashes, frozen script counts/branches and mutable output isolation pass; deterministic rerun yields identical normalized semantic witnesses, with generated UUID aliases compared consistently instead of forced hardcodes; failure cleans only test-owned files.
 - **Coverage:** G4-01 and initial G4-02.
 - **Evidence:** targeted generated-corpus smoke + fresh-reader source witnesses; record exact test command and counts.
-- **State:** not started.
+- **State:** complete.
+- **Verified evidence:** The joined native cohort checks 12 conversations, 48 exact authored turns, three forks and all four reopened owners; two independently regenerated semantic witnesses match.
 
 ### G4-T03 — prove source-grounded ingest, native import, Dream and Entity on one cohort
 
@@ -55,7 +57,8 @@ T03 and T05 are **parallel-ready** after T02 where isolated test directories and
 - **Checks:** exact source spans, ownership routing, owner privacy, idempotent receipt, historical revision and Dream/Freshness birth; completed native import/receipt, same-input dedup and post-reopen state. Invalid Episode, forged source, contradictory duplicate, stale Entity proof, unsupported native profile and incomplete/conflicting import epoch reject without mutation; independent read and reopen match authored expected witness.
 - **Coverage:** G4-02–05 and **all** G4-10.
 - **Evidence:** targeted composed test and prior V01/V02/V03 tests; failing tests before any semantics correction.
-- **State:** not started.
+- **State:** complete.
+- **Verified evidence:** Joined source/provenance, private routing, Dream/Entity and native-import witnesses plus negative outcomes pass; independent owner reopen and process transcript checks agree.
 
 ### G4-T04 — prove vectors, context, retrieval and confirmed use
 
@@ -65,7 +68,8 @@ T03 and T05 are **parallel-ready** after T02 where isolated test directories and
 - **Checks:** exact selected source IDs and body revisions; fixed F03 ID vectors; repeat embedding reuse; VCS historical bytes/authorization; no credit before externally confirmed consumption; no second receipt after retry or reopen. Negative provider shape/stale-cut, unauthorized PHY, revocation, wrong manifest and unknown host produce unchanged owner authority.
 - **Coverage:** G4-06–09.
 - **Evidence:** composed test output + independent post-reopen receipts and history; no model calls after idempotent replay.
-- **State:** not started.
+- **State:** complete.
+- **Verified evidence:** Joined vectors/context/VCS/retrieval/confirmed-use checks and all six F03 identity goldens pass; reopened receipt and vector evidence recorded in the acceptance report.
 
 ### G4-T05 — prove Gateway and trusted-host lifecycle together
 
@@ -75,7 +79,8 @@ T03 and T05 are **parallel-ready** after T02 where isolated test directories and
 - **Checks:** finalize/cancel race single winner, foreign submitter denied, incomplete append tail detected, unknown host Held and never implicitly accepted, checkpoint-before-visibility, valid resume, wrong-grant/revoked read and writer-lease exclusivity. Tests identify both durable receipts and absence of unauthorized content.
 - **Coverage:** G4-11, G4-12, G4-19 relevant security.
 - **Evidence:** deterministic fault fixture and process-reopened public state; prior G3 queue/stream tests remain green.
-- **State:** not started.
+- **State:** complete.
+- **Verified evidence:** Completed-cohort queue, host, worker, checkpoint and restart checks pass; separate consumer verifies committed/cancelled/Held/race state against accepted Archive.
 
 ### G4-T06 — run supported GM history/maintenance on cohort copies
 
@@ -85,7 +90,8 @@ T03 and T05 are **parallel-ready** after T02 where isolated test directories and
 - **Checks:** before/after source digest and cut, selected evidence closure, fixed Identity/History generation, independently reopened destination, exact no-replace collision, reclaim second no-op, preserved legitimate Dream/Insomnia/Freshness and rejection of unsupported conflicting divergence. No active owner file modified by offline candidate transformation.
 - **Coverage:** G4-13–17.
 - **Evidence:** separate read-only verifier after all writer leases drop, typed negative cases and GM regression rerun.
-- **State:** not started.
+- **State:** complete.
+- **Verified evidence:** Completed-cohort maintenance checks pass: all four terminal payload domains, profile repair, actual orphan reclamation with exact second no-op, supported rewrite policies and retained-authority reconciliation. Prior GM rewrite exclusions retain typed no-output evidence.
 
 ### G4-T07 — independent public consumer and REL CLI process replay
 
@@ -95,7 +101,8 @@ T03 and T05 are **parallel-ready** after T02 where isolated test directories and
 - **Checks:** public management title/provenance/health, user/privacy gates and quiesce/reopen; CLI info/verify/history proof, dry-run, supported copy command and fail-closed wrong kind/2.0/unknown flag/output collision; no in-process test double masquerading as CLI result.
 - **Coverage:** G4-18, G4-19 and part of G4-01.
 - **Evidence:** command+exit JSON snapshots and independent process reopen, with byte-unchanged source.
-- **State:** not started.
+- **State:** complete.
+- **Verified evidence:** Actual CLI/root-consumer process script exits 0; one explicitly enabled external integration test passes; 25 command observations include 23 CLI commands and two consumer inspections, with eight expected CLI refusals.
 
 ### G4-T08 — independent cross-scenario oracle and negative audit
 
@@ -105,7 +112,8 @@ T03 and T05 are **parallel-ready** after T02 where isolated test directories and
 - **Checks:** no missing mandatory row, no fake zero-row success, wrong-kind/format, unauthorized/corrupt/missing/tombstoned/pruned states separated; source bytes preserved after negative/maintenance runs; confirmed-use credit monotonic and no read-side reinforcement; every regression detected during G4 has a red/green test and tracked fix commit.
 - **Coverage:** cross-check G4-01..19.
 - **Evidence:** independently signed-off review section in `Reliquary-rebuild/docs/g4-product-corpus-acceptance-2026-11-06.md` (create report here, but **do not mark accepted** yet).
-- **State:** not started.
+- **State:** complete.
+- **Verified evidence:** Independent Luna review `g4_lifecycle_review` found no discrepancy between the fixed manifest and captured fresh W/P/C values; the report records all 20 case IDs, executable/evidence pointers and correction commits.
 
 ### G4-T09 — final integration gate and canonical status update
 
@@ -114,7 +122,8 @@ T03 and T05 are **parallel-ready** after T02 where isolated test directories and
 - **Owner/seam:** full product workspace, CLI, external Rust consumer and production dependency checker.
 - **Checks:** run the complete locked/offline test/check/format commands from the parent spec; exact G4 case inventory all `PASS`; ensure 23 production packages/76 edges or an explicitly approved newer DAG; no introduced 2.0 runtime reader, `Cva` alias, mutable Root owner bag, production test fixture API or obsolete dual path. Record source HEAD, fixture hash, test totals and negative cases; preserve GM and P01 acceptance.
 - **Evidence:** reviewed acceptance report and Git commits (rebuild + planning tracker); no source release or archived-corpus activation.
-- **State:** not started.
+- **State:** complete.
+- **Verified evidence:** All prescribed locked/offline gates pass at source `31e7adb2`; accepted rebuild evidence commit `a3c3a9643f494bced51faf92ba057b16bcdac8a7` is clean. Canonical G4 is complete. D01 may next begin its separately scoped offline conversion prerequisites; D01–D03/G5 are not accepted or activated here.
 
 ## Completion and escalation rules
 
@@ -123,3 +132,12 @@ T03 and T05 are **parallel-ready** after T02 where isolated test directories and
 - If a G4 scenario reveals a real previously accepted GM/P01 regression, fix it and rerun those specific gates before acceptance. Do not rewrite the original gate report to conceal the regression; add a correction record.
 - Preserve untracked user files and unrelated modifications. Stage only G4 changes. Commit any independent tickets as verified small slices; never claim G4 accepted before T09.
 - G4 closes the **native 2.1 full product** only. D01–D03 and G5 are distinct unstarted gates and must not be marked complete by this plan.
+
+## Accepted execution record
+
+- Report: `Reliquary-rebuild/docs/g4-product-corpus-acceptance-2026-11-06.md` (rebuild commit `a3c3a9643f494bced51faf92ba057b16bcdac8a7`).
+- Successful generated bundle: `Reliquary-rebuild/.test-tmp/g4-completed-776c0bd2d3a54d2aa0b55bfdab33db9e`, plus deterministic repeat.
+- The report records exact commands/exits/totals, the unchanged 23-package/76-edge production graph, independent review, inherited documentation-tool limitations and the source-preserving negative cases.
+- Handoff: D01 remains unstarted; this gate authorizes neither archived-corpus conversion nor release activation.
+
+- Documentation status check: the required policy check with `--changed-from origin/main` exits 1 with exactly the same 117 findings as the pre-edit baseline; no new finding was introduced. Existing index failures are recorded in the acceptance report.
