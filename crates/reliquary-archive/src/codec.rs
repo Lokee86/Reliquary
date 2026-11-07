@@ -26,6 +26,8 @@ pub(crate) enum Record {
     ConversationTombstone(String),
     ConversationTitle(String, String),
     PrunedTurn(Node, Vec<SourceAttachment>, [u8; 32]),
+    Retained(crate::RetainedArchiveValue),
+    ProjectCorrelation(crate::ProjectCorrelation),
 }
 
 pub fn prune_turn_frame(
@@ -215,6 +217,12 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<Record>, ArchiveError
         let title = read_string(bytes, &mut cursor)?;
         require_end(bytes, cursor)?;
         Ok(Some(Record::ConversationTitle(conversation_id, title)))
+    } else if magic == crate::retained::RETAINED_MARKER {
+        Ok(Some(Record::Retained(crate::retained::decode(bytes)?)))
+    } else if magic == crate::PROJECT_CORRELATION_MARKER {
+        Ok(Some(Record::ProjectCorrelation(crate::retained::decode(
+            bytes,
+        )?)))
     } else if magic == PRUNED_TURN_MAGIC {
         if bytes.len() < 40 {
             return Err(ArchiveError::CorruptRecord("short pruned turn"));

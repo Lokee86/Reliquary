@@ -11,6 +11,12 @@ mod echo_store;
 mod fragment;
 mod model;
 mod publication;
+mod retained;
+
+pub use retained::{
+    ConversationPolicy, PROJECT_CORRELATION_MARKER, ProjectCorrelation, RepositoryManagement,
+    RetainedArchivePublication, RetainedArchiveValue,
+};
 
 pub use archive::{
     Archive, ArchiveSearchResult, MAX_EVIDENCE_RESULT_BYTES, MAX_EVIDENCE_SEARCH_BYTES,

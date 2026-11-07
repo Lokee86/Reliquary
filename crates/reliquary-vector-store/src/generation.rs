@@ -2,7 +2,7 @@ use crate::{
     ArchiveVectorId, ArchiveVectorStore, CompatibilityProfileId, CompatibilityProfileStore,
     GenerationStoreError, VectorGeneration, VectorGenerationId, VectorGenerationStats,
 };
-use reliquary_container::{Container, ObjectRef};
+use reliquary_container::{Container, ObjectRef, decode_publication, replace_publication_body};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 
@@ -100,26 +100,59 @@ fn decode_version(bytes: &[u8]) -> Result<Option<GenerationVersion>, GenerationS
     }))
 }
 
+/// Encode an activation with an already relocated native generation object.
+pub fn encode_generation_receipt(vector_version: u64, generation_record: ObjectRef) -> [u8; 32] {
+    encode_version(GenerationVersion {
+        vector_version,
+        generation_record,
+    })
+}
+
+/// Identify a validated generation receipt inside a global publication body.
+pub fn is_generation_publication_body(body: &[u8]) -> Result<bool, GenerationStoreError> {
+    Ok(decode_version(body)?.is_some())
+}
+
+fn receipt_in_frame(
+    bytes: &[u8],
+) -> Result<Option<(GenerationVersion, Option<u64>)>, GenerationStoreError> {
+    if let Some(envelope) = decode_publication(bytes)? {
+        let Some(version) = decode_version(envelope.body)? else {
+            return Ok(None);
+        };
+        if !envelope.bound_reservation {
+            return Err(GenerationStoreError::InvalidGenerationVersion);
+        }
+        return Ok(Some((version, Some(envelope.version))));
+    }
+    Ok(decode_version(bytes)?.map(|version| (version, None)))
+}
+
 /// Inspect the physical inbound reference of a generation receipt.
 pub fn generation_receipt_target(bytes: &[u8]) -> Result<Option<ObjectRef>, GenerationStoreError> {
-    Ok(decode_version(bytes)?.map(|receipt| receipt.generation_record))
+    Ok(receipt_in_frame(bytes)?.map(|(receipt, _)| receipt.generation_record))
 }
 
 /// Re-encode a retained receipt after its backing generation moves.
 pub fn relocate_generation_receipt(
     bytes: &[u8],
     target: ObjectRef,
-) -> Result<[u8; 32], GenerationStoreError> {
-    let mut receipt = decode_version(bytes)?.ok_or(GenerationStoreError::CorruptRecord(
-        "missing generation receipt",
-    ))?;
+) -> Result<Vec<u8>, GenerationStoreError> {
+    let (mut receipt, global) = receipt_in_frame(bytes)?.ok_or(
+        GenerationStoreError::CorruptRecord("missing generation receipt"),
+    )?;
     if receipt.generation_record.length != target.length {
         return Err(GenerationStoreError::CorruptRecord(
             "relocated generation length",
         ));
     }
     receipt.generation_record = target;
-    Ok(encode_version(receipt))
+    let body = encode_version(receipt);
+    if global.is_some() {
+        Ok(replace_publication_body(bytes, &body)?)
+    } else {
+        Ok(body.to_vec())
+    }
 }
 
 pub fn vector_generation_id(
@@ -223,6 +256,7 @@ impl VectorGenerationStore {
             generation_record: record,
         }))?;
         let generation = VectorGeneration {
+            global_version: None,
             id,
             compatibility_profile_id: profile,
             archive_vector_id: archive,
@@ -243,6 +277,15 @@ impl VectorGenerationStore {
             return Err(GenerationStoreError::HashCollision);
         }
         if generation.vector_version != self.next_vector_version {
+            return Err(GenerationStoreError::InvalidGenerationVersion);
+        }
+        if generation.global_version.is_some_and(|version| {
+            self.generations
+                .iter()
+                .rev()
+                .find_map(|generation| generation.global_version)
+                .is_some_and(|previous| previous >= version)
+        }) {
             return Err(GenerationStoreError::InvalidGenerationVersion);
         }
         if self.by_id.contains_key(&generation.id) {
@@ -332,7 +375,7 @@ impl VectorGenerationOpenState {
             self.format_seen = true;
             return Ok(());
         }
-        if let Some(version) = decode_version(payload)? {
+        if let Some((version, global_version)) = receipt_in_frame(payload)? {
             if version.vector_version != self.next_vector_version
                 || version.generation_record.offset >= chunk.offset
             {
@@ -346,6 +389,7 @@ impl VectorGenerationOpenState {
                 return Err(GenerationStoreError::InvalidGenerationVersion);
             }
             let generation = VectorGeneration {
+                global_version,
                 id: source.id,
                 compatibility_profile_id: source.compatibility_profile_id,
                 archive_vector_id: source.archive_vector_id,

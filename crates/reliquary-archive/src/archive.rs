@@ -5,6 +5,7 @@
 
 mod history;
 mod publications;
+mod retained;
 #[cfg(test)]
 #[path = "archive_tests.rs"]
 mod tests;
@@ -53,6 +54,9 @@ pub struct Archive {
     conversation_titles: BTreeMap<String, crate::ConversationTitle>,
     archive_version: u64,
     publication_bindings: Vec<ArchivePublicationBinding>,
+    retained_publications: Vec<crate::RetainedArchivePublication>,
+    retained_fragment_versions: BTreeMap<crate::FragmentId, u64>,
+    project_correlations: Vec<crate::ProjectCorrelation>,
 }
 
 impl Archive {
@@ -81,6 +85,9 @@ impl Archive {
             conversation_titles: BTreeMap::new(),
             archive_version: 0,
             publication_bindings: Vec::new(),
+            retained_publications: Vec::new(),
+            retained_fragment_versions: BTreeMap::new(),
+            project_correlations: Vec::new(),
         }
     }
 
@@ -97,6 +104,21 @@ impl Archive {
             if let Some(publication) = crate::publication::in_frame(&frame.payload)? {
                 archive.replay_publication(container, frame.object, publication)?;
             } else if let Some(record) = decode_record(&frame.payload)? {
+                match &record {
+                    Record::Retained(_) => {
+                        return Err(ArchiveError::CorruptRecord(
+                            "retained Archive record has no publication coordinate",
+                        ));
+                    }
+                    Record::ProjectCorrelation(value)
+                        if value.global_version > container.latest_version() =>
+                    {
+                        return Err(ArchiveError::CorruptRecord(
+                            "project correlation exceeds the owner clock",
+                        ));
+                    }
+                    _ => {}
+                }
                 archive.apply_record(record)?;
             }
         }
@@ -697,6 +719,10 @@ impl Archive {
 
     /// Archive clock assigned when this immutable source node was first
     /// accepted. Replays and later branch changes do not move the node cut.
+    pub fn episode_archive_version(&self, id: EpisodeId) -> Option<u64> {
+        self.episode_versions.get(&id).copied()
+    }
+
     pub fn node_archive_version(&self, conversation_id: &str, node_id: &str) -> Option<u64> {
         self.node_archive_versions
             .get(&(conversation_id.to_owned(), node_id.to_owned()))
@@ -1062,6 +1088,8 @@ impl Archive {
                 );
                 self.archive_version = archive_version;
             }
+            Record::Retained(value) => self.apply_retained_publication(value)?,
+            Record::ProjectCorrelation(value) => self.apply_project_correlation(value)?,
             Record::ConversationTitle(conversation_id, title) => {
                 validate_text(&conversation_id, "conversation id")?;
                 validate_text(&title, "conversation title")?;

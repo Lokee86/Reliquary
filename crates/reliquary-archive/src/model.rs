@@ -110,20 +110,23 @@ pub struct AttachmentInput {
     pub bytes: Vec<u8>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ProjectRepositoryKind {
     Lore,
     Git,
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ProjectRepositoryRef {
     pub kind: ProjectRepositoryKind,
     pub repository_id: String,
     pub project_path: String,
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ProjectRevisionRef {
     pub repository: ProjectRepositoryRef,
     pub revision: String,
@@ -203,6 +206,7 @@ pub struct ArchiveHistorySnapshot {
     pub import_receipts: Vec<ImportReceipt>,
     pub fragment_definitions: Vec<crate::FragmentDefinition>,
     pub conversation_tombstones: Vec<ConversationTombstone>,
+    pub retained_publications: Vec<crate::RetainedArchivePublication>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

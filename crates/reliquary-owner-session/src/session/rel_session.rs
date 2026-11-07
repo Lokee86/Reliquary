@@ -60,6 +60,15 @@ impl RelSession {
             ));
         }
         let common = open_common(container, graph_admission, dream_admissions, true)?;
+        if archive
+            .project_correlations()
+            .iter()
+            .any(|value| value.memory_version > common.memories.memory_version())
+        {
+            return Err(OwnerSessionError::Record(
+                "project correlation exceeds the Memory head".into(),
+            ));
+        }
         for completion in grouped_completions.values() {
             if completion
                 .memory_ids
@@ -264,6 +273,16 @@ impl RelSession {
     pub fn archive_node(&self, conversation: &str, node: &str) -> Option<&Node> {
         self.archive.node(conversation, node)
     }
+    pub fn retained_archive_publications(
+        &self,
+    ) -> &[reliquary_archive::RetainedArchivePublication] {
+        self.archive.retained_publications()
+    }
+
+    pub fn project_revision_correlations(&self) -> &[reliquary_archive::ProjectCorrelation] {
+        self.archive.project_correlations()
+    }
+
     pub fn archive_version(&self) -> u64 {
         self.archive.archive_version()
     }
