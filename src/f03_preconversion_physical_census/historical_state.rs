@@ -283,6 +283,7 @@ fn run(options: super::super::Options) -> ToolResult<Value> {
     let producer_sha256 = sha256_bytes(
         &[
             include_bytes!("historical_state.rs").as_slice(),
+            include_bytes!("../f03_preconversion_physical_census.rs").as_slice(),
             include_bytes!("historical_state/carrier.rs").as_slice(),
             include_bytes!("historical_state/native.rs").as_slice(),
             include_bytes!("historical_state/row_commitment.rs").as_slice(),

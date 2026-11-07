@@ -506,7 +506,7 @@ fn verify_output_membership(output: &Path, expected: &BTreeSet<String>) -> ToolR
     let entries =
         fs::read_dir(output).map_err(|_| "output directory could not be enumerated".to_string())?;
     for entry in entries {
-        if observed.len() >= MAX_BATCH_ARTIFACTS + 2 {
+        if observed.len() >= expected.len() {
             return Err("output artifact count exceeds the bounded inventory".to_string());
         }
         let entry = entry.map_err(|_| "output entry is unavailable".to_string())?;
