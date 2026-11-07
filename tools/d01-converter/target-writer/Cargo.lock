@@ -58,6 +58,7 @@ dependencies = [
  "reliquary-graph",
  "reliquary-memory-core",
  "reliquary-owner-session",
+ "reliquary-perception-store",
  "reliquary-vector-store",
  "serde",
  "serde_json",
@@ -266,6 +267,7 @@ name = "reliquary-freshness-store"
 version = "0.1.0"
 dependencies = [
  "reliquary-container",
+ "sha2",
 ]
 
 [[package]]

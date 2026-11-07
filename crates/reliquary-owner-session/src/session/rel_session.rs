@@ -84,7 +84,7 @@ impl RelSession {
             container,
             |payload| {
                 let completion = GroupedInsomniaCompletion::decode(payload)?;
-                if !completion.routing_metadata.is_empty() {
+                if !payload.starts_with(b"RELINSC8") && !completion.routing_metadata.is_empty() {
                     return Err("grouped routing metadata replay is unsupported".into());
                 }
                 match (

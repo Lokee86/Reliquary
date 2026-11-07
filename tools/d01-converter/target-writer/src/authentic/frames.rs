@@ -1,4 +1,4 @@
-use super::group;
+use super::{entity, group};
 use crate::{
     Failure,
     authentic_values::{Body, GraphChange, Memory, Routing},
@@ -64,6 +64,11 @@ pub(super) enum Event {
         transaction_time_ns: Option<String>,
         changes: Vec<GraphChange>,
     },
+    Entity {
+        source_ordinal: String,
+        publication: entity::Publication,
+        bound_reservation: bool,
+    },
     VectorReceipt {
         source_ordinal: String,
         global_version: String,
@@ -88,6 +93,7 @@ impl Event {
             | Self::MemoryRevision { source_ordinal, .. }
             | Self::MemoryRouting { source_ordinal, .. }
             | Self::Graph { source_ordinal, .. }
+            | Self::Entity { source_ordinal, .. }
             | Self::VectorReceipt { source_ordinal, .. }
             | Self::Embedded { source_ordinal, .. } => source_ordinal,
         };
@@ -144,6 +150,7 @@ fn admitted_plain_body(bytes: &[u8]) -> bool {
             | b"CVDREAM1"
             | b"CVDREAM2"
             | b"RELPRC01"
+            | b"RELRELM1"
             | b"RELFILE1"
             | b"RELFRP01"
             | b"RELFRS02"
@@ -331,6 +338,19 @@ pub(super) fn append(
                 time(transaction_time_ns)?,
                 &bytes,
             )?;
+        }
+        Event::Entity {
+            publication,
+            bound_reservation,
+            ..
+        } => {
+            let (global, stamp, accepted) = publication.into_native().map_err(invalid)?;
+            let bytes = reliquary_perception_store::encode_retained_entity_body(
+                output.owner_id(),
+                &accepted,
+            )
+            .map_err(|_| invalid("invalid retained Entity publication"))?;
+            append_publication(output, global, bound_reservation, stamp, &bytes)?;
         }
         Event::VectorReceipt {
             source_ordinal,

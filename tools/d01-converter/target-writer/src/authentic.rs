@@ -1,3 +1,4 @@
+mod entity;
 mod frames;
 mod group;
 use crate::{Failure, file_hash, transfer::decode_hex};

@@ -85,6 +85,19 @@ def memory_events(ordinal, frame, rows):
         yield event(ordinal, "memory_routing", routing=routing)
 
 
+def entity_events(ordinal, frame, rows):
+    require(len(rows) == 1, "ambiguous Entity source transfer")
+    row = rows[0]
+    if row["kind"] == "embedded":
+        require(row["carrier"] == frame["carrier"] == "CVAENTF1", "invalid Entity format disposition")
+        yield event(ordinal, "embedded", carrier=row["carrier"])
+        return
+    require(row["kind"] == "entity" and row["carrier"] == frame["carrier"]
+            and row["source_payload_sha256"] == frame["payload_sha256"], "Entity transfer differs from held frame")
+    yield event(ordinal, "entity", bound_reservation=row["bound_reservation"],
+                publication={"family": row["family"], "value": row["value"]})
+
+
 def scalar_events(ordinal, marker, payload):
     if marker in (b"CVAVERS1", b"CVAVERS2"):
         timed = marker == b"CVAVERS2"
@@ -95,6 +108,8 @@ def scalar_events(ordinal, marker, payload):
     elif marker == b"CVAMEMF2":
         require(payload == marker, "invalid source Memory format")
         yield event(ordinal, "frame", body_hex=b"RELMFMT1".hex())
+    elif marker == b"CVARELM1":
+        yield event(ordinal, "frame", body_hex=(b"RELRELM1" + payload[8:]).hex())
     elif marker in (b"CVADRM01", b"CVADRP02"):
         require(len(payload) == (44 if marker == b"CVADRM01" else 16), "invalid source Dream pair framing")
         yield event(ordinal, "frame", body_hex=(b"REL" + payload[3:]).hex())
@@ -140,6 +155,12 @@ def compose(args, witness):
                    "physical_ordinal")
     graph = index(stream(graph_dir / f"{copy_id}-graph-transfer.jsonl", graph_receipt["transfer_sha256"]),
                   "source_ordinal")
+    entity_dir = args.transfer_root / "entity-resolution-transfer-v1"
+    entity_receipt, _ = receipt(entity_dir, "entity-source-transfer.json", source_sha,
+                                coverage_sha=coverage_sha, manifest_sha=manifest_sha)
+    entity_path = entity_receipt["transfer"]
+    require(Path(entity_path).name == entity_path, "invalid Entity transfer path")
+    entity = index(stream(entity_dir / entity_path, entity_receipt["transfer_sha256"]), "source_ordinal")
     vector, vector_handled = adapter(args.transfer_root / "vector-transfer-v1", "vector", source_sha, "source_ordinal")
     archive, archive_handled = adapter(args.transfer_root / "archive-transfer-v1", "archive", source_sha, "source_ordinal") if kind == 1 else ({}, {})
     community, community_handled = adapter(args.transfer_root / "community-transfer-v1", "community",
@@ -175,12 +196,14 @@ def compose(args, witness):
                                                      schema_id=coverage["schema_id"]):
                 payload = verify.read_frame(source, frame, source_hash, before.st_size)
                 matched_adapters = [(values, handled) for values, handled in native_adapters if ordinal in handled]
-                selected = sum(ordinal in lane for lane in (memory, graph)) + len(matched_adapters)
+                selected = sum(ordinal in lane for lane in (memory, graph, entity)) + len(matched_adapters)
                 require(selected <= 1, "source frame has ambiguous target mapping")
                 if ordinal in memory:
                     records = memory_events(ordinal, frame, memory.pop(ordinal))
                 elif ordinal in graph:
                     records = graph.pop(ordinal)
+                elif ordinal in entity:
+                    records = entity_events(ordinal, frame, entity.pop(ordinal))
                 elif matched_adapters:
                     values, handled = matched_adapters[0]
                     disposition = handled.pop(ordinal)
@@ -205,7 +228,7 @@ def compose(args, witness):
                 require(count > 0, "unclassified retained source frame")
             require(source.tell() == before.st_size and source_hash.hexdigest() == source_sha
                     and verify.snapshot(before) == verify.snapshot(verify.regular(path)), "source copy changed during transfer")
-            require(not memory and not graph and not any(values or handled for values, handled in native_adapters),
+            require(not memory and not graph and not entity and not any(values or handled for values, handled in native_adapters),
                     "target transfer contains unbound source events")
             destination.flush()
             os.fsync(destination.fileno())
