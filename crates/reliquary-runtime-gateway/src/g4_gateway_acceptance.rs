@@ -152,16 +152,42 @@ fn g4_joined_gateway_queue_host_stream_reopen_and_worker_lifecycle() {
     let cascade_path = temp.0.join("rel-cascade.rel");
     let phy_a_path = temp.0.join("phy-reader-a.phy");
     let phy_b_path = temp.0.join("phy-reader-b.phy");
-    let queue_path = temp.0.join("queue");
     let raw_owner = [115; 16];
     let cascade_raw = [116; 16];
     let phy_a_raw = [117; 16];
     let phy_b_raw = [118; 16];
-    let owner = OwnerId::from_bytes(raw_owner);
     initialize_rel(&owner_path, raw_owner);
     drop(RelWriter::create_path(&cascade_path, ReliquaryScope::Connection, cascade_raw).unwrap());
     drop(PhyWriter::create_path(&phy_a_path, phy_a_raw).unwrap());
     drop(PhyWriter::create_path(&phy_b_path, phy_b_raw).unwrap());
+
+    run_lifecycle(
+        &temp.0,
+        [&owner_path, &cascade_path, &phy_a_path, &phy_b_path],
+        true,
+    );
+}
+
+pub(crate) fn complete_cohort_lifecycle(root: &Path, paths: [&Path; 4]) -> serde_json::Value {
+    run_lifecycle(root, paths, false)
+}
+
+fn run_lifecycle(root: &Path, paths: [&Path; 4], seed_manifest: bool) -> serde_json::Value {
+    let [owner_path, cascade_path, phy_a_path, phy_b_path] = paths;
+    let queue_path = root.join("lifecycle-queue");
+    let raw_owner = RelSession::open_path_current(owner_path)
+        .unwrap()
+        .owner_id();
+    let cascade_raw = RelSession::open_path_current(cascade_path)
+        .unwrap()
+        .owner_id();
+    let phy_a_raw = PhySession::open_path_current(phy_a_path)
+        .unwrap()
+        .owner_id();
+    let phy_b_raw = PhySession::open_path_current(phy_b_path)
+        .unwrap()
+        .owner_id();
+    let owner = OwnerId::from_bytes(raw_owner);
 
     let gateway = Gateway::new();
     let mounted = gateway
@@ -194,13 +220,21 @@ fn g4_joined_gateway_queue_host_stream_reopen_and_worker_lifecycle() {
     .unwrap();
     let alice = Arc::new(admission.authenticate(alice_token).unwrap());
     let bob = admission.authenticate(bob_token).unwrap();
-    let manifest = crate::g4_test_cohort::replay_authored_manifest(
-        &alice,
-        &temp.0,
-        mounted,
-        cascade,
-        "principal-a",
-    );
+    let manifest = seed_manifest.then(|| {
+        crate::g4_test_cohort::replay_authored_manifest(
+            &alice,
+            root,
+            mounted,
+            cascade,
+            "principal-a",
+        )
+    });
+    let original_turns = alice
+        .with_writable_reliquary(mounted, |rel| rel.accepted_turn_sources().len())
+        .unwrap();
+    let cascade_turns = alice
+        .with_writable_reliquary(cascade, |rel| rel.accepted_turn_sources().len())
+        .unwrap();
     let mut queue = alice.open_conversation_queue(&queue_path, mounted).unwrap();
 
     // The finalized branch is durable and exclusive against later cancellation.
@@ -285,7 +319,7 @@ fn g4_joined_gateway_queue_host_stream_reopen_and_worker_lifecycle() {
 
     let race_queue = Arc::new(Mutex::new(
         alice
-            .open_conversation_queue(temp.0.join("race-queue"), mounted)
+            .open_conversation_queue(root.join("lifecycle-race-queue"), mounted)
             .unwrap(),
     ));
     let raced =
@@ -622,7 +656,10 @@ fn g4_joined_gateway_queue_host_stream_reopen_and_worker_lifecycle() {
             )
         })
         .unwrap();
-    assert_eq!(accepted_turns, if finalize_won { 34 } else { 33 });
+    assert_eq!(
+        accepted_turns,
+        original_turns + if finalize_won { 2 } else { 1 }
+    );
     assert_eq!(archive_presence, [true, false, false]);
     assert_eq!(
         reopened
@@ -635,7 +672,7 @@ fn g4_joined_gateway_queue_host_stream_reopen_and_worker_lifecycle() {
     let cascade_session = RelSession::open_path(&cascade_path, &cascade_admission, [], []).unwrap();
     let phy_a_session = PhySession::open_path(&phy_a_path, &phy_a_admission, []).unwrap();
     let phy_b_session = PhySession::open_path(&phy_b_path, &phy_b_admission, []).unwrap();
-    assert_eq!(cascade_session.accepted_turn_sources().len(), 16);
+    assert_eq!(cascade_session.accepted_turn_sources().len(), cascade_turns);
     assert_eq!(phy_a_session.owner_id(), phy_a_raw);
     assert_eq!(phy_b_session.owner_id(), phy_b_raw);
 
@@ -653,4 +690,15 @@ fn g4_joined_gateway_queue_host_stream_reopen_and_worker_lifecycle() {
         outsider.open_conversation_queue(&queue_path, reopened_owner),
         Err(GatewayError::UnauthorizedRel { .. })
     ));
+    serde_json::json!({
+        "original_turns": original_turns,
+        "reopened_turns": accepted_turns,
+        "race_finalize_won": finalize_won,
+        "accepted_present": archive_presence[0],
+        "cancelled_present": archive_presence[1],
+        "held_present": archive_presence[2],
+        "checkpoint_replayed": items.len(),
+        "journal_tail_recovered": true,
+        "worker_restart_verified": true
+    })
 }

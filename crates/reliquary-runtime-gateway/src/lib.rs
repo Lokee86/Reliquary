@@ -378,6 +378,10 @@ pub struct Instance {
     credential_active: Option<Arc<AtomicBool>>,
 }
 #[cfg(test)]
+mod g4_completed_maintenance;
+#[cfg(test)]
+mod g4_export;
+#[cfg(test)]
 mod g4_gateway_acceptance;
 #[cfg(test)]
 mod g4_retrieval_acceptance;

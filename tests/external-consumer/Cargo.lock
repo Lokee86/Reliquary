@@ -2641,6 +2641,7 @@ name = "reliquary-external-consumer-check"
 version = "0.0.0"
 dependencies = [
  "reliquary-memory",
+ "serde_json",
 ]
 
 [[package]]

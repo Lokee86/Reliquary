@@ -16,7 +16,9 @@ use reliquary_owner_session::{
     CompletionCheck, GraphAdmission,
     records::{GroupedInsomniaCompletion, ImportEpochStatus},
 };
+use serde_json::{Value, json};
 use std::{fs, path::PathBuf};
+use serde_json::{Value, json};
 
 struct ImportTemp(PathBuf);
 
@@ -36,7 +38,7 @@ impl Drop for ImportTemp {
     }
 }
 
-fn native_batch(owner: [u8; 16]) -> NativeImportBatch {
+pub(super) fn native_batch(owner: [u8; 16]) -> NativeImportBatch {
     let manifest: serde_json::Value = serde_json::from_str(include_str!(
         "../../../tests/fixtures/g4-native-rel21-v1.json"
     ))
@@ -126,6 +128,85 @@ fn native_batch(owner: [u8; 16]) -> NativeImportBatch {
         }],
         started_at_ns: 40,
     }
+}
+
+pub(crate) fn complete_authored_native_import(instance: &Instance, cascade: OwnerId) -> Value {
+    let mut batch = native_batch(cascade.as_bytes());
+    let imported_conversation = "conv-c03-additive-import".to_owned();
+    batch.source.conversations[0].conversation_id = imported_conversation.clone();
+    for (turn, branch) in &mut batch.turns {
+        turn.conversation_id = imported_conversation.clone();
+        branch.conversation_id = imported_conversation.clone();
+    }
+    batch.episodes[0].conversation_id = imported_conversation.clone();
+    let retry_batch = batch.clone();
+    let staged = instance
+        .with_rel_writer(cascade, |writer| stage_native_import(writer, batch))
+        .unwrap()
+        .unwrap();
+    assert!(!staged.already_completed);
+    let (claim, settlement) = instance
+        .with_rel_writer(cascade, |writer| {
+            assert!(
+                writer
+                    .complete_native_import(&staged.import_id, 199_999)
+                    .is_err()
+            );
+            let claim = writer.claim_native_import_episode(
+                &staged.import_id,
+                staged.episodes[0],
+                "g4-authored-import",
+                200_000,
+                100,
+            )?;
+            let completion = GroupedInsomniaCompletion {
+                episode_id: staged.episodes[0].0,
+                attempt: claim.work.attempt_count,
+                started_at_ns: claim.started_at_ns,
+                completed_at_ns: 200_001,
+                transaction_time_ns: 200_001,
+                extractor_model: "g4-authored-import".into(),
+                extractor_version: "v1".into(),
+                rejected_count: 0,
+                memory_ids: vec![],
+                external_memory_refs: vec![],
+                global_version_start: writer.next_global_version()?,
+                bodies: vec![],
+                memory_records: vec![],
+                routing_metadata: vec![],
+                freshness_birth_turn: None,
+                freshness_policy_version: None,
+                freshness_birth_memory_ids: vec![],
+            };
+            writer.commit_native_import_completion_with_routed_receipts(
+                &staged.import_id,
+                claim.work.lease_token.as_ref().unwrap().clone(),
+                completion,
+                200_001,
+                &[],
+            )?;
+            let settlement = settle_native_import(writer, &staged.import_id)?;
+            let (_, did_complete) = writer.complete_native_import(&staged.import_id, 200_002)?;
+            assert!(did_complete);
+            assert!(!writer.complete_native_import(&staged.import_id, 200_003)?.1);
+            Ok::<_, reliquary_owner_session::OwnerSessionError>((claim, settlement))
+        })
+        .unwrap()
+        .unwrap();
+    let retry = instance
+        .with_rel_writer(cascade, |writer| stage_native_import(writer, retry_batch))
+        .unwrap()
+        .unwrap();
+    assert!(retry.already_completed);
+    json!({
+        "import_id": staged.import_id,
+        "conversation_id": imported_conversation,
+        "episode_id": staged.episodes[0].0,
+        "attempt": claim.work.attempt_count,
+        "settlement": settlement.import_id,
+        "already_completed": staged.already_completed,
+        "exact_retry_completed": retry.already_completed,
+    })
 }
 
 #[test]
