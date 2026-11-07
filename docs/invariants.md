@@ -28,6 +28,10 @@ An open import epoch cannot resolve as an accepted retry of another import. Attr
 
 Destructive maintenance is authorized by shared owner-maintenance evidence, while Memory, Entity, Relationship, CompatibilityProfile/PackedVector and REL Archive owners retain their own eligibility proofs. Pruning and reclamation operate on separate transformed copies; neither infers destruction from retirement alone. A fresh-history rewrite is distinct: the request/plan explicitly records selected state and closure, execution binds to the frozen source head, and a PreserveOwner result advances history generation. Reconciliation requires matching owner identity and history generation.
 
+## Historical source observation invariant
+
+Feature-gated F03 observations use a read-only lease on the verified copy. Native Archive, Freshness, project binding and other owner records supply the evidence, with independent digest checks on a second copy set. Observation preserves recorded identity and distinguishes unavailable historical state from an empty family. An admission decision requires complete source evidence and a comparable target reader. [Historical source witness](f03-source-witness-v02.md).
+
 ## Compact-history acceptance invariant
 
 Physical compaction preserves each owner's exact admitted history, including

@@ -24,6 +24,10 @@ Development uses deterministic local tests plus optional live provider execution
 
 Use `rel repair` or `phy repair` on a disposable source copy to select one or more complete active embedding profiles. `--prune-retired` applies authenticated owner-level payload pruning, and `--reclaim` compacts remaining unreachable storage. Both operations preserve the source file. Use `rel rewrite` or `phy rewrite --dry-run` to inspect a fresh-history selection before execution; the planner binds its result to the frozen source state, and execution refuses source drift or an existing destination. Keep policy JSON with the development fixture or script that produced it so a selective corpus can be recreated deterministically.
 
+## Historical fixture evidence
+
+Build the historical source witness in the isolated reader checkout with the history-oracle-fixtures feature. Use verified disposable copies and retain the command exit, binary and artifact hashes, and the separate repeat. Treat an export that ends before final validation as diagnostic even when its manifest is present. [Historical source witness](f03-source-witness-v02.md).
+
 ## Repository boundary
 
 ```text
