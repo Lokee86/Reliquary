@@ -355,12 +355,16 @@ fn ego_record_value(value: &reliquary_ego_store::EgoHistoryRecord) -> Value {
 }
 
 fn generation_value(value: &VectorGeneration) -> Value {
-    json!({
+    let mut encoded = json!({
         "id": value.id.0, "compatibility_profile_id": value.compatibility_profile_id.0,
         "archive_vector_id": value.archive_vector_id.0,
         "source_archive_version": value.source_archive_version,
         "vector_version": value.vector_version,
-    })
+    });
+    if let Some(version) = value.global_version {
+        encoded["global_version"] = json!(version);
+    }
+    encoded
 }
 
 fn archive_value(value: &reliquary_archive::ArchiveHistorySnapshot) -> Value {
@@ -377,6 +381,9 @@ fn archive_value(value: &reliquary_archive::ArchiveHistorySnapshot) -> Value {
             "conversation_id": terminal.conversation_id, "archive_version": terminal.archive_version,
         })).collect::<Vec<_>>(),
     });
+    if !value.retained_publications.is_empty() {
+        encoded["retained_publications"] = json!(value.retained_publications);
+    }
     if !value.publication_bindings.is_empty() {
         encoded["publication_bindings"] = json!(
             value

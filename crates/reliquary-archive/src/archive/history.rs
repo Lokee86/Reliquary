@@ -93,6 +93,12 @@ impl Archive {
                 })
                 .map(|(_, definition)| definition.clone())
                 .collect(),
+            retained_publications: self
+                .retained_publications
+                .iter()
+                .take_while(|record| record.archive_version <= version)
+                .cloned()
+                .collect(),
             conversation_tombstones: self
                 .conversation_tombstones
                 .values()
