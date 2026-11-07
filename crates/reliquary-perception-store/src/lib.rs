@@ -9,6 +9,12 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fmt;
 
+mod retained_resolution;
+pub use retained_resolution::{
+    RetainedResolutionDecision, RetainedResolutionRecord, RetainedResolutionRevision,
+    RetainedResolutionValue, RetainedUnresolvedEvidence,
+};
+
 const MAGIC: &[u8; 8] = b"RELPER01";
 const ENTITY_TOMBSTONE_MAGIC: &[u8; 8] = b"RELETM01";
 const ENTITY_PRUNE_MAGIC: &[u8; 8] = b"RELEPR01";
@@ -32,6 +38,10 @@ pub fn principal_entity_id(principal_id: &str) -> EntityId {
 )]
 pub struct EntityId(pub [u8; 32]);
 
+mod entity_publication;
+pub use entity_publication::{
+    ClockedEntityPublication, RetainedEntity, clocked_entity_in_frame, encode_retained_entity_body,
+};
 mod history;
 mod relationship_codec;
 mod relationship_model;
@@ -94,6 +104,14 @@ impl MemoryTextField {
         match self {
             Self::Title => 1,
             Self::Content => 2,
+        }
+    }
+
+    fn from_tag(tag: u8) -> Result<Self, PerceptionError> {
+        match tag {
+            1 => Ok(Self::Title),
+            2 => Ok(Self::Content),
+            _ => Err(PerceptionError::CorruptRecord("unknown Memory field")),
         }
     }
 }
@@ -402,11 +420,7 @@ impl Record {
             }
             2 => {
                 let memory_id = get_array::<32>(bytes, &mut at)?;
-                let field = match get_u8(bytes, &mut at)? {
-                    1 => MemoryTextField::Title,
-                    2 => MemoryTextField::Content,
-                    _ => return Err(PerceptionError::CorruptRecord("unknown Memory field")),
-                };
+                let field = MemoryTextField::from_tag(get_u8(bytes, &mut at)?)?;
                 let start_byte = get_u32(bytes, &mut at)?;
                 let end_byte = get_u32(bytes, &mut at)?;
                 let revision = get_u32(bytes, &mut at)?;
@@ -461,6 +475,20 @@ pub enum SourcePublication {
 }
 
 pub fn source_publication(payload: &[u8]) -> Result<Option<SourcePublication>, PerceptionError> {
+    if let Some(publication) = clocked_entity_in_frame(payload)? {
+        return Ok(match publication.accepted {
+            RetainedEntity::Revision { entity, .. } if entity.revision == 1 => {
+                Some(SourcePublication::EntityCreation(entity.id))
+            }
+            _ => None,
+        });
+    }
+    if let Some((_, row)) = retained_resolution::decode(payload)? {
+        return Ok(match row.value {
+            RetainedResolutionValue::Revision(value) => Some(SourcePublication::Mention(value.key)),
+            RetainedResolutionValue::Inert(_) => None,
+        });
+    }
     match Record::decode(payload)? {
         Some(Record::Entity { value, .. }) if value.revision == 1 => {
             Ok(Some(SourcePublication::EntityCreation(value.id)))
@@ -530,6 +558,7 @@ pub struct PerceptionStore {
     mentions: BTreeMap<MemoryEntityMentionKey, MemoryEntityResolution>,
     mention_history: BTreeMap<(MemoryEntityMentionKey, u32), MemoryEntityResolution>,
     mention_versions: BTreeMap<(MemoryEntityMentionKey, u32), u64>,
+    retained_resolution: retained_resolution::History,
 }
 
 impl PerceptionStore {
@@ -555,8 +584,22 @@ impl PerceptionStore {
             mentions: BTreeMap::new(),
             mention_history: BTreeMap::new(),
             mention_versions: BTreeMap::new(),
+            retained_resolution: retained_resolution::History::default(),
         };
         for frame in container.read_frames()? {
+            if let Some(publication) = clocked_entity_in_frame(&frame.payload)? {
+                store.replay_retained_entity(publication)?;
+                continue;
+            }
+            if let Some((owner, row)) = retained_resolution::decode(&frame.payload)? {
+                if owner != store.owner_id {
+                    return Err(PerceptionError::OwnerMismatch);
+                }
+                store
+                    .retained_resolution
+                    .accept(row, container.latest_version())?;
+                continue;
+            }
             if let Some(record) = relationship_codec::RelationshipRecord::decode(&frame.payload)? {
                 store.apply_relationship_record(record)?;
                 continue;
@@ -579,7 +622,7 @@ impl PerceptionStore {
                 if record.owner() != store.owner_id {
                     return Err(PerceptionError::OwnerMismatch);
                 }
-                store.apply(record)?;
+                store.apply(record, false)?;
             }
         }
         Ok(store)
@@ -593,6 +636,15 @@ impl PerceptionStore {
     }
     pub fn entity_revision(&self, id: EntityId, revision: u64) -> Option<&Entity> {
         self.entity_history.get(&(id, revision))
+    }
+    pub fn retained_resolution_history(&self) -> &[RetainedResolutionRecord] {
+        &self.retained_resolution.records
+    }
+    pub fn retained_resolution_at_head(
+        &self,
+        key: MemoryEntityMentionKey,
+    ) -> Option<&RetainedResolutionRevision> {
+        self.retained_resolution.current(key)
     }
     pub fn mention(&self, key: MemoryEntityMentionKey) -> Option<&MemoryEntityResolution> {
         self.mentions.get(&key)
@@ -871,9 +923,13 @@ impl PerceptionStore {
         let bytes = record.encode()?;
         container.append(&bytes)?;
         container.sync()?;
-        self.apply(record)
+        self.apply(record, false)
     }
-    fn apply(&mut self, record: Record) -> Result<(), PerceptionError> {
+    fn apply(
+        &mut self,
+        record: Record,
+        retain_explicit_entity_id: bool,
+    ) -> Result<(), PerceptionError> {
         let expected = self.next_version()?;
         if record.version() != expected {
             return Err(PerceptionError::CorruptRecord(
@@ -923,7 +979,8 @@ impl PerceptionStore {
                     {
                         return Err(PerceptionError::CorruptRecord("Entity revision timestamps"));
                     }
-                } else if value.kind != PRINCIPAL_ENTITY_KIND
+                } else if !retain_explicit_entity_id
+                    && value.kind != PRINCIPAL_ENTITY_KIND
                     && value.id != entity_id(&value.mutation_id)
                 {
                     return Err(PerceptionError::CorruptRecord("Entity identity mismatch"));
@@ -959,6 +1016,14 @@ impl PerceptionStore {
     }
 
     fn apply_tombstone(&mut self, tombstone: EntityTombstone) -> Result<(), PerceptionError> {
+        self.apply_tombstone_revision(tombstone, 0)
+    }
+
+    fn apply_tombstone_revision(
+        &mut self,
+        tombstone: EntityTombstone,
+        terminal_revision_offset: u64,
+    ) -> Result<(), PerceptionError> {
         let expected = self.next_version()?;
         if tombstone.perception_version != expected
             || self.entity_tombstones.contains_key(&tombstone.id)
@@ -969,7 +1034,7 @@ impl PerceptionStore {
             .entities
             .get(&tombstone.id)
             .ok_or(PerceptionError::CorruptRecord("Entity tombstone target"))?;
-        if current.revision != tombstone.revision {
+        if current.revision.checked_add(terminal_revision_offset) != Some(tombstone.revision) {
             return Err(PerceptionError::CorruptRecord("Entity tombstone revision"));
         }
         self.entities.remove(&tombstone.id);
@@ -1239,6 +1304,88 @@ mod tests {
     }
 
     #[test]
+    fn imported_resolution_keeps_decisions_and_inert_bytes_without_an_entity_clock_write() {
+        let path = TempFile::new();
+        let mut container = create(&path.0, 7);
+        let owner = container.owner_id();
+        let g = container.reserve_version(Some(-4)).unwrap();
+        let key = MemoryEntityMentionKey {
+            memory_id: [17; 32],
+            field: MemoryTextField::Content,
+            start_byte: 2,
+            end_byte: 9,
+        };
+        let mut pending = b"RELERH01".to_vec();
+        pending.extend_from_slice(&owner);
+        pending.extend_from_slice(&g.to_le_bytes());
+        pending.extend_from_slice(&37u64.to_le_bytes());
+        pending.extend_from_slice(&key.memory_id);
+        pending.push(key.field.tag());
+        pending.extend_from_slice(&key.start_byte.to_le_bytes());
+        pending.extend_from_slice(&key.end_byte.to_le_bytes());
+        pending.extend_from_slice(&1u32.to_le_bytes());
+        pending.extend_from_slice(&10i64.to_le_bytes());
+        let decision_at = pending.len();
+        pending.extend_from_slice(&[3, 1]);
+        pending.extend_from_slice(&[23; 32]);
+        pending.push(7);
+        pending.extend_from_slice(&[31; 32]);
+        pending.extend_from_slice(&[47; 32]);
+        pending.extend_from_slice(&5i64.to_le_bytes());
+        pending.extend_from_slice(&10i64.to_le_bytes());
+        pending.extend_from_slice(&2u16.to_le_bytes());
+        let mut terminal = pending[..decision_at].to_vec();
+        terminal[32..40].copy_from_slice(&39u64.to_le_bytes());
+        terminal[81..85].copy_from_slice(&2u32.to_le_bytes());
+        terminal.push(0);
+        assert!(
+            matches!(source_publication(&pending).unwrap(), Some(SourcePublication::Mention(found)) if found == key)
+        );
+        let payload = b"CVAERS02-inert-retained-bytes";
+        let mut inert = b"RELERL01".to_vec();
+        inert.extend_from_slice(&owner);
+        inert.extend_from_slice(&g.to_le_bytes());
+        inert.extend_from_slice(&38u64.to_le_bytes());
+        inert.extend_from_slice(&(payload.len() as u32).to_le_bytes());
+        inert.extend_from_slice(payload);
+        inert.extend_from_slice(&Sha256::digest(&inert));
+        assert!(source_publication(&inert).unwrap().is_none());
+        let mut corrupt = inert.clone();
+        corrupt[44] ^= 1;
+        assert!(source_publication(&corrupt).is_err());
+        for bytes in [pending, inert, terminal] {
+            container.append(&bytes).unwrap();
+        }
+        drop(container);
+        let container = Container::open_read_only(&path.0).unwrap();
+        let store = PerceptionStore::open(&container).unwrap();
+        assert_eq!(store.version(), 0);
+        assert!(store.retained_resolution_at_head(key).is_none());
+        let history = store.retained_resolution_history();
+        assert_eq!(history.len(), 3);
+        assert_eq!(history[0].source_ordinal, 37);
+        assert_eq!(history[0].source_global_version, g);
+        assert!(matches!(
+            &history[0].value,
+            RetainedResolutionValue::Revision(RetainedResolutionRevision {
+                decision: RetainedResolutionDecision::Pending(evidence),
+                ..
+            }) if evidence.attempt_count == 2 && evidence.context_fingerprint == [47; 32]
+        ));
+        assert_eq!(
+            history[1].value,
+            RetainedResolutionValue::Inert(payload.to_vec())
+        );
+        assert!(matches!(
+            &history[2].value,
+            RetainedResolutionValue::Revision(RetainedResolutionRevision {
+                decision: RetainedResolutionDecision::Tombstoned,
+                ..
+            })
+        ));
+    }
+
+    #[test]
     fn principal_identity_is_stable_owner_local_and_rel_only() {
         let path = TempFile::new();
         let principal = "phy-00000000-0000-0000-0000-000000000123";
@@ -1384,6 +1531,25 @@ mod tests {
             PerceptionStore::open(&bad_id),
             Err(PerceptionError::CorruptRecord("Entity identity mismatch"))
         ));
+
+        let retained_path = TempFile::new();
+        let mut retained = create(&retained_path.0, 4);
+        let body = encode_retained_entity_body(
+            retained.owner_id(),
+            &RetainedEntity::Revision {
+                entity_version: 1,
+                entity: value.clone(),
+                global_id: None,
+            },
+        )
+        .unwrap();
+        retained
+            .append_publication_envelope(&body, Some(10))
+            .unwrap();
+        drop(retained);
+        let retained = Container::open_read_only(&retained_path.0).unwrap();
+        let store = PerceptionStore::open(&retained).unwrap();
+        assert_eq!(store.entity(value.id), Some(&value));
 
         let bad_time_path = TempFile::new();
         let mut bad_time = create(&bad_time_path.0, 5);

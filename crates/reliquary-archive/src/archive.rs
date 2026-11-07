@@ -4,6 +4,8 @@
 //! framing and bytes; Archive does not depend on the application or other owners.
 
 mod history;
+mod publications;
+mod retained;
 #[cfg(test)]
 #[path = "archive_tests.rs"]
 mod tests;
@@ -13,9 +15,10 @@ use crate::codec::{
     encode_fragment_definitions, encode_import_receipt, encode_turn,
 };
 use crate::{
-    AcceptedTurnSource, ArchiveError, AttachmentInput, Branch, ContentId, Episode, EpisodeBoundary,
-    EpisodeId, EpisodeOrigin, ImportReceipt, Node, ProjectAttachmentInput, ProjectFileRef,
-    ProjectRepositoryKind, ResolvedTurn, SourceAttachment, TurnAcceptance, TurnInput,
+    AcceptedTurnSource, ArchiveError, ArchivePublicationBinding, ArchivePublicationCoordinate,
+    AttachmentInput, Branch, ContentId, Episode, EpisodeBoundary, EpisodeId, EpisodeOrigin,
+    ImportReceipt, Node, ProjectAttachmentInput, ProjectFileRef, ProjectRepositoryKind,
+    ResolvedTurn, SourceAttachment, TurnAcceptance, TurnInput,
 };
 use reliquary_container::{Container, ContainerError, ContainerIdentity, FileKind};
 use sha2::{Digest, Sha256};
@@ -50,6 +53,10 @@ pub struct Archive {
     conversation_tombstones: BTreeMap<String, crate::ConversationTombstone>,
     conversation_titles: BTreeMap<String, crate::ConversationTitle>,
     archive_version: u64,
+    publication_bindings: Vec<ArchivePublicationBinding>,
+    retained_publications: Vec<crate::RetainedArchivePublication>,
+    retained_fragment_versions: BTreeMap<crate::FragmentId, u64>,
+    project_correlations: Vec<crate::ProjectCorrelation>,
 }
 
 impl Archive {
@@ -77,6 +84,10 @@ impl Archive {
             conversation_tombstones: BTreeMap::new(),
             conversation_titles: BTreeMap::new(),
             archive_version: 0,
+            publication_bindings: Vec::new(),
+            retained_publications: Vec::new(),
+            retained_fragment_versions: BTreeMap::new(),
+            project_correlations: Vec::new(),
         }
     }
 
@@ -90,7 +101,24 @@ impl Archive {
         archive.owner_id = Some(container.owner_id());
         archive.container_identity = Some(container.identity());
         for frame in container.read_frames()? {
-            if let Some(record) = decode_record(&frame.payload)? {
+            if let Some(publication) = crate::publication::in_frame(&frame.payload)? {
+                archive.replay_publication(container, frame.object, publication)?;
+            } else if let Some(record) = decode_record(&frame.payload)? {
+                match &record {
+                    Record::Retained(_) => {
+                        return Err(ArchiveError::CorruptRecord(
+                            "retained Archive record has no publication coordinate",
+                        ));
+                    }
+                    Record::ProjectCorrelation(value)
+                        if value.global_version > container.latest_version() =>
+                    {
+                        return Err(ArchiveError::CorruptRecord(
+                            "project correlation exceeds the owner clock",
+                        ));
+                    }
+                    _ => {}
+                }
                 archive.apply_record(record)?;
             }
         }
@@ -104,6 +132,16 @@ impl Archive {
         &mut self,
         container: &mut Container,
         input: TurnInput,
+    ) -> Result<TurnAcceptance<Node>, ArchiveError> {
+        self.accept_turn_at(container, input, None)
+    }
+
+    /// Accept a turn at a supplied Archive/global publication coordinate.
+    pub fn accept_turn_at(
+        &mut self,
+        container: &mut Container,
+        input: TurnInput,
+        coordinate: Option<ArchivePublicationCoordinate>,
     ) -> Result<TurnAcceptance<Node>, ArchiveError> {
         self.bind_container(container)?;
         validate_text(&input.id, "node id")?;
@@ -121,7 +159,7 @@ impl Archive {
         let key = (input.conversation_id.clone(), input.id.clone());
         let mut attachments = prepare_attachments(input.attachments)?;
         attachments.extend(prepare_project_attachments(input.project_attachments)?);
-        validate_source_attachments(&attachments)?;
+        validate_source_attachments(&attachments, false)?;
         if let Some(parent_id) = input.parent_id.as_deref()
             && !self
                 .nodes
@@ -185,6 +223,7 @@ impl Archive {
         };
         let encoded = encode_turn(&node, &input.content, &attachments)?;
         let archive_version = self.next_archive_version()?;
+        self.check_publication(container, archive_version, coordinate)?;
         let mut new_file_content = HashMap::new();
         for attachment in &attachments {
             if attachment.project_reference.is_some() {
@@ -208,8 +247,7 @@ impl Archive {
         for (content_id, bytes) in &new_file_content {
             container.append(&encode_file_blob(*content_id, bytes)?)?;
         }
-        container.append(&encoded)?;
-        container.sync()?;
+        self.persist_applying(container, coordinate, &encoded)?;
         self.file_content.extend(new_file_content);
         self.nodes.insert(key.clone(), node.clone());
         self.content.entry(content_id).or_insert(input.content);
@@ -237,6 +275,16 @@ impl Archive {
         container: &mut Container,
         branch: Branch,
     ) -> Result<bool, ArchiveError> {
+        self.put_branch_at(container, branch, None)
+    }
+
+    /// Accept a Branch revision at a supplied Archive/global publication coordinate.
+    pub fn put_branch_at(
+        &mut self,
+        container: &mut Container,
+        branch: Branch,
+        coordinate: Option<ArchivePublicationCoordinate>,
+    ) -> Result<bool, ArchiveError> {
         self.bind_container(container)?;
         validate_text(&branch.id, "branch id")?;
         validate_text(&branch.conversation_id, "conversation id")?;
@@ -262,8 +310,8 @@ impl Archive {
         }
         let archive_version = self.next_archive_version()?;
         let encoded = encode_branch(&branch)?;
-        container.append(&encoded)?;
-        container.sync()?;
+        self.check_publication(container, archive_version, coordinate)?;
+        self.persist_applying(container, coordinate, &encoded)?;
         self.branch_history.push((archive_version, branch.clone()));
         self.branches
             .insert((branch.conversation_id.clone(), branch.id.clone()), branch);
@@ -671,6 +719,10 @@ impl Archive {
 
     /// Archive clock assigned when this immutable source node was first
     /// accepted. Replays and later branch changes do not move the node cut.
+    pub fn episode_archive_version(&self, id: EpisodeId) -> Option<u64> {
+        self.episode_versions.get(&id).copied()
+    }
+
     pub fn node_archive_version(&self, conversation_id: &str, node_id: &str) -> Option<u64> {
         self.node_archive_versions
             .get(&(conversation_id.to_owned(), node_id.to_owned()))
@@ -776,7 +828,7 @@ impl Archive {
                 {
                     return Err(ArchiveError::HashCollision);
                 }
-                validate_source_attachments(&attachments)?;
+                validate_source_attachments(&attachments, true)?;
                 let archive_version = self.next_archive_version()?;
                 self.accepted_node_order
                     .try_reserve(1)
@@ -833,7 +885,7 @@ impl Archive {
                             .clone();
                     }
                 }
-                validate_source_attachments(&attachments)?;
+                validate_source_attachments(&attachments, true)?;
                 let archive_version = self.next_archive_version()?;
                 let position = if activity_role(&node.role) {
                     Some(
@@ -900,33 +952,7 @@ impl Archive {
                 self.archive_version = archive_version;
             }
             Record::Episode(episode) => {
-                if self
-                    .conversation_tombstones
-                    .contains_key(&episode.conversation_id)
-                {
-                    return Err(ArchiveError::CorruptRecord(
-                        "Episode after terminal tombstone",
-                    ));
-                }
-                validate_text(&episode.conversation_id, "conversation id")?;
-                validate_text(&episode.start_node_id, "Episode start node id")?;
-                validate_text(&episode.end_node_id, "Episode end node id")?;
-                let end = self.require_node(&episode.conversation_id, &episode.end_node_id)?;
-                if episode.id
-                    != Episode::stable_id(
-                        &episode.conversation_id,
-                        &episode.start_node_id,
-                        &episode.end_node_id,
-                    )
-                    || episode.source_through_ns != end.timestamp_ns
-                    || episode.finalized_at_ns < episode.source_through_ns
-                    || !self
-                        .branch_path(&episode.conversation_id, &episode.end_node_id)?
-                        .iter()
-                        .any(|node| node.id == episode.start_node_id)
-                {
-                    return Err(ArchiveError::InvalidEpisodeRange);
-                }
+                self.validate_replayed_episode(&episode)?;
                 if let Some(existing) = self.episodes.get(&episode.id) {
                     if existing != &episode {
                         return Err(ArchiveError::ConflictingEpisode);
@@ -1036,6 +1062,8 @@ impl Archive {
                 );
                 self.archive_version = archive_version;
             }
+            Record::Retained(value) => self.apply_retained_publication(value)?,
+            Record::ProjectCorrelation(value) => self.apply_project_correlation(value)?,
             Record::ConversationTitle(conversation_id, title) => {
                 validate_text(&conversation_id, "conversation id")?;
                 validate_text(&title, "conversation title")?;
@@ -1320,7 +1348,7 @@ fn prepare_attachments(
             project_reference: None,
         });
     }
-    validate_source_attachments(&attachments)?;
+    validate_source_attachments(&attachments, false)?;
     Ok(attachments)
 }
 
@@ -1355,7 +1383,10 @@ fn prepare_project_attachments(
         .collect()
 }
 
-fn validate_source_attachments(attachments: &[SourceAttachment]) -> Result<(), ArchiveError> {
+fn validate_source_attachments(
+    attachments: &[SourceAttachment],
+    allow_retained_project_identity: bool,
+) -> Result<(), ArchiveError> {
     let mut ids = std::collections::HashSet::new();
     for attachment in attachments {
         if !ids.insert(attachment.id) {
@@ -1383,7 +1414,16 @@ fn validate_source_attachments(attachments: &[SourceAttachment]) -> Result<(), A
                 attachment.byte_length,
                 reference,
             );
-            if expected != attachment.id {
+            // Older owners could move inline content into Git without changing the file ID.
+            let retained_identity = allow_retained_project_identity
+                && reference.content_hash == Some(attachment.content_id.0)
+                && file_id(
+                    &attachment.filename,
+                    attachment.mime_type.as_deref(),
+                    attachment.content_id,
+                    attachment.byte_length,
+                ) == attachment.id;
+            if expected != attachment.id && !retained_identity {
                 return Err(ArchiveError::InvalidAttachment);
             }
             continue;

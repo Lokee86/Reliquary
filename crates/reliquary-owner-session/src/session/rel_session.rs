@@ -60,6 +60,15 @@ impl RelSession {
             ));
         }
         let common = open_common(container, graph_admission, dream_admissions, true)?;
+        if archive
+            .project_correlations()
+            .iter()
+            .any(|value| value.memory_version > common.memories.memory_version())
+        {
+            return Err(OwnerSessionError::Record(
+                "project correlation exceeds the Memory head".into(),
+            ));
+        }
         for completion in grouped_completions.values() {
             if completion
                 .memory_ids
@@ -75,7 +84,7 @@ impl RelSession {
             container,
             |payload| {
                 let completion = GroupedInsomniaCompletion::decode(payload)?;
-                if !completion.routing_metadata.is_empty() {
+                if !payload.starts_with(b"RELINSC8") && !completion.routing_metadata.is_empty() {
                     return Err("grouped routing metadata replay is unsupported".into());
                 }
                 match (
@@ -133,7 +142,7 @@ impl RelSession {
                     .map_err(|_| InsomniaError::CorruptRecord("grouped completion"))?;
                 let episode_id = WorkEpisodeId(completion.episode_id);
                 completion
-                    .validate_replay_episode(episode_id.0)
+                    .validate_replay_episode_layout(episode_id.0, payload.starts_with(b"RELINSC8"))
                     .map_err(|_| InsomniaError::CorruptRecord("grouped completion proof"))?;
                 Ok(Some(AcceptedCompletionState {
                     episode_id,
@@ -158,8 +167,20 @@ impl RelSession {
                     rejected_count: completion.rejected_count,
                 }))
             })?;
+        if freshness
+            .retained_import_authority()
+            .is_some_and(|authority| {
+                authority.global_version > container.latest_version()
+                    || authority.archive_version > archive.archive_version()
+                    || authority.graph_version > common.graph.graph_version()
+            })
+        {
+            return Err(OwnerSessionError::Record(
+                "retained Freshness authority exceeds the owner cut".into(),
+            ));
+        }
         let imports = ImportEpochStore::open(container).map_err(OwnerSessionError::Record)?;
-        super::native_import::validate_native_import_receipts(container, &imports)?;
+        super::native_import::validate_native_import_receipts(container, &imports, &archive)?;
         let archive_vectors = ArchiveVectorStore::open(container, &common.packed_vectors)?;
         let generations =
             VectorGenerationStore::open(container, &common.profiles, &archive_vectors)?;
@@ -259,9 +280,24 @@ impl RelSession {
     pub fn archive_node(&self, conversation: &str, node: &str) -> Option<&Node> {
         self.archive.node(conversation, node)
     }
+    pub fn retained_archive_publications(
+        &self,
+    ) -> &[reliquary_archive::RetainedArchivePublication] {
+        self.archive.retained_publications()
+    }
+
+    pub fn project_revision_correlations(&self) -> &[reliquary_archive::ProjectCorrelation] {
+        self.archive.project_correlations()
+    }
+
     pub fn archive_version(&self) -> u64 {
         self.archive.archive_version()
     }
+    /// Accepted Archive publications with their validated current physical bindings.
+    pub fn archive_publication_bindings(&self) -> &[reliquary_archive::ArchivePublicationBinding] {
+        self.archive.publication_bindings()
+    }
+
     pub fn conversation_tombstone(
         &self,
         conversation: &str,
@@ -325,6 +361,19 @@ impl RelSession {
             .get(&id)
             .copied())
     }
+    pub fn retained_freshness_import(
+        &self,
+    ) -> Option<(
+        &reliquary_freshness_store::RetainedFreshnessAuthority,
+        &reliquary_freshness_store::HistoricalFreshnessSnapshot,
+    )> {
+        let authority = self.freshness.retained_import_authority()?;
+        Some((
+            authority,
+            self.freshness.historical_snapshot(&authority.import_id)?,
+        ))
+    }
+
     pub fn freshness_policy(&self) -> reliquary_freshness_store::FreshnessPolicy {
         self.freshness.policy()
     }

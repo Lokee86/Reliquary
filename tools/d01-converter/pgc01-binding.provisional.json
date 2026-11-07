@@ -1,0 +1,34 @@
+{
+  "schema": "reliquary-d01-pgc01-binding-provisional-v1",
+  "status": "accepted-synthetic-v1",
+  "pg_c01_commit": "0f824a09fe01f5ff327ab56f3296f36d8f4d7c87",
+  "pg_c01_parent": "dd77dfa8f7d3c73e3e03cd07b2f4f0f7c9850fae",
+  "contract_root": "tools/corpus-evidence-v1",
+  "contract_code_sha256": "af6763707b5f7918b5295dc0fbcce9a2d55e975abe29f4eedaa00a9584e24245",
+  "registry_hashes": {
+    "semantic_groups": "8ca5594e463de065622ff4f3caccc17f0a61d1a95477f0284a48419f342032b0",
+    "record_schemas": "0963412591cc2d202a613584fd458ed14d5888e9e381d5283177eae40b41c79d",
+    "physical_carriers": "d7d782f7701a363fb0c4b75c6eabd04200a3889cac370d122d66ea31b0080dc5",
+    "contract_bundle": "7a1abda477874b2a1ff78f75520e075f909750d45a17ce3d6528110334f33688"
+  },
+  "physical_carrier_inventory": {
+    "status": "unclassified-no-authenticated-inventory",
+    "authentic_admission": false,
+    "entry_count": 0,
+    "unclassified_carrier_count": 0
+  },
+  "synthetic_contract_example": {
+    "path": "tools/corpus-evidence-v1/fixtures/report-example-pass-synthetic.v1.json",
+    "status": "PASS",
+    "evidence_scope": "synthetic_fixture",
+    "source_admission": "forbidden"
+  },
+  "d01_review_record": "pgc01-d01-review.provisional.json",
+  "accepted_record": {
+    "planning_commit": "b6332a8ff5396a7725c73cbe7643c32950e2de7e",
+    "path": "docs/architecture/pg-c01-synthetic-contract-acceptance-evidence-2026-11-07.md",
+    "scope": "synthetic-v1-only",
+    "contract_bundle_sha256": "7a1abda477874b2a1ff78f75520e075f909750d45a17ce3d6528110334f33688",
+    "authentic_admission": false
+  }
+}

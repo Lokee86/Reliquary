@@ -26,23 +26,42 @@ pub(crate) enum Record {
     ConversationTombstone(String),
     ConversationTitle(String, String),
     PrunedTurn(Node, Vec<SourceAttachment>, [u8; 32]),
+    Retained(crate::RetainedArchiveValue),
+    ProjectCorrelation(crate::ProjectCorrelation),
 }
 
 pub fn prune_turn_frame(
     bytes: &[u8],
     manifest_digest: [u8; 32],
 ) -> Result<Option<(Vec<u8>, Node)>, ArchiveError> {
-    let Some(Record::Turn(node, _, attachments)) = decode_record(bytes)? else {
+    use crate::publication::{self, Body};
+    let publication = publication::in_frame(bytes)?;
+    let body = match publication.as_ref().map(|record| &record.body) {
+        Some(Body::Applying(body)) => body,
+        Some(Body::Repeat(_)) => return Ok(None),
+        None => bytes,
+    };
+    let Some(Record::Turn(node, _, attachments)) = decode_record(body)? else {
         return Ok(None);
     };
     let mut encoded = encode_turn(&node, "", &attachments)?;
     encoded[..8].copy_from_slice(&PRUNED_TURN_MAGIC);
     encoded.splice(8..8, manifest_digest);
+    if let Some(publication) = publication {
+        let body = publication::encode(publication.archive_version, Body::Applying(&encoded));
+        encoded = reliquary_container::replace_publication_body(bytes, &body)?;
+    }
     Ok(Some((encoded, node)))
 }
 
 pub fn archive_turn_prune_marker(bytes: &[u8]) -> Result<Option<(Node, [u8; 32])>, ArchiveError> {
-    let Some(Record::PrunedTurn(node, _, digest)) = decode_record(bytes)? else {
+    let publication = crate::publication::in_frame(bytes)?;
+    let body = match publication.as_ref().map(|record| &record.body) {
+        Some(crate::publication::Body::Applying(body)) => body,
+        Some(crate::publication::Body::Repeat(_)) => return Ok(None),
+        None => bytes,
+    };
+    let Some(Record::PrunedTurn(node, _, digest)) = decode_record(body)? else {
         return Ok(None);
     };
     Ok(Some((node, digest)))
@@ -198,6 +217,12 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<Record>, ArchiveError
         let title = read_string(bytes, &mut cursor)?;
         require_end(bytes, cursor)?;
         Ok(Some(Record::ConversationTitle(conversation_id, title)))
+    } else if magic == crate::retained::RETAINED_MARKER {
+        Ok(Some(Record::Retained(crate::retained::decode(bytes)?)))
+    } else if magic == crate::PROJECT_CORRELATION_MARKER {
+        Ok(Some(Record::ProjectCorrelation(crate::retained::decode(
+            bytes,
+        )?)))
     } else if magic == PRUNED_TURN_MAGIC {
         if bytes.len() < 40 {
             return Err(ArchiveError::CorruptRecord("short pruned turn"));

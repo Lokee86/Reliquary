@@ -1,0 +1,91 @@
+{
+  "schema": "reliquary-d01-target-primitive-gaps-provisional-v1",
+  "status": "open-provisional",
+  "spec_commit": "5d96db991a130d84bf76a720b445295f95ec0204",
+  "product_integration_base": "26e84f45b54985d5aa1ceb3ab8e7fd7f183b8b0a",
+  "source_evidence_gate": {
+    "accepted_f03_v01": "copy-only-current-head-admission",
+    "pending": [
+      "F03-V02",
+      "F03-V03",
+      "F03-V04"
+    ],
+    "authentic_source_admission": false
+  },
+  "gaps": [
+    {
+      "id": "rel-exact-history-value-import",
+      "owner_boundary": "reliquary-owner-session::RelWriter",
+      "status": "synthetic-value-probes-pending",
+      "current_evidence": "The native writer preserves synthetic attachment-free Archive turn and branch cuts with exact local revisions. FRS07 Archive publications bind local and global coordinates. Native current Archive publications preserve the local/global coordinate, allocation or reservation, signed clock, and repeat origin. The synthetic writer proves turn, branch, and Episode replay. Authentic Archive carrier/value mapping remains open. Conversation metadata policy and the 16-byte historical versus 32-byte current history generation require separate value mapping.",
+      "required_synthetic_proof": "Show a lawful value-based operation preserves original owner identity, generation, stable IDs, transaction times, branch/episode history, accepted version allocation and grouped publication boundaries.",
+      "permitted_resolution": "If a hand-authored synthetic accepted value cannot pass the normal owner workflow, request only the narrow typed value operation at RelWriter with replay and reopen tests.",
+      "forbidden_shortcuts": [
+        "raw Container append",
+        "mutable store exposure",
+        "replayed text through ordinary ingest"
+      ]
+    },
+    {
+      "id": "phy-current-only-profile-prune-authority",
+      "owner_boundary": "reliquary-owner-session::PhyWriter",
+      "status": "blocked-on-D02-owned-fix-and-reverification",
+      "current_evidence": "D02 reported a failing synthetic red regression for PHY current-only profile-prune authority and owns the narrow owner-session fix.",
+      "required_synthetic_proof": "Recheck the D02-fixed contract before any D01 PHY synthetic target path claims a lawful final state.",
+      "permitted_resolution": "Consume only the reviewed D02 owner-session fix; keep D01 work in offline tools.",
+      "forbidden_shortcuts": [
+        "unreviewed owner-session edits from D01",
+        "bypass of normal PHY admission"
+      ]
+    },
+    {
+      "id": "grouped-insomnia-dream-import-settlement",
+      "owner_boundary": "reliquary-owner-session::native import/grouped completion",
+      "status": "synthetic-value-probes-pending",
+      "current_evidence": "D01 requires original grouped work, FRS07 settlement authority, accepted prefix proofs and version allocation to be typed rather than detached-row inserted.",
+      "required_synthetic_proof": "Hand-author accepted, held and incomplete grouped cases and show exact settlement authority and accepted prefixes.",
+      "permitted_resolution": "Add a narrow owner operation only if a synthetic value cannot be represented by existing lawful workflow APIs.",
+      "forbidden_shortcuts": [
+        "mark held work complete",
+        "detached row insertion",
+        "recompute inference or Dream classification"
+      ]
+    },
+    {
+      "id": "physical-reference-relocation",
+      "owner_boundary": "offline D01 coordinator",
+      "status": "inventory-dependent",
+      "current_evidence": "Target stores are owner-local; old-to-new locations and closure must be established before target publication.",
+      "required_synthetic_proof": "Build forward/back-reference synthetic cases and reject missing, stale, cross-owner or dangling references.",
+      "permitted_resolution": "Keep a complete relocation map offline and validate closure before output.",
+      "forbidden_shortcuts": [
+        "substitute current content",
+        "leak target store handles"
+      ]
+    },
+    {
+      "id": "current-only-target-reopen",
+      "owner_boundary": "accepted 2.1 owner-session admission",
+      "status": "synthetic-archive-and-ungrouped-phy-memory",
+      "current_evidence": "The native writer checks every synthetic Archive cut and the ungrouped PHY Memory revision and global clock bindings through current-only reopen. The earlier D01SYN01 CLI remains fixture framing only.",
+      "required_synthetic_proof": "T02/T03 must create synthetic owners through accepted 2.1 APIs and reopen via ordinary current-only admission.",
+      "permitted_resolution": "Separate target-only process/workspace once predecessor tickets are satisfied.",
+      "forbidden_shortcuts": [
+        "claim D01SYN01 parse as owner validation",
+        "use a raw store or codec as an owner writer"
+      ]
+    },
+    {
+      "id": "create-only-crash-safe-publication",
+      "owner_boundary": "D01-T04 coordinator",
+      "status": "later-ticket-not-accepted",
+      "current_evidence": "The current no-replace helper writes a synthetic fixture under a temporary directory; it does not fsync directories, checkpoint, resume, inject crash faults or issue owner receipts.",
+      "required_synthetic_proof": "T04 fault matrix across sync/publication, collision races, wrong-source resume, read-only failure and disk-full simulation.",
+      "permitted_resolution": "Implement only after D01-T03; preserve originals and ensure crashes leave no accepted partial candidate.",
+      "forbidden_shortcuts": [
+        "report D01-T04 complete from fixture writer tests",
+        "overwrite or repair an existing candidate"
+      ]
+    }
+  ]
+}

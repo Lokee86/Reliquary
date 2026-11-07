@@ -1,0 +1,47 @@
+{
+  "format": "reliquary-d01-synthetic-phy-memory-transfer-v1",
+  "owner": "45454545454545454545454545454545",
+  "history_generation": "fec1cddead319cb7f5f681cf993df3ffc9f9d93ec345e2e6ef5a67227bd2c4a1",
+  "revisions": [
+    {
+      "memory_id": "c30df370d053280ec83a3af8bbac9dbe638551448e14f9663510b1661ed84f5f",
+      "body_id": "60f02b8580389599ffcb830eac3321fdc9380a70e579276451819de6a1992653",
+      "title": "Private fixture",
+      "content": "Mémoire synthetic",
+      "memory_type": "semantic",
+      "authority_kind": "direct",
+      "lifecycle_state": "knowledge",
+      "created_at_ns": "9007199254740993",
+      "source_time_ns": "-9007199254740995",
+      "revision": "1",
+      "memory_version": "1",
+      "global_version": "1",
+      "transaction_time_ns": "9007199254741010",
+      "updated_at_ns": "9007199254740993",
+      "mutation_id": "phy-create-v1",
+      "category": "fact",
+      "temporal_status": "current",
+      "archived": false
+    },
+    {
+      "memory_id": "c30df370d053280ec83a3af8bbac9dbe638551448e14f9663510b1661ed84f5f",
+      "body_id": "60f02b8580389599ffcb830eac3321fdc9380a70e579276451819de6a1992653",
+      "title": "Private fixture",
+      "content": "Mémoire synthetic",
+      "memory_type": "semantic",
+      "authority_kind": "direct",
+      "lifecycle_state": "knowledge",
+      "created_at_ns": "9007199254740993",
+      "source_time_ns": "-9007199254740995",
+      "revision": "2",
+      "memory_version": "2",
+      "global_version": "2",
+      "transaction_time_ns": "9007199254741030",
+      "updated_at_ns": "9007199254741021",
+      "mutation_id": "phy-revise-v2",
+      "category": "decision",
+      "temporal_status": "historical",
+      "archived": true
+    }
+  ]
+}

@@ -37,6 +37,16 @@ pub fn decode_publication(bytes: &[u8]) -> Result<Option<PublicationEnvelope<'_>
     }))
 }
 
+/// Rebuild an admitted envelope with a replacement owner record and its original clock.
+pub fn replace_publication_body(bytes: &[u8], body: &[u8]) -> Result<Vec<u8>, ContainerError> {
+    let envelope = decode_publication(bytes)?.ok_or(ContainerError::InvalidVersionRecord)?;
+    if envelope.bound_reservation {
+        encode_bound(envelope.version, body)
+    } else {
+        encode(envelope.version, envelope.transaction_time_ns, body)
+    }
+}
+
 pub(crate) fn encode(
     version: u64,
     transaction_time_ns: Option<i64>,

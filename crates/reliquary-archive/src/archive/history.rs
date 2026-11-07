@@ -41,6 +41,12 @@ impl Archive {
             .collect::<Vec<_>>();
         Ok(crate::ArchiveHistorySnapshot {
             archive_version: version,
+            publication_bindings: self
+                .publication_bindings
+                .iter()
+                .take_while(|binding| binding.archive_version <= version)
+                .copied()
+                .collect(),
             activity_cut: turns
                 .iter()
                 .filter_map(|turn| turn.activity_position)
@@ -86,6 +92,12 @@ impl Archive {
                         .is_some_and(|seen| *seen <= version)
                 })
                 .map(|(_, definition)| definition.clone())
+                .collect(),
+            retained_publications: self
+                .retained_publications
+                .iter()
+                .take_while(|record| record.archive_version <= version)
+                .cloned()
                 .collect(),
             conversation_tombstones: self
                 .conversation_tombstones

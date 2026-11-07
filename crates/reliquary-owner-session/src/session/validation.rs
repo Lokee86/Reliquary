@@ -62,9 +62,18 @@ pub(super) fn validate_grouped_replay_admission(
         let body = envelope
             .as_ref()
             .map_or(frame.payload.as_slice(), |value| value.body);
-        if (body.starts_with(b"RELXMEM") && !body.starts_with(b"RELXMEM3"))
-            || body.starts_with(b"RELINSC8")
-        {
+        if body.starts_with(b"RELRELM") {
+            if envelope.is_some() {
+                return Err(OwnerSessionError::Record("wrapped REL metadata".into()));
+            }
+            crate::records::owner_metadata::decode_retained_owner_metadata(body)
+                .map_err(OwnerSessionError::Record)?;
+        }
+        let unsupported_group = body.starts_with(b"RELINSC")
+            && (envelope.is_some()
+                || !(body.starts_with(b"RELINSC7")
+                    || (body.starts_with(b"RELINSC8") && matches!(body.get(8), Some(3 | 5 | 6)))));
+        if (body.starts_with(b"RELXMEM") && !body.starts_with(b"RELXMEM3")) || unsupported_group {
             return Err(OwnerSessionError::Record(
                 "unsupported owner publication requires authenticated replay".into(),
             ));
@@ -72,7 +81,7 @@ pub(super) fn validate_grouped_replay_admission(
         let payload = envelope
             .filter(|envelope| envelope.body.starts_with(b"RELMCRT1"))
             .map_or(frame.payload.as_slice(), |envelope| envelope.body);
-        match reliquary_archive::source_publication(payload)? {
+        match reliquary_archive::source_publication(&frame.payload)? {
             Some(reliquary_archive::SourcePublication::Episode(id)) => {
                 visible_episodes.insert(id);
             }
@@ -93,9 +102,10 @@ pub(super) fn validate_grouped_replay_admission(
             let creation = reliquary_memory_core::decode_grouped_creation(payload)?;
             visible_memories.insert(creation.id.0);
         }
-        if !payload.starts_with(b"RELINSC7") {
+        if !crate::records::insomnia_completion::is_grouped_completion(payload) {
             continue;
         }
+        let retained = payload.starts_with(b"RELINSC8");
         let completion =
             GroupedInsomniaCompletion::decode(payload).map_err(OwnerSessionError::Record)?;
         let episode_id = reliquary_archive::EpisodeId(completion.episode_id);
@@ -112,7 +122,7 @@ pub(super) fn validate_grouped_replay_admission(
             ));
         }
         completion
-            .validate_replay_episode(completion.episode_id)
+            .validate_replay_episode_layout(completion.episode_id, retained)
             .map_err(OwnerSessionError::Record)?;
         let births = completion
             .memory_records
@@ -131,7 +141,7 @@ pub(super) fn validate_grouped_replay_admission(
             ));
         }
         visible_memories.extend(births);
-        if !completion.routing_metadata.is_empty() {
+        if !retained && !completion.routing_metadata.is_empty() {
             return Err(OwnerSessionError::Record(
                 "grouped routing metadata replay is unsupported".into(),
             ));
@@ -147,7 +157,20 @@ pub(super) fn validate_grouped_replay_admission(
 }
 
 pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), OwnerSessionError> {
-    const REL_ONLY: [(&[u8; 8], &str); 28] = [
+    const REL_ONLY: &[(&[u8; 8], &str)] = &[
+        (b"RELRELM1", "retained REL metadata"),
+        (
+            reliquary_freshness_store::RETAINED_FRESHNESS_AUTHORITY_MARKER,
+            "retained Freshness settlement",
+        ),
+        (
+            reliquary_archive::PROJECT_CORRELATION_MARKER,
+            "Archive project correlation",
+        ),
+        (
+            reliquary_archive::ARCHIVE_PUBLICATION_MARKER,
+            "versioned Archive publication",
+        ),
         (b"RELTURN2", "Archive turn"),
         (b"RELFILE1", "Archive file"),
         (b"RELBRCH1", "Archive branch"),
@@ -211,11 +234,16 @@ pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), Owner
             prefix.copy_from_slice(&envelope.body[..8]);
         }
         if length == prefix.len() {
-            for (marker, domain) in REL_ONLY {
+            for &(marker, domain) in REL_ONLY {
                 if &prefix == marker {
                     return Err(OwnerSessionError::RelOnlyRecordInPhylactery(domain));
                 }
             }
+        }
+        if length >= 6 && &prefix[..6] == b"RELAPB" {
+            return Err(OwnerSessionError::RelOnlyRecordInPhylactery(
+                "versioned Archive publication",
+            ));
         }
         if length >= 6 && &prefix[..6] == b"RELFRS" {
             return Err(OwnerSessionError::RelOnlyRecordInPhylactery(

@@ -16,13 +16,28 @@ struct Birth {
     mutation: Option<String>,
 }
 
-/// Verify compact Begin populations against evidence strictly before each Begin.
-/// Direct, imported and journal births require additional owner proof and are
-/// explicitly unsupported here rather than inferred from a caller's admission.
+/// Resolve compact Begin populations from evidence strictly before each Begin.
+pub(crate) fn observe_compact_dream_prefix(
+    container: &Container,
+    admissions: &[DreamBeginAdmission],
+) -> Result<Vec<DreamBeginAdmission>, OwnerSessionError> {
+    collect_compact_dream_prefix(container, admissions, true)
+}
+
+#[cfg(test)]
 pub(crate) fn validate_compact_dream_prefix(
     container: &Container,
     admissions: &[DreamBeginAdmission],
 ) -> Result<(), OwnerSessionError> {
+    collect_compact_dream_prefix(container, admissions, false).map(|_| ())
+}
+
+fn collect_compact_dream_prefix(
+    container: &Container,
+    admissions: &[DreamBeginAdmission],
+    derive: bool,
+) -> Result<Vec<DreamBeginAdmission>, OwnerSessionError> {
+    let mut observed: Vec<DreamBeginAdmission> = Vec::new();
     let mut births = BTreeMap::<MemoryId, Birth>::new();
     let mut visible_memories = BTreeSet::new();
     let mut head = 0u64;
@@ -69,7 +84,7 @@ pub(crate) fn validate_compact_dream_prefix(
             || magic == *b"RELFRS02"
             || magic.starts_with(b"RELIEP")
             || magic == *b"RELIFRS1"
-            || magic == *b"RELINSC7"
+            || matches!(&magic, b"RELINSC7" | b"RELINSC8")
             || magic == *b"CVDREAM2"
             || magic == *b"RELGRF01"
             || magic == *b"CVDREAM1"
@@ -129,14 +144,7 @@ pub(crate) fn validate_compact_dream_prefix(
                     // but must not reject an otherwise valid owner replay.
                     continue;
                 }
-                head = head.checked_add(1).ok_or_else(|| {
-                    OwnerSessionError::Record("Dream Memory head exhausted".into())
-                })?;
-                if !visible_memories.contains(&id) || version != head {
-                    return Err(OwnerSessionError::Record(
-                        "Memory history change differs from its physical prefix".into(),
-                    ));
-                }
+                advance_memory_history(&mut head, &visible_memories, id, version)?;
                 continue;
             }
             if magic == *b"CVDREAM1" {
@@ -170,7 +178,21 @@ pub(crate) fn validate_compact_dream_prefix(
                     {
                         unsupported = true;
                     }
-                } else {
+                } else if let Some((id, version)) =
+                    reliquary_memory_core::history_change_in_frame(envelope.body)?
+                {
+                    if !unsupported {
+                        advance_memory_history(&mut head, &visible_memories, id, version)?;
+                    }
+                } else if let Some(publication) = reliquary_graph::clocked_graph_in_frame(&payload)?
+                {
+                    graph_head = publication.graph_version;
+                } else if !reliquary_archive::is_archive_publication_body(envelope.body)?
+                    && !reliquary_vector_store::generation::is_generation_publication_body(
+                        envelope.body,
+                    )?
+                    && reliquary_perception_store::clocked_entity_in_frame(&payload)?.is_none()
+                {
                     // Other publication forms need their own ordered owner proof.
                     unsupported = true;
                 }
@@ -182,12 +204,12 @@ pub(crate) fn validate_compact_dream_prefix(
                 graph_head = relation.graph_version;
                 continue;
             }
-            if magic == *b"RELINSC7" {
+            if matches!(&magic, b"RELINSC7" | b"RELINSC8") {
                 let completion = GroupedInsomniaCompletion::decode(&payload)
                     .map_err(OwnerSessionError::Record)?;
                 if !completion.memory_records.is_empty()
                     && (completion.freshness_birth_turn.is_none()
-                        || !completion.routing_metadata.is_empty())
+                        || (magic == *b"RELINSC7" && !completion.routing_metadata.is_empty()))
                 {
                     unsupported = true;
                 }
@@ -279,26 +301,57 @@ pub(crate) fn validate_compact_dream_prefix(
                     (birth.global < source.global && outside_source_cohort && proven).then_some(*id)
                 })
                 .collect();
-            let admission = admissions
-                .iter()
-                .find(|admission| admission.pass_id == begin.pass_id)
-                .ok_or_else(|| {
-                    OwnerSessionError::Record("Dream Begin lacks owner admission".into())
-                })?;
-            if begin.owner_uuid != container.owner_id()
-                || admission.owner_uuid != begin.owner_uuid
-                || admission.source_id != begin.source_id
-                || admission.turn != begin.turn
-                || admission.graph_version_before != begin.graph_version_before
-                || admission.memory_cut != memory_cut
-                || admission.preexisting_ids != population
-                || digest != population_digest(&population)
+            if begin.owner_uuid != container.owner_id() || digest != population_digest(&population)
             {
                 return Err(OwnerSessionError::Record(
                     "Dream compact population differs from physical prefix".into(),
                 ));
             }
+            let exact = DreamBeginAdmission {
+                owner_uuid: begin.owner_uuid,
+                pass_id: begin.pass_id,
+                source_id: begin.source_id,
+                turn: begin.turn,
+                graph_version_before: begin.graph_version_before,
+                preexisting_ids: population,
+                memory_cut,
+            };
+            if let Some(admission) = admissions
+                .iter()
+                .chain(observed.iter())
+                .find(|admission| admission.pass_id == exact.pass_id)
+            {
+                if admission != &exact {
+                    return Err(OwnerSessionError::Record(
+                        "Dream compact admission differs from physical prefix".into(),
+                    ));
+                }
+            } else if derive {
+                observed.push(exact);
+            } else {
+                return Err(OwnerSessionError::Record(
+                    "Dream Begin lacks owner admission".into(),
+                ));
+            }
         }
     }
+    Ok(observed)
+}
+
+fn advance_memory_history(
+    head: &mut u64,
+    visible: &BTreeSet<MemoryId>,
+    id: MemoryId,
+    version: u64,
+) -> Result<(), OwnerSessionError> {
+    let next = head
+        .checked_add(1)
+        .ok_or_else(|| OwnerSessionError::Record("Dream Memory head exhausted".into()))?;
+    if !visible.contains(&id) || version != next {
+        return Err(OwnerSessionError::Record(
+            "Memory history change differs from its physical prefix".into(),
+        ));
+    }
+    *head = next;
     Ok(())
 }

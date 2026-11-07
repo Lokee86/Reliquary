@@ -141,6 +141,8 @@ pub struct VectorGenerationId(pub [u8; 32]);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct VectorGeneration {
+    /// Original global activation coordinate when an imported history binds one.
+    pub global_version: Option<u64>,
     pub id: VectorGenerationId,
     pub compatibility_profile_id: CompatibilityProfileId,
     pub archive_vector_id: ArchiveVectorId,

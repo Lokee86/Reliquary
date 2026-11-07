@@ -764,6 +764,7 @@ pub use archive_vector_publication::{
 };
 pub use vector_publication::{MemoryVectorInput, MemoryVectorRow};
 mod management;
+mod phy_memory_import;
 mod phy_writer;
 mod rel_session;
 mod rel_writer;
