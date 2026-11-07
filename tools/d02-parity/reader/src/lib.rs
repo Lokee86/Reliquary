@@ -9,6 +9,7 @@ mod memory_owner_history;
 mod page_chain;
 mod reader;
 mod retained_commitment;
+mod retained_freshness;
 
 pub use archive::{observe_archive_binding_cut, observe_archive_cut};
 pub use archive_owner_history::observe_archive_owner_history;
@@ -16,3 +17,4 @@ pub use memory_history::observe_memory_history;
 pub use memory_owner_history::observe_memory_owner_history;
 pub use page_chain::validate_memory_page_chain;
 pub use reader::{CandidateKind, parse_cli_args, probe_candidate, probe_candidate_page};
+pub use retained_freshness::observe_retained_freshness;

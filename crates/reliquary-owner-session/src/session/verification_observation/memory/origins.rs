@@ -65,7 +65,7 @@ fn scan_memory_origins(
         frame
             .read_exact(&mut magic)
             .map_err(|_| "memory_origin_frame_read_failed")?;
-        let grouped = include_grouped_insomnia && &magic == b"RELINSC7";
+        let grouped = include_grouped_insomnia && matches!(&magic, b"RELINSC7" | b"RELINSC8");
         if !magic.starts_with(b"RELPUB") && !grouped {
             continue;
         }

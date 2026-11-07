@@ -225,6 +225,7 @@ pub struct CliArgs {
     pub archive_owner_history: bool,
     pub memory_history: Option<(MemoryId, u64)>,
     pub memory_owner_history: bool,
+    pub retained_freshness: bool,
 }
 
 pub fn parse_cli_args<I, S>(args: I) -> Result<CliArgs, String>
@@ -242,6 +243,7 @@ where
     let mut archive_owner_history = false;
     let mut memory_history = None;
     let mut memory_owner_history = false;
+    let mut retained_freshness = false;
     while let Some(flag) = args.next() {
         match flag.as_str() {
             "--kind" => {
@@ -265,6 +267,12 @@ where
                     return Err("memory cursor exceeds its byte limit".into());
                 }
                 memory_cursor = Some(value);
+            }
+            "--retained-freshness" => {
+                if retained_freshness {
+                    return Err("duplicate retained Freshness option".into());
+                }
+                retained_freshness = true;
             }
             "--memory-owner-history" => {
                 if memory_owner_history {
@@ -323,6 +331,7 @@ where
         archive_owner_history,
         memory_cursor.is_some(),
         memory_history.is_some(),
+        retained_freshness,
         memory_owner_history,
     ]
     .into_iter()
@@ -330,7 +339,7 @@ where
     .count()
         > 1
     {
-        return Err("select only one Archive or Memory observation".into());
+        return Err("select only one observation".into());
     }
     Ok(CliArgs {
         kind: kind.ok_or("--kind rel|phy is required")?,
@@ -341,6 +350,7 @@ where
         archive_binding_cut,
         archive_owner_history,
         memory_history,
+        retained_freshness,
         memory_owner_history,
     })
 }

@@ -80,3 +80,7 @@ The comparator reports unobserved external Memory evidence separately. If that f
 The current reader's `--archive-owner-history` mode emits commitments for all accepted Archive publications and content at the owner head, plus native project correlations and embedded project file references. The projection checks turn body identities and inline attachment extents before hashing. Publication commitments preserve each local and global coordinate, signed transaction time, and typed retained value, including intermediate branch changes.
 
 `compare_authentic_archive.py` compares that output with the hash-pinned F03 v2 source witness. It matches both Archive and project rows by stable key and checks their exact value, origin, and availability. The check opens the current REL twice and verifies the file hash under each held read-only lease. Its pass applies to the two stated domains for one owner. Run `compare_archive_bindings.py` separately for reservation and first-applying publication checks.
+
+## Retained Freshness authority
+
+The current reader's `--retained-freshness` mode observes the retained settlement under the ordinary current REL replay. It hashes the exact retained source proof and the typed signed scores and activity anchors, and reports the base, settlement, Archive, Graph, MemoryGraph, and global coordinates. `compare_authentic_freshness.py` compares the projection with the independently reconstructed, hash-pinned F03 settlement receipt in two fresh current opens. The check covers the retained authority and settlement anchors for one REL.

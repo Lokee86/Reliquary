@@ -10,6 +10,7 @@ pub use memory::{
     MemoryHistoryCutObservation, MemoryOwnerHistoryObservation, MemoryPublicationOrigin,
 };
 
+mod freshness;
 mod hash;
 use hash::hash_open_container;
 mod session;
