@@ -622,7 +622,7 @@ impl PerceptionStore {
                 if record.owner() != store.owner_id {
                     return Err(PerceptionError::OwnerMismatch);
                 }
-                store.apply(record)?;
+                store.apply(record, false)?;
             }
         }
         Ok(store)
@@ -923,9 +923,13 @@ impl PerceptionStore {
         let bytes = record.encode()?;
         container.append(&bytes)?;
         container.sync()?;
-        self.apply(record)
+        self.apply(record, false)
     }
-    fn apply(&mut self, record: Record) -> Result<(), PerceptionError> {
+    fn apply(
+        &mut self,
+        record: Record,
+        retain_explicit_entity_id: bool,
+    ) -> Result<(), PerceptionError> {
         let expected = self.next_version()?;
         if record.version() != expected {
             return Err(PerceptionError::CorruptRecord(
@@ -975,7 +979,8 @@ impl PerceptionStore {
                     {
                         return Err(PerceptionError::CorruptRecord("Entity revision timestamps"));
                     }
-                } else if value.kind != PRINCIPAL_ENTITY_KIND
+                } else if !retain_explicit_entity_id
+                    && value.kind != PRINCIPAL_ENTITY_KIND
                     && value.id != entity_id(&value.mutation_id)
                 {
                     return Err(PerceptionError::CorruptRecord("Entity identity mismatch"));
@@ -1526,6 +1531,25 @@ mod tests {
             PerceptionStore::open(&bad_id),
             Err(PerceptionError::CorruptRecord("Entity identity mismatch"))
         ));
+
+        let retained_path = TempFile::new();
+        let mut retained = create(&retained_path.0, 4);
+        let body = encode_retained_entity_body(
+            retained.owner_id(),
+            &RetainedEntity::Revision {
+                entity_version: 1,
+                entity: value.clone(),
+                global_id: None,
+            },
+        )
+        .unwrap();
+        retained
+            .append_publication_envelope(&body, Some(10))
+            .unwrap();
+        drop(retained);
+        let retained = Container::open_read_only(&retained_path.0).unwrap();
+        let store = PerceptionStore::open(&retained).unwrap();
+        assert_eq!(store.entity(value.id), Some(&value));
 
         let bad_time_path = TempFile::new();
         let mut bad_time = create(&bad_time_path.0, 5);
