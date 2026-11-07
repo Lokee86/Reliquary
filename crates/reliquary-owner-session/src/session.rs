@@ -664,20 +664,32 @@ impl PhySession {
         Self::open(&container, graph_admission, dream_admissions)
     }
 
-    /// Open and fully admit one current-format PHY from durable owner evidence.
-    pub fn open_path_current(path: impl AsRef<Path>) -> Result<Self, OwnerSessionError> {
-        let container = Container::open_read_only_as(path, FileKind::Phylactery)?;
-        require_kind(&container, FileKind::Phylactery)?;
-        reject_rel_only_records(&container)?;
-        let common = open_common_for_owner(&container, container.owner_id(), [], false)?;
+    /// Open and fully admit current-format PHY evidence from an already-open
+    /// container. Kept private so offline readers can share the same admission
+    /// boundary without acquiring a writer or bypassing common retention checks.
+    fn open_current(container: &Container) -> Result<Self, OwnerSessionError> {
+        require_kind(container, FileKind::Phylactery)?;
+        reject_rel_only_records(container)?;
+        let common = open_common_for_owner(container, container.owner_id(), [], false)?;
+        retired_profile_prune::validate_common_profile_prune(
+            &common.profiles,
+            &common.packed_vectors,
+            &common.memory_vectors,
+            &common.maintenance,
+        )?;
         Ok(Self {
             owner_id: container.owner_id(),
             common,
-            history_generation: owner_history_generation_from_container(&container)
+            history_generation: owner_history_generation_from_container(container)
                 .map_err(OwnerSessionError::Record)?,
         })
     }
 
+    /// Open and fully admit one current-format PHY from durable owner evidence.
+    pub fn open_path_current(path: impl AsRef<Path>) -> Result<Self, OwnerSessionError> {
+        let container = Container::open_read_only_as(path, FileKind::Phylactery)?;
+        Self::open_current(&container)
+    }
     pub fn owner_id(&self) -> [u8; 16] {
         self.owner_id
     }
