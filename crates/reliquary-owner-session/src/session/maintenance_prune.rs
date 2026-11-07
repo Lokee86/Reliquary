@@ -12,7 +12,8 @@ use crate::records::{
 };
 use crate::staged_copy::StagedCopy;
 use reliquary_memory_core::{MemoryBodyId, PayloadState};
-use std::{collections::BTreeSet, fs, io::Read, path::Path};
+use reliquary_vector_store::generation::{generation_receipt_target, relocate_generation_receipt};
+use std::{collections::{BTreeMap, BTreeSet}, fs, io::Read, path::Path};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrunedOwnerCopyReport {
@@ -176,6 +177,7 @@ fn transform_terminal_memory_copy(
     let mut target = Container::create(&staged.path, source.identity(), source.owner_id())
         .map_err(|e| e.to_string())?;
     let mut skipped = BTreeSet::new();
+    let mut relocated_generations = BTreeMap::new();
     let mut cursor = source.physical_cursor().map_err(|e| e.to_string())?;
     let mut payload = Vec::new();
     while let Some(mut frame) = cursor.next_frame().map_err(|e| e.to_string())? {
@@ -190,7 +192,23 @@ fn transform_terminal_memory_copy(
                 continue;
             }
         }
-        target.append(&payload).map_err(|e| e.to_string())?;
+        let is_generation = payload.starts_with(b"RELVGEN1");
+        let relocated = if let Some(old) = generation_receipt_target(&payload)
+            .map_err(|error| error.to_string())?
+        {
+            let new = *relocated_generations
+                .get(&old.offset)
+                .ok_or("Memory prune lost vector generation")?;
+            relocate_generation_receipt(&payload, new)
+                .map_err(|error| error.to_string())?
+                .to_vec()
+        } else {
+            payload
+        };
+        let written = target.append(&relocated).map_err(|e| e.to_string())?;
+        if is_generation {
+            relocated_generations.insert(frame.object().offset, written);
+        }
     }
     if skipped != bodies {
         return Err("selected body is not an independently removable frame".into());

@@ -1,7 +1,13 @@
 use super::*;
-use reliquary_container::ContainerIdentity;
+use crate::ArchiveVectorRow;
+use reliquary_archive::{Branch, TurnInput};
+use reliquary_container::{ContainerIdentity, ReliquaryScope};
 use reliquary_memory_core::{MemoryDraft, MemoryStore};
-use reliquary_vector_store::{CompatibilityProfileStore, MemoryVectorStore, PackedVectorStore};
+use reliquary_vector_store::{
+    CompatibilityProbeReference, CompatibilityProfile, CompatibilityProfileStore, EmbeddingMode,
+    MemoryVectorStore, PackedVectorStore,
+    VectorNormalization,
+};
 use std::{
     path::PathBuf,
     sync::atomic::{AtomicU64, Ordering},
@@ -52,6 +58,30 @@ fn draft(mutation: &str, content: &str) -> MemoryDraft {
         created_at_ns: 1,
         updated_at_ns: 1,
     }
+}
+
+fn archive_profile() -> CompatibilityProfile {
+    let mut profile = CompatibilityProfile {
+        id: CompatibilityProfileId([0; 32]),
+        dimensions: 2,
+        normalization: VectorNormalization::L2,
+        probe_suite_version: 1,
+        compatibility_policy_version: 3,
+        references: [
+            EmbeddingMode::Query,
+            EmbeddingMode::Query,
+            EmbeddingMode::Document,
+            EmbeddingMode::Document,
+        ]
+        .into_iter()
+        .map(|mode| CompatibilityProbeReference {
+            mode,
+            vector: vec![1.0, 0.0],
+        })
+        .collect(),
+    };
+    profile.id = reliquary_vector_store::profile::compatibility_profile_id(&profile);
+    profile
 }
 
 #[test]
@@ -212,6 +242,165 @@ fn terminal_memory_prune_removes_payload_reopens_and_rejects_live_or_tampered_hi
         PayloadState::Absent
     ));
     assert_eq!(fs::read(&backup.0).unwrap(), snapshot);
+}
+
+#[test]
+fn rel_terminal_memory_prune_retains_validated_operations_and_relocates_vector_receipt() {
+    let source = Temp::new();
+    let output = Temp::new();
+    let owner = [0xa9; 16];
+    let grant = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let memory;
+    let profile;
+    let generation;
+    let episode;
+    {
+        let mut writer =
+            RelWriter::create_path(&source.0, ReliquaryScope::Project, owner).unwrap();
+        writer
+            .accept_turn_and_advance_branch(
+                TurnInput {
+                    id: "vector-source-turn".into(),
+                    conversation_id: "vector-source".into(),
+                    parent_id: None,
+                    role: "user".into(),
+                    principal_id: Some("maintenance-principal".into()),
+                    timestamp_ns: 10,
+                    content: "retained archive vector source".into(),
+                    attachments: vec![],
+                    project_attachments: vec![],
+                },
+                Branch {
+                    id: "main".into(),
+                    conversation_id: "vector-source".into(),
+                    leaf_node_id: "vector-source-turn".into(),
+                    canonical: true,
+                },
+            )
+            .unwrap();
+        memory = writer
+            .session
+            .common
+            .memories
+            .publish_versioned_creation(
+                &mut writer.container,
+                draft("terminal-memory", &"terminal body retained only as proof ".repeat(120)),
+                1,
+            )
+            .unwrap()
+            .revision
+            .record
+            .id;
+        writer
+            .session
+            .common
+            .memories
+            .tombstone(&mut writer.container, memory, 1)
+            .unwrap();
+        episode = writer
+            .finalize_episode(
+                "vector-source",
+                "vector-source-turn",
+                "vector-source-turn",
+                reliquary_archive::EpisodeOrigin::Live,
+                reliquary_archive::EpisodeBoundary::Explicit,
+                11,
+            )
+            .unwrap();
+        let claim = writer
+            .claim_next_insomnia_input("maintenance-worker", 12, 100, 1)
+            .unwrap()
+            .unwrap();
+        assert_eq!(claim.episode.id, episode);
+
+        profile = writer.publish_compatibility_profile(archive_profile()).unwrap();
+        let input = writer.archive_vector_input(profile).unwrap();
+        let rows = input
+            .sources()
+            .iter()
+            .map(|fragment| ArchiveVectorRow {
+                fragment_id: fragment.fragment_id,
+                max_archive_version: fragment.max_archive_version,
+                vector: vec![1.0, 0.0],
+            })
+            .collect::<Vec<_>>();
+        generation = writer
+            .publish_archive_vector_batch(
+                owner,
+                profile,
+                input.source_archive_version(),
+                &rows,
+            )
+            .unwrap()
+            .unwrap();
+        writer.container.sync().unwrap();
+    }
+
+    let source_container = Container::open_read_only(&source.0).unwrap();
+    let work_history = reliquary_insomnia_store::InsomniaStore::work_history(
+        &source_container,
+        reliquary_insomnia_store::EpisodeId(episode.0),
+    )
+    .unwrap();
+    let old_receipt = source_container
+        .read_frames()
+        .unwrap()
+        .iter()
+        .find(|frame| frame.payload.starts_with(b"RELVGRC1"))
+        .and_then(|frame| {
+            reliquary_vector_store::generation::generation_receipt_target(&frame.payload)
+                .unwrap()
+        })
+        .unwrap();
+    drop(source_container);
+
+    let source_bytes = fs::read(&source.0).unwrap();
+    let plan = VerifiedOwnerCopyPlan::prepare(&source.0).unwrap();
+    let report = prune_terminal_memory_copy(&plan, &source.0, &output.0, &[memory], &grant).unwrap();
+    assert_eq!(report.pruned_memories, 1);
+    assert!(report.transformed_bytes < report.source_bytes);
+    assert_eq!(fs::read(&source.0).unwrap(), source_bytes);
+
+    let output_container = Container::open_read_only(&output.0).unwrap();
+    let new_receipt = output_container
+        .read_frames()
+        .unwrap()
+        .iter()
+        .find(|frame| frame.payload.starts_with(b"RELVGRC1"))
+        .and_then(|frame| {
+            reliquary_vector_store::generation::generation_receipt_target(&frame.payload)
+                .unwrap()
+        })
+        .unwrap();
+    assert_ne!(new_receipt.offset, old_receipt.offset);
+    assert_eq!(new_receipt.length, old_receipt.length);
+    assert_eq!(
+        reliquary_insomnia_store::InsomniaStore::work_history(
+            &output_container,
+            reliquary_insomnia_store::EpisodeId(episode.0),
+        )
+        .unwrap(),
+        work_history
+    );
+    drop(output_container);
+
+    let reopened = RelSession::open_path(&output.0, &grant, [], []).unwrap();
+    assert_eq!(reopened.generations.current_generation(profile), Some(generation));
+    let mapping = reopened
+        .archive_vectors
+        .get(generation.archive_vector_id)
+        .unwrap();
+    assert_eq!(
+        reopened
+            .common
+            .packed_vectors
+            .read_f32_row(mapping.packed_vector_id, 0)
+            .unwrap(),
+        vec![1.0, 0.0]
+    );
+    let history = reopened.memory_history(memory).unwrap().unwrap();
+    assert!(history.tombstone.is_some());
+    assert!(matches!(history.revisions[0].payload, PayloadState::Absent));
 }
 
 #[test]

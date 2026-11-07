@@ -107,10 +107,11 @@ pub(super) fn removable_backing(
         // retain them byte-for-byte as journals and authority evidence.
         b"RELMVEC1" | b"RELCPRO1" | b"RELCPRT1" | b"RELCPRP1" | b"RELRECL1" | b"RELFRS02"
         | b"RELVGEN1" | b"RELVGRC1" | b"RELXIDX2" | b"RELIEPS2" | b"RELIEPC2"
-        | b"RELIFRS1" | b"RELINSW1" | b"RELINSW2" | b"RELINSR1" | b"RELINSC7"
+        | b"RELIFRS1" | b"CVAIMPT1" | b"RELINSW1" | b"RELINSW2" | b"RELINSR1" | b"RELINSC7"
         | b"CVDREAM1" | b"CVDREAM2" | b"RELDRM01" | b"RELDRP02" | b"RELDRG01"
         | b"RELDRS01" | b"RELDRF01" | b"RELDRF02" | b"RELDRB01" | b"RELDRC01"
-        | b"RELXMEM2" | b"RELXMEM3" | b"RELXMRP3" | b"RELXHST1" => Ok(false),
+        | b"RELXMEM2" | b"RELXMEM3" | b"RELXMRP3" | b"RELXHST1" | b"RELPER01"
+        | b"RELETM01" | b"RELRLP01" | b"RELGRF01" | b"RELCOM01" => Ok(false),
         _ if pointer_free_frame(magic) => Ok(false),
         _ => Err(format!(
             "unsupported reclamation frame family {}",
