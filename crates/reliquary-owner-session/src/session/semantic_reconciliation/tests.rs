@@ -1,4 +1,5 @@
 use super::*;
+use crate::DreamMemoryCut;
 use crate::staged_copy::StagedCopy;
 use reliquary_archive::{ImportReceipt, TurnInput};
 use reliquary_container::ReliquaryScope;
@@ -77,6 +78,10 @@ fn append_branch(path: &Path, node: &str, content: &str, mutations: &[&str]) {
             },
         )
         .unwrap();
+    if mutations.is_empty() {
+        container.sync().unwrap();
+        return;
+    }
     let mut memories = MemoryStore::open(&container).unwrap();
     let mut freshness = FreshnessStore::open(&container).unwrap();
     let mut ids = Vec::new();

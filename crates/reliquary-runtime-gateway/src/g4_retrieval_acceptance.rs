@@ -505,7 +505,7 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
     // Pin repository evidence at a local Git revision and attach its identity
     // through the supported project-correlation workflow.
     let repo = temp.0.join("repository");
-    fs::create_dir_all(&repo).unwrap();
+    fs::create_dir_all(repo.join("docs")).unwrap();
     git(&repo, &["init", "-q"]);
     git(&repo, &["config", "user.name", "fixture"]);
     git(&repo, &["config", "user.email", "fixture@example.invalid"]);
@@ -513,8 +513,9 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
         &repo,
         &["config", "warlock.repositoryId", "g4-release-repository"],
     );
-    let repository_bytes = b"Pinned Lantern release notes\n\xce\xbbeta checklist\n";
-    fs::write(repo.join("release-notes.txt"), repository_bytes).unwrap();
+    let repository_bytes =
+        "release notes — calibration complete.\nThe observatory migration is ready.\n".as_bytes();
+    fs::write(repo.join("docs/release-notes.txt"), repository_bytes).unwrap();
     git(&repo, &["add", "."]);
     git(&repo, &["commit", "-qm", "pinned source"]);
     let revision = git(&repo, &["rev-parse", "HEAD"]);
@@ -529,7 +530,7 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
         authorized_principal_id: "principal-a".into(),
         repository: repository.clone(),
         revision,
-        path: "release-notes.txt".into(),
+        path: "docs/release-notes.txt".into(),
         expected_content_hash: Sha256::digest(repository_bytes).into(),
         filename: "release-notes.txt".into(),
         mime_type: Some("text/plain".into()),
@@ -575,7 +576,7 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
         .unwrap()
         .remove(0);
     fs::write(
-        repo.join("release-notes.txt"),
+        repo.join("docs/release-notes.txt"),
         "Edited working tree must not replace pinned bytes.",
     )
     .unwrap();
@@ -1056,7 +1057,7 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
     );
     assert!(request.messages.iter().any(|m| {
         m.content
-            .contains("Pinned Lantern release notes\nλeta checklist")
+            .contains("release notes — calibration complete.\nThe observatory migration is ready.")
     }));
     assert!(
         !request
@@ -1189,6 +1190,28 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
     drop(reopened);
     drop(reopened_gateway);
     let session = RelSession::open_path(&rel_path, &rel_admission, [], []).unwrap();
+    let reopened_attachment = session.archive_source_attachments("conv-l06", "source-doc");
+    assert_eq!(reopened_attachment.len(), 1);
+    let pinned = reopened_attachment[0].project_reference.as_ref().unwrap();
+    assert_eq!(pinned.path, "docs/release-notes.txt");
+    assert_eq!(
+        pinned.revision.repository.repository_id,
+        "g4-release-repository"
+    );
+    assert_eq!(
+        pinned.content_hash,
+        Some(Sha256::digest(repository_bytes).into())
+    );
+    let historical_file = Command::new("git")
+        .arg("-C")
+        .arg(&repo)
+        .arg("show")
+        .arg(format!("{}:{}", pinned.revision.revision, pinned.path))
+        .output()
+        .unwrap();
+    assert!(historical_file.status.success());
+    assert_eq!(historical_file.stdout, repository_bytes);
+    assert_ne!(fs::read(repo.join(&pinned.path)).unwrap(), repository_bytes);
     let cascade_session = RelSession::open_path(&cascade_path, &cascade_admission, [], []).unwrap();
     let phy_b_session = PhySession::open_path(&phy_b_path, &phy_b_admission, []).unwrap();
     assert_eq!(historical_cuts.len(), 3);
@@ -1231,8 +1254,17 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
     ];
     let lifecycle_witness = crate::g4_gateway_acceptance::complete_cohort_lifecycle(&temp.0, paths);
     complete_vector_coverage(paths, profile);
-    let maintenance_witness =
-        crate::g4_completed_maintenance::verify_completed_cohort(&temp.0, paths, profile);
+    let terminal_witness = crate::g4_terminal_acceptance::verify_terminal_semantics(
+        &temp.0,
+        paths[0],
+        &semantic_witness,
+    );
+    let maintenance_witness = crate::g4_completed_maintenance::verify_completed_cohort(
+        &temp.0,
+        paths,
+        profile,
+        &semantic_witness,
+    );
     crate::g4_export::export_completed_cohort(
         &temp.0,
         paths,
@@ -1240,6 +1272,7 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
             "semantics": semantic_witness,
             "lifecycle": lifecycle_witness,
             "maintenance": maintenance_witness,
+            "terminal_maintenance": terminal_witness,
             "historical_cuts": historical_cuts.iter().map(|(name, owner, _, proof)| json!({"name": name, "owner_id": crate::hex(&owner.as_bytes()), "digest": crate::hex(&proof.digest), "retained_records": proof.retained_records, "reopen_equal": true})).collect::<Vec<_>>(),
             "retrieval": {"memory_id": crate::hex(&rel_memory.0), "accepted_use_reopened": true, "host_calls": host.calls.load(Ordering::Relaxed)}
         }),

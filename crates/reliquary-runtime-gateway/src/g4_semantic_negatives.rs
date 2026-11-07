@@ -127,6 +127,9 @@ pub(crate) fn verify_semantic_negatives(
     let memory_version_before = principal_a
         .with_writable_reliquary(lantern, |rel| rel.memory_version())
         .unwrap();
+    let owner_cut_before = principal_a
+        .with_writable_reliquary(lantern, |rel| rel.current_historical_cut())
+        .unwrap();
     assert!(
         principal_a
             .finalize_conversation_episode(
@@ -145,6 +148,12 @@ pub(crate) fn verify_semantic_negatives(
             .unwrap(),
         memory_version_before,
         "an invalid Episode boundary must not mutate Memory"
+    );
+    assert_eq!(
+        principal_a
+            .with_writable_reliquary(lantern, |rel| rel.current_historical_cut())
+            .unwrap(),
+        owner_cut_before
     );
 
     let mut claim = principal_a
@@ -220,9 +229,12 @@ pub(crate) fn verify_semantic_negatives(
                 receipt.memory_ids.len(),
                 receipt.rejected_count,
                 rel.insomnia_work(InsomniaEpisodeId(claim.episode.id.0))
-                    .is_some_and(|work| work.lease_token.is_none()
-                        && work.retry_after_ns.is_none() && work.held_payload.is_none()
-                        && work.attempt_count == receipt.attempt),
+                    .is_some_and(|work| {
+                        work.lease_token.is_none()
+                            && work.retry_after_ns.is_none()
+                            && work.held_payload.is_none()
+                            && work.attempt_count == receipt.attempt
+                    }),
             )
         })
         .unwrap();

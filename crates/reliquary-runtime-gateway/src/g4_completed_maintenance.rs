@@ -32,12 +32,53 @@ pub(crate) fn verify_completed_cohort(
     root: &Path,
     paths: [&Path; 4],
     memory_profile: CompatibilityProfileId,
+    semantic_witness: &Value,
 ) -> Value {
     fs::create_dir_all(root).expect("create G4 maintenance output root");
     let output = root.join("completed-maintenance");
     fs::create_dir_all(&output).expect("create G4 maintenance output directory");
     let before: Vec<_> = paths.iter().map(|path| digest(path)).collect();
     let mut owners = Vec::new();
+    let mut operations = Vec::new();
+    let mut retained_authority = Vec::new();
+    let observe = |source: &Path, destination: &Path| {
+        crate::g4_maintenance_observations::compare_preserved_authority(
+            source,
+            destination,
+            semantic_witness,
+            memory_profile,
+        )
+    };
+    let original = RelSession::open_path_current(paths[0]).unwrap();
+    assert!(
+        original
+            .memory_history(reliquary_owner_session::model::MemoryId([0xfe; 32]))
+            .unwrap()
+            .is_none()
+    );
+    drop(original);
+    let corrupt_copy = output.join("corrupt-revision-copy.rel");
+    VerifiedOwnerCopyPlan::prepare(paths[0])
+        .unwrap()
+        .copy_to(paths[0], &corrupt_copy)
+        .unwrap();
+    let mut corrupt_writer = Container::open_writer(&corrupt_copy).unwrap();
+    corrupt_writer.append(b"RELMDLT1\0").unwrap();
+    corrupt_writer.sync().unwrap();
+    drop(corrupt_writer);
+    let corrupt_hash = digest(&corrupt_copy);
+    let error = RelSession::open_path_current(&corrupt_copy)
+        .err()
+        .expect("malformed Memory revision must fail admission");
+    assert_eq!(
+        error.failure_kind(),
+        reliquary_owner_session::OwnerFailureKind::Corruption
+    );
+    assert_eq!(digest(&corrupt_copy), corrupt_hash);
+    operations.push(
+        json!({"operation":"corrupt_revision_rejection", "failure_kind":"Corruption",
+        "rejected_bytes_unchanged":true, "missing_memory_is_distinct":true}),
+    );
 
     for (index, source) in paths.iter().enumerate() {
         let kind = if index < 2 { "rel" } else { "phy" };
@@ -175,18 +216,36 @@ pub(crate) fn verify_completed_cohort(
             // Add a valid, unreachable backing object to a copy, then prove the
             // owner seam reclaims it while preserving all live authority.
             append_orphan_file(&source_session.0);
+            {
+                use std::io::Read;
+                let reader = Container::open_read_only(&source_session.0).unwrap();
+                let mut cursor = reader.physical_cursor().unwrap();
+                let mut families = std::collections::BTreeSet::new();
+                while let Some(mut frame) = cursor.next_frame().unwrap() {
+                    let mut magic = [0; 8];
+                    frame.read_exact(&mut magic).unwrap();
+                    families.insert(String::from_utf8_lossy(&magic).into_owned());
+                }
+                eprintln!("Completed cohort frame families: {families:?}");
+                operations.push(json!({"operation":"source_frame_inventory", "families":families}));
+            }
             let graph = GraphAdmission::for_replay(source_session.1, [], [], [], [], []);
             let reclamation = output.join("rel-reclaimed.rel");
             let plan = VerifiedOwnerCopyPlan::prepare(&source_session.0).expect("prepare reclaim");
             let report = reclaim_storage_copy(&plan, &source_session.0, &reclamation, &graph)
                 .expect("reclaim supported orphan backing");
             assert!(report.removed_frames > 0);
+            retained_authority.push(observe(&source_session.0, &reclamation));
             let noop = output.join("rel-reclaimed-noop.rel");
             let plan = VerifiedOwnerCopyPlan::prepare(&reclamation).expect("prepare no-op reclaim");
             let second =
                 reclaim_storage_copy(&plan, &reclamation, &noop, &graph).expect("second reclaim");
             assert_eq!(second.removed_frames, 0);
             assert_eq!(fs::read(&reclamation).unwrap(), fs::read(&noop).unwrap());
+            operations.push(
+                json!({"operation":"reclaim", "removed_frames":report.removed_frames,
+                "second_removed_frames":second.removed_frames, "second_byte_identical":true}),
+            );
         }
         if kind == "rel" && index == 0 {
             let profile_repair_path = output.join("rel-profile-repaired.rel");
@@ -200,9 +259,25 @@ pub(crate) fn verify_completed_cohort(
                 execute_profile_repair(&repair, paths[0], &profile_repair_path, &admission)
                     .expect("repair REL compatibility profiles");
             assert_eq!(profile_report.owner_id, owner);
+            assert_eq!(
+                profile_report.retired.len(),
+                1,
+                "the unused three-dimensional profile is retired"
+            );
+            assert!(!profile_report.retired.contains(&memory_profile));
             let repaired = RelSession::open_path(&profile_repair_path, &admission, [], [])
                 .expect("reopen profile-repaired REL");
             assert_eq!(repaired.owner_id(), owner);
+            assert_eq!(
+                plan_profile_repair(&profile_repair_path, &admission, &[memory_profile])
+                    .unwrap()
+                    .retiring()
+                    .len(),
+                0
+            );
+            operations.push(json!({"operation":"profile_repair", "retired_profiles":profile_report.retired.iter()
+                .map(|id| hex(&id.0)).collect::<Vec<_>>(), "retained_profile":hex(&memory_profile.0),
+                "evidence_digest":hex(&profile_report.evidence_digest)}));
             drop(repaired);
 
             let prune_path = output.join("rel-l08-terminal-pruned.rel");
@@ -257,6 +332,19 @@ pub(crate) fn verify_completed_cohort(
                 .expect("independently reopen Archive-pruned REL");
             assert_eq!(reopened.owner_id(), owner);
             assert!(reopened.conversation_tombstone("conv-g4-prune").is_some());
+            assert!(
+                reopened
+                    .archive_node("conv-g4-prune", "terminal-turn")
+                    .is_some()
+            );
+            assert!(
+                reopened
+                    .resolved_archive_turn("conv-g4-prune", "terminal-turn")
+                    .is_err()
+            );
+            operations.push(json!({"operation":"archive_prune", "conversation":"conv-g4-prune",
+                "pruned_conversations":pruned.pruned_conversations, "pruned_turns":pruned.pruned_turns,
+                "retained_node_and_tombstone":true, "payload_unavailable":true}));
             drop(reopened);
 
             // Reclaim the pruned copy so both retained Archive marker families
@@ -275,6 +363,7 @@ pub(crate) fn verify_completed_cohort(
                 .expect("second marker-preserving reclaim");
             assert_eq!(second.removed_frames, 0);
             assert_eq!(fs::read(&reclamation).unwrap(), fs::read(&no_op).unwrap());
+            retained_authority.push(observe(&prune_path, &reclamation));
 
             let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
             let baseline = RelSession::open_path(paths[0], &admission, [], [])
@@ -363,6 +452,8 @@ pub(crate) fn verify_completed_cohort(
                 baseline_proof
             );
             drop(divergent.session);
+            retained_authority.push(observe(paths[0], &prefix_output));
+            retained_authority.push(observe(paths[0], &divergent_output));
             let retry_output = output.join("rel-divergent-retry.rel");
             drop(
                 reconcile_rel_owner(
@@ -388,6 +479,45 @@ pub(crate) fn verify_completed_cohort(
                     .expect("reject reconciliation across owner identities");
             assert!(!error.is_empty());
             assert!(!wrong_owner_output.exists());
+            let conflicting_left = output.join("conflicting-left.rel");
+            let conflicting_right = output.join("conflicting-right.rel");
+            let conflict_plan = VerifiedOwnerCopyPlan::prepare(paths[0]).unwrap();
+            conflict_plan.copy_to(paths[0], &conflicting_left).unwrap();
+            conflict_plan.copy_to(paths[0], &conflicting_right).unwrap();
+            append_maintenance_turn_content(
+                &conflicting_left,
+                "g4-conflict",
+                "same-node",
+                "Left accepted statement",
+            );
+            append_maintenance_turn_content(
+                &conflicting_right,
+                "g4-conflict",
+                "same-node",
+                "Right conflicting statement",
+            );
+            let hashes = [digest(&conflicting_left), digest(&conflicting_right)];
+            let rejected = output.join("conflicting-reconcile-must-not-exist.rel");
+            assert!(
+                reconcile_rel_owner(
+                    &conflicting_left,
+                    &conflicting_right,
+                    &rejected,
+                    &admission,
+                    [],
+                    []
+                )
+                .is_err()
+            );
+            assert!(!rejected.exists());
+            assert_eq!(
+                [digest(&conflicting_left), digest(&conflicting_right)],
+                hashes
+            );
+            operations.push(
+                json!({"operation":"conflicting_reconciliation", "published":false,
+                "same_node_different_bodies_rejected":true,"sources_unchanged":true}),
+            );
         }
     }
 
@@ -439,6 +569,7 @@ pub(crate) fn verify_completed_cohort(
         );
     }
     drop(merged.session);
+    retained_authority.push(observe(paths[1], &cascade_output));
     let cascade_retry = output.join("cascade-divergent-retry.rel");
     drop(
         reconcile_rel_owner(
@@ -460,17 +591,21 @@ pub(crate) fn verify_completed_cohort(
     for (path, expected) in paths.iter().zip(before) {
         assert_eq!(digest(path), expected, "maintenance changed cohort source");
     }
-    json!({"owners": owners, "source_hashes_unchanged": true, "rewrite_policies": ["NewOwner", "PreserveOwner"], "reclamation": "supported REL orphan removed; exact second no-op"})
+    json!({"owners": owners, "source_hashes_unchanged": true, "rewrite_policies": ["NewOwner", "PreserveOwner"], "operations":operations,
+        "retained_authority":retained_authority, "lantern_reconcile_history":true, "cascade_import_reconcile_history":true,
+        "both_reconcile_retries_byte_identical":true})
 }
 
 #[cfg(test)]
 fn append_orphan_file(path: &Path) {
-    let bytes = b"G4 unreachable Archive backing object";
-    let id: [u8; 32] = Sha256::digest(bytes).into();
+    // Exceed the fixed reclamation-proof overhead so this is a real saving,
+    // rather than the intentionally exact no-op for tiny orphan objects.
+    let bytes = b"G4 unreachable Archive backing object".repeat(32);
+    let id: [u8; 32] = Sha256::digest(&bytes).into();
     let mut frame = b"RELFILE1".to_vec();
     frame.extend_from_slice(&id);
     frame.extend_from_slice(&(bytes.len() as u32).to_le_bytes());
-    frame.extend_from_slice(bytes);
+    frame.extend_from_slice(&bytes);
     let mut writer = Container::open_writer(path).expect("open maintenance copy writer");
     writer.append(&frame).expect("append orphan backing");
     writer.sync().expect("sync orphan backing");
@@ -478,6 +613,15 @@ fn append_orphan_file(path: &Path) {
 
 #[cfg(test)]
 fn append_maintenance_turn(path: &Path, conversation: &str, turn_id: &str) {
+    append_maintenance_turn_content(
+        path,
+        conversation,
+        turn_id,
+        &format!("Accepted maintenance reconciliation witness: {turn_id}"),
+    );
+}
+
+fn append_maintenance_turn_content(path: &Path, conversation: &str, turn_id: &str, content: &str) {
     let mut writer =
         RelWriter::open_path_current(path).expect("open same-owner maintenance writer");
     writer
@@ -489,7 +633,7 @@ fn append_maintenance_turn(path: &Path, conversation: &str, turn_id: &str) {
                 role: "user".into(),
                 principal_id: Some("operator".into()),
                 timestamp_ns: 9_000_000,
-                content: format!("Accepted maintenance reconciliation witness: {turn_id}"),
+                content: content.into(),
                 attachments: vec![],
                 project_attachments: vec![],
             },

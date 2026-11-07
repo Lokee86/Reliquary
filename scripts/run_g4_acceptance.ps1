@@ -35,7 +35,7 @@ try {
     Invoke-Cargo @('test', '-p', 'reliquary-runtime-gateway', '--locked', '--offline', '-j', '1', '--target-dir', $target, 'g4_t04_joined_vectors_context_retrieval_and_confirmed_use', '--', '--test-threads=1')
     $first = Get-Content -LiteralPath (Join-Path $exportDir 'witness.json') -Raw | ConvertFrom-Json
     $second = Get-Content -LiteralPath (Join-Path $env:G4_EXPORT_DIR 'witness.json') -Raw | ConvertFrom-Json
-    if (($first.semantics.sources | ConvertTo-Json -Depth 16 -Compress) -ne ($second.semantics.sources | ConvertTo-Json -Depth 16 -Compress)) { throw 'Regenerated authored semantic witnesses are not deterministic.' }
+    if (($first.semantics | ConvertTo-Json -Depth 32 -Compress) -ne ($second.semantics | ConvertTo-Json -Depth 32 -Compress)) { throw 'Regenerated authored semantic witnesses are not deterministic.' }
     $env:G4_EXPORT_DIR = $exportDir
     Invoke-Cargo @('build', '--manifest-path', 'cli/Cargo.toml', '--locked', '--offline', '-j', '1', '--target-dir', $target)
     Invoke-Cargo @('build', '--manifest-path', 'tests/external-consumer/Cargo.toml', '--locked', '--offline', '-j', '1', '--target-dir', $target)

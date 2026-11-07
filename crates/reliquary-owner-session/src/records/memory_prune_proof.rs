@@ -233,6 +233,7 @@ pub(crate) fn pointer_free_frame(magic: &[u8]) -> bool {
             | b"RELTURN2"
             | b"RELFILE1"
             | b"RELBRCH1"
+            | b"RELTIT01"
             | b"RELEPIS1"
             | b"CVAFRG01"
             | b"RELECHO1"

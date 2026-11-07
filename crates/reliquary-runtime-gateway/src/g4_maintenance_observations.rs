@@ -7,7 +7,7 @@ use reliquary_container::Container;
 #[cfg(test)]
 use reliquary_freshness_store::FreshnessMemoryId;
 #[cfg(test)]
-use reliquary_owner_session::{CompatibilityProfileId, RelSession};
+use reliquary_owner_session::{RelSession, model::CompatibilityProfileId};
 #[cfg(test)]
 use reliquary_vector_store::generation::decode_generation;
 #[cfg(test)]
