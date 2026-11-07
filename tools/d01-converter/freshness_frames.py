@@ -56,7 +56,8 @@ def journal_frame(owner, row):
 
 def settlement_frame(owner, raw, proof, births, entries):
     value = proof["settlement"]
-    require(raw[:8] == b"CVAFRS07" and raw[8:24] == owner and raw[24:56] == identity(value["import_id"])
+    require(329 <= len(raw) <= 16 * 1024 * 1024 and raw[:8] == b"CVAFRS07"
+            and raw[8:24] == owner and raw[24:56] == identity(value["import_id"])
             and hashlib.sha256(SOURCE_CHECKSUM_DOMAIN + raw[:-32]).digest() == raw[-32:],
             "retained FRS07 checksum or owner changed")
     require(raw[248:296] == pack("<QQQQQQ", *(value[key] for key in (
@@ -73,7 +74,10 @@ def settlement_frame(owner, raw, proof, births, entries):
     for row_id, record in records:
         materialized.extend(row_id + pack("<h", record["score"])
                             + optional(record["admitted_at_turn"]) + optional(record["accounted_turn"]))
-    return b"RELHFA01" + pack("<I", len(materialized)) + materialized + raw
+    clock = pack("<QQQQ", *(value[key] for key in (
+        "global_version", "archive_version", "graph_version", "memory_graph_version",
+    )))
+    return b"RELHFA01" + clock + pack("<I", len(materialized)) + materialized + raw
 
 
 def decode_source_lines(path, expected):

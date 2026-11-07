@@ -171,7 +171,8 @@ def compose(args, witness):
     if kind == 1:
         native_adapters.extend([
             adapter(args.transfer_root / "insomnia-work-transfer-v1", "insomnia-work", source_sha, "source_ordinal"),
-            adapter(args.transfer_root / "freshness-target-transfer-v1", "freshness-target", source_sha, "source_ordinal"),
+            adapter(args.freshness_target_transfer or args.transfer_root / "freshness-target-transfer-v2",
+                    "freshness-target", source_sha, "source_ordinal"),
         ])
     artifacts = manifest["artifact_sha256"].copy()
     native = owner["native"]
@@ -245,6 +246,8 @@ def main():
     parser.add_argument("--source-coverage", type=Path, required=True)
     parser.add_argument("--source-copies", type=Path, required=True)
     parser.add_argument("--transfer-root", type=Path, required=True)
+    parser.add_argument("--freshness-target-transfer", type=Path,
+                        help="current Freshness adapter directory for a separate conversion stage")
     parser.add_argument("--fixture", required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()

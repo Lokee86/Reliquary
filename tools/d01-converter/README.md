@@ -4,7 +4,7 @@ Converter tools live under tools/d01-converter/, outside the explicit 23-package
 
 ## Reviewed disposable copies
 
-The authentic path composes the pinned historical physical witness with per-family source transfers. The composer requires a disposition for every source ordinal, verifies the held copy and transfer checksums, and writes a create-only private JSONL stream. Provide the Memory, Graph, Entity, Resolution, Community, vector, Archive, Insomnia work, and Freshness transfer receipts in the protected transfer root. Archive, Insomnia work, and Freshness apply to REL.
+The authentic path composes the pinned historical physical witness with per-family source transfers. The composer requires a disposition for every source ordinal, verifies the held copy and transfer checksums, and writes a create-only private JSONL stream. Provide the Memory, Graph, Entity, Resolution, Community, vector, Archive, Insomnia work, and Freshness transfer receipts in the protected transfer root. Archive, Insomnia work, and Freshness apply to REL. The composer reads the current Freshness adapter from `freshness-target-transfer-v2`, or a separate directory supplied through `--freshness-target-transfer`.
 
     python -B tools/d01-converter/compose_authentic.py --source-tools <historical-source-worktree/scripts> --source-coverage <protected-source-coverage.json> --source-copies <disposable-copy-root> --transfer-root <protected-transfer-root> --fixture <reviewed-relative-path> --output <new-private-transfer.jsonl>
     cargo build --manifest-path tools/d01-converter/target-writer/Cargo.toml --locked --offline -j 1 --target-dir target-codex-check
