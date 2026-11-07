@@ -67,7 +67,16 @@ fn initialize_rel(path: &Path, owner: [u8; 16]) {
 #[derive(Default)]
 struct LocalHost {
     reconcile_unknown: Mutex<bool>,
+    operation_status: Mutex<std::collections::HashMap<String, HostOperationStatus>>,
     handoffs: AtomicUsize,
+}
+impl LocalHost {
+    fn set_status(&self, stable_id: &str, status: HostOperationStatus) {
+        self.operation_status
+            .lock()
+            .unwrap()
+            .insert(stable_id.to_owned(), status);
+    }
 }
 impl TrustedHostAdapter for LocalHost {
     fn configured_capabilities(&self) -> BTreeSet<RuntimeCapability> {
@@ -115,8 +124,14 @@ impl TrustedHostAdapter for LocalHost {
             durably_accepted: true,
         })
     }
-    fn status(&self, _: RuntimeCapability, _: &str) -> Result<HostOperationStatus, String> {
-        Ok(HostOperationStatus::Unknown)
+    fn status(&self, _: RuntimeCapability, stable_id: &str) -> Result<HostOperationStatus, String> {
+        Ok(self
+            .operation_status
+            .lock()
+            .unwrap()
+            .get(stable_id)
+            .copied()
+            .unwrap_or(HostOperationStatus::Unknown))
     }
     fn cancel(&self, _: RuntimeCapability, _: &str) -> Result<HostCancelOutcome, String> {
         Ok(HostCancelOutcome::Unknown)
@@ -143,6 +158,38 @@ fn wait_for_poll(counter: &AtomicUsize, prior: usize) {
         counter.load(Ordering::SeqCst) > prior,
         "worker did not poll"
     );
+}
+
+fn run_freshness_worker(
+    gateway: &Gateway,
+    instance: Arc<Instance>,
+    owner: OwnerId,
+) -> (u64, Vec<reliquary_application::FreshnessTransition>) {
+    let freshness = Arc::new(FreshnessWorker::new(instance.clone(), owner, 8));
+    let mut workers = gateway
+        .start_owner_workflows(
+            instance,
+            owner,
+            OwnerWorkflowSet::new().freshness(freshness.clone()),
+            OwnerWorkerConfig {
+                idle_poll: Duration::from_millis(2),
+            },
+        )
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(2);
+    let evaluated = loop {
+        if let Some(turn) = freshness.evaluated_turn().unwrap() {
+            break turn;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "Freshness worker did not evaluate pending owner cut"
+        );
+        thread::sleep(Duration::from_millis(2));
+    };
+    let transitions = freshness.transitions().unwrap();
+    workers.stop().unwrap();
+    (evaluated, transitions)
 }
 
 #[test]
@@ -463,6 +510,58 @@ fn run_lifecycle(root: &Path, paths: [&Path; 4], seed_manifest: bool) -> serde_j
         .unwrap();
     assert!(matches!(dispatched, HostDispatchOutcome::Dispatched(_)));
     assert_eq!(host.handoffs.load(Ordering::SeqCst), 1);
+
+    // Bob owns a separate accepted host operation. The host completes that
+    // exact stable operation after Gateway shutdown; a fresh valid Bob
+    // Instance must reconcile its durable receipt without a second handoff.
+    let resumable = ConversationSubmissionId::new(
+        "g4-conversation",
+        SubmissionId::new("host-resume-turn").unwrap(),
+    )
+    .unwrap();
+    let resume_revision = queue.conversation_revision(&resumable.conversation_id);
+    bob.submit_conversation(
+        &mut queue,
+        resumable.conversation_id.clone(),
+        resumable.submission_id.clone(),
+        "durable host work to resume after Gateway restart",
+        resume_revision,
+    )
+    .unwrap();
+    let resume_dispatched = bob
+        .dispatch_conversation_submission(
+            &mut queue,
+            &resumable,
+            RuntimeCapability::ConversationExecution,
+            &router,
+        )
+        .unwrap();
+    assert!(matches!(
+        resume_dispatched,
+        HostDispatchOutcome::Dispatched(_)
+    ));
+    assert!(matches!(
+        alice.dispatch_conversation_submission(
+            &mut queue,
+            &resumable,
+            RuntimeCapability::ConversationExecution,
+            &router,
+        ),
+        Err(GatewayError::UnauthorizedQueueSubmission { .. })
+    ));
+    let pre_restart_operation = bob
+        .host_operation_status(&queue, &resumable, RuntimeCapability::ConversationExecution)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        pre_restart_operation.phase,
+        DurableHostOperationPhase::Accepted
+    );
+    host.set_status(
+        &pre_restart_operation.stable_id,
+        HostOperationStatus::Completed,
+    );
+    assert_eq!(host.handoffs.load(Ordering::SeqCst), 2);
     *host.reconcile_unknown.lock().unwrap() = true;
     router.reconnect();
     assert_eq!(
@@ -486,7 +585,7 @@ fn run_lifecycle(root: &Path, paths: [&Path; 4], seed_manifest: bool) -> serde_j
             .phase,
         DurableHostOperationPhase::Held
     );
-    assert_eq!(host.handoffs.load(Ordering::SeqCst), 1);
+    assert_eq!(host.handoffs.load(Ordering::SeqCst), 2);
     assert!(
         !alice
             .with_writable_reliquary(mounted, |rel| {
@@ -540,6 +639,11 @@ fn run_lifecycle(root: &Path, paths: [&Path; 4], seed_manifest: bool) -> serde_j
         .unwrap();
     wait_for_poll(&polls, after_stop);
     restarted.stop().unwrap();
+
+    // Exercise the real durable-owner workflow, which was idle in the
+    // scheduler-only Poller test. Its work key is the persisted REL turn cut.
+    let (freshness_cut, freshness_transitions) =
+        run_freshness_worker(&gateway, Arc::clone(&instance), mounted);
 
     // Revocation is checked on access for an already authenticated Instance.
     control.revoke(alice_token).unwrap();
@@ -596,7 +700,25 @@ fn run_lifecycle(root: &Path, paths: [&Path; 4], seed_manifest: bool) -> serde_j
     let reopened = reopened_gateway
         .instance("principal-a", [reopened_owner], [])
         .unwrap();
-    let reopened_queue = reopened
+    let recovery_token = "g4 principal bob recovery token with sufficient entropy";
+    let (recovery_admission, recovery_control) =
+        TrustedHostAdmission::new([HostCredentialBinding::new(
+            "principal-b",
+            recovery_token,
+            [reopened_owner],
+            [phy_b],
+        )])
+        .install(&reopened_gateway)
+        .unwrap();
+    let recovered_bob = Arc::new(recovery_admission.authenticate(recovery_token).unwrap());
+    let (recovered_freshness_cut, recovered_freshness_transitions) = run_freshness_worker(
+        &reopened_gateway,
+        Arc::clone(&recovered_bob),
+        reopened_owner,
+    );
+    assert_eq!(recovered_freshness_cut, freshness_cut);
+    assert_eq!(recovered_freshness_transitions, freshness_transitions);
+    let mut reopened_queue = reopened
         .open_conversation_queue(&queue_path, reopened_owner)
         .unwrap();
     assert_eq!(
@@ -647,12 +769,96 @@ fn run_lifecycle(root: &Path, paths: [&Path; 4], seed_manifest: bool) -> serde_j
             .phase,
         DurableHostOperationPhase::Held
     );
+    let recovery_router = recovery_admission.connect_runtime_host(host.clone());
+    *host.reconcile_unknown.lock().unwrap() = false;
+    let resumed = recovered_bob
+        .dispatch_conversation_submission(
+            &mut reopened_queue,
+            &resumable,
+            RuntimeCapability::ConversationExecution,
+            &recovery_router,
+        )
+        .unwrap();
+    assert!(matches!(resumed, HostDispatchOutcome::Reconciled(_)));
+    let resumed_operation = recovered_bob
+        .host_operation_status(
+            &reopened_queue,
+            &resumable,
+            RuntimeCapability::ConversationExecution,
+        )
+        .unwrap()
+        .unwrap();
+    assert_eq!(resumed_operation.stable_id, pre_restart_operation.stable_id);
+    assert_eq!(
+        resumed_operation.payload_digest,
+        pre_restart_operation.payload_digest
+    );
+    assert_eq!(
+        resumed_operation.phase,
+        DurableHostOperationPhase::Completed
+    );
+    assert_eq!(host.handoffs.load(Ordering::SeqCst), 2);
+    let repeated = recovered_bob
+        .dispatch_conversation_submission(
+            &mut reopened_queue,
+            &resumable,
+            RuntimeCapability::ConversationExecution,
+            &recovery_router,
+        )
+        .unwrap();
+    assert!(matches!(repeated, HostDispatchOutcome::Reconciled(_)));
+    assert_eq!(host.handoffs.load(Ordering::SeqCst), 2);
+    drop(reopened_queue);
+    let receipt_reopen = recovered_bob
+        .open_conversation_queue(&queue_path, reopened_owner)
+        .unwrap();
+    let durable_resume = recovered_bob
+        .host_operation_status(
+            &receipt_reopen,
+            &resumable,
+            RuntimeCapability::ConversationExecution,
+        )
+        .unwrap()
+        .unwrap();
+    assert_eq!(durable_resume.stable_id, pre_restart_operation.stable_id);
+    assert_eq!(
+        durable_resume.payload_digest,
+        pre_restart_operation.payload_digest
+    );
+    assert_eq!(durable_resume.phase, DurableHostOperationPhase::Completed);
+    assert_eq!(
+        recovered_bob
+            .host_operation_status(
+                &receipt_reopen,
+                &held,
+                RuntimeCapability::ConversationExecution
+            )
+            .unwrap()
+            .unwrap()
+            .phase,
+        DurableHostOperationPhase::Held
+    );
+    recovery_control.revoke(recovery_token).unwrap();
+    assert!(matches!(
+        recovered_bob.host_operation_status(
+            &receipt_reopen,
+            &resumable,
+            RuntimeCapability::ConversationExecution
+        ),
+        Err(GatewayError::CredentialRevoked)
+    ));
+    drop(receipt_reopen);
     let (accepted_turns, archive_presence) = reopened
         .with_writable_reliquary(reopened_owner, |rel| {
             (
                 rel.accepted_turn_sources().len(),
-                ["accepted-turn", "cancelled-turn", "host-held-turn"]
-                    .map(|id| rel.archive_node("g4-conversation", id).is_some()),
+                [
+                    "accepted-turn",
+                    "cancelled-turn",
+                    "host-held-turn",
+                    "host-resume-turn",
+                ]
+                .map(|id| rel.archive_node("g4-conversation", id).is_some()),
             )
         })
         .unwrap();
@@ -660,7 +866,7 @@ fn run_lifecycle(root: &Path, paths: [&Path; 4], seed_manifest: bool) -> serde_j
         accepted_turns,
         original_turns + if finalize_won { 2 } else { 1 }
     );
-    assert_eq!(archive_presence, [true, false, false]);
+    assert_eq!(archive_presence, [true, false, false, false]);
     assert_eq!(
         reopened
             .with_writable_reliquary(reopened_owner, |rel| {
@@ -697,8 +903,16 @@ fn run_lifecycle(root: &Path, paths: [&Path; 4], seed_manifest: bool) -> serde_j
         "accepted_present": archive_presence[0],
         "cancelled_present": archive_presence[1],
         "held_present": archive_presence[2],
+        "resumed_host_text_present": archive_presence[3],
         "checkpoint_replayed": items.len(),
         "journal_tail_recovered": true,
-        "worker_restart_verified": true
+        "worker_restart_verified": true,
+        "recovered_host_operation": resumed_operation.stable_id,
+        "recovered_host_payload_digest": crate::hex(&resumed_operation.payload_digest),
+        "recovered_host_operation_phase": "completed",
+        "host_handoffs_after_retry": host.handoffs.load(Ordering::SeqCst),
+        "held_operation_phase": "held",
+        "freshness_cut_resumed": recovered_freshness_cut,
+        "freshness_transitions_resumed": recovered_freshness_transitions.len()
     })
 }
