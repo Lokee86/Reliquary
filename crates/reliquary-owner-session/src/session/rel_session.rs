@@ -248,6 +248,11 @@ impl RelSession {
         Self::open(container, &owner_identity, [], [])
     }
 
+    #[cfg(feature = "d02-observation")]
+    pub(super) fn verification_history_generation(&self) -> [u8; 32] {
+        self.history_generation
+    }
+
     pub fn owner_id(&self) -> [u8; 16] {
         self.owner_id
     }

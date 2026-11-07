@@ -6,6 +6,7 @@ publish = false
 
 [features]
 oracle-support = []
+d02-observation = []
 
 [dependencies]
 reliquary-container = { path = "../reliquary-container" }

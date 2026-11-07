@@ -12,13 +12,13 @@ The comparator imports no Reliquary converter or product traversal. It consumes 
 
 ## Contract provenance
 
-The schema and row fixtures in contract-v1 were copied from Reliquary-pg-c01-v1 commit dd77dfa8f7d3c73e3e03cd07b2f4f0f7c9850fae:
+The schema and row fixtures in contract-v1 were copied from Reliquary-pg-c01-v1 commit 0f824a09fe01f5ff327ab56f3296f36d8f4d7c87:
 
 - tools/corpus-evidence-v1/schemas/semantic-row-v1.schema.json
 - tools/corpus-evidence-v1/fixtures/comparator-pass-source-rows.v1.jsonl
 - tools/corpus-evidence-v1/fixtures/comparator-pass-target-rows.v1.jsonl
 
-The PG-C01 contract remains under independent review. This copy pins the inputs used by synthetic tests and does not declare that ticket accepted.
+Commit 0f824a09 adds test-only independent reference-encoder tests. The schema and fixture blob IDs listed above, the C01 goldens/report example, and the bundle hash match dd77dfa8 exactly. The PG-C01 contract remains under independent review; this pin does not declare that ticket accepted.
 
 ## Reader boundary for the next increment
 

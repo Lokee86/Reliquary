@@ -1,0 +1,17 @@
+[workspace]
+resolver = "3"
+
+[package]
+name = "d02-current-reader"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+reliquary-owner-session = { path = "../../../crates/reliquary-owner-session", features = ["d02-observation"] }
+serde_json = "1"
+sha2 = "0.10"
+
+[dev-dependencies]
+tempfile = "3"
+reliquary-memory-core = { path = "../../../crates/reliquary-memory-core" }
