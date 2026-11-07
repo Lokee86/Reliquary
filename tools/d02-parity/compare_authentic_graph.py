@@ -107,13 +107,10 @@ def graph_value(body, owner, local, global_, time):
     return {"global_version": global_, "time_ns": time, "changes": changes}
 
 
-def target_graph(path, owner, candidate_digest, limit):
+def current_frames(path, owner, candidate_digest):
     identity = bytes.fromhex(owner["owner_uuid"])
     expected_header = HEADER + bytes([KINDS[owner["kind"]], SCOPES[owner["scope"]]]) + bytes(6) + identity
-    clock = Clock(limit)
     digest = hashlib.sha256()
-    graph = {domain: [] for domain in DOMAINS}
-    timelines = {domain: [] for domain in DOMAINS}
     with path.open("rb") as file:
         header = file.read(len(expected_header))
         require(header == expected_header, "candidate current Container identity differs")
@@ -125,24 +122,33 @@ def target_graph(path, owner, candidate_digest, limit):
             require(len(payload) == extent, "truncated current frame")
             digest.update(length)
             digest.update(payload)
-            global_, body = clock.read(payload)
-            if body.startswith(b"RELGPB"):
-                require(global_ is not None, "unwrapped current Graph publication")
-                local = len(graph["graph"]) + 1
-                value = graph_value(body, identity, local, global_, clock.times[global_])
-                key = local.to_bytes(8, "big")
-                graph["graph"].append(commitment("graph", "publication", key, value))
-                timelines["graph"].append((global_, local))
-                memory = [row for row in value["changes"] if row["kind"] <= 8]
-                if memory:
-                    graph["memory_graph"].append(commitment(
-                        "memory_graph", "publication", key, {**value, "changes": memory},
-                    ))
-                    timelines["memory_graph"].append((global_, local))
-            else:
-                require(not body.startswith(b"RELGRF"), "unversioned current Graph row outside pinned migration")
-    require(digest.hexdigest() == candidate_digest and len(clock.times) == limit,
-            "candidate current bytes or global population differs")
+            yield payload
+    require(digest.hexdigest() == candidate_digest, "candidate current bytes differ")
+
+
+def target_graph(path, owner, candidate_digest, limit):
+    identity = bytes.fromhex(owner["owner_uuid"])
+    clock = Clock(limit)
+    graph = {domain: [] for domain in DOMAINS}
+    timelines = {domain: [] for domain in DOMAINS}
+    for payload in current_frames(path, owner, candidate_digest):
+        global_, body = clock.read(payload)
+        if body.startswith(b"RELGPB"):
+            require(global_ is not None, "unwrapped current Graph publication")
+            local = len(graph["graph"]) + 1
+            value = graph_value(body, identity, local, global_, clock.times[global_])
+            key = local.to_bytes(8, "big")
+            graph["graph"].append(commitment("graph", "publication", key, value))
+            timelines["graph"].append((global_, local))
+            memory = [row for row in value["changes"] if row["kind"] <= 8]
+            if memory:
+                graph["memory_graph"].append(commitment(
+                    "memory_graph", "publication", key, {**value, "changes": memory},
+                ))
+                timelines["memory_graph"].append((global_, local))
+        else:
+            require(not body.startswith(b"RELGRF"), "unversioned current Graph row outside pinned migration")
+    require(len(clock.times) == limit, "candidate current global population differs")
     memory_head = max((local for _, local in timelines["memory_graph"]), default=0)
     for domain in DOMAINS:
         graph[domain].append(commitment(domain, "clock", b"memory_graph", memory_head))

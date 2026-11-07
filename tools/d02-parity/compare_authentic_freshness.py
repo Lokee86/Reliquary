@@ -13,6 +13,7 @@ from archive_binding_evidence import hex_digest
 from authentic_witness import require
 from compare_archive_bindings import digest_file
 from evidence_io import WitnessInputError, reject_json_number, strict_json_document, unique_object
+from freshness_journal import compare_journal
 
 SCHEMA = "reliquary-d02-authentic-freshness-comparison-v1"
 READER_SCHEMA = "reliquary-d02-retained-freshness-v1"
@@ -52,14 +53,18 @@ def records_sha256(rows):
     return digest.hexdigest()
 
 
-def expectation(receipt_path, receipt_digest, source_digest):
+def source_summary(receipt_path, receipt_digest, source_digest):
     receipt = source_json(receipt_path, receipt_digest, 64 * 1024)
     require(receipt.get("schema_id") == "reliquary-f03-freshness-source-transfer-v1"
             and receipt.get("target_conversion_verified") is False, "wrong Freshness source receipt schema")
     selected = [row for row in receipt["sources"] if row["source_sha256"] == source_digest]
     require(len(selected) == 1 and bool(re.fullmatch(r"copy-[0-9]{4}", selected[0]["copy_id"])),
             "Freshness receipt does not identify exactly one F03 REL")
-    summary = selected[0]
+    return selected[0]
+
+
+def expectation(receipt_path, receipt_digest, source_digest):
+    summary = source_summary(receipt_path, receipt_digest, source_digest)
     path = receipt_path.with_name(f'{summary["copy_id"]}-freshness-frs07-authority.json')
     artifact = source_json(path, summary["settlement_sha256"], 16 * 1024 * 1024)
     value = artifact["settlement"]
@@ -111,14 +116,20 @@ def compare(reader, candidate, candidate_digest, receipt, receipt_digest, source
     require(isinstance(actual, dict) and actual.keys() == expected.keys(), "current Freshness projection shape differs")
     differences = [key for key, value in expected.items() if actual[key] != value]
     require(not differences, f"retained Freshness values differ in {', '.join(differences)}")
+    summary = source_summary(receipt, receipt_digest, source_digest)
+    journal_rows = compare_journal(
+        candidate, owner, candidate_digest, expected,
+        receipt.with_name(f'{summary["copy_id"]}-freshness-journal.jsonl'), summary["journal_sha256"],
+    )
     require(observed == run_reader(reader, candidate), "fresh-process Freshness observations differ")
     require(digest_file(candidate) == candidate_digest and digest_file(reader) == reader_digest,
             "candidate or current reader changed during verification")
     return {
-        "schema_id": SCHEMA, "status": "PASS", "scope": "one_owner_retained_freshness_authority_and_score_anchors",
+        "schema_id": SCHEMA, "status": "PASS", "scope": "one_owner_retained_freshness_authority_journal_and_score_anchors",
         "cohort_parity_status": "INCOMPLETE", "source_file_sha256": source_digest,
         "candidate_sha256": candidate_digest, "reader_sha256": reader_digest,
-        "source_transfer_receipt_sha256": receipt_digest, "projection": expected, "fresh_process_repeats": "2",
+        "source_transfer_receipt_sha256": receipt_digest, "projection": expected,
+        "direct_journal_rows": str(journal_rows), "fresh_process_repeats": "2",
     }
 
 
