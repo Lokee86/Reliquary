@@ -2,7 +2,7 @@
 
 Parent index: [Architecture](INDEX.md). Parent plan: [post-G4 execution](post-g4-parallel-execution-plan-2026-11-06.md).
 
-**Status: implementation-ready specification; G5 not started or accepted.** Benchmark harness development and native 2.1 measurements may proceed now. Comparative historical measurements require F03-admitted old owners and D02-admitted equivalent new owners. Final G5 acceptance depends on D03-T04; no benchmark result alone authorizes activation.
+**Status: G5-T01 policy freeze is complete; the overall G5 performance/release capability remains unaccepted.** G5-T02 runner/adapter development may proceed. Comparative historical measurements require F03-admitted old owners and D02-admitted equivalent new owners; G5-T03 remains gated by F03-V04 and D02-T04. Final G5 acceptance depends on D03-T04; no benchmark result alone authorizes activation.
 
 ## Purpose
 
@@ -56,7 +56,7 @@ Benchmarks require an exclusive machine measurement window, not merely a separat
 
 | Ticket | Hard predecessors | Deliverable | Acceptance and evidence |
 | --- | --- | --- | --- |
-| G5-T01 — freeze workload/policy | PG-C01 | Versioned workload manifest, benchmark machine description, thresholds and comparison method | Source-controlled case IDs/data/model inputs, correct statistical self-tests, no post-result threshold changes |
+| G5-T01 — freeze workload/policy | PG-C01 | Versioned workload manifest, benchmark machine description, thresholds and comparison method | Source-controlled case IDs/data/model inputs, correct statistical self-tests, no post-result threshold changes; [accepted T01 evidence](g5-t01-policy-evidence-2026-11-07.md) |
 | G5-T02 — native runner and baseline adapters | G5-T01 | Reproducible runner, 2.1 generated workloads and separately built old adapter | Timers/peak-memory units verified, no fake cold-cache claims, workload semantic self-checks; native results marked provisional until paired sources exist |
 | G5-T03 — comparative corpus measurements | G5-T02, F03-V04, D02-T04 | Paired old/new evidence for G5-01..08 on exact parity-approved files | All mandatory thresholds pass or explicitly remain inconclusive/fail; raw samples, source hashes and no source mutation |
 | G5-T04 — final release/recovery rehearsal | G5-T03, D03-T04, PG-C02 | Exact packaged-runtime regression, privacy/host/cutover rehearsal and independent release review | G4/GM/P01 + full Rust/CLI/consumer suites, DAG, packaging old-reader absence, D03 prewrite rollback and postwrite fence all pass |

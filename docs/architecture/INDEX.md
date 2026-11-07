@@ -15,6 +15,7 @@
 - [PG-C02 cross-shell acceptance evidence](post-g4-pgc02-acceptance-evidence-2026-11-07.md) — accepted runner repair and retained raw logs.
 - [PG-C01 synthetic contract evidence](pg-c01-synthetic-contract-acceptance-evidence-2026-11-07.md) — frozen synthetic contract scope and limits.
 - [F03-V01 current-head admission evidence](f03-v01-current-head-admission-evidence-2026-11-07.md) — copy-only current-head acceptance and remaining history gaps.
+- [G5-T01 workload and policy evidence](g5-t01-policy-evidence-2026-11-07.md) — accepted pre-measurement freeze only; no measurements or full G5 acceptance.
 
 
 
