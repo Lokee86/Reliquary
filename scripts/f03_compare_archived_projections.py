@@ -117,7 +117,7 @@ def freshness_events(oracle, owner, output, artifacts, differences, schema_id):
     require(not expected, "retained Freshness event stream omitted archived identities")
     return comparable, reconciled, pending
 
-def ledger(archived, coverage, output, artifacts):
+def ledger(archived, coverage, output, artifacts, archive_replay_sha=None):
     schema_id = coverage["schema_id"]
     require(schema_id in SCHEMAS and coverage["authentic_admission"] is False,
             "unsupported historical exporter coverage schema")
@@ -134,6 +134,7 @@ def ledger(archived, coverage, output, artifacts):
     pending_freshness_events = []
     differences = []
     remaining = []
+    unavailable_archive_projections = []
     unrepresented = []
     for (relative, pinned), owner in zip(sorted(PINS.items()), sources):
         require(owner["source_sha256"] == pinned, "source does not match reviewed F03 custody")
@@ -179,6 +180,15 @@ def ledger(archived, coverage, output, artifacts):
             matching_freshness_events += event_matches
             unavailable_freshness_events.extend(reconciled)
             pending_freshness_events.extend(pending)
+            for projection in oracle["global_projection"]:
+                if "rejected" in projection:
+                    require(projection["rejected"] == "missing Archive reference",
+                            "archived composed cut has an unclassified rejection")
+                    unavailable_archive_projections.append({
+                        "copy_id": owner["copy_id"], "global_version": str(projection["cut"]),
+                        "availability": "unavailable", "reason": "missing Archive reference",
+                        "fresh_legacy_replay_verified": archive_replay_sha is not None,
+                    })
             remaining.append({
                 "copy_id": owner["copy_id"],
                 "whole_owner_archived_cuts": rows[relative]["global_projection_points"],
@@ -187,12 +197,17 @@ def ledger(archived, coverage, output, artifacts):
                 "freshness_archived_event_cut_count": len(oracle["freshness_events"]),
                 "freshness_archived_activity_cuts_omitted": activity_omitted,
                 "freshness_cut_basis": "archived event query uses current MemoryGraph head; FRS07 source witness uses each event's recorded proof coordinate",
-                "disposition": "separate archived projection replay required; no new equivalence assumed",
+                "disposition": ("archived projection reproduced at the frozen coordinates"
+                                if archive_replay_sha else "fresh archived projection replay required"),
             })
     return {
         "status": "FAIL" if differences else "INCOMPLETE",
         "scope": "archived native semantic head projection comparison",
         "authentic_admission": False,
+        "fresh_archived_replay_audit_sha256": archive_replay_sha,
+        "archive_projection_reconciliation": (
+            "FAIL" if differences else "PASS" if archive_replay_sha and not pending_freshness_events else "INCOMPLETE"
+        ),
         "matching_heads": matches,
         "matching_global_orderings": matching_orderings,
         "matching_global_points": matching_global_points,
@@ -201,7 +216,8 @@ def ledger(archived, coverage, output, artifacts):
         "matched_unavailable_freshness_events": unavailable_freshness_events,
         "pending_freshness_event_differences": pending_freshness_events,
         "unexplained_differences": differences,
-        "outstanding_historical_coordinates": remaining,
+        "archived_projection_coverage": remaining,
+        "archived_unavailable_global_projections": unavailable_archive_projections,
         "source_projections_without_archived_coverage": unrepresented,
     }
 
@@ -210,13 +226,22 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--archive", type=Path, required=True)
     parser.add_argument("--source-coverage", type=Path, required=True)
+    parser.add_argument("--audited-archive-replay", type=Path)
     args = parser.parse_args()
     archive, archive_hash = read_document(args.archive, 128 * 1024 * 1024)
     require(archive_hash == ARCHIVED_SHA256, "archived oracle SHA-256 mismatch")
     coverage, coverage_hash = read_document(args.source_coverage, 2 * 1024 * 1024)
     manifest, _ = read_document(args.source_coverage.parent / MANIFEST, 2 * 1024 * 1024)
     require(manifest["source_coverage_sha256"] == coverage_hash, "coverage manifest SHA-256 mismatch")
-    report = ledger(archive, coverage, args.source_coverage.parent, manifest["artifact_sha256"])
+    replay_sha = None
+    if args.audited_archive_replay:
+        replay, replay_sha = read_document(args.audited_archive_replay, 64 * 1024)
+        require(replay["status"] == "PASS"
+                and replay["scope"] == "fresh optimized six-file archived oracle replay"
+                and replay["archived_oracle_sha256"] == archive_hash
+                and replay["fixture_count"] == len(PINS) and replay["source_sha256"] == PINS,
+                "audited archive replay does not bind this fixture population")
+    report = ledger(archive, coverage, args.source_coverage.parent, manifest["artifact_sha256"], replay_sha)
     report["archived_oracle_sha256"] = archive_hash
     report["source_coverage_sha256"] = coverage_hash
     print(json.dumps(report, indent=2))

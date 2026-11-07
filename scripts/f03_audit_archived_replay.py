@@ -142,6 +142,7 @@ def verify(run, historical_repo, release_deps):
             "archive test executable is outside the isolated release cache")
     return {
         "status": "PASS", "scope": "fresh optimized six-file archived oracle replay",
+        "archived_oracle_sha256": ARCHIVE_DIGEST,
         "archive_replay_receipt_sha256": receipt_sha, "archive_inputs_sha256": inputs_sha,
         "archive_bridge_sha256": bridge_sha, "source_custody_sha256": custody_sha,
         "archive_test_executable_sha256": file_digest(launched),

@@ -60,6 +60,46 @@ def mutate_intermediate_archive(path):
     flip_at(path, offset)
 
 
+
+def alter_archive_clock(path, *, ambiguous):
+    reservations = {}
+    with path.open("rb") as file:
+        file.seek(40)
+        while prefix := file.read(8):
+            length = int.from_bytes(prefix, "little")
+            start = file.tell()
+            require(len(prefix) == 8 and 8 <= length <= 16 * 1024 * 1024,
+                    "negative fixture has invalid frame length")
+            marker = file.read(8)
+            if marker == b"CVAVERS2":
+                require(length == 24, "negative fixture has malformed reservation")
+                version = int.from_bytes(file.read(8), "little")
+                reservations[version] = start + 16
+            elif marker == b"CVAPUB01":
+                require(length >= 25, "negative fixture has malformed publication")
+                coordinate = file.read(9)
+                if coordinate[8] == 2 and file.read(8) == b"CVATUR03":
+                    version = int.from_bytes(coordinate[:8], "little")
+                    if ambiguous:
+                        offset = start + 16
+                        break
+                    if version in reservations:
+                        offset = reservations[version]
+                        require(start < path.stat().st_size * 3 // 4,
+                                "expected an intermediate retained Archive reservation")
+                        break
+            file.seek(start + length)
+        else:
+            raise ValueError("negative fixture has no suitable Archive reservation")
+    if ambiguous:
+        with path.open("r+b") as file:
+            file.seek(offset)
+            file.write(b"\x03")
+    else:
+        # A different signed timestamp in the same allocation leaves both
+        # version heads and the final Archive bodies intact.
+        flip_at(path, offset)
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--exporter", type=Path, required=True)
@@ -77,6 +117,8 @@ def main():
         "truncated-tail": lambda path: truncate(path),
         "changed-frs07-authority": mutate_frs07,
         "changed-intermediate-archive-turn": mutate_intermediate_archive,
+        "ambiguous-archive-binding-mode": lambda path: alter_archive_clock(path, ambiguous=True),
+        "changed-intermediate-archive-time": lambda path: alter_archive_clock(path, ambiguous=False),
     }
     results = []
     for name, mutate in cases.items():
@@ -86,7 +128,9 @@ def main():
             copy = cohort / relative
             copy.parent.mkdir(exist_ok=True)
             shutil.copyfile(positive / relative, copy)
-        mutate(cohort / "chatgpt-first14d/project.prj.rel")
+        affected = ("rhelm-david-r-ellis-pre-relationship/project.prj.rel"
+                    if name == "changed-intermediate-archive-time" else "chatgpt-first14d/project.prj.rel")
+        mutate(cohort / affected)
         result = subprocess.run([
             str(args.exporter), "--source-root", str(cohort), "--expected-custody", str(args.custody),
             "--output", str(root / f"{name}-output"), "--verify-only",
@@ -95,7 +139,7 @@ def main():
                 f"negative {name} was not rejected by the exporter")
         with (root / f"{name}.stderr.log").open("xb") as log:
             log.write(result.stderr)
-        results.append({"case": name, "exit": result.returncode})
+        results.append({"case": name, "fixture": affected, "exit": result.returncode})
     print(json.dumps({"status": "PASS", "scope": "negative copy custody rejection",
                       "negative_cases": results}, indent=2))
 

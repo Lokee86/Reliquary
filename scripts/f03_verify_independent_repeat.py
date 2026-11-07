@@ -107,6 +107,7 @@ def read_frame(file, witness, source_hash, owner_bytes):
     require(carrier.decode("ascii") == witness["carrier"], "carrier differs from source")
     source_hash.update(prefix)
     source_hash.update(payload)
+    return payload
 
 
 def take_stream(output, artifacts, owner, stream, metadata, *, schema_id=SCHEMA):
