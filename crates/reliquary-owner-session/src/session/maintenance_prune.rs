@@ -1,10 +1,10 @@
 //! Explicit transformed-copy pruning for terminal Memory bodies.
-//! The first supported transform is intentionally confined to pointer-free
-//! Memory format families. Unsupported source families fail closed.
+//! Supported pointer-free payload families include standalone Memory bodies
+//! and owner-admitted RELINSC7 grouped bodies. Unsupported source families fail closed.
 use super::*;
 use crate::records::memory_prune_proof::{
-    MEMORY_BODY, frame_history_digest, memory_structure_digest, safe_memory_only_frames,
-    tombstone_digest,
+    MEMORY_BODY, frame_history_digest, grouped_completion_without_bodies, memory_structure_digest,
+    safe_memory_only_frames, tombstone_digest,
 };
 use crate::records::{
     HistoryPruneManifest, HistoryRetentionDescriptor, PrunedPayload, RetentionDomain,
@@ -182,12 +182,18 @@ fn transform_terminal_memory_copy(
     let mut target = Container::create(&staged.path, source.identity(), source.owner_id())
         .map_err(|e| e.to_string())?;
     let mut skipped = BTreeSet::new();
+    let mut removed_grouped_bodies = BTreeSet::new();
     let mut relocated_generations = BTreeMap::new();
     let mut cursor = source.physical_cursor().map_err(|e| e.to_string())?;
     let mut payload = Vec::new();
     while let Some(mut frame) = cursor.next_frame().map_err(|e| e.to_string())? {
         payload.clear();
         frame.read_to_end(&mut payload).map_err(|e| e.to_string())?;
+        if payload.starts_with(b"RELINSC7") {
+            let (rewritten, removed) = grouped_completion_without_bodies(&payload, &bodies)?;
+            removed_grouped_bodies.extend(removed);
+            payload = rewritten;
+        }
         if payload.starts_with(MEMORY_BODY) && payload.len() >= 40 {
             let id = MemoryBodyId(payload[8..40].try_into().unwrap());
             if bodies.contains(&id) {
@@ -217,8 +223,9 @@ fn transform_terminal_memory_copy(
             relocated_generations.insert(frame.object().offset, written);
         }
     }
+    skipped.extend(removed_grouped_bodies);
     if skipped != bodies {
-        return Err("selected body is not an independently removable frame".into());
+        return Err("selected body has no recognized removable payload".into());
     }
     target.append(&manifest_bytes).map_err(|e| e.to_string())?;
     target.sync().map_err(|e| e.to_string())?;

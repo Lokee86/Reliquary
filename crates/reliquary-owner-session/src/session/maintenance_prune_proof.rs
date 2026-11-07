@@ -21,9 +21,9 @@ pub(super) fn validate_memory_prune(
             .any(|descriptor| descriptor.target.domain == RetentionDomain::Memory)
     });
     let Some(manifest) = manifests.next() else {
-        // Grouped and externally routed Memory provenance can retain
-        // metadata without a local body when no prune manifest exists.
-        return if maintenance.is_empty() || absent.is_empty() {
+        // Grouped source metadata may name a body without a backing payload
+        // only when an exact terminal-prune manifest authorizes that absence.
+        return if absent.is_empty() {
             Ok(BTreeSet::new())
         } else {
             Err(invalid("missing Memory prune retention evidence"))

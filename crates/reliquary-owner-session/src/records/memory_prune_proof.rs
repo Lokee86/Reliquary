@@ -1,5 +1,6 @@
-//! Physical, retained-history proof for standalone terminal Memory body pruning.
-//! The digest covers every surviving source frame before the manifest.
+//! Physical, retained-history proof for terminal Memory body pruning.
+//! Digests preserve all source frames while canonicalizing only selected bodies.
+use crate::records::GroupedInsomniaCompletion;
 use reliquary_container::{Container, FileKind, ReliquaryScope, decode_publication};
 use reliquary_memory_core::{MemoryBodyId, MemoryId, TerminalTombstone};
 use sha2::{Digest, Sha256};
@@ -44,6 +45,14 @@ pub(crate) fn frame_history_digest(
         frame.read_exact(&mut prefix).map_err(|e| e.to_string())?;
         if &prefix == MANIFEST {
             break;
+        }
+        if &prefix == b"RELINSC7" {
+            let mut payload = prefix.to_vec();
+            frame.read_to_end(&mut payload).map_err(|e| e.to_string())?;
+            let (canonical, _) = grouped_completion_without_bodies(&payload, pruned)?;
+            hash.update((canonical.len() as u64).to_le_bytes());
+            hash.update(canonical);
+            continue;
         }
         if &prefix == MEMORY_BODY && len >= 40 {
             let mut raw_id = [0u8; 32];
@@ -105,7 +114,7 @@ pub(crate) fn memory_structure_digest(
     let mut cursor = container.physical_cursor().map_err(|e| e.to_string())?;
     while let Some(mut frame) = cursor.next_frame().map_err(|e| e.to_string())? {
         let len = frame.object().length;
-        if len < 40 {
+        if len < 8 {
             continue;
         }
         let mut prefix = [0u8; 8];
@@ -128,6 +137,54 @@ pub(crate) fn memory_structure_digest(
             }
             continue;
         }
+        if &prefix == b"RELINSC7" {
+            let mut payload = prefix.to_vec();
+            frame.read_to_end(&mut payload).map_err(|e| e.to_string())?;
+            let completion = GroupedInsomniaCompletion::decode(&payload)?;
+            for record in completion.memory_records {
+                let decoded = reliquary_memory_core::decode_grouped_creation(&record)
+                    .map_err(|e| e.to_string())?;
+                if decoded.id == memory_id {
+                    hash_memory_record(&mut hash, &mut count, &record);
+                }
+            }
+            continue;
+        }
+        if &prefix == b"RELDRB01" {
+            let mut payload = prefix.to_vec();
+            frame.read_to_end(&mut payload).map_err(|e| e.to_string())?;
+            let batch = crate::records::dream_batch::DreamBatchRecord::decode(&payload)?
+                .ok_or("invalid Dream batch")?;
+            for lifecycle in batch.lifecycles {
+                if history_record_targets(&lifecycle.delta, memory_id)? {
+                    hash_memory_record(&mut hash, &mut count, &lifecycle.delta);
+                }
+            }
+            continue;
+        }
+        if &prefix == b"RELDRF02" {
+            let mut payload = prefix.to_vec();
+            frame.read_to_end(&mut payload).map_err(|e| e.to_string())?;
+            let settlement = crate::records::dream_empty::InitialDreamSettlement::decode(&payload)?
+                .ok_or("invalid initial Dream settlement")?;
+            if let Some(delta) = settlement.memory_delta
+                && history_record_targets(&delta, memory_id)?
+            {
+                hash_memory_record(&mut hash, &mut count, &delta);
+            }
+            continue;
+        }
+        if &prefix == b"RELDRS01" {
+            let mut payload = prefix.to_vec();
+            frame.read_to_end(&mut payload).map_err(|e| e.to_string())?;
+            let supersession =
+                crate::records::dream_supersession::GroupedDreamSupersession::decode(&payload)?
+                    .ok_or("invalid Dream supersession")?;
+            if history_record_targets(&supersession.delta, memory_id)? {
+                hash_memory_record(&mut hash, &mut count, &supersession.delta);
+            }
+            continue;
+        }
         if !memory_history_record(&prefix) {
             continue;
         }
@@ -136,10 +193,10 @@ pub(crate) fn memory_structure_digest(
         if id != memory_id.0 {
             continue;
         }
-        count += 1;
         hash.update(len.to_le_bytes());
         hash.update(prefix);
         hash.update(id);
+        count += 1;
         let mut buffer = [0u8; 65536];
         loop {
             let amount = frame.read(&mut buffer).map_err(|e| e.to_string())?;
@@ -153,6 +210,38 @@ pub(crate) fn memory_structure_digest(
         return Err("terminal Memory must retain creation and tombstone frames".into());
     }
     Ok(hash.finalize().into())
+}
+
+pub(crate) fn grouped_completion_without_bodies(
+    payload: &[u8],
+    selected: &BTreeSet<MemoryBodyId>,
+) -> Result<(Vec<u8>, BTreeSet<MemoryBodyId>), String> {
+    let mut completion = GroupedInsomniaCompletion::decode(payload)?;
+    let mut removed = BTreeSet::new();
+    completion.bodies.retain(|body| {
+        if selected.contains(&body.id) {
+            removed.insert(body.id);
+            false
+        } else {
+            true
+        }
+    });
+    if removed.is_empty() {
+        return Ok((payload.to_vec(), removed));
+    }
+    Ok((completion.encode()?, removed))
+}
+
+fn history_record_targets(bytes: &[u8], memory_id: MemoryId) -> Result<bool, String> {
+    Ok(reliquary_memory_core::history_change_in_frame(bytes)
+        .map_err(|e| e.to_string())?
+        .is_some_and(|(id, _)| id == memory_id))
+}
+
+fn hash_memory_record(hash: &mut Sha256, count: &mut u64, bytes: &[u8]) {
+    hash.update((bytes.len() as u64).to_le_bytes());
+    hash.update(bytes);
+    *count += 1;
 }
 
 pub(crate) fn memory_history_record(bytes: &[u8]) -> bool {
