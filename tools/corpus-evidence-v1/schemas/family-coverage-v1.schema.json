@@ -103,6 +103,34 @@
     },
     "row_count": {
       "$ref": "#/$defs/decimalU64"
+    },
+    "row_cut_memberships": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "cut_id": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "ordinal": {
+            "$ref": "#/$defs/decimalU64"
+          },
+          "revision_or_event": {
+            "type": "string"
+          },
+          "stable_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "stable_key",
+          "revision_or_event",
+          "ordinal",
+          "cut_id"
+        ],
+        "type": "object"
+      },
+      "type": "array"
     }
   },
   "required": [
@@ -111,7 +139,8 @@
     "presence",
     "completeness",
     "row_count",
-    "cuts"
+    "cuts",
+    "row_cut_memberships"
   ],
   "type": "object"
 }

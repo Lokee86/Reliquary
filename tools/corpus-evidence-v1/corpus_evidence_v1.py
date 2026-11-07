@@ -327,8 +327,9 @@ def validate_owner_descriptor(value: Any, records: Mapping[str, Any], domain_ids
     elif lineage.get("state") == "present":
         _exact(lineage, {"kind", "state", "value"}, "lineage")
         validate_record(lineage["value"], records, "container_lineage", authentic)
-        if lineage["value"]["schema_id"] != "fixture.owner_lineage.v1":
-            raise ContractError("unknown owner lineage schema")
+        lineage_schema = _schema(records, lineage["value"]["schema_id"], "container_lineage", authentic)
+        if lineage_schema.get("semantic_family") is not False:
+            raise ContractError("owner lineage must use a non-family lineage record schema")
     else:
         raise ContractError("invalid lineage option")
     if not isinstance(value["version_heads"], list):
@@ -381,8 +382,14 @@ def validate_semantic_row(value: Any, groups: Mapping[str, Any], records: Mappin
         _exact(value["value"], {"kind", "schema_id", "reason_code", "evidence_sha256"}, "unavailable value")
         if value["value"]["kind"] != "unavailable" or value["value"]["schema_id"] != value["family"]:
             raise ContractError("unavailable value must name its family schema")
-        if value["value"]["reason_code"] not in {"missing", "tombstoned", "pruned", "unavailable", "unauthorized", "corrupt", "intra_settlement_unavailable"}:
+        reason = value["value"]["reason_code"]
+        if reason not in {"missing", "tombstoned", "pruned", "unavailable", "unauthorized", "corrupt", "intra_settlement_unavailable"}:
             raise ContractError("unknown unavailable reason code")
+        if reason == "intra_settlement_unavailable":
+            if value["availability"] != "unavailable" or value["group_id"] != "freshness":
+                raise ContractError("intra-settlement unavailability is a typed Freshness-only state")
+        elif reason != value["availability"]:
+            raise ContractError("unavailable reason code must match row availability")
         _hash(value["value"]["evidence_sha256"], "unavailable evidence_sha256")
     binding = value["source_binding"]
     if not isinstance(binding, dict) or binding.get("kind") != "optional":
@@ -391,9 +398,15 @@ def validate_semantic_row(value: Any, groups: Mapping[str, Any], records: Mappin
         _exact(binding, {"kind", "state"}, "source_binding")
     elif binding.get("state") == "present":
         _exact(binding, {"kind", "state", "value"}, "source_binding")
-        validate_record(binding["value"], records, None, authentic)
-        if binding["value"]["schema_id"] != "fixture.logical_provenance.v1":
-            raise ContractError("unknown logical provenance schema")
+        validate_record(binding["value"], records, "provenance", authentic)
+        provenance_schema = _schema(records, binding["value"]["schema_id"], "provenance", authentic)
+        if provenance_schema.get("semantic_family") is not False:
+            raise ContractError("source_binding must use a non-family provenance record schema")
+        fields = binding["value"]["fields"]
+        start = decimal_u64(fields["source_body_span_start"]["decimal"], "source body span start")
+        end = decimal_u64(fields["source_body_span_end"]["decimal"], "source body span end")
+        if end < start:
+            raise ContractError("source-body span must be a valid half-open byte range")
     else:
         raise ContractError("invalid source_binding option")
     if schema.get("requires_source_binding") is True and binding.get("state") != "present":
@@ -427,7 +440,9 @@ def canonical_jsonl(rows: Sequence[bytes]) -> bytes:
 def parse_jsonl(data: bytes) -> list[Any]:
     if data.startswith(b"\xef\xbb\xbf"):
         raise ContractError("JSONL BOM is forbidden")
-    if not data or not data.endswith(b"\n"):
+    if not data:
+        return []
+    if not data.endswith(b"\n"):
         raise ContractError("JSONL must end with LF")
     if b"\r" in data:
         raise ContractError("JSONL must use LF, not CR/CRLF")
@@ -438,7 +453,7 @@ def parse_jsonl(data: bytes) -> list[Any]:
 
 
 def validate_family_coverage(value: Any, family_registry: Mapping[str, Any], cut_ids: set[str]) -> None:
-    _exact(value, {"family", "group_id", "presence", "completeness", "row_count", "cuts"}, "family coverage")
+    _exact(value, {"family", "group_id", "presence", "completeness", "row_count", "cuts", "row_cut_memberships"}, "family coverage")
     records = {item["schema_id"]: item for item in family_registry["records"] if item.get("semantic_family") is True}
     if value["family"] not in records or value["group_id"] != records[value["family"]]["group_id"]:
         raise ContractError("coverage names unknown family or wrong semantic group")
@@ -458,19 +473,54 @@ def validate_family_coverage(value: Any, family_registry: Mapping[str, Any], cut
         if entry["presence"] == "supported":
             if entry["reason"] is not None:
                 raise ContractError("supported family cut reason must be null")
-        elif not isinstance(entry["reason"], str) or not entry["reason"]:
-            raise ContractError("non-supported family cut requires a reason")
+        else:
+            if not isinstance(entry["reason"], str) or not entry["reason"]:
+                raise ContractError("non-supported family cut requires a reason")
+            if entry["row_count"] != "0":
+                raise ContractError("non-supported family cut cannot serialize semantic rows")
         actual.append(entry["cut_id"])
     ordered = sorted(set(actual), key=lambda value: bytes.fromhex(value))
     if actual != ordered:
         raise ContractError("family cut catalog must be unique and ordered by cut ID")
+    if not isinstance(value["row_cut_memberships"], list):
+        raise ContractError("row_cut_memberships must be an array")
+    membership_keys: list[tuple[bytes, bytes, bytes, bytes]] = []
+    membership_counts: dict[str, int] = {}
+    membership_rows: set[tuple[bytes, bytes, bytes]] = set()
+    for index, membership in enumerate(value["row_cut_memberships"]):
+        _exact(membership, {"stable_key", "revision_or_event", "ordinal", "cut_id"}, f"row-cut membership {index}")
+        if not isinstance(membership["stable_key"], str) or not isinstance(membership["revision_or_event"], str):
+            raise ContractError("row-cut membership row key must be text")
+        _check_unicode(membership["stable_key"])
+        _check_unicode(membership["revision_or_event"])
+        ordinal = u64be(decimal_u64(membership["ordinal"], f"row-cut membership {index} ordinal"))
+        cut_id = membership["cut_id"]
+        _hash(cut_id, f"row-cut membership {index} cut ID")
+        if cut_id not in cut_ids or cut_id not in actual:
+            raise ContractError("row-cut membership references an unlisted owner/family cut")
+        row_key = (membership["stable_key"].encode("utf-8"), membership["revision_or_event"].encode("utf-8"), ordinal)
+        membership_rows.add(row_key)
+        membership_keys.append((*row_key, bytes.fromhex(cut_id)))
+        membership_counts[cut_id] = membership_counts.get(cut_id, 0) + 1
+    if membership_keys != sorted(set(membership_keys)):
+        raise ContractError("row-cut memberships must be unique and ordered by row key then raw cut-ID bytes")
+    for entry in value["cuts"]:
+        if decimal_u64(entry["row_count"], "family cut row_count") != membership_counts.get(entry["cut_id"], 0):
+            raise ContractError("family cut row_count differs from explicit row-cut membership table")
     if value["completeness"] == "exhaustive" and actual != sorted(cut_ids, key=lambda value: bytes.fromhex(value)):
         raise ContractError("exhaustive family coverage must name every owner cut")
+    if value["presence"] != "supported" and value["row_count"] != "0":
+        raise ContractError("non-supported family cannot serialize semantic rows")
+    if value["presence"] != "supported" and value["row_cut_memberships"]:
+        raise ContractError("non-supported family cannot claim row-to-cut membership")
     if value["presence"] == "supported" and value["completeness"] == "exhaustive":
         if any(item["presence"] != "supported" for item in value["cuts"]):
             raise ContractError("exhaustive supported family cannot hide a non-supported cut")
-    if value["presence"] != "supported" and value["completeness"] == "exhaustive":
-        raise ContractError("non-supported family cannot claim exhaustive semantic rows")
+    if value["presence"] == "absent" and value["completeness"] == "exhaustive":
+        if any(item["presence"] != "absent" for item in value["cuts"]):
+            raise ContractError("exhaustive absent family must be absent at every owner cut")
+    if value["presence"] not in {"supported", "absent"} and value["completeness"] == "exhaustive":
+        raise ContractError("unsupported family state cannot claim exhaustive semantic rows")
 
 
 def validate_group_coverage(value: Any, cut_ids: set[str]) -> None:
@@ -483,8 +533,8 @@ def validate_group_coverage(value: Any, cut_ids: set[str]) -> None:
             raise ContractError("supported group reason must be null")
     elif not isinstance(value["reason"], str) or not value["reason"]:
         raise ContractError("non-supported group needs explicit reason")
-    if value["presence"] in {"absent", "unsupported", "unavailable", "corrupt", "unaudited", "unclassified"} and value["completeness"] == "exhaustive" and value["family_count"] != "0":
-        raise ContractError("non-supported group cannot claim exhaustive family coverage")
+    if value["presence"] in {"unsupported", "unavailable", "corrupt", "unaudited", "unclassified"} and value["completeness"] == "exhaustive":
+        raise ContractError("unreviewed group state cannot claim exhaustive family coverage")
 
 
 def _family_preimage(owner: Mapping[str, Any], coverage: Mapping[str, Any], rows: Sequence[bytes]) -> bytes:
@@ -498,8 +548,34 @@ def _family_preimage(owner: Mapping[str, Any], coverage: Mapping[str, Any], rows
     )
 
 
-def family_digest(owner: Mapping[str, Any], coverage: Mapping[str, Any], rows: Sequence[bytes]) -> tuple[bytes, str]:
-    preimage = _family_preimage(owner, coverage, rows)
+def family_digest(
+    owner: Mapping[str, Any],
+    coverage: Mapping[str, Any],
+    rows: Sequence[Mapping[str, Any]],
+    groups: Mapping[str, Any],
+    records: Mapping[str, Any],
+    domain_ids: set[str],
+    owner_cut_ids: set[str],
+) -> tuple[bytes, str]:
+    validate_family_coverage(coverage, records, owner_cut_ids)
+    materialized = list(rows)
+    if decimal_u64(coverage.get("row_count"), "family row_count") != len(materialized):
+        raise ContractError("family coverage row_count differs from digest row count")
+    expected_owner = owner_key(owner)
+    row_keys: set[tuple[bytes, bytes, bytes]] = set()
+    for row in materialized:
+        validate_semantic_row(row, groups, records, domain_ids)
+        if row["family"] != coverage["family"] or owner_key(row["owner"]) != expected_owner:
+            raise ContractError("family digest row is outside the declared family or owner")
+        row_keys.add((row["stable_key"].encode("utf-8"), row["revision_or_event"].encode("utf-8"), u64be(decimal_u64(row["ordinal"], "ordinal"))))
+    membership_rows = {
+        (entry["stable_key"].encode("utf-8"), entry["revision_or_event"].encode("utf-8"), u64be(decimal_u64(entry["ordinal"], "membership ordinal")))
+        for entry in coverage["row_cut_memberships"]
+    }
+    if row_keys != membership_rows:
+        raise ContractError("row-cut membership table must reference exactly the family's semantic row keys")
+    encoded = canonical_rows(materialized, groups, records, domain_ids)
+    preimage = _family_preimage(owner, coverage, encoded)
     return preimage, hashlib.sha256(preimage).hexdigest()
 
 
@@ -508,35 +584,66 @@ def _semantic_owner_bytes(descriptor: Mapping[str, Any]) -> bytes:
     return canonical_json_bytes(dict(descriptor))
 
 
+def registry_identity(groups: Mapping[str, Any], records: Mapping[str, Any], carriers: Mapping[str, Any]) -> bytes:
+    # Bind reviewed catalog content, not caller-selected IDs alone. Canonical
+    # registry hashes remain stable across JSON whitespace changes.
+    validate_registry_bundle(groups, records, carriers)
+    return canonical_json_bytes({
+        "contract_id": CONTRACT_ID,
+        "semantic_groups_sha256": hashlib.sha256(canonical_json_bytes(dict(groups))).hexdigest(),
+        "record_schemas_sha256": hashlib.sha256(canonical_json_bytes(dict(records))).hexdigest(),
+        "physical_carriers_sha256": hashlib.sha256(canonical_json_bytes(dict(carriers))).hexdigest(),
+    })
+
+
 def owner_digest(
     descriptor: Mapping[str, Any],
     group_coverage: Sequence[Mapping[str, Any]],
     family_coverage: Sequence[Mapping[str, Any]],
-    family_hashes: Mapping[str, str],
+    family_rows: Mapping[str, Sequence[Mapping[str, Any]]],
+    groups: Mapping[str, Any],
     records: Mapping[str, Any],
     domain_ids: set[str],
+    carriers: Mapping[str, Any],
 ) -> tuple[bytes, str]:
     validate_owner_descriptor(descriptor, records, domain_ids)
+    identity = registry_identity(groups, records, carriers)
     cuts = {entry["cut_id"] for entry in descriptor["supported_cuts"]}
     if {entry["group_id"] for entry in group_coverage} != set(GROUP_IDS) or len(group_coverage) != len(GROUP_IDS):
         raise ContractError("owner must bind exactly one coverage row for each semantic group")
     semantic_families = {entry["schema_id"]: entry for entry in records["records"] if entry.get("semantic_family") is True}
     if {entry["family"] for entry in family_coverage} != set(semantic_families) or len(family_coverage) != len(semantic_families):
         raise ContractError("owner must bind one coverage row for every registered logical family")
+    if set(family_rows) != set(semantic_families):
+        raise ContractError("owner digest rows differ from the reviewed family catalog")
     expected_group_counts = {group: sum(1 for schema in semantic_families.values() if schema["group_id"] == group) for group in GROUP_IDS}
+    family_by_id = {row["family"]: row for row in family_coverage}
     for group in group_coverage:
         validate_group_coverage(group, cuts)
         if decimal_u64(group["family_count"], "group family_count") != expected_group_counts[group["group_id"]]:
             raise ContractError("group coverage family_count differs from versioned family catalog")
-        if expected_group_counts[group["group_id"]] == 0 and group["presence"] in {"supported", "absent"}:
+        children = [family_by_id[family_id] for family_id, schema in semantic_families.items() if schema["group_id"] == group["group_id"]]
+        if not children and group["presence"] in {"supported", "absent"}:
             raise ContractError("group with no reviewed family schemas cannot claim supported or absent")
+        if group["presence"] == "supported" and not any(child["presence"] == "supported" for child in children):
+            raise ContractError("supported group must have at least one supported registered family")
+        if group["presence"] == "absent" and any(child["presence"] != "absent" for child in children):
+            raise ContractError("absent group conflicts with registered family coverage")
+        if group["completeness"] == "exhaustive" and any(child["completeness"] != "exhaustive" for child in children):
+            raise ContractError("exhaustive group coverage requires exhaustive registered family coverage")
     groups_sorted = sorted(group_coverage, key=lambda row: row["group_id"].encode("utf-8"))
     for row in groups_sorted:
         validate_group_coverage(row, cuts)
     families_sorted = sorted(family_coverage, key=lambda row: row["family"].encode("utf-8"))
+    family_hashes: dict[str, str] = {}
     for row in families_sorted:
-        validate_family_coverage(row, records, cuts)
-    parts = [OWNER_DOMAIN, lp(owner_key(descriptor)), lp(_semantic_owner_bytes(descriptor)), u64be(len(groups_sorted))]
+        family_id = row["family"]
+        _, family_hashes[family_id] = family_digest(
+            {key: descriptor[key] for key in ("owner_uuid", "owner_kind", "scope")},
+            row, family_rows[family_id], groups, records, domain_ids, cuts,
+        )
+    semantic_owner_key = owner_key({key: descriptor[key] for key in ("owner_uuid", "owner_kind", "scope")})
+    parts = [OWNER_DOMAIN, lp(identity), lp(semantic_owner_key), lp(_semantic_owner_bytes(descriptor)), u64be(len(groups_sorted))]
     for group in groups_sorted:
         parts.append(lp(canonical_json_bytes(dict(group))))
     parts.append(u64be(len(families_sorted)))
@@ -553,30 +660,66 @@ def owner_digest(
     return preimage, hashlib.sha256(preimage).hexdigest()
 
 
-def corpus_digest(owners: Sequence[tuple[Mapping[str, Any], str]], records: Mapping[str, Any], domain_ids: set[str]) -> tuple[bytes, str]:
-    ordered = sorted(owners, key=lambda item: owner_key(item[0]))
-    keys = [owner_key(descriptor) for descriptor, _ in ordered]
+def _compose_verified_corpus_digest(
+    owners: Sequence[tuple[Mapping[str, Any], str]],
+    groups: Mapping[str, Any],
+    records: Mapping[str, Any],
+    domain_ids: set[str],
+    carriers: Mapping[str, Any],
+) -> tuple[bytes, str]:
+    ordered = sorted(owners, key=lambda item: owner_key({key: item[0][key] for key in ("owner_uuid", "owner_kind", "scope")}))
+    keys = [owner_key({key: descriptor[key] for key in ("owner_uuid", "owner_kind", "scope")}) for descriptor, _ in ordered]
     if len(keys) != len(set(keys)):
         raise ContractError("duplicate semantic owner key")
-    parts = [CORPUS_DOMAIN, u64be(len(ordered))]
+    identity = registry_identity(groups, records, carriers)
+    parts = [CORPUS_DOMAIN, lp(identity), u64be(len(ordered))]
     for descriptor, digest in ordered:
         validate_owner_descriptor(descriptor, records, domain_ids)
-        parts.extend((lp(owner_key(descriptor)), lp(_semantic_owner_bytes(descriptor)), _hash(digest, "owner digest")))
+        parts.extend((lp(owner_key({key: descriptor[key] for key in ("owner_uuid", "owner_kind", "scope")})),
+                      lp(_semantic_owner_bytes(descriptor)), _hash(digest, "verified owner digest")))
     preimage = b"".join(parts)
     return preimage, hashlib.sha256(preimage).hexdigest()
 
 
-def custody_digest(custody: Mapping[str, Any]) -> tuple[bytes, str]:
+def corpus_digest(
+    owners: Sequence[Mapping[str, Any]],
+    groups: Mapping[str, Any],
+    records: Mapping[str, Any],
+    domain_ids: set[str],
+    carriers: Mapping[str, Any],
+) -> tuple[bytes, str]:
+    # Full evidence is recomputed. An optional claim is checked but never trusted.
+    verified: list[tuple[Mapping[str, Any], str]] = []
+    allowed = {"descriptor", "group_coverage", "family_coverage", "family_rows", "claimed_owner_digest"}
+    required = {"descriptor", "group_coverage", "family_coverage", "family_rows"}
+    for index, evidence in enumerate(owners):
+        if not isinstance(evidence, dict) or not required.issubset(evidence) or not set(evidence).issubset(allowed):
+            raise ContractError(f"corpus owner evidence {index} fields differ")
+        descriptor = evidence["descriptor"]
+        _, computed = owner_digest(descriptor, evidence["group_coverage"], evidence["family_coverage"],
+                                   evidence["family_rows"], groups, records, domain_ids, carriers)
+        claimed = evidence.get("claimed_owner_digest")
+        if claimed is not None:
+            claimed_bytes = _hash(claimed, f"corpus owner evidence {index} claimed owner digest")
+            if claimed_bytes != bytes.fromhex(computed):
+                raise ContractError(f"corpus owner evidence {index} claimed owner digest does not match recomputed evidence")
+        verified.append((descriptor, computed))
+    return _compose_verified_corpus_digest(verified, groups, records, domain_ids, carriers)
+
+def custody_digest(custody: Mapping[str, Any], records: Mapping[str, Any]) -> tuple[bytes, str]:
     _exact(custody, {"source_file_sha256", "target_file_sha256", "relocations"}, "physical custody")
     _hash(custody["source_file_sha256"], "source_file_sha256")
     _hash(custody["target_file_sha256"], "target_file_sha256")
     if not isinstance(custody["relocations"], list):
         raise ContractError("relocations must be an array")
+    if records.get("schema_id") != "reliquary-corpus-record-schemas-v1" or records.get("contract_id") != CONTRACT_ID:
+        raise ContractError("custody requires the versioned contract record registry")
+    family_ids = {record["schema_id"] for record in records.get("records", []) if record.get("semantic_family") is True}
     for index, row in enumerate(custody["relocations"]):
         _exact(row, {"owner_uuid", "family", "source_object_sha256", "source_offset", "source_length", "target_object_sha256", "target_offset", "target_length", "payload_identity", "reference_kind"}, f"relocation {index}")
         _uuid(row["owner_uuid"], f"relocation {index} owner")
-        if row["family"] not in GROUP_IDS:
-            raise ContractError("relocation names unknown semantic group")
+        if row["family"] not in family_ids:
+            raise ContractError("relocation names unknown logical family schema")
         for field in ("source_object_sha256", "target_object_sha256"):
             _hash(row[field], f"relocation {index} {field}")
         for field in ("source_offset", "source_length", "target_offset", "target_length"):
@@ -584,7 +727,27 @@ def custody_digest(custody: Mapping[str, Any]) -> tuple[bytes, str]:
         _hex(row["payload_identity"], f"relocation {index} payload identity")
         if not isinstance(row["reference_kind"], str) or not row["reference_kind"]:
             raise ContractError("relocation reference_kind must be nonempty")
-    body = canonical_json_bytes(dict(custody))
+        _check_unicode(row["reference_kind"])
+    def relocation_key(row: Mapping[str, Any]) -> tuple[bytes, ...]:
+        return (
+            _uuid(row["owner_uuid"], "relocation owner"),
+            row["family"].encode("utf-8"),
+            _hash(row["source_object_sha256"], "source object hash"),
+            u64be(decimal_u64(row["source_offset"], "source offset")),
+            u64be(decimal_u64(row["source_length"], "source length")),
+            _hash(row["target_object_sha256"], "target object hash"),
+            u64be(decimal_u64(row["target_offset"], "target offset")),
+            u64be(decimal_u64(row["target_length"], "target length")),
+            _hex(row["payload_identity"], "payload identity"),
+            row["reference_kind"].encode("utf-8"),
+        )
+    ordered = sorted(custody["relocations"], key=relocation_key)
+    keys = [relocation_key(row) for row in ordered]
+    if len(keys) != len(set(keys)):
+        raise ContractError("duplicate physical relocation row")
+    normalized = dict(custody)
+    normalized["relocations"] = ordered
+    body = canonical_json_bytes(normalized)
     preimage = CUSTODY_DOMAIN + lp(body)
     return preimage, hashlib.sha256(preimage).hexdigest()
 
@@ -593,7 +756,7 @@ def bundle_digest(root: Path) -> tuple[bytes, str]:
     selected = []
     for top in ("registry", "schemas", "fixtures"):
         for path in (root / top).rglob("*"):
-            if path.is_file() and path.name != "bundle.sha256":
+            if path.is_file() and path.name != "bundle.sha256" and not path.name.startswith("report-example-"):
                 selected.append((path.relative_to(root).as_posix(), path.read_bytes()))
     selected.sort(key=lambda row: row[0].encode("utf-8"))
     parts = [BUNDLE_DOMAIN, u64be(len(selected))]
@@ -664,6 +827,30 @@ def registry_hashes(root: Path) -> dict[str, str]:
     result = {key: hashlib.sha256((folder / name).read_bytes()).hexdigest() for key, name in names.items()}
     result["contract_bundle"] = bundle_digest(root)[1]
     return result
+
+
+def validate_artifact_report(report: Mapping[str, Any], root: Path) -> None:
+    try:
+        import jsonschema
+        from importlib.metadata import version
+    except ImportError as exc:
+        raise ContractError("artifact report validation requires the pinned jsonschema test dependency") from exc
+    if version("jsonschema") != "4.26.0":
+        raise ContractError("artifact report validation requires jsonschema==4.26.0")
+    schema = json.loads((root / "schemas" / "artifact-report-v1.schema.json").read_text(encoding="utf-8"))
+    validator = jsonschema.Draft202012Validator(schema)
+    validator.check_schema(schema)
+    try:
+        validator.validate(dict(report))
+    except jsonschema.ValidationError as exc:
+        raise ContractError(f"artifact report schema violation: {exc.message}") from exc
+    if dict(report["registry_hashes"]) != registry_hashes(root):
+        raise ContractError("artifact report registry hashes do not match the reviewed bundle")
+    if report["status"] == "PASS" and (report["coverage"]["completeness"] != "exhaustive" or report["exit_status"] != "0"):
+        raise ContractError("PASS report requires exhaustive coverage and zero exit status")
+    if report["evidence_scope"] == "authentic_source":
+        groups, records, carriers = load_registries(root)
+        validate_authentic_admission(groups, records, carriers)
 
 
 def domain_ids_from_registry(records: Mapping[str, Any]) -> set[str]:

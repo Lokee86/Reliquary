@@ -159,7 +159,8 @@
           ]
         },
         "coordinate": {
-          "$ref": "#/$defs/coordinate"
+          "$ref": "#/$defs/coordinate",
+          "description": "Record publication/source-origin coordinate only; snapshot/as-of cut membership is represented separately in family coverage."
         },
         "cut_id": {
           "pattern": "^[0-9a-f]{64}$",

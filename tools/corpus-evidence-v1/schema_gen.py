@@ -98,7 +98,7 @@ def schema_documents():
         "additionalProperties":False
     }
     defs["coordinate"] = coordinate
-    defs["cut"] = {"type":"object","properties":{"cut_id":{"type":"string","pattern":"^[0-9a-f]{64}$"},"coordinate":{"$ref":"#/$defs/coordinate"},"availability":{"enum":["present","missing","tombstoned","pruned","unavailable","unauthorized","corrupt"]},"completeness":{"enum":["exhaustive","sampled","incomplete"]},"reason":{"type":["string","null"]}},"required":["cut_id","coordinate","availability","completeness","reason"],"additionalProperties":False}
+    defs["cut"] = {"type":"object","properties":{"cut_id":{"type":"string","pattern":"^[0-9a-f]{64}$"},"coordinate":{"$ref":"#/$defs/coordinate","description":"Record publication/source-origin coordinate only; snapshot/as-of cut membership is represented separately in family coverage."},"availability":{"enum":["present","missing","tombstoned","pruned","unavailable","unauthorized","corrupt"]},"completeness":{"enum":["exhaustive","sampled","incomplete"]},"reason":{"type":["string","null"]}},"required":["cut_id","coordinate","availability","completeness","reason"],"additionalProperties":False}
     reasons = ["missing","tombstoned","pruned","unavailable","unauthorized","corrupt","intra_settlement_unavailable"]
     defs["unavailableValue"] = {"oneOf":[{"type":"object","properties":{"kind":{"const":"unavailable"},"schema_id":{"const":family},"reason_code":{"enum":reasons},"evidence_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}},"required":["kind","schema_id","reason_code","evidence_sha256"],"additionalProperties":False} for family in family_ids]}
     source_bound_families = [row["schema_id"] for row in records if row.get("semantic_family") is True and row.get("requires_source_binding") is True]
@@ -115,9 +115,12 @@ def schema_documents():
         "supported_cuts":{"type":"array","items":{"$ref":"#/$defs/cut"}}
     },"required":["owner_uuid","owner_kind","scope","history_generation","lineage","version_heads","supported_cuts"],"additionalProperties":False}
     cut_cov = {"type":"object","properties":{"cut_id":{"type":"string","pattern":"^[0-9a-f]{64}$"},"presence":{"enum":["supported","absent","unsupported","unavailable","corrupt","unaudited","unclassified"]},"completeness":{"enum":["exhaustive","sampled","incomplete"]},"row_count":{"$ref":"#/$defs/decimalU64"},"reason":{"type":["string","null"]}},"required":["cut_id","presence","completeness","row_count","reason"],"additionalProperties":False}
+    row_cut_membership = {"type":"object","properties":{
+        "stable_key":{"type":"string"},"revision_or_event":{"type":"string"},"ordinal":{"$ref":"#/$defs/decimalU64"},"cut_id":{"type":"string","pattern":"^[0-9a-f]{64}$"}
+    },"required":["stable_key","revision_or_event","ordinal","cut_id"],"additionalProperties":False}
     family_coverage = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://reliquary.invalid/corpus-evidence/family-coverage-v1","type":"object","$defs":{"decimalU64":defs["decimalU64"],"cutCoverage":cut_cov},"properties":{
-        "family":{"enum":family_ids},"group_id":{"enum":group_ids},"presence":{"enum":["supported","absent","unsupported","unavailable","corrupt","unaudited","unclassified"]},"completeness":{"enum":["exhaustive","sampled","incomplete"]},"row_count":{"$ref":"#/$defs/decimalU64"},"cuts":{"type":"array","items":{"$ref":"#/$defs/cutCoverage"}}
-    },"required":["family","group_id","presence","completeness","row_count","cuts"],"additionalProperties":False}
+        "family":{"enum":family_ids},"group_id":{"enum":group_ids},"presence":{"enum":["supported","absent","unsupported","unavailable","corrupt","unaudited","unclassified"]},"completeness":{"enum":["exhaustive","sampled","incomplete"]},"row_count":{"$ref":"#/$defs/decimalU64"},"cuts":{"type":"array","items":{"$ref":"#/$defs/cutCoverage"}},"row_cut_memberships":{"type":"array","items":row_cut_membership}
+    },"required":["family","group_id","presence","completeness","row_count","cuts","row_cut_memberships"],"additionalProperties":False}
     group_coverage = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://reliquary.invalid/corpus-evidence/group-coverage-v1","type":"object","properties":{
         "group_id":{"enum":group_ids},"presence":{"enum":["supported","absent","unsupported","unavailable","corrupt","unaudited","unclassified"]},"completeness":{"enum":["exhaustive","sampled","incomplete"]},"family_count":{"type":"string","pattern":"^(?:0|[1-9][0-9]*)$"},"reason":{"type":["string","null"]}
     },"required":["group_id","presence","completeness","family_count","reason"],"additionalProperties":False}
