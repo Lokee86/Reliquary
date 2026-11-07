@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from f03_verify_archived_oracle import PINS, require
-from f03_verify_independent_repeat import MANIFEST, SCHEMA, read_document, take_stream
+from f03_verify_independent_repeat import MANIFEST, SCHEMAS, read_document, take_stream
 
 ARCHIVED_SHA256 = "d3c1cae685932927d30dd4a0b4189280b4acd0487397e89632022fff0c2b7d34"
 
@@ -26,11 +26,11 @@ def comparable(oracle):
     return result
 
 
-def global_ordering(owner, output, artifacts):
+def global_ordering(owner, output, artifacts, schema_id):
     hash_ = hashlib.sha256()
     metadata = owner["native"]["global_stream"]
     count = 0
-    for ordinal, row in take_stream(output, artifacts, owner, "global", metadata):
+    for ordinal, row in take_stream(output, artifacts, owner, "global", metadata, schema_id=schema_id):
         require(ordinal == int(row["global_version"]), "out-of-order global coordinate")
         domains = row["domain_versions"]
         point = [ordinal, None if row["transaction_time_ns"] is None else int(row["transaction_time_ns"])]
@@ -42,8 +42,84 @@ def global_ordering(owner, output, artifacts):
     return {"exhaustive": True, "points": count, "sha256": hash_.hexdigest()}
 
 
+
+def native_proof(proof):
+    return {"cut": int(proof["local_cut"]), "rows": int(proof["rows"]),
+            "event_cut": None if proof["event_cut"] is None else int(proof["event_cut"]),
+            "sha256": proof["sha256"]}
+
+
+def freshness_activity(oracle, owner, output, artifacts, differences, schema_id):
+    expected = oracle["freshness"]["fingerprints"]
+    proofs = owner["native"].get("freshness_activity_proofs")
+    if not proofs or proofs["coverage"] != "all_activity_cuts":
+        return 0, len(expected)
+    metadata = proofs["stream"]
+    require(len(expected) == int(metadata["rows"]), "Freshness activity cut population differs")
+    matches = 0
+    for ordinal, row in take_stream(output, artifacts, owner, "freshness-activity", metadata, schema_id=schema_id):
+        require(row["activity"] == str(ordinal), "Freshness activity is missing or out of order")
+        state = row["state"]
+        if (state["availability"] == "supported" and state["proof"]["domain"] == "freshness"
+                and native_proof(state["proof"]) == expected[ordinal]):
+            matches += 1
+        else:
+            differences.append({
+                "copy_id": owner["copy_id"], "domain": "freshness_activity", "activity": str(ordinal),
+                "status": "unexplained_projection_difference",
+                "archived": expected[ordinal], "frs07": state,
+            })
+    return matches, 0
+
+
+def freshness_events(oracle, owner, output, artifacts, differences, schema_id):
+    expected = {}
+    for row in oracle["freshness_events"]:
+        key = str(row["turn"]), hashlib.sha256(row["event"].encode("utf-8")).hexdigest()
+        require(key not in expected, "duplicate archived Freshness event cut")
+        expected[key] = row["outcome"]
+    archived_graph = str(oracle["common"]["memory_graph"][-1]["cut"])
+    metadata = owner["native"]["freshness_stream"]
+    comparable = 0
+    reconciled = []
+    pending = []
+    for _, row in take_stream(output, artifacts, owner, "freshness", metadata, schema_id=schema_id):
+        if row["kind"] == "settlement":
+            continue
+        require(row["kind"] == "accepted_event_cut", "unknown Freshness stream entry")
+        key = row["activity"], row["event_id_sha256"]
+        require(key in expected, "unknown or duplicate retained Freshness event cut")
+        want = expected.pop(key)
+        got = row["state"]
+        coordinates = {
+            "copy_id": owner["copy_id"], "activity": key[0], "event_id_sha256": key[1],
+            "archived_memory_graph_version": archived_graph,
+            "frs07_memory_graph_version": row["memory_graph_version"],
+        }
+        if ("rejected" in want and
+                want["rejected"] == "import settlement cut does not retain an intra-settlement trajectory" and
+                got == {"availability": "unavailable", "reason": "intra_settlement_trajectory_not_retained"}):
+            comparable += 1
+            reconciled.append({
+                **coordinates, "archived_schema": "archived-canonical-history-v1",
+                "frs07_schema": schema_id, "availability": "unavailable",
+                "reason": "intra_settlement_trajectory_not_retained",
+            })
+        elif (row["memory_graph_version"] == archived_graph and got["availability"] == "supported"
+              and "rejected" not in want and native_proof(got["proof"]) == want):
+            comparable += 1
+        elif row["memory_graph_version"] != archived_graph and got["availability"] == "supported" and "rejected" not in want:
+            pending.append({**coordinates, "reason": "supported_event_requires_common_graph_coordinate"})
+        else:
+            differences.append({**coordinates, "domain": "freshness_event",
+                                "status": "unexplained_projection_difference",
+                                "archived": want, "frs07": got})
+    require(not expected, "retained Freshness event stream omitted archived identities")
+    return comparable, reconciled, pending
+
 def ledger(archived, coverage, output, artifacts):
-    require(coverage["schema_id"] == SCHEMA and coverage["authentic_admission"] is False,
+    schema_id = coverage["schema_id"]
+    require(schema_id in SCHEMAS and coverage["authentic_admission"] is False,
             "unsupported historical exporter coverage schema")
     sources = coverage["sources"]
     rows = {row["fixture"]: row for row in archived["fixtures"]}
@@ -52,6 +128,10 @@ def ledger(archived, coverage, output, artifacts):
     matches = 0
     matching_orderings = 0
     matching_global_points = 0
+    matching_freshness_activity = 0
+    matching_freshness_events = 0
+    unavailable_freshness_events = []
+    pending_freshness_events = []
     differences = []
     remaining = []
     unrepresented = []
@@ -82,7 +162,7 @@ def ledger(archived, coverage, output, artifacts):
                     "copy_id": owner["copy_id"], "domain": domain,
                     "status": "unexplained_projection_difference", "archived": want, "frs07": projected,
                 })
-        ordering = global_ordering(owner, output, artifacts)
+        ordering = global_ordering(owner, output, artifacts, schema_id)
         if oracle["global_ordering"] == ordering:
             matching_orderings += 1
             matching_global_points += ordering["points"]
@@ -93,12 +173,19 @@ def ledger(archived, coverage, output, artifacts):
                 "archived": oracle["global_ordering"], "frs07": ordering,
             })
         if relative.endswith(".rel"):
+            activity_matches, activity_omitted = freshness_activity(oracle, owner, output, artifacts, differences, schema_id)
+            event_matches, reconciled, pending = freshness_events(oracle, owner, output, artifacts, differences, schema_id)
+            matching_freshness_activity += activity_matches
+            matching_freshness_events += event_matches
+            unavailable_freshness_events.extend(reconciled)
+            pending_freshness_events.extend(pending)
             remaining.append({
                 "copy_id": owner["copy_id"],
                 "whole_owner_archived_cuts": rows[relative]["global_projection_points"],
                 "archive_archived_cut_count": len(oracle["archive"]["snapshots"]),
                 "archive_archived_cuts_exhaustive": oracle["archive"]["snapshot_queries_exhaustive"],
                 "freshness_archived_event_cut_count": len(oracle["freshness_events"]),
+                "freshness_archived_activity_cuts_omitted": activity_omitted,
                 "freshness_cut_basis": "archived event query uses current MemoryGraph head; FRS07 source witness uses each event's recorded proof coordinate",
                 "disposition": "separate archived projection replay required; no new equivalence assumed",
             })
@@ -109,6 +196,10 @@ def ledger(archived, coverage, output, artifacts):
         "matching_heads": matches,
         "matching_global_orderings": matching_orderings,
         "matching_global_points": matching_global_points,
+        "matching_freshness_activity_cuts": matching_freshness_activity,
+        "matching_freshness_event_cuts": matching_freshness_events,
+        "matched_unavailable_freshness_events": unavailable_freshness_events,
+        "pending_freshness_event_differences": pending_freshness_events,
         "unexplained_differences": differences,
         "outstanding_historical_coordinates": remaining,
         "source_projections_without_archived_coverage": unrepresented,

@@ -14,6 +14,8 @@ import stat
 from f03_verify_archived_oracle import PINS, READER, require
 
 SCHEMA = "reliquary-f03-historical-state-v1"
+SCHEMA_V2 = "reliquary-f03-historical-state-v2"
+SCHEMAS = {SCHEMA, SCHEMA_V2}
 COVERAGE = "source-coverage.json"
 MANIFEST = "source-witness-manifest.json"
 CUSTODY = "bd2c6bee9966a3e62bdd1deb6a0e29e34f74cc13bad622f7898c151084153c5d"
@@ -107,7 +109,7 @@ def read_frame(file, witness, source_hash, owner_bytes):
     source_hash.update(payload)
 
 
-def take_stream(output, artifacts, owner, stream, metadata):
+def take_stream(output, artifacts, owner, stream, metadata, *, schema_id=SCHEMA):
     ordinal = 0
     predecessor = "0" * 64
     for index in range(decimal(metadata["batches"])):
@@ -117,7 +119,7 @@ def take_stream(output, artifacts, owner, stream, metadata):
         require(artifacts.pop(name) == digest, f"SHA mismatch for {name}")
         rows = batch["rows"]
         require(batch == {
-            "schema_id": SCHEMA, "copy_id": owner["copy_id"], "source_sha256": owner["source_sha256"],
+            "schema_id": schema_id, "copy_id": owner["copy_id"], "source_sha256": owner["source_sha256"],
             "stream": stream, "batch_index": str(index), "previous_sha256": predecessor,
             "first_ordinal": str(ordinal), "rows": rows,
         } and isinstance(rows, list) and 0 < len(rows) <= 128, f"invalid batch chain at {name}")
@@ -129,11 +131,11 @@ def take_stream(output, artifacts, owner, stream, metadata):
                          "last_batch_sha256": predecessor}, f"wrong {stream} stream totals")
 
 
-def verify_record_rows(output, artifacts, owner, stream):
+def verify_record_rows(output, artifacts, owner, stream, schema_id):
     require(decimal(stream["rows"]) > 0, "owner has no native record witness")
     by_domain = Counter()
     seen = set()
-    for _, row in take_stream(output, artifacts, owner, "records", stream):
+    for _, row in take_stream(output, artifacts, owner, "records", stream, schema_id=schema_id):
         require(row.keys() == {"projection_domain", "family", "stable_key_sha256",
                                "canonical_value_sha256", "canonical_byte_length", "availability",
                                "origin_coordinate"}
@@ -157,7 +159,29 @@ def verify_record_rows(output, artifacts, owner, stream):
             "record stream does not match the native projection row counts")
 
 
-def verify_owner(output, artifacts, owner, path, relative, digest, head):
+def verify_v2_streams(output, artifacts, owner, kind):
+    native = owner["native"]
+    membership = native["clocked_cut_membership"]
+    streams = {
+        "clocked-membership": membership["stream"],
+        "clocked-composition": native["clocked_composition_stream"],
+    }
+    if kind == 1:
+        bindings = native["archive_publication_bindings"]
+        streams.update({"archive-bindings": bindings["bindings"], "archive-binding-cuts": bindings["cuts"]})
+        freshness = native["freshness_activity_proofs"]
+        if freshness["coverage"] == "all_activity_cuts":
+            streams["freshness-activity"] = freshness["stream"]
+        else:
+            require(freshness == {
+                "coverage": "unaudited", "reason": "exhaustive_activity_proof_not_requested",
+            }, "invalid Freshness activity coverage")
+    for name, metadata in streams.items():
+        for _, row in take_stream(output, artifacts, owner, name, metadata, schema_id=SCHEMA_V2):
+            require(isinstance(row, dict), f"invalid {name} row")
+
+
+def verify_owner(output, artifacts, owner, path, relative, digest, head, schema_id):
     kind = 1 if relative.endswith(".rel") else 2
     before = regular(path)
     require(owner["source_sha256"] == digest and before.st_size == decimal(owner["source_byte_length"]),
@@ -167,7 +191,7 @@ def verify_owner(output, artifacts, owner, path, relative, digest, head):
         counts = Counter()
         groups = Counter()
         global_max = 0
-        for _, row in take_stream(output, artifacts, owner, "frames", owner["frame_stream"]):
+        for _, row in take_stream(output, artifacts, owner, "frames", owner["frame_stream"], schema_id=schema_id):
             read_frame(file, row, source_hash, before.st_size)
             counts[row["carrier"]] += 1
             groups[row["group"]] += 1
@@ -186,18 +210,20 @@ def verify_owner(output, artifacts, owner, path, relative, digest, head):
     require(native["owner_kind"] == ("reliquary" if kind == 1 else "phylactery"), "owner kind mismatch")
     global_stream = native["global_stream"]
     require(decimal(global_stream["rows"]) == head + 1, "global coordinate count differs from V01 head")
-    for ordinal, row in take_stream(output, artifacts, owner, "global", global_stream):
+    for ordinal, row in take_stream(output, artifacts, owner, "global", global_stream, schema_id=schema_id):
         require(decimal(row["global_version"]) == ordinal, "global coordinate is missing or out of order")
     freshness_stream = native["freshness_stream"]
     if kind == 1:
         require(decimal(freshness_stream["rows"]) > 0, "REL has no Freshness witness")
-        for _, row in take_stream(output, artifacts, owner, "freshness", freshness_stream):
+        for _, row in take_stream(output, artifacts, owner, "freshness", freshness_stream, schema_id=schema_id):
             require(isinstance(row["kind"], str), "Freshness row has no type")
     else:
         require(freshness_stream == {"availability": "unsupported", "reason": "REL_only"},
                 "PHY Freshness availability is invalid")
     if "record_stream" in native:
-        verify_record_rows(output, artifacts, owner, native["record_stream"])
+        verify_record_rows(output, artifacts, owner, native["record_stream"], schema_id)
+    if schema_id == SCHEMA_V2:
+        verify_v2_streams(output, artifacts, owner, kind)
     return snapshot(before)
 
 
@@ -210,8 +236,10 @@ def verify_output(output, copies, exporter_hash):
             and manifest["producer_binary_sha256"] == exporter_hash
             and manifest["source_coverage_sha256"] == coverage_hash,
             "manifest provenance mismatch")
+    schema_id = manifest["schema_id"]
+    require(schema_id in SCHEMAS, "unknown historical source witness schema")
     for document in (manifest, coverage):
-        require(document["schema_id"] == SCHEMA and document["producer_role"] == "source_reader"
+        require(document["schema_id"] == schema_id and document["producer_role"] == "source_reader"
                 and document["status"] == "INCOMPLETE" and document["authentic_admission"] is False,
                 "unsupported source witness acceptance contract")
     artifacts = dict(manifest["artifact_sha256"])
@@ -229,7 +257,7 @@ def verify_output(output, copies, exporter_hash):
         require(owner["copy_id"] == f"copy-{index:04}", "owner ordering mismatch")
         owner_path = copies / relative
         regular(owner_path.parent, directory=True)
-        snapshots.append(verify_owner(output, artifacts, owner, owner_path, relative, digest, head))
+        snapshots.append(verify_owner(output, artifacts, owner, owner_path, relative, digest, head, schema_id))
     require(not artifacts and {entry.name for entry in output.iterdir()} == inventory,
             "unconsumed or changed artifact inventory")
     mtimes = manifest.pop("source_file_mtimes_unix_ns")
