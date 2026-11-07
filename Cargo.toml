@@ -53,6 +53,10 @@ reliquary-retrieval = { path = "crates/reliquary-retrieval" }
 reliquary-vectors = { path = "crates/reliquary-vectors" }
 reliquary-context-engine = { path = "crates/reliquary-context-engine" }
 reliquary-project-environment = { path = "crates/reliquary-project-environment" }
+blake3 = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
 
 [patch.crates-io]
 quinn-proto = { path = "vendor/quinn-proto" }

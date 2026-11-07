@@ -49,11 +49,14 @@ pub fn reconcile_rel_owner(
             &dream_admissions,
         )
         .map_err(|error| error.to_string())?;
+        let destination_dream_admissions = report.destination_dream_admissions.clone();
         let session = RelSession::open_path(
             destination,
             graph_admission,
             accepted_episodes,
-            dream_admissions,
+            dream_admissions
+                .into_iter()
+                .chain(destination_dream_admissions),
         )
         .map_err(|error| format!("independent reconciled REL reopen failed: {error}"))?;
         return Ok(ReconciledRelOwner {

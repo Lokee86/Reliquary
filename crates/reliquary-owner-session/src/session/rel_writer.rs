@@ -33,6 +33,15 @@ impl RelWriter {
             }
         }
     }
+    /// Create and initialize a new REL owner through the public owner scope.
+    pub fn create_current_path(
+        path: impl AsRef<Path>,
+        scope: OwnerScope,
+        owner_id: [u8; 16],
+    ) -> Result<Self, OwnerSessionError> {
+        Self::create_path(path, scope.into_container_scope(), owner_id)
+    }
+
     /// Create and initialize a new REL owner, then open its canonical writer.
     pub fn create_path(
         path: impl AsRef<Path>,
@@ -61,6 +70,13 @@ impl RelWriter {
             accepted_episodes.clone(),
             dream_admissions.clone(),
         )?;
+        Ok(Self { container, session })
+    }
+
+    /// Acquire the exclusive writer lease after current-format durable admission.
+    pub fn open_path_current(path: impl AsRef<Path>) -> Result<Self, OwnerSessionError> {
+        let container = Container::open_writer_as(path, FileKind::Reliquary)?;
+        let session = RelSession::open_current(&container)?;
         Ok(Self { container, session })
     }
 

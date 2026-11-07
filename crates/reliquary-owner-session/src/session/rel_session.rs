@@ -229,8 +229,31 @@ impl RelSession {
         )
     }
 
+    /// Open and fully admit one current-format REL from durable owner evidence.
+    ///
+    /// Graph closure, accepted Episodes, and current Dream Begin populations are
+    /// reconstructed inside owner-session. Callers cannot weaken replay by
+    /// supplying an empty or partial admission set.
+    pub fn open_path_current(path: impl AsRef<Path>) -> Result<Self, OwnerSessionError> {
+        let container = Container::open_read_only_as(path, FileKind::Reliquary)?;
+        Self::open_current(&container)
+    }
+
+    pub(super) fn open_current(container: &Container) -> Result<Self, OwnerSessionError> {
+        require_kind(container, FileKind::Reliquary)?;
+        // This value conveys only the already-opened Container owner identity.
+        // `open_common` reconstructs the actual Graph closure and Dream
+        // populations from the durable semantic owners before admission.
+        let owner_identity = GraphAdmission::for_changes(container.owner_id(), [], []);
+        Self::open(container, &owner_identity, [], [])
+    }
+
     pub fn owner_id(&self) -> [u8; 16] {
         self.owner_id
+    }
+
+    pub fn scope(&self) -> OwnerScope {
+        self.container_identity.scope.into()
     }
 
     pub fn archive_node(&self, conversation: &str, node: &str) -> Option<&Node> {

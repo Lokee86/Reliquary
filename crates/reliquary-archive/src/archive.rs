@@ -48,6 +48,7 @@ pub struct Archive {
     fragment_definitions: BTreeMap<crate::FragmentId, crate::FragmentDefinition>,
     fragment_versions: BTreeMap<crate::FragmentId, u64>,
     conversation_tombstones: BTreeMap<String, crate::ConversationTombstone>,
+    conversation_titles: BTreeMap<String, crate::ConversationTitle>,
     archive_version: u64,
 }
 
@@ -74,6 +75,7 @@ impl Archive {
             fragment_definitions: BTreeMap::new(),
             fragment_versions: BTreeMap::new(),
             conversation_tombstones: BTreeMap::new(),
+            conversation_titles: BTreeMap::new(),
             archive_version: 0,
         }
     }
@@ -577,6 +579,50 @@ impl Archive {
         self.conversation_tombstones.get(conversation_id)
     }
 
+    pub fn conversation_title(&self, conversation_id: &str) -> Option<&str> {
+        self.conversation_titles
+            .get(conversation_id)
+            .map(|title| title.title.as_str())
+            .or_else(|| {
+                self.import_receipts.values().find_map(|receipt| {
+                    receipt
+                        .conversations
+                        .iter()
+                        .find(|conversation| conversation.conversation_id == conversation_id)
+                        .and_then(|conversation| conversation.title.as_deref())
+                })
+            })
+    }
+
+    pub fn set_conversation_title(
+        &mut self,
+        container: &mut Container,
+        conversation_id: &str,
+        title: &str,
+    ) -> Result<bool, ArchiveError> {
+        self.bind_container(container)?;
+        validate_text(conversation_id, "conversation id")?;
+        validate_text(title, "conversation title")?;
+        if !self
+            .nodes
+            .keys()
+            .any(|(conversation, _)| conversation == conversation_id)
+        {
+            return Err(ArchiveError::MissingNode);
+        }
+        if self.conversation_title(conversation_id) == Some(title) {
+            return Ok(false);
+        }
+        let bytes = crate::codec::encode_conversation_title(conversation_id, title)?;
+        container.append(&bytes)?;
+        container.sync()?;
+        self.apply_record(Record::ConversationTitle(
+            conversation_id.to_owned(),
+            title.to_owned(),
+        ))?;
+        Ok(true)
+    }
+
     pub fn tombstone_conversation(
         &mut self,
         container: &mut Container,
@@ -985,6 +1031,27 @@ impl Archive {
                     conversation_id.clone(),
                     crate::ConversationTombstone {
                         conversation_id,
+                        archive_version,
+                    },
+                );
+                self.archive_version = archive_version;
+            }
+            Record::ConversationTitle(conversation_id, title) => {
+                validate_text(&conversation_id, "conversation id")?;
+                validate_text(&title, "conversation title")?;
+                if !self
+                    .nodes
+                    .keys()
+                    .any(|(conversation, _)| conversation == &conversation_id)
+                {
+                    return Err(ArchiveError::MissingNode);
+                }
+                let archive_version = self.next_archive_version()?;
+                self.conversation_titles.insert(
+                    conversation_id.clone(),
+                    crate::ConversationTitle {
+                        conversation_id,
+                        title,
                         archive_version,
                     },
                 );

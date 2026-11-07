@@ -40,6 +40,44 @@ impl Instance {
         self.with_rel_writer(owner, |writer| read(writer.read_session()))
     }
 
+    pub(crate) fn with_reliquary<T>(
+        &self,
+        owner: OwnerId,
+        read: impl FnOnce(&RelSession) -> T,
+    ) -> Result<T, GatewayError> {
+        self.ensure_credential_active()?;
+        if !self.rel_grants.contains(&owner) {
+            return Err(GatewayError::UnauthorizedRel {
+                principal: self.principal.to_string(),
+                owner,
+            });
+        }
+        let mounted = {
+            let owners = self
+                .owners
+                .read()
+                .map_err(|_| GatewayError::RegistryPoisoned)?;
+            owners
+                .get(&owner)
+                .cloned()
+                .ok_or(GatewayError::UnknownOwner(owner))?
+        };
+        match mounted {
+            MountedOwner::Rel(session) => Ok(read(&session)),
+            MountedOwner::RelWriter(writer) => {
+                let writer = writer
+                    .writer
+                    .lock()
+                    .map_err(|_| GatewayError::RegistryPoisoned)?;
+                self.ensure_credential_active()?;
+                Ok(read(writer.read_session()))
+            }
+            MountedOwner::Phy(_) | MountedOwner::PhyWriter(_) => {
+                Err(GatewayError::WrongOwnerKind(owner))
+            }
+        }
+    }
+
     pub fn finalize_conversation_episode(
         &self,
         owner: OwnerId,
@@ -306,7 +344,9 @@ impl Instance {
         }
     }
 
-    pub(super) fn ensure_credential_active(&self) -> Result<(), GatewayError> {
+    /// Recheck the credential backing this Instance without accessing an owner.
+    /// Product lifecycle operations use this while an owner is quiesced.
+    pub fn ensure_credential_active(&self) -> Result<(), GatewayError> {
         if self
             .credential_active
             .as_ref()

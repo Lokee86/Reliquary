@@ -24,10 +24,10 @@ pub use reliquary_insomnia_store::{CompletionCheck, InsomniaLeaseToken};
 pub use session::{
     DreamBatchCut, DreamCandidatePool, DreamLifecyclePublication, DreamPairPublication,
     InitialDreamSnapshot, NativeImportFreshnessInput, NativeImportHistoricalEvent,
-    NativeImportMemoryAvailability, NativeImportRetainedEvent, OwnerSessionError, PhySession,
-    PhyWriter, PrunedOwnerCopyReport, RelInsomniaClaimInput, RelRetrievalMemory,
-    RelRetrievalSnapshot, RelSession, RelWriter, RoutedUserMemoryProof, RoutedUserMemoryReceipt,
-    promote_terminal_memory_copy, prune_terminal_memory_copy,
+    NativeImportMemoryAvailability, NativeImportRetainedEvent, OwnerFailureKind, OwnerScope,
+    OwnerSessionError, PhySession, PhyWriter, PrunedOwnerCopyReport, RelInsomniaClaimInput,
+    RelRetrievalMemory, RelRetrievalSnapshot, RelSession, RelWriter, RoutedUserMemoryProof,
+    RoutedUserMemoryReceipt, promote_terminal_memory_copy, prune_terminal_memory_copy,
 };
 pub use session::{
     FreshHistoryArchive, FreshHistoryFreshness, FreshHistoryIdentity, FreshHistoryLineage,
@@ -37,6 +37,7 @@ pub use session::{
 pub use session::{
     HistoricalOwnerCut, HistoricalOwnerProof, HistoricalProofError, RelHistoricalCut,
 };
+pub use session::{RelConversationSummary, RelTranscriptTurn};
 pub use session::{
     RelHistoryComparison, RelHistoryRelation, RelReconciliationError, RelReconciliationReport,
     compare_rel_histories, reconcile_divergent_rel_copy,

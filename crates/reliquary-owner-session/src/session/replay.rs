@@ -6,6 +6,26 @@ pub(super) fn open_common(
     dream_admissions: impl IntoIterator<Item = DreamBeginAdmission>,
     replay_grouped_insomnia: bool,
 ) -> Result<CommonState, OwnerSessionError> {
+    if graph_admission.owner_id() != Some(container.owner_id()) {
+        return Err(OwnerSessionError::Graph(GraphError::WrongOwner));
+    }
+    open_common_for_owner(
+        container,
+        container.owner_id(),
+        dream_admissions,
+        replay_grouped_insomnia,
+    )
+}
+
+pub(super) fn open_common_for_owner(
+    container: &Container,
+    expected_owner_id: [u8; 16],
+    dream_admissions: impl IntoIterator<Item = DreamBeginAdmission>,
+    replay_grouped_insomnia: bool,
+) -> Result<CommonState, OwnerSessionError> {
+    if expected_owner_id != container.owner_id() {
+        return Err(OwnerSessionError::Graph(GraphError::WrongOwner));
+    }
     let mut memories = MemoryStore::open_with_dream_batches(
         container,
         |payload| {
@@ -70,9 +90,6 @@ pub(super) fn open_common(
                 ));
             }
         }
-    }
-    if graph_admission.owner_id() != Some(container.owner_id()) {
-        return Err(OwnerSessionError::Graph(GraphError::WrongOwner));
     }
     // The persisted owners, not an external list, establish replay closure.
     // Principal identity is validated by the owner-local Entity replay.
@@ -163,35 +180,60 @@ pub(super) fn open_common(
     memories.retain_pruned_body_fence(pruned_bodies);
     let mut dream_admissions = dream_admissions.into_iter().collect::<Vec<_>>();
     for frame in container.read_frames()? {
-        if let Some(frontier) =
-            crate::records::dream_frontier::FrontierRecord::decode(&frame.payload)
-                .map_err(OwnerSessionError::Record)?
+        let frontier = crate::records::dream_frontier::FrontierRecord::decode(&frame.payload)
+            .map_err(OwnerSessionError::Record)?;
+        let (begin, frontier_cut) = match frontier.as_ref().and_then(|record| record.begin.as_ref())
         {
-            if let Some(payload) = &frontier.begin {
-                let begin = crate::records::dream::dream_begin_codec::decode(payload)
-                    .map_err(OwnerSessionError::Record)?;
-                let population = super::dream_population::birth_population(
-                    container,
-                    &memories,
-                    begin.source_id,
-                )?;
-                let derived = DreamBeginAdmission {
-                    owner_uuid: container.owner_id(),
-                    pass_id: begin.pass_id.clone(),
-                    source_id: begin.source_id,
-                    turn: begin.turn,
-                    graph_version_before: begin.graph_version_before,
-                    preexisting_ids: population,
-                    memory_cut: frontier.memory_version,
-                };
-                if let Some(prior) = dream_admissions.iter().find(|a| a.pass_id == begin.pass_id) {
-                    if prior != &derived {
-                        return Err(OwnerSessionError::StaleDreamCut);
-                    }
-                } else {
-                    dream_admissions.push(derived);
-                }
+            Some(payload) => (
+                Some(
+                    crate::records::dream::dream_begin_codec::decode(payload)
+                        .map_err(OwnerSessionError::Record)?,
+                ),
+                frontier.as_ref().map(|record| record.memory_version),
+            ),
+            None if frame.payload.starts_with(b"CVDREAM2") => (
+                Some(
+                    crate::records::dream::dream_begin_codec::decode(&frame.payload)
+                        .map_err(OwnerSessionError::Record)?,
+                ),
+                None,
+            ),
+            None => (None, None),
+        };
+        let Some(begin) = begin else { continue };
+        let population = match &begin.population {
+            crate::records::dream::dream_begin_codec::BeginPopulation::CompactCut { .. } => {
+                super::dream_population::birth_population(container, &memories, begin.source_id)?
             }
+            crate::records::dream::dream_begin_codec::BeginPopulation::ExplicitSet(ids) => {
+                ids.clone()
+            }
+        };
+        let memory_cut = frontier_cut.unwrap_or_else(|| match begin.population {
+            crate::records::dream::dream_begin_codec::BeginPopulation::CompactCut {
+                memory_cut,
+                ..
+            } => memory_cut,
+            crate::records::dream::dream_begin_codec::BeginPopulation::ExplicitSet(_) => memories
+                .first_memory_version(begin.source_id)
+                .unwrap_or_default(),
+        });
+        let derived = DreamBeginAdmission {
+            owner_uuid: container.owner_id(),
+            pass_id: begin.pass_id.clone(),
+            source_id: begin.source_id,
+            turn: begin.turn,
+            graph_version_before: begin.graph_version_before,
+            preexisting_ids: population,
+            memory_cut,
+        };
+        // Preserve an explicit trusted admission when one was supplied. The
+        // Dream store below validates every durable Begin field against it;
+        // notably, the legacy explicit-set encoding does not carry its
+        // physical Memory cut, so replacing that cut with an inferred value
+        // would reject otherwise valid retained evidence.
+        if !dream_admissions.iter().any(|a| a.pass_id == begin.pass_id) {
+            dream_admissions.push(derived);
         }
     }
 

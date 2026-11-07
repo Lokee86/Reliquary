@@ -391,6 +391,7 @@ pub use instance_context::{
     AuthorizedContextCheckpoint, AuthorizedContextWorkflow, ContextMemoryOwnerKind,
     ContextMemoryRef, ProjectContextAttachmentRef,
 };
+mod instance_management;
 mod instance_owner;
 mod instance_passive_retrieval;
 mod instance_project_correlation;

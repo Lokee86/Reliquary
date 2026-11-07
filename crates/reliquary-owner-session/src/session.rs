@@ -68,6 +68,69 @@ pub enum OwnerSessionError {
     StaleDreamCut,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OwnerFailureKind {
+    Io,
+    UnsupportedFormat,
+    WrongFileKind,
+    Admission,
+    WriterConflict,
+    Corruption,
+}
+
+impl OwnerSessionError {
+    pub fn failure_kind(&self) -> OwnerFailureKind {
+        match self {
+            Self::WrongFileKind { .. } | Self::Container(ContainerError::WrongFileKind { .. }) => {
+                OwnerFailureKind::WrongFileKind
+            }
+            Self::Container(ContainerError::Io(_)) => OwnerFailureKind::Io,
+            Self::Container(
+                ContainerError::InvalidSignature
+                | ContainerError::UnsupportedFormatSignature
+                | ContainerError::UnsupportedVersion(_),
+            ) => OwnerFailureKind::UnsupportedFormat,
+            Self::Container(
+                ContainerError::WriterConflict | ContainerError::WriteRecoveryRequired,
+            ) => OwnerFailureKind::WriterConflict,
+            Self::Graph(GraphError::WrongOwner)
+            | Self::StaleDreamCut
+            | Self::Insomnia(InsomniaError::UnacceptedEpisode) => OwnerFailureKind::Admission,
+            _ => OwnerFailureKind::Corruption,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OwnerScope {
+    Unspecified,
+    Organization,
+    Project,
+    Connection,
+}
+
+impl OwnerScope {
+    pub(crate) fn into_container_scope(self) -> reliquary_container::ReliquaryScope {
+        match self {
+            Self::Unspecified => reliquary_container::ReliquaryScope::Unspecified,
+            Self::Organization => reliquary_container::ReliquaryScope::Organization,
+            Self::Project => reliquary_container::ReliquaryScope::Project,
+            Self::Connection => reliquary_container::ReliquaryScope::Connection,
+        }
+    }
+}
+
+impl From<reliquary_container::ReliquaryScope> for OwnerScope {
+    fn from(value: reliquary_container::ReliquaryScope) -> Self {
+        match value {
+            reliquary_container::ReliquaryScope::Unspecified => Self::Unspecified,
+            reliquary_container::ReliquaryScope::Organization => Self::Organization,
+            reliquary_container::ReliquaryScope::Project => Self::Project,
+            reliquary_container::ReliquaryScope::Connection => Self::Connection,
+        }
+    }
+}
+
 impl fmt::Display for OwnerSessionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -589,8 +652,26 @@ impl PhySession {
         Self::open(&container, graph_admission, dream_admissions)
     }
 
+    /// Open and fully admit one current-format PHY from durable owner evidence.
+    pub fn open_path_current(path: impl AsRef<Path>) -> Result<Self, OwnerSessionError> {
+        let container = Container::open_read_only_as(path, FileKind::Phylactery)?;
+        require_kind(&container, FileKind::Phylactery)?;
+        reject_rel_only_records(&container)?;
+        let common = open_common_for_owner(&container, container.owner_id(), [], false)?;
+        Ok(Self {
+            owner_id: container.owner_id(),
+            common,
+            history_generation: owner_history_generation_from_container(&container)
+                .map_err(OwnerSessionError::Record)?,
+        })
+    }
+
     pub fn owner_id(&self) -> [u8; 16] {
         self.owner_id
+    }
+
+    pub fn scope(&self) -> OwnerScope {
+        OwnerScope::Unspecified
     }
 }
 common_reads!(PhySession, common);
@@ -653,9 +734,11 @@ pub use archive_vector_publication::{
     MAX_ARCHIVE_VECTOR_RESPONSE_BYTES,
 };
 pub use vector_publication::{MemoryVectorInput, MemoryVectorRow};
+mod management;
 mod phy_writer;
 mod rel_session;
 mod rel_writer;
+pub use management::{RelConversationSummary, RelTranscriptTurn};
 
 mod replay;
 mod validation;

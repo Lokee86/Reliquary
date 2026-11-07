@@ -12,6 +12,7 @@ const EPISODE_MAGIC: [u8; 8] = *b"RELEPIS1";
 const IMPORT_MAGIC: [u8; 8] = *b"CVAIMPT1";
 const FRAGMENT_DEFINITION_MAGIC: [u8; 8] = *b"CVAFRG01";
 const TOMBSTONE_MAGIC: [u8; 8] = *b"RELCTM01";
+const TITLE_MAGIC: [u8; 8] = *b"RELTIT01";
 const PRUNED_TURN_MAGIC: [u8; 8] = *b"RELTPR01";
 const MIN_ATTACHMENT_RECORD_LEN: usize = 32 + 32 + 8 + 4 + 1 + 1;
 
@@ -23,6 +24,7 @@ pub(crate) enum Record {
     Import(ImportReceipt),
     FragmentDefinitions(Vec<FragmentDefinition>),
     ConversationTombstone(String),
+    ConversationTitle(String, String),
     PrunedTurn(Node, Vec<SourceAttachment>, [u8; 32]),
 }
 
@@ -51,6 +53,16 @@ pub(crate) fn encode_conversation_tombstone(
 ) -> Result<Vec<u8>, ArchiveError> {
     let mut out = TOMBSTONE_MAGIC.to_vec();
     write_string(&mut out, conversation_id)?;
+    Ok(out)
+}
+
+pub(crate) fn encode_conversation_title(
+    conversation_id: &str,
+    title: &str,
+) -> Result<Vec<u8>, ArchiveError> {
+    let mut out = TITLE_MAGIC.to_vec();
+    write_string(&mut out, conversation_id)?;
+    write_string(&mut out, title)?;
     Ok(out)
 }
 
@@ -180,6 +192,12 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<Record>, ArchiveError
         let id = read_string(bytes, &mut cursor)?;
         require_end(bytes, cursor)?;
         Ok(Some(Record::ConversationTombstone(id)))
+    } else if magic == TITLE_MAGIC {
+        let mut cursor = 8;
+        let conversation_id = read_string(bytes, &mut cursor)?;
+        let title = read_string(bytes, &mut cursor)?;
+        require_end(bytes, cursor)?;
+        Ok(Some(Record::ConversationTitle(conversation_id, title)))
     } else if magic == PRUNED_TURN_MAGIC {
         if bytes.len() < 40 {
             return Err(ArchiveError::CorruptRecord("short pruned turn"));

@@ -24,6 +24,14 @@ impl Gateway {
         Ok(owner)
     }
 
+    /// Mount a current-format REL using owner-session's durable admission.
+    pub fn mount_reliquary_current(&self, path: impl AsRef<Path>) -> Result<OwnerId, GatewayError> {
+        let session = Arc::new(RelSession::open_path_current(path)?);
+        let owner = OwnerId(session.owner_id());
+        self.insert(owner, MountedOwner::Rel(session))?;
+        Ok(owner)
+    }
+
     /// Mount a REL with one owner-local writer lease. The mutable Container
     /// remains inside owner-session; request code receives only concrete ops.
     pub fn mount_writable_reliquary(
@@ -48,6 +56,22 @@ impl Gateway {
         Ok(owner)
     }
 
+    /// Mount a current-format REL with its exclusive owner-session writer.
+    pub fn mount_writable_reliquary_current(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> Result<OwnerId, GatewayError> {
+        let writer = RelWriter::open_path_current(path)?;
+        let owner = OwnerId(writer.owner_id());
+        self.insert(
+            owner,
+            MountedOwner::RelWriter(Arc::new(MountedRelWriter {
+                writer: std::sync::Mutex::new(writer),
+            })),
+        )?;
+        Ok(owner)
+    }
+
     pub fn mount_phylactery(
         &self,
         path: impl AsRef<Path>,
@@ -61,6 +85,16 @@ impl Gateway {
         )?);
         let owner = OwnerId(session.owner_id());
         self.check_admission(owner, graph_admission)?;
+        self.insert(owner, MountedOwner::Phy(session))?;
+        Ok(owner)
+    }
+
+    pub fn mount_phylactery_current(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> Result<OwnerId, GatewayError> {
+        let session = Arc::new(PhySession::open_path_current(path)?);
+        let owner = OwnerId(session.owner_id());
         self.insert(owner, MountedOwner::Phy(session))?;
         Ok(owner)
     }
@@ -83,6 +117,33 @@ impl Gateway {
             })),
         )?;
         Ok(owner)
+    }
+
+    pub fn mount_writable_phylactery_current(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> Result<OwnerId, GatewayError> {
+        let writer = PhyWriter::open_path_current(path)?;
+        let owner = OwnerId(writer.owner_id());
+        self.insert(
+            owner,
+            MountedOwner::PhyWriter(Arc::new(MountedPhyWriter {
+                writer: std::sync::Mutex::new(writer),
+            })),
+        )?;
+        Ok(owner)
+    }
+
+    /// Remove one mounted owner after host-side quiescence.
+    pub fn quiesce_owner(&self, owner: OwnerId) -> Result<(), GatewayError> {
+        let mut owners = self
+            .owners
+            .write()
+            .map_err(|_| GatewayError::RegistryPoisoned)?;
+        owners
+            .remove(&owner)
+            .ok_or(GatewayError::UnknownOwner(owner))?;
+        Ok(())
     }
 
     /// Private construction path used only after trusted host authentication.
