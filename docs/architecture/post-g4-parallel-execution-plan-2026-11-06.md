@@ -2,7 +2,7 @@
 
 Parent index: [Architecture](INDEX.md). Canonical capability tracker: [rebuild capabilities](implementation-rebuild-capabilities-2026-11-03.json).
 
-**Status: execution specifications complete; PG-C01, PG-C02, F03-V01 and G5-T01 are completed at their scoped boundaries; all other ticket and capability statuses remain unchanged.** Baseline: rebuilt `a3c3a964` accepts G4, with production/test changes through `31e7adb2`. The original F03 capability remains complete under its limited historical evidence contract. F03-V01 now accepts copy-only current-head admission; V02-V04 and full historical assurance remain open. D01, D02 and D03 remain not started. G5-T01 freezes the pre-measurement policy; the overall G5 capability remains not accepted and T02-T05 remain not started. Hermes provider/UI are a separate new-native-data product track.
+**Status: execution specifications complete; PG-C01, PG-C02, F03-V01 and G5-T01 are completed at their scoped boundaries; F03-V02, D01-T01, D02-T01, D03-T01 and G5-T02 have isolated work in progress; all capability acceptance statuses remain unchanged.** Baseline: rebuilt `a3c3a964` accepts G4, with production/test changes through `31e7adb2`. The original F03 capability remains complete under its limited historical evidence contract. F03-V01 accepts copy-only current-head admission; V02 has an isolated source-witness checkpoint, while V03-V04 and full historical assurance remain open. D01-T01, D02-T01 and D03-T01 have isolated checkpoints but their lanes remain unaccepted. G5-T01 freezes the pre-measurement policy; T02 has synthetic runner scaffolding only, while comparative measurements and overall G5 acceptance remain open. Hermes provider/UI are a separate new-native-data product track.
 
 ## Purpose
 

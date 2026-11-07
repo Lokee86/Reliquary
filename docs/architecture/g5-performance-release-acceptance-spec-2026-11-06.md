@@ -2,7 +2,7 @@
 
 Parent index: [Architecture](INDEX.md). Parent plan: [post-G4 execution](post-g4-parallel-execution-plan-2026-11-06.md).
 
-**Status: G5-T01 policy freeze is complete; the overall G5 performance/release capability remains unaccepted.** G5-T02 runner/adapter development may proceed. Comparative historical measurements require F03-admitted old owners and D02-admitted equivalent new owners; G5-T03 remains gated by F03-V04 and D02-T04. Final G5 acceptance depends on D03-T04; no benchmark result alone authorizes activation.
+**Status: G5-T01 policy freeze is complete; G5-T02 has an isolated synthetic runner scaffold in progress; the overall G5 performance/release capability remains unaccepted.** Comparative historical measurements require F03-admitted old owners and D02-admitted equivalent new owners; G5-T03 remains gated by F03-V04 and D02-T04. Final G5 acceptance depends on D03-T04; no benchmark result alone authorizes activation.
 
 ## Purpose
 

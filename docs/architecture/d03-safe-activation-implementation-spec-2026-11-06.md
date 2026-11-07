@@ -2,7 +2,7 @@
 
 Parent index: [Architecture](INDEX.md). Parent plan: [post-G4 execution](post-g4-parallel-execution-plan-2026-11-06.md).
 
-**Status: implementation-ready specification; D03 not started or accepted.** D03 prepares and rehearses activation. It does not activate production before G5, and does not imply that six file renames form one atomic operation.
+**Status: implementation-ready specification; D03-T01 has an isolated documentation checkpoint in progress; overall D03 remains unaccepted.** D03 prepares and rehearses activation. It does not activate production before G5, and does not imply that six file renames form one atomic operation.
 
 ## Purpose
 

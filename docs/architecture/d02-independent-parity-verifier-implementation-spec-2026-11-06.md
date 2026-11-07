@@ -2,7 +2,7 @@
 
 Parent index: [Architecture](INDEX.md). Parent plan: [post-G4 execution](post-g4-parallel-execution-plan-2026-11-06.md).
 
-**Status: implementation-ready specification; D02 not started or accepted.** Tool implementation may proceed after PG-C01, independently of D01. Final corpus execution requires D01-T05 and F03-V04. D02 must be implemented/reviewed independently of conversion logic.
+**Status: implementation-ready specification; D02-T01 has an isolated reader/comparator checkpoint in progress; overall D02 remains unaccepted.** Tool implementation may proceed after PG-C01, independently of D01. Final corpus execution requires D01-T05 and F03-V04. D02 must be implemented/reviewed independently of conversion logic.
 
 ## Purpose
 

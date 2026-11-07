@@ -2,7 +2,7 @@
 
 Parent index: [Architecture](INDEX.md). Parent plan: [post-G4 execution](post-g4-parallel-execution-plan-2026-11-06.md).
 
-**Status: implementation-ready continuation; F03-V01 copy-only current-head admission is accepted; full deep corpus proof remains open.** This does not reopen or rename the already completed original F03 capability, which permitted recording its precise FRS07 blocker. Tickets `F03-V01..V04` close the additional source assurance needed by D01/D02. No source conversion, mutation or activation is authorized here.
+**Status: implementation-ready continuation; F03-V01 copy-only current-head admission is accepted; F03-V02 has an isolated source-witness checkpoint in progress; full deep corpus proof remains open.** This does not reopen or rename the already completed original F03 capability, which permitted recording its precise FRS07 blocker. Tickets `F03-V01..V04` close the additional source assurance needed by D01/D02. No source conversion, mutation or activation is authorized here.
 
 ## Purpose
 
@@ -50,7 +50,7 @@ Repeat the export in a separate process on fresh identical copies with no shared
 
 ## Tickets
 
-F03-V01 is complete per the linked copy-only current-head evidence. F03-V02-V04 remain not started; earlier custody work does not complete the larger semantic/history tickets.
+F03-V01 is complete per the linked copy-only current-head evidence. F03-V02 has an isolated checkpoint only; its full witness acceptance is not recorded. F03-V03-V04 remain not started; earlier custody work does not complete the larger semantic/history tickets.
 
 | Ticket | Hard predecessors | Deliverable and scope | Executable acceptance / evidence |
 | --- | --- | --- | --- |

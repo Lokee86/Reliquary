@@ -2,7 +2,7 @@
 
 Parent index: [Architecture](INDEX.md). Parent plan: [post-G4 execution](post-g4-parallel-execution-plan-2026-11-06.md).
 
-**Status: implementation-ready specification; D01 not started or accepted.** Canonical acceptance prerequisites remain G4 and F03. Implementation on synthetic inputs may start after PG-C01; conversion of the six authentic sources requires F03-V04. D02 is independent and must not be used as D01's self-certification.
+**Status: implementation-ready specification; D01-T01 has an isolated synthetic implementation checkpoint in progress; overall D01 remains unaccepted.** Canonical acceptance prerequisites remain G4 and F03. Implementation on synthetic inputs may start after PG-C01; conversion of the six authentic sources requires F03-V04. D02 is independent and must not be used as D01's self-certification.
 
 ## Purpose
 
