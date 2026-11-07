@@ -13,6 +13,7 @@ pub(crate) struct RowCommitment {
     pub(crate) canonical_bytes: usize,
     pub(crate) coordinate: BTreeMap<&'static str, String>,
     pub(crate) availability: &'static str,
+    pub(super) anchor: super::membership::Anchor,
 }
 
 thread_local! {
@@ -101,6 +102,7 @@ pub(crate) fn observe(
             canonical_bytes: canonical_value.len(),
             coordinate,
             availability,
+            anchor: super::membership::anchor(domain, family, key, value),
         });
         Ok(())
     })

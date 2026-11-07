@@ -176,7 +176,8 @@ fn emit_global(
     sink: &mut ArtifactSink<'_>,
     container: &Container,
     mut timeline: Timeline,
-) -> ToolResult<Value> {
+    roots: &BTreeMap<String, Vec<String>>,
+) -> ToolResult<(Value, Value)> {
     for values in timeline.values_mut() {
         values.sort_unstable();
         if values
@@ -187,6 +188,7 @@ fn emit_global(
         }
     }
     let mut stream = BatchWriter::new(sink, copy, "global");
+    let mut compositions = Vec::new();
     let mut next: BTreeMap<_, _> = timeline
         .into_iter()
         .map(|(name, events)| (name, (events.into_iter().peekable(), 0_u64)))
@@ -199,13 +201,47 @@ fn emit_global(
             }
             versions.insert(name, local.to_string());
         }
-        stream.push(json!({
+        let global_cut = json!({
             "global_version": global.to_string(),
             "domain_versions": versions,
             "transaction_time_ns": container.transaction_time_ns(global).map(|v| v.to_string()),
+        });
+        let mut clocked = BTreeMap::new();
+        for (domain, series) in roots {
+            let clock = if domain == "archive_publication_origins" {
+                "archive"
+            } else {
+                domain
+            };
+            let Some(local) = versions.get(clock) else {
+                // Ego remains independent of the file-global clock.
+                continue;
+            };
+            let local: usize = local
+                .parse()
+                .map_err(|_| "invalid retained local coordinate")?;
+            let digest = series
+                .get(local)
+                .ok_or("retained local cut proof is missing")?;
+            clocked.insert(domain, digest);
+        }
+        let preimage = crate::historical_fingerprint::canonical_value(&json!({
+            "global_cut": global_cut,
+            "clocked_prefixes": clocked,
         }))?;
+        compositions.push(json!({
+            "global_version": global.to_string(),
+            "scope": "retained_clocked_native_history",
+            "clocked_history_sha256": sha256_bytes(&preimage),
+        }));
+        stream.push(global_cut)?;
     }
-    stream.finish()
+    let global = stream.finish()?;
+    let mut composed = BatchWriter::new(sink, copy, "clocked-composition");
+    for point in compositions {
+        composed.push(point)?;
+    }
+    Ok((global, composed.finish()?))
 }
 
 fn freshness(owner: &Cva, copy: &VerifiedCopy, sink: &mut ArtifactSink<'_>) -> ToolResult<Value> {
@@ -355,6 +391,7 @@ pub(super) fn rel(
     copy: &VerifiedCopy,
     sink: &mut ArtifactSink<'_>,
     container: Container,
+    exhaustive_freshness: bool,
 ) -> ToolResult<Value> {
     let mut owner = Cva::open_from_container(container)
         .map_err(|_| "REL native read-only replay rejected the source")?;
@@ -422,6 +459,7 @@ pub(super) fn rel(
         )?));
         Ok((timeline, projections))
     })?;
+    let membership = super::membership::emit(copy, sink, &rows, &projections)?;
     let records = emit_records(copy, sink, rows)?;
     let archive_events = owner
         .archive
@@ -450,8 +488,18 @@ pub(super) fn rel(
             .map(|r| (r.global_version, r.vector_version))
             .collect(),
     );
-    let global = emit_global(copy, sink, &owner.container, timeline)?;
+    let (global, clocked_composition) =
+        emit_global(copy, sink, &owner.container, timeline, &membership.roots)?;
     let freshness = freshness(&owner, copy, sink)?;
+    let freshness_activity = if exhaustive_freshness {
+        json!({
+            "coverage": "all_activity_cuts",
+            "stream": super::freshness_cuts::observe(&owner, copy, sink)?,
+        })
+    } else {
+        json!({"coverage": "unaudited", "reason": "exhaustive_activity_proof_not_requested"})
+    };
+    let archive_bindings = super::archive_bindings::observe(&owner, copy, sink)?;
     let metadata = owner.rel_metadata();
     let type_sha256 = metadata
         .type_label
@@ -469,8 +517,12 @@ pub(super) fn rel(
         "metadata_dependencies_sha256": metadata_dependencies,
         "rel_activity_head": owner.rel_turn_count().to_string(),
         "global_stream": global,
+        "clocked_cut_membership": membership.metadata,
+        "clocked_composition_stream": clocked_composition,
         "record_stream": records,
         "freshness_stream": freshness,
+        "freshness_activity_proofs": freshness_activity,
+        "archive_publication_bindings": archive_bindings,
         "native_history_projections": projections,
     }))
 }
@@ -515,13 +567,17 @@ pub(super) fn phy(
         )?));
         Ok((timeline, projections))
     })?;
+    let membership = super::membership::emit(copy, sink, &rows, &projections)?;
     let records = emit_records(copy, sink, rows)?;
-    let global = emit_global(copy, sink, &owner.container, timeline)?;
+    let (global, clocked_composition) =
+        emit_global(copy, sink, &owner.container, timeline, &membership.roots)?;
     Ok(json!({
         "owner_kind": "phylactery",
         "history_generation": owner.history_generation().to_string(),
         "rewrite_genesis": lineage(owner.rewrite_genesis()),
         "global_stream": global,
+        "clocked_cut_membership": membership.metadata,
+        "clocked_composition_stream": clocked_composition,
         "record_stream": records,
         "freshness_stream": {"availability": "unsupported", "reason": "REL_only"},
         "native_history_projections": projections,

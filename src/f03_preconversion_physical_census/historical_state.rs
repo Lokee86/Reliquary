@@ -1,10 +1,16 @@
 //! Read-only historical source evidence over the reviewed V01 copy population.
+#[path = "historical_state/archive_bindings.rs"]
+mod archive_bindings;
 #[path = "historical_state/carrier.rs"]
 mod carrier;
 #[path = "historical_state/clock_neutral.rs"]
 mod clock_neutral;
+#[path = "historical_state/freshness_cuts.rs"]
+mod freshness_cuts;
 #[path = "historical_state/insomnia.rs"]
 mod insomnia;
+#[path = "historical_state/membership.rs"]
+mod membership;
 #[path = "historical_state/native.rs"]
 mod native;
 #[path = "historical_state/project.rs"]
@@ -18,10 +24,10 @@ use super::*;
 use crate::FileKind;
 use serde_json::{Value, json};
 
-const SCHEMA: &str = "reliquary-f03-historical-state-v1";
+const SCHEMA: &str = "reliquary-f03-historical-state-v2";
 const COVERAGE: &str = "source-coverage.json";
 const MANIFEST: &str = "source-witness-manifest.json";
-const MAX_HISTORICAL_ARTIFACTS: usize = 8192;
+const MAX_HISTORICAL_ARTIFACTS: usize = 9216;
 
 struct ArtifactSink<'a> {
     output: Option<&'a Path>,
@@ -122,7 +128,11 @@ impl<'a, 'b> BatchWriter<'a, 'b> {
     }
 }
 
-fn observe_copy(copy: &VerifiedCopy, sink: &mut ArtifactSink<'_>) -> ToolResult<Value> {
+fn observe_copy(
+    copy: &VerifiedCopy,
+    sink: &mut ArtifactSink<'_>,
+    exhaustive_freshness: bool,
+) -> ToolResult<Value> {
     verify_copy_stable(copy)?;
     let input = copy
         .held_file
@@ -180,7 +190,7 @@ fn observe_copy(copy: &VerifiedCopy, sink: &mut ArtifactSink<'_>) -> ToolResult<
     let frame_stream = frames.finish()?;
     verify_copy_stable(copy)?;
     let native = match identity.file_kind {
-        FileKind::Reliquary => native::rel(copy, sink, container),
+        FileKind::Reliquary => native::rel(copy, sink, container, exhaustive_freshness),
         FileKind::Phylactery => native::phy(copy, sink, container),
         _ => Err("historical source has unsupported owner kind".into()),
     }?;
@@ -212,7 +222,7 @@ fn observe_copy(copy: &VerifiedCopy, sink: &mut ArtifactSink<'_>) -> ToolResult<
     }))
 }
 
-fn run(options: super::super::Options) -> ToolResult<Value> {
+fn run(options: super::super::Options, exhaustive_freshness: bool) -> ToolResult<Value> {
     let (specs, binding) = production_v01_inputs()?;
     let (_, receipt, receipt_guard) = super::super::read_bounded_snapshot(
         &options.expected_custody,
@@ -254,8 +264,10 @@ fn run(options: super::super::Options) -> ToolResult<Value> {
     let mut source_file_stats = BTreeMap::new();
     for copy in &copies {
         eprintln!("scanning {}", copy.source_id);
-        sources
-            .push(observe_copy(copy, &mut sink).map_err(|e| format!("{}: {e}", copy.source_id))?);
+        sources.push(
+            observe_copy(copy, &mut sink, exhaustive_freshness)
+                .map_err(|e| format!("{}: {e}", copy.source_id))?,
+        );
         source_file_stats.insert(&copy.source_id, &copy.snapshot.modified_unix_ns);
     }
 
@@ -267,12 +279,13 @@ fn run(options: super::super::Options) -> ToolResult<Value> {
         "semantic_history_assessed": true,
         "physical_carrier_completeness": "exhaustive_for_v01_copies",
         "global_ordering_completeness": "all_global_coordinates",
+        "freshness_activity_requested": exhaustive_freshness,
         "semantic_completeness": "incomplete",
         "sidecar_discovery_scope": "exact_v01_copy_tree_only",
         "gaps": [
             "External operational sidecar inventory and independent native scope authentication",
-            "Exhaustive typed row/cut membership in the common evidence contract",
-            "Composed historical projections at every semantic-changing global boundary",
+            "Common-schema evidence for non-Archive families",
+            "Clock-neutral as-of membership and full whole-owner historical projection",
         ],
         "binding_provenance": binding,
         "sources": sources,
@@ -284,6 +297,9 @@ fn run(options: super::super::Options) -> ToolResult<Value> {
         &[
             include_bytes!("historical_state.rs").as_slice(),
             include_bytes!("../f03_preconversion_physical_census.rs").as_slice(),
+            include_bytes!("historical_state/archive_bindings.rs").as_slice(),
+            include_bytes!("historical_state/freshness_cuts.rs").as_slice(),
+            include_bytes!("historical_state/membership.rs").as_slice(),
             include_bytes!("historical_state/carrier.rs").as_slice(),
             include_bytes!("historical_state/native.rs").as_slice(),
             include_bytes!("historical_state/row_commitment.rs").as_slice(),
@@ -333,14 +349,21 @@ fn run(options: super::super::Options) -> ToolResult<Value> {
 }
 
 pub fn cli_main() -> i32 {
-    match super::super::parse_options(env::args().skip(1)) {
+    let mut arguments: Vec<_> = env::args().skip(1).collect();
+    let exhaustive_freshness = arguments
+        .first()
+        .is_some_and(|value| value == "--exhaustive-freshness");
+    if exhaustive_freshness {
+        arguments.remove(0);
+    }
+    match super::super::parse_options(arguments.into_iter()) {
         Ok(None) => {
             println!(
-                "f03_source_witness --source-root PATH --expected-custody V01_RECEIPT --output PATH [--resume | --verify-only]"
+                "f03_source_witness [--exhaustive-freshness] --source-root PATH --expected-custody V01_RECEIPT --output PATH [--resume | --verify-only]"
             );
             0
         }
-        Ok(Some(options)) => match run(options) {
+        Ok(Some(options)) => match run(options, exhaustive_freshness) {
             Ok(report) => {
                 println!("{report}");
                 2
