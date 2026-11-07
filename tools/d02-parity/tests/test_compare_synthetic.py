@@ -3,6 +3,10 @@ from __future__ import annotations
 import json
 import sys
 import unittest
+from contextlib import redirect_stderr
+from io import StringIO
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 from pathlib import Path
 from hashlib import sha256
 
@@ -50,6 +54,18 @@ class SyntheticComparatorTests(unittest.TestCase):
             self.inventory_bytes,
             self.target_coverage_bytes if target_coverage is None else target_coverage,
         )
+
+    def test_output_cannot_overwrite_existing_evidence(self) -> None:
+        with TemporaryDirectory() as temporary:
+            evidence = Path(temporary) / "existing.jsonl"
+            evidence.write_bytes(self.source_bytes)
+            argv = []
+            for option in ("source", "target", "inventory", "target-coverage", "output"):
+                argv.extend((f"--{option}", str(evidence)))
+            with patch.object(comparator, "compare_bytes", return_value={"status": "PASS"}):
+                with redirect_stderr(StringIO()):
+                    self.assertEqual(comparator.main(argv), 2)
+            self.assertEqual(evidence.read_bytes(), self.source_bytes)
 
     def test_sidecar_hashes_are_pinned_and_not_derived_from_rows(self) -> None:
         self.assertEqual(

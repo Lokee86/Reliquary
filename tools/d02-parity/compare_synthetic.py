@@ -272,7 +272,12 @@ def main(argv: list[str] | None = None) -> int:
         }
     rendered = json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
     if args.output:
-        args.output.write_text(rendered, encoding="utf-8", newline="\n")
+        try:
+            with args.output.open("x", encoding="utf-8", newline="\n") as output:
+                output.write(rendered)
+        except OSError:
+            sys.stderr.write("could not create a new comparator report\n")
+            return 2
     else:
         sys.stdout.write(rendered)
     return 0 if report.get("status") == "PASS" else 2
