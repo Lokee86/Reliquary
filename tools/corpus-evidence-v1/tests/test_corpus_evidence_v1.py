@@ -1,5 +1,6 @@
 """Independent regression tests for the provisional synthetic PG-C01 contract."""
 import copy
+import hashlib
 import json
 import pathlib
 import sys
@@ -21,7 +22,7 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
 
     def test_hand_authored_rows_validate_and_schema_matches(self):
         encoded = contract.canonical_rows(self.rows, self.groups, self.records, self.domains)
-        self.assertEqual(len(encoded), 8)
+        self.assertEqual(len(encoded), 9)
         self.assertTrue(contract.canonical_jsonl(encoded).endswith(b"\n"))
         schema = json.loads((ROOT / "schemas" / "semantic-row-v1.schema.json").read_bytes())
         validator = jsonschema.Draft202012Validator(schema)
@@ -51,7 +52,7 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
         golden = json.loads((ROOT / "fixtures" / "golden-vectors-v1.json").read_bytes())["vectors"]
         target = contract.parse_jsonl((ROOT / "fixtures" / "target-rows.v1.jsonl").read_bytes())
         source = next(row for row in self.rows if row["family"] == "fixture.memory_revision.v1" and row["revision_or_event"] == "revision-2")
-        self.assertEqual(len(target), 4)
+        self.assertEqual(len(target), 5)
         target_current = next(row for row in target if row["family"] == "fixture.memory_revision.v1" and row["revision_or_event"] == "revision-2")
         self.assertEqual(contract.canonical_json_bytes(source), contract.canonical_json_bytes(target_current))
         source_memory = [row for row in self.rows if row["family"] == "fixture.memory_revision.v1"]
@@ -122,13 +123,38 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
         invalid_absent["row_count"] = "1"
         with self.assertRaises(contract.ContractError):
             contract.validate_family_coverage(invalid_absent, self.records, set())
+        cut_catalog=json.loads((ROOT/"fixtures"/"owner-cuts.v1.json").read_bytes())["cuts"]
+        sampled_cut={"family":"fixture.ego_anchor.v1","group_id":"ego","presence":"supported","completeness":"exhaustive","row_count":"0",
+                     "cuts":[{"cut_id":cut["cut_id"],"presence":"supported","completeness":"exhaustive","row_count":"0","reason":None} for cut in cut_catalog],
+                     "row_cut_memberships":[]}
+        sampled_cut["cuts"][0]["completeness"]="sampled"
+        with self.assertRaisesRegex(contract.ContractError,"requires exhaustive completeness at every cut"):
+            contract.validate_family_coverage(sampled_cut,self.records,{cut["cut_id"] for cut in cut_catalog})
+        absent_cut={"family":"fixture.ego_anchor.v1","group_id":"ego","presence":"absent","completeness":"exhaustive","row_count":"0",
+                    "cuts":[{"cut_id":"11"*32,"presence":"absent","completeness":"incomplete","row_count":"0","reason":"not fully observed"}],
+                    "row_cut_memberships":[]}
+        with self.assertRaisesRegex(contract.ContractError,"requires exhaustive completeness at every cut"):
+            contract.validate_family_coverage(absent_cut,self.records,{"11"*32})
+        mixed_presence={"family":"fixture.ego_anchor.v1","group_id":"ego","presence":"supported","completeness":"exhaustive","row_count":"0",
+                        "cuts":[{"cut_id":"11"*32,"presence":"absent","completeness":"exhaustive","row_count":"0","reason":"not present at this cut"},
+                                {"cut_id":"22"*32,"presence":"supported","completeness":"exhaustive","row_count":"0","reason":None}],
+                        "row_cut_memberships":[]}
+        contract.validate_family_coverage(mixed_presence,self.records,{"11"*32,"22"*32})
+        all_absent_mislabeled=copy.deepcopy(mixed_presence)
+        all_absent_mislabeled["cuts"][1]["presence"]="absent"
+        all_absent_mislabeled["cuts"][1]["reason"]="not present at this cut"
+        with self.assertRaisesRegex(contract.ContractError,"family absent at every cut"):
+            contract.validate_family_coverage(all_absent_mislabeled,self.records,{"11"*32,"22"*32})
 
     def test_registry_required_logical_provenance_is_enforced(self):
-        archive = next(row for row in self.rows if row["family"] == "fixture.archive_turn_revision.v1")
-        omitted = copy.deepcopy(archive)
-        omitted["source_binding"] = {"kind": "optional", "state": "absent"}
-        with self.assertRaisesRegex(contract.ContractError, "requires logical source provenance"):
-            contract.validate_semantic_row(omitted, self.groups, self.records, self.domains)
+        families=[record["schema_id"] for record in self.records["records"] if record["semantic_family"]]
+        for family in families:
+            with self.subTest(family=family):
+                row=next(row for row in self.rows if row["family"]==family)
+                omitted=copy.deepcopy(row)
+                omitted["source_binding"]={"kind":"optional","state":"absent"}
+                with self.assertRaisesRegex(contract.ContractError,"requires logical source provenance"):
+                    contract.validate_semantic_row(omitted,self.groups,self.records,self.domains)
 
     def test_cross_field_unavailability_and_source_span_rules_fail_closed(self):
         row=next(row for row in self.rows if row["family"]=="fixture.freshness_event.v1" and row["availability"]=="unavailable")
@@ -184,16 +210,20 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
         self.assertNotEqual(original_digest, provenance_digest)
 
     def test_physical_offsets_change_custody_not_semantic_rows(self):
+        owner_file = {
+            "owner_uuid":"00112233445566778899aabbccddeeff","owner_kind":"REL","scope":"project",
+            "source_file_sha256":"a"*64,"source_byte_length":"1000",
+            "target_file_sha256":"b"*64,"target_byte_length":"1200",
+        }
+        relocation = {
+            "owner_uuid":"00112233445566778899aabbccddeeff","owner_kind":"REL","scope":"project",
+            "family":"fixture.memory_revision.v1","source_object_sha256":"1"*64,
+            "source_offset":"100","source_length":"20","target_object_sha256":"2"*64,
+            "target_offset":"300","target_length":"20","payload_identity":"abcd","reference_kind":"body",
+        }
         custody_a = {
-            "source_file_sha256": "a" * 64, "target_file_sha256": "b" * 64,
-            "relocations": [{
-                "owner_uuid": "00112233445566778899aabbccddeeff",
-                "family": "fixture.memory_revision.v1", "source_object_sha256": "1" * 64,
-                "source_offset": "100", "source_length": "20",
-                "target_object_sha256": "2" * 64, "target_offset": "300",
-                "target_length": "20", "payload_identity": "abcd",
-                "reference_kind": "body",
-            }],
+            "schema_id":"reliquary-corpus-physical-custody-v1","contract_id":contract.CONTRACT_ID,
+            "owner_files":[owner_file],"relocations":[relocation],
         }
         custody_b = copy.deepcopy(custody_a)
         custody_b["relocations"][0]["target_offset"] = "400"
@@ -209,6 +239,20 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
         bad_family["relocations"][0]["family"]="memory"
         with self.assertRaises(contract.ContractError):
             contract.custody_digest(bad_family,self.records)
+        wrong_owner=copy.deepcopy(custody_a)
+        wrong_owner["relocations"][0]["owner_kind"]="PHY"
+        with self.assertRaisesRegex(contract.ContractError,"full owner custody binding"):
+            contract.custody_digest(wrong_owner,self.records)
+        changed_source_file=copy.deepcopy(custody_a)
+        changed_source_file["owner_files"][0]["source_file_sha256"]="c"*64
+        self.assertNotEqual(contract.custody_digest(changed_source_file,self.records)[1],contract.custody_digest(custody_a,self.records)[1])
+        second_file=copy.deepcopy(owner_file)
+        second_file["owner_kind"]="PHY"
+        second_file["source_file_sha256"]="c"*64
+        second_file["target_file_sha256"]="d"*64
+        same_uuid_different_full_key=copy.deepcopy(custody_a)
+        same_uuid_different_full_key["owner_files"]=[second_file,owner_file]
+        self.assertEqual(len(contract.custody_digest(same_uuid_different_full_key,self.records)[1]),64)
         duplicate=copy.deepcopy(custody_many)
         duplicate["relocations"].append(copy.deepcopy(duplicate["relocations"][0]))
         with self.assertRaisesRegex(contract.ContractError,"duplicate physical relocation"):
@@ -254,7 +298,8 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
         owner = {"owner_uuid":"00112233445566778899aabbccddeeff","owner_kind":"REL","scope":"project"}
         catalog=json.loads((ROOT/"fixtures"/"owner-cuts.v1.json").read_bytes())
         cuts=catalog["cuts"]
-        descriptor = {**owner,"history_generation":"3","lineage":{"kind":"optional","state":"absent"},
+        source_hash=hashlib.sha256((ROOT/"fixtures"/"source-rows.v1.jsonl").read_bytes()).hexdigest()
+        descriptor = {**owner,"source_file_sha256":source_hash,"history_generation":"3","lineage":{"kind":"optional","state":"absent"},
                       "version_heads":[{"domain_id":"fixture.activity","version":"12"},{"domain_id":"fixture.archive","version":"6"},
                                        {"domain_id":"fixture.global","version":"13"},{"domain_id":"fixture.memory","version":"4"}],
                       "supported_cuts":cuts}
@@ -283,17 +328,31 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
         shuffled_preimage,shuffled_digest=contract.owner_digest(descriptor,list(reversed(groups)),list(reversed(families)),rows,self.groups,self.records,self.domains,self.carriers)
         self.assertEqual(preimage,shuffled_preimage)
         self.assertEqual(digest,shuffled_digest)
+        golden=json.loads((ROOT/"fixtures"/"golden-vectors-v1.json").read_bytes())["vectors"]["owner_corpus"]
+        self.assertEqual(preimage.hex(),golden["owner_preimage_hex"])
+        self.assertEqual(digest,golden["owner_sha256"])
         evidence={"descriptor":descriptor,"group_coverage":groups,"family_coverage":families,"family_rows":rows,"claimed_owner_digest":digest}
-        corpus_preimage,corpus_hash=contract.corpus_digest([evidence],self.groups,self.records,self.domains,self.carriers)
+        catalog=[{key:descriptor[key] for key in ("owner_uuid","owner_kind","scope","source_file_sha256")}]
+        corpus_preimage,corpus_hash=contract.corpus_digest([evidence],catalog,self.groups,self.records,self.domains,self.carriers)
         self.assertTrue(corpus_preimage.startswith(contract.CORPUS_DOMAIN))
-        self.assertEqual(len(corpus_hash),64)
+        self.assertEqual(corpus_preimage.hex(),golden["corpus_preimage_hex"])
+        self.assertEqual(corpus_hash,golden["corpus_sha256"])
         tampered_claim=copy.deepcopy(evidence)
         tampered_claim["claimed_owner_digest"]="0"*64
         with self.assertRaisesRegex(contract.ContractError,"claimed owner digest does not match"):
-            contract.corpus_digest([tampered_claim],self.groups,self.records,self.domains,self.carriers)
+            contract.corpus_digest([tampered_claim],catalog,self.groups,self.records,self.domains,self.carriers)
+        with self.assertRaisesRegex(contract.ContractError,"differs from explicit expected owner catalog"):
+            contract.corpus_digest([evidence],[],self.groups,self.records,self.domains,self.carriers)
+        source_hash_changed=copy.deepcopy(descriptor)
+        source_hash_changed["source_file_sha256"]="f"*64
+        same_semantic=copy.deepcopy(evidence)
+        same_semantic["descriptor"]=source_hash_changed
+        changed_catalog=[{**catalog[0],"source_file_sha256":"f"*64}]
+        self.assertEqual(contract.corpus_digest([same_semantic],changed_catalog,self.groups,self.records,self.domains,self.carriers)[1],corpus_hash)
 
         second_descriptor=copy.deepcopy(descriptor)
         second_descriptor["owner_uuid"]="ffeeddccbbaa99887766554433221100"
+        second_descriptor["source_file_sha256"]=hashlib.sha256((ROOT/"fixtures"/"target-rows.v1.jsonl").read_bytes()).hexdigest()
         second_rows={}
         for family, family_values in rows.items():
             second_rows[family]=[]
@@ -303,23 +362,27 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
                 second_rows[family].append(row)
         _,second_digest=contract.owner_digest(second_descriptor,groups,families,second_rows,self.groups,self.records,self.domains,self.carriers)
         second_evidence={"descriptor":second_descriptor,"group_coverage":groups,"family_coverage":families,"family_rows":second_rows,"claimed_owner_digest":second_digest}
-        ordered_hash=contract.corpus_digest([evidence,second_evidence],self.groups,self.records,self.domains,self.carriers)[1]
-        reversed_hash=contract.corpus_digest([second_evidence,evidence],self.groups,self.records,self.domains,self.carriers)[1]
+        two_owner_catalog=catalog+[{key:second_descriptor[key] for key in ("owner_uuid","owner_kind","scope","source_file_sha256")}]
+        ordered_hash=contract.corpus_digest([evidence,second_evidence],two_owner_catalog,self.groups,self.records,self.domains,self.carriers)[1]
+        reversed_hash=contract.corpus_digest([second_evidence,evidence],two_owner_catalog,self.groups,self.records,self.domains,self.carriers)[1]
         self.assertEqual(ordered_hash,reversed_hash)
         swapped_claims=[copy.deepcopy(evidence),copy.deepcopy(second_evidence)]
         swapped_claims[0]["claimed_owner_digest"]=second_digest
         swapped_claims[1]["claimed_owner_digest"]=digest
         with self.assertRaisesRegex(contract.ContractError,"claimed owner digest does not match"):
-            contract.corpus_digest(swapped_claims,self.groups,self.records,self.domains,self.carriers)
+            contract.corpus_digest(swapped_claims,two_owner_catalog,self.groups,self.records,self.domains,self.carriers)
 
         changed=copy.deepcopy(descriptor)
         changed["history_generation"]="4"
         self.assertNotEqual(contract.owner_digest(changed,groups,families,rows,self.groups,self.records,self.domains,self.carriers)[1],digest)
+        source_hash_changed=copy.deepcopy(descriptor)
+        source_hash_changed["source_file_sha256"]="f"*64
+        self.assertEqual(contract.owner_digest(source_hash_changed,groups,families,rows,self.groups,self.records,self.domains,self.carriers)[1],digest)
         changed_registry=copy.deepcopy(self.groups)
         changed_registry["groups"][0]["retained_value_obligations"].append("Catalog identity test marker.")
         changed_registry_digest=contract.owner_digest(descriptor,groups,families,rows,changed_registry,self.records,self.domains,self.carriers)[1]
         self.assertNotEqual(changed_registry_digest,digest)
-        changed_corpus_hash=contract.corpus_digest([{"descriptor":descriptor,"group_coverage":groups,"family_coverage":families,"family_rows":rows}],changed_registry,self.records,self.domains,self.carriers)[1]
+        changed_corpus_hash=contract.corpus_digest([{"descriptor":descriptor,"group_coverage":groups,"family_coverage":families,"family_rows":rows}],catalog,changed_registry,self.records,self.domains,self.carriers)[1]
         self.assertNotEqual(changed_corpus_hash,corpus_hash)
 
         wrong_scope=copy.deepcopy(descriptor)
@@ -356,7 +419,7 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
     def test_all_contract_schemas_validate_examples(self):
         descriptor,groups,families,rows=self._owner_fixture()
         report=json.loads((ROOT/"fixtures"/"report-example-incomplete.v1.json").read_bytes())
-        custody={"source_file_sha256":"a"*64,"target_file_sha256":"b"*64,"relocations":[{"owner_uuid":"00112233445566778899aabbccddeeff","family":"fixture.memory_revision.v1","source_object_sha256":"1"*64,"source_offset":"100","source_length":"20","target_object_sha256":"2"*64,"target_offset":"300","target_length":"20","payload_identity":"abcd","reference_kind":"body"}]}
+        custody={"schema_id":"reliquary-corpus-physical-custody-v1","contract_id":contract.CONTRACT_ID,"owner_files":[{"owner_uuid":"00112233445566778899aabbccddeeff","owner_kind":"REL","scope":"project","source_file_sha256":"a"*64,"source_byte_length":"100","target_file_sha256":"b"*64,"target_byte_length":"120"}],"relocations":[{"owner_uuid":"00112233445566778899aabbccddeeff","owner_kind":"REL","scope":"project","family":"fixture.memory_revision.v1","source_object_sha256":"1"*64,"source_offset":"100","source_length":"20","target_object_sha256":"2"*64,"target_offset":"300","target_length":"20","payload_identity":"abcd","reference_kind":"body"}]}
         examples={
             "semantic-owner-v1.schema.json":descriptor,
             "group-coverage-v1.schema.json":groups[0],
@@ -386,6 +449,49 @@ class CorpusEvidenceV1Tests(unittest.TestCase):
         row_schema=json.loads((ROOT/"schemas"/"semantic-row-v1.schema.json").read_bytes())
         for row in self.rows:
             jsonschema.validate(row,row_schema)
+
+    def test_report_reconciles_expected_owners_counts_sources_and_custody(self):
+        descriptor,groups,families,rows=self._owner_fixture()
+        catalog=[{key:descriptor[key] for key in ("owner_uuid","owner_kind","scope","source_file_sha256")}]
+        owner_evidence={"descriptor":descriptor,"group_coverage":groups,"family_coverage":families,"family_rows":rows}
+        target_bytes=(ROOT/"fixtures"/"target-rows.v1.jsonl").read_bytes()
+        custody={"schema_id":"reliquary-corpus-physical-custody-v1","contract_id":contract.CONTRACT_ID,
+                 "owner_files":[{"owner_uuid":descriptor["owner_uuid"],"owner_kind":descriptor["owner_kind"],"scope":descriptor["scope"],
+                                 "source_file_sha256":descriptor["source_file_sha256"],"source_byte_length":str((ROOT/"fixtures"/"source-rows.v1.jsonl").stat().st_size),
+                                 "target_file_sha256":hashlib.sha256(target_bytes).hexdigest(),"target_byte_length":str(len(target_bytes))}],
+                 "relocations":[]}
+        _,semantic_hash=contract.corpus_digest([owner_evidence],catalog,self.groups,self.records,self.domains,self.carriers)
+        _,custody_hash=contract.custody_digest(custody,self.records)
+        report=json.loads((ROOT/"fixtures"/"report-example-incomplete.v1.json").read_bytes())
+        report["source_owner_bindings"]=[catalog[0]]
+        report["source_hashes"]=[descriptor["source_file_sha256"]]
+        report["coverage"]={"owner_count":"1","family_count":"5","cut_count":"3","row_count":"9","completeness":"incomplete"}
+        report["parent_artifact_hashes"]=sorted([semantic_hash,custody_hash])
+        bundle={"expected_owner_catalog":catalog,"owners":[owner_evidence],"custody":custody}
+        contract.validate_artifact_report(report,ROOT,bundle)
+
+        bad_counts=copy.deepcopy(report)
+        bad_counts["coverage"]["row_count"]="8"
+        with self.assertRaisesRegex(contract.ContractError,"coverage counts/completeness differ"):
+            contract.validate_artifact_report(bad_counts,ROOT,bundle)
+        bad_sources=copy.deepcopy(report)
+        bad_sources["source_hashes"]=["0"*64]
+        with self.assertRaisesRegex(contract.ContractError,"source_hashes differ"):
+            contract.validate_artifact_report(bad_sources,ROOT,bundle)
+        bad_role=copy.deepcopy(report)
+        bad_role["producer_role"]="converter"
+        bad_role["evidence_scope"]="authentic_source"
+        with self.assertRaisesRegex(contract.ContractError,"cannot claim this evidence_scope"):
+            contract.validate_artifact_report(bad_role,ROOT,bundle)
+        comparator_authentic=copy.deepcopy(report)
+        comparator_authentic["evidence_scope"]="authentic_source"
+        with self.assertRaisesRegex(contract.ContractError,"cannot claim this evidence_scope"):
+            contract.validate_artifact_report(comparator_authentic,ROOT,bundle)
+        pass_without_evidence=copy.deepcopy(report)
+        pass_without_evidence["status"]="PASS"
+        pass_without_evidence["coverage"]["completeness"]="exhaustive"
+        with self.assertRaisesRegex(contract.ContractError,"requires recomputable owner/custody evidence"):
+            contract.validate_artifact_report(pass_without_evidence,ROOT)
 
     def test_registry_bundle_is_bound_and_hash_is_stable(self):
         first = contract.registry_hashes(ROOT)

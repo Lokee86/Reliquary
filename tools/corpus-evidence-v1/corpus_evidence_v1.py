@@ -316,8 +316,9 @@ def validate_cut(value: Any, domain_ids: set[str]) -> None:
 
 
 def validate_owner_descriptor(value: Any, records: Mapping[str, Any], domain_ids: set[str], authentic: bool = False) -> None:
-    _exact(value, {"owner_uuid", "owner_kind", "scope", "history_generation", "lineage", "version_heads", "supported_cuts"}, "semantic owner descriptor")
+    _exact(value, {"owner_uuid", "owner_kind", "scope", "source_file_sha256", "history_generation", "lineage", "version_heads", "supported_cuts"}, "owner descriptor")
     owner_key({key: value[key] for key in ("owner_uuid", "owner_kind", "scope")})
+    _hash(value["source_file_sha256"], "source_file_sha256")
     decimal_u64(value["history_generation"], "history_generation")
     lineage = value["lineage"]
     if not isinstance(lineage, dict) or lineage.get("kind") != "optional":
@@ -509,13 +510,17 @@ def validate_family_coverage(value: Any, family_registry: Mapping[str, Any], cut
             raise ContractError("family cut row_count differs from explicit row-cut membership table")
     if value["completeness"] == "exhaustive" and actual != sorted(cut_ids, key=lambda value: bytes.fromhex(value)):
         raise ContractError("exhaustive family coverage must name every owner cut")
+    if value["completeness"] == "exhaustive" and any(entry["completeness"] != "exhaustive" for entry in value["cuts"]):
+        raise ContractError("exhaustive family coverage requires exhaustive completeness at every cut")
     if value["presence"] != "supported" and value["row_count"] != "0":
         raise ContractError("non-supported family cannot serialize semantic rows")
     if value["presence"] != "supported" and value["row_cut_memberships"]:
         raise ContractError("non-supported family cannot claim row-to-cut membership")
     if value["presence"] == "supported" and value["completeness"] == "exhaustive":
-        if any(item["presence"] != "supported" for item in value["cuts"]):
-            raise ContractError("exhaustive supported family cannot hide a non-supported cut")
+        if any(item["presence"] not in {"supported", "absent"} for item in value["cuts"]):
+            raise ContractError("exhaustive supported family cannot hide an unsupported cut")
+        if value["cuts"] and not any(item["presence"] == "supported" for item in value["cuts"]):
+            raise ContractError("family absent at every cut must use absent presence")
     if value["presence"] == "absent" and value["completeness"] == "exhaustive":
         if any(item["presence"] != "absent" for item in value["cuts"]):
             raise ContractError("exhaustive absent family must be absent at every owner cut")
@@ -580,8 +585,9 @@ def family_digest(
 
 
 def _semantic_owner_bytes(descriptor: Mapping[str, Any]) -> bytes:
-    # File hashes, physical offsets and relocation data deliberately live elsewhere.
-    return canonical_json_bytes(dict(descriptor))
+    # Source file hashes, physical offsets and relocation data are custody only.
+    semantic = {key: value for key, value in descriptor.items() if key != "source_file_sha256"}
+    return canonical_json_bytes(semantic)
 
 
 def registry_identity(groups: Mapping[str, Any], records: Mapping[str, Any], carriers: Mapping[str, Any]) -> bytes:
@@ -660,19 +666,38 @@ def owner_digest(
     return preimage, hashlib.sha256(preimage).hexdigest()
 
 
+def _catalog_owner_key(entry: Mapping[str, Any]) -> bytes:
+    _exact(entry, {"owner_uuid", "owner_kind", "scope", "source_file_sha256"}, "expected owner catalog entry")
+    key = owner_key({name: entry[name] for name in ("owner_uuid", "owner_kind", "scope")})
+    _hash(entry["source_file_sha256"], "expected owner source_file_sha256")
+    return key
+
+
 def _compose_verified_corpus_digest(
     owners: Sequence[tuple[Mapping[str, Any], str]],
+    expected_owner_catalog: Sequence[Mapping[str, Any]],
     groups: Mapping[str, Any],
     records: Mapping[str, Any],
     domain_ids: set[str],
     carriers: Mapping[str, Any],
 ) -> tuple[bytes, str]:
+    catalog = sorted(expected_owner_catalog, key=_catalog_owner_key)
+    catalog_keys = [_catalog_owner_key(entry) for entry in catalog]
+    if len(catalog_keys) != len(set(catalog_keys)):
+        raise ContractError("expected owner catalog contains duplicate owner keys")
     ordered = sorted(owners, key=lambda item: owner_key({key: item[0][key] for key in ("owner_uuid", "owner_kind", "scope")}))
     keys = [owner_key({key: descriptor[key] for key in ("owner_uuid", "owner_kind", "scope")}) for descriptor, _ in ordered]
     if len(keys) != len(set(keys)):
         raise ContractError("duplicate semantic owner key")
+    if keys != catalog_keys:
+        raise ContractError("evidence owner set differs from explicit expected owner catalog")
+    for (descriptor, _), catalog_entry in zip(ordered, catalog):
+        if descriptor["source_file_sha256"] != catalog_entry["source_file_sha256"]:
+            raise ContractError("owner source hash differs from expected owner catalog")
     identity = registry_identity(groups, records, carriers)
-    parts = [CORPUS_DOMAIN, lp(identity), u64be(len(ordered))]
+    parts = [CORPUS_DOMAIN, lp(identity), u64be(len(catalog))]
+    parts.extend(lp(key) for key in catalog_keys)
+    parts.append(u64be(len(ordered)))
     for descriptor, digest in ordered:
         validate_owner_descriptor(descriptor, records, domain_ids)
         parts.extend((lp(owner_key({key: descriptor[key] for key in ("owner_uuid", "owner_kind", "scope")})),
@@ -683,6 +708,7 @@ def _compose_verified_corpus_digest(
 
 def corpus_digest(
     owners: Sequence[Mapping[str, Any]],
+    expected_owner_catalog: Sequence[Mapping[str, Any]],
     groups: Mapping[str, Any],
     records: Mapping[str, Any],
     domain_ids: set[str],
@@ -704,20 +730,36 @@ def corpus_digest(
             if claimed_bytes != bytes.fromhex(computed):
                 raise ContractError(f"corpus owner evidence {index} claimed owner digest does not match recomputed evidence")
         verified.append((descriptor, computed))
-    return _compose_verified_corpus_digest(verified, groups, records, domain_ids, carriers)
+    return _compose_verified_corpus_digest(verified, expected_owner_catalog, groups, records, domain_ids, carriers)
 
 def custody_digest(custody: Mapping[str, Any], records: Mapping[str, Any]) -> tuple[bytes, str]:
-    _exact(custody, {"source_file_sha256", "target_file_sha256", "relocations"}, "physical custody")
-    _hash(custody["source_file_sha256"], "source_file_sha256")
-    _hash(custody["target_file_sha256"], "target_file_sha256")
-    if not isinstance(custody["relocations"], list):
-        raise ContractError("relocations must be an array")
+    _exact(custody, {"schema_id", "contract_id", "owner_files", "relocations"}, "physical custody")
+    if custody["schema_id"] != "reliquary-corpus-physical-custody-v1" or custody["contract_id"] != CONTRACT_ID:
+        raise ContractError("wrong physical custody schema or contract ID")
+    if not isinstance(custody["owner_files"], list) or not isinstance(custody["relocations"], list):
+        raise ContractError("owner_files and relocations must be arrays")
+    owner_files = []
+    owner_keys = []
+    for index, item in enumerate(custody["owner_files"]):
+        _exact(item, {"owner_uuid", "owner_kind", "scope", "source_file_sha256", "source_byte_length", "target_file_sha256", "target_byte_length"}, f"custody owner file {index}")
+        key = owner_key({name: item[name] for name in ("owner_uuid", "owner_kind", "scope")})
+        _hash(item["source_file_sha256"], f"custody owner file {index} source hash")
+        decimal_u64(item["source_byte_length"], f"custody owner file {index} source byte length")
+        _hash(item["target_file_sha256"], f"custody owner file {index} target hash")
+        decimal_u64(item["target_byte_length"], f"custody owner file {index} target byte length")
+        owner_keys.append(key)
+        owner_files.append(item)
+    if owner_keys != sorted(set(owner_keys)):
+        raise ContractError("custody owner files must be unique and ordered by canonical full owner key")
+    owner_key_set = set(owner_keys)
     if records.get("schema_id") != "reliquary-corpus-record-schemas-v1" or records.get("contract_id") != CONTRACT_ID:
         raise ContractError("custody requires the versioned contract record registry")
     family_ids = {record["schema_id"] for record in records.get("records", []) if record.get("semantic_family") is True}
     for index, row in enumerate(custody["relocations"]):
-        _exact(row, {"owner_uuid", "family", "source_object_sha256", "source_offset", "source_length", "target_object_sha256", "target_offset", "target_length", "payload_identity", "reference_kind"}, f"relocation {index}")
-        _uuid(row["owner_uuid"], f"relocation {index} owner")
+        _exact(row, {"owner_uuid", "owner_kind", "scope", "family", "source_object_sha256", "source_offset", "source_length", "target_object_sha256", "target_offset", "target_length", "payload_identity", "reference_kind"}, f"relocation {index}")
+        full_owner_key = owner_key({name: row[name] for name in ("owner_uuid", "owner_kind", "scope")})
+        if full_owner_key not in owner_key_set:
+            raise ContractError("relocation has no matching full owner custody binding")
         if row["family"] not in family_ids:
             raise ContractError("relocation names unknown logical family schema")
         for field in ("source_object_sha256", "target_object_sha256"):
@@ -730,7 +772,7 @@ def custody_digest(custody: Mapping[str, Any], records: Mapping[str, Any]) -> tu
         _check_unicode(row["reference_kind"])
     def relocation_key(row: Mapping[str, Any]) -> tuple[bytes, ...]:
         return (
-            _uuid(row["owner_uuid"], "relocation owner"),
+            owner_key({name: row[name] for name in ("owner_uuid", "owner_kind", "scope")}),
             row["family"].encode("utf-8"),
             _hash(row["source_object_sha256"], "source object hash"),
             u64be(decimal_u64(row["source_offset"], "source offset")),
@@ -746,11 +788,11 @@ def custody_digest(custody: Mapping[str, Any], records: Mapping[str, Any]) -> tu
     if len(keys) != len(set(keys)):
         raise ContractError("duplicate physical relocation row")
     normalized = dict(custody)
+    normalized["owner_files"] = owner_files
     normalized["relocations"] = ordered
     body = canonical_json_bytes(normalized)
     preimage = CUSTODY_DOMAIN + lp(body)
     return preimage, hashlib.sha256(preimage).hexdigest()
-
 
 def bundle_digest(root: Path) -> tuple[bytes, str]:
     selected = []
@@ -829,7 +871,31 @@ def registry_hashes(root: Path) -> dict[str, str]:
     return result
 
 
-def validate_artifact_report(report: Mapping[str, Any], root: Path) -> None:
+def _report_completeness(owners: Sequence[Mapping[str, Any]]) -> str:
+    rank = {"exhaustive": 0, "sampled": 1, "incomplete": 2}
+    result = 0
+    for evidence in owners:
+        descriptor = evidence["descriptor"]
+        for cut in descriptor["supported_cuts"]:
+            result = max(result, rank[cut["completeness"]])
+            if cut["availability"] != "present":
+                result = 2
+        for group in evidence["group_coverage"]:
+            result = max(result, rank[group["completeness"]])
+            if group["presence"] in {"unsupported", "unavailable", "corrupt", "unaudited", "unclassified"}:
+                result = 2
+        for family in evidence["family_coverage"]:
+            result = max(result, rank[family["completeness"]])
+            if family["presence"] in {"unsupported", "unavailable", "corrupt", "unaudited", "unclassified"}:
+                result = 2
+            for cut in family["cuts"]:
+                result = max(result, rank[cut["completeness"]])
+                if cut["presence"] in {"unsupported", "unavailable", "corrupt", "unaudited", "unclassified"}:
+                    result = 2
+    return {0: "exhaustive", 1: "sampled", 2: "incomplete"}[result]
+
+
+def validate_artifact_report(report: Mapping[str, Any], root: Path, evidence: Mapping[str, Any] | None = None) -> None:
     try:
         import jsonschema
         from importlib.metadata import version
@@ -846,8 +912,59 @@ def validate_artifact_report(report: Mapping[str, Any], root: Path) -> None:
         raise ContractError(f"artifact report schema violation: {exc.message}") from exc
     if dict(report["registry_hashes"]) != registry_hashes(root):
         raise ContractError("artifact report registry hashes do not match the reviewed bundle")
+    allowed_scopes = {
+        "source_reader": {"authentic_source", "synthetic_fixture"},
+        "converter": {"synthetic_fixture", "target_candidate"},
+        "target_reader": {"synthetic_fixture", "target_candidate"},
+        "comparator": {"synthetic_fixture", "target_candidate"},
+        "staging": {"synthetic_fixture", "target_candidate"},
+        "benchmark": {"synthetic_fixture", "target_candidate", "benchmark"},
+    }
+    if report["evidence_scope"] not in allowed_scopes[report["producer_role"]]:
+        raise ContractError("producer_role cannot claim this evidence_scope")
+    bindings = report["source_owner_bindings"]
+    binding_keys = []
+    for index, binding in enumerate(bindings):
+        _exact(binding, {"owner_uuid", "owner_kind", "scope", "source_file_sha256"}, f"report source owner binding {index}")
+        binding_keys.append(owner_key({key: binding[key] for key in ("owner_uuid", "owner_kind", "scope")}))
+        _hash(binding["source_file_sha256"], f"report source owner binding {index} source hash")
+    if binding_keys != sorted(set(binding_keys)):
+        raise ContractError("report source owner bindings must be unique and ordered by canonical full owner key")
+    if report["source_hashes"] != [binding["source_file_sha256"] for binding in bindings]:
+        raise ContractError("report source_hashes differ from ordered per-owner source bindings")
+    if decimal_u64(report["coverage"]["owner_count"], "report owner_count") != len(bindings):
+        raise ContractError("report owner_count differs from per-owner source bindings")
     if report["status"] == "PASS" and (report["coverage"]["completeness"] != "exhaustive" or report["exit_status"] != "0"):
         raise ContractError("PASS report requires exhaustive coverage and zero exit status")
+    if report["status"] == "PASS" and evidence is None:
+        raise ContractError("PASS report requires recomputable owner/custody evidence")
+    if evidence is not None:
+        _exact(evidence, {"expected_owner_catalog", "owners", "custody"}, "report evidence bundle")
+        groups, records, carriers = load_registries(root)
+        domains = domain_ids_from_registry(records)
+        _, semantic_hash = corpus_digest(evidence["owners"], evidence["expected_owner_catalog"], groups, records, domains, carriers)
+        _, custody_hash = custody_digest(evidence["custody"], records)
+        catalog = sorted(evidence["expected_owner_catalog"], key=_catalog_owner_key)
+        custody_files = sorted(evidence["custody"]["owner_files"], key=lambda row: owner_key({key: row[key] for key in ("owner_uuid", "owner_kind", "scope")}))
+        catalog_bindings = [{"owner_uuid": item["owner_uuid"], "owner_kind": item["owner_kind"], "scope": item["scope"], "source_file_sha256": item["source_file_sha256"]} for item in catalog]
+        custody_bindings = [{"owner_uuid": item["owner_uuid"], "owner_kind": item["owner_kind"], "scope": item["scope"], "source_file_sha256": item["source_file_sha256"]} for item in custody_files]
+        if catalog_bindings != custody_bindings or bindings != catalog_bindings:
+            raise ContractError("report, source owner catalog and custody owner-file bindings differ")
+        family_count = sum(len(item["family_coverage"]) for item in evidence["owners"])
+        cut_count = sum(len(item["descriptor"]["supported_cuts"]) for item in evidence["owners"])
+        row_count = sum(len(rows) for item in evidence["owners"] for rows in item["family_rows"].values())
+        expected_coverage = {
+            "owner_count": str(len(catalog)),
+            "family_count": str(family_count),
+            "cut_count": str(cut_count),
+            "row_count": str(row_count),
+            "completeness": _report_completeness(evidence["owners"]),
+        }
+        if dict(report["coverage"]) != expected_coverage:
+            raise ContractError("report coverage counts/completeness differ from recomputed evidence")
+        required_parents = {semantic_hash, custody_hash}
+        if not required_parents.issubset(set(report["parent_artifact_hashes"])):
+            raise ContractError("report parent hashes omit recomputed semantic or custody evidence")
     if report["evidence_scope"] == "authentic_source":
         groups, records, carriers = load_registries(root)
         validate_authentic_admission(groups, records, carriers)

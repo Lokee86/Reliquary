@@ -2637,7 +2637,10 @@
           "family": {
             "enum": [
               "fixture.archive_turn_revision.v1",
-              "fixture.memory_revision.v1"
+              "fixture.memory_revision.v1",
+              "fixture.vector_probe.v1",
+              "fixture.freshness_event.v1",
+              "fixture.ego_anchor.v1"
             ]
           }
         },

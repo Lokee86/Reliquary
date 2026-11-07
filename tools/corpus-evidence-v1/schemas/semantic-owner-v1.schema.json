@@ -2605,6 +2605,10 @@
     "scope": {
       "type": "string"
     },
+    "source_file_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
     "supported_cuts": {
       "items": {
         "$ref": "#/$defs/cut"
@@ -2641,6 +2645,7 @@
     "owner_uuid",
     "owner_kind",
     "scope",
+    "source_file_sha256",
     "history_generation",
     "lineage",
     "version_heads",

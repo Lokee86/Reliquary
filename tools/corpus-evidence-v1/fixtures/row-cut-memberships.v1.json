@@ -16,6 +16,17 @@
       ]
     },
     {
+      "family": "fixture.ego_anchor.v1",
+      "stable_key": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "revision_or_event": "anchor:1",
+      "ordinal": "1",
+      "observation_cut_ids": [
+        "6b77e0a298a88f9fc906a7c6b0d2938994ed3042e3883f404d79b38c9ffc7a2e",
+        "84f64a07fb495814b3e2834544557ac5997f5bdf03623ba45440565018264ed7",
+        "94686d439bd1ba550a933e0b328908864e65ba276615d1efa874129f770c65b4"
+      ]
+    },
+    {
       "family": "fixture.freshness_event.v1",
       "stable_key": "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
       "revision_or_event": "accepted-event:aa",

@@ -3,6 +3,56 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
+    "contract_id": {
+      "const": "reliquary-corpus-evidence-v1"
+    },
+    "owner_files": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "owner_kind": {
+            "enum": [
+              "REL",
+              "PHY"
+            ]
+          },
+          "owner_uuid": {
+            "pattern": "^[0-9a-f]{32}$",
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "source_byte_length": {
+            "pattern": "^(?:0|[1-9][0-9]*)$",
+            "type": "string"
+          },
+          "source_file_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "target_byte_length": {
+            "pattern": "^(?:0|[1-9][0-9]*)$",
+            "type": "string"
+          },
+          "target_file_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "owner_uuid",
+          "owner_kind",
+          "scope",
+          "source_file_sha256",
+          "source_byte_length",
+          "target_file_sha256",
+          "target_byte_length"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
     "relocations": {
       "items": {
         "additionalProperties": false,
@@ -16,6 +66,12 @@
               "fixture.ego_anchor.v1"
             ]
           },
+          "owner_kind": {
+            "enum": [
+              "REL",
+              "PHY"
+            ]
+          },
           "owner_uuid": {
             "pattern": "^[0-9a-f]{32}$",
             "type": "string"
@@ -26,6 +82,9 @@
           },
           "reference_kind": {
             "minLength": 1,
+            "type": "string"
+          },
+          "scope": {
             "type": "string"
           },
           "source_length": {
@@ -55,6 +114,8 @@
         },
         "required": [
           "owner_uuid",
+          "owner_kind",
+          "scope",
           "family",
           "source_object_sha256",
           "source_offset",
@@ -69,18 +130,14 @@
       },
       "type": "array"
     },
-    "source_file_sha256": {
-      "pattern": "^[0-9a-f]{64}$",
-      "type": "string"
-    },
-    "target_file_sha256": {
-      "pattern": "^[0-9a-f]{64}$",
-      "type": "string"
+    "schema_id": {
+      "const": "reliquary-corpus-physical-custody-v1"
     }
   },
   "required": [
-    "source_file_sha256",
-    "target_file_sha256",
+    "schema_id",
+    "contract_id",
+    "owner_files",
     "relocations"
   ],
   "type": "object"

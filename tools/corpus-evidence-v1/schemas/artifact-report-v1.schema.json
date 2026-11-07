@@ -37,12 +37,17 @@
         "owner_count": {
           "pattern": "^(?:0|[1-9][0-9]*)$",
           "type": "string"
+        },
+        "row_count": {
+          "pattern": "^(?:0|[1-9][0-9]*)$",
+          "type": "string"
         }
       },
       "required": [
         "owner_count",
         "family_count",
         "cut_count",
+        "row_count",
         "completeness"
       ],
       "type": "object"
@@ -230,6 +235,38 @@
       },
       "type": "array"
     },
+    "source_owner_bindings": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "owner_kind": {
+            "enum": [
+              "REL",
+              "PHY"
+            ]
+          },
+          "owner_uuid": {
+            "pattern": "^[0-9a-f]{32}$",
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "source_file_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "owner_uuid",
+          "owner_kind",
+          "scope",
+          "source_file_sha256"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
     "status": {
       "enum": [
         "PASS",
@@ -272,6 +309,7 @@
     "command_argv",
     "exit_status",
     "source_hashes",
+    "source_owner_bindings",
     "parent_artifact_hashes",
     "coverage",
     "diagnostics"

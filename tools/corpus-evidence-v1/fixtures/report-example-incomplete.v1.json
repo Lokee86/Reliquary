@@ -11,9 +11,9 @@
   "toolchain_id": "synthetic-example-not-a-production-run",
   "registry_hashes": {
     "semantic_groups": "8ca5594e463de065622ff4f3caccc17f0a61d1a95477f0284a48419f342032b0",
-    "record_schemas": "d53b7d79ce22ebfdfbc33a82a1921b3fb5556e48bdfb77e674c52ac3c08b7cb5",
+    "record_schemas": "0963412591cc2d202a613584fd458ed14d5888e9e381d5283177eae40b41c79d",
     "physical_carriers": "d7d782f7701a363fb0c4b75c6eabd04200a3889cac370d122d66ea31b0080dc5",
-    "contract_bundle": "7ee06960ab4032f7a59ef93773c274802ba2778d61998ad8176a137ecb5698d5"
+    "contract_bundle": "95bee8c55e3db81cee275a805a132c175c7a13f0a506fa65e4829a092133c662"
   },
   "status": "INCOMPLETE",
   "captured_at_utc": "2026-11-07T00:00:00Z",
@@ -24,19 +24,27 @@
   ],
   "exit_status": "0",
   "source_hashes": [
-    "0ac2526cae5712a195798095d6ecea98ad7e7205e7347a28c26edae129cbf0c7",
-    "b1804344f251482f95e912a741f69e44a32789e1e2e7470b4730ffdbc9cc249b"
+    "b8025392ee6221bd2a1a7d28c0a32d70a884f5abe754ec9d79e662e3026cff26"
   ],
   "parent_artifact_hashes": [],
   "coverage": {
     "owner_count": "1",
     "family_count": "5",
-    "cut_count": "2",
+    "cut_count": "3",
+    "row_count": "9",
     "completeness": "incomplete"
   },
   "diagnostics": {
     "total_count": "0",
     "sample_limit": "0",
     "sample": []
-  }
+  },
+  "source_owner_bindings": [
+    {
+      "owner_uuid": "00112233445566778899aabbccddeeff",
+      "owner_kind": "REL",
+      "scope": "project",
+      "source_file_sha256": "b8025392ee6221bd2a1a7d28c0a32d70a884f5abe754ec9d79e662e3026cff26"
+    }
+  ]
 }
