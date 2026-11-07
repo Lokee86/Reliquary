@@ -1,5 +1,7 @@
 # Reliquary 2.1 public product API
 
+**Operational completion plan:** [public API and CLI specification](public-api-cli-operational-completion-spec-2026-11-07.md), with the [interaction/query contract](public-api-cli-interaction-contract-2026-11-07.md) and [gap audit](public-api-cli-gap-audit-2026-11-07.md). These are specified additions, not implemented capabilities. The current interface described below remains the narrower P01 surface until operational acceptance.
+
 Downstream Rust consumers depend on the root `reliquary-memory` package. Create
 or open owners with `Rel` and `Phylactery`; both are opaque read handles.
 Writable work is mounted once in `Gateway` and reached only through an

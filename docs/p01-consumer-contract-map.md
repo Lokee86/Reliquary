@@ -1,5 +1,7 @@
 # P01 consumer contract map
 
+**Historical scope notice (2026-11-07):** The [operational completion specification](public-api-cli-operational-completion-spec-2026-11-07.md) now requires public host and CLI access to import, processing, retrieval/query/refinement/traversal and inspection. It supersedes the exclusion of host-owned operations from the CLI below. This record preserves the earlier P01 disposition; it is not evidence that the new OC01–OC09 closure has passed.
+
 This map freezes the supported 2.1 consumer boundary before P01 acceptance. The
 pinned 2.0 reference is a behavior oracle, not a source-compatibility promise.
 `Cva` is intentionally retired; the product type and CLI family are `Rel`.
