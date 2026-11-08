@@ -213,7 +213,11 @@ impl RelWriter {
                 "REL owner session is stale; reopen before native import mutation".into(),
             ));
         }
-        if self.session.imports.settlement(import_id).is_some() {
+        if self.session.imports.settlement(import_id).is_some()
+            || self
+                .session
+                .has_native_import_historical_freshness(import_id)
+        {
             return Err(OwnerSessionError::Record(
                 "import is sealed by a durable Freshness settlement".into(),
             ));

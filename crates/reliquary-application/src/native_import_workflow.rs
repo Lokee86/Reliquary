@@ -15,6 +15,16 @@ use reliquary_owner_session::{
     records::{ImportEpochStatus, ImportFreshnessSettlement, import_id},
 };
 use sha2::{Digest, Sha256};
+#[path = "native_import_workflow/dream.rs"]
+mod dream;
+pub use dream::{
+    EvaluatedNativeImportDream, NativeImportDreamCandidates, PreparedNativeImportDream,
+    commit_native_import_dream, prepare_native_import_dream, settle_native_import_initial_dream,
+};
+
+#[path = "native_import_workflow/postprocessing.rs"]
+mod postprocessing;
+pub use postprocessing::*;
 
 #[derive(Clone, Debug)]
 pub struct NativeImportEpisode {
@@ -73,8 +83,11 @@ pub fn stage_native_import(
         .read_session()
         .native_import_settlement(&id)
         .is_some()
+        || writer
+            .read_session()
+            .has_native_import_historical_freshness(&id)
     {
-        // A crash between the durable settlement and completion must not
+        // A crash after historical publication or settlement must not
         // re-admit source turns or re-queue already completed work.
         return confirm_staged_retry(writer, &batch, id, false);
     }

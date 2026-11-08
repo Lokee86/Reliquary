@@ -257,6 +257,7 @@ pub struct RelSession {
     external_references: ExternalReferenceStore,
     external_memories: ExternalMemoryStore,
     grouped_completions: BTreeMap<(WorkEpisodeId, u32), GroupedInsomniaCompletion>,
+    native_import_grouped_epochs: BTreeMap<(WorkEpisodeId, u32), String>,
     write_poisoned: bool,
     container_identity: ContainerIdentity,
     container_path: PathBuf,

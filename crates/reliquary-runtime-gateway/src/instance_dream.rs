@@ -1,5 +1,7 @@
 //! Authenticated publication of an evaluated Dream batch.
 use super::*;
+#[path = "instance_import_postprocessing.rs"]
+mod import_postprocessing;
 use reliquary_application::{DreamOrganizationDraft, DreamOwnerWriter, commit_dream_batch};
 
 impl Instance {

@@ -52,17 +52,24 @@ impl RelWriter {
             import_id,
             reliquary_archive::EpisodeId(completion.episode_id),
         )?;
-        self.session.commit_scoped_grouped_completion(
+        let key = (WorkEpisodeId(completion.episode_id), completion.attempt);
+        let result = self.session.commit_scoped_grouped_completion(
             &mut self.container,
             token,
             completion,
             now_ns,
             receipts,
             Some(import_id),
-        )
+        )?;
+        if result == CompletionCheck::Apply {
+            self.session
+                .native_import_grouped_epochs
+                .insert(key, import_id.to_owned());
+        }
+        Ok(result)
     }
 
-    fn validate_import_episode_identity(
+    pub(super) fn validate_import_episode_identity(
         &self,
         import_id: &str,
         id: reliquary_archive::EpisodeId,

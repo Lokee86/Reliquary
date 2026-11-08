@@ -19,6 +19,12 @@ impl DreamEvidenceStore {
     pub fn initial_frontier(&self, pass: &str) -> Option<InitialDreamFrontier> {
         self.frontiers.get(pass).map(FrontierRecord::view)
     }
+    pub(crate) fn has_other_pending_frontier(&self, prefix: &str, pass: &str) -> bool {
+        self.frontiers
+            .keys()
+            .any(|id| id != pass && id.starts_with(prefix) && self.journal.pending(id).is_some())
+    }
+
     pub(crate) fn append_frontier(
         &mut self,
         container: &mut Container,

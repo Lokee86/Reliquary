@@ -43,7 +43,8 @@ impl RelSession {
                 start_node_id: episode.start_node_id,
             })
             .collect::<Vec<_>>();
-        let grouped_completions = validate_grouped_replay_admission(container, &archive)?;
+        let grouped = validate_grouped_replay_admission(container, &archive)?;
+        let grouped_completions = grouped.completions;
         let local_owner_id: String = container
             .owner_id()
             .iter()
@@ -203,6 +204,7 @@ impl RelSession {
             external_references,
             external_memories,
             grouped_completions,
+            native_import_grouped_epochs: grouped.import_epochs,
             write_poisoned: false,
             container_identity: container.identity(),
             container_path,

@@ -50,6 +50,7 @@ pub use management_workflow::{
     set_management_title,
 };
 pub mod native_import_workflow;
+pub use native_import_workflow::settle_native_import_initial_dream;
 mod native_insomnia;
 mod native_insomnia_evidence;
 mod project_correlation_workflow;
@@ -75,8 +76,8 @@ pub use reliquary_vectors::{
     EmbeddingEndpoint, EmbeddingEndpointError, SwitchboardEmbeddingEndpoint, VectorNormalization,
 };
 pub use vector_publication::{
-    PreparedMemoryVectors, commit_phy_memory_vectors, commit_rel_memory_vectors,
-    evaluate_memory_vectors, prepare_compatibility_profile,
+    PreparedMemoryVectors, commit_native_import_memory_vectors, commit_phy_memory_vectors,
+    commit_rel_memory_vectors, evaluate_memory_vectors, prepare_compatibility_profile,
 };
 mod verified_copy_workflow;
 pub use dream_candidates::{

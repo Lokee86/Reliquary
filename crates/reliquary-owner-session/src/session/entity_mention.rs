@@ -196,6 +196,22 @@ impl RelWriter {
         request: EntityMentionCommit,
     ) -> Result<MemoryEntityResolution, OwnerSessionError> {
         self.ensure_write_ready()?;
+        self.commit_entity_mention_after_fence(request)
+    }
+
+    pub fn commit_native_import_entity_mention(
+        &mut self,
+        import_id: &str,
+        request: EntityMentionCommit,
+    ) -> Result<MemoryEntityResolution, OwnerSessionError> {
+        self.validate_native_import_memory(import_id, MemoryId(request.key.memory_id))?;
+        self.commit_entity_mention_after_fence(request)
+    }
+
+    fn commit_entity_mention_after_fence(
+        &mut self,
+        request: EntityMentionCommit,
+    ) -> Result<MemoryEntityResolution, OwnerSessionError> {
         let before = self.container.writer_lease_proof();
         if before.is_none() || before != self.session.writer_lease_proof {
             return Err(OwnerSessionError::Record(

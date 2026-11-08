@@ -150,6 +150,19 @@ pub fn commit_rel_memory_vectors(
     writer.publish_memory_vectors(prepared.profile, &prepared.rows)
 }
 
+pub fn commit_native_import_memory_vectors(
+    writer: &mut RelWriter,
+    import_id: &str,
+    prepared: &PreparedMemoryVectors,
+) -> Result<bool, OwnerSessionError> {
+    if writer.owner_id() != prepared.owner {
+        return Err(OwnerSessionError::Record(
+            "vector publication owner mismatch".into(),
+        ));
+    }
+    writer.publish_native_import_memory_vectors(import_id, prepared.profile, &prepared.rows)
+}
+
 /// Evaluate all missing Archive rows in bounded provider calls before publishing
 /// a single complete generation.
 pub fn evaluate_archive_vectors(

@@ -45,7 +45,7 @@ impl RelWriter {
         source: DreamMemoryCut,
         turn: u64,
     ) -> Result<DreamBeginAdmission, OwnerSessionError> {
-        self.ensure_import_scope(import_id)?;
+        self.validate_native_import_memory(import_id, source.id)?;
         self.begin_initial_dream_pass_after_fence(pass_id, source, turn)
     }
 
@@ -142,7 +142,7 @@ impl RelWriter {
         effects: BTreeMap<MemoryId, i16>,
         promote: bool,
     ) -> Result<bool, OwnerSessionError> {
-        self.ensure_import_scope(import_id)?;
+        self.validate_native_import_memory(import_id, observed.id)?;
         self.commit_initial_dream_pass_after_fence(
             pass_id,
             observed,
