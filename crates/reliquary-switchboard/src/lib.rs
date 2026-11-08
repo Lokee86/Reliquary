@@ -410,6 +410,7 @@ pub trait DecisionEndpoint: Send + Sync {
 }
 
 mod configured;
+mod protected_config;
 mod runtime_config;
 mod runtime_credentials;
 mod runtime_probe;

@@ -12,6 +12,36 @@ println!("{}", runtime.readiness());
 # Ok::<(), reliquary_memory::ConfiguredRuntimeError>(())
 ```
 
+## Existing protected configuration
+
+Pass the CVCFG file and its version 1 JSON master-key file explicitly to load
+an existing provider configuration offline.
+
+```rust
+use reliquary_memory::ConfiguredRuntime;
+
+let runtime =
+    ConfiguredRuntime::from_protected_config("reliquary.cfg", "reliquary.master-key.json")?;
+println!("{}", runtime.readiness());
+# Ok::<(), reliquary_memory::ConfiguredRuntimeError>(())
+```
+
+The reader accepts CVCFG 1.0 files up to 32 MiB. It loads `models.general`
+(schema 2 or 3), `models.general_decision`, `models.entity_resolution_decision`,
+and `models.memory_retrieval_decision` (schema 1), and `models.embedding`
+(schema 2). Other records are skipped after framing validation. Selected routes
+use the URL rules below. Protected Codex routes store an empty URL and use the
+built-in Codex endpoint. Configured reasoning effort is passed to the general
+transport. The worker lease uses its default.
+
+Switchboard reads the key file only when it needs to authenticate a selected
+credential. The file is limited to 4 KiB and contains a JSON object with
+`version` set to 1 and `master_key_hex` set to 64 hexadecimal digits.
+Switchboard decrypts each distinct referenced `credential.<id>` record using
+AES-256-GCM with the record name as associated data. Codex requires the stored
+access token and account ID. Invalid selected routes or unavailable credentials
+fail construction. The reader leaves both files untouched.
+
 ## JSON schema
 
 The top-level object accepts the following optional keys. Omit a route to leave

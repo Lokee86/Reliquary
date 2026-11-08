@@ -66,14 +66,35 @@ impl ConfiguredRoutes {
         resolver: &dyn CredentialResolver,
     ) -> Result<Self, ConfiguredRuntimeError> {
         let config = RuntimeConfig::load(path)?;
-        let credentials = config.credentials(resolver)?;
+        let credentials = config
+            .credentials(|id| resolver.resolve(id).map_err(|_| "credential lookup failed"))?;
+        Self::bind(config, credentials)
+    }
+
+    /// Reads the selected routes and resolves their protected credentials offline.
+    pub fn from_protected_config(
+        path: &Path,
+        key_path: &Path,
+    ) -> Result<Self, ConfiguredRuntimeError> {
+        let (config, credentials) = super::protected_config::load(path, key_path)?;
+        Self::bind(config, credentials)
+    }
+
+    fn bind(
+        config: RuntimeConfig,
+        credentials: CredentialsConfig,
+    ) -> Result<Self, ConfiguredRuntimeError> {
         let routes = &config.routes;
         let general: Option<Arc<dyn GeneralEndpoint>> = routes
             .general
             .as_ref()
             .map(|route| {
-                ConfiguredGeneralEndpoint::from_route(route, &credentials)
-                    .map(|endpoint| Arc::new(endpoint) as Arc<dyn GeneralEndpoint>)
+                ConfiguredGeneralEndpoint::from_route_with_reasoning_effort(
+                    route,
+                    &credentials,
+                    config.general_reasoning_effort,
+                )
+                .map(|endpoint| Arc::new(endpoint) as Arc<dyn GeneralEndpoint>)
             })
             .transpose()
             .map_err(|_| ConfiguredRuntimeError::Setup { route: GENERAL })?;

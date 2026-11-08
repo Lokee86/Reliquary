@@ -15,6 +15,7 @@ const MAX_CONFIG_BYTES: usize = 64 * 1024;
 
 pub(super) struct RuntimeConfig {
     pub routes: ModelSwitchboardConfig,
+    pub general_reasoning_effort: Option<&'static str>,
     pub embedding: Option<EmbeddingModelEndpoint>,
     pub worker_lease_duration_ms: Option<u32>,
 }
@@ -88,6 +89,7 @@ impl RuntimeConfig {
                 entity_resolution_decision: decision(ENTITY)?,
                 memory_retrieval_decision: decision(RETRIEVAL)?,
             },
+            general_reasoning_effort: None,
             embedding,
             worker_lease_duration_ms: worker_lease_duration(object)?,
         })
@@ -95,11 +97,11 @@ impl RuntimeConfig {
 
     pub fn credentials(
         &self,
-        resolver: &dyn CredentialResolver,
+        mut lookup: impl FnMut(&CredentialId) -> Result<CredentialMaterial, &'static str>,
     ) -> Result<CredentialsConfig, ConfiguredRuntimeError> {
         let mut credentials = CredentialsConfig::default();
         let mut resolve = |route, id: &CredentialId, provider| {
-            resolve_credential(&mut credentials, resolver, id, provider)
+            resolve_credential(&mut credentials, &mut lookup, id, provider)
                 .map_err(|reason| ConfiguredRuntimeError::Credential { route, reason })
         };
         if let Some(route) = &self.routes.general {
@@ -188,6 +190,6 @@ fn required<'a>(fields: &'a Map<String, Value>, key: &str) -> Option<&'a str> {
         .filter(|value| !value.trim().is_empty())
 }
 
-fn invalid(route: &'static str, reason: &'static str) -> ConfiguredRuntimeError {
+pub(super) fn invalid(route: &'static str, reason: &'static str) -> ConfiguredRuntimeError {
     ConfiguredRuntimeError::Invalid { route, reason }
 }

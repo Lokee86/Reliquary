@@ -39,6 +39,15 @@ impl ConfiguredRuntime {
         Ok(Self { routes })
     }
 
+    /// Loads selected routes and encrypted credentials from an existing protected config.
+    pub fn from_protected_config(
+        path: impl AsRef<Path>,
+        key_path: impl AsRef<Path>,
+    ) -> Result<Self, ConfiguredRuntimeError> {
+        let routes = ConfiguredRoutes::from_protected_config(path.as_ref(), key_path.as_ref())?;
+        Ok(Self { routes })
+    }
+
     /// Reports route availability and decision selection without contacting providers.
     pub fn readiness(&self) -> String {
         self.routes.readiness()

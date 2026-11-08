@@ -1,5 +1,7 @@
 use super::{CredentialId, CredentialsConfig, ModelProvider};
 use std::fmt;
+use std::mem;
+use zeroize::{Zeroize, Zeroizing};
 
 /// Secret material supplied by a host for one explicitly selected reference.
 #[derive(Clone, Eq, PartialEq)]
@@ -16,6 +18,21 @@ impl fmt::Debug for CredentialMaterial {
         match self {
             Self::ApiKey(_) => f.write_str("ApiKey([REDACTED])"),
             Self::CodexOAuth { .. } => f.write_str("CodexOAuth([REDACTED])"),
+        }
+    }
+}
+
+impl Zeroize for CredentialMaterial {
+    fn zeroize(&mut self) {
+        match self {
+            Self::ApiKey(secret) => secret.zeroize(),
+            Self::CodexOAuth {
+                access_token,
+                account_id,
+            } => {
+                access_token.zeroize();
+                account_id.zeroize();
+            }
         }
     }
 }
@@ -60,20 +77,18 @@ fn resolve_environment(
 
 pub(super) fn resolve_credential(
     credentials: &mut CredentialsConfig,
-    resolver: &dyn CredentialResolver,
+    lookup: &mut impl FnMut(&CredentialId) -> Result<CredentialMaterial, &'static str>,
     id: &CredentialId,
     provider: ModelProvider,
 ) -> Result<(), &'static str> {
     if !credentials.entries.contains_key(id) {
-        let material = resolver
-            .resolve(id)
-            .map_err(|_| "credential lookup failed")?;
-        match (material, provider) {
+        let mut material = Zeroizing::new(lookup(id)?);
+        match (&mut *material, provider) {
             (CredentialMaterial::ApiKey(secret), ModelProvider::OpenAiReady) => {
-                if !valid_header_token(&secret) {
+                if !valid_header_token(secret) {
                     return Err("invalid API-key material");
                 }
-                credentials.insert_api_key(id.clone(), secret)
+                credentials.insert_api_key(id.clone(), mem::take(secret))
             }
             (
                 CredentialMaterial::CodexOAuth {
@@ -82,10 +97,17 @@ pub(super) fn resolve_credential(
                 },
                 ModelProvider::OpenAiCodex,
             ) => {
-                if !valid_header_token(&access_token) || !valid_header_token(&account_id) {
+                if !valid_header_token(access_token) || !valid_header_token(account_id) {
                     return Err("invalid Codex OAuth material");
                 }
-                credentials.insert_codex_oauth(id.clone(), access_token, account_id)
+                if account_id.len() > 256 {
+                    return Err("invalid credential material");
+                }
+                credentials.insert_codex_oauth(
+                    id.clone(),
+                    mem::take(access_token),
+                    mem::take(account_id),
+                )
             }
             _ => return Err("credential has the wrong provider type"),
         }

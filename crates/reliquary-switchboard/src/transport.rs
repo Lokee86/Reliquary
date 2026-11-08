@@ -316,12 +316,21 @@ pub struct ConfiguredGeneralEndpoint {
     api_key: SecretString,
     provider: ModelProvider,
     account_id: Option<String>,
+    reasoning_effort: Option<&'static str>,
 }
 
 impl ConfiguredGeneralEndpoint {
     pub fn from_route(
         route: &GeneralModelEndpoint,
         credentials: &CredentialsConfig,
+    ) -> Result<Self, GeneralEndpointError> {
+        Self::from_route_with_reasoning_effort(route, credentials, None)
+    }
+
+    pub(super) fn from_route_with_reasoning_effort(
+        route: &GeneralModelEndpoint,
+        credentials: &CredentialsConfig,
+        reasoning_effort: Option<&'static str>,
     ) -> Result<Self, GeneralEndpointError> {
         if route.model.trim().is_empty() {
             return Err(GeneralEndpointError::InvalidConfiguration(
@@ -350,6 +359,7 @@ impl ConfiguredGeneralEndpoint {
             api_key,
             provider: route.provider,
             account_id,
+            reasoning_effort,
         })
     }
 }
@@ -366,7 +376,7 @@ impl GeneralEndpoint for ConfiguredGeneralEndpoint {
         schema_name: &str,
         schema: &Value,
     ) -> Result<Value, GeneralEndpointError> {
-        let (body, codex) = match self.provider {
+        let (mut body, codex) = match self.provider {
             ModelProvider::OpenAiReady => (
                 json!({
                     "model": self.model,
@@ -398,7 +408,7 @@ impl GeneralEndpoint for ConfiguredGeneralEndpoint {
                         "instructions": system_prompt,
                         "input": [{"role": "user", "content": [{"type": "input_text", "text": user_payload}]}],
                         "parallel_tool_calls": false,
-                        "reasoning": {"effort": "low", "summary": "auto"},
+                        "reasoning": {"effort": self.reasoning_effort.unwrap_or("low"), "summary": "auto"},
                         "store": false,
                         "stream": true,
                         "include": [],
@@ -410,6 +420,9 @@ impl GeneralEndpoint for ConfiguredGeneralEndpoint {
                 )
             }
         };
+        if !codex && let Some(effort) = self.reasoning_effort {
+            body["reasoning_effort"] = json!(effort);
+        }
         let auth = SecretString::new(format!("Bearer {}", self.api_key.0))
             .expect("API key was validated as non-empty");
         let response = self
