@@ -61,6 +61,7 @@ impl OwnerId {
 #[derive(Debug)]
 pub enum GatewayError {
     OwnerSession(OwnerSessionError),
+    Management(reliquary_application::ManagementError),
     ConversationQueue(conversation_queue::QueueError),
     DuplicateOwner(OwnerId),
     AdmissionOwnerMismatch {
@@ -103,6 +104,7 @@ impl fmt::Display for GatewayError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::OwnerSession(e) => e.fmt(f),
+            Self::Management(e) => e.fmt(f),
             Self::ConversationQueue(e) => e.fmt(f),
             Self::DuplicateOwner(id) => write!(f, "owner {:?} is already mounted", id.0),
             Self::AdmissionOwnerMismatch { expected, actual } => write!(

@@ -53,6 +53,12 @@ impl fmt::Display for ProductError {
 impl std::error::Error for ProductError {}
 
 fn owner_kind(error: &OwnerSessionError) -> ProductErrorKind {
+    match error {
+        OwnerSessionError::ManagementStale => return ProductErrorKind::Stale,
+        OwnerSessionError::ManagementEvidence => return ProductErrorKind::InvalidInput,
+        OwnerSessionError::ManagementConflict => return ProductErrorKind::Conflict,
+        _ => {}
+    }
     match error.failure_kind() {
         OwnerFailureKind::UnsupportedFormat | OwnerFailureKind::WrongFileKind => {
             ProductErrorKind::WrongFormat
@@ -73,6 +79,19 @@ impl From<OwnerSessionError> for ProductError {
 impl From<GatewayError> for ProductError {
     fn from(error: GatewayError) -> Self {
         let kind = match &error {
+            GatewayError::Management(error) => {
+                use reliquary_application::ManagementError::*;
+                match error {
+                    InvalidPage | PageBytesExceeded | InvalidInput(_) => {
+                        ProductErrorKind::InvalidInput
+                    }
+                    NotFound | Terminal => ProductErrorKind::Unavailable,
+                    Stale => ProductErrorKind::Stale,
+                    Unsupported => ProductErrorKind::Unsupported,
+                    Conflict => ProductErrorKind::Conflict,
+                    Owner(_) => ProductErrorKind::Verification,
+                }
+            }
             GatewayError::OwnerSession(inner) => owner_kind(inner),
             GatewayError::UnauthorizedRel { .. }
             | GatewayError::UnauthorizedPhy { .. }

@@ -15,9 +15,7 @@ pub(super) fn retire(
     let target = common.memories.current(request.memory_id)?;
     if target.record.revision != request.memory_revision || target.record.body_id != request.body_id
     {
-        return Err(OwnerSessionError::Record(
-            "Memory retirement source revision changed".into(),
-        ));
+        return Err(OwnerSessionError::ManagementStale);
     }
     if !target.record.archived
         || target.record.authority_kind != "direct"
@@ -34,9 +32,10 @@ pub(super) fn retire(
     let successor = common.memories.current(request.superseded_by)?;
     if successor.record.revision != request.successor_revision
         || successor.record.body_id != request.successor_body_id
-        || successor.record.archived
-        || successor.record.superseded_by.is_some()
     {
+        return Err(OwnerSessionError::ManagementStale);
+    }
+    if successor.record.archived || successor.record.superseded_by.is_some() {
         return Err(OwnerSessionError::Record(
             "Memory retirement successor is unavailable or changed".into(),
         ));

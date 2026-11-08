@@ -37,7 +37,9 @@ pub use session::{
 pub use session::{
     HistoricalOwnerCut, HistoricalOwnerProof, HistoricalProofError, RelHistoricalCut,
 };
-pub use session::{RelConversationSummary, RelTranscriptTurn};
+pub use session::{
+    ManagementRead, RelConversationSummary, RelImportedSource, RelSourceTurn, RelTranscriptTurn,
+};
 pub use session::{
     RelHistoryComparison, RelHistoryRelation, RelReconciliationError, RelReconciliationReport,
     compare_rel_histories, reconcile_divergent_rel_copy,

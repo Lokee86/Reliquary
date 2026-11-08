@@ -806,6 +806,54 @@ impl MemoryStore {
         Ok(self.revision_view(record))
     }
 
+    pub fn revision_projection(
+        &self,
+        id: MemoryId,
+        revision: Option<u64>,
+    ) -> Result<(&MemoryRecord, Option<&MemoryBody>), MemoryError> {
+        if revision.is_none() && self.state.tombstones.contains_key(&id) {
+            return Err(MemoryError::TerminalTombstone);
+        }
+        let records = self
+            .state
+            .revisions
+            .get(&id)
+            .ok_or(MemoryError::MissingMemory)?;
+        let record = match revision {
+            Some(revision) => records
+                .binary_search_by_key(&revision, |record| record.revision)
+                .ok()
+                .and_then(|index| records.get(index)),
+            None => records.last(),
+        }
+        .ok_or(MemoryError::MissingMemory)?;
+        Ok((record, self.state.bodies.get(&record.body_id)))
+    }
+
+    /// Select retained revision metadata without cloning bodies outside the page.
+    pub fn revision_records_at_cut(&self, id: MemoryId, cut: u64) -> Option<&[MemoryRecord]> {
+        let records = self.state.revisions.get(&id)?;
+        let end = records.partition_point(|record| record.memory_version <= cut);
+        (end > 0).then_some(&records[..end])
+    }
+
+    pub fn terminal_at_cut(&self, id: MemoryId, cut: u64) -> Option<TerminalTombstone> {
+        self.state
+            .tombstones
+            .get(&id)
+            .copied()
+            .filter(|tombstone| tombstone.memory_version <= cut)
+    }
+
+    pub fn retained_count(&self) -> usize {
+        self.state.revisions.len()
+    }
+
+    pub fn current_body_available(&self, id: MemoryId) -> bool {
+        self.record_at_cut(id, self.memory_version())
+            .is_some_and(|record| self.state.bodies.contains_key(&record.body_id))
+    }
+
     fn revision_view(&self, record: &MemoryRecord) -> MemoryRevision {
         let payload = self
             .state

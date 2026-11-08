@@ -5,6 +5,69 @@ use crate::{
 };
 use std::sync::{Arc, Mutex};
 
+pub use reliquary_application::CreateMemoryRequest;
+pub use reliquary_application::inspection::{
+    CommunityMetadata, CreateRelationshipRequest, EntityRetirementRequest, ExactMemoryProvenance,
+    GraphDirection, GraphEdge, GraphNode, ImportedSourceReference, InspectedEntity,
+    InspectionCursor, InspectionCut, InspectionItem, InspectionPage, InspectionQuery, MemoryBodyId,
+    MemoryRetirementRequest, MemoryTextField, RelationKind, RelationOrigin, Relationship,
+    RelationshipEntityRef, RelationshipMemoryRef, RelationshipParticipant,
+    RelationshipParticipantEvidence, RelationshipRetirementRequest, RelationshipTombstone,
+    SourceAvailability, SourceCoordinate, SourceTurn,
+};
+pub use reliquary_owner_session::WithdrawEntityMentionRequest;
+pub use reliquary_owner_session::model::{
+    EntityResolutionReason, EntityTombstone, MemoryEntityMentionKey, MemoryEntityResolution,
+    MemoryEntityResolutionStatus, TerminalTombstone,
+};
+
+impl Instance {
+    /// Inspect one explicitly scoped mounted owner. A cursor only continues a read.
+    pub fn inspect_owner(
+        &self,
+        owner: OwnerId,
+        kind: OwnerKind,
+        query: &InspectionQuery,
+        cursor: Option<&InspectionCursor>,
+        limit: usize,
+    ) -> Result<InspectionPage, ProductError> {
+        match kind {
+            OwnerKind::Rel => self.require_rel_read(owner)?,
+            OwnerKind::Phylactery => self.require_phy_read(owner)?,
+        }
+        self.inner
+            .inspect_management(
+                owner.into(),
+                kind == OwnerKind::Phylactery,
+                query,
+                cursor,
+                limit,
+            )
+            .map_err(Into::into)
+    }
+
+    pub(crate) fn mounted_owner_info(
+        &self,
+        owner: OwnerId,
+        kind: OwnerKind,
+    ) -> Result<crate::OwnerInfo, ProductError> {
+        let info = self
+            .inner
+            .mounted_management_info(owner.into(), kind == OwnerKind::Phylactery)?;
+        Ok(crate::OwnerInfo {
+            format: "2.1",
+            kind,
+            owner_id: owner,
+            scope: info.scope.into(),
+            memory_count: info.memory_count,
+            memory_version: info.memory_version,
+            graph_version: info.graph_version,
+            archive_version: info.archive_version,
+            rel_turn_count: info.rel_turn_count,
+        })
+    }
+}
+
 #[derive(Clone)]
 pub struct WorkspaceManagement {
     instance: Instance,
@@ -22,6 +85,15 @@ impl WorkspaceManagement {
     }
     pub fn owner_id(&self) -> OwnerId {
         self.owner
+    }
+    pub fn inspect(
+        &self,
+        query: &InspectionQuery,
+        cursor: Option<&InspectionCursor>,
+        limit: usize,
+    ) -> Result<InspectionPage, ProductError> {
+        self.instance
+            .inspect_owner(self.owner, OwnerKind::Rel, query, cursor, limit)
     }
     pub fn select_conversation(
         &self,
@@ -111,6 +183,74 @@ impl WorkspaceManagement {
         self.instance
             .inner
             .management_memories(self.owner.into(), offset, limit)
+            .map_err(Into::into)
+    }
+
+    /// Publish a direct Memory using a caller-supplied, principal-bound request ID.
+    pub fn create_memory_with_request(
+        &self,
+        request: CreateMemoryRequest,
+    ) -> Result<MemorySummary, ProductError> {
+        self.instance.require(OwnerGrant::ManageRel(self.owner))?;
+        self.instance
+            .inner
+            .management_create_requested_memory(self.owner.into(), request)
+            .map_err(Into::into)
+    }
+
+    pub fn retire_memory(
+        &self,
+        request: MemoryRetirementRequest,
+    ) -> Result<TerminalTombstone, ProductError> {
+        self.instance.require(OwnerGrant::ManageRel(self.owner))?;
+        self.instance
+            .inner
+            .retire_semantic_memory(self.owner.into(), request)
+            .map_err(Into::into)
+    }
+
+    pub fn retire_entity(
+        &self,
+        request: EntityRetirementRequest,
+    ) -> Result<EntityTombstone, ProductError> {
+        self.instance.require(OwnerGrant::ManageRel(self.owner))?;
+        self.instance
+            .inner
+            .retire_semantic_entity(self.owner.into(), request)
+            .map_err(Into::into)
+    }
+
+    pub fn withdraw_entity_mention(
+        &self,
+        request: WithdrawEntityMentionRequest,
+    ) -> Result<MemoryEntityResolution, ProductError> {
+        self.instance.require(OwnerGrant::ManageRel(self.owner))?;
+        self.instance
+            .inner
+            .withdraw_semantic_entity_mention(self.owner.into(), request)
+            .map_err(Into::into)
+    }
+
+    /// The supplied mutation ID is a request ID scoped to the authenticated principal.
+    pub fn create_relationship(
+        &self,
+        request: CreateRelationshipRequest,
+    ) -> Result<Relationship, ProductError> {
+        self.instance.require(OwnerGrant::ManageRel(self.owner))?;
+        self.instance
+            .inner
+            .management_create_relationship(self.owner.into(), request)
+            .map_err(Into::into)
+    }
+
+    pub fn retire_relationship(
+        &self,
+        request: RelationshipRetirementRequest,
+    ) -> Result<RelationshipTombstone, ProductError> {
+        self.instance.require(OwnerGrant::ManageRel(self.owner))?;
+        self.instance
+            .inner
+            .retire_semantic_relationship(self.owner.into(), request)
             .map_err(Into::into)
     }
     pub fn memory(&self, memory_id: MemoryId) -> Result<MemorySummary, ProductError> {

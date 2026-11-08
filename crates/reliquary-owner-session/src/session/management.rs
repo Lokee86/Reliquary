@@ -2,6 +2,13 @@ use super::*;
 use reliquary_memory_core::{MemoryDraft, MemoryRevision};
 use std::collections::BTreeMap;
 
+#[path = "management_inspection.rs"]
+mod inspection;
+pub use inspection::*;
+#[path = "management_archive.rs"]
+mod archive_inspection;
+pub use archive_inspection::{RelImportedSource, RelSourceTurn};
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RelConversationSummary {
     pub conversation_id: String,
@@ -139,6 +146,16 @@ impl RelWriter {
                     return Err(error.into());
                 }
                 self.session.writer_lease_proof = self.container.writer_lease_proof();
+                if result.published {
+                    if let Err(error) = self
+                        .session
+                        .common
+                        .refresh_dream_index(&[result.revision.record.id])
+                    {
+                        self.session.write_poisoned = true;
+                        return Err(error);
+                    }
+                }
                 Ok(result.revision)
             }
             Err(error) => {

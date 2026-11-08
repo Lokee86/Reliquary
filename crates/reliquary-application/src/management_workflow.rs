@@ -4,6 +4,18 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fmt;
 
+pub mod inspection;
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct CreateMemoryRequest {
+    pub request_id: String,
+    pub title: String,
+    pub content: String,
+    pub category: String,
+    pub memory_type: String,
+    pub created_at_ns: i64,
+}
+
 pub const MAX_MANAGEMENT_PAGE_ITEMS: usize = 128;
 pub const MAX_MANAGEMENT_PAGE_BYTES: usize = 256 * 1024;
 const MAX_MANAGEMENT_OFFSET: usize = 4096;
@@ -44,6 +56,8 @@ pub struct TranscriptTurn {
 pub struct MemorySummary {
     pub id: String,
     pub revision: u64,
+    pub body_id: String,
+    pub memory_version: u64,
     pub title: String,
     pub content: String,
     pub category: String,
@@ -94,6 +108,10 @@ pub enum ManagementError {
     InvalidPage,
     PageBytesExceeded,
     NotFound,
+    Terminal,
+    Stale,
+    Unsupported,
+    Conflict,
     InvalidInput(&'static str),
     Owner(String),
 }
@@ -104,6 +122,12 @@ impl fmt::Display for ManagementError {
             Self::InvalidPage => f.write_str("management page is outside supported bounds"),
             Self::PageBytesExceeded => f.write_str("management page byte bound exceeded"),
             Self::NotFound => f.write_str("management item was not found"),
+            Self::Terminal => f.write_str("management item is terminal"),
+            Self::Stale => f.write_str("management revision or cursor is stale"),
+            Self::Unsupported => f.write_str("inspection is unsupported for this owner kind"),
+            Self::Conflict => {
+                f.write_str("management request identity conflicts with accepted state")
+            }
             Self::InvalidInput(reason) => write!(f, "invalid management input: {reason}"),
             Self::Owner(reason) => write!(f, "owner management failed: {reason}"),
         }
@@ -189,6 +213,74 @@ pub fn create_direct_memory(
     memory_type: String,
     created_at_ns: i64,
 ) -> Result<MemorySummary, ManagementError> {
+    let mut digest = Sha256::new();
+    digest.update(b"reliquary:management-memory:v1\0");
+    for value in [principal, &title, &content, &category, &memory_type] {
+        hash_field(&mut digest, value);
+    }
+    digest.update(created_at_ns.to_le_bytes());
+    publish_direct_memory(
+        writer,
+        principal,
+        format!("management:{}", hex(&digest.finalize())),
+        CreateMemoryRequest {
+            request_id: String::new(),
+            title,
+            content,
+            category,
+            memory_type,
+            created_at_ns,
+        },
+    )
+}
+
+pub fn create_requested_memory(
+    writer: &mut RelWriter,
+    principal: &str,
+    request: CreateMemoryRequest,
+) -> Result<MemorySummary, ManagementError> {
+    let mutation_id = user_mutation_id(principal, "memory", &request.request_id)?;
+    publish_direct_memory(writer, principal, mutation_id, request)
+}
+
+pub fn user_mutation_id(
+    principal: &str,
+    operation: &str,
+    request_id: &str,
+) -> Result<String, ManagementError> {
+    if request_id.trim().is_empty()
+        || request_id.len() > 256
+        || request_id.chars().any(char::is_control)
+    {
+        return Err(ManagementError::InvalidInput("request identity"));
+    }
+    let mut digest = Sha256::new();
+    digest.update(b"reliquary:user-management:v1\0");
+    for value in [operation, principal, request_id] {
+        hash_field(&mut digest, value);
+    }
+    Ok(format!("management:{}", hex(&digest.finalize())))
+}
+
+fn hash_field(digest: &mut Sha256, value: &str) {
+    digest.update((value.len() as u64).to_le_bytes());
+    digest.update(value.as_bytes());
+}
+
+fn publish_direct_memory(
+    writer: &mut RelWriter,
+    principal: &str,
+    mutation_id: String,
+    request: CreateMemoryRequest,
+) -> Result<MemorySummary, ManagementError> {
+    let CreateMemoryRequest {
+        title,
+        content,
+        category,
+        memory_type,
+        created_at_ns,
+        ..
+    } = request;
     if principal.trim().is_empty()
         || title.trim().is_empty()
         || content.trim().is_empty()
@@ -198,21 +290,14 @@ pub fn create_direct_memory(
     {
         return Err(ManagementError::InvalidInput("direct Memory"));
     }
-    let owner_id = hex(&writer.owner_id());
-    let mut digest = Sha256::new();
-    digest.update(b"reliquary:management-memory:v1\0");
-    for value in [
-        principal.as_bytes(),
-        title.as_bytes(),
-        content.as_bytes(),
-        category.as_bytes(),
-        memory_type.as_bytes(),
-    ] {
-        digest.update((value.len() as u64).to_le_bytes());
-        digest.update(value);
+    if serde_json::to_vec(&(&title, &content, &category, &memory_type))
+        .map_err(|error| ManagementError::Owner(error.to_string()))?
+        .len()
+        > MAX_MANAGEMENT_PAGE_BYTES - 4096
+    {
+        return Err(ManagementError::PageBytesExceeded);
     }
-    digest.update(created_at_ns.to_le_bytes());
-    let mutation_id = format!("management:{}", hex(&digest.finalize()));
+    let owner_id = hex(&writer.owner_id());
     let source_node_id = format!("management:{mutation_id}");
     let draft = MemoryDraft {
         title,
@@ -250,7 +335,7 @@ pub fn create_direct_memory(
     };
     let revision = writer
         .publish_direct_memory(principal, draft)
-        .map_err(|error| ManagementError::Owner(error.to_string()))?;
+        .map_err(inspection::write_error)?;
     summary(revision)
 }
 
@@ -318,11 +403,8 @@ pub fn management_provenance(
 pub fn management_statistics(
     owner: &RelSession,
 ) -> Result<SemanticOwnerStatistics, ManagementError> {
-    let memories = management_memories(owner, 0, MAX_MANAGEMENT_PAGE_ITEMS)?.total;
-    let conversations = owner
-        .conversation_summaries()
-        .map_err(|error| ManagementError::Owner(error.to_string()))?
-        .len();
+    let memories = owner.management_read().memory_count();
+    let conversations = owner.management_conversations().count();
     Ok(SemanticOwnerStatistics {
         memories: MemoryStatistics { memories },
         conversations,
@@ -359,6 +441,8 @@ fn summary(
     Ok(MemorySummary {
         id: hex(&revision.record.id.0),
         revision: revision.record.revision,
+        body_id: hex(&revision.record.body_id.0),
+        memory_version: revision.record.memory_version,
         title,
         content,
         category: revision.record.category,

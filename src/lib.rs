@@ -15,7 +15,7 @@ pub use host::{
     Instance, OwnerGrant, TrustedHostAdmission,
 };
 pub use maintenance::*;
-pub use management::WorkspaceManagement;
+pub use management::*;
 pub use owner::{OwnerId, OwnerInfo, OwnerKind, OwnerScope, Phylactery, Rel};
 
 pub use reliquary_application::{

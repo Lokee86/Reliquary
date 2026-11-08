@@ -12,6 +12,9 @@ impl PhyWriter {
         let common = open_common(&container, &admission, [], false)?;
         let writer_lease_proof = container.writer_lease_proof();
         Ok(Self {
+            container_file_identity: container.physical_file_identity()?,
+            history_generation: owner_history_generation_from_container(&container)
+                .map_err(OwnerSessionError::Record)?,
             owner_id,
             container,
             common,
@@ -31,6 +34,9 @@ impl PhyWriter {
         let common = open_common(&container, graph_admission, dream_admissions, false)?;
         let writer_lease_proof = container.writer_lease_proof();
         Ok(Self {
+            container_file_identity: container.physical_file_identity()?,
+            history_generation: owner_history_generation_from_container(&container)
+                .map_err(OwnerSessionError::Record)?,
             owner_id: container.owner_id(),
             container,
             common,
@@ -47,6 +53,9 @@ impl PhyWriter {
         let common = open_common_for_owner(&container, container.owner_id(), [], false)?;
         let writer_lease_proof = container.writer_lease_proof();
         Ok(Self {
+            container_file_identity: container.physical_file_identity()?,
+            history_generation: owner_history_generation_from_container(&container)
+                .map_err(OwnerSessionError::Record)?,
             owner_id: container.owner_id(),
             container,
             common,

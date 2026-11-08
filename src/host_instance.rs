@@ -48,7 +48,7 @@ impl Instance {
             ))
         }
     }
-    fn require_phy_read(&self, owner: OwnerId) -> Result<(), ProductError> {
+    pub(crate) fn require_phy_read(&self, owner: OwnerId) -> Result<(), ProductError> {
         self.inner.ensure_credential_active()?;
         if self.grants.contains(&OwnerGrant::ViewPhylactery(owner))
             || self.grants.contains(&OwnerGrant::OperatePhylactery(owner))
@@ -63,25 +63,33 @@ impl Instance {
     }
     pub fn rel_info(&self, owner: OwnerId) -> Result<crate::OwnerInfo, ProductError> {
         self.require_rel_read(owner)?;
-        let (path, kind, _) = self.gateway.record(owner)?;
+        let (path, kind, mounted) = self.gateway.record(owner)?;
         if kind != OwnerKind::Rel {
             return Err(ProductError::new(
                 ProductErrorKind::WrongFormat,
                 "owner is not REL",
             ));
         }
-        Rel::open(path)?.info()
+        if mounted {
+            self.mounted_owner_info(owner, kind)
+        } else {
+            Rel::open(path)?.info()
+        }
     }
     pub fn phylactery_info(&self, owner: OwnerId) -> Result<crate::OwnerInfo, ProductError> {
         self.require_phy_read(owner)?;
-        let (path, kind, _) = self.gateway.record(owner)?;
+        let (path, kind, mounted) = self.gateway.record(owner)?;
         if kind != OwnerKind::Phylactery {
             return Err(ProductError::new(
                 ProductErrorKind::WrongFormat,
                 "owner is not a Phylactery",
             ));
         }
-        Phylactery::open(path)?.info()
+        if mounted {
+            self.mounted_owner_info(owner, kind)
+        } else {
+            Phylactery::open(path)?.info()
+        }
     }
     pub fn workspace_management(
         &self,
