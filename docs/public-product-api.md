@@ -58,6 +58,21 @@ owner cut after the operation, and whether this call created the Memory. The
 principal comes from the authenticated Instance, and the direct Memory keeps
 operator provenance.
 
+## Checked user Memory associations
+
+`WorkspaceManagement::change_memory_association` requires a ManageRel grant,
+the current inspection cut and both Memory revisions. A new link names the
+source and target. Changing an existing association also supplies its edge ID
+and revision. The operation admits only directed user-origin Topical edges and
+protects an existing Dream edge on the same pair. Unlinking writes an inactive
+user edge so Dream cannot silently restore it.
+
+The receipt carries the original edge effect and the current cut. Exact
+principal-bound requests replay the original edge across reopen, with
+`replayed` set and no second write. A reused request ID with different evidence
+conflicts. A foreign owner or generation, changed cut, or stale endpoint or
+edge revision is rejected before publication.
+
 ## Hermes copied-source import
 
 A trusted host can construct a bounded `HermesCopiedSnapshot`, validate it with

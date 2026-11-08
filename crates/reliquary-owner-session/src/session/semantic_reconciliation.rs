@@ -331,6 +331,7 @@ fn require_supported_tail(records: &[Vec<u8>]) -> Result<(), RelReconciliationEr
         b"RELETM01",
         b"RELRLP01",
         b"RELGRF01",
+        b"RELASC01",
         b"RELFRS02",
         b"RELFRP01",
         b"RELECHO1",

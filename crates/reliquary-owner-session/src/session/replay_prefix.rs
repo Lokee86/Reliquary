@@ -180,6 +180,24 @@ pub(super) fn validate_graph_prefix(
                 }
                 _ => {}
             }
+            if let Some((owner, effect)) = reliquary_graph::user_association_in_frame(payload)? {
+                if owner != container.owner_id()
+                    || effect.graph_version != graph_version
+                    || [effect.source, effect.target].iter().any(|endpoint| {
+                        !memory_store
+                            .record_at_cut(MemoryId(endpoint.id), memory_head)
+                            .is_some_and(|r| {
+                                r.revision == endpoint.revision
+                                    && r.body_id.0 == endpoint.body
+                                    && !r.archived
+                            })
+                    })
+                {
+                    return Err(OwnerSessionError::Record(
+                        "user association lacks owner physical-prefix proof".into(),
+                    ));
+                }
+            }
             if let Some(relation) = reliquary_graph::relation_in_frame(payload)? {
                 for endpoint in [relation.source, relation.target] {
                     let found = match endpoint {

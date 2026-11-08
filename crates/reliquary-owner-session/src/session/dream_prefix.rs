@@ -72,7 +72,7 @@ pub(crate) fn validate_compact_dream_prefix(
             || magic == *crate::records::IMPORT_PROCESSING_MAGIC
             || magic == *b"RELINSC7"
             || magic == *b"CVDREAM2"
-            || magic == *b"RELGRF01"
+            || matches!(&magic, b"RELGRF01" | b"RELASC01")
             || magic == *b"CVDREAM1"
             || magic.starts_with(b"RELPUB")
         {
@@ -177,7 +177,7 @@ pub(crate) fn validate_compact_dream_prefix(
                 }
                 continue;
             }
-            if magic == *b"RELGRF01" {
+            if matches!(&magic, b"RELGRF01" | b"RELASC01") {
                 let relation = reliquary_graph::relation_in_frame(&payload)?
                     .ok_or_else(|| OwnerSessionError::Record("missing Graph relation".into()))?;
                 graph_head = relation.graph_version;

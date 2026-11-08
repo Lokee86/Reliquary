@@ -16,6 +16,9 @@ pub use reliquary_application::inspection::{
     RelationshipRetirementRequest, RelationshipTombstone, SourceAvailability, SourceCoordinate,
     SourceTurn,
 };
+pub use reliquary_application::inspection::{
+    MemoryAssociationAction, MemoryAssociationReceipt, MemoryAssociationRequest,
+};
 pub use reliquary_application::{CreateMemoryReceipt, CreateMemoryRequest};
 pub use reliquary_owner_session::WithdrawEntityMentionRequest;
 pub use reliquary_owner_session::model::{
@@ -248,6 +251,18 @@ impl WorkspaceManagement {
     }
 
     /// The supplied mutation ID is a request ID scoped to the authenticated principal.
+    pub fn change_memory_association(
+        &self,
+        expected: InspectionCut,
+        request: MemoryAssociationRequest,
+    ) -> Result<MemoryAssociationReceipt, ProductError> {
+        self.instance.require(OwnerGrant::ManageRel(self.owner))?;
+        self.instance
+            .inner
+            .management_change_memory_association(self.owner.into(), expected, request)
+            .map_err(Into::into)
+    }
+
     pub fn create_relationship(
         &self,
         request: CreateRelationshipRequest,

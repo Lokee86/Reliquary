@@ -119,6 +119,23 @@ impl Instance {
         .map_err(management_error)
     }
 
+    pub fn management_change_memory_association(
+        &self,
+        owner: OwnerId,
+        expected: reliquary_application::inspection::InspectionCut,
+        request: reliquary_application::inspection::MemoryAssociationRequest,
+    ) -> Result<reliquary_application::inspection::MemoryAssociationReceipt, GatewayError> {
+        self.with_rel_writer(owner, |writer| {
+            reliquary_application::inspection::change_memory_association(
+                writer,
+                self.principal(),
+                expected,
+                request,
+            )
+        })?
+        .map_err(management_error)
+    }
+
     pub fn management_create_relationship(
         &self,
         owner: OwnerId,

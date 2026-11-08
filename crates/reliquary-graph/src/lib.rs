@@ -7,7 +7,11 @@ use reliquary_container::{Container, ContainerError, ContainerIdentity};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
+mod association;
 mod history;
+pub use association::{
+    AssociationEndpoint, USER_ASSOCIATION_MAGIC, UserAssociation, user_association_in_frame,
+};
 use std::fmt;
 
 type Id = [u8; 32];
@@ -176,6 +180,7 @@ pub struct GraphStore {
     owner: [u8; 16],
     identity: ContainerIdentity,
     graph_version: u64,
+    user_associations: BTreeMap<[u8; 32], UserAssociation>,
     states: BTreeMap<Key, Relation>,
     history: Vec<Relation>,
     outgoing: BTreeMap<NodeRef, BTreeSet<Key>>,
@@ -216,6 +221,7 @@ impl GraphStore {
             owner: container.owner_id(),
             identity: container.identity(),
             graph_version: 0,
+            user_associations: BTreeMap::new(),
             states: BTreeMap::new(),
             history: Vec::new(),
             outgoing: BTreeMap::new(),
@@ -232,6 +238,11 @@ impl GraphStore {
                     return Err(GraphError::WrongOwner);
                 }
                 store.apply_replay(relation, admission)?;
+            } else if let Some((owner, effect)) = user_association_in_frame(&frame.payload)? {
+                if owner != store.owner {
+                    return Err(GraphError::WrongOwner);
+                }
+                store.replay_user_association(admission, effect)?;
             } else if frame.payload.starts_with(b"RELDRG") || frame.payload.starts_with(b"RELDRS") {
                 let relation = grouped(&frame.payload)?.ok_or(GraphError::CorruptRecord(
                     "grouped Dream requires owner replay",
@@ -779,6 +790,9 @@ fn decode_graph(b: &[u8]) -> Result<Option<([u8; 16], Relation)>, GraphError> {
 
 /// Read a Graph relation from a physical frame for owner-prefix validation.
 pub fn relation_in_frame(payload: &[u8]) -> Result<Option<Relation>, GraphError> {
+    if let Some((_, effect)) = user_association_in_frame(payload)? {
+        return Ok(Some(effect.relation()));
+    }
     Ok(decode_graph(payload)?.map(|(_, relation)| relation))
 }
 fn encode_community(owner: [u8; 16], s: &CommunitySnapshot) -> Result<Vec<u8>, GraphError> {
@@ -955,6 +969,65 @@ mod tests {
             id,
         )
         .unwrap()
+    }
+
+    #[test]
+    fn user_association_cannot_replace_dream_topical_edge() {
+        let path = Temp::new();
+        let mut container = container(&path.0, 10);
+        let source = [1; 32];
+        let target = [2; 32];
+        let admission = GraphAdmission::for_changes(container.owner_id(), [source, target], []);
+        let mut graph = GraphStore::open(&container, &admission).unwrap();
+        graph
+            .put(
+                &mut container,
+                &admission,
+                &[RelationChange {
+                    source: NodeRef::Memory(source),
+                    target: NodeRef::Memory(target),
+                    kind: RelationKind::Topical,
+                    active: true,
+                    origin: RelationOrigin::Dream,
+                }],
+            )
+            .unwrap();
+        let before = container.read_frames().unwrap().len();
+        for active in [false, true] {
+            let effect = UserAssociation {
+                request_key: [3; 32],
+                fingerprint: [4; 32],
+                source: AssociationEndpoint {
+                    id: source,
+                    revision: 1,
+                    body: [5; 32],
+                },
+                target: AssociationEndpoint {
+                    id: target,
+                    revision: 1,
+                    body: [6; 32],
+                },
+                graph_version: 1,
+                expected_edge_revision: Some(1),
+                active,
+            };
+            assert!(matches!(
+                graph.put_user_association(&mut container, &admission, effect),
+                Err(GraphError::InvalidRelation(
+                    "user association would replace a non-user edge"
+                ))
+            ));
+        }
+        assert_eq!(container.read_frames().unwrap().len(), before);
+        let relation = graph
+            .relation(
+                NodeRef::Memory(source),
+                NodeRef::Memory(target),
+                RelationKind::Topical,
+            )
+            .unwrap();
+        assert!(relation.active);
+        assert_eq!(relation.origin, RelationOrigin::Dream);
     }
 
     #[test]

@@ -7,8 +7,14 @@ use sha2::{Digest, Sha256};
 
 #[path = "inspection_archive.rs"]
 mod archive;
+#[path = "inspection_association.rs"]
+mod association;
 #[path = "inspection_graph.rs"]
 mod graph;
+pub use association::{
+    MemoryAssociationAction, MemoryAssociationReceipt, MemoryAssociationRequest,
+    change_memory_association,
+};
 #[path = "inspection_memory.rs"]
 mod memory;
 #[path = "inspection_memory_list.rs"]

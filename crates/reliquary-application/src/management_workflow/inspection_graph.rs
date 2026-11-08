@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::management_workflow::hex;
-use reliquary_owner_session::model::{NodeRef, Relation};
+use reliquary_owner_session::model::NodeRef;
 use std::collections::{BTreeSet, VecDeque};
 
 const MAX_SEEDS: usize = 128;
@@ -177,7 +177,7 @@ pub(super) fn inspect(
                 frontier.push_back((neighbor, depth + 1));
             }
             let edge = MemoryGraphEdge {
-                id: edge_id(cut.owner_id, source, target, relation),
+                id: edge_id(cut.owner_id, source, target, relation.kind),
                 edge: semantic::graph_edge(relation, None),
             };
             if !take_bytes(&mut bytes, &edge)? {
@@ -217,12 +217,17 @@ fn take_bytes(bytes: &mut usize, value: &impl Serialize) -> Result<bool, Managem
     Ok(true)
 }
 
-fn edge_id(owner: [u8; 16], source: [u8; 32], target: [u8; 32], relation: &Relation) -> String {
+pub(super) fn edge_id(
+    owner: [u8; 16],
+    source: [u8; 32],
+    target: [u8; 32],
+    kind: RelationKind,
+) -> String {
     let mut digest = Sha256::new();
     digest.update(b"management-memory-edge-v1\0");
     digest.update(owner);
     digest.update(source);
     digest.update(target);
-    digest.update(format!("{:?}", relation.kind));
+    digest.update(format!("{kind:?}"));
     hex(&digest.finalize())
 }
