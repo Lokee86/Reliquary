@@ -1,8 +1,14 @@
+param([string] $TargetDirectory)
+
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $runId = [guid]::NewGuid().ToString('N')
 $exportDir = Join-Path $repo ".test-tmp\g4-completed-$runId"
-$target = Join-Path $repo 'target-codex-check'
+$target = if ($TargetDirectory) {
+    (Resolve-Path -LiteralPath $TargetDirectory).Path
+} else {
+    Join-Path $repo 'target-codex-check'
+}
 $manifest = Join-Path $repo 'tests\fixtures\g4-native-rel21-v1.json'
 $env:G4_EXPORT_DIR = $exportDir
 $observations = [System.Collections.Generic.List[object]]::new()
