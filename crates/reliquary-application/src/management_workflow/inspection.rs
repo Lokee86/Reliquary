@@ -31,7 +31,9 @@ pub use memory_list::{
 pub use provenance::{
     ExactMemoryProvenance, SourceCoordinate, finish_provenance, resolve_provenance,
 };
-pub use semantic::{CommunityMetadata, GraphDirection, GraphEdge, GraphNode, InspectedEntity};
+pub use semantic::{
+    CommunityMetadata, CommunityNameOrigin, GraphDirection, GraphEdge, GraphNode, InspectedEntity,
+};
 
 pub use reliquary_owner_session::model::{
     EntityId, MemoryBodyId, MemoryTextField, RelationKind, RelationOrigin, Relationship,
@@ -86,6 +88,10 @@ pub enum InspectionQuery {
     Relationships,
     Relationship(RelationshipId),
     Communities,
+    CommunityMembers {
+        id: [u8; 32],
+        expected_generation: u64,
+    },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -137,6 +143,9 @@ pub enum InspectionItem {
     Entity(InspectedEntity),
     Relationship(Relationship),
     Community(CommunityMetadata),
+    CommunityMember {
+        id: [u8; 32],
+    },
 }
 
 pub fn inspect(

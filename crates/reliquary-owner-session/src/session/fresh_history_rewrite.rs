@@ -334,8 +334,16 @@ fn publish_rewrite_candidate(staged: &StagedCopy, destination: &Path) -> Result<
 mod publication_tests;
 
 fn reject_unsupported_operational_state(source: &Container) -> Result<(), String> {
-    const UNSUPPORTED: [&[u8]; 8] = [
-        b"CVDREAM", b"RELDR", b"RELINS", b"RELINSC", b"RELIEP", b"RELIFRS", b"RELX", b"RELECHO",
+    const UNSUPPORTED: &[&[u8]] = &[
+        b"CVDREAM",
+        b"RELDR",
+        b"RELINS",
+        b"RELINSC",
+        b"RELIEP",
+        b"RELIFRS",
+        b"RELX",
+        b"RELECHO",
+        b"RELCMN01",
     ];
     for frame in source.read_frames().map_err(|error| error.to_string())? {
         let body = reliquary_container::decode_publication(&frame.payload)

@@ -8,9 +8,13 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 mod association;
+mod community_names;
 mod history;
 pub use association::{
     AssociationEndpoint, USER_ASSOCIATION_MAGIC, UserAssociation, user_association_in_frame,
+};
+pub use community_names::{
+    CommunityRename, CommunityRenameReceipt, rename_graph_version_in_frame, validate_community_name,
 };
 use std::fmt;
 
@@ -146,6 +150,9 @@ pub enum GraphError {
     InvalidClosure(&'static str),
     InvalidRelation(&'static str),
     InvalidCommunity(&'static str),
+    StaleCommunity,
+    UnknownCommunity,
+    CommunityRequestConflict,
     VersionExhausted,
 }
 impl fmt::Display for GraphError {
@@ -157,6 +164,11 @@ impl fmt::Display for GraphError {
             Self::InvalidClosure(s) => write!(f, "Graph endpoint closure rejected: {s}"),
             Self::InvalidRelation(s) => write!(f, "invalid Graph relation: {s}"),
             Self::InvalidCommunity(s) => write!(f, "invalid Community snapshot: {s}"),
+            Self::StaleCommunity => f.write_str("Community rename cut is stale"),
+            Self::UnknownCommunity => f.write_str("Community does not exist at the accepted cut"),
+            Self::CommunityRequestConflict => {
+                f.write_str("Community rename request conflicts with its accepted receipt")
+            }
             Self::VersionExhausted => f.write_str("Graph version exhausted"),
         }
     }
@@ -661,6 +673,7 @@ pub struct CommunityStore {
     identity: ContainerIdentity,
     current: Option<CommunitySnapshot>,
     history: Vec<CommunitySnapshot>,
+    names: community_names::CommunityNames,
 }
 impl CommunityStore {
     pub fn open(container: &Container, graph: &GraphStore) -> Result<Self, GraphError> {
@@ -670,6 +683,7 @@ impl CommunityStore {
             identity: container.identity(),
             current: None,
             history: Vec::new(),
+            names: community_names::CommunityNames::default(),
         };
         for frame in container.read_frames()? {
             if let Some((owner, snapshot)) = decode_community(&frame.payload)? {
@@ -694,6 +708,10 @@ impl CommunityStore {
                 }
                 store.history.push(snapshot.clone());
                 store.current = Some(snapshot);
+            } else if let Some((owner, request, generation)) =
+                community_names::decode(&frame.payload)?
+            {
+                store.replay_rename(owner, request, generation)?;
             }
         }
         Ok(store)
@@ -904,7 +922,14 @@ fn decode_community(b: &[u8]) -> Result<Option<([u8; 16], CommunitySnapshot)>, G
 
 /// Read a Community's source Graph cut for physical-prefix validation.
 pub fn community_graph_version_in_frame(payload: &[u8]) -> Result<Option<u64>, GraphError> {
-    Ok(decode_community(payload)?.map(|(_, snapshot)| snapshot.graph_version))
+    if let Some((_, snapshot)) = decode_community(payload)? {
+        return Ok(Some(snapshot.graph_version));
+    }
+    Ok(
+        community_names::decode(payload)?.and_then(|(_, request, generation)| {
+            (generation != request.expected_generation).then_some(request.graph_version)
+        }),
+    )
 }
 fn put_node(o: &mut Vec<u8>, n: NodeRef) {
     match n {
@@ -1235,6 +1260,80 @@ mod tests {
             ),
             Err(GraphError::WrongOwner)
         ));
+    }
+
+    #[test]
+    fn community_rename_replays_its_exact_request_and_keeps_the_membership() {
+        let path = Temp::new();
+        let members = [[1; 32], [2; 32]];
+        let mut file = container(&path.0, 21);
+        let owner = file.owner_id();
+        let admission = GraphAdmission::for_changes(owner, members, []);
+        let mut graph = GraphStore::open(&file, &admission).unwrap();
+        graph
+            .put(
+                &mut file,
+                &admission,
+                &[RelationChange {
+                    source: NodeRef::Memory(members[0]),
+                    target: NodeRef::Memory(members[1]),
+                    kind: RelationKind::References,
+                    active: true,
+                    origin: RelationOrigin::User,
+                }],
+            )
+            .unwrap();
+        let id = community_id(owner, &members);
+        let mut store = CommunityStore::open(&file, &graph).unwrap();
+        store
+            .publish(
+                &mut file,
+                &graph,
+                CommunitySnapshot {
+                    generation: 1,
+                    graph_version: 1,
+                    communities: vec![Community {
+                        id,
+                        members: members.to_vec(),
+                    }],
+                },
+            )
+            .unwrap();
+        let request = CommunityRename {
+            request_key: [7; 32],
+            cut_digest: [8; 32],
+            id,
+            expected_generation: 1,
+            graph_version: 1,
+            name: "Verified name".into(),
+        };
+        let renamed = store.rename(&mut file, &graph, request.clone()).unwrap();
+        assert!(renamed.changed());
+        assert_eq!(renamed.generation, 2);
+        assert_eq!(store.current().unwrap().communities[0].members, members);
+        drop(file);
+        let mut file =
+            Container::open_writer_as(&path.0, reliquary_container::FileKind::Reliquary).unwrap();
+        let mut reopened = CommunityStore::open(&file, &graph).unwrap();
+        assert_eq!(reopened.user_name(id), Some("Verified name"));
+        let count = file.read_frames().unwrap().len();
+        assert_eq!(
+            reopened.rename(&mut file, &graph, request.clone()).unwrap(),
+            renamed
+        );
+        assert_eq!(file.read_frames().unwrap().len(), count);
+        let mut changed_cut = request;
+        changed_cut.cut_digest = [9; 32];
+        assert!(matches!(
+            reopened.rename(&mut file, &graph, changed_cut),
+            Err(GraphError::CommunityRequestConflict)
+        ));
+        let replacement = CommunitySnapshot {
+            generation: 3,
+            ..reopened.current().unwrap().clone()
+        };
+        reopened.publish(&mut file, &graph, replacement).unwrap();
+        assert_eq!(reopened.user_name(id), Some("Verified name"));
     }
 
     #[test]

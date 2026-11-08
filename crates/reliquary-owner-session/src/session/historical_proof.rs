@@ -71,6 +71,7 @@ pub(super) struct CommonHistory {
     pub(super) graph_history: Vec<Relation>,
     pub(super) graph: Vec<Relation>,
     pub(super) community_history: Vec<CommunitySnapshot>,
+    pub(super) community_renames: Vec<reliquary_graph::CommunityRenameReceipt>,
     pub(super) ego: reliquary_ego_store::EgoHistorySnapshot,
     pub(super) generations: Vec<VectorGeneration>,
     pub(super) unavailable_payloads: usize,

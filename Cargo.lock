@@ -2698,6 +2698,7 @@ dependencies = [
  "reliquary-application",
  "reliquary-archive",
  "reliquary-chronos",
+ "reliquary-container",
  "reliquary-context-engine",
  "reliquary-dream",
  "reliquary-ego-store",

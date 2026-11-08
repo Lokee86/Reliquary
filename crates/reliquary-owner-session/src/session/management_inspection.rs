@@ -147,4 +147,15 @@ impl ManagementRead<'_> {
     pub fn community(&self) -> Option<&CommunitySnapshot> {
         self.common.communities.current()
     }
+
+    pub fn community_name(&self, id: reliquary_graph::CommunityId) -> Option<&str> {
+        self.common.communities.user_name(id)
+    }
+
+    pub fn community_rename_receipt(
+        &self,
+        key: &[u8; 32],
+    ) -> Option<&reliquary_graph::CommunityRenameReceipt> {
+        self.common.communities.rename_receipt(key)
+    }
 }

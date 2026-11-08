@@ -71,7 +71,16 @@ pub struct CommunityMetadata {
     pub generation: u64,
     pub graph_version: u64,
     pub member_count: usize,
+    pub name: Option<String>,
+    pub name_origin: CommunityNameOrigin,
     pub current: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CommunityNameOrigin {
+    User,
+    Unnamed,
 }
 
 pub(super) fn inspect(
@@ -128,14 +137,46 @@ pub(super) fn inspect(
             let snapshot = read.community().ok_or(ManagementError::NotFound)?;
             let current = snapshot.graph_version == page.page.cut.graph;
             page.extend(snapshot.communities.iter().skip(page.offset), |community| {
+                let name = read.community_name(community.id).map(str::to_owned);
+                let name_origin = if name.is_some() {
+                    CommunityNameOrigin::User
+                } else {
+                    CommunityNameOrigin::Unnamed
+                };
                 Ok(InspectionItem::Community(CommunityMetadata {
                     id: community.id.0,
                     generation: snapshot.generation,
                     graph_version: snapshot.graph_version,
                     member_count: community.members.len(),
+                    name,
+                    name_origin,
                     current,
                 }))
             })
+        }
+        InspectionQuery::CommunityMembers {
+            id,
+            expected_generation,
+        } => {
+            let snapshot = read.community().ok_or(ManagementError::NotFound)?;
+            if snapshot.graph_version != page.page.cut.graph
+                || snapshot.generation != expected_generation
+            {
+                return Err(ManagementError::Stale);
+            }
+            let index = snapshot
+                .communities
+                .binary_search_by_key(&id, |community| community.id.0)
+                .map_err(|_| ManagementError::NotFound)?;
+            page.extend(
+                snapshot.communities[index]
+                    .members
+                    .iter()
+                    .copied()
+                    .filter(|id| read.memory_is_readable(MemoryId(*id)))
+                    .skip(page.offset),
+                |id| Ok(InspectionItem::CommunityMember { id }),
+            )
         }
         _ => unreachable!("semantic inspection query"),
     }

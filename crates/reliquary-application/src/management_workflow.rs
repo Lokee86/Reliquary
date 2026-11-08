@@ -6,9 +6,14 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fmt;
 
+#[path = "management_workflow/community_rename.rs"]
+mod community_rename;
 pub mod inspection;
 #[path = "management_workflow/user_memory.rs"]
 mod user_memory;
+pub use community_rename::{
+    CommunityRenameRequest, CommunityRenameResult, rename_community_at_cut,
+};
 pub use user_memory::{
     CorrectMemoryReceipt, CorrectMemoryRequest, RetireMemoryReceipt, correct_memory_at_cut,
     retire_memory_at_cut,

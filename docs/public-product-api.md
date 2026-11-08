@@ -108,6 +108,25 @@ neighborhood. A changed cut returns stale. The projection reports truncation
 when it hits the scan, graph or byte budget. Community filters apply only to
 a current graph generation.
 
+## Community names and membership
+
+Authorized REL managers can use `WorkspaceManagement::rename_community_at_cut`
+on an accepted, current Community. Supply the complete inspection cut, exact
+Community generation, stable request ID, and bounded name. The durable receipt
+binds the authenticated principal, target and input. An exact replay reports
+the original effect. A changed name advances the Community generation while
+preserving membership and the Graph version.
+
+`InspectionQuery::Communities` projects a user name and its origin.
+`InspectionQuery::CommunityMembers` returns bounded member IDs with
+cut-bound pagination. The Community snapshot must be current. Missing derived
+metadata remains unavailable. User naming preserves the existing partition and
+does not generate one.
+
+Verified storage reclamation and pruning retain the name receipt. Fresh-history
+rewrite rejects named Community evidence until a supported rewrite can retain
+its authority and request history.
+
 ## Migration from the reference facade
 
 - `Cva` → `Rel` (intentional hard cut; no alias).

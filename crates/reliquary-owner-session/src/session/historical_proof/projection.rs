@@ -52,6 +52,13 @@ pub(super) fn common_history(
     let community_history = common
         .communities
         .history_at_graph_version(cut.graph_version);
+    let community_renames = common
+        .communities
+        .rename_history()
+        .iter()
+        .take_while(|receipt| receipt.request.graph_version <= cut.graph_version)
+        .cloned()
+        .collect();
     let ego = common
         .ego
         .history_at(cut.ego_version)
@@ -79,6 +86,7 @@ pub(super) fn common_history(
         graph_history,
         graph,
         community_history,
+        community_renames,
         ego,
         generations: generation_history,
         unavailable_payloads,
@@ -175,6 +183,7 @@ pub(super) fn common_count(history: &CommonHistory) -> usize {
         + history.perception.relationship_description_prunes.len()
         + history.graph_history.len()
         + history.community_history.len()
+        + history.community_renames.len()
         + history.ego.records.len()
         + history.generations.len()
 }

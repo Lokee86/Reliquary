@@ -276,6 +276,13 @@ pub(super) fn validate_graph_prefix(
                     .ok_or(OwnerSessionError::StaleDreamCut)?
                     .1;
             }
+            if reliquary_graph::rename_graph_version_in_frame(payload)?
+                .is_some_and(|version| version != graph_version)
+            {
+                return Err(OwnerSessionError::Record(
+                    "Community rename does not match its physical Graph prefix".into(),
+                ));
+            }
             if reliquary_graph::community_graph_version_in_frame(payload)?
                 .is_some_and(|version| version > graph_version)
             {

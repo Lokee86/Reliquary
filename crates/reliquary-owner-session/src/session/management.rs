@@ -8,6 +8,8 @@ pub use inspection::*;
 #[path = "management_archive.rs"]
 mod archive_inspection;
 pub use archive_inspection::{RelImportedSource, RelSourceTurn};
+#[path = "management_community.rs"]
+mod community;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RelConversationSummary {

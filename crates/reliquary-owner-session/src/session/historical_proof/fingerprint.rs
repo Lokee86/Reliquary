@@ -66,14 +66,32 @@ fn rel_cut_value(cut: &RelHistoricalCut) -> Value {
 }
 
 fn common_value(history: &CommonHistory) -> Value {
-    json!({
+    let mut value = json!({
         "memories": history.memories.iter().map(memory_history_value).collect::<Vec<_>>(),
         "perception": perception_value(&history.perception),
         "graph_publications": history.graph_history.iter().map(relation_value).collect::<Vec<_>>(),
         "communities": history.community_history.iter().map(community_value).collect::<Vec<_>>(),
         "ego_publications": history.ego.records.iter().map(ego_record_value).collect::<Vec<_>>(),
         "vector_generations": history.generations.iter().map(generation_value).collect::<Vec<_>>(),
-    })
+    });
+    if !history.community_renames.is_empty() {
+        value["community_renames"] = json!(
+            history
+                .community_renames
+                .iter()
+                .map(|receipt| {
+                    let request = &receipt.request;
+                    json!({
+                        "request_key": request.request_key, "cut_digest": request.cut_digest,
+                        "id": request.id.0, "expected_generation": request.expected_generation,
+                        "graph_version": request.graph_version, "name": request.name,
+                        "generation": receipt.generation, "member_count": receipt.member_count,
+                    })
+                })
+                .collect::<Vec<_>>()
+        );
+    }
+    value
 }
 
 fn memory_history_value(value: &(MemoryId, MemoryHistory)) -> Value {

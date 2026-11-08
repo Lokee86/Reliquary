@@ -6,22 +6,22 @@ use crate::{
 use std::sync::{Arc, Mutex};
 
 pub use reliquary_application::inspection::{
-    CommunityMetadata, CreateRelationshipRequest, EntityRetirementRequest, ExactMemoryProvenance,
-    GraphDirection, GraphEdge, GraphNode, ImportedSourceReference, InspectedEntity,
-    InspectionCursor, InspectionCut, InspectionItem, InspectionPage, InspectionQuery, MemoryBodyId,
-    MemoryCanonicalStatus, MemoryGraphEdge, MemoryGraphNode, MemoryGraphPage, MemoryGraphQuery,
-    MemoryListEntry, MemoryListFilters, MemoryListLifecycle, MemoryRetirementRequest,
-    MemoryTextField, RelationKind, RelationOrigin, Relationship, RelationshipEntityRef,
-    RelationshipMemoryRef, RelationshipParticipant, RelationshipParticipantEvidence,
-    RelationshipRetirementRequest, RelationshipTombstone, SourceAvailability, SourceCoordinate,
-    SourceTurn,
+    CommunityMetadata, CommunityNameOrigin, CreateRelationshipRequest, EntityRetirementRequest,
+    ExactMemoryProvenance, GraphDirection, GraphEdge, GraphNode, ImportedSourceReference,
+    InspectedEntity, InspectionCursor, InspectionCut, InspectionItem, InspectionPage,
+    InspectionQuery, MemoryBodyId, MemoryCanonicalStatus, MemoryGraphEdge, MemoryGraphNode,
+    MemoryGraphPage, MemoryGraphQuery, MemoryListEntry, MemoryListFilters, MemoryListLifecycle,
+    MemoryRetirementRequest, MemoryTextField, RelationKind, RelationOrigin, Relationship,
+    RelationshipEntityRef, RelationshipMemoryRef, RelationshipParticipant,
+    RelationshipParticipantEvidence, RelationshipRetirementRequest, RelationshipTombstone,
+    SourceAvailability, SourceCoordinate, SourceTurn,
 };
 pub use reliquary_application::inspection::{
     MemoryAssociationAction, MemoryAssociationReceipt, MemoryAssociationRequest,
 };
 pub use reliquary_application::{
-    CorrectMemoryReceipt, CorrectMemoryRequest, CreateMemoryReceipt, CreateMemoryRequest,
-    RetireMemoryReceipt,
+    CommunityRenameRequest, CommunityRenameResult, CorrectMemoryReceipt, CorrectMemoryRequest,
+    CreateMemoryReceipt, CreateMemoryRequest, RetireMemoryReceipt,
 };
 pub use reliquary_owner_session::WithdrawEntityMentionRequest;
 pub use reliquary_owner_session::model::{
@@ -244,6 +244,19 @@ impl WorkspaceManagement {
         self.instance
             .inner
             .management_retire_memory_at_cut(self.owner.into(), expected, request_id, request)
+            .map_err(Into::into)
+    }
+
+    /// Rename one current Community with a durable, principal-bound request receipt.
+    pub fn rename_community_at_cut(
+        &self,
+        expected: InspectionCut,
+        request: CommunityRenameRequest,
+    ) -> Result<CommunityRenameResult, ProductError> {
+        self.instance.require(OwnerGrant::ManageRel(self.owner))?;
+        self.instance
+            .inner
+            .management_rename_community_at_cut(self.owner.into(), expected, request)
             .map_err(Into::into)
     }
 

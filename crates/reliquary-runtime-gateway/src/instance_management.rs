@@ -43,6 +43,23 @@ impl Instance {
         .map_err(management_error)
     }
 
+    pub fn management_rename_community_at_cut(
+        &self,
+        owner: OwnerId,
+        expected: reliquary_application::inspection::InspectionCut,
+        request: reliquary_application::CommunityRenameRequest,
+    ) -> Result<reliquary_application::CommunityRenameResult, GatewayError> {
+        self.with_rel_writer(owner, |writer| {
+            reliquary_application::rename_community_at_cut(
+                writer,
+                self.principal(),
+                expected,
+                request,
+            )
+        })?
+        .map_err(management_error)
+    }
+
     pub fn management_set_title(
         &self,
         owner: OwnerId,
