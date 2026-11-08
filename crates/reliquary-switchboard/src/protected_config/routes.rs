@@ -1,39 +1,35 @@
 use super::{Object, Objects, read_string, take_array};
 use crate::runtime_config::{
-    EMBEDDING, ENTITY, GENERAL, RETRIEVAL, RuntimeConfig, SHARED, invalid,
+    DREAM, EMBEDDING, ENTITY, ENTITY_DECISION, GENERAL, GeneralRoute, INSOMNIA, RETRIEVAL,
+    RuntimeConfig, SHARED, invalid,
 };
 use crate::transport::validated_http_url;
 use crate::{
     ConfiguredRuntimeError, CredentialId, DecisionModelEndpoint, EmbeddingModelEndpoint,
-    EmbeddingNormalization, GeneralModelEndpoint, ModelProvider, ModelSwitchboardConfig,
+    EmbeddingNormalization, GeneralModelEndpoint, ModelProvider,
 };
 
 const CODEX_URL: &str = "https://chatgpt.com/backend-api/codex/responses";
 
 pub(super) fn decode(objects: &Objects<'_>) -> Result<RuntimeConfig, ConfiguredRuntimeError> {
-    let (general, general_reasoning_effort) =
-        match selected(objects, "models.general", GENERAL, general)? {
-            Some((route, effort)) => (Some(route), effort),
-            None => (None, None),
-        };
     Ok(RuntimeConfig {
-        routes: ModelSwitchboardConfig {
-            general,
-            general_decision: selected(objects, "models.general_decision", SHARED, decision)?,
-            entity_resolution_decision: selected(
-                objects,
-                "models.entity_resolution_decision",
-                ENTITY,
-                decision,
-            )?,
-            memory_retrieval_decision: selected(
-                objects,
-                "models.memory_retrieval_decision",
-                RETRIEVAL,
-                decision,
-            )?,
-        },
-        general_reasoning_effort,
+        general: selected(objects, "models.general", GENERAL, general)?,
+        insomnia: selected(objects, "models.insomnia", INSOMNIA, general)?,
+        dream: selected(objects, "models.dream", DREAM, general)?,
+        entity_resolution: selected(objects, "models.entity_resolution", ENTITY, general)?,
+        general_decision: selected(objects, "models.general_decision", SHARED, decision)?,
+        entity_resolution_decision: selected(
+            objects,
+            "models.entity_resolution_decision",
+            ENTITY_DECISION,
+            decision,
+        )?,
+        memory_retrieval_decision: selected(
+            objects,
+            "models.memory_retrieval_decision",
+            RETRIEVAL,
+            decision,
+        )?,
         embedding: selected(objects, "models.embedding", EMBEDDING, embedding)?,
         worker_lease_duration_ms: None,
     })
@@ -51,7 +47,7 @@ fn selected<T>(
         .transpose()
 }
 
-fn general(object: &Object<'_>) -> Option<(GeneralModelEndpoint, Option<&'static str>)> {
+fn general(object: &Object<'_>) -> Option<GeneralRoute> {
     let mut bytes = object.payload;
     let &[provider, effort, 0, 0] = take_array(&mut bytes)? else {
         return None;
@@ -77,15 +73,15 @@ fn general(object: &Object<'_>) -> Option<(GeneralModelEndpoint, Option<&'static
         url,
         credential_id,
     } = route_fields(bytes, default_url)?;
-    Some((
-        GeneralModelEndpoint {
+    Some(GeneralRoute {
+        endpoint: GeneralModelEndpoint {
             provider,
             model,
             url,
             credential_id,
         },
-        effort,
-    ))
+        reasoning_effort: effort,
+    })
 }
 
 fn decision(object: &Object<'_>) -> Option<DecisionModelEndpoint> {

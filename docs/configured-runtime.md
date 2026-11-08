@@ -2,7 +2,7 @@
 
 Load an explicit JSON file through the `reliquary-memory` crate. Construction
 validates the configuration and resolves credential references locally.
-`readiness()` reports route availability and decision selection offline.
+`readiness()` reports route availability and general and decision selection offline.
 
 ```rust
 use reliquary_memory::{ConfiguredRuntime, EnvironmentCredentialResolver};
@@ -26,12 +26,17 @@ println!("{}", runtime.readiness());
 # Ok::<(), reliquary_memory::ConfiguredRuntimeError>(())
 ```
 
-The reader accepts CVCFG 1.0 files up to 32 MiB. It loads `models.general`
-(schema 2 or 3), `models.general_decision`, `models.entity_resolution_decision`,
-and `models.memory_retrieval_decision` (schema 1), and `models.embedding`
-(schema 2). Other records are skipped after framing validation. Selected routes
-use the URL rules below. Protected Codex routes store an empty URL and use the
-built-in Codex endpoint. Configured reasoning effort is passed to the general
+The reader accepts CVCFG 1.0 files up to 32 MiB. It loads these optional records.
+
+| Schema | Records |
+| --- | --- |
+| 2 or 3 | `models.general`, `models.insomnia`, `models.dream`, `models.entity_resolution` |
+| 1 | `models.general_decision`, `models.entity_resolution_decision`, `models.memory_retrieval_decision` |
+| 2 | `models.embedding` |
+
+Other records are skipped after framing validation. Loaded routes use the URL
+rules below. Protected Codex routes store an empty URL and use the built-in Codex
+endpoint. Schema 3 reasoning effort is passed to the corresponding general
 transport. The worker lease uses its default.
 
 Switchboard reads the key file only when it needs to authenticate a selected
@@ -44,13 +49,16 @@ fail construction. The reader leaves both files untouched.
 
 ## JSON schema
 
-The top-level object accepts the following optional keys. Omit a route to leave
-it unavailable. An empty object is valid and reports no configured routes.
-Files are limited to 64 KiB. Unknown keys and fields fail validation.
+The top-level object accepts the following optional keys. An empty object is
+valid and reports no configured routes. Files are limited to 64 KiB. Unknown keys
+and fields fail validation.
 
 | Key | Purpose | Additional fields |
 | --- | --- | --- |
 | `general` | Structured-output general model | `provider` is `openai_ready` by default. Use `openai_codex` for the Codex streaming transport. |
+| `insomnia` | Dedicated Insomnia structured-output endpoint | Same `provider` field as `general`. |
+| `dream` | Dedicated Dream structured-output endpoint | Same `provider` field as `general`. |
+| `entity_resolution` | Dedicated Entity Resolution structured-output endpoint | Same `provider` field as `general`. |
 | `decision` | Shared direct decision endpoint | Uses an API-key credential. |
 | `entity_resolution_decision` | Dedicated Entity Resolution decision endpoint | Uses an API-key credential. |
 | `memory_retrieval_decision` | Dedicated Memory Retrieval decision endpoint | Uses an API-key credential. |
@@ -93,16 +101,29 @@ types, and invalid header values fail construction.
 
 ## Selection and checks
 
-Entity Resolution and Memory Retrieval use their dedicated route when
-configured, then the shared decision route, then the general endpoint adapted
-for structured decisions. Chronos uses the shared route and the same general
-fallback. A missing or failed binding for a selected route produces an error.
-Provider failures are returned from the selected route.
+Insomnia, Dream, and Entity Resolution structured-output requests use their
+dedicated general route when configured and the configured `general` route
+otherwise. The endpoint is selected during configuration. Provider errors from
+the selected endpoint propagate to the caller without a retry on another route.
 
-`online_probe()` sends one synthetic request per configured transport.
-It probes general output, direct decision output, and one query embedding as
-applicable. A successful general probe covers decisions adapted from that
-transport. Probing stops at the first failure. The transports enforce
+Entity Resolution and Memory Retrieval decisions use their dedicated decision
+route when configured, then the shared decision route, then the `general`
+endpoint adapted for structured decisions. Chronos uses the shared route and
+the same general fallback. A failed binding for a configured route produces
+an error.
+
+A host can explicitly select `models.insomnia` for Memory Retrieval decisions
+with `ConfiguredRuntime::from_protected_config_with_retrieval_from_insomnia(path, key_path)`.
+That constructor requires a valid dedicated Insomnia route and adapts it for
+retrieval decisions. It takes precedence over the normal retrieval decision
+selection and affects only Memory Retrieval. The default constructor uses
+the normal order, even when `models.insomnia` is present.
+
+`online_probe()` sends one synthetic request per selected transport.
+It probes general and dedicated structured-output transports, direct decision
+output, and one query embedding as applicable. A successful structured-output
+probe covers decisions adapted from that transport, including the Insomnia
+override. Probing stops at the first failure. The transports enforce
 a 30-second request timeout and a 1 MiB response limit. Reports include route
 labels and failure categories while omitting credential references, model
 names, URLs, and provider payloads.

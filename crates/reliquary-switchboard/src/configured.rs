@@ -1,4 +1,7 @@
-use super::runtime_config::{EMBEDDING, ENTITY, GENERAL, RETRIEVAL, RuntimeConfig, SHARED};
+use super::runtime_config::{
+    DREAM, EMBEDDING, ENTITY, ENTITY_DECISION, GENERAL, GeneralRoute, INSOMNIA, RETRIEVAL,
+    RuntimeConfig, SHARED, invalid,
+};
 use super::runtime_probe::{probe_decision, probe_embedding, probe_general};
 use super::*;
 use std::io::ErrorKind;
@@ -53,6 +56,9 @@ impl std::error::Error for ConfiguredRuntimeError {}
 /// The selected Switchboard transports for an offline-validated runtime.
 pub struct ConfiguredRoutes {
     general: Option<Arc<dyn GeneralEndpoint>>,
+    insomnia: Option<Arc<dyn GeneralEndpoint>>,
+    dream: Option<Arc<dyn GeneralEndpoint>>,
+    entity_resolution: Option<Arc<dyn GeneralEndpoint>>,
     embedding: Option<Arc<dyn EmbeddingEndpoint>>,
     chronos: SelectedDecision,
     entity: SelectedDecision,
@@ -80,24 +86,57 @@ impl ConfiguredRoutes {
         Self::bind(config, credentials)
     }
 
+    /// Loads protected routes and explicitly uses the dedicated Insomnia route for retrieval.
+    pub fn from_protected_config_with_retrieval_from_insomnia(
+        path: &Path,
+        key_path: &Path,
+    ) -> Result<Self, ConfiguredRuntimeError> {
+        let mut routes = Self::from_protected_config(path, key_path)?;
+        let insomnia = routes
+            .insomnia
+            .clone()
+            .ok_or_else(|| invalid(INSOMNIA, "required for the retrieval override"))?;
+        routes.retrieval = SelectedDecision {
+            source: Some(INSOMNIA),
+            endpoint: Some(Arc::new(GeneralDecisionEndpoint::new(insomnia))),
+        };
+        Ok(routes)
+    }
+
     fn bind(
         config: RuntimeConfig,
         credentials: CredentialsConfig,
     ) -> Result<Self, ConfiguredRuntimeError> {
-        let routes = &config.routes;
-        let general: Option<Arc<dyn GeneralEndpoint>> = routes
-            .general
-            .as_ref()
-            .map(|route| {
-                ConfiguredGeneralEndpoint::from_route_with_reasoning_effort(
-                    route,
-                    &credentials,
-                    config.general_reasoning_effort,
-                )
-                .map(|endpoint| Arc::new(endpoint) as Arc<dyn GeneralEndpoint>)
-            })
-            .transpose()
-            .map_err(|_| ConfiguredRuntimeError::Setup { route: GENERAL })?;
+        let bind_general = |name, route: Option<&GeneralRoute>| {
+            route
+                .map(|route| {
+                    match route.reasoning_effort {
+                        Some(effort) => {
+                            ConfiguredGeneralEndpoint::from_route_with_reasoning_effort(
+                                &route.endpoint,
+                                &credentials,
+                                Some(effort),
+                            )
+                        }
+                        None => {
+                            ConfiguredGeneralEndpoint::from_route(&route.endpoint, &credentials)
+                        }
+                    }
+                    .map(|endpoint| Arc::new(endpoint) as Arc<dyn GeneralEndpoint>)
+                })
+                .transpose()
+                .map_err(|_| ConfiguredRuntimeError::Setup { route: name })
+        };
+        let general = bind_general(GENERAL, config.general.as_ref())?;
+        let insomnia = bind_general(INSOMNIA, config.insomnia.as_ref())?;
+        let dream = bind_general(DREAM, config.dream.as_ref())?;
+        let entity_resolution = bind_general(ENTITY, config.entity_resolution.as_ref())?;
+        let routes = ModelSwitchboardConfig {
+            general: config.general.map(|route| route.endpoint),
+            general_decision: config.general_decision,
+            entity_resolution_decision: config.entity_resolution_decision,
+            memory_retrieval_decision: config.memory_retrieval_decision,
+        };
         let embedding = config
             .embedding
             .as_ref()
@@ -119,14 +158,14 @@ impl ConfiguredRoutes {
         let shared = bind_direct(SHARED, routes.general_decision.as_ref())?;
         let select =
             |consumer, name, dedicated| -> Result<SelectedDecision, ConfiguredRuntimeError> {
-                let source = match select_decision_route(routes, consumer) {
+                let source = match select_decision_route(&routes, consumer) {
                     DecisionRouteSelection::Dedicated(_) => Some(name),
                     DecisionRouteSelection::Shared(_) => Some(SHARED),
                     DecisionRouteSelection::General(_) => Some(GENERAL),
                     DecisionRouteSelection::Unavailable => None,
                 };
                 let endpoint = resolve_decision_endpoint(
-                    routes,
+                    &routes,
                     consumer,
                     dedicated,
                     shared.clone(),
@@ -140,8 +179,8 @@ impl ConfiguredRoutes {
         let chronos = select(DecisionConsumer::Chronos, SHARED, None)?;
         let entity = select(
             DecisionConsumer::EntityResolution,
-            ENTITY,
-            bind_direct(ENTITY, routes.entity_resolution_decision.as_ref())?,
+            ENTITY_DECISION,
+            bind_direct(ENTITY_DECISION, routes.entity_resolution_decision.as_ref())?,
         )?;
         let retrieval = select(
             DecisionConsumer::MemoryRetrieval,
@@ -150,6 +189,9 @@ impl ConfiguredRoutes {
         )?;
         Ok(Self {
             general,
+            insomnia,
+            dream,
+            entity_resolution,
             embedding,
             chronos,
             entity,
@@ -160,6 +202,20 @@ impl ConfiguredRoutes {
 
     pub fn general_endpoint(&self) -> Option<Arc<dyn GeneralEndpoint>> {
         self.general.clone()
+    }
+
+    pub fn insomnia_endpoint(&self) -> Option<Arc<dyn GeneralEndpoint>> {
+        self.insomnia.clone().or_else(|| self.general_endpoint())
+    }
+
+    pub fn dream_endpoint(&self) -> Option<Arc<dyn GeneralEndpoint>> {
+        self.dream.clone().or_else(|| self.general_endpoint())
+    }
+
+    pub fn entity_endpoint(&self) -> Option<Arc<dyn GeneralEndpoint>> {
+        self.entity_resolution
+            .clone()
+            .or_else(|| self.general_endpoint())
     }
 
     pub fn decision_endpoint(
@@ -184,27 +240,46 @@ impl ConfiguredRoutes {
     }
 
     pub fn readiness(&self) -> String {
+        let general_source = |name, endpoint: &Option<Arc<dyn GeneralEndpoint>>| {
+            if endpoint.is_some() {
+                name
+            } else if self.general.is_some() {
+                GENERAL
+            } else {
+                "unavailable"
+            }
+        };
         format!(
-            "configured routes: general={}, decision={}, embedding={}; decision selection: chronos={}, entity_resolution={}, memory_retrieval={}",
+            "configured routes: general={}, decision={}, embedding={}; decision selection: chronos={}, entity_resolution={}, memory_retrieval={}; general selection: insomnia={}, dream={}, entity_resolution={}",
             self.general.is_some(),
             self.chronos.endpoint.is_some(),
             self.embedding.is_some(),
             self.chronos.label(),
             self.entity.label(),
             self.retrieval.label(),
+            general_source(INSOMNIA, &self.insomnia),
+            general_source(DREAM, &self.dream),
+            general_source(ENTITY, &self.entity_resolution),
         )
     }
 
     pub fn online_probe(&self) -> Result<String, ConfiguredRuntimeError> {
         let error = |route, failure| ConfiguredRuntimeError::Probe { route, failure };
         let mut probed = 0;
-        if let Some(endpoint) = &self.general {
-            probe_general(endpoint.as_ref()).map_err(|failure| error(GENERAL, failure))?;
-            probed += 1;
+        for (route, endpoint) in [
+            (GENERAL, &self.general),
+            (INSOMNIA, &self.insomnia),
+            (DREAM, &self.dream),
+            (ENTITY, &self.entity_resolution),
+        ] {
+            if let Some(endpoint) = endpoint {
+                probe_general(endpoint.as_ref()).map_err(|failure| error(route, failure))?;
+                probed += 1;
+            }
         }
         for (route, selection) in [
             (SHARED, &self.chronos),
-            (ENTITY, &self.entity),
+            (ENTITY_DECISION, &self.entity),
             (RETRIEVAL, &self.retrieval),
         ] {
             if let Some(endpoint) = &selection.endpoint

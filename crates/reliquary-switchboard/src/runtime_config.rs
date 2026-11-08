@@ -7,15 +7,28 @@ use std::path::Path;
 
 pub(super) const GENERAL: &str = "general";
 pub(super) const SHARED: &str = "decision";
-pub(super) const ENTITY: &str = "entity_resolution_decision";
+pub(super) const INSOMNIA: &str = "insomnia";
+pub(super) const DREAM: &str = "dream";
+pub(super) const ENTITY: &str = "entity_resolution";
+pub(super) const ENTITY_DECISION: &str = "entity_resolution_decision";
 pub(super) const RETRIEVAL: &str = "memory_retrieval_decision";
 pub(super) const EMBEDDING: &str = "embedding";
 const WORKER: &str = "worker";
 const MAX_CONFIG_BYTES: usize = 64 * 1024;
 
+pub(super) struct GeneralRoute {
+    pub endpoint: GeneralModelEndpoint,
+    pub reasoning_effort: Option<&'static str>,
+}
+
 pub(super) struct RuntimeConfig {
-    pub routes: ModelSwitchboardConfig,
-    pub general_reasoning_effort: Option<&'static str>,
+    pub general: Option<GeneralRoute>,
+    pub insomnia: Option<GeneralRoute>,
+    pub dream: Option<GeneralRoute>,
+    pub entity_resolution: Option<GeneralRoute>,
+    pub general_decision: Option<DecisionModelEndpoint>,
+    pub entity_resolution_decision: Option<DecisionModelEndpoint>,
+    pub memory_retrieval_decision: Option<DecisionModelEndpoint>,
     pub embedding: Option<EmbeddingModelEndpoint>,
     pub worker_lease_duration_ms: Option<u32>,
 }
@@ -38,25 +51,22 @@ impl RuntimeConfig {
             .as_object()
             .ok_or_else(|| invalid("configuration", "expected a JSON object"))?;
         if object.keys().any(|key| {
-            ![GENERAL, SHARED, ENTITY, RETRIEVAL, EMBEDDING, WORKER].contains(&key.as_str())
+            ![
+                GENERAL,
+                INSOMNIA,
+                DREAM,
+                ENTITY,
+                SHARED,
+                ENTITY_DECISION,
+                RETRIEVAL,
+                EMBEDDING,
+                WORKER,
+            ]
+            .contains(&key.as_str())
         }) {
             return Err(invalid("configuration", "unknown route"));
         }
-        let general = parse_route(object, GENERAL, &["provider"])?
-            .map(|(route, fields)| {
-                let provider = match fields.get("provider").map(Value::as_str) {
-                    None | Some(Some("openai_ready")) => ModelProvider::OpenAiReady,
-                    Some(Some("openai_codex")) => ModelProvider::OpenAiCodex,
-                    _ => return Err(invalid(GENERAL, "unsupported provider")),
-                };
-                Ok(GeneralModelEndpoint {
-                    provider,
-                    model: route.model,
-                    url: route.url,
-                    credential_id: route.credential_id,
-                })
-            })
-            .transpose()?;
+        let general = |name| parse_general_route(object, name);
         let decision =
             |name| parse_route(object, name, &[]).map(|entry| entry.map(|(route, _)| route));
         let embedding = parse_route(object, EMBEDDING, &["dimensions", "normalization"])?
@@ -83,13 +93,13 @@ impl RuntimeConfig {
             })
             .transpose()?;
         Ok(Self {
-            routes: ModelSwitchboardConfig {
-                general,
-                general_decision: decision(SHARED)?,
-                entity_resolution_decision: decision(ENTITY)?,
-                memory_retrieval_decision: decision(RETRIEVAL)?,
-            },
-            general_reasoning_effort: None,
+            general: general(GENERAL)?,
+            insomnia: general(INSOMNIA)?,
+            dream: general(DREAM)?,
+            entity_resolution: general(ENTITY)?,
+            general_decision: decision(SHARED)?,
+            entity_resolution_decision: decision(ENTITY_DECISION)?,
+            memory_retrieval_decision: decision(RETRIEVAL)?,
             embedding,
             worker_lease_duration_ms: worker_lease_duration(object)?,
         })
@@ -104,13 +114,20 @@ impl RuntimeConfig {
             resolve_credential(&mut credentials, &mut lookup, id, provider)
                 .map_err(|reason| ConfiguredRuntimeError::Credential { route, reason })
         };
-        if let Some(route) = &self.routes.general {
-            resolve(GENERAL, &route.credential_id, route.provider)?;
+        for (name, route) in [
+            (GENERAL, &self.general),
+            (INSOMNIA, &self.insomnia),
+            (DREAM, &self.dream),
+            (ENTITY, &self.entity_resolution),
+        ] {
+            if let Some(GeneralRoute { endpoint, .. }) = route {
+                resolve(name, &endpoint.credential_id, endpoint.provider)?;
+            }
         }
         for (name, route) in [
-            (SHARED, &self.routes.general_decision),
-            (ENTITY, &self.routes.entity_resolution_decision),
-            (RETRIEVAL, &self.routes.memory_retrieval_decision),
+            (SHARED, &self.general_decision),
+            (ENTITY_DECISION, &self.entity_resolution_decision),
+            (RETRIEVAL, &self.memory_retrieval_decision),
         ] {
             if let Some(route) = route {
                 resolve(name, &route.credential_id, ModelProvider::OpenAiReady)?;
@@ -121,6 +138,30 @@ impl RuntimeConfig {
         }
         Ok(credentials)
     }
+}
+
+fn parse_general_route(
+    object: &Map<String, Value>,
+    name: &'static str,
+) -> Result<Option<GeneralRoute>, ConfiguredRuntimeError> {
+    parse_route(object, name, &["provider"])?
+        .map(|(route, fields)| {
+            let provider = match fields.get("provider").map(Value::as_str) {
+                None | Some(Some("openai_ready")) => ModelProvider::OpenAiReady,
+                Some(Some("openai_codex")) => ModelProvider::OpenAiCodex,
+                _ => return Err(invalid(name, "unsupported provider")),
+            };
+            Ok(GeneralRoute {
+                endpoint: GeneralModelEndpoint {
+                    provider,
+                    model: route.model,
+                    url: route.url,
+                    credential_id: route.credential_id,
+                },
+                reasoning_effort: None,
+            })
+        })
+        .transpose()
 }
 
 fn worker_lease_duration(

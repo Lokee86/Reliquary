@@ -1,0 +1,149 @@
+use super::*;
+use crate::DecisionConsumer::{Chronos, EntityResolution, MemoryRetrieval};
+
+#[test]
+fn loads_named_specialties_without_general_and_requires_retrieval_opt_in() {
+    let oauth = fields(
+        &[2, 0, 0, 0],
+        &["id-token", ACCESS_TOKEN, "refresh-token", ACCOUNT],
+    );
+    let mut records = vec![
+        (
+            "models.insomnia",
+            3,
+            0,
+            fields(&[1, 5, 0, 0], &["private-insomnia", "", "oauth"]),
+        ),
+        (
+            "models.dream",
+            2,
+            0,
+            fields(&[2, 0, 0, 0], &["private-dream", URL, "api"]),
+        ),
+        (
+            "models.entity_resolution",
+            3,
+            0,
+            fields(&[2, 3, 0, 0], &["private-entity", URL, "api"]),
+        ),
+        (
+            "models.entity_resolution_decision",
+            1,
+            0,
+            fields(&[], &["private-entity-decision", URL, "api"]),
+        ),
+        (
+            "credential.oauth",
+            1,
+            1,
+            encrypted("credential.oauth", 4, oauth),
+        ),
+        (
+            "credential.api",
+            1,
+            1,
+            encrypted("credential.api", 5, fields(&[1, 0, 0, 0], &[API_KEY])),
+        ),
+    ];
+    let fixture = Fixture::new(&records);
+    fixture.write_key(KEY);
+    let (config, _) = load(&fixture.config, &fixture.key).unwrap();
+    let insomnia = config.insomnia.unwrap();
+    assert_eq!(insomnia.endpoint.provider, ModelProvider::OpenAiCodex);
+    assert_eq!(insomnia.reasoning_effort, Some("high"));
+    assert_eq!(
+        config.entity_resolution.unwrap().reasoning_effort,
+        Some("low")
+    );
+
+    let standard = ConfiguredRoutes::from_protected_config(&fixture.config, &fixture.key).unwrap();
+    assert!(standard.general_endpoint().is_none());
+    assert_eq!(
+        standard.insomnia_endpoint().unwrap().model(),
+        "private-insomnia"
+    );
+    assert_eq!(standard.dream_endpoint().unwrap().model(), "private-dream");
+    assert_eq!(
+        standard.entity_endpoint().unwrap().model(),
+        "private-entity"
+    );
+    assert!(standard.decision_endpoint(Chronos).is_none());
+    assert!(standard.decision_endpoint(MemoryRetrieval).is_none());
+    assert!(
+        standard
+            .readiness()
+            .contains("memory_retrieval=unavailable")
+    );
+
+    let overridden = ConfiguredRoutes::from_protected_config_with_retrieval_from_insomnia(
+        &fixture.config,
+        &fixture.key,
+    )
+    .unwrap();
+    assert!(overridden.decision_endpoint(Chronos).is_none());
+    assert_eq!(
+        overridden
+            .decision_endpoint(EntityResolution)
+            .unwrap()
+            .model(),
+        "private-entity-decision"
+    );
+    assert_eq!(
+        overridden
+            .decision_endpoint(MemoryRetrieval)
+            .unwrap()
+            .model(),
+        "private-insomnia"
+    );
+    let report = overridden.readiness();
+    assert!(report.contains("memory_retrieval=insomnia"));
+    assert!(report.contains(
+        "general selection: insomnia=insomnia, dream=dream, entity_resolution=entity_resolution"
+    ));
+    for private in [API_KEY, ACCESS_TOKEN, ACCOUNT, URL, "private-", "oauth"] {
+        assert!(!report.contains(private));
+    }
+
+    records.push((
+        "models.memory_retrieval_decision",
+        1,
+        0,
+        fields(&[], &["private-retrieval", URL, "api"]),
+    ));
+    let fixture = Fixture::new(&records);
+    fixture.write_key(KEY);
+    let standard = ConfiguredRoutes::from_protected_config(&fixture.config, &fixture.key).unwrap();
+    let overridden = ConfiguredRoutes::from_protected_config_with_retrieval_from_insomnia(
+        &fixture.config,
+        &fixture.key,
+    )
+    .unwrap();
+    assert_eq!(
+        standard.decision_endpoint(MemoryRetrieval).unwrap().model(),
+        "private-retrieval"
+    );
+    assert_eq!(
+        overridden
+            .decision_endpoint(MemoryRetrieval)
+            .unwrap()
+            .model(),
+        "private-insomnia"
+    );
+}
+
+#[test]
+fn malformed_named_specialty_fails_instead_of_selecting_general() {
+    let fixture = Fixture::new(&[
+        (
+            "models.general",
+            2,
+            0,
+            fields(&[2, 0, 0, 0], &["private-general", URL, "api"]),
+        ),
+        ("models.dream", 99, 0, vec![0]),
+    ]);
+    assert!(matches!(
+        ConfiguredRoutes::from_protected_config(&fixture.config, &fixture.key),
+        Err(ConfiguredRuntimeError::Invalid { route: "dream", .. })
+    ));
+}

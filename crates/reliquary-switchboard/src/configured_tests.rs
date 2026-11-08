@@ -51,12 +51,23 @@ fn offline_load_resolves_each_reference_once_and_selects_dedicated_then_shared()
     let path = ConfigFile::new(json!({
         "general": {"model":"general-model", "url":"https://offline.example.invalid", "credential_id":"KEY"},
         "decision": {"model":"shared-model", "url":"https://offline.example.invalid", "credential_id":"KEY"},
+        "insomnia": {"model":"insomnia-model", "url":"https://offline.example.invalid", "credential_id":"KEY"},
+        "entity_resolution": {"model":"entity-general-model", "url":"https://offline.example.invalid", "credential_id":"KEY"},
         "entity_resolution_decision": {"model":"entity-model", "url":"https://offline.example.invalid", "credential_id":"KEY"}
     }));
     let resolver = Resolver::default();
     let runtime = ConfiguredRoutes::from_path(&path.0, &resolver).unwrap();
     assert_eq!(*resolver.0.borrow(), ["KEY"]);
     assert_eq!(runtime.general_endpoint().unwrap().model(), "general-model");
+    assert_eq!(
+        runtime.insomnia_endpoint().unwrap().model(),
+        "insomnia-model"
+    );
+    assert_eq!(runtime.dream_endpoint().unwrap().model(), "general-model");
+    assert_eq!(
+        runtime.entity_endpoint().unwrap().model(),
+        "entity-general-model"
+    );
     assert_eq!(
         runtime
             .decision_endpoint(DecisionConsumer::EntityResolution)
@@ -74,6 +85,9 @@ fn offline_load_resolves_each_reference_once_and_selects_dedicated_then_shared()
     let report = runtime.readiness();
     assert!(report.contains("entity_resolution=entity_resolution_decision"));
     assert!(report.contains("memory_retrieval=decision"));
+    assert!(report.contains(
+        "general selection: insomnia=insomnia, dream=general, entity_resolution=entity_resolution"
+    ));
     for private in [TEST_KEY, "KEY", "entity-model", "offline.example.invalid"] {
         assert!(!report.contains(private));
     }
@@ -129,17 +143,26 @@ fn invalid_configuration_and_credential_failures_are_redacted_offline() {
 }
 
 #[test]
-fn configured_online_probe_uses_general_fallback_and_probes_embedding() {
-    let (general, general_request) = mock_server(
-        "200 OK",
-        "",
-        r#"{"choices":[{"message":{"content":"{\"ok\":true}"}}]}"#,
-    );
+fn configured_online_probe_checks_each_general_transport_and_other_selected_routes() {
+    let general_server = || {
+        mock_server(
+            "200 OK",
+            "",
+            r#"{"choices":[{"message":{"content":"{\"ok\":true}"}}]}"#,
+        )
+    };
+    let (general, general_request) = general_server();
+    let (insomnia, insomnia_request) = general_server();
+    let (dream, dream_request) = general_server();
+    let (entity, entity_request) = general_server();
     let (embedding, embedding_request) =
         mock_server("200 OK", "", r#"{"data":[{"index":0,"embedding":[3,4]}]}"#);
     let (decision, decision_request) = mock_server("200 OK", "", r#"{"ok":true}"#);
     let path = ConfigFile::new(json!({
         "general": {"model":"general-model", "url":general, "credential_id":"KEY"},
+        "insomnia": {"model":"insomnia-model", "url":insomnia, "credential_id":"KEY"},
+        "dream": {"model":"dream-model", "url":dream, "credential_id":"KEY"},
+        "entity_resolution": {"model":"entity-general-model", "url":entity, "credential_id":"KEY"},
         "entity_resolution_decision": {"model":"entity-model", "url":decision, "credential_id":"KEY"},
         "embedding": {"model":"embedding-model", "url":embedding, "credential_id":"KEY",
                       "dimensions":2, "normalization":"l2"}
@@ -156,15 +179,19 @@ fn configured_online_probe_uses_general_fallback_and_probes_embedding() {
         runtime
             .online_probe()
             .unwrap()
-            .starts_with("provider routes probed: 3")
+            .starts_with("provider routes probed: 6;")
     );
-    for request in [
-        general_request.join().unwrap(),
-        embedding_request.join().unwrap(),
+    for (request, model) in [
+        (general_request, "general-model"),
+        (insomnia_request, "insomnia-model"),
+        (dream_request, "dream-model"),
+        (entity_request, "entity-general-model"),
+        (embedding_request, "embedding-model"),
     ] {
-        let request = String::from_utf8(request).unwrap();
+        let request = String::from_utf8(request.join().unwrap()).unwrap();
         assert!(request.contains(TEST_KEY));
         assert!(request.contains("Reliquary provider readiness probe"));
+        assert!(request.contains(model));
     }
     let decision_request = String::from_utf8(decision_request.join().unwrap()).unwrap();
     let body: Value =
@@ -203,21 +230,21 @@ fn failed_selected_decision_preserves_backpressure_without_falling_through() {
 }
 
 #[test]
-fn online_probe_errors_exclude_provider_payload_and_preserve_retry_hint() {
+fn specialty_probe_errors_exclude_provider_payload_and_preserve_retry_hint() {
     let (url, request) = mock_server(
         "429 Too Many Requests",
         "Retry-After: 3\r\n",
         r#"{"error":"private provider payload"}"#,
     );
     let path = ConfigFile::new(json!({
-        "decision": {"model":"shared-model", "url":url, "credential_id":"KEY"}
+        "dream": {"model":"dream-model", "url":url, "credential_id":"KEY"}
     }));
     let runtime = ConfiguredRoutes::from_path(&path.0, &Resolver::default()).unwrap();
     let error = runtime.online_probe().unwrap_err();
     assert_eq!(
         error,
         ConfiguredRuntimeError::Probe {
-            route: "decision",
+            route: "dream",
             failure: RuntimeEndpointFailure::Backpressure {
                 retry_after: Some(Duration::from_secs(3))
             }

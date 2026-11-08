@@ -1,3 +1,5 @@
+mod specialty;
+
 use super::{decode_objects, load};
 use crate::{ConfiguredRoutes, ConfiguredRuntimeError, EmbeddingNormalization, ModelProvider};
 use ring::aead::{AES_256_GCM, Aad, LessSafeKey, Nonce, UnboundKey};
@@ -131,18 +133,19 @@ fn loads_selected_oauth_api_key_and_embedding_routes_offline() {
             1,
             encrypted("credential.api", 2, api_key),
         ),
-        ("models.dream", 99, 99, vec![0]),
+        ("models.insomnia_metadata", 99, 99, vec![0]),
         ("credential.unused", 1, 1, vec![0]),
     ]);
     fixture.write_key(KEY);
     let (config, credentials) = load(&fixture.config, &fixture.key).ok().unwrap();
     assert_eq!(credentials.entries.len(), 2);
-    let general = config.routes.general.unwrap();
+    let general = config.general.unwrap();
+    assert_eq!(general.reasoning_effort, Some("high"));
+    let general = general.endpoint;
     assert_eq!(
         general.url,
         "https://chatgpt.com/backend-api/codex/responses"
     );
-    assert_eq!(config.general_reasoning_effort, Some("high"));
     let (token, account) = credentials
         .auth(&general.credential_id, ModelProvider::OpenAiCodex)
         .unwrap();
@@ -151,6 +154,16 @@ fn loads_selected_oauth_api_key_and_embedding_routes_offline() {
 
     let routes = ConfiguredRoutes::from_protected_config(&fixture.config, &fixture.key).unwrap();
     assert_eq!(routes.general_endpoint().unwrap().model(), "private-model");
+    assert!(matches!(
+        ConfiguredRoutes::from_protected_config_with_retrieval_from_insomnia(
+            &fixture.config,
+            &fixture.key
+        ),
+        Err(ConfiguredRuntimeError::Invalid {
+            route: "insomnia",
+            ..
+        })
+    ));
     let embedding = routes.embedding_endpoint().unwrap();
     assert_eq!(embedding.dimensions(), 3);
     assert_eq!(embedding.normalization(), EmbeddingNormalization::L2);
