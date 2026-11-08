@@ -420,6 +420,7 @@ impl GeneralEndpoint for ConfiguredGeneralEndpoint {
             codex && (self.model.starts_with("gpt-5.6-") || self.model.starts_with("gpt-6-"));
         if responses_lite {
             body["service_tier"] = json!("priority");
+            body["reasoning"]["context"] = json!("all_turns");
         }
         let auth = SecretString::new(format!("Bearer {}", self.api_key.0))
             .expect("API key was validated as non-empty");

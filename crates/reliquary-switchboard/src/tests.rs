@@ -380,6 +380,7 @@ fn codex_http_uses_oauth_account_and_completed_event_stream() {
     assert_eq!(request_body["store"], false);
     assert_eq!(request_body["stream"], true);
     assert_eq!(request_body["service_tier"], "priority");
+    assert_eq!(request_body["reasoning"]["context"], "all_turns");
 }
 
 #[test]

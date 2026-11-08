@@ -170,7 +170,11 @@ fn configured_online_probe_checks_each_general_transport_and_other_selected_rout
     let (entity, entity_request) = general_server();
     let (embedding_url, embedding_request) =
         mock_server("200 OK", "", r#"{"data":[{"index":0,"embedding":[3,4]}]}"#);
-    let (decision_url, decision_request) = mock_server("200 OK", "", r#"{"ok":true}"#);
+    let (decision_url, decision_request) = mock_server(
+        "200 OK",
+        "",
+        r#"{"answers":{"readiness":{"type":"choice","choice":"ready","probabilities":{"ready":1.0,"not_ready":0.0}}}}"#,
+    );
     let runtime = bind(&[
         (General, general("general-model", general_url)),
         (Insomnia, general("insomnia-model", insomnia)),
@@ -212,6 +216,11 @@ fn configured_online_probe_checks_each_general_transport_and_other_selected_rout
         serde_json::from_str(decision_request.split("\r\n\r\n").nth(1).unwrap()).unwrap();
     assert_eq!(body["state"]["operation"], "readiness_probe");
     assert_eq!(body["model"], "entity-model");
+    assert_eq!(body["questions"]["readiness"]["type"], "choice");
+    assert_eq!(
+        body["questions"]["readiness"]["criteria"]["ready"],
+        "The provider is ready."
+    );
 }
 
 #[test]

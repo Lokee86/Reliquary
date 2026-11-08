@@ -348,7 +348,12 @@ fn live_cli_drains_entity_and_first_cycle_dream_then_reopens_without_inference()
 
 fn decision_reply(state: &Value) -> Value {
     match state["operation"].as_str().unwrap() {
-        "readiness_probe" => json!({"ok":true}),
+        "readiness_probe" => json!({
+            "answers":{"readiness":{
+                "type":"choice","choice":"ready",
+                "probabilities":{"ready":1.0,"not_ready":0.0}
+            }}
+        }),
         "refine_query_rewrite" => {
             assert_eq!(state["current_query"], QUERY);
             assert_eq!(state["refinement"], REFINEMENT);

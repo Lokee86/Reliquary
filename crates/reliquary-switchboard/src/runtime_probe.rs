@@ -46,7 +46,16 @@ pub(super) fn probe_decision(endpoint: &dyn DecisionEndpoint) -> Result<(), Fail
     let response = endpoint
         .evaluate(
             &json!({"operation": "readiness_probe"}),
-            &json!({"instruction": PROBE_INSTRUCTION, "schema": probe_schema()}),
+            &json!({
+                "readiness": {
+                    "type": "choice",
+                    "instructions": "Select ready for this provider readiness probe.",
+                    "criteria": {
+                        "ready": "The provider is ready.",
+                        "not_ready": "The provider is not ready."
+                    }
+                }
+            }),
         )
         .map_err(|error| match error {
             DecisionEndpointError::InvalidConfiguration(_) => Failure::InvalidConfiguration,
@@ -57,7 +66,18 @@ pub(super) fn probe_decision(endpoint: &dyn DecisionEndpoint) -> Result<(), Fail
             }
             DecisionEndpointError::InvalidResponse(_) => Failure::InvalidResponse,
         })?;
-    check_probe_response(response)
+    match response
+        .pointer("/answers/readiness")
+        .and_then(Value::as_object)
+    {
+        Some(answer)
+            if answer.get("type").and_then(Value::as_str) == Some("choice")
+                && answer.get("choice").and_then(Value::as_str) == Some("ready") =>
+        {
+            Ok(())
+        }
+        _ => Err(Failure::InvalidResponse),
+    }
 }
 
 pub(super) fn probe_embedding(endpoint: &dyn EmbeddingEndpoint) -> Result<(), Failure> {
