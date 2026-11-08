@@ -228,6 +228,7 @@ fn complete_grouped_memory_import(
                     conversation_id: conversation.clone(),
                     title: None,
                     messages: vec![crate::model::ImportedMessage {
+                        source_author: None,
                         source_id: "source-turn".into(),
                         revision: "1".into(),
                         source_parent_id: None,

@@ -55,6 +55,7 @@ fn batch(owner: [u8; 16]) -> NativeImportBatch {
             conversation_id: "conversation".into(),
             title: None,
             messages: vec![reliquary_owner_session::model::ImportedMessage {
+                source_author: None,
                 source_id: "source-turn".into(),
                 revision: "1".into(),
                 source_parent_id: None,

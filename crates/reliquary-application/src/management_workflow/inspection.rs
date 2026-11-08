@@ -7,13 +7,21 @@ use sha2::{Digest, Sha256};
 
 #[path = "inspection_archive.rs"]
 mod archive;
+#[path = "inspection_graph.rs"]
+mod graph;
 #[path = "inspection_memory.rs"]
 mod memory;
+#[path = "inspection_memory_list.rs"]
+mod memory_list;
 #[path = "inspection_provenance.rs"]
 mod provenance;
 #[path = "inspection_semantic.rs"]
 mod semantic;
 pub use archive::{ImportedSourceReference, SourceAvailability, SourceTurn};
+pub use graph::{MemoryGraphEdge, MemoryGraphNode, MemoryGraphPage, MemoryGraphQuery};
+pub use memory_list::{
+    MemoryCanonicalStatus, MemoryListEntry, MemoryListFilters, MemoryListLifecycle,
+};
 pub use provenance::{
     ExactMemoryProvenance, SourceCoordinate, finish_provenance, resolve_provenance,
 };
@@ -33,6 +41,8 @@ pub use reliquary_owner_session::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum InspectionQuery {
     Memories,
+    MemorySummaries(MemoryListFilters),
+    MemoryGraph(MemoryGraphQuery),
     Memory {
         id: MemoryId,
         revision: Option<u64>,
@@ -106,6 +116,8 @@ pub struct InspectionPage {
 #[serde(tag = "kind", content = "value", rename_all = "snake_case")]
 pub enum InspectionItem {
     Memory(super::MemorySummary),
+    MemoryListEntry(MemoryListEntry),
+    MemoryGraphPage(MemoryGraphPage),
     MemoryTerminal {
         id: String,
         revision: u64,
@@ -161,6 +173,10 @@ pub fn inspect(
         remaining_bytes: MAX_MANAGEMENT_PAGE_BYTES - 4096,
     };
     match query {
+        InspectionQuery::MemoryGraph(query) => graph::inspect(&read, query, &mut page)?,
+        InspectionQuery::MemorySummaries(filters) => {
+            memory_list::inspect(&read, filters, &mut page)?
+        }
         InspectionQuery::Memories
         | InspectionQuery::Memory { .. }
         | InspectionQuery::MemoryHistory { .. }
@@ -178,7 +194,7 @@ pub fn inspect(
     Ok(page.page)
 }
 
-fn inspection_cut(read: &ManagementRead<'_>) -> InspectionCut {
+pub(super) fn inspection_cut(read: &ManagementRead<'_>) -> InspectionCut {
     let (memory, perception, relationship, graph) = read.versions();
     InspectionCut {
         owner_id: read.owner_id,
@@ -237,19 +253,10 @@ impl PageBuilder {
                 }
                 result => result?,
             };
-            let bytes = serde_json::to_vec(&item)
-                .map_err(|error| ManagementError::Owner(error.to_string()))?
-                .len()
-                + 1;
-            if bytes > self.remaining_bytes {
-                if self.page.items.is_empty() {
-                    return Err(ManagementError::PageBytesExceeded);
-                }
+            if !self.push(item)? {
                 self.continue_page();
                 return Ok(());
             }
-            self.remaining_bytes -= bytes;
-            self.page.items.push(item);
         }
         if items.next().is_some() {
             self.continue_page();
@@ -257,12 +264,31 @@ impl PageBuilder {
         Ok(())
     }
 
+    fn push(&mut self, item: InspectionItem) -> Result<bool, ManagementError> {
+        let bytes = serde_json::to_vec(&item)
+            .map_err(|error| ManagementError::Owner(error.to_string()))?
+            .len()
+            + 1;
+        if bytes > self.remaining_bytes {
+            if self.page.items.is_empty() {
+                return Err(ManagementError::PageBytesExceeded);
+            }
+            return Ok(false);
+        }
+        self.remaining_bytes -= bytes;
+        self.page.items.push(item);
+        Ok(true)
+    }
+
     fn single(&mut self, item: InspectionItem) -> Result<(), ManagementError> {
         self.extend(std::iter::once(item).skip(self.offset), Ok)
     }
 
     fn continue_page(&mut self) {
-        let offset = self.offset + self.page.items.len();
+        self.continue_at(self.offset + self.page.items.len());
+    }
+
+    fn continue_at(&mut self, offset: usize) {
         if validate_page(offset, 1).is_ok() {
             self.page.next = Some(InspectionCursor {
                 cut: self.page.cut,

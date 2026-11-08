@@ -1,7 +1,8 @@
 use super::*;
 use reliquary_application::{
-    ConversationInspection, CreateMemoryRequest, ManagementError, ManagementPage, MemoryProvenance,
-    MemorySummary, RelManagementHealth, SemanticOwnerStatistics, TranscriptTurn,
+    ConversationInspection, CreateMemoryReceipt, CreateMemoryRequest, ManagementError,
+    ManagementPage, MemoryProvenance, MemorySummary, RelManagementHealth, SemanticOwnerStatistics,
+    TranscriptTurn,
 };
 use reliquary_owner_session::MemoryId;
 
@@ -97,6 +98,23 @@ impl Instance {
     ) -> Result<MemorySummary, GatewayError> {
         self.with_rel_writer(owner, |writer| {
             reliquary_application::create_requested_memory(writer, self.principal(), request)
+        })?
+        .map_err(management_error)
+    }
+
+    pub fn management_create_requested_memory_at_cut(
+        &self,
+        owner: OwnerId,
+        expected: reliquary_application::inspection::InspectionCut,
+        request: CreateMemoryRequest,
+    ) -> Result<CreateMemoryReceipt, GatewayError> {
+        self.with_rel_writer(owner, |writer| {
+            reliquary_application::create_requested_memory_at_cut(
+                writer,
+                self.principal(),
+                expected,
+                request,
+            )
         })?
         .map_err(management_error)
     }

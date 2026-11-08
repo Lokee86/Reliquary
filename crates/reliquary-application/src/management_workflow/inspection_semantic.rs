@@ -141,7 +141,7 @@ pub(super) fn inspect(
     }
 }
 
-fn graph_edge(edge: &Relation, direction: Option<GraphDirection>) -> GraphEdge {
+pub(super) fn graph_edge(edge: &Relation, direction: Option<GraphDirection>) -> GraphEdge {
     GraphEdge {
         source: edge.source.into(),
         target: edge.target.into(),

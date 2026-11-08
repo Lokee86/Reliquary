@@ -44,13 +44,13 @@ mod management_workflow;
 mod perception_lifecycle_workflow;
 pub use management_workflow::inspection;
 pub use management_workflow::{
-    ConversationInspection, CreateMemoryRequest, MAX_MANAGEMENT_PAGE_BYTES,
+    ConversationInspection, CreateMemoryReceipt, CreateMemoryRequest, MAX_MANAGEMENT_PAGE_BYTES,
     MAX_MANAGEMENT_PAGE_ITEMS, ManagedBranch, ManagementError, ManagementPage, ManagementVersions,
     MemoryProvenance, MemoryStatistics, MemorySummary, RelManagementHealth,
     SemanticOwnerStatistics, TranscriptTurn, create_direct_memory, create_requested_memory,
-    management_conversations, management_health, management_memories, management_memory,
-    management_provenance, management_statistics, management_transcript, set_management_title,
-    user_mutation_id,
+    create_requested_memory_at_cut, management_conversations, management_health,
+    management_memories, management_memory, management_provenance, management_statistics,
+    management_transcript, set_management_title, user_mutation_id,
 };
 pub mod native_import_source;
 pub mod native_import_workflow;

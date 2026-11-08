@@ -5,16 +5,18 @@ use crate::{
 };
 use std::sync::{Arc, Mutex};
 
-pub use reliquary_application::CreateMemoryRequest;
 pub use reliquary_application::inspection::{
     CommunityMetadata, CreateRelationshipRequest, EntityRetirementRequest, ExactMemoryProvenance,
     GraphDirection, GraphEdge, GraphNode, ImportedSourceReference, InspectedEntity,
     InspectionCursor, InspectionCut, InspectionItem, InspectionPage, InspectionQuery, MemoryBodyId,
-    MemoryRetirementRequest, MemoryTextField, RelationKind, RelationOrigin, Relationship,
-    RelationshipEntityRef, RelationshipMemoryRef, RelationshipParticipant,
-    RelationshipParticipantEvidence, RelationshipRetirementRequest, RelationshipTombstone,
-    SourceAvailability, SourceCoordinate, SourceTurn,
+    MemoryCanonicalStatus, MemoryGraphEdge, MemoryGraphNode, MemoryGraphPage, MemoryGraphQuery,
+    MemoryListEntry, MemoryListFilters, MemoryListLifecycle, MemoryRetirementRequest,
+    MemoryTextField, RelationKind, RelationOrigin, Relationship, RelationshipEntityRef,
+    RelationshipMemoryRef, RelationshipParticipant, RelationshipParticipantEvidence,
+    RelationshipRetirementRequest, RelationshipTombstone, SourceAvailability, SourceCoordinate,
+    SourceTurn,
 };
+pub use reliquary_application::{CreateMemoryReceipt, CreateMemoryRequest};
 pub use reliquary_owner_session::WithdrawEntityMentionRequest;
 pub use reliquary_owner_session::model::{
     EntityResolutionReason, EntityTombstone, MemoryEntityMentionKey, MemoryEntityResolution,
@@ -195,6 +197,20 @@ impl WorkspaceManagement {
         self.instance
             .inner
             .management_create_requested_memory(self.owner.into(), request)
+            .map_err(Into::into)
+    }
+
+    /// Create a manual Memory at the expected owner cut. An exact accepted
+    /// request replays its receipt within the same owner history generation.
+    pub fn create_memory_at_cut(
+        &self,
+        expected: InspectionCut,
+        request: CreateMemoryRequest,
+    ) -> Result<CreateMemoryReceipt, ProductError> {
+        self.instance.require(OwnerGrant::ManageRel(self.owner))?;
+        self.instance
+            .inner
+            .management_create_requested_memory_at_cut(self.owner.into(), expected, request)
             .map_err(Into::into)
     }
 

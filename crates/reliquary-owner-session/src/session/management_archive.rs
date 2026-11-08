@@ -70,6 +70,12 @@ impl RelSession {
             message_id: message.source_id.clone(),
             message_revision: message.revision.clone(),
             parent_message_id: message.source_parent_id.clone(),
+            source_author: message.source_author.clone(),
+            source_branch_id: (receipt.source_format
+                == reliquary_archive::HERMES_COPIED_SOURCE_FORMAT)
+                .then(|| conversation.branches.first())
+                .flatten()
+                .map(|branch| branch.source_id.clone()),
         }))
     }
 
@@ -176,4 +182,8 @@ pub struct RelImportedSource {
     pub message_id: String,
     pub message_revision: String,
     pub parent_message_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_author: Option<reliquary_archive::ImportedSourceAuthor>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_branch_id: Option<String>,
 }

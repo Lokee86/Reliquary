@@ -1165,6 +1165,17 @@ impl Archive {
                         "invalid imported message mapping",
                     ));
                 }
+                if message.source_author.as_ref().is_some_and(|author| {
+                    receipt.source_format != crate::HERMES_COPIED_SOURCE_FORMAT
+                        || author
+                            .id
+                            .as_deref()
+                            .is_some_and(|id| !valid_import_text(id))
+                }) {
+                    return Err(ArchiveError::CorruptRecord(
+                        "invalid imported source author",
+                    ));
+                }
                 if message
                     .source_parent_id
                     .as_deref()

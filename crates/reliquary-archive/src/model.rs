@@ -33,6 +33,8 @@ pub struct ConversationTitle {
     pub archive_version: u64,
 }
 
+pub const HERMES_COPIED_SOURCE_FORMAT: &str = "hermes-source-copied-snapshot-v1";
+
 /// Source-to-native mapping receipt for one complete normalized import.
 /// Transcript and artifact bodies remain in their ordinary Archive records.
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -69,6 +71,16 @@ pub struct ImportedMessage {
     pub node_id: Option<String>,
     pub fingerprint: [u8; 32],
     pub artifacts: Vec<ImportedArtifact>,
+    /// Source-provided identity. The trusted host authorizes routing separately.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_author: Option<ImportedSourceAuthor>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ImportedSourceAuthor {
+    pub id: Option<String>,
+    pub is_bot: Option<bool>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]

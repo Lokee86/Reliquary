@@ -12,6 +12,19 @@ impl RelWriter {
         policy: [u8; 32],
         destination: Option<[u8; 16]>,
     ) -> Result<(), OwnerSessionError> {
+        if destination.is_some()
+            && self
+                .session
+                .import_status(import_id)
+                .is_some_and(|status| match status {
+                    ImportEpochStatus::Open(start) | ImportEpochStatus::Completed { start, .. } => {
+                        start.source_format == reliquary_archive::HERMES_COPIED_SOURCE_FORMAT
+                    }
+                })
+        {
+            // Copied author metadata carries no authority to publish into a PHY.
+            return Err(OwnerSessionError::ManagementConflict);
+        }
         if let Some(previous) = self.session.imports.processing_binding(import_id) {
             if previous.policy != policy
                 || previous.destination.is_some() && previous.destination != destination

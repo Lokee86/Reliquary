@@ -1,4 +1,6 @@
-use reliquary_owner_session::model::{MemoryDraft, MemoryId, MemorySourceRef, PayloadState};
+use reliquary_owner_session::model::{
+    MemoryDraft, MemoryId, MemorySourceRef, PayloadState, memory_id,
+};
 use reliquary_owner_session::{RelSession, RelWriter};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -14,6 +16,13 @@ pub struct CreateMemoryRequest {
     pub category: String,
     pub memory_type: String,
     pub created_at_ns: i64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct CreateMemoryReceipt {
+    pub memory: MemorySummary,
+    pub cut: inspection::InspectionCut,
+    pub created: bool,
 }
 
 pub const MAX_MANAGEMENT_PAGE_ITEMS: usize = 128;
@@ -241,6 +250,38 @@ pub fn create_requested_memory(
 ) -> Result<MemorySummary, ManagementError> {
     let mutation_id = user_mutation_id(principal, "memory", &request.request_id)?;
     publish_direct_memory(writer, principal, mutation_id, request)
+}
+
+/// Check the exact owner cut under the same writer lock as publication.
+pub fn create_requested_memory_at_cut(
+    writer: &mut RelWriter,
+    principal: &str,
+    expected: inspection::InspectionCut,
+    request: CreateMemoryRequest,
+) -> Result<CreateMemoryReceipt, ManagementError> {
+    let mutation_id = user_mutation_id(principal, "memory", &request.request_id)?;
+    let read = writer.read_session().management_read();
+    let current = inspection::inspection_cut(&read);
+    if current.owner_id != expected.owner_id || current.generation != expected.generation {
+        return Err(ManagementError::Stale);
+    }
+
+    // An accepted request can replay after the write advanced the cut. The
+    // owner still verifies exact draft equality through its mutation index.
+    let accepted = read
+        .memory_projection(memory_id(&mutation_id), Some(1))
+        .is_ok_and(|(record, _)| record.mutation_id == mutation_id);
+    if !accepted && current != expected {
+        return Err(ManagementError::Stale);
+    }
+
+    let memory = publish_direct_memory(writer, principal, mutation_id, request)?;
+    let cut = inspection::inspection_cut(&writer.read_session().management_read());
+    Ok(CreateMemoryReceipt {
+        memory,
+        cut,
+        created: !accepted,
+    })
 }
 
 pub fn user_mutation_id(

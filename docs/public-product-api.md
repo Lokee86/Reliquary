@@ -44,6 +44,55 @@ JSON and returns nonzero on failure or incomplete requested readiness. Copy
 maintenance keeps its create-only destinations. See the
 [operator workflow and public symbol map](operator-workflow.md).
 
+## Checked manual Memory creation
+
+Pass the `InspectionCut` from an authorized owner inspection to
+`WorkspaceManagement::create_memory_at_cut` along with a `CreateMemoryRequest`.
+The operation requires `ManageRel` and compares a new request's cut under
+the same writer lock as publication. An exact accepted request can replay in
+the same owner history generation. Changing the draft under an accepted
+request ID returns a conflict.
+
+The receipt carries the durable Memory identity and revision, the current
+owner cut after the operation, and whether this call created the Memory. The
+principal comes from the authenticated Instance, and the direct Memory keeps
+operator provenance.
+
+## Hermes copied-source import
+
+A trusted host can construct a bounded `HermesCopiedSnapshot`, validate it with
+`NativeImportPlan::from_hermes_copy`, and call the existing
+`Instance::stage_native_import` operation with an `OperateRel` grant. The
+receipt binds the original profile, session, message IDs, times and supplied
+author metadata to the normalized copy digest. A known branch and revision are
+retained in source provenance. Unknown branch and parent identities remain
+unasserted. The local ordered Archive branch describes only the copied view.
+The native worker accepts REL-only processing for this import. Source author
+metadata carries no PHY grant.
+
+Use `Instance::tombstone_hermes_copy` with the same authenticated principal,
+source scope and exact accepted copy SHA-256 after the import epoch settles.
+The operation retains provenance, hides the source body from inspection and
+rejects import replay for that conversation. Repeating the terminal notice is
+idempotent. This facade supports the initial copied view and its exact replay.
+HP04 owns incremental copy, rewind reconciliation and pending-source
+invalidation in the service.
+
+## Dashboard inspection projections
+
+Use `InspectionQuery::MemorySummaries` for bounded filtering by text, category,
+type, lifecycle and current community. The result carries a UTF-8-safe excerpt
+and a filter-bound continuation. A terminal Memory has no body or title in the
+list projection. Use the existing exact inspection queries for detail, history
+and provenance.
+
+`InspectionQuery::MemoryGraph` returns active Memory-to-Memory edges with stable
+owner-scoped IDs, graph revisions and local endpoints. The request bounds depth
+and the node and edge counts. Use the returned cut when expanding a
+neighborhood. A changed cut returns stale. The projection reports truncation
+when it hits the scan, graph or byte budget. Community filters apply only to
+a current graph generation.
+
 ## Migration from the reference facade
 
 - `Cva` → `Rel` (intentional hard cut; no alias).

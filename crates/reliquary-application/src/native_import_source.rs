@@ -6,6 +6,8 @@ mod ancestry;
 mod chatgpt;
 #[path = "native_import_workflow/source_graph.rs"]
 mod graph;
+#[path = "native_import_workflow/source_hermes.rs"]
+mod hermes;
 #[path = "native_import_workflow/source_normalized.rs"]
 mod normalized;
 #[path = "native_import_workflow/source_stage.rs"]
@@ -23,6 +25,11 @@ use std::{
     path::Path,
 };
 
+pub use hermes::{
+    HermesCopiedMessage, HermesCopiedRole, HermesCopiedSnapshot, HermesCopyScope,
+    tombstone_hermes_copy,
+};
+pub use reliquary_owner_session::model::ImportedSourceAuthor as HermesCopiedAuthor;
 pub use stage::{
     NativeImportStageError, NativeImportStageResult, NativeImportState, NativeImportStatus,
     native_import_status,
@@ -154,9 +161,26 @@ fn invalid(reason: &'static str) -> NativeImportSourceError {
     NativeImportSourceError::Invalid(reason)
 }
 
-/// Immutable source snapshot. A plan can only be produced by the bounded decoder.
+enum NativeSource {
+    File(NativeImportFormat),
+    HermesCopy(HermesCopyScope),
+}
+
+impl NativeSource {
+    fn identity(&self, principal: &str) -> (String, &'static str) {
+        match self {
+            Self::File(format) => {
+                let (namespace, format) = format.identity();
+                (stage::principal_namespace(namespace, principal), format)
+            }
+            Self::HermesCopy(scope) => (scope.namespace(principal), hermes::FORMAT),
+        }
+    }
+}
+
+/// Immutable source snapshot produced by a bounded source validator.
 pub struct NativeImportPlan {
-    format: NativeImportFormat,
+    source: NativeSource,
     source_sha256: [u8; 32],
     import_key: [u8; 32],
     coverage: NativeImportCoverage,
@@ -215,7 +239,7 @@ impl NativeImportPlan {
             _ => source_sha256,
         };
         Ok(Self {
-            format,
+            source: NativeSource::File(format),
             source_sha256,
             import_key,
             coverage: plan.coverage,

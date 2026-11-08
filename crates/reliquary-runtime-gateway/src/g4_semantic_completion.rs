@@ -54,6 +54,7 @@ pub(super) fn native_batch(owner: [u8; 16]) -> NativeImportBatch {
     let messages = turns
         .iter()
         .map(|turn| ImportedMessage {
+            source_author: None,
             source_id: turn["id"].as_str().unwrap().to_owned(),
             revision: "1".into(),
             source_parent_id: None,

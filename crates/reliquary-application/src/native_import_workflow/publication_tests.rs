@@ -40,6 +40,7 @@ fn prepared_real_import_publication_keeps_epoch_fence_and_reopens() {
             conversation_id: "c".into(),
             title: None,
             messages: vec![ImportedMessage {
+                source_author: None,
                 source_id: "n".into(),
                 revision: "1".into(),
                 source_parent_id: None,

@@ -107,9 +107,17 @@ impl NativeImportPlan {
         let owner = writer.owner_id();
         let id = self.import_id(owner);
         let session = writer.read_session();
-        let (namespace, source_format) = self.format.identity();
-        let principal_key = Sha256::digest(principal.as_bytes());
-        let source_namespace = format!("{namespace}/principal-{principal_key:x}");
+        let (source_namespace, source_format) = self.source.identity(principal);
+        let copied = matches!(&self.source, NativeSource::HermesCopy(_));
+        if copied
+            && self.conversations.iter().any(|row| {
+                session
+                    .conversation_tombstone(&row.conversation_id)
+                    .is_some()
+            })
+        {
+            return Err(NativeImportStageError::Conflict);
+        }
         let already_staged = session.native_import_receipt(&self.import_key).is_some();
         if let Some(status) = session.import_status(&id) {
             let start = match status {
@@ -141,7 +149,7 @@ impl NativeImportPlan {
 
         let mut turns = self.turns;
         for (turn, _) in &mut turns {
-            if turn.role == "user" {
+            if !copied && turn.role == "user" {
                 turn.principal_id = Some(principal.to_owned());
             }
         }
@@ -201,6 +209,11 @@ impl NativeImportPlan {
             already_completed: staged.already_completed,
         })
     }
+}
+
+pub(super) fn principal_namespace(namespace: &str, principal: &str) -> String {
+    let principal_key = Sha256::digest(principal.as_bytes());
+    format!("{namespace}/principal-{principal_key:x}")
 }
 
 fn hex(bytes: &[u8; 32]) -> String {

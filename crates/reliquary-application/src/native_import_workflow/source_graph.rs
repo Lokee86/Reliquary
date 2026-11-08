@@ -36,6 +36,16 @@ impl PlanBuilder {
         &mut self,
         conversation: SourceConversation,
     ) -> Result<(), NativeImportSourceError> {
+        self.add_conversation_with_roles(conversation, |role| {
+            matches!(role, "user" | "assistant" | "system" | "developer")
+        })
+    }
+
+    pub(super) fn add_conversation_with_roles(
+        &mut self,
+        conversation: SourceConversation,
+        accepts_role: impl Fn(&str) -> bool,
+    ) -> Result<(), NativeImportSourceError> {
         let SourceConversation {
             id,
             title,
@@ -97,10 +107,7 @@ impl PlanBuilder {
                     ));
                 }
             }
-            if !matches!(
-                turn.role.as_str(),
-                "user" | "assistant" | "system" | "developer"
-            ) {
+            if !accepts_role(&turn.role) {
                 return Err(invalid("unsupported visible source role"));
             }
             if turn.content.len() > MAX_TURN_BYTES {
@@ -132,6 +139,7 @@ impl PlanBuilder {
             let fingerprint = serde_json::to_vec(&fingerprint_fields)
                 .map_err(|_| invalid("could not fingerprint source turn"))?;
             messages.push(ImportedMessage {
+                source_author: None,
                 source_id: turn.source_id.clone(),
                 revision: "export-snapshot-v1".into(),
                 source_parent_id: graph.parents[index]

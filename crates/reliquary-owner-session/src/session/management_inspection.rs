@@ -78,6 +78,15 @@ impl ManagementRead<'_> {
         self.common.memories.memory_ids_page(after, limit.min(128))
     }
 
+    pub fn memory_ids_from_offset(&self, offset: usize, limit: usize) -> Vec<MemoryId> {
+        self.common
+            .memories
+            .memory_ids()
+            .skip(offset)
+            .take(limit.min(128))
+            .collect()
+    }
+
     pub fn memory_revision_records(&self, id: MemoryId, cut: u64) -> Option<&[MemoryRecord]> {
         self.common.memories.revision_records_at_cut(id, cut)
     }

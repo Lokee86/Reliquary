@@ -329,6 +329,7 @@ fn import_receipt_binds_source_mapping_to_archive_nodes_branches_and_files() {
             conversation_id: "conversation-1".into(),
             title: Some("Imported title".into()),
             messages: vec![crate::ImportedMessage {
+                source_author: None,
                 source_id: "message-source".into(),
                 revision: "revision-1".into(),
                 source_parent_id: None,

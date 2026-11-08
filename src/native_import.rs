@@ -5,8 +5,10 @@ use reliquary_application::native_import_source as source;
 use std::path::Path;
 
 pub use source::{
-    NativeImportCoverage, NativeImportFormat, NativeImportParentMapping, NativeImportSourceError,
-    NativeImportStageResult, NativeImportState, NativeImportStatus, NativeImportWindow,
+    HermesCopiedAuthor, HermesCopiedMessage, HermesCopiedRole, HermesCopiedSnapshot,
+    HermesCopyScope, NativeImportCoverage, NativeImportFormat, NativeImportParentMapping,
+    NativeImportSourceError, NativeImportStageResult, NativeImportState, NativeImportStatus,
+    NativeImportWindow,
 };
 
 impl From<NativeImportSourceError> for ProductError {
@@ -30,6 +32,11 @@ impl NativeImportPlan {
         Ok(Self(source::NativeImportPlan::from_path(
             path, format, window,
         )?))
+    }
+
+    /// Normalize the authorized, text-only copy for the native import workflow.
+    pub fn from_hermes_copy(snapshot: HermesCopiedSnapshot) -> Result<Self, ProductError> {
+        Ok(Self(source::NativeImportPlan::from_hermes_copy(snapshot)?))
     }
 
     pub fn coverage(&self) -> &NativeImportCoverage {
@@ -58,6 +65,19 @@ impl Instance {
     ) -> Result<NativeImportStageResult, ProductError> {
         self.require(OwnerGrant::OperateRel(owner))?;
         Ok(self.inner.stage_native_import(owner.into(), plan.0)?)
+    }
+
+    /// Mark a previously accepted Hermes copy terminal using its exact source key.
+    pub fn tombstone_hermes_copy(
+        &self,
+        owner: OwnerId,
+        scope: &HermesCopyScope,
+        source_sha256: [u8; 32],
+    ) -> Result<bool, ProductError> {
+        self.require(OwnerGrant::OperateRel(owner))?;
+        Ok(self
+            .inner
+            .tombstone_hermes_copy(owner.into(), scope, source_sha256)?)
     }
 
     /// Read durable staging state through the currently mounted REL projection.

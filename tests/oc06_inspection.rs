@@ -1,9 +1,10 @@
 use reliquary_memory::{
     ConversationSubmissionId, CreateMemoryRequest, CreateRelationshipRequest, EntityId,
     FinalizeCapture, Gateway, GraphNode, HostCredentialBinding, InspectionItem, InspectionQuery,
-    MAX_MANAGEMENT_PAGE_BYTES, MAX_MANAGEMENT_PAGE_ITEMS, MemoryBodyId, MemoryId, MemoryTextField,
-    OwnerGrant, OwnerKind, OwnerScope, Phylactery, ProductErrorKind, Rel,
-    RelationshipParticipantEvidence, SourceAvailability, SubmissionId, TrustedHostAdmission,
+    MAX_MANAGEMENT_PAGE_BYTES, MAX_MANAGEMENT_PAGE_ITEMS, MemoryBodyId, MemoryId,
+    MemoryListFilters, MemoryListLifecycle, MemoryTextField, OwnerGrant, OwnerKind, OwnerScope,
+    Phylactery, ProductErrorKind, Rel, RelationshipParticipantEvidence, SourceAvailability,
+    SubmissionId, TrustedHostAdmission,
 };
 use std::path::PathBuf;
 
@@ -382,5 +383,279 @@ fn oc06_archive_uses_exact_node_and_revision_across_branch_advances() {
         .unwrap_err()
         .kind(),
         ProductErrorKind::Unavailable
+    );
+}
+
+#[test]
+fn hp02_memory_summaries_filter_and_page_without_returning_bodies() {
+    let dir = TestDirectory::create();
+    let path = dir.0.join("summary.rel");
+    let rel = Rel::create(&path, OwnerScope::Project).unwrap();
+    let gateway = Gateway::new();
+    let owner = gateway.mount_rel(&rel, true).unwrap();
+    let manager_token = "m".repeat(48);
+    let viewer_token = "v".repeat(48);
+    let (adapter, _) = TrustedHostAdmission::new([
+        HostCredentialBinding::new("manager", &manager_token, [OwnerGrant::ManageRel(owner)]),
+        HostCredentialBinding::new("viewer", &viewer_token, [OwnerGrant::ViewRel(owner)]),
+    ])
+    .install(&gateway)
+    .unwrap();
+    let manager = adapter.authenticate(&manager_token).unwrap();
+    let viewer = adapter.authenticate(&viewer_token).unwrap();
+    let writer = manager.workspace_management(owner).unwrap();
+    let body = format!("{}𝄞 Needle at the end", "é".repeat(255));
+    let first = writer
+        .create_memory_with_request(draft("one", body.clone()))
+        .unwrap();
+    let second = writer
+        .create_memory_with_request(draft("two", body.clone()))
+        .unwrap();
+    writer
+        .create_memory_with_request(CreateMemoryRequest {
+            category: "preference".into(),
+            ..draft("decoy", body)
+        })
+        .unwrap();
+    writer
+        .create_memory_with_request(draft("unrelated", "Other content".into()))
+        .unwrap();
+
+    let query = InspectionQuery::MemorySummaries(MemoryListFilters {
+        query: "NEEDLE".into(),
+        category: Some("fact".into()),
+        memory_type: Some("note".into()),
+        lifecycle: Some(MemoryListLifecycle::Active),
+        ..MemoryListFilters::default()
+    });
+    let page = viewer
+        .inspect_owner(owner, OwnerKind::Rel, &query, None, 1)
+        .unwrap();
+    let cursor = page.next.as_ref().expect("second matching Memory");
+    let continuation = viewer
+        .inspect_owner(owner, OwnerKind::Rel, &query, Some(cursor), 1)
+        .unwrap();
+    assert_eq!(page.cut, continuation.cut);
+    assert!(continuation.next.is_none());
+
+    let mut found = Vec::new();
+    for result in [&page, &continuation] {
+        let [InspectionItem::MemoryListEntry(entry)] = result.items.as_slice() else {
+            panic!("expected one Memory summary");
+        };
+        found.push(entry.id.clone());
+        let original = [&first, &second]
+            .into_iter()
+            .find(|memory| memory.id == entry.id)
+            .unwrap();
+        assert_eq!(entry.revision, original.revision);
+        assert_eq!(entry.body_id.as_deref(), Some(original.body_id.as_str()));
+        assert_eq!(entry.title.as_deref(), Some("Accepted title"));
+        assert_eq!(entry.excerpt, "é".repeat(255));
+        assert_eq!(entry.lifecycle, MemoryListLifecycle::Active);
+        let wire = serde_json::to_string(result).unwrap();
+        assert!(!wire.contains("Needle at the end"));
+        assert!(!wire.contains("\"content\""));
+    }
+    found.sort();
+    let mut expected = vec![first.id, second.id];
+    expected.sort();
+    assert_eq!(found, expected);
+
+    let changed_filters = InspectionQuery::MemorySummaries(MemoryListFilters::default());
+    assert_eq!(
+        viewer
+            .inspect_owner(owner, OwnerKind::Rel, &changed_filters, Some(cursor), 1)
+            .unwrap_err()
+            .kind(),
+        ProductErrorKind::Stale
+    );
+    let unavailable_community = InspectionQuery::MemorySummaries(MemoryListFilters {
+        community_id: Some([1; 32]),
+        ..MemoryListFilters::default()
+    });
+    assert_eq!(
+        viewer
+            .inspect_owner(owner, OwnerKind::Rel, &unavailable_community, None, 1)
+            .unwrap_err()
+            .kind(),
+        ProductErrorKind::Unsupported
+    );
+    writer
+        .create_memory_with_request(draft("three", "New matching needle".into()))
+        .unwrap();
+    assert_eq!(
+        viewer
+            .inspect_owner(owner, OwnerKind::Rel, &query, Some(cursor), 1)
+            .unwrap_err()
+            .kind(),
+        ProductErrorKind::Stale
+    );
+}
+
+#[test]
+fn hp02_memory_graph_expands_active_neighbors_at_one_cut() {
+    use reliquary_graph::{NodeRef, RelationChange};
+    use reliquary_memory::{MemoryGraphQuery, RelationKind, RelationOrigin};
+    use reliquary_owner_session::{DreamMemoryCut, DreamRelationCut, GraphAdmission, RelWriter};
+
+    let dir = TestDirectory::create();
+    let path = dir.0.join("graph.rel");
+    let rel = Rel::create(&path, OwnerScope::Project).unwrap();
+    let token = "g".repeat(48);
+    let (owner, [first, second, third]) = {
+        let gateway = Gateway::new();
+        let owner = gateway.mount_rel(&rel, true).unwrap();
+        let (adapter, _) = TrustedHostAdmission::new([HostCredentialBinding::new(
+            "manager",
+            &token,
+            [OwnerGrant::ManageRel(owner)],
+        )])
+        .install(&gateway)
+        .unwrap();
+        let writer = adapter
+            .authenticate(&token)
+            .unwrap()
+            .workspace_management(owner)
+            .unwrap();
+        let records = ["first", "second", "third"].map(|key| {
+            let memory = writer
+                .create_memory_with_request(draft(key, format!("{key} graph Memory")))
+                .unwrap();
+            DreamMemoryCut {
+                id: MemoryId(id(&memory.id)),
+                revision: memory.revision,
+                body_id: MemoryBodyId(id(&memory.body_id)),
+            }
+        });
+        (owner, records)
+    };
+
+    // Seed two accepted edges through the typed owner workflow. The consumer
+    // below reads exclusively through authenticated public Root operations.
+    let graph_admission =
+        GraphAdmission::for_changes(owner.as_bytes(), [first.id.0, second.id.0, third.id.0], []);
+    let mut seed = RelWriter::open_path(&path, graph_admission, [], []).unwrap();
+    for (graph_version, source, candidate) in [(0, first, second), (1, second, third)] {
+        assert!(
+            seed.commit_dream_grouped_relation(DreamRelationCut {
+                owner_id: owner.as_bytes(),
+                graph_version,
+                source,
+                candidate,
+                change: RelationChange {
+                    source: NodeRef::Memory(source.id.0),
+                    target: NodeRef::Memory(candidate.id.0),
+                    kind: RelationKind::Topical,
+                    active: true,
+                    origin: RelationOrigin::Dream,
+                },
+            })
+            .unwrap()
+        );
+    }
+    drop(seed);
+
+    let gateway = Gateway::new();
+    assert_eq!(
+        gateway.mount_rel(&Rel::open(&path).unwrap(), true).unwrap(),
+        owner
+    );
+    let (adapter, _) = TrustedHostAdmission::new([HostCredentialBinding::new(
+        "manager",
+        &token,
+        [OwnerGrant::ManageRel(owner)],
+    )])
+    .install(&gateway)
+    .unwrap();
+    let instance = adapter.authenticate(&token).unwrap();
+    let inspect = |query: MemoryGraphQuery| {
+        instance.inspect_owner(
+            owner,
+            OwnerKind::Rel,
+            &InspectionQuery::MemoryGraph(query),
+            None,
+            1,
+        )
+    };
+    let query = MemoryGraphQuery {
+        seed_ids: vec![first.id],
+        community_id: None,
+        depth: 1,
+        node_limit: 500,
+        edge_limit: 1000,
+        expected_cut: None,
+    };
+    let one = inspect(query.clone()).unwrap();
+    let [InspectionItem::MemoryGraphPage(one_hop)] = one.items.as_slice() else {
+        panic!("expected graph page");
+    };
+    assert_eq!((one_hop.nodes.len(), one_hop.edges.len()), (2, 1));
+    assert!(!one_hop.truncated);
+    let edge = &one_hop.edges[0];
+    assert_eq!(edge.edge.source, GraphNode::Memory(first.id.0));
+    assert_eq!(edge.edge.target, GraphNode::Memory(second.id.0));
+    assert_eq!(edge.edge.origin, RelationOrigin::Dream);
+    assert_eq!(edge.edge.graph_version, 1);
+    assert_eq!(edge.id.len(), 64);
+
+    let expansion = MemoryGraphQuery {
+        depth: 2,
+        expected_cut: Some(one.cut),
+        ..query.clone()
+    };
+    let two = inspect(expansion.clone()).unwrap();
+    let [InspectionItem::MemoryGraphPage(two_hops)] = two.items.as_slice() else {
+        panic!("expected expanded graph");
+    };
+    assert_eq!(two.cut, one.cut);
+    assert_eq!((two_hops.nodes.len(), two_hops.edges.len()), (3, 2));
+    assert_eq!(two_hops.edges[0].id, edge.id);
+    assert!(serde_json::to_vec(&two).unwrap().len() <= MAX_MANAGEMENT_PAGE_BYTES);
+
+    let limited = inspect(MemoryGraphQuery {
+        edge_limit: 1,
+        ..expansion.clone()
+    })
+    .unwrap();
+    let [InspectionItem::MemoryGraphPage(limited)] = limited.items.as_slice() else {
+        panic!("expected bounded graph");
+    };
+    assert_eq!(limited.edges.len(), 1);
+    assert!(limited.truncated);
+    let limited = inspect(MemoryGraphQuery {
+        node_limit: 1,
+        ..expansion.clone()
+    })
+    .unwrap();
+    let [InspectionItem::MemoryGraphPage(limited)] = limited.items.as_slice() else {
+        panic!("expected bounded graph");
+    };
+    assert_eq!(limited.nodes.len(), 1);
+    assert!(limited.edges.is_empty() && limited.truncated);
+    assert_eq!(
+        inspect(MemoryGraphQuery {
+            community_id: Some([1; 32]),
+            ..query.clone()
+        })
+        .unwrap_err()
+        .kind(),
+        ProductErrorKind::Unsupported
+    );
+    assert_eq!(
+        inspect(MemoryGraphQuery { depth: 4, ..query })
+            .unwrap_err()
+            .kind(),
+        ProductErrorKind::InvalidInput
+    );
+
+    instance
+        .workspace_management(owner)
+        .unwrap()
+        .create_memory_with_request(draft("new", "advances owner cut".into()))
+        .unwrap();
+    assert_eq!(
+        inspect(expansion).unwrap_err().kind(),
+        ProductErrorKind::Stale
     );
 }
