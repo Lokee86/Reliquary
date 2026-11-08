@@ -1,4 +1,8 @@
 use super::*;
+
+#[path = "hermes_copy/maintenance.rs"]
+mod maintenance;
+use maintenance::assert_divergent_copy_preserves_receipts;
 use reliquary_memory::{
     HermesCopiedMessage, HermesCopiedRole, HermesCopiedSnapshot, HermesCopyScope, InspectionItem,
     InspectionQuery, Instance, NativeImportState, OwnerId, OwnerKind, SourceAvailability,
@@ -12,7 +16,11 @@ fn mount(rel: &Rel) -> (OwnerId, Instance, Instance) {
     let gateway = Gateway::new();
     let owner = gateway.mount_rel(rel, true).unwrap();
     let (admission, _) = TrustedHostAdmission::new([
-        HostCredentialBinding::new("operator", TOKEN, [OwnerGrant::OperateRel(owner)]),
+        HostCredentialBinding::new(
+            "operator",
+            TOKEN,
+            [OwnerGrant::OperateRel(owner), OwnerGrant::ManageRel(owner)],
+        ),
         HostCredentialBinding::new("other", OTHER, [OwnerGrant::OperateRel(owner)]),
     ])
     .install(&gateway)
@@ -221,6 +229,7 @@ fn hermes_copy_extension_preserves_exact_replay_and_terminal_scope() {
     );
     assert_eq!(length(), unchanged);
     drop((instance, foreign, rel));
+    assert_divergent_copy_preserves_receipts(&path, &root, predecessor, accepted.source_sha256);
 
     let rel = Rel::open(&path).unwrap();
     let info = rel.info().unwrap();

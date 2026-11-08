@@ -74,6 +74,10 @@ pub(super) fn replay_archive(
         counts.archive += usize::from(inserted);
     }
     for receipt in source.import_receipts() {
+        if destination.import_receipt(&receipt.import_key) == Some(&receipt) {
+            // A retained receipt was checked at its accepted branch head.
+            continue;
+        }
         let before = destination.import_receipts().len();
         destination
             .put_import_receipt(target, receipt)
