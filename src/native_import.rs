@@ -39,6 +39,18 @@ impl NativeImportPlan {
         Ok(Self(source::NativeImportPlan::from_hermes_copy(snapshot)?))
     }
 
+    /// Append a new-only copied suffix to an exact previously completed Hermes copy.
+    /// The mounted REL checks the predecessor receipt and current branch under its writer lock.
+    pub fn from_hermes_copy_extension(
+        snapshot: HermesCopiedSnapshot,
+        predecessor_sha256: [u8; 32],
+    ) -> Result<Self, ProductError> {
+        Ok(Self(source::NativeImportPlan::from_hermes_copy_extension(
+            snapshot,
+            predecessor_sha256,
+        )?))
+    }
+
     pub fn coverage(&self) -> &NativeImportCoverage {
         self.0.coverage()
     }

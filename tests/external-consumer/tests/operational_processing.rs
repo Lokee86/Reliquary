@@ -1,3 +1,5 @@
+#[path = "operational_processing/hermes_copy.rs"]
+mod hermes_copy;
 #[path = "operational_processing/live.rs"]
 mod live;
 

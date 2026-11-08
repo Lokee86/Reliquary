@@ -99,13 +99,23 @@ unasserted. The local ordered Archive branch describes only the copied view.
 The native worker accepts REL-only processing for this import. Source author
 metadata carries no PHY grant.
 
+For incremental copy, call `NativeImportPlan::from_hermes_copy_extension`
+with only the contiguous new messages and the previous completed copy's
+native `source_sha256`. The owner checks the authenticated predecessor
+receipt, exact current branch head and all incoming message IDs before
+staging. The native extension digest binds both the suffix and its
+predecessor. The resulting receipt tracks only the new source messages,
+and the new native Episodes enter the same processing workflow. Exact
+replay preserves the previous receipt and does not allocate new turns.
+Changed prefixes, branch changes and stale anchors fail with a conflict.
+The host owns source-view invalidation on those transitions.
+
 Use `Instance::tombstone_hermes_copy` with the same authenticated principal,
-source scope and exact accepted copy SHA-256 after the import epoch settles.
-The operation retains provenance, hides the source body from inspection and
-rejects import replay for that conversation. Repeating the terminal notice is
-idempotent. This facade supports the initial copied view and its exact replay.
-HP04 owns incremental copy, rewind reconciliation and pending-source
-invalidation in the service.
+source scope and an exact accepted copy SHA-256 after the import epoch
+settles. The marker covers the whole copied conversation, including every
+extension. It retains provenance, hides the source bodies from inspection
+and rejects stale copy replay. Repeating the terminal notice is idempotent.
+The host owns pending-source invalidation while an epoch is still open.
 
 ## Dashboard inspection projections
 

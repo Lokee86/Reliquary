@@ -163,7 +163,10 @@ fn invalid(reason: &'static str) -> NativeImportSourceError {
 
 enum NativeSource {
     File(NativeImportFormat),
-    HermesCopy(HermesCopyScope),
+    HermesCopy {
+        scope: HermesCopyScope,
+        predecessor: Option<[u8; 32]>,
+    },
 }
 
 impl NativeSource {
@@ -173,7 +176,7 @@ impl NativeSource {
                 let (namespace, format) = format.identity();
                 (stage::principal_namespace(namespace, principal), format)
             }
-            Self::HermesCopy(scope) => (scope.namespace(principal), hermes::FORMAT),
+            Self::HermesCopy { scope, .. } => (scope.namespace(principal), hermes::FORMAT),
         }
     }
 }

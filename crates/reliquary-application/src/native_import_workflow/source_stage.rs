@@ -108,7 +108,7 @@ impl NativeImportPlan {
         let id = self.import_id(owner);
         let session = writer.read_session();
         let (source_namespace, source_format) = self.source.identity(principal);
-        let copied = matches!(&self.source, NativeSource::HermesCopy(_));
+        let copied = matches!(&self.source, NativeSource::HermesCopy { .. });
         if copied
             && self.conversations.iter().any(|row| {
                 session
@@ -119,7 +119,26 @@ impl NativeImportPlan {
             return Err(NativeImportStageError::Conflict);
         }
         let already_staged = session.native_import_receipt(&self.import_key).is_some();
-        if let Some(status) = session.import_status(&id) {
+        let status = session.import_status(&id);
+        let mut turns = self.turns;
+        let anchored = if let NativeSource::HermesCopy {
+            scope,
+            predecessor: Some(predecessor),
+        } = &self.source
+        {
+            hermes::attach_predecessor(
+                session,
+                scope,
+                &source_namespace,
+                predecessor,
+                status.is_some(),
+                &mut turns,
+            )?;
+            true
+        } else {
+            false
+        };
+        if let Some(status) = status {
             let start = match status {
                 ImportEpochStatus::Open(start) | ImportEpochStatus::Completed { start, .. } => {
                     start
@@ -138,16 +157,16 @@ impl NativeImportPlan {
                 || ids
                     .iter()
                     .any(|id| session.conversation_tombstone(id).is_some())
-                || session
-                    .accepted_turn_sources()
-                    .iter()
-                    .any(|turn| ids.contains(turn.conversation_id.as_str()))
+                || (!anchored
+                    && session
+                        .accepted_turn_sources()
+                        .iter()
+                        .any(|turn| ids.contains(turn.conversation_id.as_str())))
             {
                 return Err(NativeImportStageError::Conflict);
             }
         }
 
-        let mut turns = self.turns;
         for (turn, _) in &mut turns {
             if !copied && turn.role == "user" {
                 turn.principal_id = Some(principal.to_owned());

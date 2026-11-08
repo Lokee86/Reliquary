@@ -2,7 +2,11 @@
 
 use super::graph::{SourceConversation, SourceTurn};
 use super::*;
-use reliquary_owner_session::RelWriter;
+use reliquary_owner_session::{RelSession, RelWriter};
+
+#[path = "source_hermes_extension.rs"]
+mod extension;
+pub(super) use extension::attach_predecessor;
 
 pub(super) use reliquary_owner_session::model::HERMES_COPIED_SOURCE_FORMAT as FORMAT;
 const MAX_MESSAGES: usize = 128;
@@ -37,6 +41,23 @@ impl HermesCopyScope {
 
     pub(super) fn namespace(&self, principal: &str) -> String {
         stage::principal_namespace(&format!("hermes/profile/{}", self.profile_id), principal)
+    }
+
+    fn accepted_conversation<'a>(
+        &self,
+        session: &'a RelSession,
+        source_sha256: &[u8; 32],
+        namespace: &str,
+    ) -> Option<&'a ImportedConversation> {
+        let receipt = session.native_import_receipt(source_sha256)?;
+        if receipt.source_namespace != namespace || receipt.source_format != FORMAT {
+            return None;
+        }
+        let id = self.conversation_id();
+        receipt
+            .conversations
+            .iter()
+            .find(|row| row.source_id == self.session_id && row.conversation_id == id)
     }
 }
 
@@ -83,6 +104,20 @@ impl NativeImportPlan {
     pub fn from_hermes_copy(
         snapshot: HermesCopiedSnapshot,
     ) -> Result<Self, NativeImportSourceError> {
+        Self::hermes_copy(snapshot, None)
+    }
+
+    pub fn from_hermes_copy_extension(
+        snapshot: HermesCopiedSnapshot,
+        predecessor_sha256: [u8; 32],
+    ) -> Result<Self, NativeImportSourceError> {
+        Self::hermes_copy(snapshot, Some(predecessor_sha256))
+    }
+
+    fn hermes_copy(
+        snapshot: HermesCopiedSnapshot,
+        predecessor: Option<[u8; 32]>,
+    ) -> Result<Self, NativeImportSourceError> {
         if snapshot.messages.is_empty() || snapshot.messages.len() > MAX_MESSAGES {
             return Err(invalid(
                 "Hermes copy requires 1 through 128 source messages",
@@ -118,10 +153,7 @@ impl NativeImportPlan {
             |revision| format!("hermes-snapshot-revision:{revision}"),
         );
         let conversation_id = snapshot.scope.conversation_id();
-        let branch_id = snapshot.branch_id.as_ref().map_or_else(
-            || "hermes-copy:authorized-view".into(),
-            |source| format!("hermes-copy:branch:{source}"),
-        );
+        let branch_id = copied_branch_id(snapshot.branch_id.as_deref());
         let mut parent = None;
         let turns = snapshot
             .messages
@@ -171,10 +203,23 @@ impl NativeImportPlan {
             accepted.source_parent_id = None;
             accepted.source_author = source.author;
         }
+        let import_key = predecessor.map_or_else(
+            || digest.into(),
+            |previous| {
+                let mut extension = Sha256::new();
+                extension.update(b"reliquary/hermes-copied-extension/v1\0");
+                extension.update(previous);
+                extension.update(digest);
+                extension.finalize().into()
+            },
+        );
         Ok(Self {
-            source: NativeSource::HermesCopy(snapshot.scope),
-            source_sha256: digest.into(),
-            import_key: digest.into(),
+            source: NativeSource::HermesCopy {
+                scope: snapshot.scope,
+                predecessor,
+            },
+            source_sha256: import_key,
+            import_key,
             coverage: plan.coverage,
             parent_mappings: plan.parent_mappings,
             conversations: plan.conversations,
@@ -194,17 +239,10 @@ pub fn tombstone_hermes_copy(
 ) -> Result<bool, NativeImportStageError> {
     let session = writer.read_session();
     let id = scope.conversation_id();
-    let matches = session
-        .native_import_receipt(&source_sha256)
-        .is_some_and(|receipt| {
-            receipt.source_namespace == scope.namespace(principal)
-                && receipt.source_format == FORMAT
-                && receipt
-                    .conversations
-                    .iter()
-                    .any(|row| row.source_id == scope.session_id && row.conversation_id == id)
-        });
-    if !matches {
+    if scope
+        .accepted_conversation(session, &source_sha256, &scope.namespace(principal))
+        .is_none()
+    {
         return Err(NativeImportStageError::Conflict);
     }
     if !credential_active() {
@@ -219,6 +257,13 @@ pub fn tombstone_hermes_copy(
     writer
         .tombstone_conversation(&id)
         .map_err(NativeImportStageError::Owner)
+}
+
+fn copied_branch_id(source: Option<&str>) -> String {
+    source.map_or_else(
+        || "hermes-copy:authorized-view".into(),
+        |source| format!("hermes-copy:branch:{source}"),
+    )
 }
 
 fn source_id(id: &str) -> Result<(), NativeImportSourceError> {

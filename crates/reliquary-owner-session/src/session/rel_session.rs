@@ -261,6 +261,13 @@ impl RelSession {
     pub fn archive_node(&self, conversation: &str, node: &str) -> Option<&Node> {
         self.archive.node(conversation, node)
     }
+    pub fn archive_branch(
+        &self,
+        conversation: &str,
+        branch: &str,
+    ) -> Option<&reliquary_archive::Branch> {
+        self.archive.branch(conversation, branch)
+    }
     pub fn archive_version(&self) -> u64 {
         self.archive.archive_version()
     }
