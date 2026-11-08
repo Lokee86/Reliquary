@@ -3,12 +3,18 @@
 //! The public boundary deliberately exposes opaque owner handles and immutable
 //! snapshots. Mutable containers and semantic stores remain internal.
 
+mod configured_runtime;
 mod error;
 mod host;
 mod maintenance;
 mod management;
 mod owner;
 
+pub use configured_runtime::{
+    CompatibilityProbeReference, CompatibilityProfile, ConfiguredRuntime, ConfiguredRuntimeError,
+    CredentialError, CredentialId, CredentialMaterial, CredentialResolver, EmbeddingMode,
+    EnvironmentCredentialResolver, RuntimeEndpointFailure, VectorNormalization,
+};
 pub use error::{ProductError, ProductErrorKind};
 pub use host::{
     ConversationQueue, Gateway, HostAdmissionAdapter, HostAdmissionControl, HostCredentialBinding,

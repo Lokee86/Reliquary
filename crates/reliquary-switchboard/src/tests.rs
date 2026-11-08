@@ -3,15 +3,19 @@ use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::sync::Mutex;
 
+#[path = "configured_tests.rs"]
+mod configured;
+
 fn mock_server(
     status: &str,
     headers: &str,
-    body: &'static str,
+    body: &str,
 ) -> (String, std::thread::JoinHandle<Vec<u8>>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let url = format!("http://{}/completion", listener.local_addr().unwrap());
     let status = status.to_owned();
     let headers = headers.to_owned();
+    let body = body.to_owned();
     let server = std::thread::spawn(move || {
         let (mut stream, _) = listener.accept().unwrap();
         stream

@@ -409,7 +409,15 @@ pub trait DecisionEndpoint: Send + Sync {
     fn evaluate(&self, state: &Value, questions: &Value) -> Result<Value, DecisionEndpointError>;
 }
 
+mod configured;
+mod runtime_config;
+mod runtime_credentials;
+mod runtime_probe;
 mod transport;
+pub use configured::{ConfiguredRoutes, ConfiguredRuntimeError, RuntimeEndpointFailure};
+pub use runtime_credentials::{
+    CredentialMaterial, CredentialResolver, EnvironmentCredentialResolver,
+};
 pub use transport::ConfiguredEmbeddingEndpoint;
 pub use transport::{ConfiguredDecisionEndpoint, ConfiguredGeneralEndpoint};
 

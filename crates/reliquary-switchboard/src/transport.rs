@@ -207,10 +207,10 @@ fn decode_embedding_response(
 }
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
-const MAX_RESPONSE_BYTES: usize = 1024 * 1024;
+pub(super) const MAX_RESPONSE_BYTES: usize = 1024 * 1024;
 const MAX_ERROR_BYTES: usize = 1024;
 
-fn validated_http_url(value: &str) -> Result<reqwest::Url, &'static str> {
+pub(super) fn validated_http_url(value: &str) -> Result<reqwest::Url, &'static str> {
     let url = reqwest::Url::parse(value).map_err(|_| "route URL is invalid")?;
     let local_http = url.scheme() == "http"
         && matches!(
