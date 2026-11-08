@@ -112,10 +112,10 @@ impl Instance {
         let Some(prepared) = prepared else {
             return Ok(true);
         };
+        self.validate_live_processing(source)?;
         if stop.load(Ordering::Acquire) {
             return Ok(false);
         }
-        self.validate_live_processing(source)?;
         let evaluated = prepared.evaluate(endpoint).map_err(dream_error)?;
         if stop.load(Ordering::Acquire) {
             return Ok(false);
@@ -141,6 +141,11 @@ fn dream_error(error: DreamWorkflowError) -> GatewayError {
     match error {
         DreamWorkflowError::IncompleteFrontier | DreamWorkflowError::StaleSnapshot => {
             GatewayError::HostStatusUnknown
+        }
+        DreamWorkflowError::Classifier(_) | DreamWorkflowError::Verifier(_) => {
+            GatewayError::RetrievalUnavailable(
+                "configured LIVE Dream provider failed or returned invalid output",
+            )
         }
         other => stage_error(other),
     }

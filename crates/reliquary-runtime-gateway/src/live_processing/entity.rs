@@ -70,10 +70,10 @@ impl Instance {
         let Some(prepared) = prepared else {
             return Ok(true);
         };
+        self.validate_live_processing(source)?;
         if stop.load(Ordering::Acquire) {
             return Ok(false);
         }
-        self.validate_live_processing(source)?;
         let proposal = prepared.evaluate_with_endpoint(endpoint).map_err(|_| {
             GatewayError::RetrievalUnavailable(
                 "configured LIVE Entity provider failed or returned invalid output",

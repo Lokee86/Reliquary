@@ -136,6 +136,11 @@ impl InsomniaStore {
             if &prefix != WORK_MAGIC_V2 {
                 continue;
             }
+            const MAX_WORK_FRAME_BYTES: u64 =
+                (MAX_HELD_PAYLOAD_BYTES + 4 * MAX_RECEIPT_TEXT_BYTES + 128) as u64;
+            if frame.object().length > MAX_WORK_FRAME_BYTES {
+                return Err(InsomniaError::CorruptRecord("work frame exceeds its bound"));
+            }
             let mut bytes = prefix.to_vec();
             frame.read_to_end(&mut bytes).map_err(ContainerError::Io)?;
             let (owner, _, work) = decode_work(&bytes)?;
@@ -145,9 +150,11 @@ impl InsomniaStore {
             if work.state == InsomniaWorkState::Processing
                 && let Some(payload) = work.held_payload.as_deref()
                 && let Some(receipt) = self.receipt(work.episode_id, work.attempt_count)
-                && self
-                    .work(work.episode_id)
-                    .is_some_and(|current| current.attempt_count == receipt.attempt)
+                && self.work(work.episode_id).is_some_and(|current| {
+                    // Receipt projection clears the payload but preserves the
+                    // exact work revision, including equal-timestamp checkpoints.
+                    current.attempt_count == receipt.attempt && current.revision == work.revision
+                })
                 && receipt.started_at_ns == work.updated_at_ns
             {
                 visit(work.episode_id, payload);
