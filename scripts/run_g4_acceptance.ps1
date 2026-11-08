@@ -136,7 +136,21 @@ try {
     if ($copyProof.proof.digest -ne $public.rel_lantern.history_digest) { throw 'CLI copy changed retained history.' }
     Expect-Failure $cli @('rel', 'reconcile', $source, $source, $copy)
     Expect-Failure $cli @('cva', 'info', $source)
-    Expect-Failure $cli @('phy', 'info', (Join-Path $exportDir 'phy-reader-a.phy'))
+    foreach ($entry in @(
+        @{ key = 'phy_a'; file = 'phy-reader-a.phy' },
+        @{ key = 'phy_b'; file = 'phy-reader-b.phy' }
+    )) {
+        $ownerPath = Join-Path $exportDir $entry.file
+        $info = Invoke-Json $cli @('phy', 'info', $ownerPath)
+        $publicOwner = $public.($entry.key)
+        if ($info.owner.kind -ne 'phylactery' -or
+            $info.owner.owner_id -ne $publicOwner.owner_id -or
+            $info.owner.scope -ne $publicOwner.scope -or
+            $info.owner.memory_count -ne $publicOwner.memory_count) {
+            throw "CLI and consumer PHY identity/scope/counts differ for $($entry.key)."
+        }
+    }
+    Expect-Failure $cli @('phy', 'info', $source)
     $duplicate = Join-Path $negativeDir 'duplicate-option.rel'
     Expect-Failure $cli @('rel', 'create', $duplicate, '--scope', 'project', '--scope', 'connection')
     $duplicateFailure = $observations[$observations.Count - 1].result
