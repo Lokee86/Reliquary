@@ -44,20 +44,28 @@ pub(super) fn history(args: &[String]) -> Result<Value, reliquary_memory::Produc
             json!({"operation":"history_proof","proof":Rel::open(&args[1])?.current_historical_proof()?}),
         );
     }
-    if args.len() < 3 || args[0] != "memory" {
+    memory_history(args, false)
+}
+
+pub(super) fn memory_history(args: &[String], phy: bool) -> Result<Value, ProductError> {
+    if args.len() < 3 || (args[0] != "memory" && args[0] != "history") {
         return Err(invalid("history requires memory, archive, or proof"));
     }
     validate_options(args, 3, &[("--cut", false)])?;
-    let rel = Rel::open(&args[1])?;
     let id = MemoryId(parse_hex::<32>(&args[2], "Memory ID")?);
-    let lookup = match option(args, "--cut") {
-        Some(value) => rel.memory_history_at_cut(
-            id,
-            value
-                .parse()
-                .map_err(|_| invalid("history cut must be an unsigned integer"))?,
-        )?,
-        None => rel.memory_history(id)?,
+    let cut = number_option(args, "--cut")?;
+    let lookup = if phy {
+        let owner = Phylactery::open(&args[1])?;
+        match cut {
+            Some(version) => owner.memory_history_at_cut(id, version)?,
+            None => owner.memory_history(id)?,
+        }
+    } else {
+        let owner = Rel::open(&args[1])?;
+        match cut {
+            Some(version) => owner.memory_history_at_cut(id, version)?,
+            None => owner.memory_history(id)?,
+        }
     };
     let result = match lookup {
         MemoryHistoryLookup::Unavailable { .. } => {

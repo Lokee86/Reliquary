@@ -136,6 +136,15 @@ impl Gateway {
 
     /// Remove one mounted owner after host-side quiescence.
     pub fn quiesce_owner(&self, owner: OwnerId) -> Result<(), GatewayError> {
+        let leases = self
+            .owner_worker_leases
+            .lock()
+            .map_err(|_| GatewayError::RegistryPoisoned)?;
+        if leases.iter().any(|(held, _)| *held == owner) {
+            return Err(GatewayError::OwnerSession(
+                OwnerSessionError::ManagementConflict,
+            ));
+        }
         let mut owners = self
             .owners
             .write()

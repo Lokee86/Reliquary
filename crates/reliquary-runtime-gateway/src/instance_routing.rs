@@ -1,5 +1,6 @@
 use super::*;
 use reliquary_application::{
+    commit_prepared_native_import_with_routed_receipts,
     commit_prepared_native_ingest_with_routed_receipts, prepare_routed_user_proofs,
 };
 
@@ -15,6 +16,30 @@ impl Instance {
         model: &str,
         version: &str,
         now_ns: i64,
+    ) -> Result<CompletionCheck, GatewayError> {
+        self.commit_scoped_routed_insomnia_claim(
+            owner,
+            destination,
+            claim,
+            prepared,
+            model,
+            version,
+            || now_ns,
+            None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn commit_scoped_routed_insomnia_claim(
+        &self,
+        owner: OwnerId,
+        destination: OwnerId,
+        claim: &RelInsomniaClaimInput,
+        prepared: &PreparedIngest,
+        model: &str,
+        version: &str,
+        now: impl Fn() -> i64,
+        import_id: Option<&str>,
     ) -> Result<CompletionCheck, GatewayError> {
         self.authorize_routed_owners(owner, destination)?;
         if owner == destination
@@ -53,27 +78,47 @@ impl Instance {
             .writer
             .lock()
             .map_err(|_| GatewayError::RegistryPoisoned)?;
-        self.authorize_routed_owners(owner, destination)?;
-        rel.validate_insomnia_claim(claim, now_ns)?;
+        let recheck = |rel: &RelWriter| -> Result<i64, GatewayError> {
+            self.authorize_routed_owners(owner, destination)?;
+            let timestamp = now();
+            match import_id {
+                Some(id) => rel.validate_native_import_claim(id, claim, timestamp)?,
+                None => rel.validate_insomnia_claim(claim, timestamp)?,
+            }
+            Ok(timestamp)
+        };
+        recheck(&rel)?;
         let proofs =
             prepare_routed_user_proofs(rel.read_session(), &phy, prepared, &self.principal)
                 .map_err(|error| GatewayError::RoutedMemory(error.to_string()))?;
         let mut receipts = Vec::with_capacity(proofs.len());
         for proof in proofs {
-            self.authorize_routed_owners(owner, destination)?;
+            recheck(&rel)?;
             let (_, receipt) = phy.publish_routed_user_memory(proof)?;
             receipts.push(receipt);
         }
-        self.authorize_routed_owners(owner, destination)?;
-        commit_prepared_native_ingest_with_routed_receipts(
-            &mut rel,
-            prepared,
-            &claim.work,
-            model,
-            version,
-            now_ns,
-            &receipts,
-        )
+        let now_ns = recheck(&rel)?;
+        match import_id {
+            Some(id) => commit_prepared_native_import_with_routed_receipts(
+                &mut rel,
+                id,
+                prepared,
+                &claim.work,
+                model,
+                version,
+                now_ns,
+                &receipts,
+            ),
+            None => commit_prepared_native_ingest_with_routed_receipts(
+                &mut rel,
+                prepared,
+                &claim.work,
+                model,
+                version,
+                now_ns,
+                &receipts,
+            ),
+        }
         .map_err(|error| GatewayError::RoutedMemory(error.to_string()))
     }
 

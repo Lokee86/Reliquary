@@ -41,7 +41,27 @@ impl ConversationQueue {
             file,
             projection,
             failed: false,
-            _writer_lock: writer_lock,
+            writer_lock: Some(writer_lock),
+        })
+    }
+
+    pub(crate) fn open_read(
+        state_dir: impl AsRef<Path>,
+        owner: OwnerId,
+    ) -> Result<Self, QueueError> {
+        let path = state_dir
+            .as_ref()
+            .join("conversation-queues")
+            .join(format!("{}.rqj", uuid_filename(owner.as_bytes())));
+        let mut file = File::open(&path)?;
+        let (projection, _) = recover(&mut file, owner)?;
+        Ok(Self {
+            owner,
+            path,
+            file,
+            projection,
+            failed: false,
+            writer_lock: None,
         })
     }
     pub(super) fn check_revision(
@@ -57,6 +77,9 @@ impl ConversationQueue {
         }
     }
     pub(super) fn ensure(&self) -> Result<(), QueueError> {
+        if self.writer_lock.is_none() {
+            return Err(QueueError::InvalidState);
+        }
         if self.failed {
             Err(QueueError::RecoveryRequired)
         } else {
@@ -64,6 +87,7 @@ impl ConversationQueue {
         }
     }
     pub(super) fn append(&mut self, event: Event) -> Result<(), QueueError> {
+        self.ensure()?;
         let sequence = self
             .projection
             .sequence

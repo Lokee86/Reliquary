@@ -208,3 +208,10 @@ pub use admission::{
 #[path = "host_instance.rs"]
 mod instance;
 pub use instance::{ConversationQueue, Instance};
+
+#[path = "host_context.rs"]
+pub(crate) mod context;
+#[path = "host_external_source.rs"]
+pub(crate) mod external_source;
+#[path = "host_project_source.rs"]
+pub(crate) mod project_source;

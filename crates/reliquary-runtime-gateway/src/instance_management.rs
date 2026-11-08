@@ -1,9 +1,12 @@
 use super::*;
 use reliquary_application::{
-    ConversationInspection, ManagementError, ManagementPage, MemoryProvenance, MemorySummary,
-    RelManagementHealth, SemanticOwnerStatistics, TranscriptTurn,
+    ConversationInspection, CreateMemoryRequest, ManagementError, ManagementPage, MemoryProvenance,
+    MemorySummary, RelManagementHealth, SemanticOwnerStatistics, TranscriptTurn,
 };
 use reliquary_owner_session::MemoryId;
+
+#[path = "instance_inspection.rs"]
+mod inspection;
 
 impl Instance {
     pub fn management_conversations(
@@ -87,6 +90,31 @@ impl Instance {
         .map_err(management_error)
     }
 
+    pub fn management_create_requested_memory(
+        &self,
+        owner: OwnerId,
+        request: CreateMemoryRequest,
+    ) -> Result<MemorySummary, GatewayError> {
+        self.with_rel_writer(owner, |writer| {
+            reliquary_application::create_requested_memory(writer, self.principal(), request)
+        })?
+        .map_err(management_error)
+    }
+
+    pub fn management_create_relationship(
+        &self,
+        owner: OwnerId,
+        mut request: reliquary_owner_session::CreateRelationshipRequest,
+    ) -> Result<reliquary_owner_session::model::Relationship, GatewayError> {
+        request.mutation_id = reliquary_application::user_mutation_id(
+            self.principal(),
+            "relationship",
+            &request.mutation_id,
+        )
+        .map_err(management_error)?;
+        self.publish_semantic_relationship(owner, request)
+    }
+
     pub fn management_memory(
         &self,
         owner: OwnerId,
@@ -124,5 +152,5 @@ impl Instance {
 }
 
 fn management_error(error: ManagementError) -> GatewayError {
-    GatewayError::OwnerSession(OwnerSessionError::Record(error.to_string()))
+    GatewayError::Management(error)
 }

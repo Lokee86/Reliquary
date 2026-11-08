@@ -371,6 +371,29 @@ impl Archive {
         self.import_receipts.values().cloned().collect()
     }
 
+    /// Return one accepted receipt witness for an exact native node.
+    pub fn imported_turn_reference(
+        &self,
+        conversation: &str,
+        node: &str,
+    ) -> Option<(
+        &ImportReceipt,
+        &crate::ImportedConversation,
+        &crate::ImportedMessage,
+    )> {
+        self.import_receipts.values().find_map(|receipt| {
+            let conversation = receipt
+                .conversations
+                .iter()
+                .find(|record| record.conversation_id == conversation)?;
+            let message = conversation
+                .messages
+                .iter()
+                .find(|record| record.node_id.as_deref() == Some(node))?;
+            Some((receipt, conversation, message))
+        })
+    }
+
     pub fn branch_turns(
         &self,
         conversation_id: &str,
@@ -527,6 +550,53 @@ impl Archive {
 
     pub fn branches(&self) -> Vec<Branch> {
         self.branches.values().cloned().collect()
+    }
+
+    pub fn management_branches<'a>(
+        &'a self,
+        conversation: &'a str,
+    ) -> impl Iterator<Item = &'a Branch> {
+        self.branches
+            .range((conversation.to_owned(), String::new())..)
+            .map(|(_, branch)| branch)
+            .take_while(move |branch| branch.conversation_id == conversation)
+    }
+
+    pub fn management_all_branches(&self) -> impl Iterator<Item = &Branch> {
+        self.branches.values()
+    }
+
+    /// Select a root-to-leaf page before materializing any turn content.
+    pub fn management_transcript_nodes(
+        &self,
+        conversation: &str,
+        leaf: &str,
+        offset: usize,
+        limit: usize,
+    ) -> Result<(usize, Vec<String>), ArchiveError> {
+        let mut total = 0usize;
+        let mut current = Some(leaf);
+        while let Some(id) = current {
+            let node = self.require_node(conversation, id)?;
+            total += 1;
+            current = node.parent_id.as_deref();
+        }
+        if limit == 0 || offset >= total {
+            return Ok((total, Vec::new()));
+        }
+        let end = offset.saturating_add(limit).min(total);
+        let mut nodes = Vec::new();
+        current = Some(leaf);
+        for depth in 0..total.saturating_sub(offset) {
+            let node =
+                self.require_node(conversation, current.ok_or(ArchiveError::MissingParent)?)?;
+            if depth >= total - end {
+                nodes.push(node.id.clone());
+            }
+            current = node.parent_id.as_deref();
+        }
+        nodes.reverse();
+        Ok((total, nodes))
     }
 
     pub fn episode(&self, id: EpisodeId) -> Option<&Episode> {

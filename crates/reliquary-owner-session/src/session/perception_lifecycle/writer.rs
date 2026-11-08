@@ -70,6 +70,22 @@ impl RelWriter {
         request: CreateRelationshipRequest,
     ) -> Result<Relationship, OwnerSessionError> {
         self.ensure_write_ready()?;
+        self.create_relationship_after_fence(request)
+    }
+
+    pub fn create_native_import_relationship(
+        &mut self,
+        import_id: &str,
+        request: CreateRelationshipRequest,
+    ) -> Result<Relationship, OwnerSessionError> {
+        self.validate_native_import_memory(import_id, request.source_memory_id)?;
+        self.create_relationship_after_fence(request)
+    }
+
+    fn create_relationship_after_fence(
+        &mut self,
+        request: CreateRelationshipRequest,
+    ) -> Result<Relationship, OwnerSessionError> {
         let before = self.container.writer_lease_proof();
         if before.is_none() || before != self.session.writer_lease_proof {
             return Err(OwnerSessionError::Record(

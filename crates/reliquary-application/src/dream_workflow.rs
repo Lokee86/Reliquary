@@ -150,6 +150,30 @@ pub fn draft_dream_organization<C: GeneralEndpoint, V: GeneralEndpoint>(
     verifier: Option<&DreamVerifier<V>>,
     verification_policy: DreamVerificationPolicy,
 ) -> Result<DreamOrganizationDraft, DreamWorkflowError> {
+    prepare_dream_organization(owner, authorized_owner_id, source_id, candidate_ids)?.evaluate(
+        classifier,
+        verifier,
+        verification_policy,
+    )
+}
+
+pub(crate) struct PreparedDreamOrganization {
+    owner_id: [u8; 16],
+    graph_version: u64,
+    facts: Vec<MemoryFact>,
+    observations: Vec<DreamMemoryObservation>,
+    memories: Vec<DreamMemory>,
+    set: CandidateSet,
+    existing_relations: BTreeMap<(MemoryId, MemoryId, RelationKind), Relation>,
+    skipped: Vec<MemoryId>,
+}
+
+pub(crate) fn prepare_dream_organization(
+    owner: &EntityOwnerSession<'_>,
+    authorized_owner_id: [u8; 16],
+    source_id: MemoryId,
+    candidate_ids: &[MemoryId],
+) -> Result<PreparedDreamOrganization, DreamWorkflowError> {
     let owner_id = owner.owner_id();
     if owner_id != authorized_owner_id {
         return Err(DreamWorkflowError::OwnerMismatch);
@@ -276,59 +300,89 @@ pub fn draft_dream_organization<C: GeneralEndpoint, V: GeneralEndpoint>(
             .cloned()
             .collect(),
     };
-    let classifications = classifier
-        .classify_candidates(&set)
-        .map_err(|error| DreamWorkflowError::Classifier(error.to_string()))?;
-    let by_id: HashMap<_, _> = memories.iter().map(|memory| (memory.id, memory)).collect();
-    let mut verifications = Vec::new();
-    let mut accepted_decisions = Vec::new();
-    let mut pending = Vec::new();
-    for classification in &classifications {
-        if verification_policy.should_verify(classification.relation) {
-            let Some(verifier) = verifier else {
-                pending.push((classification.a, classification.b));
-                continue;
-            };
-            let left = by_id
-                .get(&classification.a)
-                .ok_or(DreamWorkflowError::MemoryUnavailable(classification.a))?;
-            let right = by_id
-                .get(&classification.b)
-                .ok_or(DreamWorkflowError::MemoryUnavailable(classification.b))?;
-            let Some(verification) = verifier
-                .verify_if_required(verification_policy, classification, *left, *right)
-                .map_err(|error| DreamWorkflowError::Verifier(error.to_string()))?
-            else {
-                pending.push((classification.a, classification.b));
-                continue;
-            };
-            if verification.verdict == DreamVerificationVerdict::Uncertain {
-                pending.push((classification.a, classification.b));
-            }
-            let accepted = verification.verdict == DreamVerificationVerdict::Accept;
-            verifications.push(verification);
-            if !accepted {
-                continue;
-            }
-        }
-        accepted_decisions.push(pair_decision(classification));
-    }
-    let relations = existing_relations.into_values().collect::<Vec<_>>();
-    let plan = reliquary_dream::evaluate_snapshot(&accepted_decisions, &facts, &relations);
-    Ok(DreamOrganizationDraft {
+    Ok(PreparedDreamOrganization {
         owner_id,
         graph_version: owner.graph_version(),
-        observed_memories: observations,
-        classifications,
-        verifications,
-        plan,
-        accepted_decisions,
-        pending,
-        skipped,
-        batch_ready: false,
         facts,
-        relations,
+        observations,
+        memories,
+        set,
+        existing_relations,
+        skipped,
     })
+}
+
+impl PreparedDreamOrganization {
+    pub(crate) fn evaluate<C: GeneralEndpoint, V: GeneralEndpoint>(
+        self,
+        classifier: &DreamClassifier<C>,
+        verifier: Option<&DreamVerifier<V>>,
+        verification_policy: DreamVerificationPolicy,
+    ) -> Result<DreamOrganizationDraft, DreamWorkflowError> {
+        let Self {
+            owner_id,
+            graph_version,
+            facts,
+            observations,
+            memories,
+            set,
+            existing_relations,
+            skipped,
+        } = self;
+        let classifications = classifier
+            .classify_candidates(&set)
+            .map_err(|error| DreamWorkflowError::Classifier(error.to_string()))?;
+        let by_id: HashMap<_, _> = memories.iter().map(|memory| (memory.id, memory)).collect();
+        let mut verifications = Vec::new();
+        let mut accepted_decisions = Vec::new();
+        let mut pending = Vec::new();
+        for classification in &classifications {
+            if verification_policy.should_verify(classification.relation) {
+                let Some(verifier) = verifier else {
+                    pending.push((classification.a, classification.b));
+                    continue;
+                };
+                let left = by_id
+                    .get(&classification.a)
+                    .ok_or(DreamWorkflowError::MemoryUnavailable(classification.a))?;
+                let right = by_id
+                    .get(&classification.b)
+                    .ok_or(DreamWorkflowError::MemoryUnavailable(classification.b))?;
+                let Some(verification) = verifier
+                    .verify_if_required(verification_policy, classification, *left, *right)
+                    .map_err(|error| DreamWorkflowError::Verifier(error.to_string()))?
+                else {
+                    pending.push((classification.a, classification.b));
+                    continue;
+                };
+                if verification.verdict == DreamVerificationVerdict::Uncertain {
+                    pending.push((classification.a, classification.b));
+                }
+                let accepted = verification.verdict == DreamVerificationVerdict::Accept;
+                verifications.push(verification);
+                if !accepted {
+                    continue;
+                }
+            }
+            accepted_decisions.push(pair_decision(classification));
+        }
+        let relations = existing_relations.into_values().collect::<Vec<_>>();
+        let plan = reliquary_dream::evaluate_snapshot(&accepted_decisions, &facts, &relations);
+        Ok(DreamOrganizationDraft {
+            owner_id,
+            graph_version,
+            observed_memories: observations,
+            classifications,
+            verifications,
+            plan,
+            accepted_decisions,
+            pending,
+            skipped,
+            batch_ready: false,
+            facts,
+            relations,
+        })
+    }
 }
 
 /// Recheck the owner and source revisions immediately before an eventual

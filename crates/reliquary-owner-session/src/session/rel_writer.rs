@@ -151,6 +151,14 @@ impl RelWriter {
         now_ns: i64,
     ) -> Result<(), OwnerSessionError> {
         self.ensure_write_ready()?;
+        self.validate_scoped_insomnia_claim(claim, now_ns)
+    }
+
+    pub(super) fn validate_scoped_insomnia_claim(
+        &self,
+        claim: &RelInsomniaClaimInput,
+        now_ns: i64,
+    ) -> Result<(), OwnerSessionError> {
         if self.session.writer_lease_proof.is_none()
             || self.session.writer_lease_proof != self.container.writer_lease_proof()
         {
@@ -303,6 +311,16 @@ impl RelWriter {
         held_payload: Option<Vec<u8>>,
     ) -> Result<InsomniaWork, OwnerSessionError> {
         self.ensure_write_ready()?;
+        self.hold_scoped_insomnia_claim(claim, held_at_ns, reason, held_payload)
+    }
+
+    pub(super) fn hold_scoped_insomnia_claim(
+        &mut self,
+        claim: &RelInsomniaClaimInput,
+        held_at_ns: i64,
+        reason: String,
+        held_payload: Option<Vec<u8>>,
+    ) -> Result<InsomniaWork, OwnerSessionError> {
         if claim.owner_id != self.owner_id() || claim.work.episode_id.0 != claim.episode.id.0 {
             return Err(OwnerSessionError::Insomnia(
                 InsomniaError::UnacceptedEpisode,
@@ -330,6 +348,15 @@ impl RelWriter {
         payload: Vec<u8>,
     ) -> Result<InsomniaWork, OwnerSessionError> {
         self.ensure_write_ready()?;
+        self.checkpoint_scoped_insomnia_claim(claim, checkpointed_at_ns, payload)
+    }
+
+    pub(super) fn checkpoint_scoped_insomnia_claim(
+        &mut self,
+        claim: &RelInsomniaClaimInput,
+        checkpointed_at_ns: i64,
+        payload: Vec<u8>,
+    ) -> Result<InsomniaWork, OwnerSessionError> {
         if claim.owner_id != self.owner_id() || claim.work.episode_id.0 != claim.episode.id.0 {
             return Err(OwnerSessionError::Insomnia(
                 InsomniaError::UnacceptedEpisode,

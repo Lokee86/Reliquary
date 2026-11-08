@@ -69,6 +69,11 @@ pub enum OwnerSessionError {
     Archive(reliquary_archive::ArchiveError),
     Record(String),
     StaleDreamCut,
+    ManagementMissing,
+    ManagementLimit,
+    ManagementStale,
+    ManagementEvidence,
+    ManagementConflict,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -137,6 +142,11 @@ impl From<reliquary_container::ReliquaryScope> for OwnerScope {
 impl fmt::Display for OwnerSessionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::ManagementMissing => f.write_str("owner inspection item is absent"),
+            Self::ManagementLimit => f.write_str("owner inspection limit exceeded"),
+            Self::ManagementStale => f.write_str("semantic mutation revision is stale"),
+            Self::ManagementEvidence => f.write_str("semantic mutation evidence is invalid"),
+            Self::ManagementConflict => f.write_str("semantic mutation request identity conflicts"),
             Self::WrongFileKind { expected, actual } => {
                 write!(
                     f,
@@ -257,6 +267,7 @@ pub struct RelSession {
     external_references: ExternalReferenceStore,
     external_memories: ExternalMemoryStore,
     grouped_completions: BTreeMap<(WorkEpisodeId, u32), GroupedInsomniaCompletion>,
+    native_import_grouped_epochs: BTreeMap<(WorkEpisodeId, u32), String>,
     write_poisoned: bool,
     container_identity: ContainerIdentity,
     container_path: PathBuf,
@@ -354,6 +365,7 @@ pub struct PhySession {
     owner_id: [u8; 16],
     common: CommonState,
     history_generation: [u8; 32],
+    container_file_identity: (u64, u64),
 }
 
 /// Narrow PHY writer for user-owned Memories routed from an authorized REL.
@@ -363,6 +375,8 @@ pub struct PhyWriter {
     container: Container,
     owner_id: [u8; 16],
     common: CommonState,
+    history_generation: [u8; 32],
+    container_file_identity: (u64, u64),
     writer_lease_proof: Option<WriterLeaseProof>,
     poisoned: bool,
 }
@@ -652,6 +666,7 @@ impl PhySession {
             common,
             history_generation: owner_history_generation_from_container(container)
                 .map_err(OwnerSessionError::Record)?,
+            container_file_identity: container.physical_file_identity()?,
         })
     }
 
@@ -675,6 +690,7 @@ impl PhySession {
             common,
             history_generation: owner_history_generation_from_container(&container)
                 .map_err(OwnerSessionError::Record)?,
+            container_file_identity: container.physical_file_identity()?,
         })
     }
 
@@ -742,9 +758,12 @@ pub use profile_repair::{
 pub use retired_profile_prune::{RetiredProfilePruneReport, prune_retired_profile_vectors_copy};
 pub use storage_reclamation::{StorageReclamationReport, reclaim_storage_copy};
 mod native_import;
+pub use native_import::InsomniaEpisodeStatus;
+mod native_import_checkpoints;
 pub use maintenance_prune::{
     PrunedOwnerCopyReport, promote_terminal_memory_copy, prune_terminal_memory_copy,
 };
+pub use native_import_checkpoints::CompletedImportExtraction;
 mod vector_publication;
 pub use archive_vector_publication::{
     ArchiveVectorInput, ArchiveVectorRow, MAX_ARCHIVE_VECTOR_BATCH_ROWS,
@@ -755,7 +774,9 @@ mod management;
 mod phy_writer;
 mod rel_session;
 mod rel_writer;
-pub use management::{RelConversationSummary, RelTranscriptTurn};
+pub use management::{
+    ManagementRead, RelConversationSummary, RelImportedSource, RelSourceTurn, RelTranscriptTurn,
+};
 
 mod replay;
 mod validation;

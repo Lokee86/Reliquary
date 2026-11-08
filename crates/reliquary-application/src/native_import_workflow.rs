@@ -16,6 +16,17 @@ use reliquary_owner_session::{
 };
 use sha2::{Digest, Sha256};
 
+#[path = "native_import_workflow/dream.rs"]
+mod dream;
+pub use dream::{
+    EvaluatedNativeImportDream, NativeImportDreamCandidates, PreparedNativeImportDream,
+    commit_native_import_dream, prepare_native_import_dream, settle_native_import_initial_dream,
+};
+
+#[path = "native_import_workflow/postprocessing.rs"]
+mod postprocessing;
+pub use postprocessing::*;
+
 #[derive(Clone, Debug)]
 pub struct NativeImportEpisode {
     pub conversation_id: String,
@@ -47,6 +58,14 @@ pub fn stage_native_import(
     writer: &mut RelWriter,
     batch: NativeImportBatch,
 ) -> Result<StagedNativeImport, OwnerSessionError> {
+    stage_native_import_with_admission(writer, batch, || Ok(()))
+}
+
+pub(super) fn stage_native_import_with_admission(
+    writer: &mut RelWriter,
+    batch: NativeImportBatch,
+    check_admission: impl Fn() -> Result<(), OwnerSessionError>,
+) -> Result<StagedNativeImport, OwnerSessionError> {
     let owner = writer.owner_id();
     let key = batch
         .source
@@ -60,6 +79,7 @@ pub fn stage_native_import(
         ));
     }
     let id = import_id(owner, &key);
+    check_admission()?;
     let status = writer.start_native_import(
         &key,
         &batch.source.source_namespace,
@@ -71,18 +91,19 @@ pub fn stage_native_import(
     }
     if writer
         .read_session()
-        .native_import_settlement(&id)
+        .native_import_receipt(&batch.source.import_key)
         .is_some()
     {
-        // A crash between the durable settlement and completion must not
-        // re-admit source turns or re-queue already completed work.
+        // The receipt closes staging, including a crash after settlement.
         return confirm_staged_retry(writer, &batch, id, false);
     }
     for (turn, branch) in batch.turns {
+        check_admission()?;
         writer.accept_native_import_turn(&id, turn, branch)?;
     }
     let mut episodes = Vec::with_capacity(batch.episodes.len());
     for episode in batch.episodes {
+        check_admission()?;
         episodes.push(writer.finalize_native_import_episode(
             &id,
             &episode.conversation_id,
@@ -91,6 +112,7 @@ pub fn stage_native_import(
             episode.finalized_at_ns,
         )?);
     }
+    check_admission()?;
     let receipt = writer.commit_native_import_receipt(&id, batch.source)?;
     Ok(StagedNativeImport {
         import_id: id,
@@ -292,6 +314,9 @@ fn import_timeline(writer: &RelWriter) -> Result<HistoricalTimeline, OwnerSessio
         .map_err(|error| OwnerSessionError::Record(error.to_string()))
 }
 
+#[cfg(test)]
+#[path = "native_import_workflow/publication_tests.rs"]
+mod publication_tests;
 #[cfg(test)]
 #[path = "native_import_workflow/tests.rs"]
 mod tests;

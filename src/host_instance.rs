@@ -2,7 +2,7 @@ use super::*;
 
 /// Durable native conversation queue. Reads and mutations require an authenticated Instance.
 pub struct ConversationQueue {
-    inner: runtime::ConversationQueue,
+    pub(super) inner: runtime::ConversationQueue,
 }
 impl ConversationQueue {
     pub fn owner_id(&self) -> OwnerId {
@@ -48,7 +48,7 @@ impl Instance {
             ))
         }
     }
-    fn require_phy_read(&self, owner: OwnerId) -> Result<(), ProductError> {
+    pub(crate) fn require_phy_read(&self, owner: OwnerId) -> Result<(), ProductError> {
         self.inner.ensure_credential_active()?;
         if self.grants.contains(&OwnerGrant::ViewPhylactery(owner))
             || self.grants.contains(&OwnerGrant::OperatePhylactery(owner))
@@ -63,25 +63,33 @@ impl Instance {
     }
     pub fn rel_info(&self, owner: OwnerId) -> Result<crate::OwnerInfo, ProductError> {
         self.require_rel_read(owner)?;
-        let (path, kind, _) = self.gateway.record(owner)?;
+        let (path, kind, mounted) = self.gateway.record(owner)?;
         if kind != OwnerKind::Rel {
             return Err(ProductError::new(
                 ProductErrorKind::WrongFormat,
                 "owner is not REL",
             ));
         }
-        Rel::open(path)?.info()
+        if mounted {
+            self.mounted_owner_info(owner, kind)
+        } else {
+            Rel::open(path)?.info()
+        }
     }
     pub fn phylactery_info(&self, owner: OwnerId) -> Result<crate::OwnerInfo, ProductError> {
         self.require_phy_read(owner)?;
-        let (path, kind, _) = self.gateway.record(owner)?;
+        let (path, kind, mounted) = self.gateway.record(owner)?;
         if kind != OwnerKind::Phylactery {
             return Err(ProductError::new(
                 ProductErrorKind::WrongFormat,
                 "owner is not a Phylactery",
             ));
         }
-        Phylactery::open(path)?.info()
+        if mounted {
+            self.mounted_owner_info(owner, kind)
+        } else {
+            Phylactery::open(path)?.info()
+        }
     }
     pub fn workspace_management(
         &self,
@@ -98,6 +106,17 @@ impl Instance {
         self.require(OwnerGrant::OperateRel(owner))?;
         self.inner
             .open_conversation_queue(state_dir, owner.into())
+            .map(|inner| ConversationQueue { inner })
+            .map_err(Into::into)
+    }
+    pub fn open_conversation_queue_read(
+        &self,
+        state_dir: impl AsRef<Path>,
+        owner: OwnerId,
+    ) -> Result<ConversationQueue, ProductError> {
+        self.require_rel_read(owner)?;
+        self.inner
+            .open_conversation_queue_read(state_dir, owner.into())
             .map(|inner| ConversationQueue { inner })
             .map_err(Into::into)
     }
@@ -140,6 +159,35 @@ impl Instance {
         self.require_rel_read(queue.owner_id())?;
         self.inner
             .conversation_submission_status(&queue.inner, id)
+            .map_err(Into::into)
+    }
+    pub fn conversation_revision(
+        &self,
+        queue: &ConversationQueue,
+        conversation_id: &str,
+    ) -> Result<u64, ProductError> {
+        self.require_rel_read(queue.owner_id())?;
+        Ok(queue.inner.conversation_revision(conversation_id))
+    }
+    pub fn finalize_conversation_episode(
+        &self,
+        owner: OwnerId,
+        conversation_id: &str,
+        start_node_id: &str,
+        end_node_id: &str,
+        boundary: crate::EpisodeBoundary,
+        finalized_at_ns: i64,
+    ) -> Result<crate::EpisodeId, ProductError> {
+        self.require(OwnerGrant::OperateRel(owner))?;
+        self.inner
+            .finalize_conversation_episode(
+                owner.into(),
+                conversation_id,
+                start_node_id,
+                end_node_id,
+                boundary,
+                finalized_at_ns,
+            )
             .map_err(Into::into)
     }
     pub fn cancel_own_pending_submission(

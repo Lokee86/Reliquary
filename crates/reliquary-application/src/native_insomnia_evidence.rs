@@ -13,9 +13,30 @@ pub fn resolve_native_insomnia_evidence(
     claim: &RelInsomniaClaimInput,
     requests: &[EvidenceRequest],
 ) -> Result<ResolvedNativeInsomniaEvidence, String> {
+    resolve_scoped_evidence(rel, claim, requests, None)
+}
+
+pub fn resolve_import_insomnia_evidence(
+    rel: &RelSession,
+    import_id: &str,
+    claim: &RelInsomniaClaimInput,
+    requests: &[EvidenceRequest],
+) -> Result<ResolvedNativeInsomniaEvidence, String> {
+    resolve_scoped_evidence(rel, claim, requests, Some(import_id))
+}
+
+fn resolve_scoped_evidence(
+    rel: &RelSession,
+    claim: &RelInsomniaClaimInput,
+    requests: &[EvidenceRequest],
+    import_id: Option<&str>,
+) -> Result<ResolvedNativeInsomniaEvidence, String> {
     if rel.owner_id() != claim.owner_id
         || rel.episode(claim.episode.id) != Some(&claim.episode)
-        || claim.episode.origin != EpisodeOrigin::Live
+        || !matches!(
+            (claim.episode.origin, import_id),
+            (EpisodeOrigin::Live, None) | (EpisodeOrigin::Import, Some(_))
+        )
         || requests.len() > reliquary_insomnia::MAX_INSOMNIA_EVIDENCE_REQUESTS
     {
         return Err("evidence requires the claimed native REL Episode".into());
@@ -70,7 +91,23 @@ pub fn resolve_native_insomnia_evidence(
         match found {
             Err(_) => result.error = Some("requested Archive evidence is unavailable".into()),
             Ok(found) => {
+                if let Some(id) = import_id
+                    && request.kind != "archive_search"
+                    && found.iter().any(|(conversation, turn)| {
+                        !rel.native_import_source_contains(id, conversation, &turn.node_id)
+                    })
+                {
+                    result.error = Some("requested Archive evidence is unavailable".into());
+                    results.push(result);
+                    continue;
+                }
                 for (conversation_id, turn) in found {
+                    if import_id.is_some_and(|id| {
+                        !rel.native_import_source_contains(id, &conversation_id, &turn.node_id)
+                    }) {
+                        result.truncated = true;
+                        continue;
+                    }
                     if turn.timestamp_ns > through {
                         result.truncated = true;
                         continue;

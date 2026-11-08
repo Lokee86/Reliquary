@@ -24,16 +24,16 @@ pub(super) fn retire(
     let entity = common.perception.entity(request.entity_id).ok_or_else(|| {
         OwnerSessionError::Record("Entity retirement target is not active".into())
     })?;
-    if entity.revision != request.entity_revision
-        || !(contains_normalized(&request.source_quote, &entity.canonical_name)
-            || entity
-                .aliases
-                .iter()
-                .any(|alias| contains_normalized(&request.source_quote, alias)))
+    if entity.revision != request.entity_revision {
+        return Err(OwnerSessionError::ManagementStale);
+    }
+    if !(contains_normalized(&request.source_quote, &entity.canonical_name)
+        || entity
+            .aliases
+            .iter()
+            .any(|alias| contains_normalized(&request.source_quote, alias)))
     {
-        return Err(OwnerSessionError::Record(
-            "Entity retirement source or revision mismatch".into(),
-        ));
+        return Err(OwnerSessionError::ManagementEvidence);
     }
     let active_mention = common
         .perception

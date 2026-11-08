@@ -161,6 +161,65 @@ fn hex(bytes: &[u8]) -> String {
 impl RelWriter {
     pub fn commit_dream_batch(&mut self, cut: DreamBatchCut) -> Result<bool, OwnerSessionError> {
         self.ensure_write_ready()?;
+        self.commit_dream_batch_after_fence(cut)
+    }
+
+    pub fn commit_native_import_dream_batch(
+        &mut self,
+        import_id: &str,
+        pass_id: &str,
+        cut: DreamBatchCut,
+    ) -> Result<bool, OwnerSessionError> {
+        let frontier = self
+            .initial_dream_frontier(pass_id)
+            .ok_or(OwnerSessionError::StaleDreamCut)?;
+        self.validate_native_import_memory(import_id, frontier.source.id)?;
+        let expected = frontier
+            .candidates
+            .iter()
+            .map(|c| c.id)
+            .collect::<std::collections::BTreeSet<_>>();
+        let evaluated = cut
+            .pairs
+            .iter()
+            .map(|p| p.candidate)
+            .collect::<std::collections::BTreeSet<_>>();
+        let (expected_pass, publication) =
+            Self::native_import_dream_identity(import_id, frontier.source.id);
+        if pass_id != expected_pass
+            || cut.publication_id != publication
+            || cut.graph_version != frontier.graph_version
+            || cut.observed.first() != Some(&frontier.source)
+            || frontier
+                .candidates
+                .iter()
+                .any(|c| !cut.observed.contains(c))
+            || cut.pairs.iter().any(|p| p.source != frontier.source.id)
+            || evaluated != expected
+            || cut.pairs.len() != expected.len()
+        {
+            return Err(OwnerSessionError::StaleDreamCut);
+        }
+        if !self.dream_batch_published(publication) {
+            let seeds: Vec<_> = std::iter::once(frontier.source.id.0)
+                .chain(frontier.candidates.iter().map(|c| c.id.0))
+                .collect();
+            let (allowed, _) = self.session.common.graph.duplicate_context(&seeds, 128)?;
+            if cut
+                .observed
+                .iter()
+                .any(|observation| !allowed.contains(&observation.id.0))
+            {
+                return Err(OwnerSessionError::StaleDreamCut);
+            }
+        }
+        self.commit_dream_batch_after_fence(cut)
+    }
+
+    fn commit_dream_batch_after_fence(
+        &mut self,
+        cut: DreamBatchCut,
+    ) -> Result<bool, OwnerSessionError> {
         if self.container.writer_lease_proof().is_none()
             || self.container.writer_lease_proof() != self.session.writer_lease_proof
         {

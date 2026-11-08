@@ -20,7 +20,8 @@ mod staged_copy;
 pub use reliquary_freshness_store::{FreshnessEventProof, FreshnessMemoryId, FreshnessUseReceipt};
 /// Bound for durable Insomnia inference checkpoints, owned by the session store.
 pub use reliquary_insomnia_store::MAX_HELD_PAYLOAD_BYTES as MAX_INSOMNIA_CHECKPOINT_BYTES;
-pub use reliquary_insomnia_store::{CompletionCheck, InsomniaLeaseToken};
+pub use reliquary_insomnia_store::{CompletionCheck, InsomniaLeaseToken, InsomniaWorkState};
+pub use session::{CompletedImportExtraction, InsomniaEpisodeStatus};
 pub use session::{
     DreamBatchCut, DreamCandidatePool, DreamLifecyclePublication, DreamPairPublication,
     InitialDreamSnapshot, NativeImportFreshnessInput, NativeImportHistoricalEvent,
@@ -37,7 +38,9 @@ pub use session::{
 pub use session::{
     HistoricalOwnerCut, HistoricalOwnerProof, HistoricalProofError, RelHistoricalCut,
 };
-pub use session::{RelConversationSummary, RelTranscriptTurn};
+pub use session::{
+    ManagementRead, RelConversationSummary, RelImportedSource, RelSourceTurn, RelTranscriptTurn,
+};
 pub use session::{
     RelHistoryComparison, RelHistoryRelation, RelReconciliationError, RelReconciliationReport,
     compare_rel_histories, reconcile_divergent_rel_copy,

@@ -36,7 +36,6 @@ impl RelWriter {
             .ok_or_else(|| {
                 OwnerSessionError::Record("native import receipt is unavailable".into())
             })?;
-        self.validate_import_work_complete(receipt)?;
 
         let mapped = super::work::mapped_source_nodes(receipt);
         let positions: BTreeMap<_, _> = self
@@ -69,24 +68,9 @@ impl RelWriter {
             })?;
         let settlement_cut = self.session.archive.rel_turn_count();
 
-        let episode_ids: BTreeSet<_> = self
-            .session
-            .archive
-            .episodes()
+        let cohort: BTreeSet<_> = self
+            .native_import_memory_ids(import_id)?
             .into_iter()
-            .filter(|episode| episode.origin == reliquary_archive::EpisodeOrigin::Import)
-            .filter_map(|episode| {
-                let turns = self.session.archive.episode_turns(episode.id).ok()??;
-                super::work::source_path_is_mapped(&mapped, &episode.conversation_id, &turns)
-                    .then_some(WorkEpisodeId(episode.id.0))
-            })
-            .collect();
-        let cohort: BTreeSet<MemoryId> = self
-            .session
-            .grouped_completions
-            .iter()
-            .filter(|((episode, _), _)| episode_ids.contains(episode))
-            .flat_map(|(_, completion)| completion.memory_ids.iter().copied().map(MemoryId))
             .collect();
 
         let replay = self.session.freshness.replay_entries();

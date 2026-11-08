@@ -3,15 +3,19 @@ use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::sync::Mutex;
 
+#[path = "configured_tests.rs"]
+mod configured;
+
 fn mock_server(
     status: &str,
     headers: &str,
-    body: &'static str,
+    body: &str,
 ) -> (String, std::thread::JoinHandle<Vec<u8>>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let url = format!("http://{}/completion", listener.local_addr().unwrap());
     let status = status.to_owned();
     let headers = headers.to_owned();
+    let body = body.to_owned();
     let server = std::thread::spawn(move || {
         let (mut stream, _) = listener.accept().unwrap();
         stream
@@ -315,7 +319,7 @@ fn configured_decision_http_redacts_backpressure_body_and_keeps_retry_after() {
             retry_after,
         }) => {
             assert!(!message.contains("secret-value"));
-            assert!(message.contains("[REDACTED]"));
+            assert_eq!(message, "provider returned HTTP 429");
             assert_eq!(retry_after, Some(Duration::from_secs(7)));
         }
         result => panic!("unexpected result: {result:?}"),
@@ -332,13 +336,14 @@ fn configured_decision_http_redacts_backpressure_body_and_keeps_retry_after() {
 fn codex_http_uses_oauth_account_and_completed_event_stream() {
     let body = concat!(
         "data: {\"type\":\"response.output_text.delta\",\"delta\":\"{\\\"ok\\\":true}\"}\n\n",
-        "data: {\"type\":\"response.completed\"}\n\n"
+        "data: {\"type\":\"response.completed\"}\n\n",
+        "data: [DONE]\n\n"
     );
     let (url, server) = mock_server("200 OK", "Content-Type: text/event-stream\r\n", body);
     let id = CredentialId::new("codex").unwrap();
     let route = GeneralModelEndpoint {
         provider: ModelProvider::OpenAiCodex,
-        model: "codex-model".into(),
+        model: "gpt-5.6-test".into(),
         url,
         credential_id: id.clone(),
     };
@@ -364,10 +369,17 @@ fn codex_http_uses_oauth_account_and_completed_event_stream() {
             .to_ascii_lowercase()
             .contains("chatgpt-account-id: account-42")
     );
+    assert!(request.to_ascii_lowercase().contains("version: 0.156.0"));
+    assert!(
+        request
+            .to_ascii_lowercase()
+            .contains("x-openai-internal-codex-responses-lite: true")
+    );
     let request_body: Value =
         serde_json::from_str(request.split("\r\n\r\n").nth(1).unwrap()).unwrap();
     assert_eq!(request_body["store"], false);
     assert_eq!(request_body["stream"], true);
+    assert_eq!(request_body["service_tier"], "priority");
 }
 
 #[test]

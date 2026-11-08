@@ -6,6 +6,22 @@ impl RelWriter {
         profile: reliquary_vector_store::CompatibilityProfile,
     ) -> Result<CompatibilityProfileId, OwnerSessionError> {
         self.ensure_write_ready()?;
+        self.publish_compatibility_profile_after_fence(profile)
+    }
+
+    pub fn publish_native_import_profile(
+        &mut self,
+        import_id: &str,
+        profile: reliquary_vector_store::CompatibilityProfile,
+    ) -> Result<CompatibilityProfileId, OwnerSessionError> {
+        self.validate_native_import_postprocessing(import_id)?;
+        self.publish_compatibility_profile_after_fence(profile)
+    }
+
+    fn publish_compatibility_profile_after_fence(
+        &mut self,
+        profile: reliquary_vector_store::CompatibilityProfile,
+    ) -> Result<CompatibilityProfileId, OwnerSessionError> {
         self.check_vector_lease()?;
         if self.session.common.profiles.get(profile.id).is_some()
             && self
@@ -34,6 +50,40 @@ impl RelWriter {
         rows: &[MemoryVectorRow],
     ) -> Result<bool, OwnerSessionError> {
         self.ensure_write_ready()?;
+        self.publish_memory_vectors_after_fence(profile, rows)
+    }
+
+    pub fn native_import_memory_vector_input(
+        &self,
+        import_id: &str,
+        profile: CompatibilityProfileId,
+        ids: &[MemoryId],
+    ) -> Result<MemoryVectorInput, OwnerSessionError> {
+        self.ensure_import_scope(import_id)?;
+        for &id in ids {
+            self.validate_native_import_memory(import_id, id)?;
+        }
+        self.session.memory_vector_input(profile, ids)
+    }
+
+    pub fn publish_native_import_memory_vectors(
+        &mut self,
+        import_id: &str,
+        profile: CompatibilityProfileId,
+        rows: &[MemoryVectorRow],
+    ) -> Result<bool, OwnerSessionError> {
+        self.ensure_import_scope(import_id)?;
+        for row in rows {
+            self.validate_native_import_memory(import_id, row.memory_id)?;
+        }
+        self.publish_memory_vectors_after_fence(profile, rows)
+    }
+
+    fn publish_memory_vectors_after_fence(
+        &mut self,
+        profile: CompatibilityProfileId,
+        rows: &[MemoryVectorRow],
+    ) -> Result<bool, OwnerSessionError> {
         self.check_vector_lease()?;
         let result = self
             .session

@@ -267,6 +267,57 @@ pub fn commit_prepared_native_ingest_with_routed_receipts(
     completed_at_ns: i64,
     routed: &[RoutedUserMemoryReceipt],
 ) -> Result<CompletionCheck, IngestPublicationError> {
+    commit_prepared_scoped_ingest(
+        writer,
+        prepared,
+        work,
+        extractor_model,
+        extractor_version,
+        completed_at_ns,
+        routed,
+        None,
+    )
+}
+
+/// Publish real extraction results under an explicitly admitted native import.
+/// The owner validates the import epoch, source Episode, lease and routed proofs.
+pub fn commit_prepared_native_import_with_routed_receipts(
+    writer: &mut RelWriter,
+    import_id: &str,
+    prepared: &PreparedIngest,
+    work: &InsomniaWork,
+    extractor_model: &str,
+    extractor_version: &str,
+    completed_at_ns: i64,
+    routed: &[RoutedUserMemoryReceipt],
+) -> Result<CompletionCheck, IngestPublicationError> {
+    commit_prepared_scoped_ingest(
+        writer,
+        prepared,
+        work,
+        extractor_model,
+        extractor_version,
+        completed_at_ns,
+        routed,
+        Some(import_id),
+    )
+}
+
+fn commit_prepared_scoped_ingest(
+    writer: &mut RelWriter,
+    prepared: &PreparedIngest,
+    work: &InsomniaWork,
+    extractor_model: &str,
+    extractor_version: &str,
+    completed_at_ns: i64,
+    routed: &[RoutedUserMemoryReceipt],
+    import_id: Option<&str>,
+) -> Result<CompletionCheck, IngestPublicationError> {
+    if let Some(import_id) = import_id {
+        writer
+            .validate_import_episode_identity(import_id, prepared.episode_id())
+            .map_err(|error| IngestPublicationError::OwnerSession(error.to_string()))?;
+    }
     let external_memory_refs: Vec<_> = routed
         .iter()
         .map(RoutedUserMemoryReceipt::external_ref)
@@ -509,14 +560,22 @@ pub fn commit_prepared_native_ingest_with_routed_receipts(
         freshness_policy_version: (record_count > 0).then_some(u64::from(FRESHNESS_POLICY_VERSION)),
         freshness_birth_memory_ids: ids,
     };
-    writer
-        .commit_grouped_insomnia_completion_with_routed_receipts(
+    let result = match import_id {
+        Some(import_id) => writer.commit_native_import_completion_with_routed_receipts(
+            import_id,
             token,
             completion,
             completed_at_ns,
             routed,
-        )
-        .map_err(|error| IngestPublicationError::OwnerSession(error.to_string()))
+        ),
+        None => writer.commit_grouped_insomnia_completion_with_routed_receipts(
+            token,
+            completion,
+            completed_at_ns,
+            routed,
+        ),
+    };
+    result.map_err(|error| IngestPublicationError::OwnerSession(error.to_string()))
 }
 
 fn hex(bytes: &[u8]) -> String {

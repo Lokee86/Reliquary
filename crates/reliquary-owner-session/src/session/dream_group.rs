@@ -64,7 +64,7 @@ impl RelWriter {
         import_id: &str,
         cut: DreamRelationCut,
     ) -> Result<bool, OwnerSessionError> {
-        self.ensure_import_scope(import_id)?;
+        self.validate_native_import_memory(import_id, cut.source.id)?;
         self.commit_dream_grouped_relation_after_fence(cut)
     }
 

@@ -1,6 +1,7 @@
 # Reliquary 2.1 public product API
 
-**Operational completion plan:** [public API and CLI specification](public-api-cli-operational-completion-spec-2026-11-07.md), with the [interaction/query contract](public-api-cli-interaction-contract-2026-11-07.md) and [gap audit](public-api-cli-gap-audit-2026-11-07.md). These are specified additions, not implemented capabilities. The current interface described below remains the narrower P01 surface until operational acceptance.
+The operational completion documents define the broader public API and CLI
+acceptance criteria. [Specification](public-api-cli-operational-completion-spec-2026-11-07.md), [interaction contract](public-api-cli-interaction-contract-2026-11-07.md), [gap audit](public-api-cli-gap-audit-2026-11-07.md).
 
 Downstream Rust consumers depend on the root `reliquary-memory` package. Create
 or open owners with `Rel` and `Phylactery`; both are opaque read handles.
@@ -31,9 +32,14 @@ Tokens belong in host configuration, never request parameters, logs, or CLI
 arguments. Grants are immutable. Revocation is checked again on reads and at
 writer handoff/commit.
 
-The separate `reliquary` CLI is REL-only. It emits JSON for successful reports,
-uses nonzero exit status with a JSON error on failure, never overwrites an
-output, and has no `cva` or implicit `phy` alias.
+Rust hosts can load a validated provider bundle with `ConfiguredRuntime`. See
+the schema, credential reference conventions, and explicit online probe API
+in the [configured provider runtime guide](configured-runtime.md).
+
+The separate `reliquary` CLI supports explicit REL and PHY commands. It emits
+JSON and returns nonzero on failure or incomplete requested readiness. Copy
+maintenance keeps its create-only destinations. See the
+[operator workflow and public symbol map](operator-workflow.md).
 
 ## Migration from the reference facade
 

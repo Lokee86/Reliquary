@@ -104,6 +104,22 @@ impl Instance {
         state_dir: impl AsRef<Path>,
         owner: OwnerId,
     ) -> Result<ConversationQueue, GatewayError> {
+        self.check_queue_mount(owner)?;
+        Ok(ConversationQueue::open(state_dir, owner)?)
+    }
+
+    pub fn open_conversation_queue_read(
+        &self,
+        state_dir: impl AsRef<Path>,
+        owner: OwnerId,
+    ) -> Result<ConversationQueue, GatewayError> {
+        self.check_queue_mount(owner)?;
+        let queue = ConversationQueue::open_read(state_dir, owner)?;
+        self.ensure_credential_active()?;
+        Ok(queue)
+    }
+
+    fn check_queue_mount(&self, owner: OwnerId) -> Result<(), GatewayError> {
         self.authorize_queue_owner(owner)?;
         {
             let owners = self
@@ -116,8 +132,7 @@ impl Instance {
                 None => return Err(GatewayError::UnknownOwner(owner)),
             }
         }
-        self.ensure_credential_active()?;
-        Ok(ConversationQueue::open(state_dir, owner)?)
+        self.ensure_credential_active()
     }
 
     /// Read one operation status through the same owner authorization check used

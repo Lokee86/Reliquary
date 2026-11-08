@@ -22,17 +22,13 @@ pub(super) fn source_memory(
 ) -> Result<MemoryRevision, OwnerSessionError> {
     let memory = common.memories.current(memory_id)?;
     if memory.record.revision != revision || memory.record.body_id != body_id {
-        return Err(OwnerSessionError::Record(
-            "semantic source Memory changed before mutation".into(),
-        ));
+        return Err(OwnerSessionError::ManagementStale);
     }
     if memory.record.source_ref.as_ref().is_none_or(|source| {
         source.owner_id.trim().is_empty() || source.source_node_id.trim().is_empty()
     }) || memory.record.authority_kind != "direct"
     {
-        return Err(OwnerSessionError::Record(
-            "semantic mutation requires accepted Memory provenance".into(),
-        ));
+        return Err(OwnerSessionError::ManagementEvidence);
     }
     let PayloadState::Available(body) = &memory.payload else {
         return Err(OwnerSessionError::Record(
@@ -44,9 +40,7 @@ pub(super) fn source_memory(
         MemoryTextField::Content => &body.content,
     };
     if quote.trim().is_empty() || text.get(start_byte..end_byte) != Some(quote) {
-        return Err(OwnerSessionError::Record(
-            "semantic evidence is not an exact accepted source span".into(),
-        ));
+        return Err(OwnerSessionError::ManagementEvidence);
     }
     Ok(memory)
 }

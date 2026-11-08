@@ -48,16 +48,29 @@ pub(super) fn require_kind(
     }
 }
 
+#[derive(Default)]
+pub(super) struct GroupedReplayAdmission {
+    pub completions: BTreeMap<(WorkEpisodeId, u32), GroupedInsomniaCompletion>,
+    pub import_epochs: BTreeMap<(WorkEpisodeId, u32), String>,
+}
+
 pub(super) fn validate_grouped_replay_admission(
     container: &Container,
     archive: &Archive,
-) -> Result<BTreeMap<(WorkEpisodeId, u32), GroupedInsomniaCompletion>, OwnerSessionError> {
-    let mut grouped = BTreeMap::new();
+) -> Result<GroupedReplayAdmission, OwnerSessionError> {
+    let mut grouped = GroupedReplayAdmission::default();
+    let mut imports = ImportEpochStore::prefix(container.owner_id());
     let mut visible_episodes = std::collections::BTreeSet::new();
     let mut visible_turns = std::collections::BTreeSet::new();
     let mut visible_memories = std::collections::BTreeSet::new();
     let mut activity = 0u64;
     for frame in container.read_frames()? {
+        if super::native_import::is_import_epoch_marker(&frame.payload) {
+            imports
+                .ingest_prefix(&frame.payload)
+                .map_err(OwnerSessionError::Record)?;
+            continue;
+        }
         let envelope = reliquary_container::decode_publication(&frame.payload)?;
         let body = envelope
             .as_ref()
@@ -137,7 +150,18 @@ pub(super) fn validate_grouped_replay_admission(
             ));
         }
         let key = (WorkEpisodeId(completion.episode_id), completion.attempt);
-        if grouped.insert(key, completion).is_some() {
+        if let Some(epoch) = imports
+            .open_epoch()
+            .filter(|epoch| epoch.format_version == 2)
+        {
+            if imports.settlement(&epoch.import_id).is_some() {
+                return Err(OwnerSessionError::Record(
+                    "grouped extraction follows its sealed import settlement".into(),
+                ));
+            }
+            grouped.import_epochs.insert(key, epoch.import_id.clone());
+        }
+        if grouped.completions.insert(key, completion).is_some() {
             return Err(OwnerSessionError::Record(
                 "duplicate grouped completion attempt".into(),
             ));

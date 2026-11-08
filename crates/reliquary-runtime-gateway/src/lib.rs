@@ -61,6 +61,7 @@ impl OwnerId {
 #[derive(Debug)]
 pub enum GatewayError {
     OwnerSession(OwnerSessionError),
+    Management(reliquary_application::ManagementError),
     ConversationQueue(conversation_queue::QueueError),
     DuplicateOwner(OwnerId),
     AdmissionOwnerMismatch {
@@ -92,10 +93,13 @@ pub enum GatewayError {
     InvalidPreparedRetrieval,
     StaleRetrieval,
     Retrieval(String),
+    RetrievalUnavailable(&'static str),
     IncompleteHostContract(RuntimeCapability),
     UnsupportedHostCapability(RuntimeCapability),
     RoutedMemory(String),
     ProjectSource(String),
+    ExternalSource(reliquary_owner_session::records::external_index::model::ExternalSourceError),
+    NativeImportConflict,
     RegistryPoisoned,
     WriterUnavailable,
 }
@@ -103,6 +107,7 @@ impl fmt::Display for GatewayError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::OwnerSession(e) => e.fmt(f),
+            Self::Management(e) => e.fmt(f),
             Self::ConversationQueue(e) => e.fmt(f),
             Self::DuplicateOwner(id) => write!(f, "owner {:?} is already mounted", id.0),
             Self::AdmissionOwnerMismatch { expected, actual } => write!(
@@ -151,6 +156,7 @@ impl fmt::Display for GatewayError {
                 f.write_str("retrieval result no longer matches current authorized owner state")
             }
             Self::Retrieval(reason) => write!(f, "agentic retrieval failed: {reason}"),
+            Self::RetrievalUnavailable(reason) => f.write_str(reason),
             Self::IncompleteHostContract(capability) => {
                 write!(f, "host queue contract is incomplete for {capability:?}")
             }
@@ -159,6 +165,10 @@ impl fmt::Display for GatewayError {
             }
             Self::RoutedMemory(reason) => write!(f, "routed user Memory failed: {reason}"),
             Self::ProjectSource(reason) => write!(f, "project source failed: {reason}"),
+            Self::ExternalSource(error) => error.fmt(f),
+            Self::NativeImportConflict => {
+                f.write_str("native import conflicts with the mounted owner's source or open epoch")
+            }
             Self::RegistryPoisoned => f.write_str("gateway owner registry is unavailable"),
             Self::WriterUnavailable => f.write_str("owner writer session is unavailable"),
         }
@@ -412,8 +422,17 @@ pub use instance_context::{
     ContextMemoryRef, ProjectContextAttachmentRef,
 };
 mod instance_management;
+mod instance_native_import;
 mod instance_owner;
 mod instance_passive_retrieval;
+pub use instance_passive_retrieval::{SearchMode, SearchResult};
+mod instance_processing;
+mod processing_stages;
+mod processing_vectors;
+pub use instance_processing::{
+    InsomniaRunOptions, ProcessingJob, ProcessingReport, ProcessingState,
+};
+pub use processing_vectors::VectorCoverage;
 mod instance_project_correlation;
 pub use instance_project_correlation::{AuthorizedProjectCorrelation, TrustedProjectSource};
 mod instance_routing;
@@ -437,5 +456,6 @@ pub use host_memory_delivery::{
 };
 pub use instance_external_source::{AuthorizedExternalLexicalIndex, ExternalHostSource};
 pub use instance_retrieval::{
-    MemoryRetrievalRoute, MemoryRetrievalTurn, PreparedMemoryDelivery, RetrievalOutcome,
+    MemoryRetrievalRoute, MemoryRetrievalTurn, PreparedMemoryDelivery, RetrievalCut,
+    RetrievalMemory, RetrievalMode, RetrievalOutcome, RetrievalPreview, RetrievalSource,
 };

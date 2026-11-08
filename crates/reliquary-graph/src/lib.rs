@@ -310,6 +310,21 @@ impl GraphStore {
     pub fn active_relations(&self) -> impl Iterator<Item = &Relation> {
         self.states.values().filter(|relation| relation.active)
     }
+
+    /// Inspect a single indexed neighborhood in outgoing-then-incoming order.
+    pub fn incident_relations(&self, node: NodeRef) -> impl Iterator<Item = &Relation> {
+        let outgoing = self.outgoing.get(&node).into_iter().flatten();
+        let incoming = self
+            .incoming
+            .get(&node)
+            .into_iter()
+            .flatten()
+            .filter(move |key| key.source != node);
+        outgoing
+            .chain(incoming)
+            .filter_map(move |key| self.states.get(key))
+            .filter(|relation| relation.active)
+    }
     pub fn relation(
         &self,
         source: NodeRef,

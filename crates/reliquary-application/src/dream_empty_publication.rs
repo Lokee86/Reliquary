@@ -36,6 +36,42 @@ pub fn settle_initial_dream_cycle(
         DreamOwnerWriter::Phy(w) => w.initial_dream_snapshot(pass_id),
     }
     .map_err(|e| DreamWorkflowError::OwnerWrite(e.to_string()))?;
+    let (effects, promote) =
+        prepare_initial_dream_settlement(snapshot, matches!(writer, DreamOwnerWriter::Rel(_)))?;
+    let result = match writer {
+        DreamOwnerWriter::Rel(writer) => writer.commit_initial_dream_pass(
+            pass_id,
+            cut,
+            draft.graph_version,
+            accepted_turn,
+            effects,
+            promote,
+        ),
+        DreamOwnerWriter::Phy(writer) => writer.commit_initial_dream_pass(
+            pass_id,
+            cut,
+            draft.graph_version,
+            accepted_turn,
+            effects,
+            promote,
+        ),
+    };
+    result.map_err(|error| match error {
+        OwnerSessionError::StaleDreamCut => DreamWorkflowError::StaleSnapshot,
+        _ => DreamWorkflowError::OwnerWrite(error.to_string()),
+    })
+}
+
+pub(crate) fn prepare_initial_dream_settlement(
+    snapshot: reliquary_owner_session::InitialDreamSnapshot,
+    rel: bool,
+) -> Result<
+    (
+        std::collections::BTreeMap<reliquary_owner_session::MemoryId, i16>,
+        bool,
+    ),
+    DreamWorkflowError,
+> {
     let fact = reliquary_dream::MemoryFact {
         id: snapshot.source.id,
         lifecycle_state: snapshot.source.lifecycle_state.clone(),
@@ -97,7 +133,7 @@ pub fn settle_initial_dream_cycle(
                 .cloned()
                 .collect();
             if let Some(id) = reliquary_dream::duplicate_representative(&members) {
-                if id != source.memory_id
+                if id != fact.id
                     && snapshot.preexisting.contains(&id)
                     && snapshot.eligible.contains(&id)
                 {
@@ -107,7 +143,7 @@ pub fn settle_initial_dream_cycle(
         }
     }
     let mut effects = std::collections::BTreeMap::new();
-    if matches!(writer, DreamOwnerWriter::Rel(_)) && !snapshot.settled && !credit_roots.is_empty() {
+    if rel && !snapshot.settled && !credit_roots.is_empty() {
         use reliquary_freshness::{
             CommunityMembership, MemoryAdjacency, PropagationEvent, propagate_with_policy,
         };
@@ -137,7 +173,7 @@ pub fn settle_initial_dream_cycle(
             &PropagationEvent {
                 roots: credit_roots.into_iter().collect(),
                 principal: snapshot.policy.linkage_principal,
-                excluded: [source.memory_id].into(),
+                excluded: [fact.id].into(),
             },
             &adjacency,
             &membership,
@@ -147,28 +183,7 @@ pub fn settle_initial_dream_cycle(
         .map_err(|e| DreamWorkflowError::OwnerWrite(e.to_string()))?;
         effects.retain(|id, _| snapshot.eligible.contains(id));
     }
-    let result = match writer {
-        DreamOwnerWriter::Rel(writer) => writer.commit_initial_dream_pass(
-            pass_id,
-            cut,
-            draft.graph_version,
-            accepted_turn,
-            effects,
-            promote,
-        ),
-        DreamOwnerWriter::Phy(writer) => writer.commit_initial_dream_pass(
-            pass_id,
-            cut,
-            draft.graph_version,
-            accepted_turn,
-            effects,
-            promote,
-        ),
-    };
-    result.map_err(|error| match error {
-        OwnerSessionError::StaleDreamCut => DreamWorkflowError::StaleSnapshot,
-        _ => DreamWorkflowError::OwnerWrite(error.to_string()),
-    })
+    Ok((effects, promote))
 }
 
 /// Settle a checked no-candidate pass, including an isolated first Memory.

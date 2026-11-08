@@ -77,6 +77,7 @@ pub enum EmbeddingEndpointError {
     InvalidConfiguration(&'static str),
     InvalidResponse(&'static str),
     Failure(String),
+    HttpStatus(u16),
 }
 
 impl fmt::Display for EmbeddingEndpointError {
@@ -354,6 +355,7 @@ pub fn resolve_decision_endpoint(
 pub enum GeneralEndpointError {
     InvalidConfiguration(&'static str),
     Failure(String),
+    HttpStatus(u16),
     Backpressure {
         message: String,
         retry_after: Option<Duration>,
@@ -390,6 +392,7 @@ pub trait GeneralEndpoint: Send + Sync {
 pub enum DecisionEndpointError {
     InvalidConfiguration(&'static str),
     Failure(String),
+    HttpStatus(u16),
     Backpressure {
         message: String,
         retry_after: Option<Duration>,
@@ -409,7 +412,16 @@ pub trait DecisionEndpoint: Send + Sync {
     fn evaluate(&self, state: &Value, questions: &Value) -> Result<Value, DecisionEndpointError>;
 }
 
+mod configured;
+mod protected_config;
+mod runtime_config;
+mod runtime_credentials;
+mod runtime_probe;
 mod transport;
+pub use configured::{ConfiguredRoutes, ConfiguredRuntimeError, RuntimeEndpointFailure};
+pub use runtime_credentials::{
+    CredentialMaterial, CredentialResolver, EnvironmentCredentialResolver,
+};
 pub use transport::ConfiguredEmbeddingEndpoint;
 pub use transport::{ConfiguredDecisionEndpoint, ConfiguredGeneralEndpoint};
 
@@ -626,6 +638,7 @@ fn map_general_error(error: GeneralEndpointError) -> DecisionEndpointError {
             DecisionEndpointError::InvalidConfiguration(message)
         }
         GeneralEndpointError::Failure(message) => DecisionEndpointError::Failure(message),
+        GeneralEndpointError::HttpStatus(status) => DecisionEndpointError::HttpStatus(status),
     }
 }
 

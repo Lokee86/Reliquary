@@ -629,3 +629,6 @@ fn readonly_preparation_cannot_deliver_and_terminal_rejection_releases_turn() {
     ));
     assert_eq!(host.calls.load(Ordering::Relaxed), 0);
 }
+
+#[path = "inspection_tests.rs"]
+mod inspection_tests;

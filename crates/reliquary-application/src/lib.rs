@@ -37,29 +37,37 @@ mod entity_workflow;
 mod external_source_workflow;
 mod freshness_due_workflow;
 mod history_workflow;
+pub mod import_entity_work;
 mod ingest_publication;
 mod maintenance_workflow;
 mod management_workflow;
 mod perception_lifecycle_workflow;
+pub use management_workflow::inspection;
 pub use management_workflow::{
-    ConversationInspection, MAX_MANAGEMENT_PAGE_BYTES, MAX_MANAGEMENT_PAGE_ITEMS, ManagedBranch,
-    ManagementError, ManagementPage, ManagementVersions, MemoryProvenance, MemoryStatistics,
-    MemorySummary, RelManagementHealth, SemanticOwnerStatistics, TranscriptTurn,
-    create_direct_memory, management_conversations, management_health, management_memories,
-    management_memory, management_provenance, management_statistics, management_transcript,
-    set_management_title,
+    ConversationInspection, CreateMemoryRequest, MAX_MANAGEMENT_PAGE_BYTES,
+    MAX_MANAGEMENT_PAGE_ITEMS, ManagedBranch, ManagementError, ManagementPage, ManagementVersions,
+    MemoryProvenance, MemoryStatistics, MemorySummary, RelManagementHealth,
+    SemanticOwnerStatistics, TranscriptTurn, create_direct_memory, create_requested_memory,
+    management_conversations, management_health, management_memories, management_memory,
+    management_provenance, management_statistics, management_transcript, set_management_title,
+    user_mutation_id,
 };
+pub mod native_import_source;
 pub mod native_import_workflow;
+pub use native_import_workflow::settle_native_import_initial_dream;
 mod native_insomnia;
 mod native_insomnia_evidence;
+pub mod processing_plan;
 mod project_correlation_workflow;
 mod rel_reconciliation_workflow;
 mod rewrite_workflow;
 pub use native_insomnia::{
     INSOMNIA_EXTRACTOR_CONTRACT_VERSION, NativeInsomniaExtraction, extract_native_insomnia,
+    extract_native_insomnia_with_ownership,
 };
 pub use native_insomnia_evidence::{
-    ResolvedNativeInsomniaEvidence, resolve_native_insomnia_evidence,
+    ResolvedNativeInsomniaEvidence, resolve_import_insomnia_evidence,
+    resolve_native_insomnia_evidence,
 };
 pub use project_correlation_workflow::{
     MAX_CORRELATED_PROJECT_FILE_BYTES, PreparedProjectCorrelation, ProjectCorrelatedNativeCommit,
@@ -75,8 +83,8 @@ pub use reliquary_vectors::{
     EmbeddingEndpoint, EmbeddingEndpointError, SwitchboardEmbeddingEndpoint, VectorNormalization,
 };
 pub use vector_publication::{
-    PreparedMemoryVectors, commit_phy_memory_vectors, commit_rel_memory_vectors,
-    evaluate_memory_vectors, prepare_compatibility_profile,
+    PreparedMemoryVectors, commit_native_import_memory_vectors, commit_phy_memory_vectors,
+    commit_rel_memory_vectors, evaluate_memory_vectors, prepare_compatibility_profile,
 };
 mod verified_copy_workflow;
 pub use dream_candidates::{
@@ -106,8 +114,8 @@ pub use history_workflow::{
     read_owner_memory_history, read_owner_memory_history_at_cut,
 };
 pub use ingest_publication::{
-    IngestPublicationError, commit_prepared_native_ingest,
-    commit_prepared_native_ingest_with_external_refs,
+    IngestPublicationError, commit_prepared_native_import_with_routed_receipts,
+    commit_prepared_native_ingest, commit_prepared_native_ingest_with_external_refs,
     commit_prepared_native_ingest_with_routed_receipts, prepare_routed_user_proofs,
 };
 pub use maintenance_workflow::{

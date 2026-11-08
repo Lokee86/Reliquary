@@ -1,6 +1,8 @@
 use super::*;
 use std::io::Read;
 
+const CODEX_COMPAT_VERSION: &str = "0.156.0";
+
 /// OpenAI-compatible embedding provider configured from an explicit route.
 #[derive(Clone)]
 pub struct ConfiguredEmbeddingEndpoint {
@@ -69,6 +71,9 @@ impl ConfiguredEmbeddingEndpoint {
                 "encoding_format": "float", "input_type": match mode { EmbeddingMode::Query => "search_query", EmbeddingMode::Document => "search_document" }}))
             .send().map_err(|_| EmbeddingEndpointError::Failure("provider request failed".into()))?;
         let status = response.status();
+        if !status.is_success() {
+            return Err(EmbeddingEndpointError::HttpStatus(status.as_u16()));
+        }
         let cap = u64::try_from(limit)
             .ok()
             .and_then(|n| n.checked_add(1))
@@ -84,12 +89,6 @@ impl ConfiguredEmbeddingEndpoint {
             return Err(EmbeddingEndpointError::InvalidResponse(
                 "bounded response exceeded",
             ));
-        }
-        if !status.is_success() {
-            return Err(EmbeddingEndpointError::Failure(format!(
-                "HTTP {status}: {}",
-                bounded_error(&bytes, &self.api_key.0)
-            )));
         }
         decode_embedding_response(&bytes, inputs.len(), self.dimensions, self.normalization)
     }
@@ -207,10 +206,9 @@ fn decode_embedding_response(
 }
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
-const MAX_RESPONSE_BYTES: usize = 1024 * 1024;
-const MAX_ERROR_BYTES: usize = 1024;
+pub(super) const MAX_RESPONSE_BYTES: usize = 1024 * 1024;
 
-fn validated_http_url(value: &str) -> Result<reqwest::Url, &'static str> {
+pub(super) fn validated_http_url(value: &str) -> Result<reqwest::Url, &'static str> {
     let url = reqwest::Url::parse(value).map_err(|_| "route URL is invalid")?;
     let local_http = url.scheme() == "http"
         && matches!(
@@ -235,20 +233,11 @@ fn response_bytes(response: reqwest::blocking::Response) -> Result<Vec<u8>, Stri
     response
         .take((MAX_RESPONSE_BYTES + 1) as u64)
         .read_to_end(&mut bytes)
-        .map_err(|error| error.to_string())?;
+        .map_err(|_| "provider response read failed".to_owned())?;
     if bytes.len() > MAX_RESPONSE_BYTES {
         return Err("provider response exceeded the 1 MiB limit".into());
     }
     Ok(bytes)
-}
-
-fn bounded_error(bytes: &[u8], secret: &str) -> String {
-    let value = String::from_utf8_lossy(bytes).replace(secret, "[REDACTED]");
-    let mut bounded = value.chars().take(MAX_ERROR_BYTES).collect::<String>();
-    if value.chars().count() > MAX_ERROR_BYTES {
-        bounded.push_str("…");
-    }
-    bounded
 }
 
 fn retry_after(headers: &reqwest::header::HeaderMap) -> Option<Duration> {
@@ -269,6 +258,10 @@ fn parse_codex_stream(stream: &str) -> Result<Value, GeneralEndpointError> {
     for line in stream.lines().chain(std::iter::once("")) {
         let line = line.trim_end_matches('\r');
         if line.is_empty() {
+            if event_data == "[DONE]" {
+                event_data.clear();
+                continue;
+            }
             if !event_data.is_empty() {
                 let event: Value = serde_json::from_str(&event_data).map_err(|_| {
                     GeneralEndpointError::InvalidResponse("provider stream event is invalid")
@@ -316,12 +309,21 @@ pub struct ConfiguredGeneralEndpoint {
     api_key: SecretString,
     provider: ModelProvider,
     account_id: Option<String>,
+    reasoning_effort: Option<&'static str>,
 }
 
 impl ConfiguredGeneralEndpoint {
     pub fn from_route(
         route: &GeneralModelEndpoint,
         credentials: &CredentialsConfig,
+    ) -> Result<Self, GeneralEndpointError> {
+        Self::from_route_with_reasoning_effort(route, credentials, None)
+    }
+
+    pub(super) fn from_route_with_reasoning_effort(
+        route: &GeneralModelEndpoint,
+        credentials: &CredentialsConfig,
+        reasoning_effort: Option<&'static str>,
     ) -> Result<Self, GeneralEndpointError> {
         if route.model.trim().is_empty() {
             return Err(GeneralEndpointError::InvalidConfiguration(
@@ -350,6 +352,7 @@ impl ConfiguredGeneralEndpoint {
             api_key,
             provider: route.provider,
             account_id,
+            reasoning_effort,
         })
     }
 }
@@ -366,7 +369,7 @@ impl GeneralEndpoint for ConfiguredGeneralEndpoint {
         schema_name: &str,
         schema: &Value,
     ) -> Result<Value, GeneralEndpointError> {
-        let (body, codex) = match self.provider {
+        let (mut body, codex) = match self.provider {
             ModelProvider::OpenAiReady => (
                 json!({
                     "model": self.model,
@@ -398,7 +401,7 @@ impl GeneralEndpoint for ConfiguredGeneralEndpoint {
                         "instructions": system_prompt,
                         "input": [{"role": "user", "content": [{"type": "input_text", "text": user_payload}]}],
                         "parallel_tool_calls": false,
-                        "reasoning": {"effort": "low", "summary": "auto"},
+                        "reasoning": {"effort": self.reasoning_effort.unwrap_or("low"), "summary": "auto"},
                         "store": false,
                         "stream": true,
                         "include": [],
@@ -410,6 +413,14 @@ impl GeneralEndpoint for ConfiguredGeneralEndpoint {
                 )
             }
         };
+        if !codex && let Some(effort) = self.reasoning_effort {
+            body["reasoning_effort"] = json!(effort);
+        }
+        let responses_lite =
+            codex && (self.model.starts_with("gpt-5.6-") || self.model.starts_with("gpt-6-"));
+        if responses_lite {
+            body["service_tier"] = json!("priority");
+        }
         let auth = SecretString::new(format!("Bearer {}", self.api_key.0))
             .expect("API key was validated as non-empty");
         let response = self
@@ -424,39 +435,41 @@ impl GeneralEndpoint for ConfiguredGeneralEndpoint {
                     "application/json"
                 },
             );
-        let response = if codex {
+        let mut request = if codex {
             response
                 .header(
                     "ChatGPT-Account-ID",
                     self.account_id.as_deref().unwrap_or_default(),
                 )
                 .header("originator", "codex_cli_rs")
-                .header("version", "0.1.0")
-                .header(reqwest::header::USER_AGENT, "codex_cli_rs/0.1.0")
+                .header("version", CODEX_COMPAT_VERSION)
+                .header(
+                    reqwest::header::USER_AGENT,
+                    format!("codex_cli_rs/{CODEX_COMPAT_VERSION}"),
+                )
                 .header(reqwest::header::CONTENT_TYPE, "application/json")
-                .json(&body)
-                .send()
         } else {
-            response.json(&body).send()
+            response
         };
-        let response = response
+        if responses_lite {
+            request = request.header("x-openai-internal-codex-responses-lite", "true");
+        }
+        let response = request
+            .json(&body)
+            .send()
             .map_err(|_error| GeneralEndpointError::Failure("provider request failed".into()))?;
         let status = response.status();
         let retry_after = retry_after(response.headers());
-        let bytes =
-            response_bytes(response).map_err(|error| GeneralEndpointError::Failure(error))?;
         if status.as_u16() == 429 {
             return Err(GeneralEndpointError::Backpressure {
-                message: format!("HTTP {status}: {}", bounded_error(&bytes, &self.api_key.0)),
+                message: "provider returned HTTP 429".into(),
                 retry_after,
             });
         }
         if !status.is_success() {
-            return Err(GeneralEndpointError::Failure(format!(
-                "HTTP {status}: {}",
-                bounded_error(&bytes, &self.api_key.0)
-            )));
+            return Err(GeneralEndpointError::HttpStatus(status.as_u16()));
         }
+        let bytes = response_bytes(response).map_err(GeneralEndpointError::Failure)?;
         if codex {
             parse_codex_stream(&String::from_utf8_lossy(&bytes))
         } else {
@@ -535,19 +548,16 @@ impl DecisionEndpoint for ConfiguredDecisionEndpoint {
             .map_err(|_error| DecisionEndpointError::Failure("provider request failed".into()))?;
         let status = response.status();
         let retry_after = retry_after(response.headers());
-        let bytes = response_bytes(response).map_err(DecisionEndpointError::Failure)?;
         if status.as_u16() == 429 {
             return Err(DecisionEndpointError::Backpressure {
-                message: format!("HTTP {status}: {}", bounded_error(&bytes, &self.api_key.0)),
+                message: "provider returned HTTP 429".into(),
                 retry_after,
             });
         }
         if !status.is_success() {
-            return Err(DecisionEndpointError::Failure(format!(
-                "HTTP {status}: {}",
-                bounded_error(&bytes, &self.api_key.0)
-            )));
+            return Err(DecisionEndpointError::HttpStatus(status.as_u16()));
         }
+        let bytes = response_bytes(response).map_err(DecisionEndpointError::Failure)?;
         serde_json::from_slice(&bytes)
             .map_err(|_| DecisionEndpointError::InvalidResponse("provider response is not JSON"))
     }

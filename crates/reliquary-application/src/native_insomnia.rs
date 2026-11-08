@@ -23,10 +23,21 @@ pub fn extract_native_insomnia<E: GeneralEndpoint + Clone + 'static>(
     destination: Option<[u8; 16]>,
     resolve: impl FnOnce(&[EvidenceRequest]) -> Result<ResolvedNativeInsomniaEvidence, String>,
 ) -> Result<NativeInsomniaExtraction, String> {
+    let ownership = destination.is_some().then(|| endpoint.clone());
+    extract_native_insomnia_with_ownership(endpoint, claim, destination, ownership, resolve)
+}
+
+pub fn extract_native_insomnia_with_ownership<E: GeneralEndpoint + Clone + 'static>(
+    endpoint: E,
+    claim: &RelInsomniaClaimInput,
+    destination: Option<[u8; 16]>,
+    ownership: Option<E>,
+    resolve: impl FnOnce(&[EvidenceRequest]) -> Result<ResolvedNativeInsomniaEvidence, String>,
+) -> Result<NativeInsomniaExtraction, String> {
     let model = endpoint.model().to_owned();
-    let mut extractor = InsomniaModelExtractor::new(endpoint.clone());
-    if destination.is_some() {
-        extractor = extractor.with_ownership_endpoint(endpoint);
+    let mut extractor = InsomniaModelExtractor::new(endpoint);
+    if let Some(ownership) = ownership {
+        extractor = extractor.with_ownership_endpoint(ownership);
     }
     let stage = extractor.start(&claim.episode, &claim.turns)?;
     let (extraction, evidence) = if stage.requests.is_empty() {
@@ -52,6 +63,21 @@ pub fn extract_native_insomnia<E: GeneralEndpoint + Clone + 'static>(
 }
 
 impl NativeInsomniaExtraction {
+    pub fn import_checkpoint_matches(
+        payload: &[u8],
+        model: &str,
+        destination: Option<[u8; 16]>,
+    ) -> bool {
+        serde_json::from_slice::<Value>(payload)
+            .ok()
+            .is_some_and(|value| {
+                value["version"] == 1
+                    && value["model"] == model
+                    && (value.get("destination") == Some(&json!(destination))
+                        || value.get("destination") == Some(&Value::Null))
+            })
+    }
+
     pub fn model(&self) -> &str {
         &self.model
     }
@@ -78,12 +104,32 @@ impl NativeInsomniaExtraction {
         destination: Option<[u8; 16]>,
         payload: &[u8],
     ) -> Result<Self, String> {
+        Self::decode_checkpoint(claim, destination, payload, false)
+    }
+
+    /// A checkpoint prepared without a destination could not have produced a
+    /// routed publication. An explicit PHY grant may bind that result on retry.
+    pub fn reopen_import_checkpoint(
+        claim: &RelInsomniaClaimInput,
+        destination: Option<[u8; 16]>,
+        payload: &[u8],
+    ) -> Result<Self, String> {
+        Self::decode_checkpoint(claim, destination, payload, true)
+    }
+
+    fn decode_checkpoint(
+        claim: &RelInsomniaClaimInput,
+        destination: Option<[u8; 16]>,
+        payload: &[u8],
+        allow_unbound: bool,
+    ) -> Result<Self, String> {
         let mut value: Value =
             serde_json::from_slice(payload).map_err(|error| error.to_string())?;
         if value["version"] != 1
             || value["owner"] != json!(claim.owner_id)
             || value["episode"] != json!(claim.episode.id.0)
-            || value.get("destination") != Some(&json!(destination))
+            || !(value.get("destination") == Some(&json!(destination))
+                || allow_unbound && value.get("destination") == Some(&Value::Null))
         {
             return Err("Insomnia checkpoint does not match claimed Episode".into());
         }

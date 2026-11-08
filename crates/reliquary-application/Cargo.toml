@@ -18,7 +18,7 @@ reliquary-switchboard = { path = "../reliquary-switchboard" }
 reliquary-project-environment = { path = "../reliquary-project-environment" }
 sha2 = "0.10"
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde_json = { version = "1", features = ["raw_value"] }
 
 [dev-dependencies]
 lore = { git = "https://github.com/EpicGames/lore.git", rev = "c49390be048fa273ab47ff7d43bc4994ba7be8ce" }

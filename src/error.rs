@@ -1,3 +1,4 @@
+use crate::ExternalSourceError;
 use reliquary_owner_session::{OwnerFailureKind, OwnerSessionError};
 use reliquary_runtime_gateway::GatewayError;
 use serde::Serialize;
@@ -53,6 +54,12 @@ impl fmt::Display for ProductError {
 impl std::error::Error for ProductError {}
 
 fn owner_kind(error: &OwnerSessionError) -> ProductErrorKind {
+    match error {
+        OwnerSessionError::ManagementStale => return ProductErrorKind::Stale,
+        OwnerSessionError::ManagementEvidence => return ProductErrorKind::InvalidInput,
+        OwnerSessionError::ManagementConflict => return ProductErrorKind::Conflict,
+        _ => {}
+    }
     match error.failure_kind() {
         OwnerFailureKind::UnsupportedFormat | OwnerFailureKind::WrongFileKind => {
             ProductErrorKind::WrongFormat
@@ -73,6 +80,19 @@ impl From<OwnerSessionError> for ProductError {
 impl From<GatewayError> for ProductError {
     fn from(error: GatewayError) -> Self {
         let kind = match &error {
+            GatewayError::Management(error) => {
+                use reliquary_application::ManagementError::*;
+                match error {
+                    InvalidPage | PageBytesExceeded | InvalidInput(_) => {
+                        ProductErrorKind::InvalidInput
+                    }
+                    NotFound | Terminal => ProductErrorKind::Unavailable,
+                    Stale => ProductErrorKind::Stale,
+                    Unsupported => ProductErrorKind::Unsupported,
+                    Conflict => ProductErrorKind::Conflict,
+                    Owner(_) => ProductErrorKind::Verification,
+                }
+            }
             GatewayError::OwnerSession(inner) => owner_kind(inner),
             GatewayError::UnauthorizedRel { .. }
             | GatewayError::UnauthorizedPhy { .. }
@@ -80,9 +100,29 @@ impl From<GatewayError> for ProductError {
             GatewayError::CredentialRevoked => ProductErrorKind::Revoked,
             GatewayError::WrongOwnerKind(_) => ProductErrorKind::WrongFormat,
             GatewayError::AdmissionOwnerMismatch { .. } => ProductErrorKind::Admission,
-            GatewayError::DuplicateOwner(_) => ProductErrorKind::Conflict,
+            GatewayError::DuplicateOwner(_) | GatewayError::NativeImportConflict => {
+                ProductErrorKind::Conflict
+            }
             GatewayError::WriterUnavailable => ProductErrorKind::WriterUnavailable,
             GatewayError::StaleRetrieval => ProductErrorKind::Stale,
+            GatewayError::ExternalSource(error) => match error {
+                ExternalSourceError::Unauthorized => ProductErrorKind::Unauthorized,
+                ExternalSourceError::StaleEvidence => ProductErrorKind::Stale,
+                ExternalSourceError::Conflict => ProductErrorKind::Conflict,
+                ExternalSourceError::InvalidContract | ExternalSourceError::Bounds => {
+                    ProductErrorKind::InvalidInput
+                }
+                ExternalSourceError::TemporalDecisionInvalidOutput => {
+                    ProductErrorKind::Verification
+                }
+                ExternalSourceError::Unavailable
+                | ExternalSourceError::RebuildRequired
+                | ExternalSourceError::Storage
+                | ExternalSourceError::TemporalDecisionUnavailable
+                | ExternalSourceError::TemporalDecisionBackpressure { .. } => {
+                    ProductErrorKind::Unavailable
+                }
+            },
             GatewayError::UnknownOwner(_) => ProductErrorKind::Unavailable,
             GatewayError::UnsupportedHostCapability(_)
             | GatewayError::IncompleteHostContract(_) => ProductErrorKind::Unsupported,

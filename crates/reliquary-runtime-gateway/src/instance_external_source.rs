@@ -60,8 +60,25 @@ impl Gateway {
             return Err(external_error(ExternalSourceError::InvalidContract));
         }
         manifest.validate().map_err(external_error)?;
-        self.recheck_external_host(instance, source, &namespace)?;
+        self.recheck_external_host(instance, owner, source, &namespace)?;
         Ok(manifest)
+    }
+
+    /// Inspect the last accepted reference-only cut for this owner and principal.
+    pub fn recorded_external_source_manifest(
+        &self,
+        instance: &Instance,
+        owner: OwnerId,
+        source: &dyn ExternalHostSource,
+    ) -> Result<Option<ExternalReferenceSnapshotReceipt>, GatewayError> {
+        let namespace = self.check_external_host(instance, owner, source)?;
+        let recorded = instance.with_reliquary(owner, |session| {
+            session
+                .external_reference_snapshot(&namespace, instance.principal())
+                .cloned()
+        })?;
+        self.recheck_external_host(instance, owner, source, &namespace)?;
+        Ok(recorded)
     }
 
     /// Persist the host's authorized descriptor cut without copying host text.
@@ -97,7 +114,7 @@ impl Gateway {
                 .add_batch(expected, &hydrated)
                 .map_err(external_error)?;
         }
-        self.recheck_external_host(instance, source, &manifest.namespace)?;
+        self.recheck_external_host(instance, owner, source, &manifest.namespace)?;
         Ok(AuthorizedExternalLexicalIndex {
             instance_id: instance.instance_id,
             owner,
@@ -123,7 +140,7 @@ impl Gateway {
             return Err(external_error(ExternalSourceError::Unauthorized));
         }
         let hits = index.index.search(query, limit).map_err(external_error)?;
-        self.recheck_external_host(instance, source, &namespace)?;
+        self.recheck_external_host(instance, index.owner, source, &namespace)?;
         Ok(hits)
     }
 
@@ -142,7 +159,7 @@ impl Gateway {
             .hydrate(instance.principal(), expected)
             .map_err(external_error)?;
         verify_external_hydration(&namespace, expected, &hydrated).map_err(external_error)?;
-        self.recheck_external_host(instance, source, &namespace)?;
+        self.recheck_external_host(instance, owner, source, &namespace)?;
         Ok(hydrated)
     }
 
@@ -172,17 +189,9 @@ impl Gateway {
         source: &dyn ExternalHostSource,
     ) -> Result<String, GatewayError> {
         if !Arc::ptr_eq(&self.owners, &instance.owners) {
-            return Err(GatewayError::HostAdapter(
-                "external source Instance belongs to another Gateway".into(),
-            ));
+            return Err(external_error(ExternalSourceError::Unauthorized));
         }
-        instance.ensure_credential_active()?;
-        if !instance.rel_grants.contains(&owner) {
-            return Err(GatewayError::UnauthorizedRel {
-                principal: instance.principal.to_string(),
-                owner,
-            });
-        }
+        instance.check_external_source_owner(owner)?;
         if source.contract_version() != EXTERNAL_SOURCE_CONTRACT {
             return Err(external_error(ExternalSourceError::InvalidContract));
         }
@@ -192,12 +201,14 @@ impl Gateway {
         source
             .authorize(instance.principal())
             .map_err(external_error)?;
+        instance.check_external_source_owner(owner)?;
         Ok(namespace)
     }
 
     fn recheck_external_host(
         &self,
         instance: &Instance,
+        owner: OwnerId,
         source: &dyn ExternalHostSource,
         namespace: &str,
     ) -> Result<(), GatewayError> {
@@ -208,12 +219,27 @@ impl Gateway {
         source
             .authorize(instance.principal())
             .map_err(external_error)?;
-        instance.ensure_credential_active()
+        instance.check_external_source_owner(owner)
+    }
+}
+
+impl Instance {
+    fn check_external_source_owner(&self, owner: OwnerId) -> Result<(), GatewayError> {
+        self.authorize_queue_owner(owner)?;
+        let owners = self
+            .owners
+            .read()
+            .map_err(|_| GatewayError::RegistryPoisoned)?;
+        match owners.get(&owner) {
+            Some(mounted) if mounted.is_rel() => Ok(()),
+            Some(_) => Err(GatewayError::WrongOwnerKind(owner)),
+            None => Err(GatewayError::UnknownOwner(owner)),
+        }
     }
 }
 
 fn external_error(error: ExternalSourceError) -> GatewayError {
-    GatewayError::HostAdapter(error.to_string())
+    GatewayError::ExternalSource(error)
 }
 
 #[cfg(test)]
@@ -235,7 +261,7 @@ impl Gateway {
         let proposals = reliquary_application::prepare_external_memory(
             endpoint, &namespace, expected, &hydrated,
         );
-        self.recheck_external_host(instance, source, &namespace)?;
+        self.recheck_external_host(instance, owner, source, &namespace)?;
         Ok(proposals.map_err(external_error)?)
     }
 }

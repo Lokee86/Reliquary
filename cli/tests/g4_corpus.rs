@@ -359,7 +359,7 @@ fn fresh_cli_process_inspects_and_copies_populated_public_rel() {
     reliquary_memory::Phylactery::create(&phy_path).unwrap();
     for args in [
         vec!["cva", "info", path],
-        vec!["phy", "info", phy_path.to_str().unwrap()],
+        vec!["phy", "info", path],
         vec!["rel", "info", path, "--unknown"],
         vec!["rel", "verify", phy_path.to_str().unwrap()],
     ] {

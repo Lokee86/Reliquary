@@ -104,6 +104,9 @@ impl From<reliquary_switchboard::EmbeddingEndpointError> for EmbeddingEndpointEr
                 Self::InvalidResponse(m)
             }
             reliquary_switchboard::EmbeddingEndpointError::Failure(m) => Self::Failure(m),
+            reliquary_switchboard::EmbeddingEndpointError::HttpStatus(status) => {
+                Self::Failure(format!("embedding provider returned HTTP {status}"))
+            }
         }
     }
 }

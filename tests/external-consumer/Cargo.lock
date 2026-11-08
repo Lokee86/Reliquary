@@ -2795,7 +2795,10 @@ dependencies = [
 name = "reliquary-switchboard"
 version = "0.1.0"
 dependencies = [
+ "hex",
  "reqwest",
+ "ring",
+ "serde",
  "serde_json",
  "zeroize",
 ]

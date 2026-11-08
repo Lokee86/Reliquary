@@ -61,6 +61,24 @@ pub fn ranked_owner_dream_candidates_with_report(
     profile: CompatibilityProfileId,
     config: DreamCandidateConfig,
 ) -> Result<(Vec<MemoryId>, DreamCandidateReadReport), DreamWorkflowError> {
+    ranked_owner_dream_candidates_filtered(
+        owner,
+        authorized_owner_id,
+        source_id,
+        profile,
+        config,
+        |_| true,
+    )
+}
+
+pub(crate) fn ranked_owner_dream_candidates_filtered(
+    owner: &EntityOwnerSession<'_>,
+    authorized_owner_id: [u8; 16],
+    source_id: MemoryId,
+    profile: CompatibilityProfileId,
+    config: DreamCandidateConfig,
+    eligible: impl Fn(MemoryId) -> bool,
+) -> Result<(Vec<MemoryId>, DreamCandidateReadReport), DreamWorkflowError> {
     if owner.owner_id() != authorized_owner_id {
         return Err(DreamWorkflowError::OwnerMismatch);
     }
@@ -87,6 +105,7 @@ pub fn ranked_owner_dream_candidates_with_report(
     };
     for id in pool.ids {
         if id == source_id
+            || !eligible(id)
             || owner.dream_pair_evaluated(source_id, id)
             || already_related(owner, source_id, id)
         {

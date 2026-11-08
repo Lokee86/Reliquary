@@ -228,6 +228,43 @@ impl InsomniaStore {
         payload: Option<Vec<u8>>,
     ) -> Result<InsomniaWork, InsomniaError> {
         self.check_owner(c)?;
+        let work = self.active(id, t, at)?;
+        self.hold_work(c, work, at, reason, payload)
+    }
+
+    /// Keep an unreconciled outcome held even if this exact attempt expired.
+    /// A superseded claim cannot change the currently projected work.
+    pub fn hold_unreconciled_attempt(
+        &mut self,
+        c: &mut Container,
+        id: EpisodeId,
+        token: InsomniaLeaseToken,
+        at: i64,
+        reason: String,
+        payload: Option<Vec<u8>>,
+    ) -> Result<InsomniaWork, InsomniaError> {
+        self.check_owner(c)?;
+        let work = self
+            .work
+            .get(&id)
+            .filter(|work| {
+                work.state == InsomniaWorkState::Processing
+                    && work.lease_token == Some(token)
+                    && at >= work.updated_at_ns
+            })
+            .cloned()
+            .ok_or(InsomniaError::InvalidLease)?;
+        self.hold_work(c, work, at, reason, payload)
+    }
+
+    fn hold_work(
+        &mut self,
+        c: &mut Container,
+        mut w: InsomniaWork,
+        at: i64,
+        reason: String,
+        payload: Option<Vec<u8>>,
+    ) -> Result<InsomniaWork, InsomniaError> {
         if reason.trim().is_empty()
             || payload
                 .as_ref()
@@ -235,7 +272,6 @@ impl InsomniaStore {
         {
             return Err(InsomniaError::InvalidField("held reason"));
         }
-        let mut w = self.active(id, t, at)?;
         w.state = InsomniaWorkState::Held;
         clear_lease(&mut w);
         w.retry_after_ns = None;

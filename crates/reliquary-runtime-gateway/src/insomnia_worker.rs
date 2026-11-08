@@ -4,7 +4,7 @@
 //! session, then release the owner lock before invoking the model endpoint.
 //! A synced extraction checkpoint is reused when a publication lease expires.
 use crate::{Gateway, GatewayError, Instance, OwnerId};
-mod processing;
+pub(crate) mod processing;
 use reliquary_switchboard::{GeneralEndpoint, GeneralEndpointError};
 use serde_json::Value;
 use std::{
@@ -56,7 +56,7 @@ impl InsomniaWorkerConfig {
 }
 
 #[derive(Clone)]
-struct SharedEndpoint(Arc<dyn GeneralEndpoint>);
+pub(crate) struct SharedEndpoint(pub(crate) Arc<dyn GeneralEndpoint>);
 impl GeneralEndpoint for SharedEndpoint {
     fn model(&self) -> &str {
         self.0.model()
@@ -181,7 +181,15 @@ fn worker_loop(
                 continue;
             }
         };
-        processing::process_claim(&instance, owner, &endpoint, &config, claim);
+        let _ = processing::process_claim(
+            &instance,
+            owner,
+            &endpoint,
+            config.destination_phy_owner,
+            claim,
+            None,
+            None,
+        );
     }
 }
 
@@ -190,7 +198,7 @@ fn wait(control: &WorkerControl, duration: Duration) {
         let _ = control.wait.1.wait_timeout(lock, duration);
     }
 }
-fn now_ns() -> i64 {
+pub(crate) fn now_ns() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .ok()

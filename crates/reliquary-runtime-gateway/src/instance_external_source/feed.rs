@@ -23,7 +23,7 @@ impl Gateway {
             .map_err(external_error)?;
         let applied =
             apply_external_change_batch(base.manifest(), &batch).map_err(external_error)?;
-        self.recheck_external_host(instance, source, &namespace)?;
+        self.recheck_external_host(instance, owner, source, &namespace)?;
         instance.with_rel_writer(owner, |writer| {
             if writer
                 .read_session()

@@ -9,12 +9,23 @@ use crate::records::{
 mod completion;
 #[path = "native_import_freshness.rs"]
 mod freshness;
+#[path = "native_import_postprocessing.rs"]
+mod postprocessing;
+pub(super) use postprocessing::native_import_dream_prefix;
 #[path = "native_import_work.rs"]
 mod work;
+pub use work::InsomniaEpisodeStatus;
 #[path = "native_import_writer.rs"]
 mod writer;
 
 impl RelSession {
+    /// Current durable epoch, including an interrupted import with no receipt.
+    pub fn open_native_import_id(&self) -> Option<&str> {
+        self.imports
+            .open_epoch()
+            .map(|start| start.import_id.as_str())
+    }
+
     pub fn native_import_receipt(
         &self,
         import_key: &[u8; 32],
@@ -25,6 +36,13 @@ impl RelSession {
     pub fn native_import_settlement(&self, import_id: &str) -> Option<&ImportFreshnessSettlement> {
         self.imports.settlement(import_id)
     }
+}
+
+pub(super) fn is_import_epoch_marker(payload: &[u8]) -> bool {
+    matches!(
+        payload.get(..8),
+        Some(b"RELIEPS1" | b"RELIEPC1" | b"RELIEPS2" | b"RELIEPC2" | b"RELIFRS1")
+    )
 }
 
 pub(super) fn validate_native_import_receipts(
@@ -42,10 +60,7 @@ pub(super) fn validate_native_import_receipts(
         frame
             .read_exact(&mut magic)
             .map_err(reliquary_container::ContainerError::from)?;
-        let epoch_marker = matches!(
-            &magic,
-            b"RELIEPS1" | b"RELIEPC1" | b"RELIEPS2" | b"RELIEPC2" | b"RELIFRS1"
-        );
+        let epoch_marker = is_import_epoch_marker(&magic);
         if !epoch_marker && &magic != b"CVAIMPT1" {
             continue;
         }

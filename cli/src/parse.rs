@@ -5,6 +5,21 @@ pub(super) fn option<'a>(args: &'a [String], name: &str) -> Option<&'a str> {
         .find(|pair| pair[0] == name)
         .map(|pair| pair[1].as_str())
 }
+pub(super) fn required_option<'a>(args: &'a [String], name: &str) -> Result<&'a str, ProductError> {
+    option(args, name).ok_or_else(|| invalid(format!("{name} is required")))
+}
+pub(super) fn number_option<T: std::str::FromStr>(
+    args: &[String],
+    name: &str,
+) -> Result<Option<T>, ProductError> {
+    option(args, name)
+        .map(|value| {
+            value
+                .parse()
+                .map_err(|_| invalid(format!("invalid number for {name}")))
+        })
+        .transpose()
+}
 pub(super) fn repeated_options<'a>(args: &'a [String], name: &str) -> Vec<&'a str> {
     args.windows(2)
         .filter(|pair| pair[0] == name)
@@ -35,7 +50,7 @@ pub(super) fn validate_options(
         if !repeatable && !seen.insert(flag) {
             return Err(invalid(format!("duplicate CLI option: {flag}")));
         }
-        if flag == "--dry-run" {
+        if matches!(flag, "--dry-run" | "--online" | "--process") {
             index += 1;
         } else {
             if index + 1 >= args.len() || args[index + 1].starts_with('-') {
@@ -70,7 +85,7 @@ pub(super) fn parse_hex<const N: usize>(
     value: &str,
     label: &str,
 ) -> Result<[u8; N], reliquary_memory::ProductError> {
-    if value.len() != N * 2 {
+    if value.len() != N * 2 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err(invalid(format!(
             "{label} must contain {} hexadecimal characters",
             N * 2

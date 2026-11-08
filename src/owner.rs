@@ -31,7 +31,7 @@ impl fmt::Display for OwnerId {
 impl FromStr for OwnerId {
     type Err = ProductError;
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        if value.len() != 32 {
+        if value.len() != 32 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
             return Err(ProductError::invalid(
                 "owner ID must contain 32 hexadecimal characters",
             ));

@@ -318,7 +318,7 @@ pub struct ConversationQueue {
     file: File,
     projection: Projection,
     failed: bool,
-    _writer_lock: File,
+    writer_lock: Option<File>,
 }
 mod validation;
 use validation::*;

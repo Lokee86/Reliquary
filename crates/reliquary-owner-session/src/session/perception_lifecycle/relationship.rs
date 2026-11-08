@@ -35,13 +35,9 @@ pub(super) fn create(
             .perception
             .entity(input.entity_id)
             .filter(|entity| entity.revision == input.entity_revision)
-            .ok_or_else(|| {
-                OwnerSessionError::Record("Relationship participant is stale or unavailable".into())
-            })?;
+            .ok_or(OwnerSessionError::ManagementStale)?;
         if !contains_normalized(&request.source_quote, &entity.canonical_name) {
-            return Err(OwnerSessionError::Record(
-                "Relationship source does not name each participant".into(),
-            ));
+            return Err(OwnerSessionError::ManagementEvidence);
         }
         participants.push(RelationshipParticipant {
             entity: RelationshipEntityRef {
@@ -64,21 +60,29 @@ pub(super) fn create(
         ));
     }
     let memory = memory.record;
-    Ok(common.perception.publish_relationship(
-        container,
-        RelationshipDraft {
-            kind: request.kind,
-            participants,
-            evidence: vec![RelationshipMemoryRef {
-                owner_id: owner_hex(&request.owner_id),
-                memory_id: request.source_memory_id.0,
-            }],
-            summary: request.source_quote,
-            mutation_id: request.mutation_id,
-            created_at_ns: memory.created_at_ns,
-            updated_at_ns: request.updated_at_ns.max(memory.updated_at_ns),
-        },
-    )?)
+    common
+        .perception
+        .publish_relationship(
+            container,
+            RelationshipDraft {
+                kind: request.kind,
+                participants,
+                evidence: vec![RelationshipMemoryRef {
+                    owner_id: owner_hex(&request.owner_id),
+                    memory_id: request.source_memory_id.0,
+                }],
+                summary: request.source_quote,
+                mutation_id: request.mutation_id,
+                created_at_ns: memory.created_at_ns,
+                updated_at_ns: request.updated_at_ns.max(memory.updated_at_ns),
+            },
+        )
+        .map_err(|error| match error {
+            PerceptionError::InvalidField("conflicting Relationship mutation") => {
+                OwnerSessionError::ManagementConflict
+            }
+            other => other.into(),
+        })
 }
 
 pub(super) fn retire(
@@ -107,16 +111,16 @@ pub(super) fn retire(
         .ok_or_else(|| {
             OwnerSessionError::Record("Relationship retirement target is not active".into())
         })?;
-    if relationship.revision != request.relationship_revision
-        || relationship.summary != request.source_quote
+    if relationship.revision != request.relationship_revision {
+        return Err(OwnerSessionError::ManagementStale);
+    }
+    if relationship.summary != request.source_quote
         || !relationship.evidence.iter().any(|evidence| {
             evidence.owner_id == owner_hex(&request.owner_id)
                 && evidence.memory_id == request.source_memory_id.0
         })
     {
-        return Err(OwnerSessionError::Record(
-            "Relationship retirement evidence or revision mismatch".into(),
-        ));
+        return Err(OwnerSessionError::ManagementEvidence);
     }
     Ok(common.perception.tombstone_relationship(
         container,

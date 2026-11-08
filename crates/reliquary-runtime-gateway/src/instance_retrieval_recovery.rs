@@ -11,14 +11,60 @@ impl Instance {
         router: &CapabilityRouter,
     ) -> Result<bool, GatewayError> {
         validate_turn_binding(self, turn, turn.owner, &turn.turn_id)?;
+        if turn.mode != RetrievalMode::Deliver {
+            return Err(GatewayError::InvalidPreparedRetrieval);
+        }
+        let _delivery = turn
+            .delivery
+            .try_lock()
+            .map_err(|_| GatewayError::HostStatusUnknown)?;
         let owner = turn.owner;
+        self.with_rel_writer(owner, |_| ())?;
+        {
+            let state = turn
+                .state
+                .lock()
+                .map_err(|_| GatewayError::RegistryPoisoned)?;
+            if state
+                .pending_use_id
+                .as_deref()
+                .is_some_and(|pending| pending != stable_id)
+            {
+                return Err(GatewayError::InvalidPreparedRetrieval);
+            }
+        }
         crate::host_memory_delivery::require_delivery_contract(router, self.gateway_binding())?;
-        let MemoryDeliveryStatus::Confirmed(operation) = router
+        {
+            let mut state = turn
+                .state
+                .lock()
+                .map_err(|_| GatewayError::RegistryPoisoned)?;
+            state.handoff_checked |= state.pending_use_id.is_some();
+        }
+        let status = router
             .adapter()
             .memory_delivery_status(stable_id)
-            .map_err(GatewayError::HostAdapter)?
-        else {
-            return Err(GatewayError::HostStatusUnknown);
+            .map_err(GatewayError::HostAdapter)?;
+        validate_turn_binding(self, turn, owner, &turn.turn_id)?;
+        let operation = match status {
+            MemoryDeliveryStatus::Confirmed(operation) => operation,
+            MemoryDeliveryStatus::Rejected => {
+                let mut state = turn
+                    .state
+                    .lock()
+                    .map_err(|_| GatewayError::RegistryPoisoned)?;
+                if state.pending_use_id.as_deref() == Some(stable_id) {
+                    if state.consumption_confirmed {
+                        return Err(GatewayError::HostStatusUnknown);
+                    }
+                    state.pending_use_id = None;
+                    state.pending_profile = None;
+                    state.handoff_checked = false;
+                    state.generation = state.generation.saturating_add(1);
+                }
+                return Err(GatewayError::InvalidHandoffReceipt);
+            }
+            _ => return Err(GatewayError::HostStatusUnknown),
         };
         let actual_digest: [u8; 32] = Sha256::digest(&operation.payload).into();
         if operation.stable_id != stable_id || actual_digest != operation.payload_digest {
@@ -60,33 +106,37 @@ impl Instance {
             .iter()
             .map(|id| FreshnessMemoryId(id.0))
             .collect::<Vec<_>>();
-        if let Some(existing) =
-            self.with_writable_reliquary(owner, |rel| rel.accepted_external_use(&use_id).cloned())?
-        {
-            if existing.accepted_turn != manifest.accepted_turn || existing.sources != sources {
-                return Err(GatewayError::InvalidHandoffReceipt);
+        // Validate the retained frontier before publishing any receipt.
+        for id in manifest.selected_ids.iter().chain(&manifest.searched_ids) {
+            parse_memory_id(id)?;
+        }
+        if let Some(query) = &manifest.query {
+            RetrievalTurn::default()
+                .begin_query(query)
+                .map_err(|_| GatewayError::InvalidHandoffReceipt)?;
+        }
+        let recorded = self.with_rel_writer(owner, |writer| -> Result<bool, GatewayError> {
+            validate_turn_binding(self, turn, owner, &turn.turn_id)?;
+            let rel = writer.read_session();
+            if let Some(existing) = rel.accepted_external_use(&use_id) {
+                if existing.accepted_turn != manifest.accepted_turn || existing.sources != sources {
+                    return Err(GatewayError::InvalidHandoffReceipt);
+                }
+                return Ok(false);
             }
-            self.restore_selected_turn(turn, &manifest, &ids, &use_id)?;
-            return Ok(false);
-        }
-        let valid_source = self.with_writable_reliquary(owner, |rel| {
-            manifest.memories.iter().zip(&ids).try_fold(true, |valid, (memory, id)| -> Result<bool, OwnerSessionError> {
-                if !valid { return Ok(false); }
-                let history = rel.memory_history(*id)?;
-                Ok(history.is_some_and(|history| history.revisions.iter().any(|revision| {
-                    let record = &revision.record;
-                    record.revision == memory.revision
-                        && hex(&record.body_id.0) == memory.body_id
-                        && matches!(&revision.payload, reliquary_owner_session::model::PayloadState::Available(body) if body.title == memory.title && body.content == memory.content)
-                })))
-            })
-        })??;
-        if !valid_source {
-            return Err(GatewayError::StaleRetrieval);
-        }
-        self.restore_selected_turn(turn, &manifest, &ids, &use_id)?;
-        let recorded = self.with_rel_writer(owner, |writer| {
-            writer.record_external_accepted_use(
+            for (memory, id) in manifest.memories.iter().zip(&ids) {
+                let exact = rel.memory_history(*id)?.is_some_and(|history| {
+                    history.revisions.iter().any(|revision| {
+                        revision.record.revision == memory.revision
+                            && hex(&revision.record.body_id.0) == memory.body_id
+                            && matches!(&revision.payload, reliquary_owner_session::model::PayloadState::Available(body) if body.title == memory.title && body.content == memory.content)
+                    })
+                });
+                if !exact {
+                    return Err(GatewayError::StaleRetrieval);
+                }
+            }
+            Ok(writer.record_external_accepted_use(
                 &use_id,
                 sources,
                 manifest.accepted_turn,
@@ -95,8 +145,9 @@ impl Instance {
                     community_generation: manifest.community_generation,
                     community_graph_version: manifest.community_graph_version,
                 },
-            )
+            )?)
         })??;
+        self.restore_selected_turn(turn, &manifest, &ids, &use_id)?;
         Ok(recorded)
     }
 
@@ -169,9 +220,15 @@ impl Instance {
             // delivery remains selected, but its old declines cannot leak in.
             state.record_evaluated(old_searched);
         }
+        if entry.pending_use_id.as_deref() == Some(use_id) {
+            entry.profile = entry.pending_profile;
+        }
         entry.turn = state;
         entry.generation = entry.generation.saturating_add(1);
         entry.pending_use_id = None;
+        entry.pending_profile = None;
+        entry.handoff_checked = false;
+        entry.consumption_confirmed = false;
         Ok(())
     }
 }

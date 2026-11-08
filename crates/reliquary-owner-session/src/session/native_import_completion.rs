@@ -58,7 +58,7 @@ impl RelWriter {
             ));
         }
         let receipt_digest = hex_digest_bytes(&receipt.receipt_digest);
-        self.validate_import_work_complete(receipt)?;
+        self.session.validate_import_work_complete(receipt)?;
 
         let settlement = if let Some(accepted) = self.session.imports.settlement(import_id) {
             if accepted.receipt_digest != receipt_digest
@@ -227,24 +227,22 @@ impl RelWriter {
         self.session.writer_lease_proof = self.container.writer_lease_proof();
         Ok((complete, written))
     }
+}
 
+impl RelSession {
     pub(super) fn validate_import_work_complete(
         &self,
         receipt: &crate::model::ImportReceipt,
     ) -> Result<(), OwnerSessionError> {
         let mapped = mapped_source_nodes(receipt);
         let mut covered = BTreeSet::new();
-        for episode in self.session.archive.episodes() {
+        for episode in self.archive.episodes() {
             if episode.origin != EpisodeOrigin::Import {
                 continue;
             }
-            let turns = self
-                .session
-                .archive
-                .episode_turns(episode.id)?
-                .ok_or_else(|| {
-                    OwnerSessionError::Record("import Episode path is unavailable".into())
-                })?;
+            let turns = self.archive.episode_turns(episode.id)?.ok_or_else(|| {
+                OwnerSessionError::Record("import Episode path is unavailable".into())
+            })?;
             let covered_by_receipt = turns.iter().any(|turn| {
                 mapped.contains(&(episode.conversation_id.as_str(), turn.node_id.as_str()))
             });
@@ -257,7 +255,7 @@ impl RelWriter {
                 ));
             }
             let work_id = WorkEpisodeId(episode.id.0);
-            let work = self.session.insomnia.work(work_id).ok_or_else(|| {
+            let work = self.insomnia.work(work_id).ok_or_else(|| {
                 OwnerSessionError::Record("import Episode has no durable Insomnia work".into())
             })?;
             if work.priority != InsomniaPriority::Import
