@@ -122,7 +122,6 @@ fn community_name_is_cut_bound_and_exact_receipt_survives_reopen() {
         expected_generation: 1,
         name: "Verified community".into(),
     };
-    let after;
     {
         let gateway = Gateway::new();
         let (owner, adapter) = admit(&gateway, &path);
@@ -213,8 +212,8 @@ fn community_name_is_cut_bound_and_exact_receipt_survives_reopen() {
             .rename_community_at_cut(renamed.cut, no_op)
             .unwrap();
         assert!(!replay.changed && replay.replayed);
-        after = std::fs::read(&path).unwrap();
     }
+    let after = std::fs::read(&path).unwrap();
     {
         let gateway = Gateway::new();
         let (owner, adapter) = admit(&gateway, &path);
