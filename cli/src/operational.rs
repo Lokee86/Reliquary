@@ -1,7 +1,7 @@
 use super::*;
 use crate::local_host::{LocalHost, RelAccess};
 use reliquary_memory::{
-    ConfiguredRuntime, EnvironmentCredentialResolver, ImportStage, LiveProcessingSelection,
+    ConfiguredRuntime, ConfiguredRuntimeError, ImportStage, LiveProcessingSelection,
     ProcessOptions, ProcessingState,
 };
 
@@ -11,54 +11,36 @@ const PROCESS_OPTIONS: &[(&str, bool)] = &[
     ("--max-episodes", false),
     ("--phy", false),
     ("--config", false),
-    ("--master-key", false),
 ];
 
-pub(crate) fn runtime(path: &str, key: Option<&str>) -> Result<ConfiguredRuntime, ProductError> {
-    let configured = match key {
-        Some(key) => ConfiguredRuntime::from_protected_config(path, key),
-        None => ConfiguredRuntime::from_path(path, &EnvironmentCredentialResolver),
+pub(crate) const DEFAULT_CONFIG: &str = "reliquary.cfg";
+
+pub(crate) fn config_path(args: &[String]) -> &str {
+    option(args, "--config").unwrap_or(DEFAULT_CONFIG)
+}
+
+pub(crate) fn config_error(error: ConfiguredRuntimeError) -> ProductError {
+    let kind = match error {
+        ConfiguredRuntimeError::Io(_) | ConfiguredRuntimeError::Write(_) => ProductErrorKind::Io,
+        ConfiguredRuntimeError::Invalid { .. } => ProductErrorKind::InvalidInput,
+        ConfiguredRuntimeError::Credential { .. } => ProductErrorKind::Unauthorized,
+        _ => ProductErrorKind::Unavailable,
     };
-    configured.map_err(|error| ProductError::new(ProductErrorKind::Unavailable, error.to_string()))
+    ProductError::new(kind, error.to_string())
+}
+
+pub(crate) fn runtime(path: &str) -> Result<ConfiguredRuntime, ProductError> {
+    ConfiguredRuntime::from_path(path).map_err(config_error)
 }
 
 pub(crate) fn optional_runtime(args: &[String]) -> Result<Option<ConfiguredRuntime>, ProductError> {
-    let key = option(args, "--master-key");
     match option(args, "--config") {
-        Some(path) => runtime(path, key).map(Some),
-        None if key.is_some() => Err(invalid("--master-key requires --config")),
-        None => Ok(None),
-    }
-}
-
-pub(crate) fn config(args: &[String]) -> Result<Value, ProductError> {
-    if args.first().map(String::as_str) != Some("check") {
-        return Err(invalid("config requires check"));
-    }
-    validate_options(
-        args,
-        2,
-        &[
-            ("--online", false),
-            ("--master-key", false),
-            ("--route", false),
-        ],
-    )?;
-    let online = args.iter().any(|arg| arg == "--online");
-    let route = option(args, "--route");
-    if !online && route.is_some() {
-        return Err(invalid("--route requires --online"));
-    }
-    let configured = runtime(&args[1], option(args, "--master-key"))?;
-    if online {
-        let probe = match route {
-            Some(route) => configured.online_probe_route(route),
-            None => configured.online_probe(),
-        }
-        .map_err(|error| ProductError::new(ProductErrorKind::Unavailable, error.to_string()))?;
-        Ok(json!({"operation":"config_check","online":true,"readiness":probe}))
-    } else {
-        Ok(json!({"operation":"config_check","online":false,"readiness":configured.readiness()}))
+        Some(path) => runtime(path).map(Some),
+        None => match ConfiguredRuntime::from_path(DEFAULT_CONFIG) {
+            Ok(runtime) => Ok(Some(runtime)),
+            Err(ConfiguredRuntimeError::Io(std::io::ErrorKind::NotFound)) => Ok(None),
+            Err(error) => Err(config_error(error)),
+        },
     }
 }
 
@@ -104,19 +86,8 @@ pub(crate) fn stage(family: &str, args: &[String]) -> Result<Value, ProductError
     let operation = args.first().map(String::as_str).unwrap_or_default();
     match (family, operation) {
         ("vectors", "build") if option(args, "--import").is_none() => {
-            validate_options(
-                args,
-                2,
-                &[
-                    ("--config", false),
-                    ("--master-key", false),
-                    ("--limit", false),
-                ],
-            )?;
-            let runtime = runtime(
-                required_option(args, "--config")?,
-                option(args, "--master-key"),
-            )?;
+            validate_options(args, 2, &[("--config", false), ("--limit", false)])?;
+            let runtime = runtime(config_path(args))?;
             let limit = number_option(args, "--limit")?.unwrap_or(128);
             let host = LocalHost::open(&args[1], None, RelAccess::Operate)?;
             let coverage = host.instance.build_vectors(host.rel, &runtime, limit)?;
@@ -217,10 +188,7 @@ fn process_from_args(
     if !(1..=reliquary_memory::MAX_PROCESS_EPISODES).contains(&max_episodes) {
         return Err(invalid("--max-episodes is outside the supported bounds"));
     }
-    let configured = runtime(
-        required_option(args, "--config")?,
-        option(args, "--master-key"),
-    )?;
+    let configured = runtime(config_path(args))?;
     let host = LocalHost::open(path, option(args, "--phy"), RelAccess::Operate)?;
     run_selected_processing(
         &host,

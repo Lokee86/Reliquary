@@ -1,6 +1,6 @@
 mod specialty;
 
-use super::{decode_objects, load};
+use super::{ConfigDocument, ConfigFile, routes};
 use crate::{ConfiguredRoutes, ConfiguredRuntimeError, EmbeddingNormalization, ModelProvider};
 use ring::aead::{AES_256_GCM, Aad, LessSafeKey, Nonce, UnboundKey};
 use std::fs;
@@ -133,11 +133,12 @@ fn loads_selected_oauth_api_key_and_embedding_routes_offline() {
             1,
             encrypted("credential.api", 2, api_key),
         ),
-        ("models.entity_extraction", 99, 99, vec![0]),
-        ("credential.unused", 1, 1, vec![0]),
+        ("extension.future", 99, 99, vec![0]),
     ]);
     fixture.write_key(KEY);
-    let (config, credentials) = load(&fixture.config, &fixture.key).ok().unwrap();
+    let file = ConfigFile::open(&fixture.config).unwrap();
+    let config = routes::decode(&file.document).unwrap();
+    let credentials = &file.credentials;
     assert_eq!(credentials.entries.len(), 2);
     let general = config.general.unwrap();
     assert_eq!(general.reasoning_effort, Some("high"));
@@ -152,12 +153,11 @@ fn loads_selected_oauth_api_key_and_embedding_routes_offline() {
     assert!(token.0 == ACCESS_TOKEN);
     assert!(account == Some(ACCOUNT));
 
-    let routes = ConfiguredRoutes::from_protected_config(&fixture.config, &fixture.key).unwrap();
+    let routes = ConfiguredRoutes::from_path(&fixture.config).unwrap();
     assert_eq!(routes.general_endpoint().unwrap().model(), "private-model");
     let embedding = routes.embedding_endpoint().unwrap();
     assert_eq!(embedding.dimensions(), 3);
     assert_eq!(embedding.normalization(), EmbeddingNormalization::L2);
-    assert_eq!(routes.worker_lease_duration_ms(), None);
     let report = routes.readiness();
     assert!(report.contains(
         "chronos=general, entity_resolution=entity_resolution_decision, memory_retrieval=general"
@@ -186,48 +186,43 @@ fn selected_credential_failures_stop_route_binding_and_are_redacted() {
     let api_record = ("credential.api", 1, 1, cipher.clone());
     let fixture = Fixture::new(&[general.clone(), api_record.clone()]);
     assert!(matches!(
-        ConfiguredRoutes::from_protected_config(&fixture.config, &fixture.key),
+        ConfiguredRoutes::from_path(&fixture.config),
         Err(ConfiguredRuntimeError::Credential {
-            route: "general",
-            reason: "protected master key could not be read"
+            route: "credentials",
+            reason: "companion master key is missing"
         }),
     ));
     assert!(!fixture.key.exists());
     fixture.write_key([0; 32]);
     assert!(matches!(
-        ConfiguredRoutes::from_protected_config(&fixture.config, &fixture.key),
+        ConfiguredRoutes::from_path(&fixture.config),
         Err(ConfiguredRuntimeError::Credential {
-            route: "general",
+            route: "credentials",
             reason: "protected credential authentication failed"
         }),
     ));
 
-    for (record, reason) in [
+    for (record, route, reason) in [
         (
-            ("credential.other", 1, 1, vec![0]),
-            "protected credential is missing",
+            ("extension.other", 1, 1, vec![0]),
+            "entity_resolution_decision",
+            "credential is missing",
         ),
         (
             ("credential.dedicated", 1, 0, cipher.clone()),
+            "credentials",
             "unsupported protected credential object",
         ),
         (
             ("credential.dedicated", 1, 1, cipher),
+            "credentials",
             "protected credential authentication failed",
         ),
     ] {
         let fixture = Fixture::new(&[general.clone(), api_record.clone(), entity.clone(), record]);
         fixture.write_key(KEY);
-        let error = ConfiguredRoutes::from_protected_config(&fixture.config, &fixture.key)
-            .err()
-            .unwrap();
-        assert_eq!(
-            error,
-            ConfiguredRuntimeError::Credential {
-                route: "entity_resolution_decision",
-                reason,
-            }
-        );
+        let error = ConfiguredRoutes::from_path(&fixture.config).err().unwrap();
+        assert_eq!(error, ConfiguredRuntimeError::Credential { route, reason });
         for private in [API_KEY, "private-entity", URL, "credential.dedicated"] {
             assert!(!format!("{error:?} {error}").contains(private));
         }
@@ -236,8 +231,8 @@ fn selected_credential_failures_stop_route_binding_and_are_redacted() {
 
 #[test]
 fn skips_unused_key_and_rejects_invalid_routes_and_framing() {
-    let fixture = Fixture::new(&[("credential.unused", 99, 99, vec![0])]);
-    let routes = ConfiguredRoutes::from_protected_config(&fixture.config, &fixture.key).unwrap();
+    let fixture = Fixture::new(&[("extension.unused", 99, 99, vec![0])]);
+    let routes = ConfiguredRoutes::from_path(&fixture.config).unwrap();
     assert!(routes.general_endpoint().is_none());
     assert!(!fixture.key.exists());
 
@@ -255,7 +250,7 @@ fn skips_unused_key_and_rejects_invalid_routes_and_framing() {
         ),
     )]);
     assert!(matches!(
-        ConfiguredRoutes::from_protected_config(&fixture.config, &fixture.key),
+        ConfiguredRoutes::from_path(&fixture.config),
         Err(ConfiguredRuntimeError::Invalid {
             route: "decision",
             ..
@@ -263,9 +258,150 @@ fn skips_unused_key_and_rejects_invalid_routes_and_framing() {
     ));
 
     let object = ("unknown", 1, 0, vec![0]);
-    assert!(decode_objects(&frame(&[object.clone(), object.clone()])).is_none());
+    assert!(ConfigDocument::decode(&frame(&[object.clone(), object.clone()])).is_none());
     let mut bytes = frame(&[object]);
-    assert!(decode_objects(&bytes[..bytes.len() - 1]).is_none());
+    assert!(ConfigDocument::decode(&bytes[..bytes.len() - 1]).is_none());
     bytes.push(0);
-    assert!(decode_objects(&bytes).is_none());
+    assert!(ConfigDocument::decode(&bytes).is_none());
+}
+
+#[test]
+fn route_changes_preserve_opaque_objects_and_leave_credential_ciphertext_unchanged() {
+    use crate::{ModelRoute, ModelSlot};
+    let fixture = Fixture::new(&[
+        (
+            "models.general",
+            2,
+            0,
+            fields(&[2, 0, 0, 0], &["model", URL, "api"]),
+        ),
+        ("future.object", 42, 99, vec![0, 1, 2, 255]),
+        (
+            "credential.api",
+            1,
+            1,
+            encrypted("credential.api", 8, fields(&[1, 0, 0, 0], &[API_KEY])),
+        ),
+    ]);
+    fixture.write_key(KEY);
+    let key_bytes = fs::read(&fixture.key).unwrap();
+    let mut file = ConfigFile::open(&fixture.config).unwrap();
+    let credential = file.object("credential.api").unwrap().clone();
+    let unknown = file.object("future.object").unwrap().clone();
+    let general = file.model(ModelSlot::General).unwrap().unwrap();
+    let id = crate::CredentialId::new("api").unwrap();
+    assert!(file.remove_credential(&id).is_err());
+    file.set_model(ModelSlot::General, &general).unwrap();
+    assert_eq!(file.object("models.general").unwrap().schema, 3);
+    let ModelRoute::General(ref route) = general else {
+        unreachable!()
+    };
+    let decision = ModelRoute::Decision(crate::DecisionModelEndpoint {
+        model: "decision".into(),
+        url: URL.into(),
+        credential_id: id.clone(),
+    });
+    let embedding = ModelRoute::Embedding(crate::EmbeddingModelEndpoint {
+        provider: ModelProvider::OpenAiReady,
+        model: "embed".into(),
+        url: URL.into(),
+        credential_id: id.clone(),
+        dimensions: 3,
+        normalization: EmbeddingNormalization::L2,
+    });
+    for slot in ModelSlot::ALL {
+        let model = if slot.is_decision() {
+            &decision
+        } else if slot == ModelSlot::Embedding {
+            &embedding
+        } else {
+            &general
+        };
+        file.set_model(slot, model).unwrap();
+    }
+    assert_eq!(route.reasoning_effort, None);
+    file.save().unwrap();
+    let mut reopened = ConfigFile::open(&fixture.config).unwrap();
+    for slot in ModelSlot::ALL {
+        assert!(reopened.model(slot).unwrap().is_some());
+    }
+    assert!(reopened.object("future.object") == Some(&unknown));
+    assert!(reopened.object("credential.api") == Some(&credential));
+    assert_eq!(fs::read(&fixture.key).unwrap(), key_bytes);
+    let before = fs::read(&fixture.config).unwrap();
+    reopened.save().unwrap();
+    assert_eq!(fs::read(&fixture.config).unwrap(), before);
+    for slot in ModelSlot::ALL {
+        reopened.clear_model(slot);
+    }
+    reopened.remove_credential(&id).unwrap();
+    reopened.save().unwrap();
+    let reopened = ConfigFile::open(&fixture.config).unwrap();
+    assert!(reopened.credentials().next().is_none());
+    assert!(reopened.object("future.object") == Some(&unknown));
+    assert!(
+        reopened
+            .bind()
+            .unwrap()
+            .readiness()
+            .contains("memory_retrieval=unavailable")
+    );
+}
+
+#[test]
+fn credential_writes_reuse_the_key_with_fresh_nonces_and_detect_tampering() {
+    use crate::{CredentialId, SecretString};
+    let fixture = Fixture::new(&[]);
+    let before = fs::read(&fixture.config).unwrap();
+    let id = CredentialId::new("api").unwrap();
+    let mut collision = ConfigFile::new(&fixture.config);
+    collision.add_api_key(id.clone(), SecretString::new(API_KEY).unwrap());
+    assert_eq!(
+        collision.save(),
+        Err(ConfiguredRuntimeError::Write(
+            std::io::ErrorKind::AlreadyExists
+        ))
+    );
+    assert!(!fixture.key.exists());
+    assert_eq!(fs::read(&fixture.config).unwrap(), before);
+
+    let mut file = ConfigFile::open(&fixture.config).unwrap();
+    file.add_api_key(id.clone(), SecretString::new(API_KEY).unwrap());
+    assert!(!fixture.key.exists());
+    file.save().unwrap();
+    let first = file.object("credential.api").unwrap().payload.clone();
+    let key_bytes = fs::read(&fixture.key).unwrap();
+    file.add_api_key(id, SecretString::new(API_KEY).unwrap());
+    file.save().unwrap();
+    let second = &file.object("credential.api").unwrap().payload;
+    assert_ne!(&first[..12], &second[..12]);
+    assert_eq!(fs::read(&fixture.key).unwrap(), key_bytes);
+    let reopen = ConfigFile::open(&fixture.config).unwrap();
+    assert!(!format!("{:?}", reopen.credentials).contains(API_KEY));
+    let mut tampered = second.clone();
+    *tampered.last_mut().unwrap() ^= 1;
+    fs::write(
+        &fixture.config,
+        frame(&[("credential.api", 1, 1, tampered)]),
+    )
+    .unwrap();
+    assert!(matches!(
+        ConfigFile::open(&fixture.config),
+        Err(ConfiguredRuntimeError::Credential {
+            reason: "protected credential authentication failed",
+            ..
+        })
+    ));
+    fs::write(
+        &fixture.key,
+        br#"{"version":1,"master_key_hex":"not-a-key"}"#,
+    )
+    .unwrap();
+    assert!(matches!(
+        ConfigFile::open(&fixture.config),
+        Err(ConfiguredRuntimeError::Credential {
+            reason: "invalid master key",
+            ..
+        })
+    ));
 }

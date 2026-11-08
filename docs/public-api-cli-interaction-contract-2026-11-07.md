@@ -98,7 +98,7 @@ The command grammar below is a target contract. Existing maintenance commands re
 | `rel vectors <status|build> <REL> ...`; `rel insomnia/dream/entity-resolution/freshness ...` | Named controls over the same processor stage APIs; no second coordinator or private worker shortcut. Missing stage capability is explicit. |
 | `rel conversation/context/source ...` | Existing source feed/status, queue/stream controls, context inspection/checkpoints and external-source interactions with required host bindings. A missing trusted host execution capability is an error, not simulated generation. |
 | `phy create/info/verify/memory/history ...` | Minimal explicit PHY creation and authorized supported inspection needed by paired operation. This deliberately extends the earlier REL-only CLI policy; it does not add PHY Archive, REL activity clocks or cross-owner reconciliation. |
-| `config check <FILE> [--online]` | Redacted offline validation by default; explicitly requested provider readiness probes only. Do not invent a replacement credential store or auto-discover unrelated account secrets. |
+| `[--config <FILE>] config verify [--online [--route <label>]]` | Offline validation of the binary configuration and encrypted credential bindings. Explicit online checks send synthetic probes. |
 
 A root-only shell invocation illustrates the intended interaction:
 

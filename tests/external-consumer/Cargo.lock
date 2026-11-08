@@ -2795,11 +2795,13 @@ dependencies = [
 name = "reliquary-switchboard"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "hex",
  "reqwest",
  "ring",
  "serde",
  "serde_json",
+ "tempfile",
  "zeroize",
 ]
 

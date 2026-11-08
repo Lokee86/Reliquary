@@ -50,7 +50,7 @@ pub(super) fn validate_options(
         if !repeatable && !seen.insert(flag) {
             return Err(invalid(format!("duplicate CLI option: {flag}")));
         }
-        if matches!(flag, "--dry-run" | "--online" | "--process") {
+        if matches!(flag, "--dry-run" | "--online" | "--process" | "--stdin") {
             index += 1;
         } else {
             if index + 1 >= args.len() || args[index + 1].starts_with('-') {

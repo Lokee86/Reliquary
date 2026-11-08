@@ -57,27 +57,26 @@ fn live_processing_recovers_exact_rel_and_phy_work_after_reopen() {
     let rel_path = root.join("project.rel");
     let phy_path = root.join("user.phy");
     let url = format!("http://{}", fixture.listener);
-    let general = json!({"model":"fixture","url":url,"credential_id":"KEY"});
-    let entity = json!({"model":"entity-live","url":url,"credential_id":"KEY"});
-    let runtime = |name, routes: Value| {
-        let path = root.join(name);
-        fs::write(&path, routes.to_string()).unwrap();
-        ConfiguredRuntime::from_path(path, &TestCredential).unwrap()
-    };
-    let full = runtime(
-        "full.json",
-        json!({
-            "general":general,"entity_resolution":entity,
-            "embedding":{"model":"embed-fixture","url":url,"credential_id":"KEY","dimensions":2,"normalization":"l2"}
-        }),
+    let full = configured_fixture(
+        &root.join("full.cfg"),
+        &url,
+        &[
+            (ModelSlot::General, "fixture"),
+            (ModelSlot::EntityResolution, "entity-live"),
+        ],
+        true,
     );
-    let entity_only = runtime("entity.json", json!({"entity_resolution":entity}));
-    let dream_only = runtime(
-        "dream.json",
-        json!({
-            "dream":{"model":"dream-live","url":url,"credential_id":"KEY"},
-            "embedding":{"model":"embed-fixture","url":url,"credential_id":"KEY","dimensions":2,"normalization":"l2"}
-        }),
+    let entity_only = configured_fixture(
+        &root.join("entity.cfg"),
+        &url,
+        &[(ModelSlot::EntityResolution, "entity-live")],
+        false,
+    );
+    let dream_only = configured_fixture(
+        &root.join("dream.cfg"),
+        &url,
+        &[(ModelSlot::Dream, "dream-live")],
+        true,
     );
 
     let rel = Rel::create(&rel_path, OwnerScope::Project).unwrap();

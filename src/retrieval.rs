@@ -79,7 +79,14 @@ impl Instance {
             )
         };
         self.inner
-            .search_rel_memories(owner.into(), query, options.mode, options.limit, embedding)
+            .search_rel_memories_with_policy(
+                owner.into(),
+                query,
+                options.mode,
+                options.limit,
+                embedding,
+                runtime.map(|runtime| runtime.retrieval).unwrap_or_default(),
+            )
             .map_err(retrieval_error)
     }
 

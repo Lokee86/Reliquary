@@ -78,6 +78,25 @@ impl Instance {
         limit: Option<usize>,
         embedding: Option<(CompatibilityProfileId, Vec<f32>)>,
     ) -> Result<SearchResult, GatewayError> {
+        self.search_rel_memories_with_policy(
+            owner,
+            query,
+            mode,
+            limit,
+            embedding,
+            RetrievalConfig::default(),
+        )
+    }
+
+    pub fn search_rel_memories_with_policy(
+        &self,
+        owner: OwnerId,
+        query: &str,
+        mode: SearchMode,
+        limit: Option<usize>,
+        embedding: Option<(CompatibilityProfileId, Vec<f32>)>,
+        mut policy: RetrievalConfig,
+    ) -> Result<SearchResult, GatewayError> {
         if query.trim().is_empty()
             || query.len() > 512
             || limit.is_some_and(|n| n == 0 || n > MAX_RETRIEVAL_RESULTS)
@@ -133,12 +152,11 @@ impl Instance {
             }
             (memories, result.memories.len() > limit)
         } else {
-            let mut config = RetrievalConfig::default();
-            let limit = limit.unwrap_or(config.result_limit);
-            config.result_limit = limit + 1;
-            config.candidate_limit = config.candidate_limit.max(config.result_limit);
+            let limit = limit.unwrap_or(policy.result_limit.min(MAX_RETRIEVAL_RESULTS));
+            policy.result_limit = limit + 1;
+            policy.candidate_limit = policy.candidate_limit.max(policy.result_limit);
             let ranked =
-                reliquary_application::rank_owner_snapshot(&snapshot, query, vector, config)
+                reliquary_application::rank_owner_snapshot(&snapshot, query, vector, policy)
                     .map_err(GatewayError::Retrieval)?;
             let mut memories = project_memories(
                 &snapshot,

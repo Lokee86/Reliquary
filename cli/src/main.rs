@@ -14,7 +14,15 @@ Supported Reliquary 2.1 operator CLI
 USAGE:
     reliquary rel <COMMAND> [OPTIONS]
     reliquary phy <COMMAND> [OPTIONS]
-    reliquary config check <FILE> [--online [--route <ROUTE>]] [--master-key <FILE>]
+    reliquary [--config <FILE>] config show
+    reliquary [--config <FILE>] config verify [--online [--route <ROUTE>]]
+    reliquary [--config <FILE>] config credential <list|add-api-key|login-codex|refresh-codex|remove>
+    reliquary [--config <FILE>] config model <set-ROUTE|clear-ROUTE> [OPTIONS]
+
+    --config defaults to reliquary.cfg. The companion key path is derived automatically.
+    add-api-key <ID> prompts without echo. Use --stdin to read one line instead.
+    set-ROUTE uses --model and --credential, plus --provider, --url,
+    --reasoning, --dimensions, and --normalization as applicable.
 
 REL COMMANDS:
     create <PATH> [--scope <unspecified|organization|project|connection>]
@@ -77,6 +85,16 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
     args.retain(|arg| arg != "--json");
+    if args.first().is_some_and(|arg| arg == "--config") {
+        if args.len() < 3 || args[1].starts_with('-') || args[2].starts_with('-') {
+            eprintln!(
+                "{}",
+                json!({"error":error_json(&invalid("expected --config <FILE> followed by a command"))})
+            );
+            return ExitCode::FAILURE;
+        }
+        args.rotate_left(2);
+    }
     if args.starts_with(&["rel".to_owned(), "interact".to_owned()]) {
         return match retrieval_command::interact(&args[2..]) {
             Ok(true) => ExitCode::SUCCESS,
@@ -112,7 +130,7 @@ fn run(args: Vec<String>) -> Result<Value, reliquary_memory::ProductError> {
     }
     let family = args.first().map(String::as_str);
     if family == Some("config") {
-        return operational::config(&args[1..]);
+        return config_command::run(&args[1..]);
     }
     if family == Some("phy") {
         return run_phy(&args[1..]);
@@ -195,6 +213,7 @@ fn error_json(error: &ProductError) -> Value {
 
 #[path = "commands.rs"]
 mod commands;
+mod config_command;
 mod context_source;
 mod conversation;
 mod import_command;

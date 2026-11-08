@@ -15,7 +15,6 @@ pub(crate) fn search(args: &[String]) -> Result<Value, ProductError> {
             ("--mode", false),
             ("--limit", false),
             ("--config", false),
-            ("--master-key", false),
             ("--embedding-route", false),
         ],
     )?;
@@ -28,12 +27,11 @@ pub(crate) fn search(args: &[String]) -> Result<Value, ProductError> {
     };
     let limit = number_option(args, "--limit")?;
     let configured = if mode == SearchMode::Lexical {
-        if option(args, "--master-key").is_some() && option(args, "--config").is_none() {
-            return Err(invalid("--master-key requires --config"));
-        }
-        None
+        option(args, "--config")
+            .map(operational::runtime)
+            .transpose()?
     } else {
-        operational::optional_runtime(args)?
+        Some(operational::runtime(operational::config_path(args))?)
     };
     let options = SearchOptions {
         mode,
@@ -54,13 +52,11 @@ pub(crate) fn query(args: &[String]) -> Result<Value, ProductError> {
         &[
             ("--query", false),
             ("--config", false),
-            ("--master-key", false),
             ("--embedding-route", false),
         ],
     )?;
     let text = required_option(args, "--query")?;
-    let configured =
-        operational::optional_runtime(args)?.ok_or_else(|| invalid("--config is required"))?;
+    let configured = operational::runtime(operational::config_path(args))?;
     let host = LocalHost::open(&args[0], None, RelAccess::View)?;
     let session = host.instance.begin_retrieval_with_embedding_route(
         host.rel,
@@ -78,7 +74,6 @@ pub(crate) fn interact(args: &[String]) -> Result<bool, ProductError> {
         1,
         &[
             ("--config", false),
-            ("--master-key", false),
             ("--commands", false),
             ("--embedding-route", false),
         ],

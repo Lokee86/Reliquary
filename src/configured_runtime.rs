@@ -8,10 +8,8 @@ use std::fmt;
 use std::path::Path;
 use std::sync::Arc;
 
-pub use reliquary_switchboard::{
-    ConfiguredRuntimeError, CredentialError, CredentialId, CredentialMaterial, CredentialResolver,
-    EnvironmentCredentialResolver, RuntimeEndpointFailure,
-};
+use crate::{ConfiguredRuntimeError, ReliquaryConfig, RetrievalConfig};
+pub use reliquary_switchboard::RuntimeEndpointFailure;
 pub use reliquary_vectors::{
     CompatibilityProbeReference, CompatibilityProfile, EmbeddingMode, VectorNormalization,
 };
@@ -19,6 +17,7 @@ pub use reliquary_vectors::{
 /// Offline-validated provider bundle for Root workflows.
 pub struct ConfiguredRuntime {
     routes: ConfiguredRoutes,
+    pub(crate) retrieval: RetrievalConfig,
 }
 
 impl fmt::Debug for ConfiguredRuntime {
@@ -30,22 +29,13 @@ impl fmt::Debug for ConfiguredRuntime {
 }
 
 impl ConfiguredRuntime {
-    /// Loads route definitions and resolves their credential references offline.
-    pub fn from_path(
-        path: impl AsRef<Path>,
-        resolver: &dyn CredentialResolver,
-    ) -> Result<Self, ConfiguredRuntimeError> {
-        let routes = ConfiguredRoutes::from_path(path.as_ref(), resolver)?;
-        Ok(Self { routes })
+    pub(crate) fn new(routes: ConfiguredRoutes, retrieval: RetrievalConfig) -> Self {
+        Self { routes, retrieval }
     }
 
-    /// Loads selected routes and encrypted credentials from an existing protected config.
-    pub fn from_protected_config(
-        path: impl AsRef<Path>,
-        key_path: impl AsRef<Path>,
-    ) -> Result<Self, ConfiguredRuntimeError> {
-        let routes = ConfiguredRoutes::from_protected_config(path.as_ref(), key_path.as_ref())?;
-        Ok(Self { routes })
+    /// Opens CVCFG and resolves its companion key and route bindings offline.
+    pub fn from_path(path: impl AsRef<Path>) -> Result<Self, ConfiguredRuntimeError> {
+        ReliquaryConfig::open(path)?.configured_runtime()
     }
 
     /// Reports route availability and selection without contacting providers.
@@ -65,10 +55,7 @@ impl ConfiguredRuntime {
 
     /// Lease duration for configured worker claims, in nanoseconds.
     pub fn worker_lease_duration_ns(&self) -> i64 {
-        self.routes
-            .worker_lease_duration_ms()
-            .map(|millis| i64::from(millis) * 1_000_000)
-            .unwrap_or_else(|| InsomniaWorkerConfig::default().lease_duration_ns)
+        InsomniaWorkerConfig::default().lease_duration_ns
     }
 
     /// Explicitly computes the configured embedding endpoint's compatibility

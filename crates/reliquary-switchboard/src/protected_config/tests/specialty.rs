@@ -47,7 +47,12 @@ fn loads_named_specialties_without_substituting_decision_routes() {
             0,
             fields(&[2, 0, 0, 0], &["private-ownership", URL, "api"]),
         ),
-        ("models.entity_extraction", 99, 0, vec![0]),
+        (
+            "models.entity_extraction",
+            3,
+            0,
+            fields(&[2, 0, 0, 0], &["private-extraction", URL, "api"]),
+        ),
         ("models.chronos", 99, 0, vec![0]),
         (
             "credential.oauth",
@@ -64,7 +69,12 @@ fn loads_named_specialties_without_substituting_decision_routes() {
     ];
     let fixture = Fixture::new(&records);
     fixture.write_key(KEY);
-    let (config, _) = load(&fixture.config, &fixture.key).unwrap();
+    let file = ConfigFile::open(&fixture.config).unwrap();
+    let config = routes::decode(&file.document).unwrap();
+    assert_eq!(
+        config.entity_extraction.unwrap().endpoint.model,
+        "private-extraction"
+    );
     let insomnia = config.insomnia.unwrap();
     assert_eq!(insomnia.endpoint.provider, ModelProvider::OpenAiCodex);
     assert_eq!(insomnia.reasoning_effort, Some("high"));
@@ -73,7 +83,7 @@ fn loads_named_specialties_without_substituting_decision_routes() {
         Some("low")
     );
 
-    let standard = ConfiguredRoutes::from_protected_config(&fixture.config, &fixture.key).unwrap();
+    let standard = ConfiguredRoutes::from_path(&fixture.config).unwrap();
     assert!(standard.general_endpoint().is_none());
     assert_eq!(
         standard.insomnia_endpoint().unwrap().model(),
@@ -124,7 +134,7 @@ fn loads_named_specialties_without_substituting_decision_routes() {
     ]);
     let fixture = Fixture::new(&records);
     fixture.write_key(KEY);
-    let routes = ConfiguredRoutes::from_protected_config(&fixture.config, &fixture.key).unwrap();
+    let routes = ConfiguredRoutes::from_path(&fixture.config).unwrap();
     assert_eq!(
         routes.decision_endpoint(Chronos).unwrap().model(),
         "private-shared"
@@ -145,9 +155,16 @@ fn malformed_named_specialty_fails_instead_of_selecting_general() {
             fields(&[2, 0, 0, 0], &["private-general", URL, "api"]),
         ),
         ("models.dream", 99, 0, vec![0]),
+        (
+            "credential.api",
+            1,
+            1,
+            encrypted("credential.api", 6, fields(&[1, 0, 0, 0], &[API_KEY])),
+        ),
     ]);
+    fixture.write_key(KEY);
     assert!(matches!(
-        ConfiguredRoutes::from_protected_config(&fixture.config, &fixture.key),
+        ConfiguredRoutes::from_path(&fixture.config),
         Err(ConfiguredRuntimeError::Invalid { route: "dream", .. })
     ));
 }

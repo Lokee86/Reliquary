@@ -1,6 +1,6 @@
-use super::runtime_config::{
-    DREAM, EMBEDDING, ENTITY, ENTITY_DECISION, GENERAL, GeneralRoute, INSOMNIA, INSOMNIA_METADATA,
-    RETRIEVAL, RuntimeConfig, SHARED,
+use super::model_config::{
+    DREAM, EMBEDDING, ENTITY, ENTITY_DECISION, ENTITY_EXTRACTION, GENERAL, INSOMNIA,
+    INSOMNIA_METADATA, RETRIEVAL, RuntimeConfig, SHARED,
 };
 use super::runtime_probe::{probe_decision, probe_embedding, probe_general};
 use super::*;
@@ -13,6 +13,8 @@ mod identity;
 #[derive(Debug, Eq, PartialEq)]
 pub enum ConfiguredRuntimeError {
     Io(ErrorKind),
+    Write(ErrorKind),
+    Authorization(DeviceAuthError),
     Invalid {
         route: &'static str,
         reason: &'static str,
@@ -43,6 +45,8 @@ impl fmt::Display for ConfiguredRuntimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io(kind) => write!(f, "runtime configuration could not be read ({kind})"),
+            Self::Write(kind) => write!(f, "configuration could not be saved ({kind})"),
+            Self::Authorization(error) => error.fmt(f),
             Self::Invalid { route, reason } => {
                 write!(f, "invalid {route} configuration ({reason})")
             }
@@ -57,18 +61,24 @@ impl fmt::Display for ConfiguredRuntimeError {
 
 impl std::error::Error for ConfiguredRuntimeError {}
 
+impl From<DeviceAuthError> for ConfiguredRuntimeError {
+    fn from(error: DeviceAuthError) -> Self {
+        Self::Authorization(error)
+    }
+}
+
 /// The selected Switchboard transports for an offline-validated runtime.
 pub struct ConfiguredRoutes {
     general: Option<Arc<dyn GeneralEndpoint>>,
     insomnia: Option<Arc<dyn GeneralEndpoint>>,
     insomnia_metadata: Option<Arc<dyn GeneralEndpoint>>,
+    entity_extraction: Option<Arc<dyn GeneralEndpoint>>,
     dream: Option<Arc<dyn GeneralEndpoint>>,
     entity_resolution: Option<Arc<dyn GeneralEndpoint>>,
     embedding: Option<Arc<dyn EmbeddingEndpoint>>,
     chronos: SelectedDecision,
     entity: SelectedDecision,
     retrieval: SelectedDecision,
-    worker_lease_duration_ms: Option<u32>,
     processing_route_identity: ProcessingRouteIdentity,
 }
 
@@ -79,45 +89,23 @@ pub struct ProcessingRouteIdentity {
 }
 
 impl ConfiguredRoutes {
-    pub fn from_path(
-        path: &Path,
-        resolver: &dyn CredentialResolver,
-    ) -> Result<Self, ConfiguredRuntimeError> {
-        let config = RuntimeConfig::load(path)?;
-        let credentials = config
-            .credentials(|id| resolver.resolve(id).map_err(|_| "credential lookup failed"))?;
-        Self::bind(config, credentials)
+    pub fn from_path(path: &Path) -> Result<Self, ConfiguredRuntimeError> {
+        ConfigFile::open(path)?.bind()
     }
 
-    /// Reads the selected routes and resolves their protected credentials offline.
-    pub fn from_protected_config(
-        path: &Path,
-        key_path: &Path,
-    ) -> Result<Self, ConfiguredRuntimeError> {
-        let (config, credentials) = super::protected_config::load(path, key_path)?;
-        Self::bind(config, credentials)
-    }
-
-    fn bind(
+    pub(super) fn bind(
         config: RuntimeConfig,
-        credentials: CredentialsConfig,
+        credentials: &CredentialsConfig,
     ) -> Result<Self, ConfiguredRuntimeError> {
-        let processing_route_identity = identity::processing_routes(&config, &credentials);
+        let processing_route_identity = identity::processing_routes(&config, credentials);
         let bind_general = |name, route: Option<&GeneralRoute>| {
             route
                 .map(|route| {
-                    match route.reasoning_effort {
-                        Some(effort) => {
-                            ConfiguredGeneralEndpoint::from_route_with_reasoning_effort(
-                                &route.endpoint,
-                                &credentials,
-                                Some(effort),
-                            )
-                        }
-                        None => {
-                            ConfiguredGeneralEndpoint::from_route(&route.endpoint, &credentials)
-                        }
-                    }
+                    ConfiguredGeneralEndpoint::from_route_with_reasoning_effort(
+                        &route.endpoint,
+                        credentials,
+                        route.reasoning_effort,
+                    )
                     .map(|endpoint| Arc::new(endpoint) as Arc<dyn GeneralEndpoint>)
                 })
                 .transpose()
@@ -126,6 +114,7 @@ impl ConfiguredRoutes {
         let general = bind_general(GENERAL, config.general.as_ref())?;
         let insomnia = bind_general(INSOMNIA, config.insomnia.as_ref())?;
         let insomnia_metadata = bind_general(INSOMNIA_METADATA, config.insomnia_metadata.as_ref())?;
+        let entity_extraction = bind_general(ENTITY_EXTRACTION, config.entity_extraction.as_ref())?;
         let dream = bind_general(DREAM, config.dream.as_ref())?;
         let entity_resolution = bind_general(ENTITY, config.entity_resolution.as_ref())?;
         let routes = ModelSwitchboardConfig {
@@ -138,7 +127,7 @@ impl ConfiguredRoutes {
             .embedding
             .as_ref()
             .map(|route| {
-                ConfiguredEmbeddingEndpoint::from_route(route, &credentials)
+                ConfiguredEmbeddingEndpoint::from_route(route, credentials)
                     .map(|endpoint| Arc::new(endpoint) as Arc<dyn EmbeddingEndpoint>)
             })
             .transpose()
@@ -146,7 +135,7 @@ impl ConfiguredRoutes {
         let bind_direct = |name, route: Option<&DecisionModelEndpoint>| {
             route
                 .map(|route| {
-                    ConfiguredDecisionEndpoint::from_route(route, &credentials)
+                    ConfiguredDecisionEndpoint::from_route(route, credentials)
                         .map(|endpoint| Arc::new(endpoint) as Arc<dyn DecisionEndpoint>)
                 })
                 .transpose()
@@ -188,13 +177,13 @@ impl ConfiguredRoutes {
             general,
             insomnia,
             insomnia_metadata,
+            entity_extraction,
             dream,
             entity_resolution,
             embedding,
             chronos,
             entity,
             retrieval,
-            worker_lease_duration_ms: config.worker_lease_duration_ms,
             processing_route_identity,
         })
     }
@@ -218,9 +207,7 @@ impl ConfiguredRoutes {
     }
 
     pub fn entity_endpoint(&self) -> Option<Arc<dyn GeneralEndpoint>> {
-        self.entity_resolution
-            .clone()
-            .or_else(|| self.general_endpoint())
+        self.entity_resolution.clone()
     }
 
     pub fn decision_endpoint(
@@ -238,10 +225,6 @@ impl ConfiguredRoutes {
 
     pub fn embedding_endpoint(&self) -> Option<Arc<dyn EmbeddingEndpoint>> {
         self.embedding.clone()
-    }
-
-    pub fn worker_lease_duration_ms(&self) -> Option<u32> {
-        self.worker_lease_duration_ms
     }
 
     pub fn processing_route_identity(&self) -> ProcessingRouteIdentity {
@@ -268,7 +251,11 @@ impl ConfiguredRoutes {
             self.retrieval.label(),
             general_source(INSOMNIA, &self.insomnia),
             general_source(DREAM, &self.dream),
-            general_source(ENTITY, &self.entity_resolution),
+            if self.entity_resolution.is_some() {
+                ENTITY
+            } else {
+                "unavailable"
+            },
             if self.insomnia_metadata.is_some() {
                 INSOMNIA_METADATA
             } else {
@@ -305,6 +292,7 @@ impl ConfiguredRoutes {
             (GENERAL, &self.general),
             (INSOMNIA, &self.insomnia),
             (INSOMNIA_METADATA, &self.insomnia_metadata),
+            (ENTITY_EXTRACTION, &self.entity_extraction),
             (DREAM, &self.dream),
             (ENTITY, &self.entity_resolution),
         ]

@@ -1,63 +1,82 @@
 use super::*;
-use std::cell::RefCell;
-use std::path::PathBuf;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use ModelSlot::*;
 
 const TEST_KEY: &str = "synthetic-oc02-test-key";
 
-struct ConfigFile(PathBuf);
-
-impl ConfigFile {
-    fn new(document: Value) -> Self {
-        static SEQUENCE: AtomicUsize = AtomicUsize::new(0);
-        let directory =
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/oc02-fixtures");
-        std::fs::create_dir_all(&directory).unwrap();
-        let path = directory.join(format!(
-            "switchboard-{}-{}.json",
-            std::process::id(),
-            SEQUENCE.fetch_add(1, Ordering::Relaxed)
-        ));
-        std::fs::write(&path, document.to_string()).unwrap();
-        Self(path)
-    }
+fn test_id() -> CredentialId {
+    CredentialId::new("KEY").unwrap()
 }
 
-impl Drop for ConfigFile {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_file(&self.0);
-    }
+fn general(model: &str, url: impl Into<String>) -> ModelRoute {
+    ModelRoute::General(GeneralRoute {
+        endpoint: GeneralModelEndpoint {
+            provider: ModelProvider::OpenAiReady,
+            model: model.into(),
+            url: url.into(),
+            credential_id: test_id(),
+        },
+        reasoning_effort: None,
+    })
 }
 
-#[derive(Default)]
-struct Resolver(RefCell<Vec<String>>);
+fn decision(model: &str, url: impl Into<String>) -> ModelRoute {
+    ModelRoute::Decision(DecisionModelEndpoint {
+        model: model.into(),
+        url: url.into(),
+        credential_id: test_id(),
+    })
+}
 
-impl CredentialResolver for Resolver {
-    fn resolve(&self, id: &CredentialId) -> Result<CredentialMaterial, String> {
-        self.0.borrow_mut().push(id.to_string());
-        match id.to_string().as_str() {
-            "KEY" => Ok(CredentialMaterial::ApiKey(TEST_KEY.into())),
-            "WRONG_TYPE" => Ok(CredentialMaterial::CodexOAuth {
-                access_token: TEST_KEY.into(),
-                account_id: "synthetic-account".into(),
-            }),
-            _ => Err(format!("private resolver failure with {TEST_KEY}")),
-        }
+fn embedding(url: impl Into<String>, dimensions: u32) -> ModelRoute {
+    ModelRoute::Embedding(EmbeddingModelEndpoint {
+        provider: ModelProvider::OpenAiReady,
+        model: "embedding-model".into(),
+        url: url.into(),
+        credential_id: test_id(),
+        dimensions,
+        normalization: EmbeddingNormalization::L2,
+    })
+}
+
+fn bind(routes: &[(ModelSlot, ModelRoute)]) -> ConfiguredRoutes {
+    let parent =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/oc02-fixtures");
+    std::fs::create_dir_all(&parent).unwrap();
+    let dir = tempfile::tempdir_in(parent).unwrap();
+    let path = dir.path().join("routes.cfg");
+    let mut config = ConfigFile::new(&path);
+    config.add_api_key(test_id(), SecretString::new(TEST_KEY).unwrap());
+    for (slot, route) in routes {
+        config.set_model(*slot, route).unwrap();
     }
+    config.save().unwrap();
+    ConfiguredRoutes::from_path(&path).unwrap()
 }
 
 #[test]
-fn offline_load_resolves_each_reference_once_and_selects_dedicated_then_shared() {
-    let path = ConfigFile::new(json!({
-        "general": {"model":"general-model", "url":"https://offline.example.invalid", "credential_id":"KEY"},
-        "decision": {"model":"shared-model", "url":"https://offline.example.invalid", "credential_id":"KEY"},
-        "insomnia": {"model":"insomnia-model", "url":"https://offline.example.invalid", "credential_id":"KEY"},
-        "entity_resolution": {"model":"entity-general-model", "url":"https://offline.example.invalid", "credential_id":"KEY"},
-        "entity_resolution_decision": {"model":"entity-model", "url":"https://offline.example.invalid", "credential_id":"KEY"}
-    }));
-    let resolver = Resolver::default();
-    let runtime = ConfiguredRoutes::from_path(&path.0, &resolver).unwrap();
-    assert_eq!(*resolver.0.borrow(), ["KEY"]);
+fn offline_load_selects_dedicated_then_shared() {
+    let runtime = bind(&[
+        (
+            General,
+            general("general-model", "https://offline.example.invalid"),
+        ),
+        (
+            GeneralDecision,
+            decision("shared-model", "https://offline.example.invalid"),
+        ),
+        (
+            Insomnia,
+            general("insomnia-model", "https://offline.example.invalid"),
+        ),
+        (
+            EntityResolution,
+            general("entity-general-model", "https://offline.example.invalid"),
+        ),
+        (
+            EntityResolutionDecision,
+            decision("entity-model", "https://offline.example.invalid"),
+        ),
+    ]);
     assert_eq!(runtime.general_endpoint().unwrap().model(), "general-model");
     assert_eq!(
         runtime.insomnia_endpoint().unwrap().model(),
@@ -95,14 +114,12 @@ fn offline_load_resolves_each_reference_once_and_selects_dedicated_then_shared()
 
 #[test]
 fn invalid_configuration_and_credential_failures_are_redacted_offline() {
-    let resolver = Resolver::default();
-    let invalid = ConfigFile::new(json!({
-        "general": {"model":"m", "url":"https://offline.example.invalid", "credential_id":"KEY"},
-        "decision": {"model":"m", "url":format!("https://{TEST_KEY}@offline.example.invalid"), "credential_id":"MISSING"}
-    }));
-    let error = ConfiguredRoutes::from_path(&invalid.0, &resolver)
-        .err()
-        .unwrap();
+    let mut file = ConfigFile::new("unused.cfg");
+    let unsafe_route = decision(
+        "model",
+        format!("https://{TEST_KEY}@offline.example.invalid"),
+    );
+    let error = file.set_model(GeneralDecision, &unsafe_route).unwrap_err();
     assert!(matches!(
         error,
         ConfiguredRuntimeError::Invalid {
@@ -111,34 +128,30 @@ fn invalid_configuration_and_credential_failures_are_redacted_offline() {
         }
     ));
     assert!(!error.to_string().contains(TEST_KEY));
-    assert!(resolver.0.borrow().is_empty());
 
-    let invalid_lease = ConfigFile::new(json!({"worker": {"lease_duration_ms": 600001}}));
-    assert!(matches!(
-        ConfiguredRoutes::from_path(&invalid_lease.0, &resolver),
-        Err(ConfiguredRuntimeError::Invalid {
-            route: "worker",
-            ..
-        })
-    ));
-
-    for reference in ["MISSING", "WRONG_TYPE"] {
-        let path = ConfigFile::new(json!({
-            "general": {"model":"m", "url":"https://offline.example.invalid", "credential_id":"KEY"},
-            "entity_resolution_decision": {"model":"m", "url":"https://offline.example.invalid", "credential_id":reference}
-        }));
-        let error = ConfiguredRoutes::from_path(&path.0, &resolver)
-            .err()
-            .unwrap();
-        assert!(matches!(
+    let mut route = decision("model", "https://offline.example.invalid");
+    let ModelRoute::Decision(endpoint) = &mut route else {
+        unreachable!()
+    };
+    let id = CredentialId::new("oauth-test").unwrap();
+    endpoint.credential_id = id.clone();
+    file.set_model(EntityResolutionDecision, &route).unwrap();
+    for reason in [
+        "credential is missing",
+        "credential has the wrong auth kind or is missing account data",
+    ] {
+        let error = file.bind().err().unwrap();
+        assert_eq!(
             error,
             ConfiguredRuntimeError::Credential {
                 route: "entity_resolution_decision",
-                ..
+                reason
             }
-        ));
-        assert!(!format!("{error:?} {error}").contains(TEST_KEY));
-        assert!(!error.to_string().contains(reference));
+        );
+        assert!(!format!("{error:?} {error}").contains(id.as_str()));
+        file.credentials_for_test()
+            .insert_codex_oauth(id.clone(), TEST_KEY, "test-account")
+            .unwrap();
     }
 }
 
@@ -151,23 +164,24 @@ fn configured_online_probe_checks_each_general_transport_and_other_selected_rout
             r#"{"choices":[{"message":{"content":"{\"ok\":true}"}}]}"#,
         )
     };
-    let (general, general_request) = general_server();
+    let (general_url, general_request) = general_server();
     let (insomnia, insomnia_request) = general_server();
     let (dream, dream_request) = general_server();
     let (entity, entity_request) = general_server();
-    let (embedding, embedding_request) =
+    let (embedding_url, embedding_request) =
         mock_server("200 OK", "", r#"{"data":[{"index":0,"embedding":[3,4]}]}"#);
-    let (decision, decision_request) = mock_server("200 OK", "", r#"{"ok":true}"#);
-    let path = ConfigFile::new(json!({
-        "general": {"model":"general-model", "url":general, "credential_id":"KEY"},
-        "insomnia": {"model":"insomnia-model", "url":insomnia, "credential_id":"KEY"},
-        "dream": {"model":"dream-model", "url":dream, "credential_id":"KEY"},
-        "entity_resolution": {"model":"entity-general-model", "url":entity, "credential_id":"KEY"},
-        "entity_resolution_decision": {"model":"entity-model", "url":decision, "credential_id":"KEY"},
-        "embedding": {"model":"embedding-model", "url":embedding, "credential_id":"KEY",
-                      "dimensions":2, "normalization":"l2"}
-    }));
-    let runtime = ConfiguredRoutes::from_path(&path.0, &Resolver::default()).unwrap();
+    let (decision_url, decision_request) = mock_server("200 OK", "", r#"{"ok":true}"#);
+    let runtime = bind(&[
+        (General, general("general-model", general_url)),
+        (Insomnia, general("insomnia-model", insomnia)),
+        (Dream, general("dream-model", dream)),
+        (EntityResolution, general("entity-general-model", entity)),
+        (
+            EntityResolutionDecision,
+            decision("entity-model", decision_url),
+        ),
+        (Embedding, embedding(embedding_url, 2)),
+    ]);
     assert_eq!(
         runtime
             .decision_endpoint(DecisionConsumer::MemoryRetrieval)
@@ -209,11 +223,19 @@ fn failed_selected_decision_preserves_backpressure_without_falling_through() {
     );
     let fallback = TcpListener::bind("127.0.0.1:0").unwrap();
     fallback.set_nonblocking(true).unwrap();
-    let path = ConfigFile::new(json!({
-        "decision": {"model":"shared-model", "url":format!("http://{}", fallback.local_addr().unwrap()), "credential_id":"KEY"},
-        "memory_retrieval_decision": {"model":"dedicated-model", "url":dedicated, "credential_id":"KEY"}
-    }));
-    let runtime = ConfiguredRoutes::from_path(&path.0, &Resolver::default()).unwrap();
+    let runtime = bind(&[
+        (
+            GeneralDecision,
+            decision(
+                "shared-model",
+                format!("http://{}", fallback.local_addr().unwrap()),
+            ),
+        ),
+        (
+            MemoryRetrievalDecision,
+            decision("dedicated-model", dedicated),
+        ),
+    ]);
     let endpoint = runtime
         .decision_endpoint(DecisionConsumer::MemoryRetrieval)
         .unwrap();
@@ -236,10 +258,7 @@ fn specialty_probe_errors_exclude_provider_payload_and_preserve_retry_hint() {
         "Retry-After: 3\r\n",
         r#"{"error":"private provider payload"}"#,
     );
-    let path = ConfigFile::new(json!({
-        "dream": {"model":"dream-model", "url":url, "credential_id":"KEY"}
-    }));
-    let runtime = ConfiguredRoutes::from_path(&path.0, &Resolver::default()).unwrap();
+    let runtime = bind(&[(Dream, general("dream-model", url))]);
     let error = runtime.online_probe().unwrap_err();
     assert_eq!(
         error,
@@ -256,40 +275,37 @@ fn specialty_probe_errors_exclude_provider_payload_and_preserve_retry_hint() {
 
 #[test]
 fn processing_identity_excludes_retrieval_and_scopes_the_live_dream_route() {
-    let original = json!({
-        "insomnia": {"model":"extractor","url":"https://example.test/insomnia","credential_id":"KEY"},
-        "dream": {"model":"organizer","url":"https://example.test/dream","credential_id":"KEY"},
-        "embedding": {"model":"vectors","url":"https://example.test/embed","credential_id":"KEY","dimensions":3}
-    });
-    let identity = |config| {
-        let file = ConfigFile::new(config);
-        ConfiguredRoutes::from_path(&file.0, &Resolver::default())
-            .unwrap()
-            .processing_route_identity()
-    };
-    let bound = identity(original.clone());
-    let mut changed = original;
-    changed["memory_retrieval_decision"] = json!({
-        "model":"retrieval","url":"https://example.test/decision","credential_id":"KEY"
-    });
-    let with_retrieval = identity(changed.clone());
+    let mut routes = vec![
+        (
+            Insomnia,
+            general("extractor", "https://example.test/insomnia"),
+        ),
+        (Dream, general("organizer", "https://example.test/dream")),
+        (Embedding, embedding("https://example.test/embed", 3)),
+    ];
+    let bound = bind(&routes).processing_route_identity();
+    routes.push((
+        MemoryRetrievalDecision,
+        decision("retrieval", "https://example.test/decision"),
+    ));
+    let with_retrieval = bind(&routes).processing_route_identity();
     assert_eq!(bound.import, with_retrieval.import);
     assert_eq!(bound.live_dream, with_retrieval.live_dream);
-    changed["insomnia"]["model"] = json!("another-extractor");
-    let changed_extractor = identity(changed.clone());
+    routes[0].1 = general("another-extractor", "https://example.test/insomnia");
+    let changed_extractor = bind(&routes).processing_route_identity();
     assert_ne!(bound.import, changed_extractor.import);
     assert_eq!(bound.live_dream, changed_extractor.live_dream);
-    changed["embedding"]["dimensions"] = json!(4);
-    assert_ne!(bound.live_dream, identity(changed).live_dream);
+    routes[2].1 = embedding("https://example.test/embed", 4);
+    assert_ne!(
+        bound.live_dream,
+        bind(&routes).processing_route_identity().live_dream
+    );
 }
 
 #[test]
 fn online_probe_reports_http_status_without_the_provider_payload() {
     let (url, request) = mock_server("401 Unauthorized", "", "private provider payload");
-    let path = ConfigFile::new(json!({
-        "insomnia": {"model":"m", "url":url, "credential_id":"KEY"}
-    }));
-    let runtime = ConfiguredRoutes::from_path(&path.0, &Resolver::default()).unwrap();
+    let runtime = bind(&[(Insomnia, general("m", url))]);
     let error = runtime.online_probe().unwrap_err();
     assert_eq!(
         error,
@@ -315,10 +331,7 @@ fn online_probe_rejects_invalid_and_oversized_structured_responses() {
         ),
     ] {
         let (url, request) = mock_server("200 OK", "", &body);
-        let path = ConfigFile::new(json!({
-            "general": {"model":"m", "url":url, "credential_id":"KEY"}
-        }));
-        let runtime = ConfiguredRoutes::from_path(&path.0, &Resolver::default()).unwrap();
+        let runtime = bind(&[(General, general("m", url))]);
         assert_eq!(
             runtime.online_probe(),
             Err(ConfiguredRuntimeError::Probe {

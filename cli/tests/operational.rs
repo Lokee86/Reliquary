@@ -226,18 +226,30 @@ fn live_cli_drains_entity_and_first_cycle_dream_then_reopens_without_inference()
     let provider = Provider::start();
     let cli = Cli::new(provider.addr.port());
     let rel = "./live.rel";
-    let config = "live-runtime.json";
+    let config = "live-runtime.cfg";
     let url = format!("http://{}", provider.addr);
-    fs::write(
-        cli.0.join(config),
-        json!({
-            "general":{"model":"live-fixture","url":url,"credential_id":CREDENTIAL},
-            "embedding":{"model":"embed-fixture","url":url,"credential_id":CREDENTIAL,
-                "dimensions":2,"normalization":"l2"}
-        })
-        .to_string(),
-    )
-    .unwrap();
+    cli.add_key(config);
+    cli.set_route(
+        config,
+        "general",
+        "live-fixture",
+        &url,
+        &["--provider", "openai-ready"],
+    );
+    cli.set_route(
+        config,
+        "entity-resolution",
+        "live-fixture",
+        &url,
+        &["--provider", "openai-ready"],
+    );
+    cli.set_route(
+        config,
+        "embedding",
+        "embed-fixture",
+        &url,
+        &["--dimensions", "2"],
+    );
     cli.json(&["rel", "create", rel, "--scope", "project"]);
     let accept = |id, text, revision: u64, parent| {
         let submitted = cli.json(&[
@@ -368,18 +380,65 @@ impl Cli {
         Self(root)
     }
 
-    fn run(&self, args: &[&str]) -> String {
+    fn command(&self, args: &[&str]) -> Command {
         let mut command = Command::new(env!("CARGO_BIN_EXE_reliquary"));
-        command
-            .current_dir(&self.0)
-            .args(args)
-            .env_clear()
-            .env(CREDENTIAL, KEY);
+        command.current_dir(&self.0).args(args).env_clear();
         // Keep the Windows system directory available in the isolated child.
         if let Some(root) = std::env::var_os("SystemRoot") {
             command.env("SystemRoot", root);
         }
-        let output = command.output().unwrap();
+        command
+    }
+
+    fn add_key(&self, path: &str) {
+        use std::process::Stdio;
+        let mut child = self
+            .command(&[
+                "--config",
+                path,
+                "config",
+                "credential",
+                "add-api-key",
+                CREDENTIAL,
+                "--stdin",
+            ])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        writeln!(child.stdin.take().unwrap(), "{KEY}").unwrap();
+        let output = child.wait_with_output().unwrap();
+        assert!(
+            output.status.success(),
+            "add-api-key failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(!String::from_utf8_lossy(&output.stdout).contains(KEY));
+        assert!(!String::from_utf8_lossy(&output.stderr).contains(KEY));
+    }
+
+    fn set_route(&self, path: &str, slot: &str, model: &str, url: &str, options: &[&str]) {
+        let action = format!("set-{slot}");
+        let mut args = vec![
+            "--config",
+            path,
+            "config",
+            "model",
+            &action,
+            "--model",
+            model,
+            "--url",
+            url,
+            "--credential",
+            CREDENTIAL,
+        ];
+        args.extend_from_slice(options);
+        self.json(&args);
+    }
+
+    fn run(&self, args: &[&str]) -> String {
+        let output = self.command(args).output().unwrap();
         let stdout = String::from_utf8(output.stdout).unwrap();
         let stderr = String::from_utf8_lossy(&output.stderr);
         assert!(
@@ -417,18 +476,34 @@ fn configured_cli_import_processes_routes_and_reopens_grounded_memories() {
     let (rel, phy, config, input, commands) = (
         "./project.rel",
         "./user.phy",
-        "runtime.json",
+        "runtime.cfg",
         "conversations.json",
         "commands.jsonl",
     );
     let base = format!("http://{}", provider.addr);
-    let routes = json!({
-        "general":{"model":"fixture","url":base,"credential_id":CREDENTIAL},
-        "memory_retrieval_decision":{"model":"decision-fixture","url":base,"credential_id":CREDENTIAL},
-        "embedding":{"model":"embed-fixture","url":base,"credential_id":CREDENTIAL,
-            "dimensions":2,"normalization":"l2"}
-    });
-    fs::write(cli.0.join(config), routes.to_string()).unwrap();
+    cli.add_key(config);
+    cli.set_route(
+        config,
+        "general",
+        "fixture",
+        &base,
+        &["--provider", "openai-ready"],
+    );
+    cli.set_route(config, "general-decision", "decision-fixture", &base, &[]);
+    cli.set_route(
+        config,
+        "entity-resolution",
+        "fixture",
+        &base,
+        &["--provider", "openai-ready"],
+    );
+    cli.set_route(
+        config,
+        "embedding",
+        "embed-fixture",
+        &base,
+        &["--dimensions", "2"],
+    );
     let source_text = format!("{PROJECT} {PRIVATE}");
     let export = json!([{
         "id":"chat","current_node":"accepted","mapping":{
@@ -440,27 +515,28 @@ fn configured_cli_import_processes_routes_and_reopens_grounded_memories() {
     }]);
     fs::write(cli.0.join(input), export.to_string()).unwrap();
 
-    let offline = cli.json(&["config", "check", config]);
-    assert_eq!(offline["operation"], "config_check");
+    let offline = cli.json(&["--config", config, "config", "verify"]);
+    assert_eq!(offline["operation"], "config_verify");
     assert_eq!(offline["online"], false);
     assert_eq!(provider.requests.load(Ordering::Relaxed), 0);
     assert_eq!(
-        cli.json(&["config", "check", config, "--online"])["online"],
+        cli.json(&["--config", config, "config", "verify", "--online"])["online"],
         true
     );
-    assert_eq!(provider.requests.load(Ordering::Relaxed), 3);
+    assert_eq!(provider.requests.load(Ordering::Relaxed), 4);
     assert_eq!(
         cli.json(&[
-            "config",
-            "check",
+            "--config",
             config,
+            "config",
+            "verify",
             "--online",
             "--route",
             "embedding"
         ])["readiness"],
         "provider route probed: embedding"
     );
-    assert_eq!(provider.requests.load(Ordering::Relaxed), 4);
+    assert_eq!(provider.requests.load(Ordering::Relaxed), 5);
 
     let owners = [("rel", rel), ("phy", phy)];
     let [rel_id, phy_id] = owners.map(|(family, path)| {
@@ -591,15 +667,15 @@ fn live_stage_status_and_run_use_the_root_coordinator() {
     let cli = Cli::new(0);
     let rel = "./live.rel";
     cli.json(&["rel", "create", rel, "--json"]);
-    let config = "live-runtime.json";
-    fs::write(
-        cli.0.join(config),
-        json!({"entity_resolution":{
-            "model":"entity-fixture","url":"http://127.0.0.1:1","credential_id":CREDENTIAL
-        }})
-        .to_string(),
-    )
-    .unwrap();
+    let config = "live-runtime.cfg";
+    cli.add_key(config);
+    cli.set_route(
+        config,
+        "entity-resolution",
+        "entity-fixture",
+        "http://127.0.0.1:1",
+        &["--provider", "openai-ready"],
+    );
     for stage in ["entity-resolution", "dream"] {
         let status = cli.json(&["rel", stage, "status", rel, "--json"]);
         assert_eq!(status["progress"]["state"], "complete");
@@ -615,4 +691,74 @@ fn live_stage_status_and_run_use_the_root_coordinator() {
             "complete"
         );
     }
+}
+
+#[test]
+fn config_commands_default_to_binary_config_and_reject_invalid_mutations() {
+    let cli = Cli::new(1);
+    let path = "reliquary.cfg";
+    let config_path = cli.0.join(path);
+    let key_path = cli.0.join("reliquary.master-key.json");
+    assert!(cli.json(&["config", "show"])["routes"]["models.general"].is_null());
+    assert_eq!(
+        cli.json(&["config", "credential", "list"])["credentials"],
+        json!([])
+    );
+    assert!(!config_path.exists() && !key_path.exists());
+    cli.add_key(path);
+    cli.set_route(
+        path,
+        "general",
+        "test-model",
+        "https://offline.example.invalid/completions",
+        &["--provider", "openai-ready"],
+    );
+    let original = fs::read(&config_path).unwrap();
+    let key = fs::read(&key_path).unwrap();
+    let show = cli.json(&["config", "show"]);
+    assert_eq!(show["routes"]["models.general"]["model"], "test-model");
+    assert!(show["routes"]["models.memory_retrieval_decision"].is_null());
+    let list = cli.json(&["config", "credential", "list"]);
+    assert_eq!(list["credentials"], show["credentials"]);
+    assert_eq!(list["credentials"][0]["auth_kind"], "ApiKey");
+    let verify = cli.json(&["config", "verify"]);
+    assert!(
+        verify["readiness"]
+            .as_str()
+            .unwrap()
+            .contains("memory_retrieval=general")
+    );
+    let fail = |args: &[&str], kind: &str| {
+        let output = cli.command(args).output().unwrap();
+        assert!(!output.status.success());
+        let report: Value = serde_json::from_slice(&output.stderr).unwrap();
+        assert_eq!(report["error"]["kind"], kind);
+        assert!(!String::from_utf8_lossy(&output.stderr).contains(KEY));
+    };
+    fail(
+        &["config", "credential", "remove", CREDENTIAL],
+        "unauthorized",
+    );
+    fail(
+        &["config", "credential", "refresh-codex", CREDENTIAL],
+        "unauthorized",
+    );
+    assert_eq!(fs::read(&config_path).unwrap(), original);
+    assert_eq!(fs::read(&key_path).unwrap(), key);
+
+    fs::write(
+        &key_path,
+        format!(r#"{{"version":1,"master_key_hex":"{}"}}"#, "00".repeat(32)),
+    )
+    .unwrap();
+    fail(&["config", "verify"], "unauthorized");
+    fs::write(&key_path, key).unwrap();
+    cli.json(&["config", "model", "clear-general"]);
+    cli.json(&["config", "credential", "remove", CREDENTIAL]);
+    assert_eq!(
+        cli.json(&["config", "credential", "list"])["credentials"],
+        json!([])
+    );
+    fs::write(&config_path, b"not a configuration").unwrap();
+    fail(&["config", "verify"], "invalid_input");
 }

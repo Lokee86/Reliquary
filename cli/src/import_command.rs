@@ -13,7 +13,6 @@ pub(crate) fn run(args: &[String]) -> Result<Value, ProductError> {
             ("--end", false),
             ("--phy", false),
             ("--config", false),
-            ("--master-key", false),
             ("--process", false),
             ("--dry-run", false),
         ],
@@ -37,12 +36,9 @@ pub(crate) fn run(args: &[String]) -> Result<Value, ProductError> {
         return Err(invalid("--dry-run and --process cannot be combined"));
     }
     let configured = if process {
-        Some(operational::runtime(
-            required_option(args, "--config")?,
-            option(args, "--master-key"),
-        )?)
+        Some(operational::runtime(operational::config_path(args))?)
     } else {
-        if option(args, "--config").is_some() || option(args, "--master-key").is_some() {
+        if option(args, "--config").is_some() {
             return Err(invalid("import configuration options require --process"));
         }
         None

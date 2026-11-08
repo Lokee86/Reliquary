@@ -2,9 +2,11 @@
 mod live;
 
 use reliquary_memory::{
-    ConfiguredRuntime, CredentialId, CredentialMaterial, CredentialResolver, EpisodeId, Gateway,
-    HostCredentialBinding, NativeImportFormat, NativeImportPlan, OwnerGrant, OwnerScope,
-    Phylactery, ProcessOptions, ProcessingState, ProductErrorKind, Rel, TrustedHostAdmission,
+    ConfiguredRuntime, CredentialId, EmbeddingModelEndpoint, EmbeddingNormalization, EpisodeId,
+    Gateway, GeneralModelEndpoint, GeneralRoute, HostCredentialBinding, ModelProvider, ModelRoute,
+    ModelSlot, NativeImportFormat, NativeImportPlan, OwnerGrant, OwnerScope, Phylactery,
+    ProcessOptions, ProcessingState, ProductErrorKind, Rel, ReliquaryConfig, SecretString,
+    TrustedHostAdmission,
 };
 use serde_json::{Value, json};
 use std::{
@@ -142,13 +144,51 @@ fn fixture_reply(request: &Value, changed_profile: bool) -> Value {
     json!({"choices":[{"message":{"content":output.to_string()}}]})
 }
 
-struct TestCredential;
-impl CredentialResolver for TestCredential {
-    fn resolve(&self, _: &CredentialId) -> Result<CredentialMaterial, String> {
-        Ok(CredentialMaterial::ApiKey(
-            "synthetic-operational-test-key".into(),
-        ))
+fn configured_fixture(
+    path: &std::path::Path,
+    url: &str,
+    general_routes: &[(ModelSlot, &str)],
+    embedding: bool,
+) -> ConfiguredRuntime {
+    let mut config = ReliquaryConfig::new(path);
+    let credential_id = CredentialId::new("KEY").unwrap();
+    config.add_api_key(
+        credential_id.clone(),
+        SecretString::new("synthetic-operational-test-key").unwrap(),
+    );
+    for &(slot, model) in general_routes {
+        config
+            .set_model(
+                slot,
+                &ModelRoute::General(GeneralRoute {
+                    endpoint: GeneralModelEndpoint {
+                        provider: ModelProvider::OpenAiReady,
+                        model: model.into(),
+                        url: url.into(),
+                        credential_id: credential_id.clone(),
+                    },
+                    reasoning_effort: None,
+                }),
+            )
+            .unwrap();
     }
+    if embedding {
+        config
+            .set_model(
+                ModelSlot::Embedding,
+                &ModelRoute::Embedding(EmbeddingModelEndpoint {
+                    provider: ModelProvider::OpenAiReady,
+                    model: "embed-fixture".into(),
+                    url: url.into(),
+                    credential_id,
+                    dimensions: 2,
+                    normalization: EmbeddingNormalization::L2,
+                }),
+            )
+            .unwrap();
+    }
+    config.save().unwrap();
+    ConfiguredRuntime::from_path(path).unwrap()
 }
 
 #[test]
@@ -160,13 +200,9 @@ fn configured_import_processes_rel_and_phy_and_reopens_without_republication() {
     fs::create_dir_all(&root).unwrap();
     let rel_path = root.join("project.rel");
     let phy_path = root.join("user.phy");
-    let config = root.join("runtime.json");
+    let config = root.join("runtime.cfg");
     let input = root.join("conversations.json");
     let url = format!("http://{}", fixture.listener);
-    fs::write(&config, json!({
-        "general":{"model":"fixture","url":url,"credential_id":"KEY"},
-        "embedding":{"model":"embed-fixture","url":url,"credential_id":"KEY","dimensions":2,"normalization":"l2"}
-    }).to_string()).unwrap();
     fs::write(
         &input,
         json!([{
@@ -180,7 +216,15 @@ fn configured_import_processes_rel_and_phy_and_reopens_without_republication() {
         .to_string(),
     )
     .unwrap();
-    let runtime = ConfiguredRuntime::from_path(&config, &TestCredential).unwrap();
+    let runtime = configured_fixture(
+        &config,
+        &url,
+        &[
+            (ModelSlot::General, "fixture"),
+            (ModelSlot::EntityResolution, "fixture"),
+        ],
+        true,
+    );
     let rel = Rel::create(&rel_path, OwnerScope::Project).unwrap();
     let phy = Phylactery::create(&phy_path).unwrap();
     let gateway = Gateway::new();
@@ -247,12 +291,16 @@ fn configured_import_processes_rel_and_phy_and_reopens_without_republication() {
         1
     );
 
-    let mut other_config: Value = serde_json::from_slice(&fs::read(&config).unwrap()).unwrap();
-    other_config["dream"] = other_config["general"].clone();
-    other_config["dream"]["model"] = json!("other-dream-model");
-    let other_path = root.join("other.json");
-    fs::write(&other_path, other_config.to_string()).unwrap();
-    let other_runtime = ConfiguredRuntime::from_path(other_path, &TestCredential).unwrap();
+    let other_runtime = configured_fixture(
+        &root.join("other.cfg"),
+        &url,
+        &[
+            (ModelSlot::General, "fixture"),
+            (ModelSlot::EntityResolution, "fixture"),
+            (ModelSlot::Dream, "other-dream-model"),
+        ],
+        true,
+    );
     assert_eq!(
         instance
             .resume_held_processing(owner, &other_runtime, options.clone(), EpisodeId(episode))

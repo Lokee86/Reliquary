@@ -1,9 +1,8 @@
 //! Stable identity of the routes an owner processing job may invoke.
-use super::runtime_config::{DREAM, EMBEDDING, ENTITY, GENERAL, INSOMNIA, INSOMNIA_METADATA};
-use super::{
-    CredentialsConfig, ModelProvider, ProcessingRouteIdentity, RuntimeConfig,
-    runtime_config::GeneralRoute,
+use super::model_config::{
+    DREAM, EMBEDDING, ENTITY, GENERAL, INSOMNIA, INSOMNIA_METADATA, RuntimeConfig,
 };
+use super::{CredentialsConfig, GeneralRoute, ModelProvider, ProcessingRouteIdentity};
 use ring::digest::{SHA256, digest};
 use serde_json::{Value, json};
 
@@ -30,8 +29,7 @@ pub(super) fn processing_routes(
     let entity = config
         .entity_resolution
         .as_ref()
-        .map(|route| (ENTITY, route))
-        .or(general);
+        .map(|route| (ENTITY, route));
     let general_identity = |selection: Option<(&str, &GeneralRoute)>| {
         selection.map(|(name, route)| {
             let endpoint = &route.endpoint;

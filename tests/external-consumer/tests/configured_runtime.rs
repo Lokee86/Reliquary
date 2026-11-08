@@ -1,56 +1,80 @@
 use reliquary_memory::{
     CompatibilityProfile, ConfiguredRuntime, ConfiguredRuntimeError, CredentialError, CredentialId,
-    CredentialMaterial, CredentialResolver, EnvironmentCredentialResolver,
+    CredentialKind, FragmentConfig, GeneralModelEndpoint, GeneralRoute, ModelProvider, ModelRoute,
+    ModelSlot, ReliquaryConfig, RuntimeSettings, SecretString,
 };
-
-struct Resolver;
-
-impl CredentialResolver for Resolver {
-    fn resolve(&self, id: &CredentialId) -> Result<CredentialMaterial, String> {
-        assert_eq!(id.to_string(), "TEST_API_KEY");
-        Ok(CredentialMaterial::ApiKey("synthetic-test-key".into()))
-    }
-}
 
 #[test]
 fn root_only_configured_runtime_loads_and_reports_readiness_offline() {
     let fixture_dir =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/oc02-fixtures");
     std::fs::create_dir_all(&fixture_dir).unwrap();
-    let path = fixture_dir.join(format!("external-{}.json", std::process::id()));
-    std::fs::write(
-        &path,
-        r#"{
-          "general": {
-            "model": "offline-test-model",
-            "url": "https://offline.example.invalid/v1/chat/completions",
-            "credential_id": "TEST_API_KEY"
-          },
-          "worker": { "lease_duration_ms": 150000 }
-        }"#,
-    )
-    .unwrap();
-    let runtime = ConfiguredRuntime::from_path(&path, &Resolver);
+    let path = fixture_dir.join(format!("external-{}.cfg", std::process::id()));
+    let key_path = path.with_extension("master-key.json");
+    let mut config = ReliquaryConfig::new(&path);
+    let id = CredentialId::new("TEST_API_KEY").unwrap();
+    config.add_api_key(id.clone(), SecretString::new("synthetic-test-key").unwrap());
+    config
+        .set_model(
+            ModelSlot::General,
+            &ModelRoute::General(GeneralRoute {
+                endpoint: GeneralModelEndpoint {
+                    provider: ModelProvider::OpenAiReady,
+                    model: "offline-test-model".into(),
+                    url: "https://offline.example.invalid/v1/chat/completions".into(),
+                    credential_id: id.clone(),
+                },
+                reasoning_effort: None,
+            }),
+        )
+        .unwrap();
+    let fragments = FragmentConfig {
+        turns: 9,
+        overlap: 2,
+    };
+    config.set_fragments(fragments).unwrap();
+    let retrieval = reliquary_memory::RetrievalConfig {
+        candidate_limit: 42,
+        ..config.retrieval()
+    };
+    config.set_retrieval(retrieval).unwrap();
+    let settings = RuntimeSettings {
+        dream_inference_concurrency: 3,
+    };
+    config.set_runtime_settings(settings).unwrap();
+    assert!(!path.exists() && !key_path.exists());
+    config.save().unwrap();
+    let config_bytes = std::fs::read(&path).unwrap();
+    let key_bytes = std::fs::read(&key_path).unwrap();
+    let reopened = ReliquaryConfig::open(&path).unwrap();
+    assert_eq!(reopened.fragments(), fragments);
+    assert_eq!(reopened.retrieval(), retrieval);
+    assert_eq!(reopened.runtime_settings(), settings);
+    assert_eq!(
+        reopened.credentials().collect::<Vec<_>>(),
+        [(&id, CredentialKind::ApiKey)]
+    );
+    reopened.validate().unwrap();
+    let runtime = ConfiguredRuntime::from_path(&path).unwrap();
+    assert_eq!(std::fs::read(&path).unwrap(), config_bytes);
+    assert_eq!(std::fs::read(&key_path).unwrap(), key_bytes);
     std::fs::remove_file(&path).unwrap();
-    let runtime = runtime.unwrap();
-    let _: &dyn CredentialResolver = &EnvironmentCredentialResolver;
+    std::fs::remove_file(&key_path).unwrap();
     assert!(matches!(
         CredentialId::new("invalid ID"),
         Err(CredentialError::InvalidId)
     ));
-    assert_eq!(runtime.worker_lease_duration_ns(), 150_000_000_000);
     let profile: Result<Option<CompatibilityProfile>, ConfiguredRuntimeError> =
         runtime.probe_embedding_profile();
     assert!(profile.unwrap().is_none());
     let readiness: String = runtime.readiness();
     let debug = format!("{runtime:?}");
     assert!(readiness.contains("chronos=general"));
+    assert!(readiness.contains("memory_retrieval=general"));
     assert!(readiness.contains("embedding=false"));
-    assert!(
-        readiness.contains(
-            "general selection: insomnia=general, dream=general, entity_resolution=general"
-        )
-    );
+    assert!(readiness.contains(
+        "general selection: insomnia=general, dream=general, entity_resolution=unavailable"
+    ));
     for private in [
         "TEST_API_KEY",
         "synthetic-test-key",
@@ -63,14 +87,15 @@ fn root_only_configured_runtime_loads_and_reports_readiness_offline() {
 }
 
 #[test]
-fn root_loads_empty_protected_configuration_without_a_key() {
+fn root_loads_empty_configuration_without_a_key() {
     let fixture_dir =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/oc02-fixtures");
     std::fs::create_dir_all(&fixture_dir).unwrap();
     let path = fixture_dir.join(format!("external-protected-{}.cfg", std::process::id()));
     std::fs::write(&path, b"CVCFG\0\r\n\x01\x00\x00\x00\x00\x00\x00\x00").unwrap();
-    let key_path = path.with_extension("unused.json");
-    let runtime = ConfiguredRuntime::from_protected_config(&path, &key_path);
+    let key_path = path.with_extension("master-key.json");
+    let runtime = ConfiguredRuntime::from_path(&path);
+    assert!(!key_path.exists());
     std::fs::remove_file(&path).unwrap();
 
     assert!(

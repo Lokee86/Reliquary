@@ -141,6 +141,10 @@ impl CredentialId {
         }
         Ok(Self(value))
     }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
 }
 
 impl fmt::Display for CredentialId {
@@ -217,6 +221,7 @@ impl CredentialsConfig {
             Credential::CodexOAuth {
                 access_token: SecretString::new(access_token)?,
                 account_id,
+                refresh: None,
             },
         );
         Ok(())
@@ -233,15 +238,18 @@ impl CredentialsConfig {
                 Credential::CodexOAuth {
                     access_token,
                     account_id,
+                    ..
                 },
                 ModelProvider::OpenAiCodex,
-            ) => Some((access_token, Some(account_id))),
+            ) if !account_id.is_empty() && account_id.len() <= 256 => {
+                Some((access_token, Some(account_id)))
+            }
             _ => None,
         }
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 enum Credential {
     ApiKey {
         secret: SecretString,
@@ -249,7 +257,23 @@ enum Credential {
     CodexOAuth {
         access_token: SecretString,
         account_id: String,
+        refresh: Option<CodexRefresh>,
     },
+}
+
+impl fmt::Debug for Credential {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::ApiKey { .. } => "ApiKey([REDACTED])",
+            Self::CodexOAuth { .. } => "CodexOAuth([REDACTED])",
+        })
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct CodexRefresh {
+    id_token: SecretString,
+    refresh_token: SecretString,
 }
 
 #[derive(Debug)]
@@ -412,18 +436,20 @@ pub trait DecisionEndpoint: Send + Sync {
     fn evaluate(&self, state: &Value, questions: &Value) -> Result<Value, DecisionEndpointError>;
 }
 
+mod config_document;
 mod configured;
+mod device_auth;
+mod model_config;
 mod protected_config;
-mod runtime_config;
-mod runtime_credentials;
 mod runtime_probe;
 mod transport;
+pub use config_document::ConfigObject;
 pub use configured::{
     ConfiguredRoutes, ConfiguredRuntimeError, ProcessingRouteIdentity, RuntimeEndpointFailure,
 };
-pub use runtime_credentials::{
-    CredentialMaterial, CredentialResolver, EnvironmentCredentialResolver,
-};
+pub use device_auth::{CodexDeviceCode, DeviceAuthError};
+pub use model_config::{GeneralRoute, ModelRoute, ModelSlot};
+pub use protected_config::{ConfigFile, CredentialKind};
 pub use transport::ConfiguredEmbeddingEndpoint;
 pub use transport::{ConfiguredDecisionEndpoint, ConfiguredGeneralEndpoint};
 
