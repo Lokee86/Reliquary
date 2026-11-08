@@ -58,6 +58,20 @@ owner cut after the operation, and whether this call created the Memory. The
 principal comes from the authenticated Instance, and the direct Memory keeps
 operator provenance.
 
+## Checked Memory correction and retirement
+
+`WorkspaceManagement::correct_memory_at_cut` accepts the current inspection
+cut, original Memory ID, revision and body ID, and a stable request ID.
+The immutable successor, original lifecycle revision and user supersession
+edge share one durable owner commit. The response identifies both Memories
+and returns the replacement's authenticated user provenance. Exact replay
+reuses the accepted effect after reopening the owner.
+
+`WorkspaceManagement::retire_memory_at_cut` takes a stable request ID and
+the exact original and successor evidence required by the existing
+supersession and reference-closure checks. It returns the committed
+tombstone revision and resulting cut.
+
 ## Checked user Memory associations
 
 `WorkspaceManagement::change_memory_association` requires a ManageRel grant,
