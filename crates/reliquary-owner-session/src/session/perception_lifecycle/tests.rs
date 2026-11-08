@@ -354,3 +354,140 @@ fn relationship_creation_requires_exact_source_and_retirement_preserves_tombston
         "Mira coordinates the Lantern review."
     );
 }
+
+#[test]
+fn user_correction_and_retirement_survive_reopen_and_history_pruning() {
+    use crate::UserMemoryCorrection;
+    use crate::records::VerifiedOwnerCopyPlan;
+    use reliquary_graph::{RelationChange, RelationKind, RelationOrigin};
+
+    let temp = Temp::new("user-memory-source");
+    let output = Temp::new("user-memory-pruned");
+    let owner = [171; 16];
+    let correction_key = format!("management:{}", "a".repeat(64));
+    let retirement_key = format!("management:{}", "b".repeat(64));
+    let body = "original sensitive accepted Memory ".repeat(150);
+    let (original, replacement, request, terminal) = {
+        let mut writer = RelWriter::create_path(&temp.0, ReliquaryScope::Project, owner).unwrap();
+        let original = publish_memory(
+            &mut writer,
+            memory_draft(owner, "original", &body, false, None, 10),
+            10,
+        );
+        let id = original.record.id;
+        let result = writer
+            .correct_user_memory(
+                "operator",
+                correction_key.clone(),
+                [31; 32],
+                UserMemoryCorrection {
+                    id,
+                    revision: original.record.revision,
+                    body: original.record.body_id,
+                    title: "Corrected title".into(),
+                    content: "Corrected accepted body".into(),
+                    created_at_ns: 20,
+                },
+            )
+            .unwrap();
+        let replacement = result.replacement;
+        let archived = writer.session.common.memories.current(id).unwrap();
+        assert_eq!(result.archived_revision, archived.record.revision);
+        assert_eq!(archived.payload, original.payload);
+        let request = retirement_request(owner, &archived, &replacement);
+        let grant = GraphAdmission::for_changes(owner, [id.0, replacement.record.id.0], []);
+        let edge = RelationChange {
+            source: NodeRef::Memory(id.0),
+            target: NodeRef::Memory(replacement.record.id.0),
+            kind: RelationKind::Topical,
+            active: true,
+            origin: RelationOrigin::User,
+        };
+        writer
+            .session
+            .common
+            .graph
+            .put(&mut writer.container, &grant, &[edge])
+            .unwrap();
+        writer.session.writer_lease_proof = writer.container.writer_lease_proof();
+        let bytes = fs::metadata(&temp.0).unwrap().len();
+        assert!(
+            writer
+                .retire_user_memory(
+                    "operator",
+                    retirement_key.clone(),
+                    [32; 32],
+                    request.clone(),
+                )
+                .is_err()
+        );
+        assert_eq!(fs::metadata(&temp.0).unwrap().len(), bytes);
+        writer
+            .session
+            .common
+            .graph
+            .put(
+                &mut writer.container,
+                &grant,
+                &[RelationChange {
+                    active: false,
+                    ..edge
+                }],
+            )
+            .unwrap();
+        writer.session.writer_lease_proof = writer.container.writer_lease_proof();
+        let (terminal, retired) = writer
+            .retire_user_memory(
+                "operator",
+                retirement_key.clone(),
+                [32; 32],
+                request.clone(),
+            )
+            .unwrap();
+        assert!(retired);
+        (original, replacement, request, terminal)
+    };
+    let grant = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let plan = VerifiedOwnerCopyPlan::prepare(&temp.0).unwrap();
+    super::super::prune_terminal_memory_copy(
+        &plan,
+        &temp.0,
+        &output.0,
+        &[original.record.id],
+        &grant,
+    )
+    .unwrap();
+    assert!(
+        !fs::read(&output.0)
+            .unwrap()
+            .windows(body.len())
+            .any(|part| part == body.as_bytes())
+    );
+    let mut reopened = RelWriter::open_path_current(&output.0).unwrap();
+    let (replayed, retired) = reopened
+        .retire_user_memory("operator", retirement_key, [32; 32], request)
+        .unwrap();
+    assert_eq!(replayed, terminal);
+    assert!(!retired);
+    assert_eq!(
+        reopened
+            .session
+            .common
+            .memories
+            .current(replacement.record.id)
+            .unwrap(),
+        replacement
+    );
+    let prior = reopened
+        .session
+        .common
+        .memories
+        .history(original.record.id)
+        .unwrap();
+    assert!(
+        prior
+            .revisions
+            .iter()
+            .all(|revision| revision.payload == PayloadState::Absent)
+    );
+}
