@@ -4,6 +4,10 @@ Parent index: [Architecture](INDEX.md). Canonical capability tracker: [rebuild c
 
 **Status: execution specifications complete; implementation/acceptance statuses are unchanged.** Baseline: rebuilt `a3c3a964` accepts G4, with production/test changes through `31e7adb2`. The original F03 capability is complete under its limited historical evidence contract; its deeper source verification remains open. D01, D02, D03 and G5 remain not started. Hermes provider/UI are a separate new-native-data product track.
 
+## Operational completion addendum — November 7, 2026
+
+The separate [P01 public host API and CLI completion](public-host-cli-completion-spec-2026-11-07.md) now closes missing native product entry points and processing composition. It is neither the 24 migration/release tickets nor the 11 Hermes tickets in this original plan. Original G4 evidence remains historical; `P01-O12` is an additional prerequisite of final G5 release review, while migration implementation and native operational work can proceed independently.
+
 ## Purpose
 
 Make the remaining work safe to assign to independent agents without repeating G4's disconnected-fixture problem. Define shared evidence, explicit ownership, executable handoffs and acceptance dependencies before parallel implementation. Do not redesign the accepted 23-package/76-production-edge architecture or reproduce a source-file migration checklist.
@@ -48,7 +52,7 @@ F03-V04 + D01-T04 + accepted G4 -> D01-T05 authentic conversion
 D01-T05 + D02-T03 + F03-V04    -> D02-T04 authentic independent parity
 D02-T04 + D03-T02             -> D03-T03..T04 staged generation/retirement
 D02-T04 + F03-V04 + G5-T02     -> G5-T03 comparative measurement
-D03-T04 + G5-T03 + PG-C02      -> G5-T04 final release/recovery review
+D03-T04 + G5-T03 + PG-C02 + P01-O12 -> G5-T04 final release/recovery review
 G5-T04 + operator authorization -> G5-T05 actual activation
 
 accepted G4 -> HP01 host/DTO contract -> HP02..HP05 -> HP06

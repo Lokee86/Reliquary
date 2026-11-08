@@ -602,7 +602,14 @@
       "acceptance": "Only needed public operations; no Cva aliases, empty forwarding crates, original Root dependency or external consumer contract break without approval; expose GM-accepted rewrite/prune/reclaim/reconcile/history contracts via supported Rel/PHY API and CLI without dropping existing behavior",
       "status": "complete",
       "breakdown": "docs/architecture/p01-public-product-api-cli-implementation-spec-2026-11-06.md",
-      "acceptance_evidence": "Reliquary-rebuild/docs/p01-public-product-acceptance-2026-11-06.md"
+      "acceptance_evidence": "Reliquary-rebuild/docs/p01-public-product-acceptance-2026-11-06.md",
+      "operational_completion": {
+        "status": "specified-not-implemented",
+        "specification": "docs/architecture/public-host-cli-completion-spec-2026-11-07.md",
+        "tickets": "docs/architecture/public-host-cli-tickets-2026-11-07.json",
+        "final_gate": "P01-O12",
+        "note": "Original status is historical P01 acceptance; the full public host producer and operational CLI remain unaccepted. This addendum supersedes the earlier REL-only/host-owned operational exclusions."
+      }
     },
     {
       "id": "G4",
@@ -667,6 +674,7 @@
       "deliverable": "Release-cutover acceptance report",
       "acceptance": "Measured latency/memory and host privacy/queue/stream behavior within accepted baselines; new code owns no obsolete pathway",
       "breakdown": "docs/architecture/g5-performance-release-acceptance-spec-2026-11-06.md",
+      "additional_acceptance_gates": ["P01-O12"],
       "status": "not-started"
     }
   ]

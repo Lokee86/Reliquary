@@ -1,5 +1,7 @@
 # Reliquary Memory v2 Documentation
 
+- [P01 operational completion: public host API and CLI](architecture/public-host-cli-completion-spec-2026-11-07.md) — audited missing consumer connections, native processing, configured providers and real CLI operation; twelve separate completion tickets, not old-data migration or Hermes.
+
 - [Post-G4 parallel execution specifications](architecture/post-g4-parallel-execution-plan-2026-11-06.md) — F03 deep source proof, D01 conversion, D02 independent parity, D03 staging/rollback, G5 performance/release, and a separate Hermes provider/dashboard track; includes a 35-ticket dependency DAG.
 
 - [Rebuild continuation checkpoint (2026-11-04)](rebuild-continuation-2026-11-04.md) — active worktree, verified architecture correction, exact agent handoff and pending gates.

@@ -85,6 +85,31 @@ not claimed by Graph extraction. Test fixtures use disposable files.
 
 ## Review
 
+An independent completion audit of `2519c3b0` reconfirmed canonical ownership,
+the Container-only Reliquary dependency and product endpoint admission. Luna
+reviewers inspected Graph admission/replay and Community codecs, lineage and
+projection without changing source. No extraction regression was identified.
+Fresh locked/offline verification passed all 28 Graph owner tests, the workspace
+check, workspace/CLI formatting, the root Graph filter (104 passed, one ignored),
+Community (25 passed), Dream (186 passed), Perception (three passed) and CLI
+(32 passed). Dream/CLI config tests initially failed with access denied under the ambient temporary directory;
+all passed with `TEMP` and `TMP` scoped to repository-local `.test-tmp`.
+Documentation policy (full and changed-from-main) and Archivist passed. The
+installed Pitlord still rejects `docs`; architecture refresh was not repeated
+for this documentation-only audit.
+
+The audit also identified an inherited physical failure limitation, present in
+`13016c4a`: Graph appends format/node frames before the transaction envelope.
+An I/O failure can therefore leave physical mapping frames or an incomplete
+tail even though the live Graph mappings and semantic clock remain uncommitted.
+Container does not fence a subsequent retry automatically. The extraction's
+failed-append guarantee covers live semantic state; it does not establish
+multi-frame physical rollback or safe retry after arbitrary I/O failure.
+Resolving that limitation requires separate Container/publication work while
+preserving the accepted storage contract. Literal Community codec vectors are
+also not independently covered; existing persistence/reopen and lineage tests
+remain the evidence for those unchanged layouts.
+
 - Standards/architecture axis: one canonical persistent owner, downward Cargo
   dependency, operation-scoped foreign facts and one-pass replay admission were
   inspected. The repeated Entity-history scan and missing baseline admission

@@ -5,6 +5,10 @@
 **Dependencies:** G3 and GM **accepted**; next gate G4.
 **Authority:** [canonical tracker](implementation-rebuild-capabilities-2026-11-03.json), [selective-reuse implementation plan](../architecture-rebuild-implementation-plan-2026-11-03.md), [F02 selected behavior](../supported-behavior-inventory.md), [target dependency DAG](target-crate-dag-2026-11-03.json), and `Reliquary-rebuild/docs/gm-independent-reacceptance-2026-11-06.md`.
 
+## Operational completion addendum — November 7, 2026
+
+The [public host API and CLI completion specification](public-host-cli-completion-spec-2026-11-07.md) governs the newly identified operational exposure/composition gaps. Its audit distinguishes internal G4 integration and external inspection from a public-only producer creating and processing fresh owners. The addendum explicitly includes operational import, model configuration, processing, vectors, retrieval and necessary PHY CLI behavior; the earlier host-only command exclusions below no longer define the completed target. Original P01/G4 evidence is preserved, with separate `P01-O01..P01-O12` completion status.
+
 ## 1. Objective and completion contract
 
 Deliver **one usable, narrow, supported public Rust product surface** over the accepted 2.1 owner/application/Gateway implementation, together with a **REL-oriented consumer CLI** and a **trusted host entry point**. P01 is primarily exposure and integration: *do not implement a second owner, copy the historical Root, or change accepted semantics to make a command easier to write.*

@@ -4,6 +4,10 @@ Parent index: [Architecture](INDEX.md). Parent plan: [post-G4 execution](post-g4
 
 **Status: implementation-ready specification; G5 not started or accepted.** Benchmark harness development and native 2.1 measurements may proceed now. Comparative historical measurements require F03-admitted old owners and D02-admitted equivalent new owners. Final G5 acceptance depends on D03-T04; no benchmark result alone authorizes activation.
 
+## Operational prerequisite added November 7, 2026
+
+Final release/recovery review also requires `P01-O12` from the [public host API and CLI operational completion specification](public-host-cli-completion-spec-2026-11-07.md). Earlier G4 acceptance did not prove a public-only fresh-corpus producer or operational CLI. Benchmark preparation may continue; final release cannot bypass that new gate. The native operational work has no dependency on historical conversion or Hermes.
+
 ## Purpose
 
 Confirm the replacement is operationally usable at the preserved corpus sizes, not merely logically correct. Detect regressions in open/replay, retrieval, writer/worker latency, memory, queue fairness and recovery while preserving exact privacy and accepted-use semantics.
@@ -59,7 +63,7 @@ Benchmarks require an exclusive machine measurement window, not merely a separat
 | G5-T01 — freeze workload/policy | PG-C01 | Versioned workload manifest, benchmark machine description, thresholds and comparison method | Source-controlled case IDs/data/model inputs, correct statistical self-tests, no post-result threshold changes |
 | G5-T02 — native runner and baseline adapters | G5-T01 | Reproducible runner, 2.1 generated workloads and separately built old adapter | Timers/peak-memory units verified, no fake cold-cache claims, workload semantic self-checks; native results marked provisional until paired sources exist |
 | G5-T03 — comparative corpus measurements | G5-T02, F03-V04, D02-T04 | Paired old/new evidence for G5-01..08 on exact parity-approved files | All mandatory thresholds pass or explicitly remain inconclusive/fail; raw samples, source hashes and no source mutation |
-| G5-T04 — final release/recovery rehearsal | G5-T03, D03-T04, PG-C02 | Exact packaged-runtime regression, privacy/host/cutover rehearsal and independent release review | G4/GM/P01 + full Rust/CLI/consumer suites, DAG, packaging old-reader absence, D03 prewrite rollback and postwrite fence all pass |
+| G5-T04 — final release/recovery rehearsal | G5-T03, D03-T04, PG-C02, P01-O12 | Exact packaged-runtime regression, privacy/host/cutover rehearsal and independent release review | G4/GM/P01 + full Rust/CLI/consumer suites, DAG, packaging old-reader absence, D03 prewrite rollback and postwrite fence all pass |
 | G5-T05 — release decision and authorized activation | G5-T04 | Signed-off immutable release decision; operator-approved selector/write transition | Exact artifact/manifest hashes; recorded authorization; all-owner read-only health before writes; acceptance and activation state reported separately |
 
 G5-T05 may produce `release-ready / not activated` while awaiting operator authorization. Do not mark canonical G5's "activate rebuilt product" deliverable complete until the authorized activation and post-activation checks actually ran. This is not an invitation to request approval before specification or safe preparation.

@@ -5,6 +5,7 @@
   "plan": "post-g4-parallel-execution-plan-2026-11-06.md",
   "external_gates": {
     "G4": "accepted; retain canonical tracker authority",
+    "P01-O12": "additional native public-host/CLI operational gate; see public-host-cli-tickets-2026-11-07.json; not a migration or Hermes ticket",
     "operator-authorization": "required before actual activation; not granted by planning"
   },
   "semantics": {
@@ -36,13 +37,13 @@
     {"id":"G5-T01","lane":"performance","depends_on":["PG-C01"],"status":"not-started","title":"Freeze workloads and performance acceptance policy","specification":"g5-performance-release-acceptance-spec-2026-11-06.md"},
     {"id":"G5-T02","lane":"performance","depends_on":["G5-T01"],"status":"not-started","title":"Build native and reference measurement adapters","specification":"g5-performance-release-acceptance-spec-2026-11-06.md"},
     {"id":"G5-T03","lane":"performance","depends_on":["G5-T02","F03-V04","D02-T04"],"status":"not-started","title":"Measure matched authenticated old/new corpus workloads","specification":"g5-performance-release-acceptance-spec-2026-11-06.md"},
-    {"id":"G5-T04","lane":"performance","depends_on":["G5-T03","D03-T04","PG-C02"],"status":"not-started","title":"Verify exact packaged runtime and release recovery","specification":"g5-performance-release-acceptance-spec-2026-11-06.md"},
+    {"id":"G5-T04","lane":"performance","depends_on":["G5-T03","D03-T04","PG-C02","P01-O12"],"status":"not-started","title":"Verify exact packaged runtime and release recovery","specification":"g5-performance-release-acceptance-spec-2026-11-06.md"},
     {"id":"G5-T05","lane":"release","depends_on":["G5-T04","operator-authorization"],"status":"not-started","title":"Record release decision and perform authorized activation","specification":"g5-performance-release-acceptance-spec-2026-11-06.md"},
-    {"id":"HP01","lane":"hermes","depends_on":["G4"],"status":"not-started","title":"Pin real host identity and DTO/consumption contract","specification":"hermes-reliquary-plugin-implementation-spec-2026-11-06.md"},
+    {"id":"HP01","lane":"hermes","depends_on":["G4"],"status":"not-started","title":"Pin host APIs and correct/freeze Hermes integration contract","specification":"hermes-reliquary-plugin-implementation-spec-2026-11-06.md"},
     {"id":"HP02","lane":"hermes","depends_on":["HP01"],"status":"not-started","title":"Expose required narrow public product operations","specification":"hermes-reliquary-plugin-implementation-spec-2026-11-06.md"},
-    {"id":"HP03","lane":"hermes","depends_on":["HP02"],"status":"not-started","title":"Build authenticated local service and provider lifecycle","specification":"hermes-reliquary-plugin-implementation-spec-2026-11-06.md"},
-    {"id":"HP04","lane":"hermes","depends_on":["HP03"],"status":"not-started","title":"Ingest copied Hermes snapshots with source authority and recovery","specification":"hermes-reliquary-plugin-implementation-spec-2026-11-06.md"},
-    {"id":"HP05","lane":"hermes","depends_on":["HP04"],"status":"not-started","title":"Wire retrieval and exact confirmed consumption","specification":"hermes-reliquary-plugin-implementation-spec-2026-11-06.md"},
+    {"id":"HP03","lane":"hermes","depends_on":["HP02"],"status":"not-started","title":"Build local service with REL routing and active-PHY identity","specification":"hermes-reliquary-plugin-implementation-spec-2026-11-06.md"},
+    {"id":"HP04","lane":"hermes","depends_on":["HP03"],"status":"not-started","title":"Ingest, tombstone and recover copied Hermes sources","specification":"hermes-reliquary-plugin-implementation-spec-2026-11-06.md"},
+    {"id":"HP05","lane":"hermes","depends_on":["HP04"],"status":"not-started","title":"Wire retrieval and real Hermes recall","specification":"hermes-reliquary-plugin-implementation-spec-2026-11-06.md"},
     {"id":"HP06","lane":"hermes","depends_on":["HP05"],"status":"not-started","title":"Package and validate standalone plugin","specification":"hermes-reliquary-plugin-implementation-spec-2026-11-06.md"},
     {"id":"HP07","lane":"hermes-demo","depends_on":["HP06","HU04"],"status":"not-started","title":"Prove real-provider UI demo and submission artifacts","specification":"hermes-reliquary-plugin-implementation-spec-2026-11-06.md"},
     {"id":"HU01","lane":"ui","depends_on":["HP01"],"status":"not-started","title":"Pin UI donors and dashboard tab contract","specification":"hermes-reliquary-ui-implementation-spec-2026-11-06.md"},
