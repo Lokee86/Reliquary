@@ -6,7 +6,7 @@ Parent index: [Architecture](INDEX.md). Backend contract: [Hermes plugin](hermes
 
 ## Purpose
 
-Make Reliquary's actual memory state and behavior visible in Hermes without inventing a second data model or reporting fixture animations as live activity. The UI must expose who owns a Memory, why it exists, what source supports it, whether it is active/terminal/unavailable, and what the host actually retrieved or consumed.
+Make Reliquary's actual memory state and behavior visible in Hermes without inventing a second data model or reporting fixture animations as live activity. The UI must expose who owns a Memory, why it exists, what source supports it, whether it is active/terminal/unavailable, and what Reliquary actually selected/returned. It does not report downstream model consumption.
 
 ## Overview
 
@@ -24,7 +24,7 @@ Hermes's inspected `website/docs/user-guide/features/extending-the-dashboard.md`
 
 The browser never receives service credentials, owner file paths, direct Python/Rust store access or private source payloads outside the current grant. The backend resolves profile/principal from authenticated Hermes request context and forwards only server-bound permissions. Existing dashboard authentication must not be assumed to authorize every mounted owner; apply Reliquary grants again. Reject cross-profile route parameters, cross-origin mutation requests and stale generation tokens.
 
-The tab has three coordinated regions: owner/scope and filters at left, paged Memory list or bounded graph in the center, and a selected-item inspector at right. A compact status area shows ingestion/worker/recall state for the selected owner/session. Scope defaults to the active session's REL; PHY is explicit and permission-checked. Show the active owner name/kind on every detail and mutation confirmation. Scope changes cancel in-flight requests and clear private selection/cache before rendering the new owner.
+The tab has three coordinated regions: owner/scope and filters at left, paged Memory list or bounded graph in the center, and a selected-item inspector at right. A compact status area shows ingestion/worker/recall state for the selected owner/session. Scope defaults to the session's durable REL mapping: ordinary/general conversations use the main REL; project conversations use that project's child REL. PHY selection is independent, explicit and permission-checked; the selected PHY's stable ID is the Reliquary integration `user_id` and must not be inferred from the Hermes bot/profile. Show the active owner name/kind on every detail and mutation confirmation. Scope changes cancel in-flight requests and clear private selection/cache before rendering the new owner.
 
 Graph is the default visual mode, with an accessible list alternative and keyboard navigation. No full application theme replacement is required. Reuse Hermes typography/tokens and make errors/loading/empty/unavailable states distinct. Do not add generated images or a new design system as a dependency of functional acceptance.
 
@@ -40,7 +40,7 @@ Freeze DTO schemas in HP01 before parallel UI/backend work. All responses bind o
 | Provenance | Hermes source namespace/session/message/branch/revision/hash; copied-snapshot label; exact authorized source range | Revalidate source authorization/revision on drill-down; deleted or stale source remains visibly unavailable |
 | Graph | Stable semantic node/edge IDs, kinds/origins, source/target, revision/cut, bounded neighborhood/community summary | Initial target max 500 nodes/1,000 edges per page; lazy expansion and explicit truncation; cut-bound source resolution |
 | Community | Stable generation/member count/name/name-origin, cursor | Missing routing/community metadata is not an empty graph; display actual unavailable state |
-| Operational status | Accepted source cursor, last completed receipt, pending/held/error counts, latest recall selection and confirmed-use status | Read-only activity view; no fabricated progress percent or provider-success claim |
+| Operational status | Accepted source cursor, pending/held/error counts, latest recall selection/returned set and source tombstone state | Read-only activity view; no fabricated progress percent, downstream-consumption state or provider-success claim |
 | User edits | Expected owner generation/revision, stable request ID, supported change and resulting receipt | Named product workflow, stale-update conflict, server validation and refreshed committed result |
 
 The graph transport must not require the old Warlock tiled/binary renderer protocol if it does not fit the accepted owner read seam. Keep a small renderer adapter with bounded immutable graph pages; reuse geometry/rendering where it earns its place. Rendering IDs are not semantic Memory IDs, and a selection from an old generation cannot resolve against the new one. Arcana/repository graph switching is out of scope.
@@ -48,7 +48,7 @@ The graph transport must not require the old Warlock tiled/binary renderer proto
 ## Required interactions and mutation policy
 
 1. Switch among authorized RELs and the current user's PHY; search/filter, graph/list toggle, select node/Memory and inspect history/provenance.
-2. Show live state after accepted ingestion and later recall. A dashboard read or graph expansion never reinforces Freshness. Distinguish candidate, selected, injected and confirmed-consumed states using actual receipts.
+2. Show live state after accepted ingestion and later recall. A dashboard read or graph expansion never reinforces retrieval/Freshness. Distinguish candidate examination from the selected set actually returned by Reliquary; do not invent an injected/confirmed-consumed state or send a consumption receipt from the UI.
 3. Create a manual Memory, edit its body/title with expected revision, and retire it only through supported user-origin owner workflows. Scope and provenance must remain explicit; no forged source-cited Memory.
 4. Port the relation editor for user-origin links and community rename through named existing semantics or a minimal HP02 owner-level addition. Preserve user-origin edges against Dream inference. Canonical/duplicate/supersession edits require their actual closure rules; do not expose arbitrary raw edge mutation that bypasses them.
 
@@ -74,7 +74,7 @@ Confirm destructive/retirement actions with owner, Memory identity and expected 
 | HU01 — pin donor/DTO and build tab shell | HP01 | Donor dependency/license map, dashboard manifest/build entry, typed mock contract and scoped layout | Real dashboard loads bundle; no Tauri/runtime import, no embedded secrets, owner changes clear stale/private state |
 | HU02 — bounded graph/list/inspector port | HU01 | Paged views, graph transport, exact provenance/history and accessible fallback | Contract-driven component tests for pagination/cut expiry, untrusted content, unavailable payloads, 500/1,000 page bounds and keyboard navigation |
 | HU03 — edits, scopes and live operations | HU02, HP02 | Real mutation wiring, capability map and operation/recall indicators | Stale revision/revocation/foreign PHY denied; user-origin edit/link/name persists; inspector reads never reinforce; honest held/offline states |
-| HU04 — real-service acceptance | HU03, HP05 | Actual Hermes tab + service/provider end-to-end evidence and packaged assets | Two profiles/two RELs/private PHYs, ingestion -> graph -> source -> recall -> restart; all required actions and error states tested without mock-only substitution |
+| HU04 — real-service acceptance | HU03, HP05 | Actual Hermes tab + service/provider end-to-end evidence and packaged assets | Main REL + project-child REL + explicit active PHY identity, ingestion -> graph -> source -> recall -> restart/tombstone; bot/profile identity does not mint a PHY; all required actions and error states tested without mock-only substitution |
 
 UI work can begin on DTO fixtures after HP01 while backend APIs are implemented. The final gate waits for actual HP05 semantics. HU04 does not depend on HP07; HP07 consumes HU04 for the demo, avoiding a circular dependency.
 

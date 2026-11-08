@@ -9,7 +9,7 @@
 - [D02 independent parity verifier](d02-independent-parity-verifier-implementation-spec-2026-11-06.md) — full semantic/history/privacy comparison and adversarial tests.
 - [D03 safe activation preparation](d03-safe-activation-implementation-spec-2026-11-06.md) — verified generation staging, rollback boundary and converter retirement.
 - [G5 performance and release](g5-performance-release-acceptance-spec-2026-11-06.md) — frozen workloads, thresholds, release evidence and authorized activation.
-- [Hermes provider/service](hermes-reliquary-plugin-implementation-spec-2026-11-06.md) — standalone plugin, copied-source ingestion, scoped memory and consumption proof.
+- [Hermes provider/service](hermes-reliquary-plugin-implementation-spec-2026-11-06.md) — standalone plugin, copied-source ingestion/tombstoning, main/project REL routing, active-PHY identity and temporary retrieval-gate HACK.
 - [Hermes dashboard UI](hermes-reliquary-ui-implementation-spec-2026-11-06.md) — Warlock graph/inspector/scopes port through authenticated current APIs.
 - [Execution ticket DAG](post-g4-execution-tickets-2026-11-06.json) — machine-readable dependencies; specification tables own detailed acceptance.
 - [PG-C02 cross-shell acceptance evidence](post-g4-pgc02-acceptance-evidence-2026-11-07.md) — accepted runner repair and retained raw logs.
