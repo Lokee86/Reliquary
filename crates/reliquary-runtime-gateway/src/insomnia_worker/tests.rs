@@ -274,6 +274,7 @@ fn native_mixed_route_reopens_and_reuses_phy_write_after_interruption() {
             },
         )
         .unwrap();
+    assert_eq!(worker.state(), InsomniaWorkerState::Running);
     let deadline = std::time::Instant::now() + Duration::from_secs(5);
     while !instance
         .with_writable_reliquary(owner, |rel| {
@@ -286,6 +287,7 @@ fn native_mixed_route_reopens_and_reuses_phy_write_after_interruption() {
         thread::sleep(Duration::from_millis(5));
     }
     worker.stop().unwrap();
+    assert_eq!(worker.state(), InsomniaWorkerState::Stopped);
     drop(worker);
     drop(instance);
     drop(gateway);
@@ -326,4 +328,24 @@ fn native_mixed_route_reopens_and_reuses_phy_write_after_interruption() {
     drop(rel);
     std::fs::remove_file(rel_path).unwrap();
     std::fs::remove_file(phy_path).unwrap();
+}
+
+#[test]
+fn worker_status_retains_unrequested_thread_failure_after_join() {
+    let control = Arc::new(WorkerControl {
+        stopped: AtomicBool::new(false),
+        failed: AtomicBool::new(false),
+        wait: (Mutex::new(()), Condvar::new()),
+    });
+    let worker = thread::spawn(|| panic!("fixture worker failure"));
+    while !worker.is_finished() {
+        thread::yield_now();
+    }
+    let mut handle = InsomniaWorkerHandle {
+        control,
+        workers: vec![worker],
+    };
+    assert_eq!(handle.state(), InsomniaWorkerState::Failed);
+    assert!(handle.stop().is_err());
+    assert_eq!(handle.state(), InsomniaWorkerState::Failed);
 }

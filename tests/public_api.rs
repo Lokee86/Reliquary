@@ -318,3 +318,91 @@ fn public_host_commits_conversation_and_management_reads_bounded_transcript() {
         ProductErrorKind::Revoked
     );
 }
+
+#[test]
+fn public_import_and_retrieval_facades_require_owner_grants_and_worker_status_is_real() {
+    use reliquary_memory::{
+        ImportReceipt, InsomniaWorkerConfig, InsomniaWorkerState, NativeImportBatch,
+    };
+    use std::{sync::Arc, time::Duration};
+
+    struct IdleEndpoint;
+    impl reliquary_memory::GeneralEndpoint for IdleEndpoint {
+        fn model(&self) -> &str {
+            "root-facade-test"
+        }
+
+        fn complete_json(
+            &self,
+            _system_prompt: &str,
+            _user_payload: &str,
+            _schema_name: &str,
+            _schema: &serde_json::Value,
+        ) -> Result<serde_json::Value, reliquary_memory::GeneralEndpointError> {
+            Ok(serde_json::Value::Null)
+        }
+    }
+
+    let temp = TestPaths::new("product-facades");
+    let rel = Rel::create(temp.path("owner.rel"), OwnerScope::Project).unwrap();
+    let gateway = Gateway::new();
+    let owner = gateway.mount_rel(&rel, true).unwrap();
+    let view_token = "v".repeat(48);
+    let operate_token = "o".repeat(48);
+    let (admission, _) = TrustedHostAdmission::new([
+        HostCredentialBinding::new("viewer", &view_token, [OwnerGrant::ViewRel(owner)]),
+        HostCredentialBinding::new("operator", &operate_token, [OwnerGrant::OperateRel(owner)]),
+    ])
+    .install(&gateway)
+    .unwrap();
+    let viewer = admission.authenticate(&view_token).unwrap();
+    let operator = admission.authenticate(&operate_token).unwrap();
+
+    let turn = viewer
+        .begin_memory_retrieval_turn(owner, "external-turn-1")
+        .unwrap();
+    assert_eq!(turn.owner_id(), owner);
+    assert_eq!(turn.turn_id(), "external-turn-1");
+
+    let batch = NativeImportBatch {
+        source: ImportReceipt {
+            schema_version: 1,
+            owner_uuid: owner.as_bytes(),
+            import_key: [1; 32],
+            source_namespace: "hermes-profile".into(),
+            source_format: "copied-snapshot".into(),
+            source_digest: [1; 32],
+            conversations: vec![],
+            receipt_digest: [0; 32],
+        },
+        turns: vec![],
+        episodes: vec![],
+        started_at_ns: 1,
+    };
+    assert_eq!(
+        viewer.stage_native_import(owner, batch).unwrap_err().kind(),
+        ProductErrorKind::Unauthorized
+    );
+    assert_eq!(
+        viewer
+            .settle_native_import(owner, "import-id")
+            .unwrap_err()
+            .kind(),
+        ProductErrorKind::Unauthorized
+    );
+
+    let mut workers = gateway
+        .start_insomnia_workers(
+            &operator,
+            owner,
+            Arc::new(IdleEndpoint),
+            InsomniaWorkerConfig {
+                idle_poll: Duration::from_millis(5),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    assert_eq!(workers.state(), InsomniaWorkerState::Running);
+    workers.stop().unwrap();
+    assert_eq!(workers.state(), InsomniaWorkerState::Stopped);
+}

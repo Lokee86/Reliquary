@@ -34,6 +34,11 @@ pub struct PreparedMemoryDelivery {
 }
 
 impl PreparedMemoryDelivery {
+    /// Owner bound to this exact prepared payload.
+    pub fn owner_id(&self) -> OwnerId {
+        self.owner
+    }
+
     /// Stable trusted-host operation key for reconciliation and recovery.
     /// The opaque result remains the only authority to deliver its contents.
     pub fn stable_id(&self) -> &str {
@@ -83,6 +88,18 @@ pub struct MemoryRetrievalTurn {
     pub(super) turn_id: String,
     pub(super) controller_id: Uuid,
     pub(super) state: std::sync::Mutex<TurnState>,
+}
+
+impl MemoryRetrievalTurn {
+    /// Owner bound to this authenticated retrieval turn.
+    pub fn owner_id(&self) -> OwnerId {
+        self.owner
+    }
+
+    /// Stable caller turn identifier used by the host delivery manifest.
+    pub fn turn_id(&self) -> &str {
+        &self.turn_id
+    }
 }
 
 #[derive(Serialize)]

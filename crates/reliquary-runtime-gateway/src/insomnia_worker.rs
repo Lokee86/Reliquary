@@ -27,6 +27,16 @@ pub struct InsomniaWorkerConfig {
     pub lease_duration_ns: i64,
     pub idle_poll: Duration,
 }
+
+/// Honest lifecycle state for the joined Insomnia worker set.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum InsomniaWorkerState {
+    Running,
+    Stopping,
+    Stopped,
+    Failed,
+}
+
 impl Default for InsomniaWorkerConfig {
     fn default() -> Self {
         Self {
@@ -97,6 +107,7 @@ impl Gateway {
 
 struct WorkerControl {
     stopped: AtomicBool,
+    failed: AtomicBool,
     wait: (Mutex<()>, Condvar),
 }
 
@@ -116,6 +127,7 @@ impl InsomniaWorkerHandle {
         config.validate()?;
         let control = Arc::new(WorkerControl {
             stopped: AtomicBool::new(false),
+            failed: AtomicBool::new(false),
             wait: (Mutex::new(()), Condvar::new()),
         });
         let mut workers = Vec::with_capacity(config.workers);
@@ -124,8 +136,14 @@ impl InsomniaWorkerHandle {
             let endpoint = SharedEndpoint(Arc::clone(&endpoint));
             let config = config.clone();
             let control = Arc::clone(&control);
+            let failure_control = Arc::clone(&control);
             workers.push(thread::spawn(move || {
-                worker_loop(instance, owner, endpoint, config, index, control)
+                let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    worker_loop(instance, owner, endpoint, config, index, control)
+                }));
+                if result.is_err() {
+                    failure_control.failed.store(true, Ordering::Release);
+                }
             }));
         }
         Ok(Self { control, workers })
@@ -138,13 +156,38 @@ impl InsomniaWorkerHandle {
             panicked |= worker.join().is_err();
         }
         if panicked {
-            return Err(GatewayError::HostAdapter("Insomnia worker panicked".into()));
+            self.control.failed.store(true, Ordering::Release);
+        }
+        if self.control.failed.load(Ordering::Acquire) {
+            return Err(GatewayError::HostAdapter("Insomnia worker failed".into()));
         }
         Ok(())
     }
     pub fn is_stopped(&self) -> bool {
-        self.control.stopped.load(Ordering::Acquire)
-            && self.workers.iter().all(JoinHandle::is_finished)
+        matches!(
+            self.state(),
+            InsomniaWorkerState::Stopped | InsomniaWorkerState::Failed
+        )
+    }
+    pub fn state(&self) -> InsomniaWorkerState {
+        if self.control.failed.load(Ordering::Acquire) {
+            return InsomniaWorkerState::Failed;
+        }
+        let requested_stop = self.control.stopped.load(Ordering::Acquire);
+        let finished = self.workers.iter().all(JoinHandle::is_finished);
+        if requested_stop {
+            if finished {
+                InsomniaWorkerState::Stopped
+            } else {
+                InsomniaWorkerState::Stopping
+            }
+        } else if self.workers.iter().any(JoinHandle::is_finished) {
+            // worker_loop only exits when stop is requested; an unrequested
+            // thread exit therefore indicates an unexpected failure.
+            InsomniaWorkerState::Failed
+        } else {
+            InsomniaWorkerState::Running
+        }
     }
 }
 impl Drop for InsomniaWorkerHandle {

@@ -412,12 +412,13 @@ pub use instance_context::{
     ContextMemoryRef, ProjectContextAttachmentRef,
 };
 mod instance_management;
+mod instance_native_import;
 mod instance_owner;
 mod instance_passive_retrieval;
 mod instance_project_correlation;
 pub use instance_project_correlation::{AuthorizedProjectCorrelation, TrustedProjectSource};
 mod instance_routing;
-pub use insomnia_worker::{InsomniaWorkerConfig, InsomniaWorkerHandle};
+pub use insomnia_worker::{InsomniaWorkerConfig, InsomniaWorkerHandle, InsomniaWorkerState};
 pub use owner_workers::{OwnerWorkerConfig, OwnerWorkerCoordinator, OwnerWorkerKind};
 pub use workflow_workers::{
     DreamWorker, EntityWorker, FreshnessWorker, OwnerWorkflowSet, VectorWorker,

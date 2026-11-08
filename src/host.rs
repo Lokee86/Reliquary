@@ -208,3 +208,10 @@ pub use admission::{
 #[path = "host_instance.rs"]
 mod instance;
 pub use instance::{ConversationQueue, Instance};
+
+#[path = "host_product_workflows.rs"]
+mod product_workflows;
+pub use product_workflows::{
+    InsomniaWorkerConfig, InsomniaWorkerHandle, MemoryRetrievalTurn, PreparedMemoryDelivery,
+    RetrievalOutcome,
+};
