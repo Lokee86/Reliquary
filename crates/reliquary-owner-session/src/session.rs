@@ -703,6 +703,7 @@ impl PhySession {
     }
 }
 common_reads!(PhySession, common);
+common_reads!(PhyWriter, common);
 
 #[cfg(test)]
 mod tests;
@@ -759,7 +760,9 @@ pub use retired_profile_prune::{RetiredProfilePruneReport, prune_retired_profile
 pub use storage_reclamation::{StorageReclamationReport, reclaim_storage_copy};
 mod native_import;
 pub use native_import::InsomniaEpisodeStatus;
+mod live_processing;
 mod native_import_checkpoints;
+pub use live_processing::LiveExtractionOutput;
 pub use maintenance_prune::{
     PrunedOwnerCopyReport, promote_terminal_memory_copy, prune_terminal_memory_copy,
 };

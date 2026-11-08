@@ -21,7 +21,7 @@ pub use reliquary_freshness_store::{FreshnessEventProof, FreshnessMemoryId, Fres
 /// Bound for durable Insomnia inference checkpoints, owned by the session store.
 pub use reliquary_insomnia_store::MAX_HELD_PAYLOAD_BYTES as MAX_INSOMNIA_CHECKPOINT_BYTES;
 pub use reliquary_insomnia_store::{CompletionCheck, InsomniaLeaseToken, InsomniaWorkState};
-pub use session::{CompletedImportExtraction, InsomniaEpisodeStatus};
+pub use session::{CompletedImportExtraction, InsomniaEpisodeStatus, LiveExtractionOutput};
 pub use session::{
     DreamBatchCut, DreamCandidatePool, DreamLifecyclePublication, DreamPairPublication,
     InitialDreamSnapshot, NativeImportFreshnessInput, NativeImportHistoricalEvent,

@@ -57,6 +57,8 @@ fn multi_pair_graph_memory_and_receipts_commit_in_one_frame_and_reopen_rel_phy()
                 assert!(match &view {
                     EntityOwnerSession::Rel(s) => s.dream_pair_evaluated(source.id, candidate.id),
                     EntityOwnerSession::Phy(s) => s.dream_pair_evaluated(source.id, candidate.id),
+                    EntityOwnerSession::MountedPhy(w) =>
+                        w.dream_pair_evaluated(source.id, candidate.id),
                 });
                 if relation == "supersedes" {
                     let old = view.memory_history(candidate.id).unwrap().unwrap();

@@ -81,7 +81,7 @@ pub(crate) fn process_claim(
             );
         }
     };
-    if import_id.is_some() && extraction.model() != endpoint.model() {
+    if extraction.model() != endpoint.model() {
         return hold(
             &claim,
             "Insomnia checkpoint uses a different configured model",

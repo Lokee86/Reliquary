@@ -1,7 +1,8 @@
 use super::*;
 use crate::local_host::{LocalHost, RelAccess};
 use reliquary_memory::{
-    ConfiguredRuntime, EnvironmentCredentialResolver, ProcessOptions, ProcessingState,
+    ConfiguredRuntime, EnvironmentCredentialResolver, ImportStage, LiveProcessingSelection,
+    ProcessOptions, ProcessingState,
 };
 
 const PROCESS_OPTIONS: &[(&str, bool)] = &[
@@ -49,7 +50,7 @@ pub(crate) fn config(args: &[String]) -> Result<Value, ProductError> {
 
 pub(crate) fn process(args: &[String]) -> Result<Value, ProductError> {
     validate_options(args, 1, PROCESS_OPTIONS)?;
-    process_from_args(&args[0], args, false)
+    process_from_args(&args[0], args, None, None)
 }
 
 pub(crate) fn work(args: &[String]) -> Result<Value, ProductError> {
@@ -67,7 +68,7 @@ pub(crate) fn work(args: &[String]) -> Result<Value, ProductError> {
         Some("resume") => {
             let options = [PROCESS_OPTIONS, &[("--episode", false)]].concat();
             validate_options(args, 2, &options)?;
-            process_from_args(&args[1], args, true)
+            process_from_args(&args[1], args, Some("ready"), None)
         }
         Some("stop") => {
             validate_options(args, 2, &[("--import", false)])?;
@@ -129,6 +130,17 @@ pub(crate) fn stage(family: &str, args: &[String]) -> Result<Value, ProductError
                 .collect::<Vec<_>>();
             Ok(json!({"operation":"freshness_status","due":due}))
         }
+        ("dream" | "entity-resolution", "status") if option(args, "--import").is_none() => {
+            validate_options(args, 2, &[("--phy", false)])?;
+            let host = LocalHost::open(&args[1], option(args, "--phy"), RelAccess::View)?;
+            let stage = if family == "dream" {
+                ImportStage::Dream
+            } else {
+                ImportStage::Entity
+            };
+            let progress = host.instance.live_stage_status(host.rel, host.phy, stage)?;
+            Ok(json!({"operation":"stage_status","stage":family,"progress":progress}))
+        }
         (_, "status") => {
             validate_options(args, 2, &[("--import", false)])?;
             let id = option(args, "--import");
@@ -159,8 +171,13 @@ pub(crate) fn stage(family: &str, args: &[String]) -> Result<Value, ProductError
     }
 }
 
-fn process_from_args(path: &str, args: &[String], resume: bool) -> Result<Value, ProductError> {
-    let target = option(args, "--until").unwrap_or(if resume { "ready" } else { "" });
+fn process_from_args(
+    path: &str,
+    args: &[String],
+    default_target: Option<&str>,
+    selection: Option<LiveProcessingSelection>,
+) -> Result<Value, ProductError> {
+    let target = option(args, "--until").or(default_target).unwrap_or("");
     if !matches!(target, "idle" | "ready") {
         return Err(invalid("--until must be idle or ready"));
     }
@@ -168,9 +185,6 @@ fn process_from_args(path: &str, args: &[String], resume: bool) -> Result<Value,
     let episode = option(args, "--episode")
         .map(|value| parse_hex(value, "Episode ID").map(reliquary_memory::EpisodeId))
         .transpose()?;
-    if episode.is_some() && import_id.is_none() {
-        return Err(invalid("--episode requires --import"));
-    }
     let max_episodes = number_option(args, "--max-episodes")?.unwrap_or(128);
     if !(1..=reliquary_memory::MAX_PROCESS_EPISODES).contains(&max_episodes) {
         return Err(invalid("--max-episodes is outside the supported bounds"));
@@ -180,11 +194,22 @@ fn process_from_args(path: &str, args: &[String], resume: bool) -> Result<Value,
         option(args, "--master-key"),
     )?;
     let host = LocalHost::open(path, option(args, "--phy"), RelAccess::Operate)?;
-    if let Some((id, episode)) = import_id.zip(episode) {
-        host.instance
-            .retry_held_import_episode(host.rel, id, episode)?;
+    if let Some(episode) = episode {
+        if let Some(id) = import_id {
+            host.instance
+                .retry_held_import_episode(host.rel, id, episode)?;
+        } else {
+            host.instance.retry_held_live_episode(host.rel, episode)?;
+        }
     }
-    run_processing(&host, &configured, import_id, max_episodes, target)
+    run_selected_processing(
+        &host,
+        &configured,
+        import_id,
+        max_episodes,
+        target,
+        selection,
+    )
 }
 
 pub(crate) fn run_processing(
@@ -194,17 +219,38 @@ pub(crate) fn run_processing(
     max_episodes: usize,
     target: &str,
 ) -> Result<Value, ProductError> {
+    run_selected_processing(host, configured, import_id, max_episodes, target, None)
+}
+
+fn run_selected_processing(
+    host: &LocalHost,
+    configured: &ConfiguredRuntime,
+    import_id: Option<&str>,
+    max_episodes: usize,
+    target: &str,
+    selection: Option<LiveProcessingSelection>,
+) -> Result<Value, ProductError> {
     use std::time::{Duration, Instant};
     let interrupt = crate::interruption::InterruptGuard::install()?;
-    let job = host.instance.start_processing(
-        host.rel,
-        configured,
-        ProcessOptions {
-            import_id: import_id.map(str::to_owned),
-            destination: host.phy,
+    let job = if let Some(selection) = selection {
+        host.instance.start_live_processing_stage(
+            host.rel,
+            configured,
+            host.phy,
             max_episodes,
-        },
-    )?;
+            selection,
+        )?
+    } else {
+        host.instance.start_processing(
+            host.rel,
+            configured,
+            ProcessOptions {
+                import_id: import_id.map(str::to_owned),
+                destination: host.phy,
+                max_episodes,
+            },
+        )?
+    };
     let mut last_report = None;
     let mut next_report = Instant::now();
     while !job.is_finished() {

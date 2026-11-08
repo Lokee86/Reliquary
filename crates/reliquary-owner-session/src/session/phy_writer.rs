@@ -176,12 +176,4 @@ impl PhyWriter {
         };
         Ok((published.revision, receipt))
     }
-
-    pub fn memory_history(&self, id: MemoryId) -> Result<Option<MemoryHistory>, OwnerSessionError> {
-        match self.common.memories.history(id) {
-            Ok(history) => Ok(Some(history)),
-            Err(MemoryError::MissingMemory) => Ok(None),
-            Err(error) => Err(error.into()),
-        }
-    }
 }

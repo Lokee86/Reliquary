@@ -4,6 +4,7 @@ use reliquary_owner_session::model::EpisodeId;
 use reliquary_runtime_gateway as runtime;
 use std::sync::Arc;
 
+pub use reliquary_application::live_processing::{LiveProcessingSelection, LiveStageProgress};
 pub use reliquary_application::processing_plan::{
     ImportStage, InsomniaProgress, MAX_PROCESS_EPISODES, StageProgress, StageState,
 };
@@ -65,23 +66,29 @@ impl OwnerProcessingJob {
         } = self;
         let mut report = inner.join()?;
         instance.require(OwnerGrant::OperateRel(owner))?;
-        filter_private_counts(&instance, destination, &mut report)?;
+        filter_private_counts(&instance, owner, destination, &mut report)?;
         Ok(report)
     }
 
     fn filter_private_counts(&self, report: &mut ProcessingReport) -> Result<(), ProductError> {
-        filter_private_counts(&self.instance, self.destination, report)
+        filter_private_counts(&self.instance, self.owner, self.destination, report)
     }
 }
 
 fn filter_private_counts(
     instance: &Instance,
+    owner: OwnerId,
     destination: Option<OwnerId>,
     report: &mut ProcessingReport,
 ) -> Result<(), ProductError> {
-    if let Some(phy) = destination.filter(|_| report.import_id.is_some()) {
+    if let Some(phy) = destination {
         instance.require(OwnerGrant::OperatePhylactery(phy))?;
         report.insomnia.phy_counts_visible = true;
+        if report.import_id.is_none() {
+            report.insomnia.phy_memories = instance
+                .inner
+                .live_routed_memory_count(owner.into(), phy.into())?;
+        }
     } else {
         report.insomnia.phy_memories = 0;
     }
@@ -152,22 +159,71 @@ impl Instance {
             .map_err(Into::into)
     }
 
+    pub fn live_stage_status(
+        &self,
+        owner: OwnerId,
+        destination: Option<OwnerId>,
+        stage: ImportStage,
+    ) -> Result<LiveStageProgress, ProductError> {
+        self.require_rel_read(owner)?;
+        if let Some(phy) = destination {
+            self.require_phy_read(phy)?;
+        }
+        Ok(self
+            .inner
+            .live_stage_status(owner.into(), destination.map(Into::into), stage)?)
+    }
+
+    pub fn retry_held_live_episode(
+        &self,
+        owner: OwnerId,
+        episode: EpisodeId,
+    ) -> Result<(), ProductError> {
+        self.require(OwnerGrant::OperateRel(owner))?;
+        Ok(self.inner.retry_held_live_episode(owner.into(), episode)?)
+    }
+
+    pub fn start_live_processing_stage(
+        &self,
+        owner: OwnerId,
+        runtime: &ConfiguredRuntime,
+        destination: Option<OwnerId>,
+        max_episodes: usize,
+        selection: LiveProcessingSelection,
+    ) -> Result<OwnerProcessingJob, ProductError> {
+        self.start_processing_selected(
+            owner,
+            runtime,
+            ProcessOptions {
+                import_id: None,
+                destination,
+                max_episodes,
+            },
+            selection,
+        )
+    }
+
     pub fn start_processing(
         &self,
         owner: OwnerId,
         runtime: &ConfiguredRuntime,
         options: ProcessOptions,
     ) -> Result<OwnerProcessingJob, ProductError> {
+        self.start_processing_selected(owner, runtime, options, LiveProcessingSelection::All)
+    }
+
+    fn start_processing_selected(
+        &self,
+        owner: OwnerId,
+        runtime: &ConfiguredRuntime,
+        options: ProcessOptions,
+        live_selection: LiveProcessingSelection,
+    ) -> Result<OwnerProcessingJob, ProductError> {
         self.require(OwnerGrant::OperateRel(owner))?;
         if let Some(phy) = options.destination {
             self.require(OwnerGrant::OperatePhylactery(phy))?;
         }
-        let endpoint = runtime.insomnia_endpoint().ok_or_else(|| {
-            ProductError::new(
-                ProductErrorKind::Unavailable,
-                "owner processing requires a configured Insomnia or general route",
-            )
-        })?;
+        let endpoint = runtime.insomnia_endpoint();
         let job = self.gateway.inner.start_processing(
             Arc::clone(&self.inner),
             owner.into(),
@@ -181,6 +237,8 @@ impl Instance {
                 destination: options.destination.map(Into::into),
                 max_episodes: options.max_episodes,
                 lease_duration_ns: runtime.worker_lease_duration_ns(),
+                live_selection,
+                live_dream_route_policy: None,
             },
         )?;
         Ok(OwnerProcessingJob {

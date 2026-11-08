@@ -118,6 +118,44 @@ impl InsomniaStore {
         Ok(history)
     }
 
+    /// Visit owner-accepted checkpoints without materializing unrelated frames.
+    pub fn visit_completed_checkpoints(
+        &self,
+        container: &Container,
+        mut visit: impl FnMut(EpisodeId, &[u8]),
+    ) -> Result<(), InsomniaError> {
+        use std::io::Read;
+        self.check_owner(container)?;
+        let mut cursor = container.physical_cursor()?;
+        while let Some(mut frame) = cursor.next_frame()? {
+            let mut prefix = [0; 8];
+            if frame.object().length < 8 {
+                continue;
+            }
+            frame.read_exact(&mut prefix).map_err(ContainerError::Io)?;
+            if &prefix != WORK_MAGIC_V2 {
+                continue;
+            }
+            let mut bytes = prefix.to_vec();
+            frame.read_to_end(&mut bytes).map_err(ContainerError::Io)?;
+            let (owner, _, work) = decode_work(&bytes)?;
+            if owner != self.owner {
+                return Err(InsomniaError::WrongOwner);
+            }
+            if work.state == InsomniaWorkState::Processing
+                && let Some(payload) = work.held_payload.as_deref()
+                && let Some(receipt) = self.receipt(work.episode_id, work.attempt_count)
+                && self
+                    .work(work.episode_id)
+                    .is_some_and(|current| current.attempt_count == receipt.attempt)
+                && receipt.started_at_ns == work.updated_at_ns
+            {
+                visit(work.episode_id, payload);
+            }
+        }
+        Ok(())
+    }
+
     pub fn owner_id(&self) -> [u8; 16] {
         self.owner
     }

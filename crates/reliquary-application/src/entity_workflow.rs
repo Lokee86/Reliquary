@@ -31,6 +31,7 @@ pub struct EntityMemoryMention {
 pub enum EntityOwnerSession<'a> {
     Rel(&'a RelSession),
     Phy(&'a PhySession),
+    MountedPhy(&'a reliquary_owner_session::PhyWriter),
 }
 
 impl EntityOwnerSession<'_> {
@@ -38,6 +39,7 @@ impl EntityOwnerSession<'_> {
         match self {
             Self::Rel(session) => session.owner_id(),
             Self::Phy(session) => session.owner_id(),
+            Self::MountedPhy(session) => session.owner_id(),
         }
     }
 
@@ -48,6 +50,7 @@ impl EntityOwnerSession<'_> {
         match self {
             Self::Rel(s) => s.current_memory(id),
             Self::Phy(s) => s.current_memory(id),
+            Self::MountedPhy(s) => s.current_memory(id),
         }
     }
     pub(crate) fn dream_candidate_pool(
@@ -59,6 +62,7 @@ impl EntityOwnerSession<'_> {
         match self {
             Self::Rel(s) => s.dream_candidate_pool(id, profile, row),
             Self::Phy(s) => s.dream_candidate_pool(id, profile, row),
+            Self::MountedPhy(s) => s.dream_candidate_pool(id, profile, row),
         }
     }
     pub(crate) fn memory_history(
@@ -68,6 +72,7 @@ impl EntityOwnerSession<'_> {
         match self {
             Self::Rel(session) => session.memory_history(memory_id),
             Self::Phy(session) => session.memory_history(memory_id),
+            Self::MountedPhy(session) => session.memory_history(memory_id),
         }
     }
 
@@ -79,6 +84,7 @@ impl EntityOwnerSession<'_> {
         match self {
             Self::Rel(session) => session.memory_history_at_cut(memory_id, memory_version),
             Self::Phy(session) => session.memory_history_at_cut(memory_id, memory_version),
+            Self::MountedPhy(session) => session.memory_history_at_cut(memory_id, memory_version),
         }
     }
 
@@ -86,6 +92,7 @@ impl EntityOwnerSession<'_> {
         match self {
             Self::Rel(session) => session.memory_version(),
             Self::Phy(session) => session.memory_version(),
+            Self::MountedPhy(session) => session.memory_version(),
         }
     }
 
@@ -102,6 +109,7 @@ impl EntityOwnerSession<'_> {
         match self {
             Self::Rel(s) => s.dream_duplicate_context(seeds),
             Self::Phy(s) => s.dream_duplicate_context(seeds),
+            Self::MountedPhy(s) => s.dream_duplicate_context(seeds),
         }
     }
     pub(crate) fn memory_ids_page(
@@ -112,6 +120,7 @@ impl EntityOwnerSession<'_> {
         match self {
             Self::Rel(session) => session.memory_ids_page(after, limit),
             Self::Phy(session) => session.memory_ids_page(after, limit),
+            Self::MountedPhy(session) => session.memory_ids_page(after, limit),
         }
     }
 
@@ -123,6 +132,7 @@ impl EntityOwnerSession<'_> {
         match self {
             Self::Rel(session) => session.memory_vector_row(profile, body),
             Self::Phy(session) => session.memory_vector_row(profile, body),
+            Self::MountedPhy(session) => session.memory_vector_row(profile, body),
         }
     }
 
@@ -135,6 +145,7 @@ impl EntityOwnerSession<'_> {
         match self {
             Self::Rel(session) => session.graph_relation(source, target, kind).cloned(),
             Self::Phy(session) => session.graph_relation(source, target, kind).cloned(),
+            Self::MountedPhy(session) => session.graph_relation(source, target, kind).cloned(),
         }
     }
 
@@ -142,6 +153,7 @@ impl EntityOwnerSession<'_> {
         match self {
             Self::Rel(session) => session.graph_version(),
             Self::Phy(session) => session.graph_version(),
+            Self::MountedPhy(session) => session.graph_version(),
         }
     }
 
@@ -149,6 +161,7 @@ impl EntityOwnerSession<'_> {
         match self {
             Self::Rel(session) => session.dream_pair_evaluated(left, right),
             Self::Phy(session) => session.dream_pair_evaluated(left, right),
+            Self::MountedPhy(session) => session.dream_pair_evaluated(left, right),
         }
     }
 
@@ -159,6 +172,7 @@ impl EntityOwnerSession<'_> {
         match self {
             Self::Rel(session) => session.active_compatibility_profile(id).cloned(),
             Self::Phy(session) => session.active_compatibility_profile(id).cloned(),
+            Self::MountedPhy(session) => session.active_compatibility_profile(id).cloned(),
         }
     }
 }
@@ -387,6 +401,7 @@ pub fn prepare_memory_mention(
     prepare_mention_with(input, |key| match owner {
         EntityOwnerSession::Rel(session) => session.entity_mention_inputs(key),
         EntityOwnerSession::Phy(session) => session.entity_mention_inputs(key),
+        EntityOwnerSession::MountedPhy(writer) => writer.entity_mention_inputs(key),
     })
 }
 
@@ -454,7 +469,7 @@ fn prepare_mention_with(
     })
 }
 
-fn mention_key(
+pub(crate) fn mention_key(
     memory_id: MemoryId,
     mention: &MentionSpan,
 ) -> Result<MemoryEntityMentionKey, EntityWorkflowError> {
