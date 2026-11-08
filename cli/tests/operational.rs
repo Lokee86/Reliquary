@@ -406,3 +406,34 @@ fn configured_cli_import_processes_routes_and_reopens_grounded_memories() {
         assert_eq!(verified["owner"]["memory_count"], 1);
     }
 }
+
+#[test]
+fn live_stage_status_and_run_use_the_root_coordinator() {
+    let cli = Cli::new(0);
+    let rel = "./live.rel";
+    cli.json(&["rel", "create", rel, "--json"]);
+    let config = "live-runtime.json";
+    fs::write(
+        cli.0.join(config),
+        json!({"entity_resolution":{
+            "model":"entity-fixture","url":"http://127.0.0.1:1","credential_id":CREDENTIAL
+        }})
+        .to_string(),
+    )
+    .unwrap();
+    for stage in ["entity-resolution", "dream"] {
+        let status = cli.json(&["rel", stage, "status", rel, "--json"]);
+        assert_eq!(status["progress"]["state"], "complete");
+        assert_eq!(status["progress"]["completed"], 0);
+        let run = cli.json(&["rel", stage, "run", rel, "--config", config, "--json"]);
+        assert_eq!(run["report"]["state"], "ready");
+        assert_eq!(
+            run["report"]["live_stages"]
+                .as_array()
+                .unwrap()
+                .last()
+                .unwrap()["state"],
+            "complete"
+        );
+    }
+}
