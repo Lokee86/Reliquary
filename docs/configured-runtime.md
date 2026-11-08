@@ -1,138 +1,93 @@
 # Configured provider runtime
 
-Load an explicit JSON file through the `reliquary-memory` crate. Construction
-validates the configuration and resolves credential references locally.
-`readiness()` reports offline availability and selection for general and decision routes.
+**Operational target for OC02.** See the [Switchboard configuration restoration specification](switchboard-configuration-restoration-spec-2026-11-08.md). The canonical local configuration is the existing binary `reliquary.cfg` plus its companion `reliquary.master-key.json`. The interim JSON/environment bootstrap is superseded and is not a supported product format.
 
-```rust
-use reliquary_memory::{ConfiguredRuntime, EnvironmentCredentialResolver};
+## Loading configuration
 
-let runtime = ConfiguredRuntime::from_path("runtime.json", &EnvironmentCredentialResolver)?;
-println!("{}", runtime.readiness());
-# Ok::<(), reliquary_memory::ConfiguredRuntimeError>(())
-```
-
-## Existing protected configuration
-
-Pass the CVCFG file and its version 1 JSON master-key file explicitly to load
-an existing provider configuration offline.
+The public Root API must open the existing configuration directly and construct the provider runtime from its model routes and encrypted credential objects.
 
 ```rust
 use reliquary_memory::ConfiguredRuntime;
 
-let runtime =
-    ConfiguredRuntime::from_protected_config("reliquary.cfg", "reliquary.master-key.json")?;
+let runtime = ConfiguredRuntime::from_path("reliquary.cfg")?;
 println!("{}", runtime.readiness());
 # Ok::<(), reliquary_memory::ConfiguredRuntimeError>(())
 ```
 
-The reader accepts CVCFG 1.0 files up to 32 MiB. It loads these optional records.
+The exact final constructor name may change during OC02 implementation, but callers must not need Switchboard/internal imports, a JSON sidecar, or environment-variable copies of stored secrets.
 
-| Schema | Records |
-| --- | --- |
-| 2 or 3 | `models.general`, `models.insomnia`, `models.insomnia_metadata`, `models.dream`, `models.entity_resolution` |
-| 1 | `models.general_decision`, `models.entity_resolution_decision`, `models.memory_retrieval_decision` |
-| 2 | `models.embedding` |
+The companion key path is derived from the config path. For `reliquary.cfg` it is:
 
-Other records, including `models.entity_extraction` and `models.chronos`, are
-skipped after framing validation. Loaded routes use the
-URL rules below. Protected Codex routes store an empty URL and use the built-in Codex
-endpoint. Schema 3 reasoning effort is passed to the corresponding general
-transport. The worker lease uses its default.
-
-Switchboard reads the key file only when it needs to authenticate a selected
-credential. The file is limited to 4 KiB and contains a JSON object with
-`version` set to 1 and `master_key_hex` set to 64 hexadecimal digits.
-Switchboard decrypts each distinct referenced `credential.<id>` record using
-AES-256-GCM with the record name as associated data. Codex requires the stored
-access token and account ID. Invalid selected routes or unavailable credentials
-fail construction. The reader leaves both files untouched.
-
-## JSON schema
-
-The top-level object accepts the following optional keys. An empty object is
-valid and reports no configured routes. Files are limited to 64 KiB. Unknown keys
-and fields fail validation.
-
-| Key | Purpose | Additional fields |
-| --- | --- | --- |
-| `general` | Structured-output general model | `provider` is `openai_ready` by default. Use `openai_codex` for the Codex streaming transport. |
-| `insomnia` | Dedicated Insomnia structured-output endpoint | Same `provider` field as `general`. |
-| `insomnia_metadata` | Insomnia ownership classifier. Falls back to the selected Insomnia route when omitted. | Same `provider` field as `general`. |
-| `dream` | Dedicated Dream structured-output endpoint | Same `provider` field as `general`. |
-| `entity_resolution` | Dedicated Entity Resolution structured-output endpoint | Same `provider` field as `general`. |
-| `decision` | Shared direct decision endpoint | Uses an API-key credential. |
-| `entity_resolution_decision` | Dedicated Entity Resolution decision endpoint | Uses an API-key credential. |
-| `memory_retrieval_decision` | Dedicated Memory Retrieval decision endpoint | Uses an API-key credential. |
-| `embedding` | OpenAI-compatible embedding endpoint | Requires positive integer `dimensions` and an API-key credential. `normalization` is `none` by default or `l2`. |
-| `worker` | Worker lease policy | Optional integer `lease_duration_ms` from 30000 through 600000. The default is 120000. |
-
-Each route requires a nonempty `model`, an absolute `url` for its request
-endpoint, and a `credential_id`. URLs use HTTPS or loopback HTTP and must omit
-user information and fragments. Keep secrets out of URLs. Credential IDs may
-contain 1–128 ASCII letters, digits, dots, underscores, or hyphens.
-
-```json
-{
-  "general": {
-    "provider": "openai_ready",
-    "model": "general-model",
-    "url": "https://inference.example.invalid/v1/chat/completions",
-    "credential_id": "RELIQUARY_GENERAL_KEY"
-  },
-  "embedding": {
-    "model": "embedding-model",
-    "url": "https://inference.example.invalid/v1/embeddings",
-    "credential_id": "RELIQUARY_EMBEDDING_KEY",
-    "dimensions": 1024,
-    "normalization": "l2"
-  },
-  "worker": { "lease_duration_ms": 120000 }
-}
+```text
+reliquary.master-key.json
 ```
 
-## Credential resolution
+Opening, readiness inspection and runtime construction are read-only. A master key is created only when an explicit configuration mutation needs one and no key exists.
 
-`EnvironmentCredentialResolver` reads the environment variable named by the
-credential ID for API-key routes. For `openai_codex`, an ID of
-`codex.RELIQUARY_CODEX` refers to `RELIQUARY_CODEX_ACCESS_TOKEN` and
-`RELIQUARY_CODEX_ACCOUNT_ID`. A host can implement `CredentialResolver` to
-supply `CredentialMaterial` from its own selected source. Resolution runs
-once per distinct referenced ID. Missing credentials, mismatched material
-types, and invalid header values fail construction.
+## Persisted configuration
 
-## Selection and checks
+The existing `CVCFG\0\r\n` 1.0 format remains canonical. Switchboard owns the document framing, unknown-object preservation, atomic replacement, model-route codecs, encrypted credential objects and master-key handling. Root owns the product-domain configuration wrapper.
 
-Insomnia, Dream, and Entity Resolution structured-output requests use their
-dedicated general route when configured and the configured `general` route
-otherwise. The endpoint is selected during configuration. Provider errors from
-the selected endpoint propagate to the caller without a retry on another route.
+Existing route objects include:
 
-Entity Resolution and Memory Retrieval decisions use their dedicated decision
-route when configured, then the shared decision route, then the `general`
-endpoint adapted for structured decisions. Chronos uses the shared route and
-the same general fallback. A failed binding for a configured route produces
-an error.
+- `models.general`
+- `models.insomnia`
+- `models.insomnia_metadata`
+- `models.entity_extraction`
+- `models.general_decision`
+- `models.entity_resolution_decision`
+- `models.memory_retrieval_decision`
+- `models.entity_resolution`
+- `models.dream`
+- `models.embedding`
 
-When all three retrieval decision routes are absent, readiness reports
-`memory_retrieval=unavailable`.
+Existing product objects such as `archive.fragments`, `retrieval.default`, and `runtime.default` are preserved. Unknown objects survive saves byte-for-byte.
 
-`online_probe()` sends one synthetic request per selected transport.
-It probes general and dedicated structured-output transports, direct decision
-output, and one query embedding as applicable. A successful structured-output
-probe covers decisions adapted from that transport. Probing stops at the first
-failure. The transports enforce
-a 30-second request timeout and a 1 MiB response limit. Reports include route
-labels and failure categories while omitting credential references, model
-names, URLs, and provider payloads.
+Credentials remain encrypted `credential.<id>` objects in the config. The companion master-key backend remains the existing version-1 JSON file until a separately approved security change replaces it.
 
-Use `config check FILE --online --route ROUTE` to probe a single configured
-transport independently of the others. The route names are the selected
-labels from offline readiness. For a protected file, also pass
-`--master-key FILE`. The probe sends synthetic input.
+## Selection
 
-`probe_embedding_profile()` explicitly runs the existing bounded query and
-document compatibility suite. It returns `Ok(None)` when the embedding route
-is absent. It returns an in-memory profile for the configured endpoint when
-the probes pass. `worker_lease_duration_ns()` returns the configured or default
-lease duration without making a request.
+The configured route is selected once per operation:
+
+- Insomnia: dedicated -> General.
+- Dream: dedicated -> General.
+- Entity Resolution decision: dedicated -> General Decision -> adapted General -> unavailable.
+- Memory Retrieval decision: dedicated -> General Decision -> adapted General -> unavailable.
+- Chronos decision: General Decision -> adapted General -> unavailable.
+- Embedding: explicit compatible embedding route only.
+
+A missing dedicated Memory Retrieval route is valid when shared/general fallback exists. Failure of a selected provider is not permission to silently select a lower tier.
+
+## Credential lifecycle
+
+The rebuilt CLI/API restores the established operations:
+
+```text
+reliquary --config reliquary.cfg config show
+reliquary --config reliquary.cfg config verify
+reliquary --config reliquary.cfg config credential list
+reliquary --config reliquary.cfg config credential add-api-key <ID>
+reliquary --config reliquary.cfg config credential login-codex <ID>
+reliquary --config reliquary.cfg config credential refresh-codex <ID>
+reliquary --config reliquary.cfg config credential remove <ID>
+```
+
+API keys are collected without placing them on argv. Codex login uses device authorization; refresh uses the encrypted stored refresh token. Configuration writes atomically replace the file and preserve unrelated/unknown objects. Secret material is never included in readiness, show, logs or Debug output.
+
+## Checks
+
+`config verify` validates framing, known product/model objects, credentials and route compatibility without contacting providers or rewriting files.
+
+An explicit online probe sends only synthetic inputs through selected transports after local validation. It reports route/failure categories without secrets or private corpus content.
+
+`probe_embedding_profile()` retains the existing bounded compatibility-probe behavior for the configured embedding endpoint.
+
+## Related docs
+
+- [Switchboard configuration restoration](switchboard-configuration-restoration-spec-2026-11-08.md)
+- [Public API / CLI operational completion](public-api-cli-operational-completion-spec-2026-11-07.md)
+- [Public product API](public-product-api.md)
+
+## Notes
+
+The previous Reliquary configuration documentation in `Reliquary-reference/docs/configuration.md` is the behavior oracle for the persisted format. OC02 selectively restores that Switchboard ownership; it does not reintroduce the historical Root implementation.

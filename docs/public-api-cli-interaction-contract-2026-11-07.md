@@ -103,7 +103,7 @@ The command grammar below is a target contract. Existing maintenance commands re
 A root-only shell invocation illustrates the intended interaction:
 
 ```text
-reliquary rel interact project.rel --config runtime.json
+reliquary rel interact project.rel --config reliquary.cfg
 query "What collision geometry does the server use?"
 refine "Only the user's final requirement, not assistant suggestions"
 traverse <MEMORY_ID>

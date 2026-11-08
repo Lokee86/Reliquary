@@ -1,6 +1,6 @@
 # P01 consumer contract map
 
-**Historical scope notice (2026-11-07):** The [operational completion specification](public-api-cli-operational-completion-spec-2026-11-07.md) now requires public host and CLI access to import, processing, retrieval/query/refinement/traversal and inspection. It supersedes the exclusion of host-owned operations from the CLI below. This record preserves the earlier P01 disposition; it is not evidence that the new OC01–OC09 closure has passed.
+**Historical scope notice (2026-11-08):** The [operational completion specification](public-api-cli-operational-completion-spec-2026-11-07.md) now requires public host and CLI access to import, processing, retrieval/query/refinement/traversal and inspection. The [Switchboard configuration restoration](switchboard-configuration-restoration-spec-2026-11-08.md) additionally restores the pre-rebuild `reliquary.cfg`/master-key contract and configuration CLI; the interim JSON/env bootstrap is not retained. These corrections supersede the exclusions below without rewriting P01's historical acceptance.
 
 This map freezes the supported 2.1 consumer boundary before P01 acceptance. The
 pinned 2.0 reference is a behavior oracle, not a source-compatibility promise.
@@ -32,6 +32,7 @@ tests as the detailed behavioral oracle.
 
 | Reference family | P01 disposition | Reason |
 | --- | --- | --- |
+| `config` show/verify, encrypted credential lifecycle and model-route management | Restored by OC02 | Persisted `reliquary.cfg` is an existing user contract; Switchboard remains its owner. |
 | `rel create/info/verify` | Mapped | Direct product API and real full-owner admission. |
 | Memory/Archive history and proofs | Mapped | Bounded read-only JSON summaries. |
 | rewrite | Mapped | Policy JSON, exact plan, dry run, verified no-replace copy. |

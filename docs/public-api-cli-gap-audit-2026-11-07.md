@@ -20,7 +20,7 @@ The existing [P01 map](p01-consumer-contract-map.md) intentionally assigned impo
 | --- | --- | --- | --- |
 | REL/PHY creation and current-format admission | `src/owner.rs`; `src/host.rs`; public API tests | Existing public creation/opening retained. CLI creates REL only; paired PHY creation/binding must be usable without another executable. No old-format runtime reader. | OC01, OC06 |
 | Host identity, grants, mounts and revocation | `src/host.rs`, `host_admission.rs`, `host_instance.rs` | Public values exist. New operations must enforce View/Operate/Manage distinctions, not export the less-restricted internal Instance. Mounted-owner information must not open a competing writer/read path. | OC01 |
-| Provider transport and route policy | Switchboard `lib.rs`, `transport.rs`: `ConfiguredGeneralEndpoint::from_route`, decision and embedding equivalents | No ordinary operational CLI route/configuration path; Root does not presently export a coherent configured processing/retrieval runtime. Existing transports must be used, not replaced by Codex CLI/Python inference. | OC02 |
+| Provider transport, persisted config and route policy | Switchboard transports and accepted reference config owner: `CVCFG` framing, route codecs, encrypted credentials, master key, device login/refresh | Rebuild omitted the existing `reliquary.cfg` bootstrap. OC02 must restore that exact persisted boundary and CLI config management; the unaccepted JSON/env-only loader is superseded. Existing transports/fallbacks stay canonical. | OC02 |
 | Normalized native import | Application `native_import_workflow.rs`; owner `native_import_writer.rs`, `native_import_work.rs` | No Root import operation or CLI importer. A source adapter is required for the ChatGPT export, but may only normalize source data; no Memory/Graph construction in CLI. | OC03 |
 | Import-scoped extraction publication | Application `ingest_publication.rs` and owner `native_import_work.rs` | New local changes add prepared-import publication, scope validation and claim handling; treat these as candidate fixes needing public-API coverage, not accepted completeness. | OC03 |
 | Insomnia and user-Memory routing | Runtime `insomnia_worker.rs`, `instance_routing.rs`; Application native extraction/evidence and publication | Internal worker entry points exist; Root has no usable configured processing handle. Full import drain includes real routing and source-grounded publication, not only queued Episodes. | OC04 |
@@ -44,6 +44,12 @@ Source inspection confirms that `evaluate_retrieval` and `rank_owner_snapshot` a
 
 Agentic PHY inclusion, dependency-wide merged retrieval and arbitrary SQL/graph query languages are not established by this audit. PHY creation, routing, authorized exact inspection and already-supported management are required; cross-owner retrieval expansion remains a separate explicit decision. Denied scope must never look like a harmless empty result.
 
+## Configuration correction
+
+The existing `reliquary.cfg` is persisted user data, not an internal migration shape. The accepted pre-rebuild architecture assigned its framing, model/credential codecs, encryption, master key, provider auth and device refresh to Switchboard. The rebuild must therefore restore that owner directly. See the [Switchboard configuration restoration spec](switchboard-configuration-restoration-spec-2026-11-08.md).
+
+The isolated OC02 JSON/environment implementation is not accepted and must not become a second supported format. A missing dedicated Memory Retrieval decision object is valid because route policy already inherits shared General Decision and then adapted General.
+
 ## Two-day smoke evidence: what it does and does not establish
 
 The [smoke record](native-two-day-live-smoke-2026-11-07.md) reports successful normalized Archive import/reopen of 778 visible messages, but no completed live Memory corpus. Its inference path used `tools/native-corpus-live/src/endpoint.rs` and `scripts/live_corpus_endpoint.py`, rather than the normal configured Switchboard transport. The first run did not enforce the supplied schema; subsequent runs exposed provenance/wording mismatches.
@@ -65,6 +71,7 @@ Lexicon configuration is absent in this checkout. No refreshed graph evidence is
 ## Related docs
 
 - [Operational completion specification and ticket dependencies](public-api-cli-operational-completion-spec-2026-11-07.md)
+- [Switchboard configuration restoration](switchboard-configuration-restoration-spec-2026-11-08.md)
 - [Interaction and CLI contract](public-api-cli-interaction-contract-2026-11-07.md)
 - [P01 contract map](p01-consumer-contract-map.md)
 - [Public API guide](public-product-api.md)

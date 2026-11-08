@@ -7,19 +7,19 @@ reports go to stdout as JSON. Errors and import-plan diagnostics go to stderr.
 
 ## Configure and stage
 
-Use an explicit [runtime configuration](configured-runtime.md). The check is
-offline by default. `--online` runs synthetic probes through the selected
-provider transports. For an existing protected `.cfg` file, also pass
-`--master-key PATH`. Both arguments are paths. Credential material is read
-locally and stays out of CLI arguments and reports.
+Use the existing [Reliquary configuration](configured-runtime.md). The global
+`--config` option defaults to `reliquary.cfg`; its companion master-key path is
+derived automatically. `config verify` is offline and read-only. Explicit
+online probes use synthetic input through the selected provider transports.
+Credential material stays encrypted in the config and out of CLI arguments and reports.
 
 ```text
-reliquary config check runtime.json
+reliquary --config reliquary.cfg config verify
 reliquary rel create project.rel --scope project
 reliquary phy create user.phy
 reliquary rel import project.rel --source conversations.json --format chatgpt --phy user.phy --dry-run
 reliquary rel import project.rel --source conversations.json --format chatgpt --phy user.phy
-reliquary rel process project.rel --import IMPORT_ID --phy user.phy --config runtime.json --until ready
+reliquary rel process project.rel --import IMPORT_ID --phy user.phy --config reliquary.cfg --until ready
 reliquary rel verify project.rel
 reliquary phy verify user.phy
 ```
@@ -32,7 +32,7 @@ Coverage reports include omitted asset references and remapped parents.
 
 Keep the import ID from the stage report. Use `rel work status project.rel
 --import IMPORT_ID` for durable progress and `rel work resume project.rel
---import IMPORT_ID --phy user.phy --config runtime.json` to resume. An
+--import IMPORT_ID --phy user.phy --config reliquary.cfg` to resume. An
 explicit `--episode EPISODE_ID` retries a held import Episode under the
 same input, lease, and durable processing plan checks. The first processing
 run binds the selected Insomnia, ownership, Dream, Entity, and embedding
@@ -45,7 +45,7 @@ the lack of a control channel to an already running process. In-process
 hosts can call `OwnerProcessingJob::request_stop` and join it.
 
 For live conversation Episodes, `rel process project.rel --config
-runtime.json --until ready` drains Insomnia, resolves accepted Entity
+reliquary.cfg --until ready` drains Insomnia, resolves accepted Entity
 mentions, prepares the selected Memory vectors, and settles first-cycle
 Dream. Pass `--phy user.phy` to include routed private work. Use
 `rel entity-resolution status` and `rel dream status` for read-only work
@@ -57,9 +57,9 @@ Use `rel freshness status` for derived live lifecycle notices.
 
 ```text
 reliquary rel search project.rel --query "movement packet" --mode lexical
-reliquary rel search project.rel --query "movement packet" --mode hybrid --config runtime.json
-reliquary rel query project.rel --query "How does the server handle movement?" --config runtime.json
-reliquary rel interact project.rel --config runtime.json
+reliquary rel search project.rel --query "movement packet" --mode hybrid --config reliquary.cfg
+reliquary rel query project.rel --query "How does the server handle movement?" --config reliquary.cfg
+reliquary rel interact project.rel --config reliquary.cfg
 ```
 
 In the interactive process, use `query`, `refine`, `traverse`, `show`,
@@ -87,7 +87,7 @@ in that command and rely on the local account's filesystem access.
 
 | Capability | Root symbols | Evidence entry point |
 | --- | --- | --- |
-| Provider configuration | `ConfiguredRuntime`, `CredentialResolver`, `EnvironmentCredentialResolver` | `external-consumer/tests/configured_runtime.rs`, Switchboard loopback tests |
+| Provider configuration | `ReliquaryConfig`, `ConfiguredRuntime` and redacted configuration/credential value types | `external-consumer/tests/configured_runtime.rs`, Switchboard config/security/provider tests |
 | Stage and resume | `NativeImportPlan`, `Instance::stage_native_import`, `native_import_status` | `tests/native_import.rs`, CLI import/reopen test |
 | Processing | `ProcessOptions`, `Instance::start_processing`, `processing_status`, `process_and_drain`, `OwnerProcessingJob` | `external-consumer/tests/operational_processing.rs` |
 | Passive search and query | `Instance::search`, `begin_retrieval`, `memory_query`, `refine_query`, `traverse_graph` | Gateway retrieval tests, CLI search and JSONL inspection |

@@ -1,7 +1,7 @@
 # Reliquary 2.1 public product API
 
 The operational completion documents define the broader public API and CLI
-acceptance criteria. [Specification](public-api-cli-operational-completion-spec-2026-11-07.md), [interaction contract](public-api-cli-interaction-contract-2026-11-07.md), [gap audit](public-api-cli-gap-audit-2026-11-07.md).
+acceptance criteria. [Specification](public-api-cli-operational-completion-spec-2026-11-07.md), [interaction contract](public-api-cli-interaction-contract-2026-11-07.md), [Switchboard configuration restoration](switchboard-configuration-restoration-spec-2026-11-08.md), [gap audit](public-api-cli-gap-audit-2026-11-07.md).
 
 Downstream Rust consumers depend on the root `reliquary-memory` package. Create
 or open owners with `Rel` and `Phylactery`; both are opaque read handles.
@@ -32,9 +32,12 @@ Tokens belong in host configuration, never request parameters, logs, or CLI
 arguments. Grants are immutable. Revocation is checked again on reads and at
 writer handoff/commit.
 
-Rust hosts can load a validated provider bundle with `ConfiguredRuntime`. See
-the schema, credential reference conventions, and explicit online probe API
-in the [configured provider runtime guide](configured-runtime.md).
+The canonical local provider configuration remains the existing binary
+`reliquary.cfg` plus its companion `reliquary.master-key.json`. OC02 restores
+that persisted Switchboard contract, including encrypted credentials,
+device login/refresh and route fallback, then constructs `ConfiguredRuntime`
+from it. The interim JSON/environment bootstrap is not a supported product
+format. See the [configuration restoration spec](switchboard-configuration-restoration-spec-2026-11-08.md).
 
 The separate `reliquary` CLI supports explicit REL and PHY commands. It emits
 JSON and returns nonzero on failure or incomplete requested readiness. Copy

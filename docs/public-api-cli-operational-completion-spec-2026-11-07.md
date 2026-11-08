@@ -1,6 +1,6 @@
 # Public API and CLI operational completion — 2026-11-07
 
-Companions: [source-backed gap audit](public-api-cli-gap-audit-2026-11-07.md), [interaction/CLI contract](public-api-cli-interaction-contract-2026-11-07.md). Entry point from the current [public API guide](public-product-api.md).
+Companions: [source-backed gap audit](public-api-cli-gap-audit-2026-11-07.md), [interaction/CLI contract](public-api-cli-interaction-contract-2026-11-07.md), [Switchboard configuration restoration](switchboard-configuration-restoration-spec-2026-11-08.md). Entry point from the current [public API guide](public-product-api.md).
 
 **Status: specified, not implemented or accepted.** Implementation target: `Reliquary-rebuild`, baseline `a3c3a9643f494bced51faf92ba057b16bcdac8a7`. Existing uncommitted smoke-run changes are candidates to review, not an accepted prerequisite. Ticket IDs OC01–OC09 identify this operational closure only; they do not renumber completed capabilities or change D01–D03/G5/HP/HU statuses.
 
@@ -34,7 +34,7 @@ Names below define the logical product operations. OC01 fixes concrete Rust sign
 
 | Public capability | Contract |
 | --- | --- |
-| Configured runtime | Build an opaque runtime/service bundle from validated model routes, credential references/resolver and bounded worker policy. Use existing Switchboard general/decision/embedding transports and fallback rules. Publish redacted readiness diagnostics. |
+| Configured runtime | Open the existing `reliquary.cfg` / companion master-key format, validate product/model routes and encrypted credentials, then build an opaque runtime/service bundle using the existing Switchboard transports and fallback rules. Publish redacted readiness diagnostics. |
 | Native import | Inspect/normalize a declared source, produce a bounded import plan, start or resume one idempotent source-bound import, inspect status and errors, and process it to its actual completion criteria. |
 | Owner processing | Start/poll/stop a bounded owner job for accepted Insomnia, Dream, Entity, vectors and Freshness workflows. Expose stage and pending/held/failed/completed counts and stable work IDs. A process-and-drain convenience operation invokes the same coordinator. |
 | Passive search | Authorized lexical/hybrid/semantic search with automatic query embedding through the selected compatible profile, bounded result values, exact revisions and provenance. No model-side selection unless requested as agentic query. |
@@ -50,13 +50,13 @@ Do not simply re-export the internal `Instance`, `RelWriter`, `PhyWriter`, store
 
 ### Configuration and providers
 
-Use `ConfiguredGeneralEndpoint::from_route`, existing decision resolution and configured embedding endpoints. Hosts can provide explicitly supported endpoints through existing provider traits, but the normal local run must use Reliquary's configured route. No arbitrary process-spawning inference extension, Python adapter, Codex command invocation, new credential vault or duplicated transport.
+[Switchboard configuration restoration](switchboard-configuration-restoration-spec-2026-11-08.md) is normative for OC02. The persisted compatibility boundary is the existing binary `reliquary.cfg` plus `reliquary.master-key.json`; the unaccepted JSON/environment bootstrap is superseded and must not be integrated.
 
-The CLI accepts an explicit configuration path and secret references, never tokens on argv. Resolve only the selected credentials through an approved configured resolver/environment/secret store; do not search unrelated applications' authentication files or silently change model accounts. Configuration validation is offline by default; an explicitly requested online check uses a small non-corpus probe. Reports redact secret values and private provider payloads.
+Use the existing Switchboard-owned config document framing, model-route codecs, encrypted credential objects, master-key handling, device login/refresh, provider transports and fallback rules. Root restores the small product `ReliquaryConfig` wrapper for product-domain settings and constructs `ConfiguredRuntime` from that validated configuration. The CLI accepts `--config` (default `reliquary.cfg`) and never requires secret material on argv.
 
-First bind the existing configuration and credential machinery. Where the rebuild lacks a current-format configuration loader, add the smallest Switchboard-owned codec/loader for the required route values and references, with documented schema and validation. Do not link the legacy runtime to deserialize owners, import the old Root wholesale or make the host fabricate authenticated secrets. A missing configured credential is a real blocked operation, not permission to substitute another transport.
+Opening/showing/verifying/runtime construction must be byte-neutral. Explicit credential/model changes use the existing atomic replace path and preserve unknown/unrelated objects. The rebuilt CLI restores credential list/add/login/refresh/remove and route set/clear operations through Root. The current 401 is a stale stored credential to refresh, not a reason to change formats.
 
-Dedicated/shared/general decision selection preserves accepted order. A selected provider failing is not permission to silently choose a different model. Preserve retry/backpressure/cancellation distinctions, strict structured output and response-size limits. Freeze route/model/profile identity in each processing run without logging secrets.
+Dedicated/shared/general decision selection preserves accepted order. Memory Retrieval does not require a dedicated object when shared/general fallback is available. A selected provider failing is not permission to silently choose a different model. Preserve retry/backpressure/cancellation distinctions, strict structured output and response-size limits. Freeze route/model/profile identity in each processing run without logging secrets.
 
 ### Source import and processing composition
 
@@ -99,7 +99,7 @@ All tickets are **specified / not accepted**. Earlier code/tests may be reused b
 | ID | Hard predecessors | Deliverable / owner | Acceptance evidence |
 | --- | --- | --- | --- |
 | OC01 | None | Freeze this inventory into concrete Root methods/types/grants/errors and external compile fixtures; review transitive host trait types and overlap. Root plus targeted Gateway wrappers. | Consumer depends only on Root; required signatures/traits nameable; missing methods remain explicit failing cases, not removed requirements; no mutable store export or DAG change. |
-| OC02 | OC01 | Public configured runtime and CLI-local configuration bootstrap using existing Switchboard. | Offline config/secret-redaction tests; selected-route/failed-route/no-silent-fallback cases; bounded configured HTTP tests; no process-spawned inference. |
+| OC02 | OC01 | Restore the existing `reliquary.cfg` + master-key configuration/security boundary and CLI config management, then build the public configured runtime from it. See the [OC02 correction spec](switchboard-configuration-restoration-spec-2026-11-08.md). | Existing config opens without conversion or mutation; encrypted credentials/device refresh work; unknown objects survive writes; route fallbacks match prior behavior; JSON/env-only bootstrap is absent; bounded provider probes pass after credential refresh. |
 | OC03 | OC01 | Public normalization/import plan/start/status/resume and import-scoped publication. | External test imports a branching REL/PHY cohort; exact source/timestamp/ancestry checks, invalid-source no-publication, replay no-op, conflict and interruption tests. |
 | OC04 | OC02, OC03 | Complete import/live processing lifecycle, scoped stage coordination, readiness and recovery. | Root-only create/import/process/reopen; real Memory/PHY routing, first-cycle Dream, configured vector coverage, settlement; held/error/resume and no-duplicate publication tests. |
 | OC05 | OC01, OC02 | Passive search and complete query/refine/traverse/inspection/delivery/recovery surface. | Interaction I01–I10 cases through Root; exact ranks/bindings/state, no read credit, actual confirmed receipt once, changed/revoked/unknown outcomes fail closed. |
@@ -131,6 +131,7 @@ Old-format data conversion or activation; merging Hermes or UI work; adding an H
 ## Related docs
 
 - [Interaction/CLI contract and acceptance cases](public-api-cli-interaction-contract-2026-11-07.md)
+- [Switchboard configuration restoration](switchboard-configuration-restoration-spec-2026-11-08.md)
 - [Gap audit](public-api-cli-gap-audit-2026-11-07.md)
 - [P01 historical consumer map](p01-consumer-contract-map.md)
 - [Existing public API](public-product-api.md)
