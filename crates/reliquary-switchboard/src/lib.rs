@@ -418,7 +418,9 @@ mod runtime_config;
 mod runtime_credentials;
 mod runtime_probe;
 mod transport;
-pub use configured::{ConfiguredRoutes, ConfiguredRuntimeError, RuntimeEndpointFailure};
+pub use configured::{
+    ConfiguredRoutes, ConfiguredRuntimeError, ProcessingRouteIdentity, RuntimeEndpointFailure,
+};
 pub use runtime_credentials::{
     CredentialMaterial, CredentialResolver, EnvironmentCredentialResolver,
 };

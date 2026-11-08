@@ -1,3 +1,6 @@
+#[path = "operational_processing/live.rs"]
+mod live;
+
 use reliquary_memory::{
     ConfiguredRuntime, CredentialId, CredentialMaterial, CredentialResolver, EpisodeId, Gateway,
     HostCredentialBinding, NativeImportFormat, NativeImportPlan, OwnerGrant, OwnerScope,
@@ -28,6 +31,10 @@ struct Fixture {
 }
 impl Fixture {
     fn start() -> Self {
+        Self::start_with(fixture_reply)
+    }
+
+    fn start_with(reply: impl Fn(&Value, bool) -> Value + Send + 'static) -> Self {
         let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
         let address = listener.local_addr().unwrap();
         let stop = Arc::new(AtomicBool::new(false));
@@ -44,7 +51,7 @@ impl Fixture {
                     .set_read_timeout(Some(Duration::from_secs(5)))
                     .unwrap();
                 let request = read_request(&stream);
-                let reply = fixture_reply(&request, profile.load(Ordering::Acquire));
+                let reply = reply(&request, profile.load(Ordering::Acquire));
                 let body = reply.to_string();
                 write!(
                     stream,
@@ -194,6 +201,16 @@ fn configured_import_processes_rel_and_phy_and_reopens_without_republication() {
     let instance = admission.authenticate(token).unwrap();
     let plan = NativeImportPlan::from_path(&input, NativeImportFormat::ChatGpt, None).unwrap();
     let stage = instance.stage_native_import(owner, plan).unwrap();
+    for selection in [
+        reliquary_memory::LiveProcessingSelection::Entity,
+        reliquary_memory::LiveProcessingSelection::Dream,
+    ] {
+        assert!(
+            instance
+                .start_live_processing_stage(owner, &runtime, Some(destination), 1, selection)
+                .is_err()
+        );
+    }
     let options = ProcessOptions {
         import_id: Some(stage.import_id.clone()),
         destination: Some(destination),
@@ -238,12 +255,7 @@ fn configured_import_processes_rel_and_phy_and_reopens_without_republication() {
     let other_runtime = ConfiguredRuntime::from_path(other_path, &TestCredential).unwrap();
     assert_eq!(
         instance
-            .resume_held_import_processing(
-                owner,
-                &other_runtime,
-                options.clone(),
-                EpisodeId(episode)
-            )
+            .resume_held_processing(owner, &other_runtime, options.clone(), EpisodeId(episode))
             .err()
             .expect("a different Dream route must reject before retry")
             .kind(),
@@ -257,7 +269,7 @@ fn configured_import_processes_rel_and_phy_and_reopens_without_republication() {
         1
     );
     let report = instance
-        .resume_held_import_processing(owner, &runtime, options.clone(), EpisodeId(episode))
+        .resume_held_processing(owner, &runtime, options.clone(), EpisodeId(episode))
         .unwrap()
         .join()
         .unwrap();

@@ -1,13 +1,16 @@
 //! Stable identity of the routes an owner processing job may invoke.
 use super::runtime_config::{DREAM, EMBEDDING, ENTITY, GENERAL, INSOMNIA, INSOMNIA_METADATA};
-use super::{CredentialsConfig, ModelProvider, RuntimeConfig, runtime_config::GeneralRoute};
+use super::{
+    CredentialsConfig, ModelProvider, ProcessingRouteIdentity, RuntimeConfig,
+    runtime_config::GeneralRoute,
+};
 use ring::digest::{SHA256, digest};
 use serde_json::{Value, json};
 
 pub(super) fn processing_routes(
     config: &RuntimeConfig,
     credentials: &CredentialsConfig,
-) -> [u8; 32] {
+) -> ProcessingRouteIdentity {
     let general = config.general.as_ref().map(|route| (GENERAL, route));
     let insomnia = config
         .insomnia
@@ -60,14 +63,21 @@ pub(super) fn processing_routes(
             }
         ])
     });
-    let canonical = Value::Array(vec![
-        json!("reliquary-owner-processing-routes-v1"),
-        json!(general_identity(insomnia)),
-        json!(general_identity(ownership)),
-        json!(general_identity(dream)),
-        json!(general_identity(entity)),
-        json!(embedding),
-    ]);
+    let dream = general_identity(dream);
+    ProcessingRouteIdentity {
+        import: hash(json!([
+            "reliquary-owner-processing-routes-v1",
+            general_identity(insomnia),
+            general_identity(ownership),
+            dream,
+            general_identity(entity),
+            embedding,
+        ])),
+        live_dream: hash(json!(["reliquary-live-dream-routes-v1", dream, embedding])),
+    }
+}
+
+fn hash(canonical: Value) -> [u8; 32] {
     digest(&SHA256, canonical.to_string().as_bytes())
         .as_ref()
         .try_into()

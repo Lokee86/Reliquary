@@ -1,7 +1,8 @@
 use super::*;
 use crate::local_host::{LocalHost, RelAccess};
 use reliquary_memory::{
-    ConfiguredRuntime, EnvironmentCredentialResolver, ProcessOptions, ProcessingState,
+    ConfiguredRuntime, EnvironmentCredentialResolver, ImportStage, LiveProcessingSelection,
+    ProcessOptions, ProcessingState,
 };
 
 const PROCESS_OPTIONS: &[(&str, bool)] = &[
@@ -63,7 +64,7 @@ pub(crate) fn config(args: &[String]) -> Result<Value, ProductError> {
 
 pub(crate) fn process(args: &[String]) -> Result<Value, ProductError> {
     validate_options(args, 1, PROCESS_OPTIONS)?;
-    process_from_args(&args[0], args, false)
+    process_from_args(&args[0], args, None, None)
 }
 
 pub(crate) fn work(args: &[String]) -> Result<Value, ProductError> {
@@ -81,7 +82,12 @@ pub(crate) fn work(args: &[String]) -> Result<Value, ProductError> {
         Some("resume") => {
             let options = [PROCESS_OPTIONS, &[("--episode", false)]].concat();
             validate_options(args, 2, &options)?;
-            process_from_args(&args[1], args, true)
+            let target = if option(args, "--import").is_some() {
+                "ready"
+            } else {
+                "idle"
+            };
+            process_from_args(&args[1], args, Some(target), None)
         }
         Some("stop") => {
             validate_options(args, 2, &[("--import", false)])?;
@@ -143,6 +149,17 @@ pub(crate) fn stage(family: &str, args: &[String]) -> Result<Value, ProductError
                 .collect::<Vec<_>>();
             Ok(json!({"operation":"freshness_status","due":due}))
         }
+        ("dream" | "entity-resolution", "status") if option(args, "--import").is_none() => {
+            validate_options(args, 2, &[("--phy", false)])?;
+            let host = LocalHost::open(&args[1], option(args, "--phy"), RelAccess::View)?;
+            let stage = if family == "dream" {
+                ImportStage::Dream
+            } else {
+                ImportStage::Entity
+            };
+            let progress = host.instance.live_stage_status(host.rel, host.phy, stage)?;
+            Ok(json!({"operation":"stage_status","stage":family,"progress":progress}))
+        }
         (_, "status") => {
             validate_options(args, 2, &[("--import", false)])?;
             let id = option(args, "--import");
@@ -161,20 +178,34 @@ pub(crate) fn stage(family: &str, args: &[String]) -> Result<Value, ProductError
         }
         (_, "run" | "build") => {
             validate_options(args, 2, PROCESS_OPTIONS)?;
-            if family != "insomnia" && option(args, "--import").is_none() {
-                return Err(ProductError::new(
-                    ProductErrorKind::Unsupported,
-                    "automatic stage control requires an import ID",
-                ));
-            }
-            process_from_args(&args[1], args, true)
+            let selection = if option(args, "--import").is_some() {
+                None
+            } else {
+                Some(match family {
+                    "insomnia" => LiveProcessingSelection::Insomnia,
+                    "entity-resolution" => LiveProcessingSelection::Entity,
+                    "dream" => LiveProcessingSelection::Dream,
+                    _ => return Err(invalid("stage run requires --import")),
+                })
+            };
+            let target = if selection == Some(LiveProcessingSelection::Insomnia) {
+                "idle"
+            } else {
+                "ready"
+            };
+            process_from_args(&args[1], args, Some(target), selection)
         }
         _ => Err(invalid("unsupported owner processing operation")),
     }
 }
 
-fn process_from_args(path: &str, args: &[String], resume: bool) -> Result<Value, ProductError> {
-    let target = option(args, "--until").unwrap_or(if resume { "ready" } else { "" });
+fn process_from_args(
+    path: &str,
+    args: &[String],
+    default_target: Option<&str>,
+    selection: Option<LiveProcessingSelection>,
+) -> Result<Value, ProductError> {
+    let target = option(args, "--until").or(default_target).unwrap_or("");
     if !matches!(target, "idle" | "ready") {
         return Err(invalid("--until must be idle or ready"));
     }
@@ -182,9 +213,6 @@ fn process_from_args(path: &str, args: &[String], resume: bool) -> Result<Value,
     let episode = option(args, "--episode")
         .map(|value| parse_hex(value, "Episode ID").map(reliquary_memory::EpisodeId))
         .transpose()?;
-    if episode.is_some() && import_id.is_none() {
-        return Err(invalid("--episode requires --import"));
-    }
     let max_episodes = number_option(args, "--max-episodes")?.unwrap_or(128);
     if !(1..=reliquary_memory::MAX_PROCESS_EPISODES).contains(&max_episodes) {
         return Err(invalid("--max-episodes is outside the supported bounds"));
@@ -194,7 +222,15 @@ fn process_from_args(path: &str, args: &[String], resume: bool) -> Result<Value,
         option(args, "--master-key"),
     )?;
     let host = LocalHost::open(path, option(args, "--phy"), RelAccess::Operate)?;
-    run_processing(&host, &configured, import_id, max_episodes, target, episode)
+    run_selected_processing(
+        &host,
+        &configured,
+        import_id,
+        max_episodes,
+        target,
+        selection,
+        episode,
+    )
 }
 
 pub(crate) fn run_processing(
@@ -203,6 +239,25 @@ pub(crate) fn run_processing(
     import_id: Option<&str>,
     max_episodes: usize,
     target: &str,
+) -> Result<Value, ProductError> {
+    run_selected_processing(
+        host,
+        configured,
+        import_id,
+        max_episodes,
+        target,
+        None,
+        None,
+    )
+}
+
+fn run_selected_processing(
+    host: &LocalHost,
+    configured: &ConfiguredRuntime,
+    import_id: Option<&str>,
+    max_episodes: usize,
+    target: &str,
+    selection: Option<LiveProcessingSelection>,
     retry_episode: Option<reliquary_memory::EpisodeId>,
 ) -> Result<Value, ProductError> {
     use std::time::{Duration, Instant};
@@ -212,13 +267,25 @@ pub(crate) fn run_processing(
         destination: host.phy,
         max_episodes,
     };
-    let job = match retry_episode {
-        Some(episode) => host
+    let job = match (selection, retry_episode) {
+        (Some(selection), None) => host.instance.start_live_processing_stage(
+            host.rel,
+            configured,
+            host.phy,
+            max_episodes,
+            selection,
+        )?,
+        (None, Some(episode)) => host
             .instance
-            .resume_held_import_processing(host.rel, configured, options, episode)?,
-        None => host
+            .resume_held_processing(host.rel, configured, options, episode)?,
+        (None, None) => host
             .instance
             .start_processing(host.rel, configured, options)?,
+        (Some(_), Some(_)) => {
+            return Err(invalid(
+                "held Episode retry requires the work resume command",
+            ));
+        }
     };
     let mut last_report = None;
     let mut next_report = Instant::now();

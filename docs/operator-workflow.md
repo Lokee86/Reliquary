@@ -44,6 +44,15 @@ processing. A separate `rel work stop` invocation reports
 the lack of a control channel to an already running process. In-process
 hosts can call `OwnerProcessingJob::request_stop` and join it.
 
+For live conversation Episodes, `rel process project.rel --config
+runtime.json --until ready` drains Insomnia, resolves accepted Entity
+mentions, prepares the selected Memory vectors, and settles first-cycle
+Dream. Pass `--phy user.phy` to include routed private work. Use
+`rel entity-resolution status` and `rel dream status` for read-only work
+counts, or use `run` to resume a named stage. A started Dream pass binds its
+selected route and embedding profile to the recorded candidate frontier.
+Use `rel freshness status` for derived live lifecycle notices.
+
 ## Find and inspect
 
 ```text

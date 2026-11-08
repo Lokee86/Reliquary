@@ -69,7 +69,13 @@ pub struct ConfiguredRoutes {
     entity: SelectedDecision,
     retrieval: SelectedDecision,
     worker_lease_duration_ms: Option<u32>,
-    processing_route_identity: [u8; 32],
+    processing_route_identity: ProcessingRouteIdentity,
+}
+
+#[derive(Clone, Copy)]
+pub struct ProcessingRouteIdentity {
+    pub import: [u8; 32],
+    pub live_dream: [u8; 32],
 }
 
 impl ConfiguredRoutes {
@@ -238,7 +244,7 @@ impl ConfiguredRoutes {
         self.worker_lease_duration_ms
     }
 
-    pub fn processing_route_identity(&self) -> [u8; 32] {
+    pub fn processing_route_identity(&self) -> ProcessingRouteIdentity {
         self.processing_route_identity
     }
 

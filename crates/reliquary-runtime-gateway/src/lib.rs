@@ -427,6 +427,7 @@ mod instance_owner;
 mod instance_passive_retrieval;
 pub use instance_passive_retrieval::{SearchMode, SearchResult};
 mod instance_processing;
+mod live_processing;
 mod processing_stages;
 mod processing_vectors;
 pub use instance_processing::{

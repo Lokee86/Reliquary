@@ -18,6 +18,7 @@ use std::{
 const CREDENTIAL: &str = "RELIQUARY_OPERATIONAL_FIXTURE_KEY";
 const KEY: &str = "synthetic-operational-cli-test-key";
 const PROJECT: &str = "Lantern release uses the amber checklist.";
+const LIVE_FOLLOWUP: &str = "Lantern release reviews the checklist before tagging.";
 const PRIVATE: &str = "My preferred meeting window is afternoons.";
 const QUERY: &str = "Lantern amber checklist";
 const REFINEMENT: &str = "Focus on the release";
@@ -151,6 +152,59 @@ fn provider_reply(request: &Value) -> Value {
     let schema = request["response_format"]["json_schema"]["name"]
         .as_str()
         .unwrap();
+    if request["model"] == "live-fixture" {
+        let shape = &request["response_format"]["json_schema"]["schema"]["properties"];
+        let source_text = |id: &str| {
+            if id == "accepted" {
+                PROJECT
+            } else {
+                LIVE_FOLLOWUP
+            }
+        };
+        let output = match schema {
+            "insomnia_authority_disposition_ledger" => {
+                let id = shape["turns"]["required"][0].as_str().unwrap();
+                json!({"turns":{(id):[clause("fact","project",source_text(id))]},
+                    "evidence_requests":[]})
+            }
+            "insomnia_memory_wording" => {
+                let id = shape["candidates"]["items"]["properties"]["source_node_id"]["enum"][0]
+                    .as_str()
+                    .unwrap();
+                let mut memory = candidate(
+                    "fact",
+                    "project",
+                    "project",
+                    "Lantern release checklist",
+                    source_text(id),
+                );
+                memory["source_node_id"] = json!(id);
+                if id == "accepted" {
+                    memory["routing_mentions"] = json!([{
+                        "field":"content","start_byte":0,"end_byte":7,"text":"Lantern"
+                    }]);
+                }
+                json!({"candidates":[memory]})
+            }
+            "entity_admission" => json!({
+                "decision":"create_new","reason":"named_referent","promotion_policy":"immediate",
+                "entity_kind":"application","entity_summary":"Lantern release application"
+            }),
+            "entity_resolution" => json!({
+                "decision":"create_new","reason":"named_referent","target_candidate_index":0,
+                "identity_relation":"related_distinct","mention_kind":"application"
+            }),
+            "dream_pair_classification" => json!({
+                "relation":"topical","direction":"undirected",
+                "evidence":[{"side":"a","quote":"Lantern"},{"side":"b","quote":"Lantern"}]
+            }),
+            "dream_pair_verification" => json!({
+                "relation_supported":"yes","direction_supported":"yes","evidence_supported":"yes"
+            }),
+            other => panic!("unexpected LIVE provider schema {other}"),
+        };
+        return json!({"choices":[{"message":{"content":output.to_string()}}]});
+    }
     let output = match schema {
         "readiness_probe" => json!({"ok":true}),
         "insomnia_authority_disposition_ledger" => json!({
@@ -165,6 +219,119 @@ fn provider_reply(request: &Value) -> Value {
         other => panic!("unexpected general provider schema {other}"),
     };
     json!({"choices":[{"message":{"content":output.to_string()}}]})
+}
+
+#[test]
+fn live_cli_drains_entity_and_first_cycle_dream_then_reopens_without_inference() {
+    let provider = Provider::start();
+    let cli = Cli::new(provider.addr.port());
+    let rel = "./live.rel";
+    let config = "live-runtime.json";
+    let url = format!("http://{}", provider.addr);
+    fs::write(
+        cli.0.join(config),
+        json!({
+            "general":{"model":"live-fixture","url":url,"credential_id":CREDENTIAL},
+            "embedding":{"model":"embed-fixture","url":url,"credential_id":CREDENTIAL,
+                "dimensions":2,"normalization":"l2"}
+        })
+        .to_string(),
+    )
+    .unwrap();
+    cli.json(&["rel", "create", rel, "--scope", "project"]);
+    let accept = |id, text, revision: u64, parent| {
+        let submitted = cli.json(&[
+            "rel",
+            "conversation",
+            "feed",
+            rel,
+            "chat",
+            id,
+            "--state-dir",
+            "queue",
+            "--content",
+            text,
+            "--revision",
+            &revision.to_string(),
+        ]);
+        let revision = submitted["revision"].as_u64().unwrap().to_string();
+        let mut finalize = vec![
+            "rel",
+            "conversation",
+            "finalize",
+            rel,
+            "chat",
+            id,
+            "--state-dir",
+            "queue",
+            "--branch",
+            "main",
+            "--revision",
+            &revision,
+        ];
+        if let Some(parent) = parent {
+            finalize.extend(["--parent", parent]);
+        }
+        let finalized = cli.json(&finalize);
+        cli.json(&["rel", "conversation", "episode", rel, "chat", id, id]);
+        finalized["revision"].as_u64().unwrap()
+    };
+    let revision = accept("accepted", PROJECT, 0, None);
+    let process = [
+        "rel",
+        "process",
+        rel,
+        "--config",
+        config,
+        "--until",
+        "ready",
+        "--max-episodes",
+        "1",
+    ];
+    assert_eq!(cli.json(&process)["report"]["state"], "ready");
+    accept("followup", LIVE_FOLLOWUP, revision, Some("accepted"));
+    let ready = cli.json(&process);
+    assert_eq!(ready["report"]["state"], "ready");
+    for (stage, count) in [("entity", 1), ("dream", 2)] {
+        let progress = ready["report"]["live_stages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["stage"] == stage)
+            .unwrap();
+        assert_eq!(progress["state"], "complete");
+        assert_eq!(progress["pending"], 0);
+        assert_eq!(progress["completed"], count);
+    }
+    let after = provider.requests.load(Ordering::Relaxed);
+    assert!(after > 3);
+    assert_eq!(cli.json(&process)["report"]["state"], "ready");
+    assert_eq!(
+        cli.json(&["rel", "entity-resolution", "status", rel])["progress"]["completed"],
+        1
+    );
+    assert_eq!(
+        cli.json(&["rel", "dream", "status", rel])["progress"]["completed"],
+        2
+    );
+    assert_eq!(provider.requests.load(Ordering::Relaxed), after);
+    let memory = cli.json(&["rel", "memory", "list", rel]);
+    let id = memory["page"]["items"][0]["value"]["id"].as_str().unwrap();
+    let graph = cli.json(&["rel", "graph", "neighbors", rel, id]);
+    assert!(
+        graph["page"]["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| {
+                item["value"]["kind"] == "Topical"
+                    && item["value"]["origin"] == "Dream"
+                    && item["value"]["active"] == true
+            })
+    );
+    let verified = cli.json(&["rel", "verify", rel]);
+    assert_eq!(verified["verified"], true);
+    assert_eq!(verified["owner"]["memory_count"], 2);
 }
 
 fn decision_reply(state: &Value) -> Value {
@@ -416,5 +583,36 @@ fn configured_cli_import_processes_routes_and_reopens_grounded_memories() {
         assert_eq!(verified["verified"], true);
         assert_eq!(verified["owner"]["owner_id"], id.as_str());
         assert_eq!(verified["owner"]["memory_count"], 1);
+    }
+}
+
+#[test]
+fn live_stage_status_and_run_use_the_root_coordinator() {
+    let cli = Cli::new(0);
+    let rel = "./live.rel";
+    cli.json(&["rel", "create", rel, "--json"]);
+    let config = "live-runtime.json";
+    fs::write(
+        cli.0.join(config),
+        json!({"entity_resolution":{
+            "model":"entity-fixture","url":"http://127.0.0.1:1","credential_id":CREDENTIAL
+        }})
+        .to_string(),
+    )
+    .unwrap();
+    for stage in ["entity-resolution", "dream"] {
+        let status = cli.json(&["rel", stage, "status", rel, "--json"]);
+        assert_eq!(status["progress"]["state"], "complete");
+        assert_eq!(status["progress"]["completed"], 0);
+        let run = cli.json(&["rel", stage, "run", rel, "--config", config, "--json"]);
+        assert_eq!(run["report"]["state"], "ready");
+        assert_eq!(
+            run["report"]["live_stages"]
+                .as_array()
+                .unwrap()
+                .last()
+                .unwrap()["state"],
+            "complete"
+        );
     }
 }

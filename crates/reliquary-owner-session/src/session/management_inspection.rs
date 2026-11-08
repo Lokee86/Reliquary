@@ -52,6 +52,15 @@ impl PhyWriter {
 }
 
 impl ManagementRead<'_> {
+    /// Exact first-cycle identity and settlement, including manually started passes.
+    pub fn first_dream_pass(&self, source: MemoryId) -> Option<(&str, bool)> {
+        self.common.dreams.first_pass(source)
+    }
+
+    pub fn mention(&self, key: MemoryEntityMentionKey) -> Option<&MemoryEntityResolution> {
+        self.common.perception.mention(key)
+    }
+
     pub fn versions(&self) -> (u64, u64, u64, u64) {
         (
             self.common.memories.memory_version(),

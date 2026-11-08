@@ -30,8 +30,8 @@ pub use native_import::*;
 pub use owner::{OwnerId, OwnerInfo, OwnerKind, OwnerScope, Phylactery, Rel};
 pub use processing::{
     FreshnessLifecycleState, FreshnessTransition, ImportStage, InsomniaProgress,
-    MAX_PROCESS_EPISODES, OwnerProcessingJob, ProcessOptions, ProcessingReport, ProcessingState,
-    StageProgress, StageState, VectorCoverage,
+    LiveProcessingSelection, LiveStageProgress, MAX_PROCESS_EPISODES, OwnerProcessingJob,
+    ProcessOptions, ProcessingReport, ProcessingState, StageProgress, StageState, VectorCoverage,
 };
 pub use retrieval::*;
 

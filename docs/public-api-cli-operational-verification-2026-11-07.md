@@ -50,7 +50,8 @@ each configured account and route scoped to its declared operation.
 Independent readiness probes sent synthetic input. Insomnia, Insomnia
 ownership, Dream, and Entity Resolution each received HTTP 401. The
 configured direct Entity Resolution decision route received HTTP 400.
-The embedding probe passed. Automatic approval review separately rejected
+The embedding route passed both query and document compatibility probes
+against an empty owner. Automatic approval review separately rejected
 a live retrieval command because it contained corpus-derived text destined
 for external providers. The real import remains staged and pending.
 
@@ -73,22 +74,35 @@ provenance through the REL and PHY commands. Confirmed use is covered by
 trusted-host delivery and receipt recovery tests. Fixture results are
 separate from live acceptance.
 
-The final locked offline run passed 654 workspace tests and 14 CLI tests.
-The Root-only consumer passed seven tests, including exact held-checkpoint
-resume and independent owner verification. Its pre-existing authored G4
-reopen test retains the G4 runner prerequisite. Workspace check, all three
+The final locked offline run passed 656 workspace tests and 16 CLI tests.
+The Root-only consumer passed eight tests, including exact held-checkpoint
+resume, paired live recovery, and independent owner verification. Its
+pre-existing authored G4 reopen test retains the G4 runner prerequisite.
+Workspace check, all three
 format checks, local Markdown links, staged whitespace, and the architecture
 guard passed. Cargo builds used the repository's serialized
 `target-codex-check` directory with debug information disabled for dev and
 test profiles.
 
-## Remaining implementation scope
+## Processing scope and recovery
 
 The imported coordinator declares typed relationship proposals optional.
 An owner-scoped record binds the configured routes and ordered stage policy
 before imported extraction. The vector stage binds the verified profile.
 The Root-only fixture rejects changed Dream configuration before held
 Episode retry and rejects a changed embedding profile after reopen.
+
+The live coordinator reads accepted Insomnia checkpoints, resolves the
+recorded Entity mentions, and runs first-cycle Dream with a bound route,
+profile, and recorded frontier. The Root-only fixture resumes paired REL
+and PHY Entity work after a provider failure and independent reopen. The
+separate-process CLI fixture verifies a persisted Dream edge and observes
+no further inference on replay.
+
+Older live extractions that lack an exact checkpoint report unsupported
+Entity work. Automatic relationship proposals have no configured live
+source. The coordinator builds vectors for selected Dream sources, while
+the named vector commands can cover additional eligible Memories.
 
 Lexicon is uninitialized in this worktree, so there is no current Arcana
 snapshot. The repository's executable dependency guard checks all 23

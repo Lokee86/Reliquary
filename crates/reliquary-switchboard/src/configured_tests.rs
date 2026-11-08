@@ -255,6 +255,35 @@ fn specialty_probe_errors_exclude_provider_payload_and_preserve_retry_hint() {
 }
 
 #[test]
+fn processing_identity_excludes_retrieval_and_scopes_the_live_dream_route() {
+    let original = json!({
+        "insomnia": {"model":"extractor","url":"https://example.test/insomnia","credential_id":"KEY"},
+        "dream": {"model":"organizer","url":"https://example.test/dream","credential_id":"KEY"},
+        "embedding": {"model":"vectors","url":"https://example.test/embed","credential_id":"KEY","dimensions":3}
+    });
+    let identity = |config| {
+        let file = ConfigFile::new(config);
+        ConfiguredRoutes::from_path(&file.0, &Resolver::default())
+            .unwrap()
+            .processing_route_identity()
+    };
+    let bound = identity(original.clone());
+    let mut changed = original;
+    changed["memory_retrieval_decision"] = json!({
+        "model":"retrieval","url":"https://example.test/decision","credential_id":"KEY"
+    });
+    let with_retrieval = identity(changed.clone());
+    assert_eq!(bound.import, with_retrieval.import);
+    assert_eq!(bound.live_dream, with_retrieval.live_dream);
+    changed["insomnia"]["model"] = json!("another-extractor");
+    let changed_extractor = identity(changed.clone());
+    assert_ne!(bound.import, changed_extractor.import);
+    assert_eq!(bound.live_dream, changed_extractor.live_dream);
+    changed["embedding"]["dimensions"] = json!(4);
+    assert_ne!(bound.live_dream, identity(changed).live_dream);
+}
+
+#[test]
 fn online_probe_reports_http_status_without_the_provider_payload() {
     let (url, request) = mock_server("401 Unauthorized", "", "private provider payload");
     let path = ConfigFile::new(json!({

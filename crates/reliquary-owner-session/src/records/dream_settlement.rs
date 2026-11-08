@@ -110,6 +110,14 @@ impl DreamEvidenceStore {
             .map(|record| record.freshness_effects.clone())
     }
 
+    pub(crate) fn first_pass(&self, source: MemoryId) -> Option<(&str, bool)> {
+        let (pass, _) = self
+            .begins
+            .iter()
+            .find(|(_, begin)| begin.source_id == source)?;
+        Some((pass, self.initial_settlements.contains_key(pass)))
+    }
+
     pub(crate) fn has_other_initial_pass(&self, source: MemoryId, pass: &str) -> bool {
         self.begins
             .values()

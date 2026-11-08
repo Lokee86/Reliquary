@@ -55,6 +55,7 @@ pub use management_workflow::{
 pub mod native_import_source;
 pub mod native_import_workflow;
 pub use native_import_workflow::settle_native_import_initial_dream;
+pub mod live_processing;
 mod native_insomnia;
 mod native_insomnia_evidence;
 pub mod processing_plan;

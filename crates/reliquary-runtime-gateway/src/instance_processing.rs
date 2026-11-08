@@ -1,14 +1,16 @@
 use crate::{
     Gateway, GatewayError, Instance, OwnerId,
     insomnia_worker::{SharedEndpoint, now_ns, processing::process_claim},
+    live_processing::run_live_stages,
     processing_stages::{ImportProcessingRoutes, run_import_stages},
 };
+use reliquary_application::live_processing::{LiveProcessingSelection, LiveStageProgress};
 use reliquary_application::processing_plan::{
     InsomniaProgress, MAX_PROCESS_EPISODES, StageProgress, import_plan_identity, import_stages,
     inspect_insomnia_work,
 };
 use reliquary_owner_session::model::EpisodeId;
-use reliquary_switchboard::{EmbeddingEndpoint, GeneralEndpoint};
+use reliquary_switchboard::{EmbeddingEndpoint, GeneralEndpoint, ProcessingRouteIdentity};
 use std::sync::{
     Arc, Mutex,
     atomic::{AtomicBool, Ordering},
@@ -21,6 +23,7 @@ pub struct InsomniaRunOptions {
     pub destination: Option<OwnerId>,
     pub max_episodes: usize,
     pub lease_duration_ns: i64,
+    pub live_selection: LiveProcessingSelection,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
@@ -41,6 +44,8 @@ pub struct ProcessingReport {
     pub import_id: Option<String>,
     pub insomnia: InsomniaProgress,
     pub stages: Vec<StageProgress>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub live_stages: Vec<LiveStageProgress>,
 }
 
 pub struct ProcessingJob {
@@ -90,12 +95,12 @@ impl Gateway {
         &self,
         instance: Arc<Instance>,
         owner: OwnerId,
-        endpoint: Arc<dyn GeneralEndpoint>,
+        endpoint: Option<Arc<dyn GeneralEndpoint>>,
         ownership: Option<Arc<dyn GeneralEndpoint>>,
         dream: Option<Arc<dyn GeneralEndpoint>>,
         entity: Option<Arc<dyn GeneralEndpoint>>,
         embedding: Option<Arc<dyn EmbeddingEndpoint>>,
-        route_identity: [u8; 32],
+        route_identity: ProcessingRouteIdentity,
         retry_episode: Option<EpisodeId>,
         options: InsomniaRunOptions,
     ) -> Result<ProcessingJob, GatewayError> {
@@ -104,6 +109,8 @@ impl Gateway {
                 "processing Instance belongs to another Gateway".into(),
             ));
         }
+        let drains_insomnia =
+            options.import_id.is_some() || options.live_selection.drains_insomnia();
         if !(1..=MAX_PROCESS_EPISODES).contains(&options.max_episodes)
             || options.lease_duration_ns <= 0
         {
@@ -131,7 +138,17 @@ impl Gateway {
                 }
             }
         }
+        let endpoint = if drains_insomnia {
+            Some(endpoint.ok_or(GatewayError::RetrievalUnavailable(
+                "owner processing requires a configured Insomnia or general route",
+            ))?)
+        } else {
+            None
+        };
         instance.with_writable_reliquary(owner, |_| ())?;
+        if options.import_id.is_none() {
+            instance.validate_live_processing(owner)?;
+        }
         if let Some(phy) = options.destination {
             instance.authorize_routed_owners(owner, phy)?;
             instance.with_entity_phy_writer(phy, |_| ())?;
@@ -140,7 +157,7 @@ impl Gateway {
             instance.check_import_processing_binding(
                 owner,
                 id,
-                endpoint.model(),
+                endpoint.as_ref().expect("import needs Insomnia").model(),
                 options.destination,
             )?;
         }
@@ -165,7 +182,7 @@ impl Gateway {
             instance.with_rel_writer(owner, |writer| {
                 writer.bind_native_import_processing(
                     id,
-                    import_plan_identity(route_identity),
+                    import_plan_identity(route_identity.import),
                     options.destination.map(OwnerId::as_bytes),
                 )?;
                 if let Some(episode) = retry_episode {
@@ -173,6 +190,8 @@ impl Gateway {
                 }
                 Ok::<_, crate::OwnerSessionError>(())
             })??;
+        } else if let Some(episode) = retry_episode {
+            instance.retry_held_live_episode(owner, episode)?;
         }
         let initial = instance.insomnia_progress(owner, options.import_id.as_deref())?;
         let report = Arc::new(Mutex::new(ProcessingReport {
@@ -183,6 +202,17 @@ impl Gateway {
                 .import_id
                 .as_ref()
                 .map_or_else(Vec::new, |_| import_stages()),
+            live_stages: if options.import_id.is_none() {
+                options
+                    .live_selection
+                    .stages()
+                    .iter()
+                    .copied()
+                    .map(LiveStageProgress::new)
+                    .collect()
+            } else {
+                Vec::new()
+            },
         }));
         let stop = Arc::new(AtomicBool::new(false));
         let thread_stop = Arc::clone(&stop);
@@ -191,13 +221,11 @@ impl Gateway {
             .name("reliquary-processing".into())
             .spawn(move || {
                 let _lease = lease;
-                let result = instance.drain_insomnia(
-                    owner,
-                    Arc::clone(&endpoint),
-                    ownership,
-                    &options,
-                    &thread_stop,
-                );
+                let result = if let Some(endpoint) = endpoint {
+                    instance.drain_insomnia(owner, endpoint, ownership, &options, &thread_stop)
+                } else {
+                    instance.insomnia_progress(owner, None)
+                };
                 let mut report = thread_report
                     .lock()
                     .map_err(|_| GatewayError::RegistryPoisoned)?;
@@ -261,6 +289,64 @@ impl Gateway {
                                     return Err(error);
                                 }
                             }
+                        }
+                        if options.import_id.is_none()
+                            && report.state != ProcessingState::Stopped
+                            && options.live_selection != LiveProcessingSelection::Insomnia
+                        {
+                            let insomnia_state = report.state;
+                            report.state = ProcessingState::Running;
+                            drop(report);
+                            let result = run_live_stages(
+                                &instance,
+                                owner,
+                                options.destination,
+                                ImportProcessingRoutes {
+                                    dream,
+                                    entity,
+                                    embedding,
+                                },
+                                options.live_selection,
+                                options.max_episodes,
+                                route_identity.live_dream,
+                                &thread_stop,
+                                |progress| {
+                                    if let Ok(mut report) = thread_report.lock() {
+                                        if let Some(stage) = report
+                                            .live_stages
+                                            .iter_mut()
+                                            .find(|stage| stage.stage == progress.stage)
+                                        {
+                                            *stage = progress;
+                                        }
+                                    }
+                                },
+                            );
+                            let mut report = thread_report
+                                .lock()
+                                .map_err(|_| GatewayError::RegistryPoisoned)?;
+                            report.state = match result {
+                                Ok(state) => {
+                                    if drains_insomnia
+                                        && insomnia_state != ProcessingState::Idle
+                                        && matches!(
+                                            state,
+                                            ProcessingState::Ready
+                                                | ProcessingState::Idle
+                                                | ProcessingState::Incomplete
+                                        )
+                                    {
+                                        insomnia_state
+                                    } else {
+                                        state
+                                    }
+                                }
+                                Err(error) => {
+                                    report.state = ProcessingState::Failed;
+                                    return Err(error);
+                                }
+                            };
+                            return Ok(report.clone());
                         }
                         Ok(report.clone())
                     }
@@ -334,6 +420,16 @@ impl Instance {
     ) -> Result<(), GatewayError> {
         Ok(self.with_rel_writer(owner, |writer| {
             writer.retry_held_import_episode(import_id, episode, now_ns())
+        })??)
+    }
+
+    pub fn retry_held_live_episode(
+        &self,
+        owner: OwnerId,
+        episode: EpisodeId,
+    ) -> Result<(), GatewayError> {
+        Ok(self.with_rel_writer(owner, |writer| {
+            writer.retry_held_live_episode(episode, now_ns())
         })??)
     }
 

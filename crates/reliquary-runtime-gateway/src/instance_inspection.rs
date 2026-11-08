@@ -43,7 +43,7 @@ impl Instance {
         self.with_management_read(owner, phy, mounted_owner_info)
     }
 
-    fn with_management_read<T>(
+    pub(crate) fn with_management_read<T>(
         &self,
         owner: OwnerId,
         phy: bool,

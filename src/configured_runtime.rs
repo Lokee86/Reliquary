@@ -127,7 +127,9 @@ impl ConfiguredRuntime {
         self.routes.embedding_endpoint()
     }
 
-    pub(crate) fn processing_route_identity(&self) -> [u8; 32] {
+    pub(crate) fn processing_route_identity(
+        &self,
+    ) -> reliquary_switchboard::ProcessingRouteIdentity {
         self.routes.processing_route_identity()
     }
 

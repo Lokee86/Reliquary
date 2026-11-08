@@ -183,8 +183,8 @@ impl RelWriter {
     }
 }
 impl PhyWriter {
-    pub fn initial_dream_frontier(&self, pass: &str) -> Option<crate::InitialDreamFrontier> {
-        self.common.dreams.initial_frontier(pass)
+    pub fn dream_batch_published(&self, publication_id: [u8; 32]) -> bool {
+        self.common.dream_pairs.batch(publication_id).is_some()
     }
     pub fn dream_graph_version(&self) -> u64 {
         self.common.graph.graph_version()
