@@ -1,6 +1,22 @@
 # D02 independent checker
 
-The fixture comparator and current-only reader verify selected synthetic history. Authentic corpus parity is `INCOMPLETE`.
+## Reviewed disposable copies
+
+Use the current-only reader with the pinned historical source evidence to compare retained data in a converted owner. Build the reader from the repository root.
+
+    cargo build --manifest-path tools/d02-parity/reader/Cargo.toml --locked --offline -j 1 --target-dir target-codex-check
+
+These commands show the authentic comparison arguments.
+
+    python -B tools/d02-parity/compare_authentic_memory.py --help
+    python -B tools/d02-parity/compare_authentic_graph.py --help
+    python -B tools/d02-parity/compare_authentic_archive.py --help
+    python -B tools/d02-parity/compare_archive_bindings.py --help
+    python -B tools/d02-parity/compare_authentic_freshness.py --help
+
+Run Memory and Graph for both owner kinds. Archive, Archive bindings, and Freshness apply to REL. Each receipt covers one owner and one comparison and binds the exact source evidence and converted file. Use those receipts alongside the direct vector, journal, Entity, Resolution, and Community comparisons and the source custody check.
+
+## Synthetic fixture checks
 
 ```powershell
 python -m unittest discover -s tools/d02-parity/tests -p "test_*.py" -v
@@ -24,4 +40,4 @@ Commit 0f824a09 adds test-only independent reference-encoder tests. The schema a
 
 The standalone reader uses current-only 2.1 replay and immutable observations from the same read-only file handle. It runs independently of the converter and remains outside the 23-package, 76-edge production dependency graph. Synthetic end-to-end tests compare local Archive cuts and standalone Memory history and clocks against separate literal oracles. See the [reader commands](reader/README.md) and [synthetic candidate results](reader/test-evidence/native-synthetic-candidate-checks-2026-11-07.json).
 
-Authentic parity still requires a frozen F03 admission, common retained-family and cut coverage, conversion receipt and relocation verification, and operational and privacy checks. The fixture schema represents five synthetic families. The current reader's native observations have separate schema identifiers.
+The fixture schema represents five synthetic families. The current reader's native observations have separate schema identifiers.
