@@ -96,6 +96,7 @@ pub enum GatewayError {
     UnsupportedHostCapability(RuntimeCapability),
     RoutedMemory(String),
     ProjectSource(String),
+    NativeImportConflict,
     RegistryPoisoned,
     WriterUnavailable,
 }
@@ -159,6 +160,9 @@ impl fmt::Display for GatewayError {
             }
             Self::RoutedMemory(reason) => write!(f, "routed user Memory failed: {reason}"),
             Self::ProjectSource(reason) => write!(f, "project source failed: {reason}"),
+            Self::NativeImportConflict => {
+                f.write_str("native import conflicts with the mounted owner's source or open epoch")
+            }
             Self::RegistryPoisoned => f.write_str("gateway owner registry is unavailable"),
             Self::WriterUnavailable => f.write_str("owner writer session is unavailable"),
         }
@@ -412,6 +416,7 @@ pub use instance_context::{
     ContextMemoryRef, ProjectContextAttachmentRef,
 };
 mod instance_management;
+mod instance_native_import;
 mod instance_owner;
 mod instance_passive_retrieval;
 mod instance_project_correlation;

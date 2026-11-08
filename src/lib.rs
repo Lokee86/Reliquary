@@ -7,6 +7,7 @@ mod error;
 mod host;
 mod maintenance;
 mod management;
+mod native_import;
 mod owner;
 
 pub use error::{ProductError, ProductErrorKind};
@@ -16,6 +17,7 @@ pub use host::{
 };
 pub use maintenance::*;
 pub use management::WorkspaceManagement;
+pub use native_import::*;
 pub use owner::{OwnerId, OwnerInfo, OwnerKind, OwnerScope, Phylactery, Rel};
 
 pub use reliquary_application::{

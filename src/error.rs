@@ -80,7 +80,9 @@ impl From<GatewayError> for ProductError {
             GatewayError::CredentialRevoked => ProductErrorKind::Revoked,
             GatewayError::WrongOwnerKind(_) => ProductErrorKind::WrongFormat,
             GatewayError::AdmissionOwnerMismatch { .. } => ProductErrorKind::Admission,
-            GatewayError::DuplicateOwner(_) => ProductErrorKind::Conflict,
+            GatewayError::DuplicateOwner(_) | GatewayError::NativeImportConflict => {
+                ProductErrorKind::Conflict
+            }
             GatewayError::WriterUnavailable => ProductErrorKind::WriterUnavailable,
             GatewayError::StaleRetrieval => ProductErrorKind::Stale,
             GatewayError::UnknownOwner(_) => ProductErrorKind::Unavailable,

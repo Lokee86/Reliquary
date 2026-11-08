@@ -15,6 +15,13 @@ mod work;
 mod writer;
 
 impl RelSession {
+    /// Current durable epoch, including an interrupted import with no receipt.
+    pub fn open_native_import_id(&self) -> Option<&str> {
+        self.imports
+            .open_epoch()
+            .map(|start| start.import_id.as_str())
+    }
+
     pub fn native_import_receipt(
         &self,
         import_key: &[u8; 32],
