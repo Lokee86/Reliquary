@@ -1,9 +1,0 @@
-{
-  "ticket": "P7.1.14-OFFLINE-BACKGROUND",
-  "status": "registered-before-implementation",
-  "witness": "interaction_background.rs process_background_work invokes DreamProcessor::process_memories_with_concurrency implemented in facade/dream_processor_frontier.rs",
-  "consumer_trace": "rg finds only interaction_background_tests in repository; mounted REL/PHY worker paths do not invoke this supported offline API",
-  "cut": "Keep background configuration/results/errors below; place the supported offline product composition method and its pending-selection helper above runtime, preserving method/type identity and algorithm",
-  "preserving_tests": ["interaction_background_tests", "public API/CLI compilation"],
-  "denominator": "31 parents plus 10 named children = 41 tracked obligations; four gates unchanged"
-}

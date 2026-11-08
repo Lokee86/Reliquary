@@ -217,8 +217,14 @@ def violations(path, source, facts):
     if path in {"src/runtime_inference/freshness_operations.rs", "src/runtime_inference/runtime_freshness_birth.rs"}:
         if re.search(r"\.\s*freshness\s*\.\s*(?:record_at_cut|record_at|records_at|records|contains_event|event_matches|prepare_event_postimages_for|validate_event_payload|encode_event|persist_policy_if_needed|ingest_appended|replay_entries|event_receipt)\s*\(", view):
             errors.append(f"{path}: Freshness store operations must pass through owner lifecycle")
+    if path in {"src/facade/cva_ego.rs", "src/facade/phylactery_ego.rs"}:
+        # Pure Ego binding can call the existing durable owner operation directly;
+        # requiring a one-line runtime forwarder creates no authority or behavior.
+        if re.search(r"\bself\s*\.\s*(?:graph|ego|relationships|container|memories|entities)\b", view) or re.search(
+            r"\bself\s*\.\s*owner\s*\.\s*(?!native_[A-Za-z_]*ego[A-Za-z_]*\s*\()", view
+        ):
+            errors.append(f"{path}: Ego facade must use only its owner Ego operations")
     if path in {
-        "src/facade/cva_ego.rs", "src/facade/phylactery_ego.rs",
         "src/facade/cva_relationship_owner.rs", "src/facade/cva_conversation_tombstone.rs",
         "src/facade/cva_graph.rs", "src/facade/phylactery_graph.rs",
         "src/facade/insomnia_processor.rs",

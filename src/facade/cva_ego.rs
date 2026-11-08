@@ -6,11 +6,11 @@ impl Cva {
     }
 
     pub fn ego_anchors(&self) -> Vec<EgoAnchor> {
-        self.native_ego_anchors()
+        self.owner.native_ego_anchors()
     }
 
     pub fn ego_anchor(&self, id: EgoAnchorId) -> Option<EgoAnchor> {
-        self.native_ego_anchor(id)
+        self.owner.native_ego_anchor(id)
     }
 
     pub fn create_ego_anchor(
@@ -18,7 +18,9 @@ impl Cva {
         priority: EgoAnchorPriority,
         text: String,
     ) -> Result<EgoAnchor, CvaError> {
-        self.native_create_ego_anchor(priority, text)
+        self.owner
+            .native_create_ego_anchor(priority, text)
+            .map_err(Into::into)
     }
 
     pub fn update_ego_anchor(
@@ -28,7 +30,9 @@ impl Cva {
         priority: EgoAnchorPriority,
         text: String,
     ) -> Result<(EgoAnchor, bool), CvaError> {
-        self.native_update_ego_anchor(id, expected_revision, priority, text)
+        self.owner
+            .native_update_ego_anchor(id, expected_revision, priority, text)
+            .map_err(Into::into)
     }
 
     pub fn delete_ego_anchor(
@@ -36,11 +40,13 @@ impl Cva {
         id: EgoAnchorId,
         expected_revision: u64,
     ) -> Result<bool, CvaError> {
-        self.native_delete_ego_anchor(id, expected_revision)
+        self.owner
+            .native_delete_ego_anchor(id, expected_revision)
+            .map_err(Into::into)
     }
 
     pub fn ego_web_synthesis(&self) -> Option<&EgoWebSynthesis> {
-        self.native_ego_web_synthesis()
+        self.owner.native_ego_web_synthesis()
     }
 
     pub fn put_ego_web_synthesis(
@@ -49,7 +55,9 @@ impl Cva {
         source_memory_version: u64,
         text: String,
     ) -> Result<(EgoWebSynthesis, bool), CvaError> {
-        self.native_put_ego_web_synthesis(expected_revision, source_memory_version, text)
+        self.owner
+            .native_put_ego_web_synthesis(expected_revision, source_memory_version, text)
+            .map_err(Into::into)
     }
 }
 
@@ -58,9 +66,9 @@ impl Cva {
         &self,
         id: EgoAnchorId,
     ) -> Option<crate::owner_lifecycle::LifecycleState> {
-        self.native_ego_anchor_lifecycle(id)
+        self.owner.native_ego_anchor_lifecycle(id)
     }
     pub fn historical_ego_anchor(&self, id: EgoAnchorId, revision: u64) -> Option<EgoAnchor> {
-        self.native_historical_ego_anchor(id, revision)
+        self.owner.native_historical_ego_anchor(id, revision)
     }
 }

@@ -4,7 +4,7 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Purpose
 
-Pin the Phase 2 before-image for the owner-local store cuts specified in [Phase 2](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md). This is a source-reviewed inventory at commit `529f2a8` (Phase 2 spec) against accepted Phase 1 implementation commit `8614547` and the retained Phase 0 capture. It records present ownership, source-reviewed foreign references, replay composition, consumers, protecting tests, and immutable corpus/source evidence. The companion [bounded source-reference ledger](../benchmarks/dependency-convergence-phase2-baseline-2026-10-22.json) pins exact matched file lines, nearest enclosing functions, direction, and production-file/test-file classification. It does not claim that Phase 2 code changes or tests have run.
+Pin the Phase 2 before-image for the owner-local store cuts specified in [Phase 2](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md). This is a source-reviewed inventory at commit `529f2a8` (Phase 2 spec) against accepted Phase 1 implementation commit `8614547` and the retained Phase 0 capture. It records present ownership, source-reviewed foreign references, replay composition, consumers, protecting tests, and immutable corpus/source evidence. The companion bounded source-reference ledger (archived in Git at `f431401`) pins exact matched file lines, nearest enclosing functions, direction, and production-file/test-file classification. It does not claim that Phase 2 code changes or tests have run.
 
 ## Overview
 

@@ -1,84 +1,29 @@
-# Reliquary Architecture Enforcement
+# Reliquary architecture checks
 
-Reliquary composes the shared Laughing Skull architecture-core Pitlord policy with repository-specific source ownership and static regression rules.
+The maintained policy is `policy.json`, including the shared engineering
+standard and `semantic.json`. The target logical ownership DAG is
+`convergence-component-dag.json`; cfg-reachable production file ownership is
+`production-components.json` and owner import constraints are in
+`owner-boundaries.json`.
 
-## Overview
+Use `python scripts/check_architecture.py` at the repository root to run the
+logical DAG, source mapping, source-cut, physical, owner, runtime, facade,
+History and External Source boundary checks. This does **not** claim exhaustive
+call-graph verification.
 
-`semantic.json` assigns every authored Rust file under `src/` to exactly one architectural owner. The owners describe current responsibility seams inside the still-single Rust crate; they do not claim that those seams are already separate crates:
+To inspect a repository graph, run
+`python scripts/check_architecture.py --graph --refresh` with Lexicon, Arcana,
+Pitlord and the normal Rust adapter available. This uses those existing tools;
+it does not build a separate Reliquary compiler analyzer or maintain finding
+fingerprint ledgers.
 
-- `freshness`: REL-local scores, admission, immutable receipts, canonical replay and bounded propagation;
-- `container`: physical REL/PHY substrate and global ordering;
-- `archive`: source history, conversation state, Episodes, attachments, Echo, and repository correlations;
-- `memory`: authoritative Memory state;
-- `external-source`: host canonical reference contracts, rebuildable indexes and external publication composition;
-- `retrieval`: lexical/semantic retrieval plus vector/profile/generation state;
-- `semantic-graph`: Graph, Communities, and typed semantic-node traversal;
-- `perception`: durable Entity state plus candidate/admission/resolution workflows;
-- `chronos`: shared temporal semantics;
-- `ego`: Identity/Personality/Anchor/synthesis persistence;
-- `runtime-inference`: Insomnia, Dream, providers, and RuntimeHost orchestration;
-- `config-security`: machine-local configuration and credential/key state;
-- `context-engine`: provider-neutral context/evidence and compaction policy;
-- `project-environment`: Lore/Git bootstrap, identity and attachment adapters;
-- `staleness`: pure typed clock and review-threshold arithmetic;
-- `facade`: public Reliquary/Cva/Phylactery composition, migration, and reconciliation.
+Both source checks and graph results are subject to their coverage limitations:
+macro expansion, dynamic dispatch and unused/alternate cfg profiles must not
+be silently treated as proven. An incomplete scan is a tool limitation, not a
+claim that the repository contains thousands of architectural violations.
 
-The source tree is physically grouped by the same owners under `src/`. Pitlord owns those directories as coarse regions, with `src/lib.rs` explicitly facade-owned at the crate root. This remains one Rust crate: the directory layout exposes responsibility and makes ownership/dependency analysis cheap without implying a crate split.
-
-## Permanent logical component DAG
-
-The architecture entrypoint runs `scripts/check_phase7_component_map.py` and its four focused fixtures before other source guards. This rejects missing cfg-reachable production files, duplicate map entries, unknown components and nonproduction classifications. It validates the recorded profile's file ownership only. `scripts/measure_phase7_baseline.py` produces unsuppressed current import/SCC evidence without refreshing Arcana; its successful execution is not architecture acceptance. See the [Phase 7 execution record](../../docs/dependency-convergence-phase7-execution-2026-10-24.md) for the open prerequisite and proof limits.
-
-The accepted [target DAG design](../../docs/dependency-convergence-target-dag-2026-10-21.md) and [34-component, 163-edge allowlist](convergence-component-dag.json) are **separate from** the current 19-area source-path policy. Every edge is directional (consumer → dependency), ranked strictly downward, explicitly justified and typed read/write/construct/invoke. Backreaching imports are forbidden even without cycles; sibling edges are denied unless explicitly included. The target includes Context Engine → Ego/Retrieval, Runtime → Retrieval, Retrieval → Memory/Archive, Maintenance → read-only History, and independently owned Vector generation and Freshness.
-
-Fast model validation: `python scripts/check_component_dag.py --self-test`, or via `python scripts/check_dependency_convergence.py --check-target`. The normal convergence gate validates this logical DAG **and separately** checks source-derived Pitlord findings. The logical graph must be mapped to concrete source modules as they migrate; existing `convergence-target.json` and the reviewed 4,609-finding Phase 0 baseline cannot simply be replaced or reset. Before Phase 7 closure, the source-level rules must enforce the finer component allowlist and then retire temporary baseline suppression while keeping permanent DAG constraints.
-
-## Dependency convergence campaign
-
-The root `policy.json` remains the unbaselined architecture policy. The dependency-convergence campaign uses a separate `convergence.json` target policy and separate evidence ledgers; it does not suppress or rebaseline findings from the root policy. The Phase 0 artifact roles are:
-
-- `convergence.json`: target allowed dependency direction, represented as forbidden complements;
-- `convergence-target.json`: explicit allowed consumer-to-dependency area matrix, checked against the forbidden complements;
-- `convergence-baseline.json`: active Pitlord baseline ledger for the 4,609 classified exact findings from the completed capture;
-- `convergence-debt.json`: active finding classifications, categories, removal phases, dispositions, and source-review evidence;
-- `convergence-graph.json`: captured graph and source evidence, retained as the historical capture record.
-- `convergence-import-audit.json`: derived source-review view of cross-area `imports` and `depends-on` edges; it is not fresh analyzer evidence or a complete production graph;
-- `convergence-boundaries.json`: reviewed dispositions for all 146 captured directed domain edges, including permitted dependencies.
-
-The baseline and debt ledgers are active enforcement state and shrink as findings are resolved. When a finding disappears, remove its entry from both active ledgers. Keep the graph capture as the evidence of the original Phase 0 graph; do not regenerate it to clear debt. `--capture` is the explicit initial-capture operation: it refuses to overwrite any existing baseline, debt ledger, or graph capture. It is a reviewed maintainer operation and is never run in CI. There is no automatic refresh, blanket suppression, or recapture to clear resolved debt. Capture-generated category, phase, and disposition values are provisional heuristics based on relation type, source path/name, and coarse area pair. Source review must confirm or correct them. The convergence checker requires `reviewed: true`, a category, phase, concrete disposition, `evidence_status` (`source-confirmed`, `test-only`, or `analyzer-artifact`), and nonempty `review_note`. Proven wrong bindings are recorded as analyzer artifacts, not fictional architecture debts. This separate ledger classifies findings from configured Pitlord analysis; it does not prove every source dependency was detected.
-
-The ordinary `scripts/check_architecture.py` path checks the original unbaselined root policy and then invokes `scripts/check_dependency_convergence.py`, which runs its fixtures followed by the full convergence check. Use `python scripts/check_dependency_convergence.py --self-test` for an isolated fixture-only run. The full convergence check can also be run directly with `python scripts/check_dependency_convergence.py`.
-
-The completed capture is bounded by the configured Rust source scope (`src/`) and Lexicon/Arcana adapter. The whole Arcana snapshot had 109,207 nodes and 297,303 relationships; the configured source scope had 98,633 nodes and 268,391 relationships, with 28,545 selected. All 1,102 source files were assigned once. The capture spans 19 areas/146 area dependencies, has one raw combined SCC spanning 16 areas, 9,537 cross-area module edges, and 298 public crossings. These measurements describe static capture only. The adapter includes colocated test files and does not distinguish `cfg(test)` reachability in its module-edge records. Crate-root reexports, inherent `impl Cva` blocks outside the defining module, trait/dynamic dispatch, macros, external adapters, and runtime callbacks need source review and explicit probes. Proven same-name call-target errors also mean raw call edges and SCCs must not be treated as confirmed production dependencies. Area assignment follows current paths and can differ from semantic responsibility. See the [Phase 0 inventory](../../docs/dependency-convergence-phase0-2026-10-21.md) for import-audit findings and capture limitations; missing static edges do not prove that no dependency exists.
-
-## Existing source-ownership guard
-
-The root policy also prevents the deleted generic `WorkspaceMetadata` / `workspace_type` authority from returning outside the explicit legacy migration compatibility boundary. Policy changes that alter architectural ownership must update `docs/architecture.md` and `docs/maintainer-map.md`; consequential ownership changes also require the appropriate ADR. Do not change ownership merely to silence a Pitlord finding.
-
-Run locally with current evidence:
-
-```text
-python scripts/check_architecture.py
-```
-
-Refresh Lexicon/Arcana evidence and enforce the root policy in one command:
-
-```text
-python scripts/check_architecture.py --refresh
-```
-
-The checker resolves Pitlord, Lexicon, Arcana, and adapters from environment overrides, PATH, or the normal sibling development repositories. Reliquary follows the same sibling `engineering-standards` source used by its documentation checker, so the shared architecture-core include must be present there. The push/PR architecture workflow builds the tools, prebuilds the Rust Lexicon adapter in release mode, refreshes evidence, and runs the root policy check. It does not capture or refresh the convergence ledgers.
-
-The refresh explicitly selects Lexicon Rust analysis because the ownership policy covers authored Rust files under `src/`. Python ownership/coverage guards run directly before graph refresh. This prevents unrelated Python-adapter indexing from blocking Rust ownership evidence, while retaining a fresh Arcana sync and complete root-policy check. This gate does not claim a Python dependency graph.
-
-Phase 7 graph refresh requires the repository-local Lexicon adapter patch recorded in [`lexicon-toolstate-exclusion.patch`](lexicon-toolstate-exclusion.patch). Recreate the local build from the unchanged sibling checkout:
-
-```text
-python scripts/build_phase7_lexicon_adapter.py
-```
-
-The builder copies the adapter into a new repository-local generated directory, checks and applies the exact patch, runs parser path/hash negatives, actual/mirrored Cargo-root symbol fixtures and state-exclusion tests, then builds the optimized adapter. It leaves sibling source unchanged and records every command, sibling revision, input hash and binary hash in `.verification-tmp/phase7/lexicon-adapter-local-build-current.json`. A fresh copy avoids overwriting or deleting earlier verification evidence. The refresh rejects a receipt that differs from the selected binary, patch or sibling revision. Select the built adapter with `LEXICON_ADAPTERS=.verification-tmp/phase7/adapters`; select compatible Lexicon, Arcana and Pitlord binaries using the documented environment overrides. The tested sibling revision is `f09517262fdfad98fcede2ad93a947ccee8406ff`; exact patch and binary hashes belong in the generated receipt instead of duplicated prose.
-
-The patch excludes ignored analyzer state, reports bounded progress, and accepts a hash-pinned source manifest generated from the current cfg-aware production module resolver and component map. That manifest includes all 901 semantically mapped production modules plus `src/lib.rs` as an explicit crate assembly root; `lib.rs` is parsed to expose module declarations but is not assigned a new semantic owner. The wrapper verifies every listed source hash, exact map ownership for the 901 semantic modules, the adapter's manifest digest/file-count acknowledgement, a nonzero callable inventory including known production symbols, and source/map/DAG stability across refresh. An adapter that ignores the manifest or emits no production functions fails before Arcana synchronization.
-
-The refresh stops the Lexicon process tree after 15 minutes and bounds Arcana sync at five minutes. Timeout logs and the prior snapshot are retained; neither a partial scan nor a stale snapshot is accepted as current graph evidence. The source manifest selects files reachable under the recorded production cfg profile. Parsing those files can still emit inline test or cfg-inactive symbols; the manifest does not make every raw symbol a compiled production dependency. Inline cfg, macro expansion, dynamic dispatch and alternate profiles need compiler or exact source reconciliation where material.
+The large Phase 0–7 snapshots, exact-finding registries and dedicated Phase 7
+compiler-analysis scripts were retired on 2026-10-25. Historical copies remain
+in Git at `f431401`. The current design and outstanding corrections are in
+[the dependency convergence specification](../../docs/dependency-convergence-architecture-refactor-2026-10-21.md)
+and [the Phase 7 execution record](../../docs/dependency-convergence-phase7-execution-2026-10-24.md).

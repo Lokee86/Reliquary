@@ -2045,9 +2045,6 @@ mod memory_candidate_collection;
 #[path = "freshness/ego_grades.rs"]
 mod ego_grade_read;
 
-#[path = "runtime_inference/public_ego_operations.rs"]
-mod public_ego_operations;
-
 #[path = "runtime_inference/public_relationship_operations.rs"]
 mod public_relationship_operations;
 

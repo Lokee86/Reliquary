@@ -82,6 +82,13 @@ class SourceCutTests(unittest.TestCase):
             self.assertTrue(violations(path, "self.owner.graph.active_relations();", {"windows"}), path)
             self.assertFalse(violations(path, "self.native_graph_graph_stats();", {"windows"}), path)
 
+    def test_ego_binding_can_call_canonical_owner_without_runtime_forwarder(self):
+        for path in ("src/facade/cva_ego.rs", "src/facade/phylactery_ego.rs"):
+            self.assertFalse(violations(path, "self.owner.native_ego_anchors();", {"windows"}))
+            self.assertFalse(violations(path, "self.owner.native_create_ego_anchor(priority, text);", {"windows"}))
+            self.assertTrue(violations(path, "self.owner.ego.anchors();", {"windows"}))
+            self.assertTrue(violations(path, "self.owner.graph.stats();", {"windows"}))
+
     def test_gateway_vector_contract_rejects_store_bypass(self):
         for path in ("src/runtime_inference/public_vector_operations.rs", "src/runtime_inference/reliquary_runtime_owner.rs"):
             self.assertTrue(violations(path, "self.owner.packed_vectors.put(&mut self.owner.container, packed);", {"windows"}), path)

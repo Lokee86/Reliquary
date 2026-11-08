@@ -5,24 +5,24 @@ use crate::{
 
 impl Phylactery {
     pub fn ego_version(&self) -> u64 {
-        self.native_ego_version()
+        self.owner.native_ego_version()
     }
 
     /// Compatibility accessor for the currently active Identity.
     pub fn ego_identity(&self) -> Option<EgoIdentity> {
-        self.native_ego_identity()
+        self.owner.native_ego_identity()
     }
 
     pub fn active_ego_identity_id(&self) -> Option<EgoIdentityId> {
-        self.native_active_ego_identity_id()
+        self.owner.native_active_ego_identity_id()
     }
 
     pub fn ego_identities(&self) -> Vec<EgoIdentity> {
-        self.native_ego_identities()
+        self.owner.native_ego_identities()
     }
 
     pub fn ego_identity_by_id(&self, id: EgoIdentityId) -> Option<EgoIdentity> {
-        self.native_ego_identity_by_id(id)
+        self.owner.native_ego_identity_by_id(id)
     }
 
     /// Compatibility mutator: updates the active Identity, or creates the first `Default` Identity.
@@ -31,7 +31,9 @@ impl Phylactery {
         expected_revision: u64,
         text: String,
     ) -> Result<(EgoIdentity, bool), PhylacteryError> {
-        self.native_put_ego_identity(expected_revision, text)
+        self.owner
+            .native_put_ego_identity(expected_revision, text)
+            .map_err(Into::into)
     }
 
     pub fn create_ego_identity(
@@ -39,7 +41,9 @@ impl Phylactery {
         name: String,
         text: String,
     ) -> Result<EgoIdentity, PhylacteryError> {
-        self.native_create_ego_identity(name, text)
+        self.owner
+            .native_create_ego_identity(name, text)
+            .map_err(Into::into)
     }
 
     pub fn update_ego_identity(
@@ -49,11 +53,15 @@ impl Phylactery {
         name: String,
         text: String,
     ) -> Result<(EgoIdentity, bool), PhylacteryError> {
-        self.native_update_ego_identity(id, expected_revision, name, text)
+        self.owner
+            .native_update_ego_identity(id, expected_revision, name, text)
+            .map_err(Into::into)
     }
 
     pub fn activate_ego_identity(&mut self, id: EgoIdentityId) -> Result<bool, PhylacteryError> {
-        self.native_activate_ego_identity(id)
+        self.owner
+            .native_activate_ego_identity(id)
+            .map_err(Into::into)
     }
 
     pub fn delete_ego_identity(
@@ -61,11 +69,13 @@ impl Phylactery {
         id: EgoIdentityId,
         expected_revision: u64,
     ) -> Result<bool, PhylacteryError> {
-        self.native_delete_ego_identity(id, expected_revision)
+        self.owner
+            .native_delete_ego_identity(id, expected_revision)
+            .map_err(Into::into)
     }
 
     pub fn ego_personality(&self) -> Option<&EgoPersonality> {
-        self.native_ego_personality()
+        self.owner.native_ego_personality()
     }
 
     pub fn put_ego_personality(
@@ -74,14 +84,16 @@ impl Phylactery {
         text: String,
         source_memory_version: u64,
     ) -> Result<(EgoPersonality, bool), PhylacteryError> {
-        self.native_put_ego_personality(expected_revision, text, source_memory_version)
+        self.owner
+            .native_put_ego_personality(expected_revision, text, source_memory_version)
+            .map_err(Into::into)
     }
 
     pub fn ego_anchors(&self) -> Vec<EgoAnchor> {
-        self.native_ego_anchors()
+        self.owner.native_ego_anchors()
     }
     pub fn ego_anchor(&self, id: EgoAnchorId) -> Option<EgoAnchor> {
-        self.native_ego_anchor(id)
+        self.owner.native_ego_anchor(id)
     }
 
     pub fn create_ego_anchor(
@@ -89,7 +101,9 @@ impl Phylactery {
         priority: EgoAnchorPriority,
         text: String,
     ) -> Result<EgoAnchor, PhylacteryError> {
-        self.native_create_ego_anchor(priority, text)
+        self.owner
+            .native_create_ego_anchor(priority, text)
+            .map_err(Into::into)
     }
 
     pub fn update_ego_anchor(
@@ -99,7 +113,9 @@ impl Phylactery {
         priority: EgoAnchorPriority,
         text: String,
     ) -> Result<(EgoAnchor, bool), PhylacteryError> {
-        self.native_update_ego_anchor(id, expected_revision, priority, text)
+        self.owner
+            .native_update_ego_anchor(id, expected_revision, priority, text)
+            .map_err(Into::into)
     }
 
     pub fn delete_ego_anchor(
@@ -107,11 +123,13 @@ impl Phylactery {
         id: EgoAnchorId,
         expected_revision: u64,
     ) -> Result<bool, PhylacteryError> {
-        self.native_delete_ego_anchor(id, expected_revision)
+        self.owner
+            .native_delete_ego_anchor(id, expected_revision)
+            .map_err(Into::into)
     }
 
     pub fn ego_web_synthesis(&self) -> Option<&EgoWebSynthesis> {
-        self.native_ego_web_synthesis()
+        self.owner.native_ego_web_synthesis()
     }
 
     pub fn put_ego_web_synthesis(
@@ -120,7 +138,9 @@ impl Phylactery {
         source_memory_version: u64,
         text: String,
     ) -> Result<(EgoWebSynthesis, bool), PhylacteryError> {
-        self.native_put_ego_web_synthesis(expected_revision, source_memory_version, text)
+        self.owner
+            .native_put_ego_web_synthesis(expected_revision, source_memory_version, text)
+            .map_err(Into::into)
     }
 }
 
@@ -129,10 +149,10 @@ impl Phylactery {
         &self,
         id: EgoAnchorId,
     ) -> Option<crate::owner_lifecycle::LifecycleState> {
-        self.native_ego_anchor_lifecycle(id)
+        self.owner.native_ego_anchor_lifecycle(id)
     }
     pub fn historical_ego_anchor(&self, id: EgoAnchorId, revision: u64) -> Option<EgoAnchor> {
-        self.native_historical_ego_anchor(id, revision)
+        self.owner.native_historical_ego_anchor(id, revision)
     }
 }
 
@@ -141,9 +161,9 @@ impl Phylactery {
         &self,
         id: EgoIdentityId,
     ) -> Option<crate::owner_lifecycle::LifecycleState> {
-        self.native_ego_identity_lifecycle(id)
+        self.owner.native_ego_identity_lifecycle(id)
     }
     pub fn historical_ego_identity(&self, id: EgoIdentityId, revision: u64) -> Option<EgoIdentity> {
-        self.native_historical_ego_identity(id, revision)
+        self.owner.native_historical_ego_identity(id, revision)
     }
 }

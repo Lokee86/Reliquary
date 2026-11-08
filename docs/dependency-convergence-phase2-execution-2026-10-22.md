@@ -14,7 +14,7 @@ Phase 2 is accepted locally after all twelve gates passed. The baseline source i
 
 | Gate | Status | Evidence |
 | --- | --- | --- |
-| B0 | Baseline frozen | [Source inventory](dependency-convergence-phase2-baseline-2026-10-22.md), [before-edge ledger](../benchmarks/dependency-convergence-phase2-baseline-2026-10-22.json), [baseline checks](dependency-convergence-phase2-baseline-verification-2026-10-22.md). Fresh hashes/sizes match all six accepted sources. The ordinary sandbox baseline suite exposed environment-sensitive failures. The elevated frozen baseline completed with 1,957 passed and five ignored library tests. |
+| B0 | Baseline frozen | [Source inventory](dependency-convergence-phase2-baseline-2026-10-22.md), before-edge ledger (archived in Git at `f431401`), [baseline checks](dependency-convergence-phase2-baseline-verification-2026-10-22.md). Fresh hashes/sizes match all six accepted sources. The ordinary sandbox baseline suite exposed environment-sensitive failures. The elevated frozen baseline completed with 1,957 passed and five ignored library tests. |
 | B1 | Contract frozen | [Concrete owner contracts](dependency-convergence-phase2-contracts-2026-10-22.md). Existing callers retain cross-owner admission; stores retain local schema/history/publication. Grouped Memory body spans preserve binary and JSON representations without payload copies or format changes. |
 | AR2, M2, E2, G2, F2, V2, O2 | Passed | Concrete owner cuts, focused owner-interface tests, full regression suite, source guard and six-source oracle. See the verification record below. |
 | L2, D2, A2 | Passed | REL/PHY replay and privacy regressions, negative source fixtures, reviewed convergence delta, full tests, corpus oracle and documentation gates. |
@@ -161,7 +161,7 @@ identified Project-file map exposure and crate-root-alias enforcement gap were
 fixed before final acceptance.
 
 - [Source manifest, corpus identities and verification receipts](../benchmarks/dependency-convergence-phase2-verification-2026-10-22.json)
-- [Individual convergence delta review](../benchmarks/dependency-convergence-phase2-debt-review-2026-10-22.json)
+- Individual convergence delta review (archived in Git at `f431401`)
 - [Concrete Phase 3 handoff](dependency-convergence-phase3-handoff-2026-10-22.md)
 
 Local raw logs remain under .verification-tmp/phase2-evidence/; committed

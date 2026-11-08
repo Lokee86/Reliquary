@@ -14,7 +14,7 @@ This dated execution record distinguishes accepted baseline evidence, implementa
 Date: 2026-10-22
 Status: **Frozen for Phase 2 execution after root B0 review (2026-10-22)**
 Governing plan: [Phase 2 owner-local boundaries](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md)
-Baseline: [Phase 2 source, replay and corpus inventory](dependency-convergence-phase2-baseline-2026-10-22.md) and [bounded source-reference ledger](../benchmarks/dependency-convergence-phase2-baseline-2026-10-22.json)
+Baseline: [Phase 2 source, replay and corpus inventory](dependency-convergence-phase2-baseline-2026-10-22.md) and bounded source-reference ledger (archived in Git at `f431401`)
 Target: [34-component DAG](dependency-convergence-target-dag-2026-10-21.md) and [machine allowlist](../tools/pitlord/convergence-component-dag.json)
 
 ## Gate status

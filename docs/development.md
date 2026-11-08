@@ -55,7 +55,7 @@ examples/freshness_calibration.rs      synthetic and verified-copy REL Graph Fre
 
 docs/                                current docs, plans, limits, decisions
 tools/pitlord/                       repository architecture ownership/policy
-scripts/check_architecture.py        Lexicon/Arcana refresh + Pitlord architecture enforcement
+scripts/check_architecture.py        source boundary checks; optional --graph --refresh uses Lexicon/Arcana/Pitlord
 .github/workflows/documentation.yml  Archivist + shared documentation-policy gate
 .github/workflows/architecture.yml   Pitlord architecture + codemap ownership gate
 ```
@@ -66,7 +66,7 @@ Do not copy large portions of previous Reliquary implementations as a migration 
 
 `tools/pitlord/production-components.json` assigns source responsibilities to the existing 34-component target. It records current and historical files, production/test/uncertain status, a pinned Windows default-feature cfg profile and explicit facade-extension ownership. It does not redefine the target DAG or make analyzer call bindings authoritative.
 
-The closure investigation uses the installed Rust compiler's private-item rustdoc JSON to corroborate current module and symbol reachability. With process-local `RUSTC_BOOTSTRAP=1`, run `cargo rustdoc --locked --lib -- --document-private-items -Z unstable-options --output-format json`; the output is `target/doc/reliquary_memory.json`. This audit command uses an unstable compiler output format, so its compiler version and output digest belong in its receipt. It is not a normal library-build requirement. The [compiler inventory](../benchmarks/dependency-convergence-phase1-3-compiler-inventory-2026-10-23.json) records the measured source files and private-item counts.
+The closure investigation uses the installed Rust compiler's private-item rustdoc JSON to corroborate current module and symbol reachability. With process-local `RUSTC_BOOTSTRAP=1`, run `cargo rustdoc --locked --lib -- --document-private-items -Z unstable-options --output-format json`; the output is `target/doc/reliquary_memory.json`. This audit command uses an unstable compiler output format, so its compiler version and output digest belong in its receipt. It is not a normal library-build requirement. The compiler inventory (archived in Git at `f431401`) records the measured source files and private-item counts.
 
 The existing owner-boundary checker additionally exposes cfg evaluation and source-import resolution for the pinned profile. Its negative fixtures cover compound test/feature predicates, platform branches, source span preservation, renamed imports and wildcard uncertainty. Run `python scripts/check_owner_boundaries.py --self-test` and its ordinary production check after changing those helpers. A verified import, an approved immutable value, an analyzer-only call and an unresolved reference must remain separately reported. The [closure audit](dependency-convergence-phase1-3-closure-audit-2026-10-23.md) owns prerequisite acceptance; generating an inventory does not open the Phase 4 gate by itself.
 
@@ -107,7 +107,7 @@ python ../engineering-standards/tools/docs_policy/check.py --repo .
 python ../engineering-standards/tools/docs_policy/check.py --repo . --changed-from origin/main
 # Fresh clone/worktree only: ddocs fix --links
 ddocs check --indexes --links
-python scripts/check_architecture.py --refresh
+python scripts/check_architecture.py --graph --refresh
 pitlord docs --repo . --ddocs-root docs --changed-from origin/main --timeout 2m
 ```
 
@@ -119,7 +119,7 @@ Test scratch paths must use collision-resistant identities such as `Uuid::new_v4
 
 Architecture refresh configures Lexicon with `init` when the adapter/language configuration differs, then always explicitly runs `scan` before Arcana synchronization and Pitlord enforcement. Initialization alone may retain an existing snapshot. Compare snapshot content identities with changed production files when diagnosing stale evidence; a passing rule check against an older snapshot is not proof that new source was analyzed. The root `.lexiconignore` excludes only `.test-tmp/` and `.verification-tmp/`, which contain generated verification artifacts and disposable repository copies. These folders have no tracked authored sources; `src`, `tests`, `examples` and `cli/src` retain their normal scope.
 
-Phase 7 compiler evidence is captured with `python scripts/emit_phase7_compiler_evidence.py --name closure`. Use a distinct name and `--features freshness-performance-trace` for the enabled tracing profile. The command emits locked private rustdoc, MIR, HIR and typed HIR under `.verification-tmp/phase7/<name>/`, records tool/profile/artifact hashes, and rejects source changes during emission. Run it after source edits have stopped. A successful emission is evidence capture; the call checker still fails on prohibited calls or material unresolved implementation targets. The [Phase 7 execution record](dependency-convergence-phase7-execution-2026-10-24.md) owns the measured acceptance status and inherited graph-proof obligations.
+Phase 7 does not maintain a local compiler call analyzer. Use the source guards and optional existing Lexicon/Arcana/Pitlord graph check; see the Phase 7 execution record.
 
 Reproduce the local analyzer compatibility build with `python scripts/build_phase7_lexicon_adapter.py` before the Phase 7 architecture refresh. The builder uses a fresh repository-local copy, tests the source-manifest protocol and Cargo-root traversal, and records the exact patch and optimized binary identities. It leaves the sibling analyzer checkout unchanged. The [Pitlord procedure](../tools/pitlord/README.md) owns configuration, time limits and graph-evidence requirements.
 
