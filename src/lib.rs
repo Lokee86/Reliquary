@@ -8,6 +8,7 @@ mod host;
 mod maintenance;
 mod management;
 mod owner;
+mod retrieval;
 
 pub use error::{ProductError, ProductErrorKind};
 pub use host::{
@@ -17,6 +18,7 @@ pub use host::{
 pub use maintenance::*;
 pub use management::WorkspaceManagement;
 pub use owner::{OwnerId, OwnerInfo, OwnerKind, OwnerScope, Phylactery, Rel};
+pub use retrieval::*;
 
 pub use reliquary_application::{
     ConversationInspection, MAX_MANAGEMENT_PAGE_BYTES, MAX_MANAGEMENT_PAGE_ITEMS, ManagedBranch,

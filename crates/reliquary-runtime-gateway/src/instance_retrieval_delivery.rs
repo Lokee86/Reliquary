@@ -10,6 +10,10 @@ impl Instance {
         router: &CapabilityRouter,
     ) -> Result<bool, GatewayError> {
         validate_prepared(self, turn, prepared)?;
+        let _delivery = turn
+            .delivery
+            .try_lock()
+            .map_err(|_| GatewayError::HostStatusUnknown)?;
         let sources = prepared
             .evaluation
             .memories
@@ -22,7 +26,6 @@ impl Instance {
             }
             if self.pending_matches(turn, prepared)? {
                 self.commit_selected(turn, prepared)?;
-                self.clear_pending(turn, prepared)?;
             }
             return Ok(false);
         }
@@ -36,6 +39,10 @@ impl Instance {
             payload_digest: prepared.digest,
             payload: prepared.payload.clone(),
         };
+        turn.state
+            .lock()
+            .map_err(|_| GatewayError::RegistryPoisoned)?
+            .handoff_checked = true;
         let status = router
             .adapter()
             .memory_delivery_status(&prepared.use_id)
@@ -56,7 +63,11 @@ impl Instance {
                 return Err(GatewayError::InvalidHandoffReceipt);
             }
             MemoryDeliveryStatus::NotFound => {
-                self.revalidate_before_handoff(turn, prepared)?;
+                if let Err(error) = self.revalidate_before_handoff(turn, prepared) {
+                    self.clear_pending(turn, prepared)?;
+                    return Err(error);
+                }
+                validate_prepared(self, turn, prepared)?;
                 let receipt = router
                     .adapter()
                     .deliver_memory(&operation)
@@ -69,33 +80,33 @@ impl Instance {
                 }
             }
         }
+        validate_prepared(self, turn, prepared)?;
+        let recorded =
+            self.with_rel_writer(prepared.owner, |writer| -> Result<bool, GatewayError> {
+                validate_prepared(self, turn, prepared)?;
+                Ok(writer.record_external_accepted_use(
+                    &prepared.use_id,
+                    sources.clone(),
+                    prepared.accepted_turn,
+                    prepared.proof,
+                )?)
+            })??;
         self.commit_selected(turn, prepared)?;
-        self.ensure_credential_active()?;
-        if !self.rel_grants.contains(&prepared.owner) {
-            return Err(GatewayError::UnauthorizedRel {
-                principal: self.principal.to_string(),
-                owner: prepared.owner,
-            });
-        }
-        let recorded = self.with_rel_writer(prepared.owner, |writer| {
-            writer.record_external_accepted_use(
-                &prepared.use_id,
-                sources.clone(),
-                prepared.accepted_turn,
-                prepared.proof,
-            )
-        })??;
-        self.clear_pending(turn, prepared)?;
         Ok(recorded)
     }
 
-    fn revalidate_before_handoff(
+    pub(super) fn revalidate_before_handoff(
         &self,
         turn: &MemoryRetrievalTurn,
         prepared: &PreparedMemoryDelivery,
     ) -> Result<(), GatewayError> {
         validate_prepared(self, turn, prepared)?;
-        let snapshot = self.retrieval_snapshot(prepared.owner, None)?;
+        let snapshot = self
+            .retrieval_cut_snapshot(prepared.owner, prepared.profile, false)
+            .map_err(|error| match error {
+                GatewayError::RetrievalUnavailable(_) => GatewayError::StaleRetrieval,
+                other => other,
+            })?;
         if snapshot.owner_id != prepared.owner.as_bytes()
             || prepared
                 .body_bindings
@@ -127,7 +138,7 @@ impl Instance {
         Ok(())
     }
 
-    fn validate_pending(
+    pub(super) fn validate_pending(
         &self,
         turn: &MemoryRetrievalTurn,
         prepared: &PreparedMemoryDelivery,
@@ -149,7 +160,10 @@ impl Instance {
             .state
             .lock()
             .map_err(|_| GatewayError::RegistryPoisoned)?;
-        Ok(state.pending_use_id.as_deref() == Some(prepared.use_id.as_str()))
+        Ok(
+            state.pending_use_id.as_deref() == Some(prepared.use_id.as_str())
+                && state.generation == prepared.generation,
+        )
     }
 
     fn commit_selected(
@@ -162,14 +176,19 @@ impl Instance {
             .state
             .lock()
             .map_err(|_| GatewayError::RegistryPoisoned)?;
-        if state.pending_use_id.as_deref() != Some(prepared.use_id.as_str()) {
+        if state.pending_use_id.as_deref() != Some(prepared.use_id.as_str())
+            || state.generation != prepared.generation
+        {
             return Err(GatewayError::InvalidPreparedRetrieval);
         }
-        state.turn = prepared.evaluation.next.clone();
-        state
-            .turn
-            .confirm_selected(prepared.evaluation.memories.iter().map(|memory| memory.id))
+        let mut next = prepared.evaluation.next.clone();
+        next.confirm_selected(prepared.evaluation.memories.iter().map(|memory| memory.id))
             .map_err(|reason| GatewayError::Retrieval(reason.into()))?;
+        state.turn = next;
+        state.profile = prepared.profile;
+        state.pending_use_id = None;
+        state.pending_profile = None;
+        state.handoff_checked = false;
         state.generation = state.generation.saturating_add(1);
         Ok(())
     }
@@ -184,10 +203,15 @@ impl Instance {
             .state
             .lock()
             .map_err(|_| GatewayError::RegistryPoisoned)?;
-        if state.pending_use_id.as_deref() != Some(prepared.use_id.as_str()) {
+        if state.pending_use_id.as_deref() != Some(prepared.use_id.as_str())
+            || state.generation != prepared.generation
+        {
             return Err(GatewayError::InvalidPreparedRetrieval);
         }
         state.pending_use_id = None;
+        state.pending_profile = None;
+        state.handoff_checked = false;
+        state.generation = state.generation.saturating_add(1);
         Ok(())
     }
 

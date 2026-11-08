@@ -92,6 +92,7 @@ pub enum GatewayError {
     InvalidPreparedRetrieval,
     StaleRetrieval,
     Retrieval(String),
+    RetrievalUnavailable(&'static str),
     IncompleteHostContract(RuntimeCapability),
     UnsupportedHostCapability(RuntimeCapability),
     RoutedMemory(String),
@@ -151,6 +152,7 @@ impl fmt::Display for GatewayError {
                 f.write_str("retrieval result no longer matches current authorized owner state")
             }
             Self::Retrieval(reason) => write!(f, "agentic retrieval failed: {reason}"),
+            Self::RetrievalUnavailable(reason) => f.write_str(reason),
             Self::IncompleteHostContract(capability) => {
                 write!(f, "host queue contract is incomplete for {capability:?}")
             }
@@ -414,6 +416,7 @@ pub use instance_context::{
 mod instance_management;
 mod instance_owner;
 mod instance_passive_retrieval;
+pub use instance_passive_retrieval::{SearchMode, SearchResult};
 mod instance_project_correlation;
 pub use instance_project_correlation::{AuthorizedProjectCorrelation, TrustedProjectSource};
 mod instance_routing;
@@ -437,5 +440,6 @@ pub use host_memory_delivery::{
 };
 pub use instance_external_source::{AuthorizedExternalLexicalIndex, ExternalHostSource};
 pub use instance_retrieval::{
-    MemoryRetrievalRoute, MemoryRetrievalTurn, PreparedMemoryDelivery, RetrievalOutcome,
+    MemoryRetrievalRoute, MemoryRetrievalTurn, PreparedMemoryDelivery, RetrievalCut,
+    RetrievalMemory, RetrievalMode, RetrievalOutcome, RetrievalPreview, RetrievalSource,
 };
