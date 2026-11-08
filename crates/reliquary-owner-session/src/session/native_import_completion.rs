@@ -58,6 +58,24 @@ impl RelWriter {
             ));
         }
         let receipt_digest = hex_digest_bytes(&receipt.receipt_digest);
+        if self
+            .session
+            .imports
+            .processing_binding(import_id)
+            .is_some_and(|binding| {
+                binding.profile.is_none()
+                    || replay_source_authority.is_none()
+                        && binding.profile.is_some_and(|profile| {
+                            self.session
+                                .active_compatibility_profile(CompatibilityProfileId(profile))
+                                .is_none()
+                        })
+            })
+        {
+            return Err(OwnerSessionError::Record(
+                "import processing plan lacks its accepted embedding profile".into(),
+            ));
+        }
         self.session.validate_import_work_complete(receipt)?;
 
         let settlement = if let Some(accepted) = self.session.imports.settlement(import_id) {

@@ -3,6 +3,7 @@ use reliquary_owner_session::{
     InsomniaWorkState, OwnerSessionError, RelSession, model::EpisodeId, records::ImportEpochStatus,
 };
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 
 pub const MAX_PROCESS_EPISODES: usize = 1024;
 const MAX_STATUS_IDS: usize = 128;
@@ -57,6 +58,15 @@ pub fn import_stages() -> Vec<StageProgress> {
             completed: 0,
         })
         .collect()
+}
+
+pub fn import_plan_identity(routes: [u8; 32]) -> [u8; 32] {
+    let mut identity = Sha256::new();
+    identity.update(b"reliquary-import-processing-policy-v1\0");
+    identity.update(routes);
+    identity
+        .update(serde_json::to_vec(&import_stages()).expect("static stage policy is serializable"));
+    identity.finalize().into()
 }
 
 pub enum ImportStageOutcome {

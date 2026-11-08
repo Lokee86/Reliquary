@@ -58,6 +58,11 @@ impl ConfiguredRuntime {
         self.routes.online_probe()
     }
 
+    /// Probe a single configured route with synthetic input.
+    pub fn online_probe_route(&self, route: &str) -> Result<String, ConfiguredRuntimeError> {
+        self.routes.online_probe_route(route)
+    }
+
     /// Lease duration for configured worker claims, in nanoseconds.
     pub fn worker_lease_duration_ns(&self) -> i64 {
         self.routes
@@ -120,6 +125,10 @@ impl ConfiguredRuntime {
 
     pub(crate) fn embedding_endpoint(&self) -> Option<Arc<dyn EmbeddingEndpoint>> {
         self.routes.embedding_endpoint()
+    }
+
+    pub(crate) fn processing_route_identity(&self) -> [u8; 32] {
+        self.routes.processing_route_identity()
     }
 
     pub(crate) fn embedding_endpoint_for(&self, name: &str) -> Option<Arc<dyn EmbeddingEndpoint>> {

@@ -9,6 +9,8 @@ use crate::records::{
 mod completion;
 #[path = "native_import_freshness.rs"]
 mod freshness;
+#[path = "native_import_plan.rs"]
+mod plan;
 #[path = "native_import_postprocessing.rs"]
 mod postprocessing;
 pub(super) use postprocessing::native_import_dream_prefix;
@@ -41,7 +43,7 @@ impl RelSession {
 pub(super) fn is_import_epoch_marker(payload: &[u8]) -> bool {
     matches!(
         payload.get(..8),
-        Some(b"RELIEPS1" | b"RELIEPC1" | b"RELIEPS2" | b"RELIEPC2" | b"RELIFRS1")
+        Some(b"RELIEPS1" | b"RELIEPC1" | b"RELIEPS2" | b"RELIEPC2" | b"RELIFRS1" | b"RELIPLN1")
     )
 }
 
@@ -50,6 +52,7 @@ pub(super) fn validate_native_import_receipts(
     imports: &ImportEpochStore,
 ) -> Result<(), OwnerSessionError> {
     let mut prefix = ImportEpochStore::prefix(container.owner_id());
+    let mut received = std::collections::BTreeSet::new();
     let mut cursor = container.physical_cursor()?;
     while let Some(mut frame) = cursor.next_frame()? {
         use std::io::Read;
@@ -69,6 +72,16 @@ pub(super) fn validate_native_import_receipts(
             .read_to_end(&mut payload)
             .map_err(reliquary_container::ContainerError::from)?;
         if epoch_marker {
+            if &magic == crate::records::IMPORT_PROCESSING_MAGIC
+                && !received.contains(
+                    &crate::records::processing_marker_id(&payload)
+                        .map_err(OwnerSessionError::Record)?,
+                )
+            {
+                return Err(OwnerSessionError::Record(
+                    "import processing plan precedes its Archive receipt".into(),
+                ));
+            }
             prefix
                 .ingest_prefix(&payload)
                 .map_err(OwnerSessionError::Record)?;
@@ -120,6 +133,7 @@ pub(super) fn validate_native_import_receipts(
                 ));
             }
         }
+        received.insert(id);
     }
     Ok(())
 }

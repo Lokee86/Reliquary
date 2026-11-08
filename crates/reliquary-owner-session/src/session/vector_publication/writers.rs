@@ -15,6 +15,7 @@ impl RelWriter {
         profile: reliquary_vector_store::CompatibilityProfile,
     ) -> Result<CompatibilityProfileId, OwnerSessionError> {
         self.validate_native_import_postprocessing(import_id)?;
+        self.bind_native_import_profile(import_id, profile.id)?;
         self.publish_compatibility_profile_after_fence(profile)
     }
 
@@ -60,6 +61,7 @@ impl RelWriter {
         ids: &[MemoryId],
     ) -> Result<MemoryVectorInput, OwnerSessionError> {
         self.ensure_import_scope(import_id)?;
+        self.require_native_import_profile(import_id, profile)?;
         for &id in ids {
             self.validate_native_import_memory(import_id, id)?;
         }
@@ -73,6 +75,7 @@ impl RelWriter {
         rows: &[MemoryVectorRow],
     ) -> Result<bool, OwnerSessionError> {
         self.ensure_import_scope(import_id)?;
+        self.require_native_import_profile(import_id, profile)?;
         for row in rows {
             self.validate_native_import_memory(import_id, row.memory_id)?;
         }

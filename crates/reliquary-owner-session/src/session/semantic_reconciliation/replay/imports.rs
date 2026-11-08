@@ -136,6 +136,11 @@ pub(super) fn replay(
             true,
             &mut counts,
         )?;
+        if let Some(binding) = right.imports.processing_binding(&epoch.start.import_id) {
+            writer
+                .record_import_processing_binding(&destination_start.import_id, binding)
+                .map_err(verification)?;
+        }
         replay_grouped_completions(
             &mut writer,
             right,
@@ -226,7 +231,11 @@ pub(super) fn verify(
         let retained = output_epochs
             .get(&epoch.start.import_id)
             .ok_or_else(|| conflict("reconciliation lost a retained import epoch"))?;
-        if retained.start != epoch.start || retained.complete != epoch.complete {
+        if retained.start != epoch.start
+            || retained.complete != epoch.complete
+            || output.imports.processing_binding(&epoch.start.import_id)
+                != left.imports.processing_binding(&epoch.start.import_id)
+        {
             return Err(conflict(
                 "reconciliation changed a retained left import epoch",
             ));
@@ -272,6 +281,12 @@ fn same_authority(
     left_start.pre = ImportWatermarks::default();
     right_start.pre = ImportWatermarks::default();
     Ok(left_start == right_start
+        && left_session
+            .imports
+            .processing_binding(&left.start.import_id)
+            == right_session
+                .imports
+                .processing_binding(&right.start.import_id)
         && left.complete.format_version == right.complete.format_version
         && left.complete.owner_uuid == right.complete.owner_uuid
         && left.complete.import_id == right.complete.import_id

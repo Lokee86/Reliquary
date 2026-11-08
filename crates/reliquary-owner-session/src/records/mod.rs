@@ -23,6 +23,7 @@ pub use dream_group::DreamRelationCut;
 pub use dream_no_link::{DreamMemoryCut, DreamNoLinkCut};
 pub use external_memory::{ExternalMemoryDraft, ExternalMemoryProvenance, ExternalMemoryReceipt};
 pub use external_reference::{ExternalReferenceSnapshotManifest, ExternalReferenceSnapshotReceipt};
+pub(crate) use import::{IMPORT_PROCESSING_MAGIC, ImportProcessingBinding, processing_marker_id};
 pub use import::{ImportEpochStore, import_id};
 pub use import_model::{ImportComplete, ImportEpochStatus, ImportStart, ImportWatermarks};
 pub use import_settlement::{ImportFreshnessAuthority, ImportFreshnessSettlement, hex_digest};

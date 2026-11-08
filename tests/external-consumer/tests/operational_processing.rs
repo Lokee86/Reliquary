@@ -23,6 +23,7 @@ const PRIVATE: &str = "My preferred meeting window is afternoons.";
 struct Fixture {
     listener: std::net::SocketAddr,
     stop: Arc<AtomicBool>,
+    changed_profile: Arc<AtomicBool>,
     server: Option<thread::JoinHandle<()>>,
 }
 impl Fixture {
@@ -31,6 +32,8 @@ impl Fixture {
         let address = listener.local_addr().unwrap();
         let stop = Arc::new(AtomicBool::new(false));
         let shutting_down = stop.clone();
+        let changed_profile = Arc::new(AtomicBool::new(false));
+        let profile = Arc::clone(&changed_profile);
         let server = thread::spawn(move || {
             for connection in listener.incoming() {
                 let mut stream = connection.unwrap();
@@ -41,7 +44,7 @@ impl Fixture {
                     .set_read_timeout(Some(Duration::from_secs(5)))
                     .unwrap();
                 let request = read_request(&stream);
-                let reply = fixture_reply(&request);
+                let reply = fixture_reply(&request, profile.load(Ordering::Acquire));
                 let body = reply.to_string();
                 write!(
                     stream,
@@ -53,6 +56,7 @@ impl Fixture {
         Self {
             listener: address,
             stop,
+            changed_profile,
             server: Some(server),
         }
     }
@@ -85,12 +89,17 @@ fn read_request(stream: &TcpStream) -> Value {
     serde_json::from_slice(&body).unwrap()
 }
 
-fn fixture_reply(request: &Value) -> Value {
+fn fixture_reply(request: &Value, changed_profile: bool) -> Value {
     if let Some(inputs) = request["input"].as_array() {
+        let vector = if changed_profile {
+            [0.0, 1.0]
+        } else {
+            [1.0, 0.0]
+        };
         let data = inputs
             .iter()
             .enumerate()
-            .map(|(index, _)| json!({"index":index,"embedding":[1.0,0.0]}))
+            .map(|(index, _)| json!({"index":index,"embedding":vector}))
             .collect::<Vec<_>>();
         return json!({"data":data});
     }
@@ -222,27 +231,52 @@ fn configured_import_processes_rel_and_phy_and_reopens_without_republication() {
     );
 
     let mut other_config: Value = serde_json::from_slice(&fs::read(&config).unwrap()).unwrap();
-    other_config["general"]["model"] = json!("other-model");
+    other_config["dream"] = other_config["general"].clone();
+    other_config["dream"]["model"] = json!("other-dream-model");
     let other_path = root.join("other.json");
     fs::write(&other_path, other_config.to_string()).unwrap();
     let other_runtime = ConfiguredRuntime::from_path(other_path, &TestCredential).unwrap();
     assert_eq!(
         instance
-            .process_and_drain(owner, &other_runtime, options.clone())
-            .unwrap_err()
+            .resume_held_import_processing(
+                owner,
+                &other_runtime,
+                options.clone(),
+                EpisodeId(episode)
+            )
+            .err()
+            .expect("a different Dream route must reject before retry")
             .kind(),
         ProductErrorKind::Conflict
     );
-    instance
-        .retry_held_import_episode(owner, &stage.import_id, EpisodeId(episode))
-        .unwrap();
+    assert_eq!(
+        instance
+            .processing_status(owner, Some(&stage.import_id))
+            .unwrap()
+            .held,
+        1
+    );
     let report = instance
-        .process_and_drain(owner, &runtime, options.clone())
+        .resume_held_import_processing(owner, &runtime, options.clone(), EpisodeId(episode))
+        .unwrap()
+        .join()
         .unwrap();
     assert_eq!(report.state, ProcessingState::Ready, "{report:?}");
     assert_eq!(report.insomnia.rel_memories, 1);
     assert_eq!(report.insomnia.phy_memories, 1);
     assert!(report.insomnia.import_complete);
+    management.quiesce().unwrap();
+    assert_eq!(management.verify_quiesced().unwrap().memory_count, 1);
+    management.reopen().unwrap();
+    fixture.changed_profile.store(true, Ordering::Release);
+    assert_eq!(
+        instance
+            .process_and_drain(owner, &runtime, options.clone())
+            .unwrap_err()
+            .kind(),
+        ProductErrorKind::Conflict
+    );
+    fixture.changed_profile.store(false, Ordering::Release);
     assert_eq!(
         instance
             .process_and_drain(owner, &runtime, options)

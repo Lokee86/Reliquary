@@ -7,6 +7,9 @@ use super::*;
 use std::io::ErrorKind;
 use std::path::Path;
 
+#[path = "configured_identity.rs"]
+mod identity;
+
 #[derive(Debug, Eq, PartialEq)]
 pub enum ConfiguredRuntimeError {
     Io(ErrorKind),
@@ -66,6 +69,7 @@ pub struct ConfiguredRoutes {
     entity: SelectedDecision,
     retrieval: SelectedDecision,
     worker_lease_duration_ms: Option<u32>,
+    processing_route_identity: [u8; 32],
 }
 
 impl ConfiguredRoutes {
@@ -92,6 +96,7 @@ impl ConfiguredRoutes {
         config: RuntimeConfig,
         credentials: CredentialsConfig,
     ) -> Result<Self, ConfiguredRuntimeError> {
+        let processing_route_identity = identity::processing_routes(&config, &credentials);
         let bind_general = |name, route: Option<&GeneralRoute>| {
             route
                 .map(|route| {
@@ -184,6 +189,7 @@ impl ConfiguredRoutes {
             entity,
             retrieval,
             worker_lease_duration_ms: config.worker_lease_duration_ms,
+            processing_route_identity,
         })
     }
 
@@ -232,6 +238,10 @@ impl ConfiguredRoutes {
         self.worker_lease_duration_ms
     }
 
+    pub fn processing_route_identity(&self) -> [u8; 32] {
+        self.processing_route_identity
+    }
+
     pub fn readiness(&self) -> String {
         let general_source = |name, endpoint: &Option<Arc<dyn GeneralEndpoint>>| {
             if endpoint.is_some() {
@@ -262,40 +272,74 @@ impl ConfiguredRoutes {
     }
 
     pub fn online_probe(&self) -> Result<String, ConfiguredRuntimeError> {
-        let error = |route, failure| ConfiguredRuntimeError::Probe { route, failure };
         let mut probed = 0;
-        for (route, endpoint) in [
-            (GENERAL, &self.general),
-            (INSOMNIA, &self.insomnia),
-            (INSOMNIA_METADATA, &self.insomnia_metadata),
-            (DREAM, &self.dream),
-            (ENTITY, &self.entity_resolution),
-        ] {
-            if let Some(endpoint) = endpoint {
-                probe_general(endpoint.as_ref()).map_err(|failure| error(route, failure))?;
-                probed += 1;
-            }
-        }
-        for (route, selection) in [
-            (SHARED, &self.chronos),
-            (ENTITY_DECISION, &self.entity),
-            (RETRIEVAL, &self.retrieval),
-        ] {
-            if let Some(endpoint) = &selection.endpoint
-                && selection.source == Some(route)
-            {
-                probe_decision(endpoint.as_ref()).map_err(|failure| error(route, failure))?;
-                probed += 1;
-            }
-        }
-        if let Some(endpoint) = &self.embedding {
-            probe_embedding(endpoint.as_ref()).map_err(|failure| error(EMBEDDING, failure))?;
+        for (route, transport) in self.probes() {
+            transport.check(route)?;
             probed += 1;
         }
         Ok(format!(
             "provider routes probed: {probed}; {}",
             self.readiness()
         ))
+    }
+
+    pub fn online_probe_route(&self, selected: &str) -> Result<String, ConfiguredRuntimeError> {
+        let (route, transport) = self.probes().find(|(route, _)| *route == selected).ok_or(
+            ConfiguredRuntimeError::Invalid {
+                route: "provider probe",
+                reason: "requested route is not configured",
+            },
+        )?;
+        transport.check(route)?;
+        Ok(format!("provider route probed: {route}"))
+    }
+
+    fn probes(&self) -> impl Iterator<Item = (&'static str, Probe<'_>)> {
+        let general = [
+            (GENERAL, &self.general),
+            (INSOMNIA, &self.insomnia),
+            (INSOMNIA_METADATA, &self.insomnia_metadata),
+            (DREAM, &self.dream),
+            (ENTITY, &self.entity_resolution),
+        ]
+        .into_iter()
+        .filter_map(|(route, endpoint)| {
+            endpoint
+                .as_deref()
+                .map(|endpoint| (route, Probe::General(endpoint)))
+        });
+        let decisions = [
+            (SHARED, &self.chronos),
+            (ENTITY_DECISION, &self.entity),
+            (RETRIEVAL, &self.retrieval),
+        ]
+        .into_iter()
+        .filter_map(|(route, selection)| {
+            let endpoint = selection.endpoint.as_deref()?;
+            (selection.source == Some(route)).then_some((route, Probe::Decision(endpoint)))
+        });
+        general.chain(decisions).chain(
+            self.embedding
+                .as_deref()
+                .map(|endpoint| (EMBEDDING, Probe::Embedding(endpoint))),
+        )
+    }
+}
+
+enum Probe<'a> {
+    General(&'a dyn GeneralEndpoint),
+    Decision(&'a dyn DecisionEndpoint),
+    Embedding(&'a dyn EmbeddingEndpoint),
+}
+
+impl Probe<'_> {
+    fn check(self, route: &'static str) -> Result<(), ConfiguredRuntimeError> {
+        match self {
+            Self::General(endpoint) => probe_general(endpoint),
+            Self::Decision(endpoint) => probe_decision(endpoint),
+            Self::Embedding(endpoint) => probe_embedding(endpoint),
+        }
+        .map_err(|failure| ConfiguredRuntimeError::Probe { route, failure })
     }
 }
 

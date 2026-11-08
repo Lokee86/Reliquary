@@ -315,7 +315,7 @@ fn semantic_records(container: &Container) -> Result<Vec<Vec<u8>>, RelReconcilia
 }
 
 fn require_supported_tail(records: &[Vec<u8>]) -> Result<(), RelReconciliationError> {
-    const SUPPORTED: [&[u8]; 28] = [
+    const SUPPORTED: &[&[u8]] = &[
         b"RELTURN2",
         b"RELFILE1",
         b"RELBRCH1",
@@ -337,6 +337,7 @@ fn require_supported_tail(records: &[Vec<u8>]) -> Result<(), RelReconciliationEr
         b"RELINIT1",
         b"RELIEPS2",
         b"RELIFRS1",
+        b"RELIPLN1",
         b"RELIEPC2",
         b"RELINSW1",
         b"RELINSW2",

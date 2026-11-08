@@ -158,6 +158,32 @@ impl Instance {
         runtime: &ConfiguredRuntime,
         options: ProcessOptions,
     ) -> Result<OwnerProcessingJob, ProductError> {
+        self.start_processing_inner(owner, runtime, options, None)
+    }
+
+    /// Retry an exact held Episode only after validating the run's durable plan.
+    pub fn resume_held_import_processing(
+        &self,
+        owner: OwnerId,
+        runtime: &ConfiguredRuntime,
+        options: ProcessOptions,
+        episode: EpisodeId,
+    ) -> Result<OwnerProcessingJob, ProductError> {
+        if options.import_id.is_none() {
+            return Err(ProductError::invalid(
+                "held Episode resume requires an import ID",
+            ));
+        }
+        self.start_processing_inner(owner, runtime, options, Some(episode))
+    }
+
+    fn start_processing_inner(
+        &self,
+        owner: OwnerId,
+        runtime: &ConfiguredRuntime,
+        options: ProcessOptions,
+        retry_episode: Option<EpisodeId>,
+    ) -> Result<OwnerProcessingJob, ProductError> {
         self.require(OwnerGrant::OperateRel(owner))?;
         if let Some(phy) = options.destination {
             self.require(OwnerGrant::OperatePhylactery(phy))?;
@@ -176,6 +202,8 @@ impl Instance {
             runtime.dream_endpoint(),
             runtime.entity_endpoint(),
             runtime.embedding_endpoint(),
+            runtime.processing_route_identity(),
+            retry_episode,
             runtime::InsomniaRunOptions {
                 import_id: options.import_id,
                 destination: options.destination.map(Into::into),

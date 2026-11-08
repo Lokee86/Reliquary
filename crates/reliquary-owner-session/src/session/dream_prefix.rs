@@ -69,6 +69,7 @@ pub(crate) fn validate_compact_dream_prefix(
             || magic == *b"RELFRS02"
             || magic.starts_with(b"RELIEP")
             || magic == *b"RELIFRS1"
+            || magic == *crate::records::IMPORT_PROCESSING_MAGIC
             || magic == *b"RELINSC7"
             || magic == *b"CVDREAM2"
             || magic == *b"RELGRF01"
@@ -90,7 +91,7 @@ pub(crate) fn validate_compact_dream_prefix(
                     .map_err(OwnerSessionError::Record)?;
                 continue;
             }
-            if magic == *b"RELIFRS1" {
+            if magic == *b"RELIFRS1" || magic == *crate::records::IMPORT_PROCESSING_MAGIC {
                 imports
                     .ingest_prefix(&payload)
                     .map_err(OwnerSessionError::Record)?;

@@ -34,13 +34,27 @@ pub(crate) fn config(args: &[String]) -> Result<Value, ProductError> {
     if args.first().map(String::as_str) != Some("check") {
         return Err(invalid("config requires check"));
     }
-    validate_options(args, 2, &[("--online", false), ("--master-key", false)])?;
-    let configured = runtime(&args[1], option(args, "--master-key"))?;
+    validate_options(
+        args,
+        2,
+        &[
+            ("--online", false),
+            ("--master-key", false),
+            ("--route", false),
+        ],
+    )?;
     let online = args.iter().any(|arg| arg == "--online");
+    let route = option(args, "--route");
+    if !online && route.is_some() {
+        return Err(invalid("--route requires --online"));
+    }
+    let configured = runtime(&args[1], option(args, "--master-key"))?;
     if online {
-        let probe = configured
-            .online_probe()
-            .map_err(|error| ProductError::new(ProductErrorKind::Unavailable, error.to_string()))?;
+        let probe = match route {
+            Some(route) => configured.online_probe_route(route),
+            None => configured.online_probe(),
+        }
+        .map_err(|error| ProductError::new(ProductErrorKind::Unavailable, error.to_string()))?;
         Ok(json!({"operation":"config_check","online":true,"readiness":probe}))
     } else {
         Ok(json!({"operation":"config_check","online":false,"readiness":configured.readiness()}))
@@ -180,11 +194,7 @@ fn process_from_args(path: &str, args: &[String], resume: bool) -> Result<Value,
         option(args, "--master-key"),
     )?;
     let host = LocalHost::open(path, option(args, "--phy"), RelAccess::Operate)?;
-    if let Some((id, episode)) = import_id.zip(episode) {
-        host.instance
-            .retry_held_import_episode(host.rel, id, episode)?;
-    }
-    run_processing(&host, &configured, import_id, max_episodes, target)
+    run_processing(&host, &configured, import_id, max_episodes, target, episode)
 }
 
 pub(crate) fn run_processing(
@@ -193,18 +203,23 @@ pub(crate) fn run_processing(
     import_id: Option<&str>,
     max_episodes: usize,
     target: &str,
+    retry_episode: Option<reliquary_memory::EpisodeId>,
 ) -> Result<Value, ProductError> {
     use std::time::{Duration, Instant};
     let interrupt = crate::interruption::InterruptGuard::install()?;
-    let job = host.instance.start_processing(
-        host.rel,
-        configured,
-        ProcessOptions {
-            import_id: import_id.map(str::to_owned),
-            destination: host.phy,
-            max_episodes,
-        },
-    )?;
+    let options = ProcessOptions {
+        import_id: import_id.map(str::to_owned),
+        destination: host.phy,
+        max_episodes,
+    };
+    let job = match retry_episode {
+        Some(episode) => host
+            .instance
+            .resume_held_import_processing(host.rel, configured, options, episode)?,
+        None => host
+            .instance
+            .start_processing(host.rel, configured, options)?,
+    };
     let mut last_report = None;
     let mut next_report = Instant::now();
     while !job.is_finished() {

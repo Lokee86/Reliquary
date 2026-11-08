@@ -488,6 +488,7 @@ fn phy_rejects_rel_only_record_families_without_mutation() {
         b"RELIEPS2",
         b"RELIEPC2",
         b"RELIFRS1",
+        b"RELIPLN1",
         b"CVAIMPT1",
         b"CVAFRG01",
         b"RELINSW1",

@@ -282,6 +282,18 @@ fn configured_cli_import_processes_routes_and_reopens_grounded_memories() {
         true
     );
     assert_eq!(provider.requests.load(Ordering::Relaxed), 3);
+    assert_eq!(
+        cli.json(&[
+            "config",
+            "check",
+            config,
+            "--online",
+            "--route",
+            "embedding"
+        ])["readiness"],
+        "provider route probed: embedding"
+    );
+    assert_eq!(provider.requests.load(Ordering::Relaxed), 4);
 
     let owners = [("rel", rel), ("phy", phy)];
     let [rel_id, phy_id] = owners.map(|(family, path)| {

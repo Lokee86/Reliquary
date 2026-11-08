@@ -126,6 +126,11 @@ a 30-second request timeout and a 1 MiB response limit. Reports include route
 labels and failure categories while omitting credential references, model
 names, URLs, and provider payloads.
 
+Use `config check FILE --online --route ROUTE` to probe a single configured
+transport independently of the others. The route names are the selected
+labels from offline readiness. For a protected file, also pass
+`--master-key FILE`. The probe sends synthetic input.
+
 `probe_embedding_profile()` explicitly runs the existing bounded query and
 document compatibility suite. It returns `Ok(None)` when the embedding route
 is absent. It returns an in-memory profile for the configured endpoint when

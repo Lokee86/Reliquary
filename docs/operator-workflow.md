@@ -34,7 +34,13 @@ Keep the import ID from the stage report. Use `rel work status project.rel
 --import IMPORT_ID` for durable progress and `rel work resume project.rel
 --import IMPORT_ID --phy user.phy --config runtime.json` to resume. An
 explicit `--episode EPISODE_ID` retries a held import Episode under the
-same input and lease checks. A separate `rel work stop` invocation reports
+same input, lease, and durable processing plan checks. The first processing
+run binds the selected Insomnia, ownership, Dream, Entity, and embedding
+routes and stage policy. It records the verified compatibility profile
+before vector publication. Resume uses that plan. The same credential
+reference can receive renewed credentials for the same account. A run held
+without a PHY can attach its first authorized destination before vector
+processing. A separate `rel work stop` invocation reports
 the lack of a control channel to an already running process. In-process
 hosts can call `OwnerProcessingJob::request_stop` and join it.
 

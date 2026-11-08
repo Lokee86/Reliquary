@@ -171,7 +171,7 @@ pub(super) fn validate_grouped_replay_admission(
 }
 
 pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), OwnerSessionError> {
-    const REL_ONLY: [(&[u8; 8], &str); 28] = [
+    const REL_ONLY: &[(&[u8; 8], &str)] = &[
         (b"RELTURN2", "Archive turn"),
         (b"RELFILE1", "Archive file"),
         (b"RELBRCH1", "Archive branch"),
@@ -186,6 +186,10 @@ pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), Owner
         (b"RELIEPS2", "import epoch start v2"),
         (b"RELIEPC2", "import epoch completion v2"),
         (b"RELIFRS1", "import Freshness settlement"),
+        (
+            crate::records::IMPORT_PROCESSING_MAGIC,
+            "import processing plan",
+        ),
         (b"RELINSW1", "Insomnia work"),
         (b"RELINSR1", "Insomnia receipt"),
         (b"RELINSC7", "grouped Insomnia completion"),
@@ -235,7 +239,7 @@ pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), Owner
             prefix.copy_from_slice(&envelope.body[..8]);
         }
         if length == prefix.len() {
-            for (marker, domain) in REL_ONLY {
+            for &(marker, domain) in REL_ONLY {
                 if &prefix == marker {
                     return Err(OwnerSessionError::RelOnlyRecordInPhylactery(domain));
                 }

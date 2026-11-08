@@ -47,13 +47,12 @@ decision choices `models.memory_retrieval_decision`,
 uses the same retrieval selection order. The implementation keeps
 each configured account and route scoped to its declared operation.
 
-The Insomnia readiness probe sent synthetic input and received HTTP 401.
-The result persisted with the original transport's Codex request headers
-and stream handling. The check stopped before probing the remaining
-providers. Automatic approval review separately rejected a live retrieval
-command because it contained
-corpus-derived text destined for external providers. The command did not
-run. There was no live corpus egress or extraction attempt.
+Independent readiness probes sent synthetic input. Insomnia, Insomnia
+ownership, Dream, and Entity Resolution each received HTTP 401. The
+configured direct Entity Resolution decision route received HTTP 400.
+The embedding probe passed. Automatic approval review separately rejected
+a live retrieval command because it contained corpus-derived text destined
+for external providers. The real import remains staged and pending.
 
 | Acceptance area | Real-corpus result |
 | --- | --- |
@@ -86,11 +85,10 @@ test profiles.
 ## Remaining implementation scope
 
 The imported coordinator declares typed relationship proposals optional.
-Automatic live processing drains Insomnia. Vector builds and Freshness
-inspection have separate named controls, and the live job still needs to
-drive Dream and Entity work. Resuming extraction checks the accepted model
-and routed destination, and sealed readiness checks the embedding profile.
-A durable binding for the complete multi-stage route plan remains open.
+An owner-scoped record binds the configured routes and ordered stage policy
+before imported extraction. The vector stage binds the verified profile.
+The Root-only fixture rejects changed Dream configuration before held
+Episode retry and rejects a changed embedding profile after reopen.
 
 Lexicon is uninitialized in this worktree, so there is no current Arcana
 snapshot. The repository's executable dependency guard checks all 23

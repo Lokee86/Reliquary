@@ -65,6 +65,7 @@ impl RelWriter {
         import_id: &str,
         profile: CompatibilityProfileId,
     ) -> Result<Vec<MemoryId>, OwnerSessionError> {
+        self.require_native_import_profile(import_id, profile)?;
         let common = &self.session.common;
         if common.profiles.get_active(profile).is_none() {
             return Err(OwnerSessionError::Record(

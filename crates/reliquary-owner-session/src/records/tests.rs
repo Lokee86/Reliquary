@@ -133,6 +133,63 @@ fn retention_manifest_is_owner_bound_replayable_evidence() {
 }
 
 #[test]
+fn import_processing_plan_replays_only_monotone_owner_bound_transitions() {
+    let path = Temp::new();
+    let start;
+    let final_binding;
+    {
+        let mut container = container(&path.0, 5);
+        start = import_start(container.owner_id());
+        let mut store = ImportEpochStore::open(&container).unwrap();
+        store.append_start(&mut container, start.clone()).unwrap();
+        let initial = ImportProcessingBinding {
+            policy: [8; 32],
+            destination: None,
+            profile: None,
+        };
+        store
+            .append_processing_binding(&mut container, &start.import_id, initial)
+            .unwrap();
+        let cut = container.latest_version();
+        for incompatible in [
+            initial,
+            ImportProcessingBinding {
+                policy: [9; 32],
+                ..initial
+            },
+        ] {
+            assert!(
+                store
+                    .append_processing_binding(&mut container, &start.import_id, incompatible)
+                    .is_err()
+            );
+        }
+        assert_eq!(container.latest_version(), cut);
+        final_binding = ImportProcessingBinding {
+            destination: Some([6; 16]),
+            profile: Some([7; 32]),
+            ..initial
+        };
+        store
+            .append_processing_binding(&mut container, &start.import_id, final_binding)
+            .unwrap();
+        let complete = import_complete(&start, &mut container, &mut store);
+        store.append_complete(&mut container, complete).unwrap();
+        assert!(
+            store
+                .append_processing_binding(&mut container, &start.import_id, initial)
+                .is_err()
+        );
+    }
+    let container = Container::open_read_only(&path.0).unwrap();
+    let store = ImportEpochStore::open(&container).unwrap();
+    assert_eq!(
+        store.processing_binding(&start.import_id),
+        Some(final_binding)
+    );
+}
+
+#[test]
 fn import_epochs_replay_order_digest_and_owner_admission() {
     let path = Temp::new();
     let start;

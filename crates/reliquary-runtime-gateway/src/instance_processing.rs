@@ -4,7 +4,8 @@ use crate::{
     processing_stages::{ImportProcessingRoutes, run_import_stages},
 };
 use reliquary_application::processing_plan::{
-    InsomniaProgress, MAX_PROCESS_EPISODES, StageProgress, import_stages, inspect_insomnia_work,
+    InsomniaProgress, MAX_PROCESS_EPISODES, StageProgress, import_plan_identity, import_stages,
+    inspect_insomnia_work,
 };
 use reliquary_owner_session::model::EpisodeId;
 use reliquary_switchboard::{EmbeddingEndpoint, GeneralEndpoint};
@@ -94,12 +95,41 @@ impl Gateway {
         dream: Option<Arc<dyn GeneralEndpoint>>,
         entity: Option<Arc<dyn GeneralEndpoint>>,
         embedding: Option<Arc<dyn EmbeddingEndpoint>>,
+        route_identity: [u8; 32],
+        retry_episode: Option<EpisodeId>,
         options: InsomniaRunOptions,
     ) -> Result<ProcessingJob, GatewayError> {
         if !Arc::ptr_eq(&self.owners, &instance.owners) {
             return Err(GatewayError::HostAdapter(
                 "processing Instance belongs to another Gateway".into(),
             ));
+        }
+        if !(1..=MAX_PROCESS_EPISODES).contains(&options.max_episodes)
+            || options.lease_duration_ns <= 0
+        {
+            return Err(GatewayError::HostAdapter(
+                "invalid processing bounds".into(),
+            ));
+        }
+        if options.import_id.is_some() {
+            for (available, missing) in [
+                (
+                    dream.is_some(),
+                    "import processing requires a configured Dream route",
+                ),
+                (
+                    entity.is_some(),
+                    "import processing requires a configured Entity Resolution route",
+                ),
+                (
+                    embedding.is_some(),
+                    "import processing requires a configured embedding route",
+                ),
+            ] {
+                if !available {
+                    return Err(GatewayError::RetrievalUnavailable(missing));
+                }
+            }
         }
         instance.with_writable_reliquary(owner, |_| ())?;
         if let Some(phy) = options.destination {
@@ -118,7 +148,6 @@ impl Gateway {
             .chain(options.destination)
             .map(|owner| (owner, PROCESSING_LEASE))
             .collect::<Vec<_>>();
-        let initial = instance.insomnia_progress(owner, options.import_id.as_deref())?;
         {
             let mut leases = self
                 .owner_worker_leases
@@ -131,6 +160,21 @@ impl Gateway {
             }
             leases.extend(keys.iter().copied());
         }
+        let lease = ProcessingLease(Arc::clone(&self.owner_worker_leases), keys);
+        if let Some(id) = options.import_id.as_deref() {
+            instance.with_rel_writer(owner, |writer| {
+                writer.bind_native_import_processing(
+                    id,
+                    import_plan_identity(route_identity),
+                    options.destination.map(OwnerId::as_bytes),
+                )?;
+                if let Some(episode) = retry_episode {
+                    writer.retry_held_import_episode(id, episode, now_ns())?;
+                }
+                Ok::<_, crate::OwnerSessionError>(())
+            })??;
+        }
+        let initial = instance.insomnia_progress(owner, options.import_id.as_deref())?;
         let report = Arc::new(Mutex::new(ProcessingReport {
             state: ProcessingState::Running,
             import_id: options.import_id.clone(),
@@ -141,14 +185,12 @@ impl Gateway {
                 .map_or_else(Vec::new, |_| import_stages()),
         }));
         let stop = Arc::new(AtomicBool::new(false));
-        let leases = Arc::clone(&self.owner_worker_leases);
-        let thread_keys = keys.clone();
         let thread_stop = Arc::clone(&stop);
         let thread_report = Arc::clone(&report);
         let worker = thread::Builder::new()
             .name("reliquary-processing".into())
             .spawn(move || {
-                let _lease = ProcessingLease(leases, thread_keys);
+                let _lease = lease;
                 let result = instance.drain_insomnia(
                     owner,
                     Arc::clone(&endpoint),
@@ -234,16 +276,7 @@ impl Gateway {
                 report,
                 worker: Some(worker),
             }),
-            Err(error) => {
-                let mut leases = self
-                    .owner_worker_leases
-                    .lock()
-                    .map_err(|_| GatewayError::RegistryPoisoned)?;
-                for key in &keys {
-                    leases.remove(key);
-                }
-                Err(GatewayError::HostAdapter(error.to_string()))
-            }
+            Err(error) => Err(GatewayError::HostAdapter(error.to_string())),
         }
     }
 }

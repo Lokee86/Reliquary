@@ -11,12 +11,19 @@ const COMPLETE_MAGIC_V1: &[u8; 8] = b"RELIEPC1";
 const START_MAGIC: &[u8; 8] = b"RELIEPS2";
 const COMPLETE_MAGIC: &[u8; 8] = b"RELIEPC2";
 
+#[path = "import_processing.rs"]
+mod processing;
+pub(crate) use processing::{
+    ImportProcessingBinding, MAGIC as IMPORT_PROCESSING_MAGIC, processing_marker_id,
+};
+
 #[derive(Default)]
 pub struct ImportEpochStore {
     owner: Option<[u8; 16]>,
     starts: BTreeMap<String, ImportStart>,
     completions: BTreeMap<String, ImportComplete>,
     settlements: BTreeMap<String, ImportFreshnessSettlement>,
+    processing: BTreeMap<String, ImportProcessingBinding>,
     open: Option<String>,
 }
 
@@ -32,6 +39,8 @@ impl ImportEpochStore {
     pub(crate) fn ingest_prefix(&mut self, payload: &[u8]) -> Result<(), String> {
         if payload.starts_with(import_settlement::MAGIC) {
             self.ingest_settlement(ImportFreshnessSettlement::decode(payload)?)
+        } else if payload.starts_with(IMPORT_PROCESSING_MAGIC) {
+            self.ingest_processing_binding(payload)
         } else if payload.starts_with(START_MAGIC) {
             self.ingest_start(decode(payload, START_MAGIC)?)
         } else if payload.starts_with(COMPLETE_MAGIC) {
@@ -60,6 +69,8 @@ impl ImportEpochStore {
                     return Err("import settlement physical source prefix mismatch".into());
                 }
                 store.ingest_settlement(settlement)?;
+            } else if frame.payload.starts_with(IMPORT_PROCESSING_MAGIC) {
+                store.ingest_processing_binding(&frame.payload)?;
             } else if frame.payload.starts_with(START_MAGIC)
                 || frame.payload.starts_with(START_MAGIC_V1)
             {
@@ -261,6 +272,9 @@ impl ImportEpochStore {
             .ok_or("settlement without import start")?;
         if self.open.as_deref() != Some(value.import_id.as_str())
             || start.owner_uuid != value.owner_uuid
+            || self
+                .processing_binding(&value.import_id)
+                .is_some_and(|plan| plan.profile.is_none())
             || ![
                 &value.start_digest,
                 &value.receipt_digest,

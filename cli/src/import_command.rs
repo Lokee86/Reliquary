@@ -64,7 +64,14 @@ pub(crate) fn run(args: &[String]) -> Result<Value, ProductError> {
     eprintln!("{}", json!({"operation":"import_plan","coverage":coverage}));
     let staged = host.instance.stage_native_import(host.rel, plan)?;
     let processing = configured.as_ref().map(|runtime| {
-        match operational::run_processing(&host, runtime, Some(&staged.import_id), 128, "ready") {
+        match operational::run_processing(
+            &host,
+            runtime,
+            Some(&staged.import_id),
+            128,
+            "ready",
+            None,
+        ) {
             Ok(result) => result,
             Err(error) => json!({"ok":false,"error":error_json(&error)}),
         }

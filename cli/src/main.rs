@@ -14,7 +14,7 @@ Supported Reliquary 2.1 operator CLI
 USAGE:
     reliquary rel <COMMAND> [OPTIONS]
     reliquary phy <COMMAND> [OPTIONS]
-    reliquary config check <FILE> [--online] [--master-key <FILE>]
+    reliquary config check <FILE> [--online [--route <ROUTE>]] [--master-key <FILE>]
 
 REL COMMANDS:
     create <PATH> [--scope <unspecified|organization|project|connection>]
