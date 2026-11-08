@@ -19,3 +19,8 @@
 /target-runtime-gateway/
 /target-codex-check/
 /.v02-*.log
+**/target/
+**/__pycache__/
+*.pyc
+/reliquary.cfg
+/reliquary.master-key.json
