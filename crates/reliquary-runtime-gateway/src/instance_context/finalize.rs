@@ -10,7 +10,9 @@ impl Instance {
         counter: &impl ContextTokenCounter,
     ) -> Result<Option<AuthorizedContextCheckpoint>, GatewayError> {
         self.validate_context_workflow_scope(prepared)?;
-        finalize_context_workflow(&prepared.prepared, summary, counter)
+        let checkpoint = finalize_context_workflow(&prepared.prepared, summary, counter);
+        self.validate_context_workflow_scope(prepared)?;
+        checkpoint
             .map(|checkpoint| {
                 checkpoint.map(|checkpoint| AuthorizedContextCheckpoint {
                     instance_id: prepared.instance_id,
@@ -37,12 +39,19 @@ impl Instance {
         Ok(prepared.request().clone())
     }
 
+    pub fn context_compaction_plan(
+        &self,
+        prepared: &AuthorizedContextWorkflow,
+    ) -> Result<Option<CompactionPlan>, GatewayError> {
+        self.validate_context_workflow_scope(prepared)?;
+        Ok(prepared.compaction_plan().cloned())
+    }
+
     pub fn context_checkpoint(
         &self,
         checkpoint: &AuthorizedContextCheckpoint,
     ) -> Result<CompactionCheckpoint, GatewayError> {
-        self.ensure_credential_active()?;
-        self.authorize_queue_owner(checkpoint.owner)?;
+        self.with_reliquary(checkpoint.owner, |_| ())?;
         self.validate_context_checkpoint(
             checkpoint,
             checkpoint.owner,
@@ -62,7 +71,7 @@ impl Instance {
                 "context belongs to another Instance".into(),
             ));
         }
-        self.authorize_queue_owner(prepared.owner)?;
+        self.with_reliquary(prepared.owner, |_| ())?;
         if context_view_digest(&prepared.native_view) != prepared.native_digest {
             return Err(GatewayError::ProjectSource(
                 "native host context snapshot changed".into(),

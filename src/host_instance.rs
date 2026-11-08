@@ -2,7 +2,7 @@ use super::*;
 
 /// Durable native conversation queue. Reads and mutations require an authenticated Instance.
 pub struct ConversationQueue {
-    inner: runtime::ConversationQueue,
+    pub(super) inner: runtime::ConversationQueue,
 }
 impl ConversationQueue {
     pub fn owner_id(&self) -> OwnerId {
@@ -48,7 +48,7 @@ impl Instance {
             ))
         }
     }
-    fn require_phy_read(&self, owner: OwnerId) -> Result<(), ProductError> {
+    pub(crate) fn require_phy_read(&self, owner: OwnerId) -> Result<(), ProductError> {
         self.inner.ensure_credential_active()?;
         if self.grants.contains(&OwnerGrant::ViewPhylactery(owner))
             || self.grants.contains(&OwnerGrant::OperatePhylactery(owner))
@@ -140,6 +140,35 @@ impl Instance {
         self.require_rel_read(queue.owner_id())?;
         self.inner
             .conversation_submission_status(&queue.inner, id)
+            .map_err(Into::into)
+    }
+    pub fn conversation_revision(
+        &self,
+        queue: &ConversationQueue,
+        conversation_id: &str,
+    ) -> Result<u64, ProductError> {
+        self.require_rel_read(queue.owner_id())?;
+        Ok(queue.inner.conversation_revision(conversation_id))
+    }
+    pub fn finalize_conversation_episode(
+        &self,
+        owner: OwnerId,
+        conversation_id: &str,
+        start_node_id: &str,
+        end_node_id: &str,
+        boundary: crate::EpisodeBoundary,
+        finalized_at_ns: i64,
+    ) -> Result<crate::EpisodeId, ProductError> {
+        self.require(OwnerGrant::OperateRel(owner))?;
+        self.inner
+            .finalize_conversation_episode(
+                owner.into(),
+                conversation_id,
+                start_node_id,
+                end_node_id,
+                boundary,
+                finalized_at_ns,
+            )
             .map_err(Into::into)
     }
     pub fn cancel_own_pending_submission(

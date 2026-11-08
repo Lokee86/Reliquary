@@ -96,6 +96,7 @@ pub enum GatewayError {
     UnsupportedHostCapability(RuntimeCapability),
     RoutedMemory(String),
     ProjectSource(String),
+    ExternalSource(reliquary_owner_session::records::external_index::model::ExternalSourceError),
     RegistryPoisoned,
     WriterUnavailable,
 }
@@ -159,6 +160,7 @@ impl fmt::Display for GatewayError {
             }
             Self::RoutedMemory(reason) => write!(f, "routed user Memory failed: {reason}"),
             Self::ProjectSource(reason) => write!(f, "project source failed: {reason}"),
+            Self::ExternalSource(error) => error.fmt(f),
             Self::RegistryPoisoned => f.write_str("gateway owner registry is unavailable"),
             Self::WriterUnavailable => f.write_str("owner writer session is unavailable"),
         }

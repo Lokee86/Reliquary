@@ -1,3 +1,4 @@
+use crate::ExternalSourceError;
 use reliquary_owner_session::{OwnerFailureKind, OwnerSessionError};
 use reliquary_runtime_gateway::GatewayError;
 use serde::Serialize;
@@ -83,6 +84,24 @@ impl From<GatewayError> for ProductError {
             GatewayError::DuplicateOwner(_) => ProductErrorKind::Conflict,
             GatewayError::WriterUnavailable => ProductErrorKind::WriterUnavailable,
             GatewayError::StaleRetrieval => ProductErrorKind::Stale,
+            GatewayError::ExternalSource(error) => match error {
+                ExternalSourceError::Unauthorized => ProductErrorKind::Unauthorized,
+                ExternalSourceError::StaleEvidence => ProductErrorKind::Stale,
+                ExternalSourceError::Conflict => ProductErrorKind::Conflict,
+                ExternalSourceError::InvalidContract | ExternalSourceError::Bounds => {
+                    ProductErrorKind::InvalidInput
+                }
+                ExternalSourceError::TemporalDecisionInvalidOutput => {
+                    ProductErrorKind::Verification
+                }
+                ExternalSourceError::Unavailable
+                | ExternalSourceError::RebuildRequired
+                | ExternalSourceError::Storage
+                | ExternalSourceError::TemporalDecisionUnavailable
+                | ExternalSourceError::TemporalDecisionBackpressure { .. } => {
+                    ProductErrorKind::Unavailable
+                }
+            },
             GatewayError::UnknownOwner(_) => ProductErrorKind::Unavailable,
             GatewayError::UnsupportedHostCapability(_)
             | GatewayError::IncompleteHostContract(_) => ProductErrorKind::Unsupported,

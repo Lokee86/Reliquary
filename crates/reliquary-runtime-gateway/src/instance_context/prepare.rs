@@ -14,7 +14,7 @@ impl Instance {
         budget: CompactionBudget,
         counter: &impl ContextTokenCounter,
     ) -> Result<AuthorizedContextWorkflow, GatewayError> {
-        self.authorize_queue_owner(owner)?;
+        self.with_reliquary(owner, |_| ())?;
         if native.turns.len() > reliquary_application::MAX_CONTEXT_SOURCE_TURNS
             || selected_memories.len() > reliquary_application::MAX_CONTEXT_SOURCE_TURNS
         {
@@ -131,6 +131,10 @@ impl Instance {
                 "Archive project evidence changed during hydration".into(),
             ));
         }
+        if let Some(checkpoint) = checkpoint {
+            // The caller's counter sees the summary while measuring the request.
+            self.validate_context_checkpoint(checkpoint, owner, conversation_id, &native)?;
+        }
         let prepared = prepare_context_workflow(
             native,
             evidence,
@@ -145,7 +149,7 @@ impl Instance {
         if let Some(checkpoint) = checkpoint {
             self.validate_context_checkpoint(checkpoint, owner, conversation_id, &source_view)?;
         }
-        Ok(AuthorizedContextWorkflow {
+        let prepared = AuthorizedContextWorkflow {
             instance_id: self.instance_id,
             principal: self.principal.to_string(),
             owner,
@@ -157,6 +161,8 @@ impl Instance {
             prepared,
             sources,
             memories,
-        })
+        };
+        self.validate_context_workflow_scope(&prepared)?;
+        Ok(prepared)
     }
 }
