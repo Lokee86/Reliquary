@@ -7,6 +7,12 @@ use sha2::{Digest, Sha256};
 use std::fmt;
 
 pub mod inspection;
+#[path = "management_workflow/user_memory.rs"]
+mod user_memory;
+pub use user_memory::{
+    CorrectMemoryReceipt, CorrectMemoryRequest, RetireMemoryReceipt, correct_memory_at_cut,
+    retire_memory_at_cut,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CreateMemoryRequest {

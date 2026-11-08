@@ -237,6 +237,7 @@ impl From<GenerationStoreError> for OwnerSessionError {
 
 /// Shared owner-local REL/PHY domains, kept private behind typed reads.
 struct CommonState {
+    user_memory_requests: BTreeMap<String, crate::records::user_memory::UserMemoryRecord>,
     memories: MemoryStore,
     perception: PerceptionStore,
     graph: GraphStore,
@@ -776,6 +777,9 @@ pub use vector_publication::{MemoryVectorInput, MemoryVectorRow};
 mod management;
 mod management_association;
 pub use management_association::MemoryAssociationCut;
+#[path = "session/user_memory.rs"]
+mod user_memory;
+pub use user_memory::{UserMemoryCorrection, UserMemoryCorrectionResult};
 mod phy_writer;
 mod rel_session;
 mod rel_writer;

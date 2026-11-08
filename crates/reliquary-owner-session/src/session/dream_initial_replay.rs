@@ -87,6 +87,30 @@ pub(super) fn validate(
             }
             continue;
         }
+        if let Some(record) = crate::records::user_memory::UserMemoryRecord::decode(payload)
+            .map_err(OwnerSessionError::Record)?
+        {
+            use crate::records::user_memory::UserMemoryEffect;
+            let previous = MemoryId(record.previous.id);
+            active.remove(&previous);
+            changed.insert(previous);
+            if let UserMemoryEffect::Correction { creation, .. } = &record.effect {
+                let replacement = reliquary_memory_core::decode_grouped_creation(creation)?;
+                active.insert(replacement.id);
+                bodies.insert(replacement.id, replacement.body_id);
+                graph = record
+                    .relation()
+                    .expect("correction relation")
+                    .graph_version;
+                archivals.push((previous, graph));
+            }
+            if let Some(change) = record.history_frames().last() {
+                memory_head = reliquary_memory_core::history_change_in_frame(change)?
+                    .ok_or(OwnerSessionError::StaleDreamCut)?
+                    .1;
+            }
+            continue;
+        }
         if payload.starts_with(b"RELMCRT1") {
             let record = reliquary_memory_core::decode_grouped_creation(payload)?;
             if !record.archived

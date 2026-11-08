@@ -52,6 +52,10 @@ pub use management_workflow::{
     management_memories, management_memory, management_provenance, management_statistics,
     management_transcript, set_management_title, user_mutation_id,
 };
+pub use management_workflow::{
+    CorrectMemoryReceipt, CorrectMemoryRequest, RetireMemoryReceipt, correct_memory_at_cut,
+    retire_memory_at_cut,
+};
 pub mod native_import_source;
 pub mod native_import_workflow;
 pub use native_import_workflow::settle_native_import_initial_dream;

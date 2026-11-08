@@ -1,4 +1,5 @@
 use super::*;
+use crate::records::user_memory::UserMemoryRecord;
 
 pub(super) fn open_common(
     container: &Container,
@@ -27,7 +28,8 @@ pub(super) fn open_common_for_owner(
         return Err(OwnerSessionError::Graph(GraphError::WrongOwner));
     }
     let mut grouped_body_ids = BTreeSet::new();
-    let mut memories = MemoryStore::open_with_dream_batches(
+    let mut user_memory_requests = BTreeMap::new();
+    let mut memories = MemoryStore::open_with_management_groups(
         container,
         |payload| {
             if !replay_grouped_insomnia {
@@ -72,6 +74,28 @@ pub(super) fn open_common_for_owner(
             }
             Ok(record.lifecycles.iter().map(|l| l.event()).collect())
         },
+        |payload| {
+            if !replay_grouped_insomnia {
+                return Err(MemoryError::Corrupt(
+                    "PHY cannot replay user REL Memory mutation",
+                ));
+            }
+            let record = UserMemoryRecord::decode(payload)
+                .map_err(|_| MemoryError::Corrupt("invalid grouped user Memory mutation"))?
+                .ok_or(MemoryError::Corrupt("missing grouped user Memory mutation"))?;
+            if record.owner != container.owner_id()
+                || user_memory_requests.contains_key(&record.key)
+            {
+                return Err(MemoryError::Corrupt(
+                    "foreign or duplicate user Memory mutation",
+                ));
+            }
+            let effect = record
+                .memory_effect()
+                .map_err(|_| MemoryError::Corrupt("invalid user Memory mutation effect"))?;
+            user_memory_requests.insert(record.key.clone(), record);
+            Ok(effect)
+        },
     )?;
     let perception = PerceptionStore::open(container)?;
     for mention in perception.mentions() {
@@ -115,7 +139,11 @@ pub(super) fn open_common_for_owner(
         container,
         &derived_admission,
         |payload| {
-            if payload.starts_with(b"RELDRS") {
+            if payload.starts_with(b"RELMCOR") {
+                UserMemoryRecord::decode(payload)
+                    .map(|record| record.and_then(|record| record.relation()))
+                    .map_err(|_| GraphError::CorruptRecord("invalid grouped user supersession"))
+            } else if payload.starts_with(b"RELDRS") {
                 crate::records::dream_supersession::GroupedDreamSupersession::decode(payload)
                     .map(|record| record.map(|record| record.relation()))
                     .map_err(|_| GraphError::CorruptRecord("invalid Dream supersession carrier"))
@@ -278,6 +306,7 @@ pub(super) fn open_common_for_owner(
         &memory_vectors,
     )?;
     Ok(CommonState {
+        user_memory_requests,
         memories,
         perception,
         graph,

@@ -93,6 +93,11 @@ pub(super) fn removable_backing(
                 .ok_or("invalid Archive prune marker")?;
             Ok(false)
         }
+        b"RELMCOR1" | b"RELMRET1" => {
+            crate::records::user_memory::UserMemoryRecord::decode(bytes)?
+                .ok_or("missing grouped user Memory mutation")?;
+            Ok(false)
+        }
         b"RELPUB01" => {
             let publication = decode_publication(bytes)
                 .map_err(|e| e.to_string())?

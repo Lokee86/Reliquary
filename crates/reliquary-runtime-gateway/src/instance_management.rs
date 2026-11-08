@@ -4,6 +4,7 @@ use reliquary_application::{
     ManagementPage, MemoryProvenance, MemorySummary, RelManagementHealth, SemanticOwnerStatistics,
     TranscriptTurn,
 };
+use reliquary_application::{CorrectMemoryReceipt, CorrectMemoryRequest, RetireMemoryReceipt};
 use reliquary_owner_session::MemoryId;
 
 #[path = "instance_inspection.rs"]
@@ -130,6 +131,42 @@ impl Instance {
                 writer,
                 self.principal(),
                 expected,
+                request,
+            )
+        })?
+        .map_err(management_error)
+    }
+
+    pub fn management_correct_memory_at_cut(
+        &self,
+        owner: OwnerId,
+        expected: reliquary_application::inspection::InspectionCut,
+        request: CorrectMemoryRequest,
+    ) -> Result<CorrectMemoryReceipt, GatewayError> {
+        self.with_rel_writer(owner, |writer| {
+            reliquary_application::correct_memory_at_cut(
+                writer,
+                self.principal(),
+                expected,
+                request,
+            )
+        })?
+        .map_err(management_error)
+    }
+
+    pub fn management_retire_memory_at_cut(
+        &self,
+        owner: OwnerId,
+        expected: reliquary_application::inspection::InspectionCut,
+        request_id: &str,
+        request: reliquary_owner_session::MemoryRetirementRequest,
+    ) -> Result<RetireMemoryReceipt, GatewayError> {
+        self.with_rel_writer(owner, |writer| {
+            reliquary_application::retire_memory_at_cut(
+                writer,
+                self.principal(),
+                expected,
+                request_id,
                 request,
             )
         })?

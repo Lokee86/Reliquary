@@ -1,5 +1,6 @@
 //! Exact owner identity/version cuts at the physical effect prefix.
 use super::*;
+use crate::records::user_memory::{UserMemoryEffect, UserMemoryRecord};
 pub(super) fn validate_graph_prefix(
     container: &Container,
     memory_store: &MemoryStore,
@@ -67,12 +68,25 @@ pub(super) fn validate_graph_prefix(
                 "unsupported Dream carrier".into(),
             ));
         }
-        if reliquary_container::decode_publication(&frame.payload)?
-            .is_some_and(|p| p.body.starts_with(b"RELDR"))
-        {
+        if reliquary_container::decode_publication(&frame.payload)?.is_some_and(|p| {
+            p.body.starts_with(b"RELDR")
+                || p.body.starts_with(b"RELMCOR")
+                || p.body.starts_with(b"RELMRET")
+        }) {
             return Err(OwnerSessionError::Record(
-                "wrapped Dream carrier is unsupported".into(),
+                "wrapped grouped owner carrier is unsupported".into(),
             ));
+        }
+        let user_memory =
+            UserMemoryRecord::decode(&frame.payload).map_err(OwnerSessionError::Record)?;
+        if let Some(record) = &user_memory {
+            validate_user_memory_prefix(
+                container,
+                memory_store,
+                memory_head,
+                graph_version,
+                record,
+            )?;
         }
         let batch = crate::records::dream_batch::DreamBatchRecord::decode(&frame.payload)
             .map_err(OwnerSessionError::Record)?;
@@ -103,7 +117,10 @@ pub(super) fn validate_graph_prefix(
                 .map(|l| l.delta.as_slice())
                 .chain(record.graph_records.iter().map(Vec::as_slice))
                 .collect(),
-            None => vec![frame.payload.as_slice()],
+            None => user_memory.as_ref().map_or_else(
+                || vec![frame.payload.as_slice()],
+                UserMemoryRecord::history_frames,
+            ),
         };
         for child in children {
             let payload = reliquary_container::decode_publication(child)?
@@ -265,6 +282,61 @@ pub(super) fn validate_graph_prefix(
                 return Err(OwnerSessionError::Record(
                     "Community references a Graph cut outside its physical prefix".into(),
                 ));
+            }
+        }
+        if let Some(relation) = user_memory.as_ref().and_then(UserMemoryRecord::relation) {
+            graph_version = relation.graph_version;
+        }
+    }
+    Ok(())
+}
+
+fn validate_user_memory_prefix(
+    container: &Container,
+    memories: &MemoryStore,
+    memory_head: u64,
+    graph_version: u64,
+    record: &UserMemoryRecord,
+) -> Result<(), OwnerSessionError> {
+    let invalid =
+        || OwnerSessionError::Record("user Memory mutation differs from owner prefix".into());
+    if record.owner != container.owner_id() || record.memory_cut != memory_head {
+        return Err(invalid());
+    }
+    let previous = memories
+        .record_at_cut(MemoryId(record.previous.id), memory_head)
+        .filter(|previous| record.previous.matches(previous))
+        .ok_or_else(invalid)?;
+    match &record.effect {
+        UserMemoryEffect::Correction {
+            graph_cut,
+            creation,
+            ..
+        } => {
+            let replacement = reliquary_memory_core::decode_grouped_creation(creation)?;
+            if *graph_cut != graph_version
+                || previous.archived
+                || previous.superseded_by.is_some()
+                || replacement.body_id == previous.body_id
+                || replacement.category != previous.category
+                || replacement.memory_type != previous.memory_type
+                || replacement.scope != previous.scope
+            {
+                return Err(invalid());
+            }
+        }
+        UserMemoryEffect::Retirement { successor, .. } => {
+            if !previous.archived
+                || previous.authority_kind != "direct"
+                || previous.source_ref.is_none()
+                || previous.superseded_by != Some(MemoryId(successor.id))
+                || !memories
+                    .record_at_cut(MemoryId(successor.id), memory_head)
+                    .is_some_and(|r| {
+                        successor.matches(r) && !r.archived && r.superseded_by.is_none()
+                    })
+            {
+                return Err(invalid());
             }
         }
     }

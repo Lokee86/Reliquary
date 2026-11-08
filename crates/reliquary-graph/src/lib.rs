@@ -243,6 +243,11 @@ impl GraphStore {
                     return Err(GraphError::WrongOwner);
                 }
                 store.replay_user_association(admission, effect)?;
+            } else if frame.payload.starts_with(b"RELMCOR") {
+                let relation = grouped(&frame.payload)?.ok_or(GraphError::CorruptRecord(
+                    "grouped correction requires owner replay",
+                ))?;
+                store.apply_management_supersession(admission, relation)?;
             } else if frame.payload.starts_with(b"RELDRG") || frame.payload.starts_with(b"RELDRS") {
                 let relation = grouped(&frame.payload)?.ok_or(GraphError::CorruptRecord(
                     "grouped Dream requires owner replay",
@@ -308,6 +313,53 @@ impl GraphStore {
         self.validate_grouped_relation(admission, relation)?;
         self.apply_relation(relation)
     }
+    /// Admit the exact user-origin supersession from the grouped correction carrier.
+    pub fn validate_management_supersession(
+        &self,
+        admission: &GraphAdmission,
+        relation: Relation,
+    ) -> Result<(), GraphError> {
+        if admission.owner_id != Some(self.owner) {
+            return Err(GraphError::WrongOwner);
+        }
+        if !relation.active
+            || relation.origin != RelationOrigin::User
+            || relation.kind != RelationKind::Supersedes
+            || relation.graph_version
+                != self
+                    .graph_version
+                    .checked_add(1)
+                    .ok_or(GraphError::VersionExhausted)?
+            || self
+                .relation(relation.source, relation.target, relation.kind)
+                .is_some()
+        {
+            return Err(GraphError::InvalidRelation(
+                "invalid grouped user supersession",
+            ));
+        }
+        validate_change(
+            admission,
+            RelationChange {
+                source: relation.source,
+                target: relation.target,
+                kind: relation.kind,
+                active: relation.active,
+                origin: relation.origin,
+            },
+            true,
+        )
+    }
+
+    pub fn apply_management_supersession(
+        &mut self,
+        admission: &GraphAdmission,
+        relation: Relation,
+    ) -> Result<(), GraphError> {
+        self.validate_management_supersession(admission, relation)?;
+        self.apply_relation(relation)
+    }
+
     pub fn graph_version(&self) -> u64 {
         self.graph_version
     }

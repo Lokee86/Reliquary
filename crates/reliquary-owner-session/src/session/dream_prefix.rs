@@ -74,6 +74,8 @@ pub(crate) fn validate_compact_dream_prefix(
             || magic == *b"CVDREAM2"
             || matches!(&magic, b"RELGRF01" | b"RELASC01")
             || magic == *b"CVDREAM1"
+            || magic.starts_with(b"RELMCOR")
+            || magic.starts_with(b"RELMRET")
             || magic.starts_with(b"RELPUB")
         {
             if frame.object().length > MAX_RELEVANT_FRAME {
@@ -86,6 +88,27 @@ pub(crate) fn validate_compact_dream_prefix(
             frame
                 .read_to_end(&mut payload)
                 .map_err(|error| OwnerSessionError::Record(error.to_string()))?;
+            if let Some(record) = crate::records::user_memory::UserMemoryRecord::decode(&payload)
+                .map_err(OwnerSessionError::Record)?
+            {
+                use crate::records::user_memory::UserMemoryEffect;
+                if let UserMemoryEffect::Correction { creation, .. } = &record.effect {
+                    visible_memories
+                        .insert(reliquary_memory_core::decode_grouped_creation(creation)?.id);
+                    graph_head = record
+                        .relation()
+                        .expect("correction relation")
+                        .graph_version;
+                    // Like an unversioned manual birth, this uses explicit populations.
+                    unsupported = true;
+                }
+                if let Some(change) = record.history_frames().last() {
+                    head = reliquary_memory_core::history_change_in_frame(change)?
+                        .ok_or(OwnerSessionError::StaleDreamCut)?
+                        .1;
+                }
+                continue;
+            }
             if magic == *b"RELFRS02" {
                 reliquary_freshness_store::validate_journal_frame(&payload, container.owner_id())
                     .map_err(OwnerSessionError::Record)?;

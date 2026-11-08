@@ -4,6 +4,7 @@ use super::*;
 
 mod entity;
 mod memory;
+pub(super) use memory::validate_retirement;
 mod mention;
 mod relationship;
 mod requests;

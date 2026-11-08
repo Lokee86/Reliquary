@@ -19,7 +19,10 @@ pub use reliquary_application::inspection::{
 pub use reliquary_application::inspection::{
     MemoryAssociationAction, MemoryAssociationReceipt, MemoryAssociationRequest,
 };
-pub use reliquary_application::{CreateMemoryReceipt, CreateMemoryRequest};
+pub use reliquary_application::{
+    CorrectMemoryReceipt, CorrectMemoryRequest, CreateMemoryReceipt, CreateMemoryRequest,
+    RetireMemoryReceipt,
+};
 pub use reliquary_owner_session::WithdrawEntityMentionRequest;
 pub use reliquary_owner_session::model::{
     EntityResolutionReason, EntityTombstone, MemoryEntityMentionKey, MemoryEntityResolution,
@@ -214,6 +217,33 @@ impl WorkspaceManagement {
         self.instance
             .inner
             .management_create_requested_memory_at_cut(self.owner.into(), expected, request)
+            .map_err(Into::into)
+    }
+
+    /// Publish an immutable successor and supersede its exact original at one cut.
+    pub fn correct_memory_at_cut(
+        &self,
+        expected: InspectionCut,
+        request: CorrectMemoryRequest,
+    ) -> Result<CorrectMemoryReceipt, ProductError> {
+        self.instance.require(OwnerGrant::ManageRel(self.owner))?;
+        self.instance
+            .inner
+            .management_correct_memory_at_cut(self.owner.into(), expected, request)
+            .map_err(Into::into)
+    }
+
+    /// Retire an exact archived supersession after verifying reference closure.
+    pub fn retire_memory_at_cut(
+        &self,
+        expected: InspectionCut,
+        request_id: &str,
+        request: MemoryRetirementRequest,
+    ) -> Result<RetireMemoryReceipt, ProductError> {
+        self.instance.require(OwnerGrant::ManageRel(self.owner))?;
+        self.instance
+            .inner
+            .management_retire_memory_at_cut(self.owner.into(), expected, request_id, request)
             .map_err(Into::into)
     }
 

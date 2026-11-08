@@ -67,5 +67,6 @@ pub use session::{
 pub use session::{RelationshipPruneReport, prune_terminal_relationship_descriptions_copy};
 pub use session::{RetiredProfilePruneReport, prune_retired_profile_vectors_copy};
 pub use session::{StorageReclamationReport, reclaim_storage_copy};
+pub use session::{UserMemoryCorrection, UserMemoryCorrectionResult};
 
 pub use session::{EntityCandidateMemory, EntityMentionInputs};

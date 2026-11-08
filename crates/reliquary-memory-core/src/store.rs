@@ -52,6 +52,10 @@ pub struct MemoryStore {
     owner: Option<([u8; 16], ContainerIdentity)>,
 }
 
+#[path = "management_group.rs"]
+mod management_group;
+pub use management_group::{GroupedManagementEffect, PreparedMemoryCorrection};
+
 impl MemoryStore {
     pub fn create(container: &mut Container) -> Result<Self, MemoryError> {
         let mut cursor = container.physical_cursor()?;
@@ -86,6 +90,8 @@ impl MemoryStore {
                 || magic == *DELTA
                 || magic == *TOMBSTONE
                 || magic == *b"RELINSC7"
+                || magic.starts_with(b"RELMCOR")
+                || magic.starts_with(b"RELMRET")
             {
                 return Err(MemoryError::Corrupt(
                     "Memory owner already contains records",
@@ -149,6 +155,27 @@ impl MemoryStore {
     }
     pub fn open_with_dream_batches(
         container: &Container,
+        decode_grouped: impl FnMut(&[u8]) -> Result<Option<GroupedMemoryReplay>, MemoryError>,
+        decode_dream: impl FnMut(&[u8]) -> Result<Option<GroupedMemorySupersession>, MemoryError>,
+        decode_initial: impl FnMut(&[u8]) -> Result<Option<GroupedMemoryInitialPromotion>, MemoryError>,
+        decode_batch: impl FnMut(&[u8]) -> Result<Vec<GroupedMemoryLifecycle>, MemoryError>,
+    ) -> Result<Self, MemoryError> {
+        Self::open_with_management_groups(
+            container,
+            decode_grouped,
+            decode_dream,
+            decode_initial,
+            decode_batch,
+            |_| {
+                Err(MemoryError::Corrupt(
+                    "grouped management requires owner replay",
+                ))
+            },
+        )
+    }
+
+    pub fn open_with_management_groups(
+        container: &Container,
         mut decode_grouped: impl FnMut(&[u8]) -> Result<Option<GroupedMemoryReplay>, MemoryError>,
         mut decode_dream: impl FnMut(&[u8]) -> Result<Option<GroupedMemorySupersession>, MemoryError>,
         mut decode_initial: impl FnMut(
@@ -156,6 +183,7 @@ impl MemoryStore {
         )
             -> Result<Option<GroupedMemoryInitialPromotion>, MemoryError>,
         mut decode_batch: impl FnMut(&[u8]) -> Result<Vec<GroupedMemoryLifecycle>, MemoryError>,
+        mut decode_management: impl FnMut(&[u8]) -> Result<GroupedManagementEffect, MemoryError>,
     ) -> Result<Self, MemoryError> {
         let mut store = Self {
             owner: Some((container.owner_id(), container.identity())),
@@ -210,6 +238,12 @@ impl MemoryStore {
                     // after it has admitted the exact terminal-prune manifest.
                     store.apply_grouped_completion_replay(bodies, records)?;
                 }
+                continue;
+            }
+            if magic.starts_with(b"RELMCOR") || magic.starts_with(b"RELMRET") {
+                let mut payload = magic.to_vec();
+                frame.read_to_end(&mut payload)?;
+                store.apply_management_effect(decode_management(&payload)?)?;
                 continue;
             }
             if magic.starts_with(b"RELDRB") {
@@ -604,52 +638,7 @@ impl MemoryStore {
         let next_version = memory_version
             .checked_add(1)
             .ok_or(MemoryError::VersionExhausted)?;
-        let source_ref = draft
-            .source_ref
-            .clone()
-            .or_else(|| current.and_then(|record| record.source_ref.clone()));
-        let temporal_inference = draft.temporal_inference.clone().or_else(|| {
-            current.and_then(|record| {
-                record.temporal_inference.clone().filter(|proof| {
-                    proof.body_id == body_id && proof.source_time_ns == draft.source_time_ns
-                })
-            })
-        });
-        if let Some(proof) = &temporal_inference {
-            validate_temporal_inference(
-                proof,
-                body_id,
-                draft.source_time_ns,
-                draft.title.len() + draft.content.len(),
-            )?;
-        }
-        let record = MemoryRecord {
-            id: target,
-            revision,
-            body_id,
-            category: draft.category.clone(),
-            memory_type: draft.memory_type.clone(),
-            authority_kind: draft.authority_kind.clone(),
-            temporal_status: draft.temporal_status.clone(),
-            scope: draft.scope.clone(),
-            lifecycle_state: draft.lifecycle_state.clone(),
-            archived: draft.archived,
-            superseded_by: draft.superseded_by,
-            parent_id: draft.parent_id,
-            source_node_id: draft.source_node_id.clone(),
-            content_source_conversation_id: draft.content_source_conversation_id.clone(),
-            content_source_node_id: draft.content_source_node_id.clone(),
-            grounding_source_conversation_id: draft.grounding_source_conversation_id.clone(),
-            grounding_source_node_id: draft.grounding_source_node_id.clone(),
-            source_episode_id: draft.source_episode_id,
-            source_ref,
-            source_time_ns: draft.source_time_ns,
-            temporal_inference,
-            mutation_id: draft.mutation_id.clone(),
-            created_at_ns: draft.created_at_ns,
-            updated_at_ns: draft.updated_at_ns,
-            memory_version,
-        };
+        let record = record_for_draft(&draft, current, target, body_id, revision, memory_version)?;
         let body = MemoryBody {
             title: draft.title.clone(),
             content: draft.content.clone(),
@@ -1119,4 +1108,60 @@ fn read_grouped_u64(bytes: &[u8], at: &mut usize) -> Result<u64, MemoryError> {
         .ok_or(MemoryError::Corrupt("truncated grouped body length"))?;
     *at = end;
     Ok(u64::from_le_bytes(raw.try_into().unwrap()))
+}
+
+fn record_for_draft(
+    draft: &MemoryDraft,
+    current: Option<&MemoryRecord>,
+    target: MemoryId,
+    body_id: MemoryBodyId,
+    revision: u64,
+    memory_version: u64,
+) -> Result<MemoryRecord, MemoryError> {
+    let source_ref = draft
+        .source_ref
+        .clone()
+        .or_else(|| current.and_then(|record| record.source_ref.clone()));
+    let temporal_inference = draft.temporal_inference.clone().or_else(|| {
+        current.and_then(|record| {
+            record.temporal_inference.clone().filter(|proof| {
+                proof.body_id == body_id && proof.source_time_ns == draft.source_time_ns
+            })
+        })
+    });
+    if let Some(proof) = &temporal_inference {
+        validate_temporal_inference(
+            proof,
+            body_id,
+            draft.source_time_ns,
+            draft.title.len() + draft.content.len(),
+        )?;
+    }
+    Ok(MemoryRecord {
+        id: target,
+        revision,
+        body_id,
+        category: draft.category.clone(),
+        memory_type: draft.memory_type.clone(),
+        authority_kind: draft.authority_kind.clone(),
+        temporal_status: draft.temporal_status.clone(),
+        scope: draft.scope.clone(),
+        lifecycle_state: draft.lifecycle_state.clone(),
+        archived: draft.archived,
+        superseded_by: draft.superseded_by,
+        parent_id: draft.parent_id,
+        source_node_id: draft.source_node_id.clone(),
+        content_source_conversation_id: draft.content_source_conversation_id.clone(),
+        content_source_node_id: draft.content_source_node_id.clone(),
+        grounding_source_conversation_id: draft.grounding_source_conversation_id.clone(),
+        grounding_source_node_id: draft.grounding_source_node_id.clone(),
+        source_episode_id: draft.source_episode_id,
+        source_ref,
+        source_time_ns: draft.source_time_ns,
+        temporal_inference,
+        mutation_id: draft.mutation_id.clone(),
+        created_at_ns: draft.created_at_ns,
+        updated_at_ns: draft.updated_at_ns,
+        memory_version,
+    })
 }

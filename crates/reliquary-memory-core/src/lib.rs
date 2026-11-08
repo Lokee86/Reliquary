@@ -12,8 +12,8 @@ mod store;
 pub use error::MemoryError;
 pub use model::*;
 pub use store::{
-    GroupedMemoryInitialPromotion, GroupedMemoryLifecycle, GroupedMemoryReplay,
-    GroupedMemorySupersession, MemoryStore,
+    GroupedManagementEffect, GroupedMemoryInitialPromotion, GroupedMemoryLifecycle,
+    GroupedMemoryReplay, GroupedMemorySupersession, MemoryStore, PreparedMemoryCorrection,
 };
 
 /// Encode a Memory creation for embedding in a grouped owner carrier.

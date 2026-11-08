@@ -7,7 +7,18 @@ pub(super) fn retire(
     container: &mut Container,
     request: MemoryRetirementRequest,
 ) -> Result<TerminalTombstone, OwnerSessionError> {
-    if request.owner_id != container.owner_id() {
+    validate_retirement(common, container.owner_id(), &request)?;
+    Ok(common
+        .memories
+        .tombstone(container, request.memory_id, request.memory_revision)?)
+}
+
+pub(in crate::session) fn validate_retirement(
+    common: &CommonState,
+    owner: [u8; 16],
+    request: &MemoryRetirementRequest,
+) -> Result<(), OwnerSessionError> {
+    if request.owner_id != owner {
         return Err(OwnerSessionError::Record(
             "Memory retirement owner mismatch".into(),
         ));
@@ -72,7 +83,5 @@ pub(super) fn retire(
             "Memory retirement blocked by active references".into(),
         ));
     }
-    Ok(common
-        .memories
-        .tombstone(container, request.memory_id, request.memory_revision)?)
+    Ok(())
 }

@@ -185,6 +185,18 @@ pub(crate) fn memory_structure_digest(
             }
             continue;
         }
+        if matches!(&prefix, b"RELMCOR1" | b"RELMRET1") {
+            let mut payload = prefix.to_vec();
+            frame.read_to_end(&mut payload).map_err(|e| e.to_string())?;
+            let mutation = crate::records::user_memory::UserMemoryRecord::decode(&payload)?
+                .ok_or("invalid user Memory record")?;
+            for effect in mutation.history_frames() {
+                if effect.get(8..40) == Some(memory_id.0.as_slice()) {
+                    hash_memory_record(&mut hash, &mut count, effect);
+                }
+            }
+            continue;
+        }
         if !memory_history_record(&prefix) {
             continue;
         }
@@ -326,6 +338,8 @@ pub(crate) fn pointer_free_frame(magic: &[u8]) -> bool {
             | b"RELMCRT1"
             | b"RELMDLT1"
             | b"RELMTMB1"
+            | b"RELMCOR1"
+            | b"RELMRET1"
             | b"RELPVFM1"
             | b"RELMVFM1"
             | b"RELCPFM1"
