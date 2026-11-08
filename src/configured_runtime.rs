@@ -48,20 +48,6 @@ impl ConfiguredRuntime {
         Ok(Self { routes })
     }
 
-    /// Loads protected routes and explicitly uses the dedicated Insomnia route for retrieval.
-    ///
-    /// Returns an error if the Insomnia route is absent or cannot be loaded.
-    pub fn from_protected_config_with_retrieval_from_insomnia(
-        path: impl AsRef<Path>,
-        key_path: impl AsRef<Path>,
-    ) -> Result<Self, ConfiguredRuntimeError> {
-        let routes = ConfiguredRoutes::from_protected_config_with_retrieval_from_insomnia(
-            path.as_ref(),
-            key_path.as_ref(),
-        )?;
-        Ok(Self { routes })
-    }
-
     /// Reports route availability and selection without contacting providers.
     pub fn readiness(&self) -> String {
         self.routes.readiness()

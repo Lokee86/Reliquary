@@ -1,6 +1,6 @@
 use super::runtime_config::{
     DREAM, EMBEDDING, ENTITY, ENTITY_DECISION, GENERAL, GeneralRoute, INSOMNIA, RETRIEVAL,
-    RuntimeConfig, SHARED, invalid,
+    RuntimeConfig, SHARED,
 };
 use super::runtime_probe::{probe_decision, probe_embedding, probe_general};
 use super::*;
@@ -84,23 +84,6 @@ impl ConfiguredRoutes {
     ) -> Result<Self, ConfiguredRuntimeError> {
         let (config, credentials) = super::protected_config::load(path, key_path)?;
         Self::bind(config, credentials)
-    }
-
-    /// Loads protected routes and explicitly uses the dedicated Insomnia route for retrieval.
-    pub fn from_protected_config_with_retrieval_from_insomnia(
-        path: &Path,
-        key_path: &Path,
-    ) -> Result<Self, ConfiguredRuntimeError> {
-        let mut routes = Self::from_protected_config(path, key_path)?;
-        let insomnia = routes
-            .insomnia
-            .clone()
-            .ok_or_else(|| invalid(INSOMNIA, "required for the retrieval override"))?;
-        routes.retrieval = SelectedDecision {
-            source: Some(INSOMNIA),
-            endpoint: Some(Arc::new(GeneralDecisionEndpoint::new(insomnia))),
-        };
-        Ok(routes)
     }
 
     fn bind(

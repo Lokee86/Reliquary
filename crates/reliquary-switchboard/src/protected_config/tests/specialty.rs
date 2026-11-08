@@ -2,7 +2,7 @@ use super::*;
 use crate::DecisionConsumer::{Chronos, EntityResolution, MemoryRetrieval};
 
 #[test]
-fn loads_named_specialties_without_general_and_requires_retrieval_opt_in() {
+fn loads_named_specialties_without_substituting_decision_routes() {
     let oauth = fields(
         &[2, 0, 0, 0],
         &["id-token", ACCESS_TOKEN, "refresh-token", ACCOUNT],
@@ -32,6 +32,18 @@ fn loads_named_specialties_without_general_and_requires_retrieval_opt_in() {
             0,
             fields(&[], &["private-entity-decision", URL, "api"]),
         ),
+        (
+            "models.embedding",
+            2,
+            0,
+            fields(
+                &[2, 1, 0, 0, 3, 0, 0, 0],
+                &["private-embedding", URL, "api"],
+            ),
+        ),
+        ("models.insomnia_metadata", 99, 0, vec![0]),
+        ("models.entity_extraction", 99, 0, vec![0]),
+        ("models.chronos", 99, 0, vec![0]),
         (
             "credential.oauth",
             1,
@@ -69,34 +81,17 @@ fn loads_named_specialties_without_general_and_requires_retrieval_opt_in() {
     );
     assert!(standard.decision_endpoint(Chronos).is_none());
     assert!(standard.decision_endpoint(MemoryRetrieval).is_none());
-    assert!(
-        standard
-            .readiness()
-            .contains("memory_retrieval=unavailable")
-    );
-
-    let overridden = ConfiguredRoutes::from_protected_config_with_retrieval_from_insomnia(
-        &fixture.config,
-        &fixture.key,
-    )
-    .unwrap();
-    assert!(overridden.decision_endpoint(Chronos).is_none());
+    assert_eq!(standard.embedding_endpoint().unwrap().dimensions(), 3);
     assert_eq!(
-        overridden
+        standard
             .decision_endpoint(EntityResolution)
             .unwrap()
             .model(),
         "private-entity-decision"
     );
-    assert_eq!(
-        overridden
-            .decision_endpoint(MemoryRetrieval)
-            .unwrap()
-            .model(),
-        "private-insomnia"
-    );
-    let report = overridden.readiness();
-    assert!(report.contains("memory_retrieval=insomnia"));
+    let report = standard.readiness();
+    assert!(report.contains("chronos=unavailable"));
+    assert!(report.contains("memory_retrieval=unavailable"));
     assert!(report.contains(
         "general selection: insomnia=insomnia, dream=dream, entity_resolution=entity_resolution"
     ));
@@ -104,30 +99,30 @@ fn loads_named_specialties_without_general_and_requires_retrieval_opt_in() {
         assert!(!report.contains(private));
     }
 
-    records.push((
-        "models.memory_retrieval_decision",
-        1,
-        0,
-        fields(&[], &["private-retrieval", URL, "api"]),
-    ));
+    records.extend([
+        (
+            "models.general_decision",
+            1,
+            0,
+            fields(&[], &["private-shared", URL, "api"]),
+        ),
+        (
+            "models.memory_retrieval_decision",
+            1,
+            0,
+            fields(&[], &["private-retrieval", URL, "api"]),
+        ),
+    ]);
     let fixture = Fixture::new(&records);
     fixture.write_key(KEY);
-    let standard = ConfiguredRoutes::from_protected_config(&fixture.config, &fixture.key).unwrap();
-    let overridden = ConfiguredRoutes::from_protected_config_with_retrieval_from_insomnia(
-        &fixture.config,
-        &fixture.key,
-    )
-    .unwrap();
+    let routes = ConfiguredRoutes::from_protected_config(&fixture.config, &fixture.key).unwrap();
     assert_eq!(
-        standard.decision_endpoint(MemoryRetrieval).unwrap().model(),
-        "private-retrieval"
+        routes.decision_endpoint(Chronos).unwrap().model(),
+        "private-shared"
     );
     assert_eq!(
-        overridden
-            .decision_endpoint(MemoryRetrieval)
-            .unwrap()
-            .model(),
-        "private-insomnia"
+        routes.decision_endpoint(MemoryRetrieval).unwrap().model(),
+        "private-retrieval"
     );
 }
 

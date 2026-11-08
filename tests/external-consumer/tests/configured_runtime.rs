@@ -63,29 +63,20 @@ fn root_only_configured_runtime_loads_and_reports_readiness_offline() {
 }
 
 #[test]
-fn root_protected_retrieval_override_requires_a_dedicated_insomnia_route() {
+fn root_loads_empty_protected_configuration_without_a_key() {
     let fixture_dir =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/oc02-fixtures");
     std::fs::create_dir_all(&fixture_dir).unwrap();
     let path = fixture_dir.join(format!("external-protected-{}.cfg", std::process::id()));
     std::fs::write(&path, b"CVCFG\0\r\n\x01\x00\x00\x00\x00\x00\x00\x00").unwrap();
     let key_path = path.with_extension("unused.json");
-    let standard = ConfiguredRuntime::from_protected_config(&path, &key_path);
-    let overridden =
-        ConfiguredRuntime::from_protected_config_with_retrieval_from_insomnia(&path, &key_path);
+    let runtime = ConfiguredRuntime::from_protected_config(&path, &key_path);
     std::fs::remove_file(&path).unwrap();
 
     assert!(
-        standard
+        runtime
             .unwrap()
             .readiness()
             .contains("memory_retrieval=unavailable")
     );
-    assert!(matches!(
-        overridden,
-        Err(ConfiguredRuntimeError::Invalid {
-            route: "insomnia",
-            ..
-        })
-    ));
 }

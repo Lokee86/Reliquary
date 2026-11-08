@@ -154,16 +154,6 @@ fn loads_selected_oauth_api_key_and_embedding_routes_offline() {
 
     let routes = ConfiguredRoutes::from_protected_config(&fixture.config, &fixture.key).unwrap();
     assert_eq!(routes.general_endpoint().unwrap().model(), "private-model");
-    assert!(matches!(
-        ConfiguredRoutes::from_protected_config_with_retrieval_from_insomnia(
-            &fixture.config,
-            &fixture.key
-        ),
-        Err(ConfiguredRuntimeError::Invalid {
-            route: "insomnia",
-            ..
-        })
-    ));
     let embedding = routes.embedding_endpoint().unwrap();
     assert_eq!(embedding.dimensions(), 3);
     assert_eq!(embedding.normalization(), EmbeddingNormalization::L2);

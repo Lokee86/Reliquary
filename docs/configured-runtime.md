@@ -2,7 +2,7 @@
 
 Load an explicit JSON file through the `reliquary-memory` crate. Construction
 validates the configuration and resolves credential references locally.
-`readiness()` reports route availability and general and decision selection offline.
+`readiness()` reports offline availability and selection for general and decision routes.
 
 ```rust
 use reliquary_memory::{ConfiguredRuntime, EnvironmentCredentialResolver};
@@ -34,8 +34,9 @@ The reader accepts CVCFG 1.0 files up to 32 MiB. It loads these optional records
 | 1 | `models.general_decision`, `models.entity_resolution_decision`, `models.memory_retrieval_decision` |
 | 2 | `models.embedding` |
 
-Other records are skipped after framing validation. Loaded routes use the URL
-rules below. Protected Codex routes store an empty URL and use the built-in Codex
+Other records, including `models.insomnia_metadata`, `models.entity_extraction`,
+and `models.chronos`, are skipped after framing validation. Loaded routes use the
+URL rules below. Protected Codex routes store an empty URL and use the built-in Codex
 endpoint. Schema 3 reasoning effort is passed to the corresponding general
 transport. The worker lease uses its default.
 
@@ -112,18 +113,14 @@ endpoint adapted for structured decisions. Chronos uses the shared route and
 the same general fallback. A failed binding for a configured route produces
 an error.
 
-A host can explicitly select `models.insomnia` for Memory Retrieval decisions
-with `ConfiguredRuntime::from_protected_config_with_retrieval_from_insomnia(path, key_path)`.
-That constructor requires a valid dedicated Insomnia route and adapts it for
-retrieval decisions. It takes precedence over the normal retrieval decision
-selection and affects only Memory Retrieval. The default constructor uses
-the normal order, even when `models.insomnia` is present.
+When all three retrieval decision routes are absent, readiness reports
+`memory_retrieval=unavailable`.
 
 `online_probe()` sends one synthetic request per selected transport.
 It probes general and dedicated structured-output transports, direct decision
 output, and one query embedding as applicable. A successful structured-output
-probe covers decisions adapted from that transport, including the Insomnia
-override. Probing stops at the first failure. The transports enforce
+probe covers decisions adapted from that transport. Probing stops at the first
+failure. The transports enforce
 a 30-second request timeout and a 1 MiB response limit. Reports include route
 labels and failure categories while omitting credential references, model
 names, URLs, and provider payloads.
