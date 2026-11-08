@@ -126,7 +126,10 @@ fn hermes_copy_extension_preserves_exact_replay_and_terminal_scope() {
     let runtime = configured_fixture(
         &root.join("processing.cfg"),
         &format!("http://{}/v1", fixture.listener),
-        &[(ModelSlot::General, "fixture")],
+        &[
+            (ModelSlot::General, "fixture"),
+            (ModelSlot::EntityResolution, "fixture"),
+        ],
         true,
     );
     let scope = HermesCopyScope::new("profile".into(), "session".into()).unwrap();
@@ -169,10 +172,15 @@ fn hermes_copy_extension_preserves_exact_replay_and_terminal_scope() {
     assert_eq!(report.insomnia.rel_memories, 1);
 
     let unchanged = length();
+    let mut edited = copied(&scope, "known-branch", "accepted");
+    edited.messages[0].content = "An edited body with the same logical ID.".into();
     for (operator, plan) in [
         (&foreign, second()),
         (&instance, append("rewound-branch", "next")),
-        (&instance, append("known-branch", "accepted")),
+        (
+            &instance,
+            NativeImportPlan::from_hermes_copy_extension(edited, predecessor).unwrap(),
+        ),
     ] {
         assert_eq!(
             operator
