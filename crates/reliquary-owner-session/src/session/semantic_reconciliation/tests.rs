@@ -9,6 +9,8 @@ use reliquary_memory_core::{
 };
 use std::sync::atomic::{AtomicU64, Ordering};
 
+mod user_association_maintenance;
+
 static NEXT: AtomicU64 = AtomicU64::new(1);
 
 struct Temp(PathBuf);

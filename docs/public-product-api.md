@@ -138,8 +138,10 @@ metadata remains unavailable. User naming preserves the existing partition and
 does not generate one.
 
 Verified storage reclamation and pruning retain the name receipt. Fresh-history
-rewrite rejects named Community evidence until a supported rewrite can retain
-its authority and request history.
+rewrite stops on user Memory correction, retirement, association and Community
+naming commits until it can preserve their authenticated authority and request
+history. Divergent reconciliation stops when a divergent tail contains any of
+these commits.
 
 ## Migration from the reference facade
 

@@ -343,6 +343,9 @@ fn reject_unsupported_operational_state(source: &Container) -> Result<(), String
         b"RELIFRS",
         b"RELX",
         b"RELECHO",
+        reliquary_graph::USER_ASSOCIATION_MAGIC,
+        crate::records::user_memory::CORRECTION,
+        crate::records::user_memory::RETIREMENT,
         b"RELCMN01",
     ];
     for frame in source.read_frames().map_err(|error| error.to_string())? {
