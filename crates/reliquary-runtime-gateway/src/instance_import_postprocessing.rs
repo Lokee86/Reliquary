@@ -10,7 +10,7 @@ use reliquary_application::{
         prepare_native_import_dream, prepare_native_import_entity_mention,
         publish_native_import_relationship,
     },
-    prepare_compatibility_profile,
+    prepare_compatibility_profile, verify_compatibility_profile,
 };
 use reliquary_owner_session::{
     CreateRelationshipRequest,
@@ -118,9 +118,14 @@ impl Instance {
         import_id: &str,
         endpoint: &impl EmbeddingEndpoint,
     ) -> Result<CompatibilityProfileId, GatewayError> {
-        self.with_rel_writer(owner, |writer| {
-            writer.validate_native_import_postprocessing(import_id)
+        let accepted = self.with_rel_writer(owner, |writer| {
+            writer.validate_native_import_postprocessing(import_id)?;
+            writer.native_import_processing_profile(import_id)
         })??;
+        if let Some(profile) = accepted {
+            verify_compatibility_profile(&profile, endpoint).map_err(postprocessing_error)?;
+            return Ok(profile.id);
+        }
         let profile = prepare_compatibility_profile(endpoint).map_err(postprocessing_error)?;
         Ok(self.with_rel_writer(owner, |writer| {
             writer.publish_native_import_profile(import_id, profile)

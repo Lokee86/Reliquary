@@ -86,6 +86,7 @@ pub use reliquary_vectors::{
 pub use vector_publication::{
     PreparedMemoryVectors, commit_native_import_memory_vectors, commit_phy_memory_vectors,
     commit_rel_memory_vectors, evaluate_memory_vectors, prepare_compatibility_profile,
+    verify_compatibility_profile,
 };
 mod verified_copy_workflow;
 pub use dream_candidates::{

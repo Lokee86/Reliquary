@@ -50,6 +50,24 @@ pub fn prepare_compatibility_profile(
         .map_err(|e| VectorWorkflowError::Probe(e.to_string()))
 }
 
+/// Verify a live endpoint against an already accepted profile without
+/// deriving or publishing a replacement identity.
+pub fn verify_compatibility_profile(
+    profile: &CompatibilityProfile,
+    endpoint: &impl EmbeddingEndpoint,
+) -> Result<(), VectorWorkflowError> {
+    if !endpoint.supports_bounded_embedding() {
+        return Err(VectorWorkflowError::IncompatibleEndpoint);
+    }
+    let report = reliquary_vectors::verify_endpoint(profile, &Bounded(endpoint))
+        .map_err(|error| VectorWorkflowError::Probe(error.to_string()))?;
+    if report.compatible {
+        Ok(())
+    } else {
+        Err(VectorWorkflowError::IncompatibleEndpoint)
+    }
+}
+
 /// Opaque, source-bound result. Neither the source binding nor vectors can be
 /// replaced by a model-facing caller after inference.
 pub struct PreparedMemoryVectors {

@@ -1,5 +1,70 @@
 # Operational verification for OC01–OC09
 
+## Final live closure — 2026-11-08
+
+**OC09 live acceptance passed.** The final canonical run is preserved at
+`C:\!bin\workspace-data\reliquary-oc09-live-2026-11-08`. It used the
+ordinary rebuilt CLI, the existing protected `reliquary.cfg`, and the
+same two-day normalized input hash recorded below. Its import ID is
+`f7cc33500ec1bebe3d1f3b3be3fc5d529c14a7704ecbc90f50de2bbe1722169c`.
+
+The saved Codex credentials were explicitly refreshed. Live provider
+verification then exposed and closed two transport/probe regressions:
+Responses-Lite requests again send `reasoning.context = "all_turns"`, and
+the direct decision readiness probe uses a valid typed `choice` question.
+All seven originally configured provider routes subsequently passed live
+synthetic probes.
+
+The real import completed all 46 Episodes after two explicit held-work
+retries: 46 complete, 0 failed, 0 held and 0 pending. Insomnia published
+13 REL Memories and 4 PHY Memories while rejecting 81 candidates through
+normal validation. Entity processing completed, the optional relationship
+stage remained not configured, vector coverage completed, all 13 imported
+REL Memories completed first-cycle Dream, historical Freshness completed,
+and the import reached `Ready`.
+
+A Dream retry exposed a second recovery defect: the resumed coordinator
+derived a new embedding compatibility-profile identity instead of reusing
+the profile already pinned to the import. The corrected path now reuses
+that accepted profile and verifies the current endpoint against it before
+continuing. The preserved import resumed successfully through Dream and
+Freshness after this correction.
+
+Passive hybrid search returned the WebSocket handshake and movement-packet
+Memories with complete vector coverage. Stateful retrieval initially
+exposed two configuration/provider-subset gaps. The existing config had no
+Memory Retrieval, shared decision, or General fallback, so `models.general`
+was explicitly configured to the already-working Dream Codex route
+(`gpt-5.6-luna`, `codex-alt`, low reasoning), leaving every dedicated
+route unchanged. The live Codex structured-output API then proved that it
+rejects JSON-Schema `const` while accepting the equivalent typed one-value
+`enum`; the General decision adapter now normalizes that schema form.
+
+The predeclared stateful query then selected the three relevant Memories:
+`GDScript input packet fields`, `Client sending input packets`, and
+`WebSocket hello received`. Refinement rewrote the query to:
+
+> What does the user explicitly say the server still needs to do for movement packets after the WebSocket client handshake?
+
+Traversal from the packet-fields Memory inspected persisted Dream Factual
+and Topical edges. The model declined the one unseen neighbor for the
+refined query, so traversal returned no additional Memory while retaining
+the exact edge evidence. `show`, `source`, and `neighbors` all
+succeeded in the same interaction session. Source inspection recovered
+user turn `20baaa7f-1f8a-4caa-be23-946fa7b3b928` verbatim enough to prove
+the intended fact: the client had connected, its `hello` reached the
+server, and the next task was to get the server to handle movement.
+
+A final independent process reopened both owners: REL verified with 13
+Memories, PHY verified with 4, and a new stateful query returned the same
+three WebSocket Memories. CLI interaction remained inspection-only, so it
+did not manufacture a confirmed-consumption Freshness receipt; confirmed
+host delivery/receipt semantics remain covered by the accepted trusted-host
+tests.
+
+The sections below retain the earlier blocked snapshot as historical
+evidence. Its 401/400/pending statements are superseded by this closure.
+
 ## Real two-day Archive import
 
 The ordinary CLI created separate project REL and user PHY owners, staged

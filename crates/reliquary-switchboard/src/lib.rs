@@ -515,7 +515,7 @@ impl DecisionRequest {
             return Ok(Self {
                 prompt: prompt.to_owned(),
                 schema_name: "decision_response".into(),
-                schema: schema.clone(),
+                schema: normalize_embedded_schema(schema.clone()),
                 response_kind: ResponseKind::EmbeddedSchema,
             });
         }
@@ -608,6 +608,43 @@ impl DecisionRequest {
             response_kind: ResponseKind::ChoiceAnswers(expected),
         })
     }
+}
+
+fn normalize_embedded_schema(mut schema: Value) -> Value {
+    fn normalize(value: &mut Value) {
+        match value {
+            Value::Object(object) => {
+                if let Some(constant) = object.remove("const") {
+                    if !object.contains_key("type") {
+                        let kind = match &constant {
+                            Value::Null => "null",
+                            Value::Bool(_) => "boolean",
+                            Value::Number(number) if number.is_i64() || number.is_u64() => {
+                                "integer"
+                            }
+                            Value::Number(_) => "number",
+                            Value::String(_) => "string",
+                            Value::Array(_) => "array",
+                            Value::Object(_) => "object",
+                        };
+                        object.insert("type".into(), Value::String(kind.into()));
+                    }
+                    object.insert("enum".into(), Value::Array(vec![constant]));
+                }
+                for child in object.values_mut() {
+                    normalize(child);
+                }
+            }
+            Value::Array(values) => {
+                for child in values {
+                    normalize(child);
+                }
+            }
+            _ => {}
+        }
+    }
+    normalize(&mut schema);
+    schema
 }
 
 fn validate_choice_answers(

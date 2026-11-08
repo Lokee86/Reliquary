@@ -211,6 +211,32 @@ fn general_fallback_preserves_explicit_json_schema_requests() {
 }
 
 #[test]
+fn general_fallback_normalizes_const_for_strict_provider_schemas() {
+    let endpoint = general(json!({"version": 1}));
+    let adapter = GeneralDecisionEndpoint::new(endpoint.clone());
+    let response = adapter
+        .evaluate(
+            &json!({"operation": "retrieval"}),
+            &json!({
+                "instruction": "Return version one.",
+                "schema": {
+                    "type": "object",
+                    "required": ["version"],
+                    "additionalProperties": false,
+                    "properties": {"version": {"const": 1}}
+                }
+            }),
+        )
+        .unwrap();
+    assert_eq!(response, json!({"version": 1}));
+    let observed = endpoint.observed.lock().unwrap();
+    let schema = &observed.as_ref().unwrap().3;
+    assert!(schema["properties"]["version"].get("const").is_none());
+    assert_eq!(schema["properties"]["version"]["type"], "integer");
+    assert_eq!(schema["properties"]["version"]["enum"], json!([1]));
+}
+
+#[test]
 fn endpoint_resolution_uses_selected_binding_and_reports_unavailable() {
     struct DecisionStub;
     impl DecisionEndpoint for DecisionStub {
