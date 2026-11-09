@@ -35,10 +35,6 @@ struct Fixture {
     server: Option<thread::JoinHandle<()>>,
 }
 impl Fixture {
-    fn start() -> Self {
-        Self::start_with(fixture_reply)
-    }
-
     fn start_with(reply: impl Fn(&Value, bool) -> Value + Send + 'static) -> Self {
         let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
         let address = listener.local_addr().unwrap();
@@ -197,7 +193,21 @@ fn configured_fixture(
 
 #[test]
 fn configured_import_processes_rel_and_phy_and_reopens_without_republication() {
-    let fixture = Fixture::start();
+    let compatible_drift = Arc::new(AtomicBool::new(false));
+    let fixture = Fixture::start_with({
+        let compatible_drift = Arc::clone(&compatible_drift);
+        move |request, changed_profile| {
+            let mut reply = fixture_reply(request, changed_profile);
+            if !changed_profile && compatible_drift.load(Ordering::Acquire) {
+                if let Some(data) = reply["data"].as_array_mut() {
+                    for row in data {
+                        row["embedding"] = json!([0.99995, 0.01]);
+                    }
+                }
+            }
+            reply
+        }
+    });
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join(".test-tmp")
         .join(format!("operational-{}", std::process::id()));
@@ -231,22 +241,26 @@ fn configured_import_processes_rel_and_phy_and_reopens_without_republication() {
     );
     let rel = Rel::create(&rel_path, OwnerScope::Project).unwrap();
     let phy = Phylactery::create(&phy_path).unwrap();
-    let gateway = Gateway::new();
-    let owner = gateway.mount_rel(&rel, true).unwrap();
-    let destination = gateway.mount_phylactery(&phy, true).unwrap();
     let token = "external-fixture-operator-admission-credential";
-    let (admission, _) = TrustedHostAdmission::new([HostCredentialBinding::new(
-        "operator",
-        token,
-        [
-            OwnerGrant::ManageRel(owner),
-            OwnerGrant::OperateRel(owner),
-            OwnerGrant::OperatePhylactery(destination),
-        ],
-    )])
-    .install(&gateway)
-    .unwrap();
-    let instance = admission.authenticate(token).unwrap();
+    let mount = |rel: &Rel, phy: &Phylactery| {
+        let gateway = Gateway::new();
+        let owner = gateway.mount_rel(rel, true).unwrap();
+        let destination = gateway.mount_phylactery(phy, true).unwrap();
+        let (admission, _) = TrustedHostAdmission::new([HostCredentialBinding::new(
+            "operator",
+            token,
+            [
+                OwnerGrant::ManageRel(owner),
+                OwnerGrant::OperateRel(owner),
+                OwnerGrant::OperatePhylactery(destination),
+            ],
+        )])
+        .install(&gateway)
+        .unwrap();
+        let instance = admission.authenticate(token).unwrap();
+        (gateway, admission, instance, owner, destination)
+    };
+    let (gateway, admission, instance, owner, destination) = mount(&rel, &phy);
     let plan = NativeImportPlan::from_path(&input, NativeImportFormat::ChatGpt, None).unwrap();
     let stage = instance.stage_native_import(owner, plan).unwrap();
     for selection in [
@@ -332,23 +346,66 @@ fn configured_import_processes_rel_and_phy_and_reopens_without_republication() {
     management.quiesce().unwrap();
     assert_eq!(management.verify_quiesced().unwrap().memory_count, 1);
     management.reopen().unwrap();
-    fixture.changed_profile.store(true, Ordering::Release);
-    assert_eq!(
-        instance
-            .process_and_drain(owner, &runtime, options.clone())
-            .unwrap_err()
-            .kind(),
-        ProductErrorKind::Conflict
-    );
-    fixture.changed_profile.store(false, Ordering::Release);
-    assert_eq!(
-        instance
-            .process_and_drain(owner, &runtime, options)
-            .unwrap()
-            .state,
-        ProcessingState::Ready
-    );
+    let sealed = instance
+        .native_import_status(owner, &stage.import_id)
+        .unwrap()
+        .unwrap();
+    assert_eq!(sealed.state, reliquary_memory::NativeImportState::Completed);
+    assert_eq!(sealed.receipt_digest, Some(stage.receipt_digest));
+    let original_probe = runtime.probe_embedding_profile().unwrap().unwrap().id;
     drop((management, instance, admission, gateway, rel, phy));
+
+    // Read both files after releasing their writer leases so this also works on Windows.
+    let sealed_rel = fs::read(&rel_path).unwrap();
+    let sealed_phy = fs::read(&phy_path).unwrap();
+    compatible_drift.store(true, Ordering::Release);
+    let drifted_probe = runtime.probe_embedding_profile().unwrap().unwrap().id;
+    assert_ne!(
+        original_probe, drifted_probe,
+        "drift must change the raw probe hash"
+    );
+
+    let replay = |runtime: &ConfiguredRuntime| {
+        let rel = Rel::open(&rel_path).unwrap();
+        let phy = Phylactery::open(&phy_path).unwrap();
+        let (gateway, admission, instance, reopened_owner, reopened_destination) =
+            mount(&rel, &phy);
+        assert_eq!((reopened_owner, reopened_destination), (owner, destination));
+        assert_eq!(
+            instance
+                .process_and_drain(owner, &other_runtime, options.clone())
+                .unwrap_err()
+                .kind(),
+            ProductErrorKind::Conflict
+        );
+        fixture.changed_profile.store(true, Ordering::Release);
+        assert_eq!(
+            instance
+                .process_and_drain(owner, runtime, options.clone())
+                .unwrap_err()
+                .kind(),
+            ProductErrorKind::Conflict
+        );
+        fixture.changed_profile.store(false, Ordering::Release);
+        let report = instance
+            .process_and_drain(owner, runtime, options.clone())
+            .unwrap();
+        assert_eq!(report.state, ProcessingState::Ready, "{report:?}");
+        assert_eq!(
+            instance
+                .native_import_status(owner, &stage.import_id)
+                .unwrap(),
+            Some(sealed.clone())
+        );
+        drop((instance, admission, gateway, rel, phy));
+        assert_eq!(fs::read(&rel_path).unwrap(), sealed_rel);
+        assert_eq!(fs::read(&phy_path).unwrap(), sealed_phy);
+        serde_json::to_value(report).unwrap()
+    };
+    let before_restart = replay(&runtime);
+    drop(runtime);
+    let restarted_runtime = ConfiguredRuntime::from_path(&config).unwrap();
+    assert_eq!(replay(&restarted_runtime), before_restart);
     assert_eq!(Rel::verify(&rel_path).unwrap().memory_count, 1);
     assert_eq!(Phylactery::verify(&phy_path).unwrap().memory_count, 1);
     drop(fixture);

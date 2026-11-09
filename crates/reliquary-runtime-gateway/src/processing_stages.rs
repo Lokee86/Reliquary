@@ -5,12 +5,14 @@ use crate::{
 };
 use reliquary_application::{
     DreamClassifier, DreamVerificationPolicy, DreamVerifier, SwitchboardEmbeddingEndpoint,
+    VectorWorkflowError,
     import_entity_work::accepted_import_entity_work,
     native_import_workflow::{NativeImportDreamCandidates, NativeImportPostprocessingPlan},
     prepare_compatibility_profile,
     processing_plan::{
         ImportStage, ImportStageOutcome, ImportStageRun, StageState, coordinate_import_stages,
     },
+    verify_compatibility_profile,
 };
 use reliquary_owner_session::{InsomniaWorkState, model::MemoryId};
 use reliquary_switchboard::{EmbeddingEndpoint, GeneralEndpoint};
@@ -233,12 +235,27 @@ pub(crate) fn verify_import_seal(
     embedding: Arc<dyn EmbeddingEndpoint>,
     mut report: impl FnMut(ImportStage, StageState, usize),
 ) -> Result<ProcessingState, GatewayError> {
+    let bounded = embedding.supports_bounded_embedding();
     let endpoint = SwitchboardEmbeddingEndpoint::new(embedding);
-    let profile = prepare_compatibility_profile(&endpoint)
-        .map_err(|_| {
-            GatewayError::RetrievalUnavailable("configured embedding profile could not be verified")
-        })?
-        .id;
+    let accepted = instance.with_writable_reliquary(owner, |session| {
+        session.native_import_processing_profile(import_id)
+    })??;
+    let probe_failed =
+        || GatewayError::RetrievalUnavailable("configured embedding profile could not be verified");
+    let profile = if let Some(accepted) = accepted {
+        verify_compatibility_profile(&accepted, &endpoint).map_err(|error| match error {
+            VectorWorkflowError::IncompatibleEndpoint if bounded => {
+                OwnerSessionError::ManagementConflict.into()
+            }
+            _ => probe_failed(),
+        })?;
+        accepted.id
+    } else {
+        // Seals written before the processing binding still require an exact active profile.
+        prepare_compatibility_profile(&endpoint)
+            .map_err(|_| probe_failed())?
+            .id
+    };
     if !instance
         .native_import_missing_memory_vectors(owner, import_id, profile)?
         .is_empty()
