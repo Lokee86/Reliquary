@@ -85,31 +85,6 @@ impl RelWriter {
         }
     }
 
-    /// Return the profile already pinned to this open import processing plan.
-    /// Retries must reuse this identity rather than deriving a second profile
-    /// from another live compatibility probe.
-    pub fn native_import_processing_profile(
-        &self,
-        import_id: &str,
-    ) -> Result<Option<CompatibilityProfile>, OwnerSessionError> {
-        self.ensure_import_scope(import_id)?;
-        let Some(profile) = self
-            .session
-            .imports
-            .processing_binding(import_id)
-            .and_then(|binding| binding.profile)
-        else {
-            return Ok(None);
-        };
-        self.session
-            .active_compatibility_profile(CompatibilityProfileId(profile))
-            .cloned()
-            .map(Some)
-            .ok_or_else(|| {
-                OwnerSessionError::Record("import processing profile is missing or retired".into())
-            })
-    }
-
     pub fn require_native_import_profile(
         &self,
         import_id: &str,
@@ -155,5 +130,29 @@ impl RelWriter {
         }
         self.session.writer_lease_proof = self.container.writer_lease_proof();
         Ok(())
+    }
+}
+
+impl RelSession {
+    /// Read the active profile pinned to the import, including after settlement.
+    pub fn native_import_processing_profile(
+        &self,
+        import_id: &str,
+    ) -> Result<Option<CompatibilityProfile>, OwnerSessionError> {
+        let Some(binding) = self.imports.processing_binding(import_id) else {
+            return Ok(None);
+        };
+        let Some(profile) = binding.profile else {
+            if self.imports.settlement(import_id).is_some() {
+                return Err(OwnerSessionError::ManagementConflict);
+            }
+            return Ok(None);
+        };
+        self.active_compatibility_profile(CompatibilityProfileId(profile))
+            .cloned()
+            .map(Some)
+            .ok_or_else(|| {
+                OwnerSessionError::Record("import processing profile is missing or retired".into())
+            })
     }
 }

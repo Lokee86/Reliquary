@@ -120,7 +120,9 @@ impl Instance {
     ) -> Result<CompatibilityProfileId, GatewayError> {
         let accepted = self.with_rel_writer(owner, |writer| {
             writer.validate_native_import_postprocessing(import_id)?;
-            writer.native_import_processing_profile(import_id)
+            writer
+                .read_session()
+                .native_import_processing_profile(import_id)
         })??;
         if let Some(profile) = accepted {
             verify_compatibility_profile(&profile, endpoint).map_err(postprocessing_error)?;
