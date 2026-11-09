@@ -21,6 +21,8 @@ const LEDGER_PROMPT: &str = concat!(
     "Request at most four narrow read-only evidence queries only when needed to resolve an explicit callback, adopted/retained assistant content, or unresolved referent. ",
     "Exhaust the Episode first. ",
     "Archive evidence is supporting context, never independent user authority. ",
+    "Authority and grounding sources must be at or before the user turn they support. ",
+    "Use an empty attribution ID when no separate source is needed. ",
     "Return the required JSON schema exactly.",
 );
 const WORDING_PROMPT: &str = concat!(
@@ -30,6 +32,7 @@ const WORDING_PROMPT: &str = concat!(
     "Grounding, authority, category, type, lifecycle, and ownership are already final. ",
     "Keep each candidate bound to its source user turn with a verbatim source_quote. ",
     "Only explicit adoption or retention of an assistant-authored proposition may cite assistant authority. ",
+    "Use null for any attribution whose fixed source ID is empty. ",
     "Return exactly one candidate per group; do not infer details from supporting evidence.",
 );
 const OWNERSHIP_PROMPT: &str = "Classify each fixed synthesis group as user or project. Change only its durable owner; do not alter group membership, propositions, authority, provenance, category, type, or lifecycle. User means genuinely user-global state intended to remain useful across unrelated projects, including stable personal facts, preferences, and reusable personal practices. Project means project-specific facts, decisions, requirements, plans, or state, and is the conservative destination for ambiguous or non-user-owned propositions. Ownership is not confidentiality, access control, visibility, or retrieval relevance. Return exactly one classification for each supplied group key.";
@@ -92,7 +95,7 @@ impl<E: GeneralEndpoint> InsomniaModelExtractor<E> {
         if episode_payload(episode, turns)? != stage.episode_payload {
             return Err("ledger stage does not match authoritative Episode".into());
         }
-        validate_ledger(&stage.initial_ledger, turns)?;
+        validate_ledger(&stage.initial_ledger, turns, &[])?;
         if !stage.requests.is_empty() || !parse_evidence_requests(&stage.initial_ledger)?.is_empty()
         {
             return Err("ledger requires its authorized evidence round".into());
@@ -120,7 +123,7 @@ impl<E: GeneralEndpoint> InsomniaModelExtractor<E> {
         if episode_payload(episode, turns)? != stage.episode_payload {
             return Err("evidence round does not match authoritative Episode".into());
         }
-        validate_ledger(&stage.initial_ledger, turns)?;
+        validate_ledger(&stage.initial_ledger, turns, &[])?;
         if stage.requests.is_empty()
             || parse_evidence_requests(&stage.initial_ledger)? != stage.requests
         {
@@ -211,7 +214,7 @@ impl<E: GeneralEndpoint> InsomniaModelExtractor<E> {
                 return Err("ledger clause-field repair remained incomplete".into());
             }
         }
-        validate_ledger(&response, turns)?;
+        validate_ledger(&response, turns, evidence)?;
         Ok(response)
     }
 
@@ -234,7 +237,7 @@ impl<E: GeneralEndpoint> InsomniaModelExtractor<E> {
             classify_ownership(endpoint.as_ref(), payload, &mut retained)?;
         }
         let input = serde_json::to_string(&json!({"authoritative_episode":payload,"synthesis_groups":retained,"supporting_evidence":evidence.iter().map(evidence_turn_json).collect::<Vec<_>>()})).map_err(|e| e.to_string())?;
-        let schema = candidate_schema(turns, evidence);
+        let schema = candidate_schema(&retained);
         let response = self.complete(WORDING_PROMPT, &input, "insomnia_memory_wording", &schema)?;
         let array = response
             .get("candidates")
@@ -312,42 +315,19 @@ fn episode_payload(episode: &Episode, turns: &[ResolvedTurn]) -> Result<Value, S
 }
 
 fn ledger_schema(turns: &[ResolvedTurn], evidence: &[EvidenceTurn], allow_requests: bool) -> Value {
-    let mut assistants: Vec<_> = turns
-        .iter()
-        .filter(|t| t.role == "assistant")
-        .map(|t| t.node_id.clone())
-        .chain(
-            evidence
-                .iter()
-                .filter(|t| t.role == "assistant")
-                .map(|t| t.node_id.clone()),
-        )
-        .collect();
-    assistants.push(String::new());
-    let mut support: Vec<_> = turns
-        .iter()
-        .map(|t| t.node_id.clone())
-        .chain(evidence.iter().map(|t| t.node_id.clone()))
-        .collect();
-    support.push(String::new());
-    let user_ids: Vec<_> = turns
+    let user_ids = turns
         .iter()
         .filter(|t| t.role == "user")
         .map(|t| t.node_id.clone())
-        .collect();
-    let mut properties = serde_json::Map::new();
-    for id in &user_ids {
-        properties.insert(id.clone(), json!({"type":"array","minItems":1,"maxItems":16,"items":{"type":"object","additionalProperties":false,"properties":{"disposition":{"type":"string","enum":["retain","omit","superseded"]},"authority_kind":{"type":"string","enum":["direct","correction","adoption","retention","none"]},"category":{"type":"string","enum":["fact","preference","decision","instruction","relationship","constraint","correction","commitment","none"]},"type":{"type":"string","enum":["identity","education","employment","location","possession","health","finance","schedule","communication","project","process","product","relationship","other","none"]},"lifecycle":{"type":"string","enum":["current","future","historical","superseded","none"]},"proposition":{"type":"string"},"authority_source_node_id":{"type":"string","enum":assistants},"grounding_source_node_id":{"type":"string","enum":support},"reason":{"type":"string"}},"required":["disposition","authority_kind","category","type","lifecycle","proposition","authority_source_node_id","grounding_source_node_id","reason"]}}));
-    }
-    let req = if allow_requests {
-        json!({"type":"array","maxItems":4,"items":{"type":"object","additionalProperties":false,"properties":{"kind":{"type":"string","enum":["turn","conversation_range","archive_search"]},"conversation_id":{"type":"string"},"node_id":{"type":"string"},"start_node_id":{"type":"string"},"end_node_id":{"type":"string"},"query":{"type":"string"},"limit":{"type":"integer","minimum":0,"maximum":5}},"required":["kind","conversation_id","node_id","start_node_id","end_node_id","query","limit"]}})
-    } else {
-        json!({"type":"array","maxItems":0})
-    };
-    json!({"type":"object","additionalProperties":false,"properties":{"turns":{"type":"object","additionalProperties":false,"properties":properties,"required":user_ids},"evidence_requests":req},"required":["turns","evidence_requests"]})
+        .collect::<Vec<_>>();
+    ledger_repair::turn_schema(turns, evidence, &user_ids, allow_requests)
 }
 
-fn validate_ledger(value: &Value, turns: &[ResolvedTurn]) -> Result<(), String> {
+fn validate_ledger(
+    value: &Value,
+    turns: &[ResolvedTurn],
+    evidence: &[EvidenceTurn],
+) -> Result<(), String> {
     let map = value
         .get("turns")
         .and_then(Value::as_object)
@@ -360,12 +340,29 @@ fn validate_ledger(value: &Value, turns: &[ResolvedTurn]) -> Result<(), String> 
     if map.len() != expected.len() || map.keys().any(|id| !expected.contains(id.as_str())) {
         return Err("ledger must account for every user turn and no other turn".into());
     }
-    for clauses in map.values() {
-        let clauses = clauses
+    for turn in turns.iter().filter(|t| t.role == "user") {
+        let clauses = map[&turn.node_id]
             .as_array()
             .ok_or("ledger turn clauses must be an array")?;
         if clauses.is_empty() || clauses.len() > 16 {
             return Err("ledger clause count out of range".into());
+        }
+        let authority =
+            ledger_repair::eligible_attribution_ids(turns, evidence, turn.timestamp_ns, true);
+        let grounding =
+            ledger_repair::eligible_attribution_ids(turns, evidence, turn.timestamp_ns, false);
+        for clause in clauses.iter().filter(|c| c["disposition"] == "retain") {
+            if !clause["authority_source_node_id"]
+                .as_str()
+                .is_some_and(|id| authority.contains(&id))
+                || !clause["grounding_source_node_id"]
+                    .as_str()
+                    .is_some_and(|id| grounding.contains(&id))
+            {
+                return Err(
+                    "ledger attribution is outside the user turn's eligible evidence".into(),
+                );
+            }
         }
     }
     Ok(())
@@ -519,31 +516,17 @@ fn matches_retained_clause(candidate: &RawCandidate, clause: &Value) -> bool {
         .all(|(key, expected)| clause[key].as_str() == Some(expected))
 }
 
-fn candidate_schema(turns: &[ResolvedTurn], evidence: &[EvidenceTurn]) -> Value {
-    let users: Vec<_> = turns
-        .iter()
-        .filter(|t| t.role == "user")
-        .map(|t| t.node_id.clone())
-        .collect();
-    let mut all_ids: Vec<_> = turns
-        .iter()
-        .map(|t| t.node_id.clone())
-        .chain(evidence.iter().map(|t| t.node_id.clone()))
-        .collect();
-    all_ids.push(String::new());
-    let mut assistants: Vec<_> = turns
-        .iter()
-        .filter(|t| t.role == "assistant")
-        .map(|t| t.node_id.clone())
-        .chain(
-            evidence
-                .iter()
-                .filter(|t| t.role == "assistant")
-                .map(|t| t.node_id.clone()),
-        )
-        .collect();
-    assistants.push(String::new());
-    json!({"type":"object","additionalProperties":false,"properties":{"candidates":{"type":"array","maxItems":64,"items":{"type":"object","additionalProperties":false,"properties":{"authority_kind":{"type":"string","enum":["direct","correction","adoption","retention"]},"category":{"type":"string","enum":["fact","preference","decision","instruction","relationship","constraint","correction","commitment"]},"memory_type":{"type":"string","enum":["identity","education","employment","location","possession","health","finance","schedule","communication","project","process","product","relationship","other"]},"temporal_status":{"type":"string","enum":["current","future","historical"]},"ownership":{"type":"string","enum":["user","project"]},"title":{"type":"string"},"content":{"type":"string"},"source_node_id":{"type":"string","enum":users},"source_quote":{"type":"string"},"authority_source":{"type":["object","null"],"properties":{"conversation_id":{"type":"string"},"node_id":{"type":"string","enum":assistants},"quote":{"type":"string"}},"required":["conversation_id","node_id","quote"],"additionalProperties":false},"grounding_source":{"type":["object","null"],"properties":{"conversation_id":{"type":"string"},"node_id":{"type":"string","enum":all_ids},"quote":{"type":"string"}},"required":["conversation_id","node_id","quote"],"additionalProperties":false},"routing_mentions":{"type":"array","maxItems":32,"items":{"type":"object","additionalProperties":false,"properties":{"field":{"type":"string","enum":["title","content"]},"start_byte":{"type":"integer","minimum":0},"end_byte":{"type":"integer","minimum":0},"text":{"type":"string"}},"required":["field","start_byte","end_byte","text"]}}},"required":["authority_kind","category","memory_type","temporal_status","ownership","title","content","source_node_id","source_quote","authority_source","grounding_source","routing_mentions"]}}},"required":["candidates"]})
+fn candidate_schema(groups: &[Value]) -> Value {
+    let ids = |field: &str| {
+        groups
+            .iter()
+            .filter_map(|group| group[field].as_str())
+            .collect::<std::collections::BTreeSet<_>>()
+    };
+    let users = ids("source_node_id");
+    let assistants = ids("authority_source_node_id");
+    let support = ids("grounding_source_node_id");
+    json!({"type":"object","additionalProperties":false,"properties":{"candidates":{"type":"array","maxItems":64,"items":{"type":"object","additionalProperties":false,"properties":{"authority_kind":{"type":"string","enum":["direct","correction","adoption","retention"]},"category":{"type":"string","enum":["fact","preference","decision","instruction","relationship","constraint","correction","commitment"]},"memory_type":{"type":"string","enum":["identity","education","employment","location","possession","health","finance","schedule","communication","project","process","product","relationship","other"]},"temporal_status":{"type":"string","enum":["current","future","historical"]},"ownership":{"type":"string","enum":["user","project"]},"title":{"type":"string"},"content":{"type":"string"},"source_node_id":{"type":"string","enum":users},"source_quote":{"type":"string"},"authority_source":{"type":["object","null"],"properties":{"conversation_id":{"type":"string"},"node_id":{"type":"string","enum":assistants},"quote":{"type":"string"}},"required":["conversation_id","node_id","quote"],"additionalProperties":false},"grounding_source":{"type":["object","null"],"properties":{"conversation_id":{"type":"string"},"node_id":{"type":"string","enum":support},"quote":{"type":"string"}},"required":["conversation_id","node_id","quote"],"additionalProperties":false},"routing_mentions":{"type":"array","maxItems":32,"items":{"type":"object","additionalProperties":false,"properties":{"field":{"type":"string","enum":["title","content"]},"start_byte":{"type":"integer","minimum":0},"end_byte":{"type":"integer","minimum":0},"text":{"type":"string"}},"required":["field","start_byte","end_byte","text"]}}},"required":["authority_kind","category","memory_type","temporal_status","ownership","title","content","source_node_id","source_quote","authority_source","grounding_source","routing_mentions"]}}},"required":["candidates"]})
 }
 
 fn parse_candidate(v: &Value) -> Result<RawCandidate, String> {
@@ -795,6 +778,97 @@ mod tests {
             .finish_without_evidence(&episode, &turns, stage)
             .unwrap();
         assert_eq!(result.candidates[0].ownership, InsomniaOwnership::User);
+    }
+
+    fn chronological_source() -> (Episode, Vec<ResolvedTurn>, Vec<EvidenceTurn>) {
+        let (mut episode, mut turns) = source();
+        turns[0].timestamp_ns = 2;
+        for (node_id, role, timestamp_ns) in [
+            ("a1", "assistant", 3),
+            ("u2", "user", 4),
+            ("a2", "assistant", 5),
+        ] {
+            turns.push(ResolvedTurn {
+                node_id: node_id.into(),
+                role: role.into(),
+                timestamp_ns,
+                principal_id: None,
+                content: "test".into(),
+            });
+        }
+        episode.end_node_id = "a2".into();
+        let evidence = [("earlier", 1), ("later", 6)]
+            .into_iter()
+            .map(|(id, timestamp_ns)| EvidenceTurn {
+                conversation_id: "archive".into(),
+                node_id: id.into(),
+                role: "assistant".into(),
+                timestamp_ns,
+                content: "test".into(),
+            })
+            .collect();
+        (episode, turns, evidence)
+    }
+
+    #[test]
+    fn attribution_schema_is_scoped_to_each_user_turn_in_ledger_and_repairs() {
+        let (_, turns, evidence) = chronological_source();
+        let schema = ledger_schema(&turns, &evidence, false);
+        let turns_schema = &schema["properties"]["turns"]["properties"];
+        assert_eq!(
+            turns_schema["u1"]["items"]["properties"]["authority_source_node_id"]["enum"],
+            json!(["earlier", ""])
+        );
+        assert_eq!(
+            turns_schema["u1"]["items"]["properties"]["grounding_source_node_id"]["enum"],
+            json!(["u1", "earlier", ""])
+        );
+        assert_eq!(
+            turns_schema["u2"]["items"]["properties"]["authority_source_node_id"]["enum"],
+            json!(["a1", "earlier", ""])
+        );
+        assert_eq!(
+            turns_schema["u2"]["items"]["properties"]["grounding_source_node_id"]["enum"],
+            json!(["u1", "a1", "u2", "earlier", ""])
+        );
+
+        let mut ledger = ledger(json!([]));
+        ledger["turns"]["u2"] = ledger["turns"]["u1"].clone();
+        ledger["turns"]["u2"][0]["grounding_source_node_id"] = Value::Null;
+        let missing = ledger_repair::missing_clause_fields(&ledger, &turns).unwrap();
+        let repair = ledger_repair::clause_field_schema(&turns, &evidence, &missing);
+        assert_eq!(
+            repair["properties"]["repairs"]["properties"]["r000"]["properties"]["grounding_source_node_id"]
+                ["enum"],
+            json!(["u1", "a1", "u2", "earlier", ""])
+        );
+    }
+
+    #[test]
+    fn wording_is_bound_to_retained_attributions_and_ledger_rejects_future_sources() {
+        let (episode, turns, evidence) = chronological_source();
+        let mut ledger = ledger(json!([]));
+        ledger["turns"]["u2"] = ledger["turns"]["u1"].clone();
+        ledger["turns"]["u1"][0]["grounding_source_node_id"] = json!("u1");
+        ledger["turns"]["u2"][0]["grounding_source_node_id"] = json!("a1");
+        validate_ledger(&ledger, &turns, &evidence).unwrap();
+        let schema = candidate_schema(&retained_groups(&ledger, &turns).unwrap());
+        let props = &schema["properties"]["candidates"]["items"]["properties"];
+        assert_eq!(
+            props["grounding_source"]["properties"]["node_id"]["enum"],
+            json!(["a1", "u1"])
+        );
+        assert_eq!(
+            props["authority_source"]["properties"]["node_id"]["enum"],
+            json!([""])
+        );
+
+        ledger["turns"]["u1"][0]["grounding_source_node_id"] = json!("a1");
+        let extractor = InsomniaModelExtractor::new(FakeEndpoint(Mutex::new(vec![ledger])));
+        assert_eq!(
+            extractor.start(&episode, &turns),
+            Err("ledger attribution is outside the user turn's eligible evidence".into())
+        );
     }
 
     #[test]

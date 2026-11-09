@@ -33,6 +33,7 @@ const TYPES: &[&str] = &[
 pub(super) struct MissingClauseFields {
     pub source_node_id: String,
     pub clause_index: usize,
+    source_timestamp_ns: i64,
     pub fields: Vec<&'static str>,
 }
 
@@ -63,29 +64,16 @@ pub(super) fn turn_schema(
     missing: &[String],
     allow_requests: bool,
 ) -> Value {
-    let mut assistants: Vec<_> = turns
-        .iter()
-        .filter(|t| t.role == "assistant")
-        .map(|t| t.node_id.clone())
-        .chain(
-            evidence
-                .iter()
-                .filter(|t| t.role == "assistant")
-                .map(|t| t.node_id.clone()),
-        )
-        .collect();
-    assistants.push(String::new());
-    let mut support: Vec<_> = turns
-        .iter()
-        .map(|t| t.node_id.clone())
-        .chain(evidence.iter().map(|t| t.node_id.clone()))
-        .collect();
-    support.push(String::new());
-    let clause = clause_schema(assistants, support);
     let mut properties = Map::new();
-    for id in missing {
+    for turn in turns
+        .iter()
+        .filter(|t| t.role == "user" && missing.contains(&t.node_id))
+    {
+        let authority = eligible_attribution_ids(turns, evidence, turn.timestamp_ns, true);
+        let grounding = eligible_attribution_ids(turns, evidence, turn.timestamp_ns, false);
+        let clause = clause_schema(authority, grounding);
         properties.insert(
-            id.clone(),
+            turn.node_id.clone(),
             json!({"type":"array","minItems":1,"maxItems":16,"items":clause}),
         );
     }
@@ -196,6 +184,7 @@ pub(super) fn missing_clause_fields(
                 missing.push(MissingClauseFields {
                     source_node_id: turn.node_id.clone(),
                     clause_index,
+                    source_timestamp_ns: turn.timestamp_ns,
                     fields,
                 });
             }
@@ -216,7 +205,10 @@ pub(super) fn clause_field_schema(
         required.push(Value::String(key.clone()));
         let mut properties = Map::new();
         for field in &target.fields {
-            properties.insert((*field).into(), field_schema(turns, evidence, field));
+            properties.insert(
+                (*field).into(),
+                field_schema(turns, evidence, target.source_timestamp_ns, field),
+            );
         }
         repair_properties.insert(key, json!({"type":"object","additionalProperties":false,"properties":properties,"required":target.fields}));
     }
@@ -269,7 +261,12 @@ pub(super) fn merge_clause_field_repairs(
     Ok(())
 }
 
-fn field_schema(turns: &[ResolvedTurn], evidence: &[EvidenceTurn], field: &str) -> Value {
+fn field_schema(
+    turns: &[ResolvedTurn],
+    evidence: &[EvidenceTurn],
+    source_timestamp_ns: i64,
+    field: &str,
+) -> Value {
     match field {
         "disposition" => json!({"type":"string","enum":["retain","omit","superseded"]}),
         "authority_kind" => {
@@ -286,34 +283,38 @@ fn field_schema(turns: &[ResolvedTurn], evidence: &[EvidenceTurn], field: &str) 
         }
         "proposition" => json!({"type":"string"}),
         "authority_source_node_id" => {
-            let mut ids: Vec<_> = turns
-                .iter()
-                .filter(|t| t.role == "assistant")
-                .map(|t| t.node_id.clone())
-                .chain(
-                    evidence
-                        .iter()
-                        .filter(|t| t.role == "assistant")
-                        .map(|t| t.node_id.clone()),
-                )
-                .collect();
-            ids.push(String::new());
-            json!({"type":"string","enum":ids})
+            json!({"type":"string","enum":eligible_attribution_ids(turns, evidence, source_timestamp_ns, true)})
         }
         "grounding_source_node_id" => {
-            let mut ids: Vec<_> = turns
-                .iter()
-                .map(|t| t.node_id.clone())
-                .chain(evidence.iter().map(|t| t.node_id.clone()))
-                .collect();
-            ids.push(String::new());
-            json!({"type":"string","enum":ids})
+            json!({"type":"string","enum":eligible_attribution_ids(turns, evidence, source_timestamp_ns, false)})
         }
         _ => unreachable!("known repair field"),
     }
 }
 
-fn clause_schema(assistants: Vec<String>, support: Vec<String>) -> Value {
+pub(super) fn eligible_attribution_ids<'a>(
+    turns: &'a [ResolvedTurn],
+    evidence: &'a [EvidenceTurn],
+    source_timestamp_ns: i64,
+    assistant_only: bool,
+) -> Vec<&'a str> {
+    turns
+        .iter()
+        .map(|t| (t.node_id.as_str(), t.role.as_str(), t.timestamp_ns))
+        .chain(
+            evidence
+                .iter()
+                .map(|t| (t.node_id.as_str(), t.role.as_str(), t.timestamp_ns)),
+        )
+        .filter(|(_, role, timestamp)| {
+            *timestamp <= source_timestamp_ns && (!assistant_only || *role == "assistant")
+        })
+        .map(|(id, _, _)| id)
+        .chain(std::iter::once(""))
+        .collect()
+}
+
+fn clause_schema(assistants: Vec<&str>, support: Vec<&str>) -> Value {
     json!({"type":"object","additionalProperties":false,"properties":{"disposition":{"type":"string","enum":["retain","omit","superseded"]},"authority_kind":{"type":"string","enum":["direct","correction","adoption","retention","none"]},"category":{"type":"string","enum":["fact","preference","decision","instruction","relationship","constraint","correction","commitment","none"]},"type":{"type":"string","enum":["identity","education","employment","location","possession","health","finance","schedule","communication","project","process","product","relationship","other","none"]},"lifecycle":{"type":"string","enum":["current","future","historical","superseded","none"]},"proposition":{"type":"string"},"authority_source_node_id":{"type":"string","enum":assistants},"grounding_source_node_id":{"type":"string","enum":support},"reason":{"type":"string"}},"required":["disposition","authority_kind","category","type","lifecycle","proposition","authority_source_node_id","grounding_source_node_id","reason"]})
 }
 
