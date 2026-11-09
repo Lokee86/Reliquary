@@ -8,7 +8,7 @@ use reliquary_memory::{
 use std::io::{self, BufRead, BufReader, Read};
 use zeroize::Zeroizing;
 
-pub(crate) fn run(args: &[String]) -> Result<Value, ProductError> {
+pub(crate) fn run(args: &[String], input: impl Read) -> Result<Value, ProductError> {
     match args.first().map(String::as_str) {
         Some("show") => {
             validate_options(args, 1, &[("--config", false)])?;
@@ -53,7 +53,7 @@ pub(crate) fn run(args: &[String]) -> Result<Value, ProductError> {
                 json!({"operation":"config_verify","verified":true,"online":online,"readiness":readiness}),
             )
         }
-        Some("credential") => credential(&args[1..]),
+        Some("credential") => credential(&args[1..], input),
         Some("model") => model(&args[1..]),
         _ => Err(invalid(
             "config requires show, verify, credential, or model",
@@ -104,7 +104,7 @@ fn redacted_url(url: &str) -> &str {
     url.split_once('?').map_or(url, |(base, _)| base)
 }
 
-fn credential(args: &[String]) -> Result<Value, ProductError> {
+fn credential(args: &[String], input: impl Read) -> Result<Value, ProductError> {
     let Some(operation) = args.first().map(String::as_str) else {
         return Err(invalid("missing credential operation"));
     };
@@ -131,7 +131,7 @@ fn credential(args: &[String]) -> Result<Value, ProductError> {
     match operation {
         "add-api-key" => config.add_api_key(
             id.clone(),
-            read_key(args.iter().any(|arg| arg == "--stdin"))?,
+            read_key(args.iter().any(|arg| arg == "--stdin"), input)?,
         ),
         "login-codex" => config
             .login_codex(id.clone(), |code| {
@@ -149,13 +149,13 @@ fn credential(args: &[String]) -> Result<Value, ProductError> {
     Ok(json!({"operation":operation,"credential_id":id.as_str(),"saved":true}))
 }
 
-fn read_key(stdin: bool) -> Result<SecretString, ProductError> {
+fn read_key(stdin: bool, input: impl Read) -> Result<SecretString, ProductError> {
     const LIMIT: usize = 64 * 1024;
     let read_error = |_| ProductError::new(ProductErrorKind::Io, "could not read API key");
     let key = if stdin {
         let mut key = Zeroizing::new(String::with_capacity(LIMIT + 1));
         // Read one bounded line and erase the original buffer even on failure.
-        BufReader::with_capacity(1, io::stdin().lock().take((LIMIT + 1) as u64))
+        BufReader::with_capacity(1, input.take((LIMIT + 1) as u64))
             .read_line(&mut key)
             .map_err(read_error)?;
         if key.len() > LIMIT {

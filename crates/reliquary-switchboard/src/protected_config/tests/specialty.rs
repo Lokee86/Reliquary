@@ -3,6 +3,7 @@ use crate::DecisionConsumer::{Chronos, EntityResolution, MemoryRetrieval};
 
 #[test]
 fn loads_named_specialties_without_substituting_decision_routes() {
+    let keys = mock_master_key_store();
     let oauth = fields(
         &[2, 0, 0, 0],
         &["id-token", ACCESS_TOKEN, "refresh-token", ACCOUNT],
@@ -68,7 +69,7 @@ fn loads_named_specialties_without_substituting_decision_routes() {
         ),
     ];
     let fixture = Fixture::new(&records);
-    fixture.write_key(KEY);
+    keys.replace(&fixture.config, KEY.to_vec());
     let file = ConfigFile::open(&fixture.config).unwrap();
     let config = routes::decode(&file.document).unwrap();
     assert_eq!(
@@ -133,7 +134,7 @@ fn loads_named_specialties_without_substituting_decision_routes() {
         ),
     ]);
     let fixture = Fixture::new(&records);
-    fixture.write_key(KEY);
+    keys.replace(&fixture.config, KEY.to_vec());
     let routes = ConfiguredRoutes::from_path(&fixture.config).unwrap();
     assert_eq!(
         routes.decision_endpoint(Chronos).unwrap().model(),
@@ -147,6 +148,7 @@ fn loads_named_specialties_without_substituting_decision_routes() {
 
 #[test]
 fn malformed_named_specialty_fails_instead_of_selecting_general() {
+    let keys = mock_master_key_store();
     let fixture = Fixture::new(&[
         (
             "models.general",
@@ -162,7 +164,7 @@ fn malformed_named_specialty_fails_instead_of_selecting_general() {
             encrypted("credential.api", 6, fields(&[1, 0, 0, 0], &[API_KEY])),
         ),
     ]);
-    fixture.write_key(KEY);
+    keys.replace(&fixture.config, KEY.to_vec());
     assert!(matches!(
         ConfiguredRoutes::from_path(&fixture.config),
         Err(ConfiguredRuntimeError::Invalid { route: "dream", .. })

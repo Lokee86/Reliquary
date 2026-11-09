@@ -1,6 +1,6 @@
 # Configured provider runtime
 
-**Operational target for OC02.** See the [Switchboard configuration restoration specification](switchboard-configuration-restoration-spec-2026-11-08.md). The canonical local configuration is the existing binary `reliquary.cfg` plus its companion `reliquary.master-key.json`. The interim JSON/environment bootstrap is superseded and is not a supported product format.
+The canonical local configuration is the existing binary `reliquary.cfg`. Switchboard stores its master key in the operating system credential service. See the [Switchboard configuration restoration specification](switchboard-configuration-restoration-spec-2026-11-08.md) and [OS-backed master-key storage specification](os-master-key-store-spec-2026-11-08.md).
 
 ## Loading configuration
 
@@ -16,13 +16,9 @@ println!("{}", runtime.readiness());
 
 `ReliquaryConfig::open(path)` exposes settings, model routes, and credential IDs and kinds. Use `configured_runtime()` to bind endpoints from the opened configuration. `ReliquaryConfig::new(path)` prepares the standard local/development configuration in memory. It includes the proven model-route topology and product defaults but creates no credential objects or secret material. `ReliquaryConfig::new_blank(path)` is available for tests and advanced callers that want to construct every model route explicitly.
 
-The companion key path is derived from the config path. For `reliquary.cfg` it is:
+Switchboard uses Windows Credential Manager on Windows, Keychain on macOS, and the persistent Secret Service on Linux. The service entry is bound to the canonical config path. Moving or copying the config alone does not carry its key to the new path.
 
-```text
-reliquary.master-key.json
-```
-
-Opening, readiness inspection and runtime construction are read-only. A master key is created only when an explicit configuration mutation needs one and no key exists.
+Creating or inspecting a config without credentials leaves the credential store untouched. Saving the first credential generates and stores the master key before committing encrypted data. An empty per-config lock serializes key installation and legacy migration. Subsequent opens resolve the stored key. An encrypted configuration with a missing or inaccessible key fails closed. Removing the last credential can leave its key in the credential service.
 
 ## Persisted configuration
 
@@ -57,7 +53,7 @@ Existing route objects include:
 
 Existing product objects such as `archive.fragments`, `retrieval.default`, and `runtime.default` are preserved. Configured passive search uses the stored Retrieval policy. Fragment settings and Dream inference concurrency are available for inspection and editing. Unknown objects survive saves byte-for-byte.
 
-Credentials remain encrypted `credential.<id>` objects in the config. The companion master-key backend remains the existing version-1 JSON file until a separately approved security change replaces it.
+Credentials remain AES-256-GCM-encrypted `credential.<id>` objects in the config. The master key is separate from the CVCFG document.
 
 ## Selection
 
@@ -93,15 +89,19 @@ API keys are collected without placing them on argv. Codex login uses device aut
 
 ## Checks
 
-`config verify` validates framing, known product/model objects, credentials and route compatibility without contacting providers or rewriting files.
+`config verify` validates framing, known product/model objects, credentials and route compatibility without contacting providers or rewriting the configuration. Readiness and inventory reports redact credential values.
 
 `config verify --online` sends synthetic inputs through configured transports after local validation. Add `--route <label>` to probe just one configured transport. Reports contain route and failure categories.
 
 `probe_embedding_profile()` retains the existing bounded compatibility-probe behavior for the configured embedding endpoint.
 
-### Offline compatibility evidence
+## Legacy master-key migration
 
-The rebuilt CLI opened a disposable copy of the existing configuration and companion key, listed five credential IDs and kinds, and verified seven configured routes. A fresh process reported the same readiness. SHA-256 checks matched before and after the read-only commands for both originals and both copies.
+An eligible legacy open with encrypted credentials and a companion `<config-stem>.master-key.json` imports the original key into the credential service. Switchboard authenticates the existing credentials before importing the key. It reads the stored key back and authenticates the credentials again before deleting the companion. The CVCFG file and its ciphertext retain their original bytes. If migration fails, the companion remains available for retry and Reliquary reports a migration error.
+
+### Offline compatibility evidence before the storage correction
+
+During the original OC02 restoration, the rebuilt CLI opened a disposable copy of the existing configuration and companion key, listed five credential IDs and kinds, and verified seven configured routes. A fresh process reported the same readiness. SHA-256 checks matched before and after the read-only commands for both originals and both copies.
 
 The copied configuration had no dedicated Memory Retrieval, shared General Decision, or General route. On a separate disposable copy, adding General selected the adapted General fallback. Adding shared General Decision then selected that route without a dedicated Memory Retrieval object. Clearing the temporary routes restored the initial readiness. The live provider probe remains pending credential authorization.
 

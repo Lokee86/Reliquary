@@ -1,11 +1,14 @@
+mod master_keys;
 mod specialty;
 
 use super::{ConfigDocument, ConfigFile, routes};
-use crate::{ConfiguredRoutes, ConfiguredRuntimeError, EmbeddingNormalization, ModelProvider};
+use crate::test_support::mock_master_key_store;
+use crate::{
+    ConfiguredRoutes, ConfiguredRuntimeError, EmbeddingNormalization, MasterKeyError, ModelProvider,
+};
 use ring::aead::{AES_256_GCM, Aad, LessSafeKey, Nonce, UnboundKey};
 use std::fs;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicUsize, Ordering};
 
 const KEY: [u8; 32] = [0x79; 32];
 const API_KEY: &str = "synthetic-provider-key";
@@ -16,42 +19,24 @@ const URL: &str = "https://offline.example.invalid/endpoint";
 type Record<'a> = (&'a str, u16, u32, Vec<u8>);
 
 struct Fixture {
-    dir: PathBuf,
+    _dir: tempfile::TempDir,
     config: PathBuf,
-    key: PathBuf,
+    legacy_key: PathBuf,
 }
 
 impl Fixture {
     fn new(records: &[Record<'_>]) -> Self {
-        static SEQUENCE: AtomicUsize = AtomicUsize::new(0);
-        let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../target/oc02-fixtures")
-            .join(format!(
-                "protected-{}-{}",
-                std::process::id(),
-                SEQUENCE.fetch_add(1, Ordering::Relaxed),
-            ));
-        fs::create_dir_all(&dir).unwrap();
-        let config = dir.join("fixture.cfg");
-        let key = dir.join("fixture.master-key.json");
+        let parent = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/oc02-fixtures");
+        fs::create_dir_all(&parent).unwrap();
+        let dir = tempfile::tempdir_in(parent).unwrap();
+        let config = dir.path().join("fixture.cfg");
+        let legacy_key = dir.path().join("fixture.master-key.json");
         fs::write(&config, frame(records)).unwrap();
-        Self { dir, config, key }
-    }
-
-    fn write_key(&self, key: [u8; 32]) {
-        fs::write(
-            &self.key,
-            format!(r#"{{"version":1,"master_key_hex":"{}"}}"#, hex::encode(key)),
-        )
-        .unwrap();
-    }
-}
-
-impl Drop for Fixture {
-    fn drop(&mut self) {
-        let _ = fs::remove_file(&self.config);
-        let _ = fs::remove_file(&self.key);
-        let _ = fs::remove_dir(&self.dir);
+        Self {
+            _dir: dir,
+            config,
+            legacy_key,
+        }
     }
 }
 
@@ -94,6 +79,7 @@ fn encrypted(name: &str, nonce_id: u8, mut plaintext: Vec<u8>) -> Vec<u8> {
 
 #[test]
 fn loads_selected_oauth_api_key_and_embedding_routes_offline() {
+    let keys = mock_master_key_store();
     let oauth = fields(
         &[2, 0, 0, 0],
         &["id-token", ACCESS_TOKEN, "refresh-token", ACCOUNT],
@@ -135,7 +121,7 @@ fn loads_selected_oauth_api_key_and_embedding_routes_offline() {
         ),
         ("extension.future", 99, 99, vec![0]),
     ]);
-    fixture.write_key(KEY);
+    keys.replace(&fixture.config, KEY.to_vec());
     let file = ConfigFile::open(&fixture.config).unwrap();
     let config = routes::decode(&file.document).unwrap();
     let credentials = &file.credentials;
@@ -169,6 +155,7 @@ fn loads_selected_oauth_api_key_and_embedding_routes_offline() {
 
 #[test]
 fn selected_credential_failures_stop_route_binding_and_are_redacted() {
+    let keys = mock_master_key_store();
     let api_key = fields(&[1, 0, 0, 0], &[API_KEY]);
     let cipher = encrypted("credential.api", 3, api_key);
     let general = (
@@ -187,13 +174,11 @@ fn selected_credential_failures_stop_route_binding_and_are_redacted() {
     let fixture = Fixture::new(&[general.clone(), api_record.clone()]);
     assert!(matches!(
         ConfiguredRoutes::from_path(&fixture.config),
-        Err(ConfiguredRuntimeError::Credential {
-            route: "credentials",
-            reason: "companion master key is missing"
-        }),
+        Err(ConfiguredRuntimeError::MasterKey(MasterKeyError::Missing)),
     ));
-    assert!(!fixture.key.exists());
-    fixture.write_key([0; 32]);
+    assert!(!fixture.legacy_key.exists());
+    assert!(keys.key(&fixture.config).is_none());
+    keys.replace(&fixture.config, vec![0; 32]);
     assert!(matches!(
         ConfiguredRoutes::from_path(&fixture.config),
         Err(ConfiguredRuntimeError::Credential {
@@ -220,7 +205,7 @@ fn selected_credential_failures_stop_route_binding_and_are_redacted() {
         ),
     ] {
         let fixture = Fixture::new(&[general.clone(), api_record.clone(), entity.clone(), record]);
-        fixture.write_key(KEY);
+        keys.replace(&fixture.config, KEY.to_vec());
         let error = ConfiguredRoutes::from_path(&fixture.config).err().unwrap();
         assert_eq!(error, ConfiguredRuntimeError::Credential { route, reason });
         for private in [API_KEY, "private-entity", URL, "credential.dedicated"] {
@@ -231,10 +216,12 @@ fn selected_credential_failures_stop_route_binding_and_are_redacted() {
 
 #[test]
 fn skips_unused_key_and_rejects_invalid_routes_and_framing() {
+    let keys = mock_master_key_store();
     let fixture = Fixture::new(&[("extension.unused", 99, 99, vec![0])]);
     let routes = ConfiguredRoutes::from_path(&fixture.config).unwrap();
     assert!(routes.general_endpoint().is_none());
-    assert!(!fixture.key.exists());
+    assert!(!fixture.legacy_key.exists());
+    assert!(keys.key(&fixture.config).is_none());
 
     let fixture = Fixture::new(&[(
         "models.general_decision",
@@ -267,6 +254,7 @@ fn skips_unused_key_and_rejects_invalid_routes_and_framing() {
 
 #[test]
 fn route_changes_preserve_opaque_objects_and_leave_credential_ciphertext_unchanged() {
+    let keys = mock_master_key_store();
     use crate::{ModelRoute, ModelSlot};
     let fixture = Fixture::new(&[
         (
@@ -283,8 +271,8 @@ fn route_changes_preserve_opaque_objects_and_leave_credential_ciphertext_unchang
             encrypted("credential.api", 8, fields(&[1, 0, 0, 0], &[API_KEY])),
         ),
     ]);
-    fixture.write_key(KEY);
-    let key_bytes = fs::read(&fixture.key).unwrap();
+    keys.replace(&fixture.config, KEY.to_vec());
+    let key = keys.key(&fixture.config).unwrap();
     let mut file = ConfigFile::open(&fixture.config).unwrap();
     let credential = file.object("credential.api").unwrap().clone();
     let unknown = file.object("future.object").unwrap().clone();
@@ -327,7 +315,8 @@ fn route_changes_preserve_opaque_objects_and_leave_credential_ciphertext_unchang
     }
     assert!(reopened.object("future.object") == Some(&unknown));
     assert!(reopened.object("credential.api") == Some(&credential));
-    assert_eq!(fs::read(&fixture.key).unwrap(), key_bytes);
+    assert!(*keys.key(&fixture.config).unwrap() == *key);
+    assert!(!fixture.legacy_key.exists());
     let before = fs::read(&fixture.config).unwrap();
     reopened.save().unwrap();
     assert_eq!(fs::read(&fixture.config).unwrap(), before);
@@ -338,6 +327,7 @@ fn route_changes_preserve_opaque_objects_and_leave_credential_ciphertext_unchang
     reopened.save().unwrap();
     let reopened = ConfigFile::open(&fixture.config).unwrap();
     assert!(reopened.credentials().next().is_none());
+    assert!(*keys.key(&fixture.config).unwrap() == *key);
     assert!(reopened.object("future.object") == Some(&unknown));
     assert!(
         reopened
@@ -351,6 +341,7 @@ fn route_changes_preserve_opaque_objects_and_leave_credential_ciphertext_unchang
 #[test]
 fn credential_writes_reuse_the_key_with_fresh_nonces_and_detect_tampering() {
     use crate::{CredentialId, SecretString};
+    let keys = mock_master_key_store();
     let fixture = Fixture::new(&[]);
     let before = fs::read(&fixture.config).unwrap();
     let id = CredentialId::new("api").unwrap();
@@ -362,20 +353,23 @@ fn credential_writes_reuse_the_key_with_fresh_nonces_and_detect_tampering() {
             std::io::ErrorKind::AlreadyExists
         ))
     );
-    assert!(!fixture.key.exists());
+    assert!(!fixture.legacy_key.exists());
+    assert!(keys.key(&fixture.config).is_none());
     assert_eq!(fs::read(&fixture.config).unwrap(), before);
 
     let mut file = ConfigFile::open(&fixture.config).unwrap();
     file.add_api_key(id.clone(), SecretString::new(API_KEY).unwrap());
-    assert!(!fixture.key.exists());
+    assert!(!fixture.legacy_key.exists());
+    assert!(keys.key(&fixture.config).is_none());
     file.save().unwrap();
     let first = file.object("credential.api").unwrap().payload.clone();
-    let key_bytes = fs::read(&fixture.key).unwrap();
+    let key = keys.key(&fixture.config).unwrap();
     file.add_api_key(id, SecretString::new(API_KEY).unwrap());
     file.save().unwrap();
     let second = &file.object("credential.api").unwrap().payload;
     assert_ne!(&first[..12], &second[..12]);
-    assert_eq!(fs::read(&fixture.key).unwrap(), key_bytes);
+    assert!(*keys.key(&fixture.config).unwrap() == *key);
+    assert!(!fixture.legacy_key.exists());
     let reopen = ConfigFile::open(&fixture.config).unwrap();
     assert!(!format!("{:?}", reopen.credentials).contains(API_KEY));
     let mut tampered = second.clone();
@@ -392,16 +386,11 @@ fn credential_writes_reuse_the_key_with_fresh_nonces_and_detect_tampering() {
             ..
         })
     ));
-    fs::write(
-        &fixture.key,
-        br#"{"version":1,"master_key_hex":"not-a-key"}"#,
-    )
-    .unwrap();
+    keys.replace(&fixture.config, vec![1; 31]);
     assert!(matches!(
         ConfigFile::open(&fixture.config),
-        Err(ConfiguredRuntimeError::Credential {
-            reason: "invalid master key",
-            ..
-        })
+        Err(ConfiguredRuntimeError::MasterKey(
+            MasterKeyError::InvalidMaterial
+        )),
     ));
 }

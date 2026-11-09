@@ -3,6 +3,7 @@ mod hermes_copy;
 #[path = "operational_processing/live.rs"]
 mod live;
 
+use reliquary_memory::test_support::mock_master_key_store;
 use reliquary_memory::{
     ConfiguredRuntime, CredentialId, EmbeddingModelEndpoint, EmbeddingNormalization, EpisodeId,
     Gateway, GeneralModelEndpoint, GeneralRoute, HostCredentialBinding, ModelProvider, ModelRoute,
@@ -152,6 +153,7 @@ fn configured_fixture(
     general_routes: &[(ModelSlot, &str)],
     embedding: bool,
 ) -> ConfiguredRuntime {
+    let _keys = mock_master_key_store();
     let mut config = ReliquaryConfig::new_blank(path);
     let credential_id = CredentialId::new("KEY").unwrap();
     config.add_api_key(

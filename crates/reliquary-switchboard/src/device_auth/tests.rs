@@ -1,10 +1,12 @@
 use super::*;
+use crate::test_support::mock_master_key_store;
 use crate::{ConfigFile, ConfiguredRuntimeError, CredentialId, CredentialKind};
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpListener;
 
 #[test]
 fn device_login_and_explicit_refresh_use_the_expected_exchange() {
+    let keys = mock_master_key_store();
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let issuer = format!("http://{}", listener.local_addr().unwrap());
     let server = thread::spawn(move || {
@@ -80,7 +82,7 @@ fn device_login_and_explicit_refresh_use_the_expected_exchange() {
     std::fs::create_dir_all(&parent).unwrap();
     let dir = tempfile::tempdir_in(parent).unwrap();
     let path = dir.path().join("device.cfg");
-    let key_path = dir.path().join("device.master-key.json");
+    let legacy_key = dir.path().join("device.master-key.json");
     let id = CredentialId::new("device").unwrap();
     let mut config = ConfigFile::new(&path);
     config
@@ -94,10 +96,10 @@ fn device_login_and_explicit_refresh_use_the_expected_exchange() {
             &auth,
         )
         .unwrap();
-    assert!(!path.exists() && !key_path.exists());
+    assert!(!path.exists() && !legacy_key.exists());
     config.save().unwrap();
     let original = std::fs::read(&path).unwrap();
-    let key = std::fs::read(&key_path).unwrap();
+    let key = keys.key(&path).unwrap();
     let mut reopened = ConfigFile::open(&path).unwrap();
     assert_eq!(
         reopened.credentials().collect::<Vec<_>>(),
@@ -119,6 +121,7 @@ fn device_login_and_explicit_refresh_use_the_expected_exchange() {
     );
     assert!(!format!("{error:?} {error}").contains("response-should-stay-private"));
     assert_eq!(std::fs::read(&path).unwrap(), refreshed);
-    assert_eq!(std::fs::read(&key_path).unwrap(), key);
+    assert!(*keys.key(&path).unwrap() == *key);
+    assert!(!legacy_key.exists());
     server.join().unwrap();
 }

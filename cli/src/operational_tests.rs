@@ -1,15 +1,17 @@
-//! Configured CLI acceptance through separate processes and loopback HTTP.
+//! Configured CLI acceptance through the command dispatcher and loopback HTTP.
 
-use reliquary_memory::ReliquaryConfig;
+use reliquary_memory::{
+    ProductError, ReliquaryConfig,
+    test_support::{MockMasterKeyStore, mock_master_key_store},
+};
 use serde_json::{Value, json};
 use std::{
     fs,
     io::{self, BufRead, BufReader, Read, Write},
     net::{SocketAddr, TcpListener, TcpStream},
     path::PathBuf,
-    process::Command,
     sync::{
-        Arc,
+        Arc, Mutex, MutexGuard,
         atomic::{AtomicBool, AtomicUsize, Ordering},
     },
     thread,
@@ -375,57 +377,50 @@ fn decision_reply(state: &Value) -> Value {
     }
 }
 
-struct Cli(PathBuf);
+struct Cli {
+    root: PathBuf,
+    previous_dir: PathBuf,
+    _cwd: MutexGuard<'static, ()>,
+    _key_store: MockMasterKeyStore,
+}
 
 impl Cli {
     fn new(port: u16) -> Self {
+        // Relative CLI paths, including the default config, use a fixture cwd.
+        static CWD: Mutex<()> = Mutex::new(());
+        let cwd = CWD.lock().unwrap_or_else(|error| error.into_inner());
         let parent = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".test-tmp");
         fs::create_dir_all(&parent).unwrap();
         let root = parent.join(format!("operational-{}-{port}", std::process::id()));
         fs::create_dir(&root).unwrap();
-        Self(root)
-    }
-
-    fn command(&self, args: &[&str]) -> Command {
-        let mut command = Command::new(env!("CARGO_BIN_EXE_reliquary"));
-        command.current_dir(&self.0).args(args).env_clear();
-        // Keep the Windows system directory available in the isolated child.
-        if let Some(root) = std::env::var_os("SystemRoot") {
-            command.env("SystemRoot", root);
+        let previous_dir = std::env::current_dir().unwrap();
+        let key_store = mock_master_key_store();
+        std::env::set_current_dir(&root).unwrap();
+        Self {
+            root,
+            previous_dir,
+            _cwd: cwd,
+            _key_store: key_store,
         }
-        command
     }
 
     fn add_key(&self, path: &str) {
-        use std::process::Stdio;
-        let config_path = self.0.join(path);
+        let config_path = self.root.join(path);
         if !config_path.exists() {
             ReliquaryConfig::new_blank(&config_path).save().unwrap();
         }
-        let mut child = self
-            .command(&[
-                "--config",
-                path,
-                "config",
-                "credential",
-                "add-api-key",
-                CREDENTIAL,
-                "--stdin",
-            ])
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .unwrap();
-        writeln!(child.stdin.take().unwrap(), "{KEY}").unwrap();
-        let output = child.wait_with_output().unwrap();
-        assert!(
-            output.status.success(),
-            "add-api-key failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-        assert!(!String::from_utf8_lossy(&output.stdout).contains(KEY));
-        assert!(!String::from_utf8_lossy(&output.stderr).contains(KEY));
+        let args = [
+            "--config",
+            path,
+            "config",
+            "credential",
+            "add-api-key",
+            CREDENTIAL,
+            "--stdin",
+        ];
+        let input = format!("{KEY}\n");
+        let (ok, output) = self.execute(&args, input.as_bytes()).unwrap();
+        assert!(ok, "add-api-key failed: {output}");
     }
 
     fn set_route(&self, path: &str, slot: &str, model: &str, url: &str, options: &[&str]) {
@@ -448,18 +443,23 @@ impl Cli {
     }
 
     fn run(&self, args: &[&str]) -> String {
-        let output = self.command(args).output().unwrap();
-        let stdout = String::from_utf8(output.stdout).unwrap();
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        assert!(
-            !stdout.contains(KEY) && !stderr.contains(KEY),
-            "credential leaked"
-        );
-        assert!(
-            output.status.success(),
-            "{args:?} failed: {stdout}\n{stderr}"
-        );
-        stdout
+        let (ok, output) = self
+            .execute(args, b"")
+            .unwrap_or_else(|error| panic!("{args:?} failed: {error}"));
+        assert!(ok, "{args:?} failed: {output}");
+        output
+    }
+
+    fn execute(&self, args: &[&str], input: &[u8]) -> Result<(bool, String), ProductError> {
+        let args = args.iter().map(|arg| (*arg).to_owned()).collect();
+        let mut output = Vec::new();
+        let status = super::run_cli(args, input, &mut output);
+        let output = String::from_utf8(output).unwrap();
+        assert!(!output.contains(KEY), "credential leaked in stdout");
+        if let Err(error) = &status {
+            assert!(!error.message().contains(KEY), "credential leaked in error");
+        }
+        status.map(|ok| (ok, output))
     }
 
     fn json(&self, args: &[&str]) -> Value {
@@ -469,7 +469,8 @@ impl Cli {
 
 impl Drop for Cli {
     fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.0);
+        std::env::set_current_dir(&self.previous_dir).unwrap();
+        let _ = fs::remove_dir_all(&self.root);
     }
 }
 
@@ -523,7 +524,7 @@ fn configured_cli_import_processes_routes_and_reopens_grounded_memories() {
             }}
         }
     }]);
-    fs::write(cli.0.join(input), export.to_string()).unwrap();
+    fs::write(cli.root.join(input), export.to_string()).unwrap();
 
     let offline = cli.json(&["--config", config, "config", "verify"]);
     assert_eq!(offline["operation"], "config_verify");
@@ -606,7 +607,7 @@ fn configured_cli_import_processes_routes_and_reopens_grounded_memories() {
         json!({"request_id":3,"command":"traverse","memory_ids":[id]}),
     ];
     let jsonl = script.map(|row| row.to_string()).join("\n");
-    fs::write(cli.0.join(commands), jsonl).unwrap();
+    fs::write(cli.root.join(commands), jsonl).unwrap();
     let replies: Vec<Value> = cli
         .run(&[
             "rel",
@@ -707,8 +708,8 @@ fn live_stage_status_and_run_use_the_root_coordinator() {
 fn config_commands_default_to_binary_config_and_reject_invalid_mutations() {
     let cli = Cli::new(1);
     let path = "reliquary.cfg";
-    let config_path = cli.0.join(path);
-    let key_path = cli.0.join("reliquary.master-key.json");
+    let config_path = cli.root.join(path);
+    let key_path = cli.root.join("reliquary.master-key.json");
     let defaults = cli.json(&["config", "show"]);
     assert_eq!(
         defaults["routes"]["models.general"]["model"],
@@ -753,7 +754,7 @@ fn config_commands_default_to_binary_config_and_reject_invalid_mutations() {
         &["--provider", "openai-ready"],
     );
     let original = fs::read(&config_path).unwrap();
-    let key = fs::read(&key_path).unwrap();
+    assert!(!key_path.exists());
     let show = cli.json(&["config", "show"]);
     assert_eq!(show["routes"]["models.general"]["model"], "test-model");
     assert!(show["routes"]["models.memory_retrieval_decision"].is_null());
@@ -768,11 +769,8 @@ fn config_commands_default_to_binary_config_and_reject_invalid_mutations() {
             .contains("memory_retrieval=general")
     );
     let fail = |args: &[&str], kind: &str| {
-        let output = cli.command(args).output().unwrap();
-        assert!(!output.status.success());
-        let report: Value = serde_json::from_slice(&output.stderr).unwrap();
-        assert_eq!(report["error"]["kind"], kind);
-        assert!(!String::from_utf8_lossy(&output.stderr).contains(KEY));
+        let error = cli.execute(args, b"").unwrap_err();
+        assert_eq!(super::error_json(&error)["kind"], kind);
     };
     fail(
         &["config", "credential", "remove", CREDENTIAL],
@@ -783,15 +781,16 @@ fn config_commands_default_to_binary_config_and_reject_invalid_mutations() {
         "unauthorized",
     );
     assert_eq!(fs::read(&config_path).unwrap(), original);
-    assert_eq!(fs::read(&key_path).unwrap(), key);
+    assert!(!key_path.exists());
 
-    fs::write(
-        &key_path,
-        format!(r#"{{"version":1,"master_key_hex":"{}"}}"#, "00".repeat(32)),
-    )
-    .unwrap();
-    fail(&["config", "verify"], "unauthorized");
-    fs::write(&key_path, key).unwrap();
+    let copied_path = cli.root.join("copied.cfg");
+    let verify_copy = ["--config", "copied.cfg", "config", "verify"];
+    fs::write(&copied_path, &original).unwrap();
+    fail(&verify_copy, "unauthorized");
+    fs::remove_file(&copied_path).unwrap();
+    cli.add_key("copied.cfg");
+    fs::write(&copied_path, &original).unwrap();
+    fail(&verify_copy, "unauthorized");
     cli.json(&["config", "model", "clear-general"]);
     cli.json(&["config", "credential", "remove", CREDENTIAL]);
     assert_eq!(

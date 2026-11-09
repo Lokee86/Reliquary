@@ -15,6 +15,7 @@ pub enum ConfiguredRuntimeError {
     Io(ErrorKind),
     Write(ErrorKind),
     Authorization(DeviceAuthError),
+    MasterKey(MasterKeyError),
     Invalid {
         route: &'static str,
         reason: &'static str,
@@ -47,6 +48,7 @@ impl fmt::Display for ConfiguredRuntimeError {
             Self::Io(kind) => write!(f, "runtime configuration could not be read ({kind})"),
             Self::Write(kind) => write!(f, "configuration could not be saved ({kind})"),
             Self::Authorization(error) => error.fmt(f),
+            Self::MasterKey(error) => error.fmt(f),
             Self::Invalid { route, reason } => {
                 write!(f, "invalid {route} configuration ({reason})")
             }
@@ -60,6 +62,12 @@ impl fmt::Display for ConfiguredRuntimeError {
 }
 
 impl std::error::Error for ConfiguredRuntimeError {}
+
+impl From<MasterKeyError> for ConfiguredRuntimeError {
+    fn from(error: MasterKeyError) -> Self {
+        Self::MasterKey(error)
+    }
+}
 
 impl From<DeviceAuthError> for ConfiguredRuntimeError {
     fn from(error: DeviceAuthError) -> Self {

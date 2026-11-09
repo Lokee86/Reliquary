@@ -7,7 +7,8 @@ pub use reliquary_retrieval::RetrievalConfig;
 pub use reliquary_switchboard::{
     CodexDeviceCode, ConfiguredRuntimeError, CredentialError, CredentialId, CredentialKind,
     DecisionModelEndpoint, DeviceAuthError, EmbeddingModelEndpoint, EmbeddingNormalization,
-    GeneralModelEndpoint, GeneralRoute, ModelProvider, ModelRoute, ModelSlot, SecretString,
+    GeneralModelEndpoint, GeneralRoute, MasterKeyError, ModelProvider, ModelRoute, ModelSlot,
+    SecretString,
 };
 
 const FRAGMENTS: &str = "archive.fragments";
@@ -27,7 +28,10 @@ impl Default for RuntimeSettings {
     }
 }
 
-/// An editable CVCFG configuration. Opening and validation perform no writes or network calls.
+/// An editable CVCFG configuration.
+///
+/// Opening a legacy configuration may migrate its key to the OS credential service.
+/// Validation does not contact providers.
 #[derive(Debug)]
 pub struct ReliquaryConfig {
     file: ConfigFile,

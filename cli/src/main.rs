@@ -6,7 +6,12 @@ use reliquary_memory::{
     prune_relationship_descriptions_copy, reclaim_storage_copy, reconcile_rel,
 };
 use serde_json::{Value, json};
-use std::{env, fs, path::Path, process::ExitCode};
+use std::{
+    env, fs,
+    io::{self, BufRead, Write},
+    path::Path,
+    process::ExitCode,
+};
 
 const HELP: &str = r#"reliquary 0.1.0
 Supported Reliquary 2.1 operator CLI
@@ -19,7 +24,7 @@ USAGE:
     reliquary [--config <FILE>] config credential <list|add-api-key|login-codex|refresh-codex|remove>
     reliquary [--config <FILE>] config model <set-ROUTE|clear-ROUTE> [OPTIONS]
 
-    --config defaults to reliquary.cfg. The companion key path is derived automatically.
+    --config defaults to reliquary.cfg. The operating system stores the credential master key.
     add-api-key <ID> prompts without echo. Use --stdin to read one line instead.
     set-ROUTE uses --model and --credential, plus --provider, --url,
     --reasoning, --dimensions, and --normalization as applicable.
@@ -71,52 +76,14 @@ existing destination. There is deliberately no cva alias.
 "#;
 
 fn main() -> ExitCode {
-    let mut args = env::args().skip(1).collect::<Vec<_>>();
+    let args = env::args().skip(1).collect::<Vec<_>>();
     if args.is_empty() || args == ["--help"] || args == ["-h"] {
         print!("{HELP}");
         return ExitCode::SUCCESS;
     }
-    let json_flags = args.iter().filter(|arg| *arg == "--json").count();
-    if json_flags > 1 {
-        eprintln!(
-            "{}",
-            json!({"error":error_json(&invalid("duplicate CLI option: --json"))})
-        );
-        return ExitCode::FAILURE;
-    }
-    args.retain(|arg| arg != "--json");
-    if args.first().is_some_and(|arg| arg == "--config") {
-        if args.len() < 3 || args[1].starts_with('-') || args[2].starts_with('-') {
-            eprintln!(
-                "{}",
-                json!({"error":error_json(&invalid("expected --config <FILE> followed by a command"))})
-            );
-            return ExitCode::FAILURE;
-        }
-        args.rotate_left(2);
-    }
-    if args.starts_with(&["rel".to_owned(), "interact".to_owned()]) {
-        return match retrieval_command::interact(&args[2..]) {
-            Ok(true) => ExitCode::SUCCESS,
-            Ok(false) => ExitCode::FAILURE,
-            Err(error) => {
-                eprintln!("{}", json!({"error":error_json(&error)}));
-                ExitCode::FAILURE
-            }
-        };
-    }
-    match run(args) {
-        Ok(value) => {
-            println!(
-                "{}",
-                serde_json::to_string(&value).expect("JSON value serializes")
-            );
-            if value["ok"] == false {
-                ExitCode::FAILURE
-            } else {
-                ExitCode::SUCCESS
-            }
-        }
+    match run_cli(args, io::stdin().lock(), io::stdout().lock()) {
+        Ok(true) => ExitCode::SUCCESS,
+        Ok(false) => ExitCode::FAILURE,
         Err(error) => {
             eprintln!("{}", json!({"error":error_json(&error)}));
             ExitCode::FAILURE
@@ -124,13 +91,36 @@ fn main() -> ExitCode {
     }
 }
 
-fn run(args: Vec<String>) -> Result<Value, reliquary_memory::ProductError> {
+fn run_cli(
+    mut args: Vec<String>,
+    input: impl BufRead,
+    mut output: impl Write,
+) -> Result<bool, ProductError> {
+    if args.iter().filter(|arg| *arg == "--json").count() > 1 {
+        return Err(invalid("duplicate CLI option: --json"));
+    }
+    args.retain(|arg| arg != "--json");
+    if args.first().is_some_and(|arg| arg == "--config") {
+        if args.len() < 3 || args[1].starts_with('-') || args[2].starts_with('-') {
+            return Err(invalid("expected --config <FILE> followed by a command"));
+        }
+        args.rotate_left(2);
+    }
+    if args.starts_with(&["rel".to_owned(), "interact".to_owned()]) {
+        return retrieval_command::interact(&args[2..], input, output);
+    }
+    let value = run(args, input)?;
+    writeln!(output, "{value}")?;
+    Ok(value["ok"] != false)
+}
+
+fn run(args: Vec<String>, input: impl BufRead) -> Result<Value, ProductError> {
     if args == ["--version"] || args == ["-V"] {
         return Ok(json!({"name":"reliquary","version":env!("CARGO_PKG_VERSION")}));
     }
     let family = args.first().map(String::as_str);
     if family == Some("config") {
-        return config_command::run(&args[1..]);
+        return config_command::run(&args[1..], input);
     }
     if family == Some("phy") {
         return run_phy(&args[1..]);
@@ -222,6 +212,8 @@ mod interaction_input;
 mod interruption;
 mod local_host;
 mod operational;
+#[cfg(test)]
+mod operational_tests;
 mod retrieval_command;
 mod semantic_inspection;
 use commands::{create, history, info, prune, reclaim, reconcile, repair, rewrite};

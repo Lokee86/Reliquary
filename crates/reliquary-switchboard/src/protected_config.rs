@@ -1,4 +1,6 @@
 mod credentials;
+mod key_lifecycle;
+pub(crate) mod master_key;
 mod routes;
 
 use crate::config_document::{ConfigDocument, ConfigObject};
@@ -8,7 +10,8 @@ use crate::{
     CodexDeviceCode, ConfiguredRoutes, ConfiguredRuntimeError, Credential, CredentialId,
     CredentialsConfig, DeviceAuthError, ModelRoute, ModelSlot, SecretString,
 };
-use credentials::{MasterKey, PREFIX};
+use credentials::PREFIX;
+use master_key::MasterKey;
 use std::collections::BTreeSet;
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -22,7 +25,7 @@ pub enum CredentialKind {
 /// Switchboard-owned binary configuration and protected credential state.
 pub struct ConfigFile {
     path: PathBuf,
-    existing: bool,
+    resolved_path: Option<PathBuf>,
     document: ConfigDocument,
     credentials: CredentialsConfig,
     master_key: Option<MasterKey>,
@@ -41,7 +44,7 @@ impl ConfigFile {
     pub fn new(path: impl Into<PathBuf>) -> Self {
         Self {
             path: path.into(),
-            existing: false,
+            resolved_path: None,
             document: ConfigDocument::default(),
             credentials: CredentialsConfig::default(),
             master_key: None,
@@ -51,23 +54,21 @@ impl ConfigFile {
 
     pub fn open(path: &Path) -> Result<Self, ConfiguredRuntimeError> {
         let mut config = Self::new(path);
-        config.document = ConfigDocument::read(path)?;
-        config.existing = true;
-        for (name, object) in &config.document.0 {
-            let Some(id) = name.strip_prefix(PREFIX) else {
-                continue;
-            };
-            let id = CredentialId::new(id)
-                .map_err(|_| credential_error("invalid credential object ID"))?;
-            let key = match &config.master_key {
-                Some(key) => key,
-                None => config.master_key.insert(
-                    credentials::load_key(&config.master_key_path()).map_err(credential_error)?,
-                ),
-            };
-            let credential = credentials::decode(name, object, key).map_err(credential_error)?;
-            config.credentials.entries.insert(id, credential);
+        let resolved = path
+            .canonicalize()
+            .map_err(|error| ConfiguredRuntimeError::Io(error.kind()))?;
+        config.document = ConfigDocument::read(&resolved)?;
+        if config
+            .document
+            .0
+            .keys()
+            .any(|name| name.starts_with(PREFIX))
+        {
+            let (key, credentials) = key_lifecycle::open_credentials(&resolved, &config.document)?;
+            config.master_key = Some(key);
+            config.credentials = credentials;
         }
+        config.resolved_path = Some(resolved);
         Ok(config)
     }
 
@@ -78,10 +79,6 @@ impl ConfigFile {
 
     pub fn path(&self) -> &Path {
         &self.path
-    }
-
-    pub fn master_key_path(&self) -> PathBuf {
-        credentials::key_path(&self.path)
     }
 
     pub fn object(&self, name: &str) -> Option<&ConfigObject> {
@@ -224,14 +221,20 @@ impl ConfigFile {
 
     pub fn save(&mut self) -> Result<(), ConfiguredRuntimeError> {
         self.bind()?;
+        let replace = self.resolved_path.is_some();
+        let path = match &self.resolved_path {
+            Some(path) => path.clone(),
+            None => key_lifecycle::new_destination(&self.path)?,
+        };
         if self.dirty_credentials.is_empty() {
-            self.document.save(&self.path, self.existing)?;
-            self.existing = true;
+            self.document.save(&path, replace)?;
+            self.resolved_path = Some(path);
             return Ok(());
         }
-        if !self.existing
-            && self
-                .path
+        let _lock = key_lifecycle::lock(&path)
+            .map_err(|error| ConfiguredRuntimeError::Write(error.kind()))?;
+        if !replace
+            && path
                 .try_exists()
                 .map_err(|error| ConfiguredRuntimeError::Write(error.kind()))?
         {
@@ -239,17 +242,7 @@ impl ConfigFile {
                 std::io::ErrorKind::AlreadyExists,
             ));
         }
-        let key = credentials::key_for_write(&self.master_key_path(), &self.document)
-            .map_err(credential_error)?;
-        if self
-            .master_key
-            .as_ref()
-            .is_some_and(|expected| **expected != *key)
-        {
-            return Err(credential_error(
-                "companion master key changed after opening",
-            ));
-        }
+        let key = key_lifecycle::key_for_write(&path, self.master_key.as_ref())?;
         let mut document = self.document.clone();
         for id in &self.dirty_credentials {
             let name = format!("{PREFIX}{id}");
@@ -257,9 +250,9 @@ impl ConfigFile {
                 .map_err(credential_error)?;
             document.0.insert(name, object);
         }
-        document.save(&self.path, self.existing)?;
+        document.save(&path, replace)?;
         self.document = document;
-        self.existing = true;
+        self.resolved_path = Some(path);
         self.master_key = Some(key);
         self.dirty_credentials.clear();
         Ok(())

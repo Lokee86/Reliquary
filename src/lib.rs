@@ -15,6 +15,7 @@ mod processing;
 mod retrieval;
 
 pub use configuration::*;
+
 pub use configured_runtime::{
     CompatibilityProbeReference, CompatibilityProfile, ConfiguredRuntime, EmbeddingMode,
     RuntimeEndpointFailure, VectorNormalization,
@@ -34,6 +35,9 @@ pub use processing::{
     LiveProcessingSelection, LiveStageProgress, MAX_PROCESS_EPISODES, OwnerProcessingJob,
     ProcessOptions, ProcessingReport, ProcessingState, StageProgress, StageState, VectorCoverage,
 };
+#[cfg(feature = "test-support")]
+#[doc(hidden)]
+pub use reliquary_switchboard::test_support;
 pub use retrieval::*;
 
 pub use reliquary_application::{

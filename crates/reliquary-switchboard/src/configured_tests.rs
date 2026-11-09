@@ -1,4 +1,5 @@
 use super::*;
+use crate::test_support::mock_master_key_store;
 use ModelSlot::*;
 
 const TEST_KEY: &str = "synthetic-oc02-test-key";
@@ -39,6 +40,7 @@ fn embedding(url: impl Into<String>, dimensions: u32) -> ModelRoute {
 }
 
 fn bind(routes: &[(ModelSlot, ModelRoute)]) -> ConfiguredRoutes {
+    let _keys = mock_master_key_store();
     let parent =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/oc02-fixtures");
     std::fs::create_dir_all(&parent).unwrap();

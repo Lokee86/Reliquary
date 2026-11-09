@@ -33,7 +33,7 @@ impl ConfiguredRuntime {
         Self { routes, retrieval }
     }
 
-    /// Opens CVCFG and resolves its companion key and route bindings offline.
+    /// Opens CVCFG and resolves its OS-backed key and route bindings offline.
     pub fn from_path(path: impl AsRef<Path>) -> Result<Self, ConfiguredRuntimeError> {
         ReliquaryConfig::open(path)?.configured_runtime()
     }

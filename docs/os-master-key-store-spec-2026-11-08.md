@@ -2,7 +2,7 @@
 
 Parent: [Switchboard configuration restoration](switchboard-configuration-restoration-spec-2026-11-08.md)
 
-**Status: implementation-ready security correction; not implemented or accepted.**
+**Implemented and verified on Windows.** Cargo resolved the intended backends for macOS and Linux. Native runtime verification remains pending on both platforms.
 
 ## Decision
 

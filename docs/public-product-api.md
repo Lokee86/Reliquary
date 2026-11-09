@@ -32,12 +32,11 @@ Tokens belong in host configuration, never request parameters, logs, or CLI
 arguments. Grants are immutable. Revocation is checked again on reads and at
 writer handoff/commit.
 
-The canonical local provider configuration remains the existing binary
-`reliquary.cfg` plus its companion `reliquary.master-key.json`. OC02 restores
-that persisted Switchboard contract, including encrypted credentials,
-device login/refresh and route fallback, then constructs `ConfiguredRuntime`
-from it. The interim JSON/environment bootstrap is not a supported product
-format. See the [configuration restoration spec](switchboard-configuration-restoration-spec-2026-11-08.md).
+The canonical local provider configuration is the binary `reliquary.cfg`.
+Switchboard keeps credential objects encrypted in the configuration and
+stores the master key for its canonical path in the operating system
+credential service. `ConfiguredRuntime` opens the validated configuration
+through the Root API. See the [configured runtime guide](configured-runtime.md) and [OS-backed master-key specification](os-master-key-store-spec-2026-11-08.md).
 
 The separate `reliquary` CLI supports explicit REL and PHY commands. It emits
 JSON and returns nonzero on failure or incomplete requested readiness. Copy

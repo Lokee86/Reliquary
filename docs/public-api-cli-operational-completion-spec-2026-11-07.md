@@ -34,7 +34,7 @@ Names below define the logical product operations. OC01 fixes concrete Rust sign
 
 | Public capability | Contract |
 | --- | --- |
-| Configured runtime | Open the existing `reliquary.cfg` / companion master-key format, validate product/model routes and encrypted credentials, then build an opaque runtime/service bundle using the existing Switchboard transports and fallback rules. Publish redacted readiness diagnostics. |
+| Configured runtime | Open the existing `reliquary.cfg`, resolve its master key from the operating system credential service, validate product/model routes and encrypted credentials, then build an opaque runtime/service bundle using the existing Switchboard transports and fallback rules. Publish redacted readiness diagnostics. |
 | Native import | Inspect/normalize a declared source, produce a bounded import plan, start or resume one idempotent source-bound import, inspect status and errors, and process it to its actual completion criteria. |
 | Owner processing | Start/poll/stop a bounded owner job for accepted Insomnia, Dream, Entity, vectors and Freshness workflows. Expose stage and pending/held/failed/completed counts and stable work IDs. A process-and-drain convenience operation invokes the same coordinator. |
 | Passive search | Authorized lexical/hybrid/semantic search with automatic query embedding through the selected compatible profile, bounded result values, exact revisions and provenance. No model-side selection unless requested as agentic query. |
@@ -50,7 +50,7 @@ Do not simply re-export the internal `Instance`, `RelWriter`, `PhyWriter`, store
 
 ### Configuration and providers
 
-[Switchboard configuration restoration](switchboard-configuration-restoration-spec-2026-11-08.md) is normative for OC02. The persisted compatibility boundary is the existing binary `reliquary.cfg` plus `reliquary.master-key.json`; the unaccepted JSON/environment bootstrap is superseded and must not be integrated.
+The persisted compatibility boundary is the existing binary `reliquary.cfg`. The operating system credential service holds the master key, with a one-time import for legacy installations. See the [Switchboard configuration restoration](switchboard-configuration-restoration-spec-2026-11-08.md) and [OS-backed master-key storage](os-master-key-store-spec-2026-11-08.md) specifications.
 
 Use the existing Switchboard-owned config document framing, model-route codecs, encrypted credential objects, master-key handling, device login/refresh, provider transports and fallback rules. Root restores the small product `ReliquaryConfig` wrapper for product-domain settings and constructs `ConfiguredRuntime` from that validated configuration. The CLI accepts `--config` (default `reliquary.cfg`) and never requires secret material on argv.
 

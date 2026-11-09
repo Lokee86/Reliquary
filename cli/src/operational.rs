@@ -2,7 +2,7 @@ use super::*;
 use crate::local_host::{LocalHost, RelAccess};
 use reliquary_memory::{
     ConfiguredRuntime, ConfiguredRuntimeError, ImportStage, LiveProcessingSelection,
-    ProcessOptions, ProcessingState,
+    MasterKeyError, ProcessOptions, ProcessingState,
 };
 
 const PROCESS_OPTIONS: &[(&str, bool)] = &[
@@ -21,9 +21,17 @@ pub(crate) fn config_path(args: &[String]) -> &str {
 
 pub(crate) fn config_error(error: ConfiguredRuntimeError) -> ProductError {
     let kind = match error {
-        ConfiguredRuntimeError::Io(_) | ConfiguredRuntimeError::Write(_) => ProductErrorKind::Io,
+        ConfiguredRuntimeError::Io(_)
+        | ConfiguredRuntimeError::Write(_)
+        | ConfiguredRuntimeError::MasterKey(MasterKeyError::WriteRejected) => ProductErrorKind::Io,
         ConfiguredRuntimeError::Invalid { .. } => ProductErrorKind::InvalidInput,
-        ConfiguredRuntimeError::Credential { .. } => ProductErrorKind::Unauthorized,
+        ConfiguredRuntimeError::Credential { .. }
+        | ConfiguredRuntimeError::MasterKey(
+            MasterKeyError::Missing
+            | MasterKeyError::InvalidMaterial
+            | MasterKeyError::Changed
+            | MasterKeyError::Migration(_),
+        ) => ProductErrorKind::Unauthorized,
         _ => ProductErrorKind::Unavailable,
     };
     ProductError::new(kind, error.to_string())

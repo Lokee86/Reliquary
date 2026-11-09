@@ -401,6 +401,13 @@ fn import_stages_exact_transcript_and_resumes_without_appending() {
 #[test]
 fn lexical_search_and_script_inspection_leave_owner_bytes_unchanged() {
     let temp = Temp::new("interact");
+    let command = |args: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_reliquary"))
+            .current_dir(&temp.0)
+            .args(args)
+            .output()
+            .unwrap()
+    };
     let path = temp.path("project.rel");
     let script = temp.path("requests.jsonl");
     let path = path.to_str().unwrap();

@@ -4,7 +4,7 @@ use crate::local_host::{LocalHost, RelAccess};
 use reliquary_memory::{
     ConfiguredRuntime, GraphNode, InspectionQuery, RetrievalMode, SearchMode, SearchOptions,
 };
-use std::io::{self, BufReader};
+use std::io::{BufRead, BufReader, Write};
 
 pub(crate) fn search(args: &[String]) -> Result<Value, ProductError> {
     validate_options(
@@ -68,7 +68,11 @@ pub(crate) fn query(args: &[String]) -> Result<Value, ProductError> {
     Ok(json!({"operation":"query","result":result}))
 }
 
-pub(crate) fn interact(args: &[String]) -> Result<bool, ProductError> {
+pub(crate) fn interact(
+    args: &[String],
+    input: impl BufRead,
+    output: impl Write,
+) -> Result<bool, ProductError> {
     validate_options(
         args,
         1,
@@ -161,10 +165,9 @@ pub(crate) fn interact(args: &[String]) -> Result<bool, ProductError> {
         };
         Ok(value)
     };
-    let output = io::stdout().lock();
     match commands {
         Some(file) => interaction_input::run(BufReader::new(file), output, true, &mut execute),
-        None => interaction_input::run(io::stdin().lock(), output, false, &mut execute),
+        None => interaction_input::run(input, output, false, &mut execute),
     }
 }
 

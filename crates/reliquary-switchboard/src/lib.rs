@@ -449,7 +449,16 @@ pub use configured::{
 };
 pub use device_auth::{CodexDeviceCode, DeviceAuthError};
 pub use model_config::{GeneralRoute, ModelRoute, ModelSlot};
+pub use protected_config::master_key::MasterKeyError;
 pub use protected_config::{ConfigFile, CredentialKind};
+
+#[cfg(any(test, feature = "test-support"))]
+#[doc(hidden)]
+pub mod test_support {
+    pub use crate::protected_config::master_key::mock::{
+        MockMasterKeyStore, mock_master_key_store,
+    };
+}
 pub use transport::ConfiguredEmbeddingEndpoint;
 pub use transport::{ConfiguredDecisionEndpoint, ConfiguredGeneralEndpoint};
 

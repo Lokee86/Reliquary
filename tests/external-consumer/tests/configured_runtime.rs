@@ -1,16 +1,19 @@
+use reliquary_memory::test_support::mock_master_key_store;
 use reliquary_memory::{
     CompatibilityProfile, ConfiguredRuntime, ConfiguredRuntimeError, CredentialError, CredentialId,
-    CredentialKind, FragmentConfig, GeneralModelEndpoint, GeneralRoute, ModelProvider, ModelRoute,
-    ModelSlot, ReliquaryConfig, RuntimeSettings, SecretString,
+    CredentialKind, FragmentConfig, GeneralModelEndpoint, GeneralRoute, MasterKeyError,
+    ModelProvider, ModelRoute, ModelSlot, ReliquaryConfig, RuntimeSettings, SecretString,
 };
 
 #[test]
 fn root_only_configured_runtime_loads_and_reports_readiness_offline() {
-    let fixture_dir =
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/oc02-fixtures");
+    let _keys = mock_master_key_store();
+    let fixture_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../target/oc02-fixtures")
+        .join(format!("external-runtime-{}", std::process::id()));
     std::fs::create_dir_all(&fixture_dir).unwrap();
-    let path = fixture_dir.join(format!("external-{}.cfg", std::process::id()));
-    let key_path = path.with_extension("master-key.json");
+    let path = fixture_dir.join("config.cfg");
+    let legacy_key = path.with_extension("master-key.json");
     let mut config = ReliquaryConfig::new_blank(&path);
     let id = CredentialId::new("TEST_API_KEY").unwrap();
     config.add_api_key(id.clone(), SecretString::new("synthetic-test-key").unwrap());
@@ -42,10 +45,9 @@ fn root_only_configured_runtime_loads_and_reports_readiness_offline() {
         dream_inference_concurrency: 3,
     };
     config.set_runtime_settings(settings).unwrap();
-    assert!(!path.exists() && !key_path.exists());
+    assert!(!path.exists() && !legacy_key.exists());
     config.save().unwrap();
     let config_bytes = std::fs::read(&path).unwrap();
-    let key_bytes = std::fs::read(&key_path).unwrap();
     let reopened = ReliquaryConfig::open(&path).unwrap();
     assert_eq!(reopened.fragments(), fragments);
     assert_eq!(reopened.retrieval(), retrieval);
@@ -57,9 +59,14 @@ fn root_only_configured_runtime_loads_and_reports_readiness_offline() {
     reopened.validate().unwrap();
     let runtime = ConfiguredRuntime::from_path(&path).unwrap();
     assert_eq!(std::fs::read(&path).unwrap(), config_bytes);
-    assert_eq!(std::fs::read(&key_path).unwrap(), key_bytes);
-    std::fs::remove_file(&path).unwrap();
-    std::fs::remove_file(&key_path).unwrap();
+    assert!(!legacy_key.exists());
+    let copy = fixture_dir.join("copied.cfg");
+    std::fs::copy(&path, &copy).unwrap();
+    assert!(matches!(
+        ConfiguredRuntime::from_path(&copy),
+        Err(ConfiguredRuntimeError::MasterKey(MasterKeyError::Missing)),
+    ));
+    std::fs::remove_dir_all(&fixture_dir).unwrap();
     assert!(matches!(
         CredentialId::new("invalid ID"),
         Err(CredentialError::InvalidId)
@@ -88,6 +95,7 @@ fn root_only_configured_runtime_loads_and_reports_readiness_offline() {
 
 #[test]
 fn root_loads_empty_configuration_without_a_key() {
+    let _keys = mock_master_key_store();
     let fixture_dir =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/oc02-fixtures");
     std::fs::create_dir_all(&fixture_dir).unwrap();
