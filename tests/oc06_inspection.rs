@@ -195,6 +195,7 @@ fn oc06_mounted_inspection_enforces_grants_cuts_and_byte_budget() {
     assert_eq!(source.body_id, memory.body_id);
     assert_eq!(source.principal_id.as_deref(), Some("manager"));
     assert_eq!(source.source_time_ns, Some(42));
+    assert_eq!(source.created_at_ns, 42);
     assert!(source.source_turn.is_none());
 
     let relationship = CreateRelationshipRequest {

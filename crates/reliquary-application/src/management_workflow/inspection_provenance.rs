@@ -14,6 +14,10 @@ pub struct ExactMemoryProvenance {
     pub source_episode_id: Option<String>,
     pub source_node_id: Option<String>,
     pub source_time_ns: Option<i64>,
+    /// Creation time of this exact Memory revision. Unlike source_time_ns,
+    /// this belongs to the Memory record itself and remains available even
+    /// when source content or source authorization is unavailable.
+    pub created_at_ns: i64,
     pub source_archive_version: Option<u64>,
     pub content_source_reference: Option<SourceCoordinate>,
     pub grounding_source_reference: Option<SourceCoordinate>,
@@ -73,6 +77,7 @@ pub(super) fn prepare_provenance(
         source_episode_id: None,
         source_node_id: None,
         source_time_ns: record.source_time_ns,
+        created_at_ns: record.created_at_ns,
         source_archive_version: None,
         content_source_reference: None,
         grounding_source_reference: None,

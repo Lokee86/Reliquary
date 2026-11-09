@@ -41,7 +41,7 @@ pub use reliquary_application::{
     ManagementPage, ManagementVersions, MemoryProvenance, MemoryStatistics, MemorySummary,
     RelManagementHealth, SemanticOwnerStatistics, TranscriptTurn,
 };
-pub use reliquary_archive::{EpisodeBoundary, EpisodeId};
+pub use reliquary_archive::{EpisodeBoundary, EpisodeId, HERMES_COPIED_SOURCE_FORMAT};
 pub use reliquary_memory_core::{MemoryId, PayloadState};
 pub use reliquary_runtime_gateway::{
     ArchiveReceipt, CapabilityRouter, ConversationSubmissionId, DurableGeneration,

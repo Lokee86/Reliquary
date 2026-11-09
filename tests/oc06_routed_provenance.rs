@@ -147,6 +147,7 @@ fn oc06_routed_provenance_requires_both_grants_and_does_not_replace_terminal_sou
             panic!("expected provenance");
         };
         assert_eq!(result.source_time_ns, Some(42));
+        assert_eq!(result.created_at_ns, 43);
         let turn = result.source_turn.as_ref().unwrap();
         assert_eq!(turn.node_id, "exact-node");
         assert_eq!(turn.archive_revision, Some(1));
