@@ -1,5 +1,6 @@
 //! Configured CLI acceptance through separate processes and loopback HTTP.
 
+use reliquary_memory::ReliquaryConfig;
 use serde_json::{Value, json};
 use std::{
     fs,
@@ -397,6 +398,10 @@ impl Cli {
 
     fn add_key(&self, path: &str) {
         use std::process::Stdio;
+        let config_path = self.0.join(path);
+        if !config_path.exists() {
+            ReliquaryConfig::new_blank(&config_path).save().unwrap();
+        }
         let mut child = self
             .command(&[
                 "--config",
@@ -704,7 +709,36 @@ fn config_commands_default_to_binary_config_and_reject_invalid_mutations() {
     let path = "reliquary.cfg";
     let config_path = cli.0.join(path);
     let key_path = cli.0.join("reliquary.master-key.json");
-    assert!(cli.json(&["config", "show"])["routes"]["models.general"].is_null());
+    let defaults = cli.json(&["config", "show"]);
+    assert_eq!(
+        defaults["routes"]["models.general"]["model"],
+        "gpt-5.6-luna"
+    );
+    assert_eq!(defaults["routes"]["models.insomnia"]["model"], "gpt-6-sol");
+    assert_eq!(
+        defaults["routes"]["models.insomnia_metadata"]["model"],
+        "gpt-6-luna"
+    );
+    assert_eq!(
+        defaults["routes"]["models.entity_extraction"]["model"],
+        "gpt-5.6-sol"
+    );
+    assert_eq!(
+        defaults["routes"]["models.entity_resolution"]["model"],
+        "gpt-5.6-sol"
+    );
+    assert_eq!(defaults["routes"]["models.dream"]["model"], "gpt-5.6-luna");
+    assert_eq!(
+        defaults["routes"]["models.entity_resolution_decision"]["model"],
+        "typesafe/jev-1.13"
+    );
+    assert_eq!(
+        defaults["routes"]["models.embedding"]["model"],
+        "qwen/qwen3-embedding-8b"
+    );
+    assert!(defaults["routes"]["models.general_decision"].is_null());
+    assert!(defaults["routes"]["models.memory_retrieval_decision"].is_null());
+    assert_eq!(defaults["credentials"], json!([]));
     assert_eq!(
         cli.json(&["config", "credential", "list"])["credentials"],
         json!([])

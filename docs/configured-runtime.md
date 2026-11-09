@@ -14,7 +14,7 @@ println!("{}", runtime.readiness());
 # Ok::<(), reliquary_memory::ConfiguredRuntimeError>(())
 ```
 
-`ReliquaryConfig::open(path)` exposes settings, model routes, and credential IDs and kinds. Use `configured_runtime()` to bind endpoints from the opened configuration. `ReliquaryConfig::new(path)` prepares a new configuration in memory with the product defaults.
+`ReliquaryConfig::open(path)` exposes settings, model routes, and credential IDs and kinds. Use `configured_runtime()` to bind endpoints from the opened configuration. `ReliquaryConfig::new(path)` prepares the standard local/development configuration in memory. It includes the proven model-route topology and product defaults but creates no credential objects or secret material. `ReliquaryConfig::new_blank(path)` is available for tests and advanced callers that want to construct every model route explicitly.
 
 The companion key path is derived from the config path. For `reliquary.cfg` it is:
 
@@ -27,6 +27,20 @@ Opening, readiness inspection and runtime construction are read-only. A master k
 ## Persisted configuration
 
 The existing `CVCFG\0\r\n` 1.0 format remains canonical. Switchboard owns the document framing, unknown-object preservation, atomic replacement, model-route codecs, encrypted credential objects and master-key handling. Root owns the product-domain configuration wrapper.
+
+The standard fresh configuration uses these route defaults with authentication intentionally unconfigured:
+
+- General: OpenAI Codex `gpt-5.6-luna`, low reasoning.
+- Insomnia: OpenAI Codex `gpt-6-sol`, low reasoning.
+- Insomnia metadata: OpenAI Codex `gpt-6-luna`, low reasoning.
+- Entity extraction: OpenAI Codex `gpt-5.6-sol`, low reasoning.
+- Entity resolution: OpenAI Codex `gpt-5.6-sol`, low reasoning.
+- Dream: OpenAI Codex `gpt-5.6-luna`, low reasoning.
+- Entity-resolution decision: OpenAI-compatible `typesafe/jev-1.13` at `https://openrouter.ai/api/alpha/decisions`.
+- Embedding: OpenAI-compatible `qwen/qwen3-embedding-8b` at `https://openrouter.ai/api/v1/embeddings`, 1024 dimensions, L2 normalization.
+- General decision and Memory Retrieval decision remain unset and use the documented fallback chain.
+
+The default route objects reference credential IDs but no credentials, master key, API keys, OAuth tokens, or other auth data are created. Users authenticate the referenced IDs or replace the routes.
 
 Existing route objects include:
 

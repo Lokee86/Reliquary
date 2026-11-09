@@ -11,7 +11,7 @@ fn root_only_configured_runtime_loads_and_reports_readiness_offline() {
     std::fs::create_dir_all(&fixture_dir).unwrap();
     let path = fixture_dir.join(format!("external-{}.cfg", std::process::id()));
     let key_path = path.with_extension("master-key.json");
-    let mut config = ReliquaryConfig::new(&path);
+    let mut config = ReliquaryConfig::new_blank(&path);
     let id = CredentialId::new("TEST_API_KEY").unwrap();
     config.add_api_key(id.clone(), SecretString::new("synthetic-test-key").unwrap());
     config

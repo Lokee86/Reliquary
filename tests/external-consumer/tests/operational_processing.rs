@@ -152,7 +152,7 @@ fn configured_fixture(
     general_routes: &[(ModelSlot, &str)],
     embedding: bool,
 ) -> ConfiguredRuntime {
-    let mut config = ReliquaryConfig::new(path);
+    let mut config = ReliquaryConfig::new_blank(path);
     let credential_id = CredentialId::new("KEY").unwrap();
     config.add_api_key(
         credential_id.clone(),

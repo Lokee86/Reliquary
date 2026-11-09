@@ -37,7 +37,20 @@ pub struct ReliquaryConfig {
 }
 
 impl ReliquaryConfig {
+    /// Create the standard local/development configuration. Model routes are
+    /// populated with the proven project defaults, but no credential objects or
+    /// secrets are created. Users authenticate the referenced credential IDs or
+    /// replace any route they prefer.
     pub fn new(path: impl Into<PathBuf>) -> Self {
+        let mut config = Self::new_blank(path);
+        config.install_standard_model_routes();
+        config
+    }
+
+    /// Create only the non-model product defaults. This is intended for tests,
+    /// fixtures and advanced callers that want to construct every model route
+    /// explicitly rather than inheriting the standard profile.
+    pub fn new_blank(path: impl Into<PathBuf>) -> Self {
         let mut config = Self {
             file: ConfigFile::new(path),
             fragments: FragmentConfig::default(),
@@ -54,6 +67,67 @@ impl ReliquaryConfig {
             .set_runtime_settings(config.runtime)
             .expect("valid runtime defaults");
         config
+    }
+
+    fn install_standard_model_routes(&mut self) {
+        let codex = CredentialId::new("codex").expect("valid default credential ID");
+        let codex_alt = CredentialId::new("codex-alt").expect("valid default credential ID");
+        let openrouter = CredentialId::new("embedding").expect("valid default credential ID");
+        let general = |model: &str, credential_id: CredentialId| {
+            ModelRoute::General(GeneralRoute {
+                endpoint: GeneralModelEndpoint {
+                    provider: ModelProvider::OpenAiCodex,
+                    model: model.into(),
+                    url: String::new(),
+                    credential_id,
+                },
+                reasoning_effort: Some("low"),
+            })
+        };
+        for (slot, route) in [
+            (
+                ModelSlot::General,
+                general("gpt-5.6-luna", codex_alt.clone()),
+            ),
+            (ModelSlot::Insomnia, general("gpt-6-sol", codex.clone())),
+            (
+                ModelSlot::InsomniaMetadata,
+                general("gpt-6-luna", codex.clone()),
+            ),
+            (
+                ModelSlot::EntityExtraction,
+                general("gpt-5.6-sol", codex_alt.clone()),
+            ),
+            (
+                ModelSlot::EntityResolution,
+                general("gpt-5.6-sol", codex_alt.clone()),
+            ),
+            (ModelSlot::Dream, general("gpt-5.6-luna", codex_alt)),
+        ] {
+            self.set_model(slot, &route)
+                .expect("valid standard model route");
+        }
+        self.set_model(
+            ModelSlot::EntityResolutionDecision,
+            &ModelRoute::Decision(DecisionModelEndpoint {
+                model: "typesafe/jev-1.13".into(),
+                url: "https://openrouter.ai/api/alpha/decisions".into(),
+                credential_id: openrouter.clone(),
+            }),
+        )
+        .expect("valid standard decision route");
+        self.set_model(
+            ModelSlot::Embedding,
+            &ModelRoute::Embedding(EmbeddingModelEndpoint {
+                provider: ModelProvider::OpenAiReady,
+                model: "qwen/qwen3-embedding-8b".into(),
+                url: "https://openrouter.ai/api/v1/embeddings".into(),
+                credential_id: openrouter,
+                dimensions: 1024,
+                normalization: EmbeddingNormalization::L2,
+            }),
+        )
+        .expect("valid standard embedding route");
     }
 
     pub fn open(path: impl AsRef<Path>) -> Result<Self, ConfiguredRuntimeError> {
