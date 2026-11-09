@@ -2,7 +2,7 @@
 
 Parent: [public API / CLI operational completion](public-api-cli-operational-completion-spec-2026-11-07.md). Source audit: [public API / CLI gap audit](public-api-cli-gap-audit-2026-11-07.md).
 
-**Status: implementation-ready correction to OC02; not implemented or accepted.** The isolated OC02 commit `8f75f230` introduced a JSON/runtime-environment configuration bootstrap. That shape is **superseded and must not be integrated**. The canonical persisted configuration remains the existing `reliquary.cfg` plus its companion `reliquary.master-key.json`.
+**Status: implementation-ready correction to OC02; not implemented or accepted.** The isolated OC02 commit `8f75f230` introduced a JSON/runtime-environment configuration bootstrap. That shape is **superseded and must not be integrated**. The canonical persisted configuration remains the existing `reliquary.cfg`. **Master-key storage portions of this document are superseded by [OS-backed master-key storage](os-master-key-store-spec-2026-11-08.md): the plaintext companion `reliquary.master-key.json` is to be retired and migrated into the platform credential service.**
 
 ## Problem Statement
 
