@@ -429,6 +429,214 @@ impl RoutedUserMemoryReceipt {
     }
 }
 
+/// The exact owner-local cut used by a semantic graph read.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SemanticGraphCut {
+    pub owner_id: [u8; 16],
+    pub generation: [u8; 32],
+    pub archive: Option<u64>,
+    pub memory: u64,
+    pub perception: u64,
+    pub relationship: u64,
+    pub graph: u64,
+    pub community: Option<u64>,
+}
+
+/// Renderer-facing Memory metadata. Body content is never included.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SemanticGraphMemory {
+    pub id: MemoryId,
+    pub revision: u64,
+    pub title: Option<String>,
+    pub origin: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SemanticGraphMemoryPage {
+    pub memories: Vec<SemanticGraphMemory>,
+    pub next: Option<MemoryId>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SemanticGraphRelationPage {
+    pub relations: Vec<Relation>,
+    pub next: Option<usize>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SemanticGraphCommunity {
+    pub id: reliquary_graph::CommunityId,
+    pub name: Option<String>,
+    pub member_count: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SemanticGraphCommunityPage {
+    pub communities: Vec<SemanticGraphCommunity>,
+    pub next: Option<reliquary_graph::CommunityId>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SemanticGraphCommunityMemberPage {
+    pub members: Vec<MemoryId>,
+    pub next: Option<MemoryId>,
+}
+/// Immutable, bounded-page view of one admitted owner graph cut.
+/// It exposes no storage handles and remains coherent for its borrow lifetime.
+pub struct SemanticGraphSnapshot<'a> {
+    common: &'a CommonState,
+    cut: SemanticGraphCut,
+}
+
+impl SemanticGraphSnapshot<'_> {
+    pub fn cut(&self) -> SemanticGraphCut {
+        self.cut
+    }
+
+    pub fn memory_page(
+        &self,
+        after: Option<MemoryId>,
+        limit: usize,
+    ) -> Result<SemanticGraphMemoryPage, OwnerSessionError> {
+        if !(1..=128).contains(&limit) {
+            return Err(OwnerSessionError::Record(
+                "semantic graph page limit must be between 1 and 128".into(),
+            ));
+        }
+        let ids = self
+            .common
+            .memories
+            .memory_ids_page(after, (limit + 1).min(128));
+        let has_more = ids.len() > limit
+            || (ids.len() == limit
+                && self
+                    .common
+                    .memories
+                    .memory_ids_page(ids.last().copied(), 1)
+                    .len()
+                    > 0);
+        let memories = ids
+            .into_iter()
+            .take(limit)
+            .map(|id| {
+                let (record, body) = self.common.memories.revision_projection(id, None)?;
+                Ok(SemanticGraphMemory {
+                    id,
+                    revision: record.revision,
+                    title: body.map(|body| body.title.clone()),
+                    origin: record.authority_kind.clone(),
+                })
+            })
+            .collect::<Result<Vec<_>, MemoryError>>()?;
+        let next = has_more.then(|| memories.last().expect("nonempty page when has_more").id);
+        Ok(SemanticGraphMemoryPage { memories, next })
+    }
+
+    pub fn relation_page(
+        &self,
+        offset: usize,
+        limit: usize,
+    ) -> Result<SemanticGraphRelationPage, OwnerSessionError> {
+        if !(1..=128).contains(&limit) {
+            return Err(OwnerSessionError::Record(
+                "semantic graph page limit must be between 1 and 128".into(),
+            ));
+        }
+        let relations = self
+            .common
+            .graph
+            .active_relations()
+            .skip(offset)
+            .take(limit + 1)
+            .copied()
+            .collect::<Vec<_>>();
+        let next = (relations.len() > limit).then_some(offset.saturating_add(limit));
+        Ok(SemanticGraphRelationPage {
+            relations: relations.into_iter().take(limit).collect(),
+            next,
+        })
+    }
+
+    pub fn community_page(
+        &self,
+        after: Option<reliquary_graph::CommunityId>,
+        limit: usize,
+    ) -> Result<SemanticGraphCommunityPage, OwnerSessionError> {
+        if !(1..=128).contains(&limit) {
+            return Err(OwnerSessionError::Record(
+                "semantic graph page limit must be between 1 and 128".into(),
+            ));
+        }
+        let Some(snapshot) = self.common.communities.current() else {
+            return Ok(SemanticGraphCommunityPage {
+                communities: Vec::new(),
+                next: None,
+            });
+        };
+        let start = after.map_or(0, |id| {
+            snapshot
+                .communities
+                .partition_point(|community| community.id <= id)
+        });
+        let rows = snapshot
+            .communities
+            .iter()
+            .skip(start)
+            .take(limit + 1)
+            .collect::<Vec<_>>();
+        let next = (rows.len() > limit).then(|| rows[limit - 1].id);
+        let communities = rows
+            .into_iter()
+            .take(limit)
+            .map(|community| SemanticGraphCommunity {
+                id: community.id,
+                name: self
+                    .common
+                    .communities
+                    .user_name(community.id)
+                    .map(str::to_owned),
+                member_count: community.members.len(),
+            })
+            .collect();
+        Ok(SemanticGraphCommunityPage { communities, next })
+    }
+
+    pub fn community_member_page(
+        &self,
+        community_id: reliquary_graph::CommunityId,
+        after: Option<MemoryId>,
+        limit: usize,
+    ) -> Result<SemanticGraphCommunityMemberPage, OwnerSessionError> {
+        if !(1..=128).contains(&limit) {
+            return Err(OwnerSessionError::Record(
+                "semantic graph page limit must be between 1 and 128".into(),
+            ));
+        }
+        let Some(community) = self.common.communities.current().and_then(|snapshot| {
+            snapshot
+                .communities
+                .iter()
+                .find(|community| community.id == community_id)
+        }) else {
+            return Err(OwnerSessionError::ManagementMissing);
+        };
+        let start = after.map_or(0, |id| {
+            community.members.partition_point(|member| *member <= id.0)
+        });
+        let rows = community
+            .members
+            .iter()
+            .skip(start)
+            .take(limit + 1)
+            .copied()
+            .collect::<Vec<_>>();
+        let next = (rows.len() > limit).then(|| MemoryId(rows[limit - 1]));
+        Ok(SemanticGraphCommunityMemberPage {
+            members: rows.into_iter().take(limit).map(MemoryId).collect(),
+            next,
+        })
+    }
+}
 macro_rules! common_reads {
     ($session:ty, $field:ident) => {
         impl $session {
@@ -643,6 +851,30 @@ macro_rules! common_reads {
     };
 }
 
+impl RelSession {
+    /// Bind bounded semantic graph pages to the same immutable owner cut.
+    pub fn semantic_graph_snapshot(&self) -> SemanticGraphSnapshot<'_> {
+        let (memory, perception, relationship, graph) = self.management_read().versions();
+        let community = self
+            .common
+            .communities
+            .current()
+            .map(|snapshot| snapshot.generation);
+        SemanticGraphSnapshot {
+            common: &self.common,
+            cut: SemanticGraphCut {
+                owner_id: self.owner_id,
+                generation: self.history_generation,
+                archive: Some(self.archive_version()),
+                memory,
+                perception,
+                relationship,
+                graph,
+                community,
+            },
+        }
+    }
+}
 common_reads!(RelSession, common);
 
 impl PhySession {
@@ -701,6 +933,31 @@ impl PhySession {
 
     pub fn scope(&self) -> OwnerScope {
         OwnerScope::Unspecified
+    }
+}
+impl PhySession {
+    /// Bind bounded semantic graph pages to the same immutable owner cut.
+    pub fn semantic_graph_snapshot(&self) -> SemanticGraphSnapshot<'_> {
+        let read = self.management_read();
+        let (memory, perception, relationship, graph) = read.versions();
+        let community = self
+            .common
+            .communities
+            .current()
+            .map(|snapshot| snapshot.generation);
+        SemanticGraphSnapshot {
+            common: &self.common,
+            cut: SemanticGraphCut {
+                owner_id: self.owner_id,
+                generation: self.history_generation,
+                archive: None,
+                memory,
+                perception,
+                relationship,
+                graph,
+                community,
+            },
+        }
     }
 }
 common_reads!(PhySession, common);

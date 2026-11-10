@@ -29,7 +29,109 @@ pub use reliquary_owner_session::model::{
     MemoryEntityResolutionStatus, TerminalTombstone,
 };
 
+pub use reliquary_graph::{CommunityId, CommunitySnapshot, NodeRef, Relation};
+pub use reliquary_owner_session::{
+    SemanticGraphCommunity, SemanticGraphCommunityMemberPage, SemanticGraphCommunityPage,
+    SemanticGraphCut, SemanticGraphMemory, SemanticGraphMemoryPage, SemanticGraphRelationPage,
+};
 impl Instance {
+    /// Read one bounded page from an exact-cut semantic graph source.
+    pub fn semantic_graph_memory_page(
+        &self,
+        owner: OwnerId,
+        kind: OwnerKind,
+        expected_cut: Option<SemanticGraphCut>,
+        after: Option<MemoryId>,
+        limit: usize,
+    ) -> Result<(SemanticGraphCut, SemanticGraphMemoryPage), ProductError> {
+        match kind {
+            OwnerKind::Rel => self.require_rel_read(owner)?,
+            OwnerKind::Phylactery => self.require_phy_read(owner)?,
+        }
+        self.inner
+            .semantic_graph_memory_page(
+                owner.into(),
+                kind == OwnerKind::Phylactery,
+                expected_cut,
+                after,
+                limit,
+            )
+            .map_err(Into::into)
+    }
+
+    /// Read active relations at the caller-pinned semantic graph cut.
+    pub fn semantic_graph_relation_page(
+        &self,
+        owner: OwnerId,
+        kind: OwnerKind,
+        expected_cut: SemanticGraphCut,
+        offset: usize,
+        limit: usize,
+    ) -> Result<(SemanticGraphCut, SemanticGraphRelationPage), ProductError> {
+        match kind {
+            OwnerKind::Rel => self.require_rel_read(owner)?,
+            OwnerKind::Phylactery => self.require_phy_read(owner)?,
+        }
+        self.inner
+            .semantic_graph_relation_page(
+                owner.into(),
+                kind == OwnerKind::Phylactery,
+                expected_cut,
+                offset,
+                limit,
+            )
+            .map_err(Into::into)
+    }
+
+    /// Read a bounded page of accepted community metadata at the pinned cut.
+    pub fn semantic_graph_community_page(
+        &self,
+        owner: OwnerId,
+        kind: OwnerKind,
+        expected_cut: SemanticGraphCut,
+        after: Option<reliquary_graph::CommunityId>,
+        limit: usize,
+    ) -> Result<(SemanticGraphCut, SemanticGraphCommunityPage), ProductError> {
+        match kind {
+            OwnerKind::Rel => self.require_rel_read(owner)?,
+            OwnerKind::Phylactery => self.require_phy_read(owner)?,
+        }
+        self.inner
+            .semantic_graph_community_page(
+                owner.into(),
+                kind == OwnerKind::Phylactery,
+                expected_cut,
+                after,
+                limit,
+            )
+            .map_err(Into::into)
+    }
+
+    /// Read a bounded member page for one accepted community at the pinned cut.
+    pub fn semantic_graph_community_member_page(
+        &self,
+        owner: OwnerId,
+        kind: OwnerKind,
+        expected_cut: SemanticGraphCut,
+        community_id: reliquary_graph::CommunityId,
+        after: Option<MemoryId>,
+        limit: usize,
+    ) -> Result<(SemanticGraphCut, SemanticGraphCommunityMemberPage), ProductError> {
+        match kind {
+            OwnerKind::Rel => self.require_rel_read(owner)?,
+            OwnerKind::Phylactery => self.require_phy_read(owner)?,
+        }
+        self.inner
+            .semantic_graph_community_member_page(
+                owner.into(),
+                kind == OwnerKind::Phylactery,
+                expected_cut,
+                community_id,
+                after,
+                limit,
+            )
+            .map_err(Into::into)
+    }
     /// Inspect one explicitly scoped mounted owner. A cursor only continues a read.
     pub fn inspect_owner(
         &self,

@@ -600,6 +600,38 @@ fn hp02_memory_graph_expands_active_neighbors_at_one_cut() {
     assert_eq!(edge.edge.graph_version, 1);
     assert_eq!(edge.id.len(), 64);
 
+    // Renderer reads use small typed pages while retaining the same accepted cut.
+    let (semantic_cut, mut memory_page) = instance
+        .semantic_graph_memory_page(owner, OwnerKind::Rel, None, None, 2)
+        .unwrap();
+    assert_eq!(semantic_cut.owner_id, owner.as_bytes());
+    assert_eq!(semantic_cut.graph, one.cut.graph);
+    assert_eq!(semantic_cut.memory, one.cut.memory);
+    let mut semantic_memories = memory_page.memories;
+    while let Some(after) = memory_page.next {
+        let (next_cut, next_page) = instance
+            .semantic_graph_memory_page(owner, OwnerKind::Rel, Some(semantic_cut), Some(after), 2)
+            .unwrap();
+        assert_eq!(next_cut, semantic_cut);
+        semantic_memories.extend(next_page.memories.clone());
+        memory_page = next_page;
+    }
+    assert_eq!(semantic_memories.len(), 3);
+    let (relation_cut, mut relation_page) = instance
+        .semantic_graph_relation_page(owner, OwnerKind::Rel, semantic_cut, 0, 1)
+        .unwrap();
+    assert_eq!(relation_cut, semantic_cut);
+    let mut semantic_relations = relation_page.relations;
+    while let Some(offset) = relation_page.next {
+        let (next_cut, next_page) = instance
+            .semantic_graph_relation_page(owner, OwnerKind::Rel, semantic_cut, offset, 1)
+            .unwrap();
+        assert_eq!(next_cut, semantic_cut);
+        semantic_relations.extend(next_page.relations.clone());
+        relation_page = next_page;
+    }
+    assert_eq!(semantic_relations.len(), 2);
+
     let expansion = MemoryGraphQuery {
         depth: 2,
         expected_cut: Some(one.cut),

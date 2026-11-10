@@ -4,6 +4,8 @@
 //! accepted Episodes are derived from durable owners; Dream first-cycle
 //! populations still require externally supplied admission evidence.
 
+pub use reliquary_graph::CommunityId;
+
 pub use reliquary_graph::GraphAdmission;
 pub use reliquary_insomnia_store::AcceptedEpisodeOrder;
 pub use reliquary_memory_core::MemoryId;
@@ -44,6 +46,11 @@ pub use session::{
 pub use session::{
     RelHistoryComparison, RelHistoryRelation, RelReconciliationError, RelReconciliationReport,
     compare_rel_histories, reconcile_divergent_rel_copy,
+};
+pub use session::{
+    SemanticGraphCommunity, SemanticGraphCommunityMemberPage, SemanticGraphCommunityPage,
+    SemanticGraphCut, SemanticGraphMemory, SemanticGraphMemoryPage, SemanticGraphRelationPage,
+    SemanticGraphSnapshot,
 };
 
 pub use reliquary_vector_store::VectorGeneration;

@@ -52,6 +52,25 @@ impl PhyWriter {
 }
 
 impl ManagementRead<'_> {
+    /// Open the renderer's bounded semantic graph view at this read's exact owner cut.
+    pub fn semantic_graph_snapshot(&self) -> super::SemanticGraphSnapshot<'_> {
+        let (memory, perception, relationship, graph) = self.versions();
+        let community = self.community().map(|snapshot| snapshot.generation);
+        super::SemanticGraphSnapshot {
+            common: self.common,
+            cut: super::SemanticGraphCut {
+                owner_id: self.owner_id,
+                generation: self.history_generation,
+                archive: self.rel.map(|rel| rel.archive_version()),
+                memory,
+                perception,
+                relationship,
+                graph,
+                community,
+            },
+        }
+    }
+
     /// Exact first-cycle identity and settlement, including manually started passes.
     pub fn first_dream_pass(&self, source: MemoryId) -> Option<(&str, bool)> {
         self.common.dreams.first_pass(source)

@@ -3,7 +3,11 @@ use reliquary_application::inspection::{
     InspectionCursor, InspectionItem, InspectionPage, InspectionQuery, MountedOwnerInfo,
     SourceAvailability, finish_provenance, inspect, mounted_owner_info, resolve_provenance,
 };
-use reliquary_owner_session::ManagementRead;
+use reliquary_owner_session::{
+    CommunityId, ManagementRead, MemoryId, SemanticGraphCommunityMemberPage,
+    SemanticGraphCommunityPage, SemanticGraphCut, SemanticGraphMemoryPage,
+    SemanticGraphRelationPage,
+};
 
 impl Instance {
     pub fn inspect_management(
@@ -35,6 +39,89 @@ impl Instance {
         Ok(page)
     }
 
+    pub fn semantic_graph_memory_page(
+        &self,
+        owner: OwnerId,
+        phy: bool,
+        expected_cut: Option<SemanticGraphCut>,
+        after: Option<MemoryId>,
+        limit: usize,
+    ) -> Result<(SemanticGraphCut, SemanticGraphMemoryPage), GatewayError> {
+        self.with_management_read(owner, phy, |read| {
+            let snapshot = read.semantic_graph_snapshot();
+            let cut = snapshot.cut();
+            if expected_cut.is_some_and(|expected| expected != cut) {
+                return Err(GatewayError::OwnerSession(
+                    OwnerSessionError::ManagementStale,
+                ));
+            }
+            Ok((cut, snapshot.memory_page(after, limit)?))
+        })?
+    }
+
+    pub fn semantic_graph_relation_page(
+        &self,
+        owner: OwnerId,
+        phy: bool,
+        expected_cut: SemanticGraphCut,
+        offset: usize,
+        limit: usize,
+    ) -> Result<(SemanticGraphCut, SemanticGraphRelationPage), GatewayError> {
+        self.with_management_read(owner, phy, |read| {
+            let snapshot = read.semantic_graph_snapshot();
+            let cut = snapshot.cut();
+            if expected_cut != cut {
+                return Err(GatewayError::OwnerSession(
+                    OwnerSessionError::ManagementStale,
+                ));
+            }
+            Ok((cut, snapshot.relation_page(offset, limit)?))
+        })?
+    }
+
+    pub fn semantic_graph_community_page(
+        &self,
+        owner: OwnerId,
+        phy: bool,
+        expected_cut: SemanticGraphCut,
+        after: Option<CommunityId>,
+        limit: usize,
+    ) -> Result<(SemanticGraphCut, SemanticGraphCommunityPage), GatewayError> {
+        self.with_management_read(owner, phy, |read| {
+            let snapshot = read.semantic_graph_snapshot();
+            let cut = snapshot.cut();
+            if expected_cut != cut {
+                return Err(GatewayError::OwnerSession(
+                    OwnerSessionError::ManagementStale,
+                ));
+            }
+            Ok((cut, snapshot.community_page(after, limit)?))
+        })?
+    }
+
+    pub fn semantic_graph_community_member_page(
+        &self,
+        owner: OwnerId,
+        phy: bool,
+        expected_cut: SemanticGraphCut,
+        community_id: CommunityId,
+        after: Option<MemoryId>,
+        limit: usize,
+    ) -> Result<(SemanticGraphCut, SemanticGraphCommunityMemberPage), GatewayError> {
+        self.with_management_read(owner, phy, |read| {
+            let snapshot = read.semantic_graph_snapshot();
+            let cut = snapshot.cut();
+            if expected_cut != cut {
+                return Err(GatewayError::OwnerSession(
+                    OwnerSessionError::ManagementStale,
+                ));
+            }
+            Ok((
+                cut,
+                snapshot.community_member_page(community_id, after, limit)?,
+            ))
+        })?
+    }
     pub fn mounted_management_info(
         &self,
         owner: OwnerId,
