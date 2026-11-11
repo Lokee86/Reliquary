@@ -1,5 +1,7 @@
 # H01 owner mount and Instance isolation acceptance (2026-11-05)
 
+Parent index: [Documentation](./INDEX.md)
+
 H01 is accepted at rebuild commit `HEAD` after G2 acceptance. This checkpoint is limited to owner mounting and authenticated Instance isolation; it does not claim H02 queue, H03 host streaming, H04 worker lifecycle, or G3 acceptance.
 
 ## Accepted behavior

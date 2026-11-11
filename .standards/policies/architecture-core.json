@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "id": "architecture-pitlord-policy-required",
+      "type": "require_path",
+      "path": "tools/pitlord/policy.json",
+      "message": "architecture-enforced repositories require a Pitlord policy composition root"
+    },
+    {
+      "id": "architecture-pitlord-semantic-policy-required",
+      "type": "require_path",
+      "path": "tools/pitlord/semantic.json",
+      "message": "architecture-enforced repositories require repository-specific semantic architecture rules"
+    },
+    {
+      "id": "architecture-pitlord-operations-required",
+      "type": "require_path",
+      "path": "tools/pitlord/README.md",
+      "message": "architecture-enforced repositories require a documented Pitlord execution and troubleshooting procedure"
+    }
+  ]
+}

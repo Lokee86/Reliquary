@@ -1,5 +1,7 @@
 # GM — maintenance, history and reconciliation parity gate
 
+Parent index: [Documentation](./INDEX.md)
+
 Status: **accepted after independent audit and correction** on
 `rebuild/clean-architecture` (2026-11-06). The original acceptance was reopened
 by `gm-independent-implementation-audit-2026-11-06.md`; current authority is the

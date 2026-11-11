@@ -1,5 +1,7 @@
 # M02 — multi-domain pruning, repair and reclamation acceptance
 
+Parent index: [Documentation](./INDEX.md)
+
 Status: **corrected and accepted** after the 2026-11-06 independent audit.
 Unactivated Archive mappings, native external-index reachability, referenced
 packed matrices and valid unreceipted generations now have owner-aware

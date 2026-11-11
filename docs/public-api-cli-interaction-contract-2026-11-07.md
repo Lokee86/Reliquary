@@ -1,5 +1,7 @@
 # Public interaction, retrieval and CLI contract — 2026-11-07
 
+Parent index: [Documentation](./INDEX.md)
+
 Parent: [operational completion specification](public-api-cli-operational-completion-spec-2026-11-07.md). Evidence: [gap audit](public-api-cli-gap-audit-2026-11-07.md).
 
 **Status: specified target, not current CLI documentation or an acceptance claim.** OC05, OC06, OC07 and OC08 implement this contract. Retrieval and queries are required product behavior, not optional extras after import. All command examples below are interfaces to implement; do not report them as already available.

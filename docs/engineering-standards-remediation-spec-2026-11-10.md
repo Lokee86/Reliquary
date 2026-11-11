@@ -1,5 +1,7 @@
 # Engineering standards remediation — post-rebuild compliance specification
 
+Parent index: [Documentation](./INDEX.md)
+
 **Status:** Specification; not an implementation or compliance acceptance.
 **Repository:** `C:\!bin\workspace\Reliquary`.
 **Canonical standard:** `C:\!bin\workspace\engineering-standards` (documentation standard, documentation procedure, profiles, completeness/status, adoption, and architecture enforcement/procedure).

@@ -1,5 +1,7 @@
 # M03 — supported divergent REL reconciliation acceptance
 
+Parent index: [Documentation](./INDEX.md)
+
 Status: **corrected and accepted** for the supported native REL 2.1 boundary
 after independent-audit remediation. Consolidated evidence:
 `m03-final-correction-handoff-2026-11-06.md`.

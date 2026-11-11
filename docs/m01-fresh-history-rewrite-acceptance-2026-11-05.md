@@ -1,5 +1,7 @@
 # M01 Fresh-History Rewrite Acceptance — 2026-11-05
 
+Parent index: [Documentation](./INDEX.md)
+
 Status: **corrected and accepted** after the 2026-11-06 independent audit.
 Memory-linked Relationship/Entity closure, complete retained revision replay and
 no-replace publication are now covered by executable regressions. Final combined

@@ -1,0 +1,43 @@
+# Switchboard
+
+Parent index: [Reliquary architecture](./INDEX.md)
+
+## Purpose
+
+Explain the owner of runtime configuration, protected provider credentials, route selection, and model endpoint adapters.
+
+## Overview
+
+`reliquary-switchboard` owns configuration documents and Switchboard-reserved model objects, credential lifecycle, configured route resolution, and adapters for general, decision, and embedding endpoints. Product-owned configuration objects can coexist in the document, but Switchboard-reserved keys remain Switchboard-owned. Consumers receive endpoint traits or configured routes; semantic services do not read credential files or select their own provider implementation.
+
+Switchboard does not own product workflows, semantic acceptance criteria, durable REL/PHY state, Gateway authorization, or the external host lifecycle. Application and semantic owners decide what operation to perform; Switchboard resolves which configured endpoint can perform it.
+
+## Routing and state
+
+Configuration is opened from the configured path, parsed into typed objects, and resolved into routes. Decision routing prefers a consumer-specific route, then the shared decision route, then the general route; an unavailable route yields no endpoint. Embedding and general routes are also resolved through injected endpoint traits, so route policy is separated from transport implementation. Runtime probes verify configured endpoints before consumers rely on them, and callers receive typed configuration, endpoint, status, and backpressure failures.
+
+Credentials and their protected configuration are managed by Switchboard's protected-config boundary. Secret-bearing credential values are redacted from Debug output and protected key lifecycle is isolated from ordinary route data. Credentials are mutable configuration state, not part of REL/PHY owner files. Do not log or expose secrets through product objects, errors, or diagnostics.
+
+## Failure and recovery
+
+Invalid/reserved keys, missing route adapters, failed authentication/device flow, endpoint status failures, invalid responses, and backpressure are explicit errors. Failure to resolve the configured adapter does not silently substitute an unrelated provider. Configuration reopening reconstructs typed route and credential state; a missing protected key or invalid credential state must be surfaced as an error rather than repaired by an endpoint consumer.
+
+## Code map and tests
+
+- Configuration and route policy: [`crates/reliquary-switchboard/src/lib.rs`](../../crates/reliquary-switchboard/src/lib.rs), [`model_config.rs`](../../crates/reliquary-switchboard/src/model_config.rs), [`configured.rs`](../../crates/reliquary-switchboard/src/configured.rs), and [`routes.rs`](../../crates/reliquary-switchboard/src/protected_config/routes.rs).
+- Credential protection/lifecycle and transports: [`protected_config.rs`](../../crates/reliquary-switchboard/src/protected_config.rs), [`credentials.rs`](../../crates/reliquary-switchboard/src/protected_config/credentials.rs), [`key_lifecycle.rs`](../../crates/reliquary-switchboard/src/protected_config/key_lifecycle.rs), and [`transport.rs`](../../crates/reliquary-switchboard/src/transport.rs).
+- Focused tests are in [`crates/reliquary-switchboard/src/tests.rs`](../../crates/reliquary-switchboard/src/tests.rs), [`configured_tests.rs`](../../crates/reliquary-switchboard/src/configured_tests.rs), [`protected_config/tests/master_keys.rs`](../../crates/reliquary-switchboard/src/protected_config/tests/master_keys.rs), and [`protected_config/tests/specialty.rs`](../../crates/reliquary-switchboard/src/protected_config/tests/specialty.rs). They cover route precedence, secret handling, protected-key lifecycle, config round trips, endpoint validation, and capability-specific adapters.
+
+## Extension seams
+
+Introduce a new credential kind or route slot in Switchboard, with typed validation and lifecycle tests. Keep semantic intent and fallback policy for a product operation with its Application/semantic owner; keep durable product data in owner stores; keep host credentials and host lifecycle outside this crate.
+
+## Related docs
+
+- [System architecture](system.md)
+- [Semantic processing](semantic-processing.md)
+- [Gateway and host lifecycle](gateway.md)
+
+## Notes
+
+This page describes current implementation ownership. It does not establish that any particular provider is configured or available in a deployment.

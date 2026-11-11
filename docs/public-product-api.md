@@ -1,167 +1,122 @@
-# Reliquary 2.1 public product API
+# Public product API
 
-The operational completion documents define the broader public API and CLI
-acceptance criteria. [Specification](public-api-cli-operational-completion-spec-2026-11-07.md), [interaction contract](public-api-cli-interaction-contract-2026-11-07.md), [Switchboard configuration restoration](switchboard-configuration-restoration-spec-2026-11-08.md), [gap audit](public-api-cli-gap-audit-2026-11-07.md).
+Parent index: [Documentation](./INDEX.md)
 
-Downstream Rust consumers depend on the root `reliquary-memory` package. Create
-or open owners with `Rel` and `Phylactery`; both are opaque read handles.
-Writable work is mounted once in `Gateway` and reached only through an
-authenticated product `Instance`.
+## Purpose
+
+This guide describes the supported Rust consumer surface exported by the `reliquary-memory` package and the security boundary around it.
+
+## Overview
+
+Root exports opaque owner handles, product workflows, immutable read values and trusted-host interfaces. It does not export mutable Container or store handles. The executable CLI is a separate crate and depends on Root, rather than reaching into implementation crates.
+
+The current owner formats are REL 2.1 and PHY 2.1. `Rel` and `Phylactery` open/create these owners and expose identity, path and `OwnerInfo`; they do not expose writable data stores. `OwnerId` is a 16-byte identity displayed as 32 hexadecimal characters. REL scope is `Unspecified`, `Organization`, `Project`, or `Connection`; scope metadata does not grant access. Hosted authority comes from an authenticated principal's grant to that owner.
+
+## Getting started
+
+Prerequisites: depend on the workspace's `reliquary-memory` package and create a path for a new owner. In a trusted host, create and mount the owner, install a credential binding with only the required grants, then authenticate an `Instance`:
 
 ```rust
 use reliquary_memory::{
-    Gateway, HostCredentialBinding, OwnerGrant, OwnerScope, Rel,
+    Gateway, HostCredentialBinding, OwnerGrant, OwnerScope, ProductError, Rel,
     TrustedHostAdmission,
 };
 
-let rel = Rel::create("project.rel", OwnerScope::Project)?;
-let gateway = Gateway::new();
-let owner = gateway.mount_rel(&rel, true)?;
-let token = load_secret_from_host_configuration();
-let admission = TrustedHostAdmission::new([
-    HostCredentialBinding::new("operator", &token, [OwnerGrant::ManageRel(owner)])
-]);
-let (requests, revocation) = admission.install(&gateway)?;
-let instance = requests.authenticate(&token)?;
-let management = instance.workspace_management(owner)?;
-let health = management.health()?;
-# Ok::<(), reliquary_memory::ProductError>(())
+fn trusted_host_example(token: String) -> Result<(), ProductError> {
+    let rel = Rel::create("project.rel", OwnerScope::Project)?;
+    let gateway = Gateway::new();
+    let owner = gateway.mount_rel(&rel, true)?;
+    let admission = TrustedHostAdmission::new([
+        HostCredentialBinding::new("operator", token.clone(), [OwnerGrant::ManageRel(owner)]),
+    ]);
+    let (requests, _revocation) = admission.install(&gateway)?;
+    let instance = requests.authenticate(&token)?;
+    let management = instance.workspace_management(owner)?;
+    let _health = management.health()?;
+    Ok(())
+}
 ```
 
-Tokens belong in host configuration, never request parameters, logs, or CLI
-arguments. Grants are immutable. Revocation is checked again on reads and at
-writer handoff/commit.
+The host passes a credential loaded from its protected configuration as `token`; the example takes it as a function argument so the snippet remains compilable without inventing a host secret-store API. Do not pass the token as a CLI argument, serialize it into requests, or log it. Grants are bound to owner IDs and REL/PHY kinds. `ManageRel` is the management grant; `OperateRel` and `ViewRel` are narrower operation scopes. PHY supports view and operate grants, not REL management. Read-only mounts cannot be used for writes. Revocation fences authorized operations, including publication boundaries.
 
-The canonical local provider configuration is the binary `reliquary.cfg`.
-Switchboard keeps credential objects encrypted in the configuration and
-stores the master key for its canonical path in the operating system
-credential service. `ConfiguredRuntime` opens the validated configuration
-through the Root API. See the [configured runtime guide](configured-runtime.md) and [OS-backed master-key specification](os-master-key-store-spec-2026-11-08.md).
+## API families
 
-The separate `reliquary` CLI supports explicit REL and PHY commands. It emits
-JSON and returns nonzero on failure or incomplete requested readiness. Copy
-maintenance keeps its create-only destinations. See the
-[operator workflow and public symbol map](operator-workflow.md).
+| Family | Root entry points | Contract |
+| --- | --- | --- |
+| Owners | `Rel`, `Phylactery`, `OwnerInfo`, `OwnerId`, `OwnerKind`, `OwnerScope` | Create/open current files, obtain stable owner identity and inspect verified metadata. Wrong-format input fails admission. |
+| Admission and lifecycle | `Gateway`, `TrustedHostAdmission`, `HostCredentialBinding`, `OwnerGrant`, `Instance` | Mount owner files, authenticate a host principal, issue scoped capabilities, revoke credentials, and quiesce/reopen through product lifecycle operations. |
+| Import and processing | `NativeImportPlan`, `ProcessOptions`, `OwnerProcessingJob`, `Instance::stage_native_import`, `Instance::start_processing`, `Instance::process_and_drain` | Stage source data and run named processing through configured routes. Durable progress and source identity are queryable; replay and resume honor recorded workflow evidence. |
+| Inspection and management | `InspectionQuery`, `InspectionCursor`, `WorkspaceManagement`, `MemorySummary`, `MemoryProvenance` | Bounded, cut-bound owner reads and supported user-origin mutations; stale cuts and unauthorized owners are explicit errors. |
+| Retrieval | `Instance::search`, `begin_retrieval`, `memory_query`, `refine_query`, `traverse_graph`, and prepared delivery/recovery methods | Passive search, decision-driven retrieval, inspection and confirmed host use remain distinct. A query or displayed result does not assert use. |
+| Host work | `ConversationQueue`, `ContextView`, `AuthorizedContextCheckpoint`, `ExternalHostSource`, `TrustedProjectSource`, `TrustedHostAdapter` | Host-facing queue, context, source and exact handoff protocols, with durable evidence and explicit recovery. |
+| Maintenance | `plan_rewrite`, `execute_rewrite`, prune/reclaim/repair/reconcile operations | Plan and verify create-only copies; they do not replace an existing destination. Quiesce writable owners before copy maintenance. |
+| Configuration | `ReliquaryConfig`, `ConfiguredRuntime`, `ModelRoute`, `CredentialId`, `SecretString` | Open or prepare `reliquary.cfg`, validate offline route bindings, protect credentials through Switchboard. |
 
-## Checked manual Memory creation
+This table is an orientation map, not a complete list of every public value. Rustdoc for the built version is the exact method signature reference; CLI callers use the [CLI reference](reference/cli.md).
 
-Pass the `InspectionCut` from an authorized owner inspection to
-`WorkspaceManagement::create_memory_at_cut` along with a `CreateMemoryRequest`.
-The operation requires `ManageRel` and compares a new request's cut under
-the same writer lock as publication. An exact accepted request can replay in
-the same owner history generation. Changing the draft under an accepted
-request ID returns a conflict.
+## Checked user-origin Memory mutations
 
-The receipt carries the durable Memory identity and revision, the current
-owner cut after the operation, and whether this call created the Memory. The
-principal comes from the authenticated Instance, and the direct Memory keeps
-operator provenance.
+These mutations require a mounted REL `Instance` with `ManageRel`. The caller first obtains an `InspectionCut`; a cut binds the owner and history generation plus the current Archive, Memory, Perception, Relationship, Graph, and Community versions. A new request must match the current cut at publication. Request identity is derived from the operation, authenticated principal, and caller request ID; its receipt is recorded in the specific owner history. Exact retries replay where the operation supports replay. Reusing an ID with changed evidence or a stale cut is rejected according to that operation's contract.
 
-## Checked Memory correction and retirement
+### Create
 
-`WorkspaceManagement::correct_memory_at_cut` accepts the current inspection
-cut, original Memory ID, revision and body ID, and a stable request ID.
-The immutable successor, original lifecycle revision and user supersession
-edge share one durable owner commit. The response identifies both Memories
-and returns the replacement's authenticated user provenance. Exact replay
-reuses the accepted effect after reopening the owner.
+`WorkspaceManagement::create_memory_at_cut(expected_cut, request)` accepts a `CreateMemoryRequest` with `request_id`, `title`, `content`, `category`, `memory_type`, and `created_at_ns`. Its `CreateMemoryReceipt` contains the resulting `MemorySummary`, the post-commit cut, and `created` (false when the exact prior effect was replayed). The stable request is accepted within the same owner history generation; the request payload cannot be changed under that ID.
 
-`WorkspaceManagement::retire_memory_at_cut` takes a stable request ID and
-the exact original and successor evidence required by the existing
-supersession and reference-closure checks. It returns the committed
-tombstone revision and resulting cut.
+### Correct and retire
 
-## Checked user Memory associations
+`correct_memory_at_cut(expected_cut, request)` takes a `CorrectMemoryRequest` containing the stable request ID, target Memory ID, expected revision and body ID, replacement title/content, and creation timestamp. The operation publishes an immutable successor and records the original's supersession/lifecycle effect in one owner commit. `CorrectMemoryReceipt` identifies the original ID and revision, the replacement summary, resulting cut, and whether it was created or replayed. Stale revision/body evidence, a changed cut, or conflicting reuse of a request ID fails before publishing a different effect.
 
-`WorkspaceManagement::change_memory_association` requires a ManageRel grant,
-the current inspection cut and both Memory revisions. A new link names the
-source and target. Changing an existing association also supplies its edge ID
-and revision. The operation admits only directed user-origin Topical edges and
-protects an existing Dream edge on the same pair. Unlinking writes an inactive
-user edge so Dream cannot silently restore it.
+`retire_memory_at_cut(expected_cut, request_id, request)` accepts a `MemoryRetirementRequest` that binds the owner, original Memory ID/revision/body ID, successor ID/revision/body ID. It verifies the archived supersession and reference-closure conditions before writing a terminal tombstone. `RetireMemoryReceipt` returns the tombstoned Memory ID, tombstone revision, Memory version, resulting cut, and whether this call retired it. Missing, terminal, stale, or inconsistent evidence is rejected; retirement does not erase prior history.
 
-The receipt carries the original edge effect and the current cut. Exact
-principal-bound requests replay the original edge across reopen, with
-`replayed` set and no second write. A reused request ID with different evidence
-conflicts. A foreign owner or generation, changed cut, or stale endpoint or
-edge revision is rejected before publication.
+### Associate or unlink
 
-## Hermes copied-source import
+`change_memory_association(expected_cut, request)` accepts a `MemoryAssociationRequest` with principal-bound `request_id`, source and target IDs and revisions, action (`Link` or `Unlink`), and optional expected edge ID/revision. The source and target must be distinct and current at the accepted cut. The supported user-origin association is a directed Topical edge; an unlink must identify the exact edge revision. A successful `MemoryAssociationReceipt` contains the resulting edge, cut, and `replayed` flag. Unlink is recorded as an inactive user edge, so Dream processing cannot silently restore the user's removed association. Stale endpoint/cut evidence, mismatched edge identity, and changed request reuse are conflicts or stale errors rather than implicit updates.
 
-A trusted host can construct a bounded `HermesCopiedSnapshot`, validate it with
-`NativeImportPlan::from_hermes_copy`, and call the existing
-`Instance::stage_native_import` operation with an `OperateRel` grant. The
-receipt binds the original profile, session, message IDs, times and supplied
-author metadata to the normalized copy digest. A known branch and revision are
-retained in source provenance. Unknown branch and parent identities remain
-unasserted. The local ordered Archive branch describes only the copied view.
-The native worker accepts REL-only processing for this import. Source author
-metadata carries no PHY grant.
+## Native and copied-source import contracts
 
-For incremental copy, call `NativeImportPlan::from_hermes_copy_extension`
-with only the contiguous new messages and the previous completed copy's
-native `source_sha256`. The owner checks the authenticated predecessor
-receipt, exact current branch head and all incoming message IDs before
-staging. The native extension digest binds both the suffix and its
-predecessor. The resulting receipt tracks only the new source messages,
-and the new native Episodes enter the same processing workflow. Exact
-replay preserves the previous receipt and does not allocate new turns.
-Changed prefixes, branch changes and stale anchors fail with a conflict.
-The host owns source-view invalidation on those transitions.
+`NativeImportPlan::from_path` prepares a bounded ChatGPT export or normalized manifest, optionally selected by a half-open RFC3339 window. `NativeImportPlan::from_hermes_copy` accepts a trusted host's already privacy-filtered text snapshot, including original profile/session scope, optional known branch/revision, ordered source message IDs, roles, timestamps, text, and provenance-only author metadata. Copy bytes and message sizes are bounded. The resulting receipt preserves the source digest and identity; a local Archive branch describes only the accepted copied view. Unknown source branch or parent identity is not asserted, and author metadata grants no PHY access.
 
-Use `Instance::tombstone_hermes_copy` with the same authenticated principal,
-source scope and an exact accepted copy SHA-256 after the import epoch
-settles. The marker covers the whole copied conversation, including every
-extension. It retains provenance, hides the source bodies from inspection
-and rejects stale copy replay. Repeating the terminal notice is idempotent.
-The host owns pending-source invalidation while an epoch is still open.
+For incremental copied-source import, `from_hermes_copy_extension(snapshot, predecessor_sha256)` accepts only a new contiguous suffix. Publication checks the authenticated predecessor receipt and exact current branch head under the owner writer boundary. The extension identity binds both the prior digest and suffix; changed prefixes, branch/head changes, duplicate IDs, or stale anchors are refused. Exact retry does not allocate duplicate Archive turns. A terminal notice uses `Instance::tombstone_hermes_copy(owner, scope, source_sha256)` after the import epoch settles. It is bound to the same principal/source scope and exact accepted copy digest, covers the copied conversation including extensions, hides its source bodies from inspection, and is idempotent. A pending open epoch must be settled before terminalization.
 
-## Dashboard inspection projections
+## Bounded inspection and Community projections
 
-Use `InspectionQuery::MemorySummaries` for bounded filtering by text, category,
-type, lifecycle and current community. The result carries a UTF-8-safe excerpt
-and a filter-bound continuation. A terminal Memory has no body or title in the
-list projection. Use the existing exact inspection queries for detail, history
-and provenance.
+`WorkspaceManagement::inspect(query, cursor, limit)` returns an `InspectionPage` with an exact `InspectionCut`, items, an optional continuation, and `truncated`. The `InspectionCursor` is opaque and bound to the file, query, and exact cut; reusing it after owner changes or with a different query fails stale. Pages are limited to 128 items and 256 KiB. Callers must continue with the returned cursor and cut rather than inventing offsets for cursor-based queries.
 
-`InspectionQuery::MemoryGraph` returns active Memory-to-Memory edges with stable
-owner-scoped IDs, graph revisions and local endpoints. The request bounds depth
-and the node and edge counts. Use the returned cut when expanding a
-neighborhood. A changed cut returns stale. The projection reports truncation
-when it hits the scan, graph or byte budget. Community filters apply only to
-a current graph generation.
+- `InspectionQuery::MemorySummaries(filters)` filters by text, category, memory type, lifecycle, and current Community. Query text is limited to 4,096 bytes, category/type filters to 128 bytes, titles to 256 bytes, excerpts to 512 bytes, and the scan window to 512 Memory IDs per page. It returns cut-bound continuation; terminal Memory entries do not expose their title or body. A page reports truncation when the supported scan window is reached.
+- `InspectionQuery::MemoryGraph(query)` returns a bounded Memory-to-Memory neighborhood. Requests allow 0–128 distinct seed IDs (zero scans at most 512 initial candidates), depth 1–3, at most 500 nodes and 1,000 edges, and may bind an expected cut/community. The walk examines at most 4,096 relations and is also bounded by serialized page bytes; the result marks truncation rather than implying the graph is exhaustive.
+- Exact detail, history, provenance, Archive turns, graph neighbors/edges, entities, relationships, Communities, and Community members use their corresponding `InspectionQuery` variants. Community membership reads require the accepted current Community generation and return bounded pages.
 
-## Community names and membership
+`rename_community_at_cut(expected_cut, request)` accepts the stable principal-scoped request ID, Community ID, expected Community generation, and validated name. The `CommunityRenameResult` returns Community metadata (including generation, graph version, member count, name origin/current status), resulting cut, `changed`, and `replayed`. A changed name advances Community metadata generation while preserving Graph version and membership; it does not run Dream or generate a new partition. Exact replay returns the original accepted effect. Pruning and storage reclamation preserve the durable user-name receipt.
 
-Authorized REL managers can use `WorkspaceManagement::rename_community_at_cut`
-on an accepted, current Community. Supply the complete inspection cut, exact
-Community generation, stable request ID, and bounded name. The durable receipt
-binds the authenticated principal, target and input. An exact replay reports
-the original effect. A changed name advances the Community generation while
-preserving membership and the Graph version.
+## Maintenance and reconciliation boundaries
 
-`InspectionQuery::Communities` projects a user name and its origin.
-`InspectionQuery::CommunityMembers` returns bounded member IDs with
-cut-bound pagination. The Community snapshot must be current. Missing derived
-metadata remains unavailable. User naming preserves the existing partition and
-does not generate one.
+Rewrite, prune, repair, reclaim, copy, and reconciliation operations create a new destination and never replace an existing source or destination. Quiesce writable owners before preparing copy maintenance, and independently reopen/verify the result. Fresh-history rewrite fails closed when authenticated user Memory correction, retirement, association, or Community naming authority/request history cannot be preserved.
 
-Verified storage reclamation and pruning retain the name receipt. Fresh-history
-rewrite stops on user Memory correction, retirement, association and Community
-naming commits until it can preserve their authenticated authority and request
-history. Divergent reconciliation stops when a divergent tail contains any of
-these commits.
+Public REL reconciliation requires both inputs to have the same owner identity. Identical and strict-prefix histories use a verified exact-copy path; supported divergent REL histories use semantic replay into a distinct destination and report replay counts. Divergent tails containing unsupported authenticated user-operation evidence are rejected rather than silently dropped. The internal Application verified-copy helpers also support same-owner REL/PHY prefix copies. There is no public Root/CLI PHY reconciliation API, cross-owner reconciliation, arbitrary semantic merge, or in-place rewrite.
 
-## Migration from the reference facade
+The public facade is a hard cut from the old `Cva` name; there is no compatibility alias. Normal runtime opens only current 2.1 REL/PHY files and has no 2.0/FRS07 reader or converter. Arbitrary Dream/Insomnia maintenance, a deployed network daemon, unrestricted provider administration, and public mutable store/Container access are outside this API.
 
-- `Cva` → `Rel` (intentional hard cut; no alias).
-- mutable root/store access → opaque owner inspection or authenticated
-  `Instance`/`WorkspaceManagement` operation.
-- caller-created replay evidence → durable current-owner admission.
-- in-place maintenance → explicit plan plus verified, independently reopened
-  no-replace copy.
-- direct provider/worker CLI commands → configured trusted-host workflows.
+## Errors and compatibility
 
-Unsupported scenarios include 2.0 readers/conversion, cross-owner or PHY
-reconciliation, arbitrary Dream/Insomnia maintenance, mutable public stores,
-network daemons, and unrestricted provider administration.
+Fallible product methods return `ProductError` or a more specific configuration error. `ProductErrorKind` distinguishes input, authorization, revocation, conflict/stale state, wrong format, unavailable service, verification, I/O and unsupported operations. Callers should branch on the kind when recovery differs and avoid parsing error text as a stable machine protocol.
+
+The serialized `ProductErrorKind` values are `wrong_format`, `admission`, `unauthorized`, `revoked`, `unavailable`, `unsupported`, `stale`, `conflict`, `writer_unavailable`, `publication_collision`, `io`, `verification`, and `invalid_input` (defined in [`src/error.rs`](../src/error.rs)). Refresh current cut/revision evidence after stale/conflict failures; inspect the existing writer after writer-unavailable; choose a new destination after publication collision. Authorization, format and verification failures require correcting the underlying authority/input or preserving the file for investigation, rather than blind publication retries.
+
+Runtime accepts the current REL 2.1 / PHY 2.1 format. It does not read the retired 2.0/FRS07 format or convert it. Public APIs intentionally use `Rel`, not the historical `Cva` facade. Copy maintenance creates a new verified destination and fails if that destination already exists.
+
+## Protecting evidence
+
+Relevant executable contracts include `tests/public_api.rs` (owner identity, kind isolation, grants, revocation, copy reopen and history); `tests/native_import.rs` (authenticated import replay after reopen); `tests/oc06_inspection.rs` (`hp02_memory_summaries_filter_and_page_without_returning_bodies`, `hp02_memory_graph_expands_active_neighbors_at_one_cut`, and other bounded/cut-bound projections); and `tests/oc06_routed_provenance.rs` (grant requirements and terminal source). The separate Root-only consumer tests cover checked create replay in `tests/external-consumer/tests/checked_memory_creation.rs`, correction/retirement in `tests/external-consumer/tests/user_memory_correction.rs`, link/unlink replay in `tests/external-consumer/tests/memory_association.rs`, and Hermes extension/terminal scope in `tests/external-consumer/tests/operational_processing/hermes_copy.rs`. `tests/community_management.rs` protects cut-bound naming and replay. CLI parity and operational behavior are covered in `cli/tests/cli.rs`, `cli/src/operational_tests.rs`, and `cli/tests/g4_corpus.rs`.
+
+## Related docs
+
+- [Operator workflow](operator-workflow.md)
+- [Configured runtime](configured-runtime.md)
+- [CLI reference](reference/cli.md)
+- [System architecture](architecture/system.md)
+- [Owner-session architecture](architecture/owner-session.md)
+- [Gateway architecture](architecture/gateway.md)
+
+## Notes
+
+The source of truth is Root's `src/lib.rs` export list and the flat modules `src/owner.rs`, `src/host.rs`, `src/host_admission.rs`, `src/host_context.rs`, `src/host_external_source.rs`, `src/host_instance.rs`, `src/host_project_source.rs`, `src/management.rs`, `src/processing.rs`, `src/retrieval.rs`, `src/native_import.rs`, `src/maintenance.rs`, `src/maintenance_owner.rs`, `src/maintenance_operations.rs`, and `src/configuration.rs`. Internal crate visibility is not public consumer support.

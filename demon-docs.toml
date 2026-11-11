@@ -1,0 +1,21 @@
+root = "docs"
+index_file = "INDEX.md"
+
+[index]
+enabled = true
+
+[links]
+enabled = true
+
+[frontmatter]
+enabled = false
+
+[format]
+enabled = false
+
+[parent_link]
+folder_indexes = true
+indexed_files = true
+
+[reverse_index]
+roots = []

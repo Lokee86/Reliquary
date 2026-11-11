@@ -1,5 +1,7 @@
 # G2 local acceptance review
 
+Parent index: [Documentation](./INDEX.md)
+
 Reviewed the completed rebuild against the capability tracker in the design worktree. V01 through V07 have recorded acceptance. G2 is accepted.
 
 ## Historical Freshness gap

@@ -1,3 +1,4 @@
+mod key_lock;
 mod master_keys;
 mod specialty;
 

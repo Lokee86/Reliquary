@@ -1,5 +1,7 @@
 # G4 complete-product corpus acceptance evidence (2026-11-06)
 
+Parent index: [Documentation](./INDEX.md)
+
 ## Decision
 
 **Accepted — G4 complete. All 20 mandatory cases PASS.**

@@ -1,5 +1,7 @@
 # Public API / CLI operational gap audit — 2026-11-07
 
+Parent index: [Documentation](./INDEX.md)
+
 Parent: [operational completion specification](public-api-cli-operational-completion-spec-2026-11-07.md). Interaction details: [query and CLI contract](public-api-cli-interaction-contract-2026-11-07.md).
 
 **Status: source-backed gap inventory, not implementation acceptance.** Inspected rebuild HEAD `a3c3a9643f494bced51faf92ba057b16bcdac8a7` plus the existing uncommitted two-day smoke changes. Those changes are not part of the accepted baseline. No runtime source was changed for this specification.
@@ -52,7 +54,7 @@ The isolated OC02 JSON/environment implementation is not accepted and must not b
 
 ## Two-day smoke evidence: what it does and does not establish
 
-The [smoke record](native-two-day-live-smoke-2026-11-07.md) reports successful normalized Archive import/reopen of 778 visible messages, but no completed live Memory corpus. Its inference path used `tools/native-corpus-live/src/endpoint.rs` and `scripts/live_corpus_endpoint.py`, rather than the normal configured Switchboard transport. The first run did not enforce the supplied schema; subsequent runs exposed provenance/wording mismatches.
+The `native-two-day-live-smoke-2026-11-07.md` (historical target not retained) reports successful normalized Archive import/reopen of 778 visible messages, but no completed live Memory corpus. Its inference path used `tools/native-corpus-live/src/endpoint.rs` and `scripts/live_corpus_endpoint.py`, rather than the normal configured Switchboard transport. The first run did not enforce the supplied schema; subsequent runs exposed provenance/wording mismatches.
 
 These are diagnostic inputs, not a verified defect assignment to the normal provider path. Reproduce through the canonical configured path before changing extraction rules. Never weaken quote, authority, timing or identity validation merely to obtain a nonzero Memory count. Preserve failed-run evidence; do not promote it to successful corpus acceptance.
 
@@ -80,3 +82,5 @@ Lexicon configuration is absent in this checkout. No refreshed graph evidence is
 ## Notes
 
 This inventory prevents another claim of whole-product usability based only on internal tests. OC01 freezes exact method/type exports and test names for these rows; it is an execution task against this inventory, not another open-ended architecture study. Missing behavior is either implemented at its proper owner or explicitly left unaccepted. The API/CLI work is a separate necessary operational closure item, not a new prerequisite for old-byte source verification.
+
+Navigation note (2026-11-11): the named diagnostic is unavailable in this checkout; the [later operational verification](public-api-cli-operational-verification-2026-11-07.md) is separate evidence. See [document disposition](development/document-disposition.md).

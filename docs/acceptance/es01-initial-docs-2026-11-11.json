@@ -1,0 +1,930 @@
+{
+  "baselined_findings": 0,
+  "findings": [
+    {
+      "code": "broken-link",
+      "message": "target does not exist: native-two-day-live-smoke-2026-11-07.md",
+      "path": "docs/public-api-cli-gap-audit-2026-11-07.md"
+    },
+    {
+      "code": "broken-link",
+      "message": "target does not exist: native-two-day-live-smoke-2026-11-07.md",
+      "path": "docs/public-api-cli-operational-completion-spec-2026-11-07.md"
+    },
+    {
+      "code": "missing-coverage-owner",
+      "message": "no documentation matches configured owners: docs/development/workflow.md",
+      "path": "coverage[10]"
+    },
+    {
+      "code": "missing-coverage-owner",
+      "message": "no documentation matches configured owners: docs/reference/cli.md",
+      "path": "coverage[2]"
+    },
+    {
+      "code": "missing-coverage-owner",
+      "message": "no documentation matches configured owners: docs/architecture/storage.md",
+      "path": "coverage[3]"
+    },
+    {
+      "code": "missing-coverage-owner",
+      "message": "no documentation matches configured owners: docs/architecture/owner-session.md",
+      "path": "coverage[4]"
+    },
+    {
+      "code": "missing-coverage-owner",
+      "message": "no documentation matches configured owners: docs/architecture/application.md",
+      "path": "coverage[5]"
+    },
+    {
+      "code": "missing-coverage-owner",
+      "message": "no documentation matches configured owners: docs/architecture/gateway.md",
+      "path": "coverage[6]"
+    },
+    {
+      "code": "missing-coverage-owner",
+      "message": "no documentation matches configured owners: docs/architecture/semantic-processing.md",
+      "path": "coverage[8]"
+    },
+    {
+      "code": "missing-coverage-owner",
+      "message": "no documentation matches configured owners: docs/architecture/system.md",
+      "path": "coverage[9]"
+    },
+    {
+      "code": "missing-index",
+      "message": "documentation folder lacks its configured index",
+      "path": "docs/INDEX.md"
+    },
+    {
+      "code": "missing-required-path",
+      "message": "required documentation surface is missing",
+      "path": "docs/INDEX.md"
+    },
+    {
+      "code": "missing-required-path",
+      "message": "required documentation surface is missing",
+      "path": "docs/architecture/INDEX.md"
+    },
+    {
+      "code": "missing-required-path",
+      "message": "required documentation surface is missing",
+      "path": "docs/architecture/maintainer-map.md"
+    },
+    {
+      "code": "missing-required-path",
+      "message": "required documentation surface is missing",
+      "path": "docs/architecture/system.md"
+    },
+    {
+      "code": "missing-required-path",
+      "message": "required documentation surface is missing",
+      "path": "docs/development/behavioral-contracts.md"
+    },
+    {
+      "code": "missing-required-path",
+      "message": "required documentation surface is missing",
+      "path": "docs/development/documentation-coverage.md"
+    },
+    {
+      "code": "missing-required-path",
+      "message": "required documentation surface is missing",
+      "path": "docs/development/workflow.md"
+    },
+    {
+      "code": "missing-required-path",
+      "message": "required documentation surface is missing",
+      "path": "docs/documentation-policy.md"
+    },
+    {
+      "code": "missing-required-path",
+      "message": "required documentation surface is missing",
+      "path": "docs/documentation-procedure.md"
+    },
+    {
+      "code": "missing-required-path",
+      "message": "required documentation surface is missing",
+      "path": "docs/limits/current-limitations.md"
+    },
+    {
+      "code": "missing-required-path",
+      "message": "required documentation surface is missing",
+      "path": "docs/planning/roadmap.md"
+    },
+    {
+      "code": "missing-required-path",
+      "message": "required documentation surface is missing",
+      "path": "docs/reference/cli.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/configured-runtime.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/configured-runtime.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/engineering-standards-remediation-spec-2026-11-10.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/g2-local-review-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/g2-local-review-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/g2-local-review-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/g2-local-review-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/g3-gateway-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/g3-gateway-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/g3-gateway-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/g3-gateway-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/g4-product-corpus-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/g4-product-corpus-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/g4-product-corpus-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/g4-product-corpus-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/gm-independent-implementation-audit-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/gm-independent-implementation-audit-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/gm-independent-implementation-audit-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/gm-independent-implementation-audit-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/gm-independent-reacceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/gm-independent-reacceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/gm-independent-reacceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/gm-independent-reacceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/gm-maintenance-history-parity-gate-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/gm-maintenance-history-parity-gate-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/gm-maintenance-history-parity-gate-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/gm-maintenance-history-parity-gate-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/h01-owner-mount-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/h01-owner-mount-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/h01-owner-mount-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/h01-owner-mount-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/h02-native-conversation-queue-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/h02-native-conversation-queue-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/h02-native-conversation-queue-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/h02-native-conversation-queue-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/h03-host-stream-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/h03-host-stream-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/h03-host-stream-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/h03-host-stream-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/h04-owner-worker-lifecycle-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/h04-owner-worker-lifecycle-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/h04-owner-worker-lifecycle-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/h04-owner-worker-lifecycle-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/m01-fresh-history-rewrite-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/m01-fresh-history-rewrite-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/m01-fresh-history-rewrite-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/m01-fresh-history-rewrite-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/m02-domain-inventory-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/m02-domain-inventory-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/m02-domain-inventory-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/m02-domain-inventory-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/m02-independent-reverification-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/m02-independent-reverification-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/m02-independent-reverification-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/m02-independent-reverification-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/m02-multidomain-pruning-reclamation-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/m02-multidomain-pruning-reclamation-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/m02-multidomain-pruning-reclamation-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/m02-multidomain-pruning-reclamation-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/m02-reclamation-corrections-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/m02-reclamation-corrections-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/m02-reclamation-corrections-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/m02-reclamation-corrections-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/m02-retired-profile-vector-prune-verification-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/m02-retired-profile-vector-prune-verification-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/m02-retired-profile-vector-prune-verification-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/m02-retired-profile-vector-prune-verification-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/m02-semantic-description-prune-verification-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/m02-semantic-description-prune-verification-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/m02-semantic-description-prune-verification-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/m02-semantic-description-prune-verification-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/m02-terminal-archive-prune-verification-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/m02-terminal-archive-prune-verification-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/m02-terminal-archive-prune-verification-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/m02-terminal-archive-prune-verification-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/m03-divergent-rel-reconciliation-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/m03-divergent-rel-reconciliation-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/m03-divergent-rel-reconciliation-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/m03-divergent-rel-reconciliation-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/m03-dream-import-replay-parity-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/m03-dream-import-replay-parity-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/m03-dream-import-replay-parity-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/m03-dream-import-replay-parity-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/m03-final-correction-handoff-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/m03-final-correction-handoff-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/m03-final-correction-handoff-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/m03-final-correction-handoff-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/m03-import-reconciliation-corrections-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/m03-import-reconciliation-corrections-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/m03-import-reconciliation-corrections-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/m03-import-reconciliation-corrections-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/m04-historical-proof-corrections-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/m04-historical-proof-corrections-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/m04-historical-proof-corrections-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/m04-historical-proof-corrections-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/m04-historical-read-proof-parity-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/m04-historical-read-proof-parity-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/m04-historical-read-proof-parity-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/m04-historical-read-proof-parity-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/operator-workflow.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/operator-workflow.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/operator-workflow.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/operator-workflow.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/os-master-key-store-spec-2026-11-08.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/os-master-key-store-spec-2026-11-08.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/os-master-key-store-spec-2026-11-08.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/os-master-key-store-spec-2026-11-08.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/p01-consumer-contract-map.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/p01-consumer-contract-map.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/p01-consumer-contract-map.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/p01-consumer-contract-map.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/p01-public-product-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/p01-public-product-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/p01-public-product-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/p01-public-product-acceptance-2026-11-06.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/project-correlation-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/project-correlation-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/project-correlation-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/project-correlation-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/public-api-cli-operational-verification-2026-11-07.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/public-api-cli-operational-verification-2026-11-07.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/public-api-cli-operational-verification-2026-11-07.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/public-api-cli-operational-verification-2026-11-07.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/public-product-api.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/public-product-api.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/public-product-api.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/public-product-api.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/retrieval-confirmed-use-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/retrieval-confirmed-use-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/retrieval-confirmed-use-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/retrieval-confirmed-use-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/s03-dream-evaluator-acceptance-2026-11-04.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/s03-dream-evaluator-acceptance-2026-11-04.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/s03-dream-evaluator-acceptance-2026-11-04.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/s03-dream-evaluator-acceptance-2026-11-04.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/semantic-continuation-2026-11-04.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/semantic-continuation-2026-11-04.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/semantic-continuation-2026-11-04.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/semantic-continuation-2026-11-04.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/storage-continuation-2026-11-04.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/storage-continuation-2026-11-04.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/storage-continuation-2026-11-04.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/storage-continuation-2026-11-04.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/switchboard-configuration-restoration-spec-2026-11-08.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/switchboard-configuration-restoration-spec-2026-11-08.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/v02-dream-publication-progress-2026-11-04.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/v02-dream-publication-progress-2026-11-04.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/v02-dream-publication-progress-2026-11-04.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/v02-dream-publication-progress-2026-11-04.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/v05-v06-continuation-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/v05-v06-continuation-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/v05-v06-continuation-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/v05-v06-continuation-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/v05-vector-context-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/v05-vector-context-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/v05-vector-context-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/v05-vector-context-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "docs/v06-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "docs/v06-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "docs/v06-acceptance-2026-11-05.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "docs/v06-acceptance-2026-11-05.md"
+    }
+  ],
+  "passed": false,
+  "profile": "library-engine",
+  "repository": "C:\\Users\\archa\\Documents\\Codex\\2026-11-11\\file-c-bin-workspace-reliquary-docs\\work\\remediation",
+  "schema": "laughing-skull.documentation-check.v1",
+  "stale_baseline_entries": 0
+}

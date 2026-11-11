@@ -1,0 +1,8 @@
+{
+  "schema": "reliquary.standards-provenance.v1",
+  "source": "engineering-standards",
+  "source_revision": "11cb28aa8c317eeeea647470e67f60598f28a2f0",
+  "sync_command": "python tools/sync_checker.py <reliquary-checkout>",
+  "sync_script_sha256": "c22256d539ab7847730284862f7b75884c9098e4d35d6132f4166761f925f185",
+  "manifest_sha256": "acebb5f25b554b1dbde631409028a8f4aac20c4e2de4d40f1d3f20ce92d2f7eb"
+}

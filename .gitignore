@@ -22,8 +22,13 @@
 **/target/
 **/__pycache__/
 *.pyc
+/work/
+/.pytest/_tmp/
+/.lexicon/
+/.arcana/
 /reliquary.cfg
 # Legacy plaintext migration inputs can still contain secrets.
 *.master-key.json
 # Empty locks coordinate credential writes and legacy migration.
 .reliquary-config-*.lock
+/docs/.ddocs/

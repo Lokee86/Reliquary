@@ -1,5 +1,7 @@
 # H02 durable native conversation queue acceptance (2026-11-05)
 
+Parent index: [Documentation](./INDEX.md)
+
 H02 is accepted after H01 on the rebuild branch. This checkpoint covers the owner-scoped native submission queue and its operational journal only; it does not claim H03 host delegation/streaming, H04 worker lifecycle, or G3 acceptance.
 
 ## Accepted behavior

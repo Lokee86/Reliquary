@@ -1,0 +1,166 @@
+name: Engineering standards
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  documentation-and-architecture:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.5'
+          cache: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: '1.97.1'
+      - name: Prepare repository-local temporary paths
+        run: |
+          New-Item -ItemType Directory -Force work/tmp, work/bin | Out-Null
+          "TEMP=$pwd/work/tmp" >> $env:GITHUB_ENV
+          "TMP=$pwd/work/tmp" >> $env:GITHUB_ENV
+          "GOCACHE=$pwd/.go-cache" >> $env:GITHUB_ENV
+          "$pwd/work/bin" >> $env:GITHUB_PATH
+      # Tool source pins match the executable source reviewed locally.
+      # A token is needed if these repositories are private; no sibling checkout is used.
+      - uses: actions/checkout@v6
+        with:
+          repository: Lokee86/demon-docs
+          ref: 45318a8f2602aeebaeea4828894769256773f4f4
+          path: target/standards-tool-sources/demon-docs
+          token: ${{ secrets.STANDARDS_TOOLS_TOKEN || github.token }}
+      - uses: actions/checkout@v6
+        with:
+          repository: Lokee86/pitlord
+          ref: 9dedd4b556b9e54de514e4cafe4d94093780178f
+          path: target/standards-tool-sources/pitlord
+          token: ${{ secrets.STANDARDS_TOOLS_TOKEN || github.token }}
+      - uses: actions/checkout@v6
+        with:
+          repository: Lokee86/lexicon-arcana
+          ref: f09517262fdfad98fcede2ad93a947ccee8406ff
+          path: target/standards-tool-sources/lexicon-arcana
+          token: ${{ secrets.STANDARDS_TOOLS_TOKEN || github.token }}
+      - name: Build pinned documentation and policy tools
+        run: |
+          $bin = Join-Path $pwd 'work/bin'
+          Push-Location target/standards-tool-sources/demon-docs
+          go build -o "$bin/ddocs.exe" ./cmd/ddocs
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Pop-Location
+          Push-Location target/standards-tool-sources/pitlord
+          go build -o "$bin/pitlord.exe" ./cmd/pitlord
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Pop-Location
+          Push-Location target/standards-tool-sources/lexicon-arcana/lexicon
+          go build -o "$bin/lexicon.exe" ./cmd/lexicon
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Pop-Location
+          cargo build --release --locked --manifest-path target/standards-tool-sources/lexicon-arcana/arcana/Cargo.toml --target-dir target/standards-tools -j 1
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Copy-Item target/standards-tools/release/arcana.exe "$bin/arcana.exe"
+      - name: Verify synchronized standards provenance
+        run: python scripts/check_standards_snapshot.py
+      - name: Check full documentation structure
+        run: python .standards/docs_policy/check.py --repo .
+      - name: Check README and agent-guide links
+        run: python scripts/check_documentation_entrypoints.py
+      - name: Check committed change impact
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+        run: |
+          $base = $env:PR_BASE_SHA
+          if (-not $base) { $base = $env:PUSH_BASE_SHA }
+          if (-not $base -or $base -match '^0+$') { $base = 'origin/main' }
+          git rev-parse --verify "$base^{commit}"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python .standards/docs_policy/check.py --repo . --changed-from $base
+      - name: Initialize Demon Docs link state without repairing authored docs
+        run: |
+          git diff --exit-code HEAD -- docs
+          if ($LASTEXITCODE) {
+            Write-Error 'The checkout already contains uncommitted documentation changes.'
+            exit 1
+          }
+          $dirtyDocs = git status --porcelain --untracked-files=all -- docs
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          if ($dirtyDocs) {
+            Write-Error 'The checkout already contains untracked documentation files.'
+            exit 1
+          }
+          ddocs fix --root docs --links --no-global-config
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          git diff --exit-code HEAD -- docs
+          if ($LASTEXITCODE) {
+            Write-Error 'Demon Docs link initialization changed authored docs; refusing an auto-repair in CI.'
+            exit 1
+          }
+          $generatedDocs = git status --porcelain --untracked-files=all -- docs
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          if ($generatedDocs) {
+            Write-Error 'Demon Docs link initialization created an untracked authored document.'
+            exit 1
+          }
+      - name: Check Demon Docs navigation and links
+        run: ddocs check --root docs --indexes --links --no-global-config
+      - name: Prove required-document, link, change-impact and dependency rejection
+        run: python scripts/check_gate_controls.py
+      - name: Check exact Cargo package DAG
+        run: python scripts/check_architecture.py
+      - name: Validate and check current semantic architecture evidence
+        run: python scripts/check_policy_tools.py --adapters target/standards-tool-sources/lexicon-arcana/lexicon/adapters
+
+  rust-and-consumers:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: '1.97.1'
+          components: rustfmt
+      - name: Prepare shared build cache and local temporary paths
+        run: |
+          New-Item -ItemType Directory -Force work/tmp | Out-Null
+          "TEMP=$pwd/work/tmp" >> $env:GITHUB_ENV
+          "TMP=$pwd/work/tmp" >> $env:GITHUB_ENV
+          "CARGO_TARGET_DIR=$pwd/target" >> $env:GITHUB_ENV
+      - name: Fetch locked dependencies before offline verification
+        run: |
+          cargo fetch --locked
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cargo fetch --manifest-path cli/Cargo.toml --locked
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cargo fetch --manifest-path tests/external-consumer/Cargo.toml --locked
+      - name: Formatting
+        run: cargo fmt --all --check
+      - name: Offline workspace build
+        run: cargo check --workspace --locked --offline -j 1
+      - name: Offline workspace tests
+        run: cargo test --workspace --locked --offline -j 1 -- --test-threads=1
+      - name: Offline CLI tests
+        run: cargo test --manifest-path cli/Cargo.toml --locked --offline -j 1
+      - name: Offline Root-only external consumer tests
+        run: cargo test --manifest-path tests/external-consumer/Cargo.toml --locked --offline -j 1 -- --test-threads=1
+      - name: G4 fresh-process and CLI acceptance
+        run: .\scripts\run_g4_acceptance.ps1 -TargetDirectory $env:CARGO_TARGET_DIR

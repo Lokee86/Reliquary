@@ -1,5 +1,7 @@
 # M04 — historical read/proof parity acceptance
 
+Parent index: [Documentation](./INDEX.md)
+
 Status: **corrected and accepted** after the 2026-11-06 independent audit.
 Canonical versioned proof encoding now binds complete retained Entity,
 Relationship, Graph, Ego and Archive Branch revision streams. Final combined

@@ -1,101 +1,116 @@
-# Reliquary 2.1 operator workflow
+# Operator workflow
 
-Build the standalone CLI with `cargo build --manifest-path cli/Cargo.toml --locked`.
-The CLI has one Reliquary dependency, `reliquary-memory`. Successful one-shot
-reports go to stdout as JSON. Errors and import-plan diagnostics go to stderr.
-`--json` is accepted for machine-oriented invocations.
+Parent index: [Documentation](./INDEX.md)
 
-## Configure and stage
+## Purpose
 
-Use the existing [Reliquary configuration](configured-runtime.md). The global
-`--config` option defaults to `reliquary.cfg`; its companion master-key path is
-derived automatically. `config verify` is offline and read-only. Explicit
-online probes use synthetic input through the selected provider transports.
-Credential material stays encrypted in the config and out of CLI arguments and reports.
+This guide gives practical CLI procedures for creating owners, configuring routes, staging and processing sources, inspecting results, and recovering from common failures.
+
+## Overview
+
+The CLI is a local trusted host that opens owner paths and requests only the access required for each command. Successful one-shot commands return JSON. Errors go to stderr as JSON and exit nonzero. Commands that call models use the existing `reliquary.cfg`; no credentials belong in command arguments, reports or source files.
+
+## Prerequisites
+
+- Build `reliquary` with `cargo build --manifest-path cli/Cargo.toml --locked`.
+- Choose protected paths for `.rel` and `.phy` owner files and back them up with the documented verified copy workflow.
+- For provider work, set up OS credential storage and route credentials in [configured runtime](configured-runtime.md). Run offline `config verify` before an import/process/query workflow.
+- Keep a durable copy of the import ID printed after staging; it identifies resumable processing state.
+
+## Create and check owners
 
 ```text
-reliquary --config reliquary.cfg config verify
 reliquary rel create project.rel --scope project
-reliquary phy create user.phy
-reliquary rel import project.rel --source conversations.json --format chatgpt --phy user.phy --dry-run
-reliquary rel import project.rel --source conversations.json --format chatgpt --phy user.phy
-reliquary rel process project.rel --import IMPORT_ID --phy user.phy --config reliquary.cfg --until ready
-reliquary rel verify project.rel
-reliquary phy verify user.phy
+reliquary phy create private.phy
+reliquary rel info project.rel
+reliquary phy verify private.phy
 ```
 
-Use `--format normalized` for the known visible-turn manifest. Raw exports
-accept a half-open selection with `--start` and `--end` RFC3339 timestamps.
-For normalized input, the selection is already recorded in the manifest.
-Coverage reports include omitted asset references and remapped parents.
-`rel import --process` uses the same processing path as `rel process`.
+Expected result: current REL/PHY files are created at new paths and each command returns owner kind, identity and current metadata. REL defaults to project scope if `--scope` is omitted. A destination that already exists fails; create never replaces an owner. If verification reports wrong format or corruption, preserve the file and consult the configured recovery/backup procedures; the normal runtime does not convert REL 2.0/FRS07.
 
-Keep the import ID from the stage report. Use `rel work status project.rel
---import IMPORT_ID` for durable progress and `rel work resume project.rel
---import IMPORT_ID --phy user.phy --config reliquary.cfg` to resume. An
-explicit `--episode EPISODE_ID` retries a held import Episode under the
-same input, lease, and durable processing plan checks. The first processing
-run binds the selected Insomnia, ownership, Dream, Entity, and embedding
-routes and stage policy. It records the verified compatibility profile
-before vector publication. Resume uses that plan. The same credential
-reference can receive renewed credentials for the same account. A run held
-without a PHY can attach its first authorized destination before vector
-processing. A separate `rel work stop` invocation reports
-the lack of a control channel to an already running process. In-process
-hosts can call `OwnerProcessingJob::request_stop` and join it.
+## Configure providers
 
-For live conversation Episodes, `rel process project.rel --config
-reliquary.cfg --until ready` drains Insomnia, resolves accepted Entity
-mentions, prepares the selected Memory vectors, and settles first-cycle
-Dream. Pass `--phy user.phy` to include routed private work. Use
-`rel entity-resolution status` and `rel dream status` for read-only work
-counts, or use `run` to resume a named stage. A started Dream pass binds its
-selected route and embedding profile to the recorded candidate frontier.
-Use `rel freshness status` for derived live lifecycle notices.
+Start with a standard local config and routes, then add protected credentials and verify:
 
-## Find and inspect
+```text
+reliquary --config reliquary.cfg config show
+reliquary --config reliquary.cfg config credential login-codex codex
+reliquary --config reliquary.cfg config credential login-codex codex-alt
+reliquary --config reliquary.cfg config credential add-api-key embedding
+reliquary --config reliquary.cfg config verify
+```
+
+For an OpenAI-compatible key, `add-api-key` prompts without echo. `--stdin` reads one bounded line if a protected secret-input mechanism is needed. Avoid shell history and environment/argument expansion containing secrets. Expected result: offline verify reports selected route readiness without network activity. If a stored default route points to an ID with no credential, add that credential or replace/clear the route. `config verify --online --route embedding` is a separate explicit synthetic provider probe.
+
+## Import and process a source
+
+First inspect an import plan without writing, then stage it:
+
+```text
+reliquary rel import project.rel --source conversations.json --format chatgpt --start 2025-01-01T00:00:00Z --end 2025-01-03T00:00:00Z --dry-run
+reliquary rel import project.rel --source conversations.json --format chatgpt --start 2025-01-01T00:00:00Z --end 2025-01-03T00:00:00Z
+```
+
+`--start` and `--end` are a required pair when selecting a half-open RFC3339 range. `--format normalized` consumes Reliquary's visible-turn manifest; its selected range is in the manifest. A dry run reports the plan and does not stage it. The stage report returns the durable `import_id`; save it.
+
+Run the configured processing path:
+
+```text
+reliquary rel process project.rel --import IMPORT_ID --config reliquary.cfg --until ready --phy private.phy
+reliquary rel work status project.rel --import IMPORT_ID
+```
+
+The pipeline uses the recorded processing plan for that import, including model routes, compatibility profile and stage policy. `--phy` routes private work when supported. Expected result is a processing report showing completed/held/remaining work and import state. A result with `ok: false` is nonzero and must not be treated as ready.
+
+For an existing live REL conversation queue, use `rel process project.rel --config reliquary.cfg --until idle` to drain Insomnia; named stage commands include `rel dream run project.rel --config reliquary.cfg`, `rel entity-resolution run project.rel --config reliquary.cfg`, and `rel vectors build project.rel --config reliquary.cfg`. Check status using `rel insomnia status project.rel`, `rel dream status project.rel`, `rel entity-resolution status project.rel` and `rel freshness status project.rel`. `dream` and `entity-resolution` live commands accept `--phy`; the current CLI vector status requires `--profile HEX`.
+
+## Resume or recover work
+
+Check durable state before retrying:
+
+```text
+reliquary rel work status project.rel --import IMPORT_ID
+reliquary rel work resume project.rel --import IMPORT_ID --config reliquary.cfg --phy private.phy
+```
+
+If a specific held import Episode needs retry, include its `--episode` ID. Resume reloads the recorded plan rather than silently selecting a new route. A credential with the same configured identity may be renewed for the same account. If the first run was held because no PHY destination was attached, attach the authorized PHY on resume before vector work. If state is stale or conflicting, preserve the JSON error and inspect the import/status and current owner before retrying; do not stage the same source under a new ID as a blind retry.
+
+`rel work stop` cannot signal a different process. It returns an Unsupported error because the one-shot invocation has no control channel to an already-running job. An embedding host can stop its `OwnerProcessingJob` and join it. For an active CLI job, stop its owning process through the host's process-control mechanism, then inspect durable status before resuming.
+
+## Search and inspect
 
 ```text
 reliquary rel search project.rel --query "movement packet" --mode lexical
 reliquary rel search project.rel --query "movement packet" --mode hybrid --config reliquary.cfg
 reliquary rel query project.rel --query "How does the server handle movement?" --config reliquary.cfg
 reliquary rel interact project.rel --config reliquary.cfg
+reliquary rel memory list project.rel --limit 20
+reliquary rel archive conversations project.rel --limit 20
 ```
 
-In the interactive process, use `query`, `refine`, `traverse`, `show`,
-`source`, `neighbors`, `status`, `new-turn`, and `quit`. Shell commands
-take plain text or a quoted JSON string. `--commands PATH` reads JSONL with
-one reply per request. The query and refine records use `text`. Show,
-source, and neighbors use `memory_id`. Traverse uses `memory_ids`.
+Lexical search is local. Hybrid and semantic queries need a compatible configured embedding route. Interactive retrieval state lasts only for that process. It accepts query/refine/traverse/show/source/neighbors/status/new-turn/quit; `--commands FILE` reads JSONL requests, one per line. A query or display is inspection only: CLI output, piping and JSON export do not prove host consumption and do not award Freshness/accepted-use credit. Use exact inspection for revisions, provenance and source conversations when validating a result.
 
-```jsonl
-{"request_id":1,"command":"query","text":"How does the server handle movement?"}
-{"request_id":2,"command":"refine","text":"Focus on the user's server-side requirements"}
-{"request_id":3,"command":"new-turn"}
-{"request_id":4,"command":"quit"}
+## Create a verified maintenance copy
+
+Copy operations prepare/verify a source plan and create a new destination. For example, first export or prepare a valid rewrite policy, inspect it:
+
+```text
+reliquary rel rewrite project.rel project-pruned.rel --policy rewrite-policy.json --dry-run
+reliquary rel rewrite project.rel project-pruned.rel --policy rewrite-policy.json
+reliquary rel verify project-pruned.rel
 ```
 
-Read exact evidence with `rel memory get`, `rel memory provenance`,
-`rel archive branches`, and `rel archive show`. Graph inspection supports
-`graph neighbors` and `graph edge`. It accepts a Memory ID or an explicit
-`entity:ID` selector. Mounted PHY Memory reads use the separate `phy` family.
-Pass `--rel PATH` to `phy memory provenance` to resolve evidence from the
-explicitly mounted source REL. Local CLI grants cover the owner files named
-in that command and rely on the local account's filesystem access.
+Expected result is a separate verified file with reported retained history. Existing destinations are never overwritten. If destination collision occurs, choose a new path; do not delete a prior destination automatically. Reconcile accepts two sources and a new destination. Quiesce writable users before maintenance and verify the resulting file after reopening.
 
-## Public entry points and executable evidence
+## Related docs
 
-| Capability | Root symbols | Evidence entry point |
-| --- | --- | --- |
-| Provider configuration | `ReliquaryConfig`, `ConfiguredRuntime` and redacted configuration/credential value types | `external-consumer/tests/configured_runtime.rs`, Switchboard config/security/provider tests |
-| Stage and resume | `NativeImportPlan`, `Instance::stage_native_import`, `native_import_status` | `tests/native_import.rs`, CLI import/reopen test |
-| Processing | `ProcessOptions`, `Instance::start_processing`, `processing_status`, `process_and_drain`, `OwnerProcessingJob` | `external-consumer/tests/operational_processing.rs` |
-| Passive search and query | `Instance::search`, `begin_retrieval`, `memory_query`, `refine_query`, `traverse_graph` | Gateway retrieval tests, CLI search and JSONL inspection |
-| Confirmed host use | `preview_retrieval`, `deliver_retrieval`, `recover_retrieval`, `TrustedHostAdapter` | Gateway confirmed-use and recovery tests |
-| Owner inspection and writes | `inspect_owner`, `InspectionQuery`, `InspectionCursor`, `WorkspaceManagement` | `tests/oc06_inspection.rs`, `tests/oc06_routed_provenance.rs` |
-| Host operations | `ConversationQueue`, `ContextView`, `AuthorizedContextCheckpoint`, `ExternalHostSource`, `TrustedProjectSource` | `external-consumer/tests/retained_host` |
-| Quiesce and verify | `WorkspaceManagement::quiesce`, `verify_quiesced`, `reopen` | Existing public API lifecycle tests and CLI independent reopen |
+- [CLI reference](reference/cli.md)
+- [Configured runtime](configured-runtime.md)
+- [Public product API](public-product-api.md)
+- [Gateway architecture](architecture/gateway.md)
+- [Switchboard architecture](architecture/switchboard.md)
+- [Operational CLI evidence](public-api-cli-operational-verification-2026-11-07.md)
 
-CLI inspection sessions live in one process. Query, display, and traversal
-carry no accepted-use credit. Confirmed use requires the trusted host to
-consume and reconcile the exact prepared manifest through the delivery API.
+## Notes
+
+CLI behavior is implemented in `cli/src/` and exercised by `cli/tests/cli.rs`, `cli/src/operational_tests.rs` and `cli/tests/g4_corpus.rs`. These tests support command behavior but do not establish provider quality or a product-wide readiness claim. Current route, owner and command contracts are linked from the [reference index](reference/INDEX.md).

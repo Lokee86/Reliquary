@@ -1,5 +1,7 @@
 # V02 — Dream publication progress (2026-11-04)
 
+Parent index: [Documentation](./INDEX.md)
+
 **Status: IN PROGRESS — not accepted.** V02 is the Application workflow that admits S03's pure Dream decisions to a REL/PHY owner and durably settles Graph, Memory lifecycle, evaluated-pair and first-cycle Freshness evidence. S03's evaluator and G1 storage are already accepted; V01 ingestion remains an acceptance prerequisite.
 
 ## Implemented: one-effect zero-link publication

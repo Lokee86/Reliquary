@@ -1,5 +1,7 @@
 # Operational verification for OC01–OC09
 
+Parent index: [Documentation](./INDEX.md)
+
 ## Final live closure — 2026-11-08
 
 **OC09 live acceptance passed.** The final canonical run is preserved at

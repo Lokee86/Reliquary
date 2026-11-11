@@ -1,5 +1,7 @@
 # M03 final correction handoff — 2026-11-06
 
+Parent index: [Documentation](./INDEX.md)
+
 **Verdict: corrected and verified for the supported native REL 2.1 boundary.**
 This record consolidates the completed-import, Dream, Freshness-authority and
 Insomnia-journal corrections that followed the independent GM audit. The

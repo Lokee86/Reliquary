@@ -15,13 +15,103 @@ expected = {item["id"]: set(item["depends_on"]) for item in planned["packages"]}
 actual = {}
 dev_edges = {}
 errors = []
-for manifest in [ROOT / "Cargo.toml", *ROOT.glob("crates/reliquary-*/Cargo.toml")]:
-    data = tomllib.loads(manifest.read_text(encoding="utf-8"))
-    name = data.get("package", {}).get("name")
-    if not name:
+try:
+    workspace_data = tomllib.loads((ROOT / "Cargo.toml").read_text(encoding="utf-8"))
+except (OSError, tomllib.TOMLDecodeError) as error:
+    workspace_data = {}
+    errors.append(f"cannot read workspace Cargo manifest: {error}")
+workspace_dependencies = workspace_data.get("workspace", {}).get("dependencies", {})
+manifests = [ROOT / "Cargo.toml", *ROOT.glob("crates/reliquary-*/Cargo.toml")]
+manifest_data = {}
+package_manifests = {}
+for manifest in manifests:
+    try:
+        data = tomllib.loads(manifest.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError) as error:
+        errors.append(f"cannot read Cargo manifest {manifest.relative_to(ROOT)}: {error}")
         continue
-    actual[name] = {dep for dep in data.get("dependencies", {}) if dep.startswith("reliquary-")}
-    dev_edges[name] = {dep for dep in data.get("dev-dependencies", {}) if dep.startswith("reliquary-")}
+    name = data.get("package", {}).get("name")
+    if name:
+        manifest_data[manifest] = data
+        if name in package_manifests:
+            errors.append(f"duplicate internal package manifest: {name}")
+        package_manifests[name] = manifest.resolve()
+
+
+def local_package_name(dependency: str, declaration: object, base: Path, owner: str) -> str | None:
+    """Resolve Cargo aliases to the package the dependency actually names."""
+    if isinstance(declaration, str):
+        package = dependency
+        path = None
+    elif isinstance(declaration, dict):
+        package = declaration.get("package", dependency)
+        path = declaration.get("path")
+    else:
+        errors.append(f"unsupported dependency declaration: {dependency}")
+        return None
+    if path is not None:
+        target_manifest = (base / path / "Cargo.toml").resolve()
+        try:
+            target = tomllib.loads(target_manifest.read_text(encoding="utf-8"))
+        except (OSError, tomllib.TOMLDecodeError) as error:
+            errors.append(f"cannot resolve local dependency {dependency} at {target_manifest}: {error}")
+            return package if isinstance(package, str) and package.startswith("reliquary-") else None
+        path_package = target.get("package", {}).get("name")
+        explicit_package = isinstance(declaration, dict) and "package" in declaration
+        if explicit_package and path_package != package:
+            errors.append(
+                f"dependency package/path mismatch: {owner} {dependency} declares {package} "
+                f"but target manifest names {path_package}"
+            )
+        if not explicit_package and path_package:
+            package = path_package
+        if package in package_manifests and target_manifest != package_manifests[package]:
+            errors.append(
+                f"noncanonical internal package path: {owner} -> {package}; "
+                f"expected {package_manifests[package].relative_to(ROOT)}, got {target_manifest}"
+            )
+    elif package in package_manifests:
+        errors.append(f"internal package dependency must use its canonical local path: {owner} -> {package}")
+    return package if isinstance(package, str) and package.startswith("reliquary-") else None
+
+
+def declarations(manifest_data: dict, manifest: Path, section: str) -> set[str]:
+    """Collect normal or dev dependencies, including target-conditioned tables."""
+    package_root = manifest.parent
+    owner = manifest_data.get("package", {}).get("name", str(manifest.relative_to(ROOT)))
+
+    def resolve(table: dict, base: Path) -> set[str]:
+        found = set()
+        for dependency, raw in table.items():
+            declaration = raw
+            dependency_base = base
+            if isinstance(raw, dict) and raw.get("workspace") is True:
+                inherited = workspace_dependencies.get(dependency)
+                if not isinstance(inherited, (dict, str)):
+                    errors.append(f"unresolved workspace dependency: {manifest.relative_to(ROOT)} {dependency}")
+                    continue
+                overrides = {key: value for key, value in raw.items() if key != "workspace"}
+                if isinstance(inherited, dict):
+                    declaration = {**inherited, **overrides}
+                else:
+                    declaration = inherited
+                dependency_base = ROOT
+            package = local_package_name(dependency, declaration, dependency_base, owner)
+            if package:
+                found.add(package)
+        return found
+
+    found = resolve(manifest_data.get(section, {}), package_root)
+    for target in manifest_data.get("target", {}).values():
+        if isinstance(target, dict):
+            found.update(resolve(target.get(section, {}), package_root))
+    return found
+
+
+for manifest, data in manifest_data.items():
+    name = data["package"]["name"]
+    actual[name] = declarations(data, manifest, "dependencies")
+    dev_edges[name] = declarations(data, manifest, "dev-dependencies")
 for name in sorted(set(actual) ^ set(expected)):
     errors.append(f"package membership mismatch: {name}")
 for name in sorted(set(actual) & set(expected)):

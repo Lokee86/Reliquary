@@ -1,0 +1,2 @@
+# Preserve the authority's exact bytes so snapshot SHA-256 hashes survive checkout.
+.standards/** -text

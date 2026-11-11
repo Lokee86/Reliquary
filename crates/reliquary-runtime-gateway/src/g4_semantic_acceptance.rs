@@ -39,7 +39,8 @@ impl GeneralEndpoint for CohortEndpoint {
     ) -> Result<Value, GeneralEndpointError> {
         match schema_name {
             "insomnia_authority_disposition_ledger" => {
-                let evidence_requests = if payload.contains("read_only_archive_evidence") {
+                let evidence_available = payload.contains("read_only_archive_evidence");
+                let evidence_requests = if evidence_available {
                     json!([])
                 } else {
                     json!([{"kind":"turn","conversation_id":"lantern-evidence",
@@ -55,7 +56,8 @@ impl GeneralEndpoint for CohortEndpoint {
                     {"disposition":"retain","authority_kind":"direct","category":"instruction",
                      "type":"project","lifecycle":"current",
                      "proposition":"Use the Lantern release checklist.",
-                     "authority_source_node_id":"","grounding_source_node_id":"source",
+                     "authority_source_node_id":"","grounding_source_node_id":
+                         if evidence_available { "source" } else { "" },
                      "reason":"project instruction grounded in the archive"},
                     {"disposition":"retain","authority_kind":"direct","category":"fact",
                      "type":"process","lifecycle":"current",

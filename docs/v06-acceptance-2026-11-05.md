@@ -1,5 +1,7 @@
 # V06 acceptance
 
+Parent index: [Documentation](./INDEX.md)
+
 V06 covers owner-cut Memory history, exclusive native import, and verified-copy maintenance for REL 2.1 and PHY. The implemented rewrite preserves the owner identity, history generation, clocks, tombstones and retained provenance.
 
 - **History.** Owner-qualified reads distinguish missing revisions from visible revisions and tombstones at the requested cut. Future cuts fail. The history workflow tests cover owner authorization and pre-tombstone cuts. The promotion regression reopens the promoted PHY and verifies retained revision metadata with absent payload bytes.

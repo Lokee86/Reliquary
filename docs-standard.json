@@ -1,0 +1,340 @@
+{
+  "version": 1,
+  "profile": "library-engine",
+  "capabilities": [
+    "stateful"
+  ],
+  "docs_root": "docs",
+  "root_index": "docs/INDEX.md",
+  "folder_index": "INDEX.md",
+  "required_paths": [
+    "README.md",
+    "AGENTS.md",
+    "docs/INDEX.md",
+    "docs/documentation-policy.md",
+    "docs/documentation-procedure.md",
+    "docs/architecture/INDEX.md",
+    "docs/architecture/system.md",
+    "docs/architecture/maintainer-map.md",
+    "docs/development/documentation-coverage.md",
+    "docs/development/behavioral-contracts.md",
+    "docs/development/workflow.md",
+    "docs/planning/roadmap.md",
+    "docs/limits/current-limitations.md",
+    "docs/reference/cli.md",
+    "docs/public-product-api.md",
+    "docs/configured-runtime.md",
+    "docs/operator-workflow.md",
+    "tools/pitlord/policy.json",
+    "tools/pitlord/semantic.json",
+    "tools/pitlord/README.md",
+    ".github/workflows/standards.yml",
+    "standards-provenance.json",
+    "demon-docs.toml"
+  ],
+  "index_exempt_directories": [],
+  "section_exemptions": [
+    "docs/**/INDEX.md",
+    "docs/g2-local-review-2026-11-05.md",
+    "docs/g3-gateway-acceptance-2026-11-05.md",
+    "docs/g4-product-corpus-acceptance-2026-11-06.md",
+    "docs/gm-independent-implementation-audit-2026-11-06.md",
+    "docs/gm-independent-reacceptance-2026-11-06.md",
+    "docs/gm-maintenance-history-parity-gate-2026-11-06.md",
+    "docs/h01-owner-mount-acceptance-2026-11-05.md",
+    "docs/h02-native-conversation-queue-acceptance-2026-11-05.md",
+    "docs/h03-host-stream-acceptance-2026-11-05.md",
+    "docs/h04-owner-worker-lifecycle-acceptance-2026-11-05.md",
+    "docs/m01-fresh-history-rewrite-acceptance-2026-11-05.md",
+    "docs/m02-domain-inventory-2026-11-05.md",
+    "docs/m02-independent-reverification-2026-11-06.md",
+    "docs/m02-multidomain-pruning-reclamation-acceptance-2026-11-06.md",
+    "docs/m02-reclamation-corrections-2026-11-06.md",
+    "docs/m02-retired-profile-vector-prune-verification-2026-11-06.md",
+    "docs/m02-semantic-description-prune-verification-2026-11-06.md",
+    "docs/m02-terminal-archive-prune-verification-2026-11-06.md",
+    "docs/m03-divergent-rel-reconciliation-acceptance-2026-11-06.md",
+    "docs/m03-dream-import-replay-parity-2026-11-06.md",
+    "docs/m03-final-correction-handoff-2026-11-06.md",
+    "docs/m03-import-reconciliation-corrections-2026-11-06.md",
+    "docs/m04-historical-proof-corrections-2026-11-06.md",
+    "docs/m04-historical-read-proof-parity-acceptance-2026-11-06.md",
+    "docs/os-master-key-store-spec-2026-11-08.md",
+    "docs/p01-consumer-contract-map.md",
+    "docs/p01-public-product-acceptance-2026-11-06.md",
+    "docs/project-correlation-acceptance-2026-11-05.md",
+    "docs/public-api-cli-gap-audit-2026-11-07.md",
+    "docs/public-api-cli-interaction-contract-2026-11-07.md",
+    "docs/public-api-cli-operational-completion-spec-2026-11-07.md",
+    "docs/public-api-cli-operational-verification-2026-11-07.md",
+    "docs/retrieval-confirmed-use-acceptance-2026-11-05.md",
+    "docs/s03-dream-evaluator-acceptance-2026-11-04.md",
+    "docs/semantic-continuation-2026-11-04.md",
+    "docs/storage-continuation-2026-11-04.md",
+    "docs/switchboard-configuration-restoration-spec-2026-11-08.md",
+    "docs/v02-dream-publication-progress-2026-11-04.md",
+    "docs/v05-v06-continuation-2026-11-05.md",
+    "docs/v05-vector-context-acceptance-2026-11-05.md",
+    "docs/v06-acceptance-2026-11-05.md",
+    "docs/engineering-standards-remediation-spec-2026-11-10.md"
+  ],
+  "required_sections": [
+    "Purpose",
+    "Overview",
+    "Related docs",
+    "Notes"
+  ],
+  "coverage": [
+    {
+      "paths": [
+        "src/**"
+      ],
+      "docs": [
+        "docs/public-product-api.md"
+      ]
+    },
+    {
+      "paths": [
+        "cli/**"
+      ],
+      "docs": [
+        "docs/reference/cli.md"
+      ]
+    },
+    {
+      "paths": [
+        "crates/reliquary-container/**",
+        "crates/reliquary-archive/**",
+        "crates/reliquary-memory-core/**",
+        "crates/reliquary-graph/**",
+        "crates/reliquary-perception-store/**",
+        "crates/reliquary-ego-store/**",
+        "crates/reliquary-freshness-store/**",
+        "crates/reliquary-vector-store/**",
+        "crates/reliquary-insomnia-store/**"
+      ],
+      "docs": [
+        "docs/architecture/storage.md"
+      ]
+    },
+    {
+      "paths": [
+        "crates/reliquary-owner-session/**"
+      ],
+      "docs": [
+        "docs/architecture/owner-session.md"
+      ]
+    },
+    {
+      "paths": [
+        "crates/reliquary-application/**"
+      ],
+      "docs": [
+        "docs/architecture/application.md"
+      ]
+    },
+    {
+      "paths": [
+        "crates/reliquary-runtime-gateway/**"
+      ],
+      "docs": [
+        "docs/architecture/gateway.md"
+      ]
+    },
+    {
+      "paths": [
+        "crates/reliquary-switchboard/**"
+      ],
+      "docs": [
+        "docs/configured-runtime.md",
+        "docs/architecture/switchboard.md"
+      ]
+    },
+    {
+      "paths": [
+        "crates/reliquary-vectors/**",
+        "crates/reliquary-retrieval/**",
+        "crates/reliquary-dream/**",
+        "crates/reliquary-insomnia/**",
+        "crates/reliquary-entity-resolution/**",
+        "crates/reliquary-freshness/**",
+        "crates/reliquary-context-engine/**",
+        "crates/reliquary-project-environment/**",
+        "crates/reliquary-chronos/**"
+      ],
+      "docs": [
+        "docs/architecture/semantic-processing.md"
+      ]
+    },
+    {
+      "paths": [
+        "architecture/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ],
+      "docs": [
+        "docs/architecture/system.md"
+      ]
+    },
+    {
+      "paths": [
+        "tests/**",
+        "scripts/**"
+      ],
+      "docs": [
+        "docs/development/workflow.md"
+      ]
+    },
+    {
+      "paths": [
+        "src/configuration.rs",
+        "src/configured_runtime.rs"
+      ],
+      "docs": [
+        "docs/configured-runtime.md"
+      ]
+    },
+    {
+      "paths": [
+        ".standards/**",
+        "docs-standard.json",
+        "demon-docs.toml",
+        "standards-provenance.json",
+        ".gitattributes"
+      ],
+      "docs": [
+        "docs/documentation-policy.md",
+        "docs/development/workflow.md"
+      ]
+    }
+  ],
+  "change_rules": [
+    {
+      "paths": [
+        "src/**"
+      ],
+      "docs": [
+        "docs/public-product-api.md"
+      ]
+    },
+    {
+      "paths": [
+        "cli/**"
+      ],
+      "docs": [
+        "docs/reference/cli.md",
+        "docs/operator-workflow.md"
+      ]
+    },
+    {
+      "paths": [
+        "crates/reliquary-container/**",
+        "crates/reliquary-archive/**",
+        "crates/reliquary-memory-core/**",
+        "crates/reliquary-graph/**",
+        "crates/reliquary-perception-store/**",
+        "crates/reliquary-ego-store/**",
+        "crates/reliquary-freshness-store/**",
+        "crates/reliquary-vector-store/**",
+        "crates/reliquary-insomnia-store/**"
+      ],
+      "docs": [
+        "docs/architecture/storage.md"
+      ]
+    },
+    {
+      "paths": [
+        "crates/reliquary-owner-session/**"
+      ],
+      "docs": [
+        "docs/architecture/owner-session.md"
+      ]
+    },
+    {
+      "paths": [
+        "crates/reliquary-application/**"
+      ],
+      "docs": [
+        "docs/architecture/application.md"
+      ]
+    },
+    {
+      "paths": [
+        "crates/reliquary-runtime-gateway/**"
+      ],
+      "docs": [
+        "docs/architecture/gateway.md"
+      ]
+    },
+    {
+      "paths": [
+        "crates/reliquary-switchboard/**",
+        "reliquary.cfg"
+      ],
+      "docs": [
+        "docs/configured-runtime.md",
+        "docs/architecture/switchboard.md"
+      ]
+    },
+    {
+      "paths": [
+        "crates/reliquary-vectors/**",
+        "crates/reliquary-retrieval/**",
+        "crates/reliquary-dream/**",
+        "crates/reliquary-insomnia/**",
+        "crates/reliquary-entity-resolution/**",
+        "crates/reliquary-freshness/**",
+        "crates/reliquary-context-engine/**",
+        "crates/reliquary-project-environment/**",
+        "crates/reliquary-chronos/**"
+      ],
+      "docs": [
+        "docs/architecture/semantic-processing.md"
+      ]
+    },
+    {
+      "paths": [
+        "architecture/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ],
+      "docs": [
+        "docs/architecture/system.md"
+      ]
+    },
+    {
+      "paths": [
+        "tests/**",
+        "scripts/**",
+        ".github/**",
+        "tools/**"
+      ],
+      "docs": [
+        "docs/development/workflow.md",
+        "docs/development/behavioral-contracts.md"
+      ]
+    },
+    {
+      "paths": [
+        "src/configuration.rs",
+        "src/configured_runtime.rs"
+      ],
+      "docs": [
+        "docs/configured-runtime.md"
+      ]
+    },
+    {
+      "paths": [
+        ".standards/**",
+        "docs-standard.json",
+        "demon-docs.toml",
+        "standards-provenance.json",
+        ".gitattributes"
+      ],
+      "docs": [
+        "docs/documentation-policy.md",
+        "docs/development/workflow.md"
+      ]
+    }
+  ]
+}

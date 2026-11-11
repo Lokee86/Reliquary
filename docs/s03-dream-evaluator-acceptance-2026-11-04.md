@@ -1,5 +1,7 @@
 # S03 — Dream evaluator acceptance (2026-11-04)
 
+Parent index: [Documentation](./INDEX.md)
+
 **Scope:** S03 of the canonical 44-increment rebuild tracker: a **pure Dream evaluator** that returns candidate decisions, duplicate/canonical/lifecycle intents and community name candidates. The owner-qualified **Application** workflow (V02) remains responsible for validation, durable Graph/Memory/Freshness publication, first-cycle settlement, crash recovery and end-to-end semantic integration. S03 must not perform any owner store mutation.
 
 **Acceptance decision: PASS for S03's specified pure evaluator contract.** Prerequisites S01, C03 and C04 were accepted before this decision. No G2 acceptance is implied.

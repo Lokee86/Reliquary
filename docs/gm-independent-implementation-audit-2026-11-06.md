@@ -1,5 +1,7 @@
 # GM independent implementation and reference-parity audit — 2026-11-06
 
+Parent index: [Documentation](./INDEX.md)
+
 **Verdict: NOT ACCEPTED.** Reopens M01, M02 and M04 on independently reproduced defects, and M03 on a missing supported reference contract. The previous `ee22c6e5` GM acceptance record is historical evidence of a decision, **not** valid completion authority. P01/GM-dependent acceptance is blocked.
 
 Reference baseline: `Reliquary-reference` HEAD `f62b1fb4`, compared with `Reliquary-rebuild` HEAD `ee22c6e5` (original clean branch before audit). Canonical contract: `Reliquary-crate-first/docs/architecture/maintenance-history-parity-phase-2026-11-05.md`; canonical tracker: `docs/architecture/implementation-rebuild-capabilities-2026-11-03.json`. This is an independent two-axis implementation review, **not** a duplicate of the accepted GM matrix.

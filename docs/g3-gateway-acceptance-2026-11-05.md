@@ -1,5 +1,7 @@
 # G3 complete Gateway acceptance on synthetic owners (2026-11-05)
 
+Parent index: [Documentation](./INDEX.md)
+
 G3 is accepted after corrected H04 closure. This gate covers the complete internal Gateway/runtime on generated REL 2.1 and PHY owners; it does not claim the later public API, CLI, parity, or release-cutover phases.
 
 ## Integrated acceptance

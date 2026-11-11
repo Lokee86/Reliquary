@@ -1,5 +1,7 @@
 # M04 independent historical-proof re-verification — 2026-11-06
 
+Parent index: [Documentation](./INDEX.md)
+
 **Status: historical-revision defect corrected and independently retested; pending final GM gate.** Earlier GM independent audit is preserved as the defect oracle. Rebuild runtime supports native REL/PHY 2.1 only; reference oracle `Reliquary-reference` `f62b1fb4`.
 
 ## Implementation evidence

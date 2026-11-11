@@ -149,7 +149,6 @@ fn configured_fixture(
     general_routes: &[(ModelSlot, &str)],
     embedding: bool,
 ) -> ConfiguredRuntime {
-    let _keys = mock_master_key_store();
     let mut config = ReliquaryConfig::new_blank(path);
     let credential_id = CredentialId::new("KEY").unwrap();
     config.add_api_key(
@@ -193,6 +192,7 @@ fn configured_fixture(
 
 #[test]
 fn configured_import_processes_rel_and_phy_and_reopens_without_republication() {
+    let _keys = mock_master_key_store();
     let compatible_drift = Arc::new(AtomicBool::new(false));
     let fixture = Fixture::start_with({
         let compatible_drift = Arc::clone(&compatible_drift);

@@ -1,5 +1,7 @@
 # H03 host delegation and committed stream acceptance (2026-11-05)
 
+Parent index: [Documentation](./INDEX.md)
+
 H03 is accepted after H02 on the rebuild branch. This checkpoint covers trusted host arbitration, durable operation reconciliation, and recipient delivery of committed generation checkpoints. It does not claim H04 worker lifecycle or G3 acceptance.
 
 ## Accepted behavior

@@ -1,5 +1,7 @@
 # M03 independent completed-import reconciliation re-verification — 2026-11-06
 
+Parent index: [Documentation](./INDEX.md)
+
 **Current verdict: corrected implementation verified; GM not yet accepted.** This is a new evidence record after the earlier GM independent audit reopened M03. The reference oracle is the pinned `Reliquary-reference` at `f62b1fb4`; rebuilding is native REL 2.1 only.
 
 ## Confirmed corrected behavior

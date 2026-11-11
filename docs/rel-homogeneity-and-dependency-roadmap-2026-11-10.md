@@ -1,5 +1,7 @@
 # Deferred: homogeneous RELs and inter-REL dependency graph
 
+Parent index: [Documentation](./INDEX.md)
+
 ## Purpose
 
 Restore the previously accepted REL architecture without holding up the Hermes integration test. RELs are homogeneous memory owners. Organization, project, subproject, connection, and similar terms are **not fixed REL classes**. A directed acyclic dependency graph between REL owners supplies ambient context inheritance.

@@ -1,5 +1,7 @@
 # Retrieval and confirmed-use acceptance
 
+Parent index: [Documentation](./INDEX.md)
+
 This record evaluates S05 and V04 after V07 acceptance at `1240c2ac`. V02 and S06 are already accepted. The canonical capability tracker remains the authority for completion status.
 
 ## Required behavior and verification map

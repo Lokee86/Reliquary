@@ -1,5 +1,7 @@
 # Storage continuation evidence — 2026-11-04
 
+Parent index: [Documentation](./INDEX.md)
+
 ## Capability reassessment
 
 The following assessment uses the individual acceptance statements and prerequisite edges in the canonical capability tracker. Earlier statements in this file that C02–C08 are all in progress are superseded by this assessment.

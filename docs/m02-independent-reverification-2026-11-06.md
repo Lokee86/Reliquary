@@ -1,5 +1,7 @@
 # M02 independent implementation reverification — 2026-11-06
 
+Parent index: [Documentation](./INDEX.md)
+
 **Verdict: NOT ACCEPTED.** The independently reported unactivated Archive-vector mapping defect is repaired in the current, uncommitted working tree. A second supported native 2.1 reclamation case fails. This report assesses behavior, not the earlier M02 acceptance label.
 
 Comparison: immutable `Reliquary-reference` pin `f62b1fb4`; rebuild committed HEAD `2592b7c7` plus uncommitted M02 changes. Contract: `Reliquary-crate-first/docs/architecture/maintenance-history-parity-phase-2026-11-05.md`, M02 §4.

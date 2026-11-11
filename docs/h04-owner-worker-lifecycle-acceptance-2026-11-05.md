@@ -1,5 +1,7 @@
 # H04 owner worker lifecycle acceptance (2026-11-05)
 
+Parent index: [Documentation](./INDEX.md)
+
 H04 is accepted after correction of the callback-only coordinator introduced by `e4ac3b18`.
 
 ## Accepted behavior

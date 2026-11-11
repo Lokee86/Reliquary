@@ -1,5 +1,7 @@
 # M03 — owner-authenticated initial Dream replay for completed imports
 
+Parent index: [Documentation](./INDEX.md)
+
 **Status: focused correction verified, GM remains under independent review.** This note extends `m03-import-reconciliation-corrections-2026-11-06.md` and supersedes that note's previously narrower import examples.
 
 ## Defect exposed

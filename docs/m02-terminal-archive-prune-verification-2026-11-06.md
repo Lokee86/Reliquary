@@ -1,5 +1,7 @@
 # M02 Step 2 — terminal REL Archive pruning
 
+Parent index: [Documentation](./INDEX.md)
+
 Status: **implemented, focused verified; M02 phase not accepted**.
 Implementation: `Reliquary-rebuild`, `rebuild/clean-architecture`.
 Reference contracts: `Reliquary-reference/src/facade/{cva_history_prune,cva_archive_history_prune}.rs`, current 2.1 semantics rather than 2.0 frame compatibility.

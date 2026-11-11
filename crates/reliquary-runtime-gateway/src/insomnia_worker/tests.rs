@@ -27,7 +27,8 @@ impl GeneralEndpoint for Endpoint {
     ) -> Result<Value, GeneralEndpointError> {
         match schema_name {
             "insomnia_authority_disposition_ledger" => {
-                let requests = if payload.contains("read_only_archive_evidence") {
+                let evidence_available = payload.contains("read_only_archive_evidence");
+                let requests = if evidence_available {
                     assert!(payload.contains("Private project notes are the designated records."));
                     json!([])
                 } else {
@@ -40,7 +41,8 @@ impl GeneralEndpoint for Endpoint {
                     "authority_source_node_id":"","grounding_source_node_id":"","reason":"direct assertion"},
                     {"disposition":"retain","authority_kind":"direct","category":"instruction","type":"project",
                     "lifecycle":"current","proposition":"Keep the project notes private.",
-                    "authority_source_node_id":"","grounding_source_node_id":"prior","reason":"durable project instruction"}
+                    "authority_source_node_id":"","grounding_source_node_id":
+                    if evidence_available { "prior" } else { "" },"reason":"durable project instruction"}
                 ]},"evidence_requests":requests}))
             }
             "insomnia_memory_ownership" => {

@@ -1,5 +1,7 @@
 # GM independent post-correction reacceptance — 2026-11-06
 
+Parent index: [Documentation](./INDEX.md)
+
 **Verdict: ACCEPTED** for the native REL/PHY 2.1 maintenance, history and
 supported same-owner REL reconciliation boundary. This review supersedes the
 rejection in `gm-independent-implementation-audit-2026-11-06.md` while

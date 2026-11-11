@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "id": "foundation-and-services-do-not-depend-upward",
+      "type": "forbid_dependency",
+      "message": "Foundation and semantic-service areas must not depend on Application or Gateway in any Cargo dependency category; place cross-owner integration tests at higher layers.",
+      "from_areas": [
+        "container",
+        "switchboard",
+        "chronos",
+        "archive-store",
+        "memory-store",
+        "graph-store",
+        "perception-store",
+        "ego-store",
+        "freshness-store",
+        "vector-store",
+        "insomnia-store",
+        "owner-session",
+        "vectors",
+        "retrieval",
+        "dream",
+        "insomnia",
+        "entity-resolution",
+        "freshness",
+        "context-engine",
+        "project-environment"
+      ],
+      "to_areas": [
+        "application",
+        "runtime-gateway"
+      ],
+      "relations": [
+        "imports",
+        "depends-on"
+      ]
+    },
+    {
+      "id": "architectural-areas-remain-acyclic",
+      "type": "forbid_area_cycles",
+      "message": "Observed cross-area Rust import and Cargo dependency edges, including test edges, must remain acyclic; the production-only DAG has its own exact guard.",
+      "relations": [
+        "imports",
+        "depends-on"
+      ]
+    },
+    {
+      "id": "cli-uses-only-public-root",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "cli"
+      ],
+      "to_areas": [
+        "container",
+        "switchboard",
+        "chronos",
+        "archive-store",
+        "memory-store",
+        "graph-store",
+        "perception-store",
+        "ego-store",
+        "freshness-store",
+        "vector-store",
+        "insomnia-store",
+        "owner-session",
+        "vectors",
+        "retrieval",
+        "dream",
+        "insomnia",
+        "entity-resolution",
+        "freshness",
+        "context-engine",
+        "project-environment",
+        "application",
+        "runtime-gateway"
+      ],
+      "relations": [
+        "imports",
+        "depends-on"
+      ],
+      "message": "The shipped CLI and its tests depend on the public Root API, not implementation crates."
+    }
+  ]
+}

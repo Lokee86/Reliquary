@@ -1,0 +1,101 @@
+{
+  "schema": "reliquary.es06-local-verification.v1",
+  "date": "2026-11-11",
+  "claim": "Local remediation verified; hosted CI unrun and formal adoption audit-pending",
+  "implementation_baseline": "fa574eecd11dddbe22474f382f8018cf0c0f98c5",
+  "enforcement_checkpoint": "f965110c4802893cbb640f737d550bdd5a46d2ad",
+  "standards": {
+    "schema": "reliquary.standards-provenance.v1",
+    "source": "engineering-standards",
+    "source_revision": "11cb28aa8c317eeeea647470e67f60598f28a2f0",
+    "sync_command": "python tools/sync_checker.py <reliquary-checkout>",
+    "sync_script_sha256": "c22256d539ab7847730284862f7b75884c9098e4d35d6132f4166761f925f185",
+    "manifest_sha256": "acebb5f25b554b1dbde631409028a8f4aac20c4e2de4d40f1d3f20ce92d2f7eb"
+  },
+  "tools": {
+    "pitlord": "0.1.2",
+    "ddocs": "0.3.5",
+    "arcana": "0.1.0",
+    "lexicon": "dev",
+    "go": "1.26.5",
+    "rust": "1.97.1",
+    "source_pins": {
+      "pitlord": "9dedd4b556b9e54de514e4cafe4d94093780178f",
+      "ddocs": "45318a8f2602aeebaeea4828894769256773f4f4",
+      "lexicon_arcana": "f09517262fdfad98fcede2ad93a947ccee8406ff"
+    },
+    "local_executable_sha256": {
+      "pitlord.exe": "d6eb8fdcae344cbf9e3f0b27a11ac0e5ffc28c2414511ca29e47ed2418b97aa6",
+      "ddocs.exe": "55c937da67a37ed6a27d1d73cce093ff73e5b16af2b672314a36875da338b511",
+      "lexicon.exe": "90af27e6d353bcbda3de707268155a7e1d6d47ac285c5f506285001a9dd34c80",
+      "arcana.exe": "3398ed8d0a3cd64826a7f2c680b5d0b0a0b4c011177aa4071d809c98eb117af0"
+    }
+  },
+  "semantic": {
+    "snapshot_sha256": "7578f5de5e5591a19c908b535d43ddb70b29524f0ee941d9da5d5f74e3e5eeb4",
+    "exit_code": 0,
+    "areas": 24,
+    "rules": 13,
+    "owned_files": 568,
+    "selected_edges": 2051,
+    "area_dependencies": 111,
+    "violations": 0,
+    "negative_control": "known Gateway-to-Application dependency rejected"
+  },
+  "tests": [
+    {
+      "command": "cargo fmt --all --check",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo check --workspace --locked --offline -j 1",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo test --workspace --locked --offline -j 1 --no-fail-fast -- --test-threads=1",
+      "revision": "3a6be786fafd42b8973688b56dd5e8ee001bca2b",
+      "exit_code": 0,
+      "passed": 678,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "command": "cargo test --manifest-path cli/Cargo.toml --locked --offline -j 1",
+      "exit_code": 0,
+      "passed": 17,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "command": "cargo test --manifest-path tests/external-consumer/Cargo.toml --locked --offline -j 1 --no-fail-fast -- --test-threads=1",
+      "revision": "46fef0c13cbd07b12173fefb9d315959e722c5dd",
+      "exit_code": 0,
+      "passed": 15,
+      "failed": 0,
+      "ignored": 1
+    },
+    {
+      "command": "pwsh -File scripts/run_g4_acceptance.ps1 -TargetDirectory <shared-target>",
+      "revision": "d82ff0e9fe420fb0cb16a8dc99fead8a02884d34",
+      "exit_code": 0,
+      "covers_default_ignored_process_reopen": true
+    }
+  ],
+  "adoption": {
+    "profile": "library-engine",
+    "capabilities": [
+      "stateful"
+    ],
+    "status": "audit-pending",
+    "hosted_ci_run": false
+  },
+  "limits": [
+    "Existing unrelated Rust work is excluded from acceptance and preserved byte-for-byte.",
+    "No real provider/corpus/credential operations; synthetic fixture and existing operational evidence only.",
+    "Homogeneous REL and arbitrary inter-REL dependency DAG remain a separately scoped material follow-up.",
+    "Focused configuration lock test does not prove all high-level credential-writer or migration interleavings.",
+    "Historical native-two-day-live-smoke-2026-11-07.md is unavailable; it is not fabricated or claimed as fresh evidence.",
+    "Community persistence/inspection/rename and retrieval routing exist, but Leiden detection and supported Root/CLI recomputation are missing; restoration is separately scoped.",
+    "Concurrent uncommitted community roadmap and historical-document paragraph are preserved and excluded from accepted production; final installed-commit checks use a clean local checkout."
+  ]
+}

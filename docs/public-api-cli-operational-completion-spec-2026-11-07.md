@@ -1,5 +1,7 @@
 # Public API and CLI operational completion — 2026-11-07
 
+Parent index: [Documentation](./INDEX.md)
+
 Companions: [source-backed gap audit](public-api-cli-gap-audit-2026-11-07.md), [interaction/CLI contract](public-api-cli-interaction-contract-2026-11-07.md), [Switchboard configuration restoration](switchboard-configuration-restoration-spec-2026-11-08.md). Entry point from the current [public API guide](public-product-api.md).
 
 **Status: specified, not implemented or accepted.** Implementation target: `Reliquary-rebuild`, baseline `a3c3a9643f494bced51faf92ba057b16bcdac8a7`. Existing uncommitted smoke-run changes are candidates to review, not an accepted prerequisite. Ticket IDs OC01–OC09 identify this operational closure only; they do not renumber completed capabilities or change D01–D03/G5/HP/HU statuses.
@@ -136,10 +138,12 @@ Old-format data conversion or activation; merging Hermes or UI work; adding an H
 - [P01 historical consumer map](p01-consumer-contract-map.md)
 - [Existing public API](public-product-api.md)
 - [Retrieval acceptance](retrieval-confirmed-use-acceptance-2026-11-05.md)
-- [Two-day diagnostic](native-two-day-live-smoke-2026-11-07.md)
+- `native-two-day-live-smoke-2026-11-07.md` (historical target not retained)
 
 ## Notes
 
 This specification is a targeted operational-completion plan, not a restart of the architecture rebuild. The earlier gates remain scoped historical records; operational replacement is not complete until OC09 passes. Specification review/validation does not accept the existing uncommitted runner, alter canonical tracker statuses, start inference, or authorize a merge/cutover.
 
 Specification validation checked all local links, OC01–OC09 dependency completeness/acyclicity, I01–I10 acceptance-case coverage and whitespace. Source-file hashes were unchanged from the pre-task snapshot. No Rust suites, live provider calls or corpus mutations were performed for this documentation task. Local report: `.test-tmp/public-api-cli-spec-2026-11-07/validation.json`. The shared documentation policy cannot run in this checkout because `docs-standard.json` is absent (same failure before and after); Archivist also reports broader orphan-document/index issues. These are recorded limitations, not a claimed clean repository-wide documentation pass.
+
+Navigation note (2026-11-11): the named diagnostic is unavailable in this checkout; the [later operational verification](public-api-cli-operational-verification-2026-11-07.md) is separate evidence. See [document disposition](development/document-disposition.md).

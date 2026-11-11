@@ -1,5 +1,7 @@
 # M02 step 1 — retired-profile packed-vector pruning
 
+Parent index: [Documentation](./INDEX.md)
+
 Status: **implemented and focused-verified**, not an M02 phase acceptance.
 Repository: `Reliquary-rebuild`, branch `rebuild/clean-architecture`.
 Reference behavior: both REL and PHY terminal packed-vector pruning, adapted to the native 2.1 owner and generation contracts.

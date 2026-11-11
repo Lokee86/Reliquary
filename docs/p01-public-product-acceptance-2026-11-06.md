@@ -1,5 +1,7 @@
 # P01 — public Rel/Phylactery API and consumer CLI acceptance
 
+Parent index: [Documentation](./INDEX.md)
+
 **Verdict: ACCEPTED** for the specified current-format 2.1 public product surface, trusted-host integration and REL-only operator CLI on `rebuild/clean-architecture`, 2026-11-06.
 
 **Authoritative contract:** `Reliquary-crate-first/docs/architecture/p01-public-product-api-cli-implementation-spec-2026-11-06.md` (G3 and GM are satisfied prerequisites). The retained behavior map is `docs/p01-consumer-contract-map.md`; usage and intentional migration differences are in `docs/public-product-api.md`.

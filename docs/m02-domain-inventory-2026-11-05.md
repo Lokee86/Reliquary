@@ -1,5 +1,7 @@
 # M02 domain inventory — 2026-11-05
 
+Parent index: [Documentation](./INDEX.md)
+
 M02 is accepted as of 2026-11-06. This file remains the pre-acceptance domain
 inventory; final evidence is in
 `m02-multidomain-pruning-reclamation-acceptance-2026-11-06.md`.

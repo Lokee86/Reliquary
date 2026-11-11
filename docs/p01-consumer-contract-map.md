@@ -1,5 +1,7 @@
 # P01 consumer contract map
 
+Parent index: [Documentation](./INDEX.md)
+
 **Historical scope notice (2026-11-08):** The [operational completion specification](public-api-cli-operational-completion-spec-2026-11-07.md) now requires public host and CLI access to import, processing, retrieval/query/refinement/traversal and inspection. The [Switchboard configuration restoration](switchboard-configuration-restoration-spec-2026-11-08.md) additionally restores the pre-rebuild `reliquary.cfg`/master-key contract and configuration CLI; the interim JSON/env bootstrap is not retained. These corrections supersede the exclusions below without rewriting P01's historical acceptance.
 
 This map freezes the supported 2.1 consumer boundary before P01 acceptance. The

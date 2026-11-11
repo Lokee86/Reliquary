@@ -1,0 +1,199 @@
+{
+  "version": 1,
+  "includes": [
+    "../../.standards/policies/architecture-core.json",
+    "../../.standards/policies/documentation-core.json",
+    "semantic.json"
+  ],
+  "areas": [
+    {
+      "id": "container",
+      "description": "REL/PHY physical format and container primitives",
+      "paths": [
+        "crates/reliquary-container"
+      ]
+    },
+    {
+      "id": "switchboard",
+      "description": "Provider transport, endpoints, credentials, and configuration",
+      "paths": [
+        "crates/reliquary-switchboard"
+      ]
+    },
+    {
+      "id": "chronos",
+      "description": "Pure temporal parsing and bounded decision validation",
+      "paths": [
+        "crates/reliquary-chronos"
+      ]
+    },
+    {
+      "id": "archive-store",
+      "description": "Archive and Echo durable state",
+      "paths": [
+        "crates/reliquary-archive"
+      ]
+    },
+    {
+      "id": "memory-store",
+      "description": "Memory bodies, lineage, revisions, and tombstones",
+      "paths": [
+        "crates/reliquary-memory-core"
+      ]
+    },
+    {
+      "id": "graph-store",
+      "description": "Graph topology, Community projections, and history",
+      "paths": [
+        "crates/reliquary-graph"
+      ]
+    },
+    {
+      "id": "perception-store",
+      "description": "Entity, mention, relationship, and observation records",
+      "paths": [
+        "crates/reliquary-perception-store"
+      ]
+    },
+    {
+      "id": "ego-store",
+      "description": "Identity, personality, anchors, and synthesis state",
+      "paths": [
+        "crates/reliquary-ego-store"
+      ]
+    },
+    {
+      "id": "freshness-store",
+      "description": "Accepted event receipts, scores, and history",
+      "paths": [
+        "crates/reliquary-freshness-store"
+      ]
+    },
+    {
+      "id": "vector-store",
+      "description": "Vector payloads, profiles, and generations",
+      "paths": [
+        "crates/reliquary-vector-store"
+      ]
+    },
+    {
+      "id": "insomnia-store",
+      "description": "Durable Episode claims, leases, completions, and receipts",
+      "paths": [
+        "crates/reliquary-insomnia-store"
+      ]
+    },
+    {
+      "id": "owner-session",
+      "description": "Concrete REL/PHY stores, typed replay, authorization, and grouped writes",
+      "paths": [
+        "crates/reliquary-owner-session"
+      ]
+    },
+    {
+      "id": "vectors",
+      "description": "Vector semantic service",
+      "paths": [
+        "crates/reliquary-vectors"
+      ]
+    },
+    {
+      "id": "retrieval",
+      "description": "Retrieval composition and ranking",
+      "paths": [
+        "crates/reliquary-retrieval"
+      ]
+    },
+    {
+      "id": "dream",
+      "description": "Dream evaluation and proposal workflow",
+      "paths": [
+        "crates/reliquary-dream"
+      ]
+    },
+    {
+      "id": "insomnia",
+      "description": "Insomnia scheduling and evaluation service",
+      "paths": [
+        "crates/reliquary-insomnia"
+      ]
+    },
+    {
+      "id": "entity-resolution",
+      "description": "Entity resolution proposals and decisions",
+      "paths": [
+        "crates/reliquary-entity-resolution"
+      ]
+    },
+    {
+      "id": "freshness",
+      "description": "Freshness scoring and decisions",
+      "paths": [
+        "crates/reliquary-freshness"
+      ]
+    },
+    {
+      "id": "context-engine",
+      "description": "Context assembly service",
+      "paths": [
+        "crates/reliquary-context-engine"
+      ]
+    },
+    {
+      "id": "project-environment",
+      "description": "Project environment context service",
+      "paths": [
+        "crates/reliquary-project-environment"
+      ]
+    },
+    {
+      "id": "application",
+      "description": "Named publication and composition workflows",
+      "paths": [
+        "crates/reliquary-application"
+      ]
+    },
+    {
+      "id": "runtime-gateway",
+      "description": "Mounts, authenticated Instances, queues, host handoff, and recovery",
+      "paths": [
+        "crates/reliquary-runtime-gateway"
+      ]
+    },
+    {
+      "id": "public-api",
+      "description": "Root public library API and re-exports",
+      "paths": [
+        "src",
+        "Cargo.toml"
+      ]
+    },
+    {
+      "id": "cli",
+      "description": "Separately shipped operator command-line surface",
+      "paths": [
+        "cli/src",
+        "cli/Cargo.toml"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "rust-source-has-one-owner",
+      "type": "require_ownership",
+      "message": "Every Rust source file must map to exactly one architectural owner area.",
+      "scope_paths": [
+        "src",
+        "crates",
+        "cli/src"
+      ],
+      "scope_exclude_paths": [
+        "target",
+        "vendor"
+      ],
+      "source_kinds": [
+        "file"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 # S08 Project Environment acceptance
 
+Parent index: [Documentation](./INDEX.md)
+
 S08 requires an independent Git/Lore revision and file-correlation boundary: VCS remains source authority and REL retains only proven correlations. Its F04 prerequisite is already accepted.
 
 ## Acceptance matrix

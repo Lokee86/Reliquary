@@ -1,5 +1,7 @@
 # M02 Step 3 — terminal Entity and Relationship description pruning
 
+Parent index: [Documentation](./INDEX.md)
+
 Status: **implemented and owner-session verified; M02 phase remains open**.
 Repository: `Reliquary-rebuild` (`rebuild/clean-architecture`).
 Reference: `Reliquary-reference/src/facade/cva_description_prune.rs`,

@@ -1,5 +1,7 @@
 # M02 reclamation corrections — verified implementation slice (2026-11-06)
 
+Parent index: [Documentation](./INDEX.md)
+
 **Status:** M02 reclamation defects from the independent audit are repaired and tested in the native 2.1 rebuild. This is an implementation verification record, **not** GM acceptance or a claim that all M02 domains have been independently recertified.
 
 Baseline: `2592b7c7` plus M02 working changes; reference behavior oracle `Reliquary-reference` `f62b1fb4`. Requirements: canonical M-phase plan §4 and independent audit `docs/m02-independent-reverification-2026-11-06.md`.
