@@ -497,7 +497,10 @@ fn hp02_memory_summaries_filter_and_page_without_returning_bodies() {
 #[test]
 fn hp02_memory_graph_expands_active_neighbors_at_one_cut() {
     use reliquary_graph::{NodeRef, RelationChange};
-    use reliquary_memory::{MemoryGraphQuery, RelationKind, RelationOrigin};
+    use reliquary_memory::{
+        MemoryGraphQuery, RelationKind, RelationOrigin, SemanticGraphProjectionItem,
+        SemanticGraphProjectionStatus,
+    };
     use reliquary_owner_session::{DreamMemoryCut, DreamRelationCut, GraphAdmission, RelWriter};
 
     let dir = TestDirectory::create();
@@ -631,6 +634,81 @@ fn hp02_memory_graph_expands_active_neighbors_at_one_cut() {
         relation_page = next_page;
     }
     assert_eq!(semantic_relations.len(), 2);
+
+    let render_cut = instance
+        .semantic_graph_inspection_cut(owner, OwnerKind::Rel)
+        .unwrap();
+    assert_eq!(render_cut, one.cut);
+    let filters = MemoryListFilters {
+        query: " FIRST ".to_owned(),
+        category: Some("fact".into()),
+        memory_type: Some("note".into()),
+        lifecycle: Some(MemoryListLifecycle::Active),
+        ..Default::default()
+    };
+    let list = instance
+        .inspect_owner(
+            owner,
+            OwnerKind::Rel,
+            &InspectionQuery::MemorySummaries(filters.clone()),
+            None,
+            10,
+        )
+        .unwrap();
+    let mut selected = Vec::new();
+    let status = instance
+        .visit_semantic_graph_projection(owner, OwnerKind::Rel, render_cut, &filters, |item| {
+            match item {
+                SemanticGraphProjectionItem::Memory { id, title, .. } => selected.push((id, title)),
+                SemanticGraphProjectionItem::Relation(_) => {
+                    panic!("excluded endpoints must suppress edges")
+                }
+                SemanticGraphProjectionItem::Community(_) => {}
+            }
+            std::ops::ControlFlow::Continue(())
+        })
+        .unwrap();
+    assert_eq!(status, SemanticGraphProjectionStatus::Complete);
+    let [InspectionItem::MemoryListEntry(entry)] = list.items.as_slice() else {
+        panic!("exactly one Memory matches the list filter");
+    };
+    assert_eq!(
+        selected,
+        vec![(MemoryId(id(&entry.id)), entry.title.clone())]
+    );
+    assert!(
+        instance
+            .memory_matches_filter(owner, OwnerKind::Rel, render_cut, &filters, first.id)
+            .unwrap()
+    );
+    assert!(
+        !instance
+            .memory_matches_filter(owner, OwnerKind::Rel, render_cut, &filters, second.id)
+            .unwrap()
+    );
+    let mut stale = render_cut;
+    stale.memory += 1;
+    let error = instance
+        .visit_semantic_graph_projection(owner, OwnerKind::Rel, stale, &filters, |_| {
+            panic!("stale cut must fail before the visitor")
+        })
+        .unwrap_err();
+    assert_eq!(error.kind(), ProductErrorKind::Stale);
+    let mut visited = 0;
+    let status = instance
+        .visit_semantic_graph_projection(
+            owner,
+            OwnerKind::Rel,
+            render_cut,
+            &MemoryListFilters::default(),
+            |_| {
+                visited += 1;
+                std::ops::ControlFlow::Break(())
+            },
+        )
+        .unwrap();
+    assert_eq!(status, SemanticGraphProjectionStatus::VisitorStopped);
+    assert_eq!(visited, 1);
 
     let expansion = MemoryGraphQuery {
         depth: 2,

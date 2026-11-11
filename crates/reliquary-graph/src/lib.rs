@@ -386,6 +386,10 @@ impl GraphStore {
         self.states.values().filter(|relation| relation.active)
     }
 
+    pub fn relation_state_count(&self) -> usize {
+        self.states.len()
+    }
+
     /// Inspect a single indexed neighborhood in outgoing-then-incoming order.
     pub fn incident_relations(&self, node: NodeRef) -> impl Iterator<Item = &Relation> {
         let outgoing = self.outgoing.get(&node).into_iter().flatten();

@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::management_workflow::hex;
-use reliquary_owner_session::model::NodeRef;
+use reliquary_owner_session::model::{MemoryBody, MemoryRecord, NodeRef};
 
 const MAX_QUERY_BYTES: usize = 4096;
 const MAX_FILTER_BYTES: usize = 128;
@@ -58,14 +58,7 @@ pub(super) fn inspect(
     filters: &MemoryListFilters,
     page: &mut PageBuilder,
 ) -> Result<(), ManagementError> {
-    if filters.query.len() > MAX_QUERY_BYTES
-        || [filters.category.as_deref(), filters.memory_type.as_deref()]
-            .into_iter()
-            .flatten()
-            .any(|value| value.trim().is_empty() || value.len() > MAX_FILTER_BYTES)
-    {
-        return Err(ManagementError::InvalidInput("Memory list filters"));
-    }
+    validate_filters(filters)?;
     let needle = filters.query.trim().to_lowercase();
     let cut = page.page.cut;
     let communities = read
@@ -109,6 +102,18 @@ pub(super) fn inspect(
     Ok(())
 }
 
+pub(super) fn validate_filters(filters: &MemoryListFilters) -> Result<(), ManagementError> {
+    if filters.query.len() > MAX_QUERY_BYTES
+        || [filters.category.as_deref(), filters.memory_type.as_deref()]
+            .into_iter()
+            .flatten()
+            .any(|value| value.trim().is_empty() || value.len() > MAX_FILTER_BYTES)
+    {
+        return Err(ManagementError::InvalidInput("Memory list filters"));
+    }
+    Ok(())
+}
+
 fn project(
     read: &ManagementRead<'_>,
     id: MemoryId,
@@ -117,6 +122,46 @@ fn project(
     needle: &str,
     community_id: Option<[u8; 32]>,
 ) -> Result<Option<MemoryListEntry>, ManagementError> {
+    let Some(MatchingMemory {
+        record,
+        body,
+        lifecycle,
+        revision,
+    }) = matching_memory(read, id, cut, filters, needle, community_id)?
+    else {
+        return Ok(None);
+    };
+    Ok(Some(MemoryListEntry {
+        id: hex(&id.0),
+        revision,
+        body_id: (lifecycle != MemoryListLifecycle::Tombstoned).then(|| hex(&record.body_id.0)),
+        title: body.map(|body| bounded(&body.title, MAX_TITLE_BYTES)),
+        excerpt: body.map_or_else(String::new, |body| {
+            bounded(&body.content, MAX_EXCERPT_BYTES)
+        }),
+        category: record.category.clone(),
+        memory_type: record.memory_type.clone(),
+        lifecycle,
+        canonical_status: canonical_status(read, id, lifecycle),
+        community_id: community_id.map(|id| hex(&id)),
+    }))
+}
+
+pub(super) struct MatchingMemory<'a> {
+    record: &'a MemoryRecord,
+    pub(super) body: Option<&'a MemoryBody>,
+    lifecycle: MemoryListLifecycle,
+    revision: u64,
+}
+
+pub(super) fn matching_memory<'a>(
+    read: &'a ManagementRead<'_>,
+    id: MemoryId,
+    cut: u64,
+    filters: &MemoryListFilters,
+    needle: &str,
+    community_id: Option<[u8; 32]>,
+) -> Result<Option<MatchingMemory<'a>>, ManagementError> {
     if filters
         .community_id
         .is_some_and(|expected| Some(expected) != community_id)
@@ -162,23 +207,15 @@ fn project(
     {
         return Ok(None);
     }
-    Ok(Some(MemoryListEntry {
-        id: hex(&id.0),
+    Ok(Some(MatchingMemory {
+        record,
+        body,
         revision: tombstone.map_or(record.revision, |entry| entry.revision),
-        body_id: tombstone.is_none().then(|| hex(&record.body_id.0)),
-        title: body.map(|body| bounded(&body.title, MAX_TITLE_BYTES)),
-        excerpt: body.map_or_else(String::new, |body| {
-            bounded(&body.content, MAX_EXCERPT_BYTES)
-        }),
-        category: record.category.clone(),
-        memory_type: record.memory_type.clone(),
         lifecycle,
-        canonical_status: canonical_status(read, id, lifecycle),
-        community_id: community_id.map(|id| hex(&id)),
     }))
 }
 
-fn bounded(value: &str, bytes: usize) -> String {
+pub(super) fn bounded(value: &str, bytes: usize) -> String {
     value[..value.floor_char_boundary(bytes)].to_owned()
 }
 

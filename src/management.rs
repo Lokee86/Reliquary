@@ -14,7 +14,8 @@ pub use reliquary_application::inspection::{
     MemoryRetirementRequest, MemoryTextField, RelationKind, RelationOrigin, Relationship,
     RelationshipEntityRef, RelationshipMemoryRef, RelationshipParticipant,
     RelationshipParticipantEvidence, RelationshipRetirementRequest, RelationshipTombstone,
-    SourceAvailability, SourceCoordinate, SourceTurn,
+    SemanticGraphProjectionItem, SemanticGraphProjectionStatus, SourceAvailability,
+    SourceCoordinate, SourceTurn,
 };
 pub use reliquary_application::inspection::{
     MemoryAssociationAction, MemoryAssociationReceipt, MemoryAssociationRequest,
@@ -35,6 +36,72 @@ pub use reliquary_owner_session::{
     SemanticGraphCut, SemanticGraphMemory, SemanticGraphMemoryPage, SemanticGraphRelationPage,
 };
 impl Instance {
+    /// Read the current graph and inspection cut without visiting a Memory.
+    pub fn semantic_graph_inspection_cut(
+        &self,
+        owner: OwnerId,
+        kind: OwnerKind,
+    ) -> Result<InspectionCut, ProductError> {
+        match kind {
+            OwnerKind::Rel => self.require_rel_read(owner)?,
+            OwnerKind::Phylactery => self.require_phy_read(owner)?,
+        }
+        self.inner
+            .semantic_graph_inspection_cut(owner.into(), kind == OwnerKind::Phylactery)
+            .map_err(Into::into)
+    }
+
+    /// Test one Memory against the same filters used by the list at this cut.
+    pub fn memory_matches_filter(
+        &self,
+        owner: OwnerId,
+        kind: OwnerKind,
+        expected_cut: InspectionCut,
+        filters: &MemoryListFilters,
+        id: MemoryId,
+    ) -> Result<bool, ProductError> {
+        match kind {
+            OwnerKind::Rel => self.require_rel_read(owner)?,
+            OwnerKind::Phylactery => self.require_phy_read(owner)?,
+        }
+        self.inner
+            .memory_matches_filter(
+                owner.into(),
+                kind == OwnerKind::Phylactery,
+                expected_cut,
+                filters,
+                id,
+            )
+            .map_err(Into::into)
+    }
+
+    /// Visit filtered renderer metadata and induced relationships at one exact
+    /// owner cut. Returning `ControlFlow::Break` stops the read at the caller's
+    /// budget. The visitor must not reenter this owner while the read is active.
+    /// A scan limit means the caller must discard its incomplete projection.
+    pub fn visit_semantic_graph_projection(
+        &self,
+        owner: OwnerId,
+        kind: OwnerKind,
+        expected_cut: InspectionCut,
+        filters: &MemoryListFilters,
+        visit: impl FnMut(SemanticGraphProjectionItem) -> std::ops::ControlFlow<()>,
+    ) -> Result<SemanticGraphProjectionStatus, ProductError> {
+        match kind {
+            OwnerKind::Rel => self.require_rel_read(owner)?,
+            OwnerKind::Phylactery => self.require_phy_read(owner)?,
+        }
+        self.inner
+            .visit_semantic_graph_projection(
+                owner.into(),
+                kind == OwnerKind::Phylactery,
+                expected_cut,
+                filters,
+                visit,
+            )
+            .map_err(Into::into)
+    }
+
     /// Read one bounded page from an exact-cut semantic graph source.
     pub fn semantic_graph_memory_page(
         &self,

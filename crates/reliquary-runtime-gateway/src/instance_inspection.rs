@@ -1,7 +1,9 @@
 use super::*;
 use reliquary_application::inspection::{
-    InspectionCursor, InspectionItem, InspectionPage, InspectionQuery, MountedOwnerInfo,
-    SourceAvailability, finish_provenance, inspect, mounted_owner_info, resolve_provenance,
+    InspectionCursor, InspectionCut, InspectionItem, InspectionPage, InspectionQuery,
+    MemoryListFilters, MountedOwnerInfo, SemanticGraphProjectionItem,
+    SemanticGraphProjectionStatus, SourceAvailability, finish_provenance, inspect, inspection_cut,
+    memory_matches_filter, mounted_owner_info, resolve_provenance, visit_semantic_graph_projection,
 };
 use reliquary_owner_session::{
     CommunityId, ManagementRead, MemoryId, SemanticGraphCommunityMemberPage,
@@ -10,6 +12,50 @@ use reliquary_owner_session::{
 };
 
 impl Instance {
+    pub fn semantic_graph_inspection_cut(
+        &self,
+        owner: OwnerId,
+        phy: bool,
+    ) -> Result<InspectionCut, GatewayError> {
+        let cut = self.with_management_read(owner, phy, |read| inspection_cut(&read))?;
+        self.ensure_credential_active()?;
+        Ok(cut)
+    }
+
+    pub fn memory_matches_filter(
+        &self,
+        owner: OwnerId,
+        phy: bool,
+        expected_cut: InspectionCut,
+        filters: &MemoryListFilters,
+        id: MemoryId,
+    ) -> Result<bool, GatewayError> {
+        let matches = self
+            .with_management_read(owner, phy, |read| {
+                memory_matches_filter(read, expected_cut, filters, id)
+            })?
+            .map_err(management_error)?;
+        self.ensure_credential_active()?;
+        Ok(matches)
+    }
+
+    pub fn visit_semantic_graph_projection(
+        &self,
+        owner: OwnerId,
+        phy: bool,
+        expected_cut: InspectionCut,
+        filters: &MemoryListFilters,
+        visit: impl FnMut(SemanticGraphProjectionItem) -> std::ops::ControlFlow<()>,
+    ) -> Result<SemanticGraphProjectionStatus, GatewayError> {
+        let status = self
+            .with_management_read(owner, phy, |read| {
+                visit_semantic_graph_projection(read, expected_cut, filters, visit)
+            })?
+            .map_err(management_error)?;
+        self.ensure_credential_active()?;
+        Ok(status)
+    }
+
     pub fn inspect_management(
         &self,
         owner: OwnerId,
