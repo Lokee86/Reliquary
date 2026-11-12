@@ -1,6 +1,7 @@
 use super::*;
 use crate::test_support::mock_master_key_store;
 use ModelSlot::*;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 const TEST_KEY: &str = "synthetic-oc02-test-key";
 
@@ -37,6 +38,225 @@ fn embedding(url: impl Into<String>, dimensions: u32) -> ModelRoute {
         dimensions,
         normalization: EmbeddingNormalization::L2,
     })
+}
+
+struct HostedGeneral {
+    calls: AtomicUsize,
+    model: String,
+}
+
+impl GeneralEndpoint for HostedGeneral {
+    fn model(&self) -> &str {
+        &self.model
+    }
+
+    fn complete_json(
+        &self,
+        _system_prompt: &str,
+        _user_payload: &str,
+        _schema_name: &str,
+        _schema: &Value,
+    ) -> Result<Value, GeneralEndpointError> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        Ok(json!({"ok": true}))
+    }
+}
+
+struct HostedEmbedding {
+    calls: AtomicUsize,
+    model: String,
+    dimensions: u32,
+    normalization: EmbeddingNormalization,
+}
+
+impl EmbeddingEndpoint for HostedEmbedding {
+    fn model(&self) -> Option<&str> {
+        Some(&self.model)
+    }
+
+    fn dimensions(&self) -> u32 {
+        self.dimensions
+    }
+
+    fn normalization(&self) -> EmbeddingNormalization {
+        self.normalization
+    }
+
+    fn supports_bounded_embedding(&self) -> bool {
+        true
+    }
+
+    fn embed_bounded(
+        &self,
+        _mode: EmbeddingMode,
+        inputs: &[String],
+        _max_response_bytes: usize,
+    ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        Ok(inputs
+            .iter()
+            .map(|_| vec![1.0; self.dimensions as usize])
+            .collect())
+    }
+
+    fn embed(
+        &self,
+        mode: EmbeddingMode,
+        inputs: &[String],
+    ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
+        self.embed_bounded(mode, inputs, usize::MAX)
+    }
+}
+
+fn hosted_identity(
+    embedding_model: &str,
+    dimensions: u32,
+    normalization: EmbeddingNormalization,
+) -> HostedInferenceIdentity {
+    HostedInferenceIdentity::new(
+        "hosted-general",
+        "general-model",
+        "hosted-embedding",
+        embedding_model,
+        dimensions,
+        HostedEmbeddingInputSemantics::Shared,
+        normalization,
+    )
+    .unwrap()
+}
+
+#[test]
+fn hosted_routes_bind_shared_general_decisions_and_validate_identity() {
+    let general = Arc::new(HostedGeneral {
+        calls: AtomicUsize::new(0),
+        model: "general-model".into(),
+    });
+    let embedding = Arc::new(HostedEmbedding {
+        calls: AtomicUsize::new(0),
+        model: "embedding-model".into(),
+        dimensions: 3,
+        normalization: EmbeddingNormalization::L2,
+    });
+    let routes = ConfiguredRoutes::hosted(
+        general.clone(),
+        embedding.clone(),
+        hosted_identity("embedding-model", 3, EmbeddingNormalization::L2),
+    )
+    .unwrap();
+
+    assert!(Arc::ptr_eq(
+        &routes.general_endpoint().unwrap(),
+        &(general.clone() as Arc<dyn GeneralEndpoint>)
+    ));
+    assert_eq!(routes.insomnia_endpoint().unwrap().model(), "general-model");
+    assert_eq!(routes.dream_endpoint().unwrap().model(), "general-model");
+    assert_eq!(routes.entity_endpoint().unwrap().model(), "general-model");
+    assert_eq!(routes.embedding_endpoint().unwrap().dimensions(), 3);
+    for consumer in [
+        DecisionConsumer::Chronos,
+        DecisionConsumer::EntityResolution,
+        DecisionConsumer::MemoryRetrieval,
+    ] {
+        assert_eq!(
+            routes.decision_endpoint(consumer).unwrap().model(),
+            "general-model"
+        );
+    }
+    let readiness = routes.readiness();
+    assert!(readiness.contains("general=true, decision=true, embedding=true"));
+    assert!(readiness.contains("entity_resolution=general"));
+
+    routes.online_probe().unwrap();
+    assert_eq!(general.calls.load(Ordering::SeqCst), 2);
+    assert_eq!(embedding.calls.load(Ordering::SeqCst), 1);
+
+    let changed_embedding: Arc<dyn EmbeddingEndpoint> = Arc::new(HostedEmbedding {
+        calls: AtomicUsize::new(0),
+        model: "embedding-model-v2".into(),
+        dimensions: 3,
+        normalization: EmbeddingNormalization::L2,
+    });
+    let changed = ConfiguredRoutes::hosted(
+        general.clone(),
+        changed_embedding,
+        HostedInferenceIdentity::new(
+            "hosted-general",
+            "general-model",
+            "hosted-embedding",
+            "embedding-model-v2",
+            3,
+            HostedEmbeddingInputSemantics::Shared,
+            EmbeddingNormalization::L2,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert_ne!(
+        routes.processing_route_identity().import,
+        changed.processing_route_identity().import
+    );
+}
+
+#[test]
+fn hosted_routes_reject_endpoint_identity_mismatches() {
+    let general: Arc<dyn GeneralEndpoint> = Arc::new(HostedGeneral {
+        calls: AtomicUsize::new(0),
+        model: "reported-model".into(),
+    });
+    let embedding: Arc<dyn EmbeddingEndpoint> = Arc::new(HostedEmbedding {
+        calls: AtomicUsize::new(0),
+        model: "embedding-model".into(),
+        dimensions: 3,
+        normalization: EmbeddingNormalization::L2,
+    });
+    let identity = hosted_identity("embedding-model", 3, EmbeddingNormalization::L2);
+    assert!(matches!(
+        ConfiguredRoutes::hosted(general, embedding.clone(), identity.clone()),
+        Err(ConfiguredRuntimeError::Invalid {
+            route: "hosted general endpoint",
+            ..
+        })
+    ));
+
+    let general: Arc<dyn GeneralEndpoint> = Arc::new(HostedGeneral {
+        calls: AtomicUsize::new(0),
+        model: "general-model".into(),
+    });
+    let wrong_dimensions: Arc<dyn EmbeddingEndpoint> = Arc::new(HostedEmbedding {
+        calls: AtomicUsize::new(0),
+        model: "embedding-model".into(),
+        dimensions: 4,
+        normalization: EmbeddingNormalization::L2,
+    });
+    assert!(matches!(
+        ConfiguredRoutes::hosted(general, wrong_dimensions, identity),
+        Err(ConfiguredRuntimeError::Invalid {
+            route: "hosted embedding endpoint",
+            ..
+        })
+    ));
+
+    let general: Arc<dyn GeneralEndpoint> = Arc::new(HostedGeneral {
+        calls: AtomicUsize::new(0),
+        model: "general-model".into(),
+    });
+    let wrong_model: Arc<dyn EmbeddingEndpoint> = Arc::new(HostedEmbedding {
+        calls: AtomicUsize::new(0),
+        model: "unexpected-embedding-model".into(),
+        dimensions: 3,
+        normalization: EmbeddingNormalization::L2,
+    });
+    assert!(matches!(
+        ConfiguredRoutes::hosted(
+            general,
+            wrong_model,
+            hosted_identity("embedding-model", 3, EmbeddingNormalization::L2)
+        ),
+        Err(ConfiguredRuntimeError::Invalid {
+            route: "hosted embedding endpoint",
+            ..
+        })
+    ));
 }
 
 fn bind(routes: &[(ModelSlot, ModelRoute)]) -> ConfiguredRoutes {

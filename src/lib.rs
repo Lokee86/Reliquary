@@ -17,8 +17,10 @@ mod retrieval;
 pub use configuration::*;
 
 pub use configured_runtime::{
-    CompatibilityProbeReference, CompatibilityProfile, ConfiguredRuntime, EmbeddingMode,
-    RuntimeEndpointFailure, VectorNormalization,
+    CompatibilityProbeReference, CompatibilityProfile, ConfiguredRuntime, EmbeddingEndpoint,
+    EmbeddingEndpointError, EmbeddingMode, GeneralEndpoint, GeneralEndpointError,
+    HostedEmbeddingInputSemantics, HostedInferenceIdentity, RuntimeEndpointFailure,
+    SwitchboardEmbeddingMode, VectorNormalization,
 };
 pub use error::{ProductError, ProductErrorKind};
 pub use host::{

@@ -96,9 +96,154 @@ pub struct ProcessingRouteIdentity {
     pub live_dream: [u8; 32],
 }
 
+/// Query and document inputs share one embedding space and are sent unchanged.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HostedEmbeddingInputSemantics {
+    Shared,
+}
+
+impl HostedEmbeddingInputSemantics {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Shared => "shared",
+        }
+    }
+}
+
+/// Stable, non-secret identity of Hermes-selected hosted inference models.
+///
+/// Credential rotation, profile names, and host leases are intentionally absent.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HostedInferenceIdentity {
+    general_provider: String,
+    general_model: String,
+    embedding_provider: String,
+    embedding_model: String,
+    embedding_dimensions: u32,
+    embedding_input_semantics: HostedEmbeddingInputSemantics,
+    embedding_normalization: EmbeddingNormalization,
+}
+
+impl HostedInferenceIdentity {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        general_provider: impl Into<String>,
+        general_model: impl Into<String>,
+        embedding_provider: impl Into<String>,
+        embedding_model: impl Into<String>,
+        embedding_dimensions: u32,
+        embedding_input_semantics: HostedEmbeddingInputSemantics,
+        embedding_normalization: EmbeddingNormalization,
+    ) -> Result<Self, ConfiguredRuntimeError> {
+        let general_provider = general_provider.into();
+        let general_model = general_model.into();
+        let embedding_provider = embedding_provider.into();
+        let embedding_model = embedding_model.into();
+        let values = [
+            general_provider.as_str(),
+            general_model.as_str(),
+            embedding_provider.as_str(),
+            embedding_model.as_str(),
+        ];
+        if values.iter().any(|value| {
+            value.is_empty() || value.len() > 256 || value.chars().any(char::is_control)
+        }) || embedding_dimensions == 0
+        {
+            return Err(ConfiguredRuntimeError::Invalid {
+                route: "hosted inference identity",
+                reason: "provider, model, or embedding dimensions are invalid",
+            });
+        }
+        Ok(Self {
+            general_provider,
+            general_model,
+            embedding_provider,
+            embedding_model,
+            embedding_dimensions,
+            embedding_input_semantics,
+            embedding_normalization,
+        })
+    }
+
+    pub fn general_provider(&self) -> &str {
+        &self.general_provider
+    }
+
+    pub fn general_model(&self) -> &str {
+        &self.general_model
+    }
+
+    pub fn embedding_provider(&self) -> &str {
+        &self.embedding_provider
+    }
+
+    pub fn embedding_model(&self) -> &str {
+        &self.embedding_model
+    }
+
+    pub fn embedding_dimensions(&self) -> u32 {
+        self.embedding_dimensions
+    }
+
+    pub fn embedding_input_semantics(&self) -> HostedEmbeddingInputSemantics {
+        self.embedding_input_semantics
+    }
+
+    pub fn embedding_normalization(&self) -> EmbeddingNormalization {
+        self.embedding_normalization
+    }
+}
+
 impl ConfiguredRoutes {
     pub fn from_path(path: &Path) -> Result<Self, ConfiguredRuntimeError> {
         ConfigFile::open(path)?.bind()
+    }
+
+    /// Bind a single Hermes-hosted general and embedding transport without reading CVCFG.
+    pub fn hosted(
+        general: Arc<dyn GeneralEndpoint>,
+        embedding: Arc<dyn EmbeddingEndpoint>,
+        identity: HostedInferenceIdentity,
+    ) -> Result<Self, ConfiguredRuntimeError> {
+        if general.model() != identity.general_model() {
+            return Err(ConfiguredRuntimeError::Invalid {
+                route: "hosted general endpoint",
+                reason: "endpoint model does not match the bound identity",
+            });
+        }
+        if embedding.model() != Some(identity.embedding_model())
+            || embedding.dimensions() != identity.embedding_dimensions()
+            || embedding.normalization() != identity.embedding_normalization()
+        {
+            return Err(ConfiguredRuntimeError::Invalid {
+                route: "hosted embedding endpoint",
+                reason: "endpoint model, dimensions, or normalization do not match the bound identity",
+            });
+        }
+        let decision: Arc<dyn DecisionEndpoint> =
+            Arc::new(GeneralDecisionEndpoint::new(general.clone()));
+        Ok(Self {
+            general: Some(general.clone()),
+            insomnia: None,
+            insomnia_metadata: None,
+            entity_extraction: None,
+            dream: None,
+            entity_resolution: Some(general),
+            embedding: Some(embedding),
+            chronos: SelectedDecision {
+                source: Some(GENERAL),
+                endpoint: Some(decision.clone()),
+            },
+            entity: SelectedDecision {
+                source: Some(GENERAL),
+                endpoint: Some(decision.clone()),
+            },
+            retrieval: SelectedDecision {
+                source: Some(GENERAL),
+                endpoint: Some(decision),
+            },
+            processing_route_identity: identity::hosted(&identity),
+        })
     }
 
     pub(super) fn bind(

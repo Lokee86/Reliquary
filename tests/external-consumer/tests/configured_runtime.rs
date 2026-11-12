@@ -1,9 +1,107 @@
 use reliquary_memory::test_support::mock_master_key_store;
 use reliquary_memory::{
     CompatibilityProfile, ConfiguredRuntime, ConfiguredRuntimeError, CredentialError, CredentialId,
-    CredentialKind, FragmentConfig, GeneralModelEndpoint, GeneralRoute, MasterKeyError,
-    ModelProvider, ModelRoute, ModelSlot, ReliquaryConfig, RuntimeSettings, SecretString,
+    CredentialKind, EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingNormalization,
+    FragmentConfig, GeneralEndpoint, GeneralEndpointError, GeneralModelEndpoint, GeneralRoute,
+    HostedEmbeddingInputSemantics, HostedInferenceIdentity, MasterKeyError, ModelProvider,
+    ModelRoute, ModelSlot, ReliquaryConfig, RuntimeSettings, SecretString,
+    SwitchboardEmbeddingMode,
 };
+use serde_json::{Value, json};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
+
+struct PublicGeneral {
+    calls: AtomicUsize,
+}
+
+impl GeneralEndpoint for PublicGeneral {
+    fn model(&self) -> &str {
+        "general-model"
+    }
+
+    fn complete_json(
+        &self,
+        _system_prompt: &str,
+        _user_payload: &str,
+        _schema_name: &str,
+        _schema: &Value,
+    ) -> Result<Value, GeneralEndpointError> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        Ok(json!({"ok": true}))
+    }
+}
+
+struct PublicEmbedding {
+    calls: AtomicUsize,
+}
+
+impl EmbeddingEndpoint for PublicEmbedding {
+    fn model(&self) -> Option<&str> {
+        Some("embedding-model")
+    }
+
+    fn dimensions(&self) -> u32 {
+        2
+    }
+
+    fn normalization(&self) -> EmbeddingNormalization {
+        EmbeddingNormalization::L2
+    }
+
+    fn supports_bounded_embedding(&self) -> bool {
+        true
+    }
+
+    fn embed_bounded(
+        &self,
+        _mode: SwitchboardEmbeddingMode,
+        inputs: &[String],
+        _max_response_bytes: usize,
+    ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        Ok(inputs.iter().map(|_| vec![1.0, 0.0]).collect())
+    }
+
+    fn embed(
+        &self,
+        mode: SwitchboardEmbeddingMode,
+        inputs: &[String],
+    ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
+        self.embed_bounded(mode, inputs, usize::MAX)
+    }
+}
+
+#[test]
+fn root_only_hosted_runtime_uses_public_endpoint_contract_without_cvcfg() {
+    let general = Arc::new(PublicGeneral {
+        calls: AtomicUsize::new(0),
+    });
+    let embedding = Arc::new(PublicEmbedding {
+        calls: AtomicUsize::new(0),
+    });
+    let identity = HostedInferenceIdentity::new(
+        "hermes",
+        "general-model",
+        "hermes",
+        "embedding-model",
+        2,
+        HostedEmbeddingInputSemantics::Shared,
+        EmbeddingNormalization::L2,
+    )
+    .unwrap();
+    let runtime = ConfiguredRuntime::hosted(general.clone(), embedding.clone(), identity).unwrap();
+
+    let readiness = runtime.readiness();
+    assert!(readiness.contains("general=true, decision=true, embedding=true"));
+    assert!(readiness.contains("chronos=general"));
+    assert!(readiness.contains("memory_retrieval=general"));
+    assert!(readiness.contains("entity_resolution=general"));
+    assert!(runtime.probe_embedding_profile().unwrap().is_some());
+    runtime.online_probe().unwrap();
+    assert_eq!(general.calls.load(Ordering::SeqCst), 2);
+    assert_eq!(embedding.calls.load(Ordering::SeqCst), 3);
+}
 
 #[test]
 fn root_only_configured_runtime_loads_and_reports_readiness_offline() {

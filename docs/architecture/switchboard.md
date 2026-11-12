@@ -16,6 +16,8 @@ Switchboard does not own product workflows, semantic acceptance criteria, durabl
 
 Configuration is opened from the configured path, parsed into typed objects, and resolved into routes. Decision routing prefers a consumer-specific route, then the shared decision route, then the general route; an unavailable route yields no endpoint. Embedding and general routes are also resolved through injected endpoint traits, so route policy is separated from transport implementation. Runtime probes verify configured endpoints before consumers rely on them, and callers receive typed configuration, endpoint, status, and backpressure failures.
 
+Root also exposes a hosted construction path for host-owned general and embedding transports. It binds the general endpoint to the ordinary general and entity-resolution semantic slots and adapts it through the existing `GeneralDecisionEndpoint` for all decision consumers. The accompanying stable identity includes provider/model names and embedding dimensions, input semantics and normalization; it excludes credentials, profiles and leases. The path does not read persisted configuration, and Root validates reported model/dimension/normalization values before exposing the runtime.
+
 Credentials and their protected configuration are managed by Switchboard's protected-config boundary. Secret-bearing credential values are redacted from Debug output and protected key lifecycle is isolated from ordinary route data. Credentials are mutable configuration state, not part of REL/PHY owner files. Do not log or expose secrets through product objects, errors, or diagnostics.
 
 ## Failure and recovery

@@ -10,6 +10,18 @@ This guide explains how to prepare, protect, inspect and use Reliquary's provide
 
 The canonical local file is the existing binary `reliquary.cfg` (`CVCFG` 1.0). Root's `ReliquaryConfig` wraps Switchboard's persisted objects; `ConfiguredRuntime::from_path` validates and binds selected routes offline. Configuration supports model routes, encrypted credential objects, archive fragment policy, retrieval weights/limits and Dream inference concurrency. Unknown nonreserved objects are preserved during updates.
 
+Hosts that own inference transports can use `ConfiguredRuntime::hosted(general, embedding, identity)` without opening or creating CVCFG. The `GeneralEndpoint` and `EmbeddingEndpoint` implementations remain host-owned; the identity records non-secret provider/model names, embedding dimensions, shared input semantics and normalization. Root validates the endpoints' reported model, dimensions and normalization against that identity. The supplied general endpoint serves ordinary general/entity-resolution semantic routes and the existing general-backed Chronos, entity-resolution and memory-retrieval decision adapter. Insomnia and Dream keep their existing general fallback, and retrieval settings and worker defaults remain Root-owned. Hosted readiness is offline; `online_probe` is the explicit synthetic provider boundary. Credential values, profile names and worker leases do not enter the processing route identity.
+
+```rust
+let identity = HostedInferenceIdentity::new(
+    "host-runtime", "general-model", "host-runtime", "embedding-model", 1024,
+    HostedEmbeddingInputSemantics::Shared, EmbeddingNormalization::L2,
+)?;
+let runtime = ConfiguredRuntime::hosted(general, embedding, identity)?;
+```
+
+The public Root crate reexports the endpoint traits and errors, `HostedInferenceIdentity`, `HostedEmbeddingInputSemantics`, and `SwitchboardEmbeddingMode` for this boundary. Root's existing `EmbeddingMode` remains the vector-workflow mode.
+
 ## Create and validate configuration
 
 Prerequisites: a writable config location and a supported OS credential service. For the standard local profile, `ReliquaryConfig::new(path)` prepares product defaults and route definitions in memory; it creates no credential objects, API keys or OAuth tokens until a credential is added and saved.

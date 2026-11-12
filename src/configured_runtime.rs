@@ -1,8 +1,6 @@
 use reliquary_application::{VectorWorkflowError, prepare_compatibility_profile};
 use reliquary_runtime_gateway::InsomniaWorkerConfig;
-use reliquary_switchboard::{
-    ConfiguredRoutes, DecisionConsumer, DecisionEndpoint, EmbeddingEndpoint, GeneralEndpoint,
-};
+use reliquary_switchboard::{ConfiguredRoutes, DecisionConsumer, DecisionEndpoint};
 use reliquary_vectors::SwitchboardEmbeddingEndpoint;
 use std::fmt;
 use std::path::Path;
@@ -10,9 +8,14 @@ use std::sync::Arc;
 
 use crate::{ConfiguredRuntimeError, ReliquaryConfig, RetrievalConfig};
 pub use reliquary_switchboard::RuntimeEndpointFailure;
+pub use reliquary_switchboard::{
+    EmbeddingEndpoint, EmbeddingEndpointError, GeneralEndpoint, GeneralEndpointError,
+    HostedEmbeddingInputSemantics, HostedInferenceIdentity,
+};
 pub use reliquary_vectors::{
     CompatibilityProbeReference, CompatibilityProfile, EmbeddingMode, VectorNormalization,
 };
+pub type SwitchboardEmbeddingMode = reliquary_switchboard::EmbeddingMode;
 
 /// Offline-validated provider bundle for Root workflows.
 pub struct ConfiguredRuntime {
@@ -36,6 +39,19 @@ impl ConfiguredRuntime {
     /// Opens CVCFG and resolves its OS-backed key and route bindings offline.
     pub fn from_path(path: impl AsRef<Path>) -> Result<Self, ConfiguredRuntimeError> {
         ReliquaryConfig::open(path)?.configured_runtime()
+    }
+
+    /// Bind Hermes-owned inference transports without opening Reliquary CVCFG.
+    ///
+    /// All general semantic operations and decision consumers use the supplied
+    /// general endpoint. Retrieval and worker behavior retain product defaults.
+    pub fn hosted(
+        general: Arc<dyn GeneralEndpoint>,
+        embedding: Arc<dyn EmbeddingEndpoint>,
+        identity: HostedInferenceIdentity,
+    ) -> Result<Self, ConfiguredRuntimeError> {
+        let routes = ConfiguredRoutes::hosted(general, embedding, identity)?;
+        Ok(Self::new(routes, RetrievalConfig::default()))
     }
 
     /// Reports route availability and selection without contacting providers.

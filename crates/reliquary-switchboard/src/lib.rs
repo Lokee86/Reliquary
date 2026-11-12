@@ -88,6 +88,11 @@ impl fmt::Display for EmbeddingEndpointError {
 impl std::error::Error for EmbeddingEndpointError {}
 
 pub trait EmbeddingEndpoint: Send + Sync {
+    /// Report the selected model when the transport has stable model metadata.
+    /// Hosted construction requires this to match its bound identity.
+    fn model(&self) -> Option<&str> {
+        None
+    }
     fn dimensions(&self) -> u32;
     fn normalization(&self) -> EmbeddingNormalization;
     fn supports_bounded_embedding(&self) -> bool {
@@ -445,7 +450,8 @@ mod runtime_probe;
 mod transport;
 pub use config_document::ConfigObject;
 pub use configured::{
-    ConfiguredRoutes, ConfiguredRuntimeError, ProcessingRouteIdentity, RuntimeEndpointFailure,
+    ConfiguredRoutes, ConfiguredRuntimeError, HostedEmbeddingInputSemantics,
+    HostedInferenceIdentity, ProcessingRouteIdentity, RuntimeEndpointFailure,
 };
 pub use device_auth::{CodexDeviceCode, DeviceAuthError};
 pub use model_config::{GeneralRoute, ModelRoute, ModelSlot};

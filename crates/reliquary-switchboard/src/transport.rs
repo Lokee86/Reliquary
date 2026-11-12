@@ -95,6 +95,9 @@ impl ConfiguredEmbeddingEndpoint {
 }
 
 impl EmbeddingEndpoint for ConfiguredEmbeddingEndpoint {
+    fn model(&self) -> Option<&str> {
+        Some(&self.model)
+    }
     fn dimensions(&self) -> u32 {
         self.dimensions
     }

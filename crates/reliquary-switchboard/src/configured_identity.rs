@@ -2,7 +2,10 @@
 use super::model_config::{
     DREAM, EMBEDDING, ENTITY, GENERAL, INSOMNIA, INSOMNIA_METADATA, RuntimeConfig,
 };
-use super::{CredentialsConfig, GeneralRoute, ModelProvider, ProcessingRouteIdentity};
+use super::{
+    CredentialsConfig, GeneralRoute, HostedInferenceIdentity, ModelProvider,
+    ProcessingRouteIdentity,
+};
 use ring::digest::{SHA256, digest};
 use serde_json::{Value, json};
 
@@ -72,6 +75,37 @@ pub(super) fn processing_routes(
             embedding,
         ])),
         live_dream: hash(json!(["reliquary-live-dream-routes-v1", dream, embedding])),
+    }
+}
+
+pub(super) fn hosted(identity: &HostedInferenceIdentity) -> ProcessingRouteIdentity {
+    let general = json!([
+        "hermes-hosted-general-v1",
+        identity.general_provider(),
+        identity.general_model(),
+    ]);
+    let embedding = json!([
+        "hermes-hosted-embedding-v1",
+        identity.embedding_provider(),
+        identity.embedding_model(),
+        identity.embedding_dimensions(),
+        identity.embedding_input_semantics().as_str(),
+        match identity.embedding_normalization() {
+            super::EmbeddingNormalization::None => "none",
+            super::EmbeddingNormalization::L2 => "l2",
+        }
+    ]);
+    ProcessingRouteIdentity {
+        import: hash(json!([
+            "reliquary-hermes-hosted-import-v1",
+            general,
+            embedding
+        ])),
+        live_dream: hash(json!([
+            "reliquary-hermes-hosted-live-dream-v1",
+            general,
+            embedding
+        ])),
     }
 }
 
