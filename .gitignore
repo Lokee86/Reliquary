@@ -32,3 +32,4 @@
 # Empty locks coordinate credential writes and legacy migration.
 .reliquary-config-*.lock
 /docs/.ddocs/
+/.test-temp/
