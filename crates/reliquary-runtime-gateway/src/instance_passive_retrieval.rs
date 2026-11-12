@@ -58,7 +58,13 @@ impl Instance {
             match self.phylactery(owner) {
                 Ok(phy) => Ok(has_vectors(&phy)),
                 Err(GatewayError::WriterUnavailable) => {
-                    self.with_entity_phy_writer(owner, |writer| has_vectors(writer.read_session()))
+                    self.with_entity_phy_writer(owner, |writer| {
+                        writer.memory_vector_infos().into_iter().any(|info| {
+                            writer
+                                .active_compatibility_profile(info.compatibility_profile_id)
+                                .is_some()
+                        })
+                    })
                 }
                 Err(error) => Err(error),
             }
