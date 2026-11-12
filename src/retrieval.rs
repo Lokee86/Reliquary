@@ -48,25 +48,9 @@ impl Instance {
     /// profile. Hosts can bind non-secret runtime metadata before first
     /// publication without opening the owner store.
     pub fn has_active_vectors(&self, owner: OwnerId) -> Result<bool, ProductError> {
-        if [
-            OwnerGrant::ViewRel(owner),
-            OwnerGrant::OperateRel(owner),
-            OwnerGrant::ManageRel(owner),
-        ]
-        .iter()
-        .any(|grant| self.grants.contains(grant))
-        {
-            self.require_rel_read(owner)?;
-        } else if [
-            OwnerGrant::ViewPhylactery(owner),
-            OwnerGrant::OperatePhylactery(owner),
-        ]
-        .iter()
-        .any(|grant| self.grants.contains(grant))
-        {
-            self.require_phy_read(owner)?;
-        } else {
-            self.require_rel_read(owner)?;
+        let rel_access = self.require_rel_read(owner);
+        if rel_access.is_err() && self.require_phy_read(owner).is_err() {
+            rel_access?;
         }
         self.inner
             .has_active_vectors(owner.into())
