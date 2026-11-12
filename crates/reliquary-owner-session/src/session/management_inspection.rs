@@ -154,6 +154,14 @@ impl ManagementRead<'_> {
         self.common.graph.incident_relations(node)
     }
 
+    pub fn active_relations(&self) -> impl Iterator<Item = &Relation> {
+        self.common.graph.active_relations()
+    }
+
+    pub fn relation_state_count(&self) -> usize {
+        self.common.graph.relation_state_count()
+    }
+
     pub fn relation(
         &self,
         source: NodeRef,

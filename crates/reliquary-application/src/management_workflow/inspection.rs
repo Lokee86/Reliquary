@@ -11,6 +11,8 @@ mod archive;
 mod association;
 #[path = "inspection_graph.rs"]
 mod graph;
+#[path = "inspection_graph_projection.rs"]
+mod graph_projection;
 pub use association::{
     MemoryAssociationAction, MemoryAssociationReceipt, MemoryAssociationRequest,
     change_memory_association,
@@ -25,6 +27,10 @@ mod provenance;
 mod semantic;
 pub use archive::{ImportedSourceReference, SourceAvailability, SourceTurn};
 pub use graph::{MemoryGraphEdge, MemoryGraphNode, MemoryGraphPage, MemoryGraphQuery};
+pub use graph_projection::{
+    SemanticGraphProjectionItem, SemanticGraphProjectionStatus, memory_matches_filter,
+    visit_semantic_graph_projection,
+};
 pub use memory_list::{
     MemoryCanonicalStatus, MemoryListEntry, MemoryListFilters, MemoryListLifecycle,
 };
@@ -209,7 +215,7 @@ pub fn inspect(
     Ok(page.page)
 }
 
-pub(super) fn inspection_cut(read: &ManagementRead<'_>) -> InspectionCut {
+pub fn inspection_cut(read: &ManagementRead<'_>) -> InspectionCut {
     let (memory, perception, relationship, graph) = read.versions();
     InspectionCut {
         owner_id: read.owner_id,
