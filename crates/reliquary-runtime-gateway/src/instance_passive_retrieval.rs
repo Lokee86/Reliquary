@@ -30,6 +30,43 @@ pub struct SearchResult {
 }
 
 impl Instance {
+    /// Reports whether this authorized owner has vector records under an
+    /// active profile. The summary exposes no profile or vector data.
+    pub fn has_active_vectors(&self, owner: OwnerId) -> Result<bool, GatewayError> {
+        if self.rel_grants.contains(&owner) {
+            let has_vectors = |rel: &RelSession| {
+                let memory = rel.memory_vector_infos().into_iter().any(|info| {
+                    rel.active_compatibility_profile(info.compatibility_profile_id)
+                        .is_some()
+                });
+                memory || rel.has_active_archive_vectors()
+            };
+            match self.reliquary(owner) {
+                Ok(rel) => Ok(has_vectors(&rel)),
+                Err(GatewayError::WriterUnavailable) => {
+                    self.with_writable_reliquary(owner, |rel| has_vectors(rel))
+                }
+                Err(error) => Err(error),
+            }
+        } else if self.phy_grants.contains(&owner) {
+            let has_vectors = |phy: &PhySession| {
+                phy.memory_vector_infos().into_iter().any(|info| {
+                    phy.active_compatibility_profile(info.compatibility_profile_id)
+                        .is_some()
+                })
+            };
+            match self.phylactery(owner) {
+                Ok(phy) => Ok(has_vectors(&phy)),
+                Err(GatewayError::WriterUnavailable) => {
+                    self.with_entity_phy_writer(owner, |writer| has_vectors(writer.read_session()))
+                }
+                Err(error) => Err(error),
+            }
+        } else {
+            self.reliquary(owner).map(|_| false)
+        }
+    }
+
     pub(crate) fn retrieval_snapshot(
         &self,
         owner: OwnerId,

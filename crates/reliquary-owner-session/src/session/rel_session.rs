@@ -357,6 +357,12 @@ impl RelSession {
     pub fn archive_vector_infos(&self) -> Vec<ArchiveVectorInfo> {
         self.archive_vectors.infos()
     }
+    pub fn has_active_archive_vectors(&self) -> bool {
+        self.generations.current_generations().any(|generation| {
+            self.active_compatibility_profile(generation.compatibility_profile_id)
+                .is_some()
+        })
+    }
     pub fn vector_generation(&self, id: VectorGenerationId) -> Option<VectorGeneration> {
         self.generations.generation(id)
     }

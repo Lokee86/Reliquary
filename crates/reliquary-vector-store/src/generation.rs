@@ -275,6 +275,12 @@ impl VectorGenerationStore {
             .map(|index| self.generations[*index])
     }
 
+    pub fn current_generations(&self) -> impl Iterator<Item = VectorGeneration> + '_ {
+        self.current_by_profile
+            .values()
+            .map(|index| self.generations[*index])
+    }
+
     pub fn generation_at(
         &self,
         profile: CompatibilityProfileId,

@@ -290,6 +290,7 @@ fn configured_import_processes_rel_and_phy_and_reopens_without_republication() {
         .unwrap();
     assert_eq!(held.state, ProcessingState::Held, "{held:?}");
     assert_eq!(held.insomnia.held, 1);
+    assert!(!instance.has_active_vectors(destination).unwrap());
     let incomplete = &held.insomnia.incomplete_ids[0];
     assert_eq!(incomplete.len(), 64);
     let mut episode = [0; 32];
@@ -343,6 +344,8 @@ fn configured_import_processes_rel_and_phy_and_reopens_without_republication() {
     assert_eq!(report.insomnia.rel_memories, 1);
     assert_eq!(report.insomnia.phy_memories, 1);
     assert!(report.insomnia.import_complete);
+    assert!(instance.has_active_vectors(owner).unwrap());
+    assert!(instance.has_active_vectors(destination).unwrap());
     management.quiesce().unwrap();
     assert_eq!(management.verify_quiesced().unwrap().memory_count, 1);
     management.reopen().unwrap();

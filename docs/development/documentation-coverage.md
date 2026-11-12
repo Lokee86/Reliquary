@@ -47,7 +47,7 @@ Unless otherwise stated, crate code roots are `crates/<package>/`. Vendored `qui
 
 | Surface | Current owner | Source and protecting tests |
 | --- | --- | --- |
-| Root exports, opaque `Rel`/`Phylactery`, immutable info, error taxonomy | [API](../public-product-api.md) | `src/lib.rs`, `src/{owner,error}.rs`; `tests/public_api.rs` |
+| Root exports, opaque `Rel`/`Phylactery`, immutable info, error taxonomy and authorized vector-presence summary | [API](../public-product-api.md), [Gateway](../architecture/gateway.md) | `src/lib.rs`, `src/{owner,error,retrieval}.rs`, Gateway read surface; `src/retrieval/tests.rs`, `tests/public_api.rs` |
 | Trusted-host admission, grants, revocation, queue, stream, confirmed delivery | [Gateway](../architecture/gateway.md), [API](../public-product-api.md) | `src/host*.rs`, Gateway; `tests/external-consumer/tests/retained_host/` |
 | CLI owner create/info/verify; Memory/history/proof; copy/maintenance/reconcile | [CLI exact contract](../reference/cli.md) | `cli/src/`; CLI parser/read-only/collision tests |
 | CLI import/process/status/search/interaction and configuration families | [CLI](../reference/cli.md), [operator](../operator-workflow.md), [config](../configured-runtime.md) | CLI dispatch and configured runtime; import resume and inspection tests |
