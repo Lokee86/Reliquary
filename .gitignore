@@ -33,3 +33,4 @@
 .reliquary-config-*.lock
 /docs/.ddocs/
 /.test-temp/
+/.go-cache/
