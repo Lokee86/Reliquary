@@ -18,6 +18,8 @@ Opening a session checks the physical file identity/kind, opens the relevant sto
 
 REL and PHY writers are separate authorities. Session clones do not create independent authority to bypass the writer boundary. Runtime-level synchronization and leases serialize mutation through mounted Gateway writers; persistence is still recovered from the file's append/replay state after process restart.
 
+Community recompute captures eligible IDs and active structural edges from one REL read. Capture and publication share the same active-Memory check. The writer rechecks the captured file identity and versions, requires every eligible ID exactly once, and syncs the Community frame through the owner write boundary.
+
 ## Failure, recovery, and invariants
 
 Important guarantees are owner/file-kind matching, no cross-owner write, deterministic retry identity, typed replay, and all-or-rejected grouped publication where the operation defines a group. An interrupted or uncertain publication is reconciled from owner records and stable operation ids; callers must not infer success from a prepared value alone. Verified copy/reconciliation APIs preserve source owners and reopen the result before reporting verification.

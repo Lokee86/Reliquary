@@ -42,6 +42,7 @@ pub(crate) fn semantic(family: &str, args: &[String]) -> Result<Value, ProductEr
             validate_options(args, 2, PAGE)?;
             InspectionQuery::Communities
         }
+        ("community", Some("recompute")) => return recompute_communities(args),
         ("entity", Some("get")) => {
             validate_options(args, 3, PAGE)?;
             InspectionQuery::Entity(EntityId(parse_hex(&args[2], "Entity ID")?))
@@ -53,6 +54,31 @@ pub(crate) fn semantic(family: &str, args: &[String]) -> Result<Value, ProductEr
         _ => return Err(invalid("unsupported semantic inspection operation")),
     };
     rel_page(&args[1], args, query, family)
+}
+
+fn recompute_communities(args: &[String]) -> Result<Value, ProductError> {
+    validate_options(args, 2, &[("--apply", false)])?;
+    let apply = args.get(2).is_some_and(|option| option == "--apply");
+    let host = LocalHost::open(
+        &args[1],
+        None,
+        if apply {
+            RelAccess::Manage
+        } else {
+            RelAccess::View
+        },
+    )?;
+    let management = host.instance.workspace_management(host.rel)?;
+    let report = if apply {
+        management.apply_community_recompute()?
+    } else {
+        management.preview_community_recompute()?
+    };
+    Ok(json!({
+        "operation": "community_recompute",
+        "mode": if apply { "apply" } else { "preview" },
+        "result": report,
+    }))
 }
 
 pub(crate) fn branches(args: &[String]) -> Result<Value, ProductError> {

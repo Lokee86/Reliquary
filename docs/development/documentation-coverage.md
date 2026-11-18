@@ -21,7 +21,7 @@ Paths below are relative to the repository root. A focused owner serves several 
 | `reliquary-chronos` | [Semantic time interpretation](../architecture/semantic-processing.md) | `crates/reliquary-chronos/src/tests.rs`, `chronos_analysis.rs` (time parse/detection/inference) |
 | `reliquary-archive` | [Storage / Archive](../architecture/storage.md) | `archive_tests.rs`, `echo_tests.rs` in crate `src/` |
 | `reliquary-memory-core` | [Storage / Memory](../architecture/storage.md) | crate `src/tests.rs` |
-| `reliquary-graph` | [Storage / Graph](../architecture/storage.md) | crate `src/lib.rs`, `dream_batch.rs`, `association.rs`, `community_names.rs` tests |
+| `reliquary-graph` | [Storage / Graph](../architecture/storage.md) | crate `src/lib.rs`, `dream_batch.rs`, `association.rs`, `community_names.rs`, and scan-and-merge tests |
 | `reliquary-perception-store` | [Storage / Perception](../architecture/storage.md) | crate history and relationship replay/codec tests |
 | `reliquary-ego-store` | [Storage / Ego](../architecture/storage.md) | crate `src/` tests and owner-session PHY replay |
 | `reliquary-freshness-store` | [Storage / Freshness](../architecture/storage.md) | crate `src/` tests and Freshness workflow reopen tests |
@@ -66,6 +66,7 @@ Unless otherwise stated, crate code roots are `crates/<package>/`. Vendored `qui
 | Single writer, immutable reads, accepted evidence, grouped durable commit and typed reopen | [Owner-session](../architecture/owner-session.md) | [Atomicity, authority and history contracts](behavioral-contracts.md) |
 | Ingest/import epochs, pinned processing profiles, REL/PHY routed writes, idempotent stage completion | [Application](../architecture/application.md), [Gateway workers](../architecture/gateway.md) | Native import source/publication/postprocessing and mixed-route interruption tests |
 | Checked user Memory creation/correction/retirement/association and Community naming | [API](../public-product-api.md), [Application](../architecture/application.md) | Root management tests and external checked/mixed-write consumer suites |
+| Community recompute uses exact active membership and a version-checked, durable commit | [API](../public-product-api.md), [Owner-session](../architecture/owner-session.md) | Root `tests/community_management.rs` and copied-REL acceptance |
 | Queue durable intents, unknown host status, cancellation/finalization, generation stream checkpoints | [Gateway](../architecture/gateway.md) | Queue corruption/incomplete-tail/held-status tests, retained-host conversation |
 | Mount lifetime, grant isolation, revocation during slow model/host work, worker stop/restart | [Gateway](../architecture/gateway.md) | Gateway auth/retrieval/worker lifecycle tests; consumer grant rejection |
 | Retrieval selection/refinement/traversal, passive versus confirmed consumption, owner-local Freshness | [Semantic processing](../architecture/semantic-processing.md), [Gateway](../architecture/gateway.md) | Agentic retrieval and confirmed-delivery replay tests |

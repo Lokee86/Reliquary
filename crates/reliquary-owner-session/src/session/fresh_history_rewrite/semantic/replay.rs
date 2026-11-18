@@ -1,5 +1,5 @@
 use super::*;
-use reliquary_graph::{CommunitySnapshot, RelationChange};
+use reliquary_graph::{CommunitySnapshot, RelationChange, community_id};
 use reliquary_perception_store::{EntityDraft, PRINCIPAL_ENTITY_KIND};
 
 impl SemanticClosure {
@@ -124,7 +124,11 @@ impl SemanticClosure {
         }
 
         if let Some(current) = source.communities.current() {
-            let communities = current
+            let subset_closure = source
+                .communities
+                .has_partial_coverage()
+                .then(|| graph.active_memory_nodes());
+            let mut communities = current
                 .communities
                 .iter()
                 .filter_map(|community| {
@@ -132,28 +136,45 @@ impl SemanticClosure {
                         .members
                         .iter()
                         .copied()
-                        .filter(|id| self.memories.contains(&MemoryId(*id)))
+                        .filter(|id| {
+                            self.memories.contains(&MemoryId(*id))
+                                && subset_closure
+                                    .as_ref()
+                                    .is_none_or(|closure| closure.contains(id))
+                        })
                         .collect::<Vec<_>>();
                     (!members.is_empty()).then_some(reliquary_graph::Community {
-                        id: community.id,
+                        id: if subset_closure.is_some() {
+                            community_id(destination_owner, &members)
+                        } else {
+                            community.id
+                        },
                         members,
                     })
                 })
                 .collect::<Vec<_>>();
-            if !communities.is_empty() {
+            if !communities.is_empty() || subset_closure.is_some() {
+                communities.sort_unstable_by_key(|community| community.id);
+                let partial = subset_closure.is_some_and(|closure| {
+                    communities
+                        .iter()
+                        .map(|group| group.members.len())
+                        .sum::<usize>()
+                        < closure.len()
+                });
                 let mut store =
                     CommunityStore::open(target, &graph).map_err(|error| error.to_string())?;
-                store
-                    .publish(
-                        target,
-                        &graph,
-                        CommunitySnapshot {
-                            generation: 1,
-                            graph_version: graph.graph_version(),
-                            communities,
-                        },
-                    )
-                    .map_err(|error| error.to_string())?;
+                let snapshot = CommunitySnapshot {
+                    generation: 1,
+                    graph_version: graph.graph_version(),
+                    communities,
+                };
+                if partial {
+                    store.publish_partial_snapshot(target, &graph, snapshot)
+                } else {
+                    store.publish(target, &graph, snapshot)
+                }
+                .map_err(|error| error.to_string())?;
             }
         }
         copy_ego(&source.ego, target, target_memories.memory_version())

@@ -9,18 +9,25 @@ use std::collections::{BTreeMap, BTreeSet};
 
 mod association;
 mod community_names;
+mod community_scan_merge;
+mod community_scan_merge_plan;
+mod community_scan_merge_reduce;
+mod community_scan_merge_workers;
 mod history;
+mod partial_community;
 pub use association::{
     AssociationEndpoint, USER_ASSOCIATION_MAGIC, UserAssociation, user_association_in_frame,
 };
 pub use community_names::{
     CommunityRename, CommunityRenameReceipt, rename_graph_version_in_frame, validate_community_name,
 };
+pub use community_scan_merge::{CommunityGraph, CommunityPartition};
 use std::fmt;
 
 type Id = [u8; 32];
 const GRAPH_MAGIC: &[u8; 8] = b"RELGRF01";
 const COMMUNITY_MAGIC: &[u8; 8] = b"RELCOM01";
+const PARTIAL_COMMUNITY_MAGIC: &[u8; 8] = b"RELCMP01";
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum NodeRef {
@@ -150,6 +157,7 @@ pub enum GraphError {
     InvalidClosure(&'static str),
     InvalidRelation(&'static str),
     InvalidCommunity(&'static str),
+    Leiden(String),
     StaleCommunity,
     UnknownCommunity,
     CommunityRequestConflict,
@@ -164,6 +172,7 @@ impl fmt::Display for GraphError {
             Self::InvalidClosure(s) => write!(f, "Graph endpoint closure rejected: {s}"),
             Self::InvalidRelation(s) => write!(f, "invalid Graph relation: {s}"),
             Self::InvalidCommunity(s) => write!(f, "invalid Community snapshot: {s}"),
+            Self::Leiden(s) => write!(f, "Leiden calculation failed: {s}"),
             Self::StaleCommunity => f.write_str("Community rename cut is stale"),
             Self::UnknownCommunity => f.write_str("Community does not exist at the accepted cut"),
             Self::CommunityRequestConflict => {
@@ -449,6 +458,9 @@ impl GraphStore {
             .collect()
     }
     fn active_memory_nodes_at(&self, version: u64) -> Result<BTreeSet<Id>, GraphError> {
+        if version == self.graph_version {
+            return Ok(self.active_memory_nodes());
+        }
         if version > self.graph_version {
             return Err(GraphError::InvalidCommunity("snapshot is ahead of Graph"));
         }
@@ -676,6 +688,7 @@ pub struct CommunityStore {
     owner: [u8; 16],
     identity: ContainerIdentity,
     current: Option<CommunitySnapshot>,
+    partial_coverage: bool,
     history: Vec<CommunitySnapshot>,
     names: community_names::CommunityNames,
 }
@@ -686,6 +699,7 @@ impl CommunityStore {
             owner: container.owner_id(),
             identity: container.identity(),
             current: None,
+            partial_coverage: false,
             history: Vec::new(),
             names: community_names::CommunityNames::default(),
         };
@@ -694,7 +708,8 @@ impl CommunityStore {
                 if owner != store.owner {
                     return Err(GraphError::WrongOwner);
                 }
-                store.validate(&snapshot, graph)?;
+                let partial = frame.payload.starts_with(PARTIAL_COMMUNITY_MAGIC);
+                store.validate(&snapshot, graph, partial)?;
                 let expected = store.current.as_ref().map_or(1, |s: &CommunitySnapshot| {
                     s.generation.checked_add(1).unwrap_or(0)
                 });
@@ -712,6 +727,7 @@ impl CommunityStore {
                 }
                 store.history.push(snapshot.clone());
                 store.current = Some(snapshot);
+                store.partial_coverage = partial;
             } else if let Some((owner, request, generation)) =
                 community_names::decode(&frame.payload)?
             {
@@ -722,6 +738,10 @@ impl CommunityStore {
     }
     pub fn current(&self) -> Option<&CommunitySnapshot> {
         self.current.as_ref()
+    }
+    /// Whether the current generation is stored as a subset of the Graph closure.
+    pub fn has_partial_coverage(&self) -> bool {
+        self.partial_coverage
     }
     pub fn at_graph_version(&self, graph_version: u64) -> Option<&CommunitySnapshot> {
         self.history
@@ -744,6 +764,15 @@ impl CommunityStore {
         graph: &GraphStore,
         snapshot: CommunitySnapshot,
     ) -> Result<(), GraphError> {
+        self.publish_snapshot(container, graph, snapshot, false)
+    }
+    fn publish_snapshot(
+        &mut self,
+        container: &mut Container,
+        graph: &GraphStore,
+        snapshot: CommunitySnapshot,
+        partial: bool,
+    ) -> Result<(), GraphError> {
         if container.owner_id() != self.owner || container.identity() != self.identity {
             return Err(GraphError::WrongOwner);
         };
@@ -762,15 +791,24 @@ impl CommunityStore {
         {
             return Err(GraphError::InvalidCommunity("graph version regressed"));
         }
-        self.validate(&snapshot, graph)?;
-        let bytes = encode_community(self.owner, &snapshot)?;
+        self.validate(&snapshot, graph, partial)?;
+        let mut bytes = encode_community(self.owner, &snapshot)?;
+        if partial {
+            bytes[..8].copy_from_slice(PARTIAL_COMMUNITY_MAGIC);
+        }
         container.append(&bytes)?;
         container.sync()?;
         self.history.push(snapshot.clone());
         self.current = Some(snapshot);
+        self.partial_coverage = partial;
         Ok(())
     }
-    fn validate(&self, snapshot: &CommunitySnapshot, graph: &GraphStore) -> Result<(), GraphError> {
+    fn validate(
+        &self,
+        snapshot: &CommunitySnapshot,
+        graph: &GraphStore,
+        partial: bool,
+    ) -> Result<(), GraphError> {
         let closure = graph.active_memory_nodes_at(snapshot.graph_version)?;
         let mut seen = BTreeSet::new();
         let mut ids = BTreeSet::new();
@@ -799,7 +837,7 @@ impl CommunityStore {
                 return Err(GraphError::InvalidCommunity("community identity"));
             }
         }
-        if seen != closure {
+        if !seen.is_subset(&closure) || (!partial && seen.len() != closure.len()) {
             return Err(GraphError::InvalidCommunity(
                 "snapshot does not cover active graph memory closure",
             ));
@@ -893,7 +931,8 @@ fn encode_community(owner: [u8; 16], s: &CommunitySnapshot) -> Result<Vec<u8>, G
     Ok(o)
 }
 fn decode_community(b: &[u8]) -> Result<Option<([u8; 16], CommunitySnapshot)>, GraphError> {
-    if b.get(..8) != Some(COMMUNITY_MAGIC.as_slice()) {
+    if !matches!(b.get(..8), Some(magic) if magic == COMMUNITY_MAGIC || magic == PARTIAL_COMMUNITY_MAGIC)
+    {
         return Ok(None);
     };
     let mut p = 8;

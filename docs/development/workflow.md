@@ -36,6 +36,8 @@ The workspace contains the Root consumer package, a separate CLI package, and fo
 
 Expected result: formatting, compilation, relevant tests and dependency checks pass for the changed boundary, and documentation describes the implementation and tested failure/recovery behavior. A passing package test is not full product or standards-compliance acceptance.
 
+For Community recompute, the focused Root test covers archived graph members. The real-corpus acceptance runs preview, apply, and fresh reopen on an inactive copy according to the [Leiden execution plan](../planning/leiden-community-recomputation-plan-2026-11-18.md).
+
 ## Documentation and policy gates
 
 Run from the repository root, with compatible `ddocs`, Pitlord, Lexicon and Arcana tools installed as described in [policy operations](../../tools/pitlord/README.md):

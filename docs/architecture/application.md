@@ -18,6 +18,8 @@ A typical workflow reads a current owner snapshot, prepares bounded work, valida
 
 Cross-owner workflows keep each mutable authority local. When an operation affects REL and PHY, it uses explicit receipts, copy/reopen verification, or reconciliation rather than exposing a shared store. Retry behavior uses stable request/owner identities and current cuts; stale preparations are rejected or recomputed instead of applied over newer state.
 
+Community recompute solves the captured graph and calculates coverage and modularity. Preview returns the report. Apply sends that same partition and its captured versions to the REL writer.
+
 ## Failure, recovery, and invariants
 
 The key invariants are: no semantic output is treated as truth without validation; source evidence must match the owner’s accepted records; mutation is explicit and owner-local; bounded inputs are rejected before expensive reads or provider work where possible; and durable publication goes through a typed owner-session method. Recovery is performed by rereading/replaying owner state and retrying the same stable workflow identity, not by rewriting store files in Application.

@@ -44,7 +44,8 @@ mod management_workflow;
 mod perception_lifecycle_workflow;
 pub use management_workflow::inspection;
 pub use management_workflow::{
-    CommunityRenameRequest, CommunityRenameResult, rename_community_at_cut,
+    CommunityRecomputeReport, CommunityRenameRequest, CommunityRenameResult,
+    prepare_community_recompute, rename_community_at_cut,
 };
 pub use management_workflow::{
     ConversationInspection, CreateMemoryReceipt, CreateMemoryRequest, MAX_MANAGEMENT_PAGE_BYTES,

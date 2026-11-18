@@ -90,6 +90,16 @@ reliquary rel archive conversations project.rel --limit 20
 
 Lexical search is local. Hybrid and semantic queries need a compatible configured embedding route. Interactive retrieval state lasts only for that process. It accepts query/refine/traverse/show/source/neighbors/status/new-turn/quit; `--commands FILE` reads JSONL requests, one per line. A query or display is inspection only: CLI output, piping and JSON export do not prove host consumption and do not award Freshness/accepted-use credit. Use exact inspection for revisions, provenance and source conversations when validating a result.
 
+## Recompute communities
+
+```text
+reliquary rel community recompute project-copy.rel
+reliquary rel community recompute project-copy.rel --apply
+reliquary rel community list project-copy.rel
+```
+
+Preview reports the partition for the active graph Memories. Apply recalculates on the current graph, checks coverage, and saves a Community generation. If the owner changes during the calculation, run preview again before applying. Review the size histogram and membership digest when comparing two runs.
+
 ## Create a verified maintenance copy
 
 Copy operations prepare/verify a source plan and create a new destination. For example, first export or prepare a valid rewrite policy, inspect it:

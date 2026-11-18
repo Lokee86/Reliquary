@@ -1031,6 +1031,8 @@ pub use archive_vector_publication::{
     MAX_ARCHIVE_VECTOR_RESPONSE_BYTES,
 };
 pub use vector_publication::{MemoryVectorInput, MemoryVectorRow};
+mod community_recompute;
+pub use community_recompute::{CommunityRecomputeCut, CommunityRecomputeInput};
 mod management;
 mod management_association;
 pub use management_association::MemoryAssociationCut;

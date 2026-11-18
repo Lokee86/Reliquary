@@ -1,8 +1,8 @@
 use super::*;
 use reliquary_application::{
-    ConversationInspection, CreateMemoryReceipt, CreateMemoryRequest, ManagementError,
-    ManagementPage, MemoryProvenance, MemorySummary, RelManagementHealth, SemanticOwnerStatistics,
-    TranscriptTurn,
+    CommunityRecomputeReport, ConversationInspection, CreateMemoryReceipt, CreateMemoryRequest,
+    ManagementError, ManagementPage, MemoryProvenance, MemorySummary, RelManagementHealth,
+    SemanticOwnerStatistics, TranscriptTurn,
 };
 use reliquary_application::{CorrectMemoryReceipt, CorrectMemoryRequest, RetireMemoryReceipt};
 use reliquary_owner_session::MemoryId;
@@ -11,6 +11,23 @@ use reliquary_owner_session::MemoryId;
 mod inspection;
 
 impl Instance {
+    pub fn management_recompute_communities(
+        &self,
+        owner: OwnerId,
+        apply: bool,
+    ) -> Result<CommunityRecomputeReport, GatewayError> {
+        let input = self.with_reliquary(owner, RelSession::community_recompute_input)?;
+        let calculation =
+            reliquary_application::prepare_community_recompute(input).map_err(management_error)?;
+        if apply {
+            self.with_rel_writer(owner, |writer| calculation.apply(writer))?
+                .map_err(management_error)
+        } else {
+            self.ensure_credential_active()?;
+            Ok(calculation.preview())
+        }
+    }
+
     pub fn management_conversations(
         &self,
         owner: OwnerId,

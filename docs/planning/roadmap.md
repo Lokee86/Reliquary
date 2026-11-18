@@ -16,7 +16,7 @@ The [homogeneous-REL and dependency-DAG roadmap](../rel-homogeneity-and-dependen
 
 The [standards remediation specification](../engineering-standards-remediation-spec-2026-11-10.md) governs ES01–ES06. [Final local verification](../acceptance/es06-local-verification-2026-11-11.md) records completed local structural, policy, behavioral and independent source-to-document checks. Hosted CI and formal adoption remain unverified; no future product capability is inferred from this remediation.
 
-Community detection/recomputation is a separate missing capability recorded in [limits](../limits/current-limitations.md). A future specification must restore the algorithm, bound read-only calculation, preserve owner authority/history and verify publication/reopen through public surfaces. Existing Community persistence, naming and retrieval routing are not acceptance of Leiden clustering.
+Manual community recomputation follows the [Leiden specification](leiden-community-recomputation-spec-2026-11-18.md) and [execution plan](leiden-community-recomputation-plan-2026-11-18.md). The operator runs preview and apply through the existing REL management boundary.
 
 ## Implementation sequence and acceptance
 

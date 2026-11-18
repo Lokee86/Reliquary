@@ -6,6 +6,9 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fmt;
 
+#[path = "management_workflow/community_recompute.rs"]
+mod community_recompute;
+pub use community_recompute::{CommunityRecomputeReport, prepare_community_recompute};
 #[path = "management_workflow/community_rename.rs"]
 mod community_rename;
 pub mod inspection;

@@ -18,7 +18,7 @@ Fresh-history rewrite and divergent reconciliation fail closed on authenticated 
 
 Model-dependent processing requires configured compatible endpoints. Unconfigured optional relationships remain unavailable; passive read/inspection is not confirmed host delivery and does not create consumption credit. Fixture tests establish bounded contracts, not the reliability or quality of a live external provider. The dated real-provider/corpus run is [historical evidence](../public-api-cli-operational-verification-2026-11-07.md), not a fresh live verification in this remediation.
 
-Community snapshots can be supplied, validated, persisted, reopened, inspected and renamed, and retrieval can route through existing communities. The current implementation does not compute a Leiden partition or expose supported Root/CLI community recomputation. This is a missing product capability; storage/inspection and historical ranking/routing acceptance do not establish clustering. Reproduce by inspecting `CommunityStore::publish`, Root community page/rename methods and the CLI's `community list` surface. Owner: semantic computation plus Application/owner-session publication and Root/CLI admission. Restoration needs its own specification and acceptance; this remediation does not run clustering or mutate a real owner.
+Leiden recomputation is an explicit REL management operation. It covers active Memories in the stored graph closure. Eligible Memories with no structural neighbor form singleton groups. Exact lifecycle eligibility is enforced at save time. Reopen validates the recorded Graph cut and memberships under the 2.1 Community record rules.
 
 ## Known architecture debt
 

@@ -4,10 +4,12 @@ use reliquary_graph::{
     RelationChange, RelationKind, RelationOrigin, community_id,
 };
 use reliquary_memory::{
-    CommunityNameOrigin, CommunityRenameRequest, Gateway, HostAdmissionAdapter,
-    HostCredentialBinding, InspectionItem, InspectionQuery, OwnerGrant, OwnerId, OwnerKind,
-    OwnerScope, ProductErrorKind, Rel, TrustedHostAdmission,
+    CommunityNameOrigin, CommunityRenameRequest, CorrectMemoryRequest, Gateway,
+    HostAdmissionAdapter, HostCredentialBinding, InspectionItem, InspectionQuery, MemoryBodyId,
+    MemoryId, OwnerGrant, OwnerId, OwnerKind, OwnerScope, ProductErrorKind, Rel,
+    TrustedHostAdmission,
 };
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 const MANAGER: &str = "community-proof-manager-0123456789";
@@ -108,6 +110,137 @@ fn seed(path: &Path) -> ([u8; 32], [[u8; 32]; 2]) {
         )
         .unwrap();
     (id.0, members)
+}
+
+#[test]
+fn community_recompute_excludes_archived_graph_members_and_reopens() {
+    let fixture = Fixture::new();
+    let path = fixture.rel();
+    let (_, members) = seed(&path);
+    let archived_id = members[0];
+    let decode_id = |value: &str| {
+        std::array::from_fn(|i| u8::from_str_radix(&value[i * 2..i * 2 + 2], 16).unwrap())
+    };
+    let replacement = {
+        let gateway = Gateway::new();
+        let (owner, adapter) = admit(&gateway, &path);
+        let manager = adapter.authenticate(MANAGER).unwrap();
+        let write = manager.workspace_management(owner).unwrap();
+        let original = manager
+            .inspect_owner(
+                owner,
+                OwnerKind::Rel,
+                &InspectionQuery::Memory {
+                    id: MemoryId(archived_id),
+                    revision: None,
+                },
+                None,
+                1,
+            )
+            .unwrap();
+        let [InspectionItem::Memory(memory)] = original.items.as_slice() else {
+            panic!("expected active Memory");
+        };
+        let correction = write
+            .correct_memory_at_cut(
+                original.cut,
+                CorrectMemoryRequest {
+                    request_id: "archive-one-graph-member".into(),
+                    memory_id: MemoryId(archived_id),
+                    expected_revision: memory.revision,
+                    expected_body_id: MemoryBodyId(decode_id(&memory.body_id)),
+                    title: "Replacement".into(),
+                    content: "Current Community member".into(),
+                    created_at_ns: 2,
+                },
+            )
+            .unwrap();
+        decode_id(&correction.replacement.id)
+    };
+
+    let before = std::fs::read(&path).unwrap();
+    let preview = {
+        let gateway = Gateway::new();
+        let (owner, adapter) = admit(&gateway, &path);
+        let viewer = adapter.authenticate(VIEWER).unwrap();
+        let read = viewer.workspace_management(owner).unwrap();
+        let preview = read.preview_community_recompute().unwrap();
+        assert_eq!((preview.eligible_count, preview.assigned_count), (2, 2));
+        assert_eq!(preview.community_sizes, [(1, 2)].into());
+        assert_eq!(preview.generation, None);
+        assert_eq!(
+            read.apply_community_recompute().unwrap_err().kind(),
+            ProductErrorKind::Unauthorized
+        );
+        preview
+    };
+    assert_eq!(std::fs::read(&path).unwrap(), before);
+
+    let applied = {
+        let gateway = Gateway::new();
+        let (owner, adapter) = admit(&gateway, &path);
+        let applied = adapter
+            .authenticate(MANAGER)
+            .unwrap()
+            .workspace_management(owner)
+            .unwrap()
+            .apply_community_recompute()
+            .unwrap();
+        assert_eq!(applied.membership_sha256, preview.membership_sha256);
+        assert_eq!(applied.generation, Some(2));
+        assert!(applied.changed);
+        applied
+    };
+
+    let before_retry = std::fs::read(&path).unwrap();
+    {
+        let gateway = Gateway::new();
+        let (owner, adapter) = admit(&gateway, &path);
+        let manager = adapter.authenticate(MANAGER).unwrap();
+        let page = manager
+            .inspect_owner(
+                owner,
+                OwnerKind::Rel,
+                &InspectionQuery::Communities,
+                None,
+                8,
+            )
+            .unwrap();
+        assert_eq!(page.items.len(), 2);
+        let mut actual = BTreeSet::new();
+        for item in page.items {
+            let InspectionItem::Community(group) = item else {
+                panic!("expected Community metadata");
+            };
+            assert_eq!((group.generation, group.member_count), (2, 1));
+            let members = manager
+                .inspect_owner(
+                    owner,
+                    OwnerKind::Rel,
+                    &InspectionQuery::CommunityMembers {
+                        id: group.id,
+                        expected_generation: group.generation,
+                    },
+                    None,
+                    8,
+                )
+                .unwrap();
+            let [InspectionItem::CommunityMember { id }] = members.items.as_slice() else {
+                panic!("expected one reopened member");
+            };
+            assert!(actual.insert(*id));
+        }
+        assert_eq!(actual, BTreeSet::from([members[1], replacement]));
+        let retry = manager
+            .workspace_management(owner)
+            .unwrap()
+            .apply_community_recompute()
+            .unwrap();
+        assert_eq!(retry.generation, applied.generation);
+        assert_eq!(retry.membership_sha256, applied.membership_sha256);
+        assert!(!retry.changed);
+    }
+    assert_eq!(std::fs::read(&path).unwrap(), before_retry);
 }
 
 #[test]

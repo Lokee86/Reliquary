@@ -21,8 +21,8 @@ pub use reliquary_application::inspection::{
     MemoryAssociationAction, MemoryAssociationReceipt, MemoryAssociationRequest,
 };
 pub use reliquary_application::{
-    CommunityRenameRequest, CommunityRenameResult, CorrectMemoryReceipt, CorrectMemoryRequest,
-    CreateMemoryReceipt, CreateMemoryRequest, RetireMemoryReceipt,
+    CommunityRecomputeReport, CommunityRenameRequest, CommunityRenameResult, CorrectMemoryReceipt,
+    CorrectMemoryRequest, CreateMemoryReceipt, CreateMemoryRequest, RetireMemoryReceipt,
 };
 pub use reliquary_owner_session::WithdrawEntityMentionRequest;
 pub use reliquary_owner_session::model::{
@@ -413,6 +413,24 @@ impl WorkspaceManagement {
         self.instance
             .inner
             .management_retire_memory_at_cut(self.owner.into(), expected, request_id, request)
+            .map_err(Into::into)
+    }
+
+    /// Calculate communities from the readable owner state.
+    pub fn preview_community_recompute(&self) -> Result<CommunityRecomputeReport, ProductError> {
+        self.instance.require_rel_read(self.owner)?;
+        self.instance
+            .inner
+            .management_recompute_communities(self.owner.into(), false)
+            .map_err(Into::into)
+    }
+
+    /// Calculate and save the partition if the captured owner state still matches.
+    pub fn apply_community_recompute(&self) -> Result<CommunityRecomputeReport, ProductError> {
+        self.instance.require(OwnerGrant::ManageRel(self.owner))?;
+        self.instance
+            .inner
+            .management_recompute_communities(self.owner.into(), true)
             .map_err(Into::into)
     }
 
