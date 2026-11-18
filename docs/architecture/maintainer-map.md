@@ -15,6 +15,7 @@ Start with the intent below, then read the owner page. This map does not define 
 | Change intent | Canonical owner | Primary implementation boundary | Verification surface |
 | --- | --- | --- | --- |
 | Change public owner handles, snapshots, error kinds or host facade | [Public API](../public-product-api.md) | `src/{owner,management,host,error}.rs`, `src/host*.rs` | `tests/public_api.rs`; Root-only external consumer |
+| Change new REL creation or legacy scope compatibility | [Public API](../public-product-api.md), [Owner-session](owner-session.md), [CLI](../reference/cli.md) | Root and CLI entry points through the current REL writer | Root owner isolation, CLI create/verify, and verified copy fixtures |
 | Change file headers, grouped publication clocks or format validation | [Storage](storage.md) | `reliquary-container`; eight store crates own their codecs | Container and store unit tests; independent reopen |
 | Change writer admission, typed replay, receipt or history rules | [Owner-session](owner-session.md) | `reliquary-owner-session/src/{session,records}/` | Owner-session grouped/replay/admission tests |
 | Add a named ingest, import, maintenance, reconciliation or management workflow | [Application](application.md) | `reliquary-application/src/*_workflow*` | Workflow publication/negative/reopen tests; `tests/g4_maintenance.rs` |

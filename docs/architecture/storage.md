@@ -10,6 +10,8 @@ Describe the physical container boundary and the owners of persisted REL/PHY rec
 
 `reliquary-container` owns the versioned file header, framed append/read path, physical cursor, publication envelope and version clock. It provides low-level physical operations; it does not interpret memory, conversation, graph, or semantic policy. The current normal runtime accepts the REL 2.1 format. Legacy conversion is a separate offline concern and is not an alternate path through normal owner opens.
 
+The REL 2.1 header stores both the owner ID and a scope value. New RELs use `Unspecified`. The current reader decodes all four original values, and same-owner maintenance retains the original header identity.
+
 The eight durable domain owners are `reliquary-archive`, `reliquary-memory-core`, `reliquary-graph`, `reliquary-perception-store`, `reliquary-ego-store`, `reliquary-freshness-store`, `reliquary-insomnia-store`, and `reliquary-vector-store`. Each defines its record model, codec/replay, and local queries. The stores do not share a generic mutable facade.
 
 ## Responsibilities and state owners

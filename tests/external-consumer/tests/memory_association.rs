@@ -1,8 +1,7 @@
 use reliquary_memory::{
     CreateMemoryRequest, Gateway, GraphNode, HostCredentialBinding, InspectionCut, InspectionItem,
     InspectionQuery, MemoryAssociationAction, MemoryAssociationRequest, MemoryId, OwnerGrant,
-    OwnerScope, ProductErrorKind, Rel, RelationKind, RelationOrigin, TrustedHostAdmission,
-    WorkspaceManagement,
+    ProductErrorKind, Rel, RelationKind, RelationOrigin, TrustedHostAdmission, WorkspaceManagement,
 };
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -21,7 +20,7 @@ impl OwnerFile {
             .unwrap()
             .as_nanos();
         let path = root.join(format!("association-{}-{stamp}.rel", std::process::id()));
-        Rel::create(&path, OwnerScope::Project).unwrap();
+        Rel::create(&path).unwrap();
         Self(path)
     }
 

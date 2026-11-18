@@ -1,7 +1,7 @@
 use reliquary_memory::{
     CreateMemoryReceipt, CreateMemoryRequest, Gateway, HostAdmissionAdapter, HostAdmissionControl,
-    HostCredentialBinding, InspectionCut, InspectionQuery, OwnerGrant, OwnerId, OwnerScope,
-    ProductErrorKind, Rel, TrustedHostAdmission, WorkspaceManagement,
+    HostCredentialBinding, InspectionCut, InspectionQuery, OwnerGrant, OwnerId, ProductErrorKind,
+    Rel, TrustedHostAdmission, WorkspaceManagement,
 };
 use std::{
     path::{Path, PathBuf},
@@ -26,7 +26,7 @@ impl OwnerFile {
             epoch.as_nanos(),
             NEXT_TEST.fetch_add(1, Ordering::Relaxed)
         ));
-        Rel::create(&path, OwnerScope::Project).unwrap();
+        Rel::create(&path).unwrap();
         Self(path)
     }
 

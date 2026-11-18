@@ -83,16 +83,6 @@ pub enum OwnerScope {
     Connection,
 }
 
-impl From<OwnerScope> for reliquary_owner_session::OwnerScope {
-    fn from(value: OwnerScope) -> Self {
-        match value {
-            OwnerScope::Unspecified => Self::Unspecified,
-            OwnerScope::Organization => Self::Organization,
-            OwnerScope::Project => Self::Project,
-            OwnerScope::Connection => Self::Connection,
-        }
-    }
-}
 impl From<reliquary_owner_session::OwnerScope> for OwnerScope {
     fn from(value: reliquary_owner_session::OwnerScope) -> Self {
         match value {
@@ -125,12 +115,9 @@ pub struct Rel {
     session: Arc<RelSession>,
 }
 impl Rel {
-    pub fn create(path: impl AsRef<Path>, scope: OwnerScope) -> Result<Self, ProductError> {
-        let writer = RelWriter::create_current_path(
-            path.as_ref(),
-            scope.into(),
-            *Uuid::new_v4().as_bytes(),
-        )?;
+    /// Create a current REL at a new path with a fresh owner identity.
+    pub fn create(path: impl AsRef<Path>) -> Result<Self, ProductError> {
+        let writer = RelWriter::create_current_path(path.as_ref(), *Uuid::new_v4().as_bytes())?;
         drop(writer);
         Self::open(path)
     }

@@ -42,13 +42,16 @@ impl RelWriter {
             }
         }
     }
-    /// Create and initialize a new REL owner through the public owner scope.
+    /// Create and initialize a new REL owner with the neutral header scope.
     pub fn create_current_path(
         path: impl AsRef<Path>,
-        scope: OwnerScope,
         owner_id: [u8; 16],
     ) -> Result<Self, OwnerSessionError> {
-        Self::create_path(path, scope.into_container_scope(), owner_id)
+        Self::create_path(
+            path,
+            reliquary_container::ReliquaryScope::Unspecified,
+            owner_id,
+        )
     }
 
     /// Create and initialize a new REL owner, then open its canonical writer.

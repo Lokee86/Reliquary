@@ -45,12 +45,8 @@ fn public_product_creates_and_reopens_isolated_rel_and_phy_owners() {
     let phy_paths = [paths.owner("phy-a"), paths.owner("phy-b")];
 
     let rel_ids = [
-        Rel::create(&rel_paths[0], OwnerScope::Project)
-            .unwrap()
-            .owner_id(),
-        Rel::create(&rel_paths[1], OwnerScope::Connection)
-            .unwrap()
-            .owner_id(),
+        Rel::create(&rel_paths[0]).unwrap().owner_id(),
+        Rel::create(&rel_paths[1]).unwrap().owner_id(),
     ];
     let phy_ids = [
         Phylactery::create(&phy_paths[0]).unwrap().owner_id(),
@@ -75,11 +71,12 @@ fn public_product_creates_and_reopens_isolated_rel_and_phy_owners() {
         .unwrap();
 
     for (path, expected_id) in rel_paths.iter().zip(rel_ids) {
-        let reopened = Rel::open(path).unwrap();
-        let info = reopened.info().unwrap();
+        assert!(Rel::create(path).is_err());
+        let info = Rel::verify(path).unwrap();
         assert_eq!(info.format, "2.1");
         assert_eq!(info.kind, OwnerKind::Rel);
         assert_eq!(info.owner_id, expected_id);
+        assert_eq!(info.scope, OwnerScope::Unspecified);
         assert!(info.archive_version.is_some());
         assert!(info.rel_turn_count.is_some());
     }
@@ -133,8 +130,8 @@ fn authored_manifest_replays_48_turns_and_three_forks_through_public_gateway() {
     let cascade_path = paths.owner("rel-cascade.rel");
     let phy_a_path = paths.owner("phy-reader-a.phy");
     let phy_b_path = paths.owner("phy-reader-b.phy");
-    let lantern = Rel::create(&lantern_path, OwnerScope::Project).unwrap();
-    let cascade = Rel::create(&cascade_path, OwnerScope::Connection).unwrap();
+    let lantern = Rel::create(&lantern_path).unwrap();
+    let cascade = Rel::create(&cascade_path).unwrap();
     let phy_a = Phylactery::create(&phy_a_path).unwrap();
     let phy_b = Phylactery::create(&phy_b_path).unwrap();
     let captured_ids = [

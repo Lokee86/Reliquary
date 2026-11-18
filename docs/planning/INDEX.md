@@ -17,6 +17,8 @@ Unresolved future corrections and their acceptance boundaries.
 - [leiden-community-recomputation-spec-2026-11-18.md](leiden-community-recomputation-spec-2026-11-18.md) - Leiden recomputation contract and compatibility.
 - [rel-dependency-port-plan-2026-11-18.md](rel-dependency-port-plan-2026-11-18.md) - REL dependency port implementation order and verification.
 - [rel-dependency-port-spec-2026-11-18.md](rel-dependency-port-spec-2026-11-18.md) - REL dependency declarations, context, and compatibility.
+- [rel-homogeneity-plan-2026-11-18.md](rel-homogeneity-plan-2026-11-18.md) - Scope-free creation and Hermes integration sequence.
+- [rel-homogeneity-spec-2026-11-18.md](rel-homogeneity-spec-2026-11-18.md) - Scope-free creation, host roles, and legacy file compatibility.
 - [roadmap.md](roadmap.md) - Roadmap documentation.
 <!-- doc-ledger:files:end -->
 

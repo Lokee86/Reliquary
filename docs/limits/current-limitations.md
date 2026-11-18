@@ -22,7 +22,7 @@ Leiden recomputation is an explicit REL management operation. It covers active M
 
 ## Known architecture debt
 
-Existing `OwnerScope` labels still round-trip and the CLI retains its creation defaults. The [homogeneity roadmap](../rel-homogeneity-and-dependency-roadmap-2026-11-10.md) owns the broader scope retirement and host-role transition. Current inter-REL dependencies use durable owner IDs across all supported REL scopes. A port-aware 2.1 build is required for dependency-bearing files.
+Existing `OwnerScope` values remain readable as header metadata. New REL creation is scope-free. Current inter-REL dependencies use durable owner IDs across all supported REL scopes. A port-aware 2.1 build is required for dependency-bearing files.
 
 ## Compliance evidence
 

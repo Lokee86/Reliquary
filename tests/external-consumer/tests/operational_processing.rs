@@ -7,9 +7,8 @@ use reliquary_memory::test_support::mock_master_key_store;
 use reliquary_memory::{
     ConfiguredRuntime, CredentialId, EmbeddingModelEndpoint, EmbeddingNormalization, EpisodeId,
     Gateway, GeneralModelEndpoint, GeneralRoute, HostCredentialBinding, ModelProvider, ModelRoute,
-    ModelSlot, NativeImportFormat, NativeImportPlan, OwnerGrant, OwnerScope, Phylactery,
-    ProcessOptions, ProcessingState, ProductErrorKind, Rel, ReliquaryConfig, SecretString,
-    TrustedHostAdmission,
+    ModelSlot, NativeImportFormat, NativeImportPlan, OwnerGrant, Phylactery, ProcessOptions,
+    ProcessingState, ProductErrorKind, Rel, ReliquaryConfig, SecretString, TrustedHostAdmission,
 };
 use serde_json::{Value, json};
 use std::{
@@ -239,7 +238,7 @@ fn configured_import_processes_rel_and_phy_and_reopens_without_republication() {
         ],
         true,
     );
-    let rel = Rel::create(&rel_path, OwnerScope::Project).unwrap();
+    let rel = Rel::create(&rel_path).unwrap();
     let phy = Phylactery::create(&phy_path).unwrap();
     let token = "external-fixture-operator-admission-credential";
     let mount = |rel: &Rel, phy: &Phylactery| {

@@ -65,25 +65,6 @@ pub(super) fn validate_options(
     Ok(())
 }
 
-pub(super) fn one_or_option_path(args: &[String]) -> Result<&Path, reliquary_memory::ProductError> {
-    let positional = args
-        .iter()
-        .take_while(|arg| !arg.starts_with('-'))
-        .collect::<Vec<_>>();
-    if positional.len() != 1 {
-        return Err(invalid("create requires exactly one path"));
-    }
-    Ok(Path::new(positional[0]))
-}
-pub(super) fn parse_scope(value: &str) -> Result<OwnerScope, reliquary_memory::ProductError> {
-    match value {
-        "unspecified" => Ok(OwnerScope::Unspecified),
-        "organization" => Ok(OwnerScope::Organization),
-        "project" => Ok(OwnerScope::Project),
-        "connection" => Ok(OwnerScope::Connection),
-        _ => Err(invalid("invalid REL scope")),
-    }
-}
 pub(super) fn parse_hex<const N: usize>(
     value: &str,
     label: &str,

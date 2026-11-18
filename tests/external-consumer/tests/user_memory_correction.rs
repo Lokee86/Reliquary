@@ -1,7 +1,7 @@
 use reliquary_memory::{
     CorrectMemoryRequest, CreateMemoryRequest, Gateway, GraphNode, HostAdmissionAdapter,
     HostCredentialBinding, InspectionCut, InspectionItem, InspectionQuery, MemoryBodyId, MemoryId,
-    MemoryRetirementRequest, OwnerGrant, OwnerId, OwnerScope, ProductErrorKind, Rel, RelationKind,
+    MemoryRetirementRequest, OwnerGrant, OwnerId, ProductErrorKind, Rel, RelationKind,
     RelationOrigin, TrustedHostAdmission, WorkspaceManagement,
 };
 use std::{
@@ -29,7 +29,7 @@ impl OwnerFile {
             std::process::id(),
             NEXT_TEST.fetch_add(1, Ordering::Relaxed)
         ));
-        Rel::create(&path, OwnerScope::Project).unwrap();
+        Rel::create(&path).unwrap();
         Self(path)
     }
 

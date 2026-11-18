@@ -253,7 +253,7 @@ fn live_cli_drains_entity_and_first_cycle_dream_then_reopens_without_inference()
         &url,
         &["--dimensions", "2"],
     );
-    cli.json(&["rel", "create", rel, "--scope", "project"]);
+    cli.json(&["rel", "create", rel]);
     let accept = |id, text, revision: u64, parent| {
         let submitted = cli.json(&[
             "rel",

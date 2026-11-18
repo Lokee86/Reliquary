@@ -2,9 +2,9 @@ use reliquary_memory::{
     ConversationSubmissionId, CreateMemoryRequest, CreateRelationshipRequest, EntityId,
     FinalizeCapture, Gateway, GraphNode, HostCredentialBinding, InspectionItem, InspectionQuery,
     MAX_MANAGEMENT_PAGE_BYTES, MAX_MANAGEMENT_PAGE_ITEMS, MemoryBodyId, MemoryId,
-    MemoryListFilters, MemoryListLifecycle, MemoryTextField, OwnerGrant, OwnerKind, OwnerScope,
-    Phylactery, ProductErrorKind, Rel, RelationshipParticipantEvidence, SourceAvailability,
-    SubmissionId, TrustedHostAdmission,
+    MemoryListFilters, MemoryListLifecycle, MemoryTextField, OwnerGrant, OwnerKind, Phylactery,
+    ProductErrorKind, Rel, RelationshipParticipantEvidence, SourceAvailability, SubmissionId,
+    TrustedHostAdmission,
 };
 use std::path::PathBuf;
 
@@ -42,9 +42,9 @@ fn draft(request_id: &str, content: String) -> CreateMemoryRequest {
 #[test]
 fn oc06_mounted_inspection_enforces_grants_cuts_and_byte_budget() {
     let dir = TestDirectory::create();
-    let rel = Rel::create(dir.0.join("project.rel"), OwnerScope::Project).unwrap();
+    let rel = Rel::create(dir.0.join("project.rel")).unwrap();
     let phy = Phylactery::create(dir.0.join("private.phy")).unwrap();
-    let other = Rel::create(dir.0.join("readonly.rel"), OwnerScope::Project).unwrap();
+    let other = Rel::create(dir.0.join("readonly.rel")).unwrap();
     let gateway = Gateway::new();
     let owner = gateway.mount_rel(&rel, true).unwrap();
     let private = gateway.mount_phylactery(&phy, true).unwrap();
@@ -286,7 +286,7 @@ fn oc06_mounted_inspection_enforces_grants_cuts_and_byte_budget() {
 #[test]
 fn oc06_archive_uses_exact_node_and_revision_across_branch_advances() {
     let dir = TestDirectory::create();
-    let rel = Rel::create(dir.0.join("source.rel"), OwnerScope::Project).unwrap();
+    let rel = Rel::create(dir.0.join("source.rel")).unwrap();
     let gateway = Gateway::new();
     let owner = gateway.mount_rel(&rel, true).unwrap();
     let token = "s".repeat(48);
@@ -391,7 +391,7 @@ fn oc06_archive_uses_exact_node_and_revision_across_branch_advances() {
 fn hp02_memory_summaries_filter_and_page_without_returning_bodies() {
     let dir = TestDirectory::create();
     let path = dir.0.join("summary.rel");
-    let rel = Rel::create(&path, OwnerScope::Project).unwrap();
+    let rel = Rel::create(&path).unwrap();
     let gateway = Gateway::new();
     let owner = gateway.mount_rel(&rel, true).unwrap();
     let manager_token = "m".repeat(48);
@@ -505,7 +505,7 @@ fn hp02_memory_graph_expands_active_neighbors_at_one_cut() {
 
     let dir = TestDirectory::create();
     let path = dir.0.join("graph.rel");
-    let rel = Rel::create(&path, OwnerScope::Project).unwrap();
+    let rel = Rel::create(&path).unwrap();
     let token = "g".repeat(48);
     let (owner, [first, second, third]) = {
         let gateway = Gateway::new();

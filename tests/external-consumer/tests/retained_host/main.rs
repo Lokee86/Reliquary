@@ -1,6 +1,6 @@
 use reliquary_memory::{
-    Gateway, HostAdmissionControl, HostCredentialBinding, Instance, OwnerGrant, OwnerId,
-    OwnerScope, Rel, TrustedHostAdmission,
+    Gateway, HostAdmissionControl, HostCredentialBinding, Instance, OwnerGrant, OwnerId, Rel,
+    TrustedHostAdmission,
 };
 use std::{
     fs,
@@ -33,7 +33,7 @@ impl FixtureDir {
     }
 
     fn create_rel(&self) -> Rel {
-        Rel::create(self.0.join("owner.rel"), OwnerScope::Project).unwrap()
+        Rel::create(self.0.join("owner.rel")).unwrap()
     }
 }
 

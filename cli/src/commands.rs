@@ -1,13 +1,8 @@
 use super::*;
 
 pub(super) fn create(args: &[String]) -> Result<Value, reliquary_memory::ProductError> {
-    validate_options(args, 1, &[("--scope", false)])?;
-    let path = one_or_option_path(args)?;
-    let scope = option(args, "--scope")
-        .map(parse_scope)
-        .transpose()?
-        .unwrap_or(OwnerScope::Project);
-    let rel = Rel::create(path, scope)?;
+    validate_options(args, 1, &[])?;
+    let rel = Rel::create(&args[0])?;
     Ok(json!({"operation":"create","owner":rel.info()?}))
 }
 pub(super) fn info(args: &[String], verify: bool) -> Result<Value, reliquary_memory::ProductError> {

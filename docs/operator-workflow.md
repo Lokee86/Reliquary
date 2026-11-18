@@ -20,13 +20,13 @@ The CLI is a local trusted host that opens owner paths and requests only the acc
 ## Create and check owners
 
 ```text
-reliquary rel create project.rel --scope project
+reliquary rel create project.rel
 reliquary phy create private.phy
 reliquary rel info project.rel
 reliquary phy verify private.phy
 ```
 
-Expected result: current REL/PHY files are created at new paths and each command returns owner kind, identity and current metadata. REL defaults to project scope if `--scope` is omitted. A destination that already exists fails; create never replaces an owner. If verification reports wrong format or corruption, preserve the file and consult the configured recovery/backup procedures; the normal runtime does not convert REL 2.0/FRS07.
+Each create command requires a new path and returns the owner kind, fresh identity and current metadata. New RELs report `unspecified`. Existing REL 2.1 files can be opened directly. Their stored scope and original owner ID appear in `info` and `verify`. If verification reports wrong format or corruption, preserve the file and consult the configured recovery or backup procedures.
 
 ## Configure providers
 

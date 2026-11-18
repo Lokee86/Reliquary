@@ -1,5 +1,5 @@
 use reliquary_memory::{
-    Gateway, HostCredentialBinding, OwnerGrant, OwnerScope, Phylactery, ProductErrorKind, Rel,
+    Gateway, HostCredentialBinding, OwnerGrant, Phylactery, ProductErrorKind, Rel,
     TrustedHostAdmission,
 };
 use std::{
@@ -39,7 +39,7 @@ fn current_rel_and_phylactery_reopen_with_stable_identity_and_kind_checks() {
     let temp = TestPaths::new("owners");
     let rel_path = temp.path("owner.rel");
     let phy_path = temp.path("owner.phy");
-    let rel = Rel::create(&rel_path, OwnerScope::Connection).unwrap();
+    let rel = Rel::create(&rel_path).unwrap();
     let phy = Phylactery::create(&phy_path).unwrap();
     assert_eq!(Rel::open(&rel_path).unwrap().owner_id(), rel.owner_id());
     assert_eq!(
@@ -60,7 +60,7 @@ fn current_rel_and_phylactery_reopen_with_stable_identity_and_kind_checks() {
 #[test]
 fn trusted_management_requires_manage_grant_and_revocation_fences_reads() {
     let temp = TestPaths::new("management");
-    let rel = Rel::create(temp.path("owner.rel"), OwnerScope::Project).unwrap();
+    let rel = Rel::create(temp.path("owner.rel")).unwrap();
     let gateway = Gateway::new();
     let owner = gateway.mount_rel(&rel, true).unwrap();
     let manage_token = "m".repeat(48);
@@ -128,7 +128,7 @@ fn trusted_management_requires_manage_grant_and_revocation_fences_reads() {
 #[test]
 fn host_grants_do_not_cross_rel_and_phylactery_boundaries() {
     let temp = TestPaths::new("privacy");
-    let rel = Rel::create(temp.path("owner.rel"), OwnerScope::Project).unwrap();
+    let rel = Rel::create(temp.path("owner.rel")).unwrap();
     let phy = Phylactery::create(temp.path("owner.phy")).unwrap();
     let gateway = Gateway::new();
     let rel_owner = gateway.mount_rel(&rel, false).unwrap();
@@ -173,7 +173,7 @@ fn public_copy_workflows_reopen_and_do_not_overwrite() {
     let identical = temp.path("identical.rel");
     let rewritten = temp.path("rewritten.rel");
     let merged = temp.path("merged.rel");
-    let rel = Rel::create(&source, OwnerScope::Project).unwrap();
+    let rel = Rel::create(&source).unwrap();
     let owner_id = rel.owner_id();
     let plan = rel.plan_rewrite(RewritePolicy::default()).unwrap();
     let before = fs::read(&source).unwrap();
@@ -208,7 +208,7 @@ fn public_management_memory_history_and_proof_survive_reopen() {
     use reliquary_memory::{MemoryHistoryLookup, MemoryHistoryStatus, MemoryId};
     let temp = TestPaths::new("history");
     let path = temp.path("owner.rel");
-    let rel = Rel::create(&path, OwnerScope::Project).unwrap();
+    let rel = Rel::create(&path).unwrap();
     let gateway = Gateway::new();
     let owner = gateway.mount_rel(&rel, true).unwrap();
     let token = "h".repeat(48);
@@ -254,7 +254,7 @@ fn public_management_memory_history_and_proof_survive_reopen() {
 fn public_host_commits_conversation_and_management_reads_bounded_transcript() {
     use reliquary_memory::{ConversationSubmissionId, FinalizeCapture, QueueState, SubmissionId};
     let temp = TestPaths::new("conversation");
-    let rel = Rel::create(temp.path("owner.rel"), OwnerScope::Project).unwrap();
+    let rel = Rel::create(temp.path("owner.rel")).unwrap();
     let gateway = Gateway::new();
     let owner = gateway.mount_rel(&rel, true).unwrap();
     let token = "q".repeat(48);

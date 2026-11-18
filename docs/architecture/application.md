@@ -30,7 +30,7 @@ The key invariants are: no semantic output is treated as truth without validatio
 
 - Workflow composition and validation: [`crates/reliquary-application/src/lib.rs`](../../crates/reliquary-application/src/lib.rs).
 - Workflow modules include [`conversation_workflow.rs`](../../crates/reliquary-application/src/conversation_workflow.rs), [`ingest_publication.rs`](../../crates/reliquary-application/src/ingest_publication.rs), [`dream_publication.rs`](../../crates/reliquary-application/src/dream_publication.rs), [`management_workflow.rs`](../../crates/reliquary-application/src/management_workflow.rs), [`verified_copy_workflow.rs`](../../crates/reliquary-application/src/verified_copy_workflow.rs), and [`context_workflow.rs`](../../crates/reliquary-application/src/context_workflow.rs).
-- Unit tests in `lib.rs` include forged-source rejection, bounded evidence checks, owner-lease idempotency, and reopen recovery. Workflow-local tests cover stale Dream preparation, project-source validation, entity reopen/retry, and copy divergence.
+- Unit tests in `lib.rs` include forged-source rejection, bounded evidence checks, owner-lease idempotency, and reopen recovery. Workflow-local tests cover stale Dream preparation, project-source validation, entity reopen/retry, and copy divergence. Native import publication and source replay fixtures open new RELs through the current owner-session initializer.
 - Public facade and external consumer contract are rooted at [`src/lib.rs`](../../src/lib.rs) and the external integration suite under [`tests/external-consumer`](../../tests/external-consumer).
 
 ## Extension seams

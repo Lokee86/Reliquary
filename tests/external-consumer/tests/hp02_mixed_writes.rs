@@ -1,8 +1,8 @@
 use reliquary_memory::{
     CorrectMemoryRequest, CreateMemoryRequest, Gateway, HostCredentialBinding, InspectionCut,
     InspectionItem, InspectionQuery, MemoryAssociationAction, MemoryAssociationRequest,
-    MemoryBodyId, MemoryId, MemoryRetirementRequest, OwnerGrant, OwnerScope, Rel,
-    TrustedHostAdmission, WorkspaceManagement,
+    MemoryBodyId, MemoryId, MemoryRetirementRequest, OwnerGrant, Rel, TrustedHostAdmission,
+    WorkspaceManagement,
 };
 use std::{
     fs,
@@ -24,7 +24,7 @@ impl OwnerFile {
             std::process::id(),
             time.as_nanos()
         ));
-        Rel::create(&path, OwnerScope::Project).unwrap();
+        Rel::create(&path).unwrap();
         Self(path)
     }
 

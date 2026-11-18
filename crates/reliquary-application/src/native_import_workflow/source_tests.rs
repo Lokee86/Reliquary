@@ -1,5 +1,5 @@
 use super::*;
-use reliquary_owner_session::{OwnerScope, RelWriter};
+use reliquary_owner_session::RelWriter;
 use std::{cell::Cell, fs, path::PathBuf};
 
 #[test]
@@ -45,7 +45,7 @@ fn raw_branch_selection_resumes_after_interrupted_staging() {
     assert_eq!(plan().coverage().omitted_asset_references, 1);
     assert_eq!(plan().coverage().remapped_parents, 2);
     {
-        let mut writer = RelWriter::create_current_path(&rel, OwnerScope::Project, owner).unwrap();
+        let mut writer = RelWriter::create_current_path(&rel, owner).unwrap();
         let calls = Cell::new(0);
         let interrupted = plan().stage(&mut writer, "authenticated", || {
             calls.set(calls.get() + 1);

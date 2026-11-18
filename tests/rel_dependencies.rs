@@ -3,7 +3,7 @@ use reliquary_ego_store::EgoStore;
 use reliquary_memory::{
     AuthorizedContextWorkflow, CompactionBudget, ContextMessage, ContextRole, ContextTokenCounter,
     ContextTurn, ContextView, Gateway, HostCredentialBinding, Instance, OwnerGrant, OwnerId,
-    OwnerScope, ProductError, ProductErrorKind, Rel, TrustedHostAdmission,
+    ProductError, ProductErrorKind, Rel, TrustedHostAdmission,
 };
 use reliquary_owner_session::RelWriter;
 use std::{fs, path::PathBuf, sync::Barrier};
@@ -29,9 +29,7 @@ impl Fixture {
     ) -> OwnerId {
         let path = self.0.join(format!("{name}.rel"));
         let owner_id = [id; 16];
-        drop(
-            RelWriter::create_current_path(&path, OwnerScope::Connection.into(), owner_id).unwrap(),
-        );
+        drop(RelWriter::create_current_path(&path, owner_id).unwrap());
         if let Some(text) = synthesis {
             let mut container = Container::open_writer(&path).unwrap();
             EgoStore::open(&container)

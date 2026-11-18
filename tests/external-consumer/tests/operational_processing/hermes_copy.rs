@@ -141,7 +141,7 @@ fn hermes_copy_extension_preserves_exact_replay_and_terminal_scope() {
             .unwrap()
     };
     let second = || append("known-branch", "next");
-    let rel = Rel::create(&path, OwnerScope::Project).unwrap();
+    let rel = Rel::create(&path).unwrap();
     let (owner, instance, foreign) = mount(&rel);
     let first = instance.stage_native_import(owner, initial()).unwrap();
     let length = || fs::metadata(&path).unwrap().len();

@@ -10,7 +10,9 @@ This guide describes the supported Rust consumer surface exported by the `reliqu
 
 Root exports opaque owner handles, product workflows, immutable read values and trusted-host interfaces. It does not export mutable Container or store handles. The executable CLI is a separate crate and depends on Root, rather than reaching into implementation crates.
 
-The current owner formats are REL 2.1 and PHY 2.1. `Rel` and `Phylactery` open/create these owners and expose identity, path and `OwnerInfo`; they do not expose writable data stores. `OwnerId` is a 16-byte identity displayed as 32 hexadecimal characters. REL scope is `Unspecified`, `Organization`, `Project`, or `Connection`; scope metadata does not grant access. Hosted authority comes from an authenticated principal's grant to that owner.
+The current owner formats are REL 2.1 and PHY 2.1. `Rel` and `Phylactery` expose identity, path and `OwnerInfo` for current owners. `OwnerId` is a 16-byte identity displayed as 32 hexadecimal characters.
+
+`Rel::create(path)` requires a new path and allocates a fresh owner ID. The new header uses `Unspecified`. Opening or verifying an existing 2.1 REL reports its stored `Unspecified`, `Organization`, `Project`, or `Connection` value and original owner ID. Hosted authority comes from the authenticated principal's owner grants.
 
 ## Getting started
 
@@ -18,12 +20,11 @@ Prerequisites: depend on the workspace's `reliquary-memory` package and create a
 
 ```rust
 use reliquary_memory::{
-    Gateway, HostCredentialBinding, OwnerGrant, OwnerScope, ProductError, Rel,
-    TrustedHostAdmission,
+    Gateway, HostCredentialBinding, OwnerGrant, ProductError, Rel, TrustedHostAdmission,
 };
 
 fn trusted_host_example(token: String) -> Result<(), ProductError> {
-    let rel = Rel::create("project.rel", OwnerScope::Project)?;
+    let rel = Rel::create("project.rel")?;
     let gateway = Gateway::new();
     let owner = gateway.mount_rel(&rel, true)?;
     let admission = TrustedHostAdmission::new([

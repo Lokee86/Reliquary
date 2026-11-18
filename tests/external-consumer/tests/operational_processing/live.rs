@@ -79,7 +79,7 @@ fn live_processing_recovers_exact_rel_and_phy_work_after_reopen() {
         true,
     );
 
-    let rel = Rel::create(&rel_path, OwnerScope::Project).unwrap();
+    let rel = Rel::create(&rel_path).unwrap();
     let phy = Phylactery::create(&phy_path).unwrap();
     let gateway = Gateway::new();
     let owner = gateway.mount_rel(&rel, true).unwrap();

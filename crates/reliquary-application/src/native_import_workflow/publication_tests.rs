@@ -4,7 +4,6 @@ use crate::{
     prepare_native_ingest_from_claim,
 };
 use reliquary_insomnia::{InsomniaCandidate, InsomniaExtraction, InsomniaOwnership};
-use reliquary_owner_session::OwnerScope;
 use reliquary_owner_session::{
     CompletionCheck, RelSession,
     model::{ImportedBranch, ImportedConversation, ImportedMessage, InsomniaEpisodeId},
@@ -26,7 +25,7 @@ fn prepared_real_import_publication_keeps_epoch_fence_and_reopens() {
     ));
     let owner = [0x6f; 16];
     let text = "The release uses a staged rollout.";
-    let mut writer = RelWriter::create_current_path(&path, OwnerScope::Project, owner).unwrap();
+    let mut writer = RelWriter::create_current_path(&path, owner).unwrap();
     let source = ImportReceipt {
         schema_version: 1,
         owner_uuid: owner,

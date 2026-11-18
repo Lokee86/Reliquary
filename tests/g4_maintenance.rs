@@ -84,7 +84,7 @@ fn public_maintenance_rewrites_history_and_reconciles_quiescent_rel_copies() {
     let divergent_merged = paths.path("divergent-merged.rel");
     let collision = paths.path("collision.rel");
 
-    let rel = Rel::create(&source_path, OwnerScope::Project).unwrap();
+    let rel = Rel::create(&source_path).unwrap();
     let source_id = rel.owner_id();
     drop(rel);
     add_memory(&source_path, "cohort-fact", "A populated REL memory", 100);
@@ -215,7 +215,8 @@ fn public_maintenance_rewrites_history_and_reconciles_quiescent_rel_copies() {
 
 #[test]
 fn rel_dependency_history_survives_supported_maintenance() {
-    use reliquary_container::Container;
+    use reliquary_container::{Container, ReliquaryScope};
+    use reliquary_owner_session::RelWriter;
 
     fn dependency_frames(path: &Path) -> Vec<Vec<u8>> {
         Container::open_read_only(path)
@@ -232,8 +233,10 @@ fn rel_dependency_history_survives_supported_maintenance() {
     let source_path = paths.path("dependencies.rel");
     let base_path = paths.path("legacy-prefix.rel");
     let target_path = paths.path("other-owner.rel");
-    let source = Rel::create(&source_path, OwnerScope::Organization).unwrap();
-    let target = Rel::create(&target_path, OwnerScope::Connection).unwrap();
+    drop(RelWriter::create_path(&source_path, ReliquaryScope::Organization, [1; 16]).unwrap());
+    let source = Rel::open(&source_path).unwrap();
+    assert_eq!(source.info().unwrap().scope, OwnerScope::Organization);
+    let target = Rel::create(&target_path).unwrap();
     let legacy = fs::read(source.path()).unwrap();
     fs::write(&base_path, &legacy).unwrap();
     {
@@ -283,7 +286,11 @@ fn rel_dependency_history_survives_supported_maintenance() {
     let plan = source.plan_rewrite(preserve_policy).unwrap();
     let retained = paths.path("retained.rel");
     execute_rewrite(&plan, &source_path, &retained).unwrap();
-    assert_eq!(Rel::open(&retained).unwrap().owner_id(), source.owner_id());
+    for copy in [&reclaimed, &retained] {
+        let info = Rel::verify(copy).unwrap();
+        assert_eq!(info.owner_id, source.owner_id());
+        assert_eq!(info.scope, OwnerScope::Organization);
+    }
     assert_eq!(dependency_frames(&retained), history);
 
     let new_owner = paths.path("new-owner.rel");
@@ -382,7 +389,7 @@ fn historical_cuts_distinguish_foreign_future_tampered_and_unavailable_state() {
 
     let paths = TestPaths::new();
     let rel_path = paths.path("history-rel.rel");
-    let rel = Rel::create(&rel_path, OwnerScope::Project).unwrap();
+    let rel = Rel::create(&rel_path).unwrap();
     let rel_owner_id = rel.owner_id();
     drop(rel);
     add_memory(
@@ -463,7 +470,7 @@ fn active_archive_prune_request_fails_closed_and_reclaim_is_exact_noop_on_popula
     let reclaimed = paths.path("reclaimed-copy.rel");
     let second = paths.path("reclaimed-copy-again.rel");
 
-    let rel = Rel::create(&source, OwnerScope::Project).unwrap();
+    let rel = Rel::create(&source).unwrap();
     let owner = rel.owner_id().as_bytes();
     drop(rel);
     add_memory(&source, "active-fact", "Active state stays available", 1);
@@ -531,7 +538,7 @@ fn active_archive_prune_request_fails_closed_and_reclaim_is_exact_noop_on_popula
     assert!(pruned_proof.unavailable_payloads > source_proof.unavailable_payloads);
     drop(pruned_reader);
 
-    drop(Rel::create(&reclaim_source, OwnerScope::Project).unwrap());
+    drop(Rel::create(&reclaim_source).unwrap());
     add_memory(
         &reclaim_source,
         "reclaim-live-fact",

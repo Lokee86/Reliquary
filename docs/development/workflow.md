@@ -40,6 +40,8 @@ For Community recompute, the focused Root test covers archived graph members. Th
 
 For REL dependency changes, use the Root topology and context fixture, the maintenance replay test, and the fresh-process CLI check in the [REL dependency execution plan](../planning/rel-dependency-port-plan-2026-11-18.md).
 
+For changes to REL creation or scope metadata, the [homogeneity execution plan](../planning/rel-homogeneity-plan-2026-11-18.md) describes the focused Core and CLI checks, the pre-change 2.1 files, and the matched Hermes setup check.
+
 ## Documentation and policy gates
 
 Run from the repository root, with compatible `ddocs`, Pitlord, Lexicon and Arcana tools installed as described in [policy operations](../../tools/pitlord/README.md):

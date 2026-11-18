@@ -2,7 +2,7 @@ use super::*;
 use crate::{
     ConfiguredRuntime, EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingNormalization, Gateway,
     GeneralEndpoint, GeneralEndpointError, HostCredentialBinding, HostedEmbeddingInputSemantics,
-    HostedInferenceIdentity, OwnerScope, Rel, SwitchboardEmbeddingMode, TrustedHostAdmission,
+    HostedInferenceIdentity, Rel, SwitchboardEmbeddingMode, TrustedHostAdmission,
 };
 use serde_json::{Value, json};
 use std::sync::Arc;
@@ -67,7 +67,7 @@ fn root_lexical_search_requires_only_view_and_no_runtime() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".test-tmp");
     std::fs::create_dir_all(&root).unwrap();
     let path = root.join(format!("root-retrieval-{}.rel", uuid::Uuid::new_v4()));
-    let rel = Rel::create(&path, OwnerScope::Project).unwrap();
+    let rel = Rel::create(&path).unwrap();
     let gateway = Gateway::new();
     let owner = gateway.mount_rel(&rel, true).unwrap();
     let manage_token = "m".repeat(48);

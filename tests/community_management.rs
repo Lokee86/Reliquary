@@ -6,8 +6,7 @@ use reliquary_graph::{
 use reliquary_memory::{
     CommunityNameOrigin, CommunityRenameRequest, CorrectMemoryRequest, Gateway,
     HostAdmissionAdapter, HostCredentialBinding, InspectionItem, InspectionQuery, MemoryBodyId,
-    MemoryId, OwnerGrant, OwnerId, OwnerKind, OwnerScope, ProductErrorKind, Rel,
-    TrustedHostAdmission,
+    MemoryId, OwnerGrant, OwnerId, OwnerKind, ProductErrorKind, Rel, TrustedHostAdmission,
 };
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -54,7 +53,7 @@ fn admit(gateway: &Gateway, path: &Path) -> (OwnerId, HostAdmissionAdapter) {
 // The fixture starts with an unnamed, derived Community. Every tested user
 // operation below goes through public Root and the mounted owner's writer.
 fn seed(path: &Path) -> ([u8; 32], [[u8; 32]; 2]) {
-    Rel::create(path, OwnerScope::Project).unwrap();
+    Rel::create(path).unwrap();
     let (owner, mut members) = {
         let gateway = Gateway::new();
         let (owner, adapter) = admit(&gateway, path);

@@ -1,7 +1,6 @@
 use reliquary_memory::{
     Gateway, HostCredentialBinding, NativeImportFormat, NativeImportPlan, NativeImportState,
-    NativeImportWindow, OwnerGrant, OwnerScope, Phylactery, ProductErrorKind, Rel,
-    TrustedHostAdmission,
+    NativeImportWindow, OwnerGrant, Phylactery, ProductErrorKind, Rel, TrustedHostAdmission,
 };
 use std::{fs, path::PathBuf};
 
@@ -48,7 +47,7 @@ fn authenticated_normalized_import_preserves_forks_and_replays_after_reopen() {
         Some("hidden")
     );
 
-    let rel = Rel::create(&rel_path, OwnerScope::Project).unwrap();
+    let rel = Rel::create(&rel_path).unwrap();
     let phy = Phylactery::create(&phy_path).unwrap();
     let first = {
         let gateway = Gateway::new();

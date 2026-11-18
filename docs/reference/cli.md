@@ -16,8 +16,8 @@ No arguments, exactly `--help`/`-h`, and exactly `--version`/`-V` are special in
 
 | Family / syntax | Options and defaults | Contract and common diagnostics |
 | --- | --- | --- |
-| `rel create PATH [--scope SCOPE]` | scope: `unspecified`, `organization`, `project` (default), `connection` | Creates a current REL. Invalid scope: `invalid REL scope`; destination collision is an error. |
-| `rel info PATH`, `rel verify PATH` | no flags | Open metadata or verify current REL. Exactly one path required. |
+| `rel create PATH` | No creation flags | Creates a REL 2.1 with a fresh owner ID and `unspecified` header scope. Requires a new path. The former `--scope` flag returns `invalid_input`. |
+| `rel info PATH`, `rel verify PATH` | No flags | Open metadata or verify a current REL, including the original owner ID and stored scope. Exactly one path required. |
 | `phy create PATH`, `phy info PATH`, `phy verify PATH` | no flags | Create/open/verify current PHY. Exactly one path required. |
 | `rel import PATH --source FILE --format chatgpt\|normalized [--start TIME --end TIME] [--phy FILE] [--dry-run] [--process] [--config FILE]` | `--start` and `--end` must appear together. `--dry-run` and `--process` are mutually exclusive. `--config` requires `--process`. | ChatGPT raw exports may use half-open RFC3339 time selection. Normalized source selection is in its manifest. Dry run returns a plan; default stages import; `--process` also runs configured processing. Import diagnostics are stderr. |
 | `rel process PATH --until idle\|ready [--config FILE] [--import ID] [--phy FILE] [--max-episodes N]` | config defaults to `reliquary.cfg`; max episodes default 128 and must be 1..=`MAX_PROCESS_EPISODES`; target is required and must be `idle` or `ready` | Processes live work or a staged import. Missing or invalid target and out-of-range episode cap are input errors. |

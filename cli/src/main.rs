@@ -1,6 +1,6 @@
 use reliquary_memory::{
     CompatibilityProfileId, EntityId, MemoryHistoryLookup, MemoryHistoryStatus, MemoryId,
-    OwnerScope, Phylactery, ProductError, ProductErrorKind, Rel, RelationshipId, RewritePolicy,
+    Phylactery, ProductError, ProductErrorKind, Rel, RelationshipId, RewritePolicy,
     VerifiedCopyPlan, execute_profile_repair, execute_rewrite, plan_profile_repair,
     prune_archive_copy, prune_entity_descriptions_copy, prune_memory_copy,
     prune_relationship_descriptions_copy, reclaim_storage_copy, reconcile_rel,
@@ -30,7 +30,7 @@ USAGE:
     --reasoning, --dimensions, and --normalization as applicable.
 
 REL COMMANDS:
-    create <PATH> [--scope <unspecified|organization|project|connection>]
+    create <PATH>
     info <PATH>
     verify <PATH>
     import <PATH> --source <FILE> --format <chatgpt|normalized> [--start <TIME> --end <TIME>]

@@ -20,13 +20,13 @@ Manual community recomputation follows the [Leiden specification](leiden-communi
 
 ## Implementation sequence and acceptance
 
-For the homogeneity correction, trace and update the remaining scope-based creation and host-role checks using the archived ADRs and existing REL compatibility contract.
+The [homogeneity specification](rel-homogeneity-spec-2026-11-18.md) and [execution plan](rel-homogeneity-plan-2026-11-18.md) cover scope-free Core creation, Hermes role admission and legacy file compatibility. The [Core acceptance record](../acceptance/rel-homogeneity-2026-11-18.md) records the creation cut and original header verification.
 
 For standards remediation: restore inventory → canonical docs → coverage/status → architecture review/enforcement → continuous checks → independent final acceptance. The spec contains the full criteria. An unavailable required gate remains an open item, never a successful check.
 
 ## Open decisions
 
-The scope-field compatibility transition and host-role alignment are open. Future format conversion, cross-owner/PHY reconciliation and additional provider or daemon surfaces require their own specification and acceptance. They are not promised by this roadmap.
+The optional free-form REL type label remains separate from the creation and role admission work. Future format conversion, cross-owner/PHY reconciliation and additional provider or daemon surfaces require their own specification and acceptance.
 
 ## Related docs
 

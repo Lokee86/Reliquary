@@ -117,17 +117,6 @@ pub enum OwnerScope {
     Connection,
 }
 
-impl OwnerScope {
-    pub(crate) fn into_container_scope(self) -> reliquary_container::ReliquaryScope {
-        match self {
-            Self::Unspecified => reliquary_container::ReliquaryScope::Unspecified,
-            Self::Organization => reliquary_container::ReliquaryScope::Organization,
-            Self::Project => reliquary_container::ReliquaryScope::Project,
-            Self::Connection => reliquary_container::ReliquaryScope::Connection,
-        }
-    }
-}
-
 impl From<reliquary_container::ReliquaryScope> for OwnerScope {
     fn from(value: reliquary_container::ReliquaryScope) -> Self {
         match value {

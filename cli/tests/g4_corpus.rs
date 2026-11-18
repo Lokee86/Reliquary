@@ -1,6 +1,6 @@
 use reliquary_memory::{
     ConversationSubmissionId, FinalizeCapture, Gateway, HostCredentialBinding, OwnerGrant,
-    OwnerScope, Phylactery, QueueState, Rel, RewritePolicy, SubmissionId, TrustedHostAdmission,
+    Phylactery, QueueState, Rel, RewritePolicy, SubmissionId, TrustedHostAdmission,
 };
 use serde_json::Value;
 use std::{
@@ -68,8 +68,8 @@ fn fresh_cli_process_inspects_and_copies_populated_public_rel() {
 
     let manifest: Value =
         serde_json::from_str(include_str!("../../tests/fixtures/g4-native-rel21-v1.json")).unwrap();
-    let rel = Rel::create(&source, OwnerScope::Project).unwrap();
-    let cascade = Rel::create(&cascade_path, OwnerScope::Connection).unwrap();
+    let rel = Rel::create(&source).unwrap();
+    let cascade = Rel::create(&cascade_path).unwrap();
     let phy_a = Phylactery::create(&phy_a_path).unwrap();
     let phy_b = Phylactery::create(&phy_b_path).unwrap();
     let gateway = Gateway::new();

@@ -1,7 +1,7 @@
 use reliquary_archive::{Branch, EpisodeBoundary, EpisodeOrigin, TurnInput};
 use reliquary_memory::{
     Gateway, HostCredentialBinding, InspectionItem, InspectionQuery, OwnerGrant, OwnerKind,
-    OwnerScope, Phylactery, Rel, SourceAvailability, TrustedHostAdmission,
+    Phylactery, Rel, SourceAvailability, TrustedHostAdmission,
 };
 use reliquary_owner_session::model::{MemoryDraft, MemorySourceRef};
 use reliquary_owner_session::{PhyWriter, RelWriter};
@@ -15,7 +15,7 @@ fn oc06_routed_provenance_requires_both_grants_and_does_not_replace_terminal_sou
     let rel_path = root.join("source.rel");
     let phy_path = root.join("private.phy");
 
-    let source = Rel::create(&rel_path, OwnerScope::Project).unwrap();
+    let source = Rel::create(&rel_path).unwrap();
     let source_owner = source.owner_id();
     let private = Phylactery::create(&phy_path).unwrap();
     let private_owner = private.owner_id();

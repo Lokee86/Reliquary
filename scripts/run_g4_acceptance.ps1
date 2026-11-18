@@ -118,8 +118,11 @@ try {
         throw 'CLI Memory history differs from the public API history read.'
     }
     $created = Join-Path $negativeDir 'cli-created.rel'
-    $createdInfo = Invoke-Json $cli @('rel', 'create', $created, '--scope', 'project')
+    $createdInfo = Invoke-Json $cli @('rel', 'create', $created)
     $createdReopen = Invoke-Json $cli @('rel', 'verify', $created)
+    if ($createdInfo.owner.scope -ne 'unspecified' -or $createdReopen.owner.scope -ne 'unspecified') {
+        throw 'CLI-created REL did not report neutral scope.'
+    }
     if ($createdInfo.owner.owner_id -ne $createdReopen.owner.owner_id) { throw 'CLI create identity changed after reopen.' }
     $policy = Join-Path $negativeDir 'rewrite-policy.json'
     $policyJson = $witness.rewrite_policy | ConvertTo-Json -Depth 16
@@ -151,11 +154,14 @@ try {
         }
     }
     Expect-Failure $cli @('phy', 'info', $source)
-    $duplicate = Join-Path $negativeDir 'duplicate-option.rel'
-    Expect-Failure $cli @('rel', 'create', $duplicate, '--scope', 'project', '--scope', 'connection')
+    $retired = Join-Path $negativeDir 'retired-option.rel'
+    Expect-Failure $cli @('rel', 'create', $retired, '--scope', 'project')
+    $retiredFailure = $observations[$observations.Count - 1].result
+    if ($retiredFailure.error.message -ne 'unexpected CLI argument: --scope') { throw 'Retired creation option was not rejected specifically.' }
+    if (Test-Path -LiteralPath $retired) { throw 'Retired CLI option published an owner.' }
+    Expect-Failure $cli @('rel', 'history', 'archive', $source, '--limit', '1', '--limit', '2')
     $duplicateFailure = $observations[$observations.Count - 1].result
-    if ($duplicateFailure.error.message -notmatch 'duplicate') { throw 'Recognized duplicate CLI option was not rejected specifically.' }
-    if (Test-Path -LiteralPath $duplicate) { throw 'Duplicate CLI option published an owner.' }
+    if ($duplicateFailure.error.message -ne 'duplicate CLI option: --limit') { throw 'Recognized duplicate CLI option was not rejected specifically.' }
     $wrongKind = Join-Path $exportDir 'phy-reader-a.phy'
     Expect-Failure $cli @('rel', 'info', $wrongKind)
     $legacyPath = Join-Path $negativeDir 'synthetic-2.0.rel'

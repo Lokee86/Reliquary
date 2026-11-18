@@ -1,4 +1,4 @@
-use reliquary_memory::{OwnerScope, Phylactery, Rel, RewritePolicy};
+use reliquary_memory::{Phylactery, Rel, RewritePolicy};
 use serde_json::Value;
 use std::{
     fs,
@@ -128,27 +128,22 @@ fn rel_memory_inspection_matches_the_created_revision_and_is_read_only() {
 fn create_info_verify_are_json_and_wrong_kind_fails() {
     let temp = Temp::new("owner");
     let rel = temp.path("owner.rel");
-    let created = command(&[
-        "rel",
-        "create",
-        rel.to_str().unwrap(),
-        "--scope",
-        "connection",
-    ]);
+    let path = rel.to_str().unwrap();
+    let created = command(&["rel", "create", path]);
     assert!(created.status.success());
     let value: Value = serde_json::from_slice(&created.stdout).unwrap();
     assert_eq!(value["owner"]["format"], "2.1");
-    assert!(value["owner"]["owner_id"].as_str().unwrap().len() == 32);
-    assert!(
-        command(&["rel", "info", rel.to_str().unwrap()])
-            .status
-            .success()
-    );
-    assert!(
-        command(&["rel", "verify", rel.to_str().unwrap()])
-            .status
-            .success()
-    );
+    assert_eq!(value["owner"]["scope"], "unspecified");
+    assert_eq!(value["owner"]["owner_id"].as_str().unwrap().len(), 32);
+    let before = fs::read(&rel).unwrap();
+    assert!(!command(&["rel", "create", path]).status.success());
+    for action in ["info", "verify"] {
+        let reopened = command(&["rel", action, path]);
+        assert!(reopened.status.success());
+        let reopened: Value = serde_json::from_slice(&reopened.stdout).unwrap();
+        assert_eq!(reopened["owner"], value["owner"]);
+    }
+    assert_eq!(fs::read(&rel).unwrap(), before);
     let phy = temp.path("owner.phy");
     Phylactery::create(&phy).unwrap();
     assert!(
@@ -164,7 +159,7 @@ fn rewrite_dry_run_never_creates_destination() {
     let source = temp.path("source.rel");
     let output = temp.path("output.rel");
     let policy = temp.path("policy.json");
-    Rel::create(&source, OwnerScope::Project).unwrap();
+    Rel::create(&source).unwrap();
     fs::write(
         &policy,
         serde_json::to_vec(&RewritePolicy::default()).unwrap(),
@@ -193,8 +188,24 @@ fn unknown_and_duplicate_options_refuse_without_publication() {
     let temp = Temp::new("options");
     let source = temp.path("source.rel");
     let forbidden = temp.path("should-not-exist.rel");
-    Rel::create(&source, OwnerScope::Project).unwrap();
+    Rel::create(&source).unwrap();
     let original = fs::read(&source).unwrap();
+    let retired = command(&[
+        "rel",
+        "create",
+        forbidden.to_str().unwrap(),
+        "--scope",
+        "project",
+    ]);
+    assert!(!retired.status.success());
+    let error: Value = serde_json::from_slice(&retired.stderr).unwrap();
+    assert_eq!(error["error"]["kind"], "invalid_input");
+    assert_eq!(
+        error["error"]["message"],
+        "unexpected CLI argument: --scope"
+    );
+    assert!(!forbidden.exists());
+
     for args in [
         vec![
             "rel",
@@ -205,12 +216,13 @@ fn unknown_and_duplicate_options_refuse_without_publication() {
         ],
         vec![
             "rel",
-            "create",
-            forbidden.to_str().unwrap(),
-            "--scope",
-            "project",
-            "--scope",
-            "connection",
+            "history",
+            "archive",
+            source.to_str().unwrap(),
+            "--limit",
+            "1",
+            "--limit",
+            "2",
         ],
         vec![
             "rel",
@@ -250,7 +262,7 @@ fn rewrite_rejects_unsupported_selection_override_without_creating_output() {
     let source = temp.path("source.rel");
     let output = temp.path("output.rel");
     let policy = temp.path("policy.json");
-    Rel::create(&source, OwnerScope::Project).unwrap();
+    Rel::create(&source).unwrap();
     fs::write(
         &policy,
         serde_json::to_vec(&RewritePolicy::default()).unwrap(),
@@ -282,7 +294,7 @@ fn reconcile_cli_preserves_both_inputs_and_refuses_collision() {
     let left = temp.path("left.rel");
     let right = temp.path("right.rel");
     let output = temp.path("merged.rel");
-    Rel::create(&left, OwnerScope::Project).unwrap();
+    Rel::create(&left).unwrap();
     let left_bytes = fs::read(&left).unwrap();
     fs::copy(&left, &right).unwrap();
     let args = [
@@ -311,7 +323,7 @@ fn reconcile_cli_preserves_both_inputs_and_refuses_collision() {
 fn history_proof_cli_is_read_only() {
     let temp = Temp::new("history");
     let source = temp.path("owner.rel");
-    Rel::create(&source, OwnerScope::Project).unwrap();
+    Rel::create(&source).unwrap();
     let before = fs::read(&source).unwrap();
     let result = command(&["rel", "history", "proof", source.to_str().unwrap()]);
     assert!(
