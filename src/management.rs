@@ -24,11 +24,11 @@ pub use reliquary_application::{
     CommunityRecomputeReport, CommunityRenameRequest, CommunityRenameResult, CorrectMemoryReceipt,
     CorrectMemoryRequest, CreateMemoryReceipt, CreateMemoryRequest, RetireMemoryReceipt,
 };
-pub use reliquary_owner_session::WithdrawEntityMentionRequest;
 pub use reliquary_owner_session::model::{
     EntityResolutionReason, EntityTombstone, MemoryEntityMentionKey, MemoryEntityResolution,
     MemoryEntityResolutionStatus, TerminalTombstone,
 };
+pub use reliquary_owner_session::{MAX_REL_DEPENDENCIES, WithdrawEntityMentionRequest};
 
 pub use reliquary_graph::{CommunityId, CommunitySnapshot, NodeRef, Relation};
 pub use reliquary_owner_session::{
@@ -245,6 +245,33 @@ impl Instance {
     }
 }
 
+/// The current REL-local declaration, including the compare-and-set generation.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+pub struct RelDependencies {
+    pub generation: u64,
+    pub dependencies: Vec<OwnerId>,
+}
+
+impl From<reliquary_owner_session::RelDependencyDeclaration> for RelDependencies {
+    fn from(value: reliquary_owner_session::RelDependencyDeclaration) -> Self {
+        Self {
+            generation: value.generation,
+            dependencies: value
+                .owner_ids
+                .into_iter()
+                .map(OwnerId::from_bytes)
+                .collect(),
+        }
+    }
+}
+
+/// Durable result of replacing the direct dependency declaration.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+pub struct RelDependencyUpdate {
+    pub declaration: RelDependencies,
+    pub changed: bool,
+}
+
 #[derive(Clone)]
 pub struct WorkspaceManagement {
     instance: Instance,
@@ -414,6 +441,47 @@ impl WorkspaceManagement {
             .inner
             .management_retire_memory_at_cut(self.owner.into(), expected, request_id, request)
             .map_err(Into::into)
+    }
+
+    /// Read the direct declaration owned by this REL.
+    pub fn rel_dependencies(&self) -> Result<RelDependencies, ProductError> {
+        self.instance.require_rel_read(self.owner)?;
+        Ok(self
+            .instance
+            .inner
+            .rel_dependencies(self.owner.into())?
+            .into())
+    }
+
+    /// Replace the direct declaration at the expected generation.
+    pub fn replace_rel_dependencies(
+        &self,
+        expected_generation: u64,
+        dependency_ids: &[OwnerId],
+    ) -> Result<RelDependencyUpdate, ProductError> {
+        self.instance.require(OwnerGrant::ManageRel(self.owner))?;
+        if dependency_ids.len() > MAX_REL_DEPENDENCIES {
+            return Err(ProductError::invalid("REL dependency count exceeds limit"));
+        }
+        let (declaration, changed) = self.instance.inner.replace_rel_dependencies(
+            self.owner.into(),
+            expected_generation,
+            dependency_ids.iter().map(|id| id.as_bytes()).collect(),
+        )?;
+        Ok(RelDependencyUpdate {
+            declaration: declaration.into(),
+            changed,
+        })
+    }
+
+    /// Resolve the granted dependency closure, with this REL last.
+    pub fn resolve_rel_dependencies(&self) -> Result<Vec<OwnerId>, ProductError> {
+        self.instance.require_rel_read(self.owner)?;
+        let order = self
+            .instance
+            .inner
+            .resolve_rel_dependencies(self.owner.into())?;
+        Ok(order.into_iter().map(OwnerId::from).collect())
     }
 
     /// Calculate communities from the readable owner state.

@@ -100,6 +100,17 @@ reliquary rel community list project-copy.rel
 
 Preview reports the partition for the active graph Memories. Apply recalculates on the current graph, checks coverage, and saves a Community generation. If the owner changes during the calculation, run preview again before applying. Review the size histogram and membership digest when comparing two runs.
 
+## Manage REL dependencies
+
+```text
+reliquary rel dependency list project.rel
+reliquary rel dependency replace project.rel --expected-generation 0 --dependency shared.rel
+reliquary rel dependency resolve project.rel --mount-rel shared.rel
+reliquary rel context inspect project.rel CONVERSATION_ID LEAF_NODE_ID --mount-rel shared.rel
+```
+
+Use the generation returned by `list` when replacing the complete direct set. Repeat `--dependency` for each direct REL and use `--mount-rel` for transitive RELs. Replacing with an empty set clears the declaration. Each process grants read access to the RELs explicitly supplied as mounts. A dependency contributes its current stored Ego synthesis when present. Dependency-bearing files use a port-aware 2.1 build.
+
 ## Create a verified maintenance copy
 
 Copy operations prepare/verify a source plan and create a new destination. For example, first export or prepare a valid rewrite policy, inspect it:

@@ -104,7 +104,10 @@ impl From<GatewayError> for ProductError {
                 ProductErrorKind::Conflict
             }
             GatewayError::WriterUnavailable => ProductErrorKind::WriterUnavailable,
-            GatewayError::StaleRetrieval => ProductErrorKind::Stale,
+            GatewayError::StaleRetrieval | GatewayError::StaleRelContext => ProductErrorKind::Stale,
+            GatewayError::ContextDependencyBounds(_) => ProductErrorKind::InvalidInput,
+            GatewayError::RelDependencyCycle => ProductErrorKind::Conflict,
+            GatewayError::RelDependencyUnresolved => ProductErrorKind::Unavailable,
             GatewayError::ExternalSource(error) => match error {
                 ExternalSourceError::Unauthorized => ProductErrorKind::Unauthorized,
                 ExternalSourceError::StaleEvidence => ProductErrorKind::Stale,

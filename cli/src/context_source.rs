@@ -23,11 +23,10 @@ pub(crate) fn context(args: &[String]) -> Result<Value, ProductError> {
     if !matches!(command, "inspect" | "plan" | "checkpoint") {
         return Err(invalid("context requires inspect, plan, or checkpoint"));
     }
-    let flags = if command == "checkpoint" {
-        vec![("--byte-budget", false), ("--summary-file", false)]
-    } else {
-        vec![("--byte-budget", false)]
-    };
+    let mut flags = vec![("--byte-budget", false), ("--mount-rel", true)];
+    if command == "checkpoint" {
+        flags.push(("--summary-file", false));
+    }
     validate_options(args, 4, &flags)?;
     let limit = number_option(args, "--byte-budget")?.unwrap_or(64 * 1024);
     let budget = compaction_budget(limit, DEFAULT_COMPACTION_TRIGGER_PERCENT)
@@ -44,7 +43,8 @@ pub(crate) fn context(args: &[String]) -> Result<Value, ProductError> {
     } else {
         None
     };
-    let host = LocalHost::open(&args[1], None, RelAccess::View)?;
+    let paths = repeated_options(args, "--mount-rel");
+    let (host, _) = LocalHost::open_with_rel_mounts(&args[1], None, RelAccess::View, &paths)?;
     let management = host.instance.workspace_management(host.rel)?;
     management.select_conversation(&args[2], &args[3])?;
     let mut view = ContextView::default();

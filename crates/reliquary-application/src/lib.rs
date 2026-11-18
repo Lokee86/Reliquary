@@ -17,7 +17,7 @@ pub use context_workflow::{
     ContextMemoryEvidence, ContextMemoryScope, ContextRepositoryEvidence, ContextWorkflowError,
     MAX_CONTEXT_PROJECT_SOURCES, MAX_CONTEXT_SOURCE_BYTES, MAX_CONTEXT_SOURCE_TURNS,
     PreparedContextWorkflow, finalize_context_workflow, prepare_context_workflow,
-    read_context_repository_source,
+    read_context_repository_source, rel_synthesis_context_message,
 };
 pub use reliquary_context_engine::{
     CompactionBudget, CompactionCheckpoint, CompactionPlan, ContextMessage, ContextRequest,

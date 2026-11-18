@@ -58,6 +58,7 @@ pub struct AuthorizedContextWorkflow {
     prepared: PreparedContextWorkflow,
     sources: Vec<AuthorizedProjectContextSource>,
     memories: Vec<ContextMemoryBinding>,
+    rel_dependencies: Vec<dependencies::ContextRelDependencyBinding>,
 }
 
 /// Opaque checkpoint authority bound to the exact host/owner context scope.
@@ -98,6 +99,7 @@ pub(super) fn context_view_digest(view: &ContextView) -> [u8; 32] {
     digest.finalize().into()
 }
 
+mod dependencies;
 mod finalize;
 mod prepare;
 mod sources;

@@ -2,6 +2,7 @@ use reliquary_memory::{
     Gateway, HostCredentialBinding, Instance, OwnerGrant, OwnerId, Phylactery, ProductError, Rel,
     TrustedHostAdmission,
 };
+use std::collections::BTreeMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub(crate) struct LocalHost {
@@ -26,9 +27,18 @@ impl LocalHost {
     }
 
     pub fn open(rel: &str, phy: Option<&str>, access: RelAccess) -> Result<Self, ProductError> {
+        Self::open_with_rel_mounts(rel, phy, access, &[]).map(|(host, _)| host)
+    }
+
+    pub fn open_with_rel_mounts(
+        rel_path: &str,
+        phy: Option<&str>,
+        access: RelAccess,
+        paths: &[&str],
+    ) -> Result<(Self, Vec<OwnerId>), ProductError> {
         let gateway = Gateway::new();
         let writable = !matches!(access, RelAccess::View);
-        let rel = gateway.mount_rel(&Rel::open(rel)?, writable)?;
+        let rel = gateway.mount_rel(&Rel::open(rel_path)?, writable)?;
         let phy = phy
             .map(|path| gateway.mount_phylactery(&Phylactery::open(path)?, writable))
             .transpose()?;
@@ -44,8 +54,24 @@ impl LocalHost {
                 OwnerGrant::ViewPhylactery(phy)
             });
         }
+        let mut mounted = Vec::with_capacity(paths.len());
+        if !paths.is_empty() {
+            let mut by_path = BTreeMap::from([(std::fs::canonicalize(rel_path)?, rel)]);
+            for path in paths {
+                let path = std::fs::canonicalize(path)?;
+                let owner = if let Some(owner) = by_path.get(&path) {
+                    *owner
+                } else {
+                    let owner = gateway.mount_rel(&Rel::open(&path)?, false)?;
+                    by_path.insert(path, owner);
+                    grants.push(OwnerGrant::ViewRel(owner));
+                    owner
+                };
+                mounted.push(owner);
+            }
+        }
         let instance = authenticate(&gateway, rel, grants)?;
-        Ok(Self { instance, rel, phy })
+        Ok((Self { instance, rel, phy }, mounted))
     }
 }
 

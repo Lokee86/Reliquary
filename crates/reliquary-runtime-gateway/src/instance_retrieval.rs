@@ -1,3 +1,4 @@
+use super::instance_owner::RelMount;
 use super::*;
 use reliquary_application::{
     AgenticMemory, RetrievalAction, RetrievalEvaluation, RetrievalTurn, evaluate_retrieval,
@@ -87,34 +88,6 @@ pub enum RetrievalMode {
     Deliver,
 }
 
-enum RetrievalMount {
-    Read(std::sync::Weak<RelSession>),
-    Write(std::sync::Weak<MountedRelWriter>),
-}
-
-impl RetrievalMount {
-    fn capture(instance: &Instance, owner: OwnerId) -> Result<Self, GatewayError> {
-        let owners = instance
-            .owners
-            .read()
-            .map_err(|_| GatewayError::RegistryPoisoned)?;
-        match owners.get(&owner) {
-            Some(MountedOwner::Rel(rel)) => Ok(Self::Read(Arc::downgrade(rel))),
-            Some(MountedOwner::RelWriter(rel)) => Ok(Self::Write(Arc::downgrade(rel))),
-            Some(_) => Err(GatewayError::WrongOwnerKind(owner)),
-            None => Err(GatewayError::UnknownOwner(owner)),
-        }
-    }
-
-    fn matches(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Read(a), Self::Read(b)) => a.ptr_eq(b),
-            (Self::Write(a), Self::Write(b)) => a.ptr_eq(b),
-            _ => false,
-        }
-    }
-}
-
 pub(super) struct TurnState {
     pub(super) turn: reliquary_application::RetrievalTurn,
     pub(super) generation: u64,
@@ -134,7 +107,7 @@ pub struct MemoryRetrievalTurn {
     pub(super) turn_id: String,
     pub(super) controller_id: Uuid,
     pub(super) state: std::sync::Mutex<TurnState>,
-    mount: RetrievalMount,
+    mount: RelMount,
     mode: RetrievalMode,
     delivery: Mutex<()>,
 }
@@ -247,13 +220,13 @@ pub(super) fn validate_turn_binding(
             owner,
         });
     }
-    let mount = RetrievalMount::capture(instance, owner).map_err(|error| match error {
+    let mount = RelMount::capture(instance, owner).map_err(|error| match error {
         GatewayError::UnknownOwner(_) | GatewayError::WrongOwnerKind(_) => {
             GatewayError::StaleRetrieval
         }
         other => other,
     })?;
-    if !turn.mount.matches(&mount) {
+    if turn.mount != mount {
         return Err(GatewayError::StaleRetrieval);
     }
     Ok(())

@@ -135,16 +135,30 @@ impl Instance {
             // The caller's counter sees the summary while measuring the request.
             self.validate_context_checkpoint(checkpoint, owner, conversation_id, &native)?;
         }
+        let (rel_dependencies, inherited) = self.capture_rel_dependency_context(
+            owner,
+            native.turns.len() + evidence.len() + memory_evidence.len(),
+            source_bytes,
+        )?;
+        let has_inherited = !inherited.is_empty();
         let prepared = prepare_context_workflow(
             native,
             evidence,
             memory_evidence,
+            inherited,
             checkpoint.map(|checkpoint| &checkpoint.checkpoint),
             current_tokens,
             budget,
             counter,
         )
-        .map_err(|error| GatewayError::ProjectSource(error.to_string()))?;
+        .map_err(|error| {
+            use reliquary_application::ContextWorkflowError::*;
+            if has_inherited && matches!(error, TooManyTurns | SourceByteLimit | Compaction(_)) {
+                GatewayError::ContextDependencyBounds(error.to_string())
+            } else {
+                GatewayError::ProjectSource(error.to_string())
+            }
+        })?;
         let source_view = prepared.source_view().clone();
         if let Some(checkpoint) = checkpoint {
             self.validate_context_checkpoint(checkpoint, owner, conversation_id, &source_view)?;
@@ -161,6 +175,7 @@ impl Instance {
             prepared,
             sources,
             memories,
+            rel_dependencies,
         };
         self.validate_context_workflow_scope(&prepared)?;
         Ok(prepared)

@@ -1,9 +1,9 @@
 //! Owner- and source-bound composition around the pure Context Engine.
 
 use reliquary_context_engine::{
-    CompactionBudget, CompactionCheckpoint, CompactionPlan, ContextRequest, ContextRole,
-    ContextTokenCounter, ContextTurn, ContextView, finalize_compaction, plan_session_compaction,
-    request_context,
+    COMPACTED_CONTEXT_INSTRUCTIONS, CompactionBudget, CompactionCheckpoint, CompactionPlan,
+    ContextMessage, ContextRequest, ContextRole, ContextTokenCounter, ContextTurn, ContextView,
+    compaction_needed, finalize_compaction, plan_session_compaction, request_context,
 };
 use reliquary_owner_session::model::{ProjectFileRef, validate_project_file_reference};
 use sha2::{Digest, Sha256};
@@ -89,15 +89,27 @@ impl PreparedContextWorkflow {
     }
 }
 
+/// Render current synthesis as attributed request evidence.
+pub fn rel_synthesis_context_message(owner: [u8; 16], revision: u64, text: &str) -> ContextMessage {
+    ContextMessage {
+        role: ContextRole::User,
+        content: format!(
+            "[REL dependency {} Ego synthesis revision {revision}]\n{text}",
+            hex(&owner)
+        ),
+    }
+}
+
 /// Build a bounded model request while preserving host transcript identity and
 /// attaching only bytes whose exact repository identity can be checked.
 pub fn prepare_context_workflow(
     mut native: ContextView,
     repository_sources: Vec<ContextRepositoryEvidence>,
     memory_sources: Vec<ContextMemoryEvidence>,
+    inherited: Vec<ContextMessage>,
     checkpoint: Option<&CompactionCheckpoint>,
     current_tokens: u64,
-    budget: CompactionBudget,
+    mut budget: CompactionBudget,
     counter: &impl ContextTokenCounter,
 ) -> Result<PreparedContextWorkflow, ContextWorkflowError> {
     if native.turns.len() > MAX_CONTEXT_SOURCE_TURNS {
@@ -114,6 +126,7 @@ pub fn prepare_context_workflow(
         .len()
         .checked_add(repository_sources.len())
         .and_then(|n| n.checked_add(memory_sources.len()))
+        .and_then(|n| n.checked_add(inherited.len()))
         .is_none_or(|count| count > MAX_CONTEXT_SOURCE_TURNS)
     {
         return Err(ContextWorkflowError::TooManyTurns);
@@ -200,17 +213,60 @@ pub fn prepare_context_workflow(
             content,
         });
     }
+    let bytes = inherited
+        .iter()
+        .try_fold(bytes, |total, message| {
+            total.checked_add(message.content.len())
+        })
+        .ok_or(ContextWorkflowError::SourceByteLimit)?;
     if bytes > MAX_CONTEXT_SOURCE_BYTES {
         return Err(ContextWorkflowError::SourceByteLimit);
     }
-    let request = request_context(&native, checkpoint);
-    let composed_tokens = request.messages.iter().fold(
+    let mut request = request_context(&native, checkpoint);
+    let base_tokens = request.messages.iter().fold(
         counter.count_text(&request.instructions),
         |total, message| total.saturating_add(counter.count_message(message)),
     );
-    let effective_tokens = current_tokens.max(composed_tokens);
-    let plan = plan_session_compaction(&native, checkpoint, effective_tokens, budget, counter)
-        .map_err(|error| ContextWorkflowError::Compaction(error.to_string()))?;
+    let inherited_tokens = inherited.iter().fold(0u64, |total, message| {
+        total.saturating_add(counter.count_message(message))
+    });
+    let composed_tokens = base_tokens.saturating_add(inherited_tokens);
+    let effective_tokens = current_tokens
+        .max(base_tokens)
+        .saturating_add(inherited_tokens);
+    let mut should_plan = compaction_needed(effective_tokens, budget);
+    let inherited_over_budget =
+        !inherited.is_empty() && should_plan && composed_tokens > budget.target_tokens;
+    if !inherited.is_empty() && should_plan {
+        let summary_overhead = counter
+            .count_text(COMPACTED_CONTEXT_INSTRUCTIONS)
+            .saturating_add(counter.count_message(&ContextMessage {
+                role: ContextRole::Assistant,
+                content: "[Compacted earlier conversation]\n".into(),
+            }));
+        let reserved = inherited_tokens
+            .saturating_add(budget.summary_tokens)
+            .saturating_add(summary_overhead);
+        let tail_available = budget.target_tokens.saturating_sub(reserved);
+        let required_tail = request
+            .messages
+            .last()
+            .map_or(0, |message| counter.count_message(message));
+        should_plan = reserved <= budget.target_tokens && required_tail <= tail_available;
+        budget.raw_tail_tokens = budget.raw_tail_tokens.min(tail_available);
+    }
+    let plan = if should_plan {
+        plan_session_compaction(&native, checkpoint, effective_tokens, budget, counter)
+            .map_err(|error| ContextWorkflowError::Compaction(error.to_string()))?
+    } else {
+        None
+    };
+    if inherited_over_budget && plan.is_none() {
+        return Err(ContextWorkflowError::Compaction(
+            "REL dependency evidence and primary context exceed the available budget".into(),
+        ));
+    }
+    request.messages.splice(..0, inherited);
     Ok(PreparedContextWorkflow {
         view: native,
         request,
@@ -309,6 +365,7 @@ mod tests {
             native,
             vec![project_evidence()],
             vec![],
+            vec![],
             None,
             100,
             compaction_budget(200, 50).unwrap(),
@@ -365,6 +422,7 @@ mod tests {
                 one,
                 vec![forged],
                 vec![],
+                vec![],
                 None,
                 0,
                 compaction_budget(1000, 50).unwrap(),
@@ -384,6 +442,7 @@ mod tests {
         assert!(matches!(
             prepare_context_workflow(
                 oversized,
+                vec![],
                 vec![],
                 vec![],
                 None,
@@ -420,6 +479,7 @@ mod tests {
                 source(ContextMemoryScope::Rel, [1; 16]),
                 source(ContextMemoryScope::Phy, [2; 16]),
             ],
+            vec![],
             None,
             0,
             compaction_budget(1000, 50).unwrap(),

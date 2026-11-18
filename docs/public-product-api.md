@@ -90,6 +90,12 @@ For incremental copied-source import, `from_hermes_copy_extension(snapshot, pred
 
 `WorkspaceManagement::preview_community_recompute()` calculates a fixed-seed Leiden partition for the active graph Memories using REL read access. `apply_community_recompute()` requires `ManageRel` and a writable mount. It captures fresh input, then checks the same owner and Memory, Graph, and Community versions before publication. Stale input returns `ProductErrorKind::Stale`. A successful apply returns the durable generation and whether it was newly written. An identical current partition reuses its generation. Both methods return coverage, the Community size histogram, modularity, and a digest over the sorted member groups.
 
+## REL dependencies
+
+`WorkspaceManagement::rel_dependencies()` reads the local direct declaration and its generation. `replace_rel_dependencies(expected_generation, dependency_ids)` replaces it with `ManageRel` and a writable source. Direct targets must be mounted RELs the caller can read. The proposed reachable graph must resolve and be acyclic. An unchanged declaration reuses its generation. An empty replacement clears it. Existing files open at generation zero with no dependencies.
+
+`resolve_rel_dependencies()` returns the ordered, granted closure, ending with the source REL. A denied branch contributes no owners through that path. A granted dependency that is unavailable prevents a partial resolution. `Instance::prepare_context_workflow` renders current stored Ego syntheses from the resolved dependencies ahead of the primary request as budgeted evidence. Caller token estimates cover the base request. Requests, plans and finalization recheck the resolved mounts, declarations and synthesis cuts. Compaction uses its original transcript sources.
+
 ## Maintenance and reconciliation boundaries
 
 Rewrite, prune, repair, reclaim, copy, and reconciliation operations create a new destination and never replace an existing source or destination. Quiesce writable owners before preparing copy maintenance, and independently reopen/verify the result. Fresh-history rewrite fails closed when authenticated user Memory correction, retirement, association, or Community naming authority/request history cannot be preserved.

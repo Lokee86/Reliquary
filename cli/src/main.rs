@@ -52,7 +52,11 @@ REL COMMANDS:
     <entity|relationship|community> <list|get> <PATH> ...
     community recompute <PATH> [--apply]
     conversation <feed|status|finalize|cancel|checkpoint|stream|episode> <PATH> ...
-    context <inspect|plan|checkpoint> <PATH> <CONVERSATION_ID> <LEAF_NODE_ID> ...
+    dependency list <PATH>
+    dependency replace <PATH> --expected-generation <N> [--dependency <PATH>]... [--mount-rel <PATH>]...
+    dependency resolve <PATH> [--mount-rel <PATH>]...
+    context <inspect|plan|checkpoint> <PATH> <CONVERSATION_ID> <LEAF_NODE_ID> [--mount-rel <PATH>]...
+        [--byte-budget <N>] [--summary-file <FILE>]
     source status <PATH> --import <ID>
     history memory <PATH> <MEMORY_ID> [--cut <VERSION>]
     history archive <PATH> [--offset <N>] [--limit <N>]
@@ -157,6 +161,7 @@ fn run(args: Vec<String>, input: impl BufRead) -> Result<Value, ProductError> {
         }
         "conversation" => conversation::run(&args[2..]),
         "context" => context_source::context(&args[2..]),
+        "dependency" => rel_dependencies::run(&args[2..]),
         "source" => context_source::source(&args[2..]),
         "rewrite" => rewrite(&args[2..]),
         "prune" => prune(&args[2..]),
@@ -215,6 +220,7 @@ mod local_host;
 mod operational;
 #[cfg(test)]
 mod operational_tests;
+mod rel_dependencies;
 mod retrieval_command;
 mod semantic_inspection;
 use commands::{create, history, info, prune, reclaim, reconcile, repair, rewrite};

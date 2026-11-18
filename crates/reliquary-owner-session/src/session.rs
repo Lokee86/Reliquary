@@ -256,6 +256,7 @@ struct CommonState {
 /// here; private fields prevent exposing a public bag of stores.
 pub struct RelSession {
     owner_id: [u8; 16],
+    rel_dependencies: RelDependencyDeclaration,
     archive: Archive,
     echo: EchoStore,
     common: CommonState,
@@ -1040,6 +1041,10 @@ pub use management_association::MemoryAssociationCut;
 mod user_memory;
 pub use user_memory::{UserMemoryCorrection, UserMemoryCorrectionResult};
 mod phy_writer;
+mod rel_dependencies;
+pub use rel_dependencies::{
+    MAX_REL_DEPENDENCIES, RelDependencyDeclaration, canonical_rel_dependency_ids,
+};
 mod rel_session;
 mod rel_writer;
 pub use management::{

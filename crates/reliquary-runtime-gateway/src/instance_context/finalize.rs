@@ -71,7 +71,7 @@ impl Instance {
                 "context belongs to another Instance".into(),
             ));
         }
-        self.with_reliquary(prepared.owner, |_| ())?;
+        self.ensure_credential_active()?;
         if context_view_digest(&prepared.native_view) != prepared.native_digest {
             return Err(GatewayError::ProjectSource(
                 "native host context snapshot changed".into(),
@@ -115,7 +115,7 @@ impl Instance {
                 "context source cut changed during inference".into(),
             ));
         }
-        Ok(())
+        self.recheck_rel_dependency_context(prepared.owner, &prepared.rel_dependencies)
     }
 
     /// Invoke provider inference with no Gateway owner lock held, then bind its

@@ -1,3 +1,4 @@
+use super::rel_dependencies::REL_DEPENDENCY_MAGIC;
 use super::*;
 
 pub(super) fn grouped_completion_receipt(
@@ -49,16 +50,17 @@ pub(super) fn require_kind(
 }
 
 #[derive(Default)]
-pub(super) struct GroupedReplayAdmission {
+pub(super) struct RelReplayAdmission {
     pub completions: BTreeMap<(WorkEpisodeId, u32), GroupedInsomniaCompletion>,
     pub import_epochs: BTreeMap<(WorkEpisodeId, u32), String>,
+    pub dependencies: RelDependencyDeclaration,
 }
 
-pub(super) fn validate_grouped_replay_admission(
+pub(super) fn validate_rel_replay_admission(
     container: &Container,
     archive: &Archive,
-) -> Result<GroupedReplayAdmission, OwnerSessionError> {
-    let mut grouped = GroupedReplayAdmission::default();
+) -> Result<RelReplayAdmission, OwnerSessionError> {
+    let mut admission = RelReplayAdmission::default();
     let mut imports = ImportEpochStore::prefix(container.owner_id());
     let mut visible_episodes = std::collections::BTreeSet::new();
     let mut visible_turns = std::collections::BTreeSet::new();
@@ -75,6 +77,15 @@ pub(super) fn validate_grouped_replay_admission(
         let body = envelope
             .as_ref()
             .map_or(frame.payload.as_slice(), |value| value.body);
+        if body.starts_with(REL_DEPENDENCY_MAGIC) {
+            if envelope.is_some() {
+                return Err(OwnerSessionError::Record(
+                    "REL dependency declaration must be a top-level frame".into(),
+                ));
+            }
+            admission.dependencies.replay(container.owner_id(), body)?;
+            continue;
+        }
         if (body.starts_with(b"RELXMEM") && !body.starts_with(b"RELXMEM3"))
             || body.starts_with(b"RELINSC8")
         {
@@ -159,15 +170,15 @@ pub(super) fn validate_grouped_replay_admission(
                     "grouped extraction follows its sealed import settlement".into(),
                 ));
             }
-            grouped.import_epochs.insert(key, epoch.import_id.clone());
+            admission.import_epochs.insert(key, epoch.import_id.clone());
         }
-        if grouped.completions.insert(key, completion).is_some() {
+        if admission.completions.insert(key, completion).is_some() {
             return Err(OwnerSessionError::Record(
                 "duplicate grouped completion attempt".into(),
             ));
         }
     }
-    Ok(grouped)
+    Ok(admission)
 }
 
 pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), OwnerSessionError> {
@@ -204,6 +215,7 @@ pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), Owner
         (b"RELXMEM3", "external Memory intent"),
         (b"RELXMRP3", "external Memory receipt"),
         (b"RELXHST1", "external host evidence receipt"),
+        (REL_DEPENDENCY_MAGIC, "REL dependency declaration"),
     ];
     use std::io::Read;
     let mut cursor = container.physical_cursor()?;

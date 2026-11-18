@@ -1,12 +1,21 @@
 use super::*;
 
-impl RelWriter {
-    pub(super) fn ensure_write_ready(&self) -> Result<(), OwnerSessionError> {
-        if self.session.write_poisoned {
+impl RelSession {
+    pub(super) fn ensure_write_certain(&self) -> Result<(), OwnerSessionError> {
+        if self.write_poisoned {
             Err(OwnerSessionError::Record(
                 "owner session requires reopen after an uncertain write".into(),
             ))
-        } else if self.session.imports.open_epoch().is_some() {
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl RelWriter {
+    pub(super) fn ensure_write_ready(&self) -> Result<(), OwnerSessionError> {
+        self.session.ensure_write_certain()?;
+        if self.session.imports.open_epoch().is_some() {
             Err(OwnerSessionError::Record(
                 "owner mutation is fenced by an open import epoch".into(),
             ))

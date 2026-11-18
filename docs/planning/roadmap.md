@@ -12,7 +12,7 @@ The current public contract is owned by [API](../public-product-api.md), [CLI](.
 
 ## Current status and planned ownership
 
-The [homogeneous-REL and dependency-DAG roadmap](../rel-homogeneity-and-dependency-roadmap-2026-11-10.md) is deferred. Current persisted `OwnerScope` labels and project routing must not be described as a verified arbitrary inter-REL dependency DAG. That correction spans owner metadata, host grants/routing, CLI compatibility and context composition; its original ADR evidence must be recovered and reviewed before implementation. Existing owners and corpus must remain preserved.
+The [homogeneous-REL and dependency-DAG roadmap](../rel-homogeneity-and-dependency-roadmap-2026-11-10.md) records the broader architecture correction. The [REL dependency port specification](rel-dependency-port-spec-2026-11-18.md) and [execution plan](rel-dependency-port-plan-2026-11-18.md) cover the durable 2.1 declaration, authorized resolution and ambient context. The [acceptance record](../acceptance/rel-dependency-port-2026-11-18.md) records the implemented dependency behavior and preservation of existing owner identity and headers.
 
 The [standards remediation specification](../engineering-standards-remediation-spec-2026-11-10.md) governs ES01–ES06. [Final local verification](../acceptance/es06-local-verification-2026-11-11.md) records completed local structural, policy, behavioral and independent source-to-document checks. Hosted CI and formal adoption remain unverified; no future product capability is inferred from this remediation.
 
@@ -20,13 +20,13 @@ Manual community recomputation follows the [Leiden specification](leiden-communi
 
 ## Implementation sequence and acceptance
 
-For the homogeneity correction: inventory actual scope checks and missing graph behavior; recover the cited ADRs; specify authority/compatibility; implement focused independent changes; then verify old owner byte preservation, multi-parent/deep dependency closure, cycle rejection, sibling isolation and external host/CLI behavior. Do not change REL 2.1 fields or semantics as a documentation repair.
+For the homogeneity correction, trace and update the remaining scope-based creation and host-role checks using the archived ADRs and existing REL compatibility contract.
 
 For standards remediation: restore inventory → canonical docs → coverage/status → architecture review/enforcement → continuous checks → independent final acceptance. The spec contains the full criteria. An unavailable required gate remains an open item, never a successful check.
 
 ## Open decisions
 
-The scope-field compatibility transition and durable inter-REL dependency implementation/acceptance remain unresolved. Future format conversion, cross-owner/PHY reconciliation and additional provider or daemon surfaces require their own specification and acceptance. They are not promised by this roadmap.
+The scope-field compatibility transition and host-role alignment are open. Future format conversion, cross-owner/PHY reconciliation and additional provider or daemon surfaces require their own specification and acceptance. They are not promised by this roadmap.
 
 ## Related docs
 

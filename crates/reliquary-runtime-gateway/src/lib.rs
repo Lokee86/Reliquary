@@ -92,6 +92,10 @@ pub enum GatewayError {
     InvalidHandoffReceipt,
     InvalidPreparedRetrieval,
     StaleRetrieval,
+    RelDependencyCycle,
+    RelDependencyUnresolved,
+    StaleRelContext,
+    ContextDependencyBounds(String),
     Retrieval(String),
     RetrievalUnavailable(&'static str),
     IncompleteHostContract(RuntimeCapability),
@@ -155,6 +159,14 @@ impl fmt::Display for GatewayError {
             Self::StaleRetrieval => {
                 f.write_str("retrieval result no longer matches current authorized owner state")
             }
+            Self::RelDependencyCycle => f.write_str("REL dependencies contain a cycle"),
+            Self::RelDependencyUnresolved => {
+                f.write_str("a required REL dependency is not mounted")
+            }
+            Self::StaleRelContext => {
+                f.write_str("REL dependency context changed during preparation")
+            }
+            Self::ContextDependencyBounds(reason) => f.write_str(reason),
             Self::Retrieval(reason) => write!(f, "agentic retrieval failed: {reason}"),
             Self::RetrievalUnavailable(reason) => f.write_str(reason),
             Self::IncompleteHostContract(capability) => {
@@ -211,6 +223,7 @@ impl MountedOwner {
 pub struct Gateway {
     owners: Arc<RwLock<HashMap<OwnerId, MountedOwner>>>,
     owner_worker_leases: Arc<Mutex<BTreeSet<(OwnerId, u8)>>>,
+    rel_topology: Arc<RwLock<()>>,
 }
 fn validate_principal(principal: &str) -> Result<(), GatewayError> {
     if principal.trim().is_empty() || principal.chars().any(char::is_control) {
@@ -381,6 +394,7 @@ impl HostAdmissionAdapter {
 /// A principal-scoped view. Owner authorization is checked on every access.
 pub struct Instance {
     owners: Arc<RwLock<HashMap<OwnerId, MountedOwner>>>,
+    rel_topology: Arc<RwLock<()>>,
     principal: Arc<str>,
     instance_id: Uuid,
     rel_grants: Arc<BTreeSet<OwnerId>>,
@@ -425,6 +439,7 @@ mod instance_management;
 mod instance_native_import;
 mod instance_owner;
 mod instance_passive_retrieval;
+mod instance_rel_dependencies;
 pub use instance_passive_retrieval::{SearchMode, SearchResult};
 mod instance_processing;
 mod live_processing;

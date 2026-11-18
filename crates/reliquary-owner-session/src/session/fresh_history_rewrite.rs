@@ -121,16 +121,16 @@ pub fn rewrite_memory_history_copy(
         FreshHistoryIdentity::PreserveOwner => source.owner_id(),
     };
 
-    let source_common = match source.identity().file_kind {
+    let (source_common, source_dependencies) = match source.identity().file_kind {
         FileKind::Reliquary => {
-            RelSession::open(&source, graph_admission, [], [])
-                .map_err(|error| error.to_string())?
-                .common
+            let session = RelSession::open(&source, graph_admission, [], [])
+                .map_err(|error| error.to_string())?;
+            (session.common, session.rel_dependencies)
         }
         FileKind::Phylactery => {
-            PhySession::open(&source, graph_admission, [])
-                .map_err(|error| error.to_string())?
-                .common
+            let session = PhySession::open(&source, graph_admission, [])
+                .map_err(|error| error.to_string())?;
+            (session.common, RelDependencyDeclaration::default())
         }
     };
     if source.identity().file_kind == FileKind::Phylactery
@@ -142,7 +142,7 @@ pub fn rewrite_memory_history_copy(
     if !source_common.maintenance.is_empty() {
         return Err("fresh-history source has prior destructive maintenance state".into());
     }
-    reject_unsupported_operational_state(&source)?;
+    let dependency_frames = retained_dependency_frames(&source, destination_owner_id)?;
     let selected: BTreeSet<_> = request.retained_memory_ids.iter().copied().collect();
     for id in &selected {
         source_common
@@ -165,6 +165,9 @@ pub fn rewrite_memory_history_copy(
     let mut target = Container::create(&staged.path, source.identity(), destination_owner_id)
         .map_err(|error| error.to_string())?;
     super::create::initialize_owner(&mut target).map_err(|error| error.to_string())?;
+    for payload in dependency_frames {
+        target.append(&payload).map_err(|error| error.to_string())?;
+    }
     let mut target_memories = MemoryStore::open(&target).map_err(|error| error.to_string())?;
     if source.identity().file_kind == FileKind::Reliquary {
         copy_archive_state(&source, &mut target, request, &source_common)?;
@@ -273,6 +276,9 @@ pub fn rewrite_memory_history_copy(
         FileKind::Reliquary => {
             let reopened = RelSession::open_path(&staged.path, &reopened_graph, [], [])
                 .map_err(|error| error.to_string())?;
+            if reopened.rel_dependencies() != &source_dependencies {
+                return Err("fresh-history copy changed the REL dependency declaration".into());
+            }
             if let Some(closure) = &semantic_closure {
                 closure.verify_reopened(
                     &source_common,
@@ -333,7 +339,11 @@ fn publish_rewrite_candidate(staged: &StagedCopy, destination: &Path) -> Result<
 #[path = "fresh_history_rewrite/publication_tests.rs"]
 mod publication_tests;
 
-fn reject_unsupported_operational_state(source: &Container) -> Result<(), String> {
+fn retained_dependency_frames(
+    source: &Container,
+    destination_owner: [u8; 16],
+) -> Result<Vec<Vec<u8>>, String> {
+    use super::rel_dependencies::REL_DEPENDENCY_MAGIC;
     const UNSUPPORTED: &[&[u8]] = &[
         b"CVDREAM",
         b"RELDR",
@@ -348,19 +358,26 @@ fn reject_unsupported_operational_state(source: &Container) -> Result<(), String
         crate::records::user_memory::RETIREMENT,
         b"RELCMN01",
     ];
+    let mut dependencies = Vec::new();
     for frame in source.read_frames().map_err(|error| error.to_string())? {
         let body = reliquary_container::decode_publication(&frame.payload)
             .map_err(|error| error.to_string())?
             .map(|publication| publication.body)
             .unwrap_or(frame.payload.as_slice());
-        if UNSUPPORTED.iter().any(|prefix| body.starts_with(prefix)) {
+        let dependency = body.starts_with(REL_DEPENDENCY_MAGIC);
+        if UNSUPPORTED.iter().any(|prefix| body.starts_with(prefix))
+            || (dependency && source.owner_id() != destination_owner)
+        {
             return Err(
                 "fresh-history source contains operational evidence that cannot be safely replayed"
                     .into(),
             );
         }
+        if dependency {
+            dependencies.push(frame.payload);
+        }
     }
-    Ok(())
+    Ok(dependencies)
 }
 
 fn copy_archive_state(

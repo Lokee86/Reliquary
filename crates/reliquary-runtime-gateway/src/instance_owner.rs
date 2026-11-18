@@ -1,5 +1,37 @@
 use super::*;
 
+pub(super) enum RelMount {
+    Read(std::sync::Weak<RelSession>),
+    Write(std::sync::Weak<MountedRelWriter>),
+}
+
+impl RelMount {
+    pub(super) fn capture(instance: &Instance, owner: OwnerId) -> Result<Self, GatewayError> {
+        let owners = instance
+            .owners
+            .read()
+            .map_err(|_| GatewayError::RegistryPoisoned)?;
+        match owners.get(&owner) {
+            Some(MountedOwner::Rel(rel)) => Ok(Self::Read(Arc::downgrade(rel))),
+            Some(MountedOwner::RelWriter(rel)) => Ok(Self::Write(Arc::downgrade(rel))),
+            Some(_) => Err(GatewayError::WrongOwnerKind(owner)),
+            None => Err(GatewayError::UnknownOwner(owner)),
+        }
+    }
+}
+
+impl PartialEq for RelMount {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Read(a), Self::Read(b)) => a.ptr_eq(b),
+            (Self::Write(a), Self::Write(b)) => a.ptr_eq(b),
+            _ => false,
+        }
+    }
+}
+
+impl Eq for RelMount {}
+
 impl Instance {
     pub(crate) fn gateway_binding(&self) -> usize {
         Arc::as_ptr(&self.owners) as usize
@@ -45,6 +77,11 @@ impl Instance {
         owner: OwnerId,
         read: impl FnOnce(&RelSession) -> T,
     ) -> Result<T, GatewayError> {
+        self.authorize_rel_access(owner)?;
+        self.with_mounted_reliquary(owner, read)
+    }
+
+    pub(super) fn authorize_rel_access(&self, owner: OwnerId) -> Result<(), GatewayError> {
         self.ensure_credential_active()?;
         if !self.rel_grants.contains(&owner) {
             return Err(GatewayError::UnauthorizedRel {
@@ -52,6 +89,23 @@ impl Instance {
                 owner,
             });
         }
+        Ok(())
+    }
+
+    /// Internal topology validation reads only mounted declarations.
+    pub(super) fn mounted_rel_dependency_ids(
+        &self,
+        owner: OwnerId,
+    ) -> Result<Vec<[u8; 16]>, GatewayError> {
+        self.with_mounted_reliquary(owner, RelSession::rel_dependency_ids)?
+            .map_err(Into::into)
+    }
+
+    fn with_mounted_reliquary<T>(
+        &self,
+        owner: OwnerId,
+        read: impl FnOnce(&RelSession) -> T,
+    ) -> Result<T, GatewayError> {
         let mounted = {
             let owners = self
                 .owners

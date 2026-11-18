@@ -71,6 +71,7 @@ fn phy_rejects_wrapped_rel_only_records_without_mutation() {
     for (body, time) in [
         (b"RELTURN2".as_slice(), None),
         (b"RELXMEM2".as_slice(), Some(3)),
+        (b"RELDEP01".as_slice(), Some(4)),
     ] {
         let path = Temp::new();
         let owner = [0x46; 16];

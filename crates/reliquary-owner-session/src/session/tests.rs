@@ -38,6 +38,74 @@ fn initialize_vectors(container: &mut Container) {
 }
 
 #[test]
+fn rel_dependency_declarations_preserve_legacy_identity_and_replay() {
+    let path = Temp::new();
+    let owner = [0x71; 16];
+    let a = [0x11; 16];
+    let b = [0x12; 16];
+    drop(RelWriter::create_path(&path.0, ReliquaryScope::Connection, owner).unwrap());
+    let legacy = fs::read(&path.0).unwrap();
+    let session = RelSession::open_path_current(&path.0).unwrap();
+    assert_eq!(session.scope(), OwnerScope::Connection);
+    assert_eq!(
+        session.rel_dependencies(),
+        &RelDependencyDeclaration::default()
+    );
+    assert_eq!(fs::read(&path.0).unwrap(), legacy);
+
+    let accepted = {
+        let mut writer = RelWriter::open_path_current(&path.0).unwrap();
+        let (declaration, changed) = writer.replace_rel_dependencies(0, vec![b, a, b]).unwrap();
+        assert!(changed);
+        assert_eq!(declaration.generation, 1);
+        assert_eq!(declaration.owner_ids, vec![a, b]);
+        assert!(matches!(
+            writer.replace_rel_dependencies(0, vec![a, b]),
+            Err(OwnerSessionError::ManagementStale)
+        ));
+        assert!(matches!(
+            writer.replace_rel_dependencies(1, vec![owner]),
+            Err(OwnerSessionError::ManagementEvidence)
+        ));
+        assert_eq!(
+            writer.replace_rel_dependencies(1, vec![b, a]).unwrap(),
+            (declaration.clone(), false)
+        );
+        declaration
+    };
+    assert!(fs::read(&path.0).unwrap().starts_with(&legacy));
+    let session = RelSession::open_path_current(&path.0).unwrap();
+    assert_eq!(session.owner_id(), owner);
+    assert_eq!(session.scope(), OwnerScope::Connection);
+    assert_eq!(session.rel_dependencies(), &accepted);
+
+    {
+        let mut writer = RelWriter::open_path_current(&path.0).unwrap();
+        let (cleared, changed) = writer.replace_rel_dependencies(1, vec![]).unwrap();
+        assert!(changed);
+        assert_eq!(cleared.generation, 2);
+        assert!(cleared.owner_ids.is_empty());
+        writer.session.write_poisoned = true;
+        assert!(writer.read_session().rel_dependency_ids().is_err());
+    }
+    assert_eq!(
+        RelSession::open_path_current(&path.0)
+            .unwrap()
+            .rel_dependencies()
+            .generation,
+        2
+    );
+    let mut container = Container::open_writer(&path.0).unwrap();
+    container.append(b"RELDEP01").unwrap();
+    container.sync().unwrap();
+    drop(container);
+    assert!(matches!(
+        RelSession::open_path_current(&path.0),
+        Err(OwnerSessionError::Record(message)) if message.contains("dependency declaration")
+    ));
+}
+
+#[test]
 fn open_import_epoch_fences_mutation_after_writer_reopen() {
     let path = Temp::new();
     let owner = [0x71; 16];

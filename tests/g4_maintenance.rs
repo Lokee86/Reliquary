@@ -213,6 +213,123 @@ fn public_maintenance_rewrites_history_and_reconciles_quiescent_rel_copies() {
     );
 }
 
+#[test]
+fn rel_dependency_history_survives_supported_maintenance() {
+    use reliquary_container::Container;
+
+    fn dependency_frames(path: &Path) -> Vec<Vec<u8>> {
+        Container::open_read_only(path)
+            .unwrap()
+            .read_frames()
+            .unwrap()
+            .into_iter()
+            .map(|frame| frame.payload)
+            .filter(|payload| payload.starts_with(b"RELDEP01"))
+            .collect()
+    }
+
+    let paths = TestPaths::new();
+    let source_path = paths.path("dependencies.rel");
+    let base_path = paths.path("legacy-prefix.rel");
+    let target_path = paths.path("other-owner.rel");
+    let source = Rel::create(&source_path, OwnerScope::Organization).unwrap();
+    let target = Rel::create(&target_path, OwnerScope::Connection).unwrap();
+    let legacy = fs::read(source.path()).unwrap();
+    fs::write(&base_path, &legacy).unwrap();
+    {
+        let gateway = Gateway::new();
+        let source_id = gateway.mount_rel(&source, true).unwrap();
+        let target_id = gateway.mount_rel(&target, false).unwrap();
+        let token = "g4-maintenance-rel-dependencies-0000";
+        let (adapter, _) = TrustedHostAdmission::new([HostCredentialBinding::new(
+            "dependency-maintenance",
+            token,
+            [
+                OwnerGrant::ManageRel(source_id),
+                OwnerGrant::ViewRel(target_id),
+            ],
+        )])
+        .install(&gateway)
+        .unwrap();
+        let management = adapter
+            .authenticate(token)
+            .unwrap()
+            .workspace_management(source_id)
+            .unwrap();
+        management
+            .replace_rel_dependencies(0, &[target_id])
+            .unwrap();
+        management.replace_rel_dependencies(1, &[]).unwrap();
+    }
+    let accepted = fs::read(&source_path).unwrap();
+    assert!(accepted.starts_with(&legacy));
+    let history = dependency_frames(&source_path);
+    assert_eq!(history.len(), 2);
+    let source = Rel::open(&source_path).unwrap();
+
+    let prefix_copy = paths.path("prefix-copy.rel");
+    reconcile_rel(&base_path, &source_path, &prefix_copy).unwrap();
+    assert_eq!(fs::read(&prefix_copy).unwrap(), accepted);
+
+    let reclaimed = paths.path("reclaimed.rel");
+    let copy_plan = VerifiedCopyPlan::prepare(&source_path).unwrap();
+    reclaim_storage_copy(&copy_plan, &source_path, &reclaimed).unwrap();
+    assert_eq!(dependency_frames(&reclaimed), history);
+
+    let preserve_policy = RewritePolicy {
+        identity: RewriteIdentityMode::PreserveOwner,
+        ..RewritePolicy::default()
+    };
+    let plan = source.plan_rewrite(preserve_policy).unwrap();
+    let retained = paths.path("retained.rel");
+    execute_rewrite(&plan, &source_path, &retained).unwrap();
+    assert_eq!(Rel::open(&retained).unwrap().owner_id(), source.owner_id());
+    assert_eq!(dependency_frames(&retained), history);
+
+    let new_owner = paths.path("new-owner.rel");
+    let plan = source.plan_rewrite(RewritePolicy::default()).unwrap();
+    assert!(
+        execute_rewrite(&plan, &source_path, &new_owner)
+            .unwrap_err()
+            .message()
+            .contains("operational evidence")
+    );
+    assert!(!new_owner.exists());
+
+    let other_tail = paths.path("other-tail.rel");
+    fs::write(&other_tail, &legacy).unwrap();
+    add_memory(&other_tail, "other tail", "A valid divergent Memory", 101);
+    let refused = paths.path("refused.rel");
+    assert!(
+        reconcile_rel(&source_path, &other_tail, &refused)
+            .unwrap_err()
+            .message()
+            .contains("exact replay contract")
+    );
+    assert!(!refused.exists());
+
+    let left = paths.path("left.rel");
+    let right = paths.path("right.rel");
+    fs::write(&left, &accepted).unwrap();
+    fs::write(&right, &accepted).unwrap();
+    add_memory(
+        &left,
+        "left fact",
+        "Left branch after common dependencies",
+        102,
+    );
+    add_memory(
+        &right,
+        "right fact",
+        "Right branch after common dependencies",
+        103,
+    );
+    let merged = paths.path("merged.rel");
+    reconcile_rel(&left, &right, &merged).unwrap();
+    assert_eq!(dependency_frames(&merged), history);
+    assert_eq!(fs::read(&source_path).unwrap(), accepted);
+}
+
 // The public product API has no Phylactery mutation operation yet. This test
 // checks owner-kind, rewrite identity, and history-generation behavior on PHY.
 #[test]

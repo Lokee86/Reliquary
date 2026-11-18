@@ -67,6 +67,7 @@ pub use session::{
     RelationshipParticipantEvidence, RelationshipRetirementRequest, WithdrawEntityMentionRequest,
 };
 pub use session::{EntityPruneReport, prune_terminal_entity_descriptions_copy};
+pub use session::{MAX_REL_DEPENDENCIES, RelDependencyDeclaration, canonical_rel_dependency_ids};
 pub use session::{MemoryVectorInput, MemoryVectorRow};
 pub use session::{
     ProfileRepairError, ProfileRepairPlan, ProfileRepairReport, execute_profile_repair,

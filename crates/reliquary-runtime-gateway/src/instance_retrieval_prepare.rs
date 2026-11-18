@@ -39,7 +39,7 @@ impl Instance {
                 consumption_confirmed: false,
                 profile: None,
             }),
-            mount: RetrievalMount::capture(self, owner)?,
+            mount: RelMount::capture(self, owner)?,
             mode,
             delivery: Mutex::new(()),
         })

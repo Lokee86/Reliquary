@@ -17,6 +17,7 @@ Dated measurements and review reports. These records are evidence for their stat
 - [es04-architecture-audit-2026-11-11.md](es04-architecture-audit-2026-11-11.md) - Es04 Architecture Audit 2026 11 11 documentation.
 - [es06-local-verification-2026-11-11.md](es06-local-verification-2026-11-11.md) - Es06 Local Verification 2026 11 11 documentation.
 - [leiden-community-recomputation-2026-11-18.md](leiden-community-recomputation-2026-11-18.md) - Copied REL preview, publication, and reopen results.
+- [rel-dependency-port-2026-11-18.md](rel-dependency-port-2026-11-18.md) - REL dependency port compatibility and verification.
 <!-- doc-ledger:files:end -->
 
 ## Stub Files

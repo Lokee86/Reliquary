@@ -43,8 +43,8 @@ impl RelSession {
                 start_node_id: episode.start_node_id,
             })
             .collect::<Vec<_>>();
-        let grouped = validate_grouped_replay_admission(container, &archive)?;
-        let grouped_completions = grouped.completions;
+        let replay = validate_rel_replay_admission(container, &archive)?;
+        let grouped_completions = replay.completions;
         let local_owner_id: String = container
             .owner_id()
             .iter()
@@ -192,6 +192,7 @@ impl RelSession {
         let writer_lease_proof = container.writer_lease_proof();
         Ok(Self {
             owner_id: container.owner_id(),
+            rel_dependencies: replay.dependencies,
             archive,
             echo,
             common,
@@ -204,7 +205,7 @@ impl RelSession {
             external_references,
             external_memories,
             grouped_completions,
-            native_import_grouped_epochs: grouped.import_epochs,
+            native_import_grouped_epochs: replay.import_epochs,
             write_poisoned: false,
             container_identity: container.identity(),
             container_path,

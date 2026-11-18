@@ -24,7 +24,7 @@ Community recompute captures eligible IDs and active structural edges from one R
 
 Important guarantees are owner/file-kind matching, no cross-owner write, deterministic retry identity, typed replay, and all-or-rejected grouped publication where the operation defines a group. An interrupted or uncertain publication is reconciled from owner records and stable operation ids; callers must not infer success from a prepared value alone. Verified copy/reconciliation APIs preserve source owners and reopen the result before reporting verification.
 
-The storage model currently distinguishes REL and PHY semantics. A future homogeneous-REL/dependency-DAG correction is a documented planning issue; it is not implemented by this owner boundary and must not be represented as current behavior.
+REL dependency declarations are owner-local, REL-only metadata. The writer checks the expected generation, appends a canonical snapshot and syncs it. Reopen validates the record sequence independently of the mounted graph. Owner-session also exposes the stored Ego synthesis when its Memory version matches the current one.
 
 ## Code map and tests
 

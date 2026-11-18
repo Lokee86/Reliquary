@@ -20,6 +20,8 @@ Cross-owner workflows keep each mutable authority local. When an operation affec
 
 Community recompute solves the captured graph and calculates coverage and modularity. Preview returns the report. Apply sends that same partition and its captured versions to the REL writer.
 
+Context preparation prepends attributed dependency-synthesis messages before the primary request and counts them under its existing source and compaction budgets. The transcript and source view used for checkpointing contain the existing conversation evidence.
+
 ## Failure, recovery, and invariants
 
 The key invariants are: no semantic output is treated as truth without validation; source evidence must match the owner’s accepted records; mutation is explicit and owner-local; bounded inputs are rejected before expensive reads or provider work where possible; and durable publication goes through a typed owner-session method. Recovery is performed by rereading/replaying owner state and retrying the same stable workflow identity, not by rewriting store files in Application.

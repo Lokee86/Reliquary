@@ -136,6 +136,10 @@ impl Gateway {
 
     /// Remove one mounted owner after host-side quiescence.
     pub fn quiesce_owner(&self, owner: OwnerId) -> Result<(), GatewayError> {
+        let _topology = self
+            .rel_topology
+            .write()
+            .map_err(|_| GatewayError::RegistryPoisoned)?;
         let leases = self
             .owner_worker_leases
             .lock()
@@ -180,6 +184,7 @@ impl Gateway {
     ) -> Result<Instance, GatewayError> {
         Ok(Instance {
             owners: Arc::clone(&self.owners),
+            rel_topology: Arc::clone(&self.rel_topology),
             principal: Arc::from(principal),
             instance_id: Uuid::new_v4(),
             rel_grants: Arc::new(rel_grants),
@@ -240,6 +245,10 @@ impl Gateway {
         Ok(())
     }
     fn insert(&self, owner: OwnerId, mounted: MountedOwner) -> Result<(), GatewayError> {
+        let _topology = self
+            .rel_topology
+            .write()
+            .map_err(|_| GatewayError::RegistryPoisoned)?;
         let mut owners = self
             .owners
             .write()
