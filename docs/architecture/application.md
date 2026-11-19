@@ -18,6 +18,8 @@ A typical workflow reads a current owner snapshot, prepares bounded work, valida
 
 Cross-owner workflows keep each mutable authority local. When an operation affects REL and PHY, it uses explicit receipts, copy/reopen verification, or reconciliation rather than exposing a shared store. Retry behavior uses stable request/owner identities and current cuts; stale preparations are rejected or recomputed instead of applied over newer state.
 
+Inspection projects a Memory summary for one ID at an exact owner cut. It shares the paginated list's lifecycle, canonical status, and Community projection.
+
 Community recompute solves the captured graph and calculates coverage and modularity. Preview returns the report. Apply sends that same partition and its captured versions to the REL writer.
 
 Context preparation prepends attributed dependency-synthesis messages before the primary request and counts them under its existing source and compaction budgets. The transcript and source view used for checkpointing contain the existing conversation evidence.

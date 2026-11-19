@@ -199,6 +199,28 @@ impl Instance {
             )
             .map_err(Into::into)
     }
+    /// Read one Memory's current summary by ID at the caller's inspection cut.
+    pub fn inspect_memory_summary(
+        &self,
+        owner: OwnerId,
+        kind: OwnerKind,
+        expected_cut: InspectionCut,
+        id: MemoryId,
+    ) -> Result<MemoryListEntry, ProductError> {
+        match kind {
+            OwnerKind::Rel => self.require_rel_read(owner)?,
+            OwnerKind::Phylactery => self.require_phy_read(owner)?,
+        }
+        self.inner
+            .inspect_memory_summary(
+                owner.into(),
+                kind == OwnerKind::Phylactery,
+                expected_cut,
+                id,
+            )
+            .map_err(Into::into)
+    }
+
     /// Inspect one explicitly scoped mounted owner. A cursor only continues a read.
     pub fn inspect_owner(
         &self,

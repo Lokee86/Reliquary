@@ -1,9 +1,10 @@
 use super::*;
 use reliquary_application::inspection::{
     InspectionCursor, InspectionCut, InspectionItem, InspectionPage, InspectionQuery,
-    MemoryListFilters, MountedOwnerInfo, SemanticGraphProjectionItem,
-    SemanticGraphProjectionStatus, SourceAvailability, finish_provenance, inspect, inspection_cut,
-    memory_matches_filter, mounted_owner_info, resolve_provenance, visit_semantic_graph_projection,
+    MemoryListEntry, MemoryListFilters, MountedOwnerInfo, SemanticGraphProjectionItem,
+    SemanticGraphProjectionStatus, SourceAvailability, finish_provenance, inspect,
+    inspect_memory_summary, inspection_cut, memory_matches_filter, mounted_owner_info,
+    resolve_provenance, visit_semantic_graph_projection,
 };
 use reliquary_owner_session::{
     CommunityId, ManagementRead, MemoryId, SemanticGraphCommunityMemberPage,
@@ -54,6 +55,22 @@ impl Instance {
             .map_err(management_error)?;
         self.ensure_credential_active()?;
         Ok(status)
+    }
+
+    pub fn inspect_memory_summary(
+        &self,
+        owner: OwnerId,
+        phy: bool,
+        expected_cut: InspectionCut,
+        id: MemoryId,
+    ) -> Result<MemoryListEntry, GatewayError> {
+        let summary = self
+            .with_management_read(owner, phy, |read| {
+                inspect_memory_summary(read, expected_cut, id)
+            })?
+            .map_err(management_error)?;
+        self.ensure_credential_active()?;
+        Ok(summary)
     }
 
     pub fn inspect_management(

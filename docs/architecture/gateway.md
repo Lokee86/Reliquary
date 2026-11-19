@@ -16,6 +16,8 @@ Gateway does not own physical/semantic store encoding, Application publication p
 
 Mount admission checks owner identity and REL/PHY kind before registering an owner. Principal grants scope Instance methods, including the read-only `has_active_vectors` summary used by hosts to bind non-secret metadata before inference-backed writes. Callers cannot reuse an Instance's prepared retrieval or generation subscription across another owner, principal, stream, or Gateway binding. Worker queues serialize mutations for each mounted owner and shut down with the Gateway lifecycle.
 
+A direct Memory summary read uses the mounted REL or PHY covered by the Instance's read grant. Application checks the requested cut, and Gateway rechecks the credential before returning the summary.
+
 For Community recompute, Gateway captures owned input under the REL read and releases the lock for calculation. Apply reacquires the mounted writer and rechecks the credential before the owner session validates the captured versions and commits.
 
 Conversation submission state lives in a Gateway-owned append/replay journal, separate from REL semantic storage. The flow captures a submission, arbitrates finalize/cancel, commits the accepted turn through the mounted REL writer, and records an Archive receipt. A host handoff has a stable operation id and payload digest. Gateway syncs a handoff intent before calling the host; after an ambiguous result or restart, it queries host status and reconciles instead of blindly issuing the operation again. Generation delivery/checkpoints and memory-delivery intents are similarly tracked with stable identities and bounded replay surfaces.

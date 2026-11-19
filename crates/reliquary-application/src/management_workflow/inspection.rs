@@ -33,6 +33,7 @@ pub use graph_projection::{
 };
 pub use memory_list::{
     MemoryCanonicalStatus, MemoryListEntry, MemoryListFilters, MemoryListLifecycle,
+    inspect_memory_summary,
 };
 pub use provenance::{
     ExactMemoryProvenance, SourceCoordinate, finish_provenance, resolve_provenance,

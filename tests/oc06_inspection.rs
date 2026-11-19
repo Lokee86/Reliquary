@@ -454,6 +454,12 @@ fn hp02_memory_summaries_filter_and_page_without_returning_bodies() {
         assert_eq!(entry.title.as_deref(), Some("Accepted title"));
         assert_eq!(entry.excerpt, "é".repeat(255));
         assert_eq!(entry.lifecycle, MemoryListLifecycle::Active);
+        assert_eq!(
+            viewer
+                .inspect_memory_summary(owner, OwnerKind::Rel, result.cut, MemoryId(id(&entry.id)))
+                .unwrap(),
+            *entry
+        );
         let wire = serde_json::to_string(result).unwrap();
         assert!(!wire.contains("Needle at the end"));
         assert!(!wire.contains("\"content\""));
@@ -462,6 +468,13 @@ fn hp02_memory_summaries_filter_and_page_without_returning_bodies() {
     let mut expected = vec![first.id, second.id];
     expected.sort();
     assert_eq!(found, expected);
+    assert_eq!(
+        viewer
+            .inspect_memory_summary(owner, OwnerKind::Rel, page.cut, MemoryId([0; 32]))
+            .unwrap_err()
+            .kind(),
+        ProductErrorKind::Unavailable
+    );
 
     let changed_filters = InspectionQuery::MemorySummaries(MemoryListFilters::default());
     assert_eq!(
@@ -485,6 +498,13 @@ fn hp02_memory_summaries_filter_and_page_without_returning_bodies() {
     writer
         .create_memory_with_request(draft("three", "New matching needle".into()))
         .unwrap();
+    assert_eq!(
+        viewer
+            .inspect_memory_summary(owner, OwnerKind::Rel, page.cut, MemoryId(id(&expected[0])))
+            .unwrap_err()
+            .kind(),
+        ProductErrorKind::Stale
+    );
     assert_eq!(
         viewer
             .inspect_owner(owner, OwnerKind::Rel, &query, Some(cursor), 1)

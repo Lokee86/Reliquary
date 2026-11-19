@@ -53,6 +53,26 @@ pub struct MemoryListEntry {
     pub community_id: Option<String>,
 }
 
+pub fn inspect_memory_summary(
+    read: ManagementRead<'_>,
+    expected_cut: InspectionCut,
+    id: MemoryId,
+) -> Result<MemoryListEntry, ManagementError> {
+    let cut = inspection_cut(&read);
+    if cut != expected_cut {
+        return Err(ManagementError::Stale);
+    }
+    project(
+        &read,
+        id,
+        cut.memory,
+        &MemoryListFilters::default(),
+        "",
+        memory_community(&read, cut.graph, id),
+    )?
+    .ok_or(ManagementError::NotFound)
+}
+
 pub(super) fn inspect(
     read: &ManagementRead<'_>,
     filters: &MemoryListFilters,
@@ -61,10 +81,11 @@ pub(super) fn inspect(
     validate_filters(filters)?;
     let needle = filters.query.trim().to_lowercase();
     let cut = page.page.cut;
-    let communities = read
-        .community()
-        .filter(|snapshot| snapshot.graph_version == cut.graph);
-    if filters.community_id.is_some() && communities.is_none() {
+    if filters.community_id.is_some()
+        && !read
+            .community()
+            .is_some_and(|snapshot| snapshot.graph_version == cut.graph)
+    {
         return Err(ManagementError::Unsupported);
     }
 
@@ -75,13 +96,7 @@ pub(super) fn inspect(
         let ids = read.memory_ids_from_offset(offset, SCAN_BATCH);
         let exhausted = ids.len() < SCAN_BATCH;
         for id in ids {
-            let community_id = communities.and_then(|snapshot| {
-                snapshot
-                    .communities
-                    .iter()
-                    .find(|community| community.members.binary_search(&id.0).is_ok())
-                    .map(|community| community.id.0)
-            });
+            let community_id = memory_community(read, cut.graph, id);
             if let Some(item) = project(read, id, cut.memory, filters, &needle, community_id)? {
                 if page.page.items.len() == page.limit
                     || !page.push(InspectionItem::MemoryListEntry(item))?
@@ -100,6 +115,15 @@ pub(super) fn inspect(
         page.continue_at(offset);
     }
     Ok(())
+}
+
+fn memory_community(read: &ManagementRead<'_>, graph: u64, id: MemoryId) -> Option<[u8; 32]> {
+    read.community()
+        .filter(|snapshot| snapshot.graph_version == graph)?
+        .communities
+        .iter()
+        .find(|community| community.members.binary_search(&id.0).is_ok())
+        .map(|community| community.id.0)
 }
 
 pub(super) fn validate_filters(filters: &MemoryListFilters) -> Result<(), ManagementError> {
@@ -177,7 +201,10 @@ pub(super) fn matching_memory<'a>(
         (record, None)
     } else {
         read.memory_projection(id, None)
-            .map_err(|error| ManagementError::Owner(error.to_string()))?
+            .map_err(|error| match error {
+                MemoryError::MissingMemory => ManagementError::NotFound,
+                error => ManagementError::Owner(error.to_string()),
+            })?
     };
     let lifecycle = if tombstone.is_some() {
         MemoryListLifecycle::Tombstoned
