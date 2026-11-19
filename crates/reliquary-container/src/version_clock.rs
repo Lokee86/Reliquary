@@ -4,6 +4,44 @@ use std::collections::{BTreeMap, BTreeSet};
 const V1: &[u8; 8] = b"RELVERS1";
 const V2: &[u8; 8] = b"RELVERS2";
 
+/// A forward replay of the current Container clock in physical frame order.
+pub struct PhysicalClock {
+    next_version: u64,
+    transaction_times: BTreeMap<u64, i64>,
+    standalone_reservations: BTreeSet<u64>,
+}
+
+impl Default for PhysicalClock {
+    fn default() -> Self {
+        Self {
+            next_version: 1,
+            transaction_times: BTreeMap::new(),
+            standalone_reservations: BTreeSet::new(),
+        }
+    }
+}
+
+impl PhysicalClock {
+    /// Validate the next physical frame and return the highest allocated version.
+    pub fn observe_frame(&mut self, payload: &[u8]) -> Result<u64, ContainerError> {
+        observe_payload(
+            &mut self.next_version,
+            &mut self.transaction_times,
+            &mut self.standalone_reservations,
+            payload,
+        )?;
+        Ok(self.next_version - 1)
+    }
+
+    pub(crate) fn into_state(self) -> (u64, BTreeMap<u64, i64>, BTreeSet<u64>) {
+        (
+            self.next_version,
+            self.transaction_times,
+            self.standalone_reservations,
+        )
+    }
+}
+
 pub(crate) fn encode(version: u64, time: Option<i64>) -> Vec<u8> {
     match time {
         Some(time) => {
@@ -35,7 +73,7 @@ pub(crate) fn observe_range(next: &mut u64, start: u64, count: u64) -> Result<()
     Ok(())
 }
 
-pub(crate) fn observe_payload(
+fn observe_payload(
     next: &mut u64,
     times: &mut BTreeMap<u64, i64>,
     reservations: &mut BTreeSet<u64>,

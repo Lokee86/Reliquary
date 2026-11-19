@@ -3,6 +3,7 @@ mod dream_lifecycle;
 pub use dream_lifecycle::GroupedMemoryLifecycle;
 #[path = "initial_promotion.rs"]
 mod initial_promotion;
+use crate::routing::{MemoryRoutingMetadata, ROUTING_MARKER, decode_routing_metadata};
 use crate::{codec::*, decode_grouped_creation, error::MemoryError, model::*};
 pub use initial_promotion::GroupedMemoryInitialPromotion;
 use reliquary_container::{Container, ContainerIdentity};
@@ -10,6 +11,11 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::io::Read;
 
 pub type GroupedMemoryReplay = (Vec<(MemoryBodyId, Vec<u8>)>, Vec<Vec<u8>>);
+type RetainedGroupedMemoryReplay = (
+    Vec<(MemoryBodyId, Vec<u8>)>,
+    Vec<Vec<u8>>,
+    Vec<MemoryRoutingMetadata>,
+);
 
 /// Owner-session proof accompanying an atomic Dream lifecycle event.
 pub struct GroupedMemorySupersession {
@@ -48,6 +54,7 @@ impl Default for State {
 pub struct MemoryStore {
     state: State,
     pruned_bodies: BTreeSet<MemoryBodyId>,
+    routing: BTreeMap<MemoryId, MemoryRoutingMetadata>,
     initialized: bool,
     owner: Option<([u8; 16], ContainerIdentity)>,
 }
@@ -89,7 +96,8 @@ impl MemoryStore {
                 || magic == *CREATION
                 || magic == *DELTA
                 || magic == *TOMBSTONE
-                || magic == *b"RELINSC7"
+                || magic == *ROUTING_MARKER
+                || matches!(&magic, b"RELINSC7" | b"RELINSC8")
                 || magic.starts_with(b"RELMCOR")
                 || magic.starts_with(b"RELMRET")
             {
@@ -177,6 +185,29 @@ impl MemoryStore {
     pub fn open_with_management_groups(
         container: &Container,
         mut decode_grouped: impl FnMut(&[u8]) -> Result<Option<GroupedMemoryReplay>, MemoryError>,
+        decode_dream: impl FnMut(&[u8]) -> Result<Option<GroupedMemorySupersession>, MemoryError>,
+        decode_initial: impl FnMut(&[u8]) -> Result<Option<GroupedMemoryInitialPromotion>, MemoryError>,
+        decode_batch: impl FnMut(&[u8]) -> Result<Vec<GroupedMemoryLifecycle>, MemoryError>,
+        decode_management: impl FnMut(&[u8]) -> Result<GroupedManagementEffect, MemoryError>,
+    ) -> Result<Self, MemoryError> {
+        Self::open_with_retained_dream_batches(
+            container,
+            |bytes| {
+                Ok(decode_grouped(bytes)?.map(|(bodies, records)| (bodies, records, Vec::new())))
+            },
+            decode_dream,
+            decode_initial,
+            decode_batch,
+            decode_management,
+        )
+    }
+
+    pub fn open_with_retained_dream_batches(
+        container: &Container,
+        mut decode_grouped: impl FnMut(
+            &[u8],
+        )
+            -> Result<Option<RetainedGroupedMemoryReplay>, MemoryError>,
         mut decode_dream: impl FnMut(&[u8]) -> Result<Option<GroupedMemorySupersession>, MemoryError>,
         mut decode_initial: impl FnMut(
             &[u8],
@@ -229,14 +260,27 @@ impl MemoryStore {
                 store.initialized = true;
                 continue;
             }
-            if magic == *b"RELINSC7" {
+            if magic.starts_with(b"RELMRTE") {
+                if len > 64 * 1024 {
+                    return Err(MemoryError::FieldTooLarge);
+                }
                 let mut payload = Vec::with_capacity(len);
                 payload.extend_from_slice(&magic);
                 frame.read_to_end(&mut payload)?;
-                if let Some((bodies, records)) = decode_grouped(&payload)? {
+                store.apply_routing(decode_routing_metadata(&payload)?)?;
+                continue;
+            }
+            if matches!(&magic, b"RELINSC7" | b"RELINSC8") {
+                let mut payload = Vec::with_capacity(len);
+                payload.extend_from_slice(&magic);
+                frame.read_to_end(&mut payload)?;
+                if let Some((bodies, records, routing)) = decode_grouped(&payload)? {
                     // Owner replay validates any missing grouped payload only
                     // after it has admitted the exact terminal-prune manifest.
                     store.apply_grouped_completion_replay(bodies, records)?;
+                    for route in routing {
+                        store.apply_routing(route)?;
+                    }
                 }
                 continue;
             }
@@ -289,6 +333,40 @@ impl MemoryStore {
         }
         store.validate_backed_records()?;
         Ok(store)
+    }
+
+    pub fn routing_metadata(&self, memory_id: MemoryId) -> Option<&MemoryRoutingMetadata> {
+        self.routing.get(&memory_id)
+    }
+
+    fn apply_routing(&mut self, route: MemoryRoutingMetadata) -> Result<(), MemoryError> {
+        let record = self
+            .state
+            .revisions
+            .get(&route.memory_id)
+            .and_then(|revisions| revisions.first())
+            .ok_or(MemoryError::Corrupt(
+                "Memory routing precedes its Memory identity",
+            ))?;
+        if record.body_id != route.body_id {
+            return Err(MemoryError::Corrupt("Memory routing body identity differs"));
+        }
+        let body = self
+            .state
+            .bodies
+            .get(&route.body_id)
+            .ok_or(MemoryError::Corrupt(
+                "Memory routing requires the original body",
+            ))?;
+        route.validate_body(body)?;
+        if let Some(existing) = self.routing.get(&route.memory_id) {
+            if existing != &route {
+                return Err(MemoryError::Corrupt("conflicting Memory routing metadata"));
+            }
+        } else {
+            self.routing.insert(route.memory_id, route);
+        }
+        Ok(())
     }
 
     pub fn preflight_grouped_completion(
@@ -556,7 +634,7 @@ impl MemoryStore {
         expected_revision: u64,
         draft: MemoryDraft,
     ) -> Result<PublishResult, MemoryError> {
-        self.publish_inner(container, id, expected_revision, draft, None)
+        self.publish_inner(container, id, expected_revision, draft, None, None)
     }
 
     /// Publish a creation with an owner global coordinate for Dream replay.
@@ -566,7 +644,38 @@ impl MemoryStore {
         draft: MemoryDraft,
         transaction_time_ns: i64,
     ) -> Result<PublishResult, MemoryError> {
-        self.publish_inner(container, None, 0, draft, Some(transaction_time_ns))
+        self.publish_inner(container, None, 0, draft, Some(transaction_time_ns), None)
+    }
+
+    /// Write an ungrouped accepted creation or delta using its exact native coordinates.
+    pub fn publish_accepted_versioned_revision(
+        &mut self,
+        container: &mut Container,
+        global_version: u64,
+        transaction_time_ns: i64,
+        accepted: &MemoryRecord,
+        draft: MemoryDraft,
+    ) -> Result<(), MemoryError> {
+        let previous = accepted
+            .revision
+            .checked_sub(1)
+            .ok_or(MemoryError::RevisionConflict)?;
+        if self.state.next_memory_version != accepted.memory_version
+            || container.latest_version().checked_add(1) != Some(global_version)
+            || self.state.mutations.contains_key(&accepted.mutation_id)
+        {
+            return Err(MemoryError::RevisionConflict);
+        }
+        let id = (previous != 0).then_some(accepted.id);
+        self.publish_inner(
+            container,
+            id,
+            previous,
+            draft,
+            Some(transaction_time_ns),
+            Some(accepted),
+        )?;
+        Ok(())
     }
 
     fn publish_inner(
@@ -576,6 +685,7 @@ impl MemoryStore {
         expected_revision: u64,
         draft: MemoryDraft,
         versioned_at: Option<i64>,
+        accepted: Option<&MemoryRecord>,
     ) -> Result<PublishResult, MemoryError> {
         self.validate_owner(container)?;
         validate_draft(&draft)?;
@@ -639,6 +749,9 @@ impl MemoryStore {
             .checked_add(1)
             .ok_or(MemoryError::VersionExhausted)?;
         let record = record_for_draft(&draft, current, target, body_id, revision, memory_version)?;
+        if accepted.is_some_and(|expected| *expected != record) {
+            return Err(MemoryError::RevisionConflict);
+        }
         let body = MemoryBody {
             title: draft.title.clone(),
             content: draft.content.clone(),

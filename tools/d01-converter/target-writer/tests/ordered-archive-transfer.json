@@ -1,0 +1,48 @@
+{
+  "format": "reliquary-d01-synthetic-archive-transfer-v1",
+  "owner": "32323232323232323232323232323232",
+  "scope": "project",
+  "history_generation": "e1df88795ef889209b94ec297e22596fc172a2ff5096a2ed8d5cf980eeaa686c",
+  "revisions": [
+    {
+      "family": "turn",
+      "version": "1",
+      "conversation": "synthetic-conversation",
+      "node": "root",
+      "parent": null,
+      "role": "user",
+      "principal": "fixture-principal",
+      "timestamp_ns": "9007199254740993",
+      "content_id": "850f7dc43910ff890f8879c0ed26fe697c93a067ad93a7d50f466a7028a9bf4e",
+      "content": "café"
+    },
+    {
+      "family": "turn",
+      "version": "2",
+      "conversation": "synthetic-conversation",
+      "node": "reply",
+      "parent": "root",
+      "role": "assistant",
+      "principal": null,
+      "timestamp_ns": "9007199254741009",
+      "content_id": "a9f4b3d22a523fdada41c85c175425bcd15b32b4cd0f54d9433accd52d7195a1",
+      "content": "response"
+    },
+    {
+      "family": "branch",
+      "version": "3",
+      "conversation": "synthetic-conversation",
+      "branch": "main",
+      "leaf": "root",
+      "canonical": true
+    },
+    {
+      "family": "branch",
+      "version": "4",
+      "conversation": "synthetic-conversation",
+      "branch": "main",
+      "leaf": "reply",
+      "canonical": true
+    }
+  ]
+}

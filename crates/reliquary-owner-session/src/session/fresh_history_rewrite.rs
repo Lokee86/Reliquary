@@ -357,6 +357,12 @@ fn retained_dependency_frames(
         crate::records::user_memory::CORRECTION,
         crate::records::user_memory::RETIREMENT,
         b"RELCMN01",
+        reliquary_archive::PROJECT_BACKING_MARKER,
+        reliquary_archive::PROJECT_CORRELATION_MARKER,
+        reliquary_freshness_store::RETAINED_FRESHNESS_AUTHORITY_MARKER,
+        b"RELRELM1",
+        b"RELERH01",
+        b"RELERL01",
     ];
     let mut dependencies = Vec::new();
     for frame in source.read_frames().map_err(|error| error.to_string())? {
@@ -367,6 +373,7 @@ fn retained_dependency_frames(
         let dependency = body.starts_with(REL_DEPENDENCY_MAGIC);
         if UNSUPPORTED.iter().any(|prefix| body.starts_with(prefix))
             || (dependency && source.owner_id() != destination_owner)
+            || reliquary_archive::is_archive_publication_body(body).map_err(|e| e.to_string())?
         {
             return Err(
                 "fresh-history source contains operational evidence that cannot be safely replayed"
@@ -998,7 +1005,7 @@ pub(super) fn owner_history_generation_from_container(
     .into())
 }
 
-fn draft_from(
+pub(super) fn draft_from(
     revision: &reliquary_memory_core::MemoryRevision,
     body: &reliquary_memory_core::MemoryBody,
 ) -> MemoryDraft {

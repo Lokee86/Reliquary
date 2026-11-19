@@ -102,7 +102,20 @@ pub(super) fn removable_backing(
             let publication = decode_publication(bytes)
                 .map_err(|e| e.to_string())?
                 .ok_or("missing reclamation publication envelope")?;
-            if !memory_history_record(publication.body) {
+            if !memory_history_record(publication.body)
+                && !reliquary_archive::is_archive_publication_body(publication.body)
+                    .map_err(|e| e.to_string())?
+                && reliquary_perception_store::clocked_entity_in_frame(bytes)
+                    .map_err(|e| e.to_string())?
+                    .is_none()
+                && !reliquary_vector_store::generation::is_generation_publication_body(
+                    publication.body,
+                )
+                .map_err(|e| e.to_string())?
+                && reliquary_graph::clocked_graph_in_frame(bytes)
+                    .map_err(|e| e.to_string())?
+                    .is_none()
+            {
                 return Err("unsupported reclamation publication carrier".into());
             }
             Ok(false)
@@ -116,7 +129,7 @@ pub(super) fn removable_backing(
         | b"RELINSC7" | b"CVDREAM1" | b"CVDREAM2" | b"RELDRM01" | b"RELDRP02" | b"RELDRG01"
         | b"RELDRS01" | b"RELDRF01" | b"RELDRF02" | b"RELDRB01" | b"RELDRC01" | b"RELXMEM2"
         | b"RELXMEM3" | b"RELXMRP3" | b"RELXHST1" | b"RELPER01" | b"RELETM01" | b"RELRLP01"
-        | b"RELGRF01" | b"RELCOM01" | b"RELCMP01" => Ok(false),
+        | b"RELGRF01" | b"RELCOM01" | b"RELCMP01" | b"RELINSC8" => Ok(false),
         _ if pointer_free_frame(magic) => Ok(false),
         _ => Err(format!(
             "unsupported reclamation frame family {}",

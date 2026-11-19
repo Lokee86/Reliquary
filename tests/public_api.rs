@@ -205,6 +205,53 @@ fn host_grants_do_not_cross_rel_and_phylactery_boundaries() {
     );
 }
 
+#[test]
+#[ignore = "requires the verified offline migration candidates"]
+fn migrated_pair_preserves_private_memory_grants() {
+    use reliquary_memory::{InspectionQuery, MemoryId, OwnerKind};
+    use std::env;
+
+    let rel = Rel::open(env::var_os("RELIQUARY_MIGRATION_REL").unwrap()).unwrap();
+    let phy = Phylactery::open(env::var_os("RELIQUARY_MIGRATION_PHY").unwrap()).unwrap();
+    let id = MemoryId(parse_hex(&env::var("RELIQUARY_MIGRATION_MEMORY").unwrap()));
+    let gateway = Gateway::new();
+    let rel_owner = gateway.mount_rel(&rel, false).unwrap();
+    let phy_owner = gateway.mount_phylactery(&phy, false).unwrap();
+    let rel_only = "r".repeat(48);
+    let paired = "p".repeat(48);
+    let (adapter, _) = TrustedHostAdmission::new([
+        HostCredentialBinding::new("rel-only", &rel_only, [OwnerGrant::ViewRel(rel_owner)]),
+        HostCredentialBinding::new(
+            "paired",
+            &paired,
+            [
+                OwnerGrant::ViewRel(rel_owner),
+                OwnerGrant::ViewPhylactery(phy_owner),
+            ],
+        ),
+    ])
+    .install(&gateway)
+    .unwrap();
+    let query = InspectionQuery::Memory {
+        id,
+        revision: Some(1),
+    };
+    let inspect = |token| {
+        adapter.authenticate(token).unwrap().inspect_owner(
+            phy_owner,
+            OwnerKind::Phylactery,
+            &query,
+            None,
+            1,
+        )
+    };
+    assert_eq!(
+        inspect(&rel_only).unwrap_err().kind(),
+        ProductErrorKind::Unauthorized
+    );
+    assert_eq!(inspect(&paired).unwrap().items.len(), 1);
+}
+
 fn parse_hex(value: &str) -> [u8; 32] {
     let mut bytes = [0; 32];
     for (index, byte) in bytes.iter_mut().enumerate() {

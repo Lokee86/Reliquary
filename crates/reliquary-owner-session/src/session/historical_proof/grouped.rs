@@ -1,6 +1,6 @@
 use super::*;
 
-pub(super) fn validate_grouped_memory_cut(
+pub(in crate::session) fn validate_grouped_memory_cut(
     completions: &BTreeMap<(WorkEpisodeId, u32), GroupedInsomniaCompletion>,
     memory_version: u64,
 ) -> Result<(), HistoricalProofError> {

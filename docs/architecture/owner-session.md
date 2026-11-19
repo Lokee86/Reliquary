@@ -28,6 +28,8 @@ Important guarantees are owner/file-kind matching, no cross-owner write, determi
 
 REL dependency declarations are owner-local, REL-only metadata. The writer checks the expected generation, appends a canonical snapshot and syncs it. Reopen validates the record sequence independently of the mounted graph. Owner-session also exposes the stored Ego synthesis when its Memory version matches the current one.
 
+Ordinary 2.1 owner admission replays retained publications and verifies the owning clocks and references. The offline writer uses the same native codecs and reopens its staged output through that admission. Offline comparison reads through the optional `d02-observation` feature in a separate Cargo workspace. The historical FRS07 reader and its transfer formats run in a separate checkout. REL and PHY files produced by migration follow the usual grant rules.
+
 ## Code map and tests
 
 - Public ownership surface: [`crates/reliquary-owner-session/src/lib.rs`](../../crates/reliquary-owner-session/src/lib.rs), [`session.rs`](../../crates/reliquary-owner-session/src/session.rs), and [`session/rel_writer.rs`](../../crates/reliquary-owner-session/src/session/rel_writer.rs).

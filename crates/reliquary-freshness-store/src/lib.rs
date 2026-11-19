@@ -5,6 +5,7 @@ mod historical_snapshot;
 mod model;
 mod policy;
 mod projection;
+mod retained_import;
 mod score;
 mod store;
 
@@ -18,6 +19,7 @@ pub use projection::{
     FreshnessEvent, FreshnessEventCut, FreshnessEventProof, FreshnessEventProvenance,
     FreshnessReplayEntry, FreshnessUseReceipt,
 };
+pub use retained_import::{RETAINED_FRESHNESS_AUTHORITY_MARKER, RetainedFreshnessAuthority};
 pub use score::{
     FreshnessError, FreshnessRecord, FreshnessState, settle_with_initial_decay_carry, state_for,
     validate_policy,

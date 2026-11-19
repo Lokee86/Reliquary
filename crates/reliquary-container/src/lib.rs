@@ -17,8 +17,9 @@ const CURRENT_VERSION: FormatVersion = FormatVersion { major: 2, minor: 1 };
 
 mod grouped_clock;
 mod publication_envelope;
-pub use publication_envelope::{PublicationEnvelope, decode_publication};
+pub use publication_envelope::{PublicationEnvelope, decode_publication, replace_publication_body};
 mod version_clock;
+pub use version_clock::PhysicalClock;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct FormatVersion {
@@ -501,6 +502,11 @@ impl Container {
         self.transaction_times.get(&version).copied()
     }
 
+    /// Whether a current clock ticket is still available to bind.
+    pub fn has_unbound_version_reservation(&self, version: u64) -> bool {
+        self.standalone_reservations.contains(&version)
+    }
+
     /// Reserve the next physical version as a standalone ticket. A later
     /// publication envelope may bind to this reservation at its own frame.
     pub fn reserve_version(
@@ -610,24 +616,19 @@ impl Container {
     }
 
     fn rebuild_clock(&mut self) -> Result<(), ContainerError> {
-        let mut next_version = 1;
-        let mut transaction_times = BTreeMap::new();
-        let mut standalone_reservations = BTreeSet::new();
+        let mut clock = PhysicalClock::default();
         let mut cursor = self.physical_cursor()?;
         while let Some(mut frame) = cursor.next_frame()? {
             let mut bytes = Vec::new();
             frame.read_to_end(&mut bytes).map_err(ContainerError::Io)?;
-            version_clock::observe_payload(
-                &mut next_version,
-                &mut transaction_times,
-                &mut standalone_reservations,
-                &bytes,
-            )?;
+            clock.observe_frame(&bytes)?;
         }
         drop(cursor);
-        self.next_version = next_version;
-        self.transaction_times = transaction_times;
-        self.standalone_reservations = standalone_reservations;
+        (
+            self.next_version,
+            self.transaction_times,
+            self.standalone_reservations,
+        ) = clock.into_state();
         Ok(())
     }
 

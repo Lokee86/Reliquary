@@ -1,0 +1,86 @@
+# D02 current-only reader probe
+
+This offline assurance binary is outside the shipping package graph. It enables the owner-session d02-observation feature only in this standalone package; the feature is disabled by default for product consumers.
+
+The observer opens one shared read-only Container, constructs the current REL or PHY owner session from that same handle, and retains the shared lease through page export and finalization. It hashes physical bytes through the held handle, checks that the candidate path still names that file before and after observation, and emits the owner identity and clocks observed from the target. The reported global version is the highest allocated physical version, not an accepted-cut inventory.
+
+Each invocation emits at most one page of current Memory IDs: at most 128 IDs and 4 KiB of raw ID payload. An optional --memory-cursor continues pagination. Cursor v2 binds owner kind/scope/ID, held-file SHA-256, history generation, Memory version, family/order, next page index, after-ID, and preceding page digest; cursors are limited to 512 bytes. A cursor is a public SHA-256 checksum, not authentication. Nonempty pages, including short pages, continue until a separate empty terminal page is observed. The observer does not read revision bodies or histories.
+
+Each page report includes a versioned receipt bound to its observed owner, file hash, history generation and Memory version, with an exclusive lower ID bound, ordered rows, count/byte totals, page index, predecessor digest, schema digest and domain-separated page digest. `validate_memory_page_chain` checks supplied reports for a contiguous page-index and digest chain, consistent snapshot binding, strict ID order/range, exact row/count/byte agreement, cursor-to-page binding, and one final empty terminal page. It accepts at most 4,096 pages per chain. Its result stays `INCOMPLETE` even when the supplied pages are internally consistent. The hashes are unkeyed and publicly recomputable: this validates chain consistency, not producer identity or proof that an untrusted exporter did not omit rows and rehash its output.
+
+The ordinary current-only owner open replays the complete owner before these bounded page APIs are reached. This probe does not claim that the owner replay or full-file hashing is size-bounded. It does not call historical_proof, so the proof record cap cannot truncate or gate the Memory-ID page.
+
+The probe and page-chain validator always return INCOMPLETE, emit no semantic parity rows, and mark all five PG-C01 fixture families and exhaustive cut inventory incomplete. A chain covers only the supplied pages of one current Memory version; its empty terminal page reports that the reader's next-after query returned empty for the same hash-bound snapshot. It does not establish authenticity, source-wide truth, admitted historical cuts or full parity. Revisions, bodies, lifecycle, provenance and product-family mappings remain incomplete. The remaining fixture schema families are synthetic and do not define real product fields or source bindings. Owner identity is not principal authorization.
+
+Synthetic Rust tests create disposable current-format REL and PHY owners. They check same-handle hash/path identity behavior and read-only output, then build 129 direct synthetic Memories to verify the 128-item/4-KiB page bound, short-page continuation through an explicit empty terminal page, ordered chain validation and rejection of missing/reordered/duplicated/tampered/unterminated chains.
+
+The exact schema/fixture inputs remain pinned to PG-C01 commit 0f824a09fe01f5ff327ab56f3296f36d8f4d7c87. No converter crate or converter traversal is imported. --output uses exclusive creation and refuses existing destinations; it never writes to the candidate.
+
+
+## Archive cut observation
+
+A separate current-only command captures one explicit REL Archive version:
+
+```powershell
+cargo build --manifest-path tools/d02-parity/reader/Cargo.toml --locked --offline
+& tools/d02-parity/reader/target/debug/d02-current-reader.exe --kind rel --candidate $candidate --archive-cut 2
+```
+
+The report preserves accepted turn and Branch revision order, immutable node/content IDs, parentage, exact decimal timestamps, Archive and activity coordinates, source attachments and explicit pruned-body evidence. It includes typed Episodes, fragments, import receipts and conversation tombstones exposed by the selected Archive snapshot. Retained UTF-8 body and inline attachment bytes are represented by independently computed SHA-256 and lengths. The witness remains private since identifiers and metadata can be sensitive.
+
+The reader uses the current owner session and validates candidate SHA-256 and path identity under one read-only lease. It rejects future cuts and never substitutes a head for the requested cut. This is a per-cut projection, with full owner replay and no total memory bound. It does not enumerate global authority or validate cut completeness, Echo or conversation title history, other stores, physical relocations, or consumer parity. A successful projection is marked `OBSERVED` and the overall report and exit code remain `INCOMPLETE` and `2`.
+
+Use the separately authored oracle to compare the synthetic ordered Archive candidate created by D01. The oracle covers the genesis, both turn publications and both branch revisions. It opens each cut twice in fresh processes and compares exact projections against literals, including intermediate state with no current branch and timestamps above 2^53.
+
+```powershell
+python tools/d02-parity/tests/check_ordered_archive_candidate.py --reader tools/d02-parity/reader/target/debug/d02-current-reader.exe --candidate $candidate
+```
+
+Its `PASS` applies only to that synthetic Archive fixture.
+
+
+## Memory history at a cut
+
+Use `--memory-history ID:VERSION` to read all retained revisions of a single Memory through an explicit owner-local cut on a current REL or PHY. The ID is 64 lowercase hex digits and the version is an unsigned decimal string. The report preserves ordered revisions, body digests and lengths, lifecycle, tombstones, provenance and temporal evidence. A known terminal prune cites its manifest. A missing local body without prune evidence stays distinct from a terminal prune. An unsupported future or grouped-interior cut emits no projection.
+
+For recognized standalone publication envelopes, the observer resolves each retained revision or tombstone's local version to its global version and transaction time through the held Container. A null standalone origin indicates this scan found no standalone envelope. It makes no claim about grouped or other unobserved origin formats. This is a one-Memory, one-cut observation, with full owner replay and no total memory bound. It never returns a corpus parity pass.
+
+```powershell
+& tools/d02-parity/reader/target/debug/d02-current-reader.exe --kind phy --candidate $candidate --memory-history "${id}:2"
+python tools/d02-parity/tests/check_ordered_memory_candidate.py --reader tools/d02-parity/reader/target/debug/d02-current-reader.exe --candidate $candidate
+```
+
+The Python oracle uses separately authored exact observations for the ordered synthetic PHY fixture from D01. It checks genesis and both revisions in twice-repeated fresh processes, including global/Memory clocks, signed source time and distinct transaction times above 2^53.
+
+
+## Archive publication bindings
+
+Use `--archive-binding-cut VERSION` when the source requires exact local and global publication history. The report retains the selected semantic Archive projection and emits a separate binding projection. Each ordered binding carries the local and global versions, nullable signed transaction time, allocation or reservation mode, and first-applying local and global versions. A repeat has its own coordinates and resolves directly to the earlier applying publication. Global versions can be out of order in Archive local order when a later publication binds a prior reservation.
+
+The reader reconciles every local version in the requested prefix between current Archive replay and an independent physical frame-header walk under one read-only lease. It resolves signed timestamps from preceding standalone reservation frames, compares the result with the Container clock, and checks that each accepted object reference resolves to the right envelope. An incomplete binding prefix emits no observation. The local Archive observation still runs full owner replay and does not bound total memory.
+
+```powershell
+& tools/d02-parity/reader/target/debug/d02-current-reader.exe --kind rel --candidate $candidate --archive-binding-cut 6
+python tools/d02-parity/tests/check_bound_archive_candidate.py --reader tools/d02-parity/reader/target/debug/d02-current-reader.exe --candidate $syntheticCandidate
+python tools/d02-parity/compare_archive_bindings.py --reader tools/d02-parity/reader/target/debug/d02-current-reader.exe --candidate $candidate --candidate-sha256 $candidateHash --expectation $sourceExpectation --expectation-sha256 $expectationHash
+```
+
+The comparison expects a hash-pinned `reliquary-archive-binding-expectation-v1` JSON document containing `source_file_sha256`, an `owner` with `kind`, `owner_uuid` and `scope`, and the canonical `binding_projection` with an `archive_version` and ordered `bindings` array. It repeats the target read in two fresh processes at the expected head and compares every binding. The SHA-256 digest uses the domain `reliquary:d02:archive-publication-bindings:v1` followed by NUL and compact, key-sorted UTF-8 JSON of the projection. The result applies to one owner's Archive bindings. Cohort parity remains `INCOMPLETE`.
+
+## Authentic retained Memory history
+
+The bulk observer opens a current-only candidate once under a shared read-only lease, enumerates all retained Memory histories including terminal IDs, and scans physical standalone and grouped Insomnia publication origins once. It emits canonical commitments for every typed revision, retained body, current revision pointer, terminal tombstone and routing value. Revision commitments include provenance and temporal fields, publication clocks, and exact signed times. Missing bodies or unresolved revision origins prevent an observation.
+
+`compare_authentic_memory.py` compares those rows with the independently verified F03 v2 witness. Supply the candidate SHA-256, legacy owner SHA-256, and pinned source coverage and manifest SHA-256 values. It verifies the source batch chain, reopens the current candidate in two fresh processes, and compares the retained row population by stable key, canonical value, origin, and availability.
+
+The comparator reports unobserved external Memory evidence separately. If that family has source rows, the report stays `INCOMPLETE` with exit code 2 even when all comparable Memory rows match. Candidate or source mismatch returns `FAIL`. The result applies to the stated Memory families for one owner.
+
+## Authentic retained Archive history
+
+The current reader's `--archive-owner-history` mode emits commitments for all accepted Archive publications and content at the owner head, plus native project correlations and embedded project file references. The projection checks turn body identities and inline attachment extents before hashing. Publication commitments preserve each local and global coordinate, signed transaction time, and typed retained value, including intermediate branch changes.
+
+`compare_authentic_archive.py` compares that output with the hash-pinned F03 v2 source witness. It matches both Archive and project rows by stable key and checks their exact value, origin, and availability. The check opens the current REL twice and verifies the file hash under each held read-only lease. Its pass applies to the two stated domains for one owner. Run `compare_archive_bindings.py` separately for reservation and first-applying publication checks.
+
+## Retained Freshness authority
+
+The current reader's `--retained-freshness` mode observes the retained settlement under the ordinary current REL replay. It hashes the exact retained source proof and the typed signed scores and activity anchors, and reports the base, settlement, Archive, Graph, MemoryGraph, and global coordinates. `compare_authentic_freshness.py` compares the projection with the independently reconstructed, hash-pinned F03 settlement receipt in two fresh current opens. The check covers the retained authority and settlement anchors for one REL.

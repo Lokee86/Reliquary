@@ -296,7 +296,13 @@ pub(crate) fn safe_memory_only_frames(
             let envelope = decode_publication(&payload)
                 .map_err(|e| e.to_string())?
                 .ok_or("missing publication envelope")?;
-            if !memory_history_record(envelope.body) {
+            if !memory_history_record(envelope.body)
+                && !reliquary_archive::is_archive_publication_body(envelope.body)
+                    .map_err(|e| e.to_string())?
+                && reliquary_graph::clocked_graph_in_frame(&payload)
+                    .map_err(|e| e.to_string())?
+                    .is_none()
+            {
                 return Err("transform needs an owner proof for publication body".into());
             }
             version = version.max(envelope.version);
@@ -389,6 +395,8 @@ pub(crate) fn pointer_free_frame(magic: &[u8]) -> bool {
             | b"RELXMEM3"
             | b"RELXMRP3"
             | b"RELXHST1"
+            | b"RELERH01"
+            | b"RELERL01"
             | b"RELPER01"
             | b"RELETM01"
             | b"RELRLP01"
@@ -398,5 +406,11 @@ pub(crate) fn pointer_free_frame(magic: &[u8]) -> bool {
             | b"RELCMP01"
             | b"RELCMN01"
             | b"RELDEP01"
+            | b"RELCOM02"
+            | b"RELPRB01"
+            | b"RELPRC01"
+            | b"RELRELM1"
+            | b"RELHFA01"
+            | b"RELMRTE2"
     )
 }

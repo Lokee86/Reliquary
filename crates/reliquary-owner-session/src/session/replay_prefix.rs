@@ -124,7 +124,9 @@ pub(super) fn validate_graph_prefix(
         };
         for child in children {
             let payload = reliquary_container::decode_publication(child)?
-                .filter(|envelope| envelope.body.starts_with(b"RELMCRT1"))
+                .filter(|envelope| {
+                    crate::records::memory_prune_proof::memory_history_record(envelope.body)
+                })
                 .map_or(child, |envelope| envelope.body);
             if payload.starts_with(b"RELMCRT1") {
                 let record = reliquary_memory_core::decode_grouped_creation(payload)?;
@@ -134,7 +136,7 @@ pub(super) fn validate_graph_prefix(
                 if record.revision == 1 {
                     birth_bodies.insert(record.id.0, record.body_id.0);
                 }
-            } else if payload.starts_with(b"RELINSC7") {
+            } else if crate::records::insomnia_completion::is_grouped_completion(payload) {
                 let completion = GroupedInsomniaCompletion::decode(payload)
                     .map_err(OwnerSessionError::Record)?;
                 for record in completion.memory_records {
@@ -215,8 +217,17 @@ pub(super) fn validate_graph_prefix(
                     ));
                 }
             }
-            if let Some(relation) = reliquary_graph::relation_in_frame(payload)? {
-                for endpoint in [relation.source, relation.target] {
+            let relations = match reliquary_graph::clocked_graph_in_frame(payload)? {
+                Some(publication) => publication.relations,
+                None => reliquary_graph::relation_in_frame(payload)?
+                    .into_iter()
+                    .collect(),
+            };
+            if !relations.is_empty() {
+                for endpoint in relations
+                    .iter()
+                    .flat_map(|relation| [relation.source, relation.target])
+                {
                     let found = match endpoint {
                         NodeRef::Memory(id) => memories.contains(&id),
                         NodeRef::Entity(id) => entities.contains(&id),
@@ -227,7 +238,7 @@ pub(super) fn validate_graph_prefix(
                         ));
                     }
                 }
-                graph_version = relation.graph_version;
+                graph_version = relations[0].graph_version;
             } else if let Some(group) =
                 crate::records::dream_group::GroupedDreamRelation::decode(payload)
                     .map_err(OwnerSessionError::Record)?

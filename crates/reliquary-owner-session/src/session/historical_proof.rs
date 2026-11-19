@@ -2,7 +2,7 @@ use super::*;
 use reliquary_freshness_store::FreshnessEventCut;
 
 mod fingerprint;
-mod grouped;
+pub(super) mod grouped;
 #[cfg(test)]
 mod grouped_tests;
 mod projection;
@@ -133,7 +133,7 @@ impl RelSession {
             .and_then(|count| count.checked_add(archive.conversation_tombstones.len()))
             .and_then(|count| count.checked_add(freshness_evidence.len()))
             .ok_or(HistoricalProofError::LimitExceeded)?;
-        if retained > MAX_PROOF_RECORDS {
+        if retained > MAX_PROOF_RECORDS || archive.publication_bindings.len() > MAX_PROOF_RECORDS {
             return Err(HistoricalProofError::LimitExceeded);
         }
         Ok(HistoricalOwnerProof {

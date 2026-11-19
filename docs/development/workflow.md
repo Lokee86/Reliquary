@@ -44,6 +44,8 @@ For changes to REL creation or scope metadata, the [homogeneity execution plan](
 
 For host mount lifecycle changes, exercise the public Root admission and quiescence tests in `tests/public_api.rs`. Focus on the target mount, grant checks and unaffected owners.
 
+For offline owner history migration, follow the [execution plan](../planning/owner-history-migration-plan-2026-11-18.md). Run the detached writer and reader on verified copies, then compare both owners against the frozen source witness before recording acceptance.
+
 ## Documentation and policy gates
 
 Run from the repository root, with compatible `ddocs`, Pitlord, Lexicon and Arcana tools installed as described in [policy operations](../../tools/pitlord/README.md):

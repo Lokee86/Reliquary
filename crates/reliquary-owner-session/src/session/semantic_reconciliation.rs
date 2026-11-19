@@ -309,7 +309,14 @@ fn semantic_records(container: &Container) -> Result<Vec<Vec<u8>>, RelReconcilia
         .map(|frame| {
             let publication = reliquary_container::decode_publication(&frame.payload)
                 .map_err(|error| RelReconciliationError::Verification(error.to_string()))?;
-            Ok(publication.map_or_else(|| frame.payload.clone(), |value| value.body.to_vec()))
+            if let Some(publication) = publication
+                && !reliquary_archive::is_archive_publication_body(publication.body)
+                    .map_err(|error| RelReconciliationError::Verification(error.to_string()))?
+            {
+                Ok(publication.body.to_vec())
+            } else {
+                Ok(frame.payload)
+            }
         })
         .collect()
 }

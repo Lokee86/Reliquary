@@ -202,6 +202,16 @@ fn retired_profile_prune_replaces_only_exclusive_backing_and_reopens() {
     assert_eq!(report.pruned_packed_vectors, 1);
     assert!(report.transformed_bytes < report.source_bytes);
     assert_eq!(fs::read(&repaired).unwrap(), before);
+    let current_only_before = fs::read(&output).unwrap();
+    let current_only = PhySession::open_path_current(&output).unwrap();
+    assert_eq!(current_only.owner_id(), owner);
+    assert_eq!(
+        current_only
+            .memory_vector_row(kept, memory.body_id)
+            .unwrap(),
+        Some(vec![1.0, 0.0])
+    );
+    assert_eq!(fs::read(&output).unwrap(), current_only_before);
     let reopened = PhySession::open_path(&output, &grant, []).unwrap();
     assert_eq!(
         reopened.memory_vector_row(kept, memory.body_id).unwrap(),

@@ -516,3 +516,49 @@ fn versioned_memory_creation_reopens_with_its_global_coordinate() {
     ));
     assert_eq!(container.read_frames().unwrap().len(), before);
 }
+
+#[test]
+fn exact_versioned_memory_import_refuses_a_forged_record_before_appending() {
+    let temp = TempDir::new();
+    let (mut source, mut source_store) = open_new(&temp.0.join("source.rel"));
+    let input = draft("create", "Title", "fact");
+    let revision = source_store
+        .publish_versioned_creation(&mut source, input.clone(), 10)
+        .unwrap()
+        .revision;
+    let path = temp.0.join("target.rel");
+    let (mut target, mut target_store) = open_new(&path);
+    target.sync().unwrap();
+    let before = target.read_frames().unwrap();
+    let mut forged = revision.record.clone();
+    forged.body_id = MemoryBodyId([0; 32]);
+
+    assert!(matches!(
+        target_store.publish_accepted_versioned_revision(
+            &mut target,
+            1,
+            10,
+            &forged,
+            input.clone()
+        ),
+        Err(MemoryError::RevisionConflict)
+    ));
+    assert_eq!(target.latest_version(), 0);
+    assert_eq!(target_store.memory_version(), 0);
+    assert_eq!(target.read_frames().unwrap(), before);
+
+    target_store
+        .publish_accepted_versioned_revision(&mut target, 1, 10, &revision.record, input)
+        .unwrap();
+    target.sync().unwrap();
+    drop(target);
+    let reopened = Container::open_read_only(&path).unwrap();
+    assert_eq!(reopened.transaction_time_ns(1), Some(10));
+    assert_eq!(
+        MemoryStore::open(&reopened)
+            .unwrap()
+            .current(revision.record.id)
+            .unwrap(),
+        revision
+    );
+}

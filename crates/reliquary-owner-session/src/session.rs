@@ -902,21 +902,38 @@ impl PhySession {
         Self::open(&container, graph_admission, dream_admissions)
     }
 
-    /// Open and fully admit one current-format PHY from durable owner evidence.
-    pub fn open_path_current(path: impl AsRef<Path>) -> Result<Self, OwnerSessionError> {
-        let container = Container::open_read_only_as(path, FileKind::Phylactery)?;
-        require_kind(&container, FileKind::Phylactery)?;
-        reject_rel_only_records(&container)?;
-        let common = open_common_for_owner(&container, container.owner_id(), [], false)?;
+    /// Open and fully admit current-format PHY evidence from an already-open
+    /// container. Kept private so offline readers can share the same admission
+    /// boundary without acquiring a writer or bypassing common retention checks.
+    fn open_current(container: &Container) -> Result<Self, OwnerSessionError> {
+        require_kind(container, FileKind::Phylactery)?;
+        reject_rel_only_records(container)?;
+        let common = open_common_for_owner(container, container.owner_id(), [], false)?;
+        retired_profile_prune::validate_common_profile_prune(
+            &common.profiles,
+            &common.packed_vectors,
+            &common.memory_vectors,
+            &common.maintenance,
+        )?;
         Ok(Self {
             owner_id: container.owner_id(),
             common,
-            history_generation: owner_history_generation_from_container(&container)
+            history_generation: owner_history_generation_from_container(container)
                 .map_err(OwnerSessionError::Record)?,
             container_file_identity: container.physical_file_identity()?,
         })
     }
 
+    /// Open and fully admit one current-format PHY from durable owner evidence.
+    pub fn open_path_current(path: impl AsRef<Path>) -> Result<Self, OwnerSessionError> {
+        let container = Container::open_read_only_as(path, FileKind::Phylactery)?;
+        Self::open_current(&container)
+    }
+
+    #[cfg(feature = "d02-observation")]
+    pub(super) fn verification_history_generation(&self) -> [u8; 32] {
+        self.history_generation
+    }
     pub fn owner_id(&self) -> [u8; 16] {
         self.owner_id
     }
@@ -1029,12 +1046,23 @@ pub use management_association::MemoryAssociationCut;
 #[path = "session/user_memory.rs"]
 mod user_memory;
 pub use user_memory::{UserMemoryCorrection, UserMemoryCorrectionResult};
+mod phy_memory_import;
 mod phy_writer;
 mod rel_dependencies;
 pub use rel_dependencies::{
     MAX_REL_DEPENDENCIES, RelDependencyDeclaration, canonical_rel_dependency_ids,
 };
 mod rel_session;
+#[cfg(feature = "d02-observation")]
+mod verification_observation;
+#[cfg(feature = "d02-observation")]
+pub use verification_observation::{
+    ArchiveCutObservation, ArchiveOwnerHistoryObservation, ArchiveTurnOrigin,
+    CurrentOwnerFinalization, CurrentOwnerKind, CurrentOwnerObservation,
+    MAX_MEMORY_ID_CURSOR_BYTES, MAX_MEMORY_ID_PAGE_COUNT, MAX_MEMORY_ID_PAGE_PAYLOAD_BYTES,
+    MemoryHistoryCutObservation, MemoryIdPage, MemoryOwnerHistoryObservation,
+    MemoryPublicationOrigin, ReadOnlyCurrentOwnerObserver,
+};
 mod rel_writer;
 pub use management::{
     ManagementRead, RelConversationSummary, RelImportedSource, RelSourceTurn, RelTranscriptTurn,
