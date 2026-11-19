@@ -23,6 +23,8 @@ TARGET_PUBLICATIONS = {
 NEUTRAL_PAIRS = (
     (b"CVACOMM1", b"RELCOM02", "community"),
     (b"CVAERS03", b"RELERH01", "resolution"),
+    (b"CVAERL01", b"RELERL01", "inert_resolution"),
+    (b"CVARELM1", b"RELRELM1", "rel_metadata"),
     (b"PRJCOR02", b"RELPRC01", "project_correlation"),
     (b"CVADRM01", b"RELDRM01", "dream_source"),
     (b"CVADRP02", b"RELDRP02", "dream_pair"),

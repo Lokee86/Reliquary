@@ -44,7 +44,7 @@ For changes to REL creation or scope metadata, the [homogeneity execution plan](
 
 For host mount lifecycle changes, exercise the public Root admission and quiescence tests in `tests/public_api.rs`. Focus on the target mount, grant checks and unaffected owners.
 
-For offline owner history migration, follow the [execution plan](../planning/owner-history-migration-plan-2026-11-18.md). Run the detached writer and reader on verified copies, then compare both owners against the frozen source witness before recording acceptance.
+Run the detached writer and reader on verified copies for offline owner history migration. Freeze a source witness for each named REL and PHY pair, then verify both owners together and record a separate receipt per pair. [Execution plan](../planning/owner-history-migration-plan-2026-11-18.md) · [Paired verifier](../../tools/d02-parity/README.md)
 
 ## Documentation and policy gates
 

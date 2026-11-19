@@ -162,12 +162,14 @@ def compose(args, witness):
     require(len(matches) == 1, "source custody differs from the reviewed witness")
     owner = matches[0]
     kind = 1 if args.fixture.endswith(".rel") else 2
-    prefixes = {"REL": "proj", "PHY": "phy"}
+    rel_prefix = {"unspecified": "rel", "organization": "org", "project": "proj", "connection": "con"}
     aliases = {}
     for row in coverage["sources"]:
-        file_kind = row["header_observation"]["owner_kind_observed_from_header"]
+        header = row["header_observation"]
+        scope = header["native_scope_observed_from_header"] or "unspecified"
+        prefix = "phy" if header["owner_kind_observed_from_header"] == "PHY" else rel_prefix[scope]
         identity = uuid.UUID(row["owner_uuid"])
-        aliases[f"{prefixes[file_kind]}-{identity}"] = identity.hex
+        aliases[f"{prefix}-{identity}"] = identity.hex
     copy_id = owner["copy_id"]
     memory_dir = args.transfer_root / "memory-transfer-v1"
     graph_dir = args.transfer_root / "graph-transfer-v1"

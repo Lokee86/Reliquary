@@ -18,6 +18,7 @@ Dated measurements and review reports. These records are evidence for their stat
 - [es06-local-verification-2026-11-11.md](es06-local-verification-2026-11-11.md) - Es06 Local Verification 2026 11 11 documentation.
 - [leiden-community-recomputation-2026-11-18.md](leiden-community-recomputation-2026-11-18.md) - Copied REL preview, publication, and reopen results.
 - [owner-history-migration-first28d-2026-11-18.md](owner-history-migration-first28d-2026-11-18.md) - Original 28-day REL and PHY offline migration evidence.
+- [owner-history-migration-other-pairs-2026-11-19.md](owner-history-migration-other-pairs-2026-11-19.md) - Separate offline migration evidence for the original 14-day and Ellis pairs.
 - [rel-dependency-port-2026-11-18.md](rel-dependency-port-2026-11-18.md) - REL dependency port compatibility and verification.
 - [rel-homogeneity-2026-11-18.md](rel-homogeneity-2026-11-18.md) - Scope-free creation and legacy REL header verification.
 <!-- doc-ledger:files:end -->

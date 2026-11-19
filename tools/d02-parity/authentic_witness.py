@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 import re
+from uuid import UUID
 
 from archive_binding_evidence import hex_digest
 from evidence_io import WitnessInputError, strict_json_document
@@ -24,6 +25,13 @@ def unsigned(value: str) -> int:
     require(isinstance(value, str) and bool(re.fullmatch(r"0|[1-9][0-9]{0,19}", value)),
             "noncanonical unsigned decimal in F03 evidence")
     return int(value)
+
+
+def legacy_rel_label(owner_id: str, scope: str | None) -> str:
+    prefix = {"unspecified": "rel", "organization": "org", "project": "proj", "connection": "con"}[
+        scope or "unspecified"
+    ]
+    return f"{prefix}-{UUID(owner_id)}"
 
 
 def pinned_document(path: Path, digest: str, limit: int) -> dict:

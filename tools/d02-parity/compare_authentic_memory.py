@@ -8,10 +8,9 @@ import json
 from pathlib import Path
 import subprocess
 import sys
-from uuid import UUID
 
 from archive_binding_evidence import hex_digest
-from authentic_witness import index_rows, read_source, require, retained_records, unsigned
+from authentic_witness import index_rows, legacy_rel_label, read_source, require, retained_records, unsigned
 from compare_archive_bindings import digest_file
 from compare_clocked_prefix import pinned_rows
 from evidence_io import WitnessInputError, strict_json_document
@@ -45,7 +44,9 @@ def run_reader(reader: Path, candidate: Path, kind: str) -> dict:
 
 
 def reviewed_source_projection(expected, source_digest, coverage_digest, manifest_digest, paired):
-    receipt_path, pinned_sha, rel_id, kind = paired
+    receipt_path, pinned_sha, rel, kind = paired
+    rel_id = rel["owner_uuid"]
+    source_rel = legacy_rel_label(rel_id, rel["scope"])
     require(digest_file(receipt_path) == pinned_sha, "Memory source transfer receipt changed")
     receipt = json.loads(receipt_path.read_bytes())
     require(receipt["source_coverage_sha256"] == coverage_digest
@@ -57,7 +58,7 @@ def reviewed_source_projection(expected, source_digest, coverage_digest, manifes
         for item in row["revisions"]:
             record = item["record"]
             source = record["source_ref"]
-            if source is not None and source["owner_id"] == f"proj-{UUID(rel_id)}":
+            if source is not None and source["owner_id"] == source_rel:
                 canonical_ref = dict(source, owner_id=rel_id)
                 reason = "paired_rel_owner_uuid"
             elif (kind == "REL" and source is None and record["source_episode_id"] and record["source_node_id"]):

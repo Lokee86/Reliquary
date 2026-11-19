@@ -5,16 +5,15 @@ import json
 import subprocess
 from uuid import UUID
 
-from authentic_witness import require
+from authentic_witness import legacy_rel_label, require
 from compare_clocked_prefix import pinned_rows
 
 
-def freeze(evidence, source_copies, owners, artifacts):
+def freeze(evidence, rel_copy, owners, artifacts):
     from f03_verify_archive_values import scan
 
     coverage = evidence / "witness"
-    pubs, contents, _ = scan(coverage, artifacts, owners["REL"],
-                             "reliquary-f03-historical-state-v2", source_copies / "chatgpt-first28d/project.prj.rel")
+    pubs, contents, _ = scan(coverage, artifacts, owners["REL"], "reliquary-f03-historical-state-v2", rel_copy)
     turns = {}
     episodes = {}
     for row in pubs:
@@ -28,7 +27,8 @@ def freeze(evidence, source_copies, owners, artifacts):
 
     rel_owner = owners["REL"]["owner_uuid"]
     phy_owner = owners["PHY"]["owner_uuid"]
-    rel_label = f"proj-{UUID(rel_owner)}"
+    rel_scope = owners["REL"]["header_observation"]["native_scope_observed_from_header"]
+    rel_label = legacy_rel_label(rel_owner, rel_scope)
     phy_label = f"phy-{UUID(phy_owner)}"
     transfer_dir = evidence / "transfers/memory-transfer-v1"
     memory_receipt = json.loads((transfer_dir / "memory-source-transfer.json").read_bytes())
