@@ -115,7 +115,18 @@ impl Gateway {
     }
 
     pub(crate) fn quiesce(&self, owner: OwnerId) -> Result<(), ProductError> {
-        self.inner.quiesce_owner(owner.into())?;
+        self.quiesce_mount(owner, false)
+    }
+
+    pub(crate) fn detach_read_only_phylactery(&self, owner: OwnerId) -> Result<(), ProductError> {
+        self.quiesce_mount(owner, true)
+    }
+
+    fn quiesce_mount(
+        &self,
+        owner: OwnerId,
+        require_read_only_phy: bool,
+    ) -> Result<(), ProductError> {
         let mut mounted = self.mounted.lock().map_err(|_| {
             ProductError::new(
                 ProductErrorKind::Unavailable,
@@ -125,6 +136,11 @@ impl Gateway {
         let record = mounted.get_mut(&owner).ok_or_else(|| {
             ProductError::new(ProductErrorKind::Unavailable, "owner is not registered")
         })?;
+        if require_read_only_phy {
+            self.inner.detach_read_only_phylactery(owner.into())?;
+        } else {
+            self.inner.quiesce_owner(owner.into())?;
+        }
         record.mounted = false;
         Ok(())
     }

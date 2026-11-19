@@ -42,6 +42,8 @@ For REL dependency changes, use the Root topology and context fixture, the maint
 
 For changes to REL creation or scope metadata, the [homogeneity execution plan](../planning/rel-homogeneity-plan-2026-11-18.md) describes the focused Core and CLI checks, the pre-change 2.1 files, and the matched Hermes setup check.
 
+For host mount lifecycle changes, exercise the public Root admission and quiescence tests in `tests/public_api.rs`. Focus on the target mount, grant checks and unaffected owners.
+
 ## Documentation and policy gates
 
 Run from the repository root, with compatible `ddocs`, Pitlord, Lexicon and Arcana tools installed as described in [policy operations](../../tools/pitlord/README.md):

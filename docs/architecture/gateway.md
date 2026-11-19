@@ -20,6 +20,8 @@ For Community recompute, Gateway captures owned input under the REL read and rel
 
 Conversation submission state lives in a Gateway-owned append/replay journal, separate from REL semantic storage. The flow captures a submission, arbitrates finalize/cancel, commits the accepted turn through the mounted REL writer, and records an Archive receipt. A host handoff has a stable operation id and payload digest. Gateway syncs a handoff intent before calling the host; after an ambiguous result or restart, it queries host status and reconciles instead of blindly issuing the operation again. Generation delivery/checkpoints and memory-delivery intents are similarly tracked with stable identities and bounded replay surfaces.
 
+Trusted host control releases a read-only PHY under the same mount guard as quiescence. Callers drain owner operations and update their admission grants at the host boundary.
+
 Gateway coordinates REL dependency edits with mount changes under one topology guard. It validates each proposed reachable graph and resolves context in dependency-first order with an explicit read grant at each traversed owner. The prepared context carries weak mount bindings, the declaration generations and synthesis cuts. Gateway rechecks those bindings on delivery and finalization. Token counting and inference run after the locks are released.
 
 ## External host contracts

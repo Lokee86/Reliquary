@@ -71,17 +71,27 @@ impl TrustedHostAdmission {
                 grants: product_grants,
                 gateway: gateway.clone(),
             },
-            HostAdmissionControl { inner: control },
+            HostAdmissionControl {
+                inner: control,
+                gateway: gateway.clone(),
+            },
         ))
     }
 }
 
 pub struct HostAdmissionControl {
     inner: runtime::HostAdmissionControl,
+    gateway: Gateway,
 }
 impl HostAdmissionControl {
     pub fn revoke(&self, token: &str) -> Result<(), ProductError> {
         self.inner.revoke(token).map_err(Into::into)
+    }
+
+    /// Release one read-only PHY mount after draining operations that use it.
+    /// The host controls admission and revocation separately.
+    pub fn detach_read_only_phylactery(&self, owner: OwnerId) -> Result<(), ProductError> {
+        self.gateway.detach_read_only_phylactery(owner)
     }
 }
 

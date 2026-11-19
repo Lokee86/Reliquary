@@ -1,6 +1,6 @@
 use reliquary_memory::{
-    Gateway, HostCredentialBinding, OwnerGrant, Phylactery, ProductErrorKind, Rel,
-    TrustedHostAdmission,
+    Gateway, HostCredentialBinding, InspectionQuery, MemoryListFilters, OwnerGrant, OwnerKind,
+    Phylactery, ProductErrorKind, Rel, TrustedHostAdmission,
 };
 use std::{
     fs,
@@ -55,6 +55,54 @@ fn current_rel_and_phylactery_reopen_with_stable_identity_and_kind_checks() {
         Phylactery::open(&rel_path).err().unwrap().kind(),
         ProductErrorKind::WrongFormat
     );
+}
+
+#[test]
+fn trusted_host_detaches_only_the_selected_read_only_phy() {
+    let temp = TestPaths::new("detach-phy");
+    let rel = Rel::create(temp.path("owner.rel")).unwrap();
+    let writable = Phylactery::create(temp.path("writable.phy")).unwrap();
+    let read_only = Phylactery::create(temp.path("view.phy")).unwrap();
+    let gateway = Gateway::new();
+    let rel_id = gateway.mount_rel(&rel, true).unwrap();
+    let writable_id = gateway.mount_phylactery(&writable, true).unwrap();
+    let read_id = gateway.mount_phylactery(&read_only, false).unwrap();
+    let token = "synthetic-phy-detach-admission-token";
+    let (admission, control) = TrustedHostAdmission::new([HostCredentialBinding::new(
+        "operator",
+        token,
+        [
+            OwnerGrant::ViewRel(rel_id),
+            OwnerGrant::ViewPhylactery(writable_id),
+            OwnerGrant::ViewPhylactery(read_id),
+        ],
+    )])
+    .install(&gateway)
+    .unwrap();
+    let instance = admission.authenticate(token).unwrap();
+    let inspect = |owner, kind| {
+        instance.inspect_owner(
+            owner,
+            kind,
+            &InspectionQuery::MemorySummaries(MemoryListFilters::default()),
+            None,
+            1,
+        )
+    };
+    let original = fs::read(read_only.path()).unwrap();
+
+    assert!(control.detach_read_only_phylactery(rel_id).is_err());
+    assert!(control.detach_read_only_phylactery(writable_id).is_err());
+    control.detach_read_only_phylactery(read_id).unwrap();
+    assert!(inspect(read_id, OwnerKind::Phylactery).is_err());
+    assert!(inspect(rel_id, OwnerKind::Rel).is_ok());
+    assert!(inspect(writable_id, OwnerKind::Phylactery).is_ok());
+
+    assert_eq!(
+        gateway.mount_phylactery(&read_only, false).unwrap(),
+        read_id
+    );
+    assert_eq!(fs::read(read_only.path()).unwrap(), original);
 }
 
 #[test]

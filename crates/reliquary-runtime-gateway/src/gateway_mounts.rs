@@ -136,6 +136,19 @@ impl Gateway {
 
     /// Remove one mounted owner after host-side quiescence.
     pub fn quiesce_owner(&self, owner: OwnerId) -> Result<(), GatewayError> {
+        self.quiesce_mount(owner, false)
+    }
+
+    /// Remove a read-only PHY after the trusted host drains its requests.
+    pub fn detach_read_only_phylactery(&self, owner: OwnerId) -> Result<(), GatewayError> {
+        self.quiesce_mount(owner, true)
+    }
+
+    fn quiesce_mount(
+        &self,
+        owner: OwnerId,
+        require_read_only_phy: bool,
+    ) -> Result<(), GatewayError> {
         let _topology = self
             .rel_topology
             .write()
@@ -153,6 +166,18 @@ impl Gateway {
             .owners
             .write()
             .map_err(|_| GatewayError::RegistryPoisoned)?;
+        if require_read_only_phy {
+            match owners
+                .get(&owner)
+                .ok_or(GatewayError::UnknownOwner(owner))?
+            {
+                MountedOwner::Phy(_) => {}
+                MountedOwner::PhyWriter(_) => {
+                    return Err(OwnerSessionError::ManagementConflict.into());
+                }
+                _ => return Err(GatewayError::WrongOwnerKind(owner)),
+            }
+        }
         owners
             .remove(&owner)
             .ok_or(GatewayError::UnknownOwner(owner))?;
