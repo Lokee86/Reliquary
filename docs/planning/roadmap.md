@@ -24,9 +24,13 @@ The [homogeneity specification](rel-homogeneity-spec-2026-11-18.md) and [executi
 
 For standards remediation: restore inventory → canonical docs → coverage/status → architecture review/enforcement → continuous checks → independent final acceptance. The spec contains the full criteria. An unavailable required gate remains an open item, never a successful check.
 
+## Offline owner history migration
+
+The [migration specification](owner-history-migration-spec-2026-11-18.md) and [execution plan](owner-history-migration-plan-2026-11-18.md) recover the offline converter and verifier and define the first proof on copies of the original 28-day REL and PHY. Both output files use native 2.1 admission.
+
 ## Open decisions
 
-The optional free-form REL type label remains separate from the creation and role admission work. Future format conversion, cross-owner/PHY reconciliation and additional provider or daemon surfaces require their own specification and acceptance.
+The optional free-form REL type label remains separate from the creation and role admission work. Cross-owner and PHY reconciliation, additional provider surfaces, and a deployed daemon require their own specification and acceptance.
 
 ## Related docs
 
