@@ -40,6 +40,8 @@ Tests protecting representative boundaries include Container reopen/partial-appe
 
 Repository-local Pitlord checks both resolved `imports` and Cargo `depends-on` evidence. Foundation, store, owner-session and semantic-service areas must remain independent of Application/Gateway in every dependency category; put cross-owner integration tests at higher orchestration, Root or consumer boundaries. Observed area cycles include test edges. This is distinct from the exact production-only package DAG: permitted Application/Gateway dev dependencies on lower stores are not mislabeled as production edges.
 
+The native Freshness store uses SHA-256 to bind retained authority bytes. The offline history writer and comparison tool have separate workspaces. The FRS07 source reader runs from an isolated historical checkout outside the production dependency graph.
+
 ## Extension seams
 
 Add persistent record behavior to the owning store and expose it through a narrow owner-session operation. Add a new product workflow in Application when it combines owners or defines publication policy. Add semantic capabilities as proposal/decision owners; keep provider selection in Switchboard and external host lifecycle in Gateway. Update the DAG and focused owner page whenever package ownership or call direction changes.

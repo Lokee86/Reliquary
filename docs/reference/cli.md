@@ -12,6 +12,8 @@ Build with `cargo build --manifest-path cli/Cargo.toml --locked`. The program is
 
 No arguments, exactly `--help`/`-h`, and exactly `--version`/`-V` are special invocations. `--help` text identifies version `0.1.0` and the supported 2.1 command surface. `--version` returns JSON. `--config FILE` may prefix a command and is rotated to the command arguments; commands that accept it may also take it in their own options. Default config path is `reliquary.cfg`.
 
+`rel verify` and `phy verify` use ordinary 2.1 admission for files produced by the [offline history migration](../planning/owner-history-migration-plan-2026-11-18.md). Original FRS07 inputs produce a format error.
+
 ## Command families
 
 | Family / syntax | Options and defaults | Contract and common diagnostics |

@@ -16,4 +16,4 @@ python -B tools/d01-converter/compose_authentic.py --source-tools $SourceScripts
 
 Use the composer's `transfer_sha256` in the writer invocation. Repeat with `chatgpt-first28d/user.phy` and a distinct transfer and new owner path. Capture the composer and writer receipts for each file. The writer receipt establishes current-format reopen and binds the candidate hash. The independent reader establishes parity.
 
-The profile-independent fixture tests exercise Archive allocation and reservation binding, retained PHY revisions, output collision and unresolved vector backing. Run `cargo test --manifest-path tools/d01-converter/target-writer/Cargo.toml --locked --offline -j 1`. Use a local scratch directory for files and receipts containing original data.
+The focused fixtures exercise Archive allocation and reservation binding, retained PHY revisions, output collision and unresolved vector backing. Run `cargo test --manifest-path tools/d01-converter/target-writer/Cargo.toml --locked --offline -j 1`. Use a local scratch directory for files and receipts containing original data.
