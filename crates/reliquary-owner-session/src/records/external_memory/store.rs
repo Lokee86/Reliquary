@@ -18,12 +18,11 @@ impl ExternalMemoryStore {
         let mut seen_external_creations = std::collections::BTreeSet::new();
         let mut accepted_turns = std::collections::BTreeSet::new();
         let mut rel_turn = 0u64;
-        for f in container.read_frames().map_err(|e| e.to_string())? {
+        let mut frames = container.scan_frames().map_err(|e| e.to_string())?;
+        while let Some(f) = frames.next_frame().map_err(|e| e.to_string())? {
             let publication =
-                reliquary_container::decode_publication(&f.payload).map_err(|e| e.to_string())?;
-            let body = publication
-                .as_ref()
-                .map_or(f.payload.as_slice(), |p| p.body);
+                reliquary_container::decode_publication(f.payload).map_err(|e| e.to_string())?;
+            let body = publication.as_ref().map_or(f.payload, |p| p.body);
             if let Some(reliquary_archive::SourcePublication::Turn {
                 conversation_id,
                 node_id,

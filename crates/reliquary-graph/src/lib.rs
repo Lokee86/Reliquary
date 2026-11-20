@@ -261,30 +261,31 @@ impl GraphStore {
             incoming: BTreeMap::new(),
             duplicate_incident: BTreeMap::new(),
         };
-        for frame in container.read_frames()? {
-            if let Some(publication) = clocked_graph_in_frame(&frame.payload)? {
+        let mut frames = container.scan_frames()?;
+        while let Some(frame) = frames.next_frame()? {
+            if let Some(publication) = clocked_graph_in_frame(frame.payload)? {
                 store.replay_clocked(publication, admission)?;
             } else if frame.payload.starts_with(b"RELDRB") {
-                for relation in batch(&frame.payload, &store)? {
+                for relation in batch(frame.payload, &store)? {
                     store.apply_dream_relation(admission, relation)?;
                 }
-            } else if let Some((owner, relation)) = decode_graph(&frame.payload)? {
+            } else if let Some((owner, relation)) = decode_graph(frame.payload)? {
                 if owner != store.owner {
                     return Err(GraphError::WrongOwner);
                 }
                 store.apply_replay(relation, admission)?;
-            } else if let Some((owner, effect)) = user_association_in_frame(&frame.payload)? {
+            } else if let Some((owner, effect)) = user_association_in_frame(frame.payload)? {
                 if owner != store.owner {
                     return Err(GraphError::WrongOwner);
                 }
                 store.replay_user_association(admission, effect)?;
             } else if frame.payload.starts_with(b"RELMCOR") {
-                let relation = grouped(&frame.payload)?.ok_or(GraphError::CorruptRecord(
+                let relation = grouped(frame.payload)?.ok_or(GraphError::CorruptRecord(
                     "grouped correction requires owner replay",
                 ))?;
                 store.apply_management_supersession(admission, relation)?;
             } else if frame.payload.starts_with(b"RELDRG") || frame.payload.starts_with(b"RELDRS") {
-                let relation = grouped(&frame.payload)?.ok_or(GraphError::CorruptRecord(
+                let relation = grouped(frame.payload)?.ok_or(GraphError::CorruptRecord(
                     "grouped Dream requires owner replay",
                 ))?;
                 store.validate_grouped_relation(admission, relation)?;
@@ -719,8 +720,9 @@ impl CommunityStore {
             names: community_names::CommunityNames::default(),
             derivations: BTreeMap::new(),
         };
-        for frame in container.read_frames()? {
-            if let Some((owner, snapshot, coverage)) = decode_community(&frame.payload)? {
+        let mut frames = container.scan_frames()?;
+        while let Some(frame) = frames.next_frame()? {
+            if let Some((owner, snapshot, coverage)) = decode_community(frame.payload)? {
                 if owner != store.owner {
                     return Err(GraphError::WrongOwner);
                 }
@@ -747,7 +749,7 @@ impl CommunityStore {
                 store.current = Some(snapshot);
                 store.partial_coverage = matches!(coverage, CommunityCoverage::Partial);
             } else if let Some((owner, request, generation)) =
-                community_names::decode(&frame.payload)?
+                community_names::decode(frame.payload)?
             {
                 store.replay_rename(owner, request, generation)?;
             }

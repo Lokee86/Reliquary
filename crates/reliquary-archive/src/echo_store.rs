@@ -22,8 +22,9 @@ impl EchoStore {
             container_identity: Some(container.identity()),
             records: HashMap::new(),
         };
-        for frame in container.read_frames()? {
-            store.ingest(&frame.payload)?;
+        let mut frames = container.scan_frames()?;
+        while let Some(frame) = frames.next_frame()? {
+            store.ingest(frame.payload)?;
         }
         Ok(store)
     }

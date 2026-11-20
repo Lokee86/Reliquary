@@ -587,38 +587,39 @@ impl PerceptionStore {
             retained_resolution: retained_resolution::History::default(),
         };
         let mut clock = reliquary_container::PhysicalClock::default();
-        for frame in container.read_frames()? {
-            let frontier = clock.observe_frame(&frame.payload)?;
-            if let Some(publication) = clocked_entity_in_frame(&frame.payload)? {
+        let mut frames = container.scan_frames()?;
+        while let Some(frame) = frames.next_frame()? {
+            let frontier = clock.observe_frame(frame.payload)?;
+            if let Some(publication) = clocked_entity_in_frame(frame.payload)? {
                 store.replay_retained_entity(publication)?;
                 continue;
             }
-            if let Some((owner, row)) = retained_resolution::decode(&frame.payload)? {
+            if let Some((owner, row)) = retained_resolution::decode(frame.payload)? {
                 if owner != store.owner_id {
                     return Err(PerceptionError::OwnerMismatch);
                 }
                 store.retained_resolution.accept(row, frontier)?;
                 continue;
             }
-            if let Some(record) = relationship_codec::RelationshipRecord::decode(&frame.payload)? {
+            if let Some(record) = relationship_codec::RelationshipRecord::decode(frame.payload)? {
                 store.apply_relationship_record(record)?;
                 continue;
             }
-            if let Some((owner, tombstone)) = decode_entity_tombstone(&frame.payload)? {
+            if let Some((owner, tombstone)) = decode_entity_tombstone(frame.payload)? {
                 if owner != store.owner_id {
                     return Err(PerceptionError::OwnerMismatch);
                 }
                 store.apply_tombstone(tombstone)?;
                 continue;
             }
-            if let Some((owner, proof)) = decode_entity_prune(&frame.payload)? {
+            if let Some((owner, proof)) = decode_entity_prune(frame.payload)? {
                 if owner != store.owner_id {
                     return Err(PerceptionError::OwnerMismatch);
                 }
                 store.apply_prune(proof)?;
                 continue;
             }
-            if let Some(record) = Record::decode(&frame.payload)? {
+            if let Some(record) = Record::decode(frame.payload)? {
                 if record.owner() != store.owner_id {
                     return Err(PerceptionError::OwnerMismatch);
                 }

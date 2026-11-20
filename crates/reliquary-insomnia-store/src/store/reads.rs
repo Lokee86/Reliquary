@@ -59,16 +59,17 @@ impl InsomniaStore {
             orders: BTreeMap::new(),
             receipts: BTreeMap::new(),
         };
-        for frame in container.read_frames()? {
+        let mut frames = container.scan_frames()?;
+        while let Some(frame) = frames.next_frame()? {
             if frame.payload.starts_with(WORK_MAGIC) || frame.payload.starts_with(WORK_MAGIC_V2) {
-                let (owner, order, work) = decode_work(&frame.payload)?;
+                let (owner, order, work) = decode_work(frame.payload)?;
                 if owner != store.owner {
                     return Err(InsomniaError::WrongOwner);
                 };
                 store.accept_order(&order)?;
                 store.apply_work(order, work)?;
             } else if frame.payload.starts_with(RECEIPT_MAGIC) {
-                let (owner, receipt) = decode_receipt(&frame.payload)?;
+                let (owner, receipt) = decode_receipt(frame.payload)?;
                 if owner != store.owner {
                     return Err(InsomniaError::WrongOwner);
                 };
@@ -77,7 +78,7 @@ impl InsomniaStore {
             } else if frame.payload.starts_with(b"RELINSC7")
                 || frame.payload.starts_with(b"RELINSC8")
             {
-                if let Some(receipt) = decode_grouped(&frame.payload)? {
+                if let Some(receipt) = decode_grouped(frame.payload)? {
                     validate_receipt(&receipt)?;
                     store.accept_episode(receipt.episode_id)?;
                     store.apply_receipt(receipt)?;

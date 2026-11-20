@@ -6,13 +6,14 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::fs::{File, OpenOptions};
-use std::io::{self, Read, Seek, SeekFrom, Write};
+use std::io::{self, BufRead, BufReader, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 const MAGIC: [u8; 8] = *b"REL\0\r\n\x1a\n";
 const HEADER_LEN: u64 = 40;
 const FRAME_HEADER_LEN: u64 = 8;
+const SCAN_BUFFER_SIZE: usize = 64 * 1024;
 const CURRENT_VERSION: FormatVersion = FormatVersion { major: 2, minor: 1 };
 
 mod grouped_clock;
@@ -184,18 +185,71 @@ pub struct PhysicalFrame {
     pub payload: Vec<u8>,
 }
 
-/// Streaming physical frame cursor. It retains only frame coordinates and reads
-/// each payload through a bounded `Read` implementation.
+/// One frame borrowed from the scan's reusable payload buffer.
+pub struct ScannedFrame<'a> {
+    pub object: ObjectRef,
+    pub payload: &'a [u8],
+}
+
+pub struct FrameScan<'a> {
+    cursor: PhysicalCursor<'a>,
+    payload: Vec<u8>,
+}
+
+impl FrameScan<'_> {
+    pub fn next_frame(&mut self) -> Result<Option<ScannedFrame<'_>>, ContainerError> {
+        let Some(object) = self.cursor.read_frame_into(&mut self.payload)? else {
+            return Ok(None);
+        };
+        Ok(Some(ScannedFrame {
+            object,
+            payload: &self.payload,
+        }))
+    }
+}
+
+// Cloned File handles share a system cursor. Read at explicit offsets so
+// separate scans can use the same leased file even when their reads interleave.
+struct PositionedFile {
+    file: File,
+    offset: u64,
+}
+
+impl Read for PositionedFile {
+    fn read(&mut self, output: &mut [u8]) -> io::Result<usize> {
+        #[cfg(unix)]
+        let read = {
+            use std::os::unix::fs::FileExt;
+            self.file.read_at(output, self.offset)?
+        };
+        #[cfg(windows)]
+        let read = {
+            use std::os::windows::fs::FileExt;
+            self.file.seek_read(output, self.offset)?
+        };
+        #[cfg(not(any(unix, windows)))]
+        let read = return Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "positional file reads are unsupported on this platform",
+        ));
+
+        self.offset += read as u64;
+        Ok(read)
+    }
+}
+
+/// Streaming physical frame cursor. Each scan uses a fixed read buffer and
+/// exposes each payload through a bounded `Read` implementation.
 pub struct PhysicalCursor<'a> {
     _container: &'a Container,
-    file: File,
+    reader: BufReader<PositionedFile>,
     next_offset: u64,
     file_len: u64,
     done: bool,
 }
 
 pub struct FramePayloadReader<'a> {
-    file: &'a mut File,
+    reader: &'a mut BufReader<PositionedFile>,
     object: ObjectRef,
     remaining: u64,
 }
@@ -213,7 +267,7 @@ impl io::Read for FramePayloadReader<'_> {
         }
         let limit =
             usize::try_from(self.remaining.min(output.len() as u64)).unwrap_or(output.len());
-        let read = self.file.read(&mut output[..limit])?;
+        let read = self.reader.read(&mut output[..limit])?;
         if read == 0 {
             return Err(io::Error::new(
                 io::ErrorKind::UnexpectedEof,
@@ -439,9 +493,10 @@ impl Container {
 
     /// Read exact physical bytes through the existing owner lease.
     pub fn physical_bytes(&self) -> Result<impl Read + '_, ContainerError> {
-        let mut file = self.file.try_clone()?;
-        file.seek(SeekFrom::Start(0))?;
-        Ok(file)
+        Ok(PositionedFile {
+            file: self.file.try_clone()?,
+            offset: 0,
+        })
     }
 
     fn file_identity(file: &File) -> Result<(u64, u64), ContainerError> {
@@ -618,9 +673,8 @@ impl Container {
     fn rebuild_clock(&mut self) -> Result<(), ContainerError> {
         let mut clock = PhysicalClock::default();
         let mut cursor = self.physical_cursor()?;
-        while let Some(mut frame) = cursor.next_frame()? {
-            let mut bytes = Vec::new();
-            frame.read_to_end(&mut bytes).map_err(ContainerError::Io)?;
+        let mut bytes = Vec::new();
+        while cursor.read_frame_into(&mut bytes)?.is_some() {
             clock.observe_frame(&bytes)?;
         }
         drop(cursor);
@@ -694,15 +748,22 @@ impl Container {
     pub fn read_frames(&self) -> Result<Vec<PhysicalFrame>, ContainerError> {
         let mut cursor = self.physical_cursor()?;
         let mut frames = Vec::new();
-        while let Some(mut payload_reader) = cursor.next_frame()? {
-            let object = payload_reader.object();
-            let mut payload = Vec::new();
-            payload_reader
-                .read_to_end(&mut payload)
-                .map_err(ContainerError::Io)?;
-            frames.push(PhysicalFrame { object, payload });
+        let mut payload = Vec::new();
+        while let Some(object) = cursor.read_frame_into(&mut payload)? {
+            frames.push(PhysicalFrame {
+                object,
+                payload: std::mem::take(&mut payload),
+            });
         }
         Ok(frames)
+    }
+
+    /// Replay frames in physical order using one reusable payload buffer.
+    pub fn scan_frames(&self) -> Result<FrameScan<'_>, ContainerError> {
+        Ok(FrameScan {
+            cursor: self.physical_cursor()?,
+            payload: Vec::new(),
+        })
     }
 
     pub fn physical_cursor(&self) -> Result<PhysicalCursor<'_>, ContainerError> {
@@ -710,7 +771,13 @@ impl Container {
         let file_len = file.metadata()?.len();
         Ok(PhysicalCursor {
             _container: self,
-            file,
+            reader: BufReader::with_capacity(
+                SCAN_BUFFER_SIZE,
+                PositionedFile {
+                    file,
+                    offset: HEADER_LEN,
+                },
+            ),
             next_offset: HEADER_LEN,
             file_len,
             done: false,
@@ -774,29 +841,50 @@ impl Container {
 }
 
 impl PhysicalCursor<'_> {
+    fn read_frame_into(
+        &mut self,
+        payload: &mut Vec<u8>,
+    ) -> Result<Option<ObjectRef>, ContainerError> {
+        let Some(mut reader) = self.next_frame()? else {
+            return Ok(None);
+        };
+        payload.clear();
+        reader.read_to_end(payload)?;
+        Ok(Some(reader.object()))
+    }
+
     /// Advances to the next frame. Dropping a payload reader skips its unread
     /// suffix when the cursor advances again.
     pub fn next_frame(&mut self) -> Result<Option<FramePayloadReader<'_>>, ContainerError> {
         if self.done {
             return Ok(None);
         }
-        let actual_len = self.file.metadata()?.len();
-        if actual_len != self.file_len {
-            return Err(ContainerError::UnstableSnapshot);
-        }
-        if self.next_offset == self.file_len {
-            self.done = true;
-            return Ok(None);
-        }
-        if self.next_offset > self.file_len || self.file_len - self.next_offset < FRAME_HEADER_LEN {
-            return Err(ContainerError::RepairRequired {
-                valid_end: self.next_offset,
-            });
-        }
         let offset = self.next_offset;
-        self.file.seek(SeekFrom::Start(offset))?;
+        if self.file_len.saturating_sub(offset) < FRAME_HEADER_LEN {
+            self.check_length()?;
+            if offset == self.file_len {
+                self.done = true;
+                return Ok(None);
+            }
+            return Err(ContainerError::RepairRequired { valid_end: offset });
+        }
+
+        // A dropped payload reader can leave bytes unread. Advance within the
+        // buffer when possible and reposition the next read for a larger skip.
+        let buffered = self.reader.buffer().len();
+        let buffer_end = self.reader.get_ref().offset;
+        let buffer_start = buffer_end - buffered as u64;
+        if (buffer_start..=buffer_end).contains(&offset) {
+            self.reader.consume((offset - buffer_start) as usize);
+        } else {
+            self.reader.consume(buffered);
+            self.reader.get_mut().offset = offset;
+        }
+        if self.reader.buffer().len() < FRAME_HEADER_LEN as usize {
+            self.check_length()?;
+        }
         let mut length_bytes = [0; FRAME_HEADER_LEN as usize];
-        self.file.read_exact(&mut length_bytes).map_err(|error| {
+        self.reader.read_exact(&mut length_bytes).map_err(|error| {
             if error.kind() == io::ErrorKind::UnexpectedEof {
                 ContainerError::UnstableSnapshot
             } else {
@@ -811,15 +899,22 @@ impl PhysicalCursor<'_> {
             .checked_add(length)
             .ok_or(ContainerError::InvalidFrameLength { offset, length })?;
         if frame_end > self.file_len {
+            self.check_length()?;
             return Err(ContainerError::RepairRequired { valid_end: offset });
         }
-        self.file.seek(SeekFrom::Start(payload_start))?;
         self.next_offset = frame_end;
         Ok(Some(FramePayloadReader {
-            file: &mut self.file,
+            reader: &mut self.reader,
             object: ObjectRef { offset, length },
             remaining: length,
         }))
+    }
+
+    fn check_length(&self) -> Result<(), ContainerError> {
+        if self.reader.get_ref().file.metadata()?.len() != self.file_len {
+            return Err(ContainerError::UnstableSnapshot);
+        }
+        Ok(())
     }
 }
 
@@ -1164,6 +1259,76 @@ mod tests {
         }
         assert_eq!(total, payload.len());
         assert!(cursor.next_frame().unwrap().is_none());
+    }
+
+    #[test]
+    fn buffered_cursors_can_interleave_and_skip_unread_payloads() {
+        let d = Dir::new();
+        let p = d.0.join("interleaved.rel");
+        let mut writer = Container::create(&p, rel(), [5; 16]).unwrap();
+        let large = vec![0xA5; SCAN_BUFFER_SIZE + 17];
+        writer.append(&large).unwrap();
+        let empty = writer.append(b"").unwrap();
+        let tail = writer.append(b"tail").unwrap();
+        writer.sync().unwrap();
+        drop(writer);
+
+        let reader = Container::open_read_only(&p).unwrap();
+        let mut left = reader.physical_cursor().unwrap();
+        let mut right = reader.physical_cursor().unwrap();
+        {
+            let mut frame = left.next_frame().unwrap().unwrap();
+            let mut prefix = [0; 8];
+            frame.read_exact(&mut prefix).unwrap();
+            assert_eq!(prefix, [0xA5; 8]);
+
+            let mut raw_header = [0; HEADER_LEN as usize];
+            reader
+                .physical_bytes()
+                .unwrap()
+                .read_exact(&mut raw_header)
+                .unwrap();
+            assert_eq!(raw_header, encode_header(rel(), [5; 16]));
+            let mut complete = Vec::new();
+            right
+                .next_frame()
+                .unwrap()
+                .unwrap()
+                .read_to_end(&mut complete)
+                .unwrap();
+            assert_eq!(complete, large);
+            frame.read_exact(&mut prefix).unwrap();
+            assert_eq!(prefix, [0xA5; 8]);
+        }
+
+        for cursor in [&mut left, &mut right] {
+            assert_eq!(cursor.next_frame().unwrap().unwrap().object(), empty);
+            let mut last = cursor.next_frame().unwrap().unwrap();
+            assert_eq!(last.object(), tail);
+            let mut payload = Vec::new();
+            last.read_to_end(&mut payload).unwrap();
+            assert_eq!(payload, b"tail");
+            assert!(cursor.next_frame().unwrap().is_none());
+        }
+    }
+
+    #[test]
+    fn buffered_scan_rejects_a_length_change_before_completion() {
+        let d = Dir::new();
+        let p = d.0.join("length-changed.rel");
+        let mut writer = Container::create(&p, rel(), [5; 16]).unwrap();
+        writer.append(b"first").unwrap();
+        writer.append(b"second").unwrap();
+        let mut scan = writer.scan_frames().unwrap();
+        assert_eq!(scan.next_frame().unwrap().unwrap().payload, b"first");
+
+        let length = writer.file.metadata().unwrap().len();
+        writer.file.set_len(length + 2).unwrap();
+        assert_eq!(scan.next_frame().unwrap().unwrap().payload, b"second");
+        assert!(matches!(
+            scan.next_frame(),
+            Err(ContainerError::UnstableSnapshot)
+        ));
     }
 
     #[test]

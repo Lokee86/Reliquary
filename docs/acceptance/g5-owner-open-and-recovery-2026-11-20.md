@@ -27,6 +27,31 @@ Peak working set is the maximum across the three measured processes. All six own
 
 The recovery probe appended two bytes of an incomplete frame to a fresh copy of each version of the 28-day REL and PHY. Ordinary verification refused all four incomplete tails and left their bytes intact. The 2.0 owner repair and 2.1 Container repair each restored the exact pre-append SHA-256. All four restored files passed fresh-process verification with their original owner IDs. The recovery copies and original fixture files matched their expected checksums.
 
+## Buffered replay follow-up
+
+The 28-day REL contains 135,279 frames. The original release took 563 ms for one header-only scan and 1,117 ms for one scan that collected every payload. During owner open, separate domain passes multiplied the cost of checking the file length and seeking on each frame. A release build with just buffered, positioned reads brought the 28-day REL median to 3.60 seconds. Its peak working set was 349 MiB. This isolates the file reads as the main cause of the latency regression.
+
+The final build also reuses one payload allocation per replay scan. The same Windows host ran three measured fresh processes for each owner and version, after one warmup and with alternating version order. A workspace build was active during part of the comparison. All six native owner reports matched the previous 2.1 reports exactly, and all source and copy checksums matched their opening values.
+
+| Pair | Owner | 2.0 median seconds | Optimized 2.1 median seconds | 2.0 peak MiB | Optimized 2.1 peak MiB |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 28-day | REL | 9.936 | 3.099 | 124.9 | 249.7 |
+| 28-day | PHY | 0.100 | 0.042 | 10.8 | 16.4 |
+| 14-day | REL | 2.546 | 0.729 | 54.4 | 110.6 |
+| 14-day | PHY | 0.033 | 0.023 | 8.7 | 13.2 |
+| Ellis | REL | 2.057 | 0.372 | 47.8 | 72.3 |
+| Ellis | PHY | 0.201 | 0.080 | 15.3 | 27.9 |
+
+The seven affected package suites passed 261 tests. The cross-process lease case was filtered after Windows refused creation of its symlink fixture with error 1314. Formatting, documentation and the architecture guard passed.
+
+All six measured opens beat the 2.0 wall-time reference. All six remain above the original peak-memory limit of 1.15× the corresponding 2.0 working set. The four interrupted-append cases passed again with optimized 2.1 verification and repair, preserving the original owner IDs and exact committed bytes.
+
+### Hermes native host
+
+A local Windows host built from the plugin sources against the optimized Core used copies of the same 28-day pair. Read-only Setup took 4.120 seconds, first signed attach 11.541 seconds, and attach after restart 8.686 seconds. First startup replays the owners during bootstrap, identity validation and mounting. A configured restart still replays each owner during both validation and mounting.
+
+The host committed a synthetic REL Memory and reopened its exact ID, revision and body after restart. The source files and the read-only PHY copy retained their input checksums. These timings are from the local test host.
+
 ## Related docs
 
 - [Initial native product acceptance and G5 scope](../p01-public-product-acceptance-2026-11-06.md#explicit-limits-and-next-gate)
@@ -35,4 +60,4 @@ The recovery probe appended two bytes of an incomplete frame to a fresh copy of 
 
 ## Notes
 
-Local evidence is under `C:/!bin/workspace-data/reliquary-verification-2026-11-20/g5`. The open and recovery JSON receipts contain the individual samples, tool hashes and per-owner results. This run covers fresh-process owner verification and physical tail recovery.
+Local evidence is under `C:/!bin/workspace-data/reliquary-verification-2026-11-20/g5`. The open and recovery JSON receipts contain the individual samples, tool hashes and per-owner results. This run covers fresh-process owner verification and physical tail recovery. The follow-up measurements and native smoke receipt are in the `optimized-owner-open` subdirectory.

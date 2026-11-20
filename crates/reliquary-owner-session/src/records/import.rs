@@ -61,16 +61,17 @@ impl ImportEpochStore {
             ..Self::default()
         };
         let mut prefix_hash = import_settlement::prefix_hasher();
-        for frame in container.read_frames().map_err(|e| e.to_string())? {
+        let mut frames = container.scan_frames().map_err(|e| e.to_string())?;
+        while let Some(frame) = frames.next_frame().map_err(|e| e.to_string())? {
             if frame.payload.starts_with(import_settlement::MAGIC) {
-                let settlement = ImportFreshnessSettlement::decode(&frame.payload)?;
+                let settlement = ImportFreshnessSettlement::decode(frame.payload)?;
                 let expected = format!("{:x}", prefix_hash.clone().finalize());
                 if settlement.prefix_digest != expected {
                     return Err("import settlement physical source prefix mismatch".into());
                 }
                 store.ingest_settlement(settlement)?;
             } else if frame.payload.starts_with(IMPORT_PROCESSING_MAGIC) {
-                store.ingest_processing_binding(&frame.payload)?;
+                store.ingest_processing_binding(frame.payload)?;
             } else if frame.payload.starts_with(START_MAGIC)
                 || frame.payload.starts_with(START_MAGIC_V1)
             {
@@ -79,7 +80,7 @@ impl ImportEpochStore {
                 } else {
                     START_MAGIC_V1
                 };
-                let start = decode::<ImportStart>(&frame.payload, magic)?;
+                let start = decode::<ImportStart>(frame.payload, magic)?;
                 if start.owner_uuid != owner {
                     return Err("import epoch owner mismatch".into());
                 }
@@ -92,7 +93,7 @@ impl ImportEpochStore {
                 } else {
                     COMPLETE_MAGIC_V1
                 };
-                let complete = decode::<ImportComplete>(&frame.payload, magic)?;
+                let complete = decode::<ImportComplete>(frame.payload, magic)?;
                 if complete.owner_uuid != owner {
                     return Err("import epoch owner mismatch".into());
                 }
@@ -104,7 +105,7 @@ impl ImportEpochStore {
             {
                 return Err("import mutation followed settlement before completion".into());
             }
-            import_settlement::push_frame(&mut prefix_hash, &frame.payload);
+            import_settlement::push_frame(&mut prefix_hash, frame.payload);
         }
         Ok(store)
     }

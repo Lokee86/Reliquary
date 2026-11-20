@@ -34,7 +34,7 @@ The original 14-day and Ellis pairs passed separate offline migrations with the 
 
 ## Owner open performance
 
-The matched Windows comparison measured higher open times and peak memory for all six 2.1 owners. Exact incomplete-tail recovery passed on both versions of the 28-day pair. The owner-open performance gate remains open. [Measured comparison](../acceptance/g5-owner-open-and-recovery-2026-11-20.md)
+Buffered physical reads and reusable replay payloads reduced open time for all six 2.1 owners below their 2.0 references in the matched Windows comparison. Exact incomplete-tail recovery passed on both versions of the 28-day pair. Peak working set remains above the G5 limit for all six owners. [Measured comparison](../acceptance/g5-owner-open-and-recovery-2026-11-20.md)
 
 ## Open decisions
 

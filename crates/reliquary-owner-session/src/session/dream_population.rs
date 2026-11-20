@@ -9,11 +9,10 @@ pub(super) fn birth_population(
     memories: &MemoryStore,
     source: MemoryId,
 ) -> Result<BTreeSet<MemoryId>, OwnerSessionError> {
-    for frame in container.read_frames()? {
-        let envelope = reliquary_container::decode_publication(&frame.payload)?;
-        let payload = envelope
-            .as_ref()
-            .map_or(frame.payload.as_slice(), |e| e.body);
+    let mut frames = container.scan_frames()?;
+    while let Some(frame) = frames.next_frame()? {
+        let envelope = reliquary_container::decode_publication(frame.payload)?;
+        let payload = envelope.as_ref().map_or(frame.payload, |e| e.body);
         let mut cohort = Vec::new();
         if let Some(record) = crate::records::user_memory::UserMemoryRecord::decode(payload)
             .map_err(OwnerSessionError::Record)?

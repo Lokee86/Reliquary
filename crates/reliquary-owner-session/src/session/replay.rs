@@ -218,8 +218,9 @@ pub(super) fn open_common_for_owner(
     )?;
     memories.retain_pruned_body_fence(pruned_bodies);
     let mut dream_admissions = dream_admissions.into_iter().collect::<Vec<_>>();
-    for frame in container.read_frames()? {
-        let frontier = crate::records::dream_frontier::FrontierRecord::decode(&frame.payload)
+    let mut frames = container.scan_frames()?;
+    while let Some(frame) = frames.next_frame()? {
+        let frontier = crate::records::dream_frontier::FrontierRecord::decode(frame.payload)
             .map_err(OwnerSessionError::Record)?;
         let (begin, frontier_cut) = match frontier.as_ref().and_then(|record| record.begin.as_ref())
         {
@@ -232,7 +233,7 @@ pub(super) fn open_common_for_owner(
             ),
             None if frame.payload.starts_with(b"CVDREAM2") => (
                 Some(
-                    crate::records::dream::dream_begin_codec::decode(&frame.payload)
+                    crate::records::dream::dream_begin_codec::decode(frame.payload)
                         .map_err(OwnerSessionError::Record)?,
                 ),
                 None,

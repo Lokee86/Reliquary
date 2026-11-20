@@ -28,11 +28,10 @@ pub(super) fn validate(
     let mut graph = 0;
     let mut community = None;
     let mut generation = 0;
-    for frame in container.read_frames()? {
-        let envelope = reliquary_container::decode_publication(&frame.payload)?;
-        let payload = envelope
-            .as_ref()
-            .map_or(frame.payload.as_slice(), |e| e.body);
+    let mut frames = container.scan_frames()?;
+    while let Some(frame) = frames.next_frame()? {
+        let envelope = reliquary_container::decode_publication(frame.payload)?;
+        let payload = envelope.as_ref().map_or(frame.payload, |e| e.body);
         if let Some(frontier) = crate::records::dream_frontier::FrontierRecord::decode(payload)
             .map_err(OwnerSessionError::Record)?
         {
@@ -139,7 +138,7 @@ pub(super) fn validate(
             memory_head = version;
             changed.insert(id);
         }
-        if let Some(publication) = reliquary_graph::clocked_graph_in_frame(&frame.payload)? {
+        if let Some(publication) = reliquary_graph::clocked_graph_in_frame(frame.payload)? {
             graph = publication.graph_version;
         } else if let Some(relation) = reliquary_graph::relation_in_frame(payload)? {
             graph = relation.graph_version;

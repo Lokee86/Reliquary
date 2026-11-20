@@ -66,17 +66,16 @@ pub(super) fn validate_rel_replay_admission(
     let mut visible_turns = std::collections::BTreeSet::new();
     let mut visible_memories = std::collections::BTreeSet::new();
     let mut activity = 0u64;
-    for frame in container.read_frames()? {
-        if super::native_import::is_import_epoch_marker(&frame.payload) {
+    let mut frames = container.scan_frames()?;
+    while let Some(frame) = frames.next_frame()? {
+        if super::native_import::is_import_epoch_marker(frame.payload) {
             imports
-                .ingest_prefix(&frame.payload)
+                .ingest_prefix(frame.payload)
                 .map_err(OwnerSessionError::Record)?;
             continue;
         }
-        let envelope = reliquary_container::decode_publication(&frame.payload)?;
-        let body = envelope
-            .as_ref()
-            .map_or(frame.payload.as_slice(), |value| value.body);
+        let envelope = reliquary_container::decode_publication(frame.payload)?;
+        let body = envelope.as_ref().map_or(frame.payload, |value| value.body);
         if body.starts_with(REL_DEPENDENCY_MAGIC) {
             if envelope.is_some() {
                 return Err(OwnerSessionError::Record(
@@ -104,8 +103,8 @@ pub(super) fn validate_rel_replay_admission(
         }
         let payload = envelope
             .filter(|envelope| envelope.body.starts_with(b"RELMCRT1"))
-            .map_or(frame.payload.as_slice(), |envelope| envelope.body);
-        match reliquary_archive::source_publication(&frame.payload)? {
+            .map_or(frame.payload, |envelope| envelope.body);
+        match reliquary_archive::source_publication(frame.payload)? {
             Some(reliquary_archive::SourcePublication::Episode(id)) => {
                 visible_episodes.insert(id);
             }

@@ -23,6 +23,7 @@ use crate::{
 use reliquary_container::{Container, ContainerError, ContainerIdentity, FileKind, PhysicalClock};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, HashMap};
+use std::io::Read;
 
 mod evidence;
 pub use evidence::{
@@ -104,21 +105,33 @@ impl Archive {
         let mut archive = Self::empty();
         archive.owner_id = Some(container.owner_id());
         archive.container_identity = Some(container.identity());
-        let frames = container.read_frames()?;
-        let has_retained_project_history = frames.iter().any(|frame| {
-            frame.payload.starts_with(crate::PROJECT_BACKING_MARKER)
-                || frame.payload.starts_with(crate::PROJECT_CORRELATION_MARKER)
-        });
-        let mut clock = has_retained_project_history.then(PhysicalClock::default);
-        for frame in frames {
+        let mut clock = None;
+        {
+            let mut cursor = container.physical_cursor()?;
+            while let Some(mut frame) = cursor.next_frame()? {
+                let mut marker = [0; 8];
+                if frame.object().length < marker.len() as u64 {
+                    continue;
+                }
+                frame.read_exact(&mut marker).map_err(ContainerError::Io)?;
+                if &marker == crate::PROJECT_BACKING_MARKER
+                    || &marker == crate::PROJECT_CORRELATION_MARKER
+                {
+                    clock = Some(PhysicalClock::default());
+                    break;
+                }
+            }
+        }
+        let mut frames = container.scan_frames()?;
+        while let Some(frame) = frames.next_frame()? {
             let global_version = clock
                 .as_mut()
-                .map(|clock| clock.observe_frame(&frame.payload))
+                .map(|clock| clock.observe_frame(frame.payload))
                 .transpose()?
                 .unwrap_or(0);
-            if let Some(publication) = crate::publication::in_frame(&frame.payload)? {
+            if let Some(publication) = crate::publication::in_frame(frame.payload)? {
                 archive.replay_publication(container, frame.object, publication)?;
-            } else if let Some(record) = decode_record(&frame.payload)? {
+            } else if let Some(record) = decode_record(frame.payload)? {
                 match &record {
                     Record::Retained(_) => {
                         return Err(ArchiveError::CorruptRecord(

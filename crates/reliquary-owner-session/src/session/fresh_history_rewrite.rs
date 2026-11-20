@@ -937,7 +937,8 @@ fn fresh_history_lineage_from_container(
     container: &Container,
 ) -> Result<Option<FreshHistoryLineage>, String> {
     let mut found = None;
-    for frame in container.read_frames().map_err(|error| error.to_string())? {
+    let mut frames = container.scan_frames().map_err(|error| error.to_string())?;
+    while let Some(frame) = frames.next_frame().map_err(|error| error.to_string())? {
         if !frame.payload.starts_with(LINEAGE_MAGIC) {
             continue;
         }

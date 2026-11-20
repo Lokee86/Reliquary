@@ -96,8 +96,9 @@ impl ExternalIndexStore {
             owner: Some(container.owner_id()),
             ..Self::default()
         };
-        for frame in container.read_frames().map_err(|e| e.to_string())? {
-            store.ingest(&frame.payload);
+        let mut frames = container.scan_frames().map_err(|e| e.to_string())?;
+        while let Some(frame) = frames.next_frame().map_err(|e| e.to_string())? {
+            store.ingest(frame.payload);
         }
         Ok(store)
     }

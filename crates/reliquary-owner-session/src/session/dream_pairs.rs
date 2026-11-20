@@ -34,11 +34,10 @@ impl DreamPairs {
             supersessions: BTreeMap::new(),
         };
         let mut memories = BTreeSet::new();
-        for frame in container.read_frames()? {
-            let envelope = reliquary_container::decode_publication(&frame.payload)?;
-            let payload = envelope
-                .as_ref()
-                .map_or(frame.payload.as_slice(), |value| value.body);
+        let mut frames = container.scan_frames()?;
+        while let Some(frame) = frames.next_frame()? {
+            let envelope = reliquary_container::decode_publication(frame.payload)?;
+            let payload = envelope.as_ref().map_or(frame.payload, |value| value.body);
             if let Some(batch) = crate::records::dream_batch::DreamBatchRecord::decode(payload)
                 .map_err(OwnerSessionError::Record)?
             {

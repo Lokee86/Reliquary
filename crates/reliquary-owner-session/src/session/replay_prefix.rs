@@ -13,9 +13,10 @@ pub(super) fn validate_graph_prefix(
     let mut entities = std::collections::BTreeSet::new();
     let mut graph_version = 0;
     let mut memory_head = 0;
-    for frame in container.read_frames()? {
+    let mut frames = container.scan_frames()?;
+    while let Some(frame) = frames.next_frame()? {
         if let Some(frontier) =
-            crate::records::dream_frontier::FrontierRecord::decode(&frame.payload)
+            crate::records::dream_frontier::FrontierRecord::decode(frame.payload)
                 .map_err(OwnerSessionError::Record)?
         {
             if frontier.owner != container.owner_id()
@@ -68,7 +69,7 @@ pub(super) fn validate_graph_prefix(
                 "unsupported Dream carrier".into(),
             ));
         }
-        if reliquary_container::decode_publication(&frame.payload)?.is_some_and(|p| {
+        if reliquary_container::decode_publication(frame.payload)?.is_some_and(|p| {
             p.body.starts_with(b"RELDR")
                 || p.body.starts_with(b"RELMCOR")
                 || p.body.starts_with(b"RELMRET")
@@ -78,7 +79,7 @@ pub(super) fn validate_graph_prefix(
             ));
         }
         let user_memory =
-            UserMemoryRecord::decode(&frame.payload).map_err(OwnerSessionError::Record)?;
+            UserMemoryRecord::decode(frame.payload).map_err(OwnerSessionError::Record)?;
         if let Some(record) = &user_memory {
             validate_user_memory_prefix(
                 container,
@@ -88,7 +89,7 @@ pub(super) fn validate_graph_prefix(
                 record,
             )?;
         }
-        let batch = crate::records::dream_batch::DreamBatchRecord::decode(&frame.payload)
+        let batch = crate::records::dream_batch::DreamBatchRecord::decode(frame.payload)
             .map_err(OwnerSessionError::Record)?;
         if let Some(record) = &batch {
             if record.owner != container.owner_id()
@@ -117,10 +118,9 @@ pub(super) fn validate_graph_prefix(
                 .map(|l| l.delta.as_slice())
                 .chain(record.graph_records.iter().map(Vec::as_slice))
                 .collect(),
-            None => user_memory.as_ref().map_or_else(
-                || vec![frame.payload.as_slice()],
-                UserMemoryRecord::history_frames,
-            ),
+            None => user_memory
+                .as_ref()
+                .map_or_else(|| vec![frame.payload], UserMemoryRecord::history_frames),
         };
         for child in children {
             let payload = reliquary_container::decode_publication(child)?

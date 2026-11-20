@@ -287,8 +287,9 @@ impl EgoStore {
         let mut store = Self::empty(EgoOwnerKind::from_file_kind(identity.file_kind));
         store.owner_id = Some(container.owner_id());
         store.container_identity = Some(identity);
-        for frame in container.read_frames()? {
-            let Some(record) = EgoRecord::decode(&frame.payload)? else {
+        let mut frames = container.scan_frames()?;
+        while let Some(frame) = frames.next_frame()? {
+            let Some(record) = EgoRecord::decode(frame.payload)? else {
                 continue;
             };
             store.apply_replayed(record)?;

@@ -68,12 +68,13 @@ impl DreamEvidenceStore {
             initial_settlements: BTreeMap::new(),
             frontiers: BTreeMap::new(),
         };
-        for frame in container.read_frames().map_err(|error| error.to_string())? {
-            let frontier = super::dream_frontier::FrontierRecord::decode(&frame.payload)?;
+        let mut frames = container.scan_frames().map_err(|error| error.to_string())?;
+        while let Some(frame) = frames.next_frame().map_err(|error| error.to_string())? {
+            let frontier = super::dream_frontier::FrontierRecord::decode(frame.payload)?;
             let payload = frontier
                 .as_ref()
                 .and_then(|r| r.begin.as_deref())
-                .unwrap_or(frame.payload.as_slice());
+                .unwrap_or(frame.payload);
             if payload.starts_with(BEGIN_MAGIC) {
                 let begin = dream_begin_codec::decode(payload)?;
                 let admission = store
