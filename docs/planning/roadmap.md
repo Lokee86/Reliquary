@@ -32,6 +32,10 @@ The original pair passed independent retained-history comparison and native CLI,
 
 The original 14-day and Ellis pairs passed separate offline migrations with the same verification. [14-day and Ellis acceptance evidence](../acceptance/owner-history-migration-other-pairs-2026-11-19.md)
 
+## Owner open performance
+
+The matched Windows comparison measured higher open times and peak memory for all six 2.1 owners. Exact incomplete-tail recovery passed on both versions of the 28-day pair. The owner-open performance gate remains open. [Measured comparison](../acceptance/g5-owner-open-and-recovery-2026-11-20.md)
+
 ## Open decisions
 
 The optional free-form REL type label remains separate from the creation and role admission work. Cross-owner and PHY reconciliation, additional provider surfaces, and a deployed daemon require their own specification and acceptance.
