@@ -36,6 +36,8 @@ The original 14-day and Ellis pairs passed separate offline migrations with the 
 
 Buffered physical reads and reusable replay payloads reduced open time for all six 2.1 owners below their 2.0 references in the matched Windows comparison. Exact incomplete-tail recovery passed on both versions of the 28-day pair. Peak working set remains above the G5 limit for all six owners. [Measured comparison](../acceptance/g5-owner-open-and-recovery-2026-11-20.md)
 
+The [checkpoint and mount specification](rel-checkpoint-open-spec-2026-11-20.md) and [implementation plan](rel-checkpoint-open-plan-2026-11-20.md) cover one admission per Hermes mount, verified REL checkpoints, and on-demand history. The year-scale acceptance measures the routine mount path separately from full verification.
+
 ## Open decisions
 
 The optional free-form REL type label remains separate from the creation and role admission work. Cross-owner and PHY reconciliation, additional provider surfaces, and a deployed daemon require their own specification and acceptance.
