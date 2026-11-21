@@ -14,7 +14,9 @@ Application is the product-policy composition layer. It does not own physical fo
 
 ## Workflow and state
 
-A typical workflow reads a current owner snapshot, prepares bounded work, validates source identity and provenance, and then commits through an owner-session writer. For instance, native ingest binds extracted candidates to an accepted Archive episode and its turns, checks evidence bounds and identity, and routes candidates by ownership. Publication revalidates the accepted source before committing through owner-session. Retrieval likewise returns selected evidence to the caller; delivery or memory mutation requires its own explicit workflow.
+A typical workflow reads a current owner snapshot, prepares bounded work, validates source identity and provenance, and then commits through an owner-session writer. For instance, native ingest binds extracted candidates to an accepted Archive episode and its turns, checks evidence bounds and identity, and routes candidates by ownership. Publication revalidates the accepted source before committing through owner-session. Retrieval returns selected evidence to the caller. Delivery or Memory mutation requires its own workflow.
+
+Application projects the current owner's readable Memory candidates before semantic ranking. Default semantic ranking checks all available vectors for the bound compatibility profile. Community routing can be selected explicitly by workflows that want a narrowed candidate set.
 
 Cross-owner workflows keep each mutable authority local. When an operation affects REL and PHY, it uses explicit receipts, copy/reopen verification, or reconciliation rather than exposing a shared store. Retry behavior uses stable request/owner identities and current cuts; stale preparations are rejected or recomputed instead of applied over newer state.
 

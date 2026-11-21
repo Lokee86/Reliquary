@@ -6,7 +6,7 @@ use crate::{
 use lodestone_packed::{PackedVectors, VectorSchema};
 use reliquary_container::{Container, ObjectRef};
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 /// Identify a packed payload or retained pruned marker in a physical frame.
 pub fn packed_id_in_frame(payload: &[u8]) -> Result<Option<PackedVectorId>, PackedVectorError> {
@@ -25,9 +25,23 @@ pub struct PackedVectorStore {
 struct PackedVectorEntry {
     info: PackedVectorInfo,
     chunk: Option<ObjectRef>,
-    bytes: Option<Vec<u8>>,
+    packed: Option<Arc<PackedVectors>>,
     marker_chunk: Option<ObjectRef>,
     manifest_digest: Option<[u8; 32]>,
+}
+
+/// A shared reference to an immutable, digest-validated owner matrix.
+pub struct PackedVectorView(Arc<PackedVectors>);
+
+impl PackedVectorView {
+    pub fn search_cosine(
+        &self,
+        query: &[f32],
+        limit: usize,
+    ) -> Result<Vec<lodestone_core::PackedCosineHit>, PackedVectorError> {
+        lodestone_core::search_packed_cosine(&self.0, query, limit)
+            .map_err(PackedVectorError::Search)
+    }
 }
 
 impl PackedVectorStore {
@@ -66,46 +80,41 @@ impl PackedVectorStore {
         id: PackedVectorId,
         row: u64,
     ) -> Result<Vec<f32>, PackedVectorError> {
-        let entry = self
-            .objects
-            .get(&id)
-            .ok_or(PackedVectorError::MissingObject)?;
-        let bytes = entry
-            .bytes
-            .as_deref()
-            .ok_or(PackedVectorError::PayloadUnavailable(
-                crate::PayloadUnavailable::Pruned,
-            ))?;
-        // Private immutable backing was digest-verified by put/insert_rebuilt.
-        if entry.info.schema.scalar != lodestone_packed::ScalarType::F32 {
+        let packed = self.matrix(id)?;
+        if packed.schema().scalar != lodestone_packed::ScalarType::F32 {
             return Err(PackedVectorError::CorruptRecord(
                 "packed-vector row backing",
             ));
         }
-        if row >= entry.info.count {
-            return Err(PackedVectorError::CorruptRecord("packed-vector row index"));
-        }
-        let row_bytes = usize::try_from(entry.info.schema.dimensions)
-            .ok()
-            .and_then(|n| n.checked_mul(4))
-            .ok_or(PackedVectorError::CorruptRecord("packed-vector dimensions"))?;
-        let start = usize::try_from(row)
-            .ok()
-            .and_then(|n| n.checked_mul(row_bytes))
+        let index = usize::try_from(row)
+            .map_err(|_| PackedVectorError::CorruptRecord("packed-vector row index"))?;
+        let bytes = packed
+            .row(index)
             .ok_or(PackedVectorError::CorruptRecord("packed-vector row index"))?;
-        let end = start
-            .checked_add(row_bytes)
-            .ok_or(PackedVectorError::CorruptRecord("packed-vector row index"))?;
-        let bytes = bytes
-            .get(start..end)
-            .ok_or(PackedVectorError::CorruptRecord(
-                "packed-vector row backing",
-            ))?;
         Ok(bytes
-            .chunks_exact(4)
-            .map(|value| f32::from_le_bytes(value.try_into().unwrap()))
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .copied()
+            .map(f32::from_le_bytes)
             .collect())
     }
+
+    pub fn view(&self, id: PackedVectorId) -> Result<PackedVectorView, PackedVectorError> {
+        Ok(PackedVectorView(Arc::clone(self.matrix(id)?)))
+    }
+
+    fn matrix(&self, id: PackedVectorId) -> Result<&Arc<PackedVectors>, PackedVectorError> {
+        self.objects
+            .get(&id)
+            .ok_or(PackedVectorError::MissingObject)?
+            .packed
+            .as_ref()
+            .ok_or(PackedVectorError::PayloadUnavailable(
+                crate::PayloadUnavailable::Pruned,
+            ))
+    }
+
     pub fn open(container: &Container) -> Result<Self, PackedVectorError> {
         let mut state = crate::PackedVectorOpenState::new();
         let mut cursor = container.physical_cursor()?;
@@ -135,13 +144,12 @@ impl PackedVectorStore {
     ) -> Result<PackedVectorId, PackedVectorError> {
         let id = packed_vector_id(packed.schema(), packed.bytes());
         if let Some(existing) = self.objects.get(&id) {
-            let Some(existing_bytes) = &existing.bytes else {
+            let Some(existing_packed) = &existing.packed else {
                 return Err(PackedVectorError::PayloadUnavailable(
                     crate::PayloadUnavailable::Pruned,
                 ));
             };
-            if existing.info.schema != packed.schema()
-                || existing_bytes.as_slice() != packed.bytes()
+            if existing.info.schema != packed.schema() || existing_packed.bytes() != packed.bytes()
             {
                 return Err(PackedVectorError::HashCollision);
             }
@@ -150,13 +158,12 @@ impl PackedVectorStore {
         let payload = encode_object(id, &packed)?;
         let chunk = container.append(&payload)?;
         let info = info(id, packed.schema(), packed.count(), packed.bytes().len())?;
-        let matrix_bytes = packed.bytes().to_vec();
         self.objects.insert(
             id,
             PackedVectorEntry {
                 info,
                 chunk: Some(chunk),
-                bytes: Some(matrix_bytes),
+                packed: Some(Arc::new(packed)),
                 marker_chunk: None,
                 manifest_digest: None,
             },
@@ -169,20 +176,11 @@ impl PackedVectorStore {
         _container: &mut Container,
         id: PackedVectorId,
     ) -> Result<PackedVectors, PackedVectorError> {
-        let entry = self
-            .objects
-            .get(&id)
-            .ok_or(PackedVectorError::MissingObject)?;
-        let Some(bytes) = &entry.bytes else {
-            return Err(PackedVectorError::PayloadUnavailable(
-                crate::PayloadUnavailable::Pruned,
-            ));
-        };
-        if packed_vector_id(entry.info.schema, bytes) != id {
+        let packed = self.matrix(id)?;
+        if packed_vector_id(packed.schema(), packed.bytes()) != id {
             return Err(PackedVectorError::HashCollision);
         }
-        PackedVectors::from_bytes(entry.info.schema, bytes.clone())
-            .map_err(|_| PackedVectorError::CorruptRecord("packed-vector matrix"))
+        Ok(packed.as_ref().clone())
     }
 
     pub fn insert_rebuilt(
@@ -191,24 +189,24 @@ impl PackedVectorStore {
         chunk: ObjectRef,
         bytes: Vec<u8>,
     ) -> Result<(), PackedVectorError> {
-        let packed = PackedVectors::from_bytes(packed_info.schema, bytes.clone())
+        let packed = PackedVectors::from_bytes(packed_info.schema, bytes)
             .map_err(|_| PackedVectorError::CorruptRecord("packed-vector matrix"))?;
         let expected = info(
             packed_info.id,
             packed_info.schema,
             packed.count(),
-            bytes.len(),
+            packed.bytes().len(),
         )?;
         if expected != packed_info {
             return Err(PackedVectorError::CorruptRecord(
                 "packed-vector backing metadata",
             ));
         }
-        if packed_vector_id(packed_info.schema, &bytes) != packed_info.id {
+        if packed_vector_id(packed_info.schema, packed.bytes()) != packed_info.id {
             return Err(PackedVectorError::HashCollision);
         }
         if let Some(existing) = self.objects.get(&packed_info.id) {
-            if existing.info != packed_info || existing.bytes.as_deref() != Some(bytes.as_slice()) {
+            if existing.info != packed_info || existing.packed.as_deref() != Some(&packed) {
                 return Err(PackedVectorError::HashCollision);
             }
             return Ok(());
@@ -218,7 +216,7 @@ impl PackedVectorStore {
             PackedVectorEntry {
                 info: packed_info,
                 chunk: Some(chunk),
-                bytes: Some(bytes),
+                packed: Some(Arc::new(packed)),
                 marker_chunk: None,
                 manifest_digest: None,
             },
@@ -247,7 +245,7 @@ impl PackedVectorStore {
             PackedVectorEntry {
                 info,
                 chunk: None,
-                bytes: None,
+                packed: None,
                 marker_chunk: Some(marker_chunk),
                 manifest_digest: Some(manifest_digest),
             },

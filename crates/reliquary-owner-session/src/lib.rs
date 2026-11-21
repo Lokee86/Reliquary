@@ -58,6 +58,7 @@ pub use reliquary_vector_store::VectorGeneration;
 pub use session::EntityMentionCommit;
 pub use session::MemoryAssociationCut;
 pub use session::{ArchivePruneReport, prune_terminal_archive_copy};
+pub use session::{ArchiveVectorHit, ArchiveVectorSearch, ArchiveVectorView};
 pub use session::{
     ArchiveVectorInput, ArchiveVectorRow, MAX_ARCHIVE_VECTOR_BATCH_ROWS,
     MAX_ARCHIVE_VECTOR_RESPONSE_BYTES,

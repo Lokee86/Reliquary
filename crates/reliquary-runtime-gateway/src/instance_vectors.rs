@@ -9,12 +9,35 @@ use reliquary_owner_session::{
     model::{CompatibilityProfileId, MemoryId},
 };
 
+pub use reliquary_owner_session::{ArchiveVectorHit, ArchiveVectorSearch};
+
 pub struct PreparedVectorPublication {
     instance: Uuid,
     owner: OwnerId,
     prepared: PreparedMemoryVectors,
 }
 impl Instance {
+    /// Read the active Archive generation for an authorized REL.
+    pub fn search_archive_vectors(
+        &self,
+        owner: OwnerId,
+        profile_id: CompatibilityProfileId,
+        query: &[f32],
+        limit: usize,
+    ) -> Result<ArchiveVectorSearch, GatewayError> {
+        let view = self
+            .with_reliquary(owner, |rel| rel.archive_vector_view(profile_id))??
+            .ok_or(GatewayError::RetrievalUnavailable(
+                "no active Archive vectors for the embedding profile",
+            ))?;
+        if query.len() != view.dimensions() {
+            return Err(GatewayError::InvalidPreparedRetrieval);
+        }
+        let result = view.search(query, limit)?;
+        self.authorize_rel_access(owner)?;
+        Ok(result)
+    }
+
     pub fn publish_archive_vectors(
         &self,
         owner: OwnerId,

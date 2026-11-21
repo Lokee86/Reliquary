@@ -1,4 +1,58 @@
 use super::*;
+use reliquary_vector_store::{ArchiveFragmentId, PackedVectorView};
+use std::sync::Arc;
+
+/// One exact cosine match from an accepted Archive vector generation.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ArchiveVectorHit {
+    pub fragment_id: [u8; 32],
+    pub ordinal: usize,
+    pub score: f64,
+}
+
+/// Exact matches and the owner cut from which their source fragments came.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ArchiveVectorSearch {
+    pub profile_id: CompatibilityProfileId,
+    pub generation_id: [u8; 32],
+    pub source_archive_version: u64,
+    pub hits: Vec<ArchiveVectorHit>,
+}
+
+/// The accepted Archive cut captured for a single search.
+pub struct ArchiveVectorView {
+    generation: VectorGeneration,
+    dimensions: usize,
+    fragments: Arc<[ArchiveFragmentId]>,
+    vectors: PackedVectorView,
+}
+
+impl ArchiveVectorView {
+    pub fn dimensions(&self) -> usize {
+        self.dimensions
+    }
+
+    pub fn search(
+        &self,
+        query: &[f32],
+        limit: usize,
+    ) -> Result<ArchiveVectorSearch, OwnerSessionError> {
+        let hits = self.vectors.search_cosine(query, limit)?;
+        Ok(ArchiveVectorSearch {
+            profile_id: self.generation.compatibility_profile_id,
+            generation_id: self.generation.id.0,
+            source_archive_version: self.generation.source_archive_version,
+            hits: hits
+                .into_iter()
+                .map(|hit| ArchiveVectorHit {
+                    fragment_id: self.fragments[hit.index].0,
+                    ordinal: hit.index,
+                    score: hit.score,
+                })
+                .collect(),
+        })
+    }
+}
 
 impl RelSession {
     /// Replay all currently composable REL domains. Graph closure, accepted
@@ -409,6 +463,28 @@ impl RelSession {
     pub fn import_status(&self, import_id: &str) -> Option<ImportEpochStatus> {
         self.imports.status(import_id)
     }
+    /// Pin the active Archive generation and its validated matrix and row mapping.
+    pub fn archive_vector_view(
+        &self,
+        profile_id: CompatibilityProfileId,
+    ) -> Result<Option<ArchiveVectorView>, OwnerSessionError> {
+        let Some(profile) = self.active_compatibility_profile(profile_id) else {
+            return Ok(None);
+        };
+        let Some(generation) = self.generations.current_generation(profile_id) else {
+            return Ok(None);
+        };
+        let (packed_id, fragments) = self
+            .archive_vectors
+            .row_mapping(generation.archive_vector_id)?;
+        Ok(Some(ArchiveVectorView {
+            generation,
+            dimensions: profile.dimensions as usize,
+            fragments,
+            vectors: self.common.packed_vectors.view(packed_id)?,
+        }))
+    }
+
     pub fn archive_vector_infos(&self) -> Vec<ArchiveVectorInfo> {
         self.archive_vectors.infos()
     }

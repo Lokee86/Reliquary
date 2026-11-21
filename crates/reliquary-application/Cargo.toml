@@ -22,7 +22,7 @@ serde_json = { version = "1", features = ["raw_value"] }
 
 [dev-dependencies]
 lore = { git = "https://github.com/EpicGames/lore.git", rev = "c49390be048fa273ab47ff7d43bc4994ba7be8ce" }
-lodestone-packed = { git = "https://github.com/Lokee86/lodestone.git", rev = "7b4b3e02b2bd3f3e474fef1a31c8632f8bbea49f" }
+lodestone-packed = { git = "https://github.com/Lokee86/lodestone.git", rev = "ba67b28a463b63c65e9dbe1120bd8205f1784cdd" }
 reliquary-insomnia-store = { path = "../reliquary-insomnia-store" }
 reliquary-freshness-store = { path = "../reliquary-freshness-store" }
 reliquary-perception-store = { path = "../reliquary-perception-store" }

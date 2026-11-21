@@ -3,7 +3,8 @@ use super::*;
 use crate::instance_retrieval::preview::{MAX_RETRIEVAL_RESULTS, project_memories};
 use crate::{RetrievalCut, RetrievalMemory};
 use reliquary_application::{
-    MemoryRetrievalConfig, MemoryRetrievalResult, OwnerMemorySelection, RetrievalConfig,
+    MemoryRetrievalConfig, MemoryRetrievalMode, MemoryRetrievalResult, OwnerMemorySelection,
+    RetrievalConfig,
 };
 use reliquary_owner_session::model::{CompatibilityProfile, CompatibilityProfileId};
 use serde::Serialize;
@@ -179,7 +180,7 @@ impl Instance {
             let result =
                 reliquary_application::route_owner_snapshot(&snapshot, vector.unwrap(), config)
                     .map_err(GatewayError::Retrieval)?;
-            semantic_routing = Some(if result.used_global_fallback {
+            semantic_routing = Some(if result.mode_used == MemoryRetrievalMode::GlobalExact {
                 "global_exact"
             } else {
                 "community_routed"

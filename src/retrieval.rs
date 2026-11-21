@@ -1,7 +1,7 @@
 //! Authenticated REL search, per-turn retrieval, and trusted Memory delivery.
 use crate::{
-    CapabilityRouter, ConfiguredRuntime, Instance, MemoryId, OwnerGrant, OwnerId, ProductError,
-    ProductErrorKind,
+    CapabilityRouter, CompatibilityProfileId, ConfiguredRuntime, Instance, MemoryId, OwnerGrant,
+    OwnerId, ProductError, ProductErrorKind,
 };
 use reliquary_application::RetrievalAction;
 use reliquary_runtime_gateway::{GatewayError, MemoryRetrievalRoute, MemoryRetrievalTurn};
@@ -15,8 +15,8 @@ pub use reliquary_application::{
     RetrievalAnchorReport, RetrievalDirection, RetrievalRelationEvidence,
 };
 pub use reliquary_runtime_gateway::{
-    RetrievalCut, RetrievalMemory, RetrievalMode, RetrievalPreview, RetrievalSource, SearchMode,
-    SearchResult,
+    ArchiveVectorHit, ArchiveVectorSearch, RetrievalCut, RetrievalMemory, RetrievalMode,
+    RetrievalPreview, RetrievalSource, SearchMode, SearchResult,
 };
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -55,6 +55,32 @@ impl Instance {
         self.inner
             .has_active_vectors(owner.into())
             .map_err(Into::into)
+    }
+
+    /// Search the accepted Archive vectors for an explicit compatibility profile.
+    /// The caller supplies an embedding already qualified for that profile.
+    pub fn search_archive_vectors(
+        &self,
+        owner: OwnerId,
+        profile_id: CompatibilityProfileId,
+        query: &[f32],
+        limit: usize,
+    ) -> Result<ArchiveVectorSearch, ProductError> {
+        self.require_rel_read(owner)?;
+        if !(1..=128).contains(&limit) {
+            return Err(ProductError::invalid(
+                "Archive search limit must be between 1 and 128",
+            ));
+        }
+        if query.is_empty()
+            || query.iter().any(|v| !v.is_finite())
+            || query.iter().all(|v| *v == 0.0)
+        {
+            return Err(ProductError::invalid("invalid Archive query vector"));
+        }
+        self.inner
+            .search_archive_vectors(owner.into(), profile_id, query, limit)
+            .map_err(retrieval_error)
     }
 
     /// Passive search over the current REL cut. Lexical search invokes no provider.

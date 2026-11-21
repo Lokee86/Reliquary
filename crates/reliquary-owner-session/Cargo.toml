@@ -23,4 +23,4 @@ serde_json = "1"
 sha2 = "0.10"
 
 [dev-dependencies]
-lodestone-packed = { git = "https://github.com/Lokee86/lodestone.git", rev = "7b4b3e02b2bd3f3e474fef1a31c8632f8bbea49f" }
+lodestone-packed = { git = "https://github.com/Lokee86/lodestone.git", rev = "ba67b28a463b63c65e9dbe1120bd8205f1784cdd" }

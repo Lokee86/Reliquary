@@ -40,6 +40,8 @@ Tests protecting representative boundaries include Container reopen/partial-appe
 
 Repository-local Pitlord checks both resolved `imports` and Cargo `depends-on` evidence. Foundation, store, owner-session and semantic-service areas must remain independent of Application/Gateway in every dependency category; put cross-owner integration tests at higher orchestration, Root or consumer boundaries. Observed area cycles include test edges. This is distinct from the exact production-only package DAG: permitted Application/Gateway dev dependencies on lower stores are not mislabeled as production edges.
 
+The vector store uses Lodestone v0.2.0 for packed row representation and Archive exact cosine ranking. Cargo pins the Lodestone revision across Root, CLI, the external consumer, and the offline history tools. REL and PHY publication continue through their owner sessions.
+
 The native Freshness store uses SHA-256 to bind retained authority bytes. The offline history writer and comparison tool have separate workspaces. The FRS07 source reader runs from an isolated historical checkout outside the production dependency graph.
 
 ## Extension seams

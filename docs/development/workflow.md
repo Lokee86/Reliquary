@@ -38,6 +38,8 @@ Expected result: formatting, compilation, relevant tests and dependency checks p
 
 For Community recompute, the focused Root test covers archived graph members. The real-corpus acceptance runs preview, apply, and fresh reopen on an inactive copy according to the [Leiden execution plan](../planning/leiden-community-recomputation-plan-2026-11-18.md).
 
+For Archive vector search acceptance, set `RELIQUARY_ARCHIVE_FIXTURE` to an existing REL 2.1 with a published Archive vector generation and run `cargo test --locked --offline -j 1 --test public_api exact_archive_vectors_match_brute_force_and_reopen -- --ignored --nocapture`. The test uses a disposable copy under `.test-tmp`, verifies exact top-10 against a reference scan, and checks source hashes after a fresh reopen.
+
 For REL dependency changes, use the Root topology and context fixture, the maintenance replay test, and the fresh-process CLI check in the [REL dependency execution plan](../planning/rel-dependency-port-plan-2026-11-18.md).
 
 For changes to REL creation or scope metadata, the [homogeneity execution plan](../planning/rel-homogeneity-plan-2026-11-18.md) describes the focused Core and CLI checks, the pre-change 2.1 files, and the matched Hermes setup check.

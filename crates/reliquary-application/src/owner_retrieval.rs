@@ -205,7 +205,8 @@ mod tests {
         );
         let routed =
             route_owner_snapshot(&facts, &[1.0, 0.0], MemoryRetrievalConfig::default()).unwrap();
-        assert!(routed.used_global_fallback);
+        assert_eq!(routed.mode_used, crate::MemoryRetrievalMode::GlobalExact);
+        assert!(!routed.used_global_fallback);
         assert_eq!(routed.memories, vec![MemoryId([35; 32])]);
     }
 }

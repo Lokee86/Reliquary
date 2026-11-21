@@ -32,7 +32,7 @@ Inputs are grounded in accepted owner records or explicit caller-provided eviden
 
 Stateful lifecycle and recovery are not hidden in these computation packages. For example, candidate reevaluation after an owner change belongs to Application's recheck step; durable write/replay belongs to owner-session/stores. The exact external model behavior is not proven by unit tests and is governed by configured endpoints in [Switchboard](switchboard.md).
 
-Community routing consumes persisted snapshots. Manual recompute uses the original deterministic Leiden scan-and-merge in the Graph crate. The solver receives the owner session's eligible Memory IDs and unique structural pairs and returns a partition and modularity. Application prepares the result for authorized publication through owner-session.
+Semantic Memory search defaults to exact cosine across all available vector candidates for the selected profile. An explicitly requested Community route uses the persisted snapshot and falls back to the global scan if routing is unavailable. Manual Community recompute uses the original deterministic Leiden scan-and-merge in the Graph crate. The solver receives the owner session's eligible Memory IDs and unique structural pairs and returns a partition and modularity. Application prepares the result for authorized publication through owner-session.
 
 ## Code map and tests
 

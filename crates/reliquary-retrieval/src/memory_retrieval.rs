@@ -21,7 +21,7 @@ pub struct MemoryRetrievalConfig {
 impl Default for MemoryRetrievalConfig {
     fn default() -> Self {
         Self {
-            mode: MemoryRetrievalMode::CommunityRouted,
+            mode: MemoryRetrievalMode::GlobalExact,
             community_limit: DEFAULT_MEMORY_RETRIEVAL_COMMUNITIES,
             seed_limit: DEFAULT_MEMORY_RETRIEVAL_SEEDS,
         }
@@ -92,10 +92,10 @@ pub fn retrieve_memories(
     {
         return Err(RetrievalPolicyError::InvalidQueryVector);
     }
-    let current = snapshot
-        .community_snapshot
-        .as_ref()
-        .filter(|c| c.graph_version == snapshot.graph_version);
+    let current = snapshot.community_snapshot.as_ref().filter(|c| {
+        config.mode == MemoryRetrievalMode::CommunityRouted
+            && c.graph_version == snapshot.graph_version
+    });
     let memberships: HashMap<_, _> = current
         .into_iter()
         .flat_map(|c| {
@@ -243,11 +243,29 @@ mod tests {
     }
 
     #[test]
+    fn default_search_scores_all_vectors_even_when_communities_are_current() {
+        let result = retrieve_memories(
+            &snapshot(),
+            &[1.0, 0.125],
+            MemoryRetrievalConfig::default(),
+            4,
+        )
+        .unwrap();
+        assert_eq!(result.mode_used, MemoryRetrievalMode::GlobalExact);
+        assert!(!result.used_global_fallback);
+        assert!(result.selected_communities.is_empty());
+        assert_eq!(result.routing_vectors_scored, 0);
+        assert_eq!(result.memory_vectors_scored, 3);
+        assert_eq!(result.memories, vec![id(1), id(2), id(3)]);
+    }
+
+    #[test]
     fn routed_snapshot_scores_only_selected_communities_and_ties_are_stable() {
         let result = retrieve_memories(
             &snapshot(),
             &[1.0, 0.0],
             MemoryRetrievalConfig {
+                mode: MemoryRetrievalMode::CommunityRouted,
                 community_limit: 1,
                 seed_limit: 10,
                 ..MemoryRetrievalConfig::default()
@@ -264,8 +282,11 @@ mod tests {
     fn missing_or_stale_community_snapshot_falls_back_to_global() {
         let mut facts = snapshot();
         facts.community_snapshot = None;
-        let result =
-            retrieve_memories(&facts, &[1.0, 0.0], MemoryRetrievalConfig::default(), 4).unwrap();
+        let config = MemoryRetrievalConfig {
+            mode: MemoryRetrievalMode::CommunityRouted,
+            ..MemoryRetrievalConfig::default()
+        };
+        let result = retrieve_memories(&facts, &[1.0, 0.0], config, 4).unwrap();
         assert!(result.used_global_fallback);
         assert_eq!(result.mode_used, MemoryRetrievalMode::GlobalExact);
         assert_eq!(result.memory_vectors_scored, 3);
@@ -307,15 +328,19 @@ mod tests {
         let mut rows: Vec<_> = permuted.vectors.drain().collect();
         rows.sort_by(|a, b| b.0.cmp(&a.0));
         permuted.vectors.extend(rows);
+        let config = MemoryRetrievalConfig {
+            mode: MemoryRetrievalMode::CommunityRouted,
+            ..MemoryRetrievalConfig::default()
+        };
         for query in [[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]] {
             assert_eq!(
-                retrieve_memories(&original, &query, MemoryRetrievalConfig::default(), 4),
-                retrieve_memories(&permuted, &query, MemoryRetrievalConfig::default(), 4)
+                retrieve_memories(&original, &query, config, 4),
+                retrieve_memories(&permuted, &query, config, 4)
             );
         }
         permuted.community_snapshot.as_mut().unwrap().graph_version = 3;
         assert!(
-            retrieve_memories(&permuted, &[1.0, 0.0], MemoryRetrievalConfig::default(), 4)
+            retrieve_memories(&permuted, &[1.0, 0.0], config, 4)
                 .unwrap()
                 .used_global_fallback
         );

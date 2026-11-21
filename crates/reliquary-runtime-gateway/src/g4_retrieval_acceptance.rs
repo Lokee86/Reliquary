@@ -421,6 +421,7 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
             private_profile,
             &[0.0, 1.0],
             reliquary_application::MemoryRetrievalConfig {
+                mode: reliquary_application::MemoryRetrievalMode::CommunityRouted,
                 seed_limit: 128,
                 ..Default::default()
             },

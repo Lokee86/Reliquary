@@ -1069,7 +1069,9 @@ pub use agentic_retrieval::{
 };
 pub use reliquary_retrieval::RetrievalConfig;
 pub use reliquary_retrieval::agentic::RetrievalTurn;
-pub use reliquary_retrieval::memory_retrieval::{MemoryRetrievalConfig, MemoryRetrievalResult};
+pub use reliquary_retrieval::memory_retrieval::{
+    MemoryRetrievalConfig, MemoryRetrievalMode, MemoryRetrievalResult,
+};
 
 mod owner_retrieval;
 pub use owner_retrieval::{agentic_memories, rank_owner_snapshot, route_owner_snapshot};

@@ -6,7 +6,10 @@ use crate::{
     ArchiveVectorStats, PackedVectorId, PackedVectorStore,
 };
 use reliquary_container::{Container, ObjectRef};
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 #[derive(Clone, Debug)]
 pub struct AcceptedArchiveMapping {
@@ -20,7 +23,7 @@ pub struct AcceptedArchiveMapping {
 struct Entry {
     info: ArchiveVectorInfo,
     chunk: ObjectRef,
-    fragment_ids: Vec<ArchiveFragmentId>,
+    fragment_ids: Arc<[ArchiveFragmentId]>,
 }
 
 #[derive(Default)]
@@ -86,7 +89,7 @@ impl ArchiveVectorStore {
                 || existing.info.max_fragment_archive_version
                     != accepted.max_fragment_archive_version
                 || existing.info.rows != rows
-                || existing.fragment_ids != accepted.fragment_ids
+                || existing.fragment_ids.as_ref() != accepted.fragment_ids
             {
                 return Err(ArchiveVectorError::HashCollision);
             }
@@ -126,7 +129,7 @@ impl ArchiveVectorStore {
             return Err(ArchiveVectorError::HashCollision);
         }
         if let Some(existing) = self.objects.get(&info.id) {
-            return if existing.info == info && existing.fragment_ids == fragments {
+            return if existing.info == info && existing.fragment_ids.as_ref() == fragments {
                 Ok(())
             } else {
                 Err(ArchiveVectorError::HashCollision)
@@ -137,7 +140,7 @@ impl ArchiveVectorStore {
             Entry {
                 info,
                 chunk,
-                fragment_ids: fragments,
+                fragment_ids: fragments.into(),
             },
         );
         Ok(())
@@ -154,8 +157,20 @@ impl ArchiveVectorStore {
         Ok(ArchiveVectorRecord {
             id,
             packed_vector_id: entry.info.packed_vector_id,
-            fragment_ids: entry.fragment_ids.clone(),
+            fragment_ids: entry.fragment_ids.to_vec(),
         })
+    }
+
+    /// Borrow the validated row mapping without copying or rehashing it.
+    pub fn row_mapping(
+        &self,
+        id: ArchiveVectorId,
+    ) -> Result<(PackedVectorId, Arc<[ArchiveFragmentId]>), ArchiveVectorError> {
+        let entry = self
+            .objects
+            .get(&id)
+            .ok_or(ArchiveVectorError::MissingObject)?;
+        Ok((entry.info.packed_vector_id, Arc::clone(&entry.fragment_ids)))
     }
 
     pub fn info(&self, id: ArchiveVectorId) -> Option<ArchiveVectorInfo> {

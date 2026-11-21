@@ -1913,9 +1913,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "lodestone-core"
+version = "0.2.0"
+source = "git+https://github.com/Lokee86/lodestone.git?rev=ba67b28a463b63c65e9dbe1120bd8205f1784cdd#ba67b28a463b63c65e9dbe1120bd8205f1784cdd"
+dependencies = [
+ "blake3",
+ "bytemuck",
+ "lodestone-packed",
+ "memmap2",
+ "rayon",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "lodestone-packed"
-version = "0.1.0"
-source = "git+https://github.com/Lokee86/lodestone.git?rev=7b4b3e02b2bd3f3e474fef1a31c8632f8bbea49f#7b4b3e02b2bd3f3e474fef1a31c8632f8bbea49f"
+version = "0.2.0"
+source = "git+https://github.com/Lokee86/lodestone.git?rev=ba67b28a463b63c65e9dbe1120bd8205f1784cdd#ba67b28a463b63c65e9dbe1120bd8205f1784cdd"
 
 [[package]]
 name = "log"
@@ -2260,6 +2276,15 @@ name = "memchr"
 version = "2.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
+
+[[package]]
+name = "memmap2"
+version = "0.9.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1219ed1b7f229ee7104d281dd01d6802fe28bb6e95d292942c4daacdeb798c0"
+dependencies = [
+ "libc",
+]
 
 [[package]]
 name = "memoffset"
@@ -2977,6 +3002,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "rayon"
+version = "1.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb39b166781f92d482534ef4b4b1b2568f42613b53e5b6c160e24cfbfa30926d"
+dependencies = [
+ "either",
+ "rayon-core",
+]
+
+[[package]]
+name = "rayon-core"
+version = "1.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22e18b0f0062d30d4230b2e85ff77fdfe4326feb054b9783a3460d8435c8ab91"
+dependencies = [
+ "crossbeam-deque",
+ "crossbeam-utils",
+]
+
+[[package]]
 name = "rcgen"
 version = "0.14.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3300,6 +3345,7 @@ dependencies = [
 name = "reliquary-vector-store"
 version = "0.1.0"
 dependencies = [
+ "lodestone-core",
  "lodestone-packed",
  "reliquary-container",
  "sha2",

@@ -40,8 +40,8 @@ pub use profile::{
 };
 pub use rebuild::PackedVectorOpenState;
 pub use store::{
-    PackedVectorStore, archive_vector_id, info, memory_vector_id, packed_id_in_frame,
-    packed_vector_id,
+    PackedVectorStore, PackedVectorView, archive_vector_id, info, memory_vector_id,
+    packed_id_in_frame, packed_vector_id,
 };
 
 fn has_format(

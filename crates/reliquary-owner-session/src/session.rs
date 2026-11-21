@@ -1053,6 +1053,7 @@ pub use rel_dependencies::{
     MAX_REL_DEPENDENCIES, RelDependencyDeclaration, canonical_rel_dependency_ids,
 };
 mod rel_session;
+pub use rel_session::{ArchiveVectorHit, ArchiveVectorSearch, ArchiveVectorView};
 #[cfg(feature = "d02-observation")]
 mod verification_observation;
 #[cfg(feature = "d02-observation")]

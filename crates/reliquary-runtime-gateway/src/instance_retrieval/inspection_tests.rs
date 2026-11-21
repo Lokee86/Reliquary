@@ -229,7 +229,7 @@ fn projected_search_distinguishes_lexical_hybrid_and_semantic_routing() {
         )
         .unwrap();
     assert_eq!(semantic.semantic_routing, Some("global_exact"));
-    assert!(semantic.fallback_reason.is_some());
+    assert!(semantic.fallback_reason.is_none());
     assert_eq!(semantic.memories.len(), 2);
     assert!(
         semantic

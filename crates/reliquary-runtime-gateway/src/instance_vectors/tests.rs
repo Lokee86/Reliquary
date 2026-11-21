@@ -150,13 +150,37 @@ fn archive_vector_generation_reuses_accepted_rows_after_reopen() {
         .publish_archive_vectors(owner, profile, &endpoint)
         .unwrap()
         .unwrap();
+    let query = [1.0, 0.0];
+    let expected = alice
+        .search_archive_vectors(owner, profile, &query, 10)
+        .unwrap();
+    assert_eq!(expected.generation_id, generation.id.0);
+    assert_eq!(
+        expected.source_archive_version,
+        generation.source_archive_version
+    );
+    assert!(!expected.hits.is_empty());
+    assert!(expected.hits.iter().all(|hit| hit.score == 1.0));
+    let pinned = alice
+        .with_reliquary(owner, |rel| rel.archive_vector_view(profile))
+        .unwrap()
+        .unwrap()
+        .unwrap();
     drop(alice);
     drop(gateway);
+    assert_eq!(pinned.search(&query, 10).unwrap(), expected);
+
     let gateway = Gateway::new();
     gateway
         .mount_writable_reliquary(&path, &admission, [], [])
         .unwrap();
     let alice = gateway.instance("alice", [owner], []).unwrap();
+    assert_eq!(
+        alice
+            .search_archive_vectors(owner, profile, &query, 10)
+            .unwrap(),
+        expected
+    );
     let retry = Endpoint::new();
     assert_eq!(
         alice

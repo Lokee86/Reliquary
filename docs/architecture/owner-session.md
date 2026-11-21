@@ -18,6 +18,8 @@ The crate is the only product boundary that composes the eight persistent domain
 
 Opening a session checks the physical file identity/kind, opens the relevant stores, and replays their records into owner-scoped views. The replay passes borrow each frame from a reusable payload buffer. The stores decode and retain the records they own, and the replay checks validate each publication in physical order. A writer obtains an owner-local lease/fence before publication. Prepared work is rechecked against current owner revisions and authorization at commit; a stale or foreign cut is rejected. Grouped commit APIs coordinate related records under one owner writer so readers do not see a higher-level success without its required receipt/history records.
 
+An Archive vector search captures the active generation and shared references to its immutable packed matrix and fragment mapping. The search view keeps those values alive when the owner advances or closes. The generation still binds the source Archive cut and the accepted activation record.
+
 REL and PHY writers are separate authorities. Session clones do not create independent authority to bypass the writer boundary. Runtime-level synchronization and leases serialize mutation through mounted Gateway writers; persistence is still recovered from the file's append/replay state after process restart.
 
 Community recompute captures eligible IDs and active structural edges from one REL read. Capture and publication share the same active-Memory check. The writer rechecks the captured file identity and versions, requires every eligible ID exactly once, and syncs the Community frame through the owner write boundary.

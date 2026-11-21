@@ -35,6 +35,196 @@ impl Drop for TestPaths {
 }
 
 #[test]
+#[ignore = "requires RELIQUARY_ARCHIVE_FIXTURE pointing to an existing REL 2.1 with Archive vectors"]
+fn exact_archive_vectors_match_brute_force_and_reopen() {
+    use reliquary_container::Container;
+    use reliquary_vector_store::{
+        ArchiveVectorStore, CompatibilityProfileStore, PackedVectorStore, VectorGenerationStore,
+    };
+
+    const K: usize = 10;
+    const QUERIES: usize = 20;
+    let fixture = PathBuf::from(std::env::var_os("RELIQUARY_ARCHIVE_FIXTURE").unwrap());
+    let hash = |path: &std::path::Path| {
+        blake3::Hasher::new()
+            .update_reader(fs::File::open(path).unwrap())
+            .unwrap()
+            .finalize()
+    };
+    let original = hash(&fixture);
+    let temp = TestPaths::new("archive-exact");
+    let copy = temp.path("owner.rel");
+    fs::copy(&fixture, &copy).unwrap();
+    assert_eq!(hash(&copy), original);
+
+    // Read the accepted source independently of the new search path.
+    let (generation, fragments, dimensions, values) = {
+        let mut container = Container::open_read_only(&copy).unwrap();
+        let packed = PackedVectorStore::open(&container).unwrap();
+        let profiles = CompatibilityProfileStore::open(&container).unwrap();
+        let archives = ArchiveVectorStore::open(&container, &packed).unwrap();
+        let generations = VectorGenerationStore::open(&container, &profiles, &archives).unwrap();
+        let generation = generations
+            .current_generations()
+            .filter(|g| profiles.get_active(g.compatibility_profile_id).is_some())
+            .max_by_key(|g| {
+                (
+                    archives.info(g.archive_vector_id).unwrap().rows,
+                    g.vector_version,
+                )
+            })
+            .expect("Archive fixture must have an active vector generation");
+        let mapping = archives.get(generation.archive_vector_id).unwrap();
+        let matrix = packed
+            .get(&mut container, mapping.packed_vector_id)
+            .unwrap();
+        let values = matrix
+            .bytes()
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .copied()
+            .map(f32::from_le_bytes)
+            .collect::<Vec<_>>();
+        (
+            generation,
+            mapping.fragment_ids,
+            matrix.schema().dimensions as usize,
+            values,
+        )
+    };
+    let rows = values.chunks_exact(dimensions).collect::<Vec<_>>();
+    assert_eq!(rows.len(), fragments.len());
+    assert!(rows.len() >= QUERIES);
+    let queries = &rows[rows.len() - QUERIES..];
+    let dot = |a: &[f32], b: &[f32]| {
+        a.iter()
+            .zip(b)
+            .map(|(&x, &y)| f64::from(x) * f64::from(y))
+            .sum::<f64>()
+    };
+    let norms = rows
+        .iter()
+        .map(|row| dot(row, row).sqrt())
+        .collect::<Vec<_>>();
+    let expected = queries
+        .iter()
+        .map(|query| {
+            let query_norm = dot(query, query).sqrt();
+            let mut scored = rows
+                .iter()
+                .zip(&norms)
+                .enumerate()
+                .filter(|(_, (_, norm))| **norm > 0.0)
+                .map(|(ordinal, (row, norm))| {
+                    let score = (dot(row, query) / (norm * query_norm)).clamp(-1.0, 1.0);
+                    (ordinal, score)
+                })
+                .collect::<Vec<_>>();
+            scored.sort_unstable_by(|a, b| b.1.total_cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+            scored.truncate(K);
+            scored
+        })
+        .collect::<Vec<_>>();
+
+    let mut first = Vec::new();
+    let profile = generation.compatibility_profile_id;
+    for reopened in [false, true] {
+        let rel = Rel::open(&copy).unwrap();
+        let gateway = Gateway::new();
+        let owner = gateway.mount_rel(&rel, false).unwrap();
+        let other = Rel::create(temp.path("other.rel")).unwrap();
+        let other_owner = gateway.mount_rel(&other, false).unwrap();
+        let token = "synthetic-archive-vector-read-admission-token";
+        let (admission, control) = TrustedHostAdmission::new([HostCredentialBinding::new(
+            "archive-reader",
+            token,
+            [OwnerGrant::ViewRel(owner)],
+        )])
+        .install(&gateway)
+        .unwrap();
+        let instance = admission.authenticate(token).unwrap();
+
+        for (i, (query, expected)) in queries.iter().zip(&expected).enumerate() {
+            let actual = instance
+                .search_archive_vectors(owner, profile, query, K)
+                .unwrap();
+            assert_eq!(actual.profile_id, profile);
+            assert_eq!(actual.generation_id, generation.id.0);
+            assert_eq!(
+                actual.source_archive_version,
+                generation.source_archive_version
+            );
+            assert_eq!(actual.hits.len(), expected.len());
+            for (hit, &(ordinal, score)) in actual.hits.iter().zip(expected) {
+                assert_eq!(hit.ordinal, ordinal);
+                assert_eq!(hit.fragment_id, fragments[ordinal].0);
+                assert!((hit.score - score).abs() <= 1e-15);
+            }
+            if reopened {
+                assert_eq!(actual, first[i]);
+            } else {
+                first.push(actual);
+            }
+        }
+        assert_eq!(
+            instance
+                .search_archive_vectors(other_owner, profile, queries[0], K)
+                .unwrap_err()
+                .kind(),
+            ProductErrorKind::Unauthorized
+        );
+        assert_eq!(
+            instance
+                .search_archive_vectors(
+                    owner,
+                    reliquary_memory::CompatibilityProfileId([0; 32]),
+                    queries[0],
+                    K
+                )
+                .unwrap_err()
+                .kind(),
+            ProductErrorKind::Unavailable
+        );
+        assert_eq!(
+            instance
+                .search_archive_vectors(owner, profile, &vec![1.0; dimensions + 1], K)
+                .unwrap_err()
+                .kind(),
+            ProductErrorKind::InvalidInput
+        );
+        assert_eq!(
+            instance
+                .search_archive_vectors(owner, profile, queries[0], 0)
+                .unwrap_err()
+                .kind(),
+            ProductErrorKind::InvalidInput
+        );
+        control.revoke(token).unwrap();
+        assert_eq!(
+            instance
+                .search_archive_vectors(owner, profile, queries[0], K)
+                .unwrap_err()
+                .kind(),
+            ProductErrorKind::Revoked
+        );
+        drop(instance);
+        drop(control);
+        drop(admission);
+        drop(gateway);
+        fs::remove_file(other.path()).unwrap();
+        assert_eq!(fs::read_dir(&temp.root).unwrap().count(), 1);
+    }
+
+    assert_eq!(hash(&fixture), original);
+    assert_eq!(hash(&copy), original);
+    println!(
+        "Archive exact top-{K} matched {QUERIES} reference queries before and after reopen across {} vectors of {dimensions} dimensions",
+        rows.len()
+    );
+}
+
+#[test]
 fn current_rel_and_phylactery_reopen_with_stable_identity_and_kind_checks() {
     let temp = TestPaths::new("owners");
     let rel_path = temp.path("owner.rel");

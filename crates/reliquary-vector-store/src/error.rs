@@ -9,6 +9,7 @@ pub enum PayloadUnavailable {
 
 #[derive(Debug)]
 pub enum PackedVectorError {
+    Search(lodestone_core::Error),
     Container(ContainerError),
     CorruptRecord(&'static str),
     MissingFormat,
