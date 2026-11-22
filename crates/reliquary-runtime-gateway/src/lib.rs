@@ -462,7 +462,10 @@ mod host_memory_delivery;
 mod instance_entity;
 mod instance_perception_lifecycle;
 mod instance_vectors;
-pub use instance_vectors::{ArchiveVectorHit, ArchiveVectorSearch, PreparedVectorPublication};
+pub use instance_vectors::{
+    ArchiveHybridHit, ArchiveHybridSearch, ArchiveVectorHit, ArchiveVectorSearch,
+    PreparedVectorPublication,
+};
 mod instance_retrieval;
 
 mod instance_external_source;

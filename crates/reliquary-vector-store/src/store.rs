@@ -34,6 +34,11 @@ struct PackedVectorEntry {
 pub struct PackedVectorView(Arc<PackedVectors>);
 
 impl PackedVectorView {
+    /// Borrow one encoded row without materializing float values.
+    pub fn row(&self, ordinal: usize) -> Option<&[u8]> {
+        self.0.row(ordinal)
+    }
+
     pub fn search_cosine(
         &self,
         query: &[f32],

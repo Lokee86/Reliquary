@@ -55,6 +55,35 @@ impl Archive {
         self.resolve_path(selected)
     }
 
+    /// Pin the readable contents of an accepted fragment without copying its text.
+    pub fn bounded_fragment_text(
+        &self,
+        fragment: &crate::Fragment,
+    ) -> Result<Vec<Arc<String>>, ArchiveError> {
+        let nodes = self.bounded_ancestor_range(
+            &fragment.conversation_id,
+            &fragment.start_node_id,
+            &fragment.end_node_id,
+            MAX_EVIDENCE_TURNS,
+            MAX_EVIDENCE_RESULT_BYTES,
+        )?;
+        nodes
+            .into_iter()
+            .map(|node| {
+                if self
+                    .pruned_nodes
+                    .contains_key(&(node.conversation_id.clone(), node.id.clone()))
+                {
+                    return Err(ArchiveError::MissingContent);
+                }
+                self.content
+                    .get(&node.content_id)
+                    .cloned()
+                    .ok_or(ArchiveError::MissingContent)
+            })
+            .collect()
+    }
+
     /// Search accepted turns in first-accept order with a fixed scan and output
     /// budget. Results are restricted to the requested conversation when set.
     pub fn bounded_search(
@@ -127,7 +156,7 @@ impl Archive {
                     role: node.role.clone(),
                     principal_id: node.principal_id.clone(),
                     timestamp_ns: node.timestamp_ns,
-                    content: content.clone(),
+                    content: content.as_ref().clone(),
                 },
             ));
         }
@@ -159,7 +188,7 @@ impl Archive {
             role: node.role.clone(),
             principal_id: node.principal_id.clone(),
             timestamp_ns: node.timestamp_ns,
-            content: content.clone(),
+            content: content.as_ref().clone(),
         }))
     }
 
@@ -195,7 +224,7 @@ impl Archive {
 
 fn validate_evidence_nodes(
     nodes: &[&Node],
-    content: &HashMap<ContentId, String>,
+    content: &HashMap<ContentId, Arc<String>>,
     max_turns: usize,
     max_bytes: usize,
 ) -> Result<(), ArchiveError> {

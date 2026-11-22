@@ -27,6 +27,26 @@ pub struct ArchiveVectorView {
     vectors: PackedVectorView,
 }
 
+/// One accepted Archive fragment and its readable text at capture.
+pub struct ArchiveHybridSource {
+    pub fragment: reliquary_archive::Fragment,
+    pub text: Option<Vec<Arc<String>>>,
+}
+
+/// Paired lexical and semantic inputs from one accepted Archive vector generation.
+pub struct ArchiveHybridView {
+    pub generation: VectorGeneration,
+    pub dimensions: usize,
+    pub sources: Vec<ArchiveHybridSource>,
+    vectors: PackedVectorView,
+}
+
+impl ArchiveHybridView {
+    pub fn packed_row(&self, ordinal: usize) -> Option<&[u8]> {
+        self.vectors.row(ordinal)
+    }
+}
+
 impl ArchiveVectorView {
     pub fn dimensions(&self) -> usize {
         self.dimensions
@@ -483,6 +503,61 @@ impl RelSession {
             fragments,
             vectors: self.common.packed_vectors.view(packed_id)?,
         }))
+    }
+
+    /// Pin the accepted fragment text alongside the active packed matrix.
+    pub fn archive_hybrid_view(
+        &self,
+        profile_id: CompatibilityProfileId,
+    ) -> Result<Option<ArchiveHybridView>, OwnerSessionError> {
+        let Some(view) = self.archive_vector_view(profile_id)? else {
+            return Ok(None);
+        };
+        let sources = view
+            .fragments
+            .iter()
+            .map(|id| {
+                let (fragment, _) = self
+                    .archive
+                    .fragment_vector_source(
+                        reliquary_archive::FragmentId(id.0),
+                        view.generation.source_archive_version,
+                    )
+                    .ok_or_else(|| {
+                        OwnerSessionError::Record(
+                            "active Archive vector has no fragment at its source cut".into(),
+                        )
+                    })?;
+                let text = match self.archive.bounded_fragment_text(fragment) {
+                    Ok(text) => Some(text),
+                    Err(
+                        reliquary_archive::ArchiveError::MissingContent
+                        | reliquary_archive::ArchiveError::EvidenceLimitExceeded,
+                    ) => None,
+                    Err(error) => return Err(error.into()),
+                };
+                Ok(ArchiveHybridSource {
+                    fragment: fragment.clone(),
+                    text,
+                })
+            })
+            .collect::<Result<Vec<_>, OwnerSessionError>>()?;
+        Ok(Some(ArchiveHybridView {
+            generation: view.generation,
+            dimensions: view.dimensions,
+            sources,
+            vectors: view.vectors,
+        }))
+    }
+
+    pub fn archive_embedding_profiles(&self) -> Vec<CompatibilityProfile> {
+        self.generations
+            .current_generations()
+            .filter_map(|g| {
+                self.active_compatibility_profile(g.compatibility_profile_id)
+                    .cloned()
+            })
+            .collect()
     }
 
     pub fn archive_vector_infos(&self) -> Vec<ArchiveVectorInfo> {

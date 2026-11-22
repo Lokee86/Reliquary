@@ -333,13 +333,17 @@ pub fn lexical_score(text: &str, terms: &[String]) -> f64 {
     if terms.is_empty() {
         return 0.0;
     }
-    let words = term_counts(text);
+    let words: HashSet<_> = lexical_terms(text).into_iter().collect();
+    let lower = text.to_lowercase();
     let mut matched_terms = 0_usize;
     let mut frequency = 0_usize;
     for term in terms {
-        if let Some(count) = words.get(term).copied().filter(|count| *count > 0) {
-            matched_terms += 1;
-            frequency += count.min(4);
+        if words.contains(term) {
+            let count = lower.matches(term).take(4).count();
+            if count > 0 {
+                matched_terms += 1;
+                frequency += count;
+            }
         }
     }
     if matched_terms == 0 {
@@ -582,6 +586,11 @@ mod tests {
         let terms = lexical_terms("Alpha, beta alpha!");
         assert!((lexical_score("alpha alpha alpha", &terms) - 0.5375).abs() < 1e-9);
         assert_eq!(lexical_score("nothing", &terms), 0.0);
+        assert!(
+            (lexical_score("alpha alphabet alphabet alphabet alphabet", &terms) - 0.575).abs()
+                < 1e-9
+        );
+        assert_eq!(lexical_score("alphabet alphabet", &terms), 0.0);
     }
 
     #[test]

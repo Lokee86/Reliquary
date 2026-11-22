@@ -38,7 +38,7 @@ REL COMMANDS:
     work <status|resume|stop> <PATH> [--import <ID>]
     vectors <status|build> <PATH> ...
     <insomnia|dream|entity-resolution|freshness> <status|run> <PATH> ...
-    search <PATH> --query <TEXT> --mode <lexical|hybrid|semantic> [--config <FILE>]
+    search <PATH> --query <TEXT> --mode <lexical|hybrid|semantic> [--scope <memory|archive>] [--config <FILE>]
     query <PATH> --query <TEXT> --config <FILE>
     interact <PATH> [--config <FILE>] [--commands <JSONL>]
     memory list <PATH> [--cursor <JSON>] [--limit <N>]

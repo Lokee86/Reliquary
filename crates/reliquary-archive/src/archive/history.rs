@@ -28,7 +28,10 @@ impl Archive {
             .map(|key| {
                 let node = self.nodes[key].clone();
                 crate::HistoricalArchiveTurn {
-                    content: self.content.get(&node.content_id).cloned(),
+                    content: self
+                        .content
+                        .get(&node.content_id)
+                        .map(|text| text.as_ref().clone()),
                     attachments: self
                         .source_attachments
                         .get(key)

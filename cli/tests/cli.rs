@@ -411,6 +411,37 @@ fn import_stages_exact_transcript_and_resumes_without_appending() {
 }
 
 #[test]
+fn archive_search_scope_accepts_only_hybrid_mode() {
+    for (scope, mode, message) in [
+        ("other", "hybrid", "--scope must be memory or archive"),
+        (
+            "archive",
+            "lexical",
+            "--scope archive requires --mode hybrid",
+        ),
+        (
+            "archive",
+            "semantic",
+            "--scope archive requires --mode hybrid",
+        ),
+    ] {
+        let result = command(&[
+            "rel",
+            "search",
+            "unused.rel",
+            "--query",
+            "quasar",
+            "--mode",
+            mode,
+            "--scope",
+            scope,
+        ]);
+        assert!(!result.status.success());
+        assert!(String::from_utf8_lossy(&result.stderr).contains(message));
+    }
+}
+
+#[test]
 fn lexical_search_and_script_inspection_leave_owner_bytes_unchanged() {
     let temp = Temp::new("interact");
     let command = |args: &[&str]| {

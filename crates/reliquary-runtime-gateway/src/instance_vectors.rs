@@ -9,6 +9,7 @@ use reliquary_owner_session::{
     model::{CompatibilityProfileId, MemoryId},
 };
 
+pub use reliquary_application::{ArchiveHybridHit, ArchiveHybridSearch};
 pub use reliquary_owner_session::{ArchiveVectorHit, ArchiveVectorSearch};
 
 pub struct PreparedVectorPublication {
@@ -34,6 +35,40 @@ impl Instance {
             return Err(GatewayError::InvalidPreparedRetrieval);
         }
         let result = view.search(query, limit)?;
+        self.authorize_rel_access(owner)?;
+        Ok(result)
+    }
+
+    /// Active embedding profiles that have an accepted Archive generation.
+    pub fn archive_embedding_profiles(
+        &self,
+        owner: OwnerId,
+    ) -> Result<Vec<reliquary_owner_session::model::CompatibilityProfile>, GatewayError> {
+        self.with_reliquary(owner, RelSession::archive_embedding_profiles)
+    }
+
+    pub fn search_archive_hybrid(
+        &self,
+        owner: OwnerId,
+        profile_id: CompatibilityProfileId,
+        text: &str,
+        query: &[f32],
+        policy: reliquary_application::RetrievalConfig,
+    ) -> Result<ArchiveHybridSearch, GatewayError> {
+        let view = self.with_reliquary(owner, |rel| {
+            if rel
+                .active_compatibility_profile(profile_id)
+                .is_some_and(|profile| query.len() != profile.dimensions as usize)
+            {
+                return Err(GatewayError::InvalidPreparedRetrieval);
+            }
+            rel.archive_hybrid_view(profile_id)?
+                .ok_or(GatewayError::RetrievalUnavailable(
+                    "no active Archive vectors for the embedding profile",
+                ))
+        })??;
+        let result = reliquary_application::rank_archive_hybrid(view, text, query, policy)
+            .map_err(GatewayError::Retrieval)?;
         self.authorize_rel_access(owner)?;
         Ok(result)
     }

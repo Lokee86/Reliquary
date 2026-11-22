@@ -41,7 +41,7 @@ Native retained history uses `RELPUB01` to bind an accepted local Archive, Memor
 
 The current stores also preserve grouped Insomnia births and their routing, historical Community derivations, Entity Resolution revisions, and the accepted Freshness journal and settlement. Vector activation receipts carry a current physical reference. A verified copy that moves that generation must relocate the receipt with the vector codec.
 
-Archive vectors use the existing REL packed payload and its ordered fragment mapping. Owner replay verifies the packed matrix and mapping before sharing immutable references with readers. Lodestone ranks the accepted F32 rows directly with exact cosine. The REL is the sole durable copy and publication authority for the matrix, mapping, and activation. Existing REL 2.1 files with active Archive generations can use this path on reopen.
+Archive vectors use the existing REL packed payload and its ordered fragment mapping. Owner replay verifies the packed matrix and mapping before sharing immutable references with readers. Lodestone ranks the accepted F32 rows directly with exact cosine. The REL is the sole durable copy and publication authority for the matrix, mapping, and activation. Existing REL 2.1 files with active Archive generations can use this path on reopen. Native fragment definitions and retained migration records both preserve the source range used for hybrid search. Archive shares immutable turn text with captured readers through in-memory references.
 
 ## Invariants and tests
 

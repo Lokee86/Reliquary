@@ -50,18 +50,20 @@ The host passes a credential loaded from its protected configuration as `token`;
 | Admission and lifecycle | `Gateway`, `TrustedHostAdmission`, `HostCredentialBinding`, `OwnerGrant`, `Instance` | Mount owner files, authenticate a host principal, issue scoped capabilities, revoke credentials, and quiesce/reopen through product lifecycle operations. |
 | Import and processing | `NativeImportPlan`, `ProcessOptions`, `OwnerProcessingJob`, `Instance::stage_native_import`, `Instance::start_processing`, `Instance::process_and_drain` | Stage source data and run named processing through configured routes. Durable progress and source identity are queryable; replay and resume honor recorded workflow evidence. |
 | Inspection and management | `InspectionQuery`, `InspectionCursor`, `WorkspaceManagement`, `MemorySummary`, `MemoryProvenance` | Bounded, cut-bound owner reads and supported user-origin mutations; stale cuts and unauthorized owners are explicit errors. |
-| Retrieval | `Instance::has_active_vectors`, `search_archive_vectors`, `search`, `begin_retrieval`, `memory_query`, `refine_query`, `traverse_graph`, and prepared delivery/recovery methods | Authorized read-only vector presence for host metadata binding; passive search, decision-driven retrieval, inspection and confirmed host use remain distinct. A query or displayed result does not assert use. |
+| Retrieval | `Instance::has_active_vectors`, `search_archive_vectors`, `search_archive`, `search_archive_hybrid`, `search`, `begin_retrieval`, `memory_query`, `refine_query`, `traverse_graph`, and prepared delivery/recovery methods | Authorized read-only vector presence for host metadata binding; passive search, decision-driven retrieval, inspection and confirmed host use remain distinct. A query or displayed result does not assert use. |
 | Host work | `ConversationQueue`, `ContextView`, `AuthorizedContextCheckpoint`, `ExternalHostSource`, `TrustedProjectSource`, `TrustedHostAdapter` | Host-facing queue, context, source and exact handoff protocols, with durable evidence and explicit recovery. |
 | Maintenance | `plan_rewrite`, `execute_rewrite`, prune/reclaim/repair/reconcile operations | Plan and verify create-only copies; they do not replace an existing destination. Quiesce writable owners before copy maintenance. |
 | Configuration | `ReliquaryConfig`, `ConfiguredRuntime`, `ModelRoute`, `CredentialId`, `SecretString` | Open or prepare `reliquary.cfg`, validate offline route bindings, protect credentials through Switchboard. |
 
 This table is an orientation map, not a complete list of every public value. Rustdoc for the built version is the exact method signature reference; CLI callers use the [CLI reference](reference/cli.md).
 
-## Exact vector search
+## Vector and hybrid Archive search
 
 `Instance::search_archive_vectors(owner, profile_id, query, limit)` searches the accepted Archive generation for a compatibility profile in a mounted REL. It requires REL view access. Pass the embedding's `CompatibilityProfileId` and a query with the same dimensions, finite values, and nonzero norm. The limit accepts 1–128 hits. An absent active generation returns `Unavailable`.
 
 `ArchiveVectorSearch` returns the profile, generation, and source Archive version. Each hit has a stable fragment ID, its row ordinal in the generation, and a cosine score. Hits are sorted by descending score and ascending ordinal for ties. Scoring reads the accepted packed vectors and makes no provider calls or durable writes.
+
+`Instance::search_archive(owner, text, options, runtime)` runs hybrid search using a configured query embedding compatible with an active Archive generation. `Instance::search_archive_hybrid(owner, profile, text, embedding, limit)` accepts a qualified embedding from the caller. Both require REL view access and apply the existing hybrid weights to fragment text and exact cosine scores before applying the result limit. Results include the generation and source cut, the number of fragments with readable text, and each hit's conversation and node range. Fragments with text beyond the evidence bounds or unavailable content can still match their accepted vectors.
 
 `SearchMode::Semantic` for passive Memory search uses global exact ranking within the active embedding profile. The result reports `semantic_routing = "global_exact"`.
 

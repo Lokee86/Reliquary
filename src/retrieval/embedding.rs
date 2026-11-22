@@ -4,18 +4,35 @@ use reliquary_switchboard::EmbeddingEndpoint;
 use reliquary_vectors::{SwitchboardEmbeddingEndpoint, compare_profiles, embed_batch_bounded};
 use std::sync::Arc;
 
+pub(super) enum EmbeddingScope {
+    Memory,
+    Archive,
+}
+
 impl Instance {
     pub(super) fn embed_retrieval_query(
         &self,
         owner: OwnerId,
         query: &str,
         endpoint: Arc<dyn EmbeddingEndpoint>,
+        scope: EmbeddingScope,
     ) -> Result<(reliquary_vectors::CompatibilityProfileId, Vec<f32>), GatewayError> {
-        let profiles = self.inner.retrieval_embedding_profiles(owner.into())?;
-        if profiles.is_empty() {
-            return Err(GatewayError::RetrievalUnavailable(
+        let (profiles, missing, incompatible, ambiguous) = match scope {
+            EmbeddingScope::Memory => (
+                self.inner.retrieval_embedding_profiles(owner.into())?,
                 "no active Memory embedding profile with vectors",
-            ));
+                "embedding route is incompatible with active Memory profiles",
+                "embedding route matches multiple active Memory profiles",
+            ),
+            EmbeddingScope::Archive => (
+                self.inner.archive_embedding_profiles(owner.into())?,
+                "no active Archive embedding profile with vectors",
+                "embedding route is incompatible with active Archive profiles",
+                "embedding route matches multiple active Archive profiles",
+            ),
+        };
+        if profiles.is_empty() {
+            return Err(GatewayError::RetrievalUnavailable(missing));
         }
         let endpoint = SwitchboardEmbeddingEndpoint::new(endpoint);
         let observed = prepare_compatibility_profile(&endpoint)
@@ -28,15 +45,11 @@ impl Instance {
             let mut compatible = profiles
                 .iter()
                 .filter(|profile| compare_profiles(profile, &observed).compatible);
-            let profile = compatible.next().ok_or_else(|| {
-                GatewayError::RetrievalUnavailable(
-                    "embedding route is incompatible with active Memory profiles",
-                )
-            })?;
+            let profile = compatible
+                .next()
+                .ok_or(GatewayError::RetrievalUnavailable(incompatible))?;
             if compatible.next().is_some() {
-                return Err(GatewayError::RetrievalUnavailable(
-                    "embedding route matches multiple active Memory profiles",
-                ));
+                return Err(GatewayError::RetrievalUnavailable(ambiguous));
             }
             profile
         };

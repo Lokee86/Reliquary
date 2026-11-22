@@ -2,7 +2,8 @@ use super::*;
 use crate::interaction_input::{self, Command};
 use crate::local_host::{LocalHost, RelAccess};
 use reliquary_memory::{
-    ConfiguredRuntime, GraphNode, InspectionQuery, RetrievalMode, SearchMode, SearchOptions,
+    ArchiveSearchOptions, ConfiguredRuntime, GraphNode, InspectionQuery, RetrievalMode, SearchMode,
+    SearchOptions,
 };
 use std::io::{BufRead, BufReader, Write};
 
@@ -13,6 +14,7 @@ pub(crate) fn search(args: &[String]) -> Result<Value, ProductError> {
         &[
             ("--query", false),
             ("--mode", false),
+            ("--scope", false),
             ("--limit", false),
             ("--config", false),
             ("--embedding-route", false),
@@ -25,7 +27,58 @@ pub(crate) fn search(args: &[String]) -> Result<Value, ProductError> {
         "semantic" => SearchMode::Semantic,
         _ => return Err(invalid("--mode must be lexical, hybrid, or semantic")),
     };
+    let archive = match option(args, "--scope") {
+        None | Some("memory") => false,
+        Some("archive") => true,
+        Some(_) => return Err(invalid("--scope must be memory or archive")),
+    };
     let limit = number_option(args, "--limit")?;
+    if archive {
+        if mode != SearchMode::Hybrid {
+            return Err(invalid("--scope archive requires --mode hybrid"));
+        }
+        let runtime = operational::runtime(operational::config_path(args))?;
+        let host = LocalHost::open(&args[0], None, RelAccess::View)?;
+        let result = host.instance.search_archive(
+            host.rel,
+            query,
+            ArchiveSearchOptions {
+                limit,
+                embedding_route: option(args, "--embedding-route").map(str::to_owned),
+            },
+            &runtime,
+        )?;
+        let hits: Vec<_> = result
+            .hits
+            .iter()
+            .map(|hit| {
+                json!({
+                    "fragment_id": hex(&hit.fragment_id),
+                    "ordinal": hit.ordinal,
+                    "conversation_id": hit.conversation_id,
+                    "start_node_id": hit.start_node_id,
+                    "end_node_id": hit.end_node_id,
+                    "lexical_score": hit.lexical_score,
+                    "semantic_score": hit.semantic_score,
+                    "score": hit.score,
+                })
+            })
+            .collect();
+        return Ok(json!({
+            "operation": "search",
+            "result": {
+                "scope": "archive",
+                "mode": "hybrid",
+                "profile_id": hex(&result.profile_id.0),
+                "generation_id": hex(&result.generation_id),
+                "source_archive_version": result.source_archive_version,
+                "fragments_scored": result.fragments_scored,
+                "fragments_with_text": result.fragments_with_text,
+                "truncated": result.truncated,
+                "hits": hits,
+            }
+        }));
+    }
     let configured = if mode == SearchMode::Lexical {
         option(args, "--config")
             .map(operational::runtime)

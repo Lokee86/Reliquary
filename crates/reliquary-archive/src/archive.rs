@@ -24,6 +24,7 @@ use reliquary_container::{Container, ContainerError, ContainerIdentity, FileKind
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, HashMap};
 use std::io::Read;
+use std::sync::Arc;
 
 mod evidence;
 pub use evidence::{
@@ -35,7 +36,7 @@ pub struct Archive {
     owner_id: Option<[u8; 16]>,
     container_identity: Option<ContainerIdentity>,
     nodes: HashMap<(String, String), Node>,
-    content: HashMap<ContentId, String>,
+    content: HashMap<ContentId, Arc<String>>,
     pruned_nodes: HashMap<(String, String), [u8; 32]>,
     accepted_node_order: Vec<(String, String)>,
     node_archive_versions: HashMap<(String, String), u64>,
@@ -56,7 +57,7 @@ pub struct Archive {
     archive_version: u64,
     publication_bindings: Vec<ArchivePublicationBinding>,
     retained_publications: Vec<crate::RetainedArchivePublication>,
-    retained_fragment_versions: BTreeMap<crate::FragmentId, u64>,
+    retained_fragment_index: BTreeMap<crate::FragmentId, usize>,
     project_correlations: Vec<crate::ProjectCorrelation>,
     project_backing_bindings: Vec<crate::ProjectBackingBinding>,
     project_backing_indices: HashMap<[u8; 32], usize>,
@@ -89,7 +90,7 @@ impl Archive {
             archive_version: 0,
             publication_bindings: Vec::new(),
             retained_publications: Vec::new(),
-            retained_fragment_versions: BTreeMap::new(),
+            retained_fragment_index: BTreeMap::new(),
             project_correlations: Vec::new(),
             project_backing_bindings: Vec::new(),
             project_backing_indices: HashMap::new(),
@@ -210,7 +211,7 @@ impl Archive {
         };
         if let Some(existing) = self.nodes.get(&key) {
             if existing == &node
-                && self.content.get(&content_id) == Some(&input.content)
+                && self.content.get(&content_id).map(Arc::as_ref) == Some(&input.content)
                 && self
                     .source_attachments
                     .get(&key)
@@ -230,7 +231,7 @@ impl Archive {
         if self
             .content
             .get(&content_id)
-            .is_some_and(|existing| existing != &input.content)
+            .is_some_and(|existing| existing.as_ref() != &input.content)
         {
             return Err(ArchiveError::HashCollision);
         }
@@ -281,7 +282,9 @@ impl Archive {
         self.persist_applying(container, coordinate, &encoded)?;
         self.file_content.extend(new_file_content);
         self.nodes.insert(key.clone(), node.clone());
-        self.content.entry(content_id).or_insert(input.content);
+        self.content
+            .entry(content_id)
+            .or_insert_with(|| Arc::new(input.content));
         self.source_attachments.insert(key.clone(), attachments);
         self.accepted_node_order.push(key.clone());
         self.node_archive_versions
@@ -612,6 +615,7 @@ impl Archive {
             .content
             .get(&node.content_id)
             .ok_or(ArchiveError::MissingContent)?
+            .as_ref()
             .clone();
         Ok(Some(ResolvedTurn {
             node_id: node.id.clone(),
@@ -713,7 +717,7 @@ impl Archive {
             return None;
         }
         let node = self.node(conversation_id, node_id)?;
-        self.content.get(&node.content_id).map(String::as_str)
+        self.content.get(&node.content_id).map(|text| text.as_str())
     }
 
     pub fn node(&self, conversation_id: &str, node_id: &str) -> Option<&Node> {
@@ -918,7 +922,7 @@ impl Archive {
                 }
                 if let Some(existing) = self.nodes.get(&key) {
                     if existing == &node
-                        && self.content.get(&node.content_id) == Some(&content)
+                        && self.content.get(&node.content_id).map(Arc::as_ref) == Some(&content)
                         && self
                             .source_attachments
                             .get(&key)
@@ -933,7 +937,7 @@ impl Archive {
                 if self
                     .content
                     .get(&node.content_id)
-                    .is_some_and(|existing| existing != &content)
+                    .is_some_and(|existing| existing.as_ref() != &content)
                 {
                     return Err(ArchiveError::HashCollision);
                 }
@@ -958,7 +962,9 @@ impl Archive {
                     None
                 };
                 self.nodes.insert(key.clone(), node.clone());
-                self.content.entry(node.content_id).or_insert(content);
+                self.content
+                    .entry(node.content_id)
+                    .or_insert_with(|| Arc::new(content));
                 self.source_attachments.insert(key.clone(), attachments);
                 let key = (node.conversation_id.clone(), node.id.clone());
                 self.accepted_node_order.push(key.clone());
@@ -1390,6 +1396,7 @@ impl Archive {
                     .content
                     .get(&node.content_id)
                     .ok_or(ArchiveError::MissingContent)?
+                    .as_ref()
                     .clone();
                 Ok(ResolvedTurn {
                     node_id: node.id.clone(),

@@ -63,20 +63,31 @@ impl Archive {
         id: crate::FragmentId,
         archive_cut: u64,
     ) -> Option<u64> {
+        self.fragment_vector_source(id, archive_cut)
+            .map(|(_, version)| version)
+    }
+
+    /// Recover the exact persisted fragment range for a vector at its source cut.
+    pub fn fragment_vector_source(
+        &self,
+        id: crate::FragmentId,
+        archive_cut: u64,
+    ) -> Option<(&crate::Fragment, u64)> {
         if let Some(definition) = self.fragment_definition(id)
             && definition.archive_cut < archive_cut
         {
-            return self
-                .node_archive_version(
-                    &definition.fragment.conversation_id,
-                    &definition.fragment.end_node_id,
-                )
-                .filter(|version| *version <= archive_cut);
+            let fragment = &definition.fragment;
+            let version =
+                self.node_archive_version(&fragment.conversation_id, &fragment.end_node_id)?;
+            return (version <= archive_cut).then_some((fragment, version));
         }
-        self.retained_fragment_versions
-            .get(&id)
-            .copied()
-            .filter(|version| *version <= archive_cut)
+        let index = *self.retained_fragment_index.get(&id)?;
+        let publication = self.retained_publications.get(index)?;
+        let crate::RetainedArchiveValue::Fragment { fragment } = &publication.value else {
+            return None;
+        };
+        (publication.archive_version <= archive_cut)
+            .then_some((fragment, publication.archive_version))
     }
 
     pub(super) fn apply_retained_publication(
@@ -89,7 +100,7 @@ impl Archive {
                 if self
                     .conversation_tombstones
                     .contains_key(&fragment.conversation_id)
-                    || self.retained_fragment_versions.contains_key(&fragment.id)
+                    || self.retained_fragment_index.contains_key(&fragment.id)
                     || self.fragment_definitions.contains_key(&fragment.id)
                     || fragment.id
                         != crate::fragment_id(
@@ -106,8 +117,8 @@ impl Archive {
                         "invalid retained Archive fragment",
                     ));
                 }
-                self.retained_fragment_versions
-                    .insert(fragment.id, archive_version);
+                self.retained_fragment_index
+                    .insert(fragment.id, self.retained_publications.len());
             }
             crate::RetainedArchiveValue::ConversationMetadata {
                 conversation_id,

@@ -36,7 +36,7 @@ impl Drop for TestPaths {
 
 #[test]
 #[ignore = "requires RELIQUARY_ARCHIVE_FIXTURE pointing to an existing REL 2.1 with Archive vectors"]
-fn exact_archive_vectors_match_brute_force_and_reopen() {
+fn archive_search_matches_reference_and_reopens() {
     use reliquary_container::Container;
     use reliquary_vector_store::{
         ArchiveVectorStore, CompatibilityProfileStore, PackedVectorStore, VectorGenerationStore,
@@ -58,8 +58,9 @@ fn exact_archive_vectors_match_brute_force_and_reopen() {
     assert_eq!(hash(&copy), original);
 
     // Read the accepted source independently of the new search path.
-    let (generation, fragments, dimensions, values) = {
+    let (generation, fragments, dimensions, values, sources) = {
         let mut container = Container::open_read_only(&copy).unwrap();
+        let archive = reliquary_archive::Archive::open(&container).unwrap();
         let packed = PackedVectorStore::open(&container).unwrap();
         let profiles = CompatibilityProfileStore::open(&container).unwrap();
         let archives = ArchiveVectorStore::open(&container, &packed).unwrap();
@@ -75,6 +76,39 @@ fn exact_archive_vectors_match_brute_force_and_reopen() {
             })
             .expect("Archive fixture must have an active vector generation");
         let mapping = archives.get(generation.archive_vector_id).unwrap();
+        let sources = mapping
+            .fragment_ids
+            .iter()
+            .map(|id| {
+                let (fragment, _) = archive
+                    .fragment_vector_source(
+                        reliquary_archive::FragmentId(id.0),
+                        generation.source_archive_version,
+                    )
+                    .unwrap();
+                let text = match archive.bounded_conversation_range(
+                    &fragment.conversation_id,
+                    &fragment.start_node_id,
+                    &fragment.end_node_id,
+                    reliquary_archive::MAX_EVIDENCE_TURNS,
+                    reliquary_archive::MAX_EVIDENCE_RESULT_BYTES,
+                ) {
+                    Ok(turns) => turns
+                        .iter()
+                        .map(|turn| {
+                            archive.content_for_node(&fragment.conversation_id, &turn.node_id)
+                        })
+                        .collect::<Option<Vec<_>>>()
+                        .map(|texts| texts.join("\n")),
+                    Err(
+                        reliquary_archive::ArchiveError::MissingContent
+                        | reliquary_archive::ArchiveError::EvidenceLimitExceeded,
+                    ) => None,
+                    Err(error) => panic!("invalid Archive fragment range: {error}"),
+                };
+                (fragment.clone(), text)
+            })
+            .collect::<Vec<_>>();
         let matrix = packed
             .get(&mut container, mapping.packed_vector_id)
             .unwrap();
@@ -91,6 +125,7 @@ fn exact_archive_vectors_match_brute_force_and_reopen() {
             mapping.fragment_ids,
             matrix.schema().dimensions as usize,
             values,
+            sources,
         )
     };
     let rows = values.chunks_exact(dimensions).collect::<Vec<_>>();
@@ -127,7 +162,55 @@ fn exact_archive_vectors_match_brute_force_and_reopen() {
         })
         .collect::<Vec<_>>();
 
+    // Use an accepted term and two existing embeddings for a full hybrid reference scan.
+    let terms: Vec<_> = [0, sources.len() / 2]
+        .into_iter()
+        .map(|offset| {
+            sources[offset..]
+                .iter()
+                .chain(&sources[..offset])
+                .filter_map(|(_, text)| text.as_deref())
+                .flat_map(reliquary_retrieval::lexical_terms)
+                .find(|term| term.len() >= 8)
+                .expect("Archive fixture has readable keyword text")
+        })
+        .collect();
+    let expected_hybrid: Vec<_> = terms
+        .iter()
+        .zip([queries[0], queries[QUERIES - 1]])
+        .map(|(term, vector)| {
+            let query_norm = dot(vector, vector).sqrt();
+            let mut hits = sources
+                .iter()
+                .zip(rows.iter().zip(&norms))
+                .enumerate()
+                .filter_map(|(ordinal, ((_, text), (row, norm)))| {
+                    let lexical = text.as_ref().and_then(|text| {
+                        let has_word = text
+                            .split(|ch: char| !ch.is_alphanumeric())
+                            .any(|word| word.to_lowercase() == *term);
+                        let count = text.to_lowercase().matches(term).take(4).count();
+                        (has_word && count > 0).then(|| 0.85 + 0.15 * (count as f64 / 2.0).min(1.0))
+                    });
+                    let cosine = (dot(row, vector) / (norm * query_norm)).clamp(-1.0, 1.0);
+                    let semantic = (cosine > 0.0).then_some(cosine);
+                    let score = match (lexical, semantic) {
+                        (Some(a), Some(b)) => 0.45 * a + 0.55 * b,
+                        (Some(score), None) | (None, Some(score)) => score,
+                        (None, None) => return None,
+                    };
+                    Some((ordinal, lexical, semantic, score))
+                })
+                .collect::<Vec<_>>();
+            assert!(hits.iter().any(|(_, lex, _, _)| lex.is_some()));
+            hits.sort_unstable_by(|a, b| b.3.total_cmp(&a.3).then_with(|| a.0.cmp(&b.0)));
+            hits.truncate(K);
+            hits
+        })
+        .collect();
+
     let mut first = Vec::new();
+    let mut first_hybrid = Vec::new();
     let profile = generation.compatibility_profile_id;
     for reopened in [false, true] {
         let rel = Rel::open(&copy).unwrap();
@@ -167,6 +250,56 @@ fn exact_archive_vectors_match_brute_force_and_reopen() {
                 first.push(actual);
             }
         }
+        for (i, (text, vector)) in terms
+            .iter()
+            .zip([queries[0], queries[QUERIES - 1]])
+            .enumerate()
+        {
+            let actual = instance
+                .search_archive_hybrid(owner, profile, text, vector, K)
+                .unwrap();
+            assert_eq!(actual.profile_id, profile);
+            assert_eq!(actual.generation_id, generation.id.0);
+            assert_eq!(
+                actual.source_archive_version,
+                generation.source_archive_version
+            );
+            assert_eq!(actual.fragments_scored, rows.len());
+            assert_eq!(
+                actual.fragments_with_text,
+                sources.iter().filter(|(_, text)| text.is_some()).count()
+            );
+            assert_eq!(actual.hits.len(), expected_hybrid[i].len());
+            for (hit, &(ordinal, lexical, semantic, score)) in
+                actual.hits.iter().zip(&expected_hybrid[i])
+            {
+                let (source, _) = &sources[ordinal];
+                assert_eq!(hit.ordinal, ordinal);
+                assert_eq!(hit.fragment_id, fragments[ordinal].0);
+                assert_eq!(hit.conversation_id, source.conversation_id);
+                assert_eq!(hit.start_node_id, source.start_node_id);
+                assert_eq!(hit.end_node_id, source.end_node_id);
+                assert_eq!(hit.lexical_score, lexical);
+                match (hit.semantic_score, semantic) {
+                    (Some(actual), Some(expected)) => assert!((actual - expected).abs() <= 1e-15),
+                    (None, None) => {}
+                    _ => panic!("semantic score presence differs"),
+                }
+                assert!((hit.score - score).abs() <= 1e-15);
+            }
+            if reopened {
+                assert_eq!(actual, first_hybrid[i]);
+            } else {
+                first_hybrid.push(actual);
+            }
+        }
+        assert_eq!(
+            instance
+                .search_archive_hybrid(other_owner, profile, &terms[0], queries[0], K)
+                .unwrap_err()
+                .kind(),
+            ProductErrorKind::Unauthorized
+        );
         assert_eq!(
             instance
                 .search_archive_vectors(other_owner, profile, queries[0], K)
@@ -203,6 +336,13 @@ fn exact_archive_vectors_match_brute_force_and_reopen() {
         control.revoke(token).unwrap();
         assert_eq!(
             instance
+                .search_archive_hybrid(owner, profile, &terms[0], queries[0], K)
+                .unwrap_err()
+                .kind(),
+            ProductErrorKind::Revoked
+        );
+        assert_eq!(
+            instance
                 .search_archive_vectors(owner, profile, queries[0], K)
                 .unwrap_err()
                 .kind(),
@@ -219,7 +359,8 @@ fn exact_archive_vectors_match_brute_force_and_reopen() {
     assert_eq!(hash(&fixture), original);
     assert_eq!(hash(&copy), original);
     println!(
-        "Archive exact top-{K} matched {QUERIES} reference queries before and after reopen across {} vectors of {dimensions} dimensions",
+        "Archive top-{K} matched {QUERIES} exact and {} hybrid reference queries before and after reopen across {} vectors of {dimensions} dimensions",
+        terms.len(),
         rows.len()
     );
 }

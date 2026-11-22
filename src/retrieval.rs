@@ -6,17 +6,20 @@ use crate::{
 use reliquary_application::RetrievalAction;
 use reliquary_runtime_gateway::{GatewayError, MemoryRetrievalRoute, MemoryRetrievalTurn};
 use reliquary_switchboard::DecisionConsumer;
+mod archive;
 mod embedding;
 mod outcome;
-use embedding::embedding_endpoint;
+pub use archive::ArchiveSearchOptions;
+use archive::{validate_archive_limit, validate_archive_vector};
+use embedding::{EmbeddingScope, embedding_endpoint};
 pub use outcome::{PreparedMemoryDelivery, PreparedRetrieval, RetrievalOutcome};
 
 pub use reliquary_application::{
     RetrievalAnchorReport, RetrievalDirection, RetrievalRelationEvidence,
 };
 pub use reliquary_runtime_gateway::{
-    ArchiveVectorHit, ArchiveVectorSearch, RetrievalCut, RetrievalMemory, RetrievalMode,
-    RetrievalPreview, RetrievalSource, SearchMode, SearchResult,
+    ArchiveHybridHit, ArchiveHybridSearch, ArchiveVectorHit, ArchiveVectorSearch, RetrievalCut,
+    RetrievalMemory, RetrievalMode, RetrievalPreview, RetrievalSource, SearchMode, SearchResult,
 };
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -67,17 +70,8 @@ impl Instance {
         limit: usize,
     ) -> Result<ArchiveVectorSearch, ProductError> {
         self.require_rel_read(owner)?;
-        if !(1..=128).contains(&limit) {
-            return Err(ProductError::invalid(
-                "Archive search limit must be between 1 and 128",
-            ));
-        }
-        if query.is_empty()
-            || query.iter().any(|v| !v.is_finite())
-            || query.iter().all(|v| *v == 0.0)
-        {
-            return Err(ProductError::invalid("invalid Archive query vector"));
-        }
+        validate_archive_limit(limit)?;
+        validate_archive_vector(query)?;
         self.inner
             .search_archive_vectors(owner.into(), profile_id, query, limit)
             .map_err(retrieval_error)
@@ -113,7 +107,7 @@ impl Instance {
                 .and_then(|runtime| embedding_endpoint(runtime, options.embedding_route.as_deref()))
                 .ok_or_else(|| unavailable("requested search embedding route is unavailable"))?;
             Some(
-                self.embed_retrieval_query(owner, query, endpoint)
+                self.embed_retrieval_query(owner, query, endpoint, EmbeddingScope::Memory)
                     .map_err(retrieval_error)?,
             )
         };
@@ -273,7 +267,12 @@ impl Instance {
                 query
                     .zip(endpoint)
                     .map(|(query, endpoint)| {
-                        self.embed_retrieval_query(session.owner, &query, endpoint)
+                        self.embed_retrieval_query(
+                            session.owner,
+                            &query,
+                            endpoint,
+                            EmbeddingScope::Memory,
+                        )
                     })
                     .transpose()
             })
