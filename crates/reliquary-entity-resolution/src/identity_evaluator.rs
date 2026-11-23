@@ -25,8 +25,9 @@ const IDENTITY_SYSTEM_PROMPT: &str = concat!(
     "are compatible and independent witnesses on both sides affirm the same distinguishing fact ",
     "about the endpoints. Shared names, aliases, generic roles, and merely appearing with the ",
     "same participant do not establish identity. Return related_distinct with reason distinct only ",
-    "when independent place_of_birth witnesses each explicitly name a different city where a ",
-    "person was born. Include the 'born in' assertion in each cited fact. Different contracts, ",
+    "when independent place_of_birth witnesses affirm different cities where the people were ",
+    "born. Name the city explicitly in each cited fact. Return unresolved for uncertain or ",
+    "negated claims. Different contracts, ",
     "affiliations, jobs or roles can belong to the same person. For affirmative judgments provide ",
     "citations to both sides. Use zero-based Relationship and Memory positions, citing only ",
     "grounded Memories. The fact in each citation must be an exact excerpt from the cited quote ",
@@ -196,7 +197,7 @@ fn validate_output(
                 relationship,
                 memory,
                 anchors: distinguishing_names(side, relationship, &words),
-                explicit_birthplace: explicit_birthplace(side, relationship, quote, &words),
+                city_of_birth: city_of_birth(side, relationship),
                 words,
             });
         }
@@ -245,7 +246,7 @@ struct CitedFact<'a> {
     relationship: &'a IdentityRelationshipEvidence,
     memory: &'a IdentityObservedMemory,
     anchors: BTreeSet<Vec<String>>,
-    explicit_birthplace: bool,
+    city_of_birth: bool,
     words: Vec<String>,
 }
 
@@ -280,22 +281,16 @@ impl CitedFact<'_> {
                     )
             }
             IdentityOutcome::RelatedDistinct => {
-                self.explicit_birthplace && other.explicit_birthplace && disjoint_anchors
+                self.city_of_birth && other.city_of_birth && disjoint_anchors
             }
             IdentityOutcome::Unresolved => false,
         }
     }
 }
 
-/// Recognize a direct birthplace statement at the same granularity on both
-/// sides. The exact subject and city keep mentions, alternatives, and generic
-/// associations from being treated as assertions of a single-valued fact.
-fn explicit_birthplace(
-    side: &IdentityEvidence,
-    relationship: &IdentityRelationshipEvidence,
-    quote: &str,
-    excerpt: &[String],
-) -> bool {
+/// A person's place of birth is single-valued at city granularity.
+/// Relationship kind and participant role identify the asserted property.
+fn city_of_birth(side: &IdentityEvidence, relationship: &IdentityRelationshipEvidence) -> bool {
     if !side.endpoint.kind.eq_ignore_ascii_case("person")
         || !relationship.kind.eq_ignore_ascii_case("place_of_birth")
     {
@@ -304,27 +299,18 @@ fn explicit_birthplace(
     let [first, second] = relationship.participants.as_slice() else {
         return false;
     };
-    let city = if first.entity.id == side.endpoint.id {
-        &second.entity
+    let place = if first.entity.id == side.endpoint.id {
+        second
     } else if second.entity.id == side.endpoint.id {
-        &first.entity
+        first
     } else {
         return false;
     };
-    if !city.kind.eq_ignore_ascii_case("city") {
-        return false;
-    }
-    let quote = quote.trim();
-    let assertion = quote.strip_suffix('.').unwrap_or(quote);
-    names(city).any(|city| {
-        let predicate = format!("born in {city}");
-        assertion
-            .strip_suffix(&format!(" was {predicate}"))
-            .is_some_and(|subject| {
-                names(&side.endpoint).any(|name| name.eq_ignore_ascii_case(subject))
-            })
-            && excerpt.ends_with(&words(&predicate))
-    })
+    place.entity.kind.eq_ignore_ascii_case("city")
+        && place
+            .roles
+            .iter()
+            .any(|role| role.eq_ignore_ascii_case("birthplace"))
 }
 
 fn conflicting_birthplaces(
@@ -335,14 +321,13 @@ fn conflicting_birthplaces(
     for side in [IdentitySide::Left, IdentitySide::Right] {
         let evidence = pair.side(side);
         for (relationship, relation) in evidence.relationships.iter().enumerate() {
+            if !city_of_birth(evidence, relation) {
+                continue;
+            }
             let Some(quote) = relation.quote.as_deref() else {
                 continue;
             };
-            let words = words(quote);
-            if !explicit_birthplace(evidence, relation, quote, &words) {
-                continue;
-            }
-            let anchors = distinguishing_names(evidence, relation, &words);
+            let anchors = distinguishing_names(evidence, relation, &words(quote));
             let Some(memory) = relation
                 .memories
                 .iter()

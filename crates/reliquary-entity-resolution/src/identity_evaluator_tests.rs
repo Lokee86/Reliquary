@@ -209,9 +209,8 @@ fn affirmative_answers_require_distinguishing_facts_beyond_generic_roles() {
     assert_eq!(judgment.outcome, IdentityOutcome::Unresolved);
     assert_eq!(judgment.reason, IdentityReason::Ambiguity);
 
-    let birth_register = |owner, place: &str| {
-        let quote = format!("Alex Chen was born in {place}.");
-        let mut evidence = side(owner, owner, &quote);
+    let birth_register = |owner, place: &str, quote: &str| {
+        let mut evidence = side(owner, owner, quote);
         evidence.relationships[0].kind = "place_of_birth".into();
         evidence.relationships[0].participants[0].roles = vec!["person".into()];
         evidence.relationships[0].participants[1]
@@ -222,20 +221,31 @@ fn affirmative_answers_require_distinguishing_facts_beyond_generic_roles() {
         evidence
     };
     distinct["citations"][0]["fact"] = json!("born in Meridian City");
-    distinct["citations"][1]["fact"] = json!("born in Lantern City");
-    let meridian_birth = birth_register(1, "Meridian City");
-    let lantern_birth = birth_register(2, "Lantern City");
+    distinct["citations"][1]["fact"] = json!("Lantern City");
+    let meridian_birth = birth_register(
+        1,
+        "Meridian City",
+        "Alex Chen was born in Meridian City as recorded in Register A.",
+    );
+    let lantern_birth = birth_register(
+        2,
+        "Lantern City",
+        "Register B lists Lantern City as Alex Chen's birthplace.",
+    );
     let separate_anchors = IdentityPairEvidence::new(meridian_birth.clone(), lantern_birth.clone());
-    let judgment =
-        evaluate_identity_pair(&separate_anchors, &Scripted::reply(distinct.clone())).unwrap();
+    let judgment = evaluate_identity_pair(&separate_anchors, &Scripted::reply(distinct)).unwrap();
     assert_eq!(judgment.outcome, IdentityOutcome::RelatedDistinct);
 
     let mut uncertain_birth = lantern_birth.clone();
     uncertain_birth.relationships[0].quote =
         Some("Alex Chen might have been born in Lantern City.".into());
     let uncertain = IdentityPairEvidence::new(meridian_birth.clone(), uncertain_birth);
-    let judgment = evaluate_identity_pair(&uncertain, &Scripted::reply(distinct)).unwrap();
+    let uncertainty = Scripted::reply(json!({
+        "outcome": "unresolved", "reason": "ambiguity", "citations": [],
+    }));
+    let judgment = evaluate_identity_pair(&uncertain, &uncertainty).unwrap();
     assert_eq!(judgment.outcome, IdentityOutcome::Unresolved);
+    assert_eq!(judgment.reason, IdentityReason::Ambiguity);
 
     let with_birth = |mut evidence: IdentityEvidence, mut birth: IdentityEvidence| {
         let mut relationship = birth.relationships.remove(0);
