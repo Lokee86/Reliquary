@@ -27,6 +27,7 @@ pub struct HistoricalOwnerCut {
 pub struct RelHistoricalCut {
     pub owner: HistoricalOwnerCut,
     pub archive_version: u64,
+    pub identity_version: u64,
     pub freshness: FreshnessEventCut,
 }
 
@@ -90,6 +91,7 @@ impl RelSession {
                 vector_version: self.generations.vector_version(),
             },
             archive_version: self.archive.archive_version(),
+            identity_version: self.identity_history.frontier(),
             freshness: self.freshness.cut_through_turn(rel_turn),
         }
     }
@@ -124,6 +126,18 @@ impl RelSession {
             .map_err(HistoricalProofError::InvalidState)?;
         let freshness_evidence = self.freshness.replay_entries_at(&cut.freshness);
         validate_rel_cut(&common, &archive, &freshness)?;
+        let identities = self
+            .identity_history
+            .at(cut.identity_version)
+            .ok_or(HistoricalProofError::FutureCut("identity comparison"))?;
+        if identities.iter().any(|entry| {
+            entry.memory_cut > cut.owner.memory_version
+                || entry.perception_cut > cut.owner.perception_version
+        }) {
+            return Err(HistoricalProofError::InconsistentCut(
+                "identity receipts exceed the Memory or perception cut",
+            ));
+        }
         let retained = common_count(&common)
             .checked_add(archive.turns.len())
             .and_then(|count| count.checked_add(archive.branch_revisions.len()))
@@ -132,6 +146,7 @@ impl RelSession {
             .and_then(|count| count.checked_add(archive.fragment_definitions.len()))
             .and_then(|count| count.checked_add(archive.conversation_tombstones.len()))
             .and_then(|count| count.checked_add(freshness_evidence.len()))
+            .and_then(|count| count.checked_add(identities.len()))
             .ok_or(HistoricalProofError::LimitExceeded)?;
         if retained > MAX_PROOF_RECORDS || archive.publication_bindings.len() > MAX_PROOF_RECORDS {
             return Err(HistoricalProofError::LimitExceeded);
@@ -146,6 +161,7 @@ impl RelSession {
                 &archive,
                 &freshness,
                 &freshness_evidence,
+                identities,
                 cut,
             ),
             retained_records: retained,

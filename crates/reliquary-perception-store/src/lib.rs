@@ -64,6 +64,7 @@ pub use entity_publication::{
     ClockedEntityPublication, RetainedEntity, clocked_entity_in_frame, encode_retained_entity_body,
 };
 mod history;
+pub use history::perception_version_in_frame;
 mod relationship_codec;
 mod relationship_model;
 mod relationship_replay;

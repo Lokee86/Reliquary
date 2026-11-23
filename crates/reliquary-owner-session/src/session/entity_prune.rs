@@ -166,6 +166,7 @@ pub fn prune_terminal_entity_descriptions_copy(
         || copy.owner_id() != source.owner_id()
         || copy.latest_version() != source.latest_version()
         || reopened.perception.version() != state.perception.version()
+        || reopened.identity_history != state.identity_history
     {
         return Err("Entity prune changed owner identity or clocks".into());
     }
@@ -198,6 +199,7 @@ pub fn prune_terminal_entity_descriptions_copy(
 pub(super) struct EntityState {
     pub(super) perception: PerceptionStore,
     pub(super) graph: GraphStore,
+    pub(super) identity_history: super::identity_receipt::IdentityHistory,
 }
 pub(super) fn entity_state(
     container: &Container,
@@ -210,6 +212,7 @@ pub(super) fn entity_state(
             Ok(EntityState {
                 perception: session.common.perception,
                 graph: session.common.graph,
+                identity_history: session.identity_history,
             })
         }
         FileKind::Phylactery => {
@@ -217,6 +220,7 @@ pub(super) fn entity_state(
             Ok(EntityState {
                 perception: session.common.perception,
                 graph: session.common.graph,
+                identity_history: Default::default(),
             })
         }
     }

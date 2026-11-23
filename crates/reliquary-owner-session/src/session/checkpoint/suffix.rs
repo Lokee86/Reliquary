@@ -46,6 +46,9 @@ pub(super) fn replay(
         }
         let envelope = reliquary_container::decode_publication(payload)?;
         let body = envelope.as_ref().map_or(payload, |value| value.body);
+        if body.starts_with(super::super::identity_receipt::PREFIX) {
+            return Ok(false);
+        }
         if let Some(id) = body_id_in_frame(body)?
             && session.common.memories.references_body(id)
             && !session.common.memories.contains_body_payload(id)

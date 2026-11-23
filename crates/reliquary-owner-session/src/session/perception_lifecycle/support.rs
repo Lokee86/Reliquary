@@ -1,6 +1,6 @@
 use super::*;
 
-pub(super) fn owner_hex(owner: &[u8; 16]) -> String {
+pub(in crate::session) fn owner_hex(owner: &[u8; 16]) -> String {
     const HEX: &[u8; 16] = b"0123456789abcdef";
     let mut value = String::with_capacity(owner.len() * 2);
     for byte in owner {

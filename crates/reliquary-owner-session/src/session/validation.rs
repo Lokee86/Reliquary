@@ -57,6 +57,7 @@ pub(super) struct RelReplayAdmission {
     pub import_epochs: BTreeMap<(WorkEpisodeId, u32), String>,
     pub dependencies: RelDependencyDeclaration,
     pub has_archive_lexical_indexes: bool,
+    pub has_identity_receipts: bool,
 }
 
 pub(super) fn validate_rel_replay_admission(
@@ -96,6 +97,10 @@ pub(super) fn validate_rel_replay_admission(
         }
         let envelope = reliquary_container::decode_publication(frame.payload)?;
         let body = envelope.as_ref().map_or(frame.payload, |value| value.body);
+        if body.starts_with(super::identity_receipt::PREFIX) {
+            admission.has_identity_receipts = true;
+            continue;
+        }
         if body.starts_with(ARCHIVE_LEXICAL_INDEX_MAGIC) {
             if envelope.is_some() {
                 return Err(OwnerSessionError::Record(
@@ -276,6 +281,10 @@ pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), Owner
         (b"RELXMRP3", "external Memory receipt"),
         (b"RELXHST1", "external host evidence receipt"),
         (REL_DEPENDENCY_MAGIC, "REL dependency declaration"),
+        (
+            super::identity_receipt::MARKER,
+            "cross-REL identity receipt",
+        ),
     ];
     use std::io::Read;
     let mut cursor = container.physical_cursor()?;
@@ -316,6 +325,11 @@ pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), Owner
                     return Err(OwnerSessionError::RelOnlyRecordInPhylactery(domain));
                 }
             }
+        }
+        if length >= 6 && prefix.starts_with(super::identity_receipt::PREFIX) {
+            return Err(OwnerSessionError::RelOnlyRecordInPhylactery(
+                "cross-REL identity receipt",
+            ));
         }
         if length >= 6 && &prefix[..6] == b"RELAPB" {
             return Err(OwnerSessionError::RelOnlyRecordInPhylactery(

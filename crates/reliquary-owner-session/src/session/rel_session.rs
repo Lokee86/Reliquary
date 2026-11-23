@@ -139,17 +139,18 @@ impl RelSession {
                 "external Memory reference points to the local REL owner".into(),
             ));
         }
-        let mut common = if leased {
-            super::replay::open_common_replaying(
-                container,
-                graph_admission.owner_id().ok_or(GraphError::WrongOwner)?,
-                dream_admissions,
-                true,
-                reliquary_memory_core::MemoryReplayStart::Leased,
-            )?
-        } else {
-            open_common(container, graph_admission, dream_admissions, true)?
-        };
+        let (mut common, identity_history) = super::replay::open_common_replaying(
+            container,
+            graph_admission.owner_id().ok_or(GraphError::WrongOwner)?,
+            dream_admissions,
+            true,
+            if leased {
+                reliquary_memory_core::MemoryReplayStart::Leased
+            } else {
+                reliquary_memory_core::MemoryReplayStart::Detached
+            },
+            replay.has_identity_receipts,
+        )?;
         if archive
             .project_correlations()
             .iter()
@@ -316,6 +317,7 @@ impl RelSession {
         Ok(Self {
             owner_id: container.owner_id(),
             rel_dependencies: replay.dependencies,
+            identity_history,
             archive,
             echo,
             common,

@@ -296,7 +296,10 @@ pub(crate) fn safe_memory_only_frames(
             let envelope = decode_publication(&payload)
                 .map_err(|e| e.to_string())?
                 .ok_or("missing publication envelope")?;
-            if !memory_history_record(envelope.body)
+            if !envelope
+                .body
+                .starts_with(crate::session::identity_receipt::MARKER)
+                && !memory_history_record(envelope.body)
                 && !reliquary_archive::is_archive_publication_body(envelope.body)
                     .map_err(|e| e.to_string())?
                 && reliquary_graph::clocked_graph_in_frame(&payload)

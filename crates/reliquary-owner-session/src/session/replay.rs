@@ -30,7 +30,9 @@ pub(super) fn open_common_for_owner(
         dream_admissions,
         replay_grouped_insomnia,
         reliquary_memory_core::MemoryReplayStart::Detached,
+        false,
     )
+    .map(|(common, _)| common)
 }
 
 pub(super) fn replay_memories(
@@ -131,7 +133,8 @@ pub(super) fn open_common_replaying(
     dream_admissions: impl IntoIterator<Item = DreamBeginAdmission>,
     replay_grouped_insomnia: bool,
     memory_start: reliquary_memory_core::MemoryReplayStart,
-) -> Result<CommonState, OwnerSessionError> {
+    has_identity_receipts: bool,
+) -> Result<(CommonState, super::identity_receipt::IdentityHistory), OwnerSessionError> {
     if expected_owner_id != container.owner_id() {
         return Err(OwnerSessionError::Graph(GraphError::WrongOwner));
     }
@@ -218,7 +221,11 @@ pub(super) fn open_common_replaying(
                 .collect()
         },
     )?;
-    super::replay_prefix::validate_graph_prefix(container, &memories)?;
+    let identity_history = super::replay_prefix::validate_graph_prefix(
+        container,
+        &memories,
+        has_identity_receipts.then_some(&perception),
+    )?;
     for relation in graph.history() {
         for node in [relation.source, relation.target] {
             let exists = match node {
@@ -361,7 +368,7 @@ pub(super) fn open_common_replaying(
         &profiles,
         &memory_vectors,
     )?;
-    Ok(CommonState {
+    let common = CommonState {
         user_memory_requests,
         memories,
         perception,
@@ -375,5 +382,6 @@ pub(super) fn open_common_replaying(
         dreams,
         dream_pairs,
         dream_read_index,
-    })
+    };
+    Ok((common, identity_history))
 }

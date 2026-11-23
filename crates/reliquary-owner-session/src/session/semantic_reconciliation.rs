@@ -155,6 +155,15 @@ pub fn reconcile_divergent_rel_copy(
         .map_err(|error| RelReconciliationError::Verification(error.to_string()))?;
     let left_records = semantic_records(&left_container)?;
     let right_records = semantic_records(&right_container)?;
+    if left_records
+        .iter()
+        .chain(&right_records)
+        .any(|record| record.starts_with(super::identity_receipt::PREFIX))
+    {
+        return Err(RelReconciliationError::UnsupportedState(
+            "cross-REL identity receipts",
+        ));
+    }
     require_supported_tail(&left_records[comparison.common_record_count..])?;
     require_supported_tail(&right_records[comparison.common_record_count..])?;
 

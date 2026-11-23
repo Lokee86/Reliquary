@@ -121,7 +121,10 @@ pub(super) fn removable_backing(
             let publication = decode_publication(bytes)
                 .map_err(|e| e.to_string())?
                 .ok_or("missing reclamation publication envelope")?;
-            if !memory_history_record(publication.body)
+            if !publication
+                .body
+                .starts_with(super::super::identity_receipt::MARKER)
+                && !memory_history_record(publication.body)
                 && !reliquary_archive::is_archive_publication_body(publication.body)
                     .map_err(|e| e.to_string())?
                 && reliquary_perception_store::clocked_entity_in_frame(bytes)

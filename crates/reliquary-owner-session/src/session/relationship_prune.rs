@@ -125,6 +125,7 @@ pub fn prune_terminal_relationship_descriptions_copy(
         || copy.identity() != source.identity()
         || copy.latest_version() != source.latest_version()
         || after.perception.version() != state.perception.version()
+        || after.identity_history != state.identity_history
         || after.perception.relationship_version() != state.perception.relationship_version()
         || after.graph.history().copied().collect::<Vec<_>>()
             != state.graph.history().copied().collect::<Vec<_>>()

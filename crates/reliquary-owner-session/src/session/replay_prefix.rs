@@ -1,10 +1,14 @@
 //! Exact owner identity/version cuts at the physical effect prefix.
+use super::identity_receipt::{IdentityHistory, LocalProjection};
 use super::*;
 use crate::records::user_memory::{UserMemoryEffect, UserMemoryRecord};
 pub(super) fn validate_graph_prefix(
     container: &Container,
     memory_store: &MemoryStore,
-) -> Result<(), OwnerSessionError> {
+    perception: Option<&PerceptionStore>,
+) -> Result<IdentityHistory, OwnerSessionError> {
+    let mut receipts = IdentityHistory::default();
+    let mut perception_cut = 0;
     let mut memories = std::collections::BTreeSet::new();
     let mut memory_bodies = std::collections::BTreeSet::new();
     let mut birth_bodies = std::collections::BTreeMap::new();
@@ -16,6 +20,22 @@ pub(super) fn validate_graph_prefix(
     let mut frames = container
         .scan_matching_frames(crate::records::frame_selection::without_archive_publications)?;
     while let Some(frame) = frames.next_frame()? {
+        if let Some(perception) = perception {
+            let projection = LocalProjection {
+                memories: memory_store,
+                memory_cut: memory_head,
+                perception,
+                perception_cut,
+            };
+            if receipts.replay(frame.payload, container.owner_id(), projection)? {
+                continue;
+            }
+            if let Some(version) =
+                reliquary_perception_store::perception_version_in_frame(frame.payload)?
+            {
+                perception_cut = version;
+            }
+        }
         if let Some(frontier) =
             crate::records::dream_frontier::FrontierRecord::decode(frame.payload)
                 .map_err(OwnerSessionError::Record)?
@@ -307,7 +327,7 @@ pub(super) fn validate_graph_prefix(
             graph_version = relation.graph_version;
         }
     }
-    Ok(())
+    Ok(receipts)
 }
 
 pub(super) fn validate_user_memory_prefix(

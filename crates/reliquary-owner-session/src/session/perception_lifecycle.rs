@@ -8,7 +8,7 @@ pub(super) use memory::validate_retirement;
 mod mention;
 mod relationship;
 mod requests;
-mod support;
+pub(super) mod support;
 mod writer;
 
 pub use requests::{

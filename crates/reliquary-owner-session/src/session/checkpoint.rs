@@ -14,7 +14,7 @@ use std::fs::File;
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
-const MAGIC: &[u8; 8] = b"RELCP003";
+const MAGIC: &[u8; 8] = b"RELCP004";
 const STATE_START: u64 = 16;
 const MAX_MANIFEST_BYTES: usize = 16 * 1024 * 1024;
 const REFRESH_BYTES: u64 = 16 * 1024 * 1024;
@@ -27,6 +27,7 @@ struct Manifest {
     memory_cut: u64,
     graph_cut: u64,
     archive_cut: u64,
+    identity_cut: u64,
     state_len: u64,
 }
 
@@ -39,6 +40,7 @@ impl Manifest {
             && session.memory_version() == self.memory_cut
             && session.graph_version() == self.graph_cut
             && session.archive_version() == self.archive_cut
+            && session.identity_history.frontier() == self.identity_cut
     }
 }
 
@@ -214,6 +216,7 @@ impl WriterCheckpoint {
             memory_cut: session.memory_version(),
             graph_cut: session.graph_version(),
             archive_cut: session.archive_version(),
+            identity_cut: session.identity_history.frontier(),
             state_len: state_len as u64,
         })?;
         if manifest.len() > MAX_MANIFEST_BYTES {

@@ -130,3 +130,70 @@ impl PerceptionStore {
         })
     }
 }
+
+impl PerceptionStore {
+    /// Resolve the Entity active at an admitted physical-prefix version.
+    pub fn entity_at_cut(&self, id: EntityId, version: u64) -> Option<&Entity> {
+        if self
+            .entity_tombstones
+            .get(&id)
+            .is_some_and(|row| row.perception_version <= version)
+        {
+            return None;
+        }
+        self.entity_history
+            .range((id, 0)..=(id, u64::MAX))
+            .rev()
+            .find(|(key, _)| {
+                self.entity_versions
+                    .get(key)
+                    .is_some_and(|seen| *seen <= version)
+            })
+            .map(|(_, entity)| entity)
+    }
+
+    /// Resolve the Relationship active at an admitted physical-prefix version.
+    pub fn relationship_at_cut(&self, id: RelationshipId, version: u64) -> Option<&Relationship> {
+        if self
+            .relationship_tombstone_versions
+            .get(&id)
+            .is_some_and(|seen| *seen <= version)
+        {
+            return None;
+        }
+        self.relationship_history
+            .range((id, 0)..=(id, u64::MAX))
+            .rev()
+            .find(|(key, _)| {
+                self.relationship_versions
+                    .get(key)
+                    .is_some_and(|seen| *seen <= version)
+            })
+            .map(|(_, relationship)| relationship)
+    }
+}
+
+/// The version advanced by a perception carrier already admitted by the store.
+pub fn perception_version_in_frame(payload: &[u8]) -> Result<Option<u64>, PerceptionError> {
+    if let Some(publication) = clocked_entity_in_frame(payload)? {
+        return Ok(Some(match publication.accepted {
+            RetainedEntity::Revision { entity_version, .. } => entity_version,
+            RetainedEntity::Terminal { terminal, .. } => terminal.perception_version,
+        }));
+    }
+    if let Some(record) = relationship_codec::RelationshipRecord::decode(payload)? {
+        return Ok(match record {
+            relationship_codec::RelationshipRecord::Revision {
+                perception_version, ..
+            }
+            | relationship_codec::RelationshipRecord::Tombstone {
+                perception_version, ..
+            } => Some(perception_version),
+            relationship_codec::RelationshipRecord::Prune { .. } => None,
+        });
+    }
+    if let Some((_, tombstone)) = decode_entity_tombstone(payload)? {
+        return Ok(Some(tombstone.perception_version));
+    }
+    Ok(Record::decode(payload)?.map(|record| record.version()))
+}

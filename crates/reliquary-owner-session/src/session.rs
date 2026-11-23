@@ -249,6 +249,7 @@ struct CommonState {
 pub struct RelSession {
     owner_id: [u8; 16],
     rel_dependencies: RelDependencyDeclaration,
+    identity_history: identity_receipt::IdentityHistory,
     archive: Archive,
     echo: EchoStore,
     common: CommonState,
@@ -1000,6 +1001,7 @@ mod freshness_use;
 #[path = "session/gm_parity_regressions.rs"]
 mod gm_parity_regressions;
 mod historical_proof;
+pub(crate) mod identity_receipt;
 mod maintenance_prune;
 mod perception_lifecycle;
 mod relationship_prune;

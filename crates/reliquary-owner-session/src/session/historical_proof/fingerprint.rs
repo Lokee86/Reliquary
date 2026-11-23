@@ -11,14 +11,20 @@ pub(super) fn rel(
     archive: &reliquary_archive::ArchiveHistorySnapshot,
     freshness: &BTreeMap<FreshnessMemoryId, FreshnessRecord>,
     freshness_evidence: &[FreshnessReplayEntry],
+    identities: &[super::super::identity_receipt::StoredReceipt],
     cut: &RelHistoricalCut,
 ) -> [u8; 32] {
-    canonical_hash(json!({
+    let mut value = json!({
         "schema": SCHEMA, "kind": "REL", "owner": owner_id,
         "cut": rel_cut_value(cut), "common": common_value(history),
         "archive": archive_value(archive),
         "freshness": freshness_value(freshness, freshness_evidence),
-    }))
+    });
+    if !identities.is_empty() {
+        value["identity_receipts"] = json!(identities);
+        value["cut"]["identity_version"] = json!(cut.identity_version);
+    }
+    canonical_hash(value)
 }
 
 pub(super) fn phy(
