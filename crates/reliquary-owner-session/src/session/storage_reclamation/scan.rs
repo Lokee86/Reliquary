@@ -1,5 +1,6 @@
 use super::*;
 use crate::records::memory_prune_proof::{memory_history_record, pointer_free_frame};
+use crate::session::archive_lexical::{ARCHIVE_LEXICAL_INDEX_MAGIC, archive_lexical_index_seal};
 use reliquary_container::{ObjectRef, decode_publication};
 use reliquary_memory_core::MemoryBodyId;
 use std::io::Read;
@@ -13,12 +14,20 @@ pub(super) fn open_state(
         Vec<ArchiveVectorInfo>,
         BTreeSet<[u8; 32]>,
         BTreeSet<[u8; 32]>,
+        BTreeSet<[u8; 32]>,
     ),
     String,
 > {
     match source.identity().file_kind {
-        FileKind::Phylactery => PhySession::open(source, admission, [])
-            .map(|session| (session.common, Vec::new(), BTreeSet::new(), BTreeSet::new())),
+        FileKind::Phylactery => PhySession::open(source, admission, []).map(|session| {
+            (
+                session.common,
+                Vec::new(),
+                BTreeSet::new(),
+                BTreeSet::new(),
+                BTreeSet::new(),
+            )
+        }),
         FileKind::Reliquary => RelSession::open(source, admission, [], []).map(|session| {
             let files = session
                 .archive
@@ -42,6 +51,11 @@ pub(super) fn open_state(
                 session.archive_vectors.infos(),
                 retained_archive_vectors,
                 files,
+                session
+                    .archive_lexical_indexes
+                    .values()
+                    .map(|index| index.seal)
+                    .collect(),
             )
         }),
     }
@@ -54,9 +68,13 @@ pub(super) fn removable_backing(
     packed: &BTreeSet<[u8; 32]>,
     archive_vectors: &BTreeSet<[u8; 32]>,
     archive_files: &BTreeSet<[u8; 32]>,
+    lexical_seals: &BTreeSet<[u8; 32]>,
 ) -> Result<bool, String> {
     let magic = bytes.get(..8).ok_or("short frame in reclamation source")?;
     match magic {
+        _ if magic == ARCHIVE_LEXICAL_INDEX_MAGIC => {
+            Ok(archive_lexical_index_seal(bytes).is_none_or(|seal| !lexical_seals.contains(&seal)))
+        }
         b"RELMBOD1" | b"RELPVEC1" => {
             let id: [u8; 32] = bytes
                 .get(8..40)

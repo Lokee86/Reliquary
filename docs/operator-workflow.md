@@ -90,6 +90,8 @@ reliquary rel archive conversations project.rel --limit 20
 
 Lexical search is local. Hybrid and semantic queries need a compatible configured embedding route. Interactive retrieval state lasts only for that process. It accepts query/refine/traverse/show/source/neighbors/status/new-turn/quit; `--commands FILE` reads JSONL requests, one per line. A query or display is inspection only: CLI output, piping and JSON export do not prove host consumption and do not award Freshness/accepted-use credit. Use exact inspection for revisions, provenance and source conversations when validating a result.
 
+Publish the Archive lexical index with `reliquary rel archive index project.rel` after Archive vector publication. `rel search` with `--scope archive --mode hybrid` can then reuse the index on a fresh open. The index command reports added REL bytes per generation as `added_bytes`.
+
 ## Recompute communities
 
 ```text

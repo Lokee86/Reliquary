@@ -55,11 +55,11 @@ impl Archive {
         self.resolve_path(selected)
     }
 
-    /// Pin the readable contents of an accepted fragment without copying its text.
-    pub fn bounded_fragment_text(
+    /// Pin the readable content IDs and text of an accepted fragment.
+    pub fn bounded_fragment_index_text(
         &self,
         fragment: &crate::Fragment,
-    ) -> Result<Vec<Arc<String>>, ArchiveError> {
+    ) -> Result<Vec<(ContentId, Arc<String>)>, ArchiveError> {
         let nodes = self.bounded_ancestor_range(
             &fragment.conversation_id,
             &fragment.start_node_id,
@@ -78,7 +78,7 @@ impl Archive {
                 }
                 self.content
                     .get(&node.content_id)
-                    .cloned()
+                    .map(|text| (node.content_id, Arc::clone(text)))
                     .ok_or(ArchiveError::MissingContent)
             })
             .collect()

@@ -18,8 +18,9 @@ pub use reliquary_application::{
     RetrievalAnchorReport, RetrievalDirection, RetrievalRelationEvidence,
 };
 pub use reliquary_runtime_gateway::{
-    ArchiveHybridHit, ArchiveHybridSearch, ArchiveVectorHit, ArchiveVectorSearch, RetrievalCut,
-    RetrievalMemory, RetrievalMode, RetrievalPreview, RetrievalSource, SearchMode, SearchResult,
+    ArchiveHybridHit, ArchiveHybridSearch, ArchiveLexicalIndexPublication, ArchiveVectorHit,
+    ArchiveVectorSearch, RetrievalCut, RetrievalMemory, RetrievalMode, RetrievalPreview,
+    RetrievalSource, SearchMode, SearchResult,
 };
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]

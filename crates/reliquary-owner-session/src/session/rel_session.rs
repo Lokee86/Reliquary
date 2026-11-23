@@ -4,7 +4,9 @@ use std::sync::Arc;
 
 mod archive_hybrid;
 pub(super) use archive_hybrid::ArchiveHybridCache;
-pub use archive_hybrid::ArchiveHybridView;
+pub use archive_hybrid::{
+    ArchiveHybridView, ArchiveLexicalIndexInput, PreparedArchiveLexicalIndex,
+};
 
 /// One exact cosine match from an accepted Archive vector generation.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -258,6 +260,16 @@ impl RelSession {
             &archive_vectors,
             &generations,
         )?;
+        let archive_lexical_indexes = if replay.has_archive_lexical_indexes {
+            super::archive_lexical::open_archive_lexical_indexes(
+                container,
+                &common.profiles,
+                &generations,
+                &archive_vectors,
+            )?
+        } else {
+            BTreeMap::new()
+        };
         let external_index =
             ExternalIndexStore::open(container).map_err(OwnerSessionError::Record)?;
         let external_references =
@@ -281,6 +293,7 @@ impl RelSession {
             archive_vectors,
             generations,
             archive_hybrid_cache: ArchiveHybridCache::default(),
+            archive_lexical_indexes,
             external_index,
             external_references,
             external_memories,

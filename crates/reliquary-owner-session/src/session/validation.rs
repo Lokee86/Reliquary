@@ -1,3 +1,4 @@
+use super::archive_lexical::ARCHIVE_LEXICAL_INDEX_MAGIC;
 use super::rel_dependencies::REL_DEPENDENCY_MAGIC;
 use super::*;
 
@@ -54,6 +55,7 @@ pub(super) struct RelReplayAdmission {
     pub completions: BTreeMap<(WorkEpisodeId, u32), GroupedInsomniaCompletion>,
     pub import_epochs: BTreeMap<(WorkEpisodeId, u32), String>,
     pub dependencies: RelDependencyDeclaration,
+    pub has_archive_lexical_indexes: bool,
 }
 
 pub(super) fn validate_rel_replay_admission(
@@ -76,6 +78,15 @@ pub(super) fn validate_rel_replay_admission(
         }
         let envelope = reliquary_container::decode_publication(frame.payload)?;
         let body = envelope.as_ref().map_or(frame.payload, |value| value.body);
+        if body.starts_with(ARCHIVE_LEXICAL_INDEX_MAGIC) {
+            if envelope.is_some() {
+                return Err(OwnerSessionError::Record(
+                    "Archive lexical index must be a top-level frame".into(),
+                ));
+            }
+            admission.has_archive_lexical_indexes = true;
+            continue;
+        }
         if body.starts_with(REL_DEPENDENCY_MAGIC) {
             if envelope.is_some() {
                 return Err(OwnerSessionError::Record(
@@ -232,6 +243,7 @@ pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), Owner
         (b"RELINSC7", "grouped Insomnia completion"),
         (b"RELINSC8", "grouped Insomnia completion v8"),
         (b"RELAVFM1", "Archive vector format"),
+        (ARCHIVE_LEXICAL_INDEX_MAGIC, "Archive lexical index"),
         (b"RELAVEC1", "Archive vector"),
         (b"RELVGFM1", "vector generation format"),
         (b"RELVGEN1", "vector generation"),

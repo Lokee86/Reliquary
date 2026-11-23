@@ -1,7 +1,7 @@
 use super::{EmbeddingScope, embedding_endpoint, retrieval_error, unavailable, validate_text};
 use crate::{
-    ArchiveHybridSearch, CompatibilityProfileId, ConfiguredRuntime, Instance, OwnerId,
-    ProductError, RetrievalConfig,
+    ArchiveHybridSearch, ArchiveLexicalIndexPublication, CompatibilityProfileId, ConfiguredRuntime,
+    Instance, OwnerGrant, OwnerId, ProductError, RetrievalConfig,
 };
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -11,6 +11,17 @@ pub struct ArchiveSearchOptions {
 }
 
 impl Instance {
+    /// Persist lexical indexes for the active Archive generations in a writable REL.
+    pub fn publish_archive_lexical_indexes(
+        &self,
+        owner: OwnerId,
+    ) -> Result<Vec<ArchiveLexicalIndexPublication>, ProductError> {
+        self.require(OwnerGrant::OperateRel(owner))?;
+        self.inner
+            .publish_archive_lexical_indexes(owner.into())
+            .map_err(retrieval_error)
+    }
+
     /// Hybrid search over the accepted Archive generation using a configured query embedding.
     pub fn search_archive(
         &self,

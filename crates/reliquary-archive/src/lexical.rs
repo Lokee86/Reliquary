@@ -8,6 +8,8 @@ use std::{
 
 use crate::ArchiveError;
 
+mod codec;
+
 const FREQUENCY_BITS: u32 = 2;
 pub const LEXICAL_FREQUENCY_CAP: usize = 1 << FREQUENCY_BITS;
 

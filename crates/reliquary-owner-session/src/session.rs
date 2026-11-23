@@ -255,6 +255,8 @@ pub struct RelSession {
     archive_vectors: ArchiveVectorStore,
     generations: VectorGenerationStore,
     archive_hybrid_cache: rel_session::ArchiveHybridCache,
+    archive_lexical_indexes:
+        BTreeMap<CompatibilityProfileId, archive_lexical::StoredArchiveLexicalIndex>,
     external_index: ExternalIndexStore,
     external_references: ExternalReferenceStore,
     external_memories: ExternalMemoryStore,
@@ -1053,9 +1055,12 @@ mod rel_dependencies;
 pub use rel_dependencies::{
     MAX_REL_DEPENDENCIES, RelDependencyDeclaration, canonical_rel_dependency_ids,
 };
+pub(crate) mod archive_lexical;
+pub use archive_lexical::ArchiveLexicalIndexPublication;
 mod rel_session;
 pub use rel_session::{
-    ArchiveHybridView, ArchiveVectorHit, ArchiveVectorSearch, ArchiveVectorView,
+    ArchiveHybridView, ArchiveLexicalIndexInput, ArchiveVectorHit, ArchiveVectorSearch,
+    ArchiveVectorView, PreparedArchiveLexicalIndex,
 };
 #[cfg(feature = "d02-observation")]
 mod verification_observation;

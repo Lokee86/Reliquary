@@ -10,7 +10,9 @@ use reliquary_owner_session::{
 };
 
 pub use reliquary_application::{ArchiveHybridHit, ArchiveHybridSearch};
-pub use reliquary_owner_session::{ArchiveVectorHit, ArchiveVectorSearch};
+pub use reliquary_owner_session::{
+    ArchiveLexicalIndexPublication, ArchiveVectorHit, ArchiveVectorSearch,
+};
 
 pub struct PreparedVectorPublication {
     instance: Uuid,
@@ -71,6 +73,34 @@ impl Instance {
             .map_err(GatewayError::Retrieval)?;
         self.authorize_rel_access(owner)?;
         Ok(result)
+    }
+
+    /// Build the current Archive lexical indexes from authorized source captures.
+    pub fn publish_archive_lexical_indexes(
+        &self,
+        owner: OwnerId,
+    ) -> Result<Vec<ArchiveLexicalIndexPublication>, GatewayError> {
+        let mut profiles = self.with_rel_writer(owner, |writer| {
+            writer
+                .read_session()
+                .archive_embedding_profiles()
+                .into_iter()
+                .map(|profile| profile.id)
+                .collect::<Vec<_>>()
+        })?;
+        profiles.sort_unstable();
+        profiles
+            .into_iter()
+            .map(|profile| {
+                let input = self
+                    .with_rel_writer(owner, |writer| writer.archive_lexical_index_input(profile))??
+                    .ok_or(GatewayError::StaleRetrieval)?;
+                let prepared = input.prepare()?;
+                Ok(self.with_rel_writer(owner, |writer| {
+                    writer.publish_archive_lexical_index(prepared)
+                })??)
+            })
+            .collect()
     }
 
     pub fn publish_archive_vectors(

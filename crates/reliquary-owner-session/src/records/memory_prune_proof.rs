@@ -337,6 +337,9 @@ pub(crate) fn safe_memory_only_frames(
 }
 
 pub(crate) fn pointer_free_frame(magic: &[u8]) -> bool {
+    if magic == crate::session::archive_lexical::ARCHIVE_LEXICAL_INDEX_MAGIC {
+        return true;
+    }
     matches!(
         magic,
         b"RELMFMT1"

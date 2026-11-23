@@ -19,7 +19,7 @@ Paths below are relative to the repository root. A focused owner serves several 
 | `reliquary-memory` — `src/` | [Public API](../public-product-api.md), [system facade](../architecture/system.md) | `tests/public_api.rs`, `tests/external-consumer/` |
 | `reliquary-container` | [Storage](../architecture/storage.md) | `crates/reliquary-container/src/lib.rs` and grouped-clock tests |
 | `reliquary-chronos` | [Semantic time interpretation](../architecture/semantic-processing.md) | `crates/reliquary-chronos/src/tests.rs`, `chronos_analysis.rs` (time parse/detection/inference) |
-| `reliquary-archive` | [Storage / Archive](../architecture/storage.md) | `archive_tests.rs`, `echo_tests.rs`, and the lexical postings test in `lexical.rs` |
+| `reliquary-archive` | [Storage / Archive](../architecture/storage.md) | `archive_tests.rs`, `echo_tests.rs`, and the lexical postings and codec tests in `lexical.rs` and `lexical/codec.rs` |
 | `reliquary-memory-core` | [Storage / Memory](../architecture/storage.md) | crate `src/tests.rs` |
 | `reliquary-graph` | [Storage / Graph](../architecture/storage.md) | crate `src/lib.rs`, `dream_batch.rs`, `association.rs`, `community_names.rs`, and scan-and-merge tests |
 | `reliquary-perception-store` | [Storage / Perception](../architecture/storage.md) | crate history and relationship replay/codec tests |

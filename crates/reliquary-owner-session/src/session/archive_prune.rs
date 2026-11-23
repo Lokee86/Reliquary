@@ -133,6 +133,10 @@ pub fn prune_terminal_archive_copy(
     while let Some(mut frame) = cursor.next_frame().map_err(|e| e.to_string())? {
         bytes.clear();
         frame.read_to_end(&mut bytes).map_err(|e| e.to_string())?;
+        if bytes.starts_with(super::archive_lexical::ARCHIVE_LEXICAL_INDEX_MAGIC) {
+            // The copy discards derivative text when Archive source payloads change.
+            continue;
+        }
         let payload = if let Some((pruned, node)) =
             reliquary_archive::prune_turn_frame(&bytes, manifest_digest)
                 .map_err(|e| e.to_string())?

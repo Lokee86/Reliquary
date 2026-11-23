@@ -463,8 +463,8 @@ mod instance_entity;
 mod instance_perception_lifecycle;
 mod instance_vectors;
 pub use instance_vectors::{
-    ArchiveHybridHit, ArchiveHybridSearch, ArchiveVectorHit, ArchiveVectorSearch,
-    PreparedVectorPublication,
+    ArchiveHybridHit, ArchiveHybridSearch, ArchiveLexicalIndexPublication, ArchiveVectorHit,
+    ArchiveVectorSearch, PreparedVectorPublication,
 };
 mod instance_retrieval;
 

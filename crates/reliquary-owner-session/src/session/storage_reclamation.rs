@@ -69,7 +69,7 @@ fn reclaim_storage_copy_inner(
     } else {
         None
     };
-    let (common, archive_vectors, retained_archive_vectors, archive_files) =
+    let (common, archive_vectors, retained_archive_vectors, archive_files, lexical_seals) =
         open_state(semantic_copy.as_ref().unwrap_or(&source), admission)?;
     let external = scan_indexes(&source)?;
     let mut referenced_packed = common
@@ -96,6 +96,7 @@ fn reclaim_storage_copy_inner(
                 &referenced_packed,
                 &retained_archive_vectors,
                 &archive_files,
+                &lexical_seals,
             )?
         {
             removed.insert(object.offset);

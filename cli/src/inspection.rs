@@ -100,6 +100,22 @@ pub(crate) fn memory(args: &[String]) -> Result<Value, ProductError> {
 pub(crate) fn archive(args: &[String]) -> Result<Value, ProductError> {
     match args.first().map(String::as_str) {
         Some("branches") => semantic_inspection::branches(args),
+        Some("index") => {
+            validate_options(args, 2, &[])?;
+            let host = LocalHost::open(&args[1], None, RelAccess::Operate)?;
+            let indexes = host.instance.publish_archive_lexical_indexes(host.rel)?;
+            let indexes: Vec<_> = indexes
+                .into_iter()
+                .map(|index| {
+                    json!({
+                        "profile_id": hex(&index.profile_id.0),
+                        "generation_id": hex(&index.generation_id),
+                        "added_bytes": index.added_bytes,
+                    })
+                })
+                .collect();
+            Ok(json!({"operation":"archive_index","indexes":indexes}))
+        }
         Some("conversations") => {
             validate_options(args, 2, PAGE)?;
             semantic_inspection::rel_page(
@@ -134,7 +150,7 @@ pub(crate) fn archive(args: &[String]) -> Result<Value, ProductError> {
             )
         }
         _ => Err(invalid(
-            "archive requires conversations, branches, show, or turn",
+            "archive requires conversations, branches, show, turn, or index",
         )),
     }
 }

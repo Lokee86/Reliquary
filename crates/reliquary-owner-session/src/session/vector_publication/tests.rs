@@ -284,6 +284,73 @@ fn retired_profile_prune_refuses_shared_active_backing() {
     fs::remove_file(&source).unwrap();
 }
 
+fn append_lexical_source(
+    writer: &mut RelWriter,
+    conversation: &str,
+    content: &str,
+    timestamp_ns: i64,
+) {
+    writer
+        .accept_turn_and_advance_branch(
+            reliquary_archive::TurnInput {
+                id: "turn-1".into(),
+                conversation_id: conversation.into(),
+                parent_id: None,
+                role: "user".into(),
+                principal_id: None,
+                timestamp_ns,
+                content: content.into(),
+                attachments: Vec::new(),
+                project_attachments: Vec::new(),
+            },
+            reliquary_archive::Branch {
+                id: "main".into(),
+                conversation_id: conversation.into(),
+                leaf_node_id: "turn-1".into(),
+                canonical: true,
+            },
+        )
+        .unwrap();
+}
+
+fn activate_lexical_source(
+    writer: &mut RelWriter,
+    profile: CompatibilityProfileId,
+) -> VectorGeneration {
+    let input = writer.archive_vector_input(profile).unwrap();
+    let rows = input
+        .sources()
+        .iter()
+        .map(|source| ArchiveVectorRow {
+            fragment_id: source.fragment_id,
+            max_archive_version: source.max_archive_version,
+            vector: vec![1.0, 0.0],
+        })
+        .collect::<Vec<_>>();
+    writer
+        .publish_archive_vector_batch(
+            writer.owner_id(),
+            profile,
+            input.source_archive_version(),
+            &rows,
+        )
+        .unwrap()
+        .unwrap()
+}
+
+fn persist_lexical_source(writer: &mut RelWriter, profile: CompatibilityProfileId) -> u64 {
+    let prepared = writer
+        .archive_lexical_index_input(profile)
+        .unwrap()
+        .unwrap()
+        .prepare()
+        .unwrap();
+    writer
+        .publish_archive_lexical_index(prepared)
+        .unwrap()
+        .added_bytes
+}
+
 #[test]
 fn archive_lexical_snapshot_follows_activation_and_pinned_readers_keep_their_cut() {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".test-tmp");
@@ -295,48 +362,15 @@ fn archive_lexical_snapshot_follows_activation_and_pinned_readers_keep_their_cut
     let owner = [188; 16];
     let mut writer = RelWriter::create_path(&source, ReliquaryScope::Project, owner).unwrap();
     let profile = writer.publish_compatibility_profile(profile()).unwrap();
-    let accept = |writer: &mut RelWriter, conversation: &str, content: &str, timestamp_ns| {
-        writer
-            .accept_turn_and_advance_branch(
-                reliquary_archive::TurnInput {
-                    id: "turn-1".into(),
-                    conversation_id: conversation.into(),
-                    parent_id: None,
-                    role: "user".into(),
-                    principal_id: None,
-                    timestamp_ns,
-                    content: content.into(),
-                    attachments: Vec::new(),
-                    project_attachments: Vec::new(),
-                },
-                reliquary_archive::Branch {
-                    id: "main".into(),
-                    conversation_id: conversation.into(),
-                    leaf_node_id: "turn-1".into(),
-                    canonical: true,
-                },
-            )
-            .unwrap();
-    };
-    let publish = |writer: &mut RelWriter| {
-        let input = writer.archive_vector_input(profile).unwrap();
-        let rows = input
-            .sources()
-            .iter()
-            .map(|source| ArchiveVectorRow {
-                fragment_id: source.fragment_id,
-                max_archive_version: source.max_archive_version,
-                vector: vec![1.0, 0.0],
-            })
-            .collect::<Vec<_>>();
-        writer
-            .publish_archive_vector_batch(owner, profile, input.source_archive_version(), &rows)
-            .unwrap()
-            .unwrap()
-    };
-
-    accept(&mut writer, "first", "quasar quasar", 1);
-    let first = publish(&mut writer);
+    append_lexical_source(&mut writer, "first", "quasar quasar", 1);
+    let first = activate_lexical_source(&mut writer, profile);
+    let stale = writer
+        .archive_lexical_index_input(profile)
+        .unwrap()
+        .unwrap()
+        .prepare()
+        .unwrap();
+    assert!(persist_lexical_source(&mut writer, profile) > 0);
     let pinned = writer
         .read_session()
         .archive_hybrid_view(profile)
@@ -346,7 +380,7 @@ fn archive_lexical_snapshot_follows_activation_and_pinned_readers_keep_their_cut
     let pulsar = reliquary_archive::lexical_terms("pulsar");
     assert_eq!(pinned.lexical_counts(&quasar).unwrap()[0].frequency, 2);
 
-    accept(&mut writer, "second", "pulsar", 2);
+    append_lexical_source(&mut writer, "second", "pulsar", 2);
     let unactivated = writer
         .read_session()
         .archive_hybrid_view(profile)
@@ -355,8 +389,13 @@ fn archive_lexical_snapshot_follows_activation_and_pinned_readers_keep_their_cut
     assert_eq!(unactivated.generation, first);
     assert_eq!(unactivated.lexical_counts(&pulsar).unwrap()[0].frequency, 0);
 
-    let activated = publish(&mut writer);
+    let activated = activate_lexical_source(&mut writer, profile);
     assert_ne!(first.id, activated.id);
+    assert!(matches!(
+        writer.publish_archive_lexical_index(stale),
+        Err(OwnerSessionError::ManagementStale)
+    ));
+    assert!(persist_lexical_source(&mut writer, profile) > 0);
     let current = writer
         .read_session()
         .archive_hybrid_view(profile)
@@ -377,6 +416,118 @@ fn archive_lexical_snapshot_follows_activation_and_pinned_readers_keep_their_cut
     assert_eq!(pinned.lexical_counts(&quasar).unwrap()[0].frequency, 2);
     assert_eq!(pinned.lexical_counts(&pulsar).unwrap()[0].frequency, 0);
     fs::remove_file(source).unwrap();
+}
+
+#[test]
+fn archive_lexical_publication_recovers_and_retries_without_duplicate_frames() {
+    use crate::session::archive_lexical::{ARCHIVE_LEXICAL_INDEX_MAGIC, StoredArchiveLexicalIndex};
+    use std::sync::Arc;
+
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".test-tmp");
+    fs::create_dir_all(&dir).unwrap();
+    let stem = format!("archive-lexical-recovery-{}", std::process::id());
+    let source = dir.join(format!("{stem}.rel"));
+    let owner = [189; 16];
+    let mut writer = RelWriter::create_path(&source, ReliquaryScope::Project, owner).unwrap();
+    let profile = writer.publish_compatibility_profile(profile()).unwrap();
+    append_lexical_source(&mut writer, "first", "ana BANANANA café", 1);
+    let generation = activate_lexical_source(&mut writer, profile);
+    let prefix = fs::metadata(&source).unwrap().len() as usize;
+    let competing = writer
+        .archive_lexical_index_input(profile)
+        .unwrap()
+        .unwrap()
+        .prepare()
+        .unwrap();
+    let added = persist_lexical_source(&mut writer, profile);
+    assert!(added > 0);
+    assert_eq!(
+        writer
+            .publish_archive_lexical_index(competing)
+            .unwrap()
+            .added_bytes,
+        0
+    );
+    drop(writer);
+
+    let full = fs::read(&source).unwrap();
+    assert_eq!(full.len() - prefix, added as usize);
+    assert_eq!(&full[prefix + 8..prefix + 16], ARCHIVE_LEXICAL_INDEX_MAGIC);
+    let expected = |session: &RelSession| {
+        let view = session.archive_hybrid_view(profile).unwrap().unwrap();
+        assert_eq!(view.generation, generation);
+        assert_eq!(
+            view.lexical_counts(&reliquary_archive::lexical_terms("ana"))
+                .unwrap()[0]
+                .frequency,
+            3
+        );
+    };
+    let mut reopened = RelWriter::open_path_current(&source).unwrap();
+    expected(reopened.read_session());
+    assert_eq!(persist_lexical_source(&mut reopened, profile), 0);
+    drop(reopened);
+
+    for boundary in [prefix + 3, prefix + 56, full.len() - 1] {
+        let torn = dir.join(format!("{stem}-{boundary}.rel"));
+        fs::write(&torn, &full[..boundary]).unwrap();
+        assert!(matches!(
+            RelSession::open_path_current(&torn),
+            Err(OwnerSessionError::Container(ContainerError::RepairRequired { valid_end }))
+                if valid_end == prefix as u64
+        ));
+        let mut repair = Container::open_for_repair(&torn, FileKind::Reliquary).unwrap();
+        let plan = repair.plan_tail_repair().unwrap().unwrap();
+        repair.repair_incomplete_tail(plan).unwrap();
+        drop(repair);
+        let mut writer = RelWriter::open_path_current(&torn).unwrap();
+        assert!(writer.read_session().archive_lexical_indexes.is_empty());
+        expected(writer.read_session());
+        assert_eq!(persist_lexical_source(&mut writer, profile), added);
+        drop(writer);
+        assert_eq!(fs::read(&torn).unwrap(), full);
+        fs::remove_file(torn).unwrap();
+    }
+
+    let damaged = dir.join(format!("{stem}-damaged.rel"));
+    let mut damaged_bytes = full.clone();
+    damaged_bytes[prefix + 70] ^= 1;
+    fs::write(&damaged, damaged_bytes).unwrap();
+    let session = RelSession::open_path_current(&damaged).unwrap();
+    assert!(session.archive_lexical_indexes.is_empty());
+    expected(&session);
+    drop(session);
+
+    // A complete, sealed record for another source cut cannot replace source evidence.
+    let foreign_index = Arc::new(
+        reliquary_archive::FragmentLexicalIndex::build(&[Some(vec![Arc::new(
+            "unrelated text".into(),
+        )])])
+        .unwrap(),
+    );
+    let (_, foreign) =
+        StoredArchiveLexicalIndex::encode(owner, generation.id, [0; 32], 1, foreign_index);
+    let mut container = Container::open_writer(&damaged).unwrap();
+    container.append(&foreign).unwrap();
+    container.sync().unwrap();
+    drop(container);
+    let mut retry = RelWriter::open_path_current(&damaged).unwrap();
+    expected(retry.read_session());
+    assert_eq!(persist_lexical_source(&mut retry, profile), added);
+    drop(retry);
+
+    let reclaimed = dir.join(format!("{stem}-reclaimed.rel"));
+    let plan = crate::VerifiedOwnerCopyPlan::prepare(&damaged).unwrap();
+    let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let report = crate::reclaim_storage_copy(&plan, &damaged, &reclaimed, &admission).unwrap();
+    assert_eq!(report.removed_frames, 2);
+    let mut recovered = RelWriter::open_path_current(&reclaimed).unwrap();
+    expected(recovered.read_session());
+    assert_eq!(persist_lexical_source(&mut recovered, profile), 0);
+    drop(recovered);
+    for path in [source, damaged, reclaimed] {
+        fs::remove_file(path).unwrap();
+    }
 }
 
 #[test]

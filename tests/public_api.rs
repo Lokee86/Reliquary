@@ -41,7 +41,7 @@ fn archive_search_matches_reference_and_reopens() {
     use reliquary_vector_store::{
         ArchiveVectorStore, CompatibilityProfileStore, PackedVectorStore, VectorGenerationStore,
     };
-    use std::collections::HashSet;
+    use std::{collections::HashSet, io::Read};
 
     const K: usize = 10;
     const QUERIES: usize = 20;
@@ -53,6 +53,7 @@ fn archive_search_matches_reference_and_reopens() {
             .finalize()
     };
     let original = hash(&fixture);
+    let source_bytes = fs::metadata(&fixture).unwrap().len();
     let temp = TestPaths::new("archive-exact");
     let copy = temp.path("owner.rel");
     fs::copy(&fixture, &copy).unwrap();
@@ -252,7 +253,46 @@ fn archive_search_matches_reference_and_reopens() {
     let mut first = Vec::new();
     let mut first_hybrid = Vec::new();
     let profile = generation.compatibility_profile_id;
+    let mut expected_copy = original;
+    let mut added_bytes = 0;
     for reopened in [false, true] {
+        if reopened {
+            let rel = Rel::open(&copy).unwrap();
+            let gateway = Gateway::new();
+            let owner = gateway.mount_rel(&rel, true).unwrap();
+            let token = "synthetic-archive-index-publication-token";
+            let (admission, _) = TrustedHostAdmission::new([HostCredentialBinding::new(
+                "archive-indexer",
+                token,
+                [OwnerGrant::OperateRel(owner)],
+            )])
+            .install(&gateway)
+            .unwrap();
+            let instance = admission.authenticate(token).unwrap();
+            let published = instance.publish_archive_lexical_indexes(owner).unwrap();
+            assert!(
+                published
+                    .iter()
+                    .any(|index| index.generation_id == generation.id.0)
+            );
+            added_bytes = published.iter().map(|index| index.added_bytes).sum::<u64>();
+            let retry = instance.publish_archive_lexical_indexes(owner).unwrap();
+            assert_eq!(published.len(), retry.len());
+            assert!(retry.iter().all(|index| index.added_bytes == 0));
+            drop(instance);
+            drop(admission);
+            drop(gateway);
+            assert_eq!(
+                fs::metadata(&copy).unwrap().len(),
+                source_bytes + added_bytes
+            );
+            let prefix = blake3::Hasher::new()
+                .update_reader(fs::File::open(&copy).unwrap().take(source_bytes))
+                .unwrap()
+                .finalize();
+            assert_eq!(prefix, original);
+            expected_copy = hash(&copy);
+        }
         let rel = Rel::open(&copy).unwrap();
         let gateway = Gateway::new();
         let owner = gateway.mount_rel(&rel, false).unwrap();
@@ -267,6 +307,13 @@ fn archive_search_matches_reference_and_reopens() {
         .install(&gateway)
         .unwrap();
         let instance = admission.authenticate(token).unwrap();
+        assert_eq!(
+            instance
+                .publish_archive_lexical_indexes(owner)
+                .unwrap_err()
+                .kind(),
+            ProductErrorKind::Unauthorized
+        );
 
         for (i, (query, expected)) in queries.iter().zip(&expected).enumerate() {
             let actual = instance
@@ -393,9 +440,9 @@ fn archive_search_matches_reference_and_reopens() {
     }
 
     assert_eq!(hash(&fixture), original);
-    assert_eq!(hash(&copy), original);
+    assert_eq!(hash(&copy), expected_copy);
     println!(
-        "Archive top-{K} matched {QUERIES} exact and {} hybrid reference queries before and after reopen across {} vectors of {dimensions} dimensions",
+        "Archive top-{K} matched {QUERIES} exact and {} hybrid reference queries before and after index publication and reopen across {} vectors of {dimensions} dimensions. Index publication added {added_bytes} bytes.",
         query_text.len(),
         rows.len()
     );

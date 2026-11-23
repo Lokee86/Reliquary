@@ -50,6 +50,26 @@ fn help_has_explicit_owner_families_and_rejects_legacy_aliases() {
 }
 
 #[test]
+fn archive_index_reports_empty_active_generations_without_writes() {
+    let temp = Temp::new("archive-index");
+    let path = temp.path("project.rel");
+    Rel::create(&path).unwrap();
+    let before = fs::read(&path).unwrap();
+    let args_path = path.to_str().unwrap();
+    let indexed = command(&["rel", "archive", "index", args_path]);
+    assert!(indexed.status.success(), "{:?}", indexed.stderr);
+    let indexed: Value = serde_json::from_slice(&indexed.stdout).unwrap();
+    assert_eq!(indexed["operation"], "archive_index");
+    assert_eq!(indexed["indexes"], serde_json::json!([]));
+    assert!(
+        !command(&["rel", "archive", "index", args_path, "--unexpected"])
+            .status
+            .success()
+    );
+    assert_eq!(fs::read(&path).unwrap(), before);
+}
+
+#[test]
 fn phy_create_verify_and_history_reopen_without_changing_bytes() {
     let temp = Temp::new("phy");
     let path = temp.path("user.phy");

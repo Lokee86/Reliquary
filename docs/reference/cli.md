@@ -45,7 +45,7 @@ No arguments, exactly `--help`/`-h`, and exactly `--version`/`-V` are special in
 
 `[page flags]` means the exact optional pair `--cursor JSON` and `--limit N`; unsupported flags and duplicate nonrepeatable flags fail. See `cli/src/inspection.rs` and `cli/src/semantic_inspection.rs` for operation-specific positional arity.
 
-For Archive hybrid search, run `rel search PATH --mode hybrid --scope archive --query TEXT` with a configured embedding route compatible with the REL's active Archive vectors. The response includes the generation, text coverage, lexical and cosine scores, and the conversation and node IDs for each hit. A fresh CLI invocation builds the in-memory Archive index when the query contains lexical terms.
+For Archive hybrid search, run `rel search PATH --mode hybrid --scope archive --query TEXT` with a configured embedding route compatible with the REL's active Archive vectors. The response includes the generation, text coverage, lexical and cosine scores, and the conversation and node IDs for each hit. Run `rel archive index PATH` on a writable REL to persist indexes for its active Archive generations. It reports `added_bytes` for each generation and needs only the stored Archive data. Search uses a matching persisted index after reopen. A query on an unindexed generation builds in memory.
 
 ## Configuration commands
 

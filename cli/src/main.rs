@@ -48,6 +48,7 @@ REL COMMANDS:
     archive branches <PATH> <CONVERSATION_ID> [--limit <N>] [--cursor <JSON>]
     archive show <PATH> <CONVERSATION_ID> <LEAF_NODE_ID> [--cursor <JSON>] [--limit <N>]
     archive turn <PATH> <CONVERSATION_ID> <NODE_ID>
+    archive index <PATH>
     graph <neighbors|edge> <PATH> ...
     <entity|relationship|community> <list|get> <PATH> ...
     community recompute <PATH> [--apply]
