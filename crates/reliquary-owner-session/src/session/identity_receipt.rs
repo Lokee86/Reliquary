@@ -1,12 +1,16 @@
+use super::identity_evidence::{exact_quote_span, quote_names_entity};
+use super::perception_lifecycle::support::{has_direct_source, owner_hex, text_field};
 use super::*;
 use reliquary_perception_store::identity::{
-    IdentityEvidenceRef, IdentityLimit, IdentityOutcome, IdentityPair, IdentityReason,
-    IdentityReceipt, IdentitySide, MAX_IDENTITY_RELATIONSHIPS_PER_SIDE,
+    IdentityEvidenceRef, IdentityLimit, IdentityMemoryRef, IdentityOutcome, IdentityPair,
+    IdentityReason, IdentityReceipt, IdentityRelationshipRef, IdentitySide, IdentitySpan,
+    MAX_IDENTITY_RELATIONSHIPS_PER_SIDE,
 };
 use reliquary_perception_store::{
     MAX_RELATIONSHIP_EVIDENCE, MAX_RELATIONSHIP_PARTICIPANTS, PRINCIPAL_ENTITY_KIND,
 };
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::ops::Bound::{Excluded, Unbounded};
 
 pub(crate) const MARKER: &[u8; 8] = b"RELIDR01";
@@ -133,6 +137,8 @@ impl RelWriter {
         let projection = LocalProjection {
             memories: &self.session.common.memories,
             memory_cut: self.session.common.memories.memory_version(),
+            observed_bodies: None,
+            pruned_bodies: &BTreeSet::new(),
             perception: &self.session.common.perception,
             perception_cut: self.session.common.perception.version(),
         };
@@ -170,6 +176,8 @@ impl RelWriter {
 pub(super) struct LocalProjection<'a> {
     pub(super) memories: &'a MemoryStore,
     pub(super) memory_cut: u64,
+    pub(super) observed_bodies: Option<&'a BTreeSet<MemoryBodyId>>,
+    pub(super) pruned_bodies: &'a BTreeSet<MemoryBodyId>,
     pub(super) perception: &'a PerceptionStore,
     pub(super) perception_cut: u64,
 }
@@ -189,7 +197,7 @@ impl LocalProjection<'_> {
                 "local Entity revision outside the publication prefix",
             ));
         }
-        let owner = super::perception_lifecycle::support::owner_hex(&receipt.pair.local_owner);
+        let owner = owner_hex(&receipt.pair.local_owner);
         for reference in &receipt.left.relationships {
             let relationship = self
                 .perception
@@ -234,14 +242,75 @@ impl LocalProjection<'_> {
                     .evidence
                     .iter()
                     .any(|item| item.memory_id == memory.id)
-                    || memory.span.is_some()
-                        && (record.authority_kind != "direct" || record.source_ref.is_none())
                 {
                     return Err(invalid("local Relationship Memory reference"));
+                }
+                if let Some(span) = memory.span {
+                    if !has_direct_source(record) {
+                        return Err(invalid("local witness source provenance"));
+                    }
+                    self.check_span(relationship, reference, memory, span)?;
                 }
             }
         }
         Ok(())
+    }
+
+    fn check_span(
+        &self,
+        relationship: &Relationship,
+        reference: &IdentityRelationshipRef,
+        memory: &IdentityMemoryRef,
+        span: IdentitySpan,
+    ) -> Result<(), OwnerSessionError> {
+        let body_id = MemoryBodyId(memory.body_id);
+        let pruned = self.pruned_bodies.contains(&body_id);
+        if !pruned
+            && self
+                .observed_bodies
+                .is_some_and(|bodies| !bodies.contains(&body_id))
+        {
+            return Err(invalid("local witness body outside the publication prefix"));
+        }
+        let (_, body) = self
+            .memories
+            .revision_projection(MemoryId(memory.id), Some(memory.revision))?;
+        let retained_quote = relationship.summary.as_str();
+        let prune = self
+            .perception
+            .relationship_description_prune(relationship.id, relationship.revision);
+        let quote = match (body.as_deref(), prune) {
+            (Some(body), Some(proof)) => {
+                let quote = text_field(body, span.field)
+                    .get(span.start_byte as usize..span.end_byte as usize)
+                    .ok_or_else(|| invalid("local witness span"))?;
+                if <[u8; 32]>::from(Sha256::digest(quote.as_bytes())) != proof.summary_digest {
+                    return Err(invalid(
+                        "local witness span differs from the retained quote digest",
+                    ));
+                }
+                quote
+            }
+            (None, Some(_)) if pruned => return Ok(()),
+            (_, _) => retained_quote,
+        };
+        if quote.trim().is_empty()
+            || quote.len() != (span.end_byte - span.start_byte) as usize
+            || reference.participants.iter().any(|participant| {
+                self.perception
+                    .entity_at_cut(participant.id, self.perception_cut)
+                    .is_none_or(|entity| {
+                        !quote_names_entity(quote, &entity.canonical_name, &entity.aliases)
+                    })
+            })
+        {
+            return Err(invalid("local witness quote or participant names"));
+        }
+        match body.as_deref() {
+            Some(body) if exact_quote_span(body, quote).ok() == Some(span) => Ok(()),
+            None if pruned => Ok(()),
+            _ => Err(invalid("local witness span or missing body")),
+        }
     }
 }
 
@@ -348,6 +417,8 @@ fn validate_side(side: &IdentityEvidenceRef, endpoint: EntityId) -> Result<(), O
     {
         return Err(invalid("evidence frontier"));
     }
+    let mut participants = BTreeMap::new();
+    let mut memories = BTreeMap::new();
     for relationship in &side.relationships {
         if relationship.revision == 0
             || !(2..=MAX_RELATIONSHIP_PARTICIPANTS).contains(&relationship.participants.len())
@@ -363,7 +434,7 @@ fn validate_side(side: &IdentityEvidenceRef, endpoint: EntityId) -> Result<(), O
                 .participants
                 .iter()
                 .any(|entry| entry.id == endpoint && entry.revision == side.endpoint_revision)
-            || relationship.memories.len() > MAX_RELATIONSHIP_EVIDENCE
+            || !(1..=MAX_RELATIONSHIP_EVIDENCE).contains(&relationship.memories.len())
             || relationship
                 .memories
                 .windows(2)
@@ -377,6 +448,26 @@ fn validate_side(side: &IdentityEvidenceRef, endpoint: EntityId) -> Result<(), O
         {
             return Err(invalid("evidence references"));
         }
+        for participant in &relationship.participants {
+            if participants
+                .insert(participant.id, participant.revision)
+                .is_some_and(|revision| revision != participant.revision)
+            {
+                return Err(invalid("inconsistent participant references"));
+            }
+        }
+        for memory in &relationship.memories {
+            let revision = (memory.revision, memory.body_id);
+            if memories
+                .insert(memory.id, revision)
+                .is_some_and(|previous| previous != revision)
+            {
+                return Err(invalid("inconsistent Memory references"));
+            }
+        }
     }
     Ok(())
 }
+
+#[cfg(test)]
+pub(super) mod tests;

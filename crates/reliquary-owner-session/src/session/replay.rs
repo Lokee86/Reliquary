@@ -221,11 +221,6 @@ pub(super) fn open_common_replaying(
                 .collect()
         },
     )?;
-    let identity_history = super::replay_prefix::validate_graph_prefix(
-        container,
-        &memories,
-        has_identity_receipts.then_some(&perception),
-    )?;
     for relation in graph.history() {
         for node in [relation.source, relation.target] {
             let exists = match node {
@@ -264,6 +259,12 @@ pub(super) fn open_common_replaying(
         &memory_vectors,
         &maintenance,
         &grouped_body_ids,
+    )?;
+    let identity_history = super::replay_prefix::validate_graph_prefix(
+        container,
+        &memories,
+        has_identity_receipts.then_some(&perception),
+        &pruned_bodies,
     )?;
     memories.retain_pruned_body_fence(pruned_bodies);
     let mut dream_admissions = dream_admissions.into_iter().collect::<Vec<_>>();

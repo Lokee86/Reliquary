@@ -210,3 +210,60 @@ fn restores_a_verified_cut_and_replays_a_bound_turn_and_grouped_correction() {
     drop(file);
     assert!(admit(&owner, &slot, true).is_err());
 }
+
+#[test]
+fn identity_receipts_restore_from_exact_checkpoint_and_validate_the_suffix() {
+    use super::super::identity_receipt::tests::{fixture_entity, unresolved};
+
+    let directory = tempfile::tempdir().unwrap();
+    let owner = directory.path().join("identity.rel");
+    let cache = directory.path().join("private");
+    private_cache::test_directory(&cache).unwrap();
+    let slot = cache.join("identity.checkpoint");
+    let mut writer = RelWriter::create_current_path(&owner, OWNER).unwrap();
+    let entity = fixture_entity(&mut writer, "Mira");
+    let first = unresolved(OWNER, &entity);
+    writer.publish_identity_receipt(first.clone()).unwrap();
+    drop(writer);
+
+    let (lease, cold, _) = admit(&owner, &slot, true).unwrap();
+    let first_extent = lease.extent().unwrap();
+    let first_cut = cold.current_historical_cut();
+    let first_proof = cold.historical_proof(OWNER, &first_cut).unwrap();
+    assert_eq!(Entry::open(&slot).unwrap().manifest.identity_cut, 1);
+    drop((lease, cold));
+
+    let (lease, warm, _) = admit(&owner, &slot, false).unwrap();
+    assert_eq!(warm.identity_receipt(&first.pair, None), Some(&first));
+    assert_eq!(
+        warm.historical_proof(OWNER, &first_cut).unwrap(),
+        first_proof
+    );
+    drop((lease, warm));
+
+    let second = reliquary_perception_store::identity::IdentityReceipt {
+        revision: 2,
+        predecessor: Some(1),
+        fingerprint: [2; 32],
+        ..first.clone()
+    };
+    let mut writer =
+        RelWriter::open_path(&owner, GraphAdmission::for_changes(OWNER, [], []), [], []).unwrap();
+    writer.publish_identity_receipt(second.clone()).unwrap();
+    drop(writer);
+
+    let (lease, restored, _) = admit(&owner, &slot, true).unwrap();
+    assert!(lease.extent().unwrap() > first_extent);
+    let manifest = Entry::open(&slot).unwrap().manifest;
+    assert_eq!(manifest.physical.covered_end, lease.extent().unwrap());
+    assert_eq!(manifest.identity_cut, 2);
+    assert_eq!(
+        restored.identity_receipt(&first.pair, Some(1)),
+        Some(&first)
+    );
+    assert_eq!(restored.identity_receipt(&first.pair, None), Some(&second));
+    assert_eq!(
+        restored.historical_proof(OWNER, &first_cut).unwrap(),
+        first_proof
+    );
+}

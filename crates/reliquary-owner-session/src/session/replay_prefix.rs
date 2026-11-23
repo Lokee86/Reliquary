@@ -6,9 +6,11 @@ pub(super) fn validate_graph_prefix(
     container: &Container,
     memory_store: &MemoryStore,
     perception: Option<&PerceptionStore>,
+    pruned_bodies: &BTreeSet<MemoryBodyId>,
 ) -> Result<IdentityHistory, OwnerSessionError> {
     let mut receipts = IdentityHistory::default();
     let mut perception_cut = 0;
+    let mut observed_bodies = BTreeSet::new();
     let mut memories = std::collections::BTreeSet::new();
     let mut memory_bodies = std::collections::BTreeSet::new();
     let mut birth_bodies = std::collections::BTreeMap::new();
@@ -24,11 +26,18 @@ pub(super) fn validate_graph_prefix(
             let projection = LocalProjection {
                 memories: memory_store,
                 memory_cut: memory_head,
+                observed_bodies: Some(&observed_bodies),
+                pruned_bodies,
                 perception,
                 perception_cut,
             };
             if receipts.replay(frame.payload, container.owner_id(), projection)? {
                 continue;
+            }
+            let envelope = reliquary_container::decode_publication(frame.payload)?;
+            let body = envelope.as_ref().map_or(frame.payload, |entry| entry.body);
+            if let Some(id) = reliquary_memory_core::body_id_in_frame(body)? {
+                observed_bodies.insert(id);
             }
             if let Some(version) =
                 reliquary_perception_store::perception_version_in_frame(frame.payload)?
@@ -160,6 +169,9 @@ pub(super) fn validate_graph_prefix(
             } else if crate::records::insomnia_completion::is_grouped_completion(payload) {
                 let completion = GroupedInsomniaCompletion::decode(payload)
                     .map_err(OwnerSessionError::Record)?;
+                if perception.is_some() {
+                    observed_bodies.extend(completion.bodies.iter().map(|body| body.id));
+                }
                 for record in completion.memory_records {
                     let record = reliquary_memory_core::decode_grouped_creation(&record)?;
                     memory_head = record.memory_version;
