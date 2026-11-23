@@ -42,6 +42,31 @@ The locally packaged host uses Hermes commit `a9cfd3a4ecb7f2ef95249352189434b0c8
 
 Both configured attach targets passed. A signed dashboard write on the copied 28-day REL returned a durable receipt. After a forced host restart, the dashboard read returned the same Memory ID, revision, body ID, and body. The pinned host passed all 11 native Registry tests and the signed role-switch test against Hermes `2bd378ed1b8d6bf2192cb26e0a55ff3091e6bd19`. The switch kept the same host process and preserved the pinned session and source owners.
 
+### First-open trace
+
+The original 14.45 s was a single observation. The receipt recorded elapsed time and peak memory. It has no timing for process launch, REL admission or the signed exchange, so the source of the excess delay in that run remains unknown.
+
+A repeat used the same packaged executable and the same PHY, with a fresh profile, copied owners and an empty checkpoint slot for every sample. The order was migrated, year, year, migrated. Checking each copy's digest before launch warmed the operating system's file cache. The observer polled checkpoint and discovery files every 10 ms and read the native process's Windows I/O counters.
+
+| First signed attach | Migrated 28-day pair | Synthetic year pair |
+| --- | ---: | ---: |
+| Observed totals | 4.54 s, 3.59 s | 9.53 s, 10.12 s |
+| From host launch return to checkpoint file creation | 2.79–3.02 s | 9.35–9.93 s |
+| From checkpoint file creation to publication | 0.65–0.86 s | about 0.04 s |
+| From checkpoint publication through signed attach | about 0.14 s | 0.13–0.14 s |
+| Logical bytes read by the host through attach | 2.32 GiB | 30.61 GiB |
+| Checkpoint size | 75.31 MiB | 5.70 MiB |
+
+A third run using the original benchmark without the observer took 3.34 s for the migrated pair and 8.65 s for the year pair. The original checkpoint timestamps also survive. Creation to last write took 0.57 s for the migrated checkpoint and 0.03 s for the year checkpoint.
+
+The first interval includes physical validation, replay and the hash of the admitted REL prefix. The totals also include process launch, which took 0.52 s for the first sample and at most 0.02 s for the other three. Logical reads count repeated requests even when Windows serves the bytes from its file cache.
+
+A separate optimized Core probe timed the same writer admission with counters around each phase. On the year REL, physical admission took 0.40 s, store replay and validation took 8.11 s, and creating the checkpoint took 0.84 s. Replay alone requested 28.04 GiB. For example, Graph replay and its history validation each read the full REL even though its Graph version was zero. The shared frame scanner reads each payload before the store checks its type. The year fixture has 8,761 turns, two retained Memory identities and one active Memory.
+
+The migrated REL holds 16,465 turns, 2,847 Memory identities and a Graph version of 25,337. In the same probe, physical admission took 0.05 s, store replay and validation took 5.33 s, and checkpoint creation took 0.72 s. Memory replay alone took 3.57 s. These are standalone Core timings measured in a separate process.
+
+A second Core probe timed `MemoryStore::apply_grouped_completion_inner` on a fresh migrated copy. Each grouped Insomnia completion clones the accumulated Memory store and replaces the old copy after validation. Across 1,344 completions, copying took 2.525 s and discarding the old states took 1.118 s. Together those operations accounted for 3.643 s of the 3.749 s spent in Memory replay (97.2%). They copied 2,169,241 Memory identities cumulatively. Of the 1,344 completions, 456 supplied neither a Memory body nor a creation record. The synthetic year REL contains zero grouped Insomnia completions.
+
 ## Recovery and focused tests
 
 The owner-session checkpoint test crosses a signed standalone reservation and a grouped Memory correction. It compares the exact historical proof with full admission, exercises a vector row spanning two verified pages, checks an interrupted checkpoint staging operation and a damaged page, rejects a same-owner copy's checkpoint, and refuses a torn tail. Container tests also exercise equal-length prefix changes, timestamp continuity, and explicit tail repair. Archive and Memory tests cover digest-checked ranges, detached reads, and grouped payload retry.
