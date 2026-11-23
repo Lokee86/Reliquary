@@ -49,6 +49,10 @@ At Core `ec6a86f5` the evaluator applies the same evidence criteria to all Entit
 
 These checks use a scripted endpoint and exercise Core's judgment validation and persistence. The locked offline workspace build passed, with 740 tests passing and the two opt-in corpus tests skipped. Formatting, the package dependency check and the documentation checks passed. [Public fixtures](../../tests/entity_identity.rs) · [Evaluator fixtures](../../crates/reliquary-entity-resolution/src/identity_evaluator_tests.rs)
 
+## Automatic reconsideration during normal operation
+
+A fresh Gateway reopened both RELs with the peer mounted read-only. The initial receipt had been unresolved with only one side grounded and zero model calls. After the peer gained an independent witness, Core used the session authorized for both owners and the configured Entity route to append revision 2. The scripted endpoint received one call. Revision 1 remained available as history. A separate fixture upgraded an old-policy receipt using only an authorized session, with no runtime configured. Replacing an inference route during a paused comparison discarded its late response and left the REL without a receipt for that pair. [Public fixtures](../../tests/entity_identity.rs)
+
 ## Related docs
 
 - [Public comparison and inspection API](../public-product-api.md)

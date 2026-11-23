@@ -401,6 +401,7 @@ impl HostAdmissionAdapter {
 }
 
 /// A principal-scoped view. Owner authorization is checked on every access.
+#[derive(Clone)]
 pub struct Instance {
     credential_publication: Arc<RwLock<()>>,
     owners: Arc<RwLock<HashMap<OwnerId, MountedOwner>>>,
@@ -472,7 +473,7 @@ pub use workflow_workers::{
 mod host_memory_delivery;
 mod instance_entity;
 mod instance_identity;
-pub use instance_identity::{EntityIdentityInspection, IdentityComparisonState};
+pub use instance_identity::{EntityIdentityInspection, IdentityComparisonState, IdentityLifecycle};
 mod instance_perception_lifecycle;
 mod instance_vectors;
 pub use instance_vectors::{

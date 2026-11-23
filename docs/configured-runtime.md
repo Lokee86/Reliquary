@@ -12,6 +12,8 @@ The canonical local file is the existing binary `reliquary.cfg` (`CVCFG` 1.0). R
 
 Hosts that own inference transports can use `ConfiguredRuntime::hosted(general, embedding, identity)` without opening or creating CVCFG. The `GeneralEndpoint` and `EmbeddingEndpoint` implementations remain host-owned; the identity records non-secret provider/model names, embedding dimensions, shared input semantics and normalization. Root validates the endpoints' reported model, dimensions and normalization against that identity. The supplied general endpoint serves ordinary general/entity-resolution semantic routes and the existing general-backed Chronos, entity-resolution and memory-retrieval decision adapter. Insomnia and Dream keep their existing general fallback, and retrieval settings and worker defaults remain Root-owned. Hosted readiness is offline; `online_probe` is the explicit synthetic provider boundary. Credential values, profile names and worker leases do not enter the processing route identity. Before first binding hosted vector metadata, a host can call the authorized read-only `Instance::has_active_vectors(owner)` summary; an existing vector set with no host identity marker must be treated as unknown provenance.
 
+`Gateway::set_runtime(Some(&runtime))` supplies the Entity route for both initial and automatic cross-REL comparisons. A trusted caller can replace the binding or clear it with `None`. Eligible sessions can complete locally decidable work before inference becomes available. [Cross-REL Entity identity](public-product-api.md#cross-rel-entity-identity)
+
 ```rust
 let identity = HostedInferenceIdentity::new(
     "host-runtime", "general-model", "host-runtime", "embedding-model", 1024,

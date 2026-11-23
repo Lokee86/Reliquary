@@ -113,8 +113,17 @@ impl HostAdmissionAdapter {
                     "credential has no product grants",
                 )
             })?;
+        let inner = Arc::new(inner);
+        let recording = grants
+            .iter()
+            .filter_map(|grant| match grant {
+                OwnerGrant::ManageRel(owner) => Some((*owner).into()),
+                _ => None,
+            })
+            .collect();
+        self.gateway.identity.admit(&inner, recording)?;
         Ok(Instance {
-            inner: Arc::new(inner),
+            inner,
             grants: Arc::new(grants),
             gateway: self.gateway.clone(),
         })

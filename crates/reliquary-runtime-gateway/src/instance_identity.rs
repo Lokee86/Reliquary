@@ -11,11 +11,11 @@ use reliquary_owner_session::{
     IdentityPublicationProof,
     model::identity::{IdentityPair, IdentityReceipt},
 };
-use reliquary_switchboard::GeneralEndpoint;
-
 mod locked_pair;
 mod worker;
 use locked_pair::{HeldRel, PairStamp};
+pub use worker::IdentityLifecycle;
+use worker::{BackgroundAdmission, IdentityRoute, RouteBinding};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
 pub enum IdentityComparisonState {
@@ -67,12 +67,16 @@ fn stale() -> GatewayError {
 }
 
 impl Instance {
-    pub fn compare_entity_identity(
+    fn compare_entity_identity(
         &self,
         pair: IdentityPair,
-        endpoint: Option<&dyn GeneralEndpoint>,
-        route_id: &str,
+        binding: &RouteBinding,
+        route: &IdentityRoute,
+        admission: Option<BackgroundAdmission<'_>>,
+        before_evaluation: impl FnOnce([u8; 32]) -> Result<(), GatewayError>,
     ) -> Result<IdentityReceipt, GatewayError> {
+        let admitted = || admission.as_ref().map(BackgroundAdmission::pin).transpose();
+        let _ = admitted()?;
         let (mut prepared_on, current, (basis, mut proof)) =
             self.with_identity_pair(&pair, true, |local, peer, stamp| {
                 let local = local.session();
@@ -82,13 +86,18 @@ impl Instance {
                     prepare_pair(local, peer, &pair)?,
                 ))
             })?;
-        let proposal = IdentityComparison::prepare(basis, route_id);
+        let fingerprint = basis.fingerprint();
+        let proposal = IdentityComparison::prepare(basis, &route.id);
         self.ensure_credential_active()?;
+        let _ = admitted()?;
+        let route_guard = binding.fence(route)?;
         if let Some(receipt) = current.as_ref().filter(|r| proposal.matches(r)) {
             return Ok(receipt.clone());
         }
+        drop(route_guard);
+        before_evaluation(fingerprint)?;
         let receipt = proposal
-            .evaluate(pair, current.map(|r| r.revision), endpoint)
+            .evaluate(pair, current.map(|r| r.revision), route.endpoint.as_deref())
             .map_err(GatewayError::Management)?;
         // One cut-only race can reuse the judgment after recapturing its exact inputs.
         // A changed mount or a genuinely changed input must return to preparation.
@@ -108,6 +117,8 @@ impl Instance {
                     .read()
                     .map_err(|_| GatewayError::RegistryPoisoned)?;
                 self.ensure_credential_active()?;
+                let _admitted = admitted()?;
+                let route_guard = binding.fence(route)?;
                 if let Some(current) = writer.read_session().identity_receipt(&pair, None) {
                     if current.fingerprint == receipt.fingerprint
                         && current.policy == receipt.policy
@@ -123,6 +134,7 @@ impl Instance {
                 }
                 let published =
                     writer.publish_prepared_identity_receipt(receipt.clone(), &proof)?;
+                drop(route_guard);
                 drop(_publication);
                 writer.refresh_checkpoint_if_due();
                 Ok(Some(published))

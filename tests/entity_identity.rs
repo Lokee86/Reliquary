@@ -172,11 +172,14 @@ impl EmbeddingEndpoint for UnusedEmbedding {
     }
 }
 fn runtime(script: Arc<Script>) -> ConfiguredRuntime {
+    runtime_with_id(script, "fixture")
+}
+fn runtime_with_id(script: Arc<Script>, fixture: &str) -> ConfiguredRuntime {
     ConfiguredRuntime::hosted(
         script,
         Arc::new(UnusedEmbedding),
         HostedInferenceIdentity::new(
-            "fixture",
+            fixture,
             "identity-script",
             "fixture",
             "unused",
@@ -419,15 +422,14 @@ fn identity_namesakes_revisit_correction_restart_and_grants() {
         "attended",
         "Alex Chen attended a briefing for Project Meridian Contract.",
     );
-    let initial = work
-        .compare_entity_identity(a_entity, b, b_entity, &runtime)
-        .unwrap();
+    gateway.set_runtime(Some(&runtime)).unwrap();
+    let initial = work.compare_entity_identity(a_entity, b, b_entity).unwrap();
     assert_eq!(initial.revision, 1);
     assert_eq!(initial.outcome, IdentityOutcome::Unresolved);
     assert_eq!(initial.reason, IdentityReason::Ambiguity);
     assert_eq!(script.calls.load(Ordering::SeqCst), 1);
     assert_eq!(
-        view.compare_entity_identity(a_entity, b, b_entity, &runtime)
+        view.compare_entity_identity(a_entity, b, b_entity)
             .unwrap_err()
             .kind(),
         ProductErrorKind::Unauthorized
@@ -440,12 +442,10 @@ fn identity_namesakes_revisit_correction_restart_and_grants() {
         ProductErrorKind::Unauthorized
     );
     assert_eq!(
-        work.compare_entity_identity(a_entity, b, b_entity, &runtime)
-            .unwrap(),
+        work.compare_entity_identity(a_entity, b, b_entity).unwrap(),
         initial
     );
     assert_eq!(script.calls.load(Ordering::SeqCst), 1);
-    let mut processing = work.start_entity_identity_processing(&runtime).unwrap();
     evidence(&peer, b_entity, b_contract);
     wait_revision(&work, a_entity, b, b_entity, 2);
     let positive = view
@@ -465,12 +465,11 @@ fn identity_namesakes_revisit_correction_restart_and_grants() {
     )
     .unwrap();
     assert_eq!(
-        work.compare_entity_identity(a_entity, b, b_entity, &runtime)
+        work.compare_entity_identity(a_entity, b, b_entity)
             .unwrap()
             .revision,
         2
     );
-    processing.stop().unwrap();
     assert_eq!(script.calls.load(Ordering::SeqCst), 2);
     let cut = manager
         .semantic_graph_inspection_cut(a, OwnerKind::Rel)
@@ -490,15 +489,7 @@ fn identity_namesakes_revisit_correction_restart_and_grants() {
     .unwrap();
     work.quiesce().unwrap();
     work.reopen().unwrap();
-    let stale = work
-        .inspect_entity_identity(a_entity, b, b_entity, None)
-        .unwrap()
-        .unwrap();
-    assert_eq!(stale.receipt.revision, 2);
-    assert_eq!(stale.state, IdentityComparisonState::Pending);
-    let mut processing = work.start_entity_identity_processing(&runtime).unwrap();
     wait_revision(&work, a_entity, b, b_entity, 3);
-    processing.stop().unwrap();
     let current = work
         .inspect_entity_identity(a_entity, b, b_entity, None)
         .unwrap()
@@ -521,11 +512,13 @@ fn identity_paused_evaluation_rechecks_peer_and_revocation() {
         CorrectSource,
         Revoke,
         UnrelatedWrite,
+        ReplaceRoute,
     }
     for change in [
         DuringEvaluation::CorrectSource,
         DuringEvaluation::Revoke,
         DuringEvaluation::UnrelatedWrite,
+        DuringEvaluation::ReplaceRoute,
     ] {
         let dir = Directory::new();
         let ap = dir.0.join("a.rel");
@@ -552,12 +545,21 @@ fn identity_paused_evaluation_rechecks_peer_and_revocation() {
         let source = evidence(&peer, be, bc);
         let script = Arc::new(Script::default());
         let runtime = runtime(script.clone());
+        gateway.set_runtime(Some(&runtime)).unwrap();
         script.pause();
         let result = std::thread::scope(|scope| {
-            let pending = scope.spawn(|| work.compare_entity_identity(ae, b, be, &runtime));
+            let pending = scope.spawn(|| work.compare_entity_identity(ae, b, be));
             script.entered(1);
             match change {
                 DuringEvaluation::Revoke => control.revoke(token).unwrap(),
+                DuringEvaluation::ReplaceRoute => {
+                    gateway
+                        .set_runtime(Some(&runtime_with_id(
+                            script.clone(),
+                            "replacement-fixture",
+                        )))
+                        .unwrap();
+                }
                 DuringEvaluation::UnrelatedWrite => {
                     peer.create_memory(
                         "Weather".into(),
@@ -597,6 +599,9 @@ fn identity_paused_evaluation_rechecks_peer_and_revocation() {
             DuringEvaluation::CorrectSource => {
                 assert_eq!(result.unwrap_err().kind(), ProductErrorKind::Stale)
             }
+            DuringEvaluation::ReplaceRoute => {
+                assert_eq!(result.unwrap_err().kind(), ProductErrorKind::Stale)
+            }
             DuringEvaluation::UnrelatedWrite => {
                 assert_eq!(result.unwrap().outcome, IdentityOutcome::SameIdentity)
             }
@@ -628,6 +633,7 @@ fn identity_paused_evaluation_rechecks_peer_and_revocation() {
             retained.map(|view| view.receipt.revision),
             match change {
                 DuringEvaluation::UnrelatedWrite => Some(1),
+                DuringEvaluation::ReplaceRoute => None,
                 _ => None,
             }
         );
@@ -682,11 +688,12 @@ fn identity_readonly_peer_and_equivalent_concurrent_requests_publish_once() {
             .unwrap();
         let script = Arc::new(Script::default());
         let runtime = runtime(script.clone());
+        gateway.set_runtime(Some(&runtime)).unwrap();
         script.pause();
         let (first, second) = std::thread::scope(|scope| {
-            let one = scope.spawn(|| work.compare_entity_identity(ae, b, be, &runtime));
+            let one = scope.spawn(|| work.compare_entity_identity(ae, b, be));
             script.entered(1);
-            let two = scope.spawn(|| work.compare_entity_identity(ae, b, be, &runtime));
+            let two = scope.spawn(|| work.compare_entity_identity(ae, b, be));
             script.entered(2);
             script.release();
             (one.join().unwrap().unwrap(), two.join().unwrap().unwrap())
@@ -700,12 +707,7 @@ fn identity_readonly_peer_and_equivalent_concurrent_requests_publish_once() {
                 .unwrap()
                 .is_none()
         );
-        assert_eq!(
-            work.compare_entity_identity(ae, b, be, &runtime)
-                .unwrap()
-                .revision,
-            1
-        );
+        assert_eq!(work.compare_entity_identity(ae, b, be).unwrap().revision, 1);
         let person = work
             .inspect(&reliquary_memory::InspectionQuery::Entities, None, 32)
             .unwrap();
@@ -717,6 +719,95 @@ fn identity_readonly_peer_and_equivalent_concurrent_requests_publish_once() {
         peer_before,
         "recording A must preserve read-only B bytes"
     );
+}
+
+#[test]
+fn cold_reopen_rechecks_prior_comparison_after_generic_route_bind() {
+    let dir = Directory::new();
+    let ap = dir.0.join("a.rel");
+    let bp = dir.0.join("b.rel");
+    let cp = dir.0.join("c.rel");
+    let (ae, ac) = seed(&ap, [11; 16]);
+    let (be, bc) = seed(&bp, [12; 16]);
+    seed(&cp, [13; 16]);
+    let script = Arc::new(Script::default());
+    let runtime = runtime(script.clone());
+    {
+        let gateway = Gateway::new();
+        let ar = Rel::open(&ap).unwrap();
+        let br = Rel::open(&bp).unwrap();
+        let a = gateway.mount_rel(&ar, true).unwrap();
+        let b = gateway.mount_rel(&br, true).unwrap();
+        let token = "identity-cold-start-manager-credential-000000";
+        let (admission, _) = TrustedHostAdmission::new([HostCredentialBinding::new(
+            "author",
+            token,
+            [OwnerGrant::ManageRel(a), OwnerGrant::ManageRel(b)],
+        )])
+        .install(&gateway)
+        .unwrap();
+        let manager = admission.authenticate(token).unwrap();
+        let work = manager.workspace_management(a).unwrap();
+        let peer = manager.workspace_management(b).unwrap();
+        gateway.set_runtime(Some(&runtime)).unwrap();
+        evidence(&work, ae, ac);
+        let receipt = work.compare_entity_identity(ae, b, be).unwrap();
+        assert_eq!(receipt.revision, 1);
+        assert_eq!(receipt.outcome, IdentityOutcome::Unresolved);
+        assert_eq!(script.calls.load(Ordering::SeqCst), 0);
+        // Change the peer evidence so the durable receipt needs reevaluation after restart.
+        gateway.set_runtime(None).unwrap();
+        evidence(&peer, be, bc);
+        work.quiesce().unwrap();
+        peer.quiesce().unwrap();
+    }
+
+    let gateway = Gateway::new();
+    let ar = Rel::open(&ap).unwrap();
+    let br = Rel::open(&bp).unwrap();
+    let cr = Rel::open(&cp).unwrap();
+    let a = gateway.mount_rel(&ar, true).unwrap();
+    let b = gateway.mount_rel(&br, false).unwrap();
+    let c = gateway.mount_rel(&cr, false).unwrap();
+    let token = "identity-cold-start-manager-credential-000000";
+    let restricted = "identity-cold-start-restricted-credential-000000";
+    let (admission, _) = TrustedHostAdmission::new([
+        HostCredentialBinding::new(
+            "restricted",
+            restricted,
+            [OwnerGrant::ManageRel(a), OwnerGrant::ViewRel(c)],
+        ),
+        HostCredentialBinding::new(
+            "author",
+            token,
+            [OwnerGrant::ManageRel(a), OwnerGrant::ViewRel(b)],
+        ),
+    ])
+    .install(&gateway)
+    .unwrap();
+    let _restricted = admission.authenticate(restricted).unwrap();
+    let work = admission
+        .authenticate(token)
+        .unwrap()
+        .workspace_management(a)
+        .unwrap();
+    // Rebinding the generic runtime resumes pending work without a dedicated worker call.
+    gateway.set_runtime(Some(&runtime)).unwrap();
+    wait_revision(&work, ae, b, be, 2);
+    let current = work
+        .inspect_entity_identity(ae, b, be, None)
+        .unwrap()
+        .unwrap();
+    assert_eq!(current.receipt.outcome, IdentityOutcome::SameIdentity);
+    assert_eq!(current.receipt.predecessor, Some(1));
+    assert_eq!(
+        work.inspect_entity_identity(ae, b, be, Some(1))
+            .unwrap()
+            .unwrap()
+            .state,
+        IdentityComparisonState::Historical
+    );
+    assert_eq!(script.calls.load(Ordering::SeqCst), 1);
 }
 
 #[test]
@@ -748,6 +839,7 @@ fn two_programs_named_relay_are_distinguished_by_independent_inventory_records()
     let peer = manager.workspace_management(b).unwrap();
     let script = Arc::new(Script::default());
     let runtime = runtime(script.clone());
+    gateway.set_runtime(Some(&runtime)).unwrap();
     for (owner, app, inventory, quote) in [
         (
             &work,
@@ -770,14 +862,13 @@ fn two_programs_named_relay_are_distinguished_by_independent_inventory_records()
             quote,
         );
     }
-    let initial = work
-        .compare_entity_identity(a_app, b, b_app, &runtime)
-        .unwrap();
+    let initial = work.compare_entity_identity(a_app, b, b_app).unwrap();
     assert_eq!(initial.revision, 1);
     assert_eq!(initial.outcome, IdentityOutcome::Unresolved);
     assert_eq!(initial.reason, IdentityReason::Ambiguity);
 
     // Each owner records which package its Relay refers to, with both installed side by side.
+    gateway.set_runtime(None).unwrap();
     for (owner, app, inventory, quote) in [
         (&work, a_app, a_inventory, EDITOR_INSTALL),
         (&peer, b_app, b_inventory, BACKUP_INSTALL),
@@ -790,9 +881,13 @@ fn two_programs_named_relay_are_distinguished_by_independent_inventory_records()
             quote,
         );
     }
+    gateway.set_runtime(Some(&runtime)).unwrap();
+    wait_revision(&work, a_app, b, b_app, 2);
     let distinct = work
-        .compare_entity_identity(a_app, b, b_app, &runtime)
-        .unwrap();
+        .inspect_entity_identity(a_app, b, b_app, None)
+        .unwrap()
+        .unwrap()
+        .receipt;
     assert_eq!(distinct.predecessor, Some(initial.revision));
     assert_eq!(distinct.outcome, IdentityOutcome::RelatedDistinct);
     assert_eq!(distinct.reason, IdentityReason::Distinct);
@@ -862,13 +957,7 @@ fn unchanged_pair_is_reconsidered_after_automatic_policy_changes() {
             .unwrap()
             .unwrap()
     };
-    assert_eq!(inspect(None).state, IdentityComparisonState::Pending);
-    let script = Arc::new(Script::default());
-    let mut processing = work
-        .start_entity_identity_processing(&runtime(script.clone()))
-        .unwrap();
     wait_revision(&work, ae, b, be, 2);
-    processing.stop().unwrap();
     let new = inspect(None).receipt;
     assert!(new.policy > previous.policy);
     assert_eq!(new.predecessor, Some(previous.revision));
@@ -878,5 +967,4 @@ fn unchanged_pair_is_reconsidered_after_automatic_policy_changes() {
     );
     assert_eq!(new.outcome, IdentityOutcome::Unresolved);
     assert_eq!(inspect(Some(1)).receipt, previous);
-    assert_eq!(script.calls.load(Ordering::SeqCst), 0);
 }

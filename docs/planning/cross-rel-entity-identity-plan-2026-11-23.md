@@ -2,6 +2,8 @@
 
 Parent index: [Planning](./INDEX.md)
 
+The original plan below describes the first implementation. Its caller-managed worker in step 4 was superseded by automatic reconsideration in the [Gateway lifecycle](../architecture/gateway.md). The [current API](../public-product-api.md#cross-rel-entity-identity) binds inference on the Gateway for both initial comparison and later revisions.
+
 ## Purpose
 
 Implement the [pair comparison contract](cross-rel-entity-identity-spec-2026-11-23.md) on native REL 2.1, starting from `a06b70d4`. The acceptance path is an authenticated Core caller following one pair from insufficient evidence to a supported decision, through a correction and a restart.

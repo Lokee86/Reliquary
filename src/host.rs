@@ -46,6 +46,7 @@ struct MountedOwnerRecord {
 #[derive(Clone)]
 pub struct Gateway {
     pub(crate) inner: runtime::Gateway,
+    pub(crate) identity: Arc<runtime::IdentityLifecycle>,
     mounted: Arc<Mutex<BTreeMap<OwnerId, MountedOwnerRecord>>>,
 }
 
@@ -59,8 +60,27 @@ impl Gateway {
     pub fn new() -> Self {
         Self {
             inner: runtime::Gateway::new(),
+            identity: Arc::default(),
             mounted: Arc::new(Mutex::new(BTreeMap::new())),
         }
+    }
+
+    /// Set the configured runtime for Gateway-managed work. Entity comparisons use
+    /// its Entity route, including when a previously recorded pair needs a new judgment.
+    pub fn set_runtime(
+        &self,
+        runtime: Option<&crate::ConfiguredRuntime>,
+    ) -> Result<(), ProductError> {
+        let endpoint = runtime.and_then(crate::ConfiguredRuntime::entity_endpoint);
+        let route = runtime
+            .map(|runtime| {
+                blake3::Hash::from_bytes(runtime.processing_route_identity().entity_identity)
+                    .to_hex()
+                    .to_string()
+            })
+            .unwrap_or_default();
+        self.identity.set_route(endpoint, route)?;
+        Ok(())
     }
 
     pub fn mount_rel(&self, rel: &Rel, writable: bool) -> Result<OwnerId, ProductError> {
