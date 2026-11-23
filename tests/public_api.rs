@@ -145,10 +145,18 @@ fn archive_search_matches_reference_and_reopens() {
                     Ok(turns) => turns
                         .iter()
                         .map(|turn| {
-                            archive.content_for_node(&fragment.conversation_id, &turn.node_id)
+                            archive
+                                .content_for_node(&fragment.conversation_id, &turn.node_id)
+                                .unwrap()
                         })
                         .collect::<Option<Vec<_>>>()
-                        .map(|texts| texts.join("\n")),
+                        .map(|texts| {
+                            texts
+                                .iter()
+                                .map(|text| text.as_str())
+                                .collect::<Vec<_>>()
+                                .join("\n")
+                        }),
                     Err(
                         reliquary_archive::ArchiveError::MissingContent
                         | reliquary_archive::ArchiveError::EvidenceLimitExceeded,
