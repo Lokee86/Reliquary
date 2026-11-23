@@ -6,6 +6,7 @@ use reliquary_perception_store::identity::{
     IdentityReason, IdentityReceipt, IdentityRelationshipRef, IdentitySide, IdentitySpan,
     MAX_IDENTITY_RELATIONSHIPS_PER_SIDE,
 };
+use reliquary_perception_store::identity_evidence::{IdentityEvidence, IdentityEvidenceCut};
 use reliquary_perception_store::{
     MAX_RELATIONSHIP_EVIDENCE, MAX_RELATIONSHIP_PARTICIPANTS, PRINCIPAL_ENTITY_KIND,
 };
@@ -98,7 +99,59 @@ impl IdentityHistory {
     }
 }
 
+/// Owner-local evidence captured at one admitted cut. Publication rechecks its
+/// file identity, exact references and mutable evidence coordinates.
+pub struct IdentityPublicationProof {
+    owner: [u8; 16],
+    file: (u64, u64),
+    history_generation: [u8; 32],
+    cut: IdentityEvidenceCut,
+    entity: EntityId,
+    references: IdentityEvidenceRef,
+}
+
+impl IdentityPublicationProof {
+    fn check(
+        &self,
+        session: &RelSession,
+        receipt: &IdentityReceipt,
+    ) -> Result<(), OwnerSessionError> {
+        let actual = &receipt.left;
+        if self.owner != session.owner_id
+            || self.file != session.container_file_identity
+            || self.history_generation != session.history_generation
+            || self.cut != session.identity_evidence_cut()
+            || self.entity != receipt.pair.local_entity
+            || self.references.endpoint_revision != actual.endpoint_revision
+            || self.references.relationships != actual.relationships
+            || !(self.references.limit == actual.limit
+                || (self.references.limit.is_none() && actual.limit == Some(IdentityLimit::Budget)))
+        {
+            return Err(invalid("prepared local evidence changed"));
+        }
+        Ok(())
+    }
+}
+
 impl RelSession {
+    pub fn identity_evidence_with_proof(
+        &self,
+        entity: EntityId,
+    ) -> Result<Option<(IdentityEvidence, IdentityPublicationProof)>, OwnerSessionError> {
+        let Some(evidence) = self.identity_evidence(entity)? else {
+            return Ok(None);
+        };
+        let proof = IdentityPublicationProof {
+            owner: self.owner_id,
+            file: self.container_file_identity,
+            history_generation: self.history_generation,
+            cut: self.identity_evidence_cut(),
+            entity,
+            references: evidence.references(),
+        };
+        Ok(Some((evidence, proof)))
+    }
+
     pub fn identity_receipt(
         &self,
         pair: &IdentityPair,
@@ -128,6 +181,24 @@ impl RelWriter {
         &mut self,
         receipt: IdentityReceipt,
     ) -> Result<IdentityReceipt, OwnerSessionError> {
+        self.publish_identity_receipt_at_cut(receipt, None)
+    }
+
+    /// Publish against a local proof captured before the comparison was evaluated.
+    /// The caller revalidates the authorized peer and pair fingerprint.
+    pub fn publish_prepared_identity_receipt(
+        &mut self,
+        receipt: IdentityReceipt,
+        proof: &IdentityPublicationProof,
+    ) -> Result<IdentityReceipt, OwnerSessionError> {
+        self.publish_identity_receipt_at_cut(receipt, Some(proof))
+    }
+
+    fn publish_identity_receipt_at_cut(
+        &mut self,
+        receipt: IdentityReceipt,
+        proof: Option<&IdentityPublicationProof>,
+    ) -> Result<IdentityReceipt, OwnerSessionError> {
         self.ensure_write_ready()?;
         let before = self.container.writer_lease_proof();
         if before.is_none() || before != self.session.writer_lease_proof {
@@ -142,7 +213,10 @@ impl RelWriter {
             perception: &self.session.common.perception,
             perception_cut: self.session.common.perception.version(),
         };
-        projection.check(&receipt)?;
+        match proof {
+            Some(proof) => proof.check(&self.session, &receipt)?,
+            None => projection.check(&receipt)?,
+        }
         let history = &mut self.session.identity_history;
         if let Some(head) = history.get(&receipt.pair, None)
             && same_inputs(head, &receipt)

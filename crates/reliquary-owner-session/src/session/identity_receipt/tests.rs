@@ -483,3 +483,59 @@ fn grounded_receipt_survives_description_pruning_and_reclamation() {
         after.historical_proof(OWNER, &cut).unwrap()
     );
 }
+
+#[test]
+fn prepared_proof_rechecks_cut_and_exact_references_before_publication() {
+    let directory = tempfile::tempdir().unwrap();
+    let source = directory.path().join("source.rel");
+    let mut writer = RelWriter::create_current_path(&source, OWNER).unwrap();
+    let endpoint = fixture_entity(&mut writer, "Mira");
+    let receipt = unresolved(OWNER, &endpoint);
+    let (_, stale) = writer
+        .read_session()
+        .identity_evidence_with_proof(endpoint.id)
+        .unwrap()
+        .unwrap();
+    fixture_entity(&mut writer, "Lantern");
+    let extent = writer.container.extent().unwrap();
+    assert!(
+        writer
+            .publish_prepared_identity_receipt(receipt.clone(), &stale)
+            .is_err()
+    );
+    let (_, proof) = writer
+        .read_session()
+        .identity_evidence_with_proof(endpoint.id)
+        .unwrap()
+        .unwrap();
+
+    let mut forged = receipt.clone();
+    forged.left.endpoint_revision += 1;
+    assert!(
+        writer
+            .publish_prepared_identity_receipt(forged, &proof)
+            .is_err()
+    );
+    assert_eq!(writer.container.extent().unwrap(), extent);
+
+    let budget = IdentityReceipt {
+        left: IdentityEvidenceRef {
+            limit: Some(IdentityLimit::Budget),
+            ..receipt.left.clone()
+        },
+        right: IdentityEvidenceRef {
+            limit: Some(IdentityLimit::Budget),
+            ..receipt.right.clone()
+        },
+        reason: IdentityReason::EvidenceLimit,
+        ..receipt
+    };
+    assert_eq!(
+        writer
+            .publish_prepared_identity_receipt(budget.clone(), &proof)
+            .unwrap(),
+        budget
+    );
+    drop(writer);
+    assert_chain(&reopen(&source), &[budget]);
+}
