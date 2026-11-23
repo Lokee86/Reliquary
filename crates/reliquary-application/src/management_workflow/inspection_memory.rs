@@ -1,6 +1,7 @@
 use super::*;
 use crate::management_workflow::{MemorySummary, hex};
 use reliquary_owner_session::model::{MemoryBody, MemoryRecord, TerminalTombstone};
+use std::borrow::Cow;
 
 pub(super) fn inspect(
     read: &ManagementRead<'_>,
@@ -58,7 +59,7 @@ pub(super) fn inspect(
             })
         }
         InspectionQuery::Provenance { id, revision } => {
-            let (record, _) = exact(read, id, revision)?;
+            let record = read.memory_record(id, revision).map_err(memory_error)?;
             let provenance = provenance::prepare_provenance(read, record)?;
             page.single(InspectionItem::Provenance(Box::new(provenance)))
         }
@@ -70,7 +71,7 @@ fn exact<'a>(
     read: &'a ManagementRead<'_>,
     id: MemoryId,
     revision: Option<u64>,
-) -> Result<(&'a MemoryRecord, Option<&'a MemoryBody>), ManagementError> {
+) -> Result<(&'a MemoryRecord, Option<Cow<'a, MemoryBody>>), ManagementError> {
     read.memory_projection(id, revision).map_err(memory_error)
 }
 
@@ -91,9 +92,9 @@ fn terminal_item(id: MemoryId, tombstone: TerminalTombstone) -> InspectionItem {
 }
 
 fn project_memory(
-    (record, body): (&MemoryRecord, Option<&MemoryBody>),
+    (record, body): (&MemoryRecord, Option<Cow<'_, MemoryBody>>),
 ) -> Result<InspectionItem, ManagementError> {
-    let (title, content) = body.map_or(("", ""), |body| {
+    let (title, content) = body.as_deref().map_or(("", ""), |body| {
         (body.title.as_str(), body.content.as_str())
     });
     let bytes = title.len()

@@ -1,5 +1,6 @@
 use super::super::*;
 use reliquary_memory_core::{MemoryBody, MemoryRecord};
+use std::borrow::Cow;
 
 /// Immutable owner-local projection. The stores and writer remain private.
 pub struct ManagementRead<'a> {
@@ -114,8 +115,16 @@ impl ManagementRead<'_> {
         &self,
         id: MemoryId,
         revision: Option<u64>,
-    ) -> Result<(&MemoryRecord, Option<&MemoryBody>), MemoryError> {
+    ) -> Result<(&MemoryRecord, Option<Cow<'_, MemoryBody>>), MemoryError> {
         self.common.memories.revision_projection(id, revision)
+    }
+
+    pub fn memory_record(
+        &self,
+        id: MemoryId,
+        revision: Option<u64>,
+    ) -> Result<&MemoryRecord, MemoryError> {
+        self.common.memories.revision_record(id, revision)
     }
 
     pub fn memory_terminal(&self, id: MemoryId, cut: u64) -> Option<TerminalTombstone> {

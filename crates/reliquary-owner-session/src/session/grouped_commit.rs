@@ -1,4 +1,6 @@
+use super::grouped_completion::StoredGroupedCompletion;
 use super::*;
+use reliquary_memory_core::RetainedGroupedBody;
 
 impl RelSession {
     pub fn commit_grouped_insomnia_completion(
@@ -103,7 +105,7 @@ impl RelSession {
         let episode_id = WorkEpisodeId(completion.episode_id);
         let key = (episode_id, completion.attempt);
         if let Some(accepted) = self.grouped_completions.get(&key) {
-            return if accepted == &completion {
+            return if self.load_grouped_completion(key, accepted)?.as_ref() == &completion {
                 Ok(CompletionCheck::AlreadyAccepted)
             } else {
                 Err(OwnerSessionError::Insomnia(InsomniaError::ReceiptConflict))
@@ -214,12 +216,13 @@ impl RelSession {
         {
             return Err(OwnerSessionError::Insomnia(InsomniaError::ReceiptConflict));
         }
-        let payload = completion.encode().map_err(OwnerSessionError::Record)?;
+        let (payload, body_offsets) = completion
+            .encode_with_body_offsets()
+            .map_err(OwnerSessionError::Record)?;
 
-        if let Err(error) = container.append(&payload) {
-            self.write_poisoned = true;
-            return Err(error.into());
-        }
+        let object = container
+            .append(&payload)
+            .inspect_err(|_| self.write_poisoned = true)?;
         if let Err(error) = container.commit_embedded_version_range_at(
             completion.global_version_start,
             completion.memory_records.len(),
@@ -241,11 +244,21 @@ impl RelSession {
             ));
         }
 
-        if let Err(error) = self
-            .common
-            .memories
-            .apply_grouped_completion(bodies, completion.memory_records.clone())
-        {
+        let located_bodies = bodies
+            .into_iter()
+            .zip(body_offsets)
+            .map(|((id, bytes), offset)| RetainedGroupedBody {
+                id,
+                bytes,
+                payload_offset: Some(offset),
+            })
+            .collect();
+        if let Err(error) = self.common.memories.apply_indexed_grouped_completion(
+            object,
+            &payload,
+            located_bodies,
+            completion.memory_records.clone(),
+        ) {
             self.write_poisoned = true;
             return Err(error.into());
         }
@@ -285,7 +298,14 @@ impl RelSession {
             self.write_poisoned = true;
             return Err(error);
         }
-        self.grouped_completions.insert(key, completion);
+        let grouped = StoredGroupedCompletion::from_admitted(
+            completion,
+            self.grouped_completion_reader
+                .as_ref()
+                .map(|_| (object, payload.as_slice())),
+        )
+        .inspect_err(|_| self.write_poisoned = true)?;
+        self.grouped_completions.insert(key, grouped);
         let Some(next_proof) = container.writer_lease_proof() else {
             self.write_poisoned = true;
             return Err(OwnerSessionError::Record(

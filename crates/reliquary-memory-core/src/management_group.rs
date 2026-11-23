@@ -33,8 +33,8 @@ impl MemoryStore {
             title: draft.title.clone(),
             content: draft.content.clone(),
         };
-        let body_frame = match self.state.bodies.get(&body_id) {
-            Some(previous) if previous != &body => return Err(MemoryError::HashCollision),
+        let body_frame = match self.load_body(body_id)? {
+            Some(previous) if previous.as_ref() != &body => return Err(MemoryError::HashCollision),
             Some(_) => None,
             None => Some(encode_body(body_id, &body)?),
         };
@@ -78,8 +78,8 @@ impl MemoryStore {
         id: MemoryId,
         revision: u64,
     ) -> Result<Vec<u8>, MemoryError> {
-        let current = self.current(id)?;
-        if current.record.revision != revision {
+        let current = self.revision_record(id, None)?;
+        if current.revision != revision {
             return Err(MemoryError::RevisionConflict);
         }
         let next = revision

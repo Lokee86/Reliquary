@@ -196,7 +196,7 @@ pub fn validate_project_correlation_retry(
         ));
     }
     let existing = rel
-        .archive_source_attachments(conversation_id, node_id)
+        .archive_source_attachments(conversation_id, node_id)?
         .into_iter()
         .filter(|attachment| attachment.project_reference.is_some())
         .collect::<Vec<_>>();
@@ -377,6 +377,7 @@ mod tests {
         let attachment = writer
             .read_session()
             .archive_source_attachments("conversation", "source-turn")
+            .unwrap()
             .into_iter()
             .next()
             .unwrap();
@@ -537,6 +538,7 @@ mod tests {
         .unwrap();
         let attachment = rel
             .archive_source_attachments("conversation", "source-turn")
+            .unwrap()
             .remove(0);
         assert!(attachment.bytes.is_empty());
         assert_eq!(

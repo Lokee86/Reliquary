@@ -2,7 +2,7 @@
 //! These immutable values are not store handles or classifier responses.
 use reliquary_memory_core::{MemoryBodyId, MemoryId};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct DreamMemoryCut {
     pub id: MemoryId,
     pub revision: u64,

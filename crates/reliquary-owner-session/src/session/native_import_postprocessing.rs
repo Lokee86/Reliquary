@@ -1,5 +1,6 @@
 //! Owner admission for semantic work on the durable import extraction cohort.
 use super::*;
+use crate::session::grouped_completion::StoredGroupedCompletion;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
@@ -158,7 +159,7 @@ impl RelSession {
     fn native_import_completed_outputs(
         &self,
         import_id: &str,
-    ) -> Result<Vec<&GroupedInsomniaCompletion>, OwnerSessionError> {
+    ) -> Result<Vec<&StoredGroupedCompletion>, OwnerSessionError> {
         let (start, open) = match self.imports.status(import_id) {
             Some(ImportEpochStatus::Open(start)) if start.format_version == 2 => (start, true),
             Some(ImportEpochStatus::Completed { start, .. }) if start.format_version == 2 => {

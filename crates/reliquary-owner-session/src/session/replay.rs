@@ -24,21 +24,34 @@ pub(super) fn open_common_for_owner(
     dream_admissions: impl IntoIterator<Item = DreamBeginAdmission>,
     replay_grouped_insomnia: bool,
 ) -> Result<CommonState, OwnerSessionError> {
-    if expected_owner_id != container.owner_id() {
-        return Err(OwnerSessionError::Graph(GraphError::WrongOwner));
-    }
-    let mut grouped_body_ids = BTreeSet::new();
-    let mut user_memory_requests = BTreeMap::new();
-    let mut memories = MemoryStore::open_with_retained_dream_batches(
+    open_common_replaying(
         container,
+        expected_owner_id,
+        dream_admissions,
+        replay_grouped_insomnia,
+        reliquary_memory_core::MemoryReplayStart::Detached,
+    )
+}
+
+pub(super) fn replay_memories(
+    container: &Container,
+    start: reliquary_memory_core::MemoryReplayStart,
+    replay_grouped_insomnia: bool,
+    grouped_body_ids: &mut BTreeSet<reliquary_memory_core::MemoryBodyId>,
+    user_memory_requests: &mut BTreeMap<String, UserMemoryRecord>,
+) -> Result<MemoryStore, OwnerSessionError> {
+    let memories = MemoryStore::replay_retained_dream_batches(
+        container,
+        start,
         |payload| {
             if !replay_grouped_insomnia {
                 return Err(MemoryError::Corrupt(
                     "PHY cannot replay REL grouped completion",
                 ));
             }
-            let completion = GroupedInsomniaCompletion::decode(payload)
-                .map_err(|_| MemoryError::Corrupt("grouped completion"))?;
+            let (completion, body_offsets) =
+                GroupedInsomniaCompletion::decode_with_body_offsets(payload)
+                    .map_err(|_| MemoryError::Corrupt("grouped completion"))?;
             if !payload.starts_with(b"RELINSC8") && !completion.routing_metadata.is_empty() {
                 return Err(MemoryError::Corrupt(
                     "grouped routing metadata replay is unsupported",
@@ -56,7 +69,14 @@ pub(super) fn open_common_for_owner(
             let bodies = completion
                 .bodies
                 .into_iter()
-                .map(|body| (body.id, body.bytes))
+                .zip(body_offsets)
+                .map(
+                    |(body, offset)| reliquary_memory_core::RetainedGroupedBody {
+                        id: body.id,
+                        bytes: body.bytes,
+                        payload_offset: Some(offset),
+                    },
+                )
                 .collect();
             Ok(Some((bodies, completion.memory_records, routing)))
         },
@@ -101,6 +121,28 @@ pub(super) fn open_common_for_owner(
             user_memory_requests.insert(record.key.clone(), record);
             Ok(effect)
         },
+    )?;
+    Ok(memories)
+}
+
+pub(super) fn open_common_replaying(
+    container: &Container,
+    expected_owner_id: [u8; 16],
+    dream_admissions: impl IntoIterator<Item = DreamBeginAdmission>,
+    replay_grouped_insomnia: bool,
+    memory_start: reliquary_memory_core::MemoryReplayStart,
+) -> Result<CommonState, OwnerSessionError> {
+    if expected_owner_id != container.owner_id() {
+        return Err(OwnerSessionError::Graph(GraphError::WrongOwner));
+    }
+    let mut grouped_body_ids = BTreeSet::new();
+    let mut user_memory_requests = BTreeMap::new();
+    let mut memories = replay_memories(
+        container,
+        memory_start,
+        replay_grouped_insomnia,
+        &mut grouped_body_ids,
+        &mut user_memory_requests,
     )?;
     let perception = PerceptionStore::open(container)?;
     for mention in perception.mentions() {

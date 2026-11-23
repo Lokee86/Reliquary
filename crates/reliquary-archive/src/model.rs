@@ -2,13 +2,17 @@ use reliquary_container::ContainerError;
 use sha2::{Digest, Sha256};
 use std::fmt;
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct ContentId(pub [u8; 32]);
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct EpisodeId(pub [u8; 32]);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Node {
     pub id: String,
     pub conversation_id: String,
@@ -19,14 +23,14 @@ pub struct Node {
     pub content_id: ContentId,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ConversationTombstone {
     pub conversation_id: String,
     pub archive_version: u64,
 }
 
 /// Current owner-local display title for one conversation.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ConversationTitle {
     pub conversation_id: String,
     pub title: String,
@@ -146,7 +150,7 @@ pub struct ProjectRevisionRef {
 
 /// Immutable provenance metadata; the repository remains authoritative for
 /// reading the referenced contents at this revision.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ProjectFileRef {
     pub revision: ProjectRevisionRef,
     pub path: String,
@@ -162,7 +166,7 @@ pub struct ProjectAttachmentInput {
     pub reference: ProjectFileRef,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct SourceAttachment {
     pub id: [u8; 32],
     pub content_id: ContentId,
@@ -230,7 +234,7 @@ pub struct ResolvedTurn {
     pub content: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Branch {
     pub id: String,
     pub conversation_id: String,
@@ -238,7 +242,7 @@ pub struct Branch {
     pub canonical: bool,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum EpisodeOrigin {
     Live,
     Import,
@@ -261,7 +265,7 @@ impl EpisodeOrigin {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum EpisodeBoundary {
     Size,
     Inactivity,
@@ -293,7 +297,7 @@ impl EpisodeBoundary {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Episode {
     pub id: EpisodeId,
     pub conversation_id: String,
@@ -427,7 +431,7 @@ pub struct ArchivePublicationCoordinate {
 }
 
 /// Immutable binding observed during ordinary current-only Archive replay.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ArchivePublicationBinding {
     pub archive_version: u64,
     pub global_version: u64,

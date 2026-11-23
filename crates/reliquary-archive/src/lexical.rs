@@ -40,6 +40,7 @@ pub struct FragmentLexicalIndexStats {
 }
 
 /// Inverted index over the readable rows of a captured fragment mapping.
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct FragmentLexicalIndex {
     rows: usize,
     dictionary: Box<str>,
@@ -47,6 +48,7 @@ pub struct FragmentLexicalIndex {
     postings: Box<[u8]>,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 struct TermOffset {
     word: usize,
     posting: usize,

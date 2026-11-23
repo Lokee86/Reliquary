@@ -6,7 +6,7 @@ pub const RETAINED_FRESHNESS_AUTHORITY_MARKER: &[u8; 8] = b"RELHFA01";
 const COORDINATE_BYTES: usize = 4 * size_of::<u64>();
 const MAX_PROOF_BYTES: usize = 16 * 1024 * 1024;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RetainedFreshnessAuthority {
     pub import_id: String,
     pub source_sha256: [u8; 32],

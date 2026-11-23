@@ -230,7 +230,7 @@ mod tests {
 
 use std::collections::BTreeMap;
 
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct OwnerMaintenanceStore {
     manifests: BTreeMap<[u8; 32], HistoryPruneManifest>,
 }

@@ -623,6 +623,7 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
             session.archive_source_attachments("conv-l06", "source-doc")
         })
         .unwrap()
+        .unwrap()
         .remove(0);
     fs::write(
         repo.join("docs/release-notes.txt"),
@@ -1239,7 +1240,9 @@ fn g4_t04_joined_vectors_context_retrieval_and_confirmed_use() {
     drop(reopened);
     drop(reopened_gateway);
     let session = RelSession::open_path(&rel_path, &rel_admission, [], []).unwrap();
-    let reopened_attachment = session.archive_source_attachments("conv-l06", "source-doc");
+    let reopened_attachment = session
+        .archive_source_attachments("conv-l06", "source-doc")
+        .unwrap();
     assert_eq!(reopened_attachment.len(), 1);
     let pinned = reopened_attachment[0].project_reference.as_ref().unwrap();
     assert_eq!(pinned.path, "docs/release-notes.txt");

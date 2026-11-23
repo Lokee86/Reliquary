@@ -20,7 +20,7 @@ mod initial_dream;
 
 const MAX_FRAME_BYTES: u64 = 128 * 1024 * 1024;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct FreshnessStore {
     owner_uuid: Option<[u8; 16]>,
     identity: Option<ContainerIdentity>,

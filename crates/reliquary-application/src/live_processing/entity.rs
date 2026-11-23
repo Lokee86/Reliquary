@@ -17,7 +17,7 @@ impl LiveEntityInput {
     /// None means the exact accepted body is no longer available.
     pub fn resolved(&self, read: &ManagementRead<'_>) -> Option<bool> {
         let input = &self.mention;
-        let (record, body) = read.memory_projection(input.memory_id, None).ok()?;
+        let record = read.memory_record(input.memory_id, None).ok()?;
         if record.body_id != self.body {
             return None;
         }
@@ -34,7 +34,7 @@ impl LiveEntityInput {
         if read.mention(key).is_some() {
             return Some(true);
         }
-        (!record.archived && body.is_some()).then_some(false)
+        (!record.archived && read.memory_is_readable(input.memory_id)).then_some(false)
     }
 
     pub fn work_id(&self) -> String {

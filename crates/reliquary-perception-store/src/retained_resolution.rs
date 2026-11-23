@@ -4,7 +4,7 @@ use super::*;
 const REVISION: &[u8; 8] = b"RELERH01";
 const INERT: &[u8; 8] = b"RELERL01";
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RetainedUnresolvedEvidence {
     pub candidate_entity_ids: Vec<EntityId>,
     pub reason: EntityResolutionReason,
@@ -15,7 +15,7 @@ pub struct RetainedUnresolvedEvidence {
     pub attempt_count: u16,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum RetainedResolutionDecision {
     Tombstoned,
     Resolved {
@@ -32,7 +32,7 @@ pub enum RetainedResolutionDecision {
     },
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RetainedResolutionRevision {
     pub key: MemoryEntityMentionKey,
     pub revision: u32,
@@ -40,20 +40,20 @@ pub struct RetainedResolutionRevision {
     pub decision: RetainedResolutionDecision,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum RetainedResolutionValue {
     Revision(RetainedResolutionRevision),
     Inert(Vec<u8>),
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RetainedResolutionRecord {
     pub source_global_version: u64,
     pub source_ordinal: u64,
     pub value: RetainedResolutionValue,
 }
 
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub(super) struct History {
     pub(super) records: Vec<RetainedResolutionRecord>,
     current: BTreeMap<MemoryEntityMentionKey, usize>,

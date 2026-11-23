@@ -16,6 +16,8 @@ Gateway does not own physical/semantic store encoding, Application publication p
 
 Mount admission checks owner identity and REL/PHY kind before registering an owner. Principal grants scope Instance methods, including the read-only `has_active_vectors` summary used by hosts to bind non-secret metadata before inference-backed writes. Callers cannot reuse an Instance's prepared retrieval or generation subscription across another owner, principal, stream, or Gateway binding. Worker queues serialize mutations for each mounted owner and shut down with the Gateway lifecycle.
 
+A leased REL writer can restore a verified owner-session checkpoint during the mount. Gateway gives the owner session an opportunity to refresh derived state at its serialized writer boundary. The existing principal, owner, and cut checks continue to govern reads from preserved history.
+
 A direct Memory summary read uses the mounted REL or PHY covered by the Instance's read grant. Application checks the requested cut, and Gateway rechecks the credential before returning the summary.
 
 For Community recompute, Gateway captures owned input under the REL read and releases the lock for calculation. Apply reacquires the mounted writer and rechecks the credential before the owner session validates the captured versions and commits.

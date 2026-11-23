@@ -22,6 +22,8 @@ Cross-owner workflows keep each mutable authority local. When an operation affec
 
 Inspection projects a Memory summary for one ID at an exact owner cut. It shares the paginated list's lifecycle, canonical status, and Community projection.
 
+Inspection selects the retained revision metadata before loading its payload. Application propagates a failed leased Memory or Archive read as a verification error. A recorded tombstone or pruned body retains its typed availability.
+
 Community recompute solves the captured graph and calculates coverage and modularity. Preview returns the report. Apply sends that same partition and its captured versions to the REL writer.
 
 Context preparation prepends attributed dependency-synthesis messages before the primary request and counts them under its existing source and compaction budgets. The transcript and source view used for checkpointing contain the existing conversation evidence.

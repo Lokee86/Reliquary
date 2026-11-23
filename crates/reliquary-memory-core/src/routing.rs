@@ -4,13 +4,13 @@ pub(crate) const ROUTING_MARKER: &[u8; 8] = b"RELMRTE2";
 const MAX_MENTIONS: usize = 64;
 const MAX_TEXT_BYTES: usize = 512;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum MemoryRoutingField {
     Title,
     Content,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MemoryRoutingMention {
     pub field: MemoryRoutingField,
     pub start_byte: u32,
@@ -18,7 +18,7 @@ pub struct MemoryRoutingMention {
     pub text: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MemoryRoutingMetadata {
     pub memory_id: MemoryId,
     pub body_id: MemoryBodyId,

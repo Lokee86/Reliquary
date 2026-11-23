@@ -17,7 +17,7 @@ pub(crate) use processing::{
     ImportProcessingBinding, MAGIC as IMPORT_PROCESSING_MAGIC, processing_marker_id,
 };
 
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct ImportEpochStore {
     owner: Option<[u8; 16]>,
     starts: BTreeMap<String, ImportStart>,

@@ -26,9 +26,7 @@ pub(super) fn verify_dependencies(
         protected_content.extend(
             session
                 .archive
-                .files_for_source(&source.conversation_id, &source.node_id)
-                .into_iter()
-                .map(|attachment| attachment.content_id),
+                .file_content_ids_for_source(&source.conversation_id, &source.node_id),
         );
     }
     if selected_content

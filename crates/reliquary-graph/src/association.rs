@@ -6,14 +6,14 @@ pub const USER_ASSOCIATION_MAGIC: &[u8; 8] = b"RELASC01";
 const PREFIX: &[u8; 6] = b"RELASC";
 const LEN: usize = 8 + 16 + 32 + 32 + 2 * (32 + 8 + 32) + 8 + 8 + 1;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct AssociationEndpoint {
     pub id: [u8; 32],
     pub revision: u64,
     pub body: [u8; 32],
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct UserAssociation {
     pub request_key: [u8; 32],
     pub fingerprint: [u8; 32],

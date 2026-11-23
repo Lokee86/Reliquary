@@ -232,11 +232,21 @@ fn terminal_archive_prune_preserves_episode_and_attachment_history() {
     assert_eq!(reopened.archive.branches(), reference.archive.branches());
     assert_eq!(reopened.archive.pruned_turns().len(), 2);
     assert_eq!(
-        reopened.archive.files_for_source("terminal", "turn-a"),
-        reference.archive.files_for_source("terminal", "turn-a"),
+        reopened
+            .archive
+            .files_for_source("terminal", "turn-a")
+            .unwrap(),
+        reference
+            .archive
+            .files_for_source("terminal", "turn-a")
+            .unwrap(),
     );
     assert_eq!(
-        reopened.archive.files_for_source("terminal", "turn-a")[0].bytes,
+        reopened
+            .archive
+            .files_for_source("terminal", "turn-a")
+            .unwrap()[0]
+            .bytes,
         attachment_bytes
     );
     assert_eq!(

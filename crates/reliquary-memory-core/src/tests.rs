@@ -122,6 +122,100 @@ fn memory_identity_hashes_are_deterministic_and_stable() {
 }
 
 #[test]
+fn leased_memory_resumes_revisions_and_reads_only_selected_backing() {
+    use crate::codec::encode_body;
+    use reliquary_container::ContainerError;
+    use std::borrow::Cow;
+
+    let directory = TempDir::new();
+    let path = directory.0.join("lazy-bodies.rel");
+    let (mut container, mut writer) = open_new(&path);
+    let first_draft = draft("checkpoint-memory-standalone", "standalone", "fact");
+    let first = writer
+        .publish(&mut container, None, 0, first_draft)
+        .unwrap()
+        .revision;
+    let first_id = first.record.id;
+
+    let body = MemoryBody {
+        title: "enveloped".into(),
+        content: "body inside a physical publication".into(),
+    };
+    let mut second = first.record.clone();
+    second.mutation_id = "checkpoint-memory-envelope".into();
+    second.id = memory_id(&second.mutation_id);
+    second.body_id = memory_body_id(&body.title, &body.content);
+    second.memory_version = 2;
+    second.temporal_inference = None;
+    container
+        .append_publication_envelope(&encode_body(second.body_id, &body).unwrap(), Some(7))
+        .unwrap();
+    container
+        .append(&encode_creation(&second).unwrap())
+        .unwrap();
+    container.sync().unwrap();
+    let (physical, _) = container.capture_checkpoint(None).unwrap();
+
+    let replay = |container: &Container, start: MemoryReplayStart| {
+        MemoryStore::replay_retained_dream_batches(
+            container,
+            start,
+            |_| unreachable!("no grouped completion"),
+            |_| unreachable!("no Dream lifecycle"),
+            |_| unreachable!("no initial Dream"),
+            |_| unreachable!("no Dream batch"),
+            |_| unreachable!("no management group"),
+        )
+        .unwrap()
+    };
+    let mut lazy = replay(&container, MemoryReplayStart::Leased);
+    let detached = MemoryStore::open(&container).unwrap();
+    assert!(matches!(
+        lazy.revision_projection(first_id, Some(1)).unwrap().1,
+        Some(Cow::Owned(_))
+    ));
+    assert!(matches!(
+        detached.revision_projection(first_id, Some(1)).unwrap().1,
+        Some(Cow::Borrowed(_))
+    ));
+    let seed = lazy.clone();
+    let next = draft("checkpoint-memory-revision", "standalone", "corrected");
+    let revised = lazy
+        .publish(&mut container, Some(first_id), 1, next)
+        .unwrap()
+        .revision;
+    container.sync().unwrap();
+    drop(container);
+    assert_eq!(detached.revision(first_id, 1).unwrap(), first);
+    assert!(matches!(
+        lazy.revision(first_id, 1),
+        Err(MemoryError::Container(ContainerError::UnstableSnapshot))
+    ));
+
+    let pending =
+        Container::prepare_checkpoint_open(&path, true, FileKind::Reliquary, None).unwrap();
+    let (container, prefix) = pending.finish(Some(physical)).unwrap();
+    let warm = replay(
+        &container,
+        MemoryReplayStart::Checkpoint {
+            store: seed,
+            covered_end: prefix.unwrap().covered_end(),
+        },
+    );
+    assert_eq!(warm.current(first_id).unwrap(), revised);
+    assert_eq!(warm.revision(first_id, 1).unwrap(), first);
+    assert_eq!(
+        warm.current(second.id).unwrap().payload,
+        PayloadState::Available(body)
+    );
+    let cold = MemoryStore::open(&container).unwrap();
+    assert_eq!(
+        warm.history(first_id).unwrap(),
+        cold.history(first_id).unwrap()
+    );
+}
+
+#[test]
 fn creation_revision_provenance_and_body_survive_reopen() {
     let d = TempDir::new();
     let p = d.0.join("owner.rel");

@@ -467,7 +467,10 @@ fn copy_archive_state(
             .ok_or("accepted Archive source is absent")?;
         let mut attachments = Vec::new();
         let mut project_attachments = Vec::new();
-        for attachment in source.files_for_source(&accepted.conversation_id, &accepted.node_id) {
+        for attachment in source
+            .files_for_source(&accepted.conversation_id, &accepted.node_id)
+            .map_err(|error| error.to_string())?
+        {
             if let Some(reference) = attachment.project_reference {
                 project_attachments.push(reliquary_archive::ProjectAttachmentInput {
                     filename: attachment.filename,
@@ -496,8 +499,10 @@ fn copy_archive_state(
                     timestamp_ns: node.timestamp_ns,
                     content: source
                         .content_for_node(&node.conversation_id, &node.id)
+                        .map_err(|error| error.to_string())?
                         .ok_or("Archive node content is unavailable")?
-                        .to_owned(),
+                        .as_ref()
+                        .clone(),
                     attachments,
                     project_attachments,
                 },

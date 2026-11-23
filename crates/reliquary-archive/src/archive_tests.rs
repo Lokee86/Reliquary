@@ -1,4 +1,5 @@
 use super::*;
+use crate::codec::encode_turn;
 use crate::{ProjectRepositoryRef, ProjectRevisionRef};
 use reliquary_container::{ContainerIdentity, ReliquaryScope};
 use std::{
@@ -50,6 +51,90 @@ fn turn(id: &str, parent_id: Option<&str>, timestamp_ns: i64, content: &str) -> 
         attachments: Vec::new(),
         project_attachments: Vec::new(),
     }
+}
+
+#[test]
+fn leased_archive_reads_only_verified_turn_and_attachment_ranges() {
+    let temp = TestDirectory::new();
+    let path = temp.file("archive-leased.rel");
+    let mut container = Container::create(
+        &path,
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        [0xBE; 16],
+    )
+    .unwrap();
+    let mut archive = Archive::open_leased(&container).unwrap();
+    let mut first_turn = turn("user1", None, 70, "first");
+    first_turn.attachments.push(AttachmentInput {
+        filename: "evidence.txt".into(),
+        mime_type: None,
+        bytes: b"source attachment".to_vec(),
+    });
+    let first = archive
+        .accept_turn(&mut container, first_turn.clone())
+        .unwrap();
+    assert!(
+        !archive
+            .accept_turn(&mut container, first_turn)
+            .unwrap()
+            .inserted
+    );
+    let reserved = container.reserve_version(Some(71)).unwrap();
+    let second = archive
+        .accept_turn_at(
+            &mut container,
+            turn("assistant1", Some("user1"), 72, "other"),
+            Some(ArchivePublicationCoordinate {
+                archive_version: 2,
+                global_version: reserved,
+                transaction_time_ns: Some(71),
+                bound_reservation: true,
+            }),
+        )
+        .unwrap();
+    assert!(matches!(
+        archive.content[&second.value.content_id],
+        Payload::Leased(_)
+    ));
+    assert!(
+        archive
+            .file_content
+            .values()
+            .all(|bytes| matches!(bytes, Payload::Leased(_)))
+    );
+    let expected = Archive::open(&container).unwrap().history_at(2).unwrap();
+    let serialized_turns = serde_json::to_vec(&archive.turns).unwrap();
+    archive.turns = serde_json::from_slice(&serialized_turns).unwrap();
+    assert_eq!(archive.history_at(2).unwrap(), expected);
+    drop(container);
+    assert!(matches!(
+        archive.resolved_turn("conversation-1", "user1"),
+        Err(ArchiveError::Container(ContainerError::UnstableSnapshot)),
+    ));
+
+    let mut container = Container::open_writer_as(&path, FileKind::Reliquary).unwrap();
+    let mut archive = Archive::open_leased(&container).unwrap();
+    assert_eq!(archive.history_at(2).unwrap(), expected);
+    let Payload::Leased(range) = archive.content[&second.value.content_id] else {
+        panic!("enveloped content was retained in memory");
+    };
+    archive
+        .content
+        .insert(first.value.content_id, Payload::Leased(range));
+    assert!(matches!(
+        archive.bounded_resolved_turn("conversation-1", "user1", 4),
+        Err(ArchiveError::EvidenceLimitExceeded),
+    ));
+    assert!(matches!(
+        archive.bounded_resolved_turn("conversation-1", "user1", 5),
+        Err(ArchiveError::Container(
+            ContainerError::InvalidFrameReference
+        )),
+    ));
+    assert!(matches!(
+        container.append(b"AFTERBAD"),
+        Err(ContainerError::WriteRecoveryRequired),
+    ));
 }
 
 #[test]
@@ -316,7 +401,10 @@ fn import_receipt_binds_source_mapping_to_archive_nodes_branches_and_files() {
         canonical: true,
     };
     archive.put_branch(&mut container, branch).unwrap();
-    let attachment = archive.files_for_source("conversation-1", "native-node")[0].clone();
+    let attachment = archive
+        .files_for_source("conversation-1", "native-node")
+        .unwrap()[0]
+        .clone();
     let receipt = crate::ImportReceipt {
         schema_version: 1,
         owner_uuid: owner,
@@ -748,7 +836,9 @@ fn accepted_source_attachments_and_source_timestamp_survive_reopen() {
     });
     let accepted = archive.accept_turn(&mut container, input.clone()).unwrap();
     assert!(accepted.inserted);
-    let files = archive.files_for_source("conversation-1", "user-with-file");
+    let files = archive
+        .files_for_source("conversation-1", "user-with-file")
+        .unwrap();
     assert_eq!(files.len(), 1);
     assert_eq!(files[0].filename, "evidence.bin");
     assert_eq!(
@@ -763,7 +853,9 @@ fn accepted_source_attachments_and_source_timestamp_survive_reopen() {
 
     let reopened = Archive::open(&container).unwrap();
     assert_eq!(
-        reopened.files_for_source("conversation-1", "user-with-file"),
+        reopened
+            .files_for_source("conversation-1", "user-with-file")
+            .unwrap(),
         files
     );
     assert_eq!(
@@ -836,11 +928,17 @@ fn attachment_content_is_published_once_and_shared_by_source_links() {
     assert_eq!(blob_count, 1);
     let reopened = Archive::open(&container).unwrap();
     assert_eq!(
-        reopened.files_for_source("conversation-1", "user-file-a")[0].bytes,
+        reopened
+            .files_for_source("conversation-1", "user-file-a")
+            .unwrap()[0]
+            .bytes,
         bytes
     );
     assert_eq!(
-        reopened.files_for_source("conversation-1", "user-file-b")[0].bytes,
+        reopened
+            .files_for_source("conversation-1", "user-file-b")
+            .unwrap()[0]
+            .bytes,
         bytes
     );
 }
@@ -878,13 +976,17 @@ fn project_attachment_preserves_immutable_provenance_without_copying_vcs_bytes()
         reference: reference.clone(),
     });
     archive.accept_turn(&mut container, input).unwrap();
-    let attached = archive.files_for_source("conversation-1", "user-project-file");
+    let attached = archive
+        .files_for_source("conversation-1", "user-project-file")
+        .unwrap();
     assert_eq!(attached.len(), 1);
     assert_eq!(attached[0].project_reference.as_ref(), Some(&reference));
     assert!(attached[0].bytes.is_empty());
 
     let reopened = Archive::open(&container).unwrap();
-    let attached = reopened.files_for_source("conversation-1", "user-project-file");
+    let attached = reopened
+        .files_for_source("conversation-1", "user-project-file")
+        .unwrap();
     assert_eq!(attached.len(), 1);
     assert_eq!(attached[0].project_reference.as_ref(), Some(&reference));
     assert!(attached[0].bytes.is_empty());
@@ -936,7 +1038,10 @@ fn retained_project_backing_uses_its_physical_global_cut() {
             }),
         )
         .unwrap();
-    let attachment = archive.files_for_source("conversation-1", "user-project-file")[0].clone();
+    let attachment = archive
+        .files_for_source("conversation-1", "user-project-file")
+        .unwrap()[0]
+        .clone();
     assert_eq!(container.reserve_version(Some(63)).unwrap(), 2);
     container.sync().unwrap();
     drop(container);
@@ -970,7 +1075,9 @@ fn retained_project_backing_uses_its_physical_global_cut() {
         archive.project_backing_at_global_cut(attachment.id, 2),
         Some(&binding)
     );
-    let head = archive.files_for_source("conversation-1", "user-project-file");
+    let head = archive
+        .files_for_source("conversation-1", "user-project-file")
+        .unwrap();
     assert_eq!(head[0].project_reference.as_ref(), Some(&reference));
     assert!(head[0].bytes.is_empty());
     container.append(&body).unwrap();

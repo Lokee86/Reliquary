@@ -18,6 +18,7 @@ pub struct ArchiveLexicalIndexPublication {
     pub added_bytes: u64,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub(super) struct StoredArchiveLexicalIndex {
     pub(super) generation: VectorGenerationId,
     pub(super) source_digest: [u8; 32],

@@ -268,7 +268,7 @@ pub fn validate_profile(profile: &CompatibilityProfile) -> Result<(), ProfileSto
     Ok(())
 }
 
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct CompatibilityProfileStore {
     profiles: HashMap<CompatibilityProfileId, CompatibilityProfile>,
     retired: HashSet<CompatibilityProfileId>,

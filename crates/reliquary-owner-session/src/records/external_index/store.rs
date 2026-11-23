@@ -78,7 +78,7 @@ impl SourceState {
         Ok(())
     }
 }
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct ExternalIndexStore {
     pub sources: BTreeMap<String, SourceState>,
     /// A damaged derived record is discarded; canonical REL semantics stay intact.
@@ -157,6 +157,7 @@ impl ExternalIndexStore {
                     &descriptor.reference.conversation_id,
                     &descriptor.reference.message_id,
                 )
+                .map_err(|_| ExternalSourceError::Storage)?
                 .ok_or(ExternalSourceError::Unauthorized)?;
             if message.chunks.iter().any(|chunk| {
                 let start = chunk.reference.start as usize;

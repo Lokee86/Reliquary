@@ -7,6 +7,7 @@ pub struct DreamCandidatePool {
     pub ids: Vec<MemoryId>,
     pub index_entries_examined: usize,
 }
+#[derive(serde::Serialize, serde::Deserialize)]
 pub(super) struct DreamReadIndex {
     pub source_terms: BTreeMap<MemoryId, BTreeSet<String>>,
     pub locations: BTreeMap<MemoryId, (u64, Option<i64>, Vec<([u8; 32], u8, u16)>)>,
@@ -49,14 +50,13 @@ impl DreamReadIndex {
     ) -> Result<(), OwnerSessionError> {
         for id in ids {
             self.remove(*id);
-            let Ok(current) = memories.current(*id) else {
+            let Some(record) = memories.record_at_cut(*id, memories.memory_version()) else {
                 continue;
             };
-            let record = &current.record;
-            if record.archived {
+            if record.archived || !memories.contains_body_payload(record.body_id) {
                 continue;
             }
-            let reliquary_memory_core::PayloadState::Available(body) = &current.payload else {
+            let (_, Some(body)) = memories.revision_projection(*id, None)? else {
                 continue;
             };
             let birth = memories
@@ -84,9 +84,10 @@ impl DreamReadIndex {
                     let mapping = vectors
                         .info(location.set_id)
                         .ok_or(MemoryVectorError::MissingObject)?;
-                    let Ok(row) = packed.read_f32_row(mapping.packed_vector_id, location.row)
-                    else {
-                        continue;
+                    let row = match packed.read_f32_row(mapping.packed_vector_id, location.row) {
+                        Ok(row) => row,
+                        Err(PackedVectorError::PayloadUnavailable(_)) => continue,
+                        Err(error) => return Err(error.into()),
                     };
                     if row.iter().any(|v| !v.is_finite()) {
                         continue;

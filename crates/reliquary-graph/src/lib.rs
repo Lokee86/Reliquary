@@ -32,13 +32,17 @@ const COMMUNITY_MAGIC: &[u8; 8] = b"RELCOM01";
 const PARTIAL_COMMUNITY_MAGIC: &[u8; 8] = b"RELCMP01";
 const RETAINED_COMMUNITY_MAGIC: &[u8; 8] = b"RELCOM02";
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub enum NodeRef {
     Memory(Id),
     Entity(Id),
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub enum RelationKind {
     Topical,
     Factual,
@@ -52,14 +56,16 @@ pub enum RelationKind {
     PrincipalAssociation,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub enum RelationOrigin {
     Dream,
     User,
     Perception,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RelationChange {
     pub source: NodeRef,
     pub target: NodeRef,
@@ -68,7 +74,7 @@ pub struct RelationChange {
     pub origin: RelationOrigin,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Relation {
     pub source: NodeRef,
     pub target: NodeRef,
@@ -136,16 +142,18 @@ impl GraphAdmission {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct CommunityId(pub Id);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Community {
     pub id: CommunityId,
     pub members: Vec<Id>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CommunitySnapshot {
     pub generation: u64,
     pub graph_version: u64,
@@ -153,7 +161,7 @@ pub struct CommunitySnapshot {
 }
 
 /// Exact algorithm inputs and result quality carried by an imported Community generation.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CommunityDerivation {
     pub algorithm_version: u32,
     pub seed: u64,
@@ -201,14 +209,16 @@ impl From<ContainerError> for GraphError {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 struct Key {
     source: NodeRef,
     target: NodeRef,
     kind: RelationKind,
 }
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct GraphStore {
     owner: [u8; 16],
     identity: ContainerIdentity,
@@ -699,6 +709,7 @@ fn validate_relation(
     Ok(())
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct CommunityStore {
     owner: [u8; 16],
     identity: ContainerIdentity,

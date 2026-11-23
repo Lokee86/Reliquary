@@ -46,19 +46,30 @@ pub(super) fn verify_reopened(
                 != retained.node_archive_version(conversation, id)
             || archive.activity_position_for_turn(conversation, id)
                 != retained.activity_position_for_turn(conversation, id)
-            || archive.files_for_source(conversation, id)
-                != retained.files_for_source(conversation, id)
+            || archive
+                .files_for_source(conversation, id)
+                .map_err(|error| error.to_string())?
+                != retained
+                    .files_for_source(conversation, id)
+                    .map_err(|error| error.to_string())?
         {
             return Err("Archive pruning changed retained source history".into());
         }
         if selected.contains(conversation) {
-            if retained.content_for_node(conversation, id).is_some()
+            if retained
+                .content_for_node(conversation, id)
+                .map_err(|error| error.to_string())?
+                .is_some()
                 || retained.resolved_turn(conversation, id).is_ok()
             {
                 return Err("Archive pruning retained terminal transcript text".into());
             }
-        } else if archive.content_for_node(conversation, id)
-            != retained.content_for_node(conversation, id)
+        } else if archive
+            .content_for_node(conversation, id)
+            .map_err(|error| error.to_string())?
+            != retained
+                .content_for_node(conversation, id)
+                .map_err(|error| error.to_string())?
         {
             return Err("Archive pruning changed unselected transcript text".into());
         }

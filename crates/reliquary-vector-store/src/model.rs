@@ -1,6 +1,6 @@
 use lodestone_packed::VectorSchema;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum EmbeddingMode {
     Query,
     Document,
@@ -21,7 +21,7 @@ impl EmbeddingMode {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum VectorNormalization {
     None,
     L2,
@@ -42,13 +42,13 @@ impl VectorNormalization {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CompatibilityProbeReference {
     pub mode: EmbeddingMode,
     pub vector: Vec<f32>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CompatibilityProfile {
     pub id: CompatibilityProfileId,
     pub dimensions: u32,
@@ -58,25 +58,59 @@ pub struct CompatibilityProfile {
     pub references: Vec<CompatibilityProbeReference>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct CompatibilityProfileId(pub [u8; 32]);
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct ArchiveVectorId(pub [u8; 32]);
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct ArchiveFragmentId(pub [u8; 32]);
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct MemoryBodyId(pub [u8; 32]);
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct MemoryVectorId(pub [u8; 32]);
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct PackedVectorId(pub [u8; 32]);
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct PackedVectorInfo {
     pub id: PackedVectorId,
+    #[serde(with = "vector_schema")]
     pub schema: VectorSchema,
     pub count: u64,
     pub byte_len: u64,
+}
+
+mod vector_schema {
+    use super::VectorSchema;
+    use lodestone_packed::ScalarType;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error};
+
+    pub(super) fn serialize<S: Serializer>(
+        value: &VectorSchema,
+        out: S,
+    ) -> Result<S::Ok, S::Error> {
+        (value.dimensions, value.scalar.tag()).serialize(out)
+    }
+
+    pub(super) fn deserialize<'de, D: Deserializer<'de>>(
+        input: D,
+    ) -> Result<VectorSchema, D::Error> {
+        let (dimensions, scalar) = <(u32, u8)>::deserialize(input)?;
+        let scalar = ScalarType::from_tag(scalar).map_err(D::Error::custom)?;
+        VectorSchema::new(dimensions, scalar).map_err(D::Error::custom)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -86,7 +120,7 @@ pub struct PackedVectorStats {
     pub matrix_bytes: u64,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ArchiveVectorInfo {
     pub id: ArchiveVectorId,
     pub packed_vector_id: PackedVectorId,
@@ -107,7 +141,7 @@ pub struct ArchiveVectorRecord {
     pub fragment_ids: Vec<ArchiveFragmentId>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MemoryVectorInfo {
     pub id: MemoryVectorId,
     pub compatibility_profile_id: CompatibilityProfileId,
@@ -115,7 +149,7 @@ pub struct MemoryVectorInfo {
     pub rows: u64,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MemoryVectorLocation {
     pub set_id: MemoryVectorId,
     pub row: u64,
@@ -136,10 +170,10 @@ pub struct MemoryVectorStats {
     pub bindings: usize,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct VectorGenerationId(pub [u8; 32]);
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct VectorGeneration {
     /// Original global activation coordinate when an imported history binds one.
     pub global_version: Option<u64>,

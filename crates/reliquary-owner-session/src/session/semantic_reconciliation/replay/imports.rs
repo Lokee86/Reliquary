@@ -206,15 +206,13 @@ pub(super) fn rebased_freshness(
                 .values()
                 .filter(|completion| completion.episode_id == episode.0)
             {
-                if completion.freshness_birth_turn.is_some() {
-                    ids.extend(
-                        completion
-                            .freshness_birth_memory_ids
-                            .iter()
-                            .copied()
-                            .map(FreshnessMemoryId),
-                    );
-                }
+                ids.extend(
+                    completion
+                        .freshness_birth_memory_ids
+                        .iter()
+                        .copied()
+                        .map(FreshnessMemoryId),
+                );
             }
         }
     }
@@ -379,10 +377,15 @@ fn grouped_evidence(
         .collect::<BTreeSet<_>>();
     let mut completions = session
         .grouped_completions
-        .values()
-        .filter(|completion| episodes.contains(&completion.episode_id))
-        .cloned()
-        .collect::<Vec<_>>();
+        .iter()
+        .filter(|(_, completion)| episodes.contains(&completion.episode_id))
+        .map(|(key, completion)| {
+            session
+                .load_grouped_completion(*key, completion)
+                .map(std::borrow::Cow::into_owned)
+                .map_err(verification)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     for completion in &mut completions {
         completion.global_version_start = 0;
         completion.transaction_time_ns = 0;
@@ -666,10 +669,14 @@ fn replay_grouped_completions(
     for episode in episodes {
         let mut completions = source
             .grouped_completions
-            .values()
-            .filter(|completion| completion.episode_id == episode.0)
-            .cloned()
-            .collect::<Vec<_>>();
+            .range((WorkEpisodeId(episode.0), 0)..=(WorkEpisodeId(episode.0), u32::MAX))
+            .map(|(key, completion)| {
+                source
+                    .load_grouped_completion(*key, completion)
+                    .map(std::borrow::Cow::into_owned)
+                    .map_err(verification)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
         completions.sort_by_key(|completion| completion.attempt);
         if completions.len() != 1 || completions[0].attempt != 1 {
             return Err(RelReconciliationError::UnsupportedState(

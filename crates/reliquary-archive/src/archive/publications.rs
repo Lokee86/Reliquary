@@ -12,6 +12,7 @@ impl Archive {
         &mut self,
         container: &Container,
         object: ObjectRef,
+        frame_payload: &[u8],
         publication: Publication<'_>,
     ) -> Result<(), ArchiveError> {
         let archive_version = publication.archive_version;
@@ -35,7 +36,7 @@ impl Archive {
                 ) {
                     return Err(invalid_coordinate());
                 }
-                self.apply_record(record, true)?;
+                self.apply_record(record, true, Some((object, frame_payload)))?;
                 if self.archive_version != archive_version {
                     return Err(invalid_coordinate());
                 }
@@ -79,7 +80,7 @@ impl Archive {
         container: &mut Container,
         coordinate: Option<ArchivePublicationCoordinate>,
         bytes: &[u8],
-    ) -> Result<(), ArchiveError> {
+    ) -> Result<ObjectRef, ArchiveError> {
         if let Some(coordinate) = coordinate {
             self.persist_publication(
                 container,
@@ -89,9 +90,9 @@ impl Archive {
                 coordinate.global_version,
             )
         } else {
-            container.append(bytes)?;
+            let object = container.append(bytes)?;
             container.sync()?;
-            Ok(())
+            Ok(object)
         }
     }
 
@@ -187,7 +188,7 @@ impl Archive {
         body: Body<'_>,
         first_local: u64,
         first_global: u64,
-    ) -> Result<(), ArchiveError> {
+    ) -> Result<ObjectRef, ArchiveError> {
         let bytes = publication::encode(coordinate.archive_version, body);
         let object = if coordinate.bound_reservation {
             container.append_bound_publication_envelope(coordinate.global_version, &bytes)?
@@ -198,7 +199,7 @@ impl Archive {
         };
         container.sync()?;
         self.record_binding(coordinate, object, first_local, first_global);
-        Ok(())
+        Ok(object)
     }
 
     fn record_binding(

@@ -15,14 +15,14 @@ pub struct AcceptedMemoryMapping {
     pub body_ids: Vec<MemoryBodyId>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct Entry {
     info: MemoryVectorInfo,
     chunk: ObjectRef,
     bodies: Vec<MemoryBodyId>,
 }
 
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct MemoryVectorStore {
     objects: HashMap<MemoryVectorId, Entry>,
     bindings: HashMap<(CompatibilityProfileId, MemoryBodyId), MemoryVectorLocation>,

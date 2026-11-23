@@ -9,7 +9,7 @@ use reliquary_container::Container;
 use std::collections::BTreeMap;
 use std::io::Read;
 
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ExternalReferenceStore {
     owner_id: Option<[u8; 16]>,
     snapshots: BTreeMap<(String, String), ExternalReferenceSnapshotReceipt>,

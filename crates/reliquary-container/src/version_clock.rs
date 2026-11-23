@@ -1,4 +1,4 @@
-use crate::{ContainerError, grouped_clock, publication_envelope};
+use crate::{CheckpointClock, ContainerError, grouped_clock, publication_envelope};
 use std::collections::{BTreeMap, BTreeSet};
 
 const V1: &[u8; 8] = b"RELVERS1";
@@ -22,6 +22,14 @@ impl Default for PhysicalClock {
 }
 
 impl PhysicalClock {
+    pub(crate) fn from_checkpoint(checkpoint: CheckpointClock) -> Self {
+        Self {
+            next_version: checkpoint.next_version,
+            transaction_times: checkpoint.transaction_times,
+            standalone_reservations: checkpoint.standalone_reservations,
+        }
+    }
+
     /// Validate the next physical frame and return the highest allocated version.
     pub fn observe_frame(&mut self, payload: &[u8]) -> Result<u64, ContainerError> {
         observe_payload(

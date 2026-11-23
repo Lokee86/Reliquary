@@ -20,7 +20,7 @@ pub struct ExternalMemoryDraft {
     pub grounding_sources: Vec<ExternalChunkRef>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ExternalMemoryReceipt {
     owner_id: [u8; 16],
     principal: String,

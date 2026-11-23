@@ -4,15 +4,17 @@
 //! framing and bytes; Archive does not depend on the application or other owners.
 
 mod history;
+mod payload;
 mod publications;
 mod retained;
 #[cfg(test)]
 #[path = "archive_tests.rs"]
 mod tests;
+mod turn_table;
 
 use crate::codec::{
     Record, decode_record, encode_branch, encode_episode, encode_file_blob,
-    encode_fragment_definitions, encode_import_receipt, encode_turn,
+    encode_fragment_definitions, encode_import_receipt, encode_turn_with_text_location,
 };
 use crate::{
     AcceptedTurnSource, ArchiveError, ArchivePublicationBinding, ArchivePublicationCoordinate,
@@ -20,11 +22,17 @@ use crate::{
     ImportReceipt, Node, ProjectAttachmentInput, ProjectFileRef, ProjectRepositoryKind,
     ResolvedTurn, SourceAttachment, TurnAcceptance, TurnInput,
 };
-use reliquary_container::{Container, ContainerError, ContainerIdentity, FileKind, PhysicalClock};
+use payload::{FrameRange, Payload};
+use reliquary_container::{
+    Container, ContainerError, ContainerIdentity, FileKind, LeasedFrameReader, ObjectRef,
+    PhysicalClock,
+};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, HashMap};
 use std::io::Read;
+use std::num::NonZeroU64;
 use std::sync::Arc;
+use turn_table::{AcceptedTurn, TurnTable};
 
 mod evidence;
 pub use evidence::{
@@ -32,18 +40,16 @@ pub use evidence::{
     MAX_EVIDENCE_SEARCH_RESULTS, MAX_EVIDENCE_SEARCH_SCAN, MAX_EVIDENCE_TURNS,
 };
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Archive {
+    #[serde(skip)]
+    reader: Option<LeasedFrameReader>,
     owner_id: Option<[u8; 16]>,
     container_identity: Option<ContainerIdentity>,
-    nodes: HashMap<(String, String), Node>,
-    content: HashMap<ContentId, Arc<String>>,
-    pruned_nodes: HashMap<(String, String), [u8; 32]>,
-    accepted_node_order: Vec<(String, String)>,
-    node_archive_versions: HashMap<(String, String), u64>,
-    activity_position_by_node: HashMap<(String, String), u64>,
+    turns: TurnTable,
+    content: HashMap<ContentId, Payload<Arc<String>>>,
     rel_turn_count: u64,
-    source_attachments: HashMap<(String, String), Vec<SourceAttachment>>,
-    file_content: HashMap<ContentId, Vec<u8>>,
+    file_content: HashMap<ContentId, Payload<Vec<u8>>>,
     branches: BTreeMap<(String, String), Branch>,
     branch_history: Vec<(u64, Branch)>,
     episodes: BTreeMap<EpisodeId, Episode>,
@@ -66,16 +72,12 @@ pub struct Archive {
 impl Archive {
     pub fn empty() -> Self {
         Self {
+            reader: None,
             owner_id: None,
             container_identity: None,
-            nodes: HashMap::new(),
+            turns: TurnTable::default(),
             content: HashMap::new(),
-            pruned_nodes: HashMap::new(),
-            accepted_node_order: Vec::new(),
-            node_archive_versions: HashMap::new(),
-            activity_position_by_node: HashMap::new(),
             rel_turn_count: 0,
-            source_attachments: HashMap::new(),
             file_content: HashMap::new(),
             branches: BTreeMap::new(),
             branch_history: Vec::new(),
@@ -100,12 +102,33 @@ impl Archive {
     /// Rebuild Archive-owned semantic state from a Container's accepted frames.
     /// Unknown frame families belong to other owners and are left uninterpreted.
     pub fn open(container: &Container) -> Result<Self, ArchiveError> {
-        if container.identity().file_kind != FileKind::Reliquary {
-            return Err(ArchiveError::WrongFileKind);
+        Self::open_with_payloads(container, false)
+    }
+
+    /// Rebuild Archive state while keeping accepted turn and file bytes on
+    /// the supplied Container lease.
+    pub fn open_leased(container: &Container) -> Result<Self, ArchiveError> {
+        Self::open_with_payloads(container, true)
+    }
+
+    /// Bind an empty or verified checkpoint Archive to its owning lease.
+    pub fn bind_read_lease(&mut self, container: &Container) -> Result<(), ArchiveError> {
+        if self.owner_id.is_some() {
+            self.validate_owner(container)?;
+        } else {
+            self.bind_empty_owner(container)?;
         }
+        self.reader = Some(container.leased_frame_reader()?);
+        Ok(())
+    }
+
+    fn open_with_payloads(container: &Container, leased: bool) -> Result<Self, ArchiveError> {
         let mut archive = Self::empty();
-        archive.owner_id = Some(container.owner_id());
-        archive.container_identity = Some(container.identity());
+        if leased {
+            archive.bind_read_lease(container)?;
+        } else {
+            archive.bind_empty_owner(container)?;
+        }
         let mut clock = None;
         {
             let mut cursor = container.physical_cursor()?;
@@ -130,31 +153,44 @@ impl Archive {
                 .map(|clock| clock.observe_frame(frame.payload))
                 .transpose()?
                 .unwrap_or(0);
-            if let Some(publication) = crate::publication::in_frame(frame.payload)? {
-                archive.replay_publication(container, frame.object, publication)?;
-            } else if let Some(record) = decode_record(frame.payload)? {
-                match &record {
-                    Record::Retained(_) => {
-                        return Err(ArchiveError::CorruptRecord(
-                            "retained Archive record has no publication coordinate",
-                        ));
-                    }
-                    Record::ProjectBacking(value) if value.global_version != global_version => {
-                        return Err(ArchiveError::CorruptRecord(
-                            "project backing does not match the physical global frontier",
-                        ));
-                    }
-                    Record::ProjectCorrelation(value) if value.global_version > global_version => {
-                        return Err(ArchiveError::CorruptRecord(
-                            "project correlation exceeds its physical global frontier",
-                        ));
-                    }
-                    _ => {}
-                }
-                archive.apply_record(record, false)?;
-            }
+            archive.replay_frame(container, frame.object, frame.payload, global_version)?;
         }
         Ok(archive)
+    }
+
+    /// Apply a physical frame after the owning Container has admitted its
+    /// clock, using the same semantics for initial and resumed replay.
+    pub fn replay_frame(
+        &mut self,
+        container: &Container,
+        object: ObjectRef,
+        payload: &[u8],
+        global_version: u64,
+    ) -> Result<(), ArchiveError> {
+        if let Some(publication) = crate::publication::in_frame(payload)? {
+            self.replay_publication(container, object, payload, publication)?;
+        } else if let Some(record) = decode_record(payload)? {
+            match &record {
+                Record::Retained(_) => {
+                    return Err(ArchiveError::CorruptRecord(
+                        "retained Archive record has no publication coordinate",
+                    ));
+                }
+                Record::ProjectBacking(value) if value.global_version != global_version => {
+                    return Err(ArchiveError::CorruptRecord(
+                        "project backing does not match the physical global frontier",
+                    ));
+                }
+                Record::ProjectCorrelation(value) if value.global_version > global_version => {
+                    return Err(ArchiveError::CorruptRecord(
+                        "project correlation exceeds its physical global frontier",
+                    ));
+                }
+                _ => {}
+            }
+            self.apply_record(record, false, Some((object, payload)))?;
+        }
+        Ok(())
     }
 
     /// Accept a source turn once. Its stable node ID is supplied by the source;
@@ -188,14 +224,11 @@ impl Archive {
         if input.parent_id.as_deref() == Some("") || input.principal_id.as_deref() == Some("") {
             return Err(ArchiveError::InvalidField("optional turn field"));
         }
-        let key = (input.conversation_id.clone(), input.id.clone());
         let mut attachments = prepare_attachments(input.attachments)?;
         attachments.extend(prepare_project_attachments(input.project_attachments)?);
-        validate_source_attachments(&attachments, false)?;
+        validate_source_attachments(&attachments, false, validate_inline_bytes)?;
         if let Some(parent_id) = input.parent_id.as_deref()
-            && !self
-                .nodes
-                .contains_key(&(input.conversation_id.clone(), parent_id.to_owned()))
+            && self.node(&input.conversation_id, parent_id).is_none()
         {
             return Err(ArchiveError::MissingParent);
         }
@@ -209,51 +242,32 @@ impl Archive {
             timestamp_ns: input.timestamp_ns,
             content_id,
         };
-        if let Some(existing) = self.nodes.get(&key) {
-            if existing == &node
-                && self.content.get(&content_id).map(Arc::as_ref) == Some(&input.content)
+        if let Some(existing) = self.turns.get(&node.conversation_id, &node.id) {
+            if existing.node == node
                 && self
-                    .source_attachments
-                    .get(&key)
-                    .map(Vec::as_slice)
-                    .unwrap_or(&[])
-                    == attachments.as_slice()
+                    .read_text(content_id)?
+                    .is_some_and(|text| text.as_str() == input.content)
+                && self.files_for_source(&node.conversation_id, &node.id)? == attachments
             {
                 return Ok(TurnAcceptance {
-                    value: existing.clone(),
+                    value: existing.node.clone(),
                     inserted: false,
-                    activity_position: self.activity_position_by_node.get(&key).copied(),
+                    activity_position: existing.activity.map(NonZeroU64::get),
                     rel_turn_count: self.rel_turn_count,
                 });
             }
             return Err(ArchiveError::ConflictingNode);
         }
         if self
-            .content
-            .get(&content_id)
-            .is_some_and(|existing| existing.as_ref() != &input.content)
+            .read_text(content_id)?
+            .is_some_and(|existing| existing.as_str() != input.content)
         {
             return Err(ArchiveError::HashCollision);
         }
-        self.accepted_node_order
-            .try_reserve(1)
-            .map_err(|_| ArchiveError::IndexCapacityExhausted)?;
-        self.node_archive_versions
-            .try_reserve(1)
-            .map_err(|_| ArchiveError::IndexCapacityExhausted)?;
-        let activity_position = if activity_role(&node.role) {
-            let next = self
-                .rel_turn_count
-                .checked_add(1)
-                .ok_or(ArchiveError::ActivityPositionExhausted)?;
-            self.activity_position_by_node
-                .try_reserve(1)
-                .map_err(|_| ArchiveError::IndexCapacityExhausted)?;
-            Some(next)
-        } else {
-            None
-        };
-        let encoded = encode_turn(&node, &input.content, &attachments)?;
+        self.turns.reserve(&node.conversation_id)?;
+        let activity = self.next_activity(&node.role)?;
+        let (encoded, text_offset) =
+            encode_turn_with_text_location(&node, &input.content, &attachments)?;
         let archive_version = self.next_archive_version()?;
         self.check_publication(container, archive_version, coordinate)?;
         let mut new_file_content = HashMap::new();
@@ -261,8 +275,8 @@ impl Archive {
             if attachment.project_reference.is_some() {
                 continue;
             }
-            if let Some(existing) = self.file_content.get(&attachment.content_id) {
-                if existing != &attachment.bytes {
+            if let Some(existing) = self.read_file(attachment.content_id)? {
+                if existing != attachment.bytes {
                     return Err(ArchiveError::HashCollision);
                 }
             } else if new_file_content
@@ -276,28 +290,40 @@ impl Archive {
                     .or_insert_with(|| attachment.bytes.clone());
             }
         }
-        for (content_id, bytes) in &new_file_content {
-            container.append(&encode_file_blob(*content_id, bytes)?)?;
+        let mut accepted_files = Vec::with_capacity(new_file_content.len());
+        for (content_id, bytes) in new_file_content {
+            let (encoded, offset) = encode_file_blob(content_id, &bytes)?;
+            let frame = container.append(&encoded)?;
+            let payload = if self.reader.is_some() {
+                Payload::Leased(FrameRange::new(frame, offset, bytes.len()))
+            } else {
+                Payload::Resident(bytes)
+            };
+            accepted_files.push((content_id, payload));
         }
-        self.persist_applying(container, coordinate, &encoded)?;
-        self.file_content.extend(new_file_content);
-        self.nodes.insert(key.clone(), node.clone());
-        self.content
-            .entry(content_id)
-            .or_insert_with(|| Arc::new(input.content));
-        self.source_attachments.insert(key.clone(), attachments);
-        self.accepted_node_order.push(key.clone());
-        self.node_archive_versions
-            .insert(key.clone(), archive_version);
-        if let Some(position) = activity_position {
-            self.activity_position_by_node.insert(key, position);
-            self.rel_turn_count = position;
+        let frame = self.persist_applying(container, coordinate, &encoded)?;
+        let text = if self.reader.is_some() {
+            let offset = frame.length - encoded.len() as u64 + text_offset;
+            Payload::Leased(FrameRange::new(frame, offset, input.content.len()))
+        } else {
+            Payload::Resident(Arc::new(input.content))
+        };
+        self.file_content.extend(accepted_files);
+        self.content.entry(content_id).or_insert(text);
+        for attachment in &mut attachments {
+            attachment.bytes = Vec::new();
         }
-        self.archive_version = archive_version;
+        self.record_turn(AcceptedTurn {
+            node: node.clone(),
+            archive_version,
+            activity,
+            attachments: attachments.into_boxed_slice(),
+            prune: None,
+        });
         Ok(TurnAcceptance {
             value: node,
             inserted: true,
-            activity_position,
+            activity_position: activity.map(NonZeroU64::get),
             rel_turn_count: self.rel_turn_count,
         })
     }
@@ -602,18 +628,15 @@ impl Archive {
         conversation_id: &str,
         node_id: &str,
     ) -> Result<Option<ResolvedTurn>, ArchiveError> {
-        let Some(node) = self.node(conversation_id, node_id) else {
+        let Some(turn) = self.turns.get(conversation_id, node_id) else {
             return Ok(None);
         };
-        if self
-            .pruned_nodes
-            .contains_key(&(conversation_id.to_owned(), node_id.to_owned()))
-        {
+        if turn.prune.is_some() {
             return Err(ArchiveError::MissingContent);
         }
+        let node = &turn.node;
         let content = self
-            .content
-            .get(&node.content_id)
+            .read_text(node.content_id)?
             .ok_or(ArchiveError::MissingContent)?
             .as_ref()
             .clone();
@@ -691,7 +714,7 @@ impl Archive {
     }
 
     pub fn node_count(&self) -> usize {
-        self.nodes.len()
+        self.turns.len()
     }
 
     /// Confirm that this projection was opened for, or accepted into, the
@@ -709,20 +732,32 @@ impl Archive {
 
     /// Read canonical turn text by immutable source identity. Derived indexes
     /// use this to validate byte spans and must still rehydrate on retrieval.
-    pub fn content_for_node(&self, conversation_id: &str, node_id: &str) -> Option<&str> {
-        if self
-            .pruned_nodes
-            .contains_key(&(conversation_id.to_owned(), node_id.to_owned()))
-        {
+    pub fn content_for_node(
+        &self,
+        conversation_id: &str,
+        node_id: &str,
+    ) -> Result<Option<Arc<String>>, ArchiveError> {
+        let Some(turn) = self.turns.get(conversation_id, node_id) else {
+            return Ok(None);
+        };
+        if turn.prune.is_some() {
+            return Ok(None);
+        }
+        self.read_text(turn.node.content_id)
+    }
+
+    pub fn content_length_for_node(&self, conversation_id: &str, node_id: &str) -> Option<usize> {
+        let turn = self.turns.get(conversation_id, node_id)?;
+        if turn.prune.is_some() {
             return None;
         }
-        let node = self.node(conversation_id, node_id)?;
-        self.content.get(&node.content_id).map(|text| text.as_str())
+        self.text_length(turn.node.content_id)
     }
 
     pub fn node(&self, conversation_id: &str, node_id: &str) -> Option<&Node> {
-        self.nodes
-            .get(&(conversation_id.to_owned(), node_id.to_owned()))
+        self.turns
+            .get(conversation_id, node_id)
+            .map(|turn| &turn.node)
     }
 
     pub fn conversation_tombstone(
@@ -756,11 +791,7 @@ impl Archive {
         self.bind_container(container)?;
         validate_text(conversation_id, "conversation id")?;
         validate_text(title, "conversation title")?;
-        if !self
-            .nodes
-            .keys()
-            .any(|(conversation, _)| conversation == conversation_id)
-        {
+        if !self.turns.contains_conversation(conversation_id) {
             return Err(ArchiveError::MissingNode);
         }
         if self.conversation_title(conversation_id) == Some(title) {
@@ -772,6 +803,7 @@ impl Archive {
         self.apply_record(
             Record::ConversationTitle(conversation_id.to_owned(), title.to_owned()),
             false,
+            None,
         )?;
         Ok(true)
     }
@@ -786,11 +818,7 @@ impl Archive {
         if self.conversation_tombstones.contains_key(conversation_id) {
             return Ok(false);
         }
-        if !self
-            .nodes
-            .keys()
-            .any(|(conversation, _)| conversation == conversation_id)
-        {
+        if !self.turns.contains_conversation(conversation_id) {
             return Err(ArchiveError::MissingNode);
         }
         let bytes = crate::codec::encode_conversation_tombstone(conversation_id)?;
@@ -799,15 +827,20 @@ impl Archive {
         self.apply_record(
             Record::ConversationTombstone(conversation_id.to_owned()),
             false,
+            None,
         )?;
         Ok(true)
     }
 
     pub fn pruned_turns(&self) -> Vec<(Node, [u8; 32])> {
         let mut values = self
-            .pruned_nodes
+            .turns
             .iter()
-            .filter_map(|(key, digest)| self.nodes.get(key).cloned().map(|node| (node, *digest)))
+            .filter_map(|turn| {
+                turn.prune
+                    .as_deref()
+                    .map(|digest| (turn.node.clone(), *digest))
+            })
             .collect::<Vec<_>>();
         values
             .sort_by(|a, b| (&a.0.conversation_id, &a.0.id).cmp(&(&b.0.conversation_id, &b.0.id)));
@@ -833,9 +866,9 @@ impl Archive {
     /// Archive clock assigned when this immutable source node was first
     /// accepted. Replays and later branch changes do not move the node cut.
     pub fn node_archive_version(&self, conversation_id: &str, node_id: &str) -> Option<u64> {
-        self.node_archive_versions
-            .get(&(conversation_id.to_owned(), node_id.to_owned()))
-            .copied()
+        self.turns
+            .get(conversation_id, node_id)
+            .map(|turn| turn.archive_version)
     }
 
     fn next_archive_version(&self) -> Result<u64, ArchiveError> {
@@ -844,33 +877,81 @@ impl Archive {
             .ok_or(ArchiveError::ArchiveVersionExhausted)
     }
 
+    fn next_activity(&self, role: &str) -> Result<Option<NonZeroU64>, ArchiveError> {
+        if !activity_role(role) {
+            return Ok(None);
+        }
+        let next = self
+            .rel_turn_count
+            .checked_add(1)
+            .ok_or(ArchiveError::ActivityPositionExhausted)?;
+        Ok(NonZeroU64::new(next))
+    }
+
+    fn record_turn(&mut self, turn: AcceptedTurn) {
+        if let Some(activity) = turn.activity {
+            self.rel_turn_count = activity.get();
+        }
+        self.archive_version = turn.archive_version;
+        self.turns.push(turn);
+    }
+
     pub fn activity_position_for_turn(&self, conversation_id: &str, node_id: &str) -> Option<u64> {
-        self.activity_position_by_node
-            .get(&(conversation_id.to_owned(), node_id.to_owned()))
-            .copied()
+        self.turns
+            .get(conversation_id, node_id)?
+            .activity
+            .map(NonZeroU64::get)
     }
 
     /// Immutable source keys in first-accept order with their optional,
     /// role-qualified activity positions. This projection invents no time.
     pub fn accepted_turn_sources(&self) -> Vec<AcceptedTurnSource> {
-        self.accepted_node_order
+        self.turns
             .iter()
-            .map(|(conversation_id, node_id)| AcceptedTurnSource {
-                conversation_id: conversation_id.clone(),
-                node_id: node_id.clone(),
-                activity_position: self
-                    .activity_position_by_node
-                    .get(&(conversation_id.clone(), node_id.clone()))
-                    .copied(),
+            .map(|turn| AcceptedTurnSource {
+                conversation_id: turn.node.conversation_id.clone(),
+                node_id: turn.node.id.clone(),
+                activity_position: turn.activity.map(NonZeroU64::get),
             })
             .collect()
     }
 
-    pub fn files_for_source(&self, conversation_id: &str, node_id: &str) -> Vec<SourceAttachment> {
-        self.source_attachments
-            .get(&(conversation_id.to_owned(), node_id.to_owned()))
-            .cloned()
-            .unwrap_or_default()
+    pub fn files_for_source(
+        &self,
+        conversation_id: &str,
+        node_id: &str,
+    ) -> Result<Vec<SourceAttachment>, ArchiveError> {
+        let Some(turn) = self.turns.get(conversation_id, node_id) else {
+            return Ok(Vec::new());
+        };
+        self.read_attachments(&turn.attachments)
+    }
+
+    fn read_attachments(
+        &self,
+        attachments: &[SourceAttachment],
+    ) -> Result<Vec<SourceAttachment>, ArchiveError> {
+        let mut attachments = attachments.to_vec();
+        for attachment in &mut attachments {
+            if attachment.project_reference.is_none() {
+                attachment.bytes = self
+                    .read_file(attachment.content_id)?
+                    .ok_or(ArchiveError::MissingContent)?;
+            }
+        }
+        Ok(attachments)
+    }
+
+    pub fn file_content_ids_for_source(
+        &self,
+        conversation_id: &str,
+        node_id: &str,
+    ) -> impl Iterator<Item = ContentId> + '_ {
+        self.turns
+            .get(conversation_id, node_id)
+            .into_iter()
+            .flat_map(|turn| turn.attachments.iter())
+            .map(|attachment| attachment.content_id)
     }
 
     /// The physical owner identity is authoritative in the Container header.
@@ -880,8 +961,9 @@ impl Archive {
 
     fn apply_record(
         &mut self,
-        record: Record,
+        record: Record<'_>,
         allow_retained_project_identity: bool,
+        source: Option<(ObjectRef, &[u8])>,
     ) -> Result<(), ArchiveError> {
         match record {
             Record::Turn(node, content, attachments) => {
@@ -898,141 +980,88 @@ impl Archive {
                 {
                     return Err(ArchiveError::CorruptRecord("empty optional turn field"));
                 }
-                let key = (node.conversation_id.clone(), node.id.clone());
                 if let Some(parent_id) = node.parent_id.as_deref()
-                    && !self
-                        .nodes
-                        .contains_key(&(node.conversation_id.clone(), parent_id.to_owned()))
+                    && self.node(&node.conversation_id, parent_id).is_none()
                 {
                     return Err(ArchiveError::MissingParent);
                 }
                 if Sha256::digest(content.as_bytes()).as_slice() != node.content_id.0 {
                     return Err(ArchiveError::CorruptContent);
                 }
-                let mut attachments = attachments;
-                for attachment in &mut attachments {
-                    if attachment.project_reference.is_none() {
-                        let bytes = self
-                            .file_content
-                            .get(&attachment.content_id)
-                            .ok_or(ArchiveError::MissingContent)?
-                            .clone();
-                        attachment.bytes = bytes;
-                    }
-                }
-                if let Some(existing) = self.nodes.get(&key) {
-                    if existing == &node
-                        && self.content.get(&node.content_id).map(Arc::as_ref) == Some(&content)
+                self.validate_replayed_attachments(&attachments, allow_retained_project_identity)?;
+                if let Some(existing) = self.turns.get(&node.conversation_id, &node.id) {
+                    if existing.node == node
                         && self
-                            .source_attachments
-                            .get(&key)
-                            .map(Vec::as_slice)
-                            .unwrap_or(&[])
-                            == attachments.as_slice()
+                            .read_text(node.content_id)?
+                            .is_some_and(|text| text.as_str() == content)
+                        && existing.attachments.as_ref() == attachments.as_slice()
                     {
                         return Ok(());
                     }
                     return Err(ArchiveError::ConflictingNode);
                 }
                 if self
-                    .content
-                    .get(&node.content_id)
-                    .is_some_and(|existing| existing.as_ref() != &content)
+                    .read_text(node.content_id)?
+                    .is_some_and(|existing| existing.as_str() != content)
                 {
                     return Err(ArchiveError::HashCollision);
                 }
-                validate_source_attachments(&attachments, allow_retained_project_identity)?;
                 let archive_version = self.next_archive_version()?;
-                self.accepted_node_order
-                    .try_reserve(1)
-                    .map_err(|_| ArchiveError::IndexCapacityExhausted)?;
-                self.node_archive_versions
-                    .try_reserve(1)
-                    .map_err(|_| ArchiveError::IndexCapacityExhausted)?;
-                let position = if activity_role(&node.role) {
-                    let next = self
-                        .rel_turn_count
-                        .checked_add(1)
-                        .ok_or(ArchiveError::ActivityPositionExhausted)?;
-                    self.activity_position_by_node
-                        .try_reserve(1)
-                        .map_err(|_| ArchiveError::IndexCapacityExhausted)?;
-                    Some(next)
+                self.turns.reserve(&node.conversation_id)?;
+                let activity = self.next_activity(&node.role)?;
+                let text = if let Some(range) = self.frame_range(source, content.as_bytes())? {
+                    Payload::Leased(range)
                 } else {
-                    None
+                    Payload::Resident(Arc::new(content.to_owned()))
                 };
-                self.nodes.insert(key.clone(), node.clone());
-                self.content
-                    .entry(node.content_id)
-                    .or_insert_with(|| Arc::new(content));
-                self.source_attachments.insert(key.clone(), attachments);
-                let key = (node.conversation_id.clone(), node.id.clone());
-                self.accepted_node_order.push(key.clone());
-                self.node_archive_versions
-                    .insert(key.clone(), archive_version);
-                if let Some(position) = position {
-                    self.activity_position_by_node.insert(key, position);
-                    self.rel_turn_count = position;
-                }
-                self.archive_version = archive_version;
+                self.content.entry(node.content_id).or_insert(text);
+                self.record_turn(AcceptedTurn {
+                    node,
+                    archive_version,
+                    activity,
+                    attachments: attachments.into_boxed_slice(),
+                    prune: None,
+                });
             }
-            Record::PrunedTurn(node, mut attachments, manifest_digest) => {
+            Record::PrunedTurn(node, attachments, manifest_digest) => {
                 validate_text(&node.id, "node id")?;
                 validate_text(&node.conversation_id, "conversation id")?;
                 validate_text(&node.role, "role")?;
-                let key = (node.conversation_id.clone(), node.id.clone());
-                if self.nodes.contains_key(&key) || self.pruned_nodes.contains_key(&key) {
+                if self.node(&node.conversation_id, &node.id).is_some() {
                     return Err(ArchiveError::ConflictingNode);
                 }
                 if let Some(parent_id) = node.parent_id.as_deref()
-                    && !self
-                        .nodes
-                        .contains_key(&(node.conversation_id.clone(), parent_id.to_owned()))
+                    && self.node(&node.conversation_id, parent_id).is_none()
                 {
                     return Err(ArchiveError::MissingParent);
                 }
-                for attachment in &mut attachments {
-                    if attachment.project_reference.is_none() {
-                        attachment.bytes = self
-                            .file_content
-                            .get(&attachment.content_id)
-                            .ok_or(ArchiveError::MissingContent)?
-                            .clone();
-                    }
-                }
-                validate_source_attachments(&attachments, allow_retained_project_identity)?;
+                self.validate_replayed_attachments(&attachments, allow_retained_project_identity)?;
                 let archive_version = self.next_archive_version()?;
-                let position = if activity_role(&node.role) {
-                    Some(
-                        self.rel_turn_count
-                            .checked_add(1)
-                            .ok_or(ArchiveError::ActivityPositionExhausted)?,
-                    )
-                } else {
-                    None
-                };
-                self.nodes.insert(key.clone(), node);
-                self.pruned_nodes.insert(key.clone(), manifest_digest);
-                self.source_attachments.insert(key.clone(), attachments);
-                self.accepted_node_order.push(key.clone());
-                self.node_archive_versions
-                    .insert(key.clone(), archive_version);
-                if let Some(position) = position {
-                    self.activity_position_by_node.insert(key, position);
-                    self.rel_turn_count = position;
-                }
-                self.archive_version = archive_version;
+                let activity = self.next_activity(&node.role)?;
+                self.turns.reserve(&node.conversation_id)?;
+                self.record_turn(AcceptedTurn {
+                    node,
+                    archive_version,
+                    activity,
+                    attachments: attachments.into_boxed_slice(),
+                    prune: Some(Box::new(manifest_digest)),
+                });
             }
             Record::FileBlob(content_id, bytes) => {
-                if ContentId(Sha256::digest(&bytes).into()) != content_id {
+                if ContentId(Sha256::digest(bytes).into()) != content_id {
                     return Err(ArchiveError::CorruptContent);
                 }
-                if let Some(existing) = self.file_content.get(&content_id) {
-                    if existing != &bytes {
+                if let Some(existing) = self.read_file(content_id)? {
+                    if existing != bytes {
                         return Err(ArchiveError::HashCollision);
                     }
                 } else {
-                    self.file_content.insert(content_id, bytes);
+                    let payload = if let Some(range) = self.frame_range(source, bytes)? {
+                        Payload::Leased(range)
+                    } else {
+                        Payload::Resident(bytes.to_vec())
+                    };
+                    self.file_content.insert(content_id, payload);
                 }
             }
             Record::Branch(branch) => {
@@ -1155,11 +1184,7 @@ impl Archive {
             }
             Record::ConversationTombstone(conversation_id) => {
                 validate_text(&conversation_id, "conversation id")?;
-                if !self
-                    .nodes
-                    .keys()
-                    .any(|(conversation, _)| conversation == &conversation_id)
-                {
+                if !self.turns.contains_conversation(&conversation_id) {
                     return Err(ArchiveError::MissingNode);
                 }
                 if self.conversation_tombstones.contains_key(&conversation_id) {
@@ -1183,11 +1208,7 @@ impl Archive {
             Record::ConversationTitle(conversation_id, title) => {
                 validate_text(&conversation_id, "conversation id")?;
                 validate_text(&title, "conversation title")?;
-                if !self
-                    .nodes
-                    .keys()
-                    .any(|(conversation, _)| conversation == &conversation_id)
-                {
+                if !self.turns.contains_conversation(&conversation_id) {
                     return Err(ArchiveError::MissingNode);
                 }
                 let archive_version = self.next_archive_version()?;
@@ -1266,14 +1287,12 @@ impl Archive {
                 match (message.deleted, message.node_id.as_deref()) {
                     (true, None) if message.artifacts.is_empty() => {}
                     (false, Some(node_id)) if valid_import_text(node_id) => {
-                        let node = self
-                            .node(&conversation.conversation_id, node_id)
+                        let turn = self
+                            .turns
+                            .get(&conversation.conversation_id, node_id)
                             .ok_or(ArchiveError::MissingNode)?;
-                        let source_attachments = self
-                            .source_attachments
-                            .get(&(conversation.conversation_id.clone(), node_id.to_owned()))
-                            .map(Vec::as_slice)
-                            .unwrap_or(&[]);
+                        let node = &turn.node;
+                        let source_attachments = &turn.attachments;
                         if message.artifacts.len() != source_attachments.len() {
                             return Err(ArchiveError::InvalidAttachment);
                         }
@@ -1348,9 +1367,17 @@ impl Archive {
     }
 
     fn require_node(&self, conversation_id: &str, node_id: &str) -> Result<&Node, ArchiveError> {
-        self.nodes
-            .get(&(conversation_id.to_owned(), node_id.to_owned()))
+        self.node(conversation_id, node_id)
             .ok_or(ArchiveError::MissingNode)
+    }
+
+    fn bind_empty_owner(&mut self, container: &Container) -> Result<(), ArchiveError> {
+        if container.identity().file_kind != FileKind::Reliquary {
+            return Err(ArchiveError::WrongFileKind);
+        }
+        self.owner_id = Some(container.owner_id());
+        self.container_identity = Some(container.identity());
+        Ok(())
     }
 
     fn bind_container(&mut self, container: &Container) -> Result<(), ArchiveError> {
@@ -1393,8 +1420,7 @@ impl Archive {
             .into_iter()
             .map(|node| {
                 let content = self
-                    .content
-                    .get(&node.content_id)
+                    .read_text(node.content_id)?
                     .ok_or(ArchiveError::MissingContent)?
                     .as_ref()
                     .clone();
@@ -1476,7 +1502,7 @@ fn prepare_attachments(
             project_reference: None,
         });
     }
-    validate_source_attachments(&attachments, false)?;
+    validate_source_attachments(&attachments, false, validate_inline_bytes)?;
     Ok(attachments)
 }
 
@@ -1511,9 +1537,19 @@ fn prepare_project_attachments(
         .collect()
 }
 
+fn validate_inline_bytes(attachment: &SourceAttachment) -> Result<(), ArchiveError> {
+    if attachment.byte_length != attachment.bytes.len() as u64
+        || ContentId(Sha256::digest(&attachment.bytes).into()) != attachment.content_id
+    {
+        return Err(ArchiveError::InvalidAttachment);
+    }
+    Ok(())
+}
+
 fn validate_source_attachments(
     attachments: &[SourceAttachment],
     allow_retained_project_identity: bool,
+    validate_inline: impl Fn(&SourceAttachment) -> Result<(), ArchiveError>,
 ) -> Result<(), ArchiveError> {
     let mut ids = std::collections::HashSet::new();
     for attachment in attachments {
@@ -1525,10 +1561,8 @@ fn validate_source_attachments(
             if !attachment.bytes.is_empty() {
                 return Err(ArchiveError::InvalidAttachment);
             }
-        } else if attachment.byte_length != attachment.bytes.len() as u64
-            || ContentId(Sha256::digest(&attachment.bytes).into()) != attachment.content_id
-        {
-            return Err(ArchiveError::InvalidAttachment);
+        } else {
+            validate_inline(attachment)?;
         }
         validate_text(&attachment.filename, "attachment filename")?;
         if let Some(mime) = attachment.mime_type.as_deref() {

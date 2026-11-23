@@ -12,7 +12,7 @@ pub(super) fn info(args: &[String], verify: bool) -> Result<Value, reliquary_mem
     let info = if verify {
         Rel::verify(&args[0])?
     } else {
-        Rel::open(&args[0])?.info()?
+        Rel::read(&args[0], |owner| owner.info())?
     };
     Ok(json!({"operation":if verify {"verify"} else {"info"},"verified":verify,"owner":info}))
 }
@@ -28,7 +28,7 @@ pub(super) fn history(args: &[String]) -> Result<Value, reliquary_memory::Produc
             .parse()
             .map_err(|_| invalid("limit must be an unsigned integer"))?;
         return Ok(
-            json!({"operation":"history_archive","page":Rel::open(&args[1])?.conversations(offset, limit)?}),
+            json!({"operation":"history_archive","page":Rel::read(&args[1], |owner| owner.conversations(offset, limit))?}),
         );
     }
     if args.first().map(String::as_str) == Some("proof") {
@@ -36,7 +36,7 @@ pub(super) fn history(args: &[String]) -> Result<Value, reliquary_memory::Produc
             return Err(invalid("history proof requires PATH"));
         }
         return Ok(
-            json!({"operation":"history_proof","proof":Rel::open(&args[1])?.current_historical_proof()?}),
+            json!({"operation":"history_proof","proof":Rel::read(&args[1], |owner| owner.current_historical_proof())?}),
         );
     }
     memory_history(args, false)
@@ -56,11 +56,10 @@ pub(super) fn memory_history(args: &[String], phy: bool) -> Result<Value, Produc
             None => owner.memory_history(id)?,
         }
     } else {
-        let owner = Rel::open(&args[1])?;
-        match cut {
-            Some(version) => owner.memory_history_at_cut(id, version)?,
-            None => owner.memory_history(id)?,
-        }
+        Rel::read(&args[1], |owner| match cut {
+            Some(version) => owner.memory_history_at_cut(id, version),
+            None => owner.memory_history(id),
+        })?
     };
     let result = match lookup {
         MemoryHistoryLookup::Unavailable { .. } => {

@@ -2,6 +2,14 @@ use super::*;
 
 mod archive_import;
 
+impl Drop for RelWriter {
+    fn drop(&mut self) {
+        if let Some(checkpoint) = &mut self.checkpoint {
+            checkpoint.refresh(&self.container, &self.session, true);
+        }
+    }
+}
+
 impl RelSession {
     pub(super) fn ensure_write_certain(&self) -> Result<(), OwnerSessionError> {
         if self.write_poisoned {
@@ -66,7 +74,11 @@ impl RelWriter {
         super::create::initialize_owner(&mut container)?;
         let admission = GraphAdmission::for_replay(owner_id, [], [], [], [], []);
         let session = RelSession::open(&container, &admission, [], [])?;
-        Ok(Self { container, session })
+        Ok(Self {
+            container,
+            session,
+            checkpoint: None,
+        })
     }
 
     pub fn open_path(
@@ -84,7 +96,11 @@ impl RelWriter {
             accepted_episodes.clone(),
             dream_admissions.clone(),
         )?;
-        Ok(Self { container, session })
+        Ok(Self {
+            container,
+            session,
+            checkpoint: None,
+        })
     }
 
     /// Acquire the exclusive writer lease after current-format durable admission.
@@ -96,9 +112,30 @@ impl RelWriter {
         path: impl AsRef<Path>,
         expected: Option<[u8; 16]>,
     ) -> Result<Self, OwnerSessionError> {
-        let container = Container::open_writer_for(path, FileKind::Reliquary, expected)?;
-        let session = RelSession::open_current(&container)?;
-        Ok(Self { container, session })
+        let (container, session, checkpoint) =
+            super::checkpoint::open(path.as_ref(), true, expected)?;
+        Ok(Self {
+            container,
+            session,
+            checkpoint,
+        })
+    }
+
+    /// Check the refresh thresholds after the serialized write boundary.
+    pub fn refresh_checkpoint_if_due(&mut self) {
+        if let Some(checkpoint) = &mut self.checkpoint {
+            checkpoint.refresh(&self.container, &self.session, false);
+        }
+    }
+
+    #[cfg(feature = "d02-observation")]
+    pub fn observed_checkpoint_prefix(&self) -> Option<u64> {
+        self.checkpoint.as_ref()?.opened_prefix
+    }
+
+    #[cfg(feature = "d02-observation")]
+    pub fn observed_checkpoint_refresh_error(&self) -> Option<&str> {
+        self.checkpoint.as_ref()?.refresh_error.as_deref()
     }
 
     pub fn owner_id(&self) -> [u8; 16] {
@@ -583,8 +620,8 @@ impl RelWriter {
         let content_matches = self
             .session
             .archive
-            .content_for_node(&input.conversation_id, &input.id)
-            == Some(input.content.as_str());
+            .content_for_node(&input.conversation_id, &input.id)?
+            .is_some_and(|text| text.as_str() == input.content);
         if node.parent_id != input.parent_id
             || node.role != input.role
             || node.principal_id != input.principal_id

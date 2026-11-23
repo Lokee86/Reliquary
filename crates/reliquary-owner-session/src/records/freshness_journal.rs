@@ -2,7 +2,7 @@ use crate::MemoryId;
 
 use std::collections::{BTreeMap, BTreeSet};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct AcceptedGraphCutProof {
     pub graph_version: u64,
     pub community_generation: Option<u64>,
@@ -32,7 +32,7 @@ pub fn historical_pass_value(pass: &InitialDreamPass) -> serde_json::Value {
     })
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct InitialDreamPass {
     pub pass_id: String,
     pub source_id: MemoryId,
@@ -44,7 +44,7 @@ pub struct InitialDreamPass {
     pub roots: BTreeSet<MemoryId>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct DreamFreshnessJournal {
     owner_uuid: Option<[u8; 16]>,
     pending: BTreeMap<String, InitialDreamPass>,

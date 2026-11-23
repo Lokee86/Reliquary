@@ -103,9 +103,8 @@ pub(crate) fn validate_archive_prune(
         if (!selected.contains(&source.conversation_id)
             && pruned_content.contains(&node.content_id))
             || archive
-                .files_for_source(&source.conversation_id, &source.node_id)
-                .iter()
-                .any(|file| pruned_content.contains(&file.content_id))
+                .file_content_ids_for_source(&source.conversation_id, &source.node_id)
+                .any(|id| pruned_content.contains(&id))
         {
             return Err(invalid());
         }

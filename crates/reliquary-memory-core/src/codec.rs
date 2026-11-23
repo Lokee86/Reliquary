@@ -83,6 +83,16 @@ pub(super) fn validate_replayed_record(
     record: &MemoryRecord,
     body: Option<&MemoryBody>,
 ) -> Result<(), MemoryError> {
+    validate_replayed_record_with_body_len(
+        record,
+        body.map(|body| body.title.len().saturating_add(body.content.len())),
+    )
+}
+
+pub(super) fn validate_replayed_record_with_body_len(
+    record: &MemoryRecord,
+    body_len: Option<usize>,
+) -> Result<(), MemoryError> {
     if [
         &record.mutation_id,
         &record.category,
@@ -101,10 +111,12 @@ pub(super) fn validate_replayed_record(
         validate_source_ref(source)?;
     }
     if let Some(proof) = &record.temporal_inference {
-        let body_len = body.map_or(usize::MAX, |body| {
-            body.title.len().saturating_add(body.content.len())
-        });
-        validate_temporal_inference(proof, record.body_id, record.source_time_ns, body_len)?;
+        validate_temporal_inference(
+            proof,
+            record.body_id,
+            record.source_time_ns,
+            body_len.unwrap_or(usize::MAX),
+        )?;
     }
     Ok(())
 }

@@ -117,6 +117,13 @@ pub fn source_publication(payload: &[u8]) -> Result<Option<SourcePublication>, A
     }
 }
 
+/// A turn or branch publication has only Archive-local effects. Episode and retained
+/// proof records are admitted through the coordinated owner replay.
+pub fn is_turn_or_branch_publication(payload: &[u8]) -> Result<bool, ArchiveError> {
+    Ok(applying_archive_payload(payload)?
+        .is_some_and(|body| body.starts_with(b"RELTURN2") || body.starts_with(b"RELBRCH1")))
+}
+
 #[cfg(test)]
 #[path = "echo_tests.rs"]
 mod echo_tests;

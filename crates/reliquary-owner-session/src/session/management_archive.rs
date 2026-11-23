@@ -13,10 +13,20 @@ impl RelSession {
             return Ok(None);
         };
         let terminal = self.archive.conversation_tombstone(conversation).is_some();
-        let content = self.archive.content_for_node(conversation, node);
-        if content.is_some_and(|text| text.len() > max_bytes) && !terminal {
-            return Err(OwnerSessionError::ManagementLimit);
-        }
+        let content = if terminal {
+            None
+        } else {
+            if self
+                .archive
+                .content_length_for_node(conversation, node)
+                .is_some_and(|length| length > max_bytes)
+            {
+                return Err(OwnerSessionError::ManagementLimit);
+            }
+            self.archive
+                .content_for_node(conversation, node)?
+                .map(|text| text.as_ref().clone())
+        };
         let imported = if include_import_reference {
             self.management_imported_source(conversation, node)?
         } else {
@@ -30,11 +40,7 @@ impl RelSession {
             timestamp_ns: record.timestamp_ns,
             content_id: record.content_id.0,
             archive_revision: self.archive.node_archive_version(conversation, node),
-            content: if terminal {
-                None
-            } else {
-                content.map(str::to_owned)
-            },
+            content,
             terminal,
             imported,
         }))

@@ -309,7 +309,7 @@ pub(super) fn validate_graph_prefix(
     Ok(())
 }
 
-fn validate_user_memory_prefix(
+pub(super) fn validate_user_memory_prefix(
     container: &Container,
     memories: &MemoryStore,
     memory_head: u64,

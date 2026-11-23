@@ -8,7 +8,7 @@ pub(crate) const PROJECT_BACKING_PREFIX: &[u8] = b"RELPRB";
 const PROJECT_BACKING_LENGTH: usize = 8 + 8 + 32 + 32;
 
 /// The global frontier where an accepted project attachment gained backing.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ProjectBackingBinding {
     pub global_version: u64,
     pub attachment_id: [u8; 32],
@@ -50,7 +50,7 @@ pub enum RetainedArchiveValue {
     },
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RetainedArchivePublication {
     pub archive_version: u64,
     pub value: RetainedArchiveValue,

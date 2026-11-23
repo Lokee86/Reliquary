@@ -7,7 +7,7 @@ use std::fmt;
 ///
 /// Event identity and durable replay receipts are owned by the persistence layer.
 /// An unadmitted record is initialized at +100 but has no decay clock.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FreshnessRecord {
     pub score: i16,
     pub admitted_at_turn: Option<u64>,

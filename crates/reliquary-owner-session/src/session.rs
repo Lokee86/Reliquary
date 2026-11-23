@@ -8,7 +8,7 @@ use crate::records::{
 };
 use reliquary_archive::{Archive, EchoStore, Node};
 use reliquary_container::{
-    Container, ContainerError, ContainerIdentity, FileKind, WriterLeaseProof,
+    Container, ContainerError, ContainerIdentity, FileKind, LeasedFrameReader, WriterLeaseProof,
 };
 use reliquary_ego_store::{
     EgoAnchor, EgoAnchorId, EgoError, EgoIdentity, EgoIdentityId, EgoPersonality, EgoStore,
@@ -226,6 +226,7 @@ impl From<GenerationStoreError> for OwnerSessionError {
 }
 
 /// Shared owner-local REL/PHY domains, kept private behind typed reads.
+#[derive(serde::Serialize, serde::Deserialize)]
 struct CommonState {
     user_memory_requests: BTreeMap<String, crate::records::user_memory::UserMemoryRecord>,
     memories: MemoryStore,
@@ -244,6 +245,7 @@ struct CommonState {
 
 /// Read-only Reliquary owner aggregate. Archive and turn authority exist only
 /// here; private fields prevent exposing a public bag of stores.
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct RelSession {
     owner_id: [u8; 16],
     rel_dependencies: RelDependencyDeclaration,
@@ -255,21 +257,29 @@ pub struct RelSession {
     imports: ImportEpochStore,
     archive_vectors: ArchiveVectorStore,
     generations: VectorGenerationStore,
+    #[serde(skip)]
     archive_hybrid_cache: rel_session::ArchiveHybridCache,
     archive_lexical_indexes:
         BTreeMap<CompatibilityProfileId, archive_lexical::StoredArchiveLexicalIndex>,
     external_index: ExternalIndexStore,
     external_references: ExternalReferenceStore,
     external_memories: ExternalMemoryStore,
-    grouped_completions: BTreeMap<(WorkEpisodeId, u32), GroupedInsomniaCompletion>,
+    grouped_completions:
+        BTreeMap<(WorkEpisodeId, u32), grouped_completion::StoredGroupedCompletion>,
+    #[serde(skip)]
+    grouped_completion_reader: Option<LeasedFrameReader>,
     native_import_grouped_epochs: BTreeMap<(WorkEpisodeId, u32), String>,
+    #[serde(skip)]
     write_poisoned: bool,
     container_identity: ContainerIdentity,
+    #[serde(skip)]
     container_path: PathBuf,
     history_generation: [u8; 32],
     container_file_identity: (u64, u64),
+    #[serde(skip)]
     writer_lease_proof: Option<WriterLeaseProof>,
     #[cfg(test)]
+    #[serde(skip)]
     fail_after_grouped_sync: bool,
 }
 
@@ -279,6 +289,7 @@ pub struct RelSession {
 pub struct RelWriter {
     container: Container,
     session: RelSession,
+    checkpoint: Option<checkpoint::WriterCheckpoint>,
 }
 
 /// Immutable read cut for retrieval. Reading this value never reinforces
@@ -682,22 +693,11 @@ macro_rules! common_reads {
                         "Memory history cut exceeds the accepted owner version".into(),
                     ));
                 }
-                let Some(mut history) = self.memory_history(id)? else {
-                    return Ok(None);
-                };
-                history
-                    .revisions
-                    .retain(|revision| revision.record.memory_version <= memory_version);
-                if history.revisions.is_empty() {
-                    return Ok(None);
+                match self.$field.memories.history_at_cut(id, memory_version) {
+                    Ok(history) => Ok(Some(history)),
+                    Err(MemoryError::MissingMemory) => Ok(None),
+                    Err(error) => Err(error.into()),
                 }
-                if history
-                    .tombstone
-                    .is_some_and(|tombstone| tombstone.memory_version > memory_version)
-                {
-                    history.tombstone = None;
-                }
-                Ok(Some(history))
             }
             pub fn entity(&self, id: EntityId) -> Option<&Entity> {
                 self.$field.perception.entity(id)
@@ -987,6 +987,7 @@ mod tests;
 mod archive_evidence;
 mod archive_prune;
 mod archive_vector_publication;
+mod checkpoint;
 mod create;
 pub(crate) mod dream_pairs;
 pub(crate) mod dream_prefix;
@@ -1098,6 +1099,7 @@ mod dream_group;
 mod dream_no_link;
 mod dream_supersession;
 mod grouped_commit;
+mod grouped_completion;
 
 pub(crate) mod dream_batch_model;
 pub use dream_batch_model::{DreamBatchCut, DreamLifecyclePublication, DreamPairPublication};

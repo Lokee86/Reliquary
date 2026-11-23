@@ -9,7 +9,7 @@ use std::io::Read;
 
 const MAX_RELEVANT_FRAME: u64 = 128 * 1024 * 1024;
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct Birth {
     global: u64,
     cohort: Option<u64>,

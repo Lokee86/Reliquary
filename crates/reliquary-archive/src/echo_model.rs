@@ -1,7 +1,7 @@
 use reliquary_container::ContainerError;
 use std::fmt;
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum EchoEventKind {
     ReasoningSummary,
     Commentary,
@@ -14,7 +14,7 @@ pub enum EchoEventKind {
     ActivityFailed,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct EchoEvent {
     pub conversation_id: String,
     pub message_id: String,

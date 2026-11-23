@@ -19,14 +19,14 @@ pub struct AcceptedArchiveMapping {
     pub max_fragment_archive_version: u64,
 }
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct Entry {
     info: ArchiveVectorInfo,
     chunk: ObjectRef,
     fragment_ids: Arc<[ArchiveFragmentId]>,
 }
 
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct ArchiveVectorStore {
     objects: HashMap<ArchiveVectorId, Entry>,
 }

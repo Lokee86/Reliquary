@@ -1,4 +1,5 @@
 use super::archive_lexical::ARCHIVE_LEXICAL_INDEX_MAGIC;
+use super::grouped_completion::StoredGroupedCompletion;
 use super::rel_dependencies::REL_DEPENDENCY_MAGIC;
 use super::*;
 
@@ -52,7 +53,7 @@ pub(super) fn require_kind(
 
 #[derive(Default)]
 pub(super) struct RelReplayAdmission {
-    pub completions: BTreeMap<(WorkEpisodeId, u32), GroupedInsomniaCompletion>,
+    pub completions: BTreeMap<(WorkEpisodeId, u32), StoredGroupedCompletion>,
     pub import_epochs: BTreeMap<(WorkEpisodeId, u32), String>,
     pub dependencies: RelDependencyDeclaration,
     pub has_archive_lexical_indexes: bool,
@@ -61,6 +62,7 @@ pub(super) struct RelReplayAdmission {
 pub(super) fn validate_rel_replay_admission(
     container: &Container,
     archive: &Archive,
+    leased: bool,
 ) -> Result<RelReplayAdmission, OwnerSessionError> {
     let mut admission = RelReplayAdmission::default();
     let mut imports = ImportEpochStore::prefix(container.owner_id());
@@ -192,7 +194,11 @@ pub(super) fn validate_rel_replay_admission(
             }
             admission.import_epochs.insert(key, epoch.import_id.clone());
         }
-        if admission.completions.insert(key, completion).is_some() {
+        let stored = StoredGroupedCompletion::from_admitted(
+            completion,
+            leased.then_some((frame.object, payload)),
+        )?;
+        if admission.completions.insert(key, stored).is_some() {
             return Err(OwnerSessionError::Record(
                 "duplicate grouped completion attempt".into(),
             ));

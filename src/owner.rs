@@ -132,6 +132,15 @@ impl Rel {
     pub fn verify(path: impl AsRef<Path>) -> Result<OwnerInfo, ProductError> {
         Self::open(path)?.info()
     }
+
+    /// Read with a shared REL lease that is released when the callback returns.
+    pub fn read<T>(
+        path: impl AsRef<Path>,
+        read: impl FnOnce(&RelRead<'_>) -> Result<T, ProductError>,
+    ) -> Result<T, ProductError> {
+        RelSession::with_scoped_read(path, |session| read(&RelRead { session }))?
+    }
+
     pub fn owner_id(&self) -> OwnerId {
         OwnerId::from_bytes(self.session.owner_id())
     }
@@ -139,20 +148,41 @@ impl Rel {
         &self.path
     }
     pub fn info(&self) -> Result<OwnerInfo, ProductError> {
+        RelRead {
+            session: self.session(),
+        }
+        .info()
+    }
+
+    pub(crate) fn session(&self) -> &RelSession {
+        &self.session
+    }
+
+    pub(crate) fn read_view(&self) -> RelRead<'_> {
+        RelRead {
+            session: self.session(),
+        }
+    }
+}
+
+/// Local read access for the lifetime of a single scoped operation.
+pub struct RelRead<'a> {
+    pub(crate) session: &'a RelSession,
+}
+
+impl RelRead<'_> {
+    pub fn info(&self) -> Result<OwnerInfo, ProductError> {
         Ok(OwnerInfo {
             format: "2.1",
             kind: OwnerKind::Rel,
-            owner_id: self.owner_id(),
+            owner_id: OwnerId::from_bytes(self.session.owner_id()),
             scope: self.session.scope().into(),
-            memory_count: count_rel(&self.session)?,
+            memory_count: count_rel(self.session)?,
             memory_version: self.session.memory_version(),
             graph_version: self.session.graph_version(),
             archive_version: Some(self.session.archive_version()),
             rel_turn_count: Some(self.session.rel_turn_count()),
         })
-    }
-    pub(crate) fn session(&self) -> &RelSession {
-        &self.session
     }
 }
 

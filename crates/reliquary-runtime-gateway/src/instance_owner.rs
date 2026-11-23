@@ -185,7 +185,9 @@ impl Instance {
             .lock()
             .map_err(|_| GatewayError::RegistryPoisoned)?;
         self.ensure_credential_active()?;
-        Ok(operation(&mut writer))
+        let result = operation(&mut writer);
+        writer.refresh_checkpoint_if_due();
+        Ok(result)
     }
 
     pub fn claim_next_insomnia_input(

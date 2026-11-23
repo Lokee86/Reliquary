@@ -11,7 +11,7 @@ const POLICY_SCHEMA: u16 = 1;
 const MAX_STRING_BYTES: usize = 1024 * 1024;
 const MAX_COLLECTION_ITEMS: usize = 1_000_000;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(super) enum JournalEntry {
     Birth {
         memory_id: FreshnessMemoryId,

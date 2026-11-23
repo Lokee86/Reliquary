@@ -7,7 +7,7 @@ const HEADER_LEN: usize = 36;
 const ID_LEN: usize = 16;
 
 /// Current owner-local declaration. The default denotes a REL without a record.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RelDependencyDeclaration {
     pub generation: u64,
     pub owner_ids: Vec<[u8; 16]>,

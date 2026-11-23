@@ -18,30 +18,20 @@ impl Archive {
             );
         }
         let turns = self
-            .accepted_node_order
+            .turns
             .iter()
-            .filter(|key| {
-                self.node_archive_versions
-                    .get(*key)
-                    .is_some_and(|seen| *seen <= version)
-            })
-            .map(|key| {
-                let node = self.nodes[key].clone();
-                crate::HistoricalArchiveTurn {
+            .take_while(|turn| turn.archive_version <= version)
+            .map(|turn| {
+                Ok(crate::HistoricalArchiveTurn {
                     content: self
-                        .content
-                        .get(&node.content_id)
-                        .map(|text| text.as_ref().clone()),
-                    attachments: self
-                        .source_attachments
-                        .get(key)
-                        .cloned()
-                        .unwrap_or_default(),
-                    activity_position: self.activity_position_by_node.get(key).copied(),
-                    node,
-                }
+                        .read_text(turn.node.content_id)?
+                        .map(Arc::unwrap_or_clone),
+                    attachments: self.read_attachments(&turn.attachments)?,
+                    activity_position: turn.activity.map(NonZeroU64::get),
+                    node: turn.node.clone(),
+                })
             })
-            .collect::<Vec<_>>();
+            .collect::<Result<Vec<_>, ArchiveError>>()?;
         Ok(crate::ArchiveHistorySnapshot {
             archive_version: version,
             publication_bindings: self

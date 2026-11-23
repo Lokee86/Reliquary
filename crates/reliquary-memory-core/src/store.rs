@@ -6,7 +6,11 @@ mod initial_promotion;
 use crate::routing::{MemoryRoutingMetadata, ROUTING_MARKER, decode_routing_metadata};
 use crate::{codec::*, decode_grouped_creation, error::MemoryError, model::*};
 pub use initial_promotion::GroupedMemoryInitialPromotion;
-use reliquary_container::{Container, ContainerIdentity};
+#[path = "payload.rs"]
+mod payload;
+use payload::{BodyEncoding, StoredBody};
+use reliquary_container::{Container, ContainerIdentity, LeasedFrameReader, ObjectRef};
+use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::io::Read;
 
@@ -16,6 +20,28 @@ type RetainedGroupedMemoryReplay = (
     Vec<Vec<u8>>,
     Vec<MemoryRoutingMetadata>,
 );
+type IndexedGroupedMemoryReplay = (
+    Vec<RetainedGroupedBody>,
+    Vec<Vec<u8>>,
+    Vec<MemoryRoutingMetadata>,
+);
+
+/// The byte range validated by the owner of a grouped Memory carrier.
+pub struct RetainedGroupedBody {
+    pub id: MemoryBodyId,
+    pub bytes: Vec<u8>,
+    pub payload_offset: Option<u64>,
+}
+
+/// Start a detached replay, a leased replay, or continue beyond an admitted cut.
+pub enum MemoryReplayStart {
+    Detached,
+    Leased,
+    Checkpoint {
+        store: MemoryStore,
+        covered_end: u64,
+    },
+}
 
 /// Owner-session proof accompanying an atomic Dream lifecycle event.
 pub struct GroupedMemorySupersession {
@@ -27,10 +53,10 @@ pub struct GroupedMemorySupersession {
     pub delta: Vec<u8>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct State {
     revisions: BTreeMap<MemoryId, Vec<MemoryRecord>>,
-    bodies: HashMap<MemoryBodyId, MemoryBody>,
+    bodies: HashMap<MemoryBodyId, StoredBody>,
     body_memories: HashMap<MemoryBodyId, BTreeSet<MemoryId>>,
     mutations: HashMap<String, (MemoryId, usize)>,
     tombstones: HashMap<MemoryId, TerminalTombstone>,
@@ -50,13 +76,15 @@ impl Default for State {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct MemoryStore {
     state: State,
     pruned_bodies: BTreeSet<MemoryBodyId>,
     routing: BTreeMap<MemoryId, MemoryRoutingMetadata>,
     initialized: bool,
     owner: Option<([u8; 16], ContainerIdentity)>,
+    #[serde(skip)]
+    reader: Option<LeasedFrameReader>,
 }
 
 #[path = "management_group.rs"]
@@ -208,6 +236,36 @@ impl MemoryStore {
             &[u8],
         )
             -> Result<Option<RetainedGroupedMemoryReplay>, MemoryError>,
+        decode_dream: impl FnMut(&[u8]) -> Result<Option<GroupedMemorySupersession>, MemoryError>,
+        decode_initial: impl FnMut(&[u8]) -> Result<Option<GroupedMemoryInitialPromotion>, MemoryError>,
+        decode_batch: impl FnMut(&[u8]) -> Result<Vec<GroupedMemoryLifecycle>, MemoryError>,
+        decode_management: impl FnMut(&[u8]) -> Result<GroupedManagementEffect, MemoryError>,
+    ) -> Result<Self, MemoryError> {
+        Self::replay_retained_dream_batches(
+            container,
+            MemoryReplayStart::Detached,
+            |bytes| {
+                Ok(decode_grouped(bytes)?
+                    .map(|(bodies, records, routing)| (unindexed_bodies(bodies), records, routing)))
+            },
+            decode_dream,
+            decode_initial,
+            decode_batch,
+            decode_management,
+        )
+    }
+
+    /// Rebind the authenticated state to this file lease before lazy queries.
+    pub fn bind_checkpoint_reader(&mut self, container: &Container) -> Result<(), MemoryError> {
+        self.validate_owner(container)?;
+        self.reader = Some(container.leased_frame_reader()?);
+        Ok(())
+    }
+
+    pub fn replay_retained_dream_batches(
+        container: &Container,
+        start: MemoryReplayStart,
+        mut decode_grouped: impl FnMut(&[u8]) -> Result<Option<IndexedGroupedMemoryReplay>, MemoryError>,
         mut decode_dream: impl FnMut(&[u8]) -> Result<Option<GroupedMemorySupersession>, MemoryError>,
         mut decode_initial: impl FnMut(
             &[u8],
@@ -216,14 +274,28 @@ impl MemoryStore {
         mut decode_batch: impl FnMut(&[u8]) -> Result<Vec<GroupedMemoryLifecycle>, MemoryError>,
         mut decode_management: impl FnMut(&[u8]) -> Result<GroupedManagementEffect, MemoryError>,
     ) -> Result<Self, MemoryError> {
-        let mut store = Self {
+        let empty = || Self {
             owner: Some((container.owner_id(), container.identity())),
             ..Self::default()
         };
-        let mut cursor = container.physical_cursor()?;
+        let (mut store, mut cursor, cold) = match start {
+            MemoryReplayStart::Detached => (empty(), container.physical_cursor()?, true),
+            MemoryReplayStart::Leased => {
+                let mut store = empty();
+                store.bind_checkpoint_reader(container)?;
+                (store, container.physical_cursor()?, true)
+            }
+            MemoryReplayStart::Checkpoint {
+                mut store,
+                covered_end,
+            } => {
+                store.bind_checkpoint_reader(container)?;
+                (store, container.physical_cursor_from(covered_end)?, false)
+            }
+        };
         while let Some(mut frame) = cursor.next_frame()? {
-            let len =
-                usize::try_from(frame.object().length).map_err(|_| MemoryError::FieldTooLarge)?;
+            let object = frame.object();
+            let len = usize::try_from(object.length).map_err(|_| MemoryError::FieldTooLarge)?;
             if len > 128 * 1024 * 1024 {
                 return Err(MemoryError::FieldTooLarge);
             }
@@ -249,7 +321,8 @@ impl MemoryStore {
                     if envelope.body.len() > MAX_BODY_BYTES + MAX_FIELD_BYTES {
                         return Err(MemoryError::FieldTooLarge);
                     }
-                    store.replay(envelope.body)?;
+                    let offset = (payload.len() - envelope.body.len()) as u64;
+                    store.replay_at(envelope.body, Some((object, offset)))?;
                 }
                 continue;
             }
@@ -277,7 +350,12 @@ impl MemoryStore {
                 if let Some((bodies, records, routing)) = decode_grouped(&payload)? {
                     // Owner replay validates any missing grouped payload only
                     // after it has admitted the exact terminal-prune manifest.
-                    store.apply_grouped_completion_replay(bodies, records)?;
+                    store.apply_grouped_completion_inner(
+                        bodies,
+                        records,
+                        Some((object, &payload)),
+                        true,
+                    )?;
                     for route in routing {
                         store.apply_routing(route)?;
                     }
@@ -329,9 +407,11 @@ impl MemoryStore {
             let mut payload = Vec::with_capacity(len);
             payload.extend_from_slice(&magic);
             frame.read_to_end(&mut payload)?;
-            store.replay(&payload)?;
+            store.replay_at(&payload, Some((object, 0)))?;
         }
-        store.validate_backed_records()?;
+        if cold {
+            store.validate_backed_records()?;
+        }
         Ok(store)
     }
 
@@ -351,14 +431,10 @@ impl MemoryStore {
         if record.body_id != route.body_id {
             return Err(MemoryError::Corrupt("Memory routing body identity differs"));
         }
-        let body = self
-            .state
-            .bodies
-            .get(&route.body_id)
-            .ok_or(MemoryError::Corrupt(
-                "Memory routing requires the original body",
-            ))?;
-        route.validate_body(body)?;
+        let body = self.load_body(route.body_id)?.ok_or(MemoryError::Corrupt(
+            "Memory routing requires the original body",
+        ))?;
+        route.validate_body(&body)?;
         if let Some(existing) = self.routing.get(&route.memory_id) {
             if existing != &route {
                 return Err(MemoryError::Corrupt("conflicting Memory routing metadata"));
@@ -383,21 +459,24 @@ impl MemoryStore {
         bodies: Vec<(MemoryBodyId, Vec<u8>)>,
         records: Vec<Vec<u8>>,
     ) -> Result<(), MemoryError> {
-        self.apply_grouped_completion_inner(bodies, records, false)
+        self.apply_grouped_completion_inner(unindexed_bodies(bodies), records, None, false)
     }
 
-    fn apply_grouped_completion_replay(
+    pub fn apply_indexed_grouped_completion(
         &mut self,
-        bodies: Vec<(MemoryBodyId, Vec<u8>)>,
+        object: ObjectRef,
+        payload: &[u8],
+        bodies: Vec<RetainedGroupedBody>,
         records: Vec<Vec<u8>>,
     ) -> Result<(), MemoryError> {
-        self.apply_grouped_completion_inner(bodies, records, true)
+        self.apply_grouped_completion_inner(bodies, records, Some((object, payload)), false)
     }
 
     fn apply_grouped_completion_inner(
         &mut self,
-        bodies: Vec<(MemoryBodyId, Vec<u8>)>,
+        bodies: Vec<RetainedGroupedBody>,
         records: Vec<Vec<u8>>,
+        frame: Option<(ObjectRef, &[u8])>,
         allow_missing_body_for_owner_admission: bool,
     ) -> Result<(), MemoryError> {
         if !records.is_empty() && !self.initialized {
@@ -408,20 +487,32 @@ impl MemoryStore {
         let mut next = self.clone();
         let mut seen_bodies = std::collections::BTreeSet::new();
         let mut provided_bodies = std::collections::BTreeSet::new();
-        for (id, bytes) in bodies {
+        for RetainedGroupedBody {
+            id,
+            bytes,
+            payload_offset,
+        } in bodies
+        {
             self.require_unpruned_body(id)?;
             if !seen_bodies.insert(id) {
                 return Err(MemoryError::Corrupt("duplicate grouped body identity"));
             }
             let body = decode_grouped_body(id, &bytes)?;
             provided_bodies.insert(id);
-            if let Some(existing) = next.state.bodies.get(&id) {
-                if existing != &body {
-                    return Err(MemoryError::HashCollision);
+            let location = match (next.reader.is_some(), frame, payload_offset) {
+                (true, Some((object, payload)), Some(offset)) => {
+                    let start = usize::try_from(offset).map_err(|_| MemoryError::FieldTooLarge)?;
+                    let end = start
+                        .checked_add(bytes.len())
+                        .ok_or(MemoryError::FieldTooLarge)?;
+                    if payload.get(start..end) != Some(bytes.as_slice()) {
+                        return Err(MemoryError::Corrupt("grouped Memory body locator differs"));
+                    }
+                    Some((object, offset, BodyEncoding::Grouped))
                 }
-            } else {
-                next.state.bodies.insert(id, body);
-            }
+                _ => None,
+            };
+            next.insert_body(id, body, &bytes, location)?;
         }
         let mut used_provided_bodies = std::collections::BTreeSet::new();
         for bytes in records {
@@ -468,27 +559,16 @@ impl MemoryStore {
         if id == newer || mutation_id.is_empty() {
             return Err(MemoryError::InvalidField("supersession_target"));
         }
-        let newer_history = self.history(newer)?;
-        let newer_current = &newer_history
-            .revisions
-            .last()
-            .ok_or(MemoryError::MissingMemory)?
-            .record;
-        if newer_history.tombstone.is_some()
-            || newer_current.archived
-            || newer_current.superseded_by.is_some()
-        {
+        let newer_current = self
+            .revision_record(newer, None)
+            .map_err(|error| match error {
+                MemoryError::TerminalTombstone => MemoryError::RevisionConflict,
+                error => error,
+            })?;
+        if newer_current.archived || newer_current.superseded_by.is_some() {
             return Err(MemoryError::RevisionConflict);
         }
-        let history = self.history(id)?;
-        if history.tombstone.is_some() {
-            return Err(MemoryError::TerminalTombstone);
-        }
-        let current = &history
-            .revisions
-            .last()
-            .ok_or(MemoryError::MissingMemory)?
-            .record;
+        let current = self.revision_record(id, None)?;
         if current.revision != expected_revision
             || current.archived
             || current.superseded_by.is_some()
@@ -556,16 +636,16 @@ impl MemoryStore {
     fn validate_backed_records(&self) -> Result<(), MemoryError> {
         for history in self.state.revisions.values() {
             for record in history {
-                validate_replayed_record(record, self.state.bodies.get(&record.body_id))?;
+                validate_replayed_record_with_body_len(record, self.body_len(record.body_id))?;
             }
         }
         Ok(())
     }
     fn validate_body_records(&self, body_id: MemoryBodyId) -> Result<(), MemoryError> {
-        let body = self.state.bodies.get(&body_id);
+        let body_len = self.body_len(body_id);
         for id in self.state.body_memories.get(&body_id).into_iter().flatten() {
             for record in &self.state.revisions[id] {
-                validate_replayed_record(record, body)?;
+                validate_replayed_record_with_body_len(record, body_len)?;
             }
         }
         Ok(())
@@ -583,6 +663,12 @@ impl MemoryStore {
     pub fn references_body(&self, body_id: MemoryBodyId) -> bool {
         self.state.body_memories.contains_key(&body_id)
     }
+
+    /// Whether an admitted body has backing, without reading its payload.
+    pub fn contains_body_payload(&self, id: MemoryBodyId) -> bool {
+        self.state.bodies.contains_key(&id)
+    }
+
     /// Bodies named by accepted history without a local payload.
     /// Transformed-copy admission uses these identities to validate pruning evidence.
     pub fn unbacked_body_ids(&self) -> impl Iterator<Item = MemoryBodyId> + '_ {
@@ -708,16 +794,17 @@ impl MemoryStore {
                 .get(&seen_id)
                 .and_then(|history| history.get(revision_index))
                 .ok_or(MemoryError::Corrupt("mutation index is invalid"))?;
-            let body = self.state.bodies.get(&accepted.body_id);
+            let body = self.load_body(accepted.body_id)?;
             if accepted.body_id != body_id
                 || body
+                    .as_deref()
                     .is_none_or(|body| body.title != draft.title || body.content != draft.content)
                 || !draft_matches(accepted, &draft)
             {
                 return Err(MemoryError::MutationConflict);
             }
             return Ok(PublishResult {
-                revision: self.revision_view(accepted),
+                revision: revision_with_body(accepted, body.map(Cow::into_owned)),
                 published: false,
             });
         }
@@ -762,25 +849,33 @@ impl MemoryStore {
         } else {
             encode_creation(&record)?
         };
-        if let Some(existing) = self.state.bodies.get(&body_id) {
-            if existing != &body {
+        let appended = if let Some(existing) = self.load_body(body_id)? {
+            if existing.as_ref() != &body {
                 return Err(MemoryError::HashCollision);
             }
+            None
         } else {
             for id in self.state.body_memories.get(&body_id).into_iter().flatten() {
                 for existing in &self.state.revisions[id] {
                     validate_replayed_record(existing, Some(&body))?;
                 }
             }
-            container.append(&body_bytes)?;
-        }
+            Some(container.append(&body_bytes)?)
+        };
         if let Some(timestamp) = versioned_at {
             container.append_publication_envelope(&encoded, Some(timestamp))?;
         } else {
             container.append(&encoded)?;
         }
-        if self.state.bodies.get(&body_id).is_none() {
-            self.state.bodies.insert(body_id, body);
+        if let Some(object) = appended {
+            let location = self
+                .reader
+                .is_some()
+                .then_some((object, 0, BodyEncoding::Standard));
+            self.state.bodies.insert(
+                body_id,
+                StoredBody::new(body.clone(), &body_bytes, location),
+            );
         }
         let history = self.state.revisions.entry(target).or_default();
         let revision_index = history.len();
@@ -795,7 +890,7 @@ impl MemoryStore {
             .insert(draft.mutation_id, (target, revision_index));
         self.state.next_memory_version = next_version;
         Ok(PublishResult {
-            revision: self.revision_view(&record),
+            revision: revision_with_body(&record, Some(body)),
             published: true,
         })
     }
@@ -849,16 +944,7 @@ impl MemoryStore {
 
     /// Current selected revision without cloning the retained revision history.
     pub fn current(&self, id: MemoryId) -> Result<MemoryRevision, MemoryError> {
-        if self.state.tombstones.contains_key(&id) {
-            return Err(MemoryError::TerminalTombstone);
-        }
-        let record = self
-            .state
-            .revisions
-            .get(&id)
-            .and_then(|h| h.last())
-            .ok_or(MemoryError::MissingMemory)?;
-        Ok(self.revision_view(record))
+        self.revision_view(self.revision_record(id, None)?)
     }
     /// Canonical metadata at a domain-version cut, including tombstone exclusion.
     pub fn record_at_cut(&self, id: MemoryId, cut: u64) -> Option<&MemoryRecord> {
@@ -884,35 +970,45 @@ impl MemoryStore {
             .collect()
     }
     pub fn history(&self, id: MemoryId) -> Result<MemoryHistory, MemoryError> {
+        self.history_at_cut(id, u64::MAX)
+    }
+
+    pub fn history_at_cut(&self, id: MemoryId, cut: u64) -> Result<MemoryHistory, MemoryError> {
         let records = self
-            .state
-            .revisions
-            .get(&id)
+            .revision_records_at_cut(id, cut)
             .ok_or(MemoryError::MissingMemory)?;
+        let first = records
+            .first()
+            .ok_or(MemoryError::Corrupt("empty Memory history"))?;
+        let body = self.load_body(first.body_id)?;
         Ok(MemoryHistory {
             revisions: records
                 .iter()
-                .map(|record| self.revision_view(record))
+                .map(|record| revision_with_body(record, body.as_deref().cloned()))
                 .collect(),
-            tombstone: self.state.tombstones.get(&id).copied(),
+            tombstone: self.terminal_at_cut(id, cut),
         })
     }
 
     pub fn revision(&self, id: MemoryId, revision: u64) -> Result<MemoryRevision, MemoryError> {
-        let record = self
-            .state
-            .revisions
-            .get(&id)
-            .and_then(|history| history.iter().find(|record| record.revision == revision))
-            .ok_or(MemoryError::MissingMemory)?;
-        Ok(self.revision_view(record))
+        self.revision_view(self.revision_record(id, Some(revision))?)
     }
 
     pub fn revision_projection(
         &self,
         id: MemoryId,
         revision: Option<u64>,
-    ) -> Result<(&MemoryRecord, Option<&MemoryBody>), MemoryError> {
+    ) -> Result<(&MemoryRecord, Option<Cow<'_, MemoryBody>>), MemoryError> {
+        let record = self.revision_record(id, revision)?;
+        Ok((record, self.load_body(record.body_id)?))
+    }
+
+    /// Resolve revision metadata without page-loading its optional payload.
+    pub fn revision_record(
+        &self,
+        id: MemoryId,
+        revision: Option<u64>,
+    ) -> Result<&MemoryRecord, MemoryError> {
         if revision.is_none() && self.state.tombstones.contains_key(&id) {
             return Err(MemoryError::TerminalTombstone);
         }
@@ -921,15 +1017,14 @@ impl MemoryStore {
             .revisions
             .get(&id)
             .ok_or(MemoryError::MissingMemory)?;
-        let record = match revision {
+        match revision {
             Some(revision) => records
                 .binary_search_by_key(&revision, |record| record.revision)
                 .ok()
                 .and_then(|index| records.get(index)),
             None => records.last(),
         }
-        .ok_or(MemoryError::MissingMemory)?;
-        Ok((record, self.state.bodies.get(&record.body_id)))
+        .ok_or(MemoryError::MissingMemory)
     }
 
     /// Select retained revision metadata without cloning bodies outside the page.
@@ -953,40 +1048,41 @@ impl MemoryStore {
 
     pub fn current_body_available(&self, id: MemoryId) -> bool {
         self.record_at_cut(id, self.memory_version())
-            .is_some_and(|record| self.state.bodies.contains_key(&record.body_id))
+            .is_some_and(|record| self.contains_body_payload(record.body_id))
     }
 
-    fn revision_view(&self, record: &MemoryRecord) -> MemoryRevision {
-        let payload = self
-            .state
-            .bodies
-            .get(&record.body_id)
-            .cloned()
-            .map_or(PayloadState::Absent, PayloadState::Available);
-        MemoryRevision {
-            record: record.clone(),
-            payload,
-        }
+    fn revision_view(&self, record: &MemoryRecord) -> Result<MemoryRevision, MemoryError> {
+        let body = self.load_body(record.body_id)?.map(Cow::into_owned);
+        Ok(revision_with_body(record, body))
     }
 
     fn replay(&mut self, bytes: &[u8]) -> Result<(), MemoryError> {
+        self.replay_at(bytes, None)
+    }
+
+    fn replay_at(
+        &mut self,
+        bytes: &[u8],
+        frame: Option<(ObjectRef, u64)>,
+    ) -> Result<(), MemoryError> {
         if bytes.starts_with(BODY) {
             let (id, body) = decode_body(bytes)?;
+            self.require_unpruned_body(id)?;
             if memory_body_id(&body.title, &body.content) != id {
                 return Err(MemoryError::Corrupt("body digest mismatch"));
             }
-            if let Some(existing) = self.state.bodies.get(&id) {
-                if existing != &body {
-                    return Err(MemoryError::HashCollision);
-                }
+            let location = if self.reader.is_some() {
+                frame.map(|(object, offset)| (object, offset, BodyEncoding::Standard))
             } else {
-                self.state.bodies.insert(id, body);
-            }
+                None
+            };
+            self.insert_body(id, body, bytes, location)?;
+            self.validate_body_records(id)?;
             return Ok(());
         }
         if bytes.starts_with(CREATION) {
             let record = decode_creation(bytes)?;
-            validate_replayed_record(&record, self.state.bodies.get(&record.body_id))?;
+            validate_replayed_record_with_body_len(&record, self.body_len(record.body_id))?;
             if record.revision != 1
                 || record.memory_version != self.state.next_memory_version
                 || record.mutation_id.is_empty()
@@ -1136,7 +1232,12 @@ impl MemoryStore {
             } else {
                 previous.updated_at_ns
             };
-            validate_replayed_record(&record, self.state.bodies.get(&record.body_id))?;
+            let body_len = self
+                .state
+                .bodies
+                .get(&record.body_id)
+                .map(StoredBody::body_len);
+            validate_replayed_record_with_body_len(&record, body_len)?;
             let index = history.len();
             self.state
                 .mutations
@@ -1178,6 +1279,24 @@ impl MemoryStore {
             return Ok(());
         }
         Err(MemoryError::Corrupt("unknown Memory record"))
+    }
+}
+
+fn unindexed_bodies(bodies: Vec<(MemoryBodyId, Vec<u8>)>) -> Vec<RetainedGroupedBody> {
+    bodies
+        .into_iter()
+        .map(|(id, bytes)| RetainedGroupedBody {
+            id,
+            bytes,
+            payload_offset: None,
+        })
+        .collect()
+}
+
+fn revision_with_body(record: &MemoryRecord, body: Option<MemoryBody>) -> MemoryRevision {
+    MemoryRevision {
+        record: record.clone(),
+        payload: body.map_or(PayloadState::Absent, PayloadState::Available),
     }
 }
 

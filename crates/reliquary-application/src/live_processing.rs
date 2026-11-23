@@ -90,8 +90,10 @@ pub fn live_dream_state(read: &ManagementRead<'_>, source: MemoryId) -> LiveDrea
     match read.first_dream_pass(source) {
         Some((_, true)) => LiveDreamState::Complete,
         Some((_, false)) => LiveDreamState::Started,
-        None => match read.memory_projection(source, None) {
-            Ok((record, Some(_))) if !record.archived => LiveDreamState::Pending,
+        None => match read.memory_record(source, None) {
+            Ok(record) if !record.archived && read.memory_is_readable(source) => {
+                LiveDreamState::Pending
+            }
             _ => LiveDreamState::Unavailable,
         },
     }

@@ -18,7 +18,7 @@ pub mod freshness_journal;
 const JOURNAL_MAGIC: &[u8; 8] = b"CVDREAM1";
 const BEGIN_MAGIC: &[u8; 8] = b"CVDREAM2";
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct DreamBeginAdmission {
     pub owner_uuid: [u8; 16],
     pub pass_id: String,
@@ -32,7 +32,7 @@ pub struct DreamBeginAdmission {
     pub memory_cut: u64,
 }
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct DreamEvidenceStore {
     owner_uuid: [u8; 16],
     admissions: BTreeMap<String, DreamBeginAdmission>,

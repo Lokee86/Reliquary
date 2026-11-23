@@ -150,10 +150,17 @@ fn retained_group_preserves_optional_clock_external_identity_and_typed_routing()
 #[test]
 fn current_rel_grouped_completion_roundtrips_and_exposes_physical_clock() {
     let completion = fixture();
-    let encoded = completion.encode().unwrap();
+    let (encoded, written_offsets) = completion.encode_with_body_offsets().unwrap();
+    assert_eq!(encoded, completion.encode().unwrap());
     assert!(encoded.starts_with(b"RELINSC7"));
-    let decoded = GroupedInsomniaCompletion::decode(&encoded).unwrap();
+    let (decoded, offsets) = GroupedInsomniaCompletion::decode_with_body_offsets(&encoded).unwrap();
     assert_eq!(decoded, completion);
+    assert_eq!(offsets, written_offsets);
+    assert_eq!(offsets.len(), decoded.bodies.len());
+    for (body, start) in decoded.bodies.iter().zip(offsets) {
+        let start = start as usize;
+        assert_eq!(&encoded[start..start + body.bytes.len()], &body.bytes);
+    }
     assert!(decoded.validate_replay_episode([4; 32]).is_err());
     let mut unrouted = decoded;
     unrouted.routing_metadata.clear();
@@ -693,7 +700,24 @@ fn rel_session_replays_grouped_insomnia_receipt_instead_of_dropping_the_carrier(
     .unwrap();
     assert_eq!(
         replayed_session
-            .commit_grouped_insomnia_completion(&mut retry_writer, token, completion, 20,)
+            .commit_grouped_insomnia_completion(&mut retry_writer, token, completion.clone(), 20,)
+            .unwrap(),
+        reliquary_insomnia_store::CompletionCheck::AlreadyAccepted
+    );
+    drop(replayed_session);
+    drop(retry_writer);
+
+    let mut leased_writer = crate::RelWriter::open_path_current(&path.0).unwrap();
+    let checkpoint = rmp_serde::to_vec_named(leased_writer.read_session()).unwrap();
+    let body_bytes = &completion.bodies[0].bytes;
+    assert!(
+        !checkpoint
+            .windows(body_bytes.len())
+            .any(|window| window == body_bytes)
+    );
+    assert_eq!(
+        leased_writer
+            .commit_grouped_insomnia_completion(token, completion, 20)
             .unwrap(),
         reliquary_insomnia_store::CompletionCheck::AlreadyAccepted
     );

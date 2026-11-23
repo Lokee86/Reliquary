@@ -283,8 +283,8 @@ pub fn create_requested_memory_at_cut(
     // An accepted request can replay after the write advanced the cut. The
     // owner still verifies exact draft equality through its mutation index.
     let accepted = read
-        .memory_projection(memory_id(&mutation_id), Some(1))
-        .is_ok_and(|(record, _)| record.mutation_id == mutation_id);
+        .memory_record(memory_id(&mutation_id), Some(1))
+        .is_ok_and(|record| record.mutation_id == mutation_id);
     if !accepted && current != expected {
         return Err(ManagementError::Stale);
     }

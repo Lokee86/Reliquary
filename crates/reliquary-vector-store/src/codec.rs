@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 const FORMAT_MAGIC: &[u8; 8] = b"RELPVFM1";
 const FORMAT_SCHEMA: u32 = 1;
 const OBJECT_MAGIC: &[u8; 8] = b"RELPVEC1";
-const OBJECT_HEADER_LEN: usize = 64;
+pub(crate) const OBJECT_HEADER_LEN: usize = 64;
 const PRUNED_MAGIC: &[u8; 8] = b"RELPVRN1";
 const PRUNED_LEN: usize = 128;
 

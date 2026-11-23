@@ -16,9 +16,9 @@ const TITLE_MAGIC: [u8; 8] = *b"RELTIT01";
 const PRUNED_TURN_MAGIC: [u8; 8] = *b"RELTPR01";
 const MIN_ATTACHMENT_RECORD_LEN: usize = 32 + 32 + 8 + 4 + 1 + 1;
 
-pub(crate) enum Record {
-    Turn(Node, String, Vec<SourceAttachment>),
-    FileBlob(ContentId, Vec<u8>),
+pub(crate) enum Record<'a> {
+    Turn(Node, &'a str, Vec<SourceAttachment>),
+    FileBlob(ContentId, &'a [u8]),
     Branch(Branch),
     Episode(Episode),
     Import(ImportReceipt),
@@ -91,6 +91,14 @@ pub(crate) fn encode_turn(
     content: &str,
     attachments: &[SourceAttachment],
 ) -> Result<Vec<u8>, ArchiveError> {
+    Ok(encode_turn_with_text_location(node, content, attachments)?.0)
+}
+
+pub(crate) fn encode_turn_with_text_location(
+    node: &Node,
+    content: &str,
+    attachments: &[SourceAttachment],
+) -> Result<(Vec<u8>, u64), ArchiveError> {
     let mut out = Vec::new();
     out.extend_from_slice(&TURN_MAGIC);
     out.extend_from_slice(&node.timestamp_ns.to_le_bytes());
@@ -100,6 +108,7 @@ pub(crate) fn encode_turn(
     write_optional_string(&mut out, node.parent_id.as_deref())?;
     write_string(&mut out, &node.role)?;
     write_optional_string(&mut out, node.principal_id.as_deref())?;
+    let content_offset = out.len() as u64 + 4;
     write_string(&mut out, content)?;
     write_u32(&mut out, attachments.len())?;
     for attachment in attachments {
@@ -129,18 +138,19 @@ pub(crate) fn encode_turn(
             out.push(0);
         }
     }
-    Ok(out)
+    Ok((out, content_offset))
 }
 
 pub(crate) fn encode_file_blob(
     content_id: ContentId,
     bytes: &[u8],
-) -> Result<Vec<u8>, ArchiveError> {
+) -> Result<(Vec<u8>, u64), ArchiveError> {
     let mut out = Vec::new();
     out.extend_from_slice(&FILE_MAGIC);
     out.extend_from_slice(&content_id.0);
+    let bytes_offset = out.len() as u64 + 4;
     write_bytes(&mut out, bytes)?;
-    Ok(out)
+    Ok((out, bytes_offset))
 }
 
 pub(crate) fn encode_branch(branch: &Branch) -> Result<Vec<u8>, ArchiveError> {
@@ -187,7 +197,7 @@ pub(crate) fn encode_fragment_definitions(
     Ok(out)
 }
 
-pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<Record>, ArchiveError> {
+pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<Record<'_>>, ArchiveError> {
     if bytes.starts_with(crate::retained::PROJECT_BACKING_PREFIX) {
         return Ok(Some(Record::ProjectBacking(
             crate::retained::decode_project_backing(bytes)?,
@@ -197,7 +207,7 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<Record>, ArchiveError
         return Ok(None);
     };
     if magic == TURN_MAGIC {
-        decode_turn(bytes).map(Some)
+        decode_turn(bytes, 8).map(Some)
     } else if magic == FILE_MAGIC {
         decode_file_blob(bytes).map(Some)
     } else if magic == BRANCH_MAGIC {
@@ -237,9 +247,7 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<Record>, ArchiveError
         if digest == [0; 32] {
             return Err(ArchiveError::CorruptRecord("empty pruned turn proof"));
         }
-        let mut restored = TURN_MAGIC.to_vec();
-        restored.extend_from_slice(&bytes[40..]);
-        let Record::Turn(node, content, attachments) = decode_turn(&restored)? else {
+        let Record::Turn(node, content, attachments) = decode_turn(bytes, 40)? else {
             unreachable!()
         };
         if !content.is_empty() {
@@ -251,8 +259,7 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<Record>, ArchiveError
     }
 }
 
-fn decode_turn(bytes: &[u8]) -> Result<Record, ArchiveError> {
-    let mut cursor = 8;
+fn decode_turn(bytes: &[u8], mut cursor: usize) -> Result<Record<'_>, ArchiveError> {
     let timestamp_ns = i64::from_le_bytes(read_fixed(bytes, &mut cursor, "short turn record")?);
     let content_id = ContentId(read_fixed(bytes, &mut cursor, "short turn content ID")?);
     let id = read_string(bytes, &mut cursor)?;
@@ -260,7 +267,7 @@ fn decode_turn(bytes: &[u8]) -> Result<Record, ArchiveError> {
     let parent_id = read_optional_string(bytes, &mut cursor)?;
     let role = read_string(bytes, &mut cursor)?;
     let principal_id = read_optional_string(bytes, &mut cursor)?;
-    let content = read_string(bytes, &mut cursor)?;
+    let content = read_text(bytes, &mut cursor)?;
     let count = read_u32(bytes, &mut cursor)? as usize;
     if count > bytes.len().saturating_sub(cursor) / MIN_ATTACHMENT_RECORD_LEN {
         return Err(ArchiveError::CorruptRecord("impossible attachment count"));
@@ -358,7 +365,7 @@ fn decode_turn(bytes: &[u8]) -> Result<Record, ArchiveError> {
     ))
 }
 
-fn decode_file_blob(bytes: &[u8]) -> Result<Record, ArchiveError> {
+fn decode_file_blob(bytes: &[u8]) -> Result<Record<'_>, ArchiveError> {
     let mut cursor = 8;
     let content_id = ContentId(read_fixed(bytes, &mut cursor, "short file content ID")?);
     let content = read_bytes(bytes, &mut cursor)?;
@@ -366,7 +373,7 @@ fn decode_file_blob(bytes: &[u8]) -> Result<Record, ArchiveError> {
     Ok(Record::FileBlob(content_id, content))
 }
 
-fn decode_branch(bytes: &[u8]) -> Result<Record, ArchiveError> {
+fn decode_branch(bytes: &[u8]) -> Result<Record<'_>, ArchiveError> {
     let mut cursor = 8;
     let canonical = match read_fixed::<1>(bytes, &mut cursor, "short branch record")?[0] {
         0 => false,
@@ -383,7 +390,7 @@ fn decode_branch(bytes: &[u8]) -> Result<Record, ArchiveError> {
     Ok(Record::Branch(branch))
 }
 
-fn decode_episode(bytes: &[u8]) -> Result<Record, ArchiveError> {
+fn decode_episode(bytes: &[u8]) -> Result<Record<'_>, ArchiveError> {
     let mut cursor = 8;
     let id = EpisodeId(read_fixed(bytes, &mut cursor, "short Episode ID")?);
     let origin =
@@ -457,10 +464,14 @@ fn write_bytes(out: &mut Vec<u8>, value: &[u8]) -> Result<(), ArchiveError> {
 }
 
 fn read_string(bytes: &[u8], cursor: &mut usize) -> Result<String, ArchiveError> {
-    String::from_utf8(read_bytes(bytes, cursor)?).map_err(|_| ArchiveError::InvalidUtf8)
+    read_text(bytes, cursor).map(str::to_owned)
 }
 
-fn read_bytes(bytes: &[u8], cursor: &mut usize) -> Result<Vec<u8>, ArchiveError> {
+fn read_text<'a>(bytes: &'a [u8], cursor: &mut usize) -> Result<&'a str, ArchiveError> {
+    std::str::from_utf8(read_bytes(bytes, cursor)?).map_err(|_| ArchiveError::InvalidUtf8)
+}
+
+fn read_bytes<'a>(bytes: &'a [u8], cursor: &mut usize) -> Result<&'a [u8], ArchiveError> {
     let length = u32::from_le_bytes(read_fixed(bytes, cursor, "missing field length")?) as usize;
     let end = cursor
         .checked_add(length)
@@ -469,7 +480,7 @@ fn read_bytes(bytes: &[u8], cursor: &mut usize) -> Result<Vec<u8>, ArchiveError>
         .get(*cursor..end)
         .ok_or(ArchiveError::CorruptRecord("truncated field"))?;
     *cursor = end;
-    Ok(value.to_vec())
+    Ok(value)
 }
 
 fn read_fixed<const N: usize>(

@@ -43,7 +43,7 @@ pub fn encode_insomnia_memory_creation(record: &MemoryRecord) -> Result<Vec<u8>,
     encode_grouped_creation(record).map_err(|error| error.to_string())
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct GroupedExternalMemoryRef {
     pub owner_id: String,
     pub memory_id: [u8; 32],
@@ -76,7 +76,13 @@ pub struct GroupedInsomniaCompletion {
 
 impl GroupedInsomniaCompletion {
     pub fn encode(&self) -> Result<Vec<u8>, String> {
-        self.encode_layout(None)
+        self.encode_layout(None, None)
+    }
+
+    pub(crate) fn encode_with_body_offsets(&self) -> Result<(Vec<u8>, Vec<u64>), String> {
+        let mut offsets = Vec::with_capacity(self.bodies.len());
+        let payload = self.encode_layout(None, Some(&mut offsets))?;
+        Ok((payload, offsets))
     }
 
     /// Encode a retained current-format completion with an exact optional clock.
@@ -92,10 +98,14 @@ impl GroupedInsomniaCompletion {
         {
             return Err("invalid retained Insomnia layout or clock".into());
         }
-        self.encode_layout(Some(layout))
+        self.encode_layout(Some(layout), None)
     }
 
-    fn encode_layout(&self, retained: Option<u8>) -> Result<Vec<u8>, String> {
+    fn encode_layout(
+        &self,
+        retained: Option<u8>,
+        mut offsets: Option<&mut Vec<u64>>,
+    ) -> Result<Vec<u8>, String> {
         self.validate_structure(retained.is_some())?;
         let count = u32::try_from(self.memory_records.len())
             .map_err(|_| "too many grouped Memory records")?;
@@ -135,6 +145,9 @@ impl GroupedInsomniaCompletion {
         for body in &self.bodies {
             out.extend_from_slice(&body.id.0);
             put_bytes(&mut out, &body.bytes)?;
+            if let Some(offsets) = offsets.as_deref_mut() {
+                offsets.push((out.len() - body.bytes.len()) as u64);
+            }
         }
         let records_count = u32::try_from(self.memory_records.len())
             .map_err(|_| "too many grouped Memory records")?;
@@ -162,6 +175,17 @@ impl GroupedInsomniaCompletion {
     }
 
     pub fn decode(bytes: &[u8]) -> Result<Self, String> {
+        Self::decode_record(bytes, None)
+    }
+
+    /// Capture the validated coordinate of each body in the physical carrier.
+    pub(crate) fn decode_with_body_offsets(bytes: &[u8]) -> Result<(Self, Vec<u64>), String> {
+        let mut offsets = Vec::new();
+        let record = Self::decode_record(bytes, Some(&mut offsets))?;
+        Ok((record, offsets))
+    }
+
+    fn decode_record(bytes: &[u8], mut offsets: Option<&mut Vec<u64>>) -> Result<Self, String> {
         if bytes.len() > MAX_CARRIER_BYTES {
             return Err("grouped completion is too large".into());
         }
@@ -210,10 +234,12 @@ impl GroupedInsomniaCompletion {
         let body_count = r.count()?;
         let mut bodies = Vec::with_capacity(body_count);
         for _ in 0..body_count {
-            bodies.push(GroupedMemoryBody {
-                id: MemoryBodyId(r.array()?),
-                bytes: r.bytes()?,
-            });
+            let id = MemoryBodyId(r.array()?);
+            let bytes = r.bytes()?;
+            if let Some(offsets) = offsets.as_deref_mut() {
+                offsets.push((r.at - bytes.len()) as u64);
+            }
+            bodies.push(GroupedMemoryBody { id, bytes });
         }
         let record_count = r.count()?;
         let mut memory_records = Vec::with_capacity(record_count);

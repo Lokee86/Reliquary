@@ -5,7 +5,7 @@ pub(crate) const MAGIC: &[u8; 8] = b"RELHFRS1";
 const MAX_IMPORT_ID_BYTES: usize = 1024;
 const MAX_RECORDS: usize = 1_000_000;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct HistoricalFreshnessSnapshot {
     pub owner_uuid: [u8; 16],
     pub import_id: String,

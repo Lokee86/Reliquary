@@ -8,7 +8,7 @@ const MAGIC: &[u8; 8] = b"RELDRG01";
 const PREFIX: &[u8; 6] = b"RELDRG";
 const LEN: usize = 8 + 16 + 8 + 2 * (32 + 8 + 32) + 2;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct DreamRelationCut {
     pub owner_id: [u8; 16],
     pub graph_version: u64,
@@ -17,7 +17,7 @@ pub struct DreamRelationCut {
     pub change: RelationChange,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct GroupedDreamRelation(pub DreamRelationCut);
 
 impl GroupedDreamRelation {

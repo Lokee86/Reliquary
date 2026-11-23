@@ -14,12 +14,12 @@ impl Instance {
                     .read_session()
                     .archive_source_attachments(&selector.conversation_id, &selector.source_node_id)
             }) {
-                Ok(attachments) => attachments,
+                Ok(attachments) => attachments?,
                 Err(GatewayError::WriterUnavailable) => {
                     self.reliquary(owner)?.archive_source_attachments(
                         &selector.conversation_id,
                         &selector.source_node_id,
-                    )
+                    )?
                 }
                 Err(error) => return Err(error),
             };

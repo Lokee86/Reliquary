@@ -8,6 +8,7 @@ use std::fmt;
 use std::fs::{File, OpenOptions};
 use std::io::{self, BufRead, BufReader, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, OnceLock};
 use uuid::Uuid;
 
 const MAGIC: [u8; 8] = *b"REL\0\r\n\x1a\n";
@@ -16,25 +17,30 @@ const FRAME_HEADER_LEN: u64 = 8;
 const SCAN_BUFFER_SIZE: usize = 64 * 1024;
 const CURRENT_VERSION: FormatVersion = FormatVersion { major: 2, minor: 1 };
 
+mod checkpoint;
+pub use checkpoint::{CheckpointClock, LeasedContainer, PhysicalCheckpoint, VerifiedPrefix};
 mod grouped_clock;
+mod leased_frame_reader;
+pub use leased_frame_reader::LeasedFrameReader;
+use leased_frame_reader::ReadLease;
 mod publication_envelope;
 pub use publication_envelope::{PublicationEnvelope, decode_publication, replace_publication_body};
 mod version_clock;
 pub use version_clock::PhysicalClock;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FormatVersion {
     pub major: u16,
     pub minor: u16,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum FileKind {
     Reliquary,
     Phylactery,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum ReliquaryScope {
     Unspecified,
     Organization,
@@ -42,7 +48,7 @@ pub enum ReliquaryScope {
     Connection,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ContainerIdentity {
     pub file_kind: FileKind,
     pub scope: ReliquaryScope,
@@ -93,6 +99,7 @@ pub enum ContainerError {
         offset: u64,
         length: u64,
     },
+    InvalidFrameReference,
     RepairRequired {
         valid_end: u64,
     },
@@ -129,6 +136,7 @@ impl fmt::Display for ContainerError {
             Self::InvalidFrameLength { offset, length } => {
                 write!(f, "invalid frame length {length} at {offset}")
             }
+            Self::InvalidFrameReference => f.write_str("indexed frame payload verification failed"),
             Self::RepairRequired { valid_end } => write!(
                 f,
                 "incomplete tail requires explicit repair after {valid_end}"
@@ -175,7 +183,7 @@ fn acquire_exclusive(file: &File) -> Result<(), ContainerError> {
     })
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ObjectRef {
     pub offset: u64,
     pub length: u64,
@@ -219,24 +227,29 @@ struct PositionedFile {
 
 impl Read for PositionedFile {
     fn read(&mut self, output: &mut [u8]) -> io::Result<usize> {
-        #[cfg(unix)]
-        let read = {
-            use std::os::unix::fs::FileExt;
-            self.file.read_at(output, self.offset)?
-        };
-        #[cfg(windows)]
-        let read = {
-            use std::os::windows::fs::FileExt;
-            self.file.seek_read(output, self.offset)?
-        };
-        #[cfg(not(any(unix, windows)))]
-        let read = return Err(io::Error::new(
-            io::ErrorKind::Unsupported,
-            "positional file reads are unsupported on this platform",
-        ));
-
+        let read = read_at(&self.file, self.offset, output)?;
         self.offset += read as u64;
         Ok(read)
+    }
+}
+
+fn read_at(file: &File, offset: u64, output: &mut [u8]) -> io::Result<usize> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::FileExt;
+        file.read_at(output, offset)
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::FileExt;
+        file.seek_read(output, offset)
+    }
+    #[cfg(not(any(unix, windows)))]
+    {
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "positional file reads are unsupported on this platform",
+        ))
     }
 }
 
@@ -314,7 +327,9 @@ pub struct Container {
     mode: Mode,
     lease_token: [u8; 16],
     write_epoch: u64,
+    synced_epoch: u64,
     write_blocked: bool,
+    read_lease: OnceLock<Arc<ReadLease>>,
     next_version: u64,
     transaction_times: BTreeMap<u64, i64>,
     standalone_reservations: BTreeSet<u64>,
@@ -348,7 +363,9 @@ impl Container {
             mode: Mode::Write,
             lease_token: *Uuid::new_v4().as_bytes(),
             write_epoch: 0,
+            synced_epoch: 0,
             write_blocked: false,
+            read_lease: OnceLock::new(),
             next_version: 1,
             transaction_times: BTreeMap::new(),
             standalone_reservations: BTreeSet::new(),
@@ -402,8 +419,7 @@ impl Container {
         owner: Option<[u8; 16]>,
     ) -> Result<Self, ContainerError> {
         let mut container = Self::open_leased(path, mode, kind, owner)?;
-        container.validate_frames()?;
-        container.rebuild_clock()?;
+        container.validate_from_start()?;
         Ok(container)
     }
 
@@ -443,7 +459,9 @@ impl Container {
             mode,
             lease_token: *Uuid::new_v4().as_bytes(),
             write_epoch: 0,
+            synced_epoch: 0,
             write_blocked: false,
+            read_lease: OnceLock::new(),
             next_version: 1,
             transaction_times: BTreeMap::new(),
             standalone_reservations: BTreeSet::new(),
@@ -465,6 +483,11 @@ impl Container {
             token: self.lease_token,
             epoch: self.write_epoch,
         })
+    }
+
+    /// Appends on this handle since the lease was admitted.
+    pub fn append_epoch(&self) -> u64 {
+        self.write_epoch
     }
     pub fn version(&self) -> FormatVersion {
         CURRENT_VERSION
@@ -655,15 +678,19 @@ impl Container {
         if self.mode != Mode::Write {
             return Err(ContainerError::ReadOnly);
         }
-        if self.write_blocked {
+        if self.write_blocked || self.read_lease.get().is_some_and(|lease| lease.is_fenced()) {
             return Err(ContainerError::WriteRecoveryRequired);
         }
         Ok(())
     }
 
-    fn rebuild_clock(&mut self) -> Result<(), ContainerError> {
-        let mut clock = PhysicalClock::default();
-        let mut cursor = self.physical_cursor()?;
+    fn rebuild_clock_from(
+        &mut self,
+        from: u64,
+        extent: u64,
+        mut clock: PhysicalClock,
+    ) -> Result<(), ContainerError> {
+        let mut cursor = self.physical_cursor_at(from, extent)?;
         let mut bytes = Vec::new();
         while cursor.read_frame_into(&mut bytes)?.is_some() {
             clock.observe_frame(&bytes)?;
@@ -678,12 +705,12 @@ impl Container {
     }
 
     pub fn append(&mut self, payload: &[u8]) -> Result<ObjectRef, ContainerError> {
-        if self.mode != Mode::Write {
-            return Err(ContainerError::ReadOnly);
-        }
-        if self.write_blocked {
-            return Err(ContainerError::WriteRecoveryRequired);
-        }
+        let _read_guard = self
+            .read_lease
+            .get()
+            .map(|lease| lease.lock())
+            .transpose()?;
+        self.require_write()?;
         let len = u64::try_from(payload.len()).map_err(|_| ContainerError::InvalidFrameLength {
             offset: 0,
             length: u64::MAX,
@@ -723,16 +750,17 @@ impl Container {
     }
 
     pub fn sync(&mut self) -> Result<(), ContainerError> {
-        if self.mode != Mode::Write {
-            return Err(ContainerError::ReadOnly);
-        }
-        if self.write_blocked {
-            return Err(ContainerError::WriteRecoveryRequired);
-        }
+        let _read_guard = self
+            .read_lease
+            .get()
+            .map(|lease| lease.lock())
+            .transpose()?;
+        self.require_write()?;
         if let Err(error) = self.file.sync_all() {
             self.write_blocked = true;
             return Err(ContainerError::Io(error));
         }
+        self.synced_epoch = self.write_epoch;
         Ok(())
     }
 
@@ -751,32 +779,47 @@ impl Container {
 
     /// Replay frames in physical order using one reusable payload buffer.
     pub fn scan_frames(&self) -> Result<FrameScan<'_>, ContainerError> {
+        self.scan_frames_from(HEADER_LEN)
+    }
+
+    /// Replay from an admitted physical frame boundary, through the current extent.
+    pub fn scan_frames_from(&self, offset: u64) -> Result<FrameScan<'_>, ContainerError> {
         Ok(FrameScan {
-            cursor: self.physical_cursor()?,
+            cursor: self.physical_cursor_at(offset, self.extent()?)?,
             payload: Vec::new(),
         })
     }
 
     pub fn physical_cursor(&self) -> Result<PhysicalCursor<'_>, ContainerError> {
+        self.physical_cursor_from(HEADER_LEN)
+    }
+
+    /// Stream frames from a previously admitted frame boundary.
+    pub fn physical_cursor_from(&self, offset: u64) -> Result<PhysicalCursor<'_>, ContainerError> {
+        self.physical_cursor_at(offset, self.extent()?)
+    }
+
+    fn physical_cursor_at(
+        &self,
+        offset: u64,
+        extent: u64,
+    ) -> Result<PhysicalCursor<'_>, ContainerError> {
+        if !(HEADER_LEN..=extent).contains(&offset) {
+            return Err(ContainerError::InvalidFrameReference);
+        }
+        self.require_extent(extent)?;
         let file = self.file.try_clone()?;
-        let file_len = file.metadata()?.len();
         Ok(PhysicalCursor {
             _container: self,
-            reader: BufReader::with_capacity(
-                SCAN_BUFFER_SIZE,
-                PositionedFile {
-                    file,
-                    offset: HEADER_LEN,
-                },
-            ),
-            next_offset: HEADER_LEN,
-            file_len,
+            reader: BufReader::with_capacity(SCAN_BUFFER_SIZE, PositionedFile { file, offset }),
+            next_offset: offset,
+            file_len: extent,
             done: false,
         })
     }
 
-    fn validate_frames(&self) -> Result<(), ContainerError> {
-        let mut cursor = self.physical_cursor()?;
+    fn validate_frames_from(&self, offset: u64, extent: u64) -> Result<(), ContainerError> {
+        let mut cursor = self.physical_cursor_at(offset, extent)?;
         while let Some(frame) = cursor.next_frame()? {
             drop(frame);
         }
@@ -1052,6 +1095,161 @@ mod tests {
         let frames = c.read_frames().unwrap();
         assert!(frames[0].payload.starts_with(b"RELVERS2"));
         assert!(frames[1].payload.starts_with(b"RELPUB01"));
+    }
+
+    #[test]
+    fn checkpoint_replays_a_bound_reservation_and_group_after_the_cut() {
+        let d = Dir::new();
+        let p = d.0.join("checkpoint.rel");
+        let mut writer = Container::create(&p, rel(), [5; 16]).unwrap();
+        let reserved = writer.reserve_version(Some(-3)).unwrap();
+        let undated = writer.reserve_version(None).unwrap();
+        assert!(matches!(
+            writer.capture_checkpoint(None),
+            Err(ContainerError::WriteRecoveryRequired)
+        ));
+        writer.sync().unwrap();
+        let (checkpoint, _) = writer.capture_checkpoint(None).unwrap();
+        let bound = writer
+            .append_bound_publication_envelope(reserved, b"MEMORY01body")
+            .unwrap();
+        let mut group = vec![0; 84];
+        group[..8].copy_from_slice(b"RELINSC7");
+        group[64..72].copy_from_slice(&3_u64.to_le_bytes());
+        group[72..76].copy_from_slice(&2_u32.to_le_bytes());
+        group[76..84].copy_from_slice(&9_i64.to_le_bytes());
+        writer.append(&group).unwrap();
+        writer
+            .commit_embedded_version_range_at(3, 2, Some(9))
+            .unwrap();
+        writer.sync().unwrap();
+        drop(writer);
+
+        let leased =
+            Container::prepare_checkpoint_open(&p, true, FileKind::Reliquary, Some([5; 16]))
+                .unwrap();
+        let (writer, prefix) = leased.finish(Some(checkpoint.clone())).unwrap();
+        let prefix = prefix.unwrap();
+        assert_eq!(prefix.covered_end(), checkpoint.covered_end);
+        assert!(!writer.has_unbound_version_reservation(reserved));
+        assert_eq!(writer.transaction_time_ns(reserved), Some(-3));
+        assert!(writer.has_unbound_version_reservation(undated));
+        assert_eq!(writer.transaction_time_ns(undated), None);
+        assert_eq!(writer.latest_version(), 4);
+        assert_eq!(writer.transaction_time_ns(4), Some(9));
+        {
+            let mut suffix = writer.scan_frames_from(prefix.covered_end()).unwrap();
+            assert_eq!(suffix.next_frame().unwrap().unwrap().object, bound);
+            assert_eq!(suffix.next_frame().unwrap().unwrap().payload, group);
+            assert!(suffix.next_frame().unwrap().is_none());
+        }
+        let (refreshed, _) = writer.capture_checkpoint(Some(&prefix)).unwrap();
+        drop(writer);
+
+        let cold = Container::open_writer(&p).unwrap();
+        assert_eq!(cold.capture_checkpoint(None).unwrap().0, refreshed);
+        drop(cold);
+        let reader =
+            Container::prepare_checkpoint_open(&p, false, FileKind::Reliquary, None).unwrap();
+        let (reader, prefix) = reader.finish(Some(refreshed)).unwrap();
+        let mut suffix = reader
+            .scan_frames_from(prefix.unwrap().covered_end())
+            .unwrap();
+        assert!(suffix.next_frame().unwrap().is_none());
+    }
+
+    #[test]
+    fn checkpoint_refuses_a_foreign_prefix_and_preserves_explicit_repair() {
+        let d = Dir::new();
+        let p = d.0.join("primary.rel");
+        let foreign = d.0.join("same-owner.rel");
+        let mut writer = Container::create(&p, rel(), [5; 16]).unwrap();
+        let body = writer.append(b"accepted").unwrap();
+        writer.sync().unwrap();
+        let (checkpoint, _) = writer.capture_checkpoint(None).unwrap();
+        drop(writer);
+
+        fs::copy(&p, &foreign).unwrap();
+        let prepare = |path| {
+            Container::prepare_checkpoint_open(path, true, FileKind::Reliquary, Some([5; 16]))
+                .unwrap()
+        };
+        assert!(
+            prepare(&foreign)
+                .finish(Some(checkpoint.clone()))
+                .unwrap()
+                .1
+                .is_none()
+        );
+
+        let mut file = OpenOptions::new().write(true).open(&p).unwrap();
+        let payload_start = body.offset + FRAME_HEADER_LEN;
+        file.seek(SeekFrom::Start(payload_start)).unwrap();
+        file.write_all(b"A").unwrap();
+        file.sync_all().unwrap();
+        assert!(
+            prepare(&p)
+                .finish(Some(checkpoint.clone()))
+                .unwrap()
+                .1
+                .is_none()
+        );
+
+        file.seek(SeekFrom::Start(payload_start)).unwrap();
+        file.write_all(b"a").unwrap();
+        file.seek(SeekFrom::End(0)).unwrap();
+        file.write_all(&[1]).unwrap();
+        file.sync_all().unwrap();
+        drop(file);
+        assert!(matches!(
+            prepare(&p).finish(Some(checkpoint.clone())),
+            Err(ContainerError::RepairRequired { valid_end }) if valid_end == checkpoint.covered_end
+        ));
+
+        let mut repair = Container::open_for_repair(&p, FileKind::Reliquary).unwrap();
+        let plan = repair.plan_tail_repair().unwrap().unwrap();
+        repair.repair_incomplete_tail(plan).unwrap();
+        drop(repair);
+        assert!(prepare(&p).finish(Some(checkpoint)).unwrap().1.is_some());
+    }
+
+    #[test]
+    fn indexed_reads_share_the_lease_and_fence_the_writer_on_damage() {
+        use sha2::{Digest, Sha256};
+
+        let d = Dir::new();
+        let p = d.0.join("indexed.rel");
+        let mut writer = Container::create(&p, rel(), [5; 16]).unwrap();
+        let object = writer.append(b"some old text").unwrap();
+        writer.sync().unwrap();
+        let reader = writer.leased_frame_reader().unwrap();
+        assert_eq!(
+            reader
+                .read_frame_range(object, 5, 3, Sha256::digest(b"old").into())
+                .unwrap(),
+            b"old"
+        );
+        writer.append(b"new text").unwrap();
+        assert_eq!(
+            reader
+                .read_frame(object, Sha256::digest(b"some old text").into())
+                .unwrap(),
+            b"some old text"
+        );
+        assert!(matches!(
+            reader.read_frame(object, [0; 32]),
+            Err(ContainerError::InvalidFrameReference)
+        ));
+        assert!(matches!(
+            writer.append(b"fenced"),
+            Err(ContainerError::WriteRecoveryRequired)
+        ));
+        drop(writer);
+        assert!(matches!(
+            reader.read_frame(object, Sha256::digest(b"some old text").into()),
+            Err(ContainerError::UnstableSnapshot)
+        ));
+        assert!(Container::open_writer(&p).is_ok());
     }
 
     #[test]

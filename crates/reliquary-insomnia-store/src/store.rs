@@ -10,19 +10,25 @@ pub const MAX_RECEIPT_IDS: usize = 100_000;
 pub const MAX_RECEIPT_TEXT_BYTES: usize = 4096;
 pub const MAX_HELD_PAYLOAD_BYTES: usize = 512 * 1024;
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct EpisodeId(pub [u8; 32]);
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct MemoryId(pub [u8; 32]);
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct InsomniaLeaseToken(pub [u8; 32]);
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub enum InsomniaPriority {
     ImmediateLive,
     Live,
     Import,
 }
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum InsomniaWorkState {
     Pending,
     Processing,
@@ -31,19 +37,19 @@ pub enum InsomniaWorkState {
     Terminal,
     Held,
 }
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ExternalMemoryRef {
     pub owner_id: String,
     pub memory_id: MemoryId,
 }
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct AcceptedEpisodeOrder {
     pub episode_id: EpisodeId,
     pub source_through_ns: i64,
     pub conversation_id: String,
     pub start_node_id: String,
 }
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct InsomniaWork {
     pub episode_id: EpisodeId,
     pub priority: InsomniaPriority,
@@ -59,7 +65,7 @@ pub struct InsomniaWork {
     pub updated_at_ns: i64,
     pub revision: u64,
 }
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct AcceptedCompletionState {
     pub episode_id: EpisodeId,
     pub attempt: u32,
@@ -117,6 +123,7 @@ impl From<ContainerError> for InsomniaError {
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct InsomniaStore {
     owner: [u8; 16],
     identity: ContainerIdentity,

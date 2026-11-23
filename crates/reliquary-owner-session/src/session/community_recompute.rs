@@ -54,13 +54,11 @@ impl CommonState {
             .copied()
             .filter(|&id| {
                 let id = MemoryId(id);
-                self.memories.terminal_at_cut(id, cut).is_none()
-                    && self
-                        .memories
-                        .revision_projection(id, None)
-                        .is_ok_and(|(record, body)| {
-                            !record.archived && record.superseded_by.is_none() && body.is_some()
-                        })
+                self.memories.record_at_cut(id, cut).is_some_and(|record| {
+                    !record.archived
+                        && record.superseded_by.is_none()
+                        && self.memories.current_body_available(id)
+                })
             })
             .collect()
     }

@@ -36,9 +36,10 @@ pub(super) fn open_state(
                 .flat_map(|source| {
                     session
                         .archive
-                        .files_for_source(&source.conversation_id, &source.node_id)
+                        .file_content_ids_for_source(&source.conversation_id, &source.node_id)
+                        .collect::<Vec<_>>()
                 })
-                .map(|file| file.content_id.0)
+                .map(|id| id.0)
                 .collect();
             let retained_archive_vectors = session
                 .generations

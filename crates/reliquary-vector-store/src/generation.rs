@@ -171,6 +171,7 @@ pub fn vector_generation_id(
     VectorGenerationId(hash.finalize().into())
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct VectorGenerationStore {
     generations: Vec<VectorGeneration>,
     by_id: HashMap<VectorGenerationId, usize>,

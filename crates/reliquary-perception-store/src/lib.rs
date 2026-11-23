@@ -65,7 +65,7 @@ pub struct EntityDraft {
     pub updated_at_ns: i64,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Entity {
     pub id: EntityId,
     pub revision: u64,
@@ -78,14 +78,14 @@ pub struct Entity {
     pub updated_at_ns: i64,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct EntityTombstone {
     pub id: EntityId,
     pub revision: u64,
     pub perception_version: u64,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct EntityDescriptionPrune {
     pub id: EntityId,
     pub revision: u64,
@@ -93,7 +93,9 @@ pub struct EntityDescriptionPrune {
     pub manifest_digest: [u8; 32],
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub enum MemoryTextField {
     Title,
     Content,
@@ -117,7 +119,9 @@ impl MemoryTextField {
 }
 
 /// Exact foreign Memory mention coordinates. Offsets are byte offsets.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct MemoryEntityMentionKey {
     pub memory_id: [u8; 32],
     pub field: MemoryTextField,
@@ -125,7 +129,7 @@ pub struct MemoryEntityMentionKey {
     pub end_byte: u32,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum EntityResolutionReason {
     ContextMatch,
     ContextConflictNewIdentity,
@@ -190,7 +194,7 @@ impl EntityResolutionReason {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum MemoryEntityResolutionStatus {
     Resolved {
         entity_id: EntityId,
@@ -204,7 +208,7 @@ pub enum MemoryEntityResolutionStatus {
     },
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MemoryEntityResolution {
     pub key: MemoryEntityMentionKey,
     pub revision: u32,
@@ -537,6 +541,7 @@ pub fn redact_entity_description_frame(
 }
 
 /// Per-container canonical entities and exact source-span resolution facts.
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct PerceptionStore {
     owner_id: [u8; 16],
     identity: ContainerIdentity,

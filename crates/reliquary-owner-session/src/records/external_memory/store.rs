@@ -1,5 +1,5 @@
 use super::*;
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ExternalMemoryStore {
     pending: BTreeMap<(String, [u8; 32]), IntentWire>,
     pending_turns: BTreeMap<(String, [u8; 32]), u64>,

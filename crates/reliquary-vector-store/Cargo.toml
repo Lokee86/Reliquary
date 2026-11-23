@@ -8,6 +8,7 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies]
+serde = { version = "1", features = ["derive", "rc"] }
 reliquary-container = { path = "../reliquary-container" }
 lodestone-packed = { git = "https://github.com/Lokee86/lodestone.git", rev = "ba67b28a463b63c65e9dbe1120bd8205f1784cdd" }
 lodestone-core = { git = "https://github.com/Lokee86/lodestone.git", rev = "ba67b28a463b63c65e9dbe1120bd8205f1784cdd" }

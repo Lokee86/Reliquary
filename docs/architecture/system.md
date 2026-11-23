@@ -14,6 +14,8 @@ The workspace has 23 Cargo packages: the `reliquary-memory` root facade and 22 f
 
 The Graph crate pins `leiden-rs` 0.8.1 for deterministic Community calculation. Application uses the immutable owner-session input and the typed writer interface for recompute.
 
+Owner-session uses MessagePack for its private checkpoint projection. The workspace and the separate consumer and migration workspaces pin the codec in their Cargo locks. Native REL and PHY record codecs retain authority over the owner files.
+
 | Responsibility | Packages | Owner boundary |
 | --- | --- | --- |
 | Physical format and durable domain state | `reliquary-container`, `reliquary-archive`, `reliquary-memory-core`, `reliquary-graph`, `reliquary-perception-store`, `reliquary-ego-store`, `reliquary-freshness-store`, `reliquary-insomnia-store`, `reliquary-vector-store` | Container owns framing and physical writes; each domain store owns its records and replay. See [storage](storage.md). |

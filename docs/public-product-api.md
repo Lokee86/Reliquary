@@ -16,6 +16,8 @@ The current owner formats are REL 2.1 and PHY 2.1. `Rel` and `Phylactery` expose
 
 `Gateway::mount_owner_path` admits the selected current owner once and returns its ID. Supply the previously reviewed or registered ID when it is known. Core checks it and the requested file kind on the same leased handle before registering the mount. A detached owner snapshot and a subsequent trusted mount remain independent.
 
+`Rel::read(path, operation)` lends the callback an opaque `RelRead` for metadata, conversation listings, and Memory history. Core holds a shared lease through the callback and can use a verified checkpoint to serve historical payloads on demand. `Rel::open` provides an owned, detached snapshot. `Rel::verify` performs a complete audit.
+
 A trusted host can release a read-only PHY mount through `HostAdmissionControl::detach_read_only_phylactery(owner)` after draining its requests. The operation leaves other mounts available. Host credential revocation and owner selection remain explicit lifecycle steps.
 
 ## Getting started

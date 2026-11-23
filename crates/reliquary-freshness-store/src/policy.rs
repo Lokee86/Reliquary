@@ -3,7 +3,7 @@ pub const FRESHNESS_POLICY_VERSION: u16 = 1;
 pub const FRESHNESS_SCORE_MIN: i16 = -100;
 pub const FRESHNESS_SCORE_MAX: i16 = 100;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FreshnessPolicy {
     pub decay_turns_per_point: u64,
     pub access_principal: i16,

@@ -3,6 +3,7 @@
 use super::*;
 use crate::management_workflow::hex;
 use reliquary_owner_session::model::{MemoryBody, MemoryRecord, NodeRef};
+use std::borrow::Cow;
 
 const MAX_QUERY_BYTES: usize = 4096;
 const MAX_FILTER_BYTES: usize = 128;
@@ -159,7 +160,9 @@ fn project(
         id: hex(&id.0),
         revision,
         body_id: (lifecycle != MemoryListLifecycle::Tombstoned).then(|| hex(&record.body_id.0)),
-        title: body.map(|body| bounded(&body.title, MAX_TITLE_BYTES)),
+        title: body
+            .as_deref()
+            .map(|body| bounded(&body.title, MAX_TITLE_BYTES)),
         excerpt: body.map_or_else(String::new, |body| {
             bounded(&body.content, MAX_EXCERPT_BYTES)
         }),
@@ -173,7 +176,7 @@ fn project(
 
 pub(super) struct MatchingMemory<'a> {
     record: &'a MemoryRecord,
-    pub(super) body: Option<&'a MemoryBody>,
+    pub(super) body: Option<Cow<'a, MemoryBody>>,
     lifecycle: MemoryListLifecycle,
     revision: u64,
 }
@@ -193,18 +196,12 @@ pub(super) fn matching_memory<'a>(
         return Ok(None);
     }
     let tombstone = read.memory_terminal(id, cut);
-    let (record, body) = if tombstone.is_some() {
-        let record = read
-            .memory_revision_records(id, cut)
+    let record = if tombstone.is_some() {
+        read.memory_revision_records(id, cut)
             .and_then(|history| history.last())
-            .ok_or(ManagementError::NotFound)?;
-        (record, None)
+            .ok_or(ManagementError::NotFound)?
     } else {
-        read.memory_projection(id, None)
-            .map_err(|error| match error {
-                MemoryError::MissingMemory => ManagementError::NotFound,
-                error => ManagementError::Owner(error.to_string()),
-            })?
+        read.memory_record(id, None).map_err(memory_error)?
     };
     let lifecycle = if tombstone.is_some() {
         MemoryListLifecycle::Tombstoned
@@ -212,7 +209,7 @@ pub(super) fn matching_memory<'a>(
         MemoryListLifecycle::Superseded
     } else if record.archived {
         MemoryListLifecycle::Retired
-    } else if body.is_none() {
+    } else if !read.memory_is_readable(id) {
         MemoryListLifecycle::Unavailable
     } else {
         MemoryListLifecycle::Active
@@ -226,11 +223,19 @@ pub(super) fn matching_memory<'a>(
             .as_ref()
             .is_some_and(|value| value != &record.memory_type)
         || filters.lifecycle.is_some_and(|value| value != lifecycle)
-        || (!needle.is_empty()
-            && !body.is_some_and(|body| {
-                body.title.to_lowercase().contains(needle)
-                    || body.content.to_lowercase().contains(needle)
-            }))
+    {
+        return Ok(None);
+    }
+    let body = if tombstone.is_some() {
+        None
+    } else {
+        read.memory_projection(id, None).map_err(memory_error)?.1
+    };
+    if !needle.is_empty()
+        && !body.as_deref().is_some_and(|body| {
+            body.title.to_lowercase().contains(needle)
+                || body.content.to_lowercase().contains(needle)
+        })
     {
         return Ok(None);
     }
@@ -240,6 +245,13 @@ pub(super) fn matching_memory<'a>(
         revision: tombstone.map_or(record.revision, |entry| entry.revision),
         lifecycle,
     }))
+}
+
+fn memory_error(error: MemoryError) -> ManagementError {
+    match error {
+        MemoryError::MissingMemory => ManagementError::NotFound,
+        error => ManagementError::Owner(error.to_string()),
+    }
 }
 
 pub(super) fn bounded(value: &str, bytes: usize) -> String {

@@ -31,7 +31,7 @@ pub use host::{context::*, external_source::*, project_source::*};
 pub use maintenance::*;
 pub use management::*;
 pub use native_import::*;
-pub use owner::{OwnerId, OwnerInfo, OwnerKind, OwnerScope, Phylactery, Rel};
+pub use owner::{OwnerId, OwnerInfo, OwnerKind, OwnerScope, Phylactery, Rel, RelRead};
 pub use processing::{
     FreshnessLifecycleState, FreshnessTransition, ImportStage, InsomniaProgress,
     LiveProcessingSelection, LiveStageProgress, MAX_PROCESS_EPISODES, OwnerProcessingJob,

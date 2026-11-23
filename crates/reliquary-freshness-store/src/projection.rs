@@ -1,7 +1,7 @@
 use crate::FreshnessMemoryId;
 use std::collections::BTreeMap;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FreshnessEventProof {
     pub graph_version: u64,
     pub community_generation: Option<u64>,
@@ -21,7 +21,7 @@ impl FreshnessEventProof {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FreshnessEventProvenance {
     pub producer_kind: u8,
     pub source_id: String,
@@ -30,7 +30,7 @@ pub struct FreshnessEventProvenance {
     pub policy_version: u64,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FreshnessEvent {
     pub event_id: String,
     pub accepted_turn: u64,
@@ -46,7 +46,7 @@ pub struct FreshnessEventCut {
     pub event_id_inclusive: Option<String>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FreshnessUseReceipt {
     pub use_id: String,
     pub accepted_turn: u64,

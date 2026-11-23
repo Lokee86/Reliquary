@@ -19,7 +19,8 @@ pub use error::MemoryError;
 pub use model::*;
 pub use store::{
     GroupedManagementEffect, GroupedMemoryInitialPromotion, GroupedMemoryLifecycle,
-    GroupedMemoryReplay, GroupedMemorySupersession, MemoryStore, PreparedMemoryCorrection,
+    GroupedMemoryReplay, GroupedMemorySupersession, MemoryReplayStart, MemoryStore,
+    PreparedMemoryCorrection, RetainedGroupedBody,
 };
 
 /// Encode an immutable retained Memory body after verifying its stable ID.
@@ -93,6 +94,19 @@ pub fn history_change_in_frame(bytes: &[u8]) -> Result<Option<(MemoryId, u64)>, 
     } else {
         Ok(None)
     }
+}
+
+/// Read the identity of a standalone Memory body before its typed replay.
+pub fn body_id_in_frame(bytes: &[u8]) -> Result<Option<MemoryBodyId>, MemoryError> {
+    if !bytes.starts_with(codec::BODY) {
+        return Ok(None);
+    }
+    let id = bytes
+        .get(8..40)
+        .ok_or(MemoryError::Corrupt("body identity"))?;
+    Ok(Some(MemoryBodyId(
+        id.try_into().expect("fixed-size body identity"),
+    )))
 }
 
 #[cfg(test)]

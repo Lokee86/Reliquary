@@ -37,6 +37,7 @@ pub struct PreparedProjectAttachment {
 pub enum ExternalSourceError {
     OwnerMismatch,
     AttachmentUnavailable,
+    ArchiveRead(String),
     NotProjectReference,
     InvalidReference(String),
     SourceTooLarge,
@@ -50,6 +51,9 @@ impl fmt::Display for ExternalSourceError {
         match self {
             Self::OwnerMismatch => f.write_str("project source owner does not match authorization"),
             Self::AttachmentUnavailable => f.write_str("owner Archive attachment is unavailable"),
+            Self::ArchiveRead(error) => {
+                write!(f, "Archive attachment could not be verified: {error}")
+            }
             Self::NotProjectReference => f.write_str("Archive attachment has no project reference"),
             Self::InvalidReference(error) => {
                 write!(f, "invalid Archive project reference: {error}")
@@ -101,6 +105,7 @@ pub fn prepare_project_attachment(
     }
     let attachment: SourceAttachment = rel
         .archive_source_attachments(conversation_id, source_node_id)
+        .map_err(|error| ExternalSourceError::ArchiveRead(error.to_string()))?
         .into_iter()
         .find(|attachment| attachment.id == attachment_id)
         .ok_or(ExternalSourceError::AttachmentUnavailable)?;
@@ -312,7 +317,9 @@ mod tests {
         drop(container);
         let admission = GraphAdmission::for_replay(owner_id, [], [], [], [], []);
         let rel = RelSession::open_path(&rel_path, &admission, [], []).unwrap();
-        let attachments = rel.archive_source_attachments("conversation", "source-turn");
+        let attachments = rel
+            .archive_source_attachments("conversation", "source-turn")
+            .unwrap();
         let external = attachments
             .iter()
             .find(|attachment| attachment.project_reference.is_some())

@@ -38,9 +38,9 @@ impl Archive {
             ));
         }
         if !self
-            .source_attachments
-            .values()
-            .flatten()
+            .turns
+            .iter()
+            .flat_map(|turn| turn.attachments.iter())
             .any(|attachment| {
                 attachment.id == binding.attachment_id
                     && attachment.content_id == binding.content_id

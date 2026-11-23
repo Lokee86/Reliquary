@@ -71,14 +71,14 @@ impl Archive {
             .into_iter()
             .map(|node| {
                 if self
-                    .pruned_nodes
-                    .contains_key(&(node.conversation_id.clone(), node.id.clone()))
+                    .turns
+                    .get(&node.conversation_id, &node.id)
+                    .is_some_and(|turn| turn.prune.is_some())
                 {
                     return Err(ArchiveError::MissingContent);
                 }
-                self.content
-                    .get(&node.content_id)
-                    .map(|text| (node.content_id, Arc::clone(text)))
+                self.read_text(node.content_id)?
+                    .map(|text| (node.content_id, text))
                     .ok_or(ArchiveError::MissingContent)
             })
             .collect()
@@ -107,33 +107,33 @@ impl Archive {
         let mut scanned_bytes = 0usize;
         let mut returned_bytes = 0usize;
         let mut truncated = false;
-        for key in &self.accepted_node_order {
+        for turn in self.turns.iter() {
             if scanned == MAX_EVIDENCE_SEARCH_SCAN {
                 truncated = true;
                 break;
             }
             scanned += 1;
-            let Some(node) = self.nodes.get(key) else {
-                continue;
-            };
+            let node = &turn.node;
             if conversation_id.is_some_and(|id| id != node.conversation_id) {
                 continue;
             }
             if through_timestamp_ns.is_some_and(|cutoff| node.timestamp_ns > cutoff) {
                 continue;
             }
-            let content = self
-                .content
-                .get(&node.content_id)
+            let content_len = self
+                .text_length(node.content_id)
                 .ok_or(ArchiveError::MissingContent)?;
             let next_scan_bytes = scanned_bytes
-                .checked_add(content.len())
+                .checked_add(content_len)
                 .ok_or(ArchiveError::EvidenceLimitExceeded)?;
             if next_scan_bytes > MAX_EVIDENCE_SEARCH_BYTES {
                 truncated = true;
                 break;
             }
             scanned_bytes = next_scan_bytes;
+            let content = self
+                .read_text(node.content_id)?
+                .ok_or(ArchiveError::MissingContent)?;
             if !content.to_lowercase().contains(&query) {
                 continue;
             }
@@ -176,13 +176,16 @@ impl Archive {
         if max_bytes > MAX_EVIDENCE_RESULT_BYTES {
             return Err(ArchiveError::EvidenceLimitExceeded);
         }
-        let content = self
-            .content
-            .get(&node.content_id)
-            .ok_or(ArchiveError::MissingContent)?;
-        if content.len() > max_bytes {
+        if self
+            .text_length(node.content_id)
+            .ok_or(ArchiveError::MissingContent)?
+            > max_bytes
+        {
             return Err(ArchiveError::EvidenceLimitExceeded);
         }
+        let content = self
+            .read_text(node.content_id)?
+            .ok_or(ArchiveError::MissingContent)?;
         Ok(Some(ResolvedTurn {
             node_id: node.id.clone(),
             role: node.role.clone(),
@@ -210,7 +213,7 @@ impl Archive {
             reverse.push(node);
             if node.id == start_node_id {
                 reverse.reverse();
-                validate_evidence_nodes(&reverse, &self.content, max_turns, max_bytes)?;
+                self.validate_evidence_nodes(&reverse, max_turns, max_bytes)?;
                 return Ok(reverse);
             }
             if reverse.len() > max_turns {
@@ -220,31 +223,28 @@ impl Archive {
         }
         Err(ArchiveError::InvalidEpisodeRange)
     }
-}
 
-fn validate_evidence_nodes(
-    nodes: &[&Node],
-    content: &HashMap<ContentId, Arc<String>>,
-    max_turns: usize,
-    max_bytes: usize,
-) -> Result<(), ArchiveError> {
-    if max_turns > MAX_EVIDENCE_TURNS
-        || nodes.len() > max_turns
-        || max_bytes > MAX_EVIDENCE_RESULT_BYTES
-    {
-        return Err(ArchiveError::EvidenceLimitExceeded);
-    }
-    let mut bytes = 0usize;
-    for node in nodes {
-        let text = content
-            .get(&node.content_id)
-            .ok_or(ArchiveError::MissingContent)?;
-        bytes = bytes
-            .checked_add(text.len())
-            .ok_or(ArchiveError::EvidenceLimitExceeded)?;
-        if bytes > max_bytes {
+    fn validate_evidence_nodes(
+        &self,
+        nodes: &[&Node],
+        max_turns: usize,
+        max_bytes: usize,
+    ) -> Result<(), ArchiveError> {
+        if nodes.len() > max_turns {
             return Err(ArchiveError::EvidenceLimitExceeded);
         }
+        let mut bytes = 0usize;
+        for node in nodes {
+            let len = self
+                .text_length(node.content_id)
+                .ok_or(ArchiveError::MissingContent)?;
+            bytes = bytes
+                .checked_add(len)
+                .ok_or(ArchiveError::EvidenceLimitExceeded)?;
+            if bytes > max_bytes {
+                return Err(ArchiveError::EvidenceLimitExceeded);
+            }
+        }
+        Ok(())
     }
-    Ok(())
 }

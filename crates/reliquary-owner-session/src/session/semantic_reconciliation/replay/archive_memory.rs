@@ -14,7 +14,10 @@ pub(super) fn replay_archive(
         let inserted = destination.node(&node.conversation_id, &node.id).is_none();
         let mut attachments = Vec::new();
         let mut project_attachments = Vec::new();
-        for attachment in source.files_for_source(&node.conversation_id, &node.id) {
+        for attachment in source
+            .files_for_source(&node.conversation_id, &node.id)
+            .map_err(conflict)?
+        {
             if let Some(reference) = attachment.project_reference {
                 project_attachments.push(reliquary_archive::ProjectAttachmentInput {
                     filename: attachment.filename,
@@ -43,8 +46,10 @@ pub(super) fn replay_archive(
                     timestamp_ns: node.timestamp_ns,
                     content: source
                         .content_for_node(&node.conversation_id, &node.id)
+                        .map_err(conflict)?
                         .ok_or_else(|| conflict("Archive content is unavailable"))?
-                        .to_owned(),
+                        .as_ref()
+                        .clone(),
                     attachments,
                     project_attachments,
                 },

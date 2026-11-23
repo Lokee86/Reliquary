@@ -3,13 +3,15 @@ use std::collections::BTreeSet;
 
 const MAGIC: &[u8; 8] = b"CVDREAM2";
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(bound(deserialize = "I: serde::Deserialize<'de> + Ord"))]
 pub enum BeginPopulation<I = MemoryId> {
     CompactCut { memory_cut: u64, digest: [u8; 32] },
     ExplicitSet(BTreeSet<I>),
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(bound(deserialize = "I: serde::Deserialize<'de> + Ord"))]
 pub struct BeginRecord<I = MemoryId> {
     pub owner_uuid: [u8; 16],
     pub pass_id: String,

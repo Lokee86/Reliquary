@@ -69,9 +69,28 @@ impl RelSession {
         accepted_episodes: impl IntoIterator<Item = AcceptedEpisodeOrder>,
         dream_admissions: impl IntoIterator<Item = DreamBeginAdmission>,
     ) -> Result<Self, OwnerSessionError> {
+        Self::replay_current(
+            container,
+            graph_admission,
+            accepted_episodes,
+            dream_admissions,
+            false,
+        )
+    }
+
+    fn replay_current(
+        container: &Container,
+        graph_admission: &GraphAdmission,
+        accepted_episodes: impl IntoIterator<Item = AcceptedEpisodeOrder>,
+        dream_admissions: impl IntoIterator<Item = DreamBeginAdmission>,
+        leased: bool,
+    ) -> Result<Self, OwnerSessionError> {
         require_kind(container, FileKind::Reliquary)?;
-        let archive =
-            Archive::open(container).map_err(|e| OwnerSessionError::Record(e.to_string()))?;
+        let archive = if leased {
+            Archive::open_leased(container)
+        } else {
+            Archive::open(container)
+        }?;
         let echo = reliquary_archive::EchoStore::open(container)
             .map_err(|e| OwnerSessionError::Record(e.to_string()))?;
         let accepted_episodes = accepted_episodes.into_iter().collect::<Vec<_>>();
@@ -103,7 +122,7 @@ impl RelSession {
                 start_node_id: episode.start_node_id,
             })
             .collect::<Vec<_>>();
-        let replay = validate_rel_replay_admission(container, &archive)?;
+        let replay = validate_rel_replay_admission(container, &archive, leased)?;
         let grouped_completions = replay.completions;
         let local_owner_id: String = container
             .owner_id()
@@ -120,7 +139,17 @@ impl RelSession {
                 "external Memory reference points to the local REL owner".into(),
             ));
         }
-        let common = open_common(container, graph_admission, dream_admissions, true)?;
+        let mut common = if leased {
+            super::replay::open_common_replaying(
+                container,
+                graph_admission.owner_id().ok_or(GraphError::WrongOwner)?,
+                dream_admissions,
+                true,
+                reliquary_memory_core::MemoryReplayStart::Leased,
+            )?
+        } else {
+            open_common(container, graph_admission, dream_admissions, true)?
+        };
         if archive
             .project_correlations()
             .iter()
@@ -281,6 +310,9 @@ impl RelSession {
             .map_err(OwnerSessionError::Record)?;
         let container_file_identity = container.physical_file_identity()?;
         let writer_lease_proof = container.writer_lease_proof();
+        if leased {
+            common.packed_vectors.bind_read_lease(container)?;
+        }
         Ok(Self {
             owner_id: container.owner_id(),
             rel_dependencies: replay.dependencies,
@@ -298,6 +330,9 @@ impl RelSession {
             external_references,
             external_memories,
             grouped_completions,
+            grouped_completion_reader: leased
+                .then(|| container.leased_frame_reader())
+                .transpose()?,
             native_import_grouped_epochs: replay.import_epochs,
             write_poisoned: false,
             container_identity: container.identity(),
@@ -349,6 +384,33 @@ impl RelSession {
         // populations from the durable semantic owners before admission.
         let owner_identity = GraphAdmission::for_changes(container.owner_id(), [], []);
         Self::open(container, &owner_identity, [], [])
+    }
+
+    pub(super) fn open_leased_current(container: &Container) -> Result<Self, OwnerSessionError> {
+        let owner_identity = GraphAdmission::for_changes(container.owner_id(), [], []);
+        Self::replay_current(container, &owner_identity, [], [], true)
+    }
+
+    /// Use a shared lease solely for the duration of a local read operation.
+    pub fn with_scoped_read<T>(
+        path: impl AsRef<Path>,
+        read: impl FnOnce(&Self) -> T,
+    ) -> Result<T, OwnerSessionError> {
+        let (_lease, session, _) = super::checkpoint::open(path.as_ref(), false, None)?;
+        Ok(read(&session))
+    }
+
+    pub(super) fn bind_checkpoint_reader(
+        &mut self,
+        container: &Container,
+    ) -> Result<(), OwnerSessionError> {
+        self.container_path = canonical_container_path(container)?;
+        self.writer_lease_proof = container.writer_lease_proof();
+        self.archive.bind_read_lease(container)?;
+        self.common.packed_vectors.bind_read_lease(container)?;
+        self.common.memories.bind_checkpoint_reader(container)?;
+        self.grouped_completion_reader = Some(container.leased_frame_reader()?);
+        Ok(())
     }
 
     #[cfg(feature = "d02-observation")]
@@ -414,8 +476,8 @@ impl RelSession {
         &self,
         conversation: &str,
         node: &str,
-    ) -> Vec<reliquary_archive::SourceAttachment> {
-        self.archive.files_for_source(conversation, node)
+    ) -> Result<Vec<reliquary_archive::SourceAttachment>, OwnerSessionError> {
+        Ok(self.archive.files_for_source(conversation, node)?)
     }
     pub fn episode(&self, id: reliquary_archive::EpisodeId) -> Option<&reliquary_archive::Episode> {
         self.archive.episode(id)

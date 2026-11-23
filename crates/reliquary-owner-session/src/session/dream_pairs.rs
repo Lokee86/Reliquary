@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 const MEMORY: &[u8; 8] = b"RELDRM01";
 const PAIR: &[u8; 8] = b"RELDRP02";
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct DreamPairs {
     owner: [u8; 16],
     identity: ContainerIdentity,

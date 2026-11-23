@@ -9,7 +9,7 @@ const PREFIX: &[u8; 6] = b"RELDRF";
 const MAX_PASS_BYTES: usize = 256;
 const FIXED: usize = 8 + 16 + 2 + 32 + 8 + 32 + 8 + 8 + 2 + 1;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct InitialDreamSettlement {
     pub owner: [u8; 16],
     pub pass_id: String,

@@ -1,7 +1,9 @@
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct EgoIdentityId(pub [u8; 16]);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct EgoIdentity {
     pub id: EgoIdentityId,
     pub revision: u64,
@@ -9,7 +11,7 @@ pub struct EgoIdentity {
     pub text: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct EgoPersonality {
     pub revision: u64,
     pub text: String,
@@ -17,10 +19,24 @@ pub struct EgoPersonality {
     pub source_memory_version: u64,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct EgoAnchorId(pub [u8; 16]);
 
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Eq,
+    Hash,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub enum EgoAnchorPriority {
     High,
     #[default]
@@ -28,7 +44,7 @@ pub enum EgoAnchorPriority {
     Low,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct EgoAnchor {
     pub id: EgoAnchorId,
     pub revision: u64,
@@ -36,7 +52,7 @@ pub struct EgoAnchor {
     pub text: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct EgoWebSynthesis {
     pub revision: u64,
     pub source_memory_version: u64,

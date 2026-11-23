@@ -10,7 +10,7 @@ const PREFIX: &[u8; 6] = b"RELDRS";
 const HEADER: usize = 8 + 16 + 8 + 2 * 72 + 8 + 4;
 const MAX_DELTA: usize = 1024 * 1024;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct GroupedDreamSupersession {
     pub(crate) cut: DreamRelationCut,
     pub(crate) updated_at_ns: i64,

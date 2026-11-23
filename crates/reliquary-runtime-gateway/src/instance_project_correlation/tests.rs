@@ -181,6 +181,7 @@ fn project_grant_proofs_gate_native_commit_and_survive_reopen() {
         .with_writable_reliquary(owner, |rel| {
             rel.archive_source_attachments("conversation", "source-turn")
         })
+        .unwrap()
         .unwrap();
     assert_eq!(attachments.len(), 1);
     assert!(attachments[0].bytes.is_empty());

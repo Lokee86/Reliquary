@@ -5,7 +5,7 @@ use super::*;
 const MAGIC: &[u8; 8] = b"RELCMN01";
 pub const MAX_COMMUNITY_NAME_BYTES: usize = 256;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CommunityRename {
     pub request_key: [u8; 32],
     pub cut_digest: [u8; 32],
@@ -15,7 +15,7 @@ pub struct CommunityRename {
     pub name: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CommunityRenameReceipt {
     pub request: CommunityRename,
     pub generation: u64,
@@ -28,7 +28,7 @@ impl CommunityRenameReceipt {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub(super) struct CommunityNames {
     names: BTreeMap<CommunityId, String>,
     requests: BTreeMap<[u8; 32], usize>,

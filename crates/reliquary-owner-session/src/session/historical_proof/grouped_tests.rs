@@ -1,4 +1,5 @@
 use super::*;
+use crate::session::grouped_completion::StoredGroupedCompletion;
 use reliquary_memory_core::{MemoryBodyId, MemoryRecord, memory_id};
 
 fn record(version: u64, mutation: &str) -> Vec<u8> {
@@ -53,7 +54,8 @@ fn grouped_memory_publication_has_no_queryable_interior_cut() {
         freshness_policy_version: None,
         freshness_birth_memory_ids: vec![],
     };
-    let completions = [((WorkEpisodeId([3; 32]), 1), completion)]
+    let stored = StoredGroupedCompletion::from_admitted(completion, None).unwrap();
+    let completions = [((WorkEpisodeId([3; 32]), 1), stored)]
         .into_iter()
         .collect();
     assert!(validate_grouped_memory_cut(&completions, 6).is_ok());

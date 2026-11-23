@@ -6,7 +6,7 @@ use std::collections::BTreeSet;
 pub(super) const MAX_PRINCIPAL_BYTES: usize = 512;
 pub(super) const MAX_NAMESPACE_BYTES: usize = 512;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ExternalReferenceSnapshotManifest {
     pub namespace: String,
     pub contract_version: u32,
@@ -81,7 +81,7 @@ impl ExternalReferenceSnapshotManifest {
 /// Opaque durable receipt that a caller-bound host manifest was recorded for
 /// one REL. It makes no claim that a Memory was created or that source text
 /// was copied into the owner.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ExternalReferenceSnapshotReceipt {
     pub(super) owner_id: [u8; 16],
     pub(super) authorizing_principal: String,

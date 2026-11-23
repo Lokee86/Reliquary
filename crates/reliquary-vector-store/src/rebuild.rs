@@ -46,6 +46,7 @@ impl PackedVectorOpenState {
             chunk,
             decoded.bytes.to_vec(),
         )?;
+        self.store.retain_locator(decoded.id, payload);
         Ok(())
     }
 

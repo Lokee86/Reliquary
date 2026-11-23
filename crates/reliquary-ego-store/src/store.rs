@@ -10,7 +10,7 @@ use std::fmt;
 
 const RECORD_MAGIC: &[u8; 8] = b"RELEGO01";
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum EgoOwnerKind {
     Reliquary,
     Phylactery,
@@ -76,7 +76,7 @@ impl From<ContainerError> for EgoError {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 enum EgoRecord {
     Identity {
         version: u64,
@@ -263,6 +263,7 @@ impl EgoRecord {
 ///
 /// Identity and Personality are private PHY facts. Anchors are owner-local and
 /// may be stored in either owner. Ego inference and synthesis are not performed.
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct EgoStore {
     owner_kind: EgoOwnerKind,
     owner_id: Option<[u8; 16]>,

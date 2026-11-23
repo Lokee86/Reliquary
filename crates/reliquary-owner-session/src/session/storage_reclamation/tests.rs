@@ -167,7 +167,10 @@ fn referenced_archive_file_is_retained_in_an_exact_noop_copy() {
     assert_eq!(fs::read(&destination.0).unwrap(), before);
     let reopened = RelSession::open_path(&destination.0, &admission, [], []).unwrap();
     assert_eq!(
-        reopened.archive_source_attachments("conversation", "turn")[0].bytes,
+        reopened
+            .archive_source_attachments("conversation", "turn")
+            .unwrap()[0]
+            .bytes,
         attachment
     );
 }

@@ -1,9 +1,13 @@
 use sha2::{Digest, Sha256};
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct MemoryId(pub [u8; 32]);
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct MemoryBodyId(pub [u8; 32]);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -12,7 +16,7 @@ pub struct MemoryRevisionId {
     pub revision: u64,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MemorySourceRef {
     pub owner_id: String,
     pub principal_id: Option<String>,
@@ -24,7 +28,7 @@ pub struct MemorySourceRef {
     pub grounding_source_node_id: Option<String>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum TemporalIndicationKind {
     Explicit,
     Calendar,
@@ -34,7 +38,7 @@ pub enum TemporalIndicationKind {
     Duration,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TemporalInferenceResolution {
     pub start_byte: usize,
     pub end_byte: usize,
@@ -43,14 +47,14 @@ pub struct TemporalInferenceResolution {
     pub canonical_expression: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TemporalInference {
     pub model: String,
     pub contract_version: String,
     pub resolutions: Vec<TemporalInferenceResolution>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MemoryTemporalInference {
     pub body_id: MemoryBodyId,
     pub source_time_ns: Option<i64>,
@@ -84,13 +88,13 @@ pub struct MemoryDraft {
     pub updated_at_ns: i64,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MemoryBody {
     pub title: String,
     pub content: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MemoryRecord {
     pub id: MemoryId,
     pub revision: u64,
@@ -131,7 +135,7 @@ pub struct MemoryRevision {
     pub payload: PayloadState,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TerminalTombstone {
     pub revision: u64,
     pub memory_version: u64,
