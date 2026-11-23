@@ -24,10 +24,7 @@ pub(super) fn source_memory(
     if memory.record.revision != revision || memory.record.body_id != body_id {
         return Err(OwnerSessionError::ManagementStale);
     }
-    if memory.record.source_ref.as_ref().is_none_or(|source| {
-        source.owner_id.trim().is_empty() || source.source_node_id.trim().is_empty()
-    }) || memory.record.authority_kind != "direct"
-    {
+    if !has_direct_source(&memory.record) {
         return Err(OwnerSessionError::ManagementEvidence);
     }
     let PayloadState::Available(body) = &memory.payload else {
@@ -35,17 +32,31 @@ pub(super) fn source_memory(
             "semantic source Memory body is unavailable".into(),
         ));
     };
-    let text = match field {
-        MemoryTextField::Title => &body.title,
-        MemoryTextField::Content => &body.content,
-    };
+    let text = text_field(body, field);
     if quote.trim().is_empty() || text.get(start_byte..end_byte) != Some(quote) {
         return Err(OwnerSessionError::ManagementEvidence);
     }
     Ok(memory)
 }
 
-pub(super) fn contains_normalized(haystack: &str, needle: &str) -> bool {
+pub(in crate::session) fn has_direct_source(record: &reliquary_memory_core::MemoryRecord) -> bool {
+    record.authority_kind == "direct"
+        && record.source_ref.as_ref().is_some_and(|source| {
+            !source.owner_id.trim().is_empty() && !source.source_node_id.trim().is_empty()
+        })
+}
+
+pub(in crate::session) fn text_field(
+    body: &reliquary_memory_core::MemoryBody,
+    field: MemoryTextField,
+) -> &str {
+    match field {
+        MemoryTextField::Title => &body.title,
+        MemoryTextField::Content => &body.content,
+    }
+}
+
+pub(in crate::session) fn contains_normalized(haystack: &str, needle: &str) -> bool {
     let normalize = |value: &str| {
         value
             .split(|ch: char| !ch.is_alphanumeric())

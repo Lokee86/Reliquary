@@ -733,6 +733,10 @@ impl MemoryStore {
         self.pruned_bodies.extend(bodies);
     }
 
+    pub fn pruned_body_count(&self) -> usize {
+        self.pruned_bodies.len()
+    }
+
     fn require_unpruned_body(&self, id: MemoryBodyId) -> Result<(), MemoryError> {
         if self.pruned_bodies.contains(&id) {
             return Err(MemoryError::Corrupt("Memory body was terminally pruned"));

@@ -10,6 +10,7 @@ use std::collections::BTreeMap;
 use std::fmt;
 
 pub mod identity;
+pub mod identity_evidence;
 mod retained_resolution;
 pub use retained_resolution::{
     RetainedResolutionDecision, RetainedResolutionRecord, RetainedResolutionRevision,
@@ -574,6 +575,8 @@ pub struct PerceptionStore {
     entity_tombstones: BTreeMap<EntityId, EntityTombstone>,
     pruned_descriptions: BTreeMap<(EntityId, u64), EntityDescriptionPrune>,
     relationships: BTreeMap<RelationshipId, Relationship>,
+    #[serde(skip)]
+    local_relationship_participants: std::sync::OnceLock<BTreeMap<EntityId, Vec<RelationshipId>>>,
     relationship_history: BTreeMap<(RelationshipId, u64), Relationship>,
     relationship_versions: BTreeMap<(RelationshipId, u64), u64>,
     relationship_mutations: BTreeMap<String, (RelationshipId, u64)>,
@@ -600,6 +603,7 @@ impl PerceptionStore {
             entity_tombstones: BTreeMap::new(),
             pruned_descriptions: BTreeMap::new(),
             relationships: BTreeMap::new(),
+            local_relationship_participants: Default::default(),
             relationship_history: BTreeMap::new(),
             relationship_versions: BTreeMap::new(),
             relationship_mutations: BTreeMap::new(),

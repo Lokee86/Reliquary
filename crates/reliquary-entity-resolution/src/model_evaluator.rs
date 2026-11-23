@@ -7,7 +7,14 @@ use reliquary_switchboard::{DecisionEndpoint, GeneralEndpoint, GeneralEndpointEr
 use serde_json::{Value, json};
 use std::sync::Arc;
 
-pub const MAX_ENTITY_MODEL_INPUT_BYTES: usize = 16 * 1024;
+pub use reliquary_perception_store::identity_evidence::MAX_ENTITY_MODEL_INPUT_BYTES;
+
+#[path = "identity_evaluator.rs"]
+mod identity_evaluator;
+pub use identity_evaluator::{
+    IDENTITY_COMPARISON_POLICY, deterministic_identity_judgment, entity_identity_model_schema,
+    evaluate_identity_pair,
+};
 pub const ENTITY_RESOLUTION_SYSTEM_PROMPT: &str = "Resolve the exact supplied Memory mention against only the supplied candidates. Candidate similarity is not proof of identity. Return resolve_existing only for the same referent, create_new only for a distinct durable referent, unresolved when uncertain, and reject transient or non-entity mentions. Keep identity_relation and mention_kind explicit.";
 pub const ENTITY_ADMISSION_SYSTEM_PROMPT: &str = "Decide whether this exact Memory mention is a continuing durable Entity. Reject generic, transient, historical, sentence-local, and wrapper-category mentions. Fine-grained implementation artifacts require recurrence evidence from another Memory. For create_new return a narrow kind and source-grounded stable identity summary; otherwise use kind unknown and an empty summary.";
 

@@ -108,6 +108,7 @@ impl PerceptionStore {
                     .insert((value.id, value.revision), value);
             }
         }
+        self.local_relationship_participants.take();
         Ok(())
     }
 }

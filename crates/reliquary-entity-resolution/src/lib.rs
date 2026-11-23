@@ -14,8 +14,9 @@ mod model_evaluator;
 pub use model_evaluator::{
     AdmissionDecision, ENTITY_ADMISSION_SYSTEM_PROMPT, ENTITY_RESOLUTION_SYSTEM_PROMPT,
     EntityAdmissionMaterialization, EntityAdmissionOutcome, EntityModelEvaluator,
-    EntityResolverError, MAX_ENTITY_MODEL_INPUT_BYTES, entity_admission_model_schema,
-    entity_resolution_model_schema,
+    EntityResolverError, IDENTITY_COMPARISON_POLICY, MAX_ENTITY_MODEL_INPUT_BYTES,
+    deterministic_identity_judgment, entity_admission_model_schema, entity_identity_model_schema,
+    entity_resolution_model_schema, evaluate_identity_pair,
 };
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]

@@ -16,6 +16,39 @@ impl PerceptionStore {
     pub fn relationships(&self) -> impl Iterator<Item = &Relationship> {
         self.relationships.values()
     }
+    /// Active incident Relationship candidates in ID order. Participant ownership
+    /// matters even when two owners use the same Entity ID bytes.
+    pub fn relationships_for_local_participant(
+        &self,
+        entity: EntityId,
+    ) -> impl Iterator<Item = &Relationship> {
+        let participants = self.local_relationship_participants.get_or_init(|| {
+            let owner: String = self
+                .owner_id
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect();
+            let mut participants = BTreeMap::<EntityId, Vec<RelationshipId>>::new();
+            for relationship in self.relationships.values() {
+                for participant in &relationship.participants {
+                    if participant.entity.owner_id == owner {
+                        let relationships = participants
+                            .entry(participant.entity.entity_id)
+                            .or_default();
+                        if relationships.last() != Some(&relationship.id) {
+                            relationships.push(relationship.id);
+                        }
+                    }
+                }
+            }
+            participants
+        });
+        participants
+            .get(&entity)
+            .into_iter()
+            .flatten()
+            .filter_map(|id| self.relationships.get(id))
+    }
     pub fn historical_relationships(&self) -> impl Iterator<Item = RelationshipId> + '_ {
         self.relationship_tombstones.keys().copied()
     }
@@ -24,7 +57,7 @@ impl PerceptionStore {
     }
     pub fn relationship_description_prunes(
         &self,
-    ) -> impl Iterator<Item = RelationshipDescriptionPrune> + '_ {
+    ) -> impl ExactSizeIterator<Item = RelationshipDescriptionPrune> + '_ {
         self.pruned_relationship_descriptions.values().copied()
     }
     pub fn relationship_description_prune(

@@ -1001,6 +1001,7 @@ mod freshness_use;
 #[path = "session/gm_parity_regressions.rs"]
 mod gm_parity_regressions;
 mod historical_proof;
+mod identity_evidence;
 pub(crate) mod identity_receipt;
 mod maintenance_prune;
 mod perception_lifecycle;
