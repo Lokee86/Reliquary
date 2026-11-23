@@ -1,7 +1,7 @@
 //! Hybrid ranking over one owner-qualified Archive generation.
 use reliquary_owner_session::{ArchiveHybridView, model::CompatibilityProfileId};
 use reliquary_retrieval::{
-    RetrievalConfig, combine_hybrid_scores, lexical_score, lexical_terms,
+    RetrievalConfig, combine_hybrid_scores, lexical_score_from_counts, lexical_terms,
     semantic_scoring::{cosine_f32_row, vector_norm},
     validate_hybrid_request,
 };
@@ -49,26 +49,19 @@ pub fn rank_archive_hybrid(
         return Err("Archive query dimensions differ from the profile".into());
     }
     let terms = lexical_terms(text);
+    let lexical_counts = view
+        .lexical_counts(&terms)
+        .map_err(|error| error.to_string())?;
+    let fragments = view.fragments();
     let mut ranked = Vec::new();
-    let mut fragments_with_text = 0;
-    for (ordinal, source) in view.sources.iter().enumerate() {
+    for (ordinal, counts) in lexical_counts.into_iter().enumerate() {
         let row = view
             .packed_row(ordinal)
             .ok_or("missing Archive vector row")?;
         let semantic = cosine_f32_row(row, query, query_norm)?
             .ok_or("zero Archive vector row")?
             .clamp(-1.0, 1.0);
-        let lexical = if let Some(turns) = &source.text {
-            fragments_with_text += 1;
-            if terms.is_empty() {
-                0.0
-            } else {
-                let contents: Vec<_> = turns.iter().map(|turn| turn.as_str()).collect();
-                lexical_score(&contents.join("\n"), &terms)
-            }
-        } else {
-            0.0
-        };
+        let lexical = lexical_score_from_counts(terms.len(), counts);
         let combined = combine_hybrid_scores(lexical, semantic, weights);
         if combined > 0.0 {
             ranked.push(ScoredFragment {
@@ -94,7 +87,7 @@ pub fn rank_archive_hybrid(
     let hits = ranked
         .into_iter()
         .map(|hit| {
-            let fragment = &view.sources[hit.ordinal].fragment;
+            let fragment = &fragments[hit.ordinal];
             ArchiveHybridHit {
                 fragment_id: fragment.id.0,
                 ordinal: hit.ordinal,
@@ -111,8 +104,8 @@ pub fn rank_archive_hybrid(
         profile_id: view.generation.compatibility_profile_id,
         generation_id: view.generation.id.0,
         source_archive_version: view.generation.source_archive_version,
-        fragments_scored: view.sources.len(),
-        fragments_with_text,
+        fragments_scored: fragments.len(),
+        fragments_with_text: view.fragments_with_text(),
         truncated,
         hits,
     })

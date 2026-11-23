@@ -2,6 +2,10 @@ use super::*;
 use reliquary_vector_store::{ArchiveFragmentId, PackedVectorView};
 use std::sync::Arc;
 
+mod archive_hybrid;
+pub(super) use archive_hybrid::ArchiveHybridCache;
+pub use archive_hybrid::ArchiveHybridView;
+
 /// One exact cosine match from an accepted Archive vector generation.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ArchiveVectorHit {
@@ -25,26 +29,6 @@ pub struct ArchiveVectorView {
     dimensions: usize,
     fragments: Arc<[ArchiveFragmentId]>,
     vectors: PackedVectorView,
-}
-
-/// One accepted Archive fragment and its readable text at capture.
-pub struct ArchiveHybridSource {
-    pub fragment: reliquary_archive::Fragment,
-    pub text: Option<Vec<Arc<String>>>,
-}
-
-/// Paired lexical and semantic inputs from one accepted Archive vector generation.
-pub struct ArchiveHybridView {
-    pub generation: VectorGeneration,
-    pub dimensions: usize,
-    pub sources: Vec<ArchiveHybridSource>,
-    vectors: PackedVectorView,
-}
-
-impl ArchiveHybridView {
-    pub fn packed_row(&self, ordinal: usize) -> Option<&[u8]> {
-        self.vectors.row(ordinal)
-    }
 }
 
 impl ArchiveVectorView {
@@ -296,6 +280,7 @@ impl RelSession {
             imports,
             archive_vectors,
             generations,
+            archive_hybrid_cache: ArchiveHybridCache::default(),
             external_index,
             external_references,
             external_memories,
@@ -502,51 +487,6 @@ impl RelSession {
             dimensions: profile.dimensions as usize,
             fragments,
             vectors: self.common.packed_vectors.view(packed_id)?,
-        }))
-    }
-
-    /// Pin the accepted fragment text alongside the active packed matrix.
-    pub fn archive_hybrid_view(
-        &self,
-        profile_id: CompatibilityProfileId,
-    ) -> Result<Option<ArchiveHybridView>, OwnerSessionError> {
-        let Some(view) = self.archive_vector_view(profile_id)? else {
-            return Ok(None);
-        };
-        let sources = view
-            .fragments
-            .iter()
-            .map(|id| {
-                let (fragment, _) = self
-                    .archive
-                    .fragment_vector_source(
-                        reliquary_archive::FragmentId(id.0),
-                        view.generation.source_archive_version,
-                    )
-                    .ok_or_else(|| {
-                        OwnerSessionError::Record(
-                            "active Archive vector has no fragment at its source cut".into(),
-                        )
-                    })?;
-                let text = match self.archive.bounded_fragment_text(fragment) {
-                    Ok(text) => Some(text),
-                    Err(
-                        reliquary_archive::ArchiveError::MissingContent
-                        | reliquary_archive::ArchiveError::EvidenceLimitExceeded,
-                    ) => None,
-                    Err(error) => return Err(error.into()),
-                };
-                Ok(ArchiveHybridSource {
-                    fragment: fragment.clone(),
-                    text,
-                })
-            })
-            .collect::<Result<Vec<_>, OwnerSessionError>>()?;
-        Ok(Some(ArchiveHybridView {
-            generation: view.generation,
-            dimensions: view.dimensions,
-            sources,
-            vectors: view.vectors,
         }))
     }
 

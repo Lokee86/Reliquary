@@ -285,6 +285,101 @@ fn retired_profile_prune_refuses_shared_active_backing() {
 }
 
 #[test]
+fn archive_lexical_snapshot_follows_activation_and_pinned_readers_keep_their_cut() {
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".test-tmp");
+    fs::create_dir_all(&dir).unwrap();
+    let source = dir.join(format!(
+        "archive-lexical-activation-{}.rel",
+        std::process::id()
+    ));
+    let owner = [188; 16];
+    let mut writer = RelWriter::create_path(&source, ReliquaryScope::Project, owner).unwrap();
+    let profile = writer.publish_compatibility_profile(profile()).unwrap();
+    let accept = |writer: &mut RelWriter, conversation: &str, content: &str, timestamp_ns| {
+        writer
+            .accept_turn_and_advance_branch(
+                reliquary_archive::TurnInput {
+                    id: "turn-1".into(),
+                    conversation_id: conversation.into(),
+                    parent_id: None,
+                    role: "user".into(),
+                    principal_id: None,
+                    timestamp_ns,
+                    content: content.into(),
+                    attachments: Vec::new(),
+                    project_attachments: Vec::new(),
+                },
+                reliquary_archive::Branch {
+                    id: "main".into(),
+                    conversation_id: conversation.into(),
+                    leaf_node_id: "turn-1".into(),
+                    canonical: true,
+                },
+            )
+            .unwrap();
+    };
+    let publish = |writer: &mut RelWriter| {
+        let input = writer.archive_vector_input(profile).unwrap();
+        let rows = input
+            .sources()
+            .iter()
+            .map(|source| ArchiveVectorRow {
+                fragment_id: source.fragment_id,
+                max_archive_version: source.max_archive_version,
+                vector: vec![1.0, 0.0],
+            })
+            .collect::<Vec<_>>();
+        writer
+            .publish_archive_vector_batch(owner, profile, input.source_archive_version(), &rows)
+            .unwrap()
+            .unwrap()
+    };
+
+    accept(&mut writer, "first", "quasar quasar", 1);
+    let first = publish(&mut writer);
+    let pinned = writer
+        .read_session()
+        .archive_hybrid_view(profile)
+        .unwrap()
+        .unwrap();
+    let quasar = reliquary_archive::lexical_terms("quasar");
+    let pulsar = reliquary_archive::lexical_terms("pulsar");
+    assert_eq!(pinned.lexical_counts(&quasar).unwrap()[0].frequency, 2);
+
+    accept(&mut writer, "second", "pulsar", 2);
+    let unactivated = writer
+        .read_session()
+        .archive_hybrid_view(profile)
+        .unwrap()
+        .unwrap();
+    assert_eq!(unactivated.generation, first);
+    assert_eq!(unactivated.lexical_counts(&pulsar).unwrap()[0].frequency, 0);
+
+    let activated = publish(&mut writer);
+    assert_ne!(first.id, activated.id);
+    let current = writer
+        .read_session()
+        .archive_hybrid_view(profile)
+        .unwrap()
+        .unwrap();
+    assert_eq!(current.generation, activated);
+    assert_eq!(current.fragments_with_text(), 2);
+    let counts = current.lexical_counts(&pulsar).unwrap();
+    for (fragment, counts) in current.fragments().iter().zip(counts) {
+        assert_eq!(
+            counts.frequency,
+            usize::from(fragment.conversation_id == "second")
+        );
+    }
+    drop(writer);
+    assert_eq!(pinned.generation, first);
+    assert_eq!(pinned.fragments_with_text(), 1);
+    assert_eq!(pinned.lexical_counts(&quasar).unwrap()[0].frequency, 2);
+    assert_eq!(pinned.lexical_counts(&pulsar).unwrap()[0].frequency, 0);
+    fs::remove_file(source).unwrap();
+}
+
+#[test]
 fn retired_profile_prune_preserves_rel_generation_receipts() {
     use crate::{
         VerifiedOwnerCopyPlan, execute_profile_repair, plan_profile_repair,

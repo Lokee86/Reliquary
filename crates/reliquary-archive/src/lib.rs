@@ -9,6 +9,7 @@ mod echo_codec;
 mod echo_model;
 mod echo_store;
 mod fragment;
+mod lexical;
 mod model;
 mod publication;
 mod retained;
@@ -26,6 +27,10 @@ pub use echo_model::{EchoError, EchoEvent, EchoEventKind};
 pub use echo_store::EchoStore;
 pub use fragment::{
     Fragment, FragmentConfig, FragmentDefinition, FragmentId, fragment_id, path_fragment_windows,
+};
+pub use lexical::{
+    FragmentLexicalIndex, FragmentLexicalIndexStats, LEXICAL_FREQUENCY_CAP, LexicalMatchCounts,
+    lexical_terms,
 };
 pub use model::{
     AcceptedTurnSource, ArchiveError, ArchiveHistorySnapshot, ArchivePublicationBinding,

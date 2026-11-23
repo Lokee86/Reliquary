@@ -41,6 +41,7 @@ fn archive_search_matches_reference_and_reopens() {
     use reliquary_vector_store::{
         ArchiveVectorStore, CompatibilityProfileStore, PackedVectorStore, VectorGenerationStore,
     };
+    use std::collections::HashSet;
 
     const K: usize = 10;
     const QUERIES: usize = 20;
@@ -162,35 +163,74 @@ fn archive_search_matches_reference_and_reopens() {
         })
         .collect::<Vec<_>>();
 
-    // Use an accepted term and two existing embeddings for a full hybrid reference scan.
-    let terms: Vec<_> = [0, sources.len() / 2]
-        .into_iter()
-        .map(|offset| {
-            sources[offset..]
-                .iter()
-                .chain(&sources[..offset])
-                .filter_map(|(_, text)| text.as_deref())
-                .flat_map(reliquary_retrieval::lexical_terms)
-                .find(|term| term.len() >= 8)
-                .expect("Archive fixture has readable keyword text")
-        })
-        .collect();
-    let expected_hybrid: Vec<_> = terms
+    // Pair each benchmark vector with up to 12 terms from its source fragment.
+    let query_terms = |text: &str| {
+        reliquary_retrieval::lexical_terms(text)
+            .into_iter()
+            .filter(|term| term.len() <= 32)
+            .take(12)
+            .collect::<Vec<_>>()
+    };
+    let fallback = sources
         .iter()
-        .zip([queries[0], queries[QUERIES - 1]])
-        .map(|(term, vector)| {
+        .filter_map(|(_, text)| text.as_deref())
+        .map(query_terms)
+        .find(|terms| !terms.is_empty())
+        .expect("Archive fixture has readable keyword text");
+    let hybrid_queries = sources[sources.len() - QUERIES..]
+        .iter()
+        .map(|(_, text)| {
+            let terms = text.as_deref().map(query_terms).unwrap_or_default();
+            if terms.is_empty() {
+                fallback.clone()
+            } else {
+                terms
+            }
+        })
+        .collect::<Vec<_>>();
+    let query_text = hybrid_queries
+        .iter()
+        .map(|terms| terms.join(" "))
+        .collect::<Vec<_>>();
+
+    // The full scan uses the pre-index whole-word and substring rules.
+    let lexical_sources = sources
+        .iter()
+        .map(|(_, text)| {
+            text.as_ref().map(|text| {
+                let words = text
+                    .split(|ch: char| !ch.is_alphanumeric())
+                    .filter(|word| !word.is_empty())
+                    .map(str::to_lowercase)
+                    .collect::<HashSet<_>>();
+                (words, text.to_lowercase())
+            })
+        })
+        .collect::<Vec<_>>();
+    let expected_hybrid: Vec<_> = hybrid_queries
+        .iter()
+        .zip(queries)
+        .map(|(terms, vector)| {
             let query_norm = dot(vector, vector).sqrt();
-            let mut hits = sources
+            let mut hits = lexical_sources
                 .iter()
                 .zip(rows.iter().zip(&norms))
                 .enumerate()
-                .filter_map(|(ordinal, ((_, text), (row, norm)))| {
-                    let lexical = text.as_ref().and_then(|text| {
-                        let has_word = text
-                            .split(|ch: char| !ch.is_alphanumeric())
-                            .any(|word| word.to_lowercase() == *term);
-                        let count = text.to_lowercase().matches(term).take(4).count();
-                        (has_word && count > 0).then(|| 0.85 + 0.15 * (count as f64 / 2.0).min(1.0))
+                .filter_map(|(ordinal, (text, (row, norm)))| {
+                    let lexical = text.as_ref().and_then(|(words, lower)| {
+                        let counts = terms
+                            .iter()
+                            .filter(|term| words.contains(*term))
+                            .map(|term| lower.matches(term).take(4).count());
+                        let (matched, frequency) =
+                            counts.fold((0, 0), |(matched, frequency), count| {
+                                (matched + usize::from(count > 0), frequency + count)
+                            });
+                        (matched > 0).then(|| {
+                            let coverage = matched as f64 / terms.len() as f64;
+                            let density = (frequency as f64 / (terms.len() * 2) as f64).min(1.0);
+                            0.85 * coverage + 0.15 * density
+                        })
                     });
                     let cosine = (dot(row, vector) / (norm * query_norm)).clamp(-1.0, 1.0);
                     let semantic = (cosine > 0.0).then_some(cosine);
@@ -250,11 +290,7 @@ fn archive_search_matches_reference_and_reopens() {
                 first.push(actual);
             }
         }
-        for (i, (text, vector)) in terms
-            .iter()
-            .zip([queries[0], queries[QUERIES - 1]])
-            .enumerate()
-        {
+        for (i, (text, vector)) in query_text.iter().zip(queries).enumerate() {
             let actual = instance
                 .search_archive_hybrid(owner, profile, text, vector, K)
                 .unwrap();
@@ -295,7 +331,7 @@ fn archive_search_matches_reference_and_reopens() {
         }
         assert_eq!(
             instance
-                .search_archive_hybrid(other_owner, profile, &terms[0], queries[0], K)
+                .search_archive_hybrid(other_owner, profile, &query_text[0], queries[0], K)
                 .unwrap_err()
                 .kind(),
             ProductErrorKind::Unauthorized
@@ -336,7 +372,7 @@ fn archive_search_matches_reference_and_reopens() {
         control.revoke(token).unwrap();
         assert_eq!(
             instance
-                .search_archive_hybrid(owner, profile, &terms[0], queries[0], K)
+                .search_archive_hybrid(owner, profile, &query_text[0], queries[0], K)
                 .unwrap_err()
                 .kind(),
             ProductErrorKind::Revoked
@@ -360,7 +396,7 @@ fn archive_search_matches_reference_and_reopens() {
     assert_eq!(hash(&copy), original);
     println!(
         "Archive top-{K} matched {QUERIES} exact and {} hybrid reference queries before and after reopen across {} vectors of {dimensions} dimensions",
-        terms.len(),
+        query_text.len(),
         rows.len()
     );
 }

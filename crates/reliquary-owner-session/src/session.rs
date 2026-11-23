@@ -254,6 +254,7 @@ pub struct RelSession {
     imports: ImportEpochStore,
     archive_vectors: ArchiveVectorStore,
     generations: VectorGenerationStore,
+    archive_hybrid_cache: rel_session::ArchiveHybridCache,
     external_index: ExternalIndexStore,
     external_references: ExternalReferenceStore,
     external_memories: ExternalMemoryStore,
