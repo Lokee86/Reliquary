@@ -9,6 +9,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fmt;
 
+pub mod identity;
 mod retained_resolution;
 pub use retained_resolution::{
     RetainedResolutionDecision, RetainedResolutionRecord, RetainedResolutionRevision,

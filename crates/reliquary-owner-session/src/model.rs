@@ -29,3 +29,5 @@ pub use reliquary_perception_store::{
 pub use reliquary_vector_store::{CompatibilityProfile, CompatibilityProfileId, EmbeddingMode};
 
 pub use reliquary_perception_store::{EntityResolutionReason, MemoryEntityResolutionStatus};
+
+pub use reliquary_perception_store::identity;
