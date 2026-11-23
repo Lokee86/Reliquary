@@ -39,4 +39,4 @@ Run the focused cases first. At integration run the repository's locked offline 
 
 ## Notes
 
-These tests establish the behavior and durability of the first case. Real-corpus accuracy calibration is a later milestone in the original semantic roadmap.
+The [acceptance results](../acceptance/cross-rel-entity-identity-2026-11-23.md) record the observed decision history, publication races and durable reopen for the first case. Real-corpus accuracy calibration is a later milestone in the original semantic roadmap.

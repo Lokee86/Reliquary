@@ -13,6 +13,7 @@ Dated measurements and review reports. These records are evidence for their stat
 
 <!-- doc-ledger:files:start -->
 
+- [cross-rel-entity-identity-2026-11-23.md](cross-rel-entity-identity-2026-11-23.md) - Evidence changes, receipt history and authorization across two RELs.
 - [es01-initial-audit-2026-11-11.md](es01-initial-audit-2026-11-11.md) - Es01 Initial Audit 2026 11 11 documentation.
 - [es04-architecture-audit-2026-11-11.md](es04-architecture-audit-2026-11-11.md) - Es04 Architecture Audit 2026 11 11 documentation.
 - [es06-local-verification-2026-11-11.md](es06-local-verification-2026-11-11.md) - Es06 Local Verification 2026 11 11 documentation.

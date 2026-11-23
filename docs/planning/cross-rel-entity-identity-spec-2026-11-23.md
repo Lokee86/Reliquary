@@ -47,4 +47,4 @@ Use a REL-only typed record in the clocked publication envelope. Full replay che
 
 ## Notes
 
-This is a proposed Core contract. Ordinary owner-local mention resolution and local Observation evidence can proceed independently. Cross-REL Observation consumers may use a current authorized comparison when their proposition actually depends on the two Entities sharing an identity.
+Core implements this contract for explicitly selected REL Entity pairs. [Acceptance results](../acceptance/cross-rel-entity-identity-2026-11-23.md) Ordinary owner-local mention resolution and local Observation evidence can proceed independently. Cross-REL Observation consumers may use a current authorized comparison when their proposition actually depends on the two Entities sharing an identity.

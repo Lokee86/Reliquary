@@ -18,7 +18,7 @@ The [standards remediation specification](../engineering-standards-remediation-s
 
 Manual community recomputation follows the [Leiden specification](leiden-community-recomputation-spec-2026-11-18.md) and [execution plan](leiden-community-recomputation-plan-2026-11-18.md). The operator runs preview and apply through the existing REL management boundary.
 
-The first cross-REL Entity identity case is specified for two explicitly selected Entities. It covers an authorized comparison, its evidence receipt and reconsideration when either REL's evidence changes. Broader candidate discovery, retained-corpus calibration and Perception Observations remain future work. [Comparison specification](cross-rel-entity-identity-spec-2026-11-23.md) · [Execution plan](cross-rel-entity-identity-plan-2026-11-23.md)
+Core compares two explicitly selected Entities across authorized RELs. The recording REL retains the evidence and each decision revision. The public fixture follows an unresolved pair through corroboration, source correction and reconsideration after reopen. Broader candidate discovery, retained-corpus calibration and Perception Observations remain future work. [Acceptance results](../acceptance/cross-rel-entity-identity-2026-11-23.md) · [Comparison specification](cross-rel-entity-identity-spec-2026-11-23.md)
 
 ## Implementation sequence and acceptance
 
