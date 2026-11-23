@@ -1,3 +1,4 @@
+mod corpus;
 mod fixed;
 mod signed_in;
 
@@ -11,6 +12,7 @@ use reliquary_switchboard::{
     GeneralDecisionEndpoint, GeneralEndpoint,
 };
 use serde_json::Value;
+use std::{path::Path, time::Instant};
 
 struct ObservedDecision<'a>(&'a dyn DecisionEndpoint);
 impl DecisionEndpoint for ObservedDecision<'_> {
@@ -36,11 +38,10 @@ impl DecisionEndpoint for ObservedDecision<'_> {
         Ok(reply)
     }
 }
-use std::{path::Path, time::Instant};
 
 // Each source is authored for this pilot. Labels are used only after both evaluators run.
-fn sample(name: &str, kind: &str, context: &str, left: &str, right: &str) -> IdentityPairEvidence {
-    let witness = |owner, quote| {
+fn sample(kind: &str, left: (&str, &str, &str), right: (&str, &str, &str)) -> IdentityPairEvidence {
+    let witness = |owner, (name, context, quote): (&str, &str, &str)| {
         let mut evidence = side(owner, owner, quote);
         evidence.endpoint.canonical_name = name.into();
         evidence.endpoint.kind = kind.into();
@@ -85,7 +86,7 @@ fn configured_models_on_authored_pairs() {
     let decision = routes
         .decision_endpoint(DecisionConsumer::EntityResolution)
         .expect("configured Entity decision route");
-    compare_authored_pairs(general.as_ref(), decision.as_ref());
+    check_original_pilot(general.as_ref(), decision.as_ref());
 }
 
 #[test]
@@ -93,14 +94,35 @@ fn configured_models_on_authored_pairs() {
 fn same_model_on_authored_pairs() {
     let (_, general) = pilot_runtime();
     let decision = GeneralDecisionEndpoint::new(general.clone());
-    compare_authored_pairs(general.as_ref(), &decision);
+    check_original_pilot(general.as_ref(), &decision);
 }
 
-fn compare_authored_pairs(general: &dyn GeneralEndpoint, decision: &dyn DecisionEndpoint) {
-    eprintln!("Models: {} / {}", general.model(), decision.model());
+fn check_original_pilot(general: &dyn GeneralEndpoint, decision: &dyn DecisionEndpoint) {
     let cases = pilot_cases();
-    let mut staged_correct = 0;
+    let count = cases.len();
+    let scores = compare_authored_pairs(general, decision, cases);
+    assert_eq!(scores.baseline_errors, 0, "one-call pilot failed");
+    assert_eq!(scores.staged_correct, count, "staged pilot missed a label");
+}
+
+#[derive(Default)]
+struct Scores {
+    baseline_correct: usize,
+    staged_correct: usize,
+    baseline_errors: usize,
+    staged_errors: usize,
+    cases: usize,
+}
+
+fn compare_authored_pairs<S: AsRef<str>>(
+    general: &dyn GeneralEndpoint,
+    decision: &dyn DecisionEndpoint,
+    cases: impl IntoIterator<Item = (S, IdentityOutcome, IdentityPairEvidence)>,
+) -> Scores {
+    eprintln!("Models: {} / {}", general.model(), decision.model());
+    let mut scores = Scores::default();
     for (case, label, pair) in cases {
+        let case = case.as_ref();
         eprintln!("Case {case}");
         let started = Instant::now();
         let baseline = evaluate_identity_pair(&pair, general);
@@ -117,21 +139,33 @@ fn compare_authored_pairs(general: &dyn GeneralEndpoint, decision: &dyn Decision
             staged.as_ref().map(|j| (j.outcome, &j.citations)),
             started.elapsed()
         );
-        staged_correct += usize::from(staged.is_ok_and(|j| j.outcome == label));
+        scores.cases += 1;
+        scores.baseline_errors += usize::from(baseline.is_err());
+        scores.staged_errors += usize::from(staged.is_err());
+        scores.baseline_correct += usize::from(baseline.is_ok_and(|j| j.outcome == label));
+        scores.staged_correct += usize::from(staged.is_ok_and(|j| j.outcome == label));
     }
-    assert_eq!(
-        staged_correct, 4,
-        "the proposed evaluator missed a labeled case or a route failed"
+    eprintln!(
+        "Cases={} current_correct={} staged_correct={} current_errors={} staged_errors={}",
+        scores.cases,
+        scores.baseline_correct,
+        scores.staged_correct,
+        scores.baseline_errors,
+        scores.staged_errors
     );
+    scores
 }
 
 fn pilot_cases() -> [(&'static str, IdentityOutcome, IdentityPairEvidence); 4] {
     use IdentityOutcome::{RelatedDistinct, SameIdentity, Unresolved};
+    let same_named_pair = |name, kind, context, left, right| {
+        sample(kind, (name, context, left), (name, context, right))
+    };
     [
         (
             "marker",
             SameIdentity,
-            sample(
+            same_named_pair(
                 "South Beacon",
                 "place",
                 "Survey Monument K17",
@@ -142,7 +176,7 @@ fn pilot_cases() -> [(&'static str, IdentityOutcome, IdentityPairEvidence); 4] {
         (
             "side-by-side",
             RelatedDistinct,
-            sample(
+            same_named_pair(
                 "Relay",
                 "application",
                 "Depot Inventory",
@@ -153,7 +187,7 @@ fn pilot_cases() -> [(&'static str, IdentityOutcome, IdentityPairEvidence); 4] {
         (
             "version",
             Unresolved,
-            sample(
+            same_named_pair(
                 "Relay",
                 "application",
                 "Depot Inventory",
@@ -164,7 +198,7 @@ fn pilot_cases() -> [(&'static str, IdentityOutcome, IdentityPairEvidence); 4] {
         (
             "conflict",
             Unresolved,
-            sample(
+            same_named_pair(
                 "Alex Chen",
                 "person",
                 "Town Records",

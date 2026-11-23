@@ -91,6 +91,37 @@ Both runs identified the same summit and the two separate programs, and left the
 
 Using Sol throughout recovered the two affirmative examples that the Jev verdict step missed. The single and staged Sol evaluators tied on these four distinct inputs. There was no evidence of improved label accuracy from splitting the calls in this control. A broader comparison would require held-out pairs and would still compare the validators as well as the prompts. Production continues to use the one-call evaluator. [Control harness](../../crates/reliquary-entity-resolution/src/identity_trial/pilot.rs)
 
+### Broader same-model comparison
+
+The trial now has 34 authored evidence examples. Four are the original pilot. Six reuse the evaluator and public integration fixtures. The other 24 were written after the prompts and validators were fixed and before their first live run. The new set contains eight same, eight distinct and eight unresolved pairs. It includes people, places, events, organizations, artworks, vessels, applications, libraries, devices and brands. A separate Sol 6.2 review, given both witnesses and neither the labels nor rationales, agreed with all 24 case labels before the paired run. These are synthetic, model-reviewed labels. [Held-out evidence and rationales](../../crates/reliquary-entity-resolution/src/identity_trial/pilot/held_out.json)
+
+Both arms received one grounded quote from each simulated REL, with separate source lineages, the endpoint names and kinds, and a named participant for each quote. The harness represents each quote with the same generic Relationship and role structure. The one-call evaluator ran first on each pair. The staged evaluator used the same `gpt-5.6-sol` endpoint at low effort for interpretation, decision and conditional support selection. Neither arm received the case ID, expected result or rationale.
+
+Both arms scored 6/6 on the reused fixtures. These include a shared occupation, two different contracts, an attendee versus a signatory, and two sites with the same name. The briefing and later signature are two states of one pair. The later example isolates the newly added witness. The public integration test retains both peer witnesses and verifies the stored decision changes. The bilingual summit repeats the original marker pattern. Only the 24 fresh pairs enter the held-out scores. [Regression examples](../../crates/reliquary-entity-resolution/src/identity_trial/pilot/regression.json) · [Source evaluator tests](../../crates/reliquary-entity-resolution/src/identity_evaluator_tests.rs) · [Public history fixture](../../tests/entity_identity.rs)
+
+| Expected outcome on fresh pairs | One Sol call, correct | Staged Sol, correct |
+| --- | ---: | ---: |
+| Same Entity | 5/8 | 7/8 |
+| Distinct Entities | 7/8 | 8/8 |
+| Unresolved | 8/8 | 8/8 |
+| **All first attempts** | **20/24** | **23/24** |
+| Model calls attempted | 24 | 62 |
+
+Each arm produced 23 completed judgments and one rejected response. Both kept all eight uncertain pairs unresolved. The raw one-call verdict matched the expected outcome on all 24. Four settled results diverged from that raw verdict.
+
+- On `acorn`, both sources identify the same software update from Tin Ledger to Tallies at different institutions. On `dogwood`, both inspectors identify the meter by its mounting point and a distinctive gouge. On `heath`, two surveys identify a yard through the same service arch. Sol proposed the correct match on each. The one-call validator requires matching normalized excerpt words and a shared named participant. The selected excerpts differed on all three, and the rename also lacked a shared non-endpoint participant. All three settled as unresolved. Staged Sol accepted the rename and meter.
+- On `heath`, the staged interpretation inserted bracketed words into the survey excerpts. The exact-source check stopped before a verdict call. On `briar`, one-call Sol correctly distinguished two same-named C libraries but cited each witness twice. Its validator rejected the response. Staged Sol identified the separate libraries with one citation from each side. All model requests returned responses.
+
+A diagnostic repeat of the two cases with rejected responses used the same prompts and evidence. Both evaluators correctly separated the libraries on the repeat. The yard remained unresolved in the one-call arm and again failed the staged interpretation check. The table retains the original first attempts.
+
+This is one paired measurement on a balanced, authored set. Real REL pair frequencies, multiple-witness attribution, and the Jev decision route are outside this score. Results compare two complete evaluators, including their different citation requirements. Production uses the one-call evaluator.
+
+### Real REL inventory
+
+The 128-Memory Insomnia calibration set contains 313 labeled Entity mentions. Its annotations identify mention spans. Scoring a cross-REL comparison also requires an expected pair judgment and independent grounded witnesses.
+
+A read-only Core scan paged through all current Entities in the migrated 28-day and Ellis RELs, including aliases. The 28-day owner contained 524 Entities and Ellis contained 88. After folding case and whitespace, the two indexes shared zero names or aliases. Different names can still identify the same referent. More importantly, each REL had **zero current Relationships**. The overlapping 14-day REL also returned an empty Relationship page with no continuation. These snapshots currently supply no grounded Relationship pairs for the live evaluator. Only authored evidence went to the model endpoints. The two scanned files matched their authoritative SHA-256 manifests after inspection. [Pair evidence contract](../planning/cross-rel-entity-identity-spec-2026-11-23.md) · [Migration evidence](./owner-history-migration-other-pairs-2026-11-19.md)
+
 ### Reproduce
 
 Run the default suite with `cargo test -p reliquary-entity-resolution --locked --offline --lib`. To reproduce the scripted false positive run the same command with `observe_version_only_false_affirmative -- --ignored --nocapture`.
@@ -98,6 +129,8 @@ Run the default suite with `cargo test -p reliquary-entity-resolution --locked -
 For an intentional live run, set `RELIQUARY_IDENTITY_TRIAL_CONFIG` to the existing protected config at its registered path and run `cargo test -p reliquary-entity-resolution --locked --offline --lib configured_models_on_authored_pairs -- --ignored --nocapture`. Cargo's offline flag applies to dependency resolution. This test contacts the selected models and fails its gate on a missed staged label or a provider failure. If using an existing signed-in Codex client for the configured Sol model, set `RELIQUARY_TRIAL_CODEX` to its native executable and `RELIQUARY_TRIAL_SCRATCH` to an existing local scratch directory. Jev continues to use Switchboard. To exercise only the real selector on fixed proposals, run the same ignored test command with the filter `configured_support_on_fixed_proposals`. [Proposed implementation and release gates](../planning/cross-rel-entity-staged-evaluation-2026-11-23.md)
 
 For the same-model control, use the same profile and signed-in client settings and run `cargo test -p reliquary-entity-resolution --locked --offline --lib same_model_on_authored_pairs -- --ignored --nocapture`. This test binds Switchboard's general decision adapter to the exact general endpoint used by the baseline and interpretation. It produces plain verdict and support choices. Each call runs in a fresh Codex session at low reasoning effort.
+
+For the expanded same-model comparison, run the same Cargo command with `same_model_on_held_out_pairs` or `same_model_on_regression_pairs`. Each filter runs its whole set by default. To repeat specific cases, set `RELIQUARY_TRIAL_CASES` to their comma-separated IDs. The harness prints every outcome and both scores before checking completeness and agreement with the labels. Either a missing judgment or a wrong settled outcome fails the labeled trial. [Corpus runner](../../crates/reliquary-entity-resolution/src/identity_trial/pilot/corpus.rs)
 
 ## Related docs
 

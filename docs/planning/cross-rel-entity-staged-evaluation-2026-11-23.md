@@ -41,6 +41,8 @@ For the initial integration, hold the selector continuation in the live Gateway 
 
 The [same-model control](../acceptance/cross-rel-entity-identity-2026-11-23.md#same-model-control) tied at 4/4 in both runs, with more calls for the staged evaluator. Freeze the original quotes and Sol interpretations for the missed summit and software pairs. Vary only how Jev receives the verdict question, so its ability to distinguish the three outcomes can be measured separately from interpretation. For support selection, keep the provisional verdict fixed and change one source from a genuinely distinguishing fact to an incidental attribute. Check whether that specific item's rank and selection change. Repeat the paired test on fresh examples before adopting a request shape or a minimum score. Preserve valid empty support as unresolved and malformed or unavailable support as pending.
 
+The [broader Sol comparison](../acceptance/cross-rel-entity-identity-2026-11-23.md#broader-same-model-comparison) now supplies 24 fresh labeled pairs and six reused regression examples. Keep these outcomes as a regression baseline if prompts or validators change. The first measured gap to isolate is a correct match expressed by differently worded sources, including an explicitly witnessed rename with no shared third participant. Any change to corroboration still needs to leave the ambiguous cases unresolved. A new estimate after tuning requires fresh labeled pairs.
+
 ## Related docs
 
 - [Original identity contract](cross-rel-entity-identity-spec-2026-11-23.md)

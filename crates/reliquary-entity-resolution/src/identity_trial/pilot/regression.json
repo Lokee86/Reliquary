@@ -1,0 +1,74 @@
+[
+  {
+    "id": "shared-role-engineer",
+    "kind": "person",
+    "left_name": "Alex Chen",
+    "right_name": "Alex Chen",
+    "left_context": "Engineer",
+    "right_context": "Engineer",
+    "left": "Alex Chen is an Engineer.",
+    "right": "Alex Chen is an Engineer.",
+    "expected": "unresolved",
+    "rationale": "Two independently recorded mentions share a name and a common occupation. Neither identifies the engineer more precisely."
+  },
+  {
+    "id": "different-contracts",
+    "kind": "person",
+    "left_name": "Alex Chen",
+    "right_name": "Alex Chen",
+    "left_context": "Project Meridian Contract",
+    "right_context": "Harbor Contract",
+    "left": "Alex Chen signed Project Meridian Contract.",
+    "right": "Alex Chen signed the Harbor Contract.",
+    "expected": "unresolved",
+    "rationale": "A person can sign both contracts. The records identify neither a shared signatory across the two contracts nor two different people."
+  },
+  {
+    "id": "briefing-before-signatory-corroboration",
+    "kind": "person",
+    "left_name": "Alex Chen",
+    "right_name": "Alex Chen",
+    "left_context": "Project Meridian Contract",
+    "right_context": "Project Meridian Contract",
+    "left": "Alex Chen signed Project Meridian Contract.",
+    "right": "Alex Chen attended a briefing for Project Meridian Contract.",
+    "expected": "unresolved",
+    "rationale": "First state of the signatory pair. Attending a briefing does not establish that the attendee signed the contract."
+  },
+  {
+    "id": "signatory-corroboration-after-briefing",
+    "kind": "person",
+    "left_name": "Alex Chen",
+    "right_name": "Alex Chen",
+    "left_context": "Project Meridian Contract",
+    "right_context": "Project Meridian Contract",
+    "left": "Alex Chen signed Project Meridian Contract.",
+    "right": "Alex Chen signed Project Meridian Contract.",
+    "expected": "same_identity",
+    "rationale": "Second state of the briefing pair. The peer adds an independent signatory record for the same named contract. This fixture takes the new witness alone. The public test retains the earlier briefing as well."
+  },
+  {
+    "id": "eagle-point-independent-sites",
+    "kind": "place",
+    "left_name": "Eagle Point",
+    "right_name": "Eagle Point",
+    "left_context": "County Survey",
+    "right_context": "Trail Atlas",
+    "left": "The County Survey marks two sites named Eagle Point. This is the ridge north of Lake Ida.",
+    "right": "The Trail Atlas maps both Eagle Points and locates this one on the southern shore.",
+    "expected": "related_distinct",
+    "rationale": "Both sources identify two sites bearing the same name and locate their own site relative to the lake."
+  },
+  {
+    "id": "eagle-point-alias-same-marker",
+    "kind": "place",
+    "left_name": "Eagle Point",
+    "right_name": "Pointe de l'Aigle",
+    "left_context": "Brass Survey Marker K17",
+    "right_context": "Brass Survey Marker K17",
+    "left": "The Eagle Point summit is at Brass Survey Marker K17.",
+    "right": "Pointe de l'Aigle is the summit at Brass Survey Marker K17.",
+    "expected": "same_identity",
+    "rationale": "The French and English names refer to the summit at the same survey marker. This reuses the marker pattern from the original pilot."
+  }
+]
