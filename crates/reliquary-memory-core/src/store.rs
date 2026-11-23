@@ -350,7 +350,7 @@ impl MemoryStore {
                 if let Some((bodies, records, routing)) = decode_grouped(&payload)? {
                     // Owner replay validates any missing grouped payload only
                     // after it has admitted the exact terminal-prune manifest.
-                    store.apply_grouped_completion_inner(
+                    store = store.with_grouped_completion(
                         bodies,
                         records,
                         Some((object, &payload)),
@@ -450,8 +450,9 @@ impl MemoryStore {
         bodies: Vec<(MemoryBodyId, Vec<u8>)>,
         records: Vec<Vec<u8>>,
     ) -> Result<(), MemoryError> {
-        let mut projected = self.clone();
-        projected.apply_grouped_completion(bodies, records)
+        self.clone()
+            .with_grouped_completion(unindexed_bodies(bodies), records, None, false)
+            .map(drop)
     }
 
     pub fn apply_grouped_completion(
@@ -459,7 +460,10 @@ impl MemoryStore {
         bodies: Vec<(MemoryBodyId, Vec<u8>)>,
         records: Vec<Vec<u8>>,
     ) -> Result<(), MemoryError> {
-        self.apply_grouped_completion_inner(unindexed_bodies(bodies), records, None, false)
+        *self =
+            self.clone()
+                .with_grouped_completion(unindexed_bodies(bodies), records, None, false)?;
+        Ok(())
     }
 
     pub fn apply_indexed_grouped_completion(
@@ -469,22 +473,29 @@ impl MemoryStore {
         bodies: Vec<RetainedGroupedBody>,
         records: Vec<Vec<u8>>,
     ) -> Result<(), MemoryError> {
-        self.apply_grouped_completion_inner(bodies, records, Some((object, payload)), false)
+        *self = self.clone().with_grouped_completion(
+            bodies,
+            records,
+            Some((object, payload)),
+            false,
+        )?;
+        Ok(())
     }
 
-    fn apply_grouped_completion_inner(
-        &mut self,
+    // Replay owns this candidate. A live caller supplies a snapshot so a
+    // rejected group cannot expose partial changes to its existing store.
+    fn with_grouped_completion(
+        mut self,
         bodies: Vec<RetainedGroupedBody>,
         records: Vec<Vec<u8>>,
         frame: Option<(ObjectRef, &[u8])>,
         allow_missing_body_for_owner_admission: bool,
-    ) -> Result<(), MemoryError> {
+    ) -> Result<Self, MemoryError> {
         if !records.is_empty() && !self.initialized {
             return Err(MemoryError::Corrupt(
                 "grouped creation precedes Memory format",
             ));
         }
-        let mut next = self.clone();
         let mut seen_bodies = std::collections::BTreeSet::new();
         let mut provided_bodies = std::collections::BTreeSet::new();
         for RetainedGroupedBody {
@@ -499,7 +510,7 @@ impl MemoryStore {
             }
             let body = decode_grouped_body(id, &bytes)?;
             provided_bodies.insert(id);
-            let location = match (next.reader.is_some(), frame, payload_offset) {
+            let location = match (self.reader.is_some(), frame, payload_offset) {
                 (true, Some((object, payload)), Some(offset)) => {
                     let start = usize::try_from(offset).map_err(|_| MemoryError::FieldTooLarge)?;
                     let end = start
@@ -512,7 +523,7 @@ impl MemoryStore {
                 }
                 _ => None,
             };
-            next.insert_body(id, body, &bytes, location)?;
+            self.insert_body(id, body, &bytes, location)?;
         }
         let mut used_provided_bodies = std::collections::BTreeSet::new();
         for bytes in records {
@@ -526,9 +537,9 @@ impl MemoryStore {
             if provided_bodies.contains(&record.body_id) {
                 used_provided_bodies.insert(record.body_id);
             }
-            next.replay(&bytes)?;
+            self.replay(&bytes)?;
             if !allow_missing_body_for_owner_admission
-                && !next.state.bodies.contains_key(&record.body_id)
+                && !self.state.bodies.contains_key(&record.body_id)
             {
                 return Err(MemoryError::Corrupt("grouped creation has no body backing"));
             }
@@ -539,10 +550,9 @@ impl MemoryStore {
             ));
         }
         for id in &provided_bodies {
-            next.validate_body_records(*id)?;
+            self.validate_body_records(*id)?;
         }
-        *self = next;
-        Ok(())
+        Ok(self)
     }
 
     /// Prepare an immutable-body metadata revision for an owner-approved

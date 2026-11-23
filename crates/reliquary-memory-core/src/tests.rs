@@ -558,13 +558,19 @@ fn replay_rechecks_temporal_spans_when_body_appears_later() {
     new_record.id = memory_id(&new_record.mutation_id);
     new_record.memory_version = 2;
     new_record.temporal_inference = None;
+    let bodies = vec![(record.body_id, memory_body_bytes("Title", "immutable body"))];
+    let records = vec![encode_creation(&new_record).unwrap()];
     assert!(matches!(
-        projected.preflight_grouped_completion(
-            vec![(record.body_id, memory_body_bytes("Title", "immutable body"))],
-            vec![encode_creation(&new_record).unwrap()],
-        ),
+        projected.preflight_grouped_completion(bodies.clone(), records.clone()),
         Err(MemoryError::InvalidField("temporal_inference_span"))
     ));
+    assert!(matches!(
+        projected.apply_grouped_completion(bodies, records),
+        Err(MemoryError::InvalidField("temporal_inference_span"))
+    ));
+    assert_eq!(projected.memory_version(), record.memory_version);
+    assert!(!projected.contains_memory(new_record.id));
+    assert!(!projected.contains_body_payload(record.body_id));
     let mut body = b"RELMBOD1".to_vec();
     body.extend_from_slice(&record.body_id.0);
     body.extend_from_slice(&memory_body_bytes("Title", "immutable body"));

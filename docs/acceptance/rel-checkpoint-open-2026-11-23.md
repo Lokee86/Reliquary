@@ -67,6 +67,22 @@ The migrated REL holds 16,465 turns, 2,847 Memory identities and a Graph version
 
 A second Core probe timed `MemoryStore::apply_grouped_completion_inner` on a fresh migrated copy. Each grouped Insomnia completion clones the accumulated Memory store and replaces the old copy after validation. Across 1,344 completions, copying took 2.525 s and discarding the old states took 1.118 s. Together those operations accounted for 3.643 s of the 3.749 s spent in Memory replay (97.2%). They copied 2,169,241 Memory identities cumulatively. Of the 1,344 completions, 456 supplied neither a Memory body nor a creation record. The synthetic year REL contains zero grouped Insomnia completions.
 
+### Grouped Memory replay after removing the per-group copy
+
+Cold replay now moves the Memory store it is building through each grouped completion. Only a successful open exposes that store. The live writer still validates a group on a private copy before installing it. The focused regression check rejects a group after it has supplied a body and a creation, and verifies the live version, body availability and Memory identities. All 12 Memory Core tests and both owner-session tests for grouped replay and pruning passed.
+
+On separate copies of the migrated REL with empty checkpoint slots, matched optimized Core probes timed one cold writer open each. Memory replay fell from 6.052 s to 0.085 s. The complete writer open, including checkpoint creation, fell from 9.905 s to 2.792 s. Both checkpoints were 78,965,245 bytes. An independent reader compared all 2,847 retained Memories and 5,727 revisions, including their metadata, body availability and contents. Both projections had SHA-256 `0562fd52818b03ff9321d9b55444941c96939ff6d57fa1e7d34ddf2105cd26dc`. The original revision-one Memory and its Archive source also matched their migration witnesses.
+
+The native Hermes comparison used two local release builds from plugin `a9cfd3a4` and the same dependency lock. Of 788 host, vendor and lock files compared, only Memory Core's `store.rs` differed. Each build performed three interleaved first signed attaches on fresh 28-day REL and PHY copies with empty checkpoint slots. Another build was active on the Windows machine during these samples. System CPU utilization was 33–39%.
+
+| Signed Hermes attach on the 28-day pair | Before | After |
+| --- | ---: | ---: |
+| Median first attach | 3.987 s | 2.602 s |
+| Range of first attaches | 3.913–4.192 s | 2.538–2.652 s |
+| Median host CPU time | 3.766 s | 2.422 s |
+
+First attach took 1.385 s less at the median (34.7%). All six returned the same owner cuts and exact revision-one Memory body. On a separate reopen, the updated host used a checkpoint from the earlier build and returned the same signed result in 1.067 s. The checkpoint digest and modification time matched its original values.
+
 ## Recovery and focused tests
 
 The owner-session checkpoint test crosses a signed standalone reservation and a grouped Memory correction. It compares the exact historical proof with full admission, exercises a vector row spanning two verified pages, checks an interrupted checkpoint staging operation and a damaged page, rejects a same-owner copy's checkpoint, and refuses a torn tail. Container tests also exercise equal-length prefix changes, timestamp continuity, and explicit tail repair. Archive and Memory tests cover digest-checked ranges, detached reads, and grouped payload retry.
