@@ -20,6 +20,8 @@ Manual community recomputation follows the [Leiden specification](leiden-communi
 
 Core compares two explicitly selected Entities across authorized RELs. The recording REL retains the evidence and each decision revision. The public fixture follows an unresolved pair through corroboration, source correction and reconsideration after reopen. Broader candidate discovery, retained-corpus calibration and Perception Observations remain future work. [Acceptance results](../acceptance/cross-rel-entity-identity-2026-11-23.md) · [Comparison specification](cross-rel-entity-identity-spec-2026-11-23.md)
 
+A follow-up proposal covers explicit user confirmation that two selected Entities are separate and the ability to undo it. [Confirmation proposal](cross-rel-entity-separation-confirmation-spec-2026-11-23.md)
+
 ## Implementation sequence and acceptance
 
 The [homogeneity specification](rel-homogeneity-spec-2026-11-18.md) and [execution plan](rel-homogeneity-plan-2026-11-18.md) cover scope-free Core creation, Hermes role admission and legacy file compatibility. The [Core acceptance record](../acceptance/rel-homogeneity-2026-11-18.md) records the creation cut and original header verification.
