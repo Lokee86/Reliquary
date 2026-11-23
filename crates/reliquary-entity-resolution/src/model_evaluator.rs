@@ -7,7 +7,7 @@ use reliquary_switchboard::{DecisionEndpoint, GeneralEndpoint, GeneralEndpointEr
 use serde_json::{Value, json};
 use std::sync::Arc;
 
-pub use reliquary_perception_store::identity_evidence::MAX_ENTITY_MODEL_INPUT_BYTES;
+pub const MAX_ENTITY_MODEL_INPUT_BYTES: usize = 16 * 1024;
 
 #[path = "identity_evaluator.rs"]
 mod identity_evaluator;

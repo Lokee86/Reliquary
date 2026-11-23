@@ -198,7 +198,7 @@ fn affirmative_answers_require_distinguishing_facts_beyond_generic_roles() {
         evaluate_identity_pair(&same_anchor, &Scripted::reply(distinct.clone())).unwrap();
     assert_eq!(judgment.outcome, IdentityOutcome::Unresolved);
 
-    let birth_register = |owner, registry, place| {
+    let birth_register = |owner, registry: &str, place: &str| {
         let quote = format!("Alex Chen was born in {place} as recorded in {registry}.");
         let mut evidence = side(owner, owner, &quote);
         evidence.relationships[0].kind = "place_of_birth".into();

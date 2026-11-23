@@ -1,20 +1,19 @@
 use super::{EntityResolverError, invalid, is_bare_generic_surface, required};
+use crate::{IdentityJudgment, IdentityPairEvidence};
 use reliquary_perception_store::{
     MAX_RELATIONSHIP_EVIDENCE,
     identity::{
         IdentityCitation, IdentityOutcome, IdentityReason, IdentitySide,
         MAX_IDENTITY_RELATIONSHIPS_PER_SIDE,
     },
-    identity_evidence::{
-        IdentityEvidence, IdentityJudgment, IdentityObservedMemory, IdentityPairEvidence,
-        IdentityRelationshipEvidence, MAX_IDENTITY_CITATIONS,
-    },
+    identity_evidence::{IdentityEvidence, IdentityObservedMemory, IdentityRelationshipEvidence},
 };
 use reliquary_switchboard::{GeneralEndpoint, GeneralEndpointError};
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
 
 pub const IDENTITY_COMPARISON_POLICY: u32 = 1;
+const MAX_IDENTITY_CITATIONS: usize = 16;
 const MAX_FACT_BYTES: usize = 512;
 const IDENTITY_SYSTEM_PROMPT: &str = concat!(
     "Compare these two existing Entity referents using only the supplied Relationships and ",
@@ -84,8 +83,14 @@ pub fn deterministic_identity_judgment(pair: &IdentityPairEvidence) -> Option<Id
     }
     (!left
         .iter()
-        .any(|l| right.iter().any(|r| l.independent_of(r))))
+        .any(|l| right.iter().any(|r| independent_sources(l, r))))
     .then(|| unresolved(IdentityReason::Ambiguity, Vec::new()))
+}
+
+fn independent_sources(left: &IdentityObservedMemory, right: &IdentityObservedMemory) -> bool {
+    !left.lineage.is_empty()
+        && !right.lineage.is_empty()
+        && left.lineage.iter().all(|key| !right.lineage.contains(key))
 }
 
 fn grounded_memories(evidence: &IdentityEvidence) -> impl Iterator<Item = &IdentityObservedMemory> {
@@ -244,7 +249,7 @@ impl CitedFact<'_> {
         if self.side == other.side
             || self.anchors.is_empty()
             || other.anchors.is_empty()
-            || !self.memory.independent_of(other.memory)
+            || !independent_sources(self.memory, other.memory)
         {
             return false;
         }
