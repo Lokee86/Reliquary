@@ -18,6 +18,8 @@ The [standards remediation specification](../engineering-standards-remediation-s
 
 Manual community recomputation follows the [Leiden specification](leiden-community-recomputation-spec-2026-11-18.md) and [execution plan](leiden-community-recomputation-plan-2026-11-18.md). The operator runs preview and apply through the existing REL management boundary.
 
+The first cross-REL Entity identity case is specified for two explicitly selected Entities. It covers an authorized comparison, its evidence receipt and reconsideration when either REL's evidence changes. Broader candidate discovery, retained-corpus calibration and Perception Observations remain future work. [Comparison specification](cross-rel-entity-identity-spec-2026-11-23.md) · [Execution plan](cross-rel-entity-identity-plan-2026-11-23.md)
+
 ## Implementation sequence and acceptance
 
 The [homogeneity specification](rel-homogeneity-spec-2026-11-18.md) and [execution plan](rel-homogeneity-plan-2026-11-18.md) cover scope-free Core creation, Hermes role admission and legacy file compatibility. The [Core acceptance record](../acceptance/rel-homogeneity-2026-11-18.md) records the creation cut and original header verification.

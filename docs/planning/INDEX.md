@@ -13,6 +13,8 @@ Unresolved future corrections and their acceptance boundaries.
 
 <!-- doc-ledger:files:start -->
 
+- [cross-rel-entity-identity-plan-2026-11-23.md](cross-rel-entity-identity-plan-2026-11-23.md) - Implementation order and focused checks for an authorized Entity pair.
+- [cross-rel-entity-identity-spec-2026-11-23.md](cross-rel-entity-identity-spec-2026-11-23.md) - Cross-REL Entity evidence, decisions and reconsideration.
 - [leiden-community-recomputation-plan-2026-11-18.md](leiden-community-recomputation-plan-2026-11-18.md) - Leiden implementation order and copied-REL acceptance.
 - [leiden-community-recomputation-spec-2026-11-18.md](leiden-community-recomputation-spec-2026-11-18.md) - Leiden recomputation contract and compatibility.
 - [owner-history-migration-plan-2026-11-18.md](owner-history-migration-plan-2026-11-18.md) - Work sequence and acceptance for the original 28-day owner pair.

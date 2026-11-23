@@ -1,0 +1,42 @@
+# Cross-REL Entity identity implementation plan
+
+Parent index: [Planning](./INDEX.md)
+
+## Purpose
+
+Implement the [pair comparison contract](cross-rel-entity-identity-spec-2026-11-23.md) on native REL 2.1, starting from `a06b70d4`. The acceptance path is an authenticated Core caller following one pair from insufficient evidence to a supported decision, through a correction and a restart.
+
+## Overview
+
+Carry a pair of owner-qualified endpoints throughout. Gateway obtains two authorized snapshots, Application orchestrates a bounded judgment, and only A's writer publishes its receipt. Use the existing REL publication envelope, Entity provider configuration and managed worker lifecycle. Neither ordinary mention resolution nor Hermes needs a new entry point for this feature to ship in Core.
+
+## Work packages
+
+1. **Capture and judge one pair.** Add an owner-local evidence query to owner-session. Seed participant-to-Relationship lookup on first comparison from the current Relationship projection, then maintain or invalidate it on publication, retirement, prune and remount. Order IDs before enforcing the cap. Fetch only the selected local Memory bodies. Reuse current-body, direct-source and UTF-8 validation in [perception lifecycle](../../crates/reliquary-owner-session/src/session/perception_lifecycle/support.rs). Derive eligibility, bounded evidence references and a canonical fingerprint with the same function for preparation and recheck. In [Entity resolution](../../crates/reliquary-entity-resolution/src/model_evaluator.rs), add the pair schema, citation checks and conservative rules alongside the mention evaluator. Use the configured Entity general endpoint and its bounded structured completion. Skip the mention-specific decision fast path. Exit when the evaluator distinguishes a corroborated pair from namesakes and refuses invalid citations.
+2. **Persist a comparison on A.** Using the receipt shape from step 1, add a REL-specific projection and typed publication in [owner-session](../../crates/reliquary-owner-session/src/session/rel_session.rs). Index the latest revision and retained history by directional pair. Validate the prior revision, canonical ordering, limits, outcome/citations and local evidence as of the publication prefix. Verify remote references structurally. Publish and sync before advancing the visible projection, using the existing clocked [publication envelope](../../crates/reliquary-container/src/publication_envelope.rs). Bump the disposable [checkpoint format](../../crates/reliquary-owner-session/src/session/checkpoint.rs), bind the pair projection and frontier, and use full replay for a comparison-bearing suffix until the same validations can run on a seeded prefix. Include receipts in [historical proof](../../crates/reliquary-owner-session/src/session/historical_proof.rs) without exporting foreign evidence to ordinary single-owner reads. Update reclamation's carrier list, retained-copy verification and preflight for divergent reconciliation and fresh-history rewrites. Exit when replay, verified copy and recovery agree with the writer, including when B is absent.
+3. **Wire compare and inspect through Root.** After steps 1–2, expose `compare_entity_identity` and `inspect_entity_identity` on [WorkspaceManagement](../../src/management.rs), bound to A. Accept typed peer/Entity IDs, a configured runtime for compare, and an optional receipt revision for inspect. Return opaque product views. Check the precise Root grants, carry their authority into the guarded Gateway operation and use [existing mount identity and owner guards](../../crates/reliquary-runtime-gateway/src/instance_owner.rs). Follow [Application's Entity workflow](../../crates/reliquary-application/src/entity_workflow.rs) to separate preparation, external evaluation and publication. Add one ordered two-owner commit helper and use it for foreground and worker refresh. Recheck mount identity, revocation, evidence and predecessor inside the publication fence. Keep peer details out of owner-only inspection, history exports, errors and logs. Exit when a view-only B suffices, A alone cannot retrieve the receipt and a paused stale proposal cannot publish.
+4. **Run reconsideration and close the public contract.** After step 3, expose a scoped comparison-processing handle on A taking the configured runtime. Add one comparison driver per processing A to the [existing owner-worker coordinator](../../crates/reliquary-runtime-gateway/src/owner_workers.rs). Walk registered keys in bounded batches with a resumable in-memory cursor. At start or remount recheck permitted pairs. On subsequent polls use cheap version hints for Entity, Relationship, Memory and prune changes on either side. Use the full fingerprint before scheduling a model call. Coalesce repeat changes per key, recheck after an in-flight decision, use the normal idle wait for retry, and let the caller stop and join the handle. A denied or unavailable peer must not starve other pairs. Persist only semantic receipts. Update the [public API](../public-product-api.md), owner-session, Gateway and semantic processing docs, plus the affected contract and coverage mappings. Record the observed acceptance results and commit the implementation.
+
+## Focused verification
+
+Use two tiny authored RELs and a deterministic scripted Entity endpoint. Seed Entities, Relationships and source Memories through the real writers. The endpoint records its bounded request and can pause before returning. Use explicit worker polls or a completion signal for assertions.
+
+| Case | What must be observed |
+| --- | --- |
+| Decision, evidence and revisit | Start with two Alex Chen records and no corroboration. Compare returns revision 1, unresolved. Add local Relationships grounding the same distinctive contract and role, then run comparison processing. Revision 2 cites both exact witnesses and confirms identity. A separate unrelated publication and an identical retry yield zero further provider calls or receipts. Stop processing, edit or retire a cited source, and reopen. Inspect reports the previous positive as stale. Resume records revision 3 with the new basis, leaves uncertainty unresolved and retains revision 2 as history. Check scripted contradictory evidence, a duplicated source, an ambiguous span, overflow and an invalid citation at the evaluator/input seam. |
+| Grants and publication race | Adapt the [Root grant fixture](../../tests/rel_dependencies.rs). Run compare with writable A and read-only B, including equal Entity ID bytes across the two owners. Assert unchanged peer bytes and local Entity IDs. A view-only caller can inspect with both read grants and cannot write. A caller missing B sees no receipt or peer details. Pause evaluation, change B on a writable mount or replace its mount, and release it. Assert no stale append. Revoke the credential during another paused evaluation and assert no disclosure or publication. Two equivalent concurrent requests leave one revision. |
+| Storage and maintenance | Extend the [checkpoint tests](../../crates/reliquary-owner-session/src/session/checkpoint/tests.rs) and [maintenance seam](../../tests/g4_maintenance.rs). A pre-feature 2.1 REL opens empty without modification. Reopen A alone by cold replay, checkpoint and comparison-bearing suffix. Check exact chain and owner ID after verified copy, prefix extension, pruning and reclamation. A malformed predecessor fails admission, interrupted tail recovery exposes one complete prefix, and unsupported rewrite or divergent reconciliation refuses before creating the destination. |
+
+## Completion
+
+Run the focused cases first. At integration run the repository's locked offline workspace checks, architecture and documentation checks, and review the public call path end to end. Acceptance requires the observed decision history, access denials, call counts and durable reopen described above. The separate 28-day cold-attach investigation stays on the [roadmap](roadmap.md#owner-open-performance).
+
+## Related docs
+
+- [Cross-REL Entity identity specification](cross-rel-entity-identity-spec-2026-11-23.md)
+- [Development workflow and integration commands](../development/workflow.md)
+- [Behavioral contracts](../development/behavioral-contracts.md)
+
+## Notes
+
+These tests establish the behavior and durability of the first case. Real-corpus accuracy calibration is a later milestone in the original semantic roadmap.
