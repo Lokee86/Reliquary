@@ -15,7 +15,7 @@ use reliquary_switchboard::{GeneralEndpoint, GeneralEndpointError};
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
 
-pub const IDENTITY_COMPARISON_POLICY: u32 = 1;
+pub const IDENTITY_COMPARISON_POLICY: u32 = 2;
 const MAX_IDENTITY_CITATIONS: usize = 16;
 const MAX_FACT_BYTES: usize = 512;
 const IDENTITY_SYSTEM_PROMPT: &str = concat!(
@@ -25,14 +25,18 @@ const IDENTITY_SYSTEM_PROMPT: &str = concat!(
     "are compatible and independent witnesses on both sides affirm the same distinguishing fact ",
     "about the endpoints. Shared names, aliases, generic roles, and merely appearing with the ",
     "same participant do not establish identity. Return related_distinct with reason distinct only ",
-    "when independent place_of_birth witnesses affirm different cities where the people were ",
-    "born. Name the city explicitly in each cited fact. Return unresolved for uncertain or ",
-    "negated claims. Different contracts, ",
-    "affiliations, jobs or roles can belong to the same person. For affirmative judgments provide ",
+    "when independently grounded evidence identifies two separate referents. Consider whether ",
+    "one referent could fit both accounts, including changes over time or a source error. ",
+    "Classify each exact excerpt: corroborates_identity for a distinguishing fact shared by ",
+    "the endpoints, separates_referents when ",
+    "it identifies its endpoint in evidence distinguishing the two, describes_referent for an ",
+    "ordinary attribute or association, or conflicting_account for an unsettled disagreement. ",
+    "Different attribute values alone are insufficient. Return unresolved for ambiguity or ",
+    "conflict anywhere in the supplied evidence and cite the conflict. For affirmative judgments provide ",
     "citations to both sides. Use zero-based Relationship and Memory positions, citing only ",
     "grounded Memories. The fact in each citation must be an exact excerpt from the cited quote ",
-    "and name a distinctive non-endpoint participant. For same_identity select the same ",
-    "distinguishing phrase on both sides. For uncertainty return unresolved with reason ",
+    "with the context that supports your judgment. For same_identity select the same ",
+    "distinguishing phrase naming a non-endpoint participant on both sides. For uncertainty return unresolved with reason ",
     "insufficient_evidence, ambiguity, or conflict. Citations can be empty for unresolved."
 );
 
@@ -56,7 +60,7 @@ pub fn entity_identity_model_schema() -> Value {
                 "items": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": ["side", "relationship", "memory", "fact"],
+                    "required": ["side", "relationship", "memory", "fact", "bearing"],
                     "properties": {
                         "side": {"type": "string", "enum": ["left", "right"]},
                         "relationship": {
@@ -68,6 +72,9 @@ pub fn entity_identity_model_schema() -> Value {
                             "maximum": MAX_RELATIONSHIP_EVIDENCE - 1,
                         },
                         "fact": {"type": "string", "maxLength": MAX_FACT_BYTES},
+                        "bearing": {"type": "string", "enum": [
+                            "corroborates_identity", "describes_referent", "separates_referents", "conflicting_account"
+                        ]},
                     },
                 },
             },
@@ -182,6 +189,13 @@ fn validate_output(
         let (relationship, memory, quote) = pair
             .witness(citation)
             .ok_or_else(|| invalid("identity citation has no grounded witness"))?;
+        let bearing = match required(row, "bearing")? {
+            "corroborates_identity" => Bearing::Corroboration,
+            "describes_referent" => Bearing::Description,
+            "separates_referents" => Bearing::Separation,
+            "conflicting_account" => Bearing::Conflict,
+            _ => return Err(invalid("invalid identity citation bearing")),
+        };
         let fact = required(row, "fact")?;
         if fact.len() > MAX_FACT_BYTES || (!fact.is_empty() && !exact_excerpt(quote, fact)) {
             return Err(invalid("identity fact does not match its cited quote"));
@@ -197,7 +211,7 @@ fn validate_output(
                 relationship,
                 memory,
                 anchors: distinguishing_names(side, relationship, &words),
-                city_of_birth: city_of_birth(side, relationship),
+                bearing,
                 words,
             });
         }
@@ -222,9 +236,11 @@ fn validate_output(
     {
         return Ok(unresolved(IdentityReason::Conflict, citations));
     }
-    if let Some(conflict) = conflicting_birthplaces(pair, outcome == IdentityOutcome::SameIdentity)
-    {
-        return Ok(unresolved(IdentityReason::Conflict, conflict));
+    if facts.iter().any(|fact| {
+        fact.bearing == Bearing::Conflict
+            || (outcome == IdentityOutcome::SameIdentity && fact.bearing == Bearing::Separation)
+    }) {
+        return Ok(unresolved(IdentityReason::Conflict, citations));
     }
     let supported = facts.iter().all(|fact| {
         facts
@@ -241,33 +257,49 @@ fn validate_output(
     })
 }
 
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum Bearing {
+    Corroboration,
+    Description,
+    Separation,
+    Conflict,
+}
+
 struct CitedFact<'a> {
     side: IdentitySide,
     relationship: &'a IdentityRelationshipEvidence,
     memory: &'a IdentityObservedMemory,
     anchors: BTreeSet<Vec<String>>,
-    city_of_birth: bool,
+    bearing: Bearing,
     words: Vec<String>,
 }
 
 impl CitedFact<'_> {
+    fn identifies_separate_referent(&self) -> bool {
+        // A bare participant label or role is not an account of what distinguishes the pair.
+        self.bearing == Bearing::Separation
+            && !self.words.is_empty()
+            && self.relationship.participants.iter().all(|participant| {
+                names(&participant.entity)
+                    .chain(participant.roles.iter().map(String::as_str))
+                    .all(|label| words(label) != self.words)
+            })
+    }
+
     fn supports(
         &self,
         other: &Self,
         pair: &IdentityPairEvidence,
         outcome: IdentityOutcome,
     ) -> bool {
-        if self.side == other.side
-            || self.anchors.is_empty()
-            || other.anchors.is_empty()
-            || !independent_sources(self.memory, other.memory)
-        {
+        if self.side == other.side || !independent_sources(self.memory, other.memory) {
             return false;
         }
-        let disjoint_anchors = self.anchors.is_disjoint(&other.anchors);
         match outcome {
             IdentityOutcome::SameIdentity => {
-                !disjoint_anchors
+                self.bearing == Bearing::Corroboration
+                    && other.bearing == Bearing::Corroboration
+                    && !self.anchors.is_disjoint(&other.anchors)
                     && self.words == other.words
                     && self
                         .relationship
@@ -281,77 +313,11 @@ impl CitedFact<'_> {
                     )
             }
             IdentityOutcome::RelatedDistinct => {
-                self.city_of_birth && other.city_of_birth && disjoint_anchors
+                self.identifies_separate_referent() && other.identifies_separate_referent()
             }
             IdentityOutcome::Unresolved => false,
         }
     }
-}
-
-/// A person's place of birth is single-valued at city granularity.
-/// Relationship kind and participant role identify the asserted property.
-fn city_of_birth(side: &IdentityEvidence, relationship: &IdentityRelationshipEvidence) -> bool {
-    if !side.endpoint.kind.eq_ignore_ascii_case("person")
-        || !relationship.kind.eq_ignore_ascii_case("place_of_birth")
-    {
-        return false;
-    }
-    let [first, second] = relationship.participants.as_slice() else {
-        return false;
-    };
-    let place = if first.entity.id == side.endpoint.id {
-        second
-    } else if second.entity.id == side.endpoint.id {
-        first
-    } else {
-        return false;
-    };
-    place.entity.kind.eq_ignore_ascii_case("city")
-        && place
-            .roles
-            .iter()
-            .any(|role| role.eq_ignore_ascii_case("birthplace"))
-}
-
-fn conflicting_birthplaces(
-    pair: &IdentityPairEvidence,
-    across_owners: bool,
-) -> Option<Vec<IdentityCitation>> {
-    let mut observed: Vec<(IdentityCitation, BTreeSet<Vec<String>>)> = Vec::new();
-    for side in [IdentitySide::Left, IdentitySide::Right] {
-        let evidence = pair.side(side);
-        for (relationship, relation) in evidence.relationships.iter().enumerate() {
-            if !city_of_birth(evidence, relation) {
-                continue;
-            }
-            let Some(quote) = relation.quote.as_deref() else {
-                continue;
-            };
-            let anchors = distinguishing_names(evidence, relation, &words(quote));
-            let Some(memory) = relation
-                .memories
-                .iter()
-                .position(|m| m.reference.span.is_some())
-            else {
-                continue;
-            };
-            if anchors.is_empty() {
-                continue;
-            }
-            let citation = IdentityCitation {
-                side,
-                relationship: u16::try_from(relationship).ok()?,
-                memory: u16::try_from(memory).ok()?,
-            };
-            if let Some((other, _)) = observed.iter().find(|(other, names)| {
-                (across_owners || other.side == side) && names.is_disjoint(&anchors)
-            }) {
-                return Some(vec![*other, citation]);
-            }
-            observed.push((citation, anchors));
-        }
-    }
-    None
 }
 
 fn names(entity: &IdentityEntityEvidence) -> impl Iterator<Item = &str> {
@@ -359,7 +325,7 @@ fn names(entity: &IdentityEntityEvidence) -> impl Iterator<Item = &str> {
 }
 
 fn parse_citation(row: &Value) -> Result<IdentityCitation, EntityResolverError> {
-    if row.as_object().is_none_or(|fields| fields.len() != 4) {
+    if row.as_object().is_none_or(|fields| fields.len() != 5) {
         return Err(invalid("invalid identity citation object"));
     }
     let side = match required(row, "side")? {
@@ -414,58 +380,24 @@ fn distinguishing_names(
     relationship: &IdentityRelationshipEvidence,
     fact: &[String],
 ) -> BTreeSet<Vec<String>> {
-    let generic = [
-        "a",
-        "an",
-        "the",
-        "of",
-        "for",
-        "and",
-        "at",
-        "in",
-        "on",
-        "by",
-        "is",
-        "employee",
-        "engineer",
-        "engineering",
-        "person",
-        "worker",
-        "member",
-        "staff",
-        "developer",
-        "manager",
-        "lead",
-        "director",
-        "founder",
-        "owner",
-        "author",
-        "signatory",
-        "contract",
-        "agreement",
-        "company",
-        "organization",
-        "team",
-        "city",
-        "town",
-        "village",
-    ];
     let endpoint_words = names(&side.endpoint)
         .flat_map(|name| words(name))
         .collect::<BTreeSet<_>>();
-    let role_words = relationship
+    let label_words = relationship
         .participants
         .iter()
-        .flat_map(|p| &p.roles)
-        .flat_map(|role| words(role))
+        .flat_map(|p| std::iter::once(&p.entity.kind).chain(&p.roles))
+        .flat_map(|label| words(label))
         .collect::<BTreeSet<_>>();
     let distinctive = |name: &[String]| {
         name.iter().any(|word| {
             !endpoint_words.contains(word)
-                && !role_words.contains(word)
-                && !generic.contains(&word.as_str())
+                && !label_words.contains(word)
+                && !matches!(
+                    word.as_str(),
+                    "a" | "an" | "the" | "of" | "for" | "and" | "at" | "in" | "on" | "by" | "is"
+                )
                 && !is_bare_generic_surface(word)
-                && word.chars().any(char::is_alphabetic)
         })
     };
     relationship

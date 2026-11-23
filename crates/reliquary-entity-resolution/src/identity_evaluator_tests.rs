@@ -100,8 +100,8 @@ fn answer(fact: &str) -> Value {
         "outcome": "same_identity",
         "reason": "corroborated",
         "citations": [
-            {"side": "left", "relationship": 0, "memory": 0, "fact": fact},
-            {"side": "right", "relationship": 0, "memory": 0, "fact": fact},
+            {"side": "left", "relationship": 0, "memory": 0, "fact": fact, "bearing": "corroborates_identity"},
+            {"side": "right", "relationship": 0, "memory": 0, "fact": fact, "bearing": "corroborates_identity"},
         ],
     })
 }
@@ -174,6 +174,8 @@ fn common_provenance_missing_support_and_overflow_skip_provider() {
 fn affirmative_answers_require_distinguishing_facts_beyond_generic_roles() {
     let cast_as_engineer = |owner| {
         let mut evidence = side(owner, owner, "Alex Chen is an Engineer.");
+        evidence.relationships[0].kind = "works_as".into();
+        evidence.relationships[0].participants[0].roles = vec!["engineer".into()];
         evidence.relationships[0].participants[1]
             .entity
             .canonical_name = "Engineer".into();
@@ -203,79 +205,94 @@ fn affirmative_answers_require_distinguishing_facts_beyond_generic_roles() {
         .entity
         .canonical_name = "Harbor Contract".into();
     distinct["citations"][1]["fact"] = json!("Harbor Contract");
+    for citation in distinct["citations"].as_array_mut().unwrap() {
+        citation["bearing"] = json!("separates_referents");
+    }
     let two_contracts = IdentityPairEvidence::new(left.clone(), harbor_contract);
     let judgment =
         evaluate_identity_pair(&two_contracts, &Scripted::reply(distinct.clone())).unwrap();
     assert_eq!(judgment.outcome, IdentityOutcome::Unresolved);
     assert_eq!(judgment.reason, IdentityReason::Ambiguity);
+}
 
-    let birth_register = |owner, place: &str, quote: &str| {
+#[test]
+fn distinction_requires_independent_sources_identifying_separate_referents() {
+    let witness = |owner, endpoint: &str, kind: &str, context: &str, quote: &str| {
         let mut evidence = side(owner, owner, quote);
-        evidence.relationships[0].kind = "place_of_birth".into();
-        evidence.relationships[0].participants[0].roles = vec!["person".into()];
-        evidence.relationships[0].participants[1]
-            .entity
-            .canonical_name = place.into();
-        evidence.relationships[0].participants[1].entity.kind = "city".into();
-        evidence.relationships[0].participants[1].roles = vec!["birthplace".into()];
+        evidence.endpoint.canonical_name = endpoint.into();
+        evidence.endpoint.kind = kind.into();
+        evidence.endpoint.aliases.clear();
+        let relation = &mut evidence.relationships[0];
+        relation.kind = "associated_with".into();
+        relation.participants[0].entity = evidence.endpoint.clone();
+        relation.participants[0].roles.clear();
+        relation.participants[1].entity.canonical_name = context.into();
+        relation.participants[1].entity.kind = "referent".into();
+        relation.participants[1].roles.clear();
         evidence
     };
-    distinct["citations"][0]["fact"] = json!("born in Meridian City");
-    distinct["citations"][1]["fact"] = json!("Lantern City");
-    let meridian_birth = birth_register(
-        1,
-        "Meridian City",
-        "Alex Chen was born in Meridian City as recorded in Register A.",
+    let left =
+        "The County Survey marks two sites named Eagle Point. This is the ridge north of Lake Ida.";
+    let right =
+        "The Trail Atlas maps both Eagle Points and locates this one on the southern shore.";
+    let pair = IdentityPairEvidence::new(
+        witness(1, "Eagle Point", "place", "County Survey", left),
+        witness(2, "Eagle Point", "place", "Trail Atlas", right),
     );
-    let lantern_birth = birth_register(
-        2,
-        "Lantern City",
-        "Register B lists Lantern City as Alex Chen's birthplace.",
+    let mut separate = answer(left);
+    separate["outcome"] = json!("related_distinct");
+    separate["reason"] = json!("distinct");
+    separate["citations"][0]["bearing"] = json!("separates_referents");
+    separate["citations"][1]["fact"] = json!(right);
+    separate["citations"][1]["bearing"] = json!("describes_referent");
+    // One source establishing separation is insufficient.
+    let evaluate = |pair, output: &Value| {
+        evaluate_identity_pair(pair, &Scripted::reply(output.clone())).unwrap()
+    };
+    assert_eq!(
+        evaluate(&pair, &separate).outcome,
+        IdentityOutcome::Unresolved
     );
-    let separate_anchors = IdentityPairEvidence::new(meridian_birth.clone(), lantern_birth.clone());
-    let judgment = evaluate_identity_pair(&separate_anchors, &Scripted::reply(distinct)).unwrap();
+    separate["citations"][1]["bearing"] = json!("separates_referents");
+    let judgment = evaluate(&pair, &separate);
     assert_eq!(judgment.outcome, IdentityOutcome::RelatedDistinct);
+    assert_eq!(judgment.citations.len(), 2);
 
-    let mut uncertain_birth = lantern_birth.clone();
-    uncertain_birth.relationships[0].quote =
-        Some("Alex Chen might have been born in Lantern City.".into());
-    let uncertain = IdentityPairEvidence::new(meridian_birth.clone(), uncertain_birth);
-    let uncertainty = Scripted::reply(json!({
-        "outcome": "unresolved", "reason": "ambiguity", "citations": [],
-    }));
-    let judgment = evaluate_identity_pair(&uncertain, &uncertainty).unwrap();
-    assert_eq!(judgment.outcome, IdentityOutcome::Unresolved);
-    assert_eq!(judgment.reason, IdentityReason::Ambiguity);
-
-    let with_birth = |mut evidence: IdentityEvidence, mut birth: IdentityEvidence| {
-        let mut relationship = birth.relationships.remove(0);
-        relationship.id = RelationshipId([9; 32]);
-        evidence.relationships.push(relationship);
-        evidence
-    };
-    let conflicting = IdentityPairEvidence::new(
-        with_birth(left, meridian_birth),
-        with_birth(right, lantern_birth),
+    let marker = "Brass Survey Marker K17";
+    let same_place = IdentityPairEvidence::new(
+        witness(
+            1,
+            "Eagle Point",
+            "place",
+            marker,
+            "The Eagle Point summit is at Brass Survey Marker K17.",
+        ),
+        witness(
+            2,
+            "Pointe de l'Aigle",
+            "place",
+            marker,
+            "Pointe de l'Aigle is the summit at Brass Survey Marker K17.",
+        ),
     );
-    let judgment =
-        evaluate_identity_pair(&conflicting, &Scripted::reply(answer(CONTRACT))).unwrap();
+    assert_eq!(
+        evaluate(&same_place, &answer(marker)).outcome,
+        IdentityOutcome::SameIdentity
+    );
+
+    let left = "Register A lists Meridian City as Alex Chen's birthplace.";
+    let right = "Register B lists Lantern City as Alex Chen's birthplace.";
+    let pair = IdentityPairEvidence::new(
+        witness(1, "Alex Chen", "person", "Register A", left),
+        witness(2, "Alex Chen", "person", "Register B", right),
+    );
+    for (index, fact) in [left, right].into_iter().enumerate() {
+        separate["citations"][index]["fact"] = json!(fact);
+        separate["citations"][index]["bearing"] = json!("conflicting_account");
+    }
+    let judgment = evaluate(&pair, &separate);
     assert_eq!(judgment.outcome, IdentityOutcome::Unresolved);
     assert_eq!(judgment.reason, IdentityReason::Conflict);
-    assert_eq!(
-        judgment.citations,
-        vec![
-            IdentityCitation {
-                side: IdentitySide::Left,
-                relationship: 1,
-                memory: 0
-            },
-            IdentityCitation {
-                side: IdentitySide::Right,
-                relationship: 1,
-                memory: 0
-            },
-        ]
-    );
 }
 
 #[test]

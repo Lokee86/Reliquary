@@ -29,8 +29,8 @@ const CONTRACT: &str = "Project Meridian Contract";
 const QUOTE: &str = "Alex Chen signed Project Meridian Contract.";
 const APPLICATION: &str = "Relay";
 const INVENTORY: &str = "Station 7 software inventory";
-const EDITOR_INSTALL: &str = "Station 7 ran two separate Relay apps side by side: com.arden.editor and org.bramble.backup. This entry records com.arden.editor.";
-const BACKUP_INSTALL: &str = "The Relay app in this entry is org.bramble.backup, installed on Station 7 alongside the separate com.arden.editor app also named Relay.";
+const EDITOR_INSTALL: &str = "The Station 7 software inventory records two separate Relay programs running side by side: com.arden.editor and org.bramble.backup. This entry records com.arden.editor.";
+const BACKUP_INSTALL: &str = "An independent audit of the Station 7 software inventory identifies this Relay program as org.bramble.backup and the other Relay as com.arden.editor.";
 
 struct Directory(PathBuf);
 impl Directory {
@@ -720,7 +720,7 @@ fn identity_readonly_peer_and_equivalent_concurrent_requests_publish_once() {
 }
 
 #[test]
-fn same_named_applications_need_evidence_of_separate_installations() {
+fn two_programs_named_relay_are_distinguished_by_independent_inventory_records() {
     let dir = Directory::new();
     let ap = dir.0.join("a.rel");
     let bp = dir.0.join("b.rel");
@@ -805,4 +805,78 @@ fn same_named_applications_need_evidence_of_separate_installations() {
     assert_eq!(view.receipt, distinct);
     assert_eq!(view.cited_quotes.unwrap(), [EDITOR_INSTALL, BACKUP_INSTALL]);
     assert_eq!(script.calls.load(Ordering::SeqCst), 2);
+}
+
+#[test]
+fn unchanged_pair_is_reconsidered_after_automatic_policy_changes() {
+    use reliquary_application::entity_identity::{IdentityComparison, IdentityPairEvidence};
+    use reliquary_memory::IdentityPair;
+    use reliquary_owner_session::RelSession;
+
+    let dir = Directory::new();
+    let ap = dir.0.join("a.rel");
+    let bp = dir.0.join("b.rel");
+    let a_id = [9; 16];
+    let b_id = [10; 16];
+    let (ae, _) = seed(&ap, a_id);
+    let (be, _) = seed(&bp, b_id);
+    // Write an old-policy receipt with the real evidence fingerprint and bound route.
+    let previous = {
+        let mut a = RelWriter::open_path_current(&ap).unwrap();
+        let b = RelSession::open_path_current(&bp).unwrap();
+        let basis = IdentityPairEvidence::new(
+            a.read_session().identity_evidence(ae).unwrap().unwrap(),
+            b.identity_evidence(be).unwrap().unwrap(),
+        );
+        let pair = IdentityPair {
+            local_owner: a_id,
+            local_entity: ae,
+            peer_owner: b_id,
+            peer_entity: be,
+        };
+        let mut previous = IdentityComparison::prepare(basis, "")
+            .evaluate(pair, None, None)
+            .unwrap();
+        previous.policy = 1;
+        a.publish_identity_receipt(previous).unwrap()
+    };
+
+    let gateway = Gateway::new();
+    let a = gateway.mount_rel(&Rel::open(&ap).unwrap(), true).unwrap();
+    let b = gateway.mount_rel(&Rel::open(&bp).unwrap(), false).unwrap();
+    let token = "policy-upgrade-manager-credential-0000000000";
+    let (admission, _) = TrustedHostAdmission::new([HostCredentialBinding::new(
+        "author",
+        token,
+        [OwnerGrant::ManageRel(a), OwnerGrant::ViewRel(b)],
+    )])
+    .install(&gateway)
+    .unwrap();
+    let work = admission
+        .authenticate(token)
+        .unwrap()
+        .workspace_management(a)
+        .unwrap();
+    let inspect = |rev| {
+        work.inspect_entity_identity(ae, b, be, rev)
+            .unwrap()
+            .unwrap()
+    };
+    assert_eq!(inspect(None).state, IdentityComparisonState::Pending);
+    let script = Arc::new(Script::default());
+    let mut processing = work
+        .start_entity_identity_processing(&runtime(script.clone()))
+        .unwrap();
+    wait_revision(&work, ae, b, be, 2);
+    processing.stop().unwrap();
+    let new = inspect(None).receipt;
+    assert!(new.policy > previous.policy);
+    assert_eq!(new.predecessor, Some(previous.revision));
+    assert_eq!(
+        (new.fingerprint, new.route),
+        (previous.fingerprint, previous.route.clone())
+    );
+    assert_eq!(new.outcome, IdentityOutcome::Unresolved);
+    assert_eq!(inspect(Some(1)).receipt, previous);
+    assert_eq!(script.calls.load(Ordering::SeqCst), 0);
 }
