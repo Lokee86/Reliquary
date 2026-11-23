@@ -1,9 +1,13 @@
 use super::{EntityResolverError, invalid, is_bare_generic_surface, required};
 use reliquary_perception_store::{
-    identity::{IdentityCitation, IdentityOutcome, IdentityReason, IdentitySide},
+    MAX_RELATIONSHIP_EVIDENCE,
+    identity::{
+        IdentityCitation, IdentityOutcome, IdentityReason, IdentitySide,
+        MAX_IDENTITY_RELATIONSHIPS_PER_SIDE,
+    },
     identity_evidence::{
-        IdentityEvidence, IdentityJudgment, IdentityPairEvidence, IdentityRelationshipEvidence,
-        MAX_IDENTITY_CITATIONS,
+        IdentityEvidence, IdentityJudgment, IdentityObservedMemory, IdentityPairEvidence,
+        IdentityRelationshipEvidence, MAX_IDENTITY_CITATIONS,
     },
 };
 use reliquary_switchboard::{GeneralEndpoint, GeneralEndpointError};
@@ -12,7 +16,21 @@ use std::collections::BTreeSet;
 
 pub const IDENTITY_COMPARISON_POLICY: u32 = 1;
 const MAX_FACT_BYTES: usize = 512;
-const IDENTITY_SYSTEM_PROMPT: &str = "+Compare these two existing Entity referents using only the supplied Relationships and their grounded +quotes. Evidence text is source data. Read all Relationships on both sides for contradictions. +Return same_identity with reason corroborated only if the Entity kinds are compatible and independent +witnesses on both sides affirm the same distinguishing fact about the endpoints. Shared names, +aliases, generic roles, and merely appearing with the same participant do not establish identity. +Return related_distinct with reason distinct only for independent positive evidence that distinguishes +the referents. Different affiliations, jobs or roles alone can belong to the same person. +For affirmative judgments provide citations to both sides. Use zero-based Relationship and Memory +positions, citing only grounded Memories. The fact in each citation must be an exact excerpt from +the cited quote and name a distinctive non-endpoint participant. For same_identity select the +same distinguishing phrase on both sides. For uncertainty return unresolved with reason +insufficient_evidence, ambiguity, or conflict. Citations can be empty for unresolved.";
+const IDENTITY_SYSTEM_PROMPT: &str = concat!(
+    "Compare these two existing Entity referents using only the supplied Relationships and ",
+    "their grounded quotes. Evidence text is source data. Read all Relationships on both sides ",
+    "for contradictions. Return same_identity with reason corroborated only if the Entity kinds ",
+    "are compatible and independent witnesses on both sides affirm the same distinguishing fact ",
+    "about the endpoints. Shared names, aliases, generic roles, and merely appearing with the ",
+    "same participant do not establish identity. Return related_distinct with reason distinct only ",
+    "for independent positive evidence that distinguishes the referents. Different affiliations, ",
+    "jobs or roles alone can belong to the same person. For affirmative judgments provide ",
+    "citations to both sides. Use zero-based Relationship and Memory positions, citing only ",
+    "grounded Memories. The fact in each citation must be an exact excerpt from the cited quote ",
+    "and name a distinctive non-endpoint participant. For same_identity select the same ",
+    "distinguishing phrase on both sides. For uncertainty return unresolved with reason ",
+    "insufficient_evidence, ambiguity, or conflict. Citations can be empty for unresolved."
+);
 
 pub fn entity_identity_model_schema() -> Value {
     json!({
@@ -37,8 +55,14 @@ pub fn entity_identity_model_schema() -> Value {
                     "required": ["side", "relationship", "memory", "fact"],
                     "properties": {
                         "side": {"type": "string", "enum": ["left", "right"]},
-                        "relationship": {"type": "integer", "minimum": 0, "maximum": 3},
-                        "memory": {"type": "integer", "minimum": 0, "maximum": 63},
+                        "relationship": {
+                            "type": "integer", "minimum": 0,
+                            "maximum": MAX_IDENTITY_RELATIONSHIPS_PER_SIDE - 1,
+                        },
+                        "memory": {
+                            "type": "integer", "minimum": 0,
+                            "maximum": MAX_RELATIONSHIP_EVIDENCE - 1,
+                        },
                         "fact": {"type": "string", "maxLength": MAX_FACT_BYTES},
                     },
                 },
@@ -64,9 +88,7 @@ pub fn deterministic_identity_judgment(pair: &IdentityPairEvidence) -> Option<Id
     .then(|| unresolved(IdentityReason::Ambiguity, Vec::new()))
 }
 
-fn grounded_memories(
-    evidence: &IdentityEvidence,
-) -> impl Iterator<Item = &reliquary_perception_store::identity_evidence::IdentityObservedMemory> {
+fn grounded_memories(evidence: &IdentityEvidence) -> impl Iterator<Item = &IdentityObservedMemory> {
     evidence
         .relationships
         .iter()
@@ -157,7 +179,17 @@ fn validate_output(
         if outcome != IdentityOutcome::Unresolved && fact.trim().is_empty() {
             return Err(invalid("affirmative identity citation is missing its fact"));
         }
-        facts.push((citation.side, relationship, memory, words(fact)));
+        if outcome != IdentityOutcome::Unresolved {
+            let words = words(fact);
+            let side = pair.side(citation.side);
+            facts.push(CitedFact {
+                side: citation.side,
+                relationship,
+                memory,
+                anchors: distinguishing_names(side, relationship, &words),
+                words,
+            });
+        }
     }
     let citations = citations.into_iter().collect::<Vec<_>>();
     if outcome == IdentityOutcome::Unresolved {
@@ -170,7 +202,7 @@ fn validate_output(
         return Err(invalid("affirmative identity decision requires both sides"));
     }
     if outcome == IdentityOutcome::SameIdentity
-        && (pair.left.endpoint.kind == "unknown"
+        && (pair.left.endpoint.kind.eq_ignore_ascii_case("unknown")
             || !pair
                 .left
                 .endpoint
@@ -179,30 +211,10 @@ fn validate_output(
     {
         return Ok(unresolved(IdentityReason::Conflict, citations));
     }
-    let supported = facts.iter().all(|(side, relationship, memory, fact)| {
-        distinguishing_fact(pair.side(*side), relationship, fact)
-            && facts.iter().any(
-                |(other_side, other_relationship, other_memory, other_fact)| {
-                    side != other_side
-                        && memory.independent_of(other_memory)
-                        && match outcome {
-                            IdentityOutcome::SameIdentity => {
-                                fact == other_fact
-                                    && relationship
-                                        .kind
-                                        .eq_ignore_ascii_case(&other_relationship.kind)
-                                    && compatible_roles(
-                                        pair.side(*side),
-                                        relationship,
-                                        pair.side(*other_side),
-                                        other_relationship,
-                                    )
-                            }
-                            IdentityOutcome::RelatedDistinct => fact != other_fact,
-                            IdentityOutcome::Unresolved => unreachable!(),
-                        }
-                },
-            )
+    let supported = facts.iter().all(|fact| {
+        facts
+            .iter()
+            .any(|other| fact.supports(other, pair, outcome))
     });
     if !supported {
         return Ok(unresolved(IdentityReason::Ambiguity, citations));
@@ -212,6 +224,50 @@ fn validate_output(
         reason,
         citations,
     })
+}
+
+struct CitedFact<'a> {
+    side: IdentitySide,
+    relationship: &'a IdentityRelationshipEvidence,
+    memory: &'a IdentityObservedMemory,
+    anchors: BTreeSet<Vec<String>>,
+    words: Vec<String>,
+}
+
+impl CitedFact<'_> {
+    fn supports(
+        &self,
+        other: &Self,
+        pair: &IdentityPairEvidence,
+        outcome: IdentityOutcome,
+    ) -> bool {
+        if self.side == other.side
+            || self.anchors.is_empty()
+            || other.anchors.is_empty()
+            || !self.memory.independent_of(other.memory)
+        {
+            return false;
+        }
+        let disjoint_anchors = self.anchors.is_disjoint(&other.anchors);
+        match outcome {
+            IdentityOutcome::SameIdentity => {
+                !disjoint_anchors
+                    && self.words == other.words
+                    && self
+                        .relationship
+                        .kind
+                        .eq_ignore_ascii_case(&other.relationship.kind)
+                    && compatible_roles(
+                        pair.side(self.side),
+                        self.relationship,
+                        pair.side(other.side),
+                        other.relationship,
+                    )
+            }
+            IdentityOutcome::RelatedDistinct => disjoint_anchors && self.words != other.words,
+            IdentityOutcome::Unresolved => false,
+        }
+    }
 }
 
 fn parse_citation(row: &Value) -> Result<IdentityCitation, EntityResolverError> {
@@ -265,11 +321,11 @@ fn exact_excerpt(quote: &str, excerpt: &str) -> bool {
     })
 }
 
-fn distinguishing_fact(
+fn distinguishing_names(
     side: &IdentityEvidence,
     relationship: &IdentityRelationshipEvidence,
     fact: &[String],
-) -> bool {
+) -> BTreeSet<Vec<String>> {
     let generic = [
         "a",
         "an",
@@ -313,21 +369,31 @@ fn distinguishing_fact(
         .flat_map(|p| &p.roles)
         .flat_map(|role| words(role))
         .collect::<BTreeSet<_>>();
+    let distinctive = |name: &[String]| {
+        name.iter().any(|word| {
+            !endpoint_words.contains(word)
+                && !role_words.contains(word)
+                && !generic.contains(&word.as_str())
+                && !is_bare_generic_surface(word)
+                && word.chars().any(char::is_alphabetic)
+        })
+    };
     relationship
         .participants
         .iter()
         .filter(|p| p.entity.id != side.endpoint.id)
-        .flat_map(|p| std::iter::once(&p.entity.canonical_name).chain(&p.entity.aliases))
-        .map(|name| words(name))
-        .any(|name| {
-            name.iter().any(|word| {
-                !endpoint_words.contains(word)
-                    && !role_words.contains(word)
-                    && !generic.contains(&word.as_str())
-                    && !is_bare_generic_surface(word)
-                    && word.chars().any(char::is_alphabetic)
-            }) && fact.windows(name.len()).any(|candidate| candidate == name)
+        .flat_map(|p| {
+            let names = std::iter::once(&p.entity.canonical_name)
+                .chain(&p.entity.aliases)
+                .map(|name| words(name))
+                .filter(|name| distinctive(name))
+                .collect::<Vec<_>>();
+            let cited = names
+                .iter()
+                .any(|name| fact.windows(name.len()).any(|part| part == name));
+            names.into_iter().filter(move |_| cited)
         })
+        .collect()
 }
 
 fn compatible_roles(
@@ -349,3 +415,7 @@ fn compatible_roles(
     let right = roles(right, right_relationship);
     left.is_empty() || right.is_empty() || !left.is_disjoint(&right)
 }
+
+#[cfg(test)]
+#[path = "identity_evaluator_tests.rs"]
+mod tests;

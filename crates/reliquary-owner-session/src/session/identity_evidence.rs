@@ -70,9 +70,11 @@ impl RelSession {
             }
 
             let names_grounded = participants.iter().all(|participant| {
-                std::iter::once(&participant.entity.canonical_name)
-                    .chain(&participant.entity.aliases)
-                    .any(|name| contains_normalized(&relationship.summary, name))
+                quote_names_entity(
+                    &relationship.summary,
+                    &participant.entity.canonical_name,
+                    &participant.entity.aliases,
+                )
             });
             let mut memories = Vec::with_capacity(active.len());
             for id in active {
@@ -155,10 +157,10 @@ impl CommonState {
         {
             Some(source) => {
                 lineage = source_lineage(source);
-                if !names_grounded && !quote.is_empty() {
-                    Err(IdentityMemoryExclusion::ParticipantNames)
-                } else if quote.trim().is_empty() {
+                if quote.trim().is_empty() {
                     Err(IdentityMemoryExclusion::QuoteAbsent)
+                } else if !names_grounded {
+                    Err(IdentityMemoryExclusion::ParticipantNames)
                 } else {
                     let (_, body) = self.memories.revision_projection(id, None)?;
                     match body {
@@ -182,10 +184,19 @@ impl CommonState {
     }
 }
 
-fn exact_quote_span(
+pub(super) fn quote_names_entity(quote: &str, canonical_name: &str, aliases: &[String]) -> bool {
+    std::iter::once(canonical_name)
+        .chain(aliases.iter().map(String::as_str))
+        .any(|name| contains_normalized(quote, name))
+}
+
+pub(super) fn exact_quote_span(
     body: &MemoryBody,
     quote: &str,
 ) -> Result<IdentitySpan, IdentityMemoryExclusion> {
+    if quote.trim().is_empty() {
+        return Err(IdentityMemoryExclusion::QuoteAbsent);
+    }
     let mut found = None;
     for field in [MemoryTextField::Title, MemoryTextField::Content] {
         let text = text_field(body, field);
@@ -253,4 +264,64 @@ fn source_lineage(source: &MemorySourceRef) -> Vec<[u8; 32]> {
     keys.sort_unstable();
     keys.dedup();
     keys
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn exact_current_quote_rejects_repetition_and_reports_utf8_bytes() {
+        let mut body = MemoryBody {
+            title: "Grounding".into(),
+            content: "🦀 Élodie signed the Meridian Contract.".into(),
+        };
+        let quote = "Élodie signed the Meridian Contract.";
+        let span = exact_quote_span(&body, quote).unwrap();
+        assert_eq!(span.field, MemoryTextField::Content);
+        assert_eq!(span.start_byte as usize, "🦀 ".len());
+        assert_eq!(span.end_byte as usize, body.content.len());
+        body.title = quote.into();
+        assert_eq!(
+            exact_quote_span(&body, quote),
+            Err(IdentityMemoryExclusion::QuoteRepeated)
+        );
+        body.content = "ééé".into();
+        assert_eq!(
+            exact_quote_span(&body, "éé"),
+            Err(IdentityMemoryExclusion::QuoteRepeated)
+        );
+        assert_eq!(
+            exact_quote_span(&body, "Mira"),
+            Err(IdentityMemoryExclusion::QuoteAbsent)
+        );
+    }
+
+    #[test]
+    fn source_lineage_survives_republication_in_another_owner() {
+        let source = MemorySourceRef {
+            owner_id: "recording owner".into(),
+            principal_id: None,
+            source_episode_id: [1; 32],
+            source_node_id: "copy-1".into(),
+            content_source_conversation_id: Some("original conversation".into()),
+            content_source_node_id: Some("original turn".into()),
+            grounding_source_conversation_id: None,
+            grounding_source_node_id: None,
+        };
+        let mut copy = source.clone();
+        copy.owner_id = "another owner".into();
+        copy.source_node_id = "copy-2".into();
+        assert!(
+            source_lineage(&source)
+                .iter()
+                .any(|id| source_lineage(&copy).contains(id))
+        );
+        copy.content_source_node_id = Some("an independent turn".into());
+        assert!(
+            source_lineage(&source)
+                .iter()
+                .all(|id| !source_lineage(&copy).contains(id))
+        );
+    }
 }

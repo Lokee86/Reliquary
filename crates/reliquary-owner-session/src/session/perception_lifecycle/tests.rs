@@ -2,6 +2,7 @@ use super::support::owner_hex;
 use super::*;
 use reliquary_container::ReliquaryScope;
 use reliquary_memory_core::{MemoryDraft, MemorySourceRef};
+use reliquary_perception_store::identity::{IdentityLimit, MAX_IDENTITY_RELATIONSHIPS_PER_SIDE};
 use reliquary_perception_store::{EntityDraft, EntityResolutionReason};
 use std::{fs, path::PathBuf};
 
@@ -322,7 +323,32 @@ fn relationship_creation_requires_exact_source_and_retirement_preserves_tombston
     forged.end_byte = forged.source_quote.len();
     assert!(writer.create_relationship(forged).is_err());
     assert_eq!(fs::metadata(&temp.0).unwrap().len(), before);
+    assert!(
+        writer
+            .session
+            .identity_evidence(entities[0].id)
+            .unwrap()
+            .unwrap()
+            .relationships
+            .is_empty()
+    );
     let relationship = writer.create_relationship(request.clone()).unwrap();
+    let captured = writer
+        .session
+        .identity_evidence(entities[0].id)
+        .unwrap()
+        .unwrap();
+    let captured = &captured.relationships[0];
+    let witness = captured.memories[0].reference;
+    assert_eq!(captured.id, relationship.id);
+    assert_eq!(witness.body_id, memory.record.body_id.0);
+    assert_eq!(witness.revision, memory.record.revision);
+    assert_eq!(witness.span.unwrap().field, request.source_field);
+    assert_eq!(witness.span.unwrap().end_byte as usize, request.end_byte);
+    assert_eq!(
+        captured.quote.as_deref(),
+        Some(request.source_quote.as_str())
+    );
     let retirement = RelationshipRetirementRequest {
         owner_id: owner,
         relationship_id: relationship.id,
@@ -333,12 +359,42 @@ fn relationship_creation_requires_exact_source_and_retirement_preserves_tombston
         source_field: MemoryTextField::Content,
         start_byte: request.start_byte,
         end_byte: request.end_byte,
-        source_quote: request.source_quote,
+        source_quote: request.source_quote.clone(),
     };
     let mut stale = retirement.clone();
     stale.relationship_revision += 1;
     assert!(writer.retire_relationship(stale).is_err());
     let tombstone = writer.retire_relationship(retirement).unwrap();
+    assert!(
+        writer
+            .session
+            .identity_evidence(entities[0].id)
+            .unwrap()
+            .unwrap()
+            .relationships
+            .is_empty()
+    );
+    let mut ordered = Vec::new();
+    for index in 0..=MAX_IDENTITY_RELATIONSHIPS_PER_SIDE {
+        let mut extra = request.clone();
+        extra.mutation_id = format!("relationship-frontier-{index}");
+        ordered.push(writer.create_relationship(extra).unwrap().id);
+    }
+    ordered.sort_unstable();
+    let limited = writer
+        .session
+        .identity_evidence(entities[0].id)
+        .unwrap()
+        .unwrap();
+    assert_eq!(limited.limit, Some(IdentityLimit::Relationships));
+    assert_eq!(
+        limited
+            .relationships
+            .iter()
+            .map(|r| r.id)
+            .collect::<Vec<_>>(),
+        ordered[..MAX_IDENTITY_RELATIONSHIPS_PER_SIDE]
+    );
     drop(writer);
     let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
     let reopened = RelSession::open_path(&temp.0, &admission, [], []).unwrap();
