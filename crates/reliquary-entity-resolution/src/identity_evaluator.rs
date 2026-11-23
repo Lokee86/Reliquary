@@ -99,7 +99,10 @@ pub fn deterministic_identity_judgment(pair: &IdentityPairEvidence) -> Option<Id
     .then(|| unresolved(IdentityReason::Ambiguity, Vec::new()))
 }
 
-fn independent_sources(left: &IdentityObservedMemory, right: &IdentityObservedMemory) -> bool {
+pub(crate) fn independent_sources(
+    left: &IdentityObservedMemory,
+    right: &IdentityObservedMemory,
+) -> bool {
     !left.lineage.is_empty()
         && !right.lineage.is_empty()
         && left.lineage.iter().all(|key| !right.lineage.contains(key))
@@ -361,7 +364,7 @@ fn words(text: &str) -> Vec<String> {
         .collect()
 }
 
-fn exact_excerpt(quote: &str, excerpt: &str) -> bool {
+pub(crate) fn exact_excerpt(quote: &str, excerpt: &str) -> bool {
     quote.match_indices(excerpt).any(|(start, surface)| {
         let end = start + surface.len();
         !quote[..start]
@@ -439,4 +442,4 @@ fn compatible_roles(
 
 #[cfg(test)]
 #[path = "identity_evaluator_tests.rs"]
-mod tests;
+pub(crate) mod tests;

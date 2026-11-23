@@ -11,6 +11,8 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 mod decision_fast_path;
 mod identity_pair;
+#[cfg(test)]
+mod identity_trial;
 mod model_evaluator;
 pub use identity_pair::{IdentityJudgment, IdentityPairEvidence};
 pub use model_evaluator::{

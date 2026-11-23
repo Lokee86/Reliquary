@@ -53,6 +53,37 @@ These checks use a scripted endpoint and exercise Core's judgment validation and
 
 A fresh Gateway reopened both RELs with the peer mounted read-only. The initial receipt had been unresolved with only one side grounded and zero model calls. After the peer gained an independent witness, Core used the session authorized for both owners and the configured Entity route to append revision 2. The scripted endpoint received one call. Revision 1 remained available as history. A separate fixture upgraded an old-policy receipt using only an authorized session, with no runtime configured. Replacing an inference route during a paused comparison discarded its late response and left the REL without a receipt for that pair. [Public fixtures](../../tests/entity_identity.rs)
 
+## Three-call trial
+
+**Cutover gate failed.** Both live runs used the same four authored pairs through the current evaluator and the staged prototype. The declared labels were withheld from the models. Sol 5.6 (`gpt-5.6-sol`, low reasoning) handled the current comparison and the proposed interpretation pass. The proposed verdict and support routes used `typesafe/jev-1.13` through the configured OpenRouter decision endpoint. Sol used the signed-in Codex client with the actual evaluator's structured output schema. The archived profile selected the intended models, but its Codex login returned HTTP 401. No source RELs, PHYs, release binaries or installed model settings participated. [Paired pilot](../../crates/reliquary-entity-resolution/src/identity_trial/pilot.rs)
+
+| Authored case | Expected | Current, runs 1 / 2 | Staged, runs 1 / 2 |
+| --- | --- | --- | --- |
+| Independent surveys locate the summit at the same named monument | Same | Same / Same | Unresolved / Unresolved |
+| Two inventories distinguish the namesake editor and backup utility installed side by side | Distinct | Distinct / Distinct | Unresolved / Unresolved |
+| Version 1.4 in March and 2.0 in September, without a distinguishing witness | Unresolved | Same / Unresolved | Unresolved / Unresolved |
+| Conflicting birthplace records for Alex Chen | Unresolved | Unresolved / Unresolved | Unresolved / Unresolved |
+
+The current evaluator matched 3/4 and 4/4 labels. The staged evaluator matched 2/4 in both runs. In the instrumented run Jev selected unresolved at the verdict step on all four, with returned choice scores of 0.90, 0.93, 0.99 and 1.00 respectively. The selector therefore received no calls in that run. The scores include two confident misses. These four examples diagnose behavior on this input and prompt. They cannot establish a population accuracy rate.
+
+The nine deterministic protocol tests cover exact call order, complete grounded interpretations, optional scores and ties, insufficient support on one or both sides, common provenance, uncertain verdicts, malformed replies and retrying a failed selector with the same evidence and verdict. A separate forced-error experiment gave both evaluators version-only evidence. With an affirmative proposal and two deliberately mistaken support selections, the staged path accepted the match. The current guard rejected the scripted proposal. Valid references on both sides establish where the selected text came from. They do not establish that it distinguishes the Entities. [Protocol tests and forced-error experiment](../../crates/reliquary-entity-resolution/src/identity_trial/tests.rs)
+
+The fixed-proposal diagnostic exercised the selector directly because the instrumented end-to-end run stopped after every verdict. It supplied the full original synthetic quotes and a predetermined provisional choice. Only the attribution call went to Jev. These are independent yes scores for the left and right evidence items.
+
+| Fixed proposal | Support scores, left / right | Observed settlement |
+| --- | --- | --- |
+| Same summit, same monument | 0.35 / 0.73 | Jev selected only the right source. The bilateral gate left the true match unresolved. |
+| Distinct editor and backup utility | 0.75 / 0.64 | Jev selected both. The gate accepted the correct distinction. |
+| Distinct programs from version numbers alone, deliberately wrong | 0.58 / 0.59 | Jev selected both. The gate accepted a false distinction. |
+
+The selector produced the expected final outcome in 1/3 conditional cases. This isolates two separate problems: the verdict prompt misses clear positive examples, and affirmative source selections can still endorse irrelevant evidence. Before cutover, address both and repeat on additional held-out pairs. Tuning a score threshold on these three examples would not establish a general solution. [Selector diagnostic](../../crates/reliquary-entity-resolution/src/identity_trial/pilot/fixed.rs)
+
+### Reproduce
+
+Run the default suite with `cargo test -p reliquary-entity-resolution --locked --offline --lib`. To reproduce the scripted false positive run the same command with `observe_version_only_false_affirmative -- --ignored --nocapture`.
+
+For an intentional live run, set `RELIQUARY_IDENTITY_TRIAL_CONFIG` to the existing protected config at its registered path and run `cargo test -p reliquary-entity-resolution --locked --offline --lib configured_models_on_authored_pairs -- --ignored --nocapture`. Cargo's offline flag applies to dependency resolution. This test contacts the selected models and fails its gate on a missed staged label or a provider failure. If using an existing signed-in Codex client for the configured Sol model, set `RELIQUARY_TRIAL_CODEX` to its native executable and `RELIQUARY_TRIAL_SCRATCH` to an existing local scratch directory. Jev continues to use Switchboard. To exercise only the real selector on fixed proposals, run the same ignored test command with the filter `configured_support_on_fixed_proposals`. [Proposed implementation and release gates](../planning/cross-rel-entity-staged-evaluation-2026-11-23.md)
+
 ## Related docs
 
 - [Public comparison and inspection API](../public-product-api.md)

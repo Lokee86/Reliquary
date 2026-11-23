@@ -10,7 +10,7 @@ use std::sync::Arc;
 pub const MAX_ENTITY_MODEL_INPUT_BYTES: usize = 16 * 1024;
 
 #[path = "identity_evaluator.rs"]
-mod identity_evaluator;
+pub(crate) mod identity_evaluator;
 pub use identity_evaluator::{
     IDENTITY_COMPARISON_POLICY, deterministic_identity_judgment, entity_identity_model_schema,
     evaluate_identity_pair,

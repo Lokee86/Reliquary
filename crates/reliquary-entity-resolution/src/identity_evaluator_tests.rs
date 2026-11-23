@@ -42,7 +42,7 @@ impl GeneralEndpoint for Scripted {
     }
 }
 
-fn side(owner: u8, lineage: u8, quote: &str) -> IdentityEvidence {
+pub(crate) fn side(owner: u8, lineage: u8, quote: &str) -> IdentityEvidence {
     let endpoint = IdentityEntityEvidence {
         id: EntityId([1; 32]),
         revision: 1,
