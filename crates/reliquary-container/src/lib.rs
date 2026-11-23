@@ -23,6 +23,9 @@ mod grouped_clock;
 mod leased_frame_reader;
 pub use leased_frame_reader::LeasedFrameReader;
 use leased_frame_reader::ReadLease;
+mod replay_scan;
+pub use replay_scan::{ClockedFrameScan, ClockedScannedFrame};
+use replay_scan::{REPLAY_PREFIX_BYTES, ReplayDirectory, ReplayEntry};
 mod publication_envelope;
 pub use publication_envelope::{PublicationEnvelope, decode_publication, replace_publication_body};
 mod version_clock;
@@ -261,12 +264,16 @@ pub struct PhysicalCursor<'a> {
     next_offset: u64,
     file_len: u64,
     done: bool,
+    select: Option<fn(&[u8]) -> bool>,
+    directory: &'a [ReplayEntry],
+    prefix: [u8; REPLAY_PREFIX_BYTES],
 }
 
 pub struct FramePayloadReader<'a> {
     reader: &'a mut BufReader<PositionedFile>,
     object: ObjectRef,
     remaining: u64,
+    prefix: &'a [u8],
 }
 
 impl FramePayloadReader<'_> {
@@ -277,6 +284,9 @@ impl FramePayloadReader<'_> {
 
 impl io::Read for FramePayloadReader<'_> {
     fn read(&mut self, output: &mut [u8]) -> io::Result<usize> {
+        if !self.prefix.is_empty() {
+            return self.prefix.read(output);
+        }
         if self.remaining == 0 || output.is_empty() {
             return Ok(0);
         }
@@ -330,6 +340,7 @@ pub struct Container {
     synced_epoch: u64,
     write_blocked: bool,
     read_lease: OnceLock<Arc<ReadLease>>,
+    replay_directory: ReplayDirectory,
     next_version: u64,
     transaction_times: BTreeMap<u64, i64>,
     standalone_reservations: BTreeSet<u64>,
@@ -366,6 +377,7 @@ impl Container {
             synced_epoch: 0,
             write_blocked: false,
             read_lease: OnceLock::new(),
+            replay_directory: ReplayDirectory::default(),
             next_version: 1,
             transaction_times: BTreeMap::new(),
             standalone_reservations: BTreeSet::new(),
@@ -462,6 +474,7 @@ impl Container {
             synced_epoch: 0,
             write_blocked: false,
             read_lease: OnceLock::new(),
+            replay_directory: ReplayDirectory::default(),
             next_version: 1,
             transaction_times: BTreeMap::new(),
             standalone_reservations: BTreeSet::new(),
@@ -692,10 +705,13 @@ impl Container {
     ) -> Result<(), ContainerError> {
         let mut cursor = self.physical_cursor_at(from, extent)?;
         let mut bytes = Vec::new();
-        while cursor.read_frame_into(&mut bytes)?.is_some() {
+        let mut directory = ReplayDirectory::new(extent, from == HEADER_LEN);
+        while let Some(object) = cursor.read_frame_into(&mut bytes)? {
             clock.observe_frame(&bytes)?;
+            directory.record(object, &bytes);
         }
         drop(cursor);
+        self.replay_directory = directory;
         (
             self.next_version,
             self.transaction_times,
@@ -705,6 +721,7 @@ impl Container {
     }
 
     pub fn append(&mut self, payload: &[u8]) -> Result<ObjectRef, ContainerError> {
+        self.release_replay_directory();
         let _read_guard = self
             .read_lease
             .get()
@@ -815,6 +832,9 @@ impl Container {
             next_offset: offset,
             file_len: extent,
             done: false,
+            select: None,
+            directory: &[],
+            prefix: [0; REPLAY_PREFIX_BYTES],
         })
     }
 
@@ -879,7 +899,15 @@ impl PhysicalCursor<'_> {
         &mut self,
         payload: &mut Vec<u8>,
     ) -> Result<Option<ObjectRef>, ContainerError> {
-        let Some(mut reader) = self.next_frame()? else {
+        self.read_selected_frame_into(payload, None)
+    }
+
+    fn read_selected_frame_into(
+        &mut self,
+        payload: &mut Vec<u8>,
+        clock: Option<&mut PhysicalClock>,
+    ) -> Result<Option<ObjectRef>, ContainerError> {
+        let Some(mut reader) = self.next_matching_frame(clock)? else {
             return Ok(None);
         };
         payload.clear();
@@ -890,6 +918,50 @@ impl PhysicalCursor<'_> {
     /// Advances to the next frame. Dropping a payload reader skips its unread
     /// suffix when the cursor advances again.
     pub fn next_frame(&mut self) -> Result<Option<FramePayloadReader<'_>>, ContainerError> {
+        self.next_matching_frame(None)
+    }
+
+    fn next_matching_frame(
+        &mut self,
+        mut clock: Option<&mut PhysicalClock>,
+    ) -> Result<Option<FramePayloadReader<'_>>, ContainerError> {
+        let (object, prefix_len) = loop {
+            let mut matched = false;
+            if let Some(select) = self.select
+                && let Some((entry, rest)) = self.directory.split_first()
+                && entry.object.offset == self.next_offset
+            {
+                self.directory = rest;
+                if !replay_scan::needs_payload(select, &entry.prefix, clock.as_deref_mut())? {
+                    self.next_offset += FRAME_HEADER_LEN + entry.object.length;
+                    continue;
+                }
+                matched = true;
+            }
+            let Some(object) = self.next_object()? else {
+                return Ok(None);
+            };
+            if let Some(select) = self.select
+                && !matched
+            {
+                let n = object.length.min(REPLAY_PREFIX_BYTES as u64) as usize;
+                self.reader.read_exact(&mut self.prefix[..n])?;
+                if !replay_scan::needs_payload(select, &self.prefix[..n], clock.as_deref_mut())? {
+                    continue;
+                }
+                break (object, n);
+            }
+            break (object, 0);
+        };
+        Ok(Some(FramePayloadReader {
+            reader: &mut self.reader,
+            object,
+            remaining: object.length - prefix_len as u64,
+            prefix: &self.prefix[..prefix_len],
+        }))
+    }
+
+    fn next_object(&mut self) -> Result<Option<ObjectRef>, ContainerError> {
         if self.done {
             return Ok(None);
         }
@@ -937,11 +1009,7 @@ impl PhysicalCursor<'_> {
             return Err(ContainerError::RepairRequired { valid_end: offset });
         }
         self.next_offset = frame_end;
-        Ok(Some(FramePayloadReader {
-            reader: &mut self.reader,
-            object: ObjectRef { offset, length },
-            remaining: length,
-        }))
+        Ok(Some(ObjectRef { offset, length }))
     }
 
     fn check_length(&self) -> Result<(), ContainerError> {
@@ -1069,6 +1137,79 @@ mod tests {
     }
     fn rel() -> ContainerIdentity {
         ContainerIdentity::reliquary(ReliquaryScope::Project)
+    }
+
+    #[test]
+    fn selected_replay_keeps_exact_payloads_and_skipped_clock_effects() {
+        let d = Dir::new();
+        let p = d.0.join("selected.rel");
+        let mut writer = Container::create(&p, rel(), [5; 16]).unwrap();
+        let mut large = vec![7; 128 * 1024];
+        large[..8].copy_from_slice(b"ARCHIVE1");
+        writer
+            .append_publication_envelope(&large, Some(-4))
+            .unwrap();
+        let reservation = writer.reserve_version(None).unwrap();
+        writer
+            .append_bound_publication_envelope(reservation, &large)
+            .unwrap();
+        let mut group = vec![0; 2048];
+        group[..8].copy_from_slice(b"RELINSC7");
+        group[64..72].copy_from_slice(&3u64.to_le_bytes());
+        group[72..76].copy_from_slice(&2u32.to_le_bytes());
+        writer.append(&group).unwrap();
+        let small = writer.append(b"x").unwrap();
+        large[..8].copy_from_slice(b"MATCH001");
+        let selected = writer.append(&large).unwrap();
+        writer.sync().unwrap();
+        drop(writer);
+        let mut writer = Container::open_writer(&p).unwrap();
+        let select = |prefix: &[u8]| prefix == b"x" || prefix.starts_with(b"MATCH001");
+        for _ in 0..2 {
+            let mut frames = writer.scan_clocked_matching_frames(select).unwrap();
+            let first = frames.next_frame().unwrap().unwrap();
+            assert_eq!(
+                (first.object, first.payload, first.global_version),
+                (small, b"x".as_slice(), 4)
+            );
+            let second = frames.next_frame().unwrap().unwrap();
+            assert_eq!(
+                (second.object, second.payload, second.global_version),
+                (selected, large.as_slice(), 4)
+            );
+            assert!(frames.next_frame().unwrap().is_none());
+            drop(frames);
+            writer.release_replay_directory();
+        }
+        writer.append(b"RELPUB01bad").unwrap();
+        let mut frames = writer.scan_clocked_matching_frames(|_| false).unwrap();
+        assert!(matches!(
+            frames.next_frame(),
+            Err(ContainerError::InvalidVersionRecord)
+        ));
+    }
+
+    #[test]
+    fn skipping_indexed_payloads_uses_only_the_directory() {
+        let d = Dir::new();
+        let p = d.0.join("directory.rel");
+        let mut writer = Container::create(&p, rel(), [5; 16]).unwrap();
+        writer.append(&vec![5; 128 * 1024]).unwrap();
+        writer.append(&vec![6; 256 * 1024]).unwrap();
+        drop(writer);
+        let mut writer = Container::open_writer(&p).unwrap();
+        let mut cursor = writer
+            .matching_physical_cursor(|prefix| prefix.starts_with(b"absent"))
+            .unwrap();
+        assert!(cursor.next_frame().unwrap().is_none());
+        assert_eq!(cursor.reader.get_ref().offset, HEADER_LEN);
+        drop(cursor);
+        assert_eq!(writer.max_frame_length().unwrap(), 256 * 1024);
+        let appended = writer.append(b"new").unwrap();
+        let mut scan = writer
+            .scan_matching_frames(|prefix| prefix == b"new")
+            .unwrap();
+        assert_eq!(scan.next_frame().unwrap().unwrap().object, appended);
     }
 
     #[test]
@@ -1593,7 +1734,10 @@ mod tests {
         #[cfg(windows)]
         let symlink_created = match std::os::windows::fs::symlink_file(&p, &symlink) {
             Ok(()) => true,
-            Err(error) if error.kind() == io::ErrorKind::PermissionDenied => {
+            Err(error)
+                if error.kind() == io::ErrorKind::PermissionDenied
+                    || error.raw_os_error() == Some(1314) =>
+            {
                 eprintln!(
                     "symlink creation requires a Windows privilege; hardlink is still tested"
                 );

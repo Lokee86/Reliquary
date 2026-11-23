@@ -59,7 +59,13 @@ impl InsomniaStore {
             orders: BTreeMap::new(),
             receipts: BTreeMap::new(),
         };
-        let mut frames = container.scan_frames()?;
+        let mut frames = container.scan_matching_frames(|prefix| {
+            prefix.starts_with(WORK_MAGIC)
+                || prefix.starts_with(WORK_MAGIC_V2)
+                || prefix.starts_with(RECEIPT_MAGIC)
+                || prefix.starts_with(b"RELINSC7")
+                || prefix.starts_with(b"RELINSC8")
+        })?;
         while let Some(frame) = frames.next_frame()? {
             if frame.payload.starts_with(WORK_MAGIC) || frame.payload.starts_with(WORK_MAGIC_V2) {
                 let (owner, order, work) = decode_work(frame.payload)?;
@@ -96,12 +102,15 @@ impl InsomniaStore {
     ) -> Result<Vec<InsomniaWork>, InsomniaError> {
         let mut history = Vec::new();
         let mut order = None;
-        for frame in container.read_frames()? {
+        let mut frames = container.scan_matching_frames(|prefix| {
+            prefix.starts_with(WORK_MAGIC) || prefix.starts_with(WORK_MAGIC_V2)
+        })?;
+        while let Some(frame) = frames.next_frame()? {
             if !(frame.payload.starts_with(WORK_MAGIC) || frame.payload.starts_with(WORK_MAGIC_V2))
             {
                 continue;
             }
-            let (owner, candidate_order, work) = decode_work(&frame.payload)?;
+            let (owner, candidate_order, work) = decode_work(frame.payload)?;
             if owner != container.owner_id() {
                 return Err(InsomniaError::WrongOwner);
             }

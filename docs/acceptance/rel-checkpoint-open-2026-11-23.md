@@ -83,11 +83,36 @@ The native Hermes comparison used two local release builds from plugin `a9cfd3a4
 
 First attach took 1.385 s less at the median (34.7%). All six returned the same owner cuts and exact revision-one Memory body. On a separate reopen, the updated host used a checkpoint from the earlier build and returned the same signed result in 1.067 s. The checkpoint digest and modification time matched its original values.
 
+### First attach with store-specific replay
+
+The comparison starts from Core `2e140ad4`, which already includes the grouped Memory change above. The Windows host opens fresh copies with an empty checkpoint slot and the same migrated PHY for both RELs. Hashing the copies before launch warms the filesystem cache. Logical bytes read are requests counted by Windows, including bytes served from cache. Peak memory is the process's peak working set at the first successful signed attach. Historical queries run after that measurement.
+
+The migrated REL contains 135,279 physical frames, including graph history, grouped completions and packed vectors. The synthetic year REL is dominated by 8,761 Archive turns. Its Graph version is zero. Filtered replay lets Graph and other stores pass over the bodies of those turns. Physical admission, Archive's own replay and hashing the prefix for the first checkpoint still read the owner.
+
+A separate release-mode Core writer comparison measured the open before querying history. Logical reads fell from 2.294 to 1.528 GiB on the migrated REL and from 30.576 to 4.179 GiB on the synthetic year. Peak working set went from 154.4 to 138.4 MiB and from 20.8 to 20.4 MiB, respectively.
+
+The Core runs compared all retained Memory metadata and bodies, tombstones, active relations and the Community snapshot. All projections and owner cuts matched. The migrated REL returned 2,847 Memory identities, 5,727 revisions and 36,405 active relations. The year REL returned two identities and 366 revisions, including its tombstoned Memory. Both returned the recorded revision-one body. The migrated Memory's Archive source matched its recorded digest, and the year Memory's original source turn remained terminal. Each candidate emitted the same checkpoint length as its baseline, 78,965,245 bytes and 5,975,076 bytes respectively.
+
+The local Hermes builds used the same plugin source and dependency lock. The executable SHA-256 values were `23d2b0bebc346a26321e10edd5a340ba197aaf9853e402eeccd0df16fcbddc8a` before and `2aaa846d3d1c7de0d4ab33618fe653c6625f7d4f3068eab0fb3a98341cc62bf0` after. Each measured host returned the expected signed REL and PHY cuts. A separate signed request on the same host then checked the migrated revision-one body or the synthetic year's current Memory body against the fixture.
+
+| First signed Hermes attach | 28-day before | 28-day after | Year before | Year after |
+| --- | ---: | ---: | ---: | ---: |
+| Samples | 5 | 5 | 2 | 2 |
+| Median elapsed | 2.63 s | 2.82 s | 16.48 s | 5.61 s |
+| Elapsed range | 2.24–3.82 s | 1.91–4.37 s | 9.48–23.48 s | 5.32–5.89 s |
+| Median host CPU time | 2.48 s | 2.19 s | 14.87 s | 4.67 s |
+| Median logical reads | 2.323 GiB | 1.553 GiB | 30.605 GiB | 4.204 GiB |
+| Median peak working set | 192.4 MiB | 211.6 MiB | 29.4 MiB | 29.5 MiB |
+
+Each pair of runs used fresh profiles and alternated which build ran first on successive pairs. After the first two 28-day pairs showed substantial variation, three more pairs were measured. The table includes all samples. Other workloads shared the machine, and overall CPU utilization reached 100% during the measurements. Both year attaches completed faster. On the migrated pair the host requested 33% fewer bytes and used less CPU at the median. Its median elapsed time increased by 0.19 s and its median peak working set rose by 19.1 MiB.
+
 ## Recovery and focused tests
 
 The owner-session checkpoint test crosses a signed standalone reservation and a grouped Memory correction. It compares the exact historical proof with full admission, exercises a vector row spanning two verified pages, checks an interrupted checkpoint staging operation and a damaged page, rejects a same-owner copy's checkpoint, and refuses a torn tail. Container tests also exercise equal-length prefix changes, timestamp continuity, and explicit tail repair. Archive and Memory tests cover digest-checked ranges, detached reads, and grouped payload retry.
 
-The Root API and CLI tests passed. Two Root corpus-specific tests remain ignored in the default suite, and the existing cross-process Container test needs Windows symlink privileges. The native corpus runs in this record use copies directly.
+The selected-frame replay change passed 309 tests across Container, the eight stores and owner-session. The focused regressions cover physical clock effects in skipped records, exact payloads and positions, skipping indexed bodies without reading them, scanning after an append, nested import receipts, and rejection of malformed source records inside a generic publication envelope.
+
+The Root API and CLI tests passed. Two Root corpus-specific tests remain ignored in the default suite. The cross-process Container test exercised direct paths and hard links on this machine. Windows requires an additional privilege for its symlink case. The native corpus runs in this record use copies directly.
 
 ## Related docs
 

@@ -96,7 +96,9 @@ impl ExternalIndexStore {
             owner: Some(container.owner_id()),
             ..Self::default()
         };
-        let mut frames = container.scan_frames().map_err(|e| e.to_string())?;
+        let mut frames = container
+            .scan_matching_frames(|prefix| prefix.starts_with(super::compact_index::MAGIC))
+            .map_err(|e| e.to_string())?;
         while let Some(frame) = frames.next_frame().map_err(|e| e.to_string())? {
             store.ingest(frame.payload);
         }

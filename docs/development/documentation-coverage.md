@@ -17,7 +17,7 @@ Paths below are relative to the repository root. A focused owner serves several 
 | Package / code root | Canonical owner | Verification boundary |
 | --- | --- | --- |
 | `reliquary-memory` — `src/` | [Public API](../public-product-api.md), [system facade](../architecture/system.md) | `tests/public_api.rs`, `tests/external-consumer/` |
-| `reliquary-container` | [Storage](../architecture/storage.md) | `crates/reliquary-container/src/lib.rs` and grouped-clock tests |
+| `reliquary-container` | [Storage](../architecture/storage.md) | `crates/reliquary-container/src/lib.rs` covers selected-frame replay, physical clock continuity and skipped payload I/O. Grouped-clock tests cover range allocation. |
 | `reliquary-chronos` | [Semantic time interpretation](../architecture/semantic-processing.md) | `crates/reliquary-chronos/src/tests.rs`, `chronos_analysis.rs` (time parse/detection/inference) |
 | `reliquary-archive` | [Storage / Archive](../architecture/storage.md) | `archive_tests.rs`, `echo_tests.rs`, and the lexical postings and codec tests in `lexical.rs` and `lexical/codec.rs` |
 | `reliquary-memory-core` | [Storage / Memory](../architecture/storage.md) | crate `src/tests.rs` covers retained revisions, body validation and rejection of partial groups |

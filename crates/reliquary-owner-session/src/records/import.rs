@@ -17,6 +17,20 @@ pub(crate) use processing::{
     ImportProcessingBinding, MAGIC as IMPORT_PROCESSING_MAGIC, processing_marker_id,
 };
 
+pub(crate) fn is_import_epoch_marker(bytes: &[u8]) -> bool {
+    matches!(
+        bytes.first_chunk::<8>(),
+        Some(
+            START_MAGIC
+                | COMPLETE_MAGIC
+                | START_MAGIC_V1
+                | COMPLETE_MAGIC_V1
+                | import_settlement::MAGIC
+                | IMPORT_PROCESSING_MAGIC
+        )
+    )
+}
+
 #[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct ImportEpochStore {
     owner: Option<[u8; 16]>,
@@ -59,6 +73,18 @@ impl ImportEpochStore {
         let mut store = Self {
             owner: Some(owner),
             ..Self::default()
+        };
+        // A settlement hashes every preceding payload, but owners with no
+        // epoch markers need no source-prefix digest at all.
+        let mut markers = container
+            .matching_physical_cursor(is_import_epoch_marker)
+            .map_err(|e| e.to_string())?;
+        let mut last_marker = None;
+        while let Some(frame) = markers.next_frame().map_err(|e| e.to_string())? {
+            last_marker = Some(frame.object().offset);
+        }
+        let Some(last_marker) = last_marker else {
+            return Ok(store);
         };
         let mut prefix_hash = import_settlement::prefix_hasher();
         let mut frames = container.scan_frames().map_err(|e| e.to_string())?;
@@ -106,6 +132,14 @@ impl ImportEpochStore {
                 return Err("import mutation followed settlement before completion".into());
             }
             import_settlement::push_frame(&mut prefix_hash, frame.payload);
+            if frame.object.offset == last_marker
+                && !store
+                    .open
+                    .as_ref()
+                    .is_some_and(|id| store.settlements.contains_key(id))
+            {
+                break;
+            }
         }
         Ok(store)
     }

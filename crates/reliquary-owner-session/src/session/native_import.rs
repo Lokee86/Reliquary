@@ -1,6 +1,7 @@
 //! Owner-derived native import epoch admission and retry identity.
 
 use super::*;
+use crate::records::import::is_import_epoch_marker;
 use crate::records::{
     ImportEpochStatus, ImportFreshnessSettlement, ImportStart, ImportWatermarks, import_id,
 };
@@ -40,13 +41,6 @@ impl RelSession {
     }
 }
 
-pub(super) fn is_import_epoch_marker(payload: &[u8]) -> bool {
-    matches!(
-        payload.get(..8),
-        Some(b"RELIEPS1" | b"RELIEPC1" | b"RELIEPS2" | b"RELIEPC2" | b"RELIFRS1" | b"RELIPLN1")
-    )
-}
-
 pub(super) fn validate_native_import_receipts(
     container: &Container,
     imports: &ImportEpochStore,
@@ -54,8 +48,10 @@ pub(super) fn validate_native_import_receipts(
 ) -> Result<(), OwnerSessionError> {
     let mut prefix = ImportEpochStore::prefix(container.owner_id());
     let mut received = std::collections::BTreeSet::new();
-    let mut publications = archive.publication_bindings().iter().peekable();
-    let mut cursor = container.physical_cursor()?;
+    let publications = archive.publication_bindings();
+    let mut cursor = container.matching_physical_cursor(|prefix| {
+        is_import_epoch_marker(prefix) || reliquary_archive::import_receipt_candidate(prefix)
+    })?;
     while let Some(mut frame) = cursor.next_frame()? {
         use std::io::Read;
         let mut magic = [0u8; 8];
@@ -67,11 +63,8 @@ pub(super) fn validate_native_import_receipts(
             .map_err(reliquary_container::ContainerError::from)?;
         let epoch_marker = is_import_epoch_marker(&magic);
         let archive_publication = publications
-            .peek()
-            .is_some_and(|entry| entry.object == frame.object());
-        if archive_publication {
-            publications.next();
-        }
+            .binary_search_by_key(&frame.object().offset, |entry| entry.object.offset)
+            .is_ok();
         if !epoch_marker && !archive_publication && &magic != b"CVAIMPT1" {
             continue;
         }

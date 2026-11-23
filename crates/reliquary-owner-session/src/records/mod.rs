@@ -11,6 +11,7 @@ pub(crate) mod dream_supersession;
 pub mod external_index;
 pub(crate) mod external_memory;
 pub(crate) mod external_reference;
+pub(crate) mod frame_selection;
 pub mod import;
 mod import_model;
 pub(crate) mod import_settlement;

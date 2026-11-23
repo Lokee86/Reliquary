@@ -260,7 +260,8 @@ pub(super) fn open_common_replaying(
     )?;
     memories.retain_pruned_body_fence(pruned_bodies);
     let mut dream_admissions = dream_admissions.into_iter().collect::<Vec<_>>();
-    let mut frames = container.scan_frames()?;
+    let mut frames = container
+        .scan_matching_frames(crate::records::frame_selection::without_archive_or_packed)?;
     while let Some(frame) = frames.next_frame()? {
         let frontier = crate::records::dream_frontier::FrontierRecord::decode(frame.payload)
             .map_err(OwnerSessionError::Record)?;

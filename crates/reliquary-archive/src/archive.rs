@@ -25,14 +25,27 @@ use crate::{
 use payload::{FrameRange, Payload};
 use reliquary_container::{
     Container, ContainerError, ContainerIdentity, FileKind, LeasedFrameReader, ObjectRef,
-    PhysicalClock,
 };
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, HashMap};
-use std::io::Read;
 use std::num::NonZeroU64;
 use std::sync::Arc;
 use turn_table::{AcceptedTurn, TurnTable};
+
+fn archive_replay_frame(prefix: &[u8]) -> bool {
+    if prefix.starts_with(b"RELPUB") {
+        return match reliquary_container::decode_publication(prefix) {
+            Ok(Some(publication)) => {
+                publication.body.starts_with(b"RELAPB")
+                    || publication
+                        .body
+                        .starts_with(crate::retained::PROJECT_BACKING_PREFIX)
+            }
+            _ => true,
+        };
+    }
+    prefix.starts_with(b"RELAPB") || crate::codec::archive_record_prefix(prefix)
+}
 
 mod evidence;
 pub use evidence::{
@@ -129,31 +142,27 @@ impl Archive {
         } else {
             archive.bind_empty_owner(container)?;
         }
-        let mut clock = None;
-        {
-            let mut cursor = container.physical_cursor()?;
-            while let Some(mut frame) = cursor.next_frame()? {
-                let mut marker = [0; 8];
-                if frame.object().length < marker.len() as u64 {
-                    continue;
-                }
-                frame.read_exact(&mut marker).map_err(ContainerError::Io)?;
-                if &marker == crate::PROJECT_BACKING_MARKER
-                    || &marker == crate::PROJECT_CORRELATION_MARKER
-                {
-                    clock = Some(PhysicalClock::default());
-                    break;
-                }
+        let mut cursor = container.matching_physical_cursor(|prefix| {
+            prefix.starts_with(crate::PROJECT_BACKING_MARKER)
+                || prefix.starts_with(crate::PROJECT_CORRELATION_MARKER)
+        })?;
+        let has_project_clock = cursor.next_frame()?.is_some();
+        drop(cursor);
+        if has_project_clock {
+            let mut frames = container.scan_clocked_matching_frames(archive_replay_frame)?;
+            while let Some(frame) = frames.next_frame()? {
+                archive.replay_frame(
+                    container,
+                    frame.object,
+                    frame.payload,
+                    frame.global_version,
+                )?;
             }
-        }
-        let mut frames = container.scan_frames()?;
-        while let Some(frame) = frames.next_frame()? {
-            let global_version = clock
-                .as_mut()
-                .map(|clock| clock.observe_frame(frame.payload))
-                .transpose()?
-                .unwrap_or(0);
-            archive.replay_frame(container, frame.object, frame.payload, global_version)?;
+        } else {
+            let mut frames = container.scan_matching_frames(archive_replay_frame)?;
+            while let Some(frame) = frames.next_frame()? {
+                archive.replay_frame(container, frame.object, frame.payload, 0)?;
+            }
         }
         Ok(archive)
     }

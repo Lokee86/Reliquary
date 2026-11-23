@@ -70,9 +70,25 @@ pub(super) fn validate_rel_replay_admission(
     let mut visible_turns = std::collections::BTreeSet::new();
     let mut visible_memories = std::collections::BTreeSet::new();
     let mut activity = 0u64;
-    let mut frames = container.scan_frames()?;
+    let mut grouped = container.matching_physical_cursor(|prefix| {
+        let body = match reliquary_container::decode_publication(prefix) {
+            Ok(Some(publication)) => publication.body,
+            Ok(None) => prefix,
+            Err(_) => return true,
+        };
+        body.starts_with(b"RELINSC")
+    })?;
+    let needs_archive_activity = grouped.next_frame()?.is_some();
+    let select: fn(&[u8]) -> bool = if needs_archive_activity {
+        crate::records::frame_selection::without_packed_vectors
+    } else {
+        // Archive replay already validates source identity and content. With
+        // no grouped completion there is no owner activity cut to compare.
+        crate::records::frame_selection::without_archive_or_packed
+    };
+    let mut frames = container.scan_matching_frames(select)?;
     while let Some(frame) = frames.next_frame()? {
-        if super::native_import::is_import_epoch_marker(frame.payload) {
+        if crate::records::import::is_import_epoch_marker(frame.payload) {
             imports
                 .ingest_prefix(frame.payload)
                 .map_err(OwnerSessionError::Record)?;

@@ -263,7 +263,9 @@ impl OwnerMaintenanceStore {
     /// remains proof metadata; domain owners still authorize every pruning use.
     pub fn open(container: &reliquary_container::Container) -> Result<Self, String> {
         let mut store = Self::default();
-        let mut frames = container.scan_frames().map_err(|error| error.to_string())?;
+        let mut frames = container
+            .scan_matching_frames(|prefix| prefix.starts_with(MAGIC))
+            .map_err(|error| error.to_string())?;
         while let Some(frame) = frames.next_frame().map_err(|error| error.to_string())? {
             if frame.payload.starts_with(MAGIC) {
                 store.ingest_owned(container.owner_id(), frame.payload)?;

@@ -9,7 +9,8 @@ pub(super) fn birth_population(
     memories: &MemoryStore,
     source: MemoryId,
 ) -> Result<BTreeSet<MemoryId>, OwnerSessionError> {
-    let mut frames = container.scan_frames()?;
+    let mut frames = container
+        .scan_matching_frames(crate::records::frame_selection::without_archive_or_packed)?;
     while let Some(frame) = frames.next_frame()? {
         let envelope = reliquary_container::decode_publication(frame.payload)?;
         let payload = envelope.as_ref().map_or(frame.payload, |e| e.body);

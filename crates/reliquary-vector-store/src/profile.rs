@@ -277,7 +277,11 @@ pub struct CompatibilityProfileStore {
 impl CompatibilityProfileStore {
     pub fn open(container: &Container) -> Result<Self, ProfileStoreError> {
         let mut state = CompatibilityProfileOpenState::new();
-        let mut cursor = container.physical_cursor()?;
+        let mut cursor = container.matching_physical_cursor(|prefix| {
+            prefix.starts_with(FORMAT_MAGIC)
+                || prefix.starts_with(PROFILE_MAGIC)
+                || prefix.starts_with(RETIREMENT_MAGIC)
+        })?;
         while let Some(mut frame) = cursor.next_frame()? {
             let object = frame.object();
             let mut payload = Vec::new();

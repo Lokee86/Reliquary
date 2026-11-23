@@ -45,7 +45,10 @@ impl MemoryVectorStore {
         profiles: &CompatibilityProfileStore,
     ) -> Result<Self, MemoryVectorError> {
         let mut state = MemoryVectorOpenState::new();
-        let mut cursor = container.physical_cursor()?;
+        let mut cursor = container.matching_physical_cursor(|prefix| {
+            prefix.starts_with(crate::memory_codec::FORMAT)
+                || prefix.starts_with(crate::memory_codec::OBJECT)
+        })?;
         while let Some(mut frame) = cursor.next_frame()? {
             let object = frame.object();
             let mut payload = Vec::new();

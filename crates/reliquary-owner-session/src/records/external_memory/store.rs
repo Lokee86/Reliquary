@@ -15,10 +15,30 @@ impl ExternalMemoryStore {
             owner: Some(container.owner_id()),
             ..Self::default()
         };
+        // Archive turn bodies are needed only to timestamp an external intent.
+        // Most owners have no such intent or receipt, so check their physical
+        // families before replaying the Archive activity clock.
+        let mut external = container
+            .matching_physical_cursor(|prefix| {
+                let (body, wrapped) = match reliquary_container::decode_publication(prefix) {
+                    Ok(Some(publication)) => (publication.body, true),
+                    Ok(None) => (prefix, false),
+                    Err(_) => return true,
+                };
+                body.starts_with(INTENT)
+                    || body.starts_with(RECEIPT)
+                    || (wrapped && reliquary_archive::is_source_publication_marker(body))
+            })
+            .map_err(|e| e.to_string())?;
+        if external.next_frame().map_err(|e| e.to_string())?.is_none() {
+            return Ok(s);
+        }
         let mut seen_external_creations = std::collections::BTreeSet::new();
         let mut accepted_turns = std::collections::BTreeSet::new();
         let mut rel_turn = 0u64;
-        let mut frames = container.scan_frames().map_err(|e| e.to_string())?;
+        let mut frames = container
+            .scan_matching_frames(super::super::frame_selection::without_packed_vectors)
+            .map_err(|e| e.to_string())?;
         while let Some(f) = frames.next_frame().map_err(|e| e.to_string())? {
             let publication =
                 reliquary_container::decode_publication(f.payload).map_err(|e| e.to_string())?;
@@ -237,5 +257,39 @@ impl ExternalMemoryStore {
         c.sync().map_err(|_| ExternalSourceError::Storage)?;
         self.receipts.insert(k, receipt.clone());
         Ok(receipt)
+    }
+}
+
+#[cfg(test)]
+mod replay_selection_tests {
+    use super::*;
+    use reliquary_container::{ContainerIdentity, ReliquaryScope};
+
+    #[test]
+    fn malformed_directly_wrapped_source_records_reach_replay_without_external_intents() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".test-tmp");
+        std::fs::create_dir_all(&root).unwrap();
+        for (index, marker) in [b"RELTURN2", b"RELTPR01", b"RELEPIS1"]
+            .into_iter()
+            .enumerate()
+        {
+            let path = root.join(format!(
+                "external-wrapped-source-{}-{index}.rel",
+                std::process::id()
+            ));
+            let _ = std::fs::remove_file(&path);
+            let mut container = Container::create(
+                &path,
+                ContainerIdentity::reliquary(ReliquaryScope::Project),
+                [42; 16],
+            )
+            .unwrap();
+            let memories = MemoryStore::create(&mut container).unwrap();
+            container.append_publication_envelope(marker, None).unwrap();
+            container.sync().unwrap();
+            assert!(ExternalMemoryStore::open(&container, &memories).is_err());
+            drop(container);
+            std::fs::remove_file(path).unwrap();
+        }
     }
 }

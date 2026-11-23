@@ -87,6 +87,36 @@ pub struct MemoryStore {
     reader: Option<LeasedFrameReader>,
 }
 
+fn memory_replay_frame(prefix: &[u8]) -> bool {
+    if prefix.starts_with(b"RELPUB") {
+        // The container admits the full clock stream; keep invalid envelopes
+        // visible to the normal decoder and read only Memory publications.
+        return match reliquary_container::decode_publication(prefix) {
+            Ok(Some(publication)) => [BODY, CREATION, DELTA, TOMBSTONE]
+                .iter()
+                .any(|marker| publication.body.starts_with(*marker)),
+            _ => true,
+        };
+    }
+    [
+        FORMAT.as_slice(),
+        BODY,
+        CREATION,
+        DELTA,
+        TOMBSTONE,
+        b"RELMRTE",
+        b"RELINSC7",
+        b"RELINSC8",
+        b"RELMCOR",
+        b"RELMRET",
+        b"RELDRB",
+        b"RELDRF",
+        b"RELDRS",
+    ]
+    .iter()
+    .any(|marker| prefix.starts_with(*marker))
+}
+
 #[path = "management_group.rs"]
 mod management_group;
 pub use management_group::{GroupedManagementEffect, PreparedMemoryCorrection};
@@ -98,18 +128,17 @@ impl MemoryStore {
             if frame.object().length < 8 {
                 continue;
             }
-            let mut magic = [0; 8];
-            frame.read_exact(&mut magic)?;
+            let mut prefix = [0; 40];
+            let used = frame.object().length.min(prefix.len() as u64) as usize;
+            frame.read_exact(&mut prefix[..used])?;
+            let magic: [u8; 8] = prefix[..8].try_into().unwrap();
             if magic.starts_with(b"RELPUB") {
                 let len = usize::try_from(frame.object().length)
                     .map_err(|_| MemoryError::FieldTooLarge)?;
                 if len > 128 * 1024 * 1024 {
                     return Err(MemoryError::FieldTooLarge);
                 }
-                let mut payload = Vec::with_capacity(len);
-                payload.extend_from_slice(&magic);
-                frame.read_to_end(&mut payload)?;
-                if let Some(envelope) = reliquary_container::decode_publication(&payload)?
+                if let Some(envelope) = reliquary_container::decode_publication(&prefix[..used])?
                     && [BODY, CREATION, DELTA, TOMBSTONE]
                         .iter()
                         .any(|marker| envelope.body.starts_with(*marker))
@@ -279,11 +308,19 @@ impl MemoryStore {
             ..Self::default()
         };
         let (mut store, mut cursor, cold) = match start {
-            MemoryReplayStart::Detached => (empty(), container.physical_cursor()?, true),
+            MemoryReplayStart::Detached => (
+                empty(),
+                container.matching_physical_cursor(memory_replay_frame)?,
+                true,
+            ),
             MemoryReplayStart::Leased => {
                 let mut store = empty();
                 store.bind_checkpoint_reader(container)?;
-                (store, container.physical_cursor()?, true)
+                (
+                    store,
+                    container.matching_physical_cursor(memory_replay_frame)?,
+                    true,
+                )
             }
             MemoryReplayStart::Checkpoint {
                 mut store,
@@ -293,6 +330,9 @@ impl MemoryStore {
                 (store, container.physical_cursor_from(covered_end)?, false)
             }
         };
+        if cold && container.max_frame_length()? > 128 * 1024 * 1024 {
+            return Err(MemoryError::FieldTooLarge);
+        }
         while let Some(mut frame) = cursor.next_frame()? {
             let object = frame.object();
             let len = usize::try_from(object.length).map_err(|_| MemoryError::FieldTooLarge)?;

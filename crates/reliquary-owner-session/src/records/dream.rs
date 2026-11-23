@@ -68,7 +68,9 @@ impl DreamEvidenceStore {
             initial_settlements: BTreeMap::new(),
             frontiers: BTreeMap::new(),
         };
-        let mut frames = container.scan_frames().map_err(|error| error.to_string())?;
+        let mut frames = container
+            .scan_matching_frames(super::frame_selection::without_archive_or_packed)
+            .map_err(|error| error.to_string())?;
         while let Some(frame) = frames.next_frame().map_err(|error| error.to_string())? {
             let frontier = super::dream_frontier::FrontierRecord::decode(frame.payload)?;
             let payload = frontier

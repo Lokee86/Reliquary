@@ -1,8 +1,8 @@
 use crate::{
     CompatibilityProfileId, MemoryBodyId, MemoryVectorId, PackedVectorError, PackedVectorId,
 };
-const FORMAT: &[u8; 8] = b"RELMVFM1";
-const OBJECT: &[u8; 8] = b"RELMVEC1";
+pub(crate) const FORMAT: &[u8; 8] = b"RELMVFM1";
+pub(crate) const OBJECT: &[u8; 8] = b"RELMVEC1";
 const HEADER: usize = 112;
 pub(crate) struct Decoded {
     pub id: MemoryVectorId,

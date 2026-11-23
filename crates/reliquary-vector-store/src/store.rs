@@ -257,7 +257,11 @@ impl PackedVectorStore {
 
     pub fn open(container: &Container) -> Result<Self, PackedVectorError> {
         let mut state = crate::PackedVectorOpenState::new();
-        let mut frames = container.scan_frames()?;
+        let mut frames = container.scan_matching_frames(|prefix| {
+            prefix.starts_with(crate::codec::FORMAT_MAGIC)
+                || prefix.starts_with(crate::codec::OBJECT_MAGIC)
+                || prefix.starts_with(crate::codec::PRUNED_MAGIC)
+        })?;
         while let Some(frame) = frames.next_frame()? {
             state.ingest(frame.object, frame.payload)?;
         }

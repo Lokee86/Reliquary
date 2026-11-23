@@ -2,11 +2,11 @@ use crate::{PackedVectorError, PackedVectorId};
 use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
 use sha2::{Digest, Sha256};
 
-const FORMAT_MAGIC: &[u8; 8] = b"RELPVFM1";
+pub(crate) const FORMAT_MAGIC: &[u8; 8] = b"RELPVFM1";
 const FORMAT_SCHEMA: u32 = 1;
-const OBJECT_MAGIC: &[u8; 8] = b"RELPVEC1";
+pub(crate) const OBJECT_MAGIC: &[u8; 8] = b"RELPVEC1";
 pub(crate) const OBJECT_HEADER_LEN: usize = 64;
-const PRUNED_MAGIC: &[u8; 8] = b"RELPVRN1";
+pub(crate) const PRUNED_MAGIC: &[u8; 8] = b"RELPVRN1";
 const PRUNED_LEN: usize = 128;
 
 #[derive(Clone, Copy)]

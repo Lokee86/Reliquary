@@ -26,7 +26,7 @@ impl ExternalReferenceStore {
             ..Self::default()
         };
         let mut cursor = container
-            .physical_cursor()
+            .matching_physical_cursor(|prefix| prefix.starts_with(MAGIC))
             .map_err(|error| error.to_string())?;
         while let Some(mut frame) = cursor.next_frame().map_err(|error| error.to_string())? {
             let length = frame.object().length;

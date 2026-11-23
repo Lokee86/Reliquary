@@ -32,6 +32,38 @@ const COMMUNITY_MAGIC: &[u8; 8] = b"RELCOM01";
 const PARTIAL_COMMUNITY_MAGIC: &[u8; 8] = b"RELCMP01";
 const RETAINED_COMMUNITY_MAGIC: &[u8; 8] = b"RELCOM02";
 
+fn graph_replay_frame(prefix: &[u8]) -> bool {
+    if prefix.starts_with(b"RELPUB") {
+        // Keep malformed and future envelopes for the ordinary decoder to reject.
+        return match reliquary_container::decode_publication(prefix) {
+            Ok(Some(publication)) => publication.body.starts_with(b"RELGPB"),
+            _ => true,
+        };
+    }
+    [
+        b"RELGRF".as_slice(),
+        b"RELASC",
+        b"RELGPB",
+        b"RELDRB",
+        b"RELMCOR",
+        b"RELDRG",
+        b"RELDRS",
+    ]
+    .iter()
+    .any(|marker| prefix.starts_with(marker))
+}
+
+fn community_replay_frame(prefix: &[u8]) -> bool {
+    [
+        COMMUNITY_MAGIC.as_slice(),
+        PARTIAL_COMMUNITY_MAGIC,
+        RETAINED_COMMUNITY_MAGIC,
+        b"RELCMN01",
+    ]
+    .iter()
+    .any(|marker| prefix.starts_with(*marker))
+}
+
 #[derive(
     Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
 )]
@@ -271,7 +303,7 @@ impl GraphStore {
             incoming: BTreeMap::new(),
             duplicate_incident: BTreeMap::new(),
         };
-        let mut frames = container.scan_frames()?;
+        let mut frames = container.scan_matching_frames(graph_replay_frame)?;
         while let Some(frame) = frames.next_frame()? {
             if let Some(publication) = clocked_graph_in_frame(frame.payload)? {
                 store.replay_clocked(publication, admission)?;
@@ -731,7 +763,7 @@ impl CommunityStore {
             names: community_names::CommunityNames::default(),
             derivations: BTreeMap::new(),
         };
-        let mut frames = container.scan_frames()?;
+        let mut frames = container.scan_matching_frames(community_replay_frame)?;
         while let Some(frame) = frames.next_frame()? {
             if let Some((owner, snapshot, coverage)) = decode_community(frame.payload)? {
                 if owner != store.owner {

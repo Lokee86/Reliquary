@@ -47,7 +47,8 @@ fn collect_compact_dream_prefix(
     let mut imports = ImportEpochStore::prefix(container.owner_id());
     let mut import_head = None;
     let mut unsupported = false;
-    let mut cursor = container.physical_cursor()?;
+    let mut cursor = container
+        .matching_physical_cursor(crate::records::frame_selection::without_archive_or_packed)?;
     while let Some(mut frame) = cursor.next_frame()? {
         if frame.object().length < 8 {
             continue;

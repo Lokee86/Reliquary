@@ -22,7 +22,8 @@ impl EchoStore {
             container_identity: Some(container.identity()),
             records: HashMap::new(),
         };
-        let mut frames = container.scan_frames()?;
+        let mut frames =
+            container.scan_matching_frames(|prefix| prefix.starts_with(b"RELECHO1"))?;
         while let Some(frame) = frames.next_frame()? {
             store.ingest(frame.payload)?;
         }

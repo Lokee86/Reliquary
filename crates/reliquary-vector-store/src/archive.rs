@@ -46,7 +46,10 @@ impl ArchiveVectorStore {
         packed: &PackedVectorStore,
     ) -> Result<Self, ArchiveVectorError> {
         let mut replay = ArchiveVectorOpenState::new();
-        let mut cursor = container.physical_cursor()?;
+        let mut cursor = container.matching_physical_cursor(|prefix| {
+            prefix.starts_with(crate::archive_codec::FORMAT_MAGIC)
+                || prefix.starts_with(crate::archive_codec::OBJECT_MAGIC)
+        })?;
         while let Some(mut frame) = cursor.next_frame()? {
             let object = frame.object();
             let mut payload = Vec::new();

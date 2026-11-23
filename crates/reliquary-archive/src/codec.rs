@@ -16,6 +16,29 @@ const TITLE_MAGIC: [u8; 8] = *b"RELTIT01";
 const PRUNED_TURN_MAGIC: [u8; 8] = *b"RELTPR01";
 const MIN_ATTACHMENT_RECORD_LEN: usize = 32 + 32 + 8 + 4 + 1 + 1;
 
+pub(crate) fn archive_record_prefix(prefix: &[u8]) -> bool {
+    if prefix.starts_with(crate::retained::PROJECT_BACKING_PREFIX) {
+        return true;
+    }
+    let Some(magic) = prefix.get(..8) else {
+        return false;
+    };
+    [
+        TURN_MAGIC.as_slice(),
+        FILE_MAGIC.as_slice(),
+        BRANCH_MAGIC.as_slice(),
+        EPISODE_MAGIC.as_slice(),
+        IMPORT_MAGIC.as_slice(),
+        FRAGMENT_DEFINITION_MAGIC.as_slice(),
+        TOMBSTONE_MAGIC.as_slice(),
+        TITLE_MAGIC.as_slice(),
+        PRUNED_TURN_MAGIC.as_slice(),
+        crate::retained::RETAINED_MARKER,
+        crate::PROJECT_CORRELATION_MARKER,
+    ]
+    .contains(&magic)
+}
+
 pub(crate) enum Record<'a> {
     Turn(Node, &'a str, Vec<SourceAttachment>),
     FileBlob(ContentId, &'a [u8]),

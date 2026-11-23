@@ -210,7 +210,17 @@ impl VectorGenerationStore {
         archives: &ArchiveVectorStore,
     ) -> Result<Self, GenerationStoreError> {
         let mut replay = VectorGenerationOpenState::new();
-        let mut cursor = container.physical_cursor()?;
+        let mut cursor = container.matching_physical_cursor(|prefix| {
+            if prefix.starts_with(b"RELPUB") {
+                return match decode_publication(prefix) {
+                    Ok(Some(publication)) => publication.body.starts_with(VERSION_MAGIC),
+                    _ => true,
+                };
+            }
+            prefix.starts_with(FORMAT_MAGIC)
+                || prefix.starts_with(GENERATION_MAGIC)
+                || prefix.starts_with(VERSION_MAGIC)
+        })?;
         while let Some(mut frame) = cursor.next_frame()? {
             let object = frame.object();
             let mut payload = Vec::new();

@@ -13,7 +13,8 @@ pub(super) fn validate_graph_prefix(
     let mut entities = std::collections::BTreeSet::new();
     let mut graph_version = 0;
     let mut memory_head = 0;
-    let mut frames = container.scan_frames()?;
+    let mut frames = container
+        .scan_matching_frames(crate::records::frame_selection::without_archive_publications)?;
     while let Some(frame) = frames.next_frame()? {
         if let Some(frontier) =
             crate::records::dream_frontier::FrontierRecord::decode(frame.payload)

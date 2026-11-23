@@ -1,9 +1,9 @@
 use crate::ArchiveVectorError;
 use crate::{ArchiveFragmentId, ArchiveVectorId, PackedVectorId};
 
-const FORMAT_MAGIC: &[u8; 8] = b"RELAVFM1";
+pub(crate) const FORMAT_MAGIC: &[u8; 8] = b"RELAVFM1";
 const FORMAT_SCHEMA: u32 = 1;
-const OBJECT_MAGIC: &[u8; 8] = b"RELAVEC1";
+pub(crate) const OBJECT_MAGIC: &[u8; 8] = b"RELAVEC1";
 const HEADER: usize = 88;
 
 #[derive(Clone, Debug)]

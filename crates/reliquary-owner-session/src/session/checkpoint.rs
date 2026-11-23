@@ -280,6 +280,7 @@ fn open_leased(
         && suffix::replay(&mut session, &container, &entry.manifest.physical, extent)?
     {
         container.require_extent(extent)?;
+        container.release_replay_directory();
         let refresh = slot
             .filter(|_| writable)
             .map(|slot| WriterCheckpoint::new(slot, prefix, &session));
@@ -290,6 +291,7 @@ fn open_leased(
     }
     let session = RelSession::open_leased_current(&container)?;
     container.require_extent(extent)?;
+    container.release_replay_directory();
 
     let refresh = slot.filter(|_| writable).map(|slot| {
         let mut writer = WriterCheckpoint::new(slot, None, &session);

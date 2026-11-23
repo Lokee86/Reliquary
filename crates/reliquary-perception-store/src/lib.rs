@@ -18,6 +18,26 @@ pub use retained_resolution::{
 const MAGIC: &[u8; 8] = b"RELPER01";
 const ENTITY_TOMBSTONE_MAGIC: &[u8; 8] = b"RELETM01";
 const ENTITY_PRUNE_MAGIC: &[u8; 8] = b"RELEPR01";
+
+fn perception_replay_frame(prefix: &[u8]) -> bool {
+    if prefix.starts_with(b"RELPUB") {
+        return match reliquary_container::decode_publication(prefix) {
+            Ok(Some(publication)) => publication.body.starts_with(b"RELEPB"),
+            _ => true,
+        };
+    }
+    [
+        MAGIC.as_slice(),
+        b"RELEPB",
+        b"RELERH01",
+        b"RELERL01",
+        b"RELRLP01",
+        ENTITY_TOMBSTONE_MAGIC,
+        ENTITY_PRUNE_MAGIC,
+    ]
+    .iter()
+    .any(|marker| prefix.starts_with(*marker))
+}
 pub const MAX_ENTITY_ALIASES: usize = 32;
 pub const MAX_ENTITY_NAME_BYTES: usize = 512;
 pub const MAX_ENTITY_KIND_BYTES: usize = 128;
@@ -591,10 +611,9 @@ impl PerceptionStore {
             mention_versions: BTreeMap::new(),
             retained_resolution: retained_resolution::History::default(),
         };
-        let mut clock = reliquary_container::PhysicalClock::default();
-        let mut frames = container.scan_frames()?;
+        let mut frames = container.scan_clocked_matching_frames(perception_replay_frame)?;
         while let Some(frame) = frames.next_frame()? {
-            let frontier = clock.observe_frame(frame.payload)?;
+            let frontier = frame.global_version;
             if let Some(publication) = clocked_entity_in_frame(frame.payload)? {
                 store.replay_retained_entity(publication)?;
                 continue;

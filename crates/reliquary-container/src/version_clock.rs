@@ -4,6 +4,15 @@ use std::collections::{BTreeMap, BTreeSet};
 const V1: &[u8; 8] = b"RELVERS1";
 const V2: &[u8; 8] = b"RELVERS2";
 
+// Reservation records fit in the scan prefix, and publication clocks depend
+// only on their envelope header and inner marker. Grouped clocks consult
+// later fields or authenticate the entire record.
+pub(super) fn needs_full_payload(prefix: &[u8]) -> bool {
+    prefix.starts_with(b"RELINSC7")
+        || prefix.starts_with(b"RELINSC8")
+        || prefix.starts_with(b"RELXMEM2")
+}
+
 /// A forward replay of the current Container clock in physical frame order.
 pub struct PhysicalClock {
     next_version: u64,

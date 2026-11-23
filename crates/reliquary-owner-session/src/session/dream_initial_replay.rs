@@ -28,7 +28,8 @@ pub(super) fn validate(
     let mut graph = 0;
     let mut community = None;
     let mut generation = 0;
-    let mut frames = container.scan_frames()?;
+    let mut frames = container
+        .scan_matching_frames(crate::records::frame_selection::without_archive_or_packed)?;
     while let Some(frame) = frames.next_frame()? {
         let envelope = reliquary_container::decode_publication(frame.payload)?;
         let payload = envelope.as_ref().map_or(frame.payload, |e| e.body);

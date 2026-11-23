@@ -20,6 +20,20 @@ mod initial_dream;
 
 const MAX_FRAME_BYTES: u64 = 128 * 1024 * 1024;
 
+fn freshness_replay_frame(prefix: &[u8]) -> bool {
+    [
+        POLICY_MAGIC.as_slice(),
+        b"RELFRS",
+        crate::historical_snapshot::MAGIC,
+        crate::RETAINED_FRESHNESS_AUTHORITY_MARKER,
+        b"RELDRF",
+        b"RELINSC7",
+        b"RELINSC8",
+    ]
+    .iter()
+    .any(|marker| prefix.starts_with(*marker))
+}
+
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct FreshnessStore {
     owner_uuid: Option<[u8; 16]>,
@@ -89,17 +103,15 @@ impl FreshnessStore {
         let owner = container.owner_id();
         let mut store = Self::new(Some(owner));
         store.identity = Some(container.identity());
-        let mut cursor = container.physical_cursor().map_err(display_error)?;
-        let mut clock = reliquary_container::PhysicalClock::default();
-        while let Some(mut frame) = cursor.next_frame().map_err(display_error)? {
-            if frame.object().length > MAX_FRAME_BYTES {
-                return Err("Freshness record frame exceeds size limit".into());
-            }
-            let mut payload = Vec::new();
-            frame
-                .read_to_end(&mut payload)
-                .map_err(|error| error.to_string())?;
-            let global_version = clock.observe_frame(&payload).map_err(display_error)?;
+        if container.max_frame_length().map_err(display_error)? > MAX_FRAME_BYTES {
+            return Err("Freshness record frame exceeds size limit".into());
+        }
+        let mut frames = container
+            .scan_clocked_matching_frames(freshness_replay_frame)
+            .map_err(display_error)?;
+        while let Some(frame) = frames.next_frame().map_err(display_error)? {
+            let payload = frame.payload;
+            let global_version = frame.global_version;
             if payload.starts_with(b"RELDRF") {
                 for effect in decode_dream(&payload, &store)? {
                     store.ingest_payload(&effect)?;
