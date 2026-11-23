@@ -6,7 +6,10 @@ use reliquary_perception_store::{
         IdentityCitation, IdentityOutcome, IdentityReason, IdentitySide,
         MAX_IDENTITY_RELATIONSHIPS_PER_SIDE,
     },
-    identity_evidence::{IdentityEvidence, IdentityObservedMemory, IdentityRelationshipEvidence},
+    identity_evidence::{
+        IdentityEntityEvidence, IdentityEvidence, IdentityObservedMemory,
+        IdentityRelationshipEvidence,
+    },
 };
 use reliquary_switchboard::{GeneralEndpoint, GeneralEndpointError};
 use serde_json::{Value, json};
@@ -22,8 +25,9 @@ const IDENTITY_SYSTEM_PROMPT: &str = concat!(
     "are compatible and independent witnesses on both sides affirm the same distinguishing fact ",
     "about the endpoints. Shared names, aliases, generic roles, and merely appearing with the ",
     "same participant do not establish identity. Return related_distinct with reason distinct only ",
-    "for independent positive evidence that distinguishes the referents. Different affiliations, ",
-    "jobs or roles alone can belong to the same person. For affirmative judgments provide ",
+    "when independent place_of_birth witnesses each explicitly name a different city where a ",
+    "person was born. Include the 'born in' assertion in each cited fact. Different contracts, ",
+    "affiliations, jobs or roles can belong to the same person. For affirmative judgments provide ",
     "citations to both sides. Use zero-based Relationship and Memory positions, citing only ",
     "grounded Memories. The fact in each citation must be an exact excerpt from the cited quote ",
     "and name a distinctive non-endpoint participant. For same_identity select the same ",
@@ -192,6 +196,7 @@ fn validate_output(
                 relationship,
                 memory,
                 anchors: distinguishing_names(side, relationship, &words),
+                explicit_birthplace: explicit_birthplace(side, relationship, quote, &words),
                 words,
             });
         }
@@ -216,6 +221,10 @@ fn validate_output(
     {
         return Ok(unresolved(IdentityReason::Conflict, citations));
     }
+    if let Some(conflict) = conflicting_birthplaces(pair, outcome == IdentityOutcome::SameIdentity)
+    {
+        return Ok(unresolved(IdentityReason::Conflict, conflict));
+    }
     let supported = facts.iter().all(|fact| {
         facts
             .iter()
@@ -236,6 +245,7 @@ struct CitedFact<'a> {
     relationship: &'a IdentityRelationshipEvidence,
     memory: &'a IdentityObservedMemory,
     anchors: BTreeSet<Vec<String>>,
+    explicit_birthplace: bool,
     words: Vec<String>,
 }
 
@@ -269,10 +279,98 @@ impl CitedFact<'_> {
                         other.relationship,
                     )
             }
-            IdentityOutcome::RelatedDistinct => disjoint_anchors && self.words != other.words,
+            IdentityOutcome::RelatedDistinct => {
+                self.explicit_birthplace && other.explicit_birthplace && disjoint_anchors
+            }
             IdentityOutcome::Unresolved => false,
         }
     }
+}
+
+/// Recognize a direct birthplace statement at the same granularity on both
+/// sides. The exact subject and city keep mentions, alternatives, and generic
+/// associations from being treated as assertions of a single-valued fact.
+fn explicit_birthplace(
+    side: &IdentityEvidence,
+    relationship: &IdentityRelationshipEvidence,
+    quote: &str,
+    excerpt: &[String],
+) -> bool {
+    if !side.endpoint.kind.eq_ignore_ascii_case("person")
+        || !relationship.kind.eq_ignore_ascii_case("place_of_birth")
+    {
+        return false;
+    }
+    let [first, second] = relationship.participants.as_slice() else {
+        return false;
+    };
+    let city = if first.entity.id == side.endpoint.id {
+        &second.entity
+    } else if second.entity.id == side.endpoint.id {
+        &first.entity
+    } else {
+        return false;
+    };
+    if !city.kind.eq_ignore_ascii_case("city") {
+        return false;
+    }
+    let quote = quote.trim();
+    let assertion = quote.strip_suffix('.').unwrap_or(quote);
+    names(city).any(|city| {
+        let predicate = format!("born in {city}");
+        assertion
+            .strip_suffix(&format!(" was {predicate}"))
+            .is_some_and(|subject| {
+                names(&side.endpoint).any(|name| name.eq_ignore_ascii_case(subject))
+            })
+            && excerpt.ends_with(&words(&predicate))
+    })
+}
+
+fn conflicting_birthplaces(
+    pair: &IdentityPairEvidence,
+    across_owners: bool,
+) -> Option<Vec<IdentityCitation>> {
+    let mut observed: Vec<(IdentityCitation, BTreeSet<Vec<String>>)> = Vec::new();
+    for side in [IdentitySide::Left, IdentitySide::Right] {
+        let evidence = pair.side(side);
+        for (relationship, relation) in evidence.relationships.iter().enumerate() {
+            let Some(quote) = relation.quote.as_deref() else {
+                continue;
+            };
+            let words = words(quote);
+            if !explicit_birthplace(evidence, relation, quote, &words) {
+                continue;
+            }
+            let anchors = distinguishing_names(evidence, relation, &words);
+            let Some(memory) = relation
+                .memories
+                .iter()
+                .position(|m| m.reference.span.is_some())
+            else {
+                continue;
+            };
+            if anchors.is_empty() {
+                continue;
+            }
+            let citation = IdentityCitation {
+                side,
+                relationship: u16::try_from(relationship).ok()?,
+                memory: u16::try_from(memory).ok()?,
+            };
+            if let Some((other, _)) = observed.iter().find(|(other, names)| {
+                (across_owners || other.side == side) && names.is_disjoint(&anchors)
+            }) {
+                return Some(vec![*other, citation]);
+            }
+            observed.push((citation, anchors));
+        }
+    }
+    None
+}
+
+fn names(entity: &IdentityEntityEvidence) -> impl Iterator<Item = &str> {
+    std::iter::once(entity.canonical_name.as_str()).chain(entity.aliases.iter().map(String::as_str))
 }
 
 fn parse_citation(row: &Value) -> Result<IdentityCitation, EntityResolverError> {
@@ -363,9 +461,11 @@ fn distinguishing_names(
         "company",
         "organization",
         "team",
+        "city",
+        "town",
+        "village",
     ];
-    let endpoint_words = std::iter::once(&side.endpoint.canonical_name)
-        .chain(&side.endpoint.aliases)
+    let endpoint_words = names(&side.endpoint)
         .flat_map(|name| words(name))
         .collect::<BTreeSet<_>>();
     let role_words = relationship
@@ -388,9 +488,8 @@ fn distinguishing_names(
         .iter()
         .filter(|p| p.entity.id != side.endpoint.id)
         .flat_map(|p| {
-            let names = std::iter::once(&p.entity.canonical_name)
-                .chain(&p.entity.aliases)
-                .map(|name| words(name))
+            let names = names(&p.entity)
+                .map(words)
                 .filter(|name| distinctive(name))
                 .collect::<Vec<_>>();
             let cited = names

@@ -198,8 +198,19 @@ fn affirmative_answers_require_distinguishing_facts_beyond_generic_roles() {
         evaluate_identity_pair(&same_anchor, &Scripted::reply(distinct.clone())).unwrap();
     assert_eq!(judgment.outcome, IdentityOutcome::Unresolved);
 
-    let birth_register = |owner, registry: &str, place: &str| {
-        let quote = format!("Alex Chen was born in {place} as recorded in {registry}.");
+    let mut harbor_contract = side(2, 2, "Alex Chen signed the Harbor Contract.");
+    harbor_contract.relationships[0].participants[1]
+        .entity
+        .canonical_name = "Harbor Contract".into();
+    distinct["citations"][1]["fact"] = json!("Harbor Contract");
+    let two_contracts = IdentityPairEvidence::new(left.clone(), harbor_contract);
+    let judgment =
+        evaluate_identity_pair(&two_contracts, &Scripted::reply(distinct.clone())).unwrap();
+    assert_eq!(judgment.outcome, IdentityOutcome::Unresolved);
+    assert_eq!(judgment.reason, IdentityReason::Ambiguity);
+
+    let birth_register = |owner, place: &str| {
+        let quote = format!("Alex Chen was born in {place}.");
         let mut evidence = side(owner, owner, &quote);
         evidence.relationships[0].kind = "place_of_birth".into();
         evidence.relationships[0].participants[0].roles = vec!["person".into()];
@@ -212,12 +223,49 @@ fn affirmative_answers_require_distinguishing_facts_beyond_generic_roles() {
     };
     distinct["citations"][0]["fact"] = json!("born in Meridian City");
     distinct["citations"][1]["fact"] = json!("born in Lantern City");
-    let separate_anchors = IdentityPairEvidence::new(
-        birth_register(1, "Register A", "Meridian City"),
-        birth_register(2, "Register B", "Lantern City"),
-    );
-    let judgment = evaluate_identity_pair(&separate_anchors, &Scripted::reply(distinct)).unwrap();
+    let meridian_birth = birth_register(1, "Meridian City");
+    let lantern_birth = birth_register(2, "Lantern City");
+    let separate_anchors = IdentityPairEvidence::new(meridian_birth.clone(), lantern_birth.clone());
+    let judgment =
+        evaluate_identity_pair(&separate_anchors, &Scripted::reply(distinct.clone())).unwrap();
     assert_eq!(judgment.outcome, IdentityOutcome::RelatedDistinct);
+
+    let mut uncertain_birth = lantern_birth.clone();
+    uncertain_birth.relationships[0].quote =
+        Some("Alex Chen might have been born in Lantern City.".into());
+    let uncertain = IdentityPairEvidence::new(meridian_birth.clone(), uncertain_birth);
+    let judgment = evaluate_identity_pair(&uncertain, &Scripted::reply(distinct)).unwrap();
+    assert_eq!(judgment.outcome, IdentityOutcome::Unresolved);
+
+    let with_birth = |mut evidence: IdentityEvidence, mut birth: IdentityEvidence| {
+        let mut relationship = birth.relationships.remove(0);
+        relationship.id = RelationshipId([9; 32]);
+        evidence.relationships.push(relationship);
+        evidence
+    };
+    let conflicting = IdentityPairEvidence::new(
+        with_birth(left, meridian_birth),
+        with_birth(right, lantern_birth),
+    );
+    let judgment =
+        evaluate_identity_pair(&conflicting, &Scripted::reply(answer(CONTRACT))).unwrap();
+    assert_eq!(judgment.outcome, IdentityOutcome::Unresolved);
+    assert_eq!(judgment.reason, IdentityReason::Conflict);
+    assert_eq!(
+        judgment.citations,
+        vec![
+            IdentityCitation {
+                side: IdentitySide::Left,
+                relationship: 1,
+                memory: 0
+            },
+            IdentityCitation {
+                side: IdentitySide::Right,
+                relationship: 1,
+                memory: 0
+            },
+        ]
+    );
 }
 
 #[test]
